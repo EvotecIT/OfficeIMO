@@ -360,12 +360,16 @@ namespace OfficeIMO.Tests {
                 paragraph.AddText(" after");
 
                 Assert.Single(document.HyperLinks);
-                Assert.Single(document._wordprocessingDocument.MainDocumentPart.HyperlinkRelationships);
+                Assert.NotNull(document._wordprocessingDocument);
+                Assert.NotNull(document._wordprocessingDocument!.MainDocumentPart);
+                Assert.Single(document._wordprocessingDocument.MainDocumentPart!.HyperlinkRelationships);
 
                 paragraph.RemoveHyperLink();
 
                 Assert.Empty(document.HyperLinks);
-                Assert.Empty(document._wordprocessingDocument.MainDocumentPart.HyperlinkRelationships);
+                Assert.NotNull(document._wordprocessingDocument);
+                Assert.NotNull(document._wordprocessingDocument!.MainDocumentPart);
+                Assert.Empty(document._wordprocessingDocument.MainDocumentPart!.HyperlinkRelationships);
                 Assert.Equal(2, paragraph._paragraph.ChildElements.OfType<Run>().Count());
 
                 document.Save(false);
@@ -386,16 +390,23 @@ namespace OfficeIMO.Tests {
 
                 var reference = paragraph.Hyperlink;
                 Assert.NotNull(reference);
-                var created = WordHyperLink.CreateFormattedHyperlink(reference!, "Bing", new Uri("https://bing.com"));
+                Assert.NotNull(reference!._runProperties);
+                Assert.NotNull(reference._runProperties!.Color);
+                Assert.NotNull(reference._runProperties.Underline);
+                Assert.NotNull(reference._runProperties.RunStyle);
+
+                var created = WordHyperLink.CreateFormattedHyperlink(reference, "Bing", new Uri("https://bing.com"));
 
                 Assert.Equal("Bing", created.Text);
                 Assert.Equal(new Uri("https://bing.com"), created.Uri);
                 Assert.NotNull(created._runProperties);
-                Assert.NotNull(created._runProperties.Color);
-                Assert.Equal(reference._runProperties.Color.Val, created._runProperties.Color.Val);
+                Assert.NotNull(created._runProperties!.Color);
+                Assert.NotNull(created._runProperties.Underline);
+                Assert.NotNull(created._runProperties.RunStyle);
+                Assert.Equal(reference._runProperties.Color!.Val, created._runProperties.Color!.Val);
                 Assert.Equal(reference._runProperties.Color.ThemeColor, created._runProperties.Color.ThemeColor);
-                Assert.Equal(reference._runProperties.Underline.Val, created._runProperties.Underline.Val);
-                Assert.Equal(reference._runProperties.RunStyle.Val, created._runProperties.RunStyle.Val);
+                Assert.Equal(reference._runProperties.Underline!.Val, created._runProperties.Underline!.Val);
+                Assert.Equal(reference._runProperties.RunStyle!.Val, created._runProperties.RunStyle!.Val);
                 Assert.Equal(2, paragraph._paragraph.Elements<Hyperlink>().Count());
 
                 document.Save(false);
@@ -496,15 +507,20 @@ namespace OfficeIMO.Tests {
                 refPara.Bold = true;
                 var reference = refPara.Hyperlink;
                 Assert.NotNull(reference);
+                Assert.NotNull(reference!._runProperties);
+                Assert.NotNull(reference._runProperties!.Color);
+                Assert.NotNull(reference._runProperties.Underline);
 
                 paragraph.AddHyperLink("Bing", new Uri("https://bing.com"));
                 var target = paragraph.Hyperlink;
                 Assert.NotNull(target);
-                target!.CopyFormattingFrom(reference!);
+                target!.CopyFormattingFrom(reference);
 
                 Assert.NotNull(target._runProperties);
-                Assert.Equal(reference._runProperties.Color.Val, target._runProperties.Color.Val);
-                Assert.Equal(reference._runProperties.Underline.Val, target._runProperties.Underline.Val);
+                Assert.NotNull(target._runProperties!.Color);
+                Assert.NotNull(target._runProperties.Underline);
+                Assert.Equal(reference._runProperties.Color!.Val, target._runProperties.Color!.Val);
+                Assert.Equal(reference._runProperties.Underline!.Val, target._runProperties.Underline!.Val);
 
                 document.Save(false);
             }

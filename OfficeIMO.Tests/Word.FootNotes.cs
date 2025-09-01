@@ -44,20 +44,22 @@ namespace OfficeIMO.Tests {
 
                 var footNote = lastFootNoteParagraph.FootNote;
                 Assert.NotNull(footNote);
-                var footNoteParagraphs = footNote.Paragraphs;
+                var footNoteParagraphs = footNote!.Paragraphs;
+                Assert.NotNull(footNoteParagraphs);
 
-                Assert.True(footNoteParagraphs.Count == 2);
+                Assert.True(footNoteParagraphs!.Count == 2);
 
                 Assert.NotNull(footNote.ParentParagraph);
-                Assert.True(footNote.ParentParagraph.Text == " more within paragraph");
+                Assert.True(footNote.ParentParagraph!.Text == " more within paragraph");
                 Assert.True(footNoteParagraphs[1].Text == "4th footnote!");
 
 
                 var thirdFootNote = document.FootNotes[3];
                 Assert.NotNull(thirdFootNote.ParentParagraph);
-                Assert.True(thirdFootNote.ParentParagraph.Text == " more within paragraph");
+                Assert.True(thirdFootNote.ParentParagraph!.Text == " more within paragraph");
                 var thirdFootNoteParagraphs = thirdFootNote.Paragraphs;
-                Assert.True(thirdFootNoteParagraphs[1].Text == "4th footnote!");
+                Assert.NotNull(thirdFootNoteParagraphs);
+                Assert.True(thirdFootNoteParagraphs![1].Text == "4th footnote!");
 
                 Assert.True(thirdFootNoteParagraphs[1].Bold == false);
 

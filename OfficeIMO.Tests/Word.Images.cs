@@ -24,33 +24,37 @@ namespace OfficeIMO.Tests {
 
             // lets add image to paragraph
             paragraph.AddImage(Path.Combine(_directoryWithImages, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22);
-            Assert.True(paragraph.Image.WrapText == WrapTextImage.InLineWithText);
+            var paragraphImage = paragraph.Image;
+            Assert.NotNull(paragraphImage);
+            Assert.True(paragraphImage!.WrapText == WrapTextImage.InLineWithText);
 
-            paragraph.Image.WrapText = WrapTextImage.BehindText;
+            paragraphImage.WrapText = WrapTextImage.BehindText;
 
-            Assert.True(paragraph.Image.WrapText == WrapTextImage.BehindText);
+            Assert.True(paragraphImage.WrapText == WrapTextImage.BehindText);
 
-            paragraph.Image.WrapText = WrapTextImage.InLineWithText;
+            paragraphImage.WrapText = WrapTextImage.InLineWithText;
 
-            Assert.True(paragraph.Image.WrapText == WrapTextImage.InLineWithText);
+            Assert.True(paragraphImage.WrapText == WrapTextImage.InLineWithText);
 
             var paragraph5 = paragraph.AddText("and more text");
             paragraph5.Bold = true;
 
-            Assert.Equal(22d, paragraph.Image.Height ?? default, 15);
-            Assert.Equal(22d, paragraph.Image.Width ?? default, 15);
+            Assert.Equal(22d, paragraphImage.Height ?? default, 15);
+            Assert.Equal(22d, paragraphImage.Width ?? default, 15);
 
             document.AddParagraph("This adds another picture with 500x500");
 
             var filePathImage = Path.Combine(_directoryWithImages, "Kulek.jpg");
             var paragraph2 = document.AddParagraph();
             paragraph2.AddImage(filePathImage, 500, 500);
-            //paragraph2.Image.BlackWiteMode = BlackWhiteModeValues.GrayWhite;
-            paragraph2.Image.Rotation = 180;
-            paragraph2.Image.Shape = ShapeTypeValues.ActionButtonMovie;
+            var paragraph2Image = paragraph2.Image;
+            Assert.NotNull(paragraph2Image);
+            //paragraph2Image.BlackWiteMode = BlackWhiteModeValues.GrayWhite;
+            paragraph2Image!.Rotation = 180;
+            paragraph2Image.Shape = ShapeTypeValues.ActionButtonMovie;
 
-            Assert.Equal(500d, paragraph2.Image.Height ?? default, 15);
-            Assert.Equal(500d, paragraph2.Image.Width ?? default, 15);
+            Assert.Equal(500d, paragraph2Image.Height ?? default, 15);
+            Assert.Equal(500d, paragraph2Image.Width ?? default, 15);
 
             document.AddParagraph("This adds another picture with 100x100");
 
@@ -60,26 +64,30 @@ namespace OfficeIMO.Tests {
             // we add paragraph with an image
             var paragraph4 = document.AddParagraph();
             paragraph4.AddImage(filePathImage);
+            var paragraph4Image = paragraph4.Image;
+            Assert.NotNull(paragraph4Image);
 
             // we can also overwrite height later on
-            paragraph4.Image.Height = 50;
-            paragraph4.Image.Width = 50;
+            paragraph4Image!.Height = 50;
+            paragraph4Image.Width = 50;
             // this doesn't work
-            paragraph4.Image.HorizontalFlip = true;
+            paragraph4Image.HorizontalFlip = true;
 
 
-            Assert.Equal(50d, paragraph4.Image.Height ?? default, 15);
-            Assert.Equal(50d, paragraph4.Image.Width ?? default, 15);
+            Assert.Equal(50d, paragraph4Image.Height ?? default, 15);
+            Assert.Equal(50d, paragraph4Image.Width ?? default, 15);
 
             // or we can get any image and overwrite it's size
-            document.Images[0].Height = 200;
-            document.Images[0].Width = 200;
+            var firstImage = document.Images[0];
+            Assert.NotNull(firstImage);
+            firstImage!.Height = 200;
+            firstImage.Width = 200;
 
-            Assert.Equal(200d, document.Images[0].Height ?? default, 15);
-            Assert.Equal(200d, document.Images[0].Width ?? default, 15);
+            Assert.Equal(200d, firstImage.Height ?? default, 15);
+            Assert.Equal(200d, firstImage.Width ?? default, 15);
 
             var fileToSave = Path.Combine(_directoryDocuments, "CreatedDocumentWithImagesPrzemyslawKlysAndKulkozaurr.jpg");
-            document.Images[0].SaveToFile(fileToSave);
+            firstImage.SaveToFile(fileToSave);
 
             var fileInfo = new FileInfo(fileToSave);
 
@@ -150,7 +158,9 @@ namespace OfficeIMO.Tests {
             var paragraphHeader = document.Header.Even.AddParagraph();
             using (var imageStream = System.IO.File.OpenRead(filePathImageEvotec)) {
                 paragraphHeader.AddImage(imageStream, fileNameImageEvotec, 300, 300, WrapTextImage.InLineWithText, "This is a test");
-                Assert.True(paragraphHeader.Image.CompressionQuality == BlipCompressionValues.Print);
+                var headerImage = paragraphHeader.Image;
+                Assert.NotNull(headerImage);
+                Assert.True(headerImage!.CompressionQuality == BlipCompressionValues.Print);
             }
 
             Assert.True(document.Header.Default.Images.Count == 1);
@@ -158,16 +168,18 @@ namespace OfficeIMO.Tests {
             Assert.True(document.Header.Even.Images[0].FileName == fileNameImageEvotec);
             Assert.True(document.Header.Even.Images[0].Description == "This is a test");
 
-            document.Header.Even.Images[0].Description = "Different description";
-            Assert.True(document.Header.Even.Images[0].VerticalFlip == null);
-            Assert.True(document.Header.Even.Images[0].HorizontalFlip == null);
-            document.Header.Even.Images[0].VerticalFlip = true;
+            var headerEvenImage = document.Header.Even.Images[0];
+            Assert.NotNull(headerEvenImage);
+            headerEvenImage!.Description = "Different description";
+            Assert.True(headerEvenImage.VerticalFlip == null);
+            Assert.True(headerEvenImage.HorizontalFlip == null);
+            headerEvenImage.VerticalFlip = true;
 
-            Assert.True(document.Header.Even.Images[0].Description == "Different description");
-            Assert.True(document.Header.Even.Images[0].VerticalFlip == true);
-            Assert.True(document.Header.Even.Images[0].CompressionQuality == BlipCompressionValues.Print);
-            document.Header.Even.Images[0].CompressionQuality = BlipCompressionValues.HighQualityPrint;
-            Assert.True(document.Header.Even.Images[0].CompressionQuality == BlipCompressionValues.HighQualityPrint);
+            Assert.True(headerEvenImage.Description == "Different description");
+            Assert.True(headerEvenImage.VerticalFlip == true);
+            Assert.True(headerEvenImage.CompressionQuality == BlipCompressionValues.Print);
+            headerEvenImage.CompressionQuality = BlipCompressionValues.HighQualityPrint;
+            Assert.True(headerEvenImage.CompressionQuality == BlipCompressionValues.HighQualityPrint);
 
             document.Save();
         }
@@ -216,9 +228,11 @@ namespace OfficeIMO.Tests {
 
             var paragraph2 = document.AddParagraph("This is a test document with images wraps");
             paragraph2.AddImage(filePathImage, 100, 100, WrapTextImage.BehindText);
-            Assert.True(paragraph2.Image.CompressionQuality == BlipCompressionValues.Print);
-            paragraph2.Image.CompressionQuality = BlipCompressionValues.HighQualityPrint;
-            Assert.True(paragraph2.Image.CompressionQuality == BlipCompressionValues.HighQualityPrint);
+            var paragraph2Image = paragraph2.Image;
+            Assert.NotNull(paragraph2Image);
+            Assert.True(paragraph2Image!.CompressionQuality == BlipCompressionValues.Print);
+            paragraph2Image.CompressionQuality = BlipCompressionValues.HighQualityPrint;
+            Assert.True(paragraph2Image.CompressionQuality == BlipCompressionValues.HighQualityPrint);
 
             var paragraph3 = document.AddParagraph("This is a test document with images wraps");
             paragraph3.AddImage(filePathImage, 100, 100, WrapTextImage.InFrontOfText);
@@ -236,13 +250,20 @@ namespace OfficeIMO.Tests {
             paragraph7.AddImage(filePathImage, 100, 100, WrapTextImage.Through);
 
             Assert.True(document.Paragraphs.Count == 7);
-            Assert.True(document.Paragraphs[0].Image.WrapText == WrapTextImage.InLineWithText);
-            Assert.True(document.Paragraphs[1].Image.WrapText == WrapTextImage.BehindText);
-            Assert.True(document.Paragraphs[2].Image.WrapText == WrapTextImage.InFrontOfText);
-            Assert.True(document.Paragraphs[3].Image.WrapText == WrapTextImage.TopAndBottom);
-            Assert.True(document.Paragraphs[4].Image.WrapText == WrapTextImage.Square);
-            Assert.True(document.Paragraphs[5].Image.WrapText == WrapTextImage.Tight);
-            Assert.True(document.Paragraphs[6].Image.WrapText == WrapTextImage.Through);
+            Assert.NotNull(document.Paragraphs[0].Image);
+            Assert.True(document.Paragraphs[0].Image!.WrapText == WrapTextImage.InLineWithText);
+            Assert.NotNull(document.Paragraphs[1].Image);
+            Assert.True(document.Paragraphs[1].Image!.WrapText == WrapTextImage.BehindText);
+            Assert.NotNull(document.Paragraphs[2].Image);
+            Assert.True(document.Paragraphs[2].Image!.WrapText == WrapTextImage.InFrontOfText);
+            Assert.NotNull(document.Paragraphs[3].Image);
+            Assert.True(document.Paragraphs[3].Image!.WrapText == WrapTextImage.TopAndBottom);
+            Assert.NotNull(document.Paragraphs[4].Image);
+            Assert.True(document.Paragraphs[4].Image!.WrapText == WrapTextImage.Square);
+            Assert.NotNull(document.Paragraphs[5].Image);
+            Assert.True(document.Paragraphs[5].Image!.WrapText == WrapTextImage.Tight);
+            Assert.NotNull(document.Paragraphs[6].Image);
+            Assert.True(document.Paragraphs[6].Image!.WrapText == WrapTextImage.Through);
 
             document.Save(false);
 
@@ -265,10 +286,14 @@ namespace OfficeIMO.Tests {
             paragraph2.AddImage(filePathImage, 100, 100, WrapTextImage.Square);
 
             Assert.True(document.Paragraphs.Count == 2);
-            Assert.True(document.Paragraphs[0].Image.WrapText == WrapTextImage.InLineWithText);
-            Assert.True(document.Paragraphs[1].Image.WrapText == WrapTextImage.Square);
-            Assert.Throws<System.InvalidOperationException>(() => document.Paragraphs[0].Image.horizontalPosition);
-            Assert.Throws<System.InvalidOperationException>(() => document.Paragraphs[0].Image.verticalPosition);
+            var firstParaImage = document.Paragraphs[0].Image;
+            var secondParaImage = document.Paragraphs[1].Image;
+            Assert.NotNull(firstParaImage);
+            Assert.True(firstParaImage!.WrapText == WrapTextImage.InLineWithText);
+            Assert.NotNull(secondParaImage);
+            Assert.True(secondParaImage!.WrapText == WrapTextImage.Square);
+            Assert.Throws<System.InvalidOperationException>(() => firstParaImage.horizontalPosition);
+            Assert.Throws<System.InvalidOperationException>(() => firstParaImage.verticalPosition);
 
             int emus = 914400;
             HorizontalRelativePositionValues hRelativeFromGood = HorizontalRelativePositionValues.RightMargin;
@@ -286,25 +311,25 @@ namespace OfficeIMO.Tests {
                 PositionOffset = new PositionOffset { Text = $"{emus}" }
             };
 
-            Assert.Throws<System.InvalidOperationException>(() => document.Paragraphs[0].Image.horizontalPosition = horizontalPosition1);
-            Assert.Throws<System.InvalidOperationException>(() => document.Paragraphs[0].Image.verticalPosition = verticalPosition1);
+            Assert.Throws<System.InvalidOperationException>(() => firstParaImage.horizontalPosition = horizontalPosition1);
+            Assert.Throws<System.InvalidOperationException>(() => firstParaImage.verticalPosition = verticalPosition1);
 
             PositionOffset positionOffsetGood = new PositionOffset { Text = $"{emus}" };
             PositionOffset positionOffsetFail = new PositionOffset { Text = $"{2 * emus}" };
             Assert.NotEqual(positionOffsetFail.Text, positionOffsetGood.Text);
 
-            document.Paragraphs[1].Image.horizontalPosition = horizontalPosition1;
-            Assert.Equal(positionOffsetGood.Text, document.Paragraphs[1].Image.horizontalPosition.PositionOffset.Text);
-            Assert.NotEqual(positionOffsetFail.Text, document.Paragraphs[1].Image.horizontalPosition.PositionOffset.Text);
-            Assert.Equal(hRelativeFromGood, document.Paragraphs[1].Image.horizontalPosition.RelativeFrom?.Value ?? default);
-            Assert.NotEqual(hRelativeFromFail, document.Paragraphs[1].Image.horizontalPosition.RelativeFrom?.Value ?? default);
+            secondParaImage.horizontalPosition = horizontalPosition1;
+            Assert.Equal(positionOffsetGood.Text, secondParaImage.horizontalPosition.PositionOffset.Text);
+            Assert.NotEqual(positionOffsetFail.Text, secondParaImage.horizontalPosition.PositionOffset.Text);
+            Assert.Equal(hRelativeFromGood, secondParaImage.horizontalPosition.RelativeFrom?.Value ?? default);
+            Assert.NotEqual(hRelativeFromFail, secondParaImage.horizontalPosition.RelativeFrom?.Value ?? default);
 
 
-            document.Paragraphs[1].Image.verticalPosition = verticalPosition1;
-            Assert.Equal(positionOffsetGood.Text, document.Paragraphs[1].Image.verticalPosition.PositionOffset.Text);
-            Assert.NotEqual(positionOffsetFail.Text, document.Paragraphs[1].Image.verticalPosition.PositionOffset.Text);
-            Assert.Equal(vRelativeFromGood, document.Paragraphs[1].Image.verticalPosition.RelativeFrom?.Value ?? default);
-            Assert.NotEqual(vRelativeFromFail, document.Paragraphs[1].Image.verticalPosition.RelativeFrom?.Value ?? default);
+            secondParaImage.verticalPosition = verticalPosition1;
+            Assert.Equal(positionOffsetGood.Text, secondParaImage.verticalPosition.PositionOffset.Text);
+            Assert.NotEqual(positionOffsetFail.Text, secondParaImage.verticalPosition.PositionOffset.Text);
+            Assert.Equal(vRelativeFromGood, secondParaImage.verticalPosition.RelativeFrom?.Value ?? default);
+            Assert.NotEqual(vRelativeFromFail, secondParaImage.verticalPosition.RelativeFrom?.Value ?? default);
 
             document.Save(false);
 
@@ -360,11 +385,13 @@ namespace OfficeIMO.Tests {
 
             Assert.True(document.Images[0].WrapText == WrapTextImage.InLineWithText);
 
-            Assert.True(imageParagraph.Image.WrapText == WrapTextImage.InLineWithText);
+            var inlineImage = imageParagraph.Image;
+            Assert.NotNull(inlineImage);
+            Assert.True(inlineImage!.WrapText == WrapTextImage.InLineWithText);
 
-            imageParagraph.Image.WrapText = WrapTextImage.Square;
+            inlineImage.WrapText = WrapTextImage.Square;
 
-            Assert.True(imageParagraph.Image.WrapText == WrapTextImage.Square);
+            Assert.True(inlineImage.WrapText == WrapTextImage.Square);
 
             var paragraph5 = paragraph.AddText("and more text");
             paragraph5.Bold = true;
@@ -397,7 +424,9 @@ namespace OfficeIMO.Tests {
 
             var paragraph = document.AddParagraph();
             paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
-            paragraph.Image.Transparency = 25;
+            var image = paragraph.Image;
+            Assert.NotNull(image);
+            image!.Transparency = 25;
 
             document.Save(false);
 
@@ -406,9 +435,10 @@ namespace OfficeIMO.Tests {
             }
 
             using (var doc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(filePath, false)) {
-                var blip = doc.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().First();
+                Assert.NotNull(doc.MainDocumentPart);
+                var blip = doc.MainDocumentPart!.Document.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().First();
                 var alpha = blip.GetFirstChild<DocumentFormat.OpenXml.Drawing.AlphaModulationFixed>();
-                Assert.Equal(75000, alpha.Amount?.Value ?? default);
+                Assert.Equal(75000, alpha?.Amount?.Value ?? default);
             }
         }
 
@@ -419,7 +449,9 @@ namespace OfficeIMO.Tests {
 
             var paragraph = document.AddParagraph();
             paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
-            paragraph.Image.Transparency = 50;
+            var image = paragraph.Image;
+            Assert.NotNull(image);
+            image!.Transparency = 50;
 
             document.Save(false);
 
@@ -428,9 +460,10 @@ namespace OfficeIMO.Tests {
             }
 
             using (var doc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(filePath, false)) {
-                var blip = doc.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().First();
+                Assert.NotNull(doc.MainDocumentPart);
+                var blip = doc.MainDocumentPart!.Document.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().First();
                 var alpha = blip.GetFirstChild<DocumentFormat.OpenXml.Drawing.AlphaModulationFixed>();
-                Assert.Equal(50000, alpha.Amount?.Value ?? default);
+                Assert.Equal(50000, alpha?.Amount?.Value ?? default);
             }
         }
 
@@ -449,7 +482,8 @@ namespace OfficeIMO.Tests {
             }
 
             using (var doc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(filePath, false)) {
-                var blip = doc.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().First();
+                Assert.NotNull(doc.MainDocumentPart);
+                var blip = doc.MainDocumentPart!.Document.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().First();
                 var alpha = blip.GetFirstChild<DocumentFormat.OpenXml.Drawing.AlphaModulationFixed>();
                 Assert.Null(alpha);
             }
@@ -459,13 +493,15 @@ namespace OfficeIMO.Tests {
         public void Test_ImageCropping() {
             var filePath = Path.Combine(_directoryWithFiles, "DocumentImageCrop.docx");
             using (var document = WordDocument.Create(filePath)) {
-                var paragraph = document.AddParagraph();
-                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 100);
+            var paragraph = document.AddParagraph();
+            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 100);
+            var image = paragraph.Image;
+            Assert.NotNull(image);
 
-                paragraph.Image.CropTopCentimeters = 1;
-                paragraph.Image.CropBottomCentimeters = 2;
-                paragraph.Image.CropLeftCentimeters = 3;
-                paragraph.Image.CropRightCentimeters = 4;
+            image!.CropTopCentimeters = 1;
+            image.CropBottomCentimeters = 2;
+            image.CropLeftCentimeters = 3;
+            image.CropRightCentimeters = 4;
 
                 document.Save(false);
             }
@@ -484,8 +520,10 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph();
                 paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
-                paragraph.Image.FillMode = ImageFillMode.Tile;
-                paragraph.Image.UseLocalDpi = true;
+                var image = paragraph.Image;
+                Assert.NotNull(image);
+                image!.FillMode = ImageFillMode.Tile;
+                image.UseLocalDpi = true;
                 document.Save(false);
             }
 
@@ -495,10 +533,12 @@ namespace OfficeIMO.Tests {
             }
 
             using (var pkg = WordprocessingDocument.Open(filePath, false)) {
-                var blipFill = pkg.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
+                Assert.NotNull(pkg.MainDocumentPart);
+                var blipFill = pkg.MainDocumentPart!.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
                 Assert.NotNull(blipFill.GetFirstChild<DocumentFormat.OpenXml.Drawing.Tile>());
                 var blip = blipFill.Blip;
-                var ext = blip.GetFirstChild<BlipExtensionList>()?.OfType<BlipExtension>().FirstOrDefault(e => e.Uri == "{28A0092B-C50C-407E-A947-70E740481C1C}");
+                Assert.NotNull(blip);
+                var ext = blip!.GetFirstChild<BlipExtensionList>()?.OfType<BlipExtension>().FirstOrDefault(e => e.Uri == "{28A0092B-C50C-407E-A947-70E740481C1C}");
                 Assert.NotNull(ext?.GetFirstChild<DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi>());
             }
         }
@@ -509,7 +549,9 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph();
                 paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 50);
-                paragraph.Image.FillMode = ImageFillMode.Fit;
+                var image = paragraph.Image;
+                Assert.NotNull(image);
+                image!.FillMode = ImageFillMode.Fit;
                 document.Save(false);
             }
 
@@ -518,7 +560,8 @@ namespace OfficeIMO.Tests {
             }
 
             using (var pkg = WordprocessingDocument.Open(filePath, false)) {
-                var blipFill = pkg.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
+                Assert.NotNull(pkg.MainDocumentPart);
+                var blipFill = pkg.MainDocumentPart!.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
                 var stretch = blipFill.GetFirstChild<DocumentFormat.OpenXml.Drawing.Stretch>();
                 Assert.NotNull(stretch);
                 Assert.Null(stretch.GetFirstChild<DocumentFormat.OpenXml.Drawing.FillRectangle>());
@@ -532,7 +575,9 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph();
                 paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 50);
-                paragraph.Image.FillMode = ImageFillMode.Center;
+                var image = paragraph.Image;
+                Assert.NotNull(image);
+                image!.FillMode = ImageFillMode.Center;
                 document.Save(false);
             }
 
@@ -541,7 +586,8 @@ namespace OfficeIMO.Tests {
             }
 
             using (var pkg = WordprocessingDocument.Open(filePath, false)) {
-                var blipFill = pkg.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
+                Assert.NotNull(pkg.MainDocumentPart);
+                var blipFill = pkg.MainDocumentPart!.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.BlipFill>().First();
                 var tile = blipFill.GetFirstChild<DocumentFormat.OpenXml.Drawing.Tile>();
                 Assert.NotNull(tile);
                 Assert.Equal(RectangleAlignmentValues.Center, tile.Alignment?.Value ?? default);
@@ -555,17 +601,20 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph();
                 paragraph.AddImage(new Uri("http://example.com/image.png"), 50, 50);
                 Assert.Single(document.Images);
-                Assert.True(document.Images[0].IsExternal);
-                Assert.Equal(new Uri("http://example.com/image.png"), document.Images[0].ExternalUri);
-                Assert.Throws<InvalidOperationException>(() => document.Images[0].SaveToFile("tmp.png"));
-                document.Images[0].Remove();
+                var extImage = document.Images[0];
+                Assert.NotNull(extImage);
+                Assert.True(extImage!.IsExternal);
+                Assert.Equal(new Uri("http://example.com/image.png"), extImage.ExternalUri);
+                Assert.Throws<InvalidOperationException>(() => extImage.SaveToFile("tmp.png"));
+                extImage.Remove();
                 Assert.Empty(document.Images);
                 document.Save(false);
             }
 
             using (var pkg = WordprocessingDocument.Open(filePath, false)) {
                 // ensure document opens correctly after removing the external image
-                Assert.NotNull(pkg.MainDocumentPart.Document);
+                Assert.NotNull(pkg.MainDocumentPart);
+                Assert.NotNull(pkg.MainDocumentPart!.Document);
             }
         }
 
@@ -575,23 +624,27 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph();
                 paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
-                paragraph.Image.Title = "MyTitle";
-                paragraph.Image.Hidden = true;
-                paragraph.Image.PreferRelativeResize = true;
-                paragraph.Image.NoChangeAspect = true;
-                paragraph.Image.FixedOpacity = 80;
+                var image = paragraph.Image;
+                Assert.NotNull(image);
+                image!.Title = "MyTitle";
+                image.Hidden = true;
+                image.PreferRelativeResize = true;
+                image.NoChangeAspect = true;
+                image.FixedOpacity = 80;
                 document.Save(false);
             }
 
             using (var pkg = WordprocessingDocument.Open(filePath, false)) {
-                var pic = pkg.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().First();
+                Assert.NotNull(pkg.MainDocumentPart);
+                var pic = pkg.MainDocumentPart!.Document.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().First();
                 var nv = pic.NonVisualPictureProperties;
-                Assert.Equal("MyTitle", nv.NonVisualDrawingProperties?.Title);
-                Assert.True(nv.NonVisualDrawingProperties?.Hidden == true);
-                Assert.True(nv.NonVisualPictureDrawingProperties?.PreferRelativeResize == true);
-                Assert.True(nv.NonVisualPictureDrawingProperties?.PictureLocks?.NoChangeAspect == true);
-                var ar = pic.BlipFill.Blip.GetFirstChild<DocumentFormat.OpenXml.Drawing.AlphaReplace>();
-                Assert.Equal(80000, ar.Alpha?.Value ?? default);
+                Assert.NotNull(nv);
+                Assert.Equal("MyTitle", nv!.NonVisualDrawingProperties?.Title);
+                Assert.True(nv.NonVisualDrawingProperties?.Hidden?.Value ?? false);
+                Assert.True(nv.NonVisualPictureDrawingProperties?.PreferRelativeResize?.Value ?? false);
+                Assert.True(nv.NonVisualPictureDrawingProperties?.PictureLocks?.NoChangeAspect?.Value ?? false);
+                var ar = pic.BlipFill?.Blip?.GetFirstChild<DocumentFormat.OpenXml.Drawing.AlphaReplace>();
+                Assert.Equal(80000, ar?.Alpha?.Value ?? default);
             }
         }
 
@@ -602,7 +655,8 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph();
                 paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
                 var img = paragraph.Image;
-                img.AlphaInversionColor = SixLabors.ImageSharp.Color.Red;
+                Assert.NotNull(img);
+                img!.AlphaInversionColor = SixLabors.ImageSharp.Color.Red;
                 img.BlackWhiteThreshold = 60;
                 img.BlurRadius = 2000;
                 img.BlurGrow = true;
