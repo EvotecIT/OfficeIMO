@@ -27,15 +27,20 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Equal(NumberFormatValues.LowerRoman, document.Sections[0].FootnoteProperties.NumberingFormat.Val.Value);
-                Assert.Equal(FootnotePositionValues.PageBottom, document.Sections[0].FootnoteProperties.FootnotePosition.Val.Value);
-                Assert.Equal(RestartNumberValues.EachSection, document.Sections[0].FootnoteProperties.NumberingRestart.Val.Value);
-                Assert.Equal(5, document.Sections[0].FootnoteProperties.NumberingStart.Val.Value);
+                var section = document.Sections[0];
+                var footProps = section.FootnoteProperties;
+                Assert.NotNull(footProps);
+                Assert.Equal(NumberFormatValues.LowerRoman, footProps!.NumberingFormat!.Val!.Value);
+                Assert.Equal(FootnotePositionValues.PageBottom, footProps.FootnotePosition!.Val!.Value);
+                Assert.Equal(RestartNumberValues.EachSection, footProps.NumberingRestart!.Val!.Value);
+                Assert.Equal(5, footProps.NumberingStart!.Val!.Value);
 
-                Assert.Equal(NumberFormatValues.Decimal, document.Sections[0].EndnoteProperties.NumberingFormat.Val.Value);
-                Assert.Equal(EndnotePositionValues.SectionEnd, document.Sections[0].EndnoteProperties.EndnotePosition.Val.Value);
-                Assert.Equal(RestartNumberValues.EachSection, document.Sections[0].EndnoteProperties.NumberingRestart.Val.Value);
-                Assert.Equal(5, document.Sections[0].EndnoteProperties.NumberingStart.Val.Value);
+                var endProps = section.EndnoteProperties;
+                Assert.NotNull(endProps);
+                Assert.Equal(NumberFormatValues.Decimal, endProps!.NumberingFormat!.Val!.Value);
+                Assert.Equal(EndnotePositionValues.SectionEnd, endProps.EndnotePosition!.Val!.Value);
+                Assert.Equal(RestartNumberValues.EachSection, endProps.NumberingRestart!.Val!.Value);
+                Assert.Equal(5, endProps.NumberingStart!.Val!.Value);
             }
         }
     }

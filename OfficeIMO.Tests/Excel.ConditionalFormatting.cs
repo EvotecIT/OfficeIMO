@@ -21,13 +21,14 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
-                ConditionalFormatting cf = wsPart.Worksheet.Elements<ConditionalFormatting>().FirstOrDefault();
+                var workbookPart = spreadsheet.WorkbookPart!;
+                WorksheetPart wsPart = workbookPart.WorksheetParts.First();
+                ConditionalFormatting? cf = wsPart.Worksheet.Elements<ConditionalFormatting>().FirstOrDefault();
                 Assert.NotNull(cf);
-                Assert.Equal("A1:A2", cf.SequenceOfReferences.InnerText);
+                Assert.Equal("A1:A2", cf!.SequenceOfReferences!.InnerText);
                 ConditionalFormattingRule rule = cf.Elements<ConditionalFormattingRule>().First();
-                Assert.Equal(ConditionalFormatValues.CellIs, rule.Type.Value);
-                Assert.Equal(ConditionalFormattingOperatorValues.GreaterThan, rule.Operator.Value);
+                Assert.Equal(ConditionalFormatValues.CellIs, rule.Type!.Value);
+                Assert.Equal(ConditionalFormattingOperatorValues.GreaterThan, rule.Operator!.Value);
                 Assert.Equal("10", rule.Elements<Formula>().First().Text);
             }
         }
@@ -45,16 +46,17 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
-                ConditionalFormatting cf = wsPart.Worksheet.Elements<ConditionalFormatting>().FirstOrDefault();
+                var workbookPart = spreadsheet.WorkbookPart!;
+                WorksheetPart wsPart = workbookPart.WorksheetParts.First();
+                ConditionalFormatting? cf = wsPart.Worksheet.Elements<ConditionalFormatting>().FirstOrDefault();
                 Assert.NotNull(cf);
-                ConditionalFormattingRule rule = cf.Elements<ConditionalFormattingRule>().First();
-                Assert.Equal(ConditionalFormatValues.ColorScale, rule.Type.Value);
-                ColorScale colorScale = rule.GetFirstChild<ColorScale>();
+                ConditionalFormattingRule rule = cf!.Elements<ConditionalFormattingRule>().First();
+                Assert.Equal(ConditionalFormatValues.ColorScale, rule.Type!.Value);
+                ColorScale? colorScale = rule.GetFirstChild<ColorScale>();
                 Assert.NotNull(colorScale);
-                var colors = colorScale.Elements<DocumentFormat.OpenXml.Spreadsheet.Color>().ToList();
-                Assert.Equal("FFFF0000", colors[0].Rgb.Value);
-                Assert.Equal("FF00FF00", colors[1].Rgb.Value);
+                var colors = colorScale!.Elements<DocumentFormat.OpenXml.Spreadsheet.Color>().ToList();
+                Assert.Equal("FFFF0000", colors[0].Rgb!.Value);
+                Assert.Equal("FF00FF00", colors[1].Rgb!.Value);
             }
         }
 
@@ -71,15 +73,16 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
-                ConditionalFormatting cf = wsPart.Worksheet.Elements<ConditionalFormatting>().FirstOrDefault();
+                var workbookPart = spreadsheet.WorkbookPart!;
+                WorksheetPart wsPart = workbookPart.WorksheetParts.First();
+                ConditionalFormatting? cf = wsPart.Worksheet.Elements<ConditionalFormatting>().FirstOrDefault();
                 Assert.NotNull(cf);
-                ConditionalFormattingRule rule = cf.Elements<ConditionalFormattingRule>().First();
-                Assert.Equal(ConditionalFormatValues.DataBar, rule.Type.Value);
-                DataBar dataBar = rule.GetFirstChild<DataBar>();
+                ConditionalFormattingRule rule = cf!.Elements<ConditionalFormattingRule>().First();
+                Assert.Equal(ConditionalFormatValues.DataBar, rule.Type!.Value);
+                DataBar? dataBar = rule.GetFirstChild<DataBar>();
                 Assert.NotNull(dataBar);
-                var color = dataBar.Elements<DocumentFormat.OpenXml.Spreadsheet.Color>().First();
-                Assert.Equal("FF0000FF", color.Rgb.Value);
+                var color = dataBar!.Elements<DocumentFormat.OpenXml.Spreadsheet.Color>().First();
+                Assert.Equal("FF0000FF", color.Rgb!.Value);
             }
         }
 
@@ -102,11 +105,12 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                var workbookPart = spreadsheet.WorkbookPart!;
+                WorksheetPart wsPart = workbookPart.WorksheetParts.First();
                 var formats = wsPart.Worksheet.Elements<ConditionalFormatting>().ToList();
-                Assert.Contains(formats, cf => cf.Elements<ConditionalFormattingRule>().Any(r => r.Type == ConditionalFormatValues.CellIs));
-                Assert.Contains(formats, cf => cf.Elements<ConditionalFormattingRule>().Any(r => r.Type == ConditionalFormatValues.ColorScale));
-                Assert.Contains(formats, cf => cf.Elements<ConditionalFormattingRule>().Any(r => r.Type == ConditionalFormatValues.DataBar));
+                Assert.Contains(formats, cf => cf.Elements<ConditionalFormattingRule>().Any(r => r.Type?.Value == ConditionalFormatValues.CellIs));
+                Assert.Contains(formats, cf => cf.Elements<ConditionalFormattingRule>().Any(r => r.Type?.Value == ConditionalFormatValues.ColorScale));
+                Assert.Contains(formats, cf => cf.Elements<ConditionalFormattingRule>().Any(r => r.Type?.Value == ConditionalFormatValues.DataBar));
             }
         }
     }

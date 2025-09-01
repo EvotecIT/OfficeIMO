@@ -71,7 +71,8 @@ namespace OfficeIMO.Tests {
                 WordParagraph run = document.AddParagraph().AddText("Test");
                 run.SetBold();
                 run.SetBold(false);
-                Assert.NotNull(run._run.RunProperties);
+                Assert.NotNull(run._run);
+                Assert.NotNull(run._run!.RunProperties);
                 document.CleanupDocument();
                 Assert.NotNull(run._paragraph);
                 var firstRun = run._paragraph!.Elements<Run>().First();

@@ -33,7 +33,10 @@ namespace OfficeIMO.Tests {
             Assert.Null(ex);
             using (spreadsheet) {
                 ValidateSpreadsheetDocument(filePath, spreadsheet);
-                Assert.Equal(2, spreadsheet.WorkbookPart.Workbook.Sheets.OfType<Sheet>().Count());
+                Assert.NotNull(spreadsheet.WorkbookPart);
+                Assert.NotNull(spreadsheet.WorkbookPart!.Workbook);
+                Assert.NotNull(spreadsheet.WorkbookPart!.Workbook!.Sheets);
+                Assert.Equal(2, spreadsheet.WorkbookPart!.Workbook!.Sheets!.OfType<Sheet>().Count());
             }
         }
     }

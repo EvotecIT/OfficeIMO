@@ -12,8 +12,9 @@ namespace OfficeIMO.Tests {
     public partial class Word {
         private static void RemoveCustomStyle(string styleId) {
             var field = typeof(WordParagraphStyle).GetField("_customStyles", BindingFlags.NonPublic | BindingFlags.Static);
-            var dict = (IDictionary<string, Style>)field!.GetValue(null);
-            dict.Remove(styleId);
+            var dict = (IDictionary<string, Style>?)field!.GetValue(null);
+            Assert.NotNull(dict);
+            dict!.Remove(styleId);
         }
 
         [Fact]

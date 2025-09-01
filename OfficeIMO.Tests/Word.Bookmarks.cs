@@ -47,9 +47,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Bookmarks[2].Name == "Middle0");
                 Assert.True(document.Bookmarks[3].Name == "EndOfDocument");
 
-                Assert.True(bookmark.Bookmark.Name == "Start");
+                Assert.True(bookmark.Bookmark!.Name == "Start");
 
-                Assert.True(bookmark1.Bookmark.Name == "Middle0");
+                Assert.True(bookmark1.Bookmark!.Name == "Middle0");
                 document.Save(false);
             }
 
@@ -73,16 +73,16 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Bookmarks[3].Name == "EndOfDocument");
                 Assert.True(document.Bookmarks[4].Name == "EndofEnds");
 
-                Assert.True(document.ParagraphsBookmarks[0].Bookmark.Name == "Start");
-                Assert.True(document.ParagraphsBookmarks[1].Bookmark.Name == "Middle1");
-                Assert.True(document.ParagraphsBookmarks[2].Bookmark.Name == "Middle0");
-                Assert.True(document.ParagraphsBookmarks[3].Bookmark.Name == "EndOfDocument");
-                Assert.True(document.ParagraphsBookmarks[4].Bookmark.Name == "EndofEnds");
+                Assert.True(document.ParagraphsBookmarks[0].Bookmark!.Name == "Start");
+                Assert.True(document.ParagraphsBookmarks[1].Bookmark!.Name == "Middle1");
+                Assert.True(document.ParagraphsBookmarks[2].Bookmark!.Name == "Middle0");
+                Assert.True(document.ParagraphsBookmarks[3].Bookmark!.Name == "EndOfDocument");
+                Assert.True(document.ParagraphsBookmarks[4].Bookmark!.Name == "EndofEnds");
 
                 Assert.True(document.Bookmarks.Count == 5);
                 Assert.True(document.Paragraphs.Count == 16);
 
-                document.ParagraphsBookmarks[2].Bookmark.Name = "Middle6";
+                document.ParagraphsBookmarks[2].Bookmark!.Name = "Middle6";
                 document.Bookmarks[1].Name = "MiddleDocument";
 
                 document.Save(false);
@@ -92,11 +92,11 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.True(document.Bookmarks.Count == 5);
                 Assert.True(document.Paragraphs.Count == 16);
-                Assert.True(document.ParagraphsBookmarks[0].Bookmark.Name == "Start");
-                Assert.True(document.ParagraphsBookmarks[1].Bookmark.Name == "MiddleDocument");
-                Assert.True(document.ParagraphsBookmarks[2].Bookmark.Name == "Middle6");
-                Assert.True(document.ParagraphsBookmarks[3].Bookmark.Name == "EndOfDocument");
-                Assert.True(document.ParagraphsBookmarks[4].Bookmark.Name == "EndofEnds");
+                Assert.True(document.ParagraphsBookmarks[0].Bookmark!.Name == "Start");
+                Assert.True(document.ParagraphsBookmarks[1].Bookmark!.Name == "MiddleDocument");
+                Assert.True(document.ParagraphsBookmarks[2].Bookmark!.Name == "Middle6");
+                Assert.True(document.ParagraphsBookmarks[3].Bookmark!.Name == "EndOfDocument");
+                Assert.True(document.ParagraphsBookmarks[4].Bookmark!.Name == "EndofEnds");
 
                 document.AddBookmark("Add bookmark straight to document. This shouldn't throw");
 
