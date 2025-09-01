@@ -39,6 +39,7 @@ namespace OfficeIMO.Examples.Word {
                 };
 
                 int cols = 5; // tighter grid
+                var placed = new List<(double left, double top, double w, double h, string name)>();
                 for (int i = 0; i < shapes.Length; i++) {
                     int row = i / cols;
                     int col = i % cols;
@@ -51,6 +52,49 @@ namespace OfficeIMO.Examples.Word {
                     shp.FillColor = fill;
                     shp.StrokeColor = stroke;
                     shp.StrokeWeight = 1.5;
+                    placed.Add((left, top, size.w, size.h, type.ToString()));
+                }
+
+                // Add labels centered above each shape using text boxes (absolute positioning)
+                foreach (var item in placed) {
+                    double labelWpt = Math.Max(70, item.w); // ensure label width reasonable
+                    double labelHpt = 14;
+                    double labelLeftPt = item.left + (item.w - labelWpt) / 2.0;
+                    double labelTopPt = item.top - (labelHpt + 8); // a bit above
+
+                    var lp = document.AddParagraph("");
+                    var tb = lp.AddTextBox("", WrapTextImage.InFrontOfText);
+                    tb.WrapText = WrapTextImage.InFrontOfText;
+                    tb.HorizontalPositionRelativeFrom = DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalRelativePositionValues.Page;
+                    tb.VerticalPositionRelativeFrom = DocumentFormat.OpenXml.Drawing.Wordprocessing.VerticalRelativePositionValues.Page;
+                    int PtToEmus(double pt) => (int)System.Math.Round(pt * 12700.0);
+                    double PtToCm(double pt) => pt * 2.54 / 72.0;
+                    tb.HorizontalPositionOffset = PtToEmus(labelLeftPt);
+                    tb.VerticalPositionOffset = PtToEmus(labelTopPt);
+                    tb.WidthCentimeters = PtToCm(labelWpt);
+                    tb.HeightCentimeters = PtToCm(labelHpt);
+                    var paragraph = tb.Paragraphs.FirstOrDefault() ?? lp;
+                    paragraph.Text = item.name;
+                }
+
+                // Add simple horizontal connectors (RightArrow) between adjacent shapes per row
+                for (int i = 0; i < placed.Count; i++) {
+                    int row = i / cols;
+                    int col = i % cols;
+                    if (col == cols - 1) continue; // last col, no connector to the right
+                    var from = placed[i];
+                    var to = placed[i + 1];
+                    double gapLeft = from.left + from.w;
+                    double available = to.left - gapLeft;
+                    double arrowH = 12;
+                    double arrowW = Math.Max(available - 8, 8);
+                    double arrowTop = from.top + (from.h - arrowH) / 2.0;
+
+                    var cp = document.AddParagraph("");
+                    var conn = cp.AddShapeDrawing(ShapeType.RightArrow, arrowW, arrowH, gapLeft + 4, arrowTop);
+                    conn.FillColor = SixLabors.ImageSharp.Color.Gray;
+                    conn.StrokeColor = SixLabors.ImageSharp.Color.DimGray;
+                    conn.StrokeWeight = 1;
                 }
 
                 document.Save(openWord);
@@ -59,4 +103,3 @@ namespace OfficeIMO.Examples.Word {
         }
     }
 }
-

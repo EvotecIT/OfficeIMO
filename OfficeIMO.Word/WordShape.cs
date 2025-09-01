@@ -47,6 +47,8 @@ namespace OfficeIMO.Word {
         private static (A.ShapeTypeValues preset, A.AdjustValueList adjustList) MapPresetGeometry(ShapeType shapeType) {
             var adjustList = new A.AdjustValueList();
             switch (shapeType) {
+                case ShapeType.Line:
+                    return (A.ShapeTypeValues.Line, adjustList);
                 case ShapeType.Ellipse:
                     return (A.ShapeTypeValues.Ellipse, adjustList);
                 case ShapeType.Rectangle:
