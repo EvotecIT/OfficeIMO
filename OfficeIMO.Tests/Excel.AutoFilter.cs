@@ -35,16 +35,18 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
-                AutoFilter autoFilter = wsPart.Worksheet.Elements<AutoFilter>().FirstOrDefault();
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                AutoFilter? autoFilter = wsPart.Worksheet.Elements<AutoFilter>().FirstOrDefault();
                 Assert.NotNull(autoFilter);
-                Assert.Equal("A1:B3", autoFilter.Reference.Value);
-                FilterColumn filterColumn = autoFilter.Elements<FilterColumn>().FirstOrDefault();
+                Assert.NotNull(autoFilter!.Reference);
+                Assert.Equal("A1:B3", autoFilter.Reference!.Value);
+                FilterColumn? filterColumn = autoFilter.Elements<FilterColumn>().FirstOrDefault();
                 Assert.NotNull(filterColumn);
-                Filters filters = filterColumn.GetFirstChild<Filters>();
+                Filters? filters = filterColumn!.GetFirstChild<Filters>();
                 Assert.NotNull(filters);
-                Filter filter = filters.Elements<Filter>().First();
-                Assert.Equal("A", filter.Val.Value);
+                Filter filter = filters!.Elements<Filter>().First();
+                Assert.NotNull(filter.Val);
+                Assert.Equal("A", filter.Val!.Value);
             }
         }
 
@@ -68,10 +70,11 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart.WorksheetParts.First();
-                AutoFilter autoFilter = wsPart.Worksheet.Elements<AutoFilter>().FirstOrDefault();
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                AutoFilter? autoFilter = wsPart.Worksheet.Elements<AutoFilter>().FirstOrDefault();
                 Assert.NotNull(autoFilter);
-                Assert.Equal("A1:B3", autoFilter.Reference.Value);
+                Assert.NotNull(autoFilter!.Reference);
+                Assert.Equal("A1:B3", autoFilter.Reference!.Value);
             }
         }
     }

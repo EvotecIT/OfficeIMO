@@ -17,8 +17,11 @@ namespace OfficeIMO.Tests {
 
             using var roundTrip = html.LoadFromHtml();
 
-            Assert.True(roundTrip.FootNotes.Count >= 1);
-            Assert.Equal("footnote text", roundTrip.FootNotes[0].Paragraphs[1].Text);
+            Assert.NotNull(roundTrip.FootNotes);
+            Assert.True(roundTrip.FootNotes!.Count >= 1);
+            var footnote = roundTrip.FootNotes[0];
+            Assert.NotNull(footnote);
+            Assert.Equal("footnote text", footnote.Paragraphs[1].Text);
 
             string html2 = roundTrip.ToHtml(new WordToHtmlOptions { ExportFootnotes = true });
             Assert.Contains("footnote text", html2, StringComparison.OrdinalIgnoreCase);

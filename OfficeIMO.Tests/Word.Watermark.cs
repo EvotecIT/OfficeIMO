@@ -7,7 +7,6 @@ using System.Linq;
 using Xunit;
 using Color = SixLabors.ImageSharp.Color;
 using V = DocumentFormat.OpenXml.Vml;
-using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
