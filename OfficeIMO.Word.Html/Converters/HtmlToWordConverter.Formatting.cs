@@ -464,7 +464,7 @@ namespace OfficeIMO.Word.Html.Converters {
         }
 
 
-        private static string? NormalizeColor(string value) {
+        private static string? NormalizeColor(string? value) {
             if (string.IsNullOrWhiteSpace(value)) {
                 return null;
             }

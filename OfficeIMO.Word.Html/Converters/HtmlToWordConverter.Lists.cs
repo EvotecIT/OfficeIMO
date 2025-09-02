@@ -26,11 +26,17 @@ namespace OfficeIMO.Word.Html.Converters {
                         _orderedListNumberId = (int?)field?.GetValue(list);
                     }
                 }
-                var level = list.Numbering.Levels[0];
-                var start = element.GetAttribute("start");
-                if (!string.IsNullOrEmpty(start) && int.TryParse(start, out int startVal)) {
-                    level.SetStartNumberingValue(startVal);
-                }
+                var level = list.Numbering.Levels[0];            var list = listStack.Count > 0 ? listStack.Peek() : throw new InvalidOperationException("List stack is empty.");
+            int level = listStack.Count - 1;
+            var paragraph = list.AddItem(string.Empty, level) ?? throw new InvalidOperationException("Failed to add list item.");
+            ApplyClassStyle(element, paragraph, options);
+            AddBookmarkIfPresent(element, paragraph);
+            foreach (var child in element.ChildNodes) {
+                if (child != null) {
+                    ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell, headerFooter);
+                }
+            }
+
                 var type = element.GetAttribute("type");
                 if (!string.IsNullOrEmpty(type)) {
                     var format = type switch {

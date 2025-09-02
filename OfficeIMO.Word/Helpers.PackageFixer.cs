@@ -1,6 +1,7 @@
 using System;
 using System.IO.Packaging;
 using System.IO;
+using System.Linq;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -60,7 +61,11 @@ namespace OfficeIMO.Word {
         private static void FixRelationships(PackagePart relsPart, bool removeWordPrefix) {
             using (Stream stream = relsPart.GetStream(FileMode.Open, FileAccess.ReadWrite)) {
                 var xml = System.Xml.Linq.XDocument.Load(stream);
-                var relationships = xml.Root.Elements();
+                var root = xml.Root;
+                if (root == null) {
+                    return;
+                }
+                var relationships = root.Elements();
 
                 bool modified = false;
                 foreach (var relationship in relationships) {

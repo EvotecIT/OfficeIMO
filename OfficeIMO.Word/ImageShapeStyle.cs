@@ -9,25 +9,25 @@ namespace OfficeIMO.Word;
 /// </summary>
 public class ImageShapeStyle {
     /// <summary>Gets or sets the CSS position property.</summary>
-    public string Position { get; set; }
+    public string Position { get; set; } = string.Empty;
     /// <summary>Gets or sets the left margin.</summary>
-    public string MarginLeft { get; set; }
+    public string MarginLeft { get; set; } = string.Empty;
     /// <summary>Gets or sets the top margin.</summary>
-    public string MarginTop { get; set; }
+    public string MarginTop { get; set; } = string.Empty;
     /// <summary>Gets or sets the width.</summary>
-    public string Width { get; set; }
+    public string Width { get; set; } = string.Empty;
     /// <summary>Gets or sets the height.</summary>
-    public string Height { get; set; }
+    public string Height { get; set; } = string.Empty;
     /// <summary>Gets or sets the Z-index value.</summary>
-    public string ZIndex { get; set; }
+    public string ZIndex { get; set; } = string.Empty;
     /// <summary>Gets or sets the horizontal position mode.</summary>
-    public string MsoPositionHorizontal { get; set; }
+    public string MsoPositionHorizontal { get; set; } = string.Empty;
     /// <summary>Gets or sets the horizontal position relative to.</summary>
-    public string MsoPositionHorizontalRelative { get; set; }
+    public string MsoPositionHorizontalRelative { get; set; } = string.Empty;
     /// <summary>Gets or sets the vertical position mode.</summary>
-    public string MsoPositionVertical { get; set; }
+    public string MsoPositionVertical { get; set; } = string.Empty;
     /// <summary>Gets or sets the vertical position relative to.</summary>
-    public string MsoPositionVerticalRelative { get; set; }
+    public string MsoPositionVerticalRelative { get; set; } = string.Empty;
 
     /// <summary>
     /// Parses a semicolon delimited style string into an <see cref="ImageShapeStyle"/> instance.
