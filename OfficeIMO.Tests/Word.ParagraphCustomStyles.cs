@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
             }
 
             var field = typeof(WordParagraphStyle).GetField("_customStyles", BindingFlags.NonPublic | BindingFlags.Static);
-            var dict = (IDictionary<string, Style>)field.GetValue(null)!;
+            var dict = (IDictionary<string, Style>)field!.GetValue(null)!;
             dict.Clear();
         }
 
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
 
             // cleanup
             var field = typeof(WordParagraphStyle).GetField("_customStyles", BindingFlags.NonPublic | BindingFlags.Static);
-            var dict = (IDictionary<string, Style>)field.GetValue(null)!;
+            var dict = (IDictionary<string, Style>)field!.GetValue(null)!;
             dict.Clear();
         }
 
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
 
             // cleanup
             var field = typeof(WordParagraphStyle).GetField("_customStyles", BindingFlags.NonPublic | BindingFlags.Static);
-            var dict = (IDictionary<string, Style>)field.GetValue(null)!;
+            var dict = (IDictionary<string, Style>)field!.GetValue(null)!;
             dict.Clear();
         }
     }
