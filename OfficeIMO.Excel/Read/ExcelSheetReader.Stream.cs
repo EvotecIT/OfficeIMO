@@ -64,13 +64,13 @@ namespace OfficeIMO.Excel.Read
 
             for (int i = 0; i < chunkIndex; i++)
             {
-                RangeChunk readyChunk;
+                RangeChunk? readyChunk;
                 while (!results.TryRemove(nextToYield, out readyChunk))
                 {
                     Thread.SpinWait(200);
                     Thread.Yield();
                 }
-                yield return readyChunk;
+                yield return readyChunk!;
                 nextToYield++;
             }
 

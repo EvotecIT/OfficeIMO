@@ -552,12 +552,6 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Sets the value of a cell.
-        /// </summary>
-        /// <param name="row">The 1-based row index.</param>
-        /// <param name="column">The 1-based column index.</param>
-        /// <param name="value">The value to assign.</param>
-        /// <summary>
         /// Sets the specified value into a cell, inferring the data type.
         /// </summary>
         /// <param name="row">The 1-based row index.</param>

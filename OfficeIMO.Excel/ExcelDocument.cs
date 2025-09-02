@@ -76,7 +76,6 @@ namespace OfficeIMO.Excel {
         /// Path to the file backing this document.
         /// </summary>
         public string FilePath = string.Empty;
-        private bool _isMemory;
 
         /// <summary>
         /// FileOpenAccess of the document
@@ -375,7 +374,6 @@ namespace OfficeIMO.Excel {
             _spreadSheetDocument = SpreadsheetDocument.Open(mem, true);
             _workBookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
             _sharedStringTablePart = null;
-            _isMemory = true;
 
             if (openExcel) {
                 Helpers.Open(path, true);
@@ -468,15 +466,18 @@ namespace OfficeIMO.Excel {
             return SaveAsync("", openExcel, cancellationToken);
         }
 
+        private bool _disposed;
+
         /// <summary>
         /// Releases resources used by the document.
         /// </summary>
-        private bool _disposed;
-
         public void Dispose() {
             DisposeAsync().GetAwaiter().GetResult();
         }
 
+        /// <summary>
+        /// Asynchronously releases resources used by the document.
+        /// </summary>
         public async ValueTask DisposeAsync() {
             if (_disposed) {
                 return;

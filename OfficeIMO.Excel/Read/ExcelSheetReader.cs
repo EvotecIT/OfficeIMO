@@ -86,10 +86,12 @@ namespace OfficeIMO.Excel.Read
 
         private object? ConvertCell(Cell cell)
         {
+            var cellRef = cell.CellReference?.Value;
+            var coords = cellRef != null ? A1.ParseCellRef(cellRef) : (Row: 0, Col: 0);
             var raw = new CellRaw
             {
-                Row = (int)(cell.CellReference != null ? A1.ParseCellRef(cell.CellReference.Value).Row : 0),
-                Col = (int)(cell.CellReference != null ? A1.ParseCellRef(cell.CellReference.Value).Col : 0),
+                Row = coords.Row,
+                Col = coords.Col,
                 TypeHint = cell.DataType?.Value,
                 StyleIndex = cell.StyleIndex?.Value,
                 HasFormula = cell.CellFormula is not null,

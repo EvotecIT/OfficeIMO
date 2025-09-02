@@ -18,6 +18,13 @@ using SixLaborsColor = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        /// <summary>
+        /// Inserts objects into the worksheet by flattening their properties into columns.
+        /// </summary>
+        /// <typeparam name="T">Type of objects being inserted.</typeparam>
+        /// <param name="items">Collection of objects to insert.</param>
+        /// <param name="includeHeaders">Whether to include column headers.</param>
+        /// <param name="startRow">1-based starting row.</param>
         public void InsertObjects<T>(IEnumerable<T> items, bool includeHeaders = true, int startRow = 1) {
             if (items == null) {
                 throw new ArgumentNullException(nameof(items));
