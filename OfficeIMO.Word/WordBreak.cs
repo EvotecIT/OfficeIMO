@@ -25,7 +25,7 @@ namespace OfficeIMO.Word {
                         return null;
                     }
 
-                    return brake.Type;
+                    return brake.Type?.Value;
                 }
 
                 return null;

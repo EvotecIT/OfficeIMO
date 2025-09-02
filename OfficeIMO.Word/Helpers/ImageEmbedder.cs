@@ -72,13 +72,15 @@ namespace OfficeIMO.Word {
                 return Convert.FromBase64String(base64Data);
             }
 
-            if (Uri.TryCreate(src, UriKind.Absolute, out Uri uri)) {
-                if (uri.Scheme == Uri.UriSchemeFile) {
-                    return File.ReadAllBytes(uri.LocalPath);
-                }
-                if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) {
-                    using HttpClient client = new HttpClient();
-                    return client.GetByteArrayAsync(uri).GetAwaiter().GetResult();
+            if (Uri.TryCreate(src, UriKind.Absolute, out var uri)) {
+                if (uri != null) {
+                    if (uri.Scheme == Uri.UriSchemeFile) {
+                        return File.ReadAllBytes(uri.LocalPath);
+                    }
+                    if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) {
+                        using HttpClient client = new HttpClient();
+                        return client.GetByteArrayAsync(uri).GetAwaiter().GetResult();
+                    }
                 }
             }
 

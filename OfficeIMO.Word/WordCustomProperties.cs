@@ -15,7 +15,7 @@ namespace OfficeIMO.Word {
     public class WordCustomProperties {
         private WordprocessingDocument _wordprocessingDocument;
         private WordDocument _document;
-        private Properties _customProperties;
+        private Properties? _customProperties;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WordCustomProperties"/> class.
@@ -39,9 +39,11 @@ namespace OfficeIMO.Word {
             var customProps = _wordprocessingDocument.CustomFilePropertiesPart;
             if (customProps != null) {
                 _customProperties = customProps.Properties;
-                foreach (CustomDocumentProperty property in _customProperties.CustomFilePropertiesPart.Properties) {
-                    WordCustomProperty wordCustomProperty = new WordCustomProperty(property);
-                    _document.CustomDocumentProperties.Add(property.Name, wordCustomProperty);
+                if (_customProperties?.CustomFilePropertiesPart?.Properties != null) {
+                    foreach (CustomDocumentProperty property in _customProperties.CustomFilePropertiesPart.Properties.OfType<CustomDocumentProperty>()) {
+                        WordCustomProperty wordCustomProperty = new WordCustomProperty(property);
+                        _document.CustomDocumentProperties.Add(property.Name!, wordCustomProperty);
+                    }
                 }
             }
         }
@@ -154,19 +156,19 @@ namespace OfficeIMO.Word {
 
         private void Add(string name, CustomDocumentProperty newProp) {
             if (_customProperties != null) {
-                // This will trigger an exception if the property's Name 
-                // property is null, but if that happens, the property is damaged, 
+                // This will trigger an exception if the property's Name
+                // property is null, but if that happens, the property is damaged,
                 // and probably should raise an exception.
-                var prop = _customProperties.Where(p => ((CustomDocumentProperty)p).Name.Value == name).FirstOrDefault();
+                var prop = _customProperties.Where(p => ((CustomDocumentProperty)p).Name?.Value == name).FirstOrDefault();
 
-                // Does the property exist? If so, get the return value, 
+                // Does the property exist? If so, get the return value,
                 // and then delete the property.
                 if (prop != null) {
                     prop.Remove();
                 }
 
-                // Append the new property, and 
-                // fix up all the property ID values. 
+                // Append the new property, and
+                // fix up all the property ID values.
                 // The PropertyId value must start at 2.
                 _customProperties.AppendChild(newProp);
                 int pid = 2;

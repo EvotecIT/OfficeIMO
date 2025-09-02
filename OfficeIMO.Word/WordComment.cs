@@ -20,22 +20,22 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// ID of a comment
         /// </summary>
-        public string Id => _comment.Id;
+        public string? Id => _comment.Id;
 
         /// <summary>
         /// Identifier used to link threaded replies.
         /// </summary>
-        public string ParaId => _commentEx?.ParaId;
+        public string? ParaId => _commentEx?.ParaId;
 
         /// <summary>
         /// Identifier of parent comment if this comment is a reply.
         /// </summary>
-        public string ParentParaId => _commentEx?.ParaIdParent;
+        public string? ParentParaId => _commentEx?.ParaIdParent;
 
         /// <summary>
         /// Parent comment instance if available.
         /// </summary>
-        public WordComment ParentComment => _document.Comments.FirstOrDefault(c => c.ParaId == ParentParaId);
+        public WordComment? ParentComment => _document.Comments.FirstOrDefault(c => c.ParaId == ParentParaId);
 
         /// <summary>
         /// Replies for this comment.
@@ -45,7 +45,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Text content of a comment
         /// </summary>
-        public string Text {
+        public string? Text {
             get {
                 return _paragraph.Text;
             }
@@ -57,7 +57,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initials of a person who created a comment
         /// </summary>
-        public string Initials {
+        public string? Initials {
             get {
                 return _comment.Initials;
             }
@@ -69,7 +69,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Full name of a person who created a comment
         /// </summary>
-        public string Author {
+        public string? Author {
             get {
                 return _comment.Author;
             }
@@ -81,8 +81,8 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// DateTime when the comment was created
         /// </summary>
-        public DateTime DateTime {
-            get => _comment.Date;
+        public DateTime? DateTime {
+            get => _comment.Date?.Value;
             set => _comment.Date = value;
         }
     }

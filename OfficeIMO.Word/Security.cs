@@ -170,8 +170,10 @@ namespace OfficeIMO.Word {
             documentProtection.CryptographicSpinCount = uintVal;
             documentProtection.Hash = Convert.ToBase64String(generatedKey);
             documentProtection.Salt = Convert.ToBase64String(arrSalt);
-            wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.AppendChild(documentProtection);
-            wordDocument.MainDocumentPart.DocumentSettingsPart.Settings.Save();
+            var settingsPart = wordDocument.MainDocumentPart?.DocumentSettingsPart;
+            if (settingsPart?.Settings == null) return;
+            settingsPart.Settings.AppendChild(documentProtection);
+            settingsPart.Settings.Save();
         }
 
         // Helper to generate legacy write protection hash

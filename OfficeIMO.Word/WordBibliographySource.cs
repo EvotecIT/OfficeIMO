@@ -8,7 +8,7 @@ namespace OfficeIMO.Word {
     public class WordBibliographySource {
         internal Source Source { get; }
 
-        private string _tag;
+        private string? _tag;
 
         /// <summary>
         /// Initializes a new source with the given tag and type.
@@ -27,7 +27,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the tag used to reference the source in citation fields.
         /// </summary>
-        public string Tag {
+        public string? Tag {
             get => _tag;
             set {
                 _tag = value;
@@ -58,18 +58,18 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the title of the source.
         /// </summary>
-        public string Title {
+        public string? Title {
             get => Source.Title?.Text;
             set {
                 if (Source.Title == null) Source.Title = new Title();
-                Source.Title.Text = value;
+                Source.Title.Text = value ?? string.Empty;
             }
         }
 
         /// <summary>
         /// Gets or sets the corporate author of the source.
         /// </summary>
-        public string Author {
+        public string? Author {
             get => Source.AuthorList?.GetFirstChild<Author>()?.GetFirstChild<Corporate>()?.Text;
             set {
                 if (Source.AuthorList == null) Source.AuthorList = new AuthorList();
@@ -83,18 +83,18 @@ namespace OfficeIMO.Word {
                     corp = new Corporate();
                     author.Append(corp);
                 }
-                corp.Text = value;
+                corp.Text = value ?? string.Empty;
             }
         }
 
         /// <summary>
         /// Gets or sets the publication year of the source.
         /// </summary>
-        public string Year {
+        public string? Year {
             get => Source.Year?.Text;
             set {
                 if (Source.Year == null) Source.Year = new Year();
-                Source.Year.Text = value;
+                Source.Year.Text = value ?? string.Empty;
             }
         }
 

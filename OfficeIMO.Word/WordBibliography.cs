@@ -10,7 +10,7 @@ namespace OfficeIMO.Word {
     internal class WordBibliography {
         private readonly WordDocument _document;
         private readonly WordprocessingDocument _wordDocument;
-        private CustomXmlPart _part;
+        private CustomXmlPart? _part;
 
         /// <summary>
         /// Initializes a new instance responsible for managing bibliography sources.
@@ -42,7 +42,7 @@ namespace OfficeIMO.Word {
             foreach (var source in sources.Elements<Source>()) {
                 var wrapper = new WordBibliographySource(source);
                 if (!string.IsNullOrEmpty(wrapper.Tag)) {
-                    _document.BibliographySources[wrapper.Tag] = wrapper;
+                    _document.BibliographySources[wrapper.Tag!] = wrapper;
                 }
             }
         }
@@ -61,7 +61,7 @@ namespace OfficeIMO.Word {
             }
 
             if (_document.BibliographySources.Count == 0) {
-                _wordDocument.MainDocumentPart.DeletePart(_part);
+                _wordDocument.MainDocumentPart.DeletePart(_part!);
                 _part = null;
                 return;
             }
