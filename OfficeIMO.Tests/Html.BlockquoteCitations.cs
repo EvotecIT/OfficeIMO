@@ -11,9 +11,10 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("First", doc.Paragraphs[0].Text);
             Assert.Contains(doc.Paragraphs, p => p.Text == "Second");
-            Assert.NotNull(doc.FootNotes);
-            Assert.Single(doc.FootNotes);
-            Assert.Equal("https://example.com", doc.FootNotes![0].Paragraphs[1].Text);
+            var footNotes = doc.FootNotes;
+            Assert.NotNull(footNotes);
+            Assert.Single(footNotes!);
+            Assert.Equal("https://example.com", footNotes![0].Paragraphs![1].Text);
         }
     }
 }

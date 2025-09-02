@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests;
 public partial class Html {
     private static void RemoveCustomStyle(string styleId) {
         var field = typeof(WordParagraphStyle).GetField("_customStyles", BindingFlags.NonPublic | BindingFlags.Static);
-        var dict = (IDictionary<string, Style>)field!.GetValue(null);
+        var dict = (IDictionary<string, Style>)field!.GetValue(null)!;
         dict.Remove(styleId);
     }
     [Fact]
@@ -176,7 +176,7 @@ public partial class Html {
         ms.Position = 0;
         using WordprocessingDocument docx = WordprocessingDocument.Open(ms, false);
         Paragraph p = docx.MainDocumentPart!.Document.Body!.Elements<Paragraph>().First();
-        string styleId = p.ParagraphProperties?.ParagraphStyleId?.Val;
+        string? styleId = p.ParagraphProperties?.ParagraphStyleId?.Val;
         Assert.Equal(WordParagraphStyles.Heading1.ToString(), styleId);
     }
 
@@ -275,8 +275,10 @@ public partial class Html {
 
         var doc = html.LoadFromHtml(new HtmlToWordOptions());
 
-        Assert.Equal(5, doc.Lists[0].Numbering.Levels[0].StartNumberingValue);
-        Assert.Equal(NumberFormatValues.LowerLetter, doc.Lists[0].Numbering.Levels[0]._level.NumberingFormat.Val.Value);
+        var list = doc.Lists[0];
+        Assert.NotNull(list.Numbering);
+        Assert.Equal(5, list.Numbering!.Levels[0].StartNumberingValue);
+        Assert.Equal(NumberFormatValues.LowerLetter, list.Numbering.Levels[0]._level.NumberingFormat!.Val!.Value);
     }
 
     [Fact]
@@ -285,7 +287,9 @@ public partial class Html {
 
         var doc = html.LoadFromHtml(new HtmlToWordOptions());
 
-        Assert.Equal("o", doc.Lists[0].Numbering.Levels[0]._level.LevelText.Val);
+        var list = doc.Lists[0];
+        Assert.NotNull(list.Numbering);
+        Assert.Equal("o", list.Numbering!.Levels[0]._level.LevelText!.Val);
     }
 
     [Fact]

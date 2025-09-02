@@ -97,9 +97,9 @@ namespace OfficeIMO.Tests {
 
             using (FileStream zipStream = File.OpenRead(filePath))
             using (ZipArchive archive = new(zipStream, ZipArchiveMode.Read)) {
-                ZipArchiveEntry entry = archive.GetEntry("[Content_Types].xml");
-                Assert.NotNull(entry);
-                using Stream entryStream = entry.Open();
+            ZipArchiveEntry? entry = archive.GetEntry("[Content_Types].xml");
+            Assert.NotNull(entry);
+            using Stream entryStream = entry!.Open();
                 XDocument contentTypes = XDocument.Load(entryStream);
                 XNamespace ct = "http://schemas.openxmlformats.org/package/2006/content-types";
                 Assert.NotNull(contentTypes.Root?.Elements(ct + "Default").FirstOrDefault(e => e.Attribute("Extension")?.Value == "xml" && e.Attribute("ContentType")?.Value == "application/xml"));
@@ -113,12 +113,12 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/docProps/thumbnail.emf" && e.Attribute("ContentType")?.Value == "image/x-emf"));
                 Assert.NotNull(contentTypes.Root?.Elements(ct + "Override").FirstOrDefault(e => e.Attribute("PartName")?.Value == "/visio/windows.xml" && e.Attribute("ContentType")?.Value == "application/vnd.ms-visio.windows+xml"));
 
-                XElement shape = pageDoc.Root?.Element(ns + "Shapes")?.Element(ns + "Shape");
-                Assert.Equal("1", shape?.Attribute("ID")?.Value);
-                Assert.NotNull(shape?.Attribute("Name"));
-                Assert.NotNull(shape?.Attribute("NameU"));
-                Assert.Equal("Shape", shape?.Attribute("Type")?.Value);
-                Assert.Equal("Rectangle", shape?.Element(ns + "Text")?.Value);
+            XElement? shape = pageDoc.Root?.Element(ns + "Shapes")?.Element(ns + "Shape");
+            Assert.Equal("1", shape?.Attribute("ID")?.Value);
+            Assert.NotNull(shape?.Attribute("Name"));
+            Assert.NotNull(shape?.Attribute("NameU"));
+            Assert.Equal("Shape", shape?.Attribute("Type")?.Value);
+            Assert.Equal("Rectangle", shape?.Element(ns + "Text")?.Value);
             }
 
             var issues = VisioValidator.Validate(filePath);
