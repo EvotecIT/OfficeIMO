@@ -28,7 +28,7 @@ namespace OfficeIMO.Word {
                 return ch != null && ch.Val != null && ch.Val.Value == W14.OnOffValues.One;
             }
             set {
-                var cb = _sdtRun.SdtProperties.Elements<W14.SdtContentCheckBox>().FirstOrDefault();
+                var cb = _sdtRun.SdtProperties?.Elements<W14.SdtContentCheckBox>().FirstOrDefault();
                 if (cb != null) {
                     var ch = cb.Elements<W14.Checked>().FirstOrDefault();
                     if (ch == null) {
@@ -43,9 +43,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the alias associated with this checkbox control.
         /// </summary>
-        public string Alias {
+        public string? Alias {
             get {
-                var sdtAlias = _sdtRun.SdtProperties.OfType<SdtAlias>().FirstOrDefault();
+                var sdtAlias = _sdtRun.SdtProperties?.OfType<SdtAlias>().FirstOrDefault();
                 return sdtAlias?.Val;
             }
         }
@@ -53,18 +53,20 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the tag value for this checkbox control.
         /// </summary>
-        public string Tag {
+        public string? Tag {
             get {
-                var tag = _sdtRun.SdtProperties.OfType<Tag>().FirstOrDefault();
+                var tag = _sdtRun.SdtProperties?.OfType<Tag>().FirstOrDefault();
                 return tag?.Val;
             }
             set {
-                var tag = _sdtRun.SdtProperties.OfType<Tag>().FirstOrDefault();
+                var tag = _sdtRun.SdtProperties?.OfType<Tag>().FirstOrDefault();
                 if (tag == null) {
                     tag = new Tag();
-                    _sdtRun.SdtProperties.Append(tag);
+                    _sdtRun.SdtProperties?.Append(tag);
                 }
-                tag.Val = value;
+                if (tag != null) {
+                    tag.Val = value;
+                }
             }
         }
 

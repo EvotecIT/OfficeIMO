@@ -74,7 +74,7 @@ namespace OfficeIMO.Word {
         /// Gets the value as text when the property type is textual.
         /// </summary>
         /// <remarks>Returns <see langword="null"/> if the value does not contain text.</remarks>
-        public string Text {
+        public string? Text {
             get {
                 if ((Value) is string) {
                     return (string)Value;
