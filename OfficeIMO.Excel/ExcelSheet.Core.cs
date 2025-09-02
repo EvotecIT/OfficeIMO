@@ -58,10 +58,17 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public NoLockContext BeginNoLock() => new();
 
+        /// <summary>
+        /// Represents a scope where worksheet operations bypass locking.
+        /// </summary>
         public sealed class NoLockContext : IDisposable
         {
             private readonly IDisposable _scope;
             internal NoLockContext() => _scope = Locking.EnterNoLockScope();
+
+            /// <summary>
+            /// Ends the no-lock scope and restores normal locking behavior.
+            /// </summary>
             public void Dispose() => _scope.Dispose();
         }
 
@@ -413,6 +420,9 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>
+        /// Releases resources held by this worksheet.
+        /// </summary>
         public void Dispose() {
             // No local lock to dispose anymore - using document's lock
         }

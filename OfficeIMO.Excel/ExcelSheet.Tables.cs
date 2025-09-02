@@ -90,7 +90,7 @@ namespace OfficeIMO.Excel {
                 Worksheet worksheet = _worksheetPart.Worksheet;
 
                 // Remove any existing worksheet AutoFilter
-                AutoFilter existing = worksheet.Elements<AutoFilter>().FirstOrDefault();
+                AutoFilter? existing = worksheet.Elements<AutoFilter>().FirstOrDefault();
                 if (existing != null) {
                     worksheet.RemoveChild(existing);
                 }
@@ -266,19 +266,18 @@ namespace OfficeIMO.Excel {
                 
                 // SMART AUTOFILTER HANDLING
                 // Check if there's already a worksheet-level AutoFilter on this range
-                AutoFilter existingWorksheetAutoFilter = _worksheetPart.Worksheet.Elements<AutoFilter>().FirstOrDefault();
-                bool hasExistingFilter = existingWorksheetAutoFilter != null && existingWorksheetAutoFilter.Reference?.Value == range;
-                
+                AutoFilter? existingWorksheetAutoFilter = _worksheetPart.Worksheet.Elements<AutoFilter>().FirstOrDefault();
+                bool hasExistingFilter = existingWorksheetAutoFilter?.Reference?.Value == range;
+
                 if (includeAutoFilter) {
                     // User wants AutoFilter on the table
-                    if (hasExistingFilter) {
+                    if (hasExistingFilter && existingWorksheetAutoFilter != null) {
                         // MIGRATE: Move the existing worksheet AutoFilter to the table (preserving filter criteria)
-                        // First clone the existing AutoFilter to preserve any filter criteria
                         var tableAutoFilter = (AutoFilter)existingWorksheetAutoFilter.CloneNode(true);
-                        
+
                         // Remove from worksheet to avoid conflicts
                         _worksheetPart.Worksheet.RemoveChild(existingWorksheetAutoFilter);
-                        
+
                         // Add to table
                         table.Append(tableAutoFilter);
                     } else {
@@ -287,7 +286,7 @@ namespace OfficeIMO.Excel {
                     }
                 } else {
                     // User doesn't want AutoFilter on the table
-                    if (hasExistingFilter) {
+                    if (hasExistingFilter && existingWorksheetAutoFilter != null) {
                         // REMOVE: Excel doesn't allow worksheet AutoFilter and table on same range
                         // We must remove the worksheet AutoFilter to avoid conflicts
                         _worksheetPart.Worksheet.RemoveChild(existingWorksheetAutoFilter);

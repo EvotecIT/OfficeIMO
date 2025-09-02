@@ -37,7 +37,7 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Tries to get a worksheet by name.
         /// </summary>
-        public bool TryGetSheet(string name, out ExcelSheet sheet)
+        public bool TryGetSheet(string name, out ExcelSheet? sheet)
         {
             sheet = Sheets.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.Ordinal));
             return sheet != null;

@@ -18,6 +18,13 @@ using SixLaborsColor = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        /// <summary>
+        /// Adds a conditional formatting rule to the specified range.
+        /// </summary>
+        /// <param name="range">A1-style range to apply the rule to.</param>
+        /// <param name="operator">Comparison operator for the rule.</param>
+        /// <param name="formula1">Primary formula or value.</param>
+        /// <param name="formula2">Optional secondary formula or value.</param>
         public void AddConditionalRule(string range, ConditionalFormattingOperatorValues @operator, string formula1, string? formula2 = null) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
@@ -74,10 +81,22 @@ namespace OfficeIMO.Excel {
             return "FF" + color.ToHexColor();
         }
 
+        /// <summary>
+        /// Adds a two-color scale conditional format to a range.
+        /// </summary>
+        /// <param name="range">A1-style range to format.</param>
+        /// <param name="startColor">Starting color of the scale.</param>
+        /// <param name="endColor">Ending color of the scale.</param>
         public void AddConditionalColorScale(string range, SixLaborsColor startColor, SixLaborsColor endColor) {
             AddConditionalColorScale(range, ConvertColor(startColor), ConvertColor(endColor));
         }
 
+        /// <summary>
+        /// Adds a two-color scale conditional format to a range using hex colors.
+        /// </summary>
+        /// <param name="range">A1-style range to format.</param>
+        /// <param name="startColor">Starting color in hex (e.g. FF0000).</param>
+        /// <param name="endColor">Ending color in hex.</param>
         public void AddConditionalColorScale(string range, string startColor, string endColor) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
@@ -131,10 +150,20 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>
+        /// Adds a data bar conditional format to a range.
+        /// </summary>
+        /// <param name="range">A1-style range to format.</param>
+        /// <param name="color">Bar color.</param>
         public void AddConditionalDataBar(string range, SixLaborsColor color) {
             AddConditionalDataBar(range, ConvertColor(color));
         }
 
+        /// <summary>
+        /// Adds a data bar conditional format to a range using a hex color.
+        /// </summary>
+        /// <param name="range">A1-style range to format.</param>
+        /// <param name="color">Bar color in hex (e.g. FF0000).</param>
         public void AddConditionalDataBar(string range, string color) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
