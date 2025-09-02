@@ -120,8 +120,8 @@ namespace OfficeIMO.PowerPoint {
             // Also check the slide IDs
             if (_presentationPart.Presentation.SlideIdList != null) {
                 foreach (SlideId existingSlideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
-                    if (!string.IsNullOrEmpty(existingSlideId.RelationshipId)) {
-                        existingRelationships.Add(existingSlideId.RelationshipId!);
+                    if (existingSlideId.RelationshipId is { Value: { Length: > 0 } relId }) {
+                        existingRelationships.Add(relId);
                     }
                 }
             }
@@ -233,13 +233,13 @@ namespace OfficeIMO.PowerPoint {
             }
 
             SlideId slideId = slideIdList.Elements<SlideId>().ElementAt(index);
-            string? relId = slideId.RelationshipId;
+            StringValue? relIdValue = slideId.RelationshipId;
 
             _slides.RemoveAt(index);
             slideId.Remove();
 
-            if (!string.IsNullOrEmpty(relId)) {
-                OpenXmlPart part = _presentationPart.GetPartById(relId!);
+            if (relIdValue is { Value: { Length: > 0 } relId }) {
+                OpenXmlPart part = _presentationPart.GetPartById(relId);
                 _presentationPart.DeletePart(part);
             }
 
