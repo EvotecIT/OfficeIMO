@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Word.Fluent {
@@ -40,11 +41,40 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         /// <summary>
+        /// Sets the numbering format for the current list level.
+        /// </summary>
+        /// <param name="format">Number format to apply.</param>
+        public ListBuilder NumberFormat(NumberFormatValues format) {
+            if (_list != null) {
+                var levels = _list.Numbering.Levels;
+                if (_level < levels.Count) {
+                    levels[_level]._level.NumberingFormat = new NumberingFormat { Val = format };
+                }
+            }
+            return this;
+        }
+
+        /// <summary>
         /// Sets the starting number for the list.
         /// </summary>
         /// <param name="start">Starting number.</param>
         public ListBuilder StartAt(int start) {
             _list?.Numbering.Levels[0].SetStartNumberingValue(start);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets a custom bullet character for the current list level.
+        /// </summary>
+        /// <param name="character">Bullet character to use.</param>
+        public ListBuilder BulletCharacter(string character) {
+            if (_list != null) {
+                var levels = _list.Numbering.Levels;
+                if (_level < levels.Count) {
+                    levels[_level].LevelText = character;
+                    levels[_level]._level.NumberingFormat = new NumberingFormat { Val = NumberFormatValues.Bullet };
+                }
+            }
             return this;
         }
 
