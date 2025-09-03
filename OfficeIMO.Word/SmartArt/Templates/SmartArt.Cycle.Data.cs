@@ -7,11 +7,9 @@ namespace OfficeIMO.Word.SmartArt.Templates {
     /// Minimal strongly-typed Data for Cycle SmartArt (one placeholder node).
     internal static class SmartArtCycleData {
         internal static void PopulateData(DiagramDataPart part) {
-            var root = new Dgm.DataModelRoot();
-            root.AddNamespaceDeclaration("dgm", "http://schemas.openxmlformats.org/drawingml/2006/diagram");
-            root.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");
-
             var model = new Dgm.DataModel();
+            model.AddNamespaceDeclaration("dgm", "http://schemas.openxmlformats.org/drawingml/2006/diagram");
+            model.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");
             var pts = new Dgm.PointList();
 
             var docId = "{" + System.Guid.NewGuid().ToString().ToUpper() + "}";
@@ -61,8 +59,9 @@ namespace OfficeIMO.Word.SmartArt.Templates {
             model.Append(new Dgm.Background());
             model.Append(new Dgm.Whole());
 
-            root.Append(model);
-            part.DataModelRoot = root;
+            var xml = model.OuterXml;
+            using var ms = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(xml));
+            part.FeedData(ms);
         }
     }
 }

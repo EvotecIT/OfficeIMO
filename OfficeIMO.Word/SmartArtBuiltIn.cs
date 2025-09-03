@@ -9,6 +9,10 @@ namespace OfficeIMO.Word {
                     return AddCycle(mainPart);
                 case SmartArtType.BasicProcess:
                     return AddBasicProcess(mainPart);
+                case SmartArtType.CustomSmartArt1:
+                    return AddCustom1(mainPart);
+                case SmartArtType.CustomSmartArt2:
+                    return AddCustom2(mainPart);
                 case SmartArtType.Hierarchy:
                 case SmartArtType.PictureOrgChart:
                 case SmartArtType.ContinuousBlockProcess:
@@ -54,6 +58,52 @@ namespace OfficeIMO.Word {
                 mainPart.GetIdOfPart(dataPart)!
             );
         }
+
+        private static (string relLayout, string relColors, string relStyle, string relData) AddCustom1(MainDocumentPart mainPart) {
+            var layoutPart = mainPart.AddNewPart<DiagramLayoutDefinitionPart>();
+            SmartArt.Templates.SmartArtCustom1.PopulateLayout(layoutPart);
+            var colorsPart = mainPart.AddNewPart<DiagramColorsPart>();
+            SmartArt.Templates.SmartArtCustom1.PopulateColors(colorsPart);
+            var stylePart = mainPart.AddNewPart<DiagramStylePart>();
+            SmartArt.Templates.SmartArtCustom1.PopulateStyle(stylePart);
+
+            // Optional persisted layout for exact positioning
+            var persistPart = mainPart.AddNewPart<DiagramPersistLayoutPart>();
+            SmartArt.Templates.SmartArtCustom1.PopulatePersistLayout(persistPart);
+            var persistRel = mainPart.GetIdOfPart(persistPart)!;
+
+            var dataPart = mainPart.AddNewPart<DiagramDataPart>();
+            SmartArt.Templates.SmartArtCustom1.PopulateData(dataPart, persistRel);
+
+            return (
+                mainPart.GetIdOfPart(layoutPart)!,
+                mainPart.GetIdOfPart(colorsPart)!,
+                mainPart.GetIdOfPart(stylePart)!,
+                mainPart.GetIdOfPart(dataPart)!
+            );
+        }
+
+        private static (string relLayout, string relColors, string relStyle, string relData) AddCustom2(MainDocumentPart mainPart) {
+            var layoutPart = mainPart.AddNewPart<DiagramLayoutDefinitionPart>();
+            SmartArt.Templates.SmartArtCustom2.PopulateLayout(layoutPart);
+            var colorsPart = mainPart.AddNewPart<DiagramColorsPart>();
+            SmartArt.Templates.SmartArtCustom2.PopulateColors(colorsPart);
+            var stylePart = mainPart.AddNewPart<DiagramStylePart>();
+            SmartArt.Templates.SmartArtCustom2.PopulateStyle(stylePart);
+
+            var persistPart = mainPart.AddNewPart<DiagramPersistLayoutPart>();
+            SmartArt.Templates.SmartArtCustom2.PopulatePersistLayout(persistPart);
+            var persistRel = mainPart.GetIdOfPart(persistPart)!;
+
+            var dataPart = mainPart.AddNewPart<DiagramDataPart>();
+            SmartArt.Templates.SmartArtCustom2.PopulateData(dataPart, persistRel);
+
+            return (
+                mainPart.GetIdOfPart(layoutPart)!,
+                mainPart.GetIdOfPart(colorsPart)!,
+                mainPart.GetIdOfPart(stylePart)!,
+                mainPart.GetIdOfPart(dataPart)!
+            );
+        }
     }
 }
-
