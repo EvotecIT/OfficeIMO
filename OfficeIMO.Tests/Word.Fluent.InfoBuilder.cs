@@ -15,6 +15,11 @@ namespace OfficeIMO.Tests {
                         .Subject("Subject")
                         .Keywords("k1, k2")
                         .Comments("Some comments")
+                        .Category("Cat")
+                        .Company("Evotec")
+                        .Manager("Manager1")
+                        .LastModifiedBy("John")
+                        .Revision("1.0")
                         .Custom("Custom1", "Value1"))
                     .Paragraph(p => p.Text("Test"));
                 document.Save(false);
@@ -26,6 +31,11 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Subject", document.BuiltinDocumentProperties.Subject);
                 Assert.Equal("k1, k2", document.BuiltinDocumentProperties.Keywords);
                 Assert.Equal("Some comments", document.BuiltinDocumentProperties.Description);
+                Assert.Equal("Cat", document.BuiltinDocumentProperties.Category);
+                Assert.Equal("Evotec", document.ApplicationProperties.Company);
+                Assert.Equal("Manager1", document.ApplicationProperties.Manager?.Text);
+                Assert.Equal("John", document.BuiltinDocumentProperties.LastModifiedBy);
+                Assert.Equal("1.0", document.BuiltinDocumentProperties.Revision);
                 Assert.True(document.CustomDocumentProperties.ContainsKey("Custom1"));
                 Assert.Equal("Value1", document.CustomDocumentProperties["Custom1"].Value);
             }
