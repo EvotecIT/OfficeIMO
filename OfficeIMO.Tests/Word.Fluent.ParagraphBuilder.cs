@@ -7,6 +7,7 @@ using OfficeIMO;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Fluent;
 using Xunit;
+using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -76,6 +77,32 @@ namespace OfficeIMO.Tests {
 
             using (var document = WordDocument.Load(filePath)) {
                 Assert.Equal(JustificationValues.Both, document.Paragraphs.Last().ParagraphAlignment);
+            }
+        }
+
+        [Fact]
+        public void Test_FluentParagraphBuilderBorderAndShading() {
+            string filePath = Path.Combine(_directoryWithFiles, "FluentParagraphBuilderBorderShading.docx");
+
+            using (var document = WordDocument.Create(filePath)) {
+                document.AsFluent()
+                    .Paragraph(p => p.Text("Border and shading")
+                        .Border(b => {
+                            b.LeftStyle = BorderValues.Thick;
+                            b.LeftColor = Color.Blue;
+                            b.LeftSize = 24;
+                        })
+                        .Shading(Color.LightGray))
+                    .End()
+                    .Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                var paragraph = document.Paragraphs[0];
+                Assert.Equal(BorderValues.Thick, paragraph.Borders.LeftStyle);
+                Assert.Equal(Color.Blue.ToHexColor(), paragraph.Borders.LeftColor!.Value.ToHexColor());
+                Assert.Equal(24U, paragraph.Borders.LeftSize!.Value);
+                Assert.Equal(Color.LightGray.ToHexColor(), paragraph.ShadingFillColorHex);
             }
         }
     }
