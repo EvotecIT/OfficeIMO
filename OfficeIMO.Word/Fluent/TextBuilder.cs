@@ -123,5 +123,37 @@ namespace OfficeIMO.Word.Fluent {
             _paragraph?.SetCapsStyle(capsStyle);
             return this;
         }
+
+        /// <summary>
+        /// Applies outline formatting to the current run.
+        /// </summary>
+        public TextBuilder Outline() {
+            _paragraph?.SetOutline();
+            return this;
+        }
+
+        /// <summary>
+        /// Applies shadow formatting to the current run.
+        /// </summary>
+        public TextBuilder Shadow() {
+            _paragraph?.SetShadow();
+            return this;
+        }
+
+        /// <summary>
+        /// Applies emboss formatting to the current run.
+        /// </summary>
+        public TextBuilder Emboss() {
+            _paragraph?.SetEmboss();
+            return this;
+        }
+
+        /// <summary>
+        /// Applies small caps formatting to the current run.
+        /// </summary>
+        public TextBuilder SmallCaps() {
+            _paragraph?.SetSmallCaps();
+            return this;
+        }
     }
 }

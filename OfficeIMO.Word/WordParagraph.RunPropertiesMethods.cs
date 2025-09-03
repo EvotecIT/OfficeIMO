@@ -59,6 +59,46 @@ namespace OfficeIMO.Word {
             this.DoubleStrike = isDoubleStrike;
             return this;
         }
+
+        /// <summary>
+        /// Enables or disables outline effect on the text.
+        /// </summary>
+        /// <param name="isOutline">Whether the text should be outlined.</param>
+        /// <returns>The current paragraph instance.</returns>
+        public WordParagraph SetOutline(bool isOutline = true) {
+            this.Outline = isOutline;
+            return this;
+        }
+
+        /// <summary>
+        /// Enables or disables shadow effect on the text.
+        /// </summary>
+        /// <param name="isShadow">Whether the text should have a shadow.</param>
+        /// <returns>The current paragraph instance.</returns>
+        public WordParagraph SetShadow(bool isShadow = true) {
+            this.Shadow = isShadow;
+            return this;
+        }
+
+        /// <summary>
+        /// Enables or disables emboss effect on the text.
+        /// </summary>
+        /// <param name="isEmboss">Whether the text should be embossed.</param>
+        /// <returns>The current paragraph instance.</returns>
+        public WordParagraph SetEmboss(bool isEmboss = true) {
+            this.Emboss = isEmboss;
+            return this;
+        }
+
+        /// <summary>
+        /// Enables or disables small caps formatting on the text.
+        /// </summary>
+        /// <param name="isSmallCaps">Whether the text should use small caps.</param>
+        /// <returns>The current paragraph instance.</returns>
+        public WordParagraph SetSmallCaps(bool isSmallCaps = true) {
+            this.CapsStyle = isSmallCaps ? CapsStyle.SmallCaps : CapsStyle.None;
+            return this;
+        }
         /// <summary>
         /// Sets the font size for the text.
         /// </summary>
