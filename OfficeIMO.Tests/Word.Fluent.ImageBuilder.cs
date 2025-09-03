@@ -79,5 +79,42 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].IsHyperLink);
             }
         }
+
+        [Fact]
+        public void Test_FluentImageCrop() {
+            string filePath = Path.Combine(_directoryWithFiles, "FluentImageCrop.docx");
+            string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+
+            using (var document = WordDocument.Create(filePath)) {
+                document.AsFluent()
+                    .Image(i => i.Add(imagePath).Crop(1, 2, 3, 4))
+                    .End();
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.Equal(1, document.Images[0].CropLeftCentimeters);
+                Assert.Equal(2, document.Images[0].CropTopCentimeters);
+                Assert.Equal(3, document.Images[0].CropRightCentimeters);
+                Assert.Equal(4, document.Images[0].CropBottomCentimeters);
+            }
+        }
+
+        [Fact]
+        public void Test_FluentImageRotate() {
+            string filePath = Path.Combine(_directoryWithFiles, "FluentImageRotate.docx");
+            string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+
+            using (var document = WordDocument.Create(filePath)) {
+                document.AsFluent()
+                    .Image(i => i.Add(imagePath).Rotate(45))
+                    .End();
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.Equal(45, document.Images[0].Rotation);
+            }
+        }
     }
 }
