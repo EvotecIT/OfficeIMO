@@ -107,6 +107,32 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         /// <summary>
+        /// Sets the page orientation for the section.
+        /// </summary>
+        /// <param name="orientation">Orientation value.</param>
+        public SectionBuilder Orientation(PageOrientationValues orientation) {
+            if (_section == null) {
+                throw new InvalidOperationException("No section available to configure. Call New() before setting orientation.");
+            }
+
+            _section.PageSettings.Orientation = orientation;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the document background color using a hex value.
+        /// </summary>
+        /// <param name="hex">Hex color value.</param>
+        public SectionBuilder Background(string hex) {
+            if (_section == null) {
+                throw new InvalidOperationException("No section available to configure. Call New() before setting background.");
+            }
+
+            _section._document.Background.SetColorHex(hex);
+            return this;
+        }
+
+        /// <summary>
         /// Adds a paragraph to the section.
         /// </summary>
         /// <param name="action">Configuration action for the paragraph.</param>
