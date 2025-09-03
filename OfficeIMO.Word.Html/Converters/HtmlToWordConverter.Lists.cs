@@ -1,23 +1,40 @@
 using AngleSharp.Dom;
-using AngleSharp.Html.Dom;
-using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word;
-using System.Collections.Generic;
-using System.Reflection;
-
-namespace OfficeIMO.Word.Html.Converters {
-    internal partial class HtmlToWordConverter {
-        private int? _orderedListNumberId;
-
-        private void ProcessList(IElement element, WordDocument doc, WordSection section, HtmlToWordOptions options,
-            Stack<WordList> listStack, WordTableCell? cell, TextFormatting formatting, WordHeaderFooter? headerFooter) {
-            WordList list;
-            bool ordered = element.TagName.Equals("ol", System.StringComparison.OrdinalIgnoreCase);
-            if (ordered) {
-                if (options.ContinueNumbering && _orderedListNumberId.HasValue && listStack.Count == 0 && cell == null && headerFooter == null) {
-                    list = new WordList(doc);
-                    var field = typeof(WordList).GetField("_numberId", BindingFlags.NonPublic | BindingFlags.Instance);
-                    field?.SetValue(list, _orderedListNumberId.Value);
+using AngleSharp.Html.Dom;                var level = list.Numbering.Levels.FirstOrDefault();
+                if (level != null) {
+                    var start = element.GetAttribute("start");
+                    if (!string.IsNullOrEmpty(start) && int.TryParse(start, out int startVal)) {
+                        level.SetStartNumberingValue(startVal);
+                    }
+                    var type = element.GetAttribute("type");
+                    if (!string.IsNullOrEmpty(type)) {
+                        var format = type switch {
+                            "a" => NumberFormatValues.LowerLetter,
+                            "A" => NumberFormatValues.UpperLetter,
+                            "i" => NumberFormatValues.LowerRoman,
+                            "I" => NumberFormatValues.UpperRoman,
+                            _ => NumberFormatValues.Decimal,
+                        };
+                        level._level!.NumberingFormat = new NumberingFormat { Val = format };
+                    }
+                }
+            } else {
+                list = cell != null ? cell.AddList(WordListStyle.Bulleted) : headerFooter != null ? headerFooter.AddList(WordListStyle.Bulleted) : doc.AddListBulleted();
+                var type = element.GetAttribute("type")?.ToLowerInvariant();
+                if (!string.IsNullOrEmpty(type)) {
+                    var level = list.Numbering.Levels.FirstOrDefault();
+                    if (level?._level?.LevelText != null) {
+                        switch (type) {
+                            case "circle":
+                                level._level.LevelText.Val = "o";
+                                break;
+                            case "square":
+                                level._level.LevelText.Val = "■";
+                                break;
+                            // disc is the default, nothing to change
+                        }
+                    }
+                }
+            }
                 } else {
                     // Use standard numbered list style for ordered lists in all contexts
                     list = cell != null ? cell.AddList(WordListStyle.Numbered) : headerFooter != null ? headerFooter.AddList(WordListStyle.Numbered) : doc.AddListNumbered();
