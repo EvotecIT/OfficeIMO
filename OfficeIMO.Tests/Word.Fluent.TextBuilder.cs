@@ -46,14 +46,18 @@ namespace OfficeIMO.Tests {
                         .Text(" Highlight", t => t.Highlight(HighlightColorValues.Yellow))
                         .Text(" Sub", t => t.SubScript())
                         .Text(" Super", t => t.SuperScript())
-                        .Text(" Caps", t => t.CapsStyle(CapsStyle.Caps)))
+                        .Text(" Caps", t => t.CapsStyle(CapsStyle.Caps))
+                        .Text(" Outline", t => t.Outline())
+                        .Text(" Shadow", t => t.Shadow())
+                        .Text(" Emboss", t => t.Emboss())
+                        .Text(" SmallCaps", t => t.SmallCaps()))
                     .End()
                     .Save(false);
             }
 
             using (var document = WordDocument.Load(filePath)) {
                 var runs = document.Paragraphs[0].GetRuns().ToList();
-                Assert.Equal(9, runs.Count);
+                Assert.Equal(13, runs.Count);
                 Assert.Equal(UnderlineValues.Double, runs[0].Underline);
                 Assert.True(runs[1].Strike);
                 Assert.True(runs[2].DoubleStrike);
@@ -63,6 +67,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(VerticalPositionValues.Subscript, runs[6].VerticalTextAlignment);
                 Assert.Equal(VerticalPositionValues.Superscript, runs[7].VerticalTextAlignment);
                 Assert.Equal(CapsStyle.Caps, runs[8].CapsStyle);
+                Assert.True(runs[9].Outline);
+                Assert.True(runs[10].Shadow);
+                Assert.True(runs[11].Emboss);
+                Assert.Equal(CapsStyle.SmallCaps, runs[12].CapsStyle);
             }
         }
     }

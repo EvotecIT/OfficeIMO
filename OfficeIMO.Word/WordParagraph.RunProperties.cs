@@ -214,6 +214,79 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the run text is outlined.
+        /// </summary>
+        public bool Outline {
+            get {
+                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                return runProperties != null && runProperties.Outline != null;
+            }
+            set {
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    var hyperlink = this.Hyperlink!;
+                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
+                } else {
+                    runProperties = VerifyRunProperties();
+                }
+                if (value != true) {
+                    if (runProperties.Outline != null) runProperties.Outline.Remove();
+                } else {
+                    runProperties.Outline = new Outline();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the run has a shadow effect.
+        /// </summary>
+        public bool Shadow {
+            get {
+                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                return runProperties != null && runProperties.Shadow != null;
+            }
+            set {
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    var hyperlink = this.Hyperlink!;
+                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
+                } else {
+                    runProperties = VerifyRunProperties();
+                }
+                if (value != true) {
+                    if (runProperties.Shadow != null) runProperties.Shadow.Remove();
+                } else {
+                    runProperties.Shadow = new Shadow();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the run is embossed.
+        /// </summary>
+        public bool Emboss {
+            get {
+                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                return runProperties != null && runProperties.Emboss != null;
+            }
+            set {
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    var hyperlink = this.Hyperlink!;
+                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
+                } else {
+                    runProperties = VerifyRunProperties();
+                }
+                if (value != true) {
+                    if (runProperties.Emboss != null) runProperties.Emboss.Remove();
+                } else {
+                    runProperties.Emboss = new Emboss();
+                }
+            }
+        }
+
         /// <summary>
         /// Gets or sets the font size in points.
         /// </summary>
