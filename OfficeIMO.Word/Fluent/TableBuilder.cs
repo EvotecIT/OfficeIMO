@@ -329,6 +329,41 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         /// <summary>
+        /// Sets the width for the specified column in points.
+        /// </summary>
+        public TableBuilder ColumnWidth(int columnIndex, double widthPoints) {
+            if (_table != null && columnIndex >= 1) {
+                int width = (int)Math.Round(widthPoints * 20);
+                foreach (var row in _table.Rows) {
+                    if (columnIndex <= row.CellsCount) {
+                        var cell = row.Cells[columnIndex - 1];
+                        cell.Width = width;
+                        cell.WidthType = TableWidthUnitValues.Dxa;
+                    }
+                }
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the height for the specified row in points.
+        /// </summary>
+        public TableBuilder RowHeight(int rowIndex, double heightPoints) {
+            if (_table != null && rowIndex >= 1 && rowIndex <= _table.Rows.Count) {
+                int height = (int)Math.Round(heightPoints * 20);
+                _table.Rows[rowIndex - 1].Height = height;
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Applies an action to style a specific cell using 1-based coordinates.
+        /// </summary>
+        public TableBuilder CellStyle(int row, int column, Action<WordTableCell> action) {
+            return Cell(row, column, action);
+        }
+
+        /// <summary>
         /// Applies an action to a specified row.
         /// </summary>
         public TableBuilder RowStyle(int index, Action<WordTableRow> action) {

@@ -117,6 +117,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FluentTableBuilder_ColumnWidthRowHeightAndCellStyle() {
+            string filePath = Path.Combine(_directoryWithFiles, "FluentTableBuilderSizeStyle.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                document.AsFluent()
+                    .Table(t => t
+                        .Create(2, 2)
+                        .ColumnWidth(1, 72)
+                        .ColumnWidth(2, 144)
+                        .RowHeight(1, 36)
+                        .RowHeight(2, 72)
+                        .CellStyle(1, 1, cell => {
+                            cell.Paragraphs[0].ParagraphAlignment = JustificationValues.Center;
+                            cell.VerticalAlignment = TableVerticalAlignmentValues.Center;
+                            cell.ShadingFillColorHex = "ffcc00";
+                            cell.Borders.LeftStyle = BorderValues.Single;
+                        }))
+                    .End()
+                    .Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                var table = document.Tables[0];
+                Assert.Equal(1440, table.Rows[0].Cells[0].Width);
+                Assert.Equal(TableWidthUnitValues.Dxa, table.Rows[0].Cells[0].WidthType);
+                Assert.Equal(2880, table.Rows[0].Cells[1].Width);
+                Assert.Equal(720, table.Rows[0].Height);
+                Assert.Equal(1440, table.Rows[1].Height);
+                var cell = table.Rows[0].Cells[0];
+                Assert.Equal("ffcc00", cell.ShadingFillColorHex);
+                Assert.Equal(TableVerticalAlignmentValues.Center, cell.VerticalAlignment);
+                Assert.Equal(JustificationValues.Center, cell.Paragraphs[0].ParagraphAlignment);
+                Assert.Equal(BorderValues.Single, cell.Borders.LeftStyle);
+            }
+        }
+
+        [Fact]
         public void TableBuilderCellEnforces1BasedIndexing() {
             string filePath = Path.Combine(_directoryWithFiles, "FluentTableBuilderInvalidCell.docx");
             using (var document = WordDocument.Create(filePath)) {
