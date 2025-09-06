@@ -137,7 +137,7 @@ namespace OfficeIMO.Word.Fluent {
         /// </summary>
         /// <param name="action">Configuration action for the paragraph.</param>
         public SectionBuilder Paragraph(Action<ParagraphBuilder> action) {
-            var paragraph = _fluent.Document.AddParagraph();
+            var paragraph = _section != null ? _section.AddParagraph() : _fluent.Document.AddParagraph();
             action(new ParagraphBuilder(_fluent, paragraph));
             return this;
         }
@@ -147,7 +147,12 @@ namespace OfficeIMO.Word.Fluent {
         /// </summary>
         /// <param name="action">Configuration action for the table.</param>
         public SectionBuilder Table(Action<TableBuilder> action) {
-            action(new TableBuilder(_fluent));
+            if (_section != null) {
+                var table = _section.AddTable(1, 1);
+                action(new TableBuilder(_fluent, table));
+            } else {
+                action(new TableBuilder(_fluent));
+            }
             return this;
         }
     }

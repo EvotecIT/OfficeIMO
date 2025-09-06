@@ -35,5 +35,28 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("ff00ff", document.Background.Color);
             }
         }
+
+        [Fact]
+        public void Test_FluentSectionBuilderContentAssignments() {
+            string filePath = Path.Combine(_directoryWithFiles, "FluentSectionBuilderContent.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AsFluent()
+                    .Paragraph(p => p.Text("Section1"))
+                    .Section(s => s.New()
+                        .Paragraph(p => p.Text("Section2"))
+                        .Table(t => t.Row("cell")))
+                    .End()
+                    .Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(2, document.Sections.Count);
+                Assert.Single(document.Sections[0].Paragraphs);
+                Assert.Empty(document.Sections[0].Tables);
+                Assert.Single(document.Sections[1].Paragraphs);
+                Assert.Single(document.Sections[1].Tables);
+                Assert.Equal("Section2", document.Sections[1].Paragraphs[0].Text);
+            }
+        }
     }
 }
