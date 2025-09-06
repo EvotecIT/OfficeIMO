@@ -1,3 +1,6 @@
+using System;
+using System.IO;
+using System.Linq;
 using System.Threading;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
@@ -38,19 +41,8 @@ namespace OfficeIMO.Word {
         private void InsertSmartArt(SmartArtType type) {
             var mainPart = _document._wordprocessingDocument.MainDocumentPart!;
 
-            var layoutPart = mainPart.AddNewPart<DiagramLayoutDefinitionPart>();
-            layoutPart.LayoutDefinition = new LayoutDefinition();
-            var colorsPart = mainPart.AddNewPart<DiagramColorsPart>();
-            colorsPart.ColorsDefinition = new ColorsDefinition();
-            var stylePart = mainPart.AddNewPart<DiagramStylePart>();
-            stylePart.StyleDefinition = new StyleDefinition();
-            var dataPart = mainPart.AddNewPart<DiagramDataPart>();
-            dataPart.DataModelRoot = new DataModelRoot();
-
-            var relLayout = mainPart.GetIdOfPart(layoutPart);
-            var relColors = mainPart.GetIdOfPart(colorsPart);
-            var relStyle = mainPart.GetIdOfPart(stylePart);
-            var relData = mainPart.GetIdOfPart(dataPart);
+            // Build SmartArt parts in-memory (no external templates)
+            var (relLayout, relColors, relStyle, relData) = SmartArtBuiltIn.AddParts(mainPart, type);
 
             var graphic = new Graphic(new GraphicData(
                 new RelationshipIds {
@@ -77,5 +69,7 @@ namespace OfficeIMO.Word {
             _paragraph.VerifyRun();
             _paragraph._run.Append(_drawing);
         }
+
+        // All SmartArt parts are created in SmartArtBuiltIn.
     }
 }

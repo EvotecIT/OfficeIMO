@@ -370,6 +370,9 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Word.Shapes.Example_AddEllipseAndPolygon(folderPath, false);
             OfficeIMO.Examples.Word.Shapes.Example_AddLine(folderPath, false);
             OfficeIMO.Examples.Word.Shapes.Example_AddMultipleShapes(folderPath, false);
+            OfficeIMO.Examples.Word.Shapes.Example_ShapesAdvanced(folderPath, false);
+            // Word/Shapes (anchored grid demo)
+            OfficeIMO.Examples.Word.Shapes.Example_AnchoredShapesGrid(folderPath, false);
             OfficeIMO.Examples.Word.Shapes.Example_LoadShapes(folderPath, false);
             OfficeIMO.Examples.Word.Shapes.Example_RemoveShape(folderPath, false);
             // Word/SmartArt
