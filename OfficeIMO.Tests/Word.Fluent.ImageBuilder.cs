@@ -1,5 +1,6 @@
 using System.IO;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO;
@@ -56,6 +57,21 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(80, document.Images[3].Width);
                 Assert.Equal(JustificationValues.Center, document.Paragraphs[3].ParagraphAlignment);
             }
+        }
+
+        [Fact]
+        public async Task Test_FluentImageBuilderAddFromUrlCancellation() {
+            string filePath = Path.Combine(_directoryWithFiles, "FluentImageBuilderCancelled.docx");
+
+            using var document = WordDocument.Create(filePath);
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => {
+                await document.AsFluent().ImageAsync(async i => {
+                    await i.AddFromUrlAsync("https://example.com/image.jpg", cts.Token);
+                });
+            });
         }
 
         [Fact]
