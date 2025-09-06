@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -65,23 +66,29 @@ namespace OfficeIMO.Word.Fluent {
         /// Downloads and adds an image from a URL.
         /// </summary>
         /// <param name="url">Image URL.</param>
-        public ImageBuilder AddFromUrl(string url) {
-            using HttpClient client = new HttpClient();
-            var data = client.GetByteArrayAsync(url).GetAwaiter().GetResult();
-            string fileName = GetFileName(url);
-            return Add(data, fileName);
+        /// <param name="cancellationToken">Token used to cancel the download operation.</param>
+        /// <returns>The current <see cref="ImageBuilder"/>.</returns>
+        public ImageBuilder AddFromUrl(string url, CancellationToken cancellationToken = default) {
+            return AddFromUrlAsync(url, cancellationToken).GetAwaiter().GetResult();
         }
 
         /// <summary>
         /// Asynchronously downloads and adds an image from a URL.
         /// </summary>
         /// <param name="url">Image URL.</param>
+        /// <param name="cancellationToken">Token used to cancel the download operation.</param>
         /// <returns>The current <see cref="ImageBuilder"/>.</returns>
-        public async Task<ImageBuilder> AddFromUrlAsync(string url) {
-            using HttpClient client = new HttpClient();
-            var data = await client.GetByteArrayAsync(url);
-            string fileName = GetFileName(url);
-            return Add(data, fileName);
+        public async Task<ImageBuilder> AddFromUrlAsync(string url, CancellationToken cancellationToken = default) {
+            try {
+                using HttpClient client = new HttpClient();
+                var data = await client.GetByteArrayAsync(url, cancellationToken);
+                string fileName = GetFileName(url);
+                return Add(data, fileName);
+            } catch (OperationCanceledException) {
+                throw;
+            } catch (Exception ex) {
+                throw new InvalidOperationException($"Failed to download image from '{url}'.", ex);
+            }
         }
 
         /// <summary>
