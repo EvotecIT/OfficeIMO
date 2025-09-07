@@ -1,10 +1,9 @@
-using System;
 using System.IO;
 using OfficeIMO.Excel;
 using Xunit;
         public void Test_NamedRanges_CreateReadDelete() {
-        }
-
+                var sheet1 = document.AddWorkSheet("Sheet1");
+                document.AddWorkSheet("Sheet2");
         [Fact]
         public void Test_NamedRanges_EscapingAndDuplicates() {
             var filePath = Path.Combine(_directoryWithFiles, "NamedRangesEscaping.xlsx");
