@@ -287,6 +287,108 @@ namespace OfficeIMO.Excel
             });
         }
 
+        /// <summary>
+        /// Applies a whole number validation to the specified A1 range.
+        /// </summary>
+        public void ValidationWholeNumber(string a1Range, DataValidationOperatorValues @operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null)
+        {
+            string f1 = formula1.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string? f2 = formula2?.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            ValidationAdd(a1Range, DataValidationValues.Whole, @operator, f1, f2, allowBlank, errorTitle, errorMessage);
+        }
+
+        /// <summary>
+        /// Applies a decimal number validation to the specified A1 range.
+        /// </summary>
+        public void ValidationDecimal(string a1Range, DataValidationOperatorValues @operator, double formula1, double? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null)
+        {
+            string f1 = formula1.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string? f2 = formula2?.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            ValidationAdd(a1Range, DataValidationValues.Decimal, @operator, f1, f2, allowBlank, errorTitle, errorMessage);
+        }
+
+        /// <summary>
+        /// Applies a date validation to the specified A1 range.
+        /// </summary>
+        public void ValidationDate(string a1Range, DataValidationOperatorValues @operator, DateTime formula1, DateTime? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null)
+        {
+            string f1 = formula1.ToOADate().ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string? f2 = formula2?.ToOADate().ToString(System.Globalization.CultureInfo.InvariantCulture);
+            ValidationAdd(a1Range, DataValidationValues.Date, @operator, f1, f2, allowBlank, errorTitle, errorMessage);
+        }
+
+        /// <summary>
+        /// Applies a time validation to the specified A1 range.
+        /// </summary>
+        public void ValidationTime(string a1Range, DataValidationOperatorValues @operator, TimeSpan formula1, TimeSpan? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null)
+        {
+            string f1 = formula1.TotalDays.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string? f2 = formula2?.TotalDays.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            ValidationAdd(a1Range, DataValidationValues.Time, @operator, f1, f2, allowBlank, errorTitle, errorMessage);
+        }
+
+        /// <summary>
+        /// Applies a text length validation to the specified A1 range.
+        /// </summary>
+        public void ValidationTextLength(string a1Range, DataValidationOperatorValues @operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null)
+        {
+            string f1 = formula1.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string? f2 = formula2?.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            ValidationAdd(a1Range, DataValidationValues.TextLength, @operator, f1, f2, allowBlank, errorTitle, errorMessage);
+        }
+
+        /// <summary>
+        /// Applies a custom formula validation to the specified A1 range.
+        /// </summary>
+        public void ValidationCustomFormula(string a1Range, string formula, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null)
+        {
+            if (string.IsNullOrWhiteSpace(formula)) throw new ArgumentNullException(nameof(formula));
+            ValidationAdd(a1Range, DataValidationValues.Custom, null, formula, null, allowBlank, errorTitle, errorMessage);
+        }
+
+        private void ValidationAdd(string a1Range, DataValidationValues type, DataValidationOperatorValues? @operator, string formula1, string? formula2, bool allowBlank, string? errorTitle, string? errorMessage)
+        {
+            if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
+            if (string.IsNullOrWhiteSpace(formula1)) throw new ArgumentNullException(nameof(formula1));
+
+            bool requiresTwo = @operator == DataValidationOperatorValues.Between || @operator == DataValidationOperatorValues.NotBetween;
+            if (requiresTwo && formula2 == null) throw new ArgumentNullException(nameof(formula2));
+
+            DataValidation dv = new DataValidation
+            {
+                Type = type,
+                AllowBlank = allowBlank,
+                Operator = @operator,
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = a1Range }
+            };
+
+            if (!string.IsNullOrEmpty(errorTitle) || !string.IsNullOrEmpty(errorMessage))
+            {
+                dv.ShowErrorMessage = true;
+                dv.ErrorTitle = errorTitle;
+                dv.Error = errorMessage;
+            }
+
+            dv.Append(new Formula1(formula1));
+            if (formula2 != null)
+            {
+                dv.Append(new Formula2(formula2));
+            }
+
+            WriteLock(() =>
+            {
+                Worksheet ws = _worksheetPart.Worksheet;
+                DataValidations? dvs = ws.GetFirstChild<DataValidations>();
+                if (dvs == null)
+                {
+                    dvs = new DataValidations();
+                    ws.Append(dvs);
+                }
+                dvs.Append(dv);
+                ws.Save();
+            });
+        }
+
         // -------- Sorting (values-only, rewrites range) --------
 
         /// <summary>
