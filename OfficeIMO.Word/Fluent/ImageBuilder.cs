@@ -80,8 +80,11 @@ namespace OfficeIMO.Word.Fluent {
         /// <returns>The current <see cref="ImageBuilder"/>.</returns>
         public async Task<ImageBuilder> AddFromUrlAsync(string url, CancellationToken cancellationToken = default) {
             try {
-                using HttpClient client = new HttpClient();
-                var data = await client.GetByteArrayAsync(url, cancellationToken);
+                using var client = new HttpClient();
+                using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+
+                var data = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
                 string fileName = GetFileName(url);
                 return Add(data, fileName);
             } catch (OperationCanceledException) {
