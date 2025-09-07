@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel {
         public string? GetNamedRange(string name, bool workbookScope = false) {
             var reference = workbookScope ? _excelDocument.GetNamedRange(name) : _excelDocument.GetNamedRange(name, this);
             if (reference != null && !workbookScope) {
-                var idx = reference.IndexOf('!');
+                var idx = reference.LastIndexOf('!');
                 if (idx >= 0 && idx < reference.Length - 1) {
                     return reference.Substring(idx + 1);
                 }

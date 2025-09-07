@@ -1,7 +1,27 @@
-using System.IO;
-using OfficeIMO.Excel;
-using Xunit;
-
+using System;
+using System.IO;
+using OfficeIMO.Excel;
+using Xunit;
+        public void Test_NamedRanges_CreateReadDelete() {
+        }
+
+        [Fact]
+        public void Test_NamedRanges_EscapingAndDuplicates() {
+            var filePath = Path.Combine(_directoryWithFiles, "NamedRangesEscaping.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("O'Brien");
+                sheet.CreateNamedRange("Local", "A1");
+                document.CreateNamedRange("Global", sheet, "B1", workbookScope: true);
+
+                Assert.Equal("A1", sheet.GetNamedRange("Local"));
+                Assert.Equal("'O''Brien'!B1", document.GetNamedRange("Global"));
+                Assert.Throws<InvalidOperationException>(() => sheet.CreateNamedRange("Local", "C1"));
+            }
+            File.Delete(filePath);
+        }
+    }
+}
+
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]

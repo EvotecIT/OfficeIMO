@@ -2,11 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        private static readonly Regex _a1Regex = new Regex("^\\$?[A-Za-z]{1,3}\\$?[1-9][0-9]*(?:(:\\$?[A-Za-z]{1,3}\\$?[1-9][0-9]*))?$", RegexOptions.Compiled);
+        private static readonly Regex _a1Regex = new Regex("^\\$?[A-Za-z]{1,3}\\$?[1-9][0-9]*(?:(:\\$?[A-Za-z]{1,3}\\$?[1-9][0-9]*))?$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         private static void ValidateA1(string range) {
             if (string.IsNullOrWhiteSpace(range) || !_a1Regex.IsMatch(range)) {
@@ -15,7 +16,19 @@ namespace OfficeIMO.Excel {
         }
 
         private static string EscapeSheetName(string sheetName) {
-            return sheetName.Contains(' ') ? $"'{sheetName}'" : sheetName;
+            var escaped = sheetName.Replace("'", "''");
+            return escaped.IndexOfAny(new[] { ' ', '!', '\'', '[', ']' }) >= 0 ? $"'{escaped}'" : escaped;
+        }
+
+        private static int GetSheetIndex(WorkbookPart workbookPart, string sheetName) {
+            var index = 0;
+            foreach (var sheet in workbookPart.Workbook.Sheets!.Elements<Sheet>()) {
+                if (sheet.Name != null && sheet.Name.Value == sheetName) {
+                    return index;
+                }
+                index++;
+            }
+            return -1;
         }
 
         public void CreateNamedRange(string name, ExcelSheet sheet, string a1Range, bool workbookScope = true) {
@@ -23,15 +36,21 @@ namespace OfficeIMO.Excel {
             Locking.ExecuteWrite(EnsureLock(), () => {
                 var workbookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
                 var definedNames = workbookPart.Workbook.DefinedNames ?? workbookPart.Workbook.AppendChild(new DefinedNames());
-                var definedName = new DefinedName { Name = name };
-                if (!workbookScope) {
-                    var sheets = workbookPart.Workbook.Sheets!.OfType<Sheet>().ToList();
-                    var index = sheets.FindIndex(s => s.Name != null && s.Name.Value == sheet.Name);
-                    if (index >= 0) {
-                        definedName.LocalSheetId = (uint)index;
-                    }
+                var index = workbookScope ? -1 : GetSheetIndex(workbookPart, sheet.Name);
+                if (!workbookScope && index < 0) {
+                    throw new ArgumentException($"Worksheet '{sheet.Name}' not found.", nameof(sheet));
                 }
-                definedName.Text = $"{EscapeSheetName(sheet.Name)}!{a1Range}";
+                var localSheetId = workbookScope ? (uint?)null : (uint)index;
+
+                var existing = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name?.Value == name && d.LocalSheetId == localSheetId);
+                if (existing != null) {
+                    throw new InvalidOperationException($"Named range '{name}' already exists.");
+                }
+
+                var definedName = new DefinedName { Name = name, Text = $"{EscapeSheetName(sheet.Name)}!{a1Range}" };
+                if (localSheetId != null) {
+                    definedName.LocalSheetId = localSheetId.Value;
+                }
                 definedNames.AppendChild(definedName);
             });
         }
@@ -43,8 +62,10 @@ namespace OfficeIMO.Excel {
                 if (definedNames == null) return null;
                 IEnumerable<DefinedName> names = definedNames.Elements<DefinedName>().Where(d => d.Name?.Value == name);
                 if (sheet != null) {
-                    var sheets = workbookPart.Workbook.Sheets!.OfType<Sheet>().ToList();
-                    var index = sheets.FindIndex(s => s.Name != null && s.Name.Value == sheet.Name);
+                    var index = GetSheetIndex(workbookPart, sheet.Name);
+                    if (index < 0) {
+                        return null;
+                    }
                     names = names.Where(d => d.LocalSheetId != null && d.LocalSheetId.Value == (uint)index);
                 } else {
                     names = names.Where(d => d.LocalSheetId == null);
@@ -60,8 +81,10 @@ namespace OfficeIMO.Excel {
                 if (definedNames == null) return false;
                 IEnumerable<DefinedName> names = definedNames.Elements<DefinedName>().Where(d => d.Name?.Value == name);
                 if (sheet != null) {
-                    var sheets = workbookPart.Workbook.Sheets!.OfType<Sheet>().ToList();
-                    var index = sheets.FindIndex(s => s.Name != null && s.Name.Value == sheet.Name);
+                    var index = GetSheetIndex(workbookPart, sheet.Name);
+                    if (index < 0) {
+                        return false;
+                    }
                     names = names.Where(d => d.LocalSheetId != null && d.LocalSheetId.Value == (uint)index);
                 } else {
                     names = names.Where(d => d.LocalSheetId == null);
@@ -71,7 +94,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
                 target.Remove();
-                if (!definedNames.Any()) {
+                if (!definedNames.Elements<DefinedName>().Any()) {
                     definedNames.Remove();
                 }
                 return true;
