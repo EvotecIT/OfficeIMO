@@ -11,8 +11,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
-                document.SetNamedRange("GlobalRange", "'Data'!A1:A2");
-                sheet.SetNamedRange("LocalRange", "A1");
+                document.SetNamedRange("GlobalRange", "'Data'!A1:A2", save: false);
+                sheet.SetNamedRange("LocalRange", "A1", save: false);
                 document.Save();
             }
 
@@ -29,13 +29,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
-                sheet.SetNamedRange("TempRange", "A1:B2");
+                sheet.SetNamedRange("TempRange", "A1:B2", save: false);
                 document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets.First(s => s.Name == "Data");
-                Assert.True(sheet.RemoveNamedRange("TempRange"));
+                Assert.True(sheet.RemoveNamedRange("TempRange", save: false));
                 Assert.Null(sheet.GetNamedRange("TempRange"));
                 document.Save();
             }

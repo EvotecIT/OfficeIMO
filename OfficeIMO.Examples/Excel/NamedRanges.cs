@@ -12,8 +12,8 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.CellValue(1, 1, "Value1");
                 sheet.CellValue(2, 1, "Value2");
 
-                document.SetNamedRange("GlobalRange", "'Data'!A1:A2");
-                sheet.SetNamedRange("LocalRange", "A1");
+                document.SetNamedRange("GlobalRange", "'Data'!A1:A2", save: false);
+                sheet.SetNamedRange("LocalRange", "A1", save: false);
 
                 document.Save(openExcel);
             }

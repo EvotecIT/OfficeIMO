@@ -5,7 +5,7 @@ using OfficeIMO.Excel.Read;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        public void SetNamedRange(string name, string range, ExcelSheet? scope = null) {
+        public void SetNamedRange(string name, string range, ExcelSheet? scope = null, bool save = true) {
             if (string.IsNullOrWhiteSpace(name)) {
                 throw new ArgumentException("Name cannot be null or empty.", nameof(name));
             }
@@ -35,7 +35,9 @@ namespace OfficeIMO.Excel {
                 dn.LocalSheetId = sheetIndex;
             }
             definedNames.Append(dn);
-            workbook.Save();
+            if (save) {
+                workbook.Save();
+            }
         }
 
         public string? GetNamedRange(string name, ExcelSheet? scope = null) {
@@ -64,7 +66,7 @@ namespace OfficeIMO.Excel {
             return dn.Text;
         }
 
-        public bool RemoveNamedRange(string name, ExcelSheet? scope = null) {
+        public bool RemoveNamedRange(string name, ExcelSheet? scope = null, bool save = true) {
             var definedNames = _workBookPart.Workbook.DefinedNames;
             if (definedNames == null) {
                 return false;
@@ -84,7 +86,9 @@ namespace OfficeIMO.Excel {
             if (!definedNames.Elements<DefinedName>().Any()) {
                 _workBookPart.Workbook.DefinedNames = null;
             }
-            _workBookPart.Workbook.Save();
+            if (save) {
+                _workBookPart.Workbook.Save();
+            }
             return true;
         }
 
@@ -92,7 +96,7 @@ namespace OfficeIMO.Excel {
             var sheets = _workBookPart.Workbook.Sheets?.OfType<Sheet>().ToList() ?? new();
             for (int i = 0; i < sheets.Count; i++) {
                 if (sheets[i].Name == sheet.Name) {
-                    return (uint)i;
+                    return sheets[i].SheetId?.Value ?? (uint)(i + 1);
                 }
             }
             throw new ArgumentException("Worksheet not found in workbook.", nameof(sheet));
@@ -111,6 +115,9 @@ namespace OfficeIMO.Excel {
             try {
                 (r1, c1, r2, c2) = A1.ParseRange(a1);
             } catch (ArgumentException) {
+                if (a1.Contains(':')) {
+                    throw;
+                }
                 var cell = A1.ParseCellRef(a1);
                 if (cell.Row <= 0 || cell.Col <= 0) {
                     throw;
