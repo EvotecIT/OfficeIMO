@@ -15,6 +15,13 @@ namespace OfficeIMO.Examples.Excel {
                 document.SetNamedRange("GlobalRange", "'Data'!A1:A2", save: false);
                 sheet.SetNamedRange("LocalRange", "A1", save: false);
 
+                foreach (var pair in document.GetAllNamedRanges()) {
+                    Console.WriteLine($"Workbook named range {pair.Key}: {pair.Value}");
+                }
+                foreach (var pair in sheet.GetAllNamedRanges()) {
+                    Console.WriteLine($"Worksheet named range {pair.Key}: {pair.Value}");
+                }
+
                 document.Save(openExcel);
             }
         }

@@ -48,6 +48,28 @@ namespace OfficeIMO.Tests {
             document.AddWorkSheet("Data");
             Assert.Throws<ArgumentException>(() => document.SetNamedRange("Bad", "'Data'!A1:A"));
         }
+
+        [Fact]
+        public void CanListNamedRanges() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                document.SetNamedRange("GlobalRange", "'Data'!A1:A2", save: false);
+                sheet.SetNamedRange("LocalRange", "A1:B2", save: false);
+                document.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var globals = document.GetAllNamedRanges();
+                Assert.Single(globals);
+                Assert.Equal("'Data'!$A$1:$A$2", globals["GlobalRange"]);
+                var sheet = document.Sheets.First(s => s.Name == "Data");
+                var locals = sheet.GetAllNamedRanges();
+                Assert.Single(locals);
+                Assert.Equal("$A$1:$B$2", locals["LocalRange"]);
+            }
+            File.Delete(filePath);
+        }
     }
 }
 

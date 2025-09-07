@@ -6,12 +6,17 @@ using OfficeIMO.Excel.Read;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         public void SetNamedRange(string name, string range, ExcelSheet? scope = null, bool save = true) {
+#if NET8_0_OR_GREATER
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(name);
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(range);
+#else
             if (string.IsNullOrWhiteSpace(name)) {
-                throw new ArgumentException("Name cannot be null or empty.", nameof(name));
+                throw new ArgumentException("Name cannot be null or whitespace.", nameof(name));
             }
             if (string.IsNullOrWhiteSpace(range)) {
-                throw new ArgumentException("Range cannot be null or empty.", nameof(range));
+                throw new ArgumentException("Range cannot be null or whitespace.", nameof(range));
             }
+#endif
 
             var workbook = _workBookPart.Workbook;
             var definedNames = workbook.DefinedNames ??= new DefinedNames();
@@ -41,6 +46,13 @@ namespace OfficeIMO.Excel {
         }
 
         public string? GetNamedRange(string name, ExcelSheet? scope = null) {
+#if NET8_0_OR_GREATER
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(name);
+#else
+            if (string.IsNullOrWhiteSpace(name)) {
+                throw new ArgumentException("Name cannot be null or whitespace.", nameof(name));
+            }
+#endif
             var definedNames = _workBookPart.Workbook.DefinedNames;
             if (definedNames == null) {
                 return null;
@@ -66,7 +78,44 @@ namespace OfficeIMO.Excel {
             return dn.Text;
         }
 
+        public IReadOnlyDictionary<string, string> GetAllNamedRanges(ExcelSheet? scope = null) {
+            var definedNames = _workBookPart.Workbook.DefinedNames;
+            if (definedNames == null) {
+                return new System.Collections.Generic.Dictionary<string, string>();
+            }
+
+            uint? sheetIndex = scope != null ? GetSheetIndex(scope) : null;
+            var result = new System.Collections.Generic.Dictionary<string, string>();
+
+            foreach (var dn in definedNames.Elements<DefinedName>()) {
+                if (sheetIndex == null && dn.LocalSheetId != null) {
+                    continue;
+                }
+                if (sheetIndex != null && (dn.LocalSheetId == null || dn.LocalSheetId.Value != sheetIndex)) {
+                    continue;
+                }
+
+                string text = dn.Text ?? string.Empty;
+                if (scope != null) {
+                    int idx = text.IndexOf('!');
+                    if (idx >= 0 && idx < text.Length - 1) {
+                        text = text.Substring(idx + 1);
+                    }
+                }
+                result[dn.Name!] = text;
+            }
+
+            return result;
+        }
+
         public bool RemoveNamedRange(string name, ExcelSheet? scope = null, bool save = true) {
+#if NET8_0_OR_GREATER
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(name);
+#else
+            if (string.IsNullOrWhiteSpace(name)) {
+                throw new ArgumentException("Name cannot be null or whitespace.", nameof(name));
+            }
+#endif
             var definedNames = _workBookPart.Workbook.DefinedNames;
             if (definedNames == null) {
                 return false;
@@ -96,12 +145,21 @@ namespace OfficeIMO.Excel {
             var sheets = _workBookPart.Workbook.Sheets?.OfType<Sheet>().ToList() ?? new();
             for (int i = 0; i < sheets.Count; i++) {
                 if (sheets[i].Name == sheet.Name) {
-                    return sheets[i].SheetId?.Value ?? (uint)(i + 1);
+                    var id = sheets[i].SheetId;
+                    if (id == null) {
+                        throw new ArgumentException("Worksheet is missing a SheetId.", nameof(sheet));
+                    }
+                    return id.Value;
                 }
             }
             throw new ArgumentException("Worksheet not found in workbook.", nameof(sheet));
         }
 
+        /// <summary>
+        /// Normalizes an A1-style range, ensuring absolute references and validating format.
+        /// Accepts an optional sheet prefix (e.g. '<c>'Sheet1'!A1:B2</c>').
+        /// Throws <see cref="ArgumentException"/> if the input is not a valid A1 range or cell reference.
+        /// </summary>
         private static string NormalizeRange(string range) {
             string? sheetPrefix = null;
             string a1 = range;
@@ -114,16 +172,20 @@ namespace OfficeIMO.Excel {
             int r1, c1, r2, c2;
             try {
                 (r1, c1, r2, c2) = A1.ParseRange(a1);
-            } catch (ArgumentException) {
+            } catch (ArgumentException ex) {
                 if (a1.Contains(':')) {
-                    throw;
+                    throw new ArgumentException("Range must be a valid A1 reference such as 'A1:B2'.", nameof(range), ex);
                 }
-                var cell = A1.ParseCellRef(a1);
-                if (cell.Row <= 0 || cell.Col <= 0) {
-                    throw;
+                try {
+                    var cell = A1.ParseCellRef(a1);
+                    if (cell.Row <= 0 || cell.Col <= 0) {
+                        throw new ArgumentException("Range must be a valid A1 reference such as 'A1'.", nameof(range), ex);
+                    }
+                    r1 = r2 = cell.Row;
+                    c1 = c2 = cell.Col;
+                } catch (ArgumentException) {
+                    throw new ArgumentException("Range must be a valid A1 reference such as 'A1' or 'A1:B2'.", nameof(range), ex);
                 }
-                r1 = r2 = cell.Row;
-                c1 = c2 = cell.Col;
             }
 
             string start = $"${A1.ColumnIndexToLetters(c1)}${r1}";
