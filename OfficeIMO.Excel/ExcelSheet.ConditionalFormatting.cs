@@ -247,6 +247,21 @@ namespace OfficeIMO.Excel {
                 };
 
                 var icon = new IconSet { IconSetValue = iconSet, ShowValue = showValue, Reverse = reverseIconOrder };
+                // Schema requires cfvo count to match icon count.
+                // Use enum name to classify (portable across SDK versions):
+                int thresholds;
+                var setName = iconSet.ToString();
+                if (setName.StartsWith("Three", System.StringComparison.Ordinal)) thresholds = 3;
+                else if (setName.StartsWith("Four", System.StringComparison.Ordinal)) thresholds = 4;
+                else thresholds = 5;
+
+                int[] perc = thresholds == 3 ? new[] { 0, 33, 67 } : thresholds == 4 ? new[] { 0, 25, 50, 75 } : new[] { 0, 20, 40, 60, 80 };
+                for (int i = 0; i < perc.Length; i++)
+                {
+                    var cfvo = new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Percent };
+                    cfvo.Val = perc[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    icon.Append(cfvo);
+                }
                 rule.Append(icon);
                 conditionalFormatting.Append(rule);
 

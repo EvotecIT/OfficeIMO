@@ -6,8 +6,8 @@ namespace OfficeIMO.Excel {
         /// <param name="name">Defined name to create or update.</param>
         /// <param name="range">A1 range (e.g. "A1:B5").</param>
         /// <param name="save">When true, saves the workbook after the change.</param>
-        public void SetNamedRange(string name, string range, bool save = true) {
-            _excelDocument.SetNamedRange(name, range, this, save);
+        public void SetNamedRange(string name, string range, bool save = true, bool hidden = false) {
+            _excelDocument.SetNamedRange(name, range, this, save, hidden);
         }
 
         /// <summary>

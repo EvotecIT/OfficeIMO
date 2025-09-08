@@ -117,5 +117,43 @@ namespace OfficeIMO.Excel
                 _sheet.CellBackground(r, _colIndex, color);
             return this;
         }
+
+        /// <summary>
+        /// Applies a background fill to cells in this column when their text equals the specified value.
+        /// Comparison is case-insensitive by default.
+        /// </summary>
+        public ColumnStyleByHeaderBuilder BackgroundWhenTextEquals(string text, string hexColor, bool caseInsensitive = true)
+        {
+            if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(hexColor)) return this;
+            var comparison = caseInsensitive ? System.StringComparison.OrdinalIgnoreCase : System.StringComparison.Ordinal;
+            for (int r = _startRow; r <= _endRow; r++)
+            {
+                if (_sheet.TryGetCellText(r, _colIndex, out var value))
+                {
+                    if (string.Equals(value, text, comparison))
+                        _sheet.CellBackground(r, _colIndex, hexColor);
+                }
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Applies background fills to cells based on a text→color mapping.
+        /// Keys are compared case-insensitively by default.
+        /// </summary>
+        public ColumnStyleByHeaderBuilder BackgroundByTextMap(System.Collections.Generic.IDictionary<string, string> map, bool caseInsensitive = true)
+        {
+            if (map == null || map.Count == 0) return this;
+            var dict = caseInsensitive ? new System.Collections.Generic.Dictionary<string, string>(map, System.StringComparer.OrdinalIgnoreCase)
+                                       : new System.Collections.Generic.Dictionary<string, string>(map);
+            for (int r = _startRow; r <= _endRow; r++)
+            {
+                if (_sheet.TryGetCellText(r, _colIndex, out var value) && !string.IsNullOrEmpty(value) && dict.TryGetValue(value, out var color))
+                {
+                    _sheet.CellBackground(r, _colIndex, color);
+                }
+            }
+            return this;
+        }
     }
 }

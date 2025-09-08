@@ -249,6 +249,15 @@ namespace OfficeIMO.Excel {
         {
             var list = new System.Collections.Generic.List<string>();
             if (_spreadSheetDocument == null) return list;
+            // Ensure worksheet element order prior to validation so schema checks reflect final layout
+            try
+            {
+                foreach (var sheet in Sheets)
+                {
+                    sheet.EnsureWorksheetElementOrder();
+                }
+            }
+            catch { }
             var validator = new OpenXmlValidator();
             foreach (var error in validator.Validate(_spreadSheetDocument))
             {

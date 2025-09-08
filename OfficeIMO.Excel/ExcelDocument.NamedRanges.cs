@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
         /// <param name="range">A1 range (e.g. "A1:B10"). Can include a sheet prefix.</param>
         /// <param name="scope">Optional sheet scope for a local name.</param>
         /// <param name="save">When true, saves the workbook after the change.</param>
-        public void SetNamedRange(string name, string range, ExcelSheet? scope = null, bool save = true) {
+        public void SetNamedRange(string name, string range, ExcelSheet? scope = null, bool save = true, bool hidden = false) {
 #if NET8_0_OR_GREATER
             ArgumentNullException.ThrowIfNullOrWhiteSpace(name);
             ArgumentNullException.ThrowIfNullOrWhiteSpace(range);
@@ -29,11 +29,8 @@ namespace OfficeIMO.Excel {
             var workbook = _workBookPart.Workbook;
             var definedNames = workbook.DefinedNames ??= new DefinedNames();
 
-            uint? sheetIndex = scope != null ? GetSheetIndex(scope) : null;
-
-            var existing = definedNames.Elements<DefinedName>().FirstOrDefault(d =>
-                d.Name == name && ((sheetIndex == null && d.LocalSheetId == null) ||
-                (sheetIndex != null && d.LocalSheetId != null && d.LocalSheetId.Value == sheetIndex)));
+            // Use workbook-global names with explicit sheet-qualified references
+            var existing = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name);
 
             existing?.Remove();
 
@@ -42,11 +39,10 @@ namespace OfficeIMO.Excel {
 
             DefinedName dn = new DefinedName {
                 Name = name,
-                Text = reference
+                Text = reference,
+                Hidden = hidden ? true : (bool?)null
             };
-            if (sheetIndex != null) {
-                dn.LocalSheetId = sheetIndex;
-            }
+            // No LocalSheetId — avoid index drift when sheets are reordered
             definedNames.Append(dn);
             if (save) {
                 workbook.Save();
@@ -72,11 +68,7 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            uint? sheetIndex = scope != null ? GetSheetIndex(scope) : null;
-
-            var dn = definedNames.Elements<DefinedName>().FirstOrDefault(d =>
-                d.Name == name && ((sheetIndex == null && d.LocalSheetId == null) ||
-                (sheetIndex != null && d.LocalSheetId != null && d.LocalSheetId.Value == sheetIndex)));
+            var dn = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name);
 
             if (dn == null) {
                 return null;
@@ -84,10 +76,12 @@ namespace OfficeIMO.Excel {
 
             if (scope != null) {
                 string text = dn.Text ?? string.Empty;
-                int idx = text.IndexOf('!');
-                if (idx >= 0 && idx < text.Length - 1) {
-                    return text.Substring(idx + 1);
+                var prefix = $"'{scope.Name}'!";
+                if (text.StartsWith(prefix, StringComparison.Ordinal)) {
+                    int idx = text.IndexOf('!');
+                    if (idx >= 0 && idx < text.Length - 1) return text.Substring(idx + 1);
                 }
+                return null;
             }
             return dn.Text;
         }
@@ -101,23 +95,14 @@ namespace OfficeIMO.Excel {
                 return new System.Collections.Generic.Dictionary<string, string>();
             }
 
-            uint? sheetIndex = scope != null ? GetSheetIndex(scope) : null;
             var result = new System.Collections.Generic.Dictionary<string, string>();
-
             foreach (var dn in definedNames.Elements<DefinedName>()) {
-                if (sheetIndex == null && dn.LocalSheetId != null) {
-                    continue;
-                }
-                if (sheetIndex != null && (dn.LocalSheetId == null || dn.LocalSheetId.Value != sheetIndex)) {
-                    continue;
-                }
-
-                string text = dn.Text ?? string.Empty;
+                var text = dn.Text ?? string.Empty;
                 if (scope != null) {
+                    var prefix = $"'{scope.Name}'!";
+                    if (!text.StartsWith(prefix, StringComparison.Ordinal)) continue;
                     int idx = text.IndexOf('!');
-                    if (idx >= 0 && idx < text.Length - 1) {
-                        text = text.Substring(idx + 1);
-                    }
+                    if (idx >= 0 && idx < text.Length - 1) text = text.Substring(idx + 1);
                 }
                 result[dn.Name!] = text;
             }
@@ -145,11 +130,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            uint? sheetIndex = scope != null ? GetSheetIndex(scope) : null;
-
-            var dn = definedNames.Elements<DefinedName>().FirstOrDefault(d =>
-                d.Name == name && ((sheetIndex == null && d.LocalSheetId == null) ||
-                (sheetIndex != null && d.LocalSheetId != null && d.LocalSheetId.Value == sheetIndex)));
+            var dn = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name);
 
             if (dn == null) {
                 return false;

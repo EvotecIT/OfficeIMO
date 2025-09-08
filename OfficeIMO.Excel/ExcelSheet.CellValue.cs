@@ -229,6 +229,40 @@ namespace OfficeIMO.Excel {
             WriteLockConditional(() => FormatCellCore(row, column, numberFormat));
         }
 
+        /// <summary>
+        /// Tries to read the display text of a cell at the given position.
+        /// Returns false if the cell is blank or out of bounds.
+        /// </summary>
+        public bool TryGetCellText(int row, int column, out string text)
+        {
+            text = string.Empty;
+            try
+            {
+                var cell = GetCell(row, column);
+                if (cell == null) return false;
+                // Resolve shared string if needed
+                if (cell.DataType != null && cell.DataType.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString)
+                {
+                    if (int.TryParse(cell.InnerText, System.Globalization.NumberStyles.Integer, CultureInfo.InvariantCulture, out int ssid))
+                    {
+                        var wb = _excelDocument._spreadSheetDocument.WorkbookPart;
+                        var sst = wb?.SharedStringTablePart?.SharedStringTable;
+                        var si = sst?.Elements<SharedStringItem>().ElementAtOrDefault(ssid);
+                        if (si != null)
+                        {
+                            text = si.InnerText ?? string.Empty;
+                            return true;
+                        }
+                        return false;
+                    }
+                }
+                // Otherwise, return inner text (numbers/booleans as invariant string)
+                text = cell.InnerText ?? string.Empty;
+                return !string.IsNullOrEmpty(text);
+            }
+            catch { return false; }
+        }
+
         private void ApplyWrapText(int row, int column)
         {
             var cell = GetCell(row, column);

@@ -217,14 +217,22 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                // Generate unique table ID atomically
+                // Generate unique table ID atomically (must be unique across the entire workbook)
                 uint tableId;
                 lock (_tableIdLock) {
-                    // Get max existing table ID to ensure uniqueness
+                    // Get max existing table ID across all sheets to ensure uniqueness
                     uint maxExistingId = 0;
-                    foreach (var part in _worksheetPart.TableDefinitionParts) {
-                        if (part.Table?.Id?.Value != null && part.Table.Id.Value > maxExistingId) {
-                            maxExistingId = part.Table.Id.Value;
+                    var wbPart = _spreadSheetDocument.WorkbookPart;
+                    if (wbPart != null)
+                    {
+                        foreach (var ws in wbPart.WorksheetParts)
+                        {
+                            foreach (var part in ws.TableDefinitionParts)
+                            {
+                                var idv = part.Table?.Id?.Value;
+                                if (idv != null && idv.Value > maxExistingId)
+                                    maxExistingId = idv.Value;
+                            }
                         }
                     }
                     tableId = Math.Max((uint)_nextTableId, maxExistingId + 1);
@@ -311,14 +319,13 @@ namespace OfficeIMO.Excel {
 
                 var tableParts = _worksheetPart.Worksheet.Elements<TableParts>().FirstOrDefault();
                 if (tableParts == null) {
-                    tableParts = new TableParts { Count = 1 };
+                    tableParts = new TableParts();
                     _worksheetPart.Worksheet.Append(tableParts);
-                } else {
-                    tableParts.Count = (tableParts.Count ?? 0U) + 1U;
                 }
 
                 var relId = _worksheetPart.GetIdOfPart(tableDefinitionPart);
                 tableParts.Append(new TablePart { Id = relId });
+                tableParts.Count = (uint)tableParts.Elements<TablePart>().Count();
 
                 _worksheetPart.Worksheet.Save();
             });

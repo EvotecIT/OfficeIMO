@@ -76,11 +76,40 @@ namespace OfficeIMO.Examples.Excel {
                 report.Title("Domain Detective — Mail Classification Summary");
 
                 report.TableFrom(data, title: "Domains", configure: opts => {
-                    opts.ExpandProperties.Add(nameof(MailDomainClassificationResult.ScoreBreakdown));
+                    // Map ScoreBreakdown list into dynamic columns using Name as header and Value as cell
+                    opts.CollectionMapColumns[nameof(MailDomainClassificationResult.ScoreBreakdown)] = new CollectionColumnMapping { KeyProperty = nameof(ScorePair.Name), ValueProperty = nameof(ScorePair.Value) };
+                    // Make headers nice
                     opts.HeaderCase = HeaderCase.Title;
+                    opts.HeaderPrefixTrimPaths = new[] { nameof(MailDomainClassificationResult.ScoreBreakdown) + "." };
                     opts.NullPolicy = NullPolicy.EmptyString;
+                    // Keep important fields at the front of the table; the rest follow automatically
+                    opts.PinnedFirst = new[]
+                    {
+                        nameof(MailDomainClassificationResult.Domain),
+                        nameof(MailDomainClassificationResult.Classification),
+                        nameof(MailDomainClassificationResult.Confidence),
+                        nameof(MailDomainClassificationResult.Status),
+                        nameof(MailDomainClassificationResult.Score),
+                        nameof(MailDomainClassificationResult.WarningCount),
+                        nameof(MailDomainClassificationResult.ErrorCount),
+                        nameof(MailDomainClassificationResult.ReceivingSignals),
+                        nameof(MailDomainClassificationResult.SendingSignals),
+                        nameof(MailDomainClassificationResult.Summary)
+                    };
+                    // Keep long text columns out of the summary table
                     opts.Ignore = new[] { nameof(MailDomainClassificationResult.Recommendations), nameof(MailDomainClassificationResult.Positives), nameof(MailDomainClassificationResult.References) };
+                }, visuals: viz => {
+                    viz.IconSetColumns.Add("Score");
+                    viz.TextBackgrounds["Status"] = new System.Collections.Generic.Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["Error"] = "#FDECEA",
+                        ["Warning"] = "#FFF8E1",
+                        ["Success"] = "#E8F5E9",
+                        ["Ok"] = "#E8F5E9",
+                        ["Pass"] = "#E8F5E9"
+                    };
                 });
+                report.Finish(autoFitColumns: true);
 
                 // One sheet per domain with richer layout
                 foreach (var d in data) {
@@ -114,7 +143,20 @@ namespace OfficeIMO.Examples.Excel {
                     if (d.Positives.Length > 0) {
                         rs.Section("Positives").BulletedList(d.Positives);
                     }
-                    rs.References(d.References);
+                    rs.References(d.References).Finish(autoFitColumns: true);
+                }
+
+                // TOC for easy navigation (first sheet)
+                doc.AddTableOfContents(placeFirst: true, includeNamedRanges: false);
+
+                // Validate OpenXML and print any issues (helps catch Excel repair causes)
+                var issues = doc.ValidateOpenXml();
+                if (issues.Count > 0) {
+                    Console.WriteLine($"[!] OpenXML validation issues: {issues.Count}");
+                    int show = Math.Min(issues.Count, 15);
+                    for (int i = 0; i < show; i++) Console.WriteLine(" - " + issues[i]);
+                } else {
+                    Console.WriteLine("[+] OpenXML validation clean");
                 }
 
                 // Save
@@ -123,4 +165,3 @@ namespace OfficeIMO.Examples.Excel {
         }
     }
 }
-
