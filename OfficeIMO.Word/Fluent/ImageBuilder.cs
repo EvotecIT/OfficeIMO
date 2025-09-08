@@ -62,6 +62,9 @@ namespace OfficeIMO.Word.Fluent {
             return Add(ms, fileName);
         }
 
+        private const int MaxImageBytes = 10 * 1024 * 1024;
+        private static readonly HttpClient _httpClient = new HttpClient();
+
         /// <summary>
         /// Downloads and adds an image from a URL.
         /// </summary>
@@ -79,18 +82,44 @@ namespace OfficeIMO.Word.Fluent {
         /// <param name="cancellationToken">Token used to cancel the download operation.</param>
         /// <returns>The current <see cref="ImageBuilder"/>.</returns>
         public async Task<ImageBuilder> AddFromUrlAsync(string url, CancellationToken cancellationToken = default) {
+            ValidateUrl(url);
+
             try {
-                using var client = new HttpClient();
-                using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
 
-                var data = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                var mediaType = response.Content.Headers.ContentType?.MediaType;
+                if (mediaType == null || !mediaType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) {
+                    throw new InvalidOperationException("URL did not return an image.");
+                }
+
+                using var ms = new MemoryStream();
+                using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                var buffer = new byte[81920];
+                long totalRead = 0;
+                int read;
+                while ((read = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0) {
+                    totalRead += read;
+                    if (totalRead > MaxImageBytes) {
+                        throw new InvalidOperationException($"Image exceeds maximum allowed size of {MaxImageBytes} bytes.");
+                    }
+                    await ms.WriteAsync(buffer, 0, read, cancellationToken).ConfigureAwait(false);
+                }
+
+                ms.Position = 0;
                 string fileName = GetFileName(url);
-                return Add(data, fileName);
+                return Add(ms, fileName);
             } catch (OperationCanceledException) {
                 throw;
             } catch (Exception ex) {
                 throw new InvalidOperationException($"Failed to download image from '{url}'.", ex);
+            }
+        }
+
+        private static void ValidateUrl(string url) {
+            var uri = new Uri(url, UriKind.Absolute);
+            if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) {
+                throw new ArgumentException("Only HTTP/HTTPS URLs are allowed.", nameof(url));
             }
         }
 
