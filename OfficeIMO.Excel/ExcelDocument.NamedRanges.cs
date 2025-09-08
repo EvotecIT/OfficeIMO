@@ -29,24 +29,26 @@ namespace OfficeIMO.Excel {
             var workbook = _workBookPart.Workbook;
             var definedNames = workbook.DefinedNames ??= new DefinedNames();
 
-            // Use workbook-global names with explicit sheet-qualified references
-            var existing = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name);
-
-            existing?.Remove();
-
-            string reference = scope != null ? $"'{scope.Name}'!{range}" : range;
-            reference = NormalizeRange(reference);
-
-            DefinedName dn = new DefinedName {
-                Name = name,
-                Text = reference,
-                Hidden = hidden ? true : (bool?)null
-            };
-            // No LocalSheetId — avoid index drift when sheets are reordered
-            definedNames.Append(dn);
-            if (save) {
-                workbook.Save();
+            if (scope == null)
+            {
+                // Workbook-global name: remove any existing global with same name
+                foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == name && d.LocalSheetId == null).ToList())
+                    dn.Remove();
+                string reference = NormalizeRange(range); // may already contain a sheet prefix
+                var dnNew = new DefinedName { Name = name, Text = reference, Hidden = hidden ? true : (bool?)null };
+                definedNames.Append(dnNew);
             }
+            else
+            {
+                // Sheet-local name: remove existing with same name for this sheet
+                ushort sheetPos = GetSheetPositionIndex(scope);
+                foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == name && d.LocalSheetId != null && d.LocalSheetId.Value == sheetPos).ToList())
+                    dn.Remove();
+                string localRef = NormalizeRange(range); // local names store unqualified A1
+                var dnNew = new DefinedName { Name = name, Text = localRef, LocalSheetId = sheetPos, Hidden = hidden ? true : (bool?)null };
+                definedNames.Append(dnNew);
+            }
+            if (save) workbook.Save();
         }
 
         /// <summary>
@@ -89,26 +91,19 @@ namespace OfficeIMO.Excel {
             }
 #endif
             var definedNames = _workBookPart.Workbook.DefinedNames;
-            if (definedNames == null) {
-                return null;
-            }
+            if (definedNames == null) return null;
 
-            var dn = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name);
-
-            if (dn == null) {
-                return null;
+            if (scope != null)
+            {
+                ushort pos = GetSheetPositionIndex(scope);
+                var dnLocal = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId != null && d.LocalSheetId.Value == pos);
+                return dnLocal?.Text;
             }
-
-            if (scope != null) {
-                string text = dn.Text ?? string.Empty;
-                var prefix = $"'{scope.Name}'!";
-                if (text.StartsWith(prefix, StringComparison.Ordinal)) {
-                    int idx = text.IndexOf('!');
-                    if (idx >= 0 && idx < text.Length - 1) return text.Substring(idx + 1);
-                }
-                return null;
+            else
+            {
+                var dnGlobal = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId == null);
+                return dnGlobal?.Text;
             }
-            return dn.Text;
         }
 
         /// <summary>
@@ -116,22 +111,26 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IReadOnlyDictionary<string, string> GetAllNamedRanges(ExcelSheet? scope = null) {
             var definedNames = _workBookPart.Workbook.DefinedNames;
-            if (definedNames == null) {
-                return new System.Collections.Generic.Dictionary<string, string>();
-            }
-
             var result = new System.Collections.Generic.Dictionary<string, string>();
-            foreach (var dn in definedNames.Elements<DefinedName>()) {
-                var text = dn.Text ?? string.Empty;
-                if (scope != null) {
-                    var prefix = $"'{scope.Name}'!";
-                    if (!text.StartsWith(prefix, StringComparison.Ordinal)) continue;
-                    int idx = text.IndexOf('!');
-                    if (idx >= 0 && idx < text.Length - 1) text = text.Substring(idx + 1);
-                }
-                result[dn.Name!] = text;
-            }
+            if (definedNames == null) return result;
 
+            if (scope != null)
+            {
+                ushort pos = GetSheetPositionIndex(scope);
+                foreach (var dn in definedNames.Elements<DefinedName>())
+                {
+                    if (dn.LocalSheetId != null && dn.LocalSheetId.Value == pos)
+                        result[dn.Name!] = dn.Text ?? string.Empty;
+                }
+            }
+            else
+            {
+                foreach (var dn in definedNames.Elements<DefinedName>())
+                {
+                    if (dn.LocalSheetId == null)
+                        result[dn.Name!] = dn.Text ?? string.Empty;
+                }
+            }
             return result;
         }
 
@@ -151,17 +150,20 @@ namespace OfficeIMO.Excel {
             }
 #endif
             var definedNames = _workBookPart.Workbook.DefinedNames;
-            if (definedNames == null) {
-                return false;
+            if (definedNames == null) return false;
+
+            DefinedName? target = null;
+            if (scope != null)
+            {
+                ushort pos = GetSheetPositionIndex(scope);
+                target = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId != null && d.LocalSheetId.Value == pos);
             }
-
-            var dn = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name);
-
-            if (dn == null) {
-                return false;
+            else
+            {
+                target = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId == null);
             }
-
-            dn.Remove();
+            if (target == null) return false;
+            target.Remove();
             if (!definedNames.Elements<DefinedName>().Any()) {
                 _workBookPart.Workbook.DefinedNames = null;
             }
