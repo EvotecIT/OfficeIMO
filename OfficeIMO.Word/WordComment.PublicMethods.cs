@@ -29,7 +29,7 @@ namespace OfficeIMO.Word {
                 Id = GetNewId(document),
                 Author = author,
                 Initials = initials,
-                Date = DateTime.Now
+                Date = System.DateTime.Now
             };
             cmt.AppendChild(p);
             comments.AppendChild(cmt);

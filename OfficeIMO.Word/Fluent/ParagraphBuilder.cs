@@ -2,6 +2,7 @@ using System;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO;
 using OfficeIMO.Word;
+using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Word.Fluent {
     /// <summary>
@@ -146,6 +147,24 @@ namespace OfficeIMO.Word.Fluent {
                 _paragraph.IndentationAfterPoints = right.Value;
             }
 
+            return this;
+        }
+
+        /// <summary>
+        /// Configures borders for the paragraph.
+        /// </summary>
+        /// <param name="configure">Callback to configure individual border settings.</param>
+        public ParagraphBuilder Border(Action<WordParagraphBorders> configure) {
+            configure(_paragraph.Borders);
+            return this;
+        }
+
+        /// <summary>
+        /// Applies shading to the paragraph.
+        /// </summary>
+        /// <param name="color">Fill color.</param>
+        public ParagraphBuilder Shading(Color color) {
+            _paragraph.ShadingFillColor = color;
             return this;
         }
 

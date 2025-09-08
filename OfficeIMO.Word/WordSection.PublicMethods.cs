@@ -65,6 +65,19 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Adds a table to the section.
+        /// </summary>
+        /// <param name="rows">Number of rows.</param>
+        /// <param name="columns">Number of columns.</param>
+        /// <param name="tableStyle">Table style to apply.</param>
+        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+            var anchor = AddParagraph();
+            var table = anchor.AddTableAfter(rows, columns, tableStyle);
+            anchor.Remove();
+            return table;
+        }
+
+        /// <summary>
         /// Adds a watermark to the section.
         /// </summary>
         /// <param name="watermarkStyle">Watermark style.</param>

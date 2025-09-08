@@ -1,4 +1,5 @@
 using System;
+using DocumentFormat.OpenXml.ExtendedProperties;
 
 namespace OfficeIMO.Word.Fluent {
     /// <summary>
@@ -53,6 +54,51 @@ namespace OfficeIMO.Word.Fluent {
         /// <param name="comments">Comments text.</param>
         public InfoBuilder Comments(string comments) {
             _fluent.Document.BuiltinDocumentProperties.Description = comments;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the document category.
+        /// </summary>
+        /// <param name="category">Category text.</param>
+        public InfoBuilder Category(string category) {
+            _fluent.Document.BuiltinDocumentProperties.Category = category;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the company name.
+        /// </summary>
+        /// <param name="company">Company name.</param>
+        public InfoBuilder Company(string company) {
+            _fluent.Document.ApplicationProperties.Company = company;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the manager name.
+        /// </summary>
+        /// <param name="manager">Manager name.</param>
+        public InfoBuilder Manager(string manager) {
+            _fluent.Document.ApplicationProperties.Manager = new Manager { Text = manager };
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the user who last modified the document.
+        /// </summary>
+        /// <param name="lastModifiedBy">Last modified by.</param>
+        public InfoBuilder LastModifiedBy(string lastModifiedBy) {
+            _fluent.Document.BuiltinDocumentProperties.LastModifiedBy = lastModifiedBy;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the document revision.
+        /// </summary>
+        /// <param name="revision">Revision value.</param>
+        public InfoBuilder Revision(string revision) {
+            _fluent.Document.BuiltinDocumentProperties.Revision = revision;
             return this;
         }
 

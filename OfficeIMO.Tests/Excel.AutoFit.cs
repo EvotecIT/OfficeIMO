@@ -36,7 +36,8 @@ namespace OfficeIMO.Tests {
 
                 var sheetFormat = wsPart.Worksheet.GetFirstChild<SheetFormatProperties>();
                 Assert.NotNull(sheetFormat);
-                Assert.True(sheetFormat!.DefaultRowHeight > 0);
+                Assert.NotNull(sheetFormat!.DefaultRowHeight);
+                Assert.True(sheetFormat.DefaultRowHeight.Value > 0);
 
                 var row1 = wsPart.Worksheet.Descendants<Row>().First(r => r.RowIndex != null && r.RowIndex.Value == 1);
 
@@ -208,25 +209,25 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.MixedFonts.xlsx");
 
             static uint AddFontStyle(SpreadsheetDocument doc, string name, double size) {
-                var stylesPart = doc.WorkbookPart.WorkbookStylesPart ?? doc.WorkbookPart.AddNewPart<WorkbookStylesPart>();
+                var stylesPart = doc.WorkbookPart!.WorkbookStylesPart ?? doc.WorkbookPart!.AddNewPart<WorkbookStylesPart>();
                 if (stylesPart.Stylesheet == null) {
                     stylesPart.Stylesheet = new Stylesheet(new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font()), new Fills(new Fill()), new Borders(new Border()), new CellFormats(new CellFormat()));
-                    stylesPart.Stylesheet.Fonts.Count = 1;
-                    stylesPart.Stylesheet.Fills.Count = 1;
-                    stylesPart.Stylesheet.Borders.Count = 1;
-                    stylesPart.Stylesheet.CellFormats.Count = 1;
+                    stylesPart.Stylesheet.Fonts!.Count = 1;
+                    stylesPart.Stylesheet.Fills!.Count = 1;
+                    stylesPart.Stylesheet.Borders!.Count = 1;
+                    stylesPart.Stylesheet.CellFormats!.Count = 1;
                 }
-                var ss = stylesPart.Stylesheet;
-                ss.Fonts.Append(new DocumentFormat.OpenXml.Spreadsheet.Font(new FontName { Val = name }, new FontSize { Val = size }));
+                var ss = stylesPart.Stylesheet!;
+                ss.Fonts!.Append(new DocumentFormat.OpenXml.Spreadsheet.Font(new FontName { Val = name }, new FontSize { Val = size }));
                 ss.Fonts.Count = (uint)ss.Fonts.ChildElements.Count;
-                ss.CellFormats.Append(new CellFormat { FontId = ss.Fonts.Count - 1, ApplyFont = true });
+                ss.CellFormats!.Append(new CellFormat { FontId = ss.Fonts.Count - 1, ApplyFont = true });
                 ss.CellFormats.Count = (uint)ss.CellFormats.ChildElements.Count;
-                stylesPart.Stylesheet.Save();
+                stylesPart.Stylesheet!.Save();
                 return ss.CellFormats.Count - 1;
             }
 
             static void SetCellStyle(SpreadsheetDocument doc, string cellRef, uint styleIndex) {
-                var wsPart = doc.WorkbookPart.WorksheetParts.First();
+                var wsPart = doc.WorkbookPart!.WorksheetParts.First();
                 var cell = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == cellRef);
                 cell.StyleIndex = styleIndex;
                 wsPart.Worksheet.Save();
@@ -294,7 +295,8 @@ namespace OfficeIMO.Tests {
 
                 var sheetFormat = wsPart.Worksheet.GetFirstChild<SheetFormatProperties>();
                 Assert.NotNull(sheetFormat);
-                Assert.True(sheetFormat!.DefaultRowHeight > 0);
+                Assert.NotNull(sheetFormat!.DefaultRowHeight);
+                Assert.True(sheetFormat.DefaultRowHeight.Value > 0);
             }
         }
 
@@ -325,7 +327,7 @@ namespace OfficeIMO.Tests {
 
                 var row = wsPart.Worksheet.Descendants<Row>().First(r => r.RowIndex != null && r.RowIndex.Value == 2);
                 Assert.True(row.CustomHeight?.Value ?? false);
-                Assert.True(row.Height.HasValue && row.Height.Value > 0);
+                Assert.True(row.Height != null && row.Height.Value > 0);
             }
         }
     }

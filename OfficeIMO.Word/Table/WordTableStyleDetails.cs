@@ -22,8 +22,8 @@ public partial class WordTableStyleDetails {
     /// </summary>
     public Int16? MarginDefaultTopWidth {
         get {
-            if (_tableProperties != null && _tableProperties.TableCellMarginDefault?.TopMargin?.Width != null) {
-                return Int16.Parse(_tableProperties.TableCellMarginDefault.TopMargin.Width.Value);
+            if (_tableProperties != null && _tableProperties.TableCellMarginDefault?.TopMargin?.Width?.Value != null) {
+                return short.Parse(_tableProperties.TableCellMarginDefault.TopMargin.Width.Value);
             }
             return null;
         }
@@ -72,8 +72,8 @@ public partial class WordTableStyleDetails {
     /// </summary>
     public Int16? MarginDefaultBottomWidth {
         get {
-            if (_tableProperties?.TableCellMarginDefault?.BottomMargin?.Width != null) {
-                return Int16.Parse(_tableProperties.TableCellMarginDefault.BottomMargin.Width.Value);
+            if (_tableProperties?.TableCellMarginDefault?.BottomMargin?.Width?.Value != null) {
+                return short.Parse(_tableProperties.TableCellMarginDefault.BottomMargin.Width.Value);
             }
             return null;
         }
@@ -173,7 +173,7 @@ public partial class WordTableStyleDetails {
     public Int16? MarginDefaultRightWidth {
         get {
             if (_tableProperties?.TableCellMarginDefault?.TableCellRightMargin?.Width != null) {
-                return Int16.Parse(_tableProperties.TableCellMarginDefault.TableCellRightMargin.Width);
+                return (short)_tableProperties.TableCellMarginDefault.TableCellRightMargin.Width!;
             }
             return null;
         }
@@ -222,8 +222,8 @@ public partial class WordTableStyleDetails {
     /// </summary>
     public Int16? CellSpacing {
         get {
-            if (_tableProperties?.TableCellSpacing?.Width != null) {
-                return Int16.Parse(_tableProperties.TableCellSpacing.Width.Value);
+            if (_tableProperties?.TableCellSpacing?.Width?.Value != null) {
+                return short.Parse(_tableProperties.TableCellSpacing.Width.Value);
             }
             return null;
         }

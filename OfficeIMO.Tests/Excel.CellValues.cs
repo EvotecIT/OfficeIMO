@@ -34,11 +34,11 @@ namespace OfficeIMO.Tests {
             using (spreadsheet) {
                   ValidateSpreadsheetDocument(filePath, spreadsheet);
 
-                  WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
-                  var cells = wsPart.Worksheet.Descendants<Cell>().ToList();
-                  SharedStringTablePart shared = spreadsheet.WorkbookPart!.SharedStringTablePart!;
-                  Assert.NotNull(shared);
-                  Assert.Equal("Hello", shared.SharedStringTable!.ElementAt(0).InnerText);
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cells = wsPart.Worksheet.Descendants<Cell>().ToList();
+                SharedStringTablePart shared = spreadsheet.WorkbookPart!.SharedStringTablePart!;
+                Assert.NotNull(shared);
+                Assert.Equal("Hello", shared.SharedStringTable!.ElementAt(0).InnerText);
 
                 Cell cellString = cells.First(c => c.CellReference == "A1");
                   Assert.Equal(CellValues.SharedString, cellString.DataType!.Value);
@@ -70,9 +70,9 @@ namespace OfficeIMO.Tests {
                   Assert.NotNull(cellCombined.CellFormula);
                   Assert.Equal("A2+1", cellCombined.CellFormula!.Text);
                   Assert.NotNull(cellCombined.StyleIndex);
-                  var styles = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet;
-                  var formats = styles.NumberingFormats.Elements<NumberingFormat>().ToList();
-                  Assert.Contains(formats, n => n.FormatCode != null && n.FormatCode.Value == "0.00");
+                var styles = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+                var formats = styles.NumberingFormats!.Elements<NumberingFormat>().ToList();
+                Assert.Contains(formats, n => n.FormatCode != null && n.FormatCode.Value == "0.00");
             }
         }
     }

@@ -629,6 +629,10 @@ namespace OfficeIMO.Excel {
 
         
 
+        /// <summary>
+        /// Auto-fits the width of the specified column based on its contents.
+        /// </summary>
+        /// <param name="columnIndex">1-based column index.</param>
         public void AutoFitColumn(int columnIndex) {
             WriteLockConditional(() => {
                 var width = CalculateColumnWidth(columnIndex);
@@ -686,6 +690,11 @@ namespace OfficeIMO.Excel {
 
         }
 
+        /// <summary>
+        /// Sets the width of the specified column.
+        /// </summary>
+        /// <param name="columnIndex">1-based column index.</param>
+        /// <param name="width">The column width.</param>
         public void SetColumnWidth(int columnIndex, double width) {
             WriteLock(() => {
                 var worksheet = _worksheetPart.Worksheet;
@@ -705,6 +714,11 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>
+        /// Hides or shows the specified column.
+        /// </summary>
+        /// <param name="columnIndex">1-based column index.</param>
+        /// <param name="hidden">True to hide the column; false to show it.</param>
         public void SetColumnHidden(int columnIndex, bool hidden) {
             WriteLock(() => {
                 var worksheet = _worksheetPart.Worksheet;
@@ -723,6 +737,10 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>
+        /// Auto-fits the height of the specified row based on its contents.
+        /// </summary>
+        /// <param name="rowIndex">1-based row index.</param>
         public void AutoFitRow(int rowIndex) {
             WriteLockConditional(() => {
                 var height = CalculateRowHeight(rowIndex);

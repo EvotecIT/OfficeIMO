@@ -19,12 +19,13 @@ namespace OfficeIMO.Word {
                 bool documentChanged = false;
 
                 var docPart = document.MainDocumentPart;
+                if (docPart?.Document == null) return;
                 var sections = docPart.Document.Descendants<SectionProperties>();
 
                 foreach (SectionProperties sectPr in sections) {
                     bool pageOrientationChanged = false;
 
-                    PageSize pgSz = sectPr.Descendants<PageSize>().FirstOrDefault();
+                    PageSize? pgSz = sectPr.Descendants<PageSize>().FirstOrDefault();
                     if (pgSz != null) {
                         // No Orient property? Create it now. Otherwise, just
                         // set its value. Assume that the default orientation
@@ -57,8 +58,9 @@ namespace OfficeIMO.Word {
                             pgSz.Width = height;
                             pgSz.Height = width;
 
-                            PageMargin pgMar = sectPr.Descendants<PageMargin>().FirstOrDefault();
-                            if (pgMar != null) {
+                            PageMargin? pgMar = sectPr.Descendants<PageMargin>().FirstOrDefault();
+                            if (pgMar?.Top?.Value != null && pgMar.Bottom?.Value != null &&
+                                pgMar.Left?.Value != null && pgMar.Right?.Value != null) {
                                 // Rotate margins. Printer settings control how far you
                                 // rotate when switching to landscape mode. Not having those
                                 // settings, this code rotates 90 degrees. You could easily

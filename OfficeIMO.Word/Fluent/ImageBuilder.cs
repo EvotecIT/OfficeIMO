@@ -113,6 +113,34 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         /// <summary>
+        /// Crops the image by the specified amounts in centimeters.
+        /// </summary>
+        /// <param name="left">Amount to crop from the left.</param>
+        /// <param name="top">Amount to crop from the top.</param>
+        /// <param name="right">Amount to crop from the right.</param>
+        /// <param name="bottom">Amount to crop from the bottom.</param>
+        public ImageBuilder Crop(double left, double top, double right, double bottom) {
+            if (_image != null) {
+                _image.CropLeftCentimeters = left;
+                _image.CropTopCentimeters = top;
+                _image.CropRightCentimeters = right;
+                _image.CropBottomCentimeters = bottom;
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Rotates the image by the specified number of degrees.
+        /// </summary>
+        /// <param name="degrees">Rotation angle in degrees.</param>
+        public ImageBuilder Rotate(double degrees) {
+            if (_image != null) {
+                _image.Rotation = (int)Math.Round(degrees);
+            }
+            return this;
+        }
+
+        /// <summary>
         /// Applies a wrapping style to the image.
         /// </summary>
         /// <param name="wrapImage">Wrapping option.</param>

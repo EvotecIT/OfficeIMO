@@ -97,7 +97,9 @@ namespace OfficeIMO.Excel
                     {
                         var (r, c, obj, fmt) = cells[i];
                         var (val, type) = CoerceForCellNoDom(obj, ssPlanner);
-                        if (type?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString && val?.Text is string raw)
+                        val ??= new CellValue(string.Empty);
+                        type ??= new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.String);
+                        if (type.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString && val.Text is string raw)
                         {
                             if (raw.Contains("\n") || raw.Contains("\r"))
                                 wrapFlags[i] = true;

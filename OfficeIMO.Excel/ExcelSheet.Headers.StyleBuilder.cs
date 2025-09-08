@@ -27,27 +27,64 @@ namespace OfficeIMO.Excel
             return this;
         }
 
+        /// <summary>
+        /// Applies a numeric format with optional decimal places.
+        /// </summary>
+        /// <param name="decimals">Number of decimal places.</param>
         public ColumnStyleByHeaderBuilder Number(int decimals = 0)
             => ApplyFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Decimal, decimals));
 
+        /// <summary>
+        /// Applies an integer number format.
+        /// </summary>
         public ColumnStyleByHeaderBuilder Integer() => ApplyFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Integer));
 
+        /// <summary>
+        /// Applies a percentage format.
+        /// </summary>
+        /// <param name="decimals">Number of decimal places.</param>
         public ColumnStyleByHeaderBuilder Percent(int decimals = 0)
             => ApplyFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Percent, decimals));
 
+        /// <summary>
+        /// Applies a currency format using the specified culture.
+        /// </summary>
+        /// <param name="decimals">Number of decimal places.</param>
+        /// <param name="culture">Culture for currency symbol.</param>
         public ColumnStyleByHeaderBuilder Currency(int decimals = 2, CultureInfo? culture = null)
             => ApplyFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Currency, decimals, culture));
 
+        /// <summary>
+        /// Applies a date format using the provided pattern.
+        /// </summary>
+        /// <param name="pattern">Date format pattern.</param>
         public ColumnStyleByHeaderBuilder Date(string pattern = "yyyy-mm-dd") => ApplyFormat(pattern);
 
+        /// <summary>
+        /// Applies a date and time format using the provided pattern.
+        /// </summary>
+        /// <param name="pattern">DateTime format pattern.</param>
         public ColumnStyleByHeaderBuilder DateTime(string pattern = "yyyy-mm-dd hh:mm:ss") => ApplyFormat(pattern);
 
+        /// <summary>
+        /// Applies a time format.
+        /// </summary>
         public ColumnStyleByHeaderBuilder Time() => ApplyFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Time));
 
+        /// <summary>
+        /// Applies a duration format in hours.
+        /// </summary>
         public ColumnStyleByHeaderBuilder DurationHours() => ApplyFormat(ExcelNumberFormats.Get(ExcelNumberPreset.DurationHours));
 
+        /// <summary>
+        /// Applies a text format.
+        /// </summary>
         public ColumnStyleByHeaderBuilder Text() => ApplyFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Text));
 
+        /// <summary>
+        /// Applies a custom number format string.
+        /// </summary>
+        /// <param name="format">Number format pattern.</param>
         public ColumnStyleByHeaderBuilder NumberFormat(string format) => ApplyFormat(format);
 
         public ColumnStyleByHeaderBuilder Bold()
