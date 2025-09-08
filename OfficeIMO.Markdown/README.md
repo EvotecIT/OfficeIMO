@@ -1,14 +1,31 @@
-OfficeIMO.Markdown (preview)
-================================
+OfficeIMO.Markdown
+==================
 
-Fluent and object‑model Markdown builder for .NET with CommonMark/GFM‑style output.
+Fluent and object‑model Markdown builder for .NET with CommonMark/GFM‑style output. Zero runtime dependencies, rich table/list helpers, HTML export (fragment or full document) with built‑in styles and Prism highlighting.
 
-Key points
-- No external dependencies.
+Badges
+
+<!-- Replace OWNER/REPO and workflow names to match your repo; update NuGet id when published. -->
+[![NuGet](https://img.shields.io/nuget/v/OfficeIMO.Markdown.svg)](https://www.nuget.org/packages/OfficeIMO.Markdown)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/OfficeIMO.Markdown.svg)](https://www.nuget.org/packages/OfficeIMO.Markdown)
+[![Build](https://img.shields.io/github/actions/workflow/status/EvotecIT/OfficeIMO/ci.yml?branch=main)](https://github.com/EvotecIT/OfficeIMO/actions)
+[![Coverage](https://img.shields.io/codecov/c/github/EvotecIT/OfficeIMO.svg)](https://app.codecov.io/gh/EvotecIT/OfficeIMO)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
+
+Highlights
+- No external dependencies for Markdown/HTML generation.
 - Fluent API and explicit object model.
-- Basic blocks: headings, paragraphs, links, images, lists, tables, code blocks, callouts.
-- Front matter (YAML) support.
-- HTML export: fragment or full document with 5 built‑in styles; CDN on/offline modes.
+- Core blocks: headings, paragraphs, links, images (with captions), lists (UL/OL/task/definition), tables, code blocks, callouts, front matter (YAML).
+- Tables from objects/sequences: include/exclude/order/rename/formatters, alignment presets, date/number heuristics.
+- Table of Contents: at top, here, or scoped to sections; GitHub‑style anchors.
+- HTML: fragment or full document; styles (Clean, GitHub Light/Dark/Auto), CSS delivery (inline/link/external file), Online/Offline asset modes.
+- Prism highlighting: CDN link or offline inline; manifest for safe dedupe across fragments.
+
+Install
+
+```bash
+dotnet add package OfficeIMO.Markdown
+```
 
 Example
 
@@ -38,6 +55,8 @@ var md = MarkdownDoc
         .ItemLink("Issues", "https://github.com/EvotecIT/DomainDetective/issues"));
 
 var markdown = md.ToMarkdown();
+var htmlFrag = md.ToHtmlFragment();
+var htmlDoc  = md.ToHtmlDocument();
 ```
 
 Status: early preview. API may evolve before 1.0.
@@ -139,9 +158,21 @@ HTML options
 - AssetMode: Online (link) | Offline (download+inline)
 - Title, BodyClass (default "markdown-body"), IncludeAnchorLinks, ThemeToggle
 - EmitMode: Emit (default) | ManifestOnly for host-side asset merging
-- Prism: Enabled, Theme (Prism/Okaidia), Languages, Plugins, CdnBase
+- Prism: Enabled, Theme (Prism/Okaidia/GithubDark/GithubAuto), Languages, Plugins, CdnBase
 
 De‑duping assets
 - ToHtmlParts returns Assets: a list of { Id, Kind (Css/Js), Href or Inline }.
 - Tags we emit include data-asset-id for easy deduplication if you concatenate HTML.
 - Set EmitMode = ManifestOnly to suppress emitting <link>/<script> tags and merge Assets yourself.
+
+Targets
+- netstandard2.0 (library)
+- net8.0, net9.0
+
+License
+
+MIT — see LICENSE.
+
+Contributing
+
+Issues and PRs welcome. Please keep one‑class/enum per file, avoid external runtime deps, and add targeted tests for new features.
