@@ -179,7 +179,14 @@ namespace OfficeIMO.Examples.Markdown {
                   .Table(t => t
                         .Headers("Name","Value")
                         .Rows(d.ScoreBreakdown.Select(x => (IReadOnlyList<string>)new[]{ x.Name, x.Value.ToString("0.##") }))
-                        .AlignLeft(0).AlignRight(1));
+                        .AlignLeft(0).AlignRight(1))
+                  .H2("Legend")
+                  .Table(t => t
+                        .Headers("Status","Meaning")
+                        .Row("🟢 OK","All checks passed or acceptable")
+                        .Row("🟠 Warning","Requires attention; not blocking")
+                        .Row("🔴 Error","Blocking or invalid configuration")
+                        .AlignLeft(0,1));
 
                 if (d.Recommendations.Length > 0) {
                     md.H2("Recommendations").Ul(d.Recommendations);

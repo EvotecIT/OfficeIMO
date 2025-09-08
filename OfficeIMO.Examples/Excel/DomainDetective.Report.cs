@@ -165,6 +165,10 @@ namespace OfficeIMO.Examples.Excel {
                 foreach (var d in data) {
                     var rs = new SheetComposer(doc, d.Domain);
                     rs.Title($"Mail Classification — {d.Domain}", d.Summary)
+                      // Per-domain status callout
+                      .Callout(d.ErrorCount > 0 ? "error" : (string.Equals(d.Status, "Warning", StringComparison.OrdinalIgnoreCase) ? "warning" : "info"),
+                          "Status",
+                          $"Status: {d.Status}; Findings: {d.WarningCount} warning(s), {d.ErrorCount} error(s).")
                       .Section("Overview")
                       .DefinitionList(new (string, object?)[] {
                           ("Domain", d.Domain),
