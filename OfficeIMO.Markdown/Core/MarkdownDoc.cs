@@ -249,9 +249,9 @@ public class MarkdownDoc {
         }
         var html = options.Kind == HtmlKind.Document ? ToHtmlDocument(options) : ToHtmlFragment(options);
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path)) ?? ".");
-        await System.IO.File.WriteAllTextAsync(path, html, System.Text.Encoding.UTF8).ConfigureAwait(false);
+        await Utilities.FileCompat.WriteAllTextAsync(path, html, System.Text.Encoding.UTF8).ConfigureAwait(false);
         if (!string.IsNullOrEmpty(options.ExternalCssOutputPath) && options._externalCssContentToWrite is not null) {
-            await System.IO.File.WriteAllTextAsync(options.ExternalCssOutputPath!, options._externalCssContentToWrite, System.Text.Encoding.UTF8).ConfigureAwait(false);
+            await Utilities.FileCompat.WriteAllTextAsync(options.ExternalCssOutputPath!, options._externalCssContentToWrite, System.Text.Encoding.UTF8).ConfigureAwait(false);
         }
     }
 
