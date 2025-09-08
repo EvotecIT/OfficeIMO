@@ -13,6 +13,8 @@ public sealed class ParagraphBuilder {
     public ParagraphBuilder Bold(string text) { Inlines.Bold(text); return this; }
     /// <summary>Appends italic text.</summary>
     public ParagraphBuilder Italic(string text) { Inlines.Italic(text); return this; }
+    /// <summary>Appends strikethrough text.</summary>
+    public ParagraphBuilder Strike(string text) { Inlines.Strike(text); return this; }
     /// <summary>Appends inline code.</summary>
     public ParagraphBuilder Code(string text) { Inlines.Code(text); return this; }
     /// <summary>Appends a linked image (e.g., a badge).</summary>

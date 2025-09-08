@@ -63,7 +63,15 @@ public sealed class FrontMatterBlock : IMarkdownBlock {
 
     private static string EscapeYamlString(string s) {
         if (string.IsNullOrEmpty(s)) return "\"\"";
-        bool needsQuotes = s.IndexOfAny(new[] { ':', '#', '\'', '"', '\n', '\r', '\t' }) >= 0 || s.Contains(' ');
+        // Multi-line: render as a literal block scalar to preserve newlines safely
+        if (s.Contains('\n') || s.Contains('\r')) {
+            var lines = s.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+            var sb = new StringBuilder();
+            sb.AppendLine("|");
+            foreach (var line in lines) sb.AppendLine("  " + line);
+            return sb.ToString().TrimEnd();
+        }
+        bool needsQuotes = s.IndexOfAny(new[] { ':', '#', '\'', '"', '\t' }) >= 0 || s.Contains(' ');
         if (!needsQuotes) return s;
         // minimal escaping for quotes and backslashes
         string escaped = s.Replace("\\", "\\\\").Replace("\"", "\\\"");

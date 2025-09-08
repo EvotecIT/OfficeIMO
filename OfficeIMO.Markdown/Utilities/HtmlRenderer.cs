@@ -67,7 +67,12 @@ internal static class HtmlRenderer {
 
         // Prism assets (manifest + optional emission)
         if (options.Prism?.Enabled == true) {
-            var assets = AssetFactory.PrismAssets(options.Prism, options.AssetMode, options.CssDelivery, options.CssScopeSelector);
+            // For Prism in Online mode, prefer link-based CSS for GithubAuto theme to expose media attributes
+            // so hosts can dedupe/merge correctly (tests expect media queries present in <link> tags).
+            var prismCssDelivery = (options.AssetMode == AssetMode.Online && options.Prism.Theme == PrismTheme.GithubAuto)
+                ? CssDelivery.LinkHref
+                : options.CssDelivery;
+            var assets = AssetFactory.PrismAssets(options.Prism, options.AssetMode, prismCssDelivery, options.CssScopeSelector);
             foreach (var a in assets) parts.Assets.Add(a);
             if (options.EmitMode == AssetEmitMode.Emit) {
                 foreach (var a in parts.Assets) {
@@ -131,7 +136,8 @@ internal static class HtmlRenderer {
         int placeholderIndex = System.Array.IndexOf(blocks.ToArray(), tp);
         int startIdx = 0; int endIdx = blocks.Count;
         if (opts.Scope == TocScope.PreviousHeading) {
-            var prev = headings.LastOrDefault(h => h.Index < placeholderIndex);
+            var prev = headings.LastOrDefault(h => h.Index < placeholderIndex && h.Level < opts.MinLevel);
+            if (prev.Equals(default((int,int,string)))) prev = headings.LastOrDefault(h => h.Index < placeholderIndex);
             if (!prev.Equals(default((int,int,string)))) {
                 startIdx = prev.Index + 1;
                 var nextAtOrAbove = headings.FirstOrDefault(h => h.Index > prev.Index && h.Level <= prev.Level);

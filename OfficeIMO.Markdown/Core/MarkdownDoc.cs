@@ -204,6 +204,11 @@ public class MarkdownDoc {
         return Utilities.HtmlRenderer.Render(this, options);
     }
 
+    /// <summary>Asynchronously renders an embeddable HTML fragment.</summary>
+    public System.Threading.Tasks.Task<string> ToHtmlFragmentAsync(HtmlOptions? options = null) => System.Threading.Tasks.Task.FromResult(ToHtmlFragment(options));
+    /// <summary>Asynchronously renders a full HTML document.</summary>
+    public System.Threading.Tasks.Task<string> ToHtmlDocumentAsync(HtmlOptions? options = null) => System.Threading.Tasks.Task.FromResult(ToHtmlDocument(options));
+
     /// <summary>Returns rendered parts for advanced embedding (Head, Body, Css, Scripts).</summary>
     public HtmlRenderParts ToHtmlParts(HtmlOptions? options = null) {
         options ??= new HtmlOptions { Kind = HtmlKind.Fragment };
@@ -228,6 +233,25 @@ public class MarkdownDoc {
         // If renderer produced a sidecar css, ensure it's written
         if (!string.IsNullOrEmpty(options.ExternalCssOutputPath) && options._externalCssContentToWrite is not null) {
             System.IO.File.WriteAllText(options.ExternalCssOutputPath!, options._externalCssContentToWrite, System.Text.Encoding.UTF8);
+        }
+    }
+
+    /// <summary>
+    /// Asynchronously saves HTML to the specified file. When <see cref="CssDelivery.ExternalFile"/> is used,
+    /// writes a sidecar CSS file next to the HTML and links it.
+    /// </summary>
+    public async System.Threading.Tasks.Task SaveHtmlAsync(string path, HtmlOptions? options = null) {
+        options ??= new HtmlOptions();
+        if (options.CssDelivery == CssDelivery.ExternalFile) {
+            var basePath = System.IO.Path.ChangeExtension(path, null);
+            var cssPath = basePath + ".css";
+            options.ExternalCssOutputPath = cssPath;
+        }
+        var html = options.Kind == HtmlKind.Document ? ToHtmlDocument(options) : ToHtmlFragment(options);
+        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path)) ?? ".");
+        await System.IO.File.WriteAllTextAsync(path, html, System.Text.Encoding.UTF8).ConfigureAwait(false);
+        if (!string.IsNullOrEmpty(options.ExternalCssOutputPath) && options._externalCssContentToWrite is not null) {
+            await System.IO.File.WriteAllTextAsync(options.ExternalCssOutputPath!, options._externalCssContentToWrite, System.Text.Encoding.UTF8).ConfigureAwait(false);
         }
     }
 
@@ -307,8 +331,9 @@ public class MarkdownDoc {
                 // Determine scope bounds
                 int startIdx = 0; int endIdx = realized.Count;
                 if (opts.Scope == TocScope.PreviousHeading) {
-                    // nearest preceding heading becomes root; include until next heading with level <= root
-                    var prev = headings.LastOrDefault(h => h.Index < i);
+                    // Root at the nearest preceding heading with level < MinLevel if available; otherwise nearest heading.
+                    var prev = headings.LastOrDefault(h => h.Index < i && h.Level < opts.MinLevel);
+                    if (prev == default) prev = headings.LastOrDefault(h => h.Index < i);
                     if (prev != default) {
                         startIdx = prev.Index + 1;
                         var nextAtOrAbove = headings.FirstOrDefault(h => h.Index > prev.Index && h.Level <= prev.Level);

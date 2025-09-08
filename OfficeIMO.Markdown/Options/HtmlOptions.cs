@@ -24,8 +24,8 @@ public sealed class HtmlOptions {
     public string Title { get; set; } = "Document";
     /// <summary>Wrap content in &lt;article&gt; with this CSS class. Set to null to avoid wrapper. Default: "markdown-body".</summary>
     public string? BodyClass { get; set; } = "markdown-body";
-    /// <summary>Include per-heading anchor links (e.g. '#') in HTML rendering. Default: true.</summary>
-    public bool IncludeAnchorLinks { get; set; } = true;
+    /// <summary>Include per-heading anchor links (e.g. '#') in HTML rendering. Default: false.</summary>
+    public bool IncludeAnchorLinks { get; set; } = false;
     /// <summary>When true, writes a small theme toggle control if <see cref="Style"/> supports it. Default: false.</summary>
     public bool ThemeToggle { get; set; } = false;
     /// <summary>Emit tags vs manifest-only. Default: <see cref="AssetEmitMode.Emit"/>.</summary>

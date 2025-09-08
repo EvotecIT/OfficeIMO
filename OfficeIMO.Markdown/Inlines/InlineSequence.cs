@@ -18,6 +18,8 @@ public sealed class InlineSequence : IMarkdownInline {
     public InlineSequence Italic(string text) { _inlines.Add(new ItalicInline(text)); return this; }
     /// <summary>Adds inline code.</summary>
     public InlineSequence Code(string text) { _inlines.Add(new CodeSpanInline(text)); return this; }
+    /// <summary>Adds strikethrough text.</summary>
+    public InlineSequence Strike(string text) { _inlines.Add(new StrikethroughInline(text)); return this; }
     /// <summary>Adds a linked image (useful for badges).</summary>
     public InlineSequence ImageLink(string alt, string imageUrl, string linkUrl, string? title = null) { _inlines.Add(new ImageLinkInline(alt, imageUrl, linkUrl, title)); return this; }
 
@@ -32,6 +34,7 @@ public sealed class InlineSequence : IMarkdownInline {
             else if (node is ItalicInline it) sb.Append(it.RenderMarkdown());
             else if (node is CodeSpanInline cs) sb.Append(cs.RenderMarkdown());
             else if (node is ImageLinkInline il) sb.Append(il.RenderMarkdown());
+            else if (node is StrikethroughInline st) sb.Append(st.RenderMarkdown());
         }
         return sb.ToString();
     }
@@ -45,6 +48,7 @@ public sealed class InlineSequence : IMarkdownInline {
             else if (node is ItalicInline it) sb.Append(it.RenderHtml());
             else if (node is CodeSpanInline cs) sb.Append(cs.RenderHtml());
             else if (node is ImageLinkInline il) sb.Append(il.RenderHtml());
+            else if (node is StrikethroughInline st) sb.Append(st.RenderHtml());
             sb.Append(' ');
         }
         return sb.ToString().TrimEnd();

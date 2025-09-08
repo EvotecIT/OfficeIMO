@@ -9,16 +9,27 @@ namespace OfficeIMO.Markdown;
 public sealed class TableBuilder {
     private readonly TableBlock _table = new TableBlock();
     private TableFromOptions? _defaultOptions;
+    private IReadOnlyList<string> NormalizeRow(IReadOnlyList<string> cells) {
+        if (cells == null) return Array.Empty<string>();
+        int count = cells.Count;
+        int target = _table.Headers.Count > 0 ? _table.Headers.Count : count;
+        if (target <= 0) return cells;
+        if (count == target) return cells;
+        var list = new List<string>(cells);
+        if (count > target) return list.GetRange(0, target);
+        while (list.Count < target) list.Add(string.Empty);
+        return list;
+    }
     /// <summary>Sets the header row.</summary>
     public TableBuilder Headers(params string[] headers) { _table.Headers.AddRange(headers ?? Array.Empty<string>()); return this; }
     /// <summary>Adds a data row.</summary>
-    public TableBuilder Row(params string[] cells) { _table.Rows.Add(cells?.ToArray() ?? Array.Empty<string>()); return this; }
+    public TableBuilder Row(params string[] cells) { _table.Rows.Add(NormalizeRow(cells?.ToArray() ?? Array.Empty<string>())); return this; }
     /// <summary>Adds multiple rows.</summary>
-    public TableBuilder Rows(IEnumerable<IReadOnlyList<string>> rows) { foreach (IReadOnlyList<string> r in rows) _table.Rows.Add(r); return this; }
+    public TableBuilder Rows(IEnumerable<IReadOnlyList<string>> rows) { foreach (IReadOnlyList<string> r in rows) _table.Rows.Add(NormalizeRow(r)); return this; }
     /// <summary>Adds two-column rows from tuples.</summary>
-    public TableBuilder Rows(IEnumerable<(string, string)> rows) { foreach ((string a, string b) in rows) _table.Rows.Add(new[] { a, b }); return this; }
+    public TableBuilder Rows(IEnumerable<(string, string)> rows) { foreach ((string a, string b) in rows) _table.Rows.Add(NormalizeRow(new[] { a, b })); return this; }
     /// <summary>Adds two-column rows from key/value pairs.</summary>
-    public TableBuilder Rows(IEnumerable<KeyValuePair<string, string>> rows) { foreach (KeyValuePair<string, string> kv in rows) _table.Rows.Add(new[] { kv.Key, kv.Value }); return this; }
+    public TableBuilder Rows(IEnumerable<KeyValuePair<string, string>> rows) { foreach (KeyValuePair<string, string> kv in rows) _table.Rows.Add(NormalizeRow(new[] { kv.Key, kv.Value })); return this; }
     internal TableBlock Build() => _table;
 
     /// <summary>
@@ -74,13 +85,29 @@ public sealed class TableBuilder {
             return this;
         }
 
-        // Plain object → two-column property/value table
-        if (_table.Headers.Count == 0) _table.Headers.AddRange(new[] { "Property", "Value" });
+        // Plain object → either a wide single-row table (when options indicate selection/order/renames)
+        // or a two-column Property/Value table by default.
         var props2 = SelectProperties(data.GetType(), options);
-        foreach (var p in props2) {
-            _table.Rows.Add(new[] { Rename(p.Name, options), FormatValue(p.GetValue(data, null), p.Name, options) });
+        bool wide = options != null && (
+            (options.Include != null && options.Include.Count > 0) ||
+            (options.Order != null && options.Order.Count > 0) ||
+            (options.HeaderRenames != null && options.HeaderRenames.Count > 0) ||
+            (options.Formatters != null && options.Formatters.Count > 0)
+        );
+        if (wide) {
+            if (_table.Headers.Count == 0) _table.Headers.AddRange(props2.Select(p => Rename(p.Name, options)));
+            var row = new List<string>(props2.Length);
+            foreach (var p in props2) row.Add(FormatValue(p.GetValue(data, null), p.Name, options));
+            _table.Rows.Add(row);
+            if (options?.Alignments != null && options.Alignments.Count > 0) { _table.Alignments.Clear(); _table.Alignments.AddRange(options.Alignments); }
+            return this;
+        } else {
+            if (_table.Headers.Count == 0) _table.Headers.AddRange(new[] { "Property", "Value" });
+            foreach (var p in props2) {
+                _table.Rows.Add(new[] { Rename(p.Name, options), FormatValue(p.GetValue(data, null), p.Name, options) });
+            }
+            return this;
         }
-        return this;
     }
 
     /// <summary>
@@ -96,11 +123,14 @@ public sealed class TableBuilder {
     /// Populates the table from a sequence using explicit column selectors.
     /// </summary>
     public TableBuilder FromSequence<T>(IEnumerable<T> items, params (string Header, System.Func<T, object?> Selector)[] columns) {
-        if (columns == null || columns.Length == 0) return this;
+        if (columns == null || columns.Length == 0 || items == null) return this;
         if (_table.Headers.Count == 0) _table.Headers.AddRange(columns.Select(c => c.Header ?? string.Empty));
         foreach (var item in items) {
             var row = new List<string>(columns.Length);
-            foreach (var c in columns) row.Add(FormatValue(c.Selector(item)));
+            foreach (var c in columns) {
+                var selector = c.Selector ?? (_ => null);
+                row.Add(FormatValue(selector(item)));
+            }
             _table.Rows.Add(row);
         }
         return this;
@@ -125,10 +155,12 @@ public sealed class TableBuilder {
         return value.ToString() ?? string.Empty;
     }
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Reflection.PropertyInfo[]> _propsCache = new();
     private static System.Reflection.PropertyInfo[] GetReadableProperties(System.Type t) {
-        return t.GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)
-            .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
-            .ToArray();
+        return _propsCache.GetOrAdd(t, static tArg =>
+            tArg.GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)
+                .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
+                .ToArray());
     }
 
     private static System.Reflection.PropertyInfo[] SelectProperties(System.Type t, TableFromOptions? options) {
@@ -173,6 +205,18 @@ public sealed class TableBuilder {
     /// <summary>Remove alignment (default) on specified 0-based column indexes. If none provided, all columns.</summary>
     public TableBuilder AlignNone(params int[] cols) => AlignPreset(ColumnAlignment.None, cols);
 
+    /// <summary>Align columns by matching header names (case-insensitive).</summary>
+    public TableBuilder AlignByHeaders(ColumnAlignment alignment, params string[] headerNames) {
+        if (headerNames == null || headerNames.Length == 0) return this;
+        if (_table.Headers.Count == 0) return this;
+        var set = new HashSet<string>(headerNames.Where(h => !string.IsNullOrWhiteSpace(h)), StringComparer.OrdinalIgnoreCase);
+        var idxs = new List<int>();
+        for (int i = 0; i < _table.Headers.Count; i++) {
+            if (set.Contains(_table.Headers[i])) idxs.Add(i);
+        }
+        return AlignPreset(alignment, idxs.ToArray());
+    }
+
     private TableBuilder AlignPreset(ColumnAlignment alignment, params int[] cols) {
         int count = _table.Headers.Count > 0 ? _table.Headers.Count : (_table.Rows.Count > 0 ? _table.Rows[0].Count : 0);
         if (count <= 0) return this;
@@ -197,6 +241,8 @@ public sealed class TableBuilder {
             }
             if (total > 0 && (double)numeric / total >= threshold) _table.Alignments[c] = ColumnAlignment.Right;
         }
+        // Default unspecified alignments to Left to produce explicit alignment markers (:---) for readability
+        for (int c = 0; c < cols; c++) if (_table.Alignments[c] == ColumnAlignment.None) _table.Alignments[c] = ColumnAlignment.Left;
         return this;
     }
 
