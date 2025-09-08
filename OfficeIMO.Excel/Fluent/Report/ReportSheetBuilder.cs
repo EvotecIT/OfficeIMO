@@ -176,7 +176,7 @@ namespace OfficeIMO.Excel.Fluent.Report {
             if (list == null || list.Count == 0) return this;
             Section("References");
             foreach (var url in list) {
-                _sheet.Cell(_row, 1, url);
+                _sheet.SetHyperlink(_row, 1, url, url);
                 _row++;
             }
             return Spacer();
@@ -194,6 +194,16 @@ namespace OfficeIMO.Excel.Fluent.Report {
             _sheet.AddConditionalDataBar(range, SixLabors.ImageSharp.Color.LightGreen);
             _row++;
             return Spacer();
+        }
+
+        /// <summary>
+        /// Optional finishing step: auto-fit columns/rows once at the end.
+        /// </summary>
+        public ReportSheetBuilder Finish(bool autoFitColumns = true, bool autoFitRows = false)
+        {
+            if (autoFitColumns) _sheet.AutoFitColumns();
+            if (autoFitRows) _sheet.AutoFitRows();
+            return this;
         }
 
         private static string ColumnLetter(int column) {

@@ -216,6 +216,67 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>
+        /// Adds an icon set conditional format to a range.
+        /// </summary>
+        /// <param name="range">A1-style range to format.</param>
+        /// <param name="iconSet">Icon set type (e.g., ThreeTrafficLights1, ThreeSymbols, FourArrows, FiveRatings).</param>
+        /// <param name="showValue">Whether to display the underlying cell values.</param>
+        /// <param name="reverseIconOrder">Reverse icon order.</param>
+        public void AddConditionalIconSet(string range, IconSetValues iconSet, bool showValue, bool reverseIconOrder)
+        {
+            if (string.IsNullOrEmpty(range)) throw new ArgumentNullException(nameof(range));
+
+            WriteLock(() =>
+            {
+                Worksheet worksheet = _worksheetPart.Worksheet;
+
+                int priority = 1;
+                var existingRules = worksheet.Descendants<ConditionalFormattingRule>();
+                if (existingRules.Any()) {
+                    priority = existingRules.Max(r => r.Priority?.Value ?? 0) + 1;
+                }
+
+                ConditionalFormatting conditionalFormatting = new ConditionalFormatting {
+                    SequenceOfReferences = new ListValue<StringValue> { InnerText = range }
+                };
+
+                ConditionalFormattingRule rule = new ConditionalFormattingRule {
+                    Type = ConditionalFormatValues.IconSet,
+                    Priority = priority
+                };
+
+                var icon = new IconSet { IconSetValue = iconSet, ShowValue = showValue, Reverse = reverseIconOrder };
+                rule.Append(icon);
+                conditionalFormatting.Append(rule);
+
+                // Insert ConditionalFormatting after AutoFilter but before TableParts
+                var autoFilter = worksheet.Elements<AutoFilter>().FirstOrDefault();
+                var tableParts = worksheet.Elements<TableParts>().FirstOrDefault();
+
+                if (tableParts != null) {
+                    worksheet.InsertBefore(conditionalFormatting, tableParts);
+                } else if (autoFilter != null) {
+                    worksheet.InsertAfter(conditionalFormatting, autoFilter);
+                } else {
+                    var sheetData = worksheet.GetFirstChild<SheetData>();
+                    if (sheetData != null) {
+                        worksheet.InsertAfter(conditionalFormatting, sheetData);
+                    } else {
+                        worksheet.Append(conditionalFormatting);
+                    }
+                }
+
+                worksheet.Save();
+            });
+        }
+
+        /// <summary>
+        /// Overload with common defaults for convenience.
+        /// </summary>
+        public void AddConditionalIconSet(string range)
+            => AddConditionalIconSet(range, IconSetValues.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+
     }
 }
 
