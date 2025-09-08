@@ -7,6 +7,8 @@ namespace OfficeIMO.Markdown;
 /// Builder for pipe tables.
 /// </summary>
 public sealed class TableBuilder {
+    private const int MaxRows = 10000;
+    private const int MaxColumns = 100;
     private readonly TableBlock _table = new TableBlock();
     private TableFromOptions? _defaultOptions;
     private IReadOnlyList<string> NormalizeRow(IReadOnlyList<string> cells) {
@@ -21,15 +23,19 @@ public sealed class TableBuilder {
         return list;
     }
     /// <summary>Sets the header row.</summary>
-    public TableBuilder Headers(params string[] headers) { _table.Headers.AddRange(headers ?? Array.Empty<string>()); return this; }
+    public TableBuilder Headers(params string[] headers) {
+        var hs = headers ?? Array.Empty<string>();
+        for (int i = 0; i < hs.Length && i < MaxColumns; i++) _table.Headers.Add(hs[i]?.Trim() ?? string.Empty);
+        return this;
+    }
     /// <summary>Adds a data row.</summary>
-    public TableBuilder Row(params string[] cells) { _table.Rows.Add(NormalizeRow(cells?.ToArray() ?? Array.Empty<string>())); return this; }
+    public TableBuilder Row(params string[] cells) { if (_table.Rows.Count < MaxRows) _table.Rows.Add(NormalizeRow(cells?.ToArray() ?? Array.Empty<string>())); return this; }
     /// <summary>Adds multiple rows.</summary>
-    public TableBuilder Rows(IEnumerable<IReadOnlyList<string>> rows) { foreach (IReadOnlyList<string> r in rows) _table.Rows.Add(NormalizeRow(r)); return this; }
+    public TableBuilder Rows(IEnumerable<IReadOnlyList<string>> rows) { foreach (IReadOnlyList<string> r in rows) { if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(NormalizeRow(r)); } return this; }
     /// <summary>Adds two-column rows from tuples.</summary>
-    public TableBuilder Rows(IEnumerable<(string, string)> rows) { foreach ((string a, string b) in rows) _table.Rows.Add(NormalizeRow(new[] { a, b })); return this; }
+    public TableBuilder Rows(IEnumerable<(string, string)> rows) { foreach ((string a, string b) in rows) { if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(NormalizeRow(new[] { a, b })); } return this; }
     /// <summary>Adds two-column rows from key/value pairs.</summary>
-    public TableBuilder Rows(IEnumerable<KeyValuePair<string, string>> rows) { foreach (KeyValuePair<string, string> kv in rows) _table.Rows.Add(NormalizeRow(new[] { kv.Key, kv.Value })); return this; }
+    public TableBuilder Rows(IEnumerable<KeyValuePair<string, string>> rows) { foreach (KeyValuePair<string, string> kv in rows) { if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(NormalizeRow(new[] { kv.Key, kv.Value })); } return this; }
     internal TableBlock Build() => _table;
 
     /// <summary>
@@ -69,7 +75,7 @@ public sealed class TableBuilder {
 
             if (IsScalar(first)) {
                 if (_table.Headers.Count == 0) _table.Headers.Add("Value");
-                foreach (var item in seq) _table.Rows.Add(new[] { FormatValue(item) });
+            foreach (var item in seq) { if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(new[] { FormatValue(item) }); }
                 return this;
             }
 
@@ -79,7 +85,7 @@ public sealed class TableBuilder {
             foreach (var item in seq) {
                 if (item == null) { _table.Rows.Add(props.Select(_ => string.Empty).ToArray()); continue; }
                 var row = props.Select(p => FormatValue(p.GetValue(item, null), p.Name, options)).ToArray();
-                _table.Rows.Add(row);
+                if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(row);
             }
             if (options?.Alignments != null && options.Alignments.Count > 0) { _table.Alignments.Clear(); _table.Alignments.AddRange(options.Alignments); }
             return this;
@@ -96,8 +102,9 @@ public sealed class TableBuilder {
         );
         if (wide) {
             if (_table.Headers.Count == 0) _table.Headers.AddRange(props2.Select(p => Rename(p.Name, options)));
-            var row = new List<string>(props2.Length);
-            foreach (var p in props2) row.Add(FormatValue(p.GetValue(data, null), p.Name, options));
+            var limitedProps = props2.Length > MaxColumns ? props2.AsSpan(0, MaxColumns).ToArray() : props2;
+            var row = new List<string>(limitedProps.Length);
+            foreach (var p in limitedProps) row.Add(FormatValue(p.GetValue(data, null), p.Name, options));
             _table.Rows.Add(row);
             if (options?.Alignments != null && options.Alignments.Count > 0) { _table.Alignments.Clear(); _table.Alignments.AddRange(options.Alignments); }
             return this;

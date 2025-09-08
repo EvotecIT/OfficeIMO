@@ -230,11 +230,42 @@ internal static class HtmlRenderer {
     internal static string TryDownloadText(string url) {
         try {
             if (string.IsNullOrWhiteSpace(url)) return string.Empty;
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return string.Empty;
+            if (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) return string.Empty;
+
+            const long MaxBytes = 1_000_000; // 1MB guardrail
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
             var handler = new HttpClientHandler { AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate };
-            using var c = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(8) };
-            var t = c.GetStringAsync(url);
-            if (!t.Wait(TimeSpan.FromSeconds(10))) return string.Empty;
-            return t.Status == System.Threading.Tasks.TaskStatus.RanToCompletion ? t.Result : string.Empty;
+            using var client = new HttpClient(handler);
+            using var resp = client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cts.Token).GetAwaiter().GetResult();
+            if (!resp.IsSuccessStatusCode) return string.Empty;
+            var ct = resp.Content.Headers.ContentType?.MediaType?.ToLowerInvariant();
+            // Allow common text assets used by this library
+            bool okType = false;
+            if (ct == null) okType = true; // be permissive when unknown
+            else if (ct.StartsWith("text/")) okType = true;
+            else if (ct.Contains("javascript") || ct.Contains("ecmascript") || ct.Contains("css")) okType = true;
+            if (!okType) return string.Empty;
+            var len = resp.Content.Headers.ContentLength;
+            if (len.HasValue && len.Value > MaxBytes) return string.Empty;
+            using var stream = resp.Content.ReadAsStreamAsync().GetAwaiter().GetResult();
+            using var mem = new System.IO.MemoryStream(len.HasValue ? (int)Math.Min(len.Value, MaxBytes) : 64 * 1024);
+            var buffer = new byte[81920];
+            long total = 0;
+            while (true) {
+                int read = stream.Read(buffer, 0, buffer.Length);
+                if (read <= 0) break;
+                total += read;
+                if (total > MaxBytes) return string.Empty;
+                mem.Write(buffer, 0, read);
+            }
+            // Determine encoding
+            var charset = resp.Content.Headers.ContentType?.CharSet;
+            Encoding enc;
+            try { enc = !string.IsNullOrWhiteSpace(charset) ? Encoding.GetEncoding(charset!) : new UTF8Encoding(false); }
+            catch { enc = new UTF8Encoding(false); }
+            return enc.GetString(mem.ToArray());
         } catch { return string.Empty; }
     }
 

@@ -41,7 +41,9 @@ public sealed class InlineSequence : IMarkdownInline {
 
     internal string RenderHtml() {
         StringBuilder sb = new StringBuilder();
-        foreach (object node in _inlines) {
+        for (int i = 0; i < _inlines.Count; i++) {
+            if (i > 0) sb.Append(' ');
+            object node = _inlines[i];
             if (node is TextRun t) sb.Append(t.RenderHtml());
             else if (node is LinkInline l) sb.Append(l.RenderHtml());
             else if (node is BoldInline b) sb.Append(b.RenderHtml());
@@ -49,8 +51,7 @@ public sealed class InlineSequence : IMarkdownInline {
             else if (node is CodeSpanInline cs) sb.Append(cs.RenderHtml());
             else if (node is ImageLinkInline il) sb.Append(il.RenderHtml());
             else if (node is StrikethroughInline st) sb.Append(st.RenderHtml());
-            sb.Append(' ');
         }
-        return sb.ToString().TrimEnd();
+        return sb.ToString();
     }
 }
