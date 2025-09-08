@@ -102,7 +102,12 @@ public sealed class TableBuilder {
         );
         if (wide) {
             if (_table.Headers.Count == 0) _table.Headers.AddRange(props2.Select(p => Rename(p.Name, options)));
-            var limitedProps = props2.Length > MaxColumns ? props2.AsSpan(0, MaxColumns).ToArray() : props2;
+            System.Reflection.PropertyInfo[] limitedProps = props2;
+            if (props2.Length > MaxColumns) {
+                var tmp = new System.Reflection.PropertyInfo[MaxColumns];
+                System.Array.Copy(props2, 0, tmp, 0, MaxColumns);
+                limitedProps = tmp;
+            }
             var row = new List<string>(limitedProps.Length);
             foreach (var p in limitedProps) row.Add(FormatValue(p.GetValue(data, null), p.Name, options));
             _table.Rows.Add(row);
