@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Excel {
             // Built-in document properties
             doc.BuiltinDocumentProperties.Title = "Scan Summary";
             doc.BuiltinDocumentProperties.Creator = "OfficeIMO";
-            doc.ApplicationProperties.Company = "Contoso";
+            doc.ApplicationProperties.Company = "Evotec";
 
             var sheet = doc.AddWorkSheet("Summary");
 
@@ -25,7 +25,7 @@ namespace OfficeIMO.Examples.Excel {
                 headerRight: "Page &P of &N",
                 footerLeft: "Generated: &D &T",
                 footerCenter: null,
-                footerRight: "© Contoso");
+                footerRight: "© Evotec");
 
             // Add a small logo to the center header
             var logoPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Assets", "OfficeIMO.png");

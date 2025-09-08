@@ -13,67 +13,73 @@ namespace OfficeIMO.Excel {
             _document = document ?? throw new ArgumentNullException(nameof(document));
             _spreadsheetDocument = document._spreadSheetDocument;
             document.BuiltinDocumentProperties = this;
+            EnsureCorePropertiesPart();
+        }
+
+        private void EnsureCorePropertiesPart()
+        {
+            // Touch the package properties to ensure the backing object is initialized.
+            try { var _ = _spreadsheetDocument.PackageProperties; } catch { }
         }
 
         public string? Creator {
-            get => _spreadsheetDocument.PackageProperties.Creator;
-            set => _spreadsheetDocument.PackageProperties.Creator = value;
+            get { return _spreadsheetDocument.PackageProperties.Creator; }
+            set { EnsureCorePropertiesPart(); _spreadsheetDocument.PackageProperties.Creator = value; }
         }
 
         public string? Title {
-            get => _spreadsheetDocument.PackageProperties.Title;
-            set => _spreadsheetDocument.PackageProperties.Title = value;
+            get { return _spreadsheetDocument.PackageProperties.Title; }
+            set { EnsureCorePropertiesPart(); _spreadsheetDocument.PackageProperties.Title = value; }
         }
 
         public string? Description {
-            get => _spreadsheetDocument.PackageProperties.Description;
-            set => _spreadsheetDocument.PackageProperties.Description = value;
+            get { return _spreadsheetDocument.PackageProperties.Description; }
+            set { EnsureCorePropertiesPart(); _spreadsheetDocument.PackageProperties.Description = value; }
         }
 
         public string? Category {
-            get => _spreadsheetDocument.PackageProperties.Category;
-            set => _spreadsheetDocument.PackageProperties.Category = value;
+            get { return _spreadsheetDocument.PackageProperties.Category; }
+            set { EnsureCorePropertiesPart(); _spreadsheetDocument.PackageProperties.Category = value; }
         }
 
         public string? Keywords {
-            get => _spreadsheetDocument.PackageProperties.Keywords;
-            set => _spreadsheetDocument.PackageProperties.Keywords = value;
+            get { return _spreadsheetDocument.PackageProperties.Keywords; }
+            set { EnsureCorePropertiesPart(); _spreadsheetDocument.PackageProperties.Keywords = value; }
         }
 
         public string? Subject {
-            get => _spreadsheetDocument.PackageProperties.Subject;
-            set => _spreadsheetDocument.PackageProperties.Subject = value;
+            get { return _spreadsheetDocument.PackageProperties.Subject; }
+            set { EnsureCorePropertiesPart(); _spreadsheetDocument.PackageProperties.Subject = value; }
         }
 
         public string? Revision {
-            get => _spreadsheetDocument.PackageProperties.Revision;
-            set => _spreadsheetDocument.PackageProperties.Revision = value;
+            get { return _spreadsheetDocument.PackageProperties.Revision; }
+            set { EnsureCorePropertiesPart(); _spreadsheetDocument.PackageProperties.Revision = value; }
         }
 
         public string? LastModifiedBy {
-            get => _spreadsheetDocument.PackageProperties.LastModifiedBy;
-            set => _spreadsheetDocument.PackageProperties.LastModifiedBy = value;
+            get { return _spreadsheetDocument.PackageProperties.LastModifiedBy; }
+            set { EnsureCorePropertiesPart(); _spreadsheetDocument.PackageProperties.LastModifiedBy = value; }
         }
 
         public string? Version {
-            get => _spreadsheetDocument.PackageProperties.Version;
-            set => _spreadsheetDocument.PackageProperties.Version = value;
+            get { return _spreadsheetDocument.PackageProperties.Version; }
+            set { EnsureCorePropertiesPart(); _spreadsheetDocument.PackageProperties.Version = value; }
         }
 
         public DateTime? Created {
-            get => _spreadsheetDocument.PackageProperties.Created;
-            set => _spreadsheetDocument.PackageProperties.Created = value;
+            get { return _spreadsheetDocument.PackageProperties.Created; }
+            set { EnsureCorePropertiesPart(); _spreadsheetDocument.PackageProperties.Created = value; }
         }
 
         public DateTime? Modified {
-            get => _spreadsheetDocument.PackageProperties.Modified;
-            set => _spreadsheetDocument.PackageProperties.Modified = value;
+            get { return _spreadsheetDocument.PackageProperties.Modified; }
+            set { EnsureCorePropertiesPart(); _spreadsheetDocument.PackageProperties.Modified = value; }
         }
 
         public DateTime? LastPrinted {
-            get => _spreadsheetDocument.PackageProperties.LastPrinted;
-            set => _spreadsheetDocument.PackageProperties.LastPrinted = value;
+            get { return _spreadsheetDocument.PackageProperties.LastPrinted; }
+            set { EnsureCorePropertiesPart(); _spreadsheetDocument.PackageProperties.LastPrinted = value; }
         }
     }
 }
-

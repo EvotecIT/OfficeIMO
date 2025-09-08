@@ -72,6 +72,20 @@ namespace OfficeIMO.Excel {
         private WorkbookPart _workBookPart = null!;
         private SharedStringTablePart? _sharedStringTablePart;
 
+        private static async Task<byte[]> ReadAllBytesCompatAsync(string path, CancellationToken ct)
+        {
+#if NETSTANDARD2_0 || NET472 || NET48
+            using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.Asynchronous))
+            {
+                var mem = new MemoryStream((int)Math.Max(0, fs.Length) + 8192);
+                await fs.CopyToAsync(mem, 81920, ct);
+                return mem.ToArray();
+            }
+#else
+            return await File.ReadAllBytesAsync(path, ct);
+#endif
+        }
+
         /// <summary>
         /// Path to the file backing this document.
         /// </summary>
@@ -375,13 +389,9 @@ namespace OfficeIMO.Excel {
             }
             
             _workBookPart.Workbook.Save();
+            try { _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow; } catch { }
 
             var path = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
-
-            // Prepare serialized snapshot of current document
-            var snapshot = new MemoryStream();
-            using (_spreadSheetDocument.Clone(snapshot)) { }
-            snapshot.Position = 0;
 
             // Ensure target directory is writable
             if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
@@ -395,26 +405,48 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            // Release any file handles by disposing the current document first
+            // Save using OpenXML SaveAs to ensure package-level properties are persisted
+            // Snapshot current package and properties
+            string? pTitle = null, pCreator = null, pSubject = null, pCategory = null, pDescription = null, pKeywords = null, pLastModifiedBy = null, pVersion = null;
+            DateTime? pCreated = null, pModified = null, pLastPrinted = null;
             try {
-                _spreadSheetDocument.Dispose();
-            } catch (NotSupportedException) {
-                // ignore dispose failures on some streams
+                var src = _spreadSheetDocument.PackageProperties;
+                pTitle = src.Title; pCreator = src.Creator; pSubject = src.Subject; pCategory = src.Category; pDescription = src.Description;
+                pKeywords = src.Keywords; pLastModifiedBy = src.LastModifiedBy; pVersion = src.Version; pCreated = src.Created; pModified = src.Modified; pLastPrinted = src.LastPrinted;
+            } catch { }
+
+            using (var fallback = new MemoryStream())
+            {
+                using (_spreadSheetDocument.Clone(fallback)) { }
+                // Release any file handle on the original file before overwrite
+                try { _spreadSheetDocument.Dispose(); } catch { }
+                fallback.Position = 0;
+                using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+                {
+                    fallback.CopyTo(fs);
+                    fs.Flush();
+                }
             }
 
-            // Write snapshot to disk
-            using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None)) {
-                snapshot.CopyTo(fs);
-                fs.Flush();
+            // Ensure core properties are persisted in the saved package
+            try
+            {
+                using var pkg = Package.Open(path, FileMode.Open, FileAccess.ReadWrite);
+                var dst = pkg.PackageProperties;
+                dst.Title = pTitle; dst.Creator = pCreator; dst.Subject = pSubject; dst.Category = pCategory;
+                dst.Description = pDescription; dst.Keywords = pKeywords; dst.LastModifiedBy = pLastModifiedBy; dst.Version = pVersion;
+                dst.Created = pCreated; dst.Modified = pModified ?? DateTime.UtcNow; dst.LastPrinted = pLastPrinted;
             }
+            catch { }
             FilePath = path;
-
+            
             // Reopen as in-memory document for further operations on an expandable stream
-            var mem = new MemoryStream();
-            snapshot.Position = 0;
-            snapshot.CopyTo(mem);
+            var fileBytes = File.ReadAllBytes(path);
+            var mem = new MemoryStream(fileBytes.Length + 8192);
+            mem.Write(fileBytes, 0, fileBytes.Length);
             mem.Position = 0;
-            _spreadSheetDocument = SpreadsheetDocument.Open(mem, true);
+            var reopenSettings = new OpenSettings { AutoSave = true };
+            _spreadSheetDocument = SpreadsheetDocument.Open(mem, true, reopenSettings);
             _workBookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
             _sharedStringTablePart = null;
 
@@ -482,17 +514,39 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                // Dispose current document to release file handle (if any)
+                // Snapshot props
+                string? pTitle = null, pCreator = null, pSubject = null, pCategory = null, pDescription = null, pKeywords = null, pLastModifiedBy = null, pVersion = null;
+                DateTime? pCreated = null, pModified = null, pLastPrinted = null;
+                try { var src = _spreadSheetDocument.PackageProperties; pTitle = src.Title; pCreator = src.Creator; pSubject = src.Subject; pCategory = src.Category; pDescription = src.Description; pKeywords = src.Keywords; pLastModifiedBy = src.LastModifiedBy; pVersion = src.Version; pCreated = src.Created; pModified = src.Modified; pLastPrinted = src.LastPrinted; } catch { }
+
+                // Release any on-disk file handle to avoid sharing violations
                 try { _spreadSheetDocument.Dispose(); } catch { }
 
-                // Write snapshot to disk asynchronously
+                // Write package via snapshot
                 using (var fs = new FileStream(target, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 8192, FileOptions.Asynchronous)) {
                     snapshot.Position = 0;
-                    // Use explicit buffer size overload for broad TFMs compatibility
                     await snapshot.CopyToAsync(fs, 81920, cancellationToken);
                     await fs.FlushAsync(cancellationToken);
                 }
+                // Ensure core properties persisted
+                try
+                {
+                    using var pkg = Package.Open(target, FileMode.Open, FileAccess.ReadWrite);
+                    var dst = pkg.PackageProperties;
+                    dst.Title = pTitle; dst.Creator = pCreator; dst.Subject = pSubject; dst.Category = pCategory; dst.Description = pDescription; dst.Keywords = pKeywords; dst.LastModifiedBy = pLastModifiedBy; dst.Version = pVersion; dst.Created = pCreated; dst.Modified = pModified ?? DateTime.UtcNow; dst.LastPrinted = pLastPrinted;
+                }
+                catch { }
                 FilePath = target;
+
+                // Reopen as in-memory document for continued operations without locking the file
+                var fileBytes = await ReadAllBytesCompatAsync(target, cancellationToken);
+                var mem = new MemoryStream(fileBytes.Length + 8192);
+                await mem.WriteAsync(fileBytes, 0, fileBytes.Length, cancellationToken);
+                mem.Position = 0;
+                var reopenSettings = new OpenSettings { AutoSave = true };
+                _spreadSheetDocument = SpreadsheetDocument.Open(mem, true, reopenSettings);
+                _workBookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+                _sharedStringTablePart = null;
             } catch (Exception) {
                 throw;
             }

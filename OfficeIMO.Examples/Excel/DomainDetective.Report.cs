@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
 using OfficeIMO.Excel.Utilities;
+using System.Linq;
 
 namespace OfficeIMO.Examples.Excel {
     public static class DomainDetectiveReport {
@@ -76,7 +77,7 @@ namespace OfficeIMO.Examples.Excel {
                     .Title("Domain Detective — Mail Classification")
                     .Author("OfficeIMO")
                     .LastModifiedBy("OfficeIMO")
-                    .Company("Contoso")
+                    .Company("Evotec")
                     .Application("OfficeIMO.Excel")
                     .Keywords("email,security,classification,excel")
                 ).End();
@@ -189,8 +190,36 @@ namespace OfficeIMO.Examples.Excel {
                     Console.WriteLine("[+] OpenXML validation clean");
                 }
 
-                // Save
-                doc.Save(openExcel);
+                // Save (no Excel launch yet)
+                doc.Save(false);
+
+                // Re-open from disk and verify properties + header/footer
+                using (var verify = ExcelDocument.Load(filePath, readOnly: true))
+                {
+                    Console.WriteLine("[=] Verifying saved workbook properties and header/footer...");
+                    Console.WriteLine("    Title   : " + (verify.BuiltinDocumentProperties.Title ?? "<null>"));
+                    Console.WriteLine("    Author  : " + (verify.BuiltinDocumentProperties.Creator ?? "<null>"));
+                    Console.WriteLine("    Company : " + (verify.ApplicationProperties.Company ?? "<null>"));
+
+                    var summary = verify.Sheets.FirstOrDefault(s => string.Equals(s.Name, "Summary", System.StringComparison.Ordinal));
+                    if (summary != null)
+                    {
+                        var hf = summary.GetHeaderFooter();
+                        Console.WriteLine("    Header (L/C/R): [" + hf.HeaderLeft + "] [" + hf.HeaderCenter + "] [" + hf.HeaderRight + "]");
+                        Console.WriteLine("    Footer (L/C/R): [" + hf.FooterLeft + "] [" + hf.FooterCenter + "] [" + hf.FooterRight + "]");
+                        Console.WriteLine("    Header has &G: " + hf.HeaderHasPicturePlaceholder + ", Footer has &G: " + hf.FooterHasPicturePlaceholder);
+                    }
+                    else
+                    {
+                        Console.WriteLine("    Summary sheet not found for header/footer verification.");
+                    }
+                }
+
+                if (openExcel)
+                {
+                    // Open in Excel now, after verification
+                    doc.Open(filePath, true);
+                }
             }
         }
     }

@@ -10,6 +10,79 @@ using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        public sealed class HeaderFooterSnapshot
+        {
+            public string HeaderLeft { get; set; } = string.Empty;
+            public string HeaderCenter { get; set; } = string.Empty;
+            public string HeaderRight { get; set; } = string.Empty;
+            public string FooterLeft { get; set; } = string.Empty;
+            public string FooterCenter { get; set; } = string.Empty;
+            public string FooterRight { get; set; } = string.Empty;
+            public bool DifferentFirstPage { get; set; }
+            public bool DifferentOddEven { get; set; }
+            public bool HeaderHasPicturePlaceholder { get; set; }
+            public bool FooterHasPicturePlaceholder { get; set; }
+        }
+
+        /// <summary>
+        /// Returns a snapshot of the current header and footer strings (odd pages) split into left/center/right sections,
+        /// including flags and whether a picture placeholder (&amp;G) is present.
+        /// </summary>
+        public HeaderFooterSnapshot GetHeaderFooter()
+        {
+            var ws = _worksheetPart.Worksheet;
+            var hf = ws.GetFirstChild<HeaderFooter>();
+            string oddHeader = hf?.OddHeader?.Text ?? string.Empty;
+            string oddFooter = hf?.OddFooter?.Text ?? string.Empty;
+
+            (string L, string C, string R) Parse(string text)
+            {
+                string l = string.Empty, c = string.Empty, r = string.Empty;
+                if (string.IsNullOrEmpty(text)) return (l, c, r);
+                int i = 0;
+                while (i < text.Length)
+                {
+                    char ch = text[i++];
+                    if (ch == '&' && i < text.Length)
+                    {
+                        char sec = text[i++];
+                        if (sec == 'L' || sec == 'C' || sec == 'R')
+                        {
+                            var sb = new StringBuilder();
+                            while (i < text.Length)
+                            {
+                                if (text[i] == '&' && i + 1 < text.Length)
+                                {
+                                    char nxt = text[i + 1];
+                                    if (nxt == 'L' || nxt == 'C' || nxt == 'R') break;
+                                }
+                                sb.Append(text[i++]);
+                            }
+                            string val = sb.ToString();
+                            if (sec == 'L') l = val; else if (sec == 'C') c = val; else r = val;
+                        }
+                    }
+                }
+                return (l ?? string.Empty, c ?? string.Empty, r ?? string.Empty);
+            }
+
+            var (hl, hc, hr) = Parse(oddHeader);
+            var (fl, fc, fr) = Parse(oddFooter);
+
+            return new HeaderFooterSnapshot
+            {
+                HeaderLeft = hl,
+                HeaderCenter = hc,
+                HeaderRight = hr,
+                FooterLeft = fl,
+                FooterCenter = fc,
+                FooterRight = fr,
+                DifferentFirstPage = hf?.DifferentFirst?.Value ?? false,
+                DifferentOddEven = hf?.DifferentOddEven?.Value ?? false,
+                HeaderHasPicturePlaceholder = (hl.IndexOf("&G", StringComparison.Ordinal) >= 0) || (hc.IndexOf("&G", StringComparison.Ordinal) >= 0) || (hr.IndexOf("&G", StringComparison.Ordinal) >= 0),
+                FooterHasPicturePlaceholder = (fl.IndexOf("&G", StringComparison.Ordinal) >= 0) || (fc.IndexOf("&G", StringComparison.Ordinal) >= 0) || (fr.IndexOf("&G", StringComparison.Ordinal) >= 0)
+            };
+        }
         /// <summary>
         /// Sets the header and/or footer text for this worksheet.
         /// </summary>
