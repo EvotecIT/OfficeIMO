@@ -122,6 +122,15 @@ public class MarkdownDoc {
         return Add(tb.Build());
     }
 
+    /// <summary>
+    /// Convenience to add a table from a sequence using column selectors.
+    /// </summary>
+    public MarkdownDoc TableFrom<T>(System.Collections.Generic.IEnumerable<T> items, params (string Header, System.Func<T, object?> Selector)[] columns) {
+        TableBuilder tb = new TableBuilder();
+        tb.FromSequence(items, columns);
+        return Add(tb.Build());
+    }
+
     /// <summary>Adds an unordered list from a sequence of items using ToString().</summary>
     public MarkdownDoc Ul<T>(System.Collections.Generic.IEnumerable<T> items) {
         UnorderedListBuilder builder = new UnorderedListBuilder();
@@ -138,25 +147,144 @@ public class MarkdownDoc {
 
     /// <summary>Renders the document to Markdown string.</summary>
     public string ToMarkdown() {
+        // Build a transient block list where TOC placeholders are realized
+        var blocks = RealizeTocPlaceholders();
         StringBuilder sb = new StringBuilder();
         if (_frontMatter != null) {
             sb.AppendLine(_frontMatter.Render());
             sb.AppendLine();
         }
-        for (int i = 0; i < _blocks.Count; i++) {
-            string rendered = _blocks[i].RenderMarkdown();
+        for (int i = 0; i < blocks.Count; i++) {
+            string rendered = blocks[i].RenderMarkdown();
             if (!string.IsNullOrEmpty(rendered)) sb.AppendLine(rendered);
-            if (i < _blocks.Count - 1) sb.AppendLine();
+            if (i < blocks.Count - 1) sb.AppendLine();
         }
         return sb.ToString();
     }
 
     /// <summary>Renders a basic HTML representation of the document (no front matter).</summary>
     public string ToHtml() {
+        var blocks = RealizeTocPlaceholders();
         StringBuilder sb = new StringBuilder();
-        foreach (IMarkdownBlock block in _blocks) {
+        foreach (IMarkdownBlock block in blocks) {
             sb.Append(block.RenderHtml());
         }
         return sb.ToString();
     }
+
+    /// <summary>
+    /// Generates a Table of Contents from headings already present in the document and inserts it.
+    /// </summary>
+    /// <param name="configure">Optional TOC options.</param>
+    /// <param name="placeAtTop">When true, inserts TOC as the first block; otherwise appended.</param>
+    public MarkdownDoc Toc(System.Action<TocOptions>? configure = null, bool placeAtTop = false) {
+        var opts = new TocOptions();
+        configure?.Invoke(opts);
+
+        var placeholder = new TocPlaceholderBlock(opts);
+        if (opts.IncludeTitle) {
+            // Insert a title heading above the TOC
+            var heading = new HeadingBlock(opts.TitleLevel, opts.Title);
+            if (placeAtTop) {
+                _blocks.Insert(0, heading);
+                _blocks.Insert(1, placeholder);
+            } else {
+                _blocks.Add(heading);
+                _blocks.Add(placeholder);
+            }
+        } else {
+            if (placeAtTop) _blocks.Insert(0, placeholder); else _blocks.Add(placeholder);
+        }
+        _lastBlock = placeholder;
+        return this;
+    }
+
+    /// <summary>
+    /// Convenience helper to insert a Table of Contents at the top with common parameters.
+    /// </summary>
+    public MarkdownDoc TocAtTop(string title = "Contents", int min = 1, int max = 3, bool ordered = false, int titleLevel = 2) {
+        return Toc(opts => { opts.Title = title; opts.MinLevel = min; opts.MaxLevel = max; opts.Ordered = ordered; opts.TitleLevel = titleLevel; }, placeAtTop: true);
+    }
+
+    /// <summary>
+    /// Inserts a section TOC for the nearest preceding heading. Useful to place a small TOC under a section.
+    /// </summary>
+    public MarkdownDoc TocForPreviousHeading(string? title = "Contents", int min = 2, int max = 6, bool ordered = false, int titleLevel = 3) {
+        return Toc(opts => { opts.Title = title ?? ""; opts.IncludeTitle = !string.IsNullOrEmpty(title); opts.MinLevel = min; opts.MaxLevel = max; opts.Ordered = ordered; opts.TitleLevel = titleLevel; opts.Scope = TocScope.PreviousHeading; }, placeAtTop: false);
+    }
+
+    /// <summary>
+    /// Inserts a section TOC scoped to the named heading.
+    /// </summary>
+    public MarkdownDoc TocForSection(string headingTitle, string? title = "Contents", int min = 2, int max = 6, bool ordered = false, int titleLevel = 3) {
+        return Toc(opts => { opts.Title = title ?? ""; opts.IncludeTitle = !string.IsNullOrEmpty(title); opts.MinLevel = min; opts.MaxLevel = max; opts.Ordered = ordered; opts.TitleLevel = titleLevel; opts.Scope = TocScope.HeadingTitle; opts.ScopeHeadingTitle = headingTitle; }, placeAtTop: false);
+    }
+
+    private System.Collections.Generic.List<IMarkdownBlock> RealizeTocPlaceholders() {
+        // Create a shallow copy first
+        var realized = new System.Collections.Generic.List<IMarkdownBlock>(_blocks);
+        // Collect heading info from realized list with indices
+        var headings = new System.Collections.Generic.List<(int Index, int Level, string Text)>();
+        for (int idx = 0; idx < realized.Count; idx++) {
+            if (realized[idx] is HeadingBlock h) headings.Add((idx, h.Level, h.Text));
+        }
+        // Replace placeholders with generated TOC blocks
+        for (int i = 0; i < realized.Count; i++) {
+            if (realized[i] is TocPlaceholderBlock tp) {
+                var opts = tp.Options;
+                var toc = new TocBlock { Ordered = opts.Ordered };
+                // Determine scope bounds
+                int startIdx = 0; int endIdx = realized.Count;
+                if (opts.Scope == TocScope.PreviousHeading) {
+                    // nearest preceding heading becomes root; include until next heading with level <= root
+                    var prev = headings.LastOrDefault(h => h.Index < i);
+                    if (prev != default) {
+                        startIdx = prev.Index + 1;
+                        var nextAtOrAbove = headings.FirstOrDefault(h => h.Index > prev.Index && h.Level <= prev.Level);
+                        if (nextAtOrAbove != default) endIdx = nextAtOrAbove.Index;
+                    }
+                } else if (opts.Scope == TocScope.HeadingTitle && !string.IsNullOrWhiteSpace(opts.ScopeHeadingTitle)) {
+                    var root = headings.FirstOrDefault(h => string.Equals(h.Text, opts.ScopeHeadingTitle, System.StringComparison.OrdinalIgnoreCase));
+                    if (root != default) {
+                        startIdx = root.Index + 1;
+                        var nextAtOrAbove = headings.FirstOrDefault(h => h.Index > root.Index && h.Level <= root.Level);
+                        if (nextAtOrAbove != default) endIdx = nextAtOrAbove.Index;
+                    }
+                }
+                foreach (var h in headings) {
+                    if (h.Index < startIdx || h.Index >= endIdx) continue;
+                    if (h.Level < opts.MinLevel || h.Level > opts.MaxLevel) continue;
+                    var anchor = MarkdownSlug.GitHub(h.Text);
+                    toc.Entries.Add(new TocBlock.Entry { Level = h.Level, Text = h.Text, Anchor = anchor });
+                }
+                realized[i] = toc;
+            }
+        }
+        return realized;
+    }
 }
+
+/// <summary>
+/// Options controlling TOC generation.
+/// </summary>
+public sealed class TocOptions {
+    /// <summary>Minimum heading level to include (default 1).</summary>
+    public int MinLevel { get; set; } = 1;
+    /// <summary>Maximum heading level to include (default 3).</summary>
+    public int MaxLevel { get; set; } = 3;
+    /// <summary>When true, generates an ordered list; otherwise unordered (default).</summary>
+    public bool Ordered { get; set; } = false;
+    /// <summary>Include a title heading above the TOC (default true).</summary>
+    public bool IncludeTitle { get; set; } = true;
+    /// <summary>Title text (default "Table of Contents").</summary>
+    public string Title { get; set; } = "Table of Contents";
+    /// <summary>Heading level for the title (default 2).</summary>
+    public int TitleLevel { get; set; } = 2;
+    /// <summary>Limits TOC scope. Document = all headings; PreviousHeading = only headings under the nearest preceding heading; HeadingTitle = headings under the named heading.</summary>
+    public TocScope Scope { get; set; } = TocScope.Document;
+    /// <summary>For Scope=HeadingTitle, the heading text to scope under (case-insensitive).</summary>
+    public string? ScopeHeadingTitle { get; set; }
+}
+
+/// <summary>TOC scoping modes.</summary>
+public enum TocScope { Document, PreviousHeading, HeadingTitle }

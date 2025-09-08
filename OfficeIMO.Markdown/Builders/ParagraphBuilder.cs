@@ -15,4 +15,6 @@ public sealed class ParagraphBuilder {
     public ParagraphBuilder Italic(string text) { Inlines.Italic(text); return this; }
     /// <summary>Appends inline code.</summary>
     public ParagraphBuilder Code(string text) { Inlines.Code(text); return this; }
+    /// <summary>Appends a linked image (e.g., a badge).</summary>
+    public ParagraphBuilder ImageLink(string alt, string imageUrl, string linkUrl, string? title = null) { Inlines.ImageLink(alt, imageUrl, linkUrl, title); return this; }
 }

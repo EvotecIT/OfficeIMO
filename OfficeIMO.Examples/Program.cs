@@ -95,6 +95,15 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Markdown.Markdown.Example_MarkdownRoundTrip(folderPath, false);
             OfficeIMO.Examples.Markdown.Markdown.Example_MarkdownFootNotes(folderPath, false);
             OfficeIMO.Examples.Markdown.Markdown.Example_MarkdownHeadingsBoldLinks(folderPath, false);
+            // Markdown/Builder & TOC
+            OfficeIMO.Examples.Markdown.Markdown01_Builder_Basics.Example_Builder_Readme(folderPath, false);
+            OfficeIMO.Examples.Markdown.Markdown01_Builder_Basics.Example_Scaffold_Readme(folderPath, false);
+            OfficeIMO.Examples.Markdown.Markdown02_DataToTableAndLists.Example_TablesAndLists(folderPath, false);
+            OfficeIMO.Examples.Markdown.Markdown02_DataToTableAndLists.Example_Toc(folderPath, false);
+            OfficeIMO.Examples.Markdown.Markdown02_DataToTableAndLists.Example_Table_FromAny_WithOptions(folderPath, false);
+            OfficeIMO.Examples.Markdown.Markdown02_DataToTableAndLists.Example_Table_FromSequence_WithSelectors(folderPath, false);
+
+            return;
             // Word/AdvancedDocument
             OfficeIMO.Examples.Word.AdvancedDocument.Example_AdvancedWord(folderPath, false);
             OfficeIMO.Examples.Word.AdvancedDocument.Example_AdvancedWord2(folderPath, false);

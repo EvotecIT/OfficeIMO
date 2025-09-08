@@ -14,6 +14,7 @@ public sealed class ReadmeOptions {
     internal string? GettingStartedCode { get; private set; }
     internal bool LicenseMITRequested { get; private set; }
     internal List<(string Text, string Url, string? Title)> BadgeList { get; } = new();
+    internal List<(string Alt, string LinkUrl, string ImageUrl)> BadgeImageList { get; } = new();
     internal List<(string Text, string Url)> LinkList { get; } = new();
 
     /// <summary>Create options for project.</summary>
@@ -30,6 +31,5 @@ public sealed class ReadmeOptions {
     /// <summary>Adds links section entries.</summary>
     public ReadmeOptions Links(params (string Text, string Url)[] links) { LinkList.AddRange(links); return this; }
     /// <summary>Adds badges via builder.</summary>
-    public ReadmeOptions Badges(Action<BadgeBuilder> build) { var b = new BadgeBuilder(BadgeList); build(b); return this; }
+    public ReadmeOptions Badges(Action<BadgeBuilder> build) { var b = new BadgeBuilder(BadgeList, BadgeImageList); build(b); return this; }
 }
-

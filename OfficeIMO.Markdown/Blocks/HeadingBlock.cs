@@ -22,5 +22,9 @@ public sealed class HeadingBlock : IMarkdownBlock {
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() => new string('#', Level) + " " + Text;
     /// <inheritdoc />
-    string IMarkdownBlock.RenderHtml() => $"<h{Level}>{System.Net.WebUtility.HtmlEncode(Text)}</h{Level}>";
+    string IMarkdownBlock.RenderHtml() {
+        var id = MarkdownSlug.GitHub(Text);
+        var encoded = System.Net.WebUtility.HtmlEncode(Text);
+        return $"<h{Level} id=\"{id}\">{encoded}</h{Level}>";
+    }
 }

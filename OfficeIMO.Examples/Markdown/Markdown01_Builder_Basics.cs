@@ -7,7 +7,9 @@ namespace OfficeIMO.Examples.Markdown {
     internal static class Markdown01_Builder_Basics {
         public static void Example_Builder_Readme(string folderPath, bool open) {
             Console.WriteLine("[*] Markdown builder: README sample");
-            string path = Path.Combine(folderPath, "BuilderReadme.md");
+            string mdFolder = Path.Combine(folderPath, "Markdown");
+            Directory.CreateDirectory(mdFolder);
+            string path = Path.Combine(mdFolder, "BuilderReadme.md");
 
             MarkdownDoc md = MarkdownDoc
                 .Create()
@@ -38,14 +40,16 @@ namespace OfficeIMO.Examples.Markdown {
 
         public static void Example_Scaffold_Readme(string folderPath, bool open) {
             Console.WriteLine("[*] Markdown scaffold: README");
-            string path = Path.Combine(folderPath, "ScaffoldReadme.md");
+            string mdFolder = Path.Combine(folderPath, "Markdown");
+            Directory.CreateDirectory(mdFolder);
+            string path = Path.Combine(mdFolder, "ScaffoldReadme.md");
 
             MarkdownDoc readme = Scaffold.Readme("OfficeIMO.Markdown", opts => opts
                 .NuGet("OfficeIMO.Markdown")
                 .Description("Fluent Markdown builder for C# with CommonMark+GFM support.")
                 .Badges(b => b
                     .NuGet("OfficeIMO.Markdown")
-                    .BuildForGitHub("EvotecIT","OfficeIMO")
+                    .BuildForGitHub("EvotecIT","OfficeIMO", workflow: null) // set workflow for dynamic build badge
                     .CoverageCodecov("EvotecIT","OfficeIMO"))
                 .GettingStarted("dotnet add package OfficeIMO.Markdown",
                     "var md = MarkdownDoc.Create().H1(\"Hello\").P(\"World\");\nFile.WriteAllText(\"README.md\", md.ToMarkdown());")

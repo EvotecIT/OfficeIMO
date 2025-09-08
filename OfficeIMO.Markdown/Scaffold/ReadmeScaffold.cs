@@ -18,7 +18,14 @@ public static class Scaffold {
             .H1(projectName)
             .P(opts.DescriptionText ?? "");
 
-        if (opts.BadgeList.Count > 0) {
+        if (opts.BadgeImageList.Count > 0) {
+            md.P(p => {
+                for (int i = 0; i < opts.BadgeImageList.Count; i++) {
+                    var b = opts.BadgeImageList[i];
+                    p.ImageLink(b.Alt, b.ImageUrl, b.LinkUrl);
+                }
+            });
+        } else if (opts.BadgeList.Count > 0) {
             md.P(p => {
                 for (int i = 0; i < opts.BadgeList.Count; i++) {
                     var b = opts.BadgeList[i];

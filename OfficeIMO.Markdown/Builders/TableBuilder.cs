@@ -28,6 +28,13 @@ public sealed class TableBuilder {
     /// - a POCO → two columns Property/Value.
     /// </summary>
     public TableBuilder FromAny(object? data) {
+        return FromAny(data, null);
+    }
+
+    /// <summary>
+    /// Populates the table from arbitrary data with options (include/exclude/order).
+    /// </summary>
+    public TableBuilder FromAny(object? data, TableFromOptions? options) {
         if (data is null) return this;
         if (data is string || data.GetType().IsPrimitive) {
             if (_table.Headers.Count == 0) _table.Headers.Add("Value");
@@ -57,21 +64,36 @@ public sealed class TableBuilder {
             }
 
             // Object sequence → headers from public readable properties
-            var props = GetReadableProperties(first.GetType());
-            if (_table.Headers.Count == 0) _table.Headers.AddRange(props.Select(p => p.Name));
+            var props = SelectProperties(first.GetType(), options);
+            if (_table.Headers.Count == 0) _table.Headers.AddRange(props.Select(p => Rename(p.Name, options)));
             foreach (var item in seq) {
                 if (item == null) { _table.Rows.Add(props.Select(_ => string.Empty).ToArray()); continue; }
                 var row = props.Select(p => FormatValue(p.GetValue(item, null))).ToArray();
                 _table.Rows.Add(row);
             }
+            if (options?.Alignments != null && options.Alignments.Count > 0) { _table.Alignments.Clear(); _table.Alignments.AddRange(options.Alignments); }
             return this;
         }
 
         // Plain object → two-column property/value table
         if (_table.Headers.Count == 0) _table.Headers.AddRange(new[] { "Property", "Value" });
-        var props2 = GetReadableProperties(data.GetType());
+        var props2 = SelectProperties(data.GetType(), options);
         foreach (var p in props2) {
-            _table.Rows.Add(new[] { p.Name, FormatValue(p.GetValue(data, null)) });
+            _table.Rows.Add(new[] { Rename(p.Name, options), FormatValue(p.GetValue(data, null)) });
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Populates the table from a sequence using explicit column selectors.
+    /// </summary>
+    public TableBuilder FromSequence<T>(IEnumerable<T> items, params (string Header, System.Func<T, object?> Selector)[] columns) {
+        if (columns == null || columns.Length == 0) return this;
+        if (_table.Headers.Count == 0) _table.Headers.AddRange(columns.Select(c => c.Header ?? string.Empty));
+        foreach (var item in items) {
+            var row = new List<string>(columns.Length);
+            foreach (var c in columns) row.Add(FormatValue(c.Selector(item)));
+            _table.Rows.Add(row);
         }
         return this;
     }
@@ -96,5 +118,55 @@ public sealed class TableBuilder {
         return t.GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)
             .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
             .ToArray();
+    }
+
+    private static System.Reflection.PropertyInfo[] SelectProperties(System.Type t, TableFromOptions? options) {
+        var props = GetReadableProperties(t);
+        if (options == null) return props;
+        var list = new List<System.Reflection.PropertyInfo>(props);
+        if (options.Include != null && options.Include.Count > 0) {
+            list = list.Where(p => options.Include.Contains(p.Name)).ToList();
+        }
+        if (options.Exclude != null && options.Exclude.Count > 0) {
+            list = list.Where(p => !options.Exclude.Contains(p.Name)).ToList();
+        }
+        if (options.Order != null && options.Order.Count > 0) {
+            var orderMap = options.Order.Select((name, idx) => new { name, idx }).ToDictionary(x => x.name, x => x.idx);
+            list = list.OrderBy(p => orderMap.ContainsKey(p.Name) ? orderMap[p.Name] : int.MaxValue).ToList();
+        }
+        return list.ToArray();
+    }
+
+    private static string Rename(string name, TableFromOptions? options) {
+        if (options?.HeaderRenames != null && options.HeaderRenames.TryGetValue(name, out var newName)) return newName;
+        return name;
+    }
+
+    /// <summary>Sets column alignments for the table header/columns.</summary>
+    public TableBuilder Align(params ColumnAlignment[] alignments) { _table.Alignments.Clear(); _table.Alignments.AddRange(alignments); return this; }
+    /// <summary>Sets a uniform alignment for all columns (applied to header + cells).</summary>
+    public TableBuilder AlignAll(ColumnAlignment alignment) {
+        int cols = _table.Headers.Count > 0 ? _table.Headers.Count : (_table.Rows.Count > 0 ? _table.Rows[0].Count : 0);
+        _table.Alignments.Clear();
+        for (int i = 0; i < cols; i++) _table.Alignments.Add(alignment);
+        return this;
+    }
+
+    /// <summary>Set left alignment on specified 0-based column indexes. If none provided, all columns.</summary>
+    public TableBuilder AlignLeft(params int[] cols) => AlignPreset(ColumnAlignment.Left, cols);
+    /// <summary>Set right alignment on specified 0-based column indexes. If none provided, all columns.</summary>
+    public TableBuilder AlignRight(params int[] cols) => AlignPreset(ColumnAlignment.Right, cols);
+    /// <summary>Set center alignment on specified 0-based column indexes. If none provided, all columns.</summary>
+    public TableBuilder AlignCenter(params int[] cols) => AlignPreset(ColumnAlignment.Center, cols);
+    /// <summary>Remove alignment (default) on specified 0-based column indexes. If none provided, all columns.</summary>
+    public TableBuilder AlignNone(params int[] cols) => AlignPreset(ColumnAlignment.None, cols);
+
+    private TableBuilder AlignPreset(ColumnAlignment alignment, params int[] cols) {
+        int count = _table.Headers.Count > 0 ? _table.Headers.Count : (_table.Rows.Count > 0 ? _table.Rows[0].Count : 0);
+        if (count <= 0) return this;
+        if (_table.Alignments.Count < count) { for (int i = _table.Alignments.Count; i < count; i++) _table.Alignments.Add(ColumnAlignment.None); }
+        if (cols == null || cols.Length == 0) { for (int i = 0; i < count; i++) _table.Alignments[i] = alignment; }
+        else { foreach (var c in cols) if (c >= 0 && c < count) _table.Alignments[c] = alignment; }
+        return this;
     }
 }

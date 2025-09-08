@@ -7,33 +7,41 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class BadgeBuilder {
     private readonly List<(string Text, string Url, string? Title)> _badges;
-    internal BadgeBuilder(List<(string Text, string Url, string? Title)> list) { _badges = list; }
+    private readonly List<(string Alt, string LinkUrl, string ImageUrl)> _imageBadges;
+    internal BadgeBuilder(List<(string Text, string Url, string? Title)> list, List<(string Alt, string LinkUrl, string ImageUrl)> images) { _badges = list; _imageBadges = images; }
     /// <summary>Adds a custom badge label linked to a URL.</summary>
     public BadgeBuilder Custom(string text, string url, string? title = null) { _badges.Add((text, url, title)); return this; }
-    /// <summary>Shortcut for a NuGet badge link.</summary>
-    public BadgeBuilder NuGet(string? id = null) {
-        if (!string.IsNullOrWhiteSpace(id)) _badges.Add(("NuGet", $"https://www.nuget.org/packages/{id}", null));
-        else _badges.Add(("NuGet", "https://www.nuget.org/", null));
+    /// <summary>Adds a NuGet badge using Shields.io.</summary>
+    public BadgeBuilder NuGet(string id) {
+        if (string.IsNullOrWhiteSpace(id)) return this;
+        var link = $"https://www.nuget.org/packages/{id}";
+        var img = $"https://img.shields.io/nuget/v/{id}?label=NuGet";
+        _imageBadges.Add(("NuGet", link, img));
         return this;
     }
-    /// <summary>Adds a CI build badge link. URL required for explicitness.</summary>
+    /// <summary>Adds a CI build badge link (explicit URL only, no dynamic image).</summary>
     public BadgeBuilder Build(string url) { if (!string.IsNullOrWhiteSpace(url)) _badges.Add(("Build", url, null)); return this; }
-    /// <summary>Convenience for GitHub Actions badge link.</summary>
-    public BadgeBuilder BuildForGitHub(string owner, string repo, string? workflow = null) {
-        var url = string.IsNullOrWhiteSpace(workflow)
+    /// <summary>Convenience for GitHub Actions badge with Shields.io (workflow file required for dynamic status image).</summary>
+    public BadgeBuilder BuildForGitHub(string owner, string repo, string? workflow = null, string? branch = null) {
+        var link = string.IsNullOrWhiteSpace(workflow)
             ? $"https://github.com/{owner}/{repo}/actions"
             : $"https://github.com/{owner}/{repo}/actions/workflows/{workflow}";
-        _badges.Add(("Build", url, null));
+        if (!string.IsNullOrWhiteSpace(workflow)) {
+            var img = $"https://img.shields.io/github/actions/workflow/status/{owner}/{repo}/{workflow}?label=Build" + (string.IsNullOrWhiteSpace(branch) ? "" : $"&branch={branch}");
+            _imageBadges.Add(("Build", link, img));
+        } else {
+            _badges.Add(("Build", link, null));
+        }
         return this;
     }
-    /// <summary>Adds a code coverage badge link. URL required for explicitness.</summary>
+    /// <summary>Adds a code coverage badge using Shields.io for Codecov.</summary>
     public BadgeBuilder Coverage(string url) { if (!string.IsNullOrWhiteSpace(url)) _badges.Add(("Coverage", url, null)); return this; }
-    /// <summary>Convenience for Codecov coverage link.</summary>
     public BadgeBuilder CoverageCodecov(string owner, string repo, string? branch = null) {
-        var url = string.IsNullOrWhiteSpace(branch)
+        var link = string.IsNullOrWhiteSpace(branch)
             ? $"https://codecov.io/gh/{owner}/{repo}"
             : $"https://codecov.io/gh/{owner}/{repo}/branch/{branch}";
-        _badges.Add(("Coverage", url, null));
+        var img = $"https://img.shields.io/codecov/c/github/{owner}/{repo}?label=coverage" + (string.IsNullOrWhiteSpace(branch) ? "" : $"&branch={branch}");
+        _imageBadges.Add(("Coverage", link, img));
         return this;
     }
 }
