@@ -66,6 +66,9 @@ namespace OfficeIMO.Examples {
             // Excel/PowerShell-style round trip: write → read → modify → write → JSON
             OfficeIMO.Examples.Excel.PowerShellRoundTrip.Example(folderPath, false);
 
+            // Excel/Headers + Footers + Properties
+            OfficeIMO.Examples.Excel.HeadersFootersAndProperties.Example(folderPath, true);
+
             OfficeIMO.Examples.Excel.DomainDetectiveReport.Example(folderPath, true);
 
             return;

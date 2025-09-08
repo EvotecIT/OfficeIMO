@@ -16,6 +16,17 @@ namespace OfficeIMO.Excel.Fluent {
         }
 
         /// <summary>
+        /// Sets workbook properties in a fluent style.
+        /// </summary>
+        public ExcelFluentWorkbook Info(Action<InfoBuilder> action)
+        {
+            if (action == null) return this;
+            var b = new InfoBuilder(Workbook);
+            action(b);
+            return this;
+        }
+
+        /// <summary>
         /// Adds a new sheet and executes the builder action to populate it.
         /// </summary>
         public ExcelFluentWorkbook Sheet(string name, Action<SheetBuilder> action) {

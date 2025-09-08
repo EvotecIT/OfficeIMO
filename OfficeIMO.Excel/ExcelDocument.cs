@@ -78,6 +78,16 @@ namespace OfficeIMO.Excel {
         public string FilePath = string.Empty;
 
         /// <summary>
+        /// Built-in (core) document properties (Title, Creator, etc.).
+        /// </summary>
+        public BuiltinDocumentProperties BuiltinDocumentProperties = null!;
+
+        /// <summary>
+        /// Extended (application) properties (Company, Manager, etc.).
+        /// </summary>
+        public ApplicationProperties ApplicationProperties = null!;
+
+        /// <summary>
         /// FileOpenAccess of the document
         /// </summary>
         public FileAccess FileOpenAccess => _spreadSheetDocument.FileOpenAccess;
@@ -207,6 +217,10 @@ namespace OfficeIMO.Excel {
 
             document._workBookPart = workbookpart;
 
+            // Initialize document property helpers
+            document.BuiltinDocumentProperties = new BuiltinDocumentProperties(document);
+            document.ApplicationProperties = new ApplicationProperties(document);
+
             return document;
         }
         /// <summary>
@@ -237,6 +251,10 @@ namespace OfficeIMO.Excel {
 
             //// Add a WorkbookPart to the document.
             document._workBookPart = spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+
+            // Initialize document property helpers
+            document.BuiltinDocumentProperties = new BuiltinDocumentProperties(document);
+            document.ApplicationProperties = new ApplicationProperties(document);
 
             return document;
         }

@@ -297,6 +297,15 @@ namespace OfficeIMO.Excel.Fluent
             return this;
         }
 
+        public SheetComposer HeaderFooter(Action<HeaderFooterBuilder> configure)
+        {
+            if (configure == null) return this;
+            var b = new HeaderFooterBuilder();
+            configure(b);
+            b.Apply(_sheet);
+            return this;
+        }
+
         private static string ColumnLetter(int column)
         {
             var dividend = column; var columnName = string.Empty;

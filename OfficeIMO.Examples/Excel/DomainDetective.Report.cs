@@ -71,6 +71,15 @@ namespace OfficeIMO.Examples.Excel {
             };
 
             using (var doc = ExcelDocument.Create(filePath)) {
+                // Document properties via fluent Info
+                doc.AsFluent().Info(i => i
+                    .Title("Domain Detective — Mail Classification")
+                    .Author("OfficeIMO")
+                    .LastModifiedBy("OfficeIMO")
+                    .Company("Contoso")
+                    .Application("OfficeIMO.Excel")
+                    .Keywords("email,security,classification,excel")
+                ).End();
                 // Sheet 1: Summary of all domains as a table (SheetComposer)
                 var composer = new SheetComposer(doc, "Summary");
                 composer.Title("Domain Detective — Mail Classification Summary");
@@ -111,6 +120,14 @@ namespace OfficeIMO.Examples.Excel {
                 composer.Sheet.SetGridlinesVisible(false);
                 composer.Sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
                 doc.SetPrintArea(composer.Sheet, summaryRange);
+                // Header/footer via fluent builder
+                var logoPath = System.IO.Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Assets", "OfficeIMO.png");
+                byte[]? logo = System.IO.File.Exists(logoPath) ? System.IO.File.ReadAllBytes(logoPath) : null;
+                composer.HeaderFooter(h =>
+                {
+                    h.Center("Domain Detective").Right("Page &P of &N");
+                    if (logo != null) h.CenterImage(logo, widthPoints: 96, heightPoints: 32);
+                });
                 // Back links to TOC on all sheets
                 doc.AddBackLinksToToc();
                 composer.Finish(autoFitColumns: true);
