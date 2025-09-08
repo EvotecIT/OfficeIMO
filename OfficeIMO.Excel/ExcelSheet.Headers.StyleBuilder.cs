@@ -167,5 +167,36 @@ namespace OfficeIMO.Excel
                 hex[kv.Key] = OfficeIMO.Excel.ExcelColor.ToArgbHex(kv.Value);
             return BackgroundByTextMap(hex, caseInsensitive);
         }
+
+        /// <summary>
+        /// Makes the cell bold when its text equals the specified value.
+        /// </summary>
+        public ColumnStyleByHeaderBuilder BoldWhenTextEquals(string text, bool caseInsensitive = true)
+        {
+            if (string.IsNullOrEmpty(text)) return this;
+            var comparison = caseInsensitive ? System.StringComparison.OrdinalIgnoreCase : System.StringComparison.Ordinal;
+            for (int r = _startRow; r <= _endRow; r++)
+            {
+                if (_sheet.TryGetCellText(r, _colIndex, out var value) && string.Equals(value, text, comparison))
+                    _sheet.CellBold(r, _colIndex, true);
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Makes the cell bold when its text is in the provided set.
+        /// </summary>
+        public ColumnStyleByHeaderBuilder BoldByTextSet(System.Collections.Generic.ISet<string> values, bool caseInsensitive = true)
+        {
+            if (values == null || values.Count == 0) return this;
+            var set = caseInsensitive ? new System.Collections.Generic.HashSet<string>(values, System.StringComparer.OrdinalIgnoreCase)
+                                      : new System.Collections.Generic.HashSet<string>(values);
+            for (int r = _startRow; r <= _endRow; r++)
+            {
+                if (_sheet.TryGetCellText(r, _colIndex, out var value) && !string.IsNullOrEmpty(value) && set.Contains(value))
+                    _sheet.CellBold(r, _colIndex, true);
+            }
+            return this;
+        }
     }
 }

@@ -266,7 +266,7 @@ namespace OfficeIMO.Excel.Fluent.Report {
 
                     if (viz.IconSets.TryGetValue(hdr, out var iconOpts))
                     {
-                        try { Sheet.AddConditionalIconSet(colRange, iconOpts.IconSet, iconOpts.ShowValue, iconOpts.ReverseOrder); } catch { }
+                        try { Sheet.AddConditionalIconSet(colRange, iconOpts.IconSet, iconOpts.ShowValue, iconOpts.ReverseOrder, iconOpts.PercentThresholds, iconOpts.NumberThresholds); } catch { }
                     }
                     else if (viz.IconSetColumns.Contains(hdr))
                     {

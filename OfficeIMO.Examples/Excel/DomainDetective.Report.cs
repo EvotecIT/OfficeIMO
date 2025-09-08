@@ -110,6 +110,9 @@ namespace OfficeIMO.Examples.Excel {
                         ["Pass"] = "#E8F5E9",
                     };
                 });
+                // Emphasize statuses (bold for Error/Warning)
+                try { report.Sheet.ColumnStyleByHeader("Status").BoldByTextSet(new HashSet<string>(StringComparer.OrdinalIgnoreCase){"Error","Warning"}); } catch { }
+
                 // Make Summary sheet print nicely
                 report.Sheet.SetGridlinesVisible(false);
                 report.Sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
@@ -140,6 +143,15 @@ namespace OfficeIMO.Examples.Excel {
                     rs.TableFrom(d.ScoreBreakdown, title: null, configure: o => {
                         o.Columns = new[] { nameof(ScorePair.Name), nameof(ScorePair.Value) };
                         o.HeaderCase = HeaderCase.Title;
+                    }, visuals: v => {
+                        // Example of explicit icon thresholds for demo purposes
+                        v.IconSets["Value"] = new OfficeIMO.Excel.Fluent.Report.IconSetOptions {
+                            IconSet = DocumentFormat.OpenXml.Spreadsheet.IconSetValues.ThreeSymbols,
+                            ShowValue = true,
+                            ReverseOrder = false,
+                            PercentThresholds = new double[] { 0, 60, 85 } // 0-60 red, 60-85 yellow, 85-100 green
+                        };
+                        v.NumericColumnDecimals["Value"] = 2;
                     });
 
                     if (d.Recommendations.Length > 0) {

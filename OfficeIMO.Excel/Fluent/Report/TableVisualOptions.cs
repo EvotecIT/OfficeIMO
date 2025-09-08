@@ -8,6 +8,10 @@ namespace OfficeIMO.Excel.Fluent.Report
         public DocumentFormat.OpenXml.Spreadsheet.IconSetValues IconSet { get; set; } = DocumentFormat.OpenXml.Spreadsheet.IconSetValues.ThreeTrafficLights1;
         public bool ShowValue { get; set; } = true;
         public bool ReverseOrder { get; set; } = false;
+        /// <summary>Optional explicit percent thresholds (0..100). Length must match icon count (3/4/5).</summary>
+        public double[]? PercentThresholds { get; set; }
+        /// <summary>Optional explicit numeric thresholds. Length must match icon count (3/4/5).</summary>
+        public double[]? NumberThresholds { get; set; }
     }
     /// <summary>
     /// Declarative visual options for tables produced by ReportSheetBuilder.TableFrom.
