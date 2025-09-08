@@ -242,6 +242,22 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Validates the current spreadsheet with Open XML validator and returns error messages (if any).
+        /// Useful for troubleshooting "Repaired Records" issues in Excel.
+        /// </summary>
+        public System.Collections.Generic.IReadOnlyList<string> ValidateOpenXml()
+        {
+            var list = new System.Collections.Generic.List<string>();
+            if (_spreadSheetDocument == null) return list;
+            var validator = new OpenXmlValidator();
+            foreach (var error in validator.Validate(_spreadSheetDocument))
+            {
+                list.Add($"{error.ErrorType}: {error.Description} at {error.Path}");
+            }
+            return list;
+        }
+
+        /// <summary>
         /// Asynchronously loads an Excel document from the specified path.
         /// </summary>
         /// <param name="filePath">Path to the Excel file.</param>

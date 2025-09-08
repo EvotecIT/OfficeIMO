@@ -236,6 +236,7 @@ namespace OfficeIMO.Excel {
                 if (string.IsNullOrEmpty(name)) {
                     name = $"Table{tableId}";
                 }
+                name = EnsureValidUniqueTableName(name);
 
                 var table = new Table {
                     Id = tableId,
@@ -313,7 +314,7 @@ namespace OfficeIMO.Excel {
                     tableParts = new TableParts { Count = 1 };
                     _worksheetPart.Worksheet.Append(tableParts);
                 } else {
-                    tableParts.Count = (tableParts.Count ?? 0) + 1;
+                    tableParts.Count = (tableParts.Count ?? 0U) + 1U;
                 }
 
                 var relId = _worksheetPart.GetIdOfPart(tableDefinitionPart);
@@ -321,6 +322,51 @@ namespace OfficeIMO.Excel {
 
                 _worksheetPart.Worksheet.Save();
             });
+        }
+
+        private string EnsureValidUniqueTableName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) name = "Table";
+
+            // Sanitize: letters, digits, underscore only; no spaces; must not start with a digit
+            var sanitized = new System.Text.StringBuilder(name.Length);
+            foreach (char ch in name)
+            {
+                if (char.IsLetterOrDigit(ch) || ch == '_') sanitized.Append(ch);
+                else if (ch == ' ') sanitized.Append('_');
+                else sanitized.Append('_');
+            }
+            if (sanitized.Length == 0) sanitized.Append("Table");
+            if (char.IsDigit(sanitized[0])) sanitized.Insert(0, '_');
+
+            string baseName = sanitized.ToString();
+
+            // Collect existing table names across the workbook
+            var wp = _spreadSheetDocument.WorkbookPart;
+            var used = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+            if (wp != null)
+            {
+                foreach (var ws in wp.WorksheetParts)
+                {
+                    foreach (var tdp in ws.TableDefinitionParts)
+                    {
+                        var t = tdp.Table;
+                        if (t?.Name?.Value != null)
+                            used.Add(t.Name.Value);
+                    }
+                }
+            }
+
+            if (!used.Contains(baseName)) return baseName;
+
+            // Add numeric suffix until unique
+            int i = 2;
+            while (true)
+            {
+                string candidate = baseName + i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (!used.Contains(candidate)) return candidate;
+                i++;
+            }
         }
 
     }
