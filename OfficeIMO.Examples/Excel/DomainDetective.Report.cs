@@ -98,19 +98,22 @@ namespace OfficeIMO.Examples.Excel {
                     };
                     // Keep long text columns out of the summary table
                     opts.Ignore = new[] { nameof(MailDomainClassificationResult.Recommendations), nameof(MailDomainClassificationResult.Positives), nameof(MailDomainClassificationResult.References) };
-                }, style: TableStyle.TableStyleLight9, visuals: viz => {
+                }, style: TableStyle.TableStyleMedium9, visuals: viz => {
                     viz.IconSetColumns.Add("Score");
                     // Also show explicit colors using SixLabors for convenience
                     viz.TextBackgrounds["Status"] = new System.Collections.Generic.Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
                     {
-                        ["Error"] = "#FDECEA",      // light red
-                        ["Warning"] = "#FFF8E1",    // light yellow
-                        ["Success"] = "#E8F5E9",    // light green
-                        ["Ok"] = "#E8F5E9",
-                        ["Pass"] = "#E8F5E9",
+                        ["Error"] = "#F8C9C6",      // stronger light red
+                        ["Warning"] = "#FFE59A",    // stronger light yellow
+                        ["Success"] = "#CDEFCB",    // stronger light green
+                        ["Ok"] = "#CDEFCB",
+                        ["Pass"] = "#CDEFCB",
                     };
+                    viz.BoldByText["Status"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase){"Error","Warning"};
                 });
                 // Emphasize statuses (bold for Error/Warning)
+                // Also request bolding via visuals fallback (works even when header row isn't the first row)
+                // Note: we keep a direct call as a best-effort attempt; visuals will ensure it applies.
                 try { report.Sheet.ColumnStyleByHeader("Status").BoldByTextSet(new HashSet<string>(StringComparer.OrdinalIgnoreCase){"Error","Warning"}); } catch { }
 
                 // Make Summary sheet print nicely

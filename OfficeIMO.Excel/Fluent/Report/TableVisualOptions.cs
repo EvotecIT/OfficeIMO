@@ -53,6 +53,11 @@ namespace OfficeIMO.Excel.Fluent.Report
         public Dictionary<string, IDictionary<string, string>> TextBackgrounds { get; } = new Dictionary<string, IDictionary<string, string>>(System.StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
+        /// Makes cells bold when their text matches any value in the set, keyed by header name.
+        /// </summary>
+        public Dictionary<string, ISet<string>> BoldByText { get; } = new Dictionary<string, ISet<string>>(System.StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
         /// When true, applies generic numeric formatting and a subtle data bar to columns
         /// that originate from mapped collections (heuristic: path contains a '.').
         /// </summary>

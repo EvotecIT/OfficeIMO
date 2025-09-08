@@ -274,7 +274,35 @@ namespace OfficeIMO.Excel.Fluent.Report {
                     }
 
                     if (viz.TextBackgrounds.TryGetValue(hdr, out var map))
-                        try { Sheet.ColumnStyleByHeader(hdr).BackgroundByTextMap(map); } catch { }
+                    {
+                        // Try header-based shortcut, then fall back to explicit per-cell pass scoped to this table column
+                        bool appliedViaHeader = false;
+                        try { Sheet.ColumnStyleByHeader(hdr).BackgroundByTextMap(map); appliedViaHeader = true; } catch { }
+                        if (!appliedViaHeader)
+                        {
+                            for (int r = headerRow + 1; r <= _row - 1; r++)
+                            {
+                                if (Sheet.TryGetCellText(r, startCol + i, out var t) && t != null && map.TryGetValue(t, out var colorHex))
+                                    Sheet.CellBackground(r, startCol + i, colorHex);
+                            }
+                        }
+                    }
+
+                    if (viz.BoldByText.TryGetValue(hdr, out var boldSet))
+                    {
+                        // Try header-based shortcut, then fall back to explicit per-cell pass
+                        bool boldViaHeader = false;
+                        try { Sheet.ColumnStyleByHeader(hdr).BoldByTextSet(boldSet); boldViaHeader = true; } catch { }
+                        if (!boldViaHeader)
+                        {
+                            var setCI = new System.Collections.Generic.HashSet<string>(boldSet, System.StringComparer.OrdinalIgnoreCase);
+                            for (int r = headerRow + 1; r <= _row - 1; r++)
+                            {
+                                if (Sheet.TryGetCellText(r, startCol + i, out var t) && !string.IsNullOrEmpty(t) && setCI.Contains(t))
+                                    Sheet.CellBold(r, startCol + i, true);
+                            }
+                        }
+                    }
                 }
 
                 // Generic: format dynamic collection columns (if enabled)
