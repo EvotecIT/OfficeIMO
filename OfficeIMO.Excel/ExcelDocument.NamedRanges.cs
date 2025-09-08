@@ -5,6 +5,14 @@ using OfficeIMO.Excel.Read;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        /// <summary>
+        /// Creates or updates a defined name pointing to an A1 range. When <paramref name="scope"/> is provided,
+        /// the name is local to that sheet; otherwise it is workbook‑global.
+        /// </summary>
+        /// <param name="name">Defined name to create or update.</param>
+        /// <param name="range">A1 range (e.g. "A1:B10"). Can include a sheet prefix.</param>
+        /// <param name="scope">Optional sheet scope for a local name.</param>
+        /// <param name="save">When true, saves the workbook after the change.</param>
         public void SetNamedRange(string name, string range, ExcelSheet? scope = null, bool save = true) {
 #if NET8_0_OR_GREATER
             ArgumentNullException.ThrowIfNullOrWhiteSpace(name);
@@ -45,6 +53,12 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>
+        /// Returns the A1 range for a defined name. If <paramref name="scope"/> is supplied, searches a sheet‑local name first.
+        /// </summary>
+        /// <param name="name">Defined name to resolve.</param>
+        /// <param name="scope">Optional sheet scope to resolve a local name.</param>
+        /// <returns>A1 range string or null if not found.</returns>
         public string? GetNamedRange(string name, ExcelSheet? scope = null) {
 #if NET8_0_OR_GREATER
             ArgumentNullException.ThrowIfNullOrWhiteSpace(name);
@@ -78,6 +92,9 @@ namespace OfficeIMO.Excel {
             return dn.Text;
         }
 
+        /// <summary>
+        /// Returns all defined names with their A1 ranges, optionally limited to a sheet scope.
+        /// </summary>
         public IReadOnlyDictionary<string, string> GetAllNamedRanges(ExcelSheet? scope = null) {
             var definedNames = _workBookPart.Workbook.DefinedNames;
             if (definedNames == null) {
@@ -108,6 +125,13 @@ namespace OfficeIMO.Excel {
             return result;
         }
 
+        /// <summary>
+        /// Removes a defined name. If <paramref name="scope"/> is provided, removes the sheet‑local name; otherwise the global name.
+        /// </summary>
+        /// <param name="name">Defined name to remove.</param>
+        /// <param name="scope">Optional sheet scope.</param>
+        /// <param name="save">When true, saves the workbook after removal.</param>
+        /// <returns>True if the name existed and was removed; otherwise false.</returns>
         public bool RemoveNamedRange(string name, ExcelSheet? scope = null, bool save = true) {
 #if NET8_0_OR_GREATER
             ArgumentNullException.ThrowIfNullOrWhiteSpace(name);

@@ -19,9 +19,17 @@ namespace OfficeIMO.Excel.Read.Fluent
             _options = options ?? new ExcelReadOptions();
         }
 
+        /// <summary>
+        /// Selects a sheet by name for fluent reading.
+        /// </summary>
+        /// <param name="name">Worksheet name.</param>
         public ExcelFluentReadSheet Sheet(string name)
             => new ExcelFluentReadSheet(_doc, name, _options);
 
+        /// <summary>
+        /// Selects a sheet by zero-based index for fluent reading.
+        /// </summary>
+        /// <param name="index">Zero-based index in <see cref="ExcelDocument.Sheets"/>.</param>
         public ExcelFluentReadSheet Sheet(int index)
         {
             if (index < 0 || index >= _doc.Sheets.Count) throw new ArgumentOutOfRangeException(nameof(index));
@@ -45,6 +53,9 @@ namespace OfficeIMO.Excel.Read.Fluent
             _options = options;
         }
 
+        /// <summary>
+        /// Targets the sheet's used range (as detected by Excel) for reading.
+        /// </summary>
         public ExcelFluentReadRange UsedRange()
         {
             var sheet = _doc[_sheetName];
@@ -52,6 +63,10 @@ namespace OfficeIMO.Excel.Read.Fluent
             return new ExcelFluentReadRange(_doc, _sheetName, a1, _options);
         }
 
+        /// <summary>
+        /// Targets a specific A1 range for reading.
+        /// </summary>
+        /// <param name="a1Range">A1 notation range (e.g. "A1:D100").</param>
         public ExcelFluentReadRange Range(string a1Range)
             => new ExcelFluentReadRange(_doc, _sheetName, a1Range, _options);
     }

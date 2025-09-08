@@ -8,6 +8,13 @@ namespace OfficeIMO.Excel
     /// </summary>
     public static class ExcelNumberFormats
     {
+        /// <summary>
+        /// Returns an Excel number format code for the given <paramref name="preset"/>,
+        /// optionally controlling decimal places and currency culture.
+        /// </summary>
+        /// <param name="preset">Predefined number format.</param>
+        /// <param name="decimals">Number of decimal places where applicable.</param>
+        /// <param name="culture">Culture used for currency symbol; defaults to current culture.</param>
         public static string Get(ExcelNumberPreset preset, int decimals = 2, CultureInfo? culture = null)
         {
             culture ??= CultureInfo.CurrentCulture;

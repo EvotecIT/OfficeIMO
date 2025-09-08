@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using OfficeIMO.Excel;
 
 namespace OfficeIMO.Excel.Fluent {
+    /// <summary>
+    /// Fluent helper for operating over a rectangular A1 range (formatting, setting, clearing, per‑cell writes).
+    /// </summary>
     public class RangeBuilder {
         private readonly ExcelSheet _sheet;
         private readonly int _fromRow;
@@ -18,6 +21,7 @@ namespace OfficeIMO.Excel.Fluent {
             _toCol = toCol;
         }
 
+        /// <summary>Applies a number format to all cells in the range.</summary>
         public RangeBuilder NumberFormat(string numberFormat) {
             for (int r = _fromRow; r <= _toRow; r++) {
                 for (int c = _fromCol; c <= _toCol; c++) {
@@ -27,12 +31,16 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>Applies styles to the range via a nested <see cref="StyleBuilder"/>.</summary>
         public RangeBuilder Style(Action<StyleBuilder> action) {
             var builder = new StyleBuilder(_sheet);
             action(builder);
             return this;
         }
 
+        /// <summary>
+        /// Writes a 2D array of values into the range. The array dimensions must match the range size.
+        /// </summary>
         public RangeBuilder Set(object[,] values) {
             int rows = _toRow - _fromRow + 1;
             int cols = _toCol - _fromCol + 1;
@@ -50,6 +58,7 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>Clears all cells in the range.</summary>
         public RangeBuilder Clear() {
             for (int r = _fromRow; r <= _toRow; r++) {
                 for (int c = _fromCol; c <= _toCol; c++) {
@@ -59,6 +68,9 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>
+        /// Writes an individual cell within the range by offset (1‑based) from the top‑left corner.
+        /// </summary>
         public RangeBuilder Cell(int rowOffset, int columnOffset, object? value = null, string? formula = null, string? numberFormat = null) {
             if (rowOffset < 1) throw new ArgumentOutOfRangeException(nameof(rowOffset));
             if (columnOffset < 1) throw new ArgumentOutOfRangeException(nameof(columnOffset));
