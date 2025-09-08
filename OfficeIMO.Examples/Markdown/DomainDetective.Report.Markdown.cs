@@ -232,7 +232,13 @@ namespace OfficeIMO.Examples.Markdown {
                 Title = "Domain Detective — Mail Classification",
                 Style = HtmlStyle.GithubAuto,
                 CssDelivery = CssDelivery.Inline,
-                IncludeAnchorLinks = false, // avoid visible '#' before headings
+                IncludeAnchorLinks = false,
+                ShowAnchorIcons = true,
+                AnchorIcon = "🔗",
+                CopyHeadingLinkOnClick = true,
+                BackToTopLinks = true,
+                BackToTopMinLevel = 1,
+                BackToTopText = "Back to top",
                 ThemeToggle = true
             };
             md.SaveHtml(htmlPath, htmlOptions);

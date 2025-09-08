@@ -20,6 +20,11 @@ namespace OfficeIMO.Excel.Fluent
             _theme = theme ?? SheetTheme.Default;
             _sheet = _workbook.AddWorkSheet(sheetName);
             _row = 1;
+            try {
+                // Provide a per-sheet top anchor for internal links
+                string topName = SanitizeName($"top_{_sheet.Name}");
+                _sheet.SetNamedRange(topName, "A1:A1", save: false, hidden: true);
+            } catch { }
         }
 
         public ExcelSheet Sheet => _sheet;
@@ -344,6 +349,28 @@ namespace OfficeIMO.Excel.Fluent
             return this;
         }
 
+        /// <summary>
+        /// Inserts a section header with an optional anchor (named range) and a back-to-top internal link.
+        /// </summary>
+        public SheetComposer SectionWithAnchor(string text, string? anchorName = null, bool backToTopLink = true, string backToTopText = "↑ Top")
+        {
+            Section(text);
+            string anchor = string.IsNullOrWhiteSpace(anchorName) ? SanitizeName($"sec_{text}") : SanitizeName(anchorName!);
+            try {
+                _sheet.SetNamedRange(anchor, $"A{_row - 1}:A{_row - 1}", save: false, hidden: true);
+            } catch { }
+            if (backToTopLink)
+            {
+                try {
+                    string topName = SanitizeName($"top_{_sheet.Name}");
+                    // Internal link: '#SheetName!A1' also works, but using named range for clarity
+                    _sheet.SetInternalLink(_row, 1, $"'{_sheet.Name}'!A1", backToTopText);
+                    _row++;
+                } catch { }
+            }
+            return this;
+        }
+
         public SheetComposer HeaderFooter(Action<HeaderFooterBuilder> configure)
         {
             if (configure == null) return this;
@@ -397,6 +424,21 @@ namespace OfficeIMO.Excel.Fluent
             for (int i = 0; i < words.Count; i++)
                 words[i] = acronym.Contains(words[i]) ? words[i].ToUpperInvariant() : ti.ToTitleCase(words[i].ToLowerInvariant());
             return string.Join(" ", words);
+        }
+
+        private static string SanitizeName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return "_";
+            var sb = new System.Text.StringBuilder(name.Length + 8);
+            foreach (char ch in name)
+            {
+                if (char.IsLetterOrDigit(ch) || ch == '_' || ch == '.') sb.Append(ch);
+                else if (char.IsWhiteSpace(ch) || ch == '-' || ch == '/') sb.Append('_');
+            }
+            var s = sb.ToString();
+            if (string.IsNullOrEmpty(s)) s = "_";
+            if (char.IsDigit(s[0])) s = "_" + s;
+            return s.Length > 255 ? s.Substring(0, 255) : s;
         }
     }
 }

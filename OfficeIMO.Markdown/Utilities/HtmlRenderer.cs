@@ -33,7 +33,8 @@ internal static class HtmlRenderer {
         var css = BuildCss(options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks);
         options._externalCssContentToWrite = cssToWrite; // pass back for SaveHtml
 
-        string bodyContent = RenderBody(realized, options);
+        // Insert a top anchor for back-to-top links
+        string bodyContent = (options.BackToTopLinks ? "<a id=\"top\"></a>" : string.Empty) + RenderBody(realized, options);
         if (options.ThemeToggle) {
             const string toggle = "<button class=\"theme-toggle\" data-theme-toggle title=\"Toggle theme\" aria-label=\"Toggle theme\">🌓</button>";
             bodyContent = toggle + bodyContent;
@@ -49,6 +50,7 @@ internal static class HtmlRenderer {
 
         StringBuilder scripts = new StringBuilder();
         if (options.ThemeToggle) scripts.Append(HtmlResources.ThemeToggleScript);
+        if (options.CopyHeadingLinkOnClick) scripts.Append(HtmlResources.AnchorCopyScript);
 
         // Additional JS: link in head when Online; download+inline into scripts when Offline
         if (options.AssetMode == AssetMode.Online) {
@@ -114,10 +116,17 @@ internal static class HtmlRenderer {
             if (block is HeadingBlock h) {
                 var id = MarkdownSlug.GitHub(h.Text);
                 var encoded = System.Net.WebUtility.HtmlEncode(h.Text);
-                if (options.IncludeAnchorLinks) {
-                    sb.Append($"<h{h.Level} id=\"{id}\"><a class=\"anchor\" href=\"#{id}\" aria-hidden=\"true\">#</a>{encoded}</h{h.Level}>");
-                } else {
-                    sb.Append($"<h{h.Level} id=\"{id}\">{encoded}</h{h.Level}>");
+                sb.Append($"<h{h.Level} id=\"{id}\">");
+                sb.Append(encoded);
+                if (options.IncludeAnchorLinks || options.ShowAnchorIcons) {
+                    var icon = System.Net.WebUtility.HtmlEncode(options.AnchorIcon ?? "🔗");
+                    // Anchor icon button; when CopyHeadingLinkOnClick, JS hooks it to copy full URL
+                    sb.Append($"<a class=\"heading-anchor\" href=\"#{id}\" data-anchor-id=\"{id}\" title=\"Copy link\" aria-label=\"Copy link\">{icon}</a>");
+                }
+                sb.Append($"</h{h.Level}>");
+                if (options.BackToTopLinks && h.Level >= options.BackToTopMinLevel) {
+                    var txt = System.Net.WebUtility.HtmlEncode(options.BackToTopText ?? "Back to top");
+                    sb.Append($"<div class=\"back-to-top\"><a href=\"#top\">{txt}</a></div>");
                 }
             } else if (block is TocPlaceholderBlock tp) {
                 sb.Append(BuildTocHtml(blocks, tp));
