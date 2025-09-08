@@ -114,11 +114,33 @@ public class MarkdownDoc {
     }
 
     /// <summary>
+    /// Builds a table via <see cref="TableBuilder"/>, then applies auto-alignment heuristics if requested.
+    /// </summary>
+    public MarkdownDoc TableAuto(Action<TableBuilder> build, bool alignNumeric = true, bool alignDates = true) {
+        TableBuilder tb = new TableBuilder();
+        build(tb);
+        if (alignDates) tb.AlignDatesCenter();
+        if (alignNumeric) tb.AlignNumericRight();
+        return Add(tb.Build());
+    }
+
+    /// <summary>
     /// Convenience to add a table from arbitrary data; see <see cref="TableBuilder.FromAny(object?)"/> for rules.
     /// </summary>
     public MarkdownDoc TableFrom(object? data) {
         TableBuilder tb = new TableBuilder();
         tb.FromAny(data);
+        return Add(tb.Build());
+    }
+
+    /// <summary>
+    /// Creates a table from data and applies auto-alignment heuristics (numeric right, dates center) if requested.
+    /// </summary>
+    public MarkdownDoc TableFromAuto(object? data, System.Action<TableFromOptions>? configure = null, bool alignNumeric = true, bool alignDates = true) {
+        TableBuilder tb = new TableBuilder();
+        if (configure is null) tb.FromAny(data); else tb.FromAny(data, configure);
+        if (alignDates) tb.AlignDatesCenter();
+        if (alignNumeric) tb.AlignNumericRight();
         return Add(tb.Build());
     }
 

@@ -102,6 +102,9 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Markdown.Markdown02_DataToTableAndLists.Example_Toc(folderPath, false);
             OfficeIMO.Examples.Markdown.Markdown02_DataToTableAndLists.Example_Table_FromAny_WithOptions(folderPath, false);
             OfficeIMO.Examples.Markdown.Markdown02_DataToTableAndLists.Example_Table_FromSequence_WithSelectors(folderPath, false);
+            OfficeIMO.Examples.Markdown.Markdown02_DataToTableAndLists.Example_HeaderTransform_CustomAcronyms(folderPath, false);
+            OfficeIMO.Examples.Markdown.Markdown02_DataToTableAndLists.Example_Table_AutoAligners(folderPath, false);
+            OfficeIMO.Examples.Markdown.Markdown02_DataToTableAndLists.Example_TocForSection(folderPath, false);
 
             return;
             // Word/AdvancedDocument

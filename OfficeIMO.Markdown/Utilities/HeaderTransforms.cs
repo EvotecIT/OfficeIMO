@@ -8,12 +8,17 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public static class HeaderTransforms {
     private static readonly Regex SplitPascal = new Regex("(?<!^)(?=[A-Z])", RegexOptions.Compiled);
-    private static readonly string[] Acronyms = new[] { "DNS", "SPF", "DKIM", "DMARC", "BIMI", "TLS", "SSL", "MX", "PTR", "WHOIS", "URL", "HTML", "PDF", "CPU", "GPU" };
+    private static readonly string[] DefaultAcronyms = new[] { "DNS", "SPF", "DKIM", "DMARC", "BIMI", "TLS", "SSL", "MX", "PTR", "WHOIS", "URL", "HTML", "PDF", "CPU", "GPU" };
 
     /// <summary>
     /// Converts PascalCase or snake_case to a spaced title and uppercases known acronyms.
     /// </summary>
-    public static string Pretty(string name) {
+    public static string Pretty(string name) => Pretty(name, DefaultAcronyms);
+
+    /// <summary>
+    /// Converts PascalCase or snake_case to a spaced title and uppercases provided acronyms.
+    /// </summary>
+    public static string Pretty(string name, System.Collections.Generic.IEnumerable<string> acronyms) {
         if (string.IsNullOrWhiteSpace(name)) return string.Empty;
         // snake_case to spaces
         name = name.Replace('_', ' ');
@@ -21,8 +26,8 @@ public static class HeaderTransforms {
         if (!name.Contains(' ')) name = SplitPascal.Replace(name, " ");
         // Trim
         name = name.Trim();
-        // Uppercase known acronyms
-        foreach (var ac in Acronyms) {
+        // Uppercase provided acronyms
+        foreach (var ac in acronyms) {
             name = Regex.Replace(name, $"\\b{ac.Substring(0,1)}{ac.Substring(1).ToLower()}\\b|\\b{ac.ToLower()}\\b|\\b{ac}\\b", ac, RegexOptions.IgnoreCase);
         }
         // Title case words that are not fully uppercase
@@ -40,5 +45,10 @@ public static class HeaderTransforms {
     private static bool IsAllUpper(string s) {
         for (int i = 0; i < s.Length; i++) if (char.IsLetter(s[i]) && !char.IsUpper(s[i])) return false; return true;
     }
-}
 
+    /// <summary>
+    /// Factory: returns a header transform using the provided acronyms.
+    /// </summary>
+    public static System.Func<string, string> PrettyWithAcronyms(System.Collections.Generic.IEnumerable<string> acronyms)
+        => (name) => Pretty(name, acronyms);
+}

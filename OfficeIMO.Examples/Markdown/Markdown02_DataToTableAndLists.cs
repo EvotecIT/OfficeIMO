@@ -116,5 +116,61 @@ namespace OfficeIMO.Examples.Markdown {
             File.WriteAllText(path, md.ToMarkdown(), Encoding.UTF8);
             Console.WriteLine($"✓ Markdown saved: {path}");
         }
+
+        public static void Example_HeaderTransform_CustomAcronyms(string folderPath, bool open) {
+            Console.WriteLine("[*] Header transform with custom acronyms");
+            string mdFolder = Path.Combine(folderPath, "Markdown");
+            Directory.CreateDirectory(mdFolder);
+            string path = Path.Combine(mdFolder, "HeaderTransformCustom.md");
+
+            var tx = HeaderTransforms.PrettyWithAcronyms(new[] { "ID", "DMARC", "SPF" });
+            var obj = new { DmarcPolicy = "p=none", SpfAligned = true, Id = 25 };
+
+            var md = MarkdownDoc.Create()
+                .H1("Header Transform (Custom Acronyms)")
+                .Table(t => t.Columns(tx).FromAny(obj));
+
+            File.WriteAllText(path, md.ToMarkdown(), Encoding.UTF8);
+            Console.WriteLine($"✓ Markdown saved: {path}");
+        }
+
+        public static void Example_Table_AutoAligners(string folderPath, bool open) {
+            Console.WriteLine("[*] Table auto aligners");
+            string mdFolder = Path.Combine(folderPath, "Markdown");
+            Directory.CreateDirectory(mdFolder);
+            string path = Path.Combine(mdFolder, "TablesAutoAlign.md");
+
+            var rows = new[] {
+                new { Date = "2025-01-02", Amount = "$12.50", Notes = "ok" },
+                new { Date = "2025-02-03", Amount = "$100.00", Notes = "ok" },
+            };
+
+            var md = MarkdownDoc.Create()
+                .H1("Auto Alignment Helpers")
+                .H2("TableFromAuto")
+                .TableFromAuto(rows)
+                .H2("TableAuto with builder")
+                .TableAuto(t => t.FromAny(rows));
+
+            File.WriteAllText(path, md.ToMarkdown(), Encoding.UTF8);
+            Console.WriteLine($"✓ Markdown saved: {path}");
+        }
+
+        public static void Example_TocForSection(string folderPath, bool open) {
+            Console.WriteLine("[*] TOC for a named section");
+            string mdFolder = Path.Combine(folderPath, "Markdown");
+            Directory.CreateDirectory(mdFolder);
+            string path = Path.Combine(mdFolder, "WithTOCSection.md");
+
+            var md = MarkdownDoc.Create()
+                .H1("Report")
+                .H2("Intro").P("...")
+                .H2("Usage").H3("Tables").P("...").H3("Lists").P("...")
+                .H2("Appendix").H3("Extra").P("...")
+                .TocForSection("Usage", "Usage Contents", min: 3, max: 3);
+
+            File.WriteAllText(path, md.ToMarkdown(), Encoding.UTF8);
+            Console.WriteLine($"✓ Markdown saved: {path}");
+        }
     }
 }

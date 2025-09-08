@@ -84,6 +84,15 @@ public sealed class TableBuilder {
     }
 
     /// <summary>
+    /// Populates the table from arbitrary data using an inline options configuration.
+    /// </summary>
+    public TableBuilder FromAny(object? data, System.Action<TableFromOptions> configure) {
+        var opts = new TableFromOptions();
+        configure(opts);
+        return FromAny(data, opts);
+    }
+
+    /// <summary>
     /// Populates the table from a sequence using explicit column selectors.
     /// </summary>
     public TableBuilder FromSequence<T>(IEnumerable<T> items, params (string Header, System.Func<T, object?> Selector)[] columns) {
@@ -194,15 +203,56 @@ public sealed class TableBuilder {
     private static bool LooksNumeric(string? s) {
         if (string.IsNullOrWhiteSpace(s)) return false;
         s = s.Trim();
-        // Allow currency symbols and percentage at end
-        if (s.EndsWith("%")) s = s.Substring(0, s.Length - 1);
-        if (s.StartsWith("$")) s = s.Substring(1);
-        return double.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _)
-            || double.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.CurrentCulture, out _);
+        // Strip percent at end
+        if (s.EndsWith("%")) s = s.Substring(0, s.Length - 1).Trim();
+        // Remove currency symbols anywhere
+        var chars = new System.Text.StringBuilder(s.Length);
+        foreach (var ch in s) {
+            var cat = char.GetUnicodeCategory(ch);
+            if (cat == System.Globalization.UnicodeCategory.CurrencySymbol) continue;
+            chars.Append(ch);
+        }
+        s = chars.ToString();
+        // Try parse with both invariant and current cultures
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var cur = System.Globalization.CultureInfo.CurrentCulture;
+        return double.TryParse(s, System.Globalization.NumberStyles.Any, inv, out _)
+            || double.TryParse(s, System.Globalization.NumberStyles.Any, cur, out _);
+    }
+
+    private static bool LooksDate(string? s) {
+        if (string.IsNullOrWhiteSpace(s)) return false;
+        s = s.Trim();
+        // Try DateTimeOffset (captures ISO 8601 etc.) and DateTime using current culture
+        if (DateTimeOffset.TryParse(s, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out _)) return true;
+        if (DateTimeOffset.TryParse(s, System.Globalization.CultureInfo.CurrentCulture, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out _)) return true;
+        if (DateTime.TryParse(s, System.Globalization.CultureInfo.CurrentCulture, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out _)) return true;
+        // Common explicit formats
+        string[] formats = new [] { "yyyy-MM-dd", "MM/dd/yyyy", "dd.MM.yyyy", "yyyyMMdd", "dd/MM/yyyy" };
+        foreach (var fmt in formats) if (DateTime.TryParseExact(s, fmt, null, System.Globalization.DateTimeStyles.None, out _)) return true;
+        return false;
     }
 
     /// <summary>Configures default column options for subsequent FromAny calls.</summary>
     public TableBuilder Columns(System.Action<TableFromOptions> configure) { _defaultOptions ??= new TableFromOptions(); configure(_defaultOptions); return this; }
     /// <summary>Sets a simple header transform used for generating header text (e.g., prettifying PascalCase).</summary>
     public TableBuilder Columns(System.Func<string, string> headerTransform) { _defaultOptions ??= new TableFromOptions(); _defaultOptions.HeaderTransform = headerTransform; return this; }
+
+    /// <summary>Guess date-like columns and center-align them. Threshold is fraction of date-like values required (0..1).</summary>
+    public TableBuilder AlignDatesCenter(double threshold = 0.6) {
+        if (_table.Rows.Count == 0) return this;
+        int cols = _table.Headers.Count > 0 ? _table.Headers.Count : _table.Rows[0].Count;
+        if (_table.Alignments.Count < cols) { for (int i = _table.Alignments.Count; i < cols; i++) _table.Alignments.Add(ColumnAlignment.None); }
+        for (int c = 0; c < cols; c++) {
+            int total = 0; int dates = 0;
+            foreach (var row in _table.Rows) {
+                if (c >= row.Count) continue;
+                var cell = row[c];
+                total++;
+                if (LooksDate(cell)) dates++;
+            }
+            if (total > 0 && (double)dates / total >= threshold) _table.Alignments[c] = ColumnAlignment.Center;
+        }
+        return this;
+    }
 }
