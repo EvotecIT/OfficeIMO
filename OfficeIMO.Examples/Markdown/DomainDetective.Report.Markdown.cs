@@ -195,7 +195,12 @@ namespace OfficeIMO.Examples.Markdown {
                     md.H2("Positives").Ul(d.Positives);
                 }
                 if (d.References.Length > 0) {
-                    md.H2("References").Ul(d.References.Select(u => $"{u}"));
+                    md.H2("References");
+                    md.Ul(ul => {
+                        foreach (var u in d.References) {
+                            ul.ItemLink(u, u);
+                        }
+                    });
                 }
             }
 
@@ -207,7 +212,7 @@ namespace OfficeIMO.Examples.Markdown {
                 Title = "Domain Detective — Mail Classification",
                 Style = HtmlStyle.GithubAuto,
                 CssDelivery = CssDelivery.Inline,
-                IncludeAnchorLinks = true,
+                IncludeAnchorLinks = false, // avoid visible '#' before headings
                 ThemeToggle = true
             };
             md.SaveHtml(htmlPath, htmlOptions);
