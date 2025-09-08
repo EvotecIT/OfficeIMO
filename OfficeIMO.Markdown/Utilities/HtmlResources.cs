@@ -53,6 +53,9 @@ article.markdown-body h5:hover .heading-anchor,
 article.markdown-body h6:hover .heading-anchor { opacity: .8; }
 .back-to-top { margin: .25rem 0 0 0; }
 .back-to-top a { font-size: .85em; opacity: .8; }
+/* Collapsible TOC details */
+details.md-toc { margin: 0 0 1rem 0; }
+details.md-toc > summary { cursor: pointer; font-weight: 600; margin-bottom: .5rem; }
 ";
 
     // GitHub-ish light
@@ -85,6 +88,8 @@ article.markdown-body h5:hover .heading-anchor,
 article.markdown-body h6:hover .heading-anchor { opacity: .8; }
 .back-to-top { margin: .25rem 0 0 0; }
 .back-to-top a { font-size: .85em; opacity: .8; }
+details.md-toc { margin: 0 0 1rem 0; }
+details.md-toc > summary { cursor: pointer; font-weight: 600; margin-bottom: .5rem; }
 ";
 
     // GitHub-ish dark
@@ -114,6 +119,8 @@ article.markdown-body h5:hover .heading-anchor,
 article.markdown-body h6:hover .heading-anchor { opacity: .8; }
 .back-to-top { margin: .25rem 0 0 0; }
 .back-to-top a { font-size: .85em; opacity: .85; }
+details.md-toc { margin: 0 0 1rem 0; }
+details.md-toc > summary { cursor: pointer; font-weight: 600; margin-bottom: .5rem; }
 ";
 
     // Auto via prefers-color-scheme
@@ -161,6 +168,8 @@ article.markdown-body h5:hover .heading-anchor,
 article.markdown-body h6:hover .heading-anchor { opacity: .8; }
 .back-to-top { margin: .25rem 0 0 0; }
 .back-to-top a { font-size: .85em; opacity: .8; }
+details.md-toc { margin: 0 0 1rem 0; }
+details.md-toc > summary { cursor: pointer; font-weight: 600; margin-bottom: .5rem; }
 ";
 
     internal static string ThemeToggleScript => @"

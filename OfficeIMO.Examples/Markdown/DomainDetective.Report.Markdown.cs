@@ -114,15 +114,15 @@ namespace OfficeIMO.Examples.Markdown {
             }
 
             var summaryRows = new List<DomainRow> {
-                new($"[evotec.pl](#${Slug("evotec.pl")})", Warn(), Ok(), Warn(), Warn(), Warn(), Ok(), Warn(), "13 / 0"),
-                new($"[evotec.xyz](#${Slug("evotec.xyz")})", Warn(), Ok(), Warn(), Warn(), Ok(), Ok(), Warn(), "13 / 0")
+                new($"[evotec.pl](#{Slug("evotec.pl")})", Warn(), Ok(), Warn(), Warn(), Warn(), Ok(), Warn(), "13 / 0"),
+                new($"[evotec.xyz](#{Slug("evotec.xyz")})", Warn(), Ok(), Warn(), Warn(), Ok(), Ok(), Warn(), "13 / 0")
             };
 
             // Build Markdown document
             var md = MarkdownDoc.Create()
                 .FrontMatter(new { title = "Domain Detective — Mail Classification", date = DateTimeOffset.Now.ToString("u") })
                 .H1("Executive Summary")
-                .TocAtTop("Contents", min: 1, max: 3)
+                .Toc(opts => { opts.MinLevel = 1; opts.MaxLevel = 3; opts.Ordered = false; opts.IncludeTitle = false; opts.Collapsible = true; opts.Collapsed = false; }, placeAtTop: true)
                 .H2("Overview")
                 .P(p => p
                     .Text("This report summarizes the ")

@@ -71,6 +71,11 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Excel.HeadersFootersAndProperties.Example(folderPath, openExcelDefault);
 
             OfficeIMO.Examples.Excel.DomainDetectiveReport.Example(folderPath, openExcelDefault);
+            // Excel: Anchors and back-to-top demo
+            OfficeIMO.Examples.Excel.AnchorsAndBackToTop.Example(folderPath, false);
+
+            // Markdown: Anchors + Theme Toggle
+            OfficeIMO.Examples.Markdown.Markdown03_Anchors_Theme.Example_AnchorsAndTheme(folderPath, false);
             // Markdown/DomainDetective report (mirrors the Excel structure)
             OfficeIMO.Examples.Markdown.DomainDetectiveReportMarkdown.Example(folderPath, false);
 

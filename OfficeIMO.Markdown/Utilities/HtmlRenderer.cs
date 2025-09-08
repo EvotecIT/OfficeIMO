@@ -168,17 +168,48 @@ internal static class HtmlRenderer {
         var relevant = headings.Where(h => h.Index >= startIdx && h.Index < endIdx && h.Level >= opts.MinLevel && h.Level <= opts.MaxLevel)
                                .Select(h => (h.Level, h.Text, Anchor: MarkdownSlug.GitHub(h.Text)))
                                .ToList();
+        if (opts.IncludeTitle && !string.IsNullOrWhiteSpace(opts.Title)) {
+            var titleSlug = MarkdownSlug.GitHub(opts.Title);
+            relevant = relevant.Where(e => !string.Equals(e.Anchor, titleSlug, StringComparison.Ordinal)).ToList();
+        }
         if (relevant.Count == 0) return string.Empty;
 
+        // Build nested list of headings
         var listTag = opts.Ordered ? "ol" : "ul";
-        var sb = new StringBuilder();
-        sb.Append('<').Append(listTag).Append('>');
+        var sbNested = new StringBuilder();
+        int baseLevel = relevant.Min(r => r.Level);
+        int current = baseLevel - 1;
+        while (current < baseLevel) { sbNested.Append('<').Append(listTag).Append('>'); current++; }
         foreach (var e in relevant) {
-            sb.Append("<li><a href=\"").Append('#').Append(System.Net.WebUtility.HtmlEncode(e.Anchor)).Append("\">")
-              .Append(System.Net.WebUtility.HtmlEncode(e.Text)).Append("</a></li>");
+            while (current < e.Level) { sbNested.Append('<').Append(listTag).Append('>'); current++; }
+            while (current > e.Level) { sbNested.Append("</").Append(listTag).Append('>'); current--; }
+            sbNested.Append("<li><a href=\"")
+                    .Append('#').Append(System.Net.WebUtility.HtmlEncode(e.Anchor))
+                    .Append("\">").Append(System.Net.WebUtility.HtmlEncode(e.Text))
+                    .Append("</a></li>");
         }
-        sb.Append("</").Append(listTag).Append('>');
-        return sb.ToString();
+        while (current >= baseLevel) { sbNested.Append("</").Append(listTag).Append('>'); current--; }
+
+        if (opts.Collapsible) {
+            string open = opts.Collapsed ? string.Empty : " open";
+            string summary = System.Net.WebUtility.HtmlEncode(opts.Title ?? "Contents");
+            var sbWrap = new StringBuilder();
+            sbWrap.Append("<details class=\"md-toc\"").Append(open).Append("><summary>")
+                  .Append(summary).Append("</summary>")
+                  .Append(sbNested.ToString())
+                  .Append("</details>");
+            return sbWrap.ToString();
+        }
+
+        if (opts.IncludeTitle) {
+            var sbo = new StringBuilder();
+            sbo.Append("<h").Append(opts.TitleLevel).Append('>')
+               .Append(System.Net.WebUtility.HtmlEncode(opts.Title))
+               .Append("</h").Append(opts.TitleLevel).Append('>')
+               .Append(sbNested.ToString());
+            return sbo.ToString();
+        }
+        return sbNested.ToString();
     }
 
     private static string? BuildCss(HtmlOptions options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks) {

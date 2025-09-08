@@ -41,18 +41,40 @@ public sealed class TocBlock : IMarkdownBlock {
     string IMarkdownBlock.RenderHtml() {
         if (Entries.Count == 0) return string.Empty;
         int baseLevel = Entries.Min(e => e.Level);
-        var sb = new StringBuilder();
-        // Build a nested list structure
-        int currentLevel = baseLevel - 1;
-        void OpenList(int level) { sb.Append(Ordered ? "<ol>" : "<ul>"); }
-        void CloseList(int level) { sb.Append(Ordered ? "</ol>" : "</ul>"); }
 
+        // Build a tree of nodes based on heading levels
+        var root = new Node { Level = baseLevel - 1 };
+        var stack = new System.Collections.Generic.Stack<Node>();
+        stack.Push(root);
         foreach (var e in Entries) {
-            while (currentLevel < e.Level) { OpenList(++currentLevel); }
-            while (currentLevel > e.Level) { CloseList(currentLevel--); }
-            sb.Append($"<li><a href=\"#{System.Net.WebUtility.HtmlEncode(e.Anchor)}\">{System.Net.WebUtility.HtmlEncode(e.Text)}</a></li>");
+            // Pop until parent level is less than current entry level
+            while (stack.Count > 0 && stack.Peek().Level >= e.Level) stack.Pop();
+            var parent = stack.Peek();
+            var node = new Node { Level = e.Level, Entry = e };
+            parent.Children.Add(node);
+            stack.Push(node);
         }
-        while (currentLevel >= baseLevel) { CloseList(currentLevel--); }
+
+        var sb = new StringBuilder();
+        RenderList(sb, root.Children, Ordered);
         return sb.ToString();
+
+        static void RenderList(StringBuilder sb, System.Collections.Generic.IEnumerable<Node> nodes, bool ordered) {
+            sb.Append(ordered ? "<ol>" : "<ul>");
+            foreach (var n in nodes) {
+                var e = n.Entry!;
+                sb.Append("<li>");
+                sb.Append($"<a href=\"#{System.Net.WebUtility.HtmlEncode(e.Anchor)}\">{System.Net.WebUtility.HtmlEncode(e.Text)}</a>");
+                if (n.Children.Count > 0) RenderList(sb, n.Children, ordered);
+                sb.Append("</li>");
+            }
+            sb.Append(ordered ? "</ol>" : "</ul>");
+        }
+    }
+
+    private sealed class Node {
+        public int Level { get; set; }
+        public Entry? Entry { get; set; }
+        public System.Collections.Generic.List<Node> Children { get; } = new System.Collections.Generic.List<Node>();
     }
 }

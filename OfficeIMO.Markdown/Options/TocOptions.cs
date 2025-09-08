@@ -20,5 +20,9 @@ public sealed class TocOptions {
     public TocScope Scope { get; set; } = TocScope.Document;
     /// <summary>For Scope=HeadingTitle, the heading text to scope under (case-insensitive).</summary>
     public string? ScopeHeadingTitle { get; set; }
+    /// <summary>Render the TOC inside a collapsible HTML &lt;details&gt; element (HTML output only).</summary>
+    public bool Collapsible { get; set; } = false;
+    /// <summary>When <see cref="Collapsible"/> is true, render the TOC collapsed by default.</summary>
+    public bool Collapsed { get; set; } = false;
 }
 
