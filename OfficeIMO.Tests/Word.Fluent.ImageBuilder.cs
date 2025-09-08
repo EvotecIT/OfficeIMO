@@ -1,5 +1,7 @@
+using System;
 using System.IO;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO;
@@ -56,6 +58,61 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(80, document.Images[3].Width);
                 Assert.Equal(JustificationValues.Center, document.Paragraphs[3].ParagraphAlignment);
             }
+        }
+
+        [Fact]
+        public async Task Test_FluentImageBuilderAddFromUrlCancellation() {
+            string filePath = Path.Combine(_directoryWithFiles, "FluentImageBuilderCancelled.docx");
+
+            using var document = WordDocument.Create(filePath);
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => {
+                await document.AsFluent().ImageAsync(async i => {
+                    await i.AddFromUrlAsync("https://example.com/image.jpg", cts.Token);
+                });
+            });
+        }
+
+        [Fact]
+        public async Task Test_FluentImageBuilderAddFromUrlInvalidScheme() {
+            using var document = WordDocument.Create(Path.Combine(_directoryWithFiles, "FluentImageBuilderInvalid.docx"));
+
+            await Assert.ThrowsAsync<ArgumentException>(async () => {
+                await document.AsFluent().ImageAsync(async i => {
+                    await i.AddFromUrlAsync("ftp://example.com/image.jpg");
+                });
+            });
+        }
+
+        [Fact]
+        public async Task Test_FluentImageBuilderAddFromUrlNonImageContent() {
+            string filePath = Path.Combine(_directoryWithFiles, "FluentImageBuilderNonImage.docx");
+
+            int port = GetAvailablePort();
+            using var listener = new HttpListener();
+            listener.Prefixes.Add($"http://localhost:{port}/");
+            listener.Start();
+            var serverTask = Task.Run(async () => {
+                var context = await listener.GetContextAsync();
+                var data = System.Text.Encoding.UTF8.GetBytes("not image");
+                context.Response.ContentType = "text/plain";
+                context.Response.ContentLength64 = data.Length;
+                await context.Response.OutputStream.WriteAsync(data, 0, data.Length);
+                context.Response.OutputStream.Close();
+            });
+
+            using var document = WordDocument.Create(filePath);
+
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => {
+                await document.AsFluent().ImageAsync(async i => {
+                    await i.AddFromUrlAsync($"http://localhost:{port}/");
+                });
+            });
+
+            await serverTask;
+            listener.Stop();
         }
 
         [Fact]
