@@ -331,6 +331,125 @@ namespace OfficeIMO.Excel {
             cell.StyleIndex = (uint)wrapIndex;
         }
 
+        /// <summary>
+        /// Applies a horizontal alignment to a single cell.
+        /// </summary>
+        public void CellAlign(int row, int column, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues alignment)
+        {
+            WriteLockConditional(() =>
+            {
+                var cell = GetCell(row, column);
+                var workbookPart = _excelDocument._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+                var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+                var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+                EnsureDefaultStylePrimitives(stylesheet);
+
+                uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+                var cfs = stylesheet.CellFormats.Elements<CellFormat>().ToList();
+                var baseFormat = cfs.ElementAtOrDefault((int)baseIndex) ?? new CellFormat
+                {
+                    NumberFormatId = 0U,
+                    FontId = 0U,
+                    FillId = 0U,
+                    BorderId = 0U,
+                    FormatId = 0U
+                };
+
+                // Try to reuse an existing format with same base ids and requested alignment
+                int found = -1;
+                for (int i = 0; i < cfs.Count; i++)
+                {
+                    var cf = cfs[i];
+                    var a = cf.Alignment;
+                    if (a != null && a.Horizontal != null && a.Horizontal.Value == alignment
+                        && cf.NumberFormatId?.Value == baseFormat.NumberFormatId?.Value
+                        && cf.FontId?.Value == baseFormat.FontId?.Value
+                        && cf.FillId?.Value == baseFormat.FillId?.Value
+                        && cf.BorderId?.Value == baseFormat.BorderId?.Value)
+                    {
+                        found = i; break;
+                    }
+                }
+                if (found == -1)
+                {
+                    var newFormat = new CellFormat
+                    {
+                        NumberFormatId = baseFormat.NumberFormatId ?? 0U,
+                        FontId = baseFormat.FontId ?? 0U,
+                        FillId = baseFormat.FillId ?? 0U,
+                        BorderId = baseFormat.BorderId ?? 0U,
+                        FormatId = baseFormat.FormatId ?? 0U,
+                        ApplyAlignment = true,
+                        Alignment = new Alignment { Horizontal = alignment }
+                    };
+                    stylesheet.CellFormats.Append(newFormat);
+                    stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
+                    stylesPart.Stylesheet.Save();
+                    found = (int)stylesheet.CellFormats.Count.Value - 1;
+                }
+                cell.StyleIndex = (uint)found;
+            });
+        }
+
+        /// <summary>
+        /// Applies a font color (ARGB hex or #RRGGBB) to a single cell.
+        /// </summary>
+        public void CellFontColor(int row, int column, string hexColor)
+        {
+            if (string.IsNullOrWhiteSpace(hexColor)) return;
+            WriteLockConditional(() =>
+            {
+                var cell = GetCell(row, column);
+                var workbookPart = _excelDocument._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+                var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+                var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+                EnsureDefaultStylePrimitives(stylesheet);
+
+                string argb = NormalizeHexColor(hexColor);
+
+                // Ensure a Font with this color exists
+                var fonts = stylesheet.Fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ToList();
+                int fontId = -1;
+                for (int i = 0; i < fonts.Count; i++)
+                {
+                    var c = fonts[i].Color?.Rgb?.Value;
+                    var b = fonts[i].Bold != null ? true : false;
+                    if (c == argb && !b) { fontId = i; break; }
+                }
+                if (fontId == -1)
+                {
+                    var f = new DocumentFormat.OpenXml.Spreadsheet.Font();
+                    f.Color = new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = argb };
+                    stylesheet.Fonts.Append(f);
+                    stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
+                    fontId = (int)stylesheet.Fonts.Count.Value - 1;
+                }
+
+                uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+                var cellFormats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
+                var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? new CellFormat
+                {
+                    NumberFormatId = 0U,
+                    FontId = 0U,
+                    FillId = 0U,
+                    BorderId = 0U,
+                    FormatId = 0U,
+                };
+                var newFormat2 = new CellFormat
+                {
+                    NumberFormatId = baseFormat.NumberFormatId ?? 0U,
+                    FontId = (uint)fontId,
+                    FillId = baseFormat.FillId ?? 0U,
+                    BorderId = baseFormat.BorderId ?? 0U,
+                    FormatId = baseFormat.FormatId ?? 0U,
+                };
+                stylesheet.CellFormats.Append(newFormat2);
+                stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
+                cell.StyleIndex = (uint)stylesheet.CellFormats.Count.Value - 1;
+                stylesPart.Stylesheet.Save();
+            });
+        }
+
         private void ApplyFontBold(Cell cell, bool bold)
         {
             var workbookPart = _excelDocument._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.Fluent.Report;
+using OfficeIMO.Excel.Fluent;
 using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Examples.Excel {
@@ -71,11 +71,11 @@ namespace OfficeIMO.Examples.Excel {
             };
 
             using (var doc = ExcelDocument.Create(filePath)) {
-                // Sheet 1: Summary of all domains as a table
-                var report = new ReportSheetBuilder(doc, "Summary");
-                report.Title("Domain Detective — Mail Classification Summary");
+                // Sheet 1: Summary of all domains as a table (SheetComposer)
+                var composer = new SheetComposer(doc, "Summary");
+                composer.Title("Domain Detective — Mail Classification Summary");
 
-                var summaryRange = report.TableFrom(data, title: "Domains", configure: opts => {
+                var summaryRange = composer.TableFrom(data, title: "Domains", configure: opts => {
                     // Map ScoreBreakdown list into dynamic columns using Name as header and Value as cell
                     opts.CollectionMapColumns[nameof(MailDomainClassificationResult.ScoreBreakdown)] = new CollectionColumnMapping { KeyProperty = nameof(ScorePair.Name), ValueProperty = nameof(ScorePair.Value) };
                     // Make headers nice
@@ -100,31 +100,24 @@ namespace OfficeIMO.Examples.Excel {
                     opts.Ignore = new[] { nameof(MailDomainClassificationResult.Recommendations), nameof(MailDomainClassificationResult.Positives), nameof(MailDomainClassificationResult.References) };
                 }, style: TableStyle.TableStyleMedium9, visuals: viz => {
                     viz.IconSetColumns.Add("Score");
-                    // Also show explicit colors using SixLabors for convenience
-                    viz.TextBackgrounds["Status"] = new System.Collections.Generic.Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
-                    {
-                        ["Error"] = "#F8C9C6",      // stronger light red
-                        ["Warning"] = "#FFE59A",    // stronger light yellow
-                        ["Success"] = "#CDEFCB",    // stronger light green
-                        ["Ok"] = "#CDEFCB",
-                        ["Pass"] = "#CDEFCB",
-                    };
-                    viz.BoldByText["Status"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase){"Error","Warning"};
+                    (viz.TextBackgrounds["Status"], viz.BoldByText["Status"]) = StatusPalettes.Default;
                 });
                 // Emphasize statuses (bold for Error/Warning)
                 // Also request bolding via visuals fallback (works even when header row isn't the first row)
                 // Note: we keep a direct call as a best-effort attempt; visuals will ensure it applies.
-                try { report.Sheet.ColumnStyleByHeader("Status").BoldByTextSet(new HashSet<string>(StringComparer.OrdinalIgnoreCase){"Error","Warning"}); } catch { }
+                try { composer.Sheet.ColumnStyleByHeader("Status").BoldByTextSet(new HashSet<string>(StringComparer.OrdinalIgnoreCase){"Error","Warning"}); } catch { }
 
                 // Make Summary sheet print nicely
-                report.Sheet.SetGridlinesVisible(false);
-                report.Sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
-                doc.SetPrintArea(report.Sheet, summaryRange);
-                report.Finish(autoFitColumns: true);
+                composer.Sheet.SetGridlinesVisible(false);
+                composer.Sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
+                doc.SetPrintArea(composer.Sheet, summaryRange);
+                // Back links to TOC on all sheets
+                doc.AddBackLinksToToc();
+                composer.Finish(autoFitColumns: true);
 
                 // One sheet per domain with richer layout
                 foreach (var d in data) {
-                    var rs = new ReportSheetBuilder(doc, d.Domain);
+                    var rs = new SheetComposer(doc, d.Domain);
                     rs.Title($"Mail Classification — {d.Domain}", d.Summary)
                       .Section("Overview")
                       .PropertiesGrid(new (string, object?)[] {
@@ -148,7 +141,7 @@ namespace OfficeIMO.Examples.Excel {
                         o.HeaderCase = HeaderCase.Title;
                     }, visuals: v => {
                         // Example of explicit icon thresholds for demo purposes
-                        v.IconSets["Value"] = new OfficeIMO.Excel.Fluent.Report.IconSetOptions {
+                        v.IconSets["Value"] = new IconSetOptions {
                             IconSet = DocumentFormat.OpenXml.Spreadsheet.IconSetValues.ThreeSymbols,
                             ShowValue = true,
                             ReverseOrder = false,

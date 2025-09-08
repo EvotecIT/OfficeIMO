@@ -118,6 +118,49 @@ namespace OfficeIMO.Excel
             return this;
         }
 
+        public ColumnStyleByHeaderBuilder AlignLeft()
+        {
+            for (int r = _startRow; r <= _endRow; r++)
+                _sheet.CellAlign(r, _colIndex, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Left);
+            return this;
+        }
+
+        public ColumnStyleByHeaderBuilder AlignCenter()
+        {
+            for (int r = _startRow; r <= _endRow; r++)
+                _sheet.CellAlign(r, _colIndex, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Center);
+            return this;
+        }
+
+        public ColumnStyleByHeaderBuilder AlignRight()
+        {
+            for (int r = _startRow; r <= _endRow; r++)
+                _sheet.CellAlign(r, _colIndex, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Right);
+            return this;
+        }
+
+        public ColumnStyleByHeaderBuilder FontColor(string hexColor)
+        {
+            for (int r = _startRow; r <= _endRow; r++)
+                _sheet.CellFontColor(r, _colIndex, hexColor);
+            return this;
+        }
+
+        public ColumnStyleByHeaderBuilder FontColorByTextMap(System.Collections.Generic.IDictionary<string, string> map, bool caseInsensitive = true)
+        {
+            if (map == null || map.Count == 0) return this;
+            var dict = caseInsensitive ? new System.Collections.Generic.Dictionary<string, string>(map, System.StringComparer.OrdinalIgnoreCase)
+                                       : new System.Collections.Generic.Dictionary<string, string>(map);
+            for (int r = _startRow; r <= _endRow; r++)
+            {
+                if (_sheet.TryGetCellText(r, _colIndex, out var value) && !string.IsNullOrEmpty(value) && dict.TryGetValue(value, out var color))
+                {
+                    _sheet.CellFontColor(r, _colIndex, color);
+                }
+            }
+            return this;
+        }
+
         /// <summary>
         /// Applies a background fill to cells in this column when their text equals the specified value.
         /// Comparison is case-insensitive by default.

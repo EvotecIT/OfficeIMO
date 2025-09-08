@@ -68,6 +68,18 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void CreateTableOfContents(string sheetName = "TOC") => AddTableOfContents(sheetName, placeFirst: true, withHyperlinks: true);
 
+        /// <summary>
+        /// Adds a small back link to the TOC on each worksheet at the given cell (default A2).
+        /// </summary>
+        public void AddBackLinksToToc(string tocSheetName = "TOC", int row = 2, int col = 1, string text = "← TOC")
+        {
+            foreach (var sh in this.Sheets)
+            {
+                if (string.Equals(sh.Name, tocSheetName, StringComparison.OrdinalIgnoreCase)) continue;
+                sh.SetInternalLink(row, col, $"'{tocSheetName}'!A1", text);
+            }
+        }
+
         private void MoveSheetToBeginning(string sheetName)
         {
             var sheets = _workBookPart.Workbook.Sheets;

@@ -19,6 +19,36 @@ using SixLaborsColor = SixLabors.ImageSharp.Color;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>
+        /// Enables a totals row for the table covering <paramref name="range"/> and assigns per-column functions by header name.
+        /// Supported functions are those in TotalsRowFunctionValues (Sum, Average, Count, Min, Max, etc.).
+        /// </summary>
+        public void SetTableTotals(string range, System.Collections.Generic.Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> byHeader)
+        {
+            if (string.IsNullOrWhiteSpace(range)) throw new System.ArgumentNullException(nameof(range));
+            WriteLock(() =>
+            {
+                foreach (var tdp in _worksheetPart.TableDefinitionParts)
+                {
+                    var table = tdp.Table;
+                    if (table?.Reference?.Value != range) continue;
+                    table.TotalsRowShown = true;
+                    var headerNames = table.TableColumns?.Elements<TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList() ?? new System.Collections.Generic.List<string>();
+                    int idx = 0;
+                    foreach (var tc in table.TableColumns!.Elements<TableColumn>())
+                    {
+                        var name = headerNames[idx++];
+                        if (byHeader.TryGetValue(name, out var fn))
+                        {
+                            tc.TotalsRowFunction = fn;
+                        }
+                    }
+                    tdp.Table.Save();
+                    break;
+                }
+                _worksheetPart.Worksheet.Save();
+            });
+        }
+        /// <summary>
         /// Adds an AutoFilter to the worksheet or table.
         /// </summary>
         /// <param name="range">The cell range to apply the filter to.</param>

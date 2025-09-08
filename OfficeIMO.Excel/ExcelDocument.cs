@@ -421,6 +421,16 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Fluent sugar: compose a worksheet using <see cref="Fluent.SheetComposer"/> without exposing the builder type to callers.
+        /// </summary>
+        public void Compose(string sheetName, System.Action<OfficeIMO.Excel.Fluent.SheetComposer> compose, OfficeIMO.Excel.Fluent.SheetTheme? theme = null)
+        {
+            if (compose == null) throw new System.ArgumentNullException(nameof(compose));
+            var c = new OfficeIMO.Excel.Fluent.SheetComposer(this, sheetName, theme);
+            compose(c);
+        }
+
+        /// <summary>
         /// Asynchronously saves the document.
         /// </summary>
         /// <param name="filePath">Optional path to save to.</param>

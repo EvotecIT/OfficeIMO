@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using SixColor = SixLabors.ImageSharp.Color;
 
-namespace OfficeIMO.Excel.Fluent.Report
+namespace OfficeIMO.Excel.Fluent
 {
     public sealed class IconSetOptions
     {
