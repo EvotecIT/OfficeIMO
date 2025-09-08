@@ -6,9 +6,15 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
+/// <summary>
+/// YAML front matter block rendered at the beginning of the document.
+/// </summary>
 public sealed class FrontMatterBlock : IMarkdownBlock {
     private readonly List<(string Key, object? Value)> _pairs = new List<(string, object?)>();
 
+    /// <summary>
+    /// Creates front matter from an anonymous object or dictionary.
+    /// </summary>
     public static FrontMatterBlock FromObject(object data) {
         FrontMatterBlock fm = new FrontMatterBlock();
         if (data is IEnumerable<KeyValuePair<string, object?>> dict) {
@@ -20,6 +26,7 @@ public sealed class FrontMatterBlock : IMarkdownBlock {
         return fm;
     }
 
+    /// <summary>Renders the front matter including '---' fences.</summary>
     public string Render() {
         StringBuilder sb = new StringBuilder();
         sb.AppendLine("---");
@@ -65,7 +72,8 @@ public sealed class FrontMatterBlock : IMarkdownBlock {
 
     private static string EscapeYamlBareOrQuoted(string s) => EscapeYamlString(s);
 
+    /// <inheritdoc />
     public string RenderMarkdown() => Render();
+    /// <inheritdoc />
     public string RenderHtml() => string.Empty;
 }
-

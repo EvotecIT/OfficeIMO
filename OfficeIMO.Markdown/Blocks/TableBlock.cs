@@ -4,10 +4,16 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
+/// <summary>
+/// Pipe table with optional header row.
+/// </summary>
 public sealed class TableBlock : IMarkdownBlock {
+    /// <summary>Optional header cells.</summary>
     public List<string> Headers { get; } = new List<string>();
+    /// <summary>Data rows.</summary>
     public List<IReadOnlyList<string>> Rows { get; } = new List<IReadOnlyList<string>>();
 
+    /// <inheritdoc />
     public string RenderMarkdown() {
         if (Headers.Count > 0) {
             StringBuilder sb = new StringBuilder();
@@ -22,6 +28,7 @@ public sealed class TableBlock : IMarkdownBlock {
         }
     }
 
+    /// <inheritdoc />
     public string RenderHtml() {
         StringBuilder sb = new StringBuilder();
         sb.Append("<table>");
@@ -40,4 +47,3 @@ public sealed class TableBlock : IMarkdownBlock {
         return sb.ToString();
     }
 }
-

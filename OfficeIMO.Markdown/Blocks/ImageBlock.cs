@@ -1,17 +1,26 @@
 namespace OfficeIMO.Markdown;
 
+/// <summary>
+/// Image block with optional title and caption.
+/// </summary>
 public sealed class ImageBlock : IMarkdownBlock, ICaptionable {
+    /// <summary>Image source path or URL.</summary>
     public string Path { get; }
+    /// <summary>Alternative text.</summary>
     public string? Alt { get; }
+    /// <summary>Optional title attribute.</summary>
     public string? Title { get; }
+    /// <inheritdoc />
     public string? Caption { get; set; }
 
+    /// <summary>Create an image block.</summary>
     public ImageBlock(string path, string? alt, string? title) {
         Path = path;
         Alt = alt;
         Title = title;
     }
 
+    /// <inheritdoc />
     public string RenderMarkdown() {
         string alt = Alt ?? string.Empty;
         string title = string.IsNullOrEmpty(Title) ? string.Empty : " \"" + Title + "\"";
@@ -21,6 +30,7 @@ public sealed class ImageBlock : IMarkdownBlock, ICaptionable {
         return sb.ToString().TrimEnd();
     }
 
+    /// <inheritdoc />
     public string RenderHtml() {
         string alt = System.Net.WebUtility.HtmlEncode(Alt ?? string.Empty);
         string title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title!)}\"";
@@ -30,4 +40,3 @@ public sealed class ImageBlock : IMarkdownBlock, ICaptionable {
         return img + caption;
     }
 }
-
