@@ -7,6 +7,9 @@ using OfficeIMO.Excel.Utilities;
 using SixLaborsColor = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Excel.Fluent {
+    /// <summary>
+    /// Fluent builder for composing a worksheet: headers, rows, ranges, tables, styles and filters.
+    /// </summary>
     public class SheetBuilder {
         private readonly ExcelFluentWorkbook _fluent;
         internal ExcelSheet? Sheet { get; private set; }
@@ -19,11 +22,14 @@ namespace OfficeIMO.Excel.Fluent {
             _fluent = fluent;
         }
 
+        /// <summary>Creates and selects a new worksheet.</summary>
+        /// <param name="name">Optional sheet name.</param>
         public SheetBuilder AddSheet(string name = "") {
             Sheet = _fluent.Workbook.AddWorkSheet(name);
             return this;
         }
 
+        /// <summary>Adds a header row with the provided values.</summary>
         public SheetBuilder HeaderRow(params object?[] values) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             var row = new RowBuilder(this, Sheet, _currentRow);
@@ -32,6 +38,7 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>Adds a data row configured by the supplied builder action.</summary>
         public SheetBuilder Row(Action<RowBuilder> action) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             var builder = new RowBuilder(this, Sheet, _currentRow);
@@ -40,6 +47,10 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>
+        /// Generates rows from a sequence of objects using the object flattener.
+        /// Produces a header row from flattened property paths, then data rows.
+        /// </summary>
         public SheetBuilder RowsFrom<T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure = null) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             if (data == null) throw new ArgumentNullException(nameof(data));
@@ -87,6 +98,7 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>Adds a table over the last added block (from RowsFrom) using the specified name.</summary>
         public SheetBuilder Table(string name, Action<TableBuilder>? configure = null) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             if (string.IsNullOrEmpty(_lastRange)) throw new InvalidOperationException("RowsFrom must be called before Table");
@@ -96,6 +108,7 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>Writes a cell at the specified row/column with optional value, formula and number format.</summary>
         public SheetBuilder Cell(int row, int column, object? value = null, string? formula = null, string? numberFormat = null) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             if (row < 1) throw new ArgumentOutOfRangeException(nameof(row));
@@ -104,6 +117,7 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>Writes a cell using A1 reference with optional value, formula and number format.</summary>
         public SheetBuilder Cell(string reference, object? value = null, string? formula = null, string? numberFormat = null) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             if (string.IsNullOrWhiteSpace(reference)) throw new ArgumentNullException(nameof(reference));
@@ -112,6 +126,9 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>
+        /// Writes a rectangular block specified by coordinates, optionally providing a 2D values array.
+        /// </summary>
         public SheetBuilder Range(int fromRow, int fromCol, int toRow, int toCol, object[,]? values = null) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             if (fromRow < 1) throw new ArgumentOutOfRangeException(nameof(fromRow));
@@ -140,6 +157,9 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>
+        /// Configures a range using A1 notation via the range builder (styles, merges, borders, etc.).
+        /// </summary>
         public SheetBuilder Range(string reference, Action<RangeBuilder> action) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             if (string.IsNullOrWhiteSpace(reference)) throw new ArgumentNullException(nameof(reference));
@@ -156,6 +176,7 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>Configures column widths and styles via the column collection builder.</summary>
         public SheetBuilder Columns(Action<ColumnCollectionBuilder> action) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             var builder = new ColumnCollectionBuilder(Sheet);
@@ -163,6 +184,7 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>Adds and configures a table via the table builder.</summary>
         public SheetBuilder Table(Action<TableBuilder> action) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             var builder = new TableBuilder(Sheet);
@@ -171,6 +193,7 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>Applies ad‑hoc styles via the style builder.</summary>
         public SheetBuilder Style(Action<StyleBuilder> action) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             var builder = new StyleBuilder(Sheet);
@@ -178,6 +201,7 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>Applies AutoFilter to a range with optional per‑column criteria.</summary>
         public SheetBuilder AutoFilter(string range, Dictionary<uint, IEnumerable<string>>? criteria = null) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             
@@ -190,12 +214,14 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>Adds a 2‑color scale conditional formatting rule over the range.</summary>
         public SheetBuilder ConditionalColorScale(string range, SixLaborsColor startColor, SixLaborsColor endColor) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             Sheet.AddConditionalColorScale(range, startColor, endColor);
             return this;
         }
 
+        /// <summary>Adds a data bar conditional formatting rule over the range.</summary>
         public SheetBuilder ConditionalDataBar(string range, SixLaborsColor color) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             Sheet.AddConditionalDataBar(range, color);
@@ -213,6 +239,7 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>Auto‑fits columns and/or rows in the current sheet.</summary>
         public SheetBuilder AutoFit(bool columns, bool rows) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             if (columns) {

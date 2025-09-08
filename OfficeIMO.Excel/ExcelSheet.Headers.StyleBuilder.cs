@@ -87,6 +87,9 @@ namespace OfficeIMO.Excel
         /// <param name="format">Number format pattern.</param>
         public ColumnStyleByHeaderBuilder NumberFormat(string format) => ApplyFormat(format);
 
+        /// <summary>
+        /// Makes all cells in the column bold.
+        /// </summary>
         public ColumnStyleByHeaderBuilder Bold()
         {
             for (int r = _startRow; r <= _endRow; r++)
@@ -104,6 +107,10 @@ namespace OfficeIMO.Excel
             return this;
         }
 
+        /// <summary>
+        /// Applies a solid background fill to the column using an ImageSharp color.
+        /// </summary>
+        /// <param name="color">Fill color.</param>
         public ColumnStyleByHeaderBuilder Background(SixLabors.ImageSharp.Color color)
         {
             for (int r = _startRow; r <= _endRow; r++)

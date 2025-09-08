@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel.Read
         }
 
         /// <summary>
-        /// Applies the same converters as <see cref="BasicConverters"/> to an existing options instance.
+        /// Applies the same converters as returned by <see cref="Simple"/> to an existing options instance.
         /// </summary>
         public static void ApplyBasicConverters(ExcelReadOptions options)
         {

@@ -6,24 +6,45 @@ using System.Linq;
 using System.Reflection;
 
 namespace OfficeIMO.Excel.Utilities {
+    /// <summary>
+    /// Configuration for flattening objects into key/value pairs where keys represent dotted paths.
+    /// </summary>
     public class ObjectFlattenerOptions {
+        /// <summary>Property names or dotted paths to expand (descend into) rather than treat as simple values.</summary>
         public List<string> ExpandProperties { get; } = new();
+        /// <summary>When true, includes the original object under its path in addition to expanded fields.</summary>
         public bool IncludeFullObjects { get; set; }
+        /// <summary>Maximum recursion depth when expanding nested objects.</summary>
         public int MaxDepth { get; set; } = int.MaxValue;
+        /// <summary>Header casing strategy for generated column names.</summary>
         public HeaderCase HeaderCase { get; set; } = HeaderCase.Raw;
+        /// <summary>Optional prefixes to trim from generated headers.</summary>
         public string[] HeaderPrefixTrimPaths { get; set; } = Array.Empty<string>();
+        /// <summary>Optional explicit column whitelist (dotted paths).</summary>
         public string[]? Columns { get; set; }
+        /// <summary>Paths to exclude from output.</summary>
         public string[] Ignore { get; set; } = Array.Empty<string>();
+        /// <summary>How null values are represented.</summary>
         public NullPolicy NullPolicy { get; set; } = NullPolicy.NullLiteral;
+        /// <summary>Per‑path default values used when <see cref="NullPolicy.DefaultValue"/> is selected.</summary>
         public Dictionary<string, object?> DefaultValues { get; } = new(StringComparer.OrdinalIgnoreCase);
+        /// <summary>Per‑path formatting delegates applied to values.</summary>
         public Dictionary<string, Func<object?, object?>> Formatters { get; } = new(StringComparer.OrdinalIgnoreCase);
+        /// <summary>How to handle collections.</summary>
         public CollectionMode CollectionMode { get; set; } = CollectionMode.JoinWith;
+        /// <summary>Delimiter used when <see cref="CollectionMode.JoinWith"/> is selected.</summary>
         public string CollectionJoinWith { get; set; } = ",";
     }
 
+    /// <summary>
+    /// Flattens objects to a dictionary of dotted-path keys to values suitable for table generation.
+    /// </summary>
     public class ObjectFlattener {
         private static readonly ConcurrentDictionary<Type, PropertyInfo[]> _cache = new();
 
+        /// <summary>
+        /// Flattens <paramref name="item"/> into a dictionary according to <paramref name="opts"/>.
+        /// </summary>
         public Dictionary<string, object?> Flatten<T>(T item, ObjectFlattenerOptions opts) {
             var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             if (item == null) return result;
@@ -31,6 +52,9 @@ namespace OfficeIMO.Excel.Utilities {
             return result;
         }
 
+        /// <summary>
+        /// Computes all reachable dotted paths for a given <paramref name="type"/> under <paramref name="opts"/>.
+        /// </summary>
         public List<string> GetPaths(Type type, ObjectFlattenerOptions opts) {
             var paths = new List<string>();
             BuildPaths(type, string.Empty, 0, opts, paths);
