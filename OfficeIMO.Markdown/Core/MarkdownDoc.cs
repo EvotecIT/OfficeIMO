@@ -113,6 +113,29 @@ public class MarkdownDoc {
         return Add(tb.Build());
     }
 
+    /// <summary>
+    /// Convenience to add a table from arbitrary data; see <see cref="TableBuilder.FromAny(object?)"/> for rules.
+    /// </summary>
+    public MarkdownDoc TableFrom(object? data) {
+        TableBuilder tb = new TableBuilder();
+        tb.FromAny(data);
+        return Add(tb.Build());
+    }
+
+    /// <summary>Adds an unordered list from a sequence of items using ToString().</summary>
+    public MarkdownDoc Ul<T>(System.Collections.Generic.IEnumerable<T> items) {
+        UnorderedListBuilder builder = new UnorderedListBuilder();
+        builder.Items(items, null);
+        return Add(builder.Build());
+    }
+
+    /// <summary>Adds an ordered list from a sequence of items using ToString().</summary>
+    public MarkdownDoc Ol<T>(System.Collections.Generic.IEnumerable<T> items, int start = 1) {
+        OrderedListBuilder builder = new OrderedListBuilder().StartAt(start);
+        builder.Items(items, null);
+        return Add(builder.Build());
+    }
+
     /// <summary>Renders the document to Markdown string.</summary>
     public string ToMarkdown() {
         StringBuilder sb = new StringBuilder();
