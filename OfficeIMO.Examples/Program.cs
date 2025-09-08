@@ -65,6 +65,11 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Excel.ReadForPowerShell.Example(folderPath, false);
             // Excel/PowerShell-style round trip: write → read → modify → write → JSON
             OfficeIMO.Examples.Excel.PowerShellRoundTrip.Example(folderPath, false);
+
+            OfficeIMO.Examples.Excel.DomainDetectiveReport.Example(folderPath, true);
+
+            return;
+
             // PowerPoint
             OfficeIMO.Examples.PowerPoint.BasicPowerPointDocument.Example_BasicPowerPoint(folderPath, false);
             OfficeIMO.Examples.PowerPoint.AdvancedPowerPoint.Example_AdvancedPowerPoint(folderPath, false);
