@@ -39,6 +39,3 @@ public sealed class HtmlOptions {
     internal string? ExternalCssOutputPath { get; set; }
     internal string? _externalCssContentToWrite { get; set; }
 }
-
-/// <summary>Parts of HTML output for advanced embedding.</summary>
- 

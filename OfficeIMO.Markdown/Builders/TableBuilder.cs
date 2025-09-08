@@ -202,34 +202,34 @@ public sealed class TableBuilder {
 
     private static bool LooksNumeric(string? s) {
         if (string.IsNullOrWhiteSpace(s)) return false;
-        s = s.Trim();
+        string s2 = s!.Trim();
         // Strip percent at end
-        if (s.EndsWith("%")) s = s.Substring(0, s.Length - 1).Trim();
+        if (s2.EndsWith("%")) s2 = s2.Substring(0, s2.Length - 1).Trim();
         // Remove currency symbols anywhere
-        var chars = new System.Text.StringBuilder(s.Length);
-        foreach (var ch in s) {
+        var chars = new System.Text.StringBuilder(s2.Length);
+        foreach (var ch in s2) {
             var cat = char.GetUnicodeCategory(ch);
             if (cat == System.Globalization.UnicodeCategory.CurrencySymbol) continue;
             chars.Append(ch);
         }
-        s = chars.ToString();
+        s2 = chars.ToString();
         // Try parse with both invariant and current cultures
         var inv = System.Globalization.CultureInfo.InvariantCulture;
         var cur = System.Globalization.CultureInfo.CurrentCulture;
-        return double.TryParse(s, System.Globalization.NumberStyles.Any, inv, out _)
-            || double.TryParse(s, System.Globalization.NumberStyles.Any, cur, out _);
+        return double.TryParse(s2, System.Globalization.NumberStyles.Any, inv, out _)
+            || double.TryParse(s2, System.Globalization.NumberStyles.Any, cur, out _);
     }
 
     private static bool LooksDate(string? s) {
         if (string.IsNullOrWhiteSpace(s)) return false;
-        s = s.Trim();
+        string s2 = s!.Trim();
         // Try DateTimeOffset (captures ISO 8601 etc.) and DateTime using current culture
-        if (DateTimeOffset.TryParse(s, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out _)) return true;
-        if (DateTimeOffset.TryParse(s, System.Globalization.CultureInfo.CurrentCulture, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out _)) return true;
-        if (DateTime.TryParse(s, System.Globalization.CultureInfo.CurrentCulture, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out _)) return true;
+        if (DateTimeOffset.TryParse(s2, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out _)) return true;
+        if (DateTimeOffset.TryParse(s2, System.Globalization.CultureInfo.CurrentCulture, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out _)) return true;
+        if (DateTime.TryParse(s2, System.Globalization.CultureInfo.CurrentCulture, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out _)) return true;
         // Common explicit formats
         string[] formats = new [] { "yyyy-MM-dd", "MM/dd/yyyy", "dd.MM.yyyy", "yyyyMMdd", "dd/MM/yyyy" };
-        foreach (var fmt in formats) if (DateTime.TryParseExact(s, fmt, null, System.Globalization.DateTimeStyles.None, out _)) return true;
+        foreach (var fmt in formats) if (DateTime.TryParseExact(s2, fmt, null, System.Globalization.DateTimeStyles.None, out _)) return true;
         return false;
     }
 

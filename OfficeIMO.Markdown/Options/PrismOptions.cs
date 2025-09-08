@@ -17,5 +17,3 @@ public sealed class PrismOptions {
     /// <summary>CDN base URL. Default: jsDelivr.</summary>
     public string CdnBase { get; set; } = "https://cdn.jsdelivr.net/npm/prismjs@1.29.0";
 }
-
-/// <summary>Prism theme options.</summary>

@@ -223,10 +223,12 @@ internal static class HtmlRenderer {
 
     internal static string TryDownloadText(string url) {
         try {
-            using var c = new HttpClient(new HttpClientHandler { AutomaticDecompression = System.Net.DecompressionMethods.All }) { Timeout = TimeSpan.FromSeconds(8) };
+            if (string.IsNullOrWhiteSpace(url)) return string.Empty;
+            var handler = new HttpClientHandler { AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate };
+            using var c = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(8) };
             var t = c.GetStringAsync(url);
-            t.Wait(TimeSpan.FromSeconds(10));
-            return t.IsCompletedSuccessfully ? t.Result : string.Empty;
+            if (!t.Wait(TimeSpan.FromSeconds(10))) return string.Empty;
+            return t.Status == System.Threading.Tasks.TaskStatus.RanToCompletion ? t.Result : string.Empty;
         } catch { return string.Empty; }
     }
 
