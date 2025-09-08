@@ -36,6 +36,10 @@ public sealed class BadgeBuilder {
     }
     /// <summary>Adds a code coverage badge using Shields.io for Codecov.</summary>
     public BadgeBuilder Coverage(string url) { if (!string.IsNullOrWhiteSpace(url)) _badges.Add(("Coverage", url, null)); return this; }
+    /// <summary>Adds a Codecov coverage badge and link for the given repo/branch.</summary>
+    /// <param name="owner">GitHub owner or org.</param>
+    /// <param name="repo">Repository name.</param>
+    /// <param name="branch">Optional branch for the badge.</param>
     public BadgeBuilder CoverageCodecov(string owner, string repo, string? branch = null) {
         var link = string.IsNullOrWhiteSpace(branch)
             ? $"https://codecov.io/gh/{owner}/{repo}"

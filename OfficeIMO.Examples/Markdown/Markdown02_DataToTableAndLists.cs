@@ -24,12 +24,19 @@ namespace OfficeIMO.Examples.Markdown {
                 .H1("Data → Markdown Examples")
                 .H2("Object → Table (Property/Value)")
                 .TableFrom(meta)
+                .H2("Auto header transform")
+                .Table(t => t.Columns(HeaderTransforms.Pretty).FromAny(new { DmarcPolicy = "p=none", TlsGrade = "A", SpfAligned = true }))
                 .H2("Sequence of Objects → Table (with alignment)")
                 .Table(t => t.FromAny(people).Align(ColumnAlignment.Left, ColumnAlignment.Left, ColumnAlignment.Right))
                 .H2("Array → Unordered List")
                 .Ul(features)
                 .H2("Array → Ordered List")
-                .Ol(features, start: 1);
+                .Ol(features, start: 1)
+                .H2("FromSequence with selectors")
+                .Table(t => t.FromSequence(people,
+                    ("Name", x => x.Name),
+                    ("Role", x => x.Role),
+                    ("Score", x => x.Score)).AlignNumericRight());
 
             File.WriteAllText(path, md.ToMarkdown(), Encoding.UTF8);
             Console.WriteLine($"✓ Markdown saved: {path}");
@@ -53,7 +60,11 @@ namespace OfficeIMO.Examples.Markdown {
                 .H2("FAQ");
 
             // Insert TOC at the top, including H2..H3
-            md.TocAtTop("Contents", min: 2, max: 3, ordered: false, titleLevel: 2);
+            md.TocAtTop("Contents", min: 2, max: 3, ordered: false, titleLevel: 2)
+              .H2("Appendix")
+              .H3("Extra")
+              // Insert TOC here for the previous section (Appendix)
+              .TocForPreviousHeading("Appendix Contents", min: 3, max: 3, ordered: false, titleLevel: 3);
             
             File.WriteAllText(path, md.ToMarkdown(), Encoding.UTF8);
             Console.WriteLine($"✓ Markdown saved: {path}");

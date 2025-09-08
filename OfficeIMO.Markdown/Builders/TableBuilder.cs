@@ -8,6 +8,7 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class TableBuilder {
     private readonly TableBlock _table = new TableBlock();
+    private TableFromOptions? _defaultOptions;
     /// <summary>Sets the header row.</summary>
     public TableBuilder Headers(params string[] headers) { _table.Headers.AddRange(headers ?? Array.Empty<string>()); return this; }
     /// <summary>Adds a data row.</summary>
@@ -27,9 +28,7 @@ public sealed class TableBuilder {
     /// - a dictionary → two columns Key/Value,
     /// - a POCO → two columns Property/Value.
     /// </summary>
-    public TableBuilder FromAny(object? data) {
-        return FromAny(data, null);
-    }
+    public TableBuilder FromAny(object? data) { return FromAny(data, _defaultOptions); }
 
     /// <summary>
     /// Populates the table from arbitrary data with options (include/exclude/order).
@@ -68,7 +67,7 @@ public sealed class TableBuilder {
             if (_table.Headers.Count == 0) _table.Headers.AddRange(props.Select(p => Rename(p.Name, options)));
             foreach (var item in seq) {
                 if (item == null) { _table.Rows.Add(props.Select(_ => string.Empty).ToArray()); continue; }
-                var row = props.Select(p => FormatValue(p.GetValue(item, null))).ToArray();
+                var row = props.Select(p => FormatValue(p.GetValue(item, null), p.Name, options)).ToArray();
                 _table.Rows.Add(row);
             }
             if (options?.Alignments != null && options.Alignments.Count > 0) { _table.Alignments.Clear(); _table.Alignments.AddRange(options.Alignments); }
@@ -79,7 +78,7 @@ public sealed class TableBuilder {
         if (_table.Headers.Count == 0) _table.Headers.AddRange(new[] { "Property", "Value" });
         var props2 = SelectProperties(data.GetType(), options);
         foreach (var p in props2) {
-            _table.Rows.Add(new[] { Rename(p.Name, options), FormatValue(p.GetValue(data, null)) });
+            _table.Rows.Add(new[] { Rename(p.Name, options), FormatValue(p.GetValue(data, null), p.Name, options) });
         }
         return this;
     }
@@ -103,7 +102,10 @@ public sealed class TableBuilder {
         return t.IsPrimitive || t.IsEnum || t == typeof(string) || t == typeof(decimal) || t == typeof(DateTime) || t == typeof(Guid) || t == typeof(TimeSpan);
     }
 
-    private static string FormatValue(object? value) {
+    private static string FormatValue(object? value, string? propertyName = null, TableFromOptions? options = null) {
+        if (propertyName != null && options != null && options.Formatters.TryGetValue(propertyName, out var fmt)) {
+            try { return fmt(value); } catch { /* ignore and fallback */ }
+        }
         if (value is null) return "";
         if (value is string s) return s;
         if (value is System.Collections.IEnumerable en && value is not string) {
@@ -139,6 +141,7 @@ public sealed class TableBuilder {
 
     private static string Rename(string name, TableFromOptions? options) {
         if (options?.HeaderRenames != null && options.HeaderRenames.TryGetValue(name, out var newName)) return newName;
+        if (options?.HeaderTransform != null) return options.HeaderTransform(name);
         return name;
     }
 
@@ -169,4 +172,37 @@ public sealed class TableBuilder {
         else { foreach (var c in cols) if (c >= 0 && c < count) _table.Alignments[c] = alignment; }
         return this;
     }
+
+    /// <summary>Guess numeric columns by sampling values and align them right. Threshold is fraction of numeric-like values required (0..1).</summary>
+    public TableBuilder AlignNumericRight(double threshold = 0.8) {
+        if (_table.Rows.Count == 0) return this;
+        int cols = _table.Headers.Count > 0 ? _table.Headers.Count : _table.Rows[0].Count;
+        if (_table.Alignments.Count < cols) { for (int i = _table.Alignments.Count; i < cols; i++) _table.Alignments.Add(ColumnAlignment.None); }
+        for (int c = 0; c < cols; c++) {
+            int total = 0; int numeric = 0;
+            foreach (var row in _table.Rows) {
+                if (c >= row.Count) continue;
+                var cell = row[c];
+                total++;
+                if (LooksNumeric(cell)) numeric++;
+            }
+            if (total > 0 && (double)numeric / total >= threshold) _table.Alignments[c] = ColumnAlignment.Right;
+        }
+        return this;
+    }
+
+    private static bool LooksNumeric(string? s) {
+        if (string.IsNullOrWhiteSpace(s)) return false;
+        s = s.Trim();
+        // Allow currency symbols and percentage at end
+        if (s.EndsWith("%")) s = s.Substring(0, s.Length - 1);
+        if (s.StartsWith("$")) s = s.Substring(1);
+        return double.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _)
+            || double.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.CurrentCulture, out _);
+    }
+
+    /// <summary>Configures default column options for subsequent FromAny calls.</summary>
+    public TableBuilder Columns(System.Action<TableFromOptions> configure) { _defaultOptions ??= new TableFromOptions(); configure(_defaultOptions); return this; }
+    /// <summary>Sets a simple header transform used for generating header text (e.g., prettifying PascalCase).</summary>
+    public TableBuilder Columns(System.Func<string, string> headerTransform) { _defaultOptions ??= new TableFromOptions(); _defaultOptions.HeaderTransform = headerTransform; return this; }
 }

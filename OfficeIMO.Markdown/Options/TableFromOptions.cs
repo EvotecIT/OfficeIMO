@@ -16,4 +16,8 @@ public sealed class TableFromOptions {
     public Dictionary<string, string> HeaderRenames { get; } = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
     /// <summary>Optional per-column alignment, applied by header name order when rendering.</summary>
     public List<ColumnAlignment> Alignments { get; } = new List<ColumnAlignment>();
+    /// <summary>Optional formatters per property name. If present, the formatter output is used for the cell value.</summary>
+    public Dictionary<string, System.Func<object?, string>> Formatters { get; } = new Dictionary<string, System.Func<object?, string>>(System.StringComparer.OrdinalIgnoreCase);
+    /// <summary>Optional header transform applied when generating headers (used when no explicit rename exists).</summary>
+    public System.Func<string, string>? HeaderTransform { get; set; }
 }

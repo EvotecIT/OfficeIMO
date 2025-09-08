@@ -207,6 +207,18 @@ public class MarkdownDoc {
     }
 
     /// <summary>
+    /// Inserts a TOC placeholder at the current position without a title heading by default.
+    /// </summary>
+    public MarkdownDoc TocHere(System.Action<TocOptions>? configure = null) {
+        var opts = new TocOptions { IncludeTitle = false };
+        configure?.Invoke(opts);
+        var placeholder = new TocPlaceholderBlock(opts);
+        _blocks.Add(placeholder);
+        _lastBlock = placeholder;
+        return this;
+    }
+
+    /// <summary>
     /// Inserts a section TOC for the nearest preceding heading. Useful to place a small TOC under a section.
     /// </summary>
     public MarkdownDoc TocForPreviousHeading(string? title = "Contents", int min = 2, int max = 6, bool ordered = false, int titleLevel = 3) {
@@ -287,4 +299,11 @@ public sealed class TocOptions {
 }
 
 /// <summary>TOC scoping modes.</summary>
-public enum TocScope { Document, PreviousHeading, HeadingTitle }
+public enum TocScope {
+    /// <summary>Include headings from the entire document.</summary>
+    Document,
+    /// <summary>Include headings under the nearest preceding heading.</summary>
+    PreviousHeading,
+    /// <summary>Include headings under the heading matching <see cref="TocOptions.ScopeHeadingTitle"/>.</summary>
+    HeadingTitle
+}
