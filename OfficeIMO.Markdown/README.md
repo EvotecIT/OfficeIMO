@@ -8,6 +8,7 @@ Key points
 - Fluent API and explicit object model.
 - Basic blocks: headings, paragraphs, links, images, lists, tables, code blocks, callouts.
 - Front matter (YAML) support.
+- HTML export: fragment or full document with 5 built‑in styles; CDN on/offline modes.
 
 Example
 
@@ -75,6 +76,16 @@ MarkdownDoc.Create()
     .TocAtTop("Contents", min: 2, max: 3)
     .H2("Appendix").H3("Extra")
     .TocForPreviousHeading("Appendix Contents", min: 3, max: 3);
+
+// HTML rendering
+var htmlFragment = md.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.GithubAuto });
+var htmlDocument = md.ToHtmlDocument(new HtmlOptions { Title = "Report", Style = HtmlStyle.Clean, CssDelivery = CssDelivery.Inline });
+md.SaveHtml("Report.html", new HtmlOptions { Style = HtmlStyle.Clean, CssDelivery = CssDelivery.ExternalFile }); // writes Report.html + Report.css
+
+// CDN link online vs offline (download and inline)
+var cdn = "https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.1/github-markdown.min.css";
+var htmlCdnOnline  = md.ToHtmlDocument(new HtmlOptions { CssDelivery = CssDelivery.LinkHref, CssHref = cdn, AssetMode = AssetMode.Online, BodyClass = "markdown-body" });
+var htmlCdnOffline = md.ToHtmlDocument(new HtmlOptions { CssDelivery = CssDelivery.LinkHref, CssHref = cdn, AssetMode = AssetMode.Offline, BodyClass = "markdown-body" });
 ```
 
 Header transforms and acronyms
@@ -120,3 +131,17 @@ Heuristics
 Doc‑level helpers
 - TableAuto(build, alignNumeric=true, alignDates=true)
 - TableFromAuto(data, configure?, alignNumeric=true, alignDates=true)
+
+HTML options
+- Kind: Fragment | Document
+- Style: Plain | Clean | GithubLight | GithubDark | GithubAuto
+- CssDelivery: Inline | ExternalFile | LinkHref | None
+- AssetMode: Online (link) | Offline (download+inline)
+- Title, BodyClass (default "markdown-body"), IncludeAnchorLinks, ThemeToggle
+- EmitMode: Emit (default) | ManifestOnly for host-side asset merging
+- Prism: Enabled, Theme (Prism/Okaidia), Languages, Plugins, CdnBase
+
+De‑duping assets
+- ToHtmlParts returns Assets: a list of { Id, Kind (Css/Js), Href or Inline }.
+- Tags we emit include data-asset-id for easy deduplication if you concatenate HTML.
+- Set EmitMode = ManifestOnly to suppress emitting <link>/<script> tags and merge Assets yourself.

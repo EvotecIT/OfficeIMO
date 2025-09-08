@@ -184,14 +184,51 @@ public class MarkdownDoc {
         return sb.ToString();
     }
 
-    /// <summary>Renders a basic HTML representation of the document (no front matter).</summary>
-    public string ToHtml() {
-        var blocks = RealizeTocPlaceholders();
-        StringBuilder sb = new StringBuilder();
-        foreach (IMarkdownBlock block in blocks) {
-            sb.Append(block.RenderHtml());
+    /// <summary>
+    /// Renders HTML using default options. For backward compatibility, this returns an embeddable HTML fragment
+    /// (no html/head/body) containing just the rendered content. Use <see cref="ToHtmlDocument"/> for a full page.
+    /// </summary>
+    public string ToHtml() => ToHtmlFragment();
+
+    /// <summary>Renders an embeddable HTML fragment. Wraps in &lt;article class="markdown-body"&gt; by default.</summary>
+    public string ToHtmlFragment(HtmlOptions? options = null) {
+        options ??= new HtmlOptions { Kind = HtmlKind.Fragment };
+        options.Kind = HtmlKind.Fragment;
+        return Utilities.HtmlRenderer.Render(this, options);
+    }
+
+    /// <summary>Renders a standalone HTML5 document with optional CSS/JS assets.</summary>
+    public string ToHtmlDocument(HtmlOptions? options = null) {
+        options ??= new HtmlOptions { Kind = HtmlKind.Document };
+        options.Kind = HtmlKind.Document;
+        return Utilities.HtmlRenderer.Render(this, options);
+    }
+
+    /// <summary>Returns rendered parts for advanced embedding (Head, Body, Css, Scripts).</summary>
+    public HtmlRenderParts ToHtmlParts(HtmlOptions? options = null) {
+        options ??= new HtmlOptions { Kind = HtmlKind.Fragment };
+        return Utilities.HtmlRenderer.RenderParts(this, options);
+    }
+
+    /// <summary>
+    /// Saves HTML to the specified file. When <see cref="CssDelivery.ExternalFile"/> is used,
+    /// writes a sidecar CSS file next to the HTML and links it.
+    /// </summary>
+    public void SaveHtml(string path, HtmlOptions? options = null) {
+        options ??= new HtmlOptions();
+        // If external CSS requested, compute sidecar path and let renderer know
+        if (options.CssDelivery == CssDelivery.ExternalFile) {
+            var basePath = System.IO.Path.ChangeExtension(path, null);
+            var cssPath = basePath + ".css";
+            options.ExternalCssOutputPath = cssPath;
         }
-        return sb.ToString();
+        var html = options.Kind == HtmlKind.Document ? ToHtmlDocument(options) : ToHtmlFragment(options);
+        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path)) ?? ".");
+        System.IO.File.WriteAllText(path, html, System.Text.Encoding.UTF8);
+        // If renderer produced a sidecar css, ensure it's written
+        if (!string.IsNullOrEmpty(options.ExternalCssOutputPath) && options._externalCssContentToWrite is not null) {
+            System.IO.File.WriteAllText(options.ExternalCssOutputPath!, options._externalCssContentToWrite, System.Text.Encoding.UTF8);
+        }
     }
 
     /// <summary>
