@@ -155,5 +155,17 @@ namespace OfficeIMO.Excel
             }
             return this;
         }
+
+        /// <summary>
+        /// Overload that accepts SixLabors colors for convenience.
+        /// </summary>
+        public ColumnStyleByHeaderBuilder BackgroundByTextMap(System.Collections.Generic.IDictionary<string, SixLabors.ImageSharp.Color> map, bool caseInsensitive = true)
+        {
+            if (map == null || map.Count == 0) return this;
+            var hex = new System.Collections.Generic.Dictionary<string, string>(caseInsensitive ? System.StringComparer.OrdinalIgnoreCase : System.StringComparer.Ordinal);
+            foreach (var kv in map)
+                hex[kv.Key] = OfficeIMO.Excel.ExcelColor.ToArgbHex(kv.Value);
+            return BackgroundByTextMap(hex, caseInsensitive);
+        }
     }
 }

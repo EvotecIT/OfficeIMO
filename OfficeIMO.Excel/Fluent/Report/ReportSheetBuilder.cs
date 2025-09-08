@@ -264,8 +264,14 @@ namespace OfficeIMO.Excel.Fluent.Report {
                     if (viz.DataBars.TryGetValue(hdr, out var color))
                         try { Sheet.AddConditionalDataBar(colRange, color); } catch { }
 
-                    if (viz.IconSetColumns.Contains(hdr))
+                    if (viz.IconSets.TryGetValue(hdr, out var iconOpts))
+                    {
+                        try { Sheet.AddConditionalIconSet(colRange, iconOpts.IconSet, iconOpts.ShowValue, iconOpts.ReverseOrder); } catch { }
+                    }
+                    else if (viz.IconSetColumns.Contains(hdr))
+                    {
                         try { Sheet.AddConditionalIconSet(colRange); } catch { }
+                    }
 
                     if (viz.TextBackgrounds.TryGetValue(hdr, out var map))
                         try { Sheet.ColumnStyleByHeader(hdr).BackgroundByTextMap(map); } catch { }

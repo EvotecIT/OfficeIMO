@@ -3,6 +3,12 @@ using SixColor = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Excel.Fluent.Report
 {
+    public sealed class IconSetOptions
+    {
+        public DocumentFormat.OpenXml.Spreadsheet.IconSetValues IconSet { get; set; } = DocumentFormat.OpenXml.Spreadsheet.IconSetValues.ThreeTrafficLights1;
+        public bool ShowValue { get; set; } = true;
+        public bool ReverseOrder { get; set; } = false;
+    }
     /// <summary>
     /// Declarative visual options for tables produced by ReportSheetBuilder.TableFrom.
     /// Keeps the API generic so callers can style by header names without project-specific code.
@@ -28,9 +34,14 @@ namespace OfficeIMO.Excel.Fluent.Report
         public Dictionary<string, SixColor> DataBars { get; } = new Dictionary<string, SixColor>(System.StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
-        /// Add an icon set to columns identified by header name. Uses a sensible default icon set.
+        /// Add an icon set to columns identified by header name (simple).
         /// </summary>
         public HashSet<string> IconSetColumns { get; } = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Detailed icon set options by header name.
+        /// </summary>
+        public Dictionary<string, IconSetOptions> IconSets { get; } = new Dictionary<string, IconSetOptions>(System.StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Apply background colors depending on cell text for a given header name.

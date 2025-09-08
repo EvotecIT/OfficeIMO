@@ -75,7 +75,7 @@ namespace OfficeIMO.Examples.Excel {
                 var report = new ReportSheetBuilder(doc, "Summary");
                 report.Title("Domain Detective — Mail Classification Summary");
 
-                report.TableFrom(data, title: "Domains", configure: opts => {
+                var summaryRange = report.TableFrom(data, title: "Domains", configure: opts => {
                     // Map ScoreBreakdown list into dynamic columns using Name as header and Value as cell
                     opts.CollectionMapColumns[nameof(MailDomainClassificationResult.ScoreBreakdown)] = new CollectionColumnMapping { KeyProperty = nameof(ScorePair.Name), ValueProperty = nameof(ScorePair.Value) };
                     // Make headers nice
@@ -98,17 +98,22 @@ namespace OfficeIMO.Examples.Excel {
                     };
                     // Keep long text columns out of the summary table
                     opts.Ignore = new[] { nameof(MailDomainClassificationResult.Recommendations), nameof(MailDomainClassificationResult.Positives), nameof(MailDomainClassificationResult.References) };
-                }, visuals: viz => {
+                }, style: TableStyle.TableStyleLight9, visuals: viz => {
                     viz.IconSetColumns.Add("Score");
+                    // Also show explicit colors using SixLabors for convenience
                     viz.TextBackgrounds["Status"] = new System.Collections.Generic.Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
                     {
-                        ["Error"] = "#FDECEA",
-                        ["Warning"] = "#FFF8E1",
-                        ["Success"] = "#E8F5E9",
+                        ["Error"] = "#FDECEA",      // light red
+                        ["Warning"] = "#FFF8E1",    // light yellow
+                        ["Success"] = "#E8F5E9",    // light green
                         ["Ok"] = "#E8F5E9",
-                        ["Pass"] = "#E8F5E9"
+                        ["Pass"] = "#E8F5E9",
                     };
                 });
+                // Make Summary sheet print nicely
+                report.Sheet.SetGridlinesVisible(false);
+                report.Sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
+                doc.SetPrintArea(report.Sheet, summaryRange);
                 report.Finish(autoFitColumns: true);
 
                 // One sheet per domain with richer layout

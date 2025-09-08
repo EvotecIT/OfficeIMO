@@ -50,6 +50,31 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Sets the print area for a given sheet by creating a sheet-local defined name _xlnm.Print_Area.
+        /// </summary>
+        public void SetPrintArea(ExcelSheet sheet, string range, bool save = true)
+        {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (string.IsNullOrWhiteSpace(range)) throw new ArgumentException("Range cannot be null or whitespace.", nameof(range));
+
+            var workbook = _workBookPart.Workbook;
+            var definedNames = workbook.DefinedNames ??= new DefinedNames();
+
+            // Remove existing sheet-local Print_Area for this sheet
+            ushort sheetPos = GetSheetPositionIndex(sheet);
+            foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == "_xlnm.Print_Area").ToList())
+            {
+                if (dn.LocalSheetId != null && dn.LocalSheetId.Value == sheetPos)
+                    dn.Remove();
+            }
+
+            string normalized = NormalizeRange($"'{sheet.Name}'!{range}");
+            var printArea = new DefinedName { Name = "_xlnm.Print_Area", LocalSheetId = sheetPos, Text = normalized };
+            definedNames.Append(printArea);
+            if (save) workbook.Save();
+        }
+
+        /// <summary>
         /// Returns the A1 range for a defined name. If <paramref name="scope"/> is supplied, searches a sheet‑local name first.
         /// </summary>
         /// <param name="name">Defined name to resolve.</param>
@@ -156,6 +181,16 @@ namespace OfficeIMO.Excel {
                     }
                     return id.Value;
                 }
+            }
+            throw new ArgumentException("Worksheet not found in workbook.", nameof(sheet));
+        }
+
+        private ushort GetSheetPositionIndex(ExcelSheet sheet)
+        {
+            var sheets = _workBookPart.Workbook.Sheets?.OfType<Sheet>().ToList() ?? new();
+            for (ushort i = 0; i < sheets.Count; i++)
+            {
+                if (sheets[i].Name == sheet.Name) return i; // 0-based position
             }
             throw new ArgumentException("Worksheet not found in workbook.", nameof(sheet));
         }
