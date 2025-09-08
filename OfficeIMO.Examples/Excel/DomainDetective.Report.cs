@@ -84,6 +84,11 @@ namespace OfficeIMO.Examples.Excel {
                 // Sheet 1: Summary of all domains as a table (SheetComposer)
                 var composer = new SheetComposer(doc, "Summary");
                 composer.Title("Domain Detective — Mail Classification Summary");
+                // Totals callout (parity with Markdown)
+                int totalWarnings = data.Sum(d => d.WarningCount);
+                int totalErrors = data.Sum(d => d.ErrorCount);
+                composer.Callout(totalErrors > 0 ? "warning" : "info", "Totals",
+                    $"Warnings: {totalWarnings}. Errors: {totalErrors}.");
 
                 var summaryRange = composer.TableFrom(data, title: "Domains", configure: opts => {
                     // Map ScoreBreakdown list into dynamic columns using Name as header and Value as cell
@@ -121,6 +126,29 @@ namespace OfficeIMO.Examples.Excel {
                 composer.Sheet.SetGridlinesVisible(false);
                 composer.Sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
                 doc.SetPrintArea(composer.Sheet, summaryRange);
+                // Legend
+                composer.Section("Legend");
+                var legendHeaderRow = composer.CurrentRow;
+                composer.Sheet.Cell(legendHeaderRow, 1, "Status");
+                composer.Sheet.CellBold(legendHeaderRow, 1, true);
+                composer.Sheet.CellBackground(legendHeaderRow, 1, "#F2F2F2");
+                composer.Sheet.Cell(legendHeaderRow, 2, "Meaning");
+                composer.Sheet.CellBold(legendHeaderRow, 2, true);
+                composer.Sheet.CellBackground(legendHeaderRow, 2, "#F2F2F2");
+                var palette = StatusPalettes.Default;
+                // OK / Success
+                composer.Sheet.Cell(legendHeaderRow + 1, 1, "OK");
+                if (palette.FillHexMap.TryGetValue("OK", out var okHex)) composer.Sheet.CellBackground(legendHeaderRow + 1, 1, okHex);
+                composer.Sheet.Cell(legendHeaderRow + 1, 2, "All checks passed or acceptable");
+                // Warning
+                composer.Sheet.Cell(legendHeaderRow + 2, 1, "Warning");
+                if (palette.FillHexMap.TryGetValue("Warning", out var warnHex)) composer.Sheet.CellBackground(legendHeaderRow + 2, 1, warnHex);
+                composer.Sheet.Cell(legendHeaderRow + 2, 2, "Requires attention; not blocking");
+                // Error
+                composer.Sheet.Cell(legendHeaderRow + 3, 1, "Error");
+                if (palette.FillHexMap.TryGetValue("Error", out var errHex)) composer.Sheet.CellBackground(legendHeaderRow + 3, 1, errHex);
+                composer.Sheet.Cell(legendHeaderRow + 3, 2, "Blocking or invalid configuration");
+                composer.Spacer();
                 // Header/footer via fluent builder
                 var logoPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "OfficeIMO.png");
                 byte[]? logo = System.IO.File.Exists(logoPath) ? System.IO.File.ReadAllBytes(logoPath) : null;
@@ -138,7 +166,7 @@ namespace OfficeIMO.Examples.Excel {
                     var rs = new SheetComposer(doc, d.Domain);
                     rs.Title($"Mail Classification — {d.Domain}", d.Summary)
                       .Section("Overview")
-                      .PropertiesGrid(new (string, object?)[] {
+                      .DefinitionList(new (string, object?)[] {
                           ("Domain", d.Domain),
                           ("Classification", d.Classification),
                           ("Confidence", d.Confidence),
@@ -167,6 +195,20 @@ namespace OfficeIMO.Examples.Excel {
                         };
                         v.NumericColumnDecimals["Value"] = 2;
                     });
+
+                    // Legend per domain
+                    rs.Section("Legend");
+                    int lhdr = rs.CurrentRow;
+                    rs.Sheet.Cell(lhdr, 1, "Status"); rs.Sheet.CellBold(lhdr, 1, true); rs.Sheet.CellBackground(lhdr, 1, "#F2F2F2");
+                    rs.Sheet.Cell(lhdr, 2, "Meaning"); rs.Sheet.CellBold(lhdr, 2, true); rs.Sheet.CellBackground(lhdr, 2, "#F2F2F2");
+                    var pal = StatusPalettes.Default;
+                    rs.Sheet.Cell(lhdr + 1, 1, "OK"); if (pal.FillHexMap.TryGetValue("OK", out var ok2)) rs.Sheet.CellBackground(lhdr + 1, 1, ok2);
+                    rs.Sheet.Cell(lhdr + 1, 2, "All checks passed or acceptable");
+                    rs.Sheet.Cell(lhdr + 2, 1, "Warning"); if (pal.FillHexMap.TryGetValue("Warning", out var wr2)) rs.Sheet.CellBackground(lhdr + 2, 1, wr2);
+                    rs.Sheet.Cell(lhdr + 2, 2, "Requires attention; not blocking");
+                    rs.Sheet.Cell(lhdr + 3, 1, "Error"); if (pal.FillHexMap.TryGetValue("Error", out var er2)) rs.Sheet.CellBackground(lhdr + 3, 1, er2);
+                    rs.Sheet.Cell(lhdr + 3, 2, "Blocking or invalid configuration");
+                    rs.Spacer();
 
                     if (d.Recommendations.Length > 0) {
                         rs.Section("Recommendations").BulletedList(d.Recommendations);

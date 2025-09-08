@@ -59,6 +59,53 @@ namespace OfficeIMO.Excel.Fluent
             return this;
         }
 
+        /// <summary>
+        /// Inserts a simple callout (admonition) band consisting of a bold title row and a body row,
+        /// shaded according to the <paramref name="kind"/>. Does not merge cells; applies background across
+        /// the first <paramref name="widthColumns"/> columns for a banner effect.
+        /// Supported kinds: info, success, warning, error/critical.
+        /// </summary>
+        public SheetComposer Callout(string kind, string title, string body, int widthColumns = 8)
+        {
+            string fill = kind?.Trim().ToLowerInvariant() switch
+            {
+                "success" => "#D4EDDA",
+                "warning" => "#FFF3CD",
+                "error" => "#F8D7DA",
+                "critical" => "#F8D7DA",
+                _ => "#E8F4FF" // info/default
+            };
+
+            if (!string.IsNullOrWhiteSpace(title))
+            {
+                _sheet.Cell(_row, 1, title);
+                _sheet.CellBold(_row, 1, true);
+                for (int c = 1; c <= Math.Max(1, widthColumns); c++) _sheet.CellBackground(_row, c, fill);
+                _row++;
+            }
+
+            if (!string.IsNullOrWhiteSpace(body))
+            {
+                // Encourage wrapping by injecting a soft break if the line is long and has no breaks
+                string text = body;
+                if (!text.Contains("\n") && text.Length > 120)
+                {
+                    int cut = 120;
+                    text = text.Insert(cut, "\n");
+                }
+                _sheet.Cell(_row, 1, text);
+                for (int c = 1; c <= Math.Max(1, widthColumns); c++) _sheet.CellBackground(_row, c, fill);
+                _row++;
+            }
+            return Spacer();
+        }
+
+        /// <summary>
+        /// Renders a key/value list in a compact two-column grid. Alias for <see cref="PropertiesGrid"/>.
+        /// </summary>
+        public SheetComposer DefinitionList(IEnumerable<(string Key, object? Value)> items, int columns = 2)
+            => PropertiesGrid(items, columns);
+
         public SheetComposer PropertiesGrid(IEnumerable<(string Key, object? Value)> properties, int columns = 2)
         {
             if (properties == null) return this;

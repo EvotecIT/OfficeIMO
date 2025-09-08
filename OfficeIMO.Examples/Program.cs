@@ -71,6 +71,8 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Excel.HeadersFootersAndProperties.Example(folderPath, openExcelDefault);
 
             OfficeIMO.Examples.Excel.DomainDetectiveReport.Example(folderPath, openExcelDefault);
+            // Markdown/DomainDetective report (mirrors the Excel structure)
+            OfficeIMO.Examples.Markdown.DomainDetectiveReportMarkdown.Example(folderPath, false);
 
             return;
 
