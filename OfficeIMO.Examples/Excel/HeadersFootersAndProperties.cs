@@ -28,7 +28,7 @@ namespace OfficeIMO.Examples.Excel {
                 footerRight: "© Evotec");
 
             // Add a small logo to the center header
-            var logoPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Assets", "OfficeIMO.png");
+            var logoPath = Path.Combine(AppContext.BaseDirectory, "Assets", "OfficeIMO.png");
             if (File.Exists(logoPath)) {
                 var bytes = File.ReadAllBytes(logoPath);
                 sheet.SetHeaderImage(HeaderFooterPosition.Center, bytes, contentType: "image/png", widthPoints: 96, heightPoints: 32);

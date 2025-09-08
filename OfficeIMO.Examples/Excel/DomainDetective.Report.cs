@@ -122,7 +122,7 @@ namespace OfficeIMO.Examples.Excel {
                 composer.Sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
                 doc.SetPrintArea(composer.Sheet, summaryRange);
                 // Header/footer via fluent builder
-                var logoPath = System.IO.Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Assets", "OfficeIMO.png");
+                var logoPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "OfficeIMO.png");
                 byte[]? logo = System.IO.File.Exists(logoPath) ? System.IO.File.ReadAllBytes(logoPath) : null;
                 composer.HeaderFooter(h =>
                 {
