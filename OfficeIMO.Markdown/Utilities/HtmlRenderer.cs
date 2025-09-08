@@ -34,6 +34,10 @@ internal static class HtmlRenderer {
         options._externalCssContentToWrite = cssToWrite; // pass back for SaveHtml
 
         string bodyContent = RenderBody(realized, options);
+        if (options.ThemeToggle) {
+            const string toggle = "<button class=\"theme-toggle\" data-theme-toggle title=\"Toggle theme\" aria-label=\"Toggle theme\">🌓</button>";
+            bodyContent = toggle + bodyContent;
+        }
         if (!string.IsNullOrEmpty(options.BodyClass)) {
             // Wrap in article
             bodyContent = $"<article class=\"{System.Net.WebUtility.HtmlEncode(options.BodyClass)}\">" + bodyContent + "</article>";

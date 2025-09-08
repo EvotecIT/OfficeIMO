@@ -98,9 +98,24 @@ namespace OfficeIMO.Examples.Markdown {
             static string Ok() => "🟢 OK";
             static string Warn() => "🟠 Warning";
 
+            static string Slug(string text) {
+                if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+                var sb = new System.Text.StringBuilder(text.Length);
+                foreach (char ch in text.Trim().ToLowerInvariant()) {
+                    if (ch >= 'a' && ch <= 'z') sb.Append(ch);
+                    else if (ch >= '0' && ch <= '9') sb.Append(ch);
+                    else if (char.IsWhiteSpace(ch) || ch == '_' || ch == '-' ) sb.Append('-');
+                    // drop punctuation like '.' '/' ':' etc.
+                }
+                // collapse dashes
+                var s = sb.ToString();
+                while (s.Contains("--")) s = s.Replace("--", "-");
+                return s.Trim('-');
+            }
+
             var summaryRows = new List<DomainRow> {
-                new("evotec.pl", Warn(), Ok(), Warn(), Warn(), Warn(), Ok(), Warn(), "13 / 0"),
-                new("evotec.xyz", Warn(), Ok(), Warn(), Warn(), Ok(), Ok(), Warn(), "13 / 0")
+                new($"[evotec.pl](#${Slug("evotec.pl")})", Warn(), Ok(), Warn(), Warn(), Warn(), Ok(), Warn(), "13 / 0"),
+                new($"[evotec.xyz](#${Slug("evotec.xyz")})", Warn(), Ok(), Warn(), Warn(), Ok(), Ok(), Warn(), "13 / 0")
             };
 
             // Build Markdown document
@@ -109,7 +124,12 @@ namespace OfficeIMO.Examples.Markdown {
                 .H1("Executive Summary")
                 .TocAtTop("Contents", min: 1, max: 3)
                 .H2("Overview")
-                .P($"This report summarizes the email security posture for {domains.Count} domain(s). The table highlights the presence and status of key controls (MX, SPF, DKIM, DMARC, MTA-STS, TLS-RPT, Classification) and the count of warnings/errors detected. Total across all domains: {totalWarnings} warning(s), {totalErrors} error(s).")
+                .P(p => p
+                    .Text("This report summarizes the ")
+                    .Bold("email security posture")
+                    .Text($" for {domains.Count} domain(s). The table highlights the presence and status of key controls (MX, SPF, DKIM, DMARC, MTA-STS, TLS-RPT, Classification) and the count of warnings/errors detected. Total across all domains: ")
+                    .Underline($"{totalWarnings} warning(s), {totalErrors} error(s)")
+                    .Text("."))
                 .Callout(totalErrors > 0 ? "warning" : "info", "Totals",
                     $"Warnings: {totalWarnings}\nErrors: {totalErrors}")
                 .H2("Legend")

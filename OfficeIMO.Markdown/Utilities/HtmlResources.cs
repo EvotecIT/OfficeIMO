@@ -40,6 +40,9 @@ article.markdown-body blockquote.callout.danger { border-left-color: #cf222e; }
 /* data-theme overrides */
 html[data-theme=dark] body { background: #0d1117; color: #c9d1d9; }
 html[data-theme=light] body { background: #ffffff; color: #24292f; }
+.theme-toggle { position: fixed; top: 12px; right: 12px; z-index: 9999; border: 1px solid rgba(27,31,36,.15); background: rgba(240,246,252,.9); color: inherit; border-radius: 6px; padding: 6px 8px; cursor: pointer; }
+@media (prefers-color-scheme: dark) { .theme-toggle { border-color: rgba(240,246,252,.2); background: rgba(22,27,34,.85); } }
+html[data-theme=dark] .theme-toggle { border-color: rgba(240,246,252,.2); background: rgba(22,27,34,.85); }
 ";
 
     // GitHub-ish light
@@ -61,6 +64,7 @@ article.markdown-body code { background: rgba(175,184,193,.2); padding: .2em .4e
 article.markdown-body pre { background: #f6f8fa; padding: 12px; border-radius: 6px; overflow: auto; }
 article.markdown-body blockquote { color: #57606a; border-left: .25em solid #d0d7de; padding: 0 1em; margin: 0; }
 .anchor { margin-right: .25em; opacity: .6; text-decoration: none; }
+.theme-toggle { position: fixed; top: 12px; right: 12px; z-index: 9999; border: 1px solid rgba(27,31,36,.15); background: rgba(240,246,252,.9); color: inherit; border-radius: 6px; padding: 6px 8px; cursor: pointer; }
 ";
 
     // GitHub-ish dark
@@ -79,6 +83,7 @@ article.markdown-body code { background: #161b22; padding: .2em .4em; border-rad
 article.markdown-body pre { background: #161b22; padding: 12px; border-radius: 6px; overflow: auto; }
 article.markdown-body blockquote { color: #8b949e; border-left: .25em solid #30363d; padding: 0 1em; margin: 0; }
 .anchor { margin-right: .25em; opacity: .6; text-decoration: none; }
+.theme-toggle { position: fixed; top: 12px; right: 12px; z-index: 9999; border: 1px solid rgba(240,246,252,.2); background: rgba(22,27,34,.85); color: inherit; border-radius: 6px; padding: 6px 8px; cursor: pointer; }
 ";
 
     // Auto via prefers-color-scheme
@@ -113,6 +118,9 @@ article.markdown-body blockquote { color: #57606a; border-left: .25em solid #d0d
 html[data-theme=dark] body { background: #0d1117; color: #c9d1d9; }
 html[data-theme=dark] article.markdown-body { color: inherit; background: transparent; }
 html[data-theme=light] body { background: #ffffff; color: #24292f; }
+.theme-toggle { position: fixed; top: 12px; right: 12px; z-index: 9999; border: 1px solid rgba(27,31,36,.15); background: rgba(240,246,252,.9); color: inherit; border-radius: 6px; padding: 6px 8px; cursor: pointer; }
+@media (prefers-color-scheme: dark) { .theme-toggle { border-color: rgba(240,246,252,.2); background: rgba(22,27,34,.85); } }
+html[data-theme=dark] .theme-toggle { border-color: rgba(240,246,252,.2); background: rgba(22,27,34,.85); }
 ";
 
     internal static string ThemeToggleScript => @"
