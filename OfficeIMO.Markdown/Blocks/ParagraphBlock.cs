@@ -9,7 +9,7 @@ public sealed class ParagraphBlock : IMarkdownBlock {
     /// <summary>Creates a paragraph block.</summary>
     public ParagraphBlock(InlineSequence inlines) { Inlines = inlines; }
     /// <inheritdoc />
-    public string RenderMarkdown() => Inlines.RenderMarkdown();
+    string IMarkdownBlock.RenderMarkdown() => Inlines.RenderMarkdown();
     /// <inheritdoc />
-    public string RenderHtml() => $"<p>{Inlines.RenderHtml()}</p>";
+    string IMarkdownBlock.RenderHtml() => $"<p>{Inlines.RenderHtml()}</p>";
 }

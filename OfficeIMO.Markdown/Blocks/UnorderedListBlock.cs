@@ -10,7 +10,7 @@ public sealed class UnorderedListBlock : IMarkdownBlock {
     /// <summary>List items.</summary>
     public List<ListItem> Items { get; } = new List<ListItem>();
     /// <inheritdoc />
-    public string RenderMarkdown() => string.Join("\n", Items.Select(i => i.ToMarkdownListLine()));
+    string IMarkdownBlock.RenderMarkdown() => string.Join("\n", Items.Select(i => i.ToMarkdownListLine()));
     /// <inheritdoc />
-    public string RenderHtml() => "<ul>" + string.Concat(Items.Select(i => i.ToHtmlListItem())) + "</ul>";
+    string IMarkdownBlock.RenderHtml() => "<ul>" + string.Concat(Items.Select(i => i.ToHtmlListItem())) + "</ul>";
 }

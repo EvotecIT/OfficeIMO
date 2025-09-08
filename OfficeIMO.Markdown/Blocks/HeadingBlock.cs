@@ -20,7 +20,7 @@ public sealed class HeadingBlock : IMarkdownBlock {
         Text = text ?? string.Empty;
     }
     /// <inheritdoc />
-    public string RenderMarkdown() => new string('#', Level) + " " + Text;
+    string IMarkdownBlock.RenderMarkdown() => new string('#', Level) + " " + Text;
     /// <inheritdoc />
-    public string RenderHtml() => $"<h{Level}>{System.Net.WebUtility.HtmlEncode(Text)}</h{Level}>";
+    string IMarkdownBlock.RenderHtml() => $"<h{Level}>{System.Net.WebUtility.HtmlEncode(Text)}</h{Level}>";
 }

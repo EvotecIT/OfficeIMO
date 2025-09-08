@@ -13,13 +13,13 @@ public sealed class OrderedListBlock : IMarkdownBlock {
     public int Start { get; set; } = 1;
 
     /// <inheritdoc />
-    public string RenderMarkdown() {
+    string IMarkdownBlock.RenderMarkdown() {
         int i = Start;
         return string.Join("\n", Items.Select(item => (i++) + ". " + item.RenderMarkdown()));
     }
 
     /// <inheritdoc />
-    public string RenderHtml() {
+    string IMarkdownBlock.RenderHtml() {
         string startAttr = Start != 1 ? " start=\"" + Start + "\"" : string.Empty;
         return "<ol" + startAttr + ">" + string.Concat(Items.Select(i => "<li>" + i.RenderHtml() + "</li>")) + "</ol>";
     }

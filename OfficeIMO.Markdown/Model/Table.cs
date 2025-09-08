@@ -12,7 +12,7 @@ public sealed class Table : IMarkdownBlock {
     /// <summary>Adds a data row.</summary>
     public void AddRow(params string[] cells) => _table.Rows.Add(cells);
     /// <inheritdoc />
-    public string RenderMarkdown() => _table.RenderMarkdown();
+    string IMarkdownBlock.RenderMarkdown() => ((IMarkdownBlock)_table).RenderMarkdown();
     /// <inheritdoc />
-    public string RenderHtml() => _table.RenderHtml();
+    string IMarkdownBlock.RenderHtml() => ((IMarkdownBlock)_table).RenderHtml();
 }

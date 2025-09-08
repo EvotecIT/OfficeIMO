@@ -8,7 +8,7 @@ public sealed class H3 : IMarkdownBlock {
     /// <summary>Creates an H3 heading.</summary>
     public H3(string text) { _h = new HeadingBlock(3, text); }
     /// <inheritdoc />
-    public string RenderMarkdown() => _h.RenderMarkdown();
+    string IMarkdownBlock.RenderMarkdown() => ((IMarkdownBlock)_h).RenderMarkdown();
     /// <inheritdoc />
-    public string RenderHtml() => _h.RenderHtml();
+    string IMarkdownBlock.RenderHtml() => ((IMarkdownBlock)_h).RenderHtml();
 }

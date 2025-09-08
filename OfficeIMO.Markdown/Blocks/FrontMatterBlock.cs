@@ -73,7 +73,7 @@ public sealed class FrontMatterBlock : IMarkdownBlock {
     private static string EscapeYamlBareOrQuoted(string s) => EscapeYamlString(s);
 
     /// <inheritdoc />
-    public string RenderMarkdown() => Render();
+    string IMarkdownBlock.RenderMarkdown() => Render();
     /// <inheritdoc />
-    public string RenderHtml() => string.Empty;
+    string IMarkdownBlock.RenderHtml() => string.Empty;
 }

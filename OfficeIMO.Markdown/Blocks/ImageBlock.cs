@@ -21,7 +21,7 @@ public sealed class ImageBlock : IMarkdownBlock, ICaptionable {
     }
 
     /// <inheritdoc />
-    public string RenderMarkdown() {
+    string IMarkdownBlock.RenderMarkdown() {
         string alt = Alt ?? string.Empty;
         string title = string.IsNullOrEmpty(Title) ? string.Empty : " \"" + Title + "\"";
         System.Text.StringBuilder sb = new System.Text.StringBuilder();
@@ -31,7 +31,7 @@ public sealed class ImageBlock : IMarkdownBlock, ICaptionable {
     }
 
     /// <inheritdoc />
-    public string RenderHtml() {
+    string IMarkdownBlock.RenderHtml() {
         string alt = System.Net.WebUtility.HtmlEncode(Alt ?? string.Empty);
         string title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title!)}\"";
         string src = System.Net.WebUtility.HtmlEncode(Path);

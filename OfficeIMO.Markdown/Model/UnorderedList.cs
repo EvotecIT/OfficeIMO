@@ -8,7 +8,7 @@ public sealed class UnorderedList : IMarkdownBlock {
     /// <summary>Adds an item to the list.</summary>
     public void Add(ListItem item) => _ul.Items.Add(item);
     /// <inheritdoc />
-    public string RenderMarkdown() => _ul.RenderMarkdown();
+    string IMarkdownBlock.RenderMarkdown() => ((IMarkdownBlock)_ul).RenderMarkdown();
     /// <inheritdoc />
-    public string RenderHtml() => _ul.RenderHtml();
+    string IMarkdownBlock.RenderHtml() => ((IMarkdownBlock)_ul).RenderHtml();
 }

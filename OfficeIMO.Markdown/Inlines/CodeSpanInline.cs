@@ -14,8 +14,8 @@ public sealed class CodeSpanInline {
         foreach (char c in Text) { if (c == '`') { run++; if (run > maxRun) maxRun = run; } else run = 0; }
         string fence = new string('`', maxRun + 1);
         // Per CommonMark, add a space inside when the text starts/ends with a backtick or space
-        string leftPad = Text.StartsWith('`') || Text.StartsWith(' ') ? " " : string.Empty;
-        string rightPad = Text.EndsWith('`') || Text.EndsWith(' ') ? " " : string.Empty;
+        string leftPad = (Text.StartsWith("`") || Text.StartsWith(" ")) ? " " : string.Empty;
+        string rightPad = (Text.EndsWith("`") || Text.EndsWith(" ")) ? " " : string.Empty;
         return fence + leftPad + Text + rightPad + fence;
     }
     internal string RenderHtml() => "<code>" + System.Net.WebUtility.HtmlEncode(Text) + "</code>";

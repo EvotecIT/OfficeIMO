@@ -20,7 +20,7 @@ public sealed class CodeBlock : IMarkdownBlock, ICaptionable {
     }
 
     /// <inheritdoc />
-    public string RenderMarkdown() {
+    string IMarkdownBlock.RenderMarkdown() {
         StringBuilder sb = new StringBuilder();
         sb.AppendLine($"```{Language}");
         sb.AppendLine(Content);
@@ -30,7 +30,7 @@ public sealed class CodeBlock : IMarkdownBlock, ICaptionable {
     }
 
     /// <inheritdoc />
-    public string RenderHtml() {
+    string IMarkdownBlock.RenderHtml() {
         string lang = string.IsNullOrEmpty(Language) ? string.Empty : $" class=\"language-{System.Net.WebUtility.HtmlEncode(Language)}\"";
         string code = System.Net.WebUtility.HtmlEncode(Content);
         string caption = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{System.Net.WebUtility.HtmlEncode(Caption!)}</div>";

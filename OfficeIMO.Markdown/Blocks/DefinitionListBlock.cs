@@ -12,14 +12,14 @@ public sealed class DefinitionListBlock : IMarkdownBlock {
     public List<(string Term, string Definition)> Items { get; } = new List<(string, string)>();
 
     /// <inheritdoc />
-    public string RenderMarkdown() {
+    string IMarkdownBlock.RenderMarkdown() {
         StringBuilder sb = new StringBuilder();
         foreach (var (term, def) in Items) sb.AppendLine(term + ": " + def);
         return sb.ToString().TrimEnd();
     }
 
     /// <inheritdoc />
-    public string RenderHtml() {
+    string IMarkdownBlock.RenderHtml() {
         StringBuilder sb = new StringBuilder();
         sb.Append("<dl>");
         foreach (var (term, def) in Items) {

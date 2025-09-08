@@ -8,7 +8,7 @@ public sealed class Paragraph : IMarkdownBlock {
     /// <summary>Creates a paragraph from plain text.</summary>
     public Paragraph(string text) { _p = new ParagraphBlock(new InlineSequence().Text(text)); }
     /// <inheritdoc />
-    public string RenderMarkdown() => _p.RenderMarkdown();
+    string IMarkdownBlock.RenderMarkdown() => ((IMarkdownBlock)_p).RenderMarkdown();
     /// <inheritdoc />
-    public string RenderHtml() => _p.RenderHtml();
+    string IMarkdownBlock.RenderHtml() => ((IMarkdownBlock)_p).RenderHtml();
 }

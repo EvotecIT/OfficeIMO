@@ -14,7 +14,7 @@ public sealed class TableBlock : IMarkdownBlock {
     public List<IReadOnlyList<string>> Rows { get; } = new List<IReadOnlyList<string>>();
 
     /// <inheritdoc />
-    public string RenderMarkdown() {
+    string IMarkdownBlock.RenderMarkdown() {
         if (Headers.Count > 0) {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("| " + string.Join(" | ", Headers) + " |");
@@ -29,7 +29,7 @@ public sealed class TableBlock : IMarkdownBlock {
     }
 
     /// <inheritdoc />
-    public string RenderHtml() {
+    string IMarkdownBlock.RenderHtml() {
         StringBuilder sb = new StringBuilder();
         sb.Append("<table>");
         if (Headers.Count > 0) {

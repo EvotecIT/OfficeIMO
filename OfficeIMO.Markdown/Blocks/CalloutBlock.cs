@@ -22,7 +22,7 @@ public sealed class CalloutBlock : IMarkdownBlock {
     }
 
     /// <inheritdoc />
-    public string RenderMarkdown() {
+    string IMarkdownBlock.RenderMarkdown() {
         string tag = Kind.ToUpperInvariant();
         StringBuilder sb = new StringBuilder();
         sb.AppendLine($"> [!{tag}] {Title}");
@@ -33,5 +33,5 @@ public sealed class CalloutBlock : IMarkdownBlock {
     }
 
     /// <inheritdoc />
-    public string RenderHtml() => $"<blockquote class=\"callout {System.Net.WebUtility.HtmlEncode(Kind)}\"><p><strong>{System.Net.WebUtility.HtmlEncode(Title)}</strong></p><p>{System.Net.WebUtility.HtmlEncode(Body)}</p></blockquote>";
+    string IMarkdownBlock.RenderHtml() => $"<blockquote class=\"callout {System.Net.WebUtility.HtmlEncode(Kind)}\"><p><strong>{System.Net.WebUtility.HtmlEncode(Title)}</strong></p><p>{System.Net.WebUtility.HtmlEncode(Body)}</p></blockquote>";
 }

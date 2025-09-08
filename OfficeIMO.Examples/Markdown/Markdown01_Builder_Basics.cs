@@ -43,7 +43,10 @@ namespace OfficeIMO.Examples.Markdown {
             MarkdownDoc readme = Scaffold.Readme("OfficeIMO.Markdown", opts => opts
                 .NuGet("OfficeIMO.Markdown")
                 .Description("Fluent Markdown builder for C# with CommonMark+GFM support.")
-                .Badges(b => b.NuGet().Build().Coverage())
+                .Badges(b => b
+                    .NuGet("OfficeIMO.Markdown")
+                    .BuildForGitHub("EvotecIT","OfficeIMO")
+                    .CoverageCodecov("EvotecIT","OfficeIMO"))
                 .GettingStarted("dotnet add package OfficeIMO.Markdown",
                     "var md = MarkdownDoc.Create().H1(\"Hello\").P(\"World\");\nFile.WriteAllText(\"README.md\", md.ToMarkdown());")
                 .LicenseMIT()
@@ -54,4 +57,3 @@ namespace OfficeIMO.Examples.Markdown {
         }
     }
 }
-
