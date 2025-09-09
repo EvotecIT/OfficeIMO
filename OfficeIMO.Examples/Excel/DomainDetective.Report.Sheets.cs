@@ -53,11 +53,7 @@ namespace OfficeIMO.Examples.Excel {
             overview.Title("Domain Detective — Overview", $"Generated {DateTime.Now:yyyy-MM-dd HH:mm}");
             // Header/footer with Evotec logo + page text (fixed URL)
             const string logoUrl = "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png";
-            overview.HeaderFooter(h =>
-            {
-                h.Left("Page &P of &N");
-                h.CenterImageUrl(logoUrl, widthPoints: 120, heightPoints: 40);
-            });
+            overview.HeaderLogoUrl(logoUrl, OfficeIMO.Excel.Enums.HeaderFooterPosition.Center, 120, 40, leftText: "Page &P of &N");
             // Also place the logo inside the sheet (first page) via URL
             overview.ImageFromUrlAt(row: 1, column: 6, url: logoUrl, widthPixels: 120, heightPixels: 40);
 
@@ -92,7 +88,7 @@ namespace OfficeIMO.Examples.Excel {
                     ("Warning", warnCount),
                     ("Error", errCount)
                 });
-                cols[2].Section("Tips").BulletedList(new []{
+                cols[2].Section("Tips").BulletedList(new[]{
                     "Use filters in the header row.",
                     "Click a Domain to open details.",
                     "Use ↑ Top links to navigate."
@@ -160,8 +156,10 @@ namespace OfficeIMO.Examples.Excel {
 
             // Add header logo to Index (Left) with page number on Right for variety
             var idx = doc["Index"]; if (idx != null) {
-                idx.SetHeaderFooter(headerLeft: null, headerCenter: null, headerRight: "Page &P of &N");
-                idx.SetHeaderImageUrl(OfficeIMO.Excel.Enums.HeaderFooterPosition.Left, logoUrl, widthPoints: 96, heightPoints: 32);
+                idx.HeaderFooter(h => {
+                    h.Right("Page &P of &N");
+                    h.LeftImageUrl(logoUrl, widthPoints: 96, heightPoints: 32);
+                });
             }
 
             var errors = doc.ValidateOpenXml();
@@ -171,8 +169,7 @@ namespace OfficeIMO.Examples.Excel {
             if (openExcel) doc.Open(filePath, true);
         }
 
-        private static void BuildDomainSheet(ExcelDocument doc, DomainRow d)
-        {
+        private static void BuildDomainSheet(ExcelDocument doc, DomainRow d) {
             var s = new SheetComposer(doc, d.Domain);
             s.Title($"Mail Classification — {d.Domain}", d.Summary)
              .Callout(d.ErrorCount > 0 ? "error" : (string.Equals(d.Status, "Warning", StringComparison.OrdinalIgnoreCase) ? "warning" : "info"),
@@ -208,7 +205,8 @@ namespace OfficeIMO.Examples.Excel {
                 };
             });
             // Header logo on the Right, page number on Left (complements Index/Overview)
-            s.HeaderFooter(h => { h.Left("Page &P of &N"); h.RightImageUrl("https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png", widthPoints: 96, heightPoints: 32); });
+            s.HeaderLogoUrl("https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png",
+                            OfficeIMO.Excel.Enums.HeaderFooterPosition.Right, 96, 32, leftText: "Page &P of &N");
             // Optional: embed the Evotec logo on each detail sheet near the title
             s.ImageFromUrlAt(row: 1, column: 5, url: "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png", widthPixels: 100, heightPixels: 34);
 
@@ -228,14 +226,12 @@ namespace OfficeIMO.Examples.Excel {
             }
 
             // Recommendations highlighted (warning tone) using BulletedListWithFill
-            if (d.Recommendations.Length > 0)
-            {
+            if (d.Recommendations.Length > 0) {
                 s.SectionWithAnchor("Recommendations");
                 s.BulletedListWithFill(d.Recommendations, fillHex: "#FFF4CE");
             }
             // Positives highlighted (success tone) using BulletedListWithFill
-            if (d.Positives.Length > 0)
-            {
+            if (d.Positives.Length > 0) {
                 s.SectionWithAnchor("Positives");
                 s.BulletedListWithFill(d.Positives, fillHex: "#E7F4E4");
             }
@@ -244,7 +240,7 @@ namespace OfficeIMO.Examples.Excel {
             s.Finish(autoFitColumns: true);
         }
 
-        
+
 
         private static List<DomainRow> GenerateFakeData(int count, int seed) {
             var rnd = new Random(seed);
