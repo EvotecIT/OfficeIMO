@@ -327,7 +327,7 @@ namespace OfficeIMO.Excel.Fluent
             if (list != null && list.Count > 0)
             {
                 Section("References");
-                foreach (var url in list) { _sheet.SetHyperlink(_row, 1, url, url); _row++; }
+                foreach (var url in list) { _sheet.SetHyperlinkSmart(_row, 1, url); _row++; }
                 Spacer();
             }
             return this;

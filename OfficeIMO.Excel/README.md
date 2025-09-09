@@ -40,6 +40,25 @@ public sealed class Person {
 }
 ```
 
+### Link a table column by header
+
+```csharp
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Read;
+
+var s = doc["Summary"]; // table with a header row
+
+// Find the column index of the "Domain" header
+int domainCol = s.ColumnIndexByHeader("Domain");
+
+// Build an A1 for just that column (rows 2..N)
+string colLetter = A1.ColumnIndexToLetters(domainCol);
+string a1 = $"{colLetter}2:{colLetter}51"; // adjust end row as needed
+
+// Turn each cell into an internal link to a same-named sheet
+s.LinkCellsToInternalSheets(a1, text => text, targetA1: "A1", styled: true);
+```
+
 ## Fluent Read
 
 ```csharp
@@ -178,3 +197,49 @@ Notes
 - `TableFrom<T>` uses `ObjectFlattenerOptions` so you can whitelist columns, expand nested objects, trim prefixes, and choose how collections are handled (`JoinWith` or `ExpandRows`).
 - All blocks are regular Excel constructs; you can further format via `report.Sheet` using standard APIs.
 - Uses the library’s `ExecutionPolicy` to scale on big datasets; override via `ExcelDocument.Execution` if needed.
+
+## Links and Ranges
+
+Use built-in helpers to parse A1 ranges, iterate rows/columns, and create clear, styled hyperlinks.
+
+```csharp
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Read; // A1 helpers
+
+var s = doc["Summary"]; // sheet
+
+// Parse A1 → bounds
+var (r1,c1,r2,c2) = A1.ParseRange("B2:D10"); // 2,2,10,4
+var bounds = s.GetRangeBounds("A2:A51");
+
+// Iterate rows/columns
+s.ForEachRow("A2:A10", r => s.CellBold(r, 1, true));
+s.ForEachColumn("A1:E1", c => s.CellBold(1, c, true));
+
+// Internal links: turn a column of names into links to same-named sheets
+s.LinkCellsToInternalSheets("A2:A51", text => text, targetA1: "A1", styled: true);
+
+// Even simpler: link by header name (auto-detect rows)
+s.LinkByHeaderToInternalSheets("Domain", targetA1: "A1", styled: true);
+
+// External links with smart display (Title → RFC #### → host)
+s.SetHyperlinkSmart(5, 1, "https://datatracker.ietf.org/doc/html/rfc7208"); // displays "RFC 7208"
+s.SetHyperlinkHost(6, 1, "https://learn.microsoft.com/office/open-xml/");     // displays host only
+s.SetHyperlink(7, 1, "https://example.org", display: "Example", style: true);
+
+// Internal link to Summary top
+s.SetInternalLink(2, 1, "'Summary'!A1", display: "Summary", style: true);
+```
+
+### Range variant (no table)
+
+When you have a plain rectangular range with headers in the first row, you can link by header inside that range:
+
+```csharp
+// Headers in A1:B1 (Domain, RFC) and two data rows (A2:B3)
+// Link Domain column cells to same-named sheets
+s.LinkByHeaderToInternalSheetsInRange("A1:B3", "Domain", targetA1: "A1", styled: true);
+
+// Link RFC column cells to IETF datatracker URLs (smart display when title not provided)
+s.LinkByHeaderToUrlsInRange("A1:B3", "RFC", rfc => $"https://datatracker.ietf.org/doc/html/{rfc}", styled: true);
+```

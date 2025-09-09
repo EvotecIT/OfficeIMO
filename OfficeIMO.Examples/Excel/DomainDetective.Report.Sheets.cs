@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
+using OfficeIMO.Excel.Read;
 using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Examples.Excel {
@@ -82,14 +82,12 @@ namespace OfficeIMO.Examples.Excel {
                 v.DataBars["Score"] = SixLabors.ImageSharp.Color.LightGreen;
             });
 
-            // Link each domain in the overview table to its detail sheet
-            (int r1, int c1, int r2, int c2) = ParseA1Range(summaryRange);
-            var summarySheet = overview.Sheet; // convenience
-            for (int i = 0; i < rows.Count; i++) {
-                int rowIdx = r1 + 1 + i; // skip header row
-                string sheetName = rows[i].Domain; // detail sheet will use domain name
-                summarySheet.SetInternalLink(rowIdx, column: 1, location: $"'{sheetName}'!A1", display: rows[i].Domain);
-            }
+            // Link only the Domain column in the summary table to its detail sheet (styled)
+            overview.Sheet.LinkByHeaderToInternalSheetsInRange(
+                rangeA1: summaryRange,
+                header: "Domain",
+                targetA1: "A1",
+                styled: true);
 
             // Pretty legend
             overview.Section("Legend");
@@ -199,26 +197,6 @@ namespace OfficeIMO.Examples.Excel {
                 list.Add(new DomainRow(domain, cls, conf, recvS, sendS, score, breakdown, status, warnings, errors, summary, recs, pos, refs));
             }
             return list;
-        }
-
-        private static (int r1, int c1, int r2, int c2) ParseA1Range(string a1) {
-            var rx = new Regex("^\\s*([A-Za-z]+)(\\d+)\\s*:\\s*([A-Za-z]+)(\\d+)\\s*$", RegexOptions.Compiled);
-            var m = rx.Match(a1);
-            if (!m.Success) return (1, 1, 1, 1);
-            int c1 = ColumnLettersToIndex(m.Groups[1].Value);
-            int r1 = int.Parse(m.Groups[2].Value);
-            int c2 = ColumnLettersToIndex(m.Groups[3].Value);
-            int r2 = int.Parse(m.Groups[4].Value);
-            if (c1 > c2) (c1, c2) = (c2, c1);
-            if (r1 > r2) (r1, r2) = (r2, r1);
-            return (r1, c1, r2, c2);
-        }
-
-        private static int ColumnLettersToIndex(string letters) {
-            int res = 0;
-            foreach (char ch in letters.ToUpperInvariant())
-                if (ch >= 'A' && ch <= 'Z') res = res * 26 + (ch - 'A' + 1);
-            return res == 0 ? 1 : res;
         }
     }
 }
