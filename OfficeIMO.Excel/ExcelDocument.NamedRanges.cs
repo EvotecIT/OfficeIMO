@@ -199,6 +199,58 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Sets rows/columns to repeat at top/left when printing a specific sheet by creating a sheet-local
+        /// defined name _xlnm.Print_Titles. Pass nulls to clear existing print titles.
+        /// </summary>
+        /// <param name="sheet">Target sheet.</param>
+        /// <param name="firstRow">First row to repeat (1-based), or null.</param>
+        /// <param name="lastRow">Last row to repeat (1-based), or null.</param>
+        /// <param name="firstCol">First column to repeat (1-based), or null.</param>
+        /// <param name="lastCol">Last column to repeat (1-based), or null.</param>
+        /// <param name="save">Whether to save the workbook after the change.</param>
+        public void SetPrintTitles(ExcelSheet sheet, int? firstRow, int? lastRow, int? firstCol, int? lastCol, bool save = true)
+        {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+
+            var workbook = _workBookPart.Workbook;
+            var definedNames = workbook.DefinedNames ??= new DefinedNames();
+
+            // Remove existing sheet-local Print_Titles for this sheet
+            ushort sheetPos = GetSheetPositionIndex(sheet);
+            foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == "_xlnm.Print_Titles").ToList())
+            {
+                if (dn.LocalSheetId != null && dn.LocalSheetId.Value == sheetPos)
+                    dn.Remove();
+            }
+
+            // Nothing to set? stop here (clears existing titles)
+            bool hasRows = firstRow.HasValue && lastRow.HasValue && firstRow.Value > 0 && lastRow.Value >= firstRow.Value;
+            bool hasCols = firstCol.HasValue && lastCol.HasValue && firstCol.Value > 0 && lastCol.Value >= firstCol.Value;
+            if (!hasRows && !hasCols)
+            {
+                if (save) workbook.Save();
+                return;
+            }
+
+            string? rowsPart = null, colsPart = null;
+            if (hasRows)
+            {
+                rowsPart = $"'{sheet.Name}'!${firstRow.Value}:${lastRow.Value}";
+            }
+            if (hasCols)
+            {
+                string c1 = global::OfficeIMO.Excel.Read.A1.ColumnIndexToLetters(firstCol!.Value);
+                string c2 = global::OfficeIMO.Excel.Read.A1.ColumnIndexToLetters(lastCol!.Value);
+                colsPart = $"'{sheet.Name}'!${c1}:${c2}";
+            }
+
+            string text = hasRows && hasCols ? string.Concat(rowsPart, ",", colsPart) : (rowsPart ?? colsPart)!;
+            var dnNew = new DefinedName { Name = "_xlnm.Print_Titles", LocalSheetId = sheetPos, Text = text };
+            definedNames.Append(dnNew);
+            if (save) workbook.Save();
+        }
+
+        /// <summary>
         /// Repairs common issues with defined names that can trigger Excel's file repair, such as
         /// duplicates within the same scope, invalid LocalSheetId after sheet reordering/removal,
         /// or references containing #REF!.

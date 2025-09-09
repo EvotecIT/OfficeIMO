@@ -4,16 +4,14 @@ using System.IO;
 using System.Linq;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
-using OfficeIMO.Excel.Read;
-using OfficeIMO.Excel.Utilities;
-using System.Threading.Tasks;
 
 namespace OfficeIMO.Examples.Excel {
     /// <summary>
-    /// Side-by-side Excel-only demo using the "SheetXXX + Blocks" approach (backed by SheetComposer)
-    /// to compare with the existing DomainDetective.Report.cs example. Generates ~50 domains.
+    /// Classic (baseline) Excel-only demo using simple SheetComposer blocks and direct cell writes
+    /// without the newer convenience helpers. Intended as a reference for users who prefer
+    /// explicit, standard building techniques.
     /// </summary>
-    internal static class DomainDetectiveReportSheets {
+    internal static class DomainDetectiveReportSheetsClassic {
         private record ScorePair(string Name, double Value);
         private record DomainRow(
             string Domain,
@@ -33,73 +31,48 @@ namespace OfficeIMO.Examples.Excel {
         );
 
         public static void Example(string folderPath, bool openExcel) {
-            Console.WriteLine("[*] Excel - Domain Detective Sheets (Excelish) demo");
-            string filePath = Path.Combine(folderPath, "DomainDetective.Report.Sheets.xlsx");
+            Console.WriteLine("[*] Excel - Domain Detective Sheets (Classic) demo");
+            string filePath = Path.Combine(folderPath, "DomainDetective.Report.Sheets.Classic.xlsx");
             var rows = GenerateFakeData(50, seed: 42);
 
             using var doc = ExcelDocument.Create(filePath);
 
-            // Document properties
             doc.AsFluent().Info(i => i
-                .Title("Domain Detective — Excelish Sheets")
+                .Title("Domain Detective — Classic Sheets")
                 .Author("OfficeIMO")
                 .Company("Evotec")
                 .Application("OfficeIMO.Excel")
-                .Keywords("excel,report,sheets,domains")
+                .Keywords("excel,report,sheets,classic")
             ).End();
 
-            // Overview sheet
+            // Overview
             var overview = new SheetComposer(doc, "Overview");
             overview.Title("Domain Detective — Overview", $"Generated {DateTime.Now:yyyy-MM-dd HH:mm}");
-            // Header/footer with Evotec logo + page text (fixed URL)
-            const string logoUrl = "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png";
-            overview.HeaderFooter(h =>
-            {
-                h.Left("Page &P of &N");
-                h.CenterImageUrl(logoUrl, widthPoints: 120, heightPoints: 40);
-            });
-            // Also place the logo inside the sheet (first page) via URL
-            overview.ImageFromUrlAt(row: 1, column: 6, url: logoUrl, widthPixels: 120, heightPixels: 40);
 
             int totalWarnings = rows.Sum(x => x.WarningCount);
             int totalErrors = rows.Sum(x => x.ErrorCount);
             int atRisk = rows.Count(x => x.Status.Equals("Error", StringComparison.OrdinalIgnoreCase) || x.WarningCount > 0);
-            int okCount = rows.Count(x => string.Equals(x.Status, "OK", StringComparison.OrdinalIgnoreCase));
-            int warnCount = rows.Count(x => string.Equals(x.Status, "Warning", StringComparison.OrdinalIgnoreCase));
-            int errCount = rows.Count(x => string.Equals(x.Status, "Error", StringComparison.OrdinalIgnoreCase));
 
-            // KPIs as compact cards (labels above values)
-            overview.KpiRow(new (string, object?)[] {
+            // KPIs via basic PropertiesGrid (no KpiRow helper)
+            overview.PropertiesGrid(new (string, object?)[] {
                 ("Domains", rows.Count),
                 ("At Risk", atRisk),
                 ("Errors", totalErrors),
                 ("Warnings", totalWarnings),
                 ("Generated", DateTime.Now.ToString("yyyy-MM-dd")),
                 ("Version", "v1")
-            }, perRow: 3);
+            }, columns: 3);
 
-            // At-a-glance columns (Excelish side-by-side blocks)
-            overview.Section("At a Glance");
-            overview.Columns(3, cols => {
-                cols[0].Section("Totals").KeyValues(new (string, object?)[] {
-                    ("Domains", rows.Count),
-                    ("At Risk", atRisk),
-                    ("Warnings", totalWarnings),
-                    ("Errors", totalErrors)
-                });
-                cols[1].Section("Status Breakdown").KeyValues(new (string, object?)[] {
-                    ("OK", okCount),
-                    ("Warning", warnCount),
-                    ("Error", errCount)
-                });
-                cols[2].Section("Tips").BulletedList(new []{
-                    "Use filters in the header row.",
-                    "Click a Domain to open details.",
-                    "Use ↑ Top links to navigate."
-                });
+            // Header/footer + logo (fixed URL)
+            const string logoUrl = "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png";
+            overview.HeaderFooter(h =>
+            {
+                h.Left("Domain Detective — Overview").Right("Page &P of &N");
+                h.RightImageUrl(logoUrl, widthPoints: 96, heightPoints: 32);
             });
+            overview.ImageFromUrlAt(row: 1, column: 6, url: logoUrl, widthPixels: 120, heightPixels: 40);
 
-            // Summary table with dynamic ScoreBreakdown columns
+            // Summary table
             var summaryRange = overview.TableFrom(rows, title: "Domains", configure: opts => {
                 opts.CollectionMapColumns[nameof(DomainRow.ScoreBreakdown)] = new CollectionColumnMapping {
                     KeyProperty = nameof(ScorePair.Name),
@@ -108,64 +81,45 @@ namespace OfficeIMO.Examples.Excel {
                 opts.HeaderCase = HeaderCase.Title;
                 opts.HeaderPrefixTrimPaths = new[] { nameof(DomainRow.ScoreBreakdown) + "." };
                 opts.NullPolicy = NullPolicy.EmptyString;
-                // Keep "Domain" as first column for easy linking
                 opts.PinnedFirst = new[] { nameof(DomainRow.Domain) };
             }, visuals: v => {
-                // Icon set for overall score
                 v.IconSetColumns.Add("Score");
-                // Emphasize status via background and bold
                 (v.TextBackgrounds["Status"], v.BoldByText["Status"]) = StatusPalettes.Default;
                 v.AutoFormatDecimals = 2;
             });
 
-            // Link only the Domain column in the summary table to its detail sheet (styled)
-            overview.Sheet.LinkByHeaderToInternalSheetsInRange(
-                rangeA1: summaryRange,
-                header: "Domain",
-                targetA1: "A1",
-                styled: true);
+            // Links from Domain column to detail sheet
+            overview.Sheet.LinkByHeaderToInternalSheetsInRange(summaryRange, header: "Domain", targetA1: "A1", styled: true);
 
-            // Make summary presentable for printing
-            overview
-                .PrintDefaults(showGridlines: false, fitToWidth: 1, fitToHeight: 0, printAreaA1: summaryRange)
-                .Orientation(ExcelPageOrientation.Landscape)
-                .Margins(ExcelMarginPreset.Narrow)
-                .RepeatHeaderRows(1, 1);
+            // Print settings (explicit, not via PrintDefaults)
+            overview.Sheet.SetGridlinesVisible(false);
+            overview.Sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
+            doc.SetPrintArea(overview.Sheet, summaryRange);
 
-            // Pretty legend (Status | Meaning | Recommended Action) using reusable SectionLegend
-            {
-                var pal = StatusPalettes.Default;
-                var map = pal.FillHexMap; // case-insensitive
-                overview.SectionLegend(
-                    title: "Legend",
-                    headers: new[] { "Status", "Meaning", "Recommended Action" },
-                    rows: new[] {
-                        new [] { "OK", "All checks passed or acceptable", "No action required" },
-                        new [] { "Warning", "Requires attention; not blocking", "Review recommendations" },
-                        new [] { "Error", "Blocking or invalid configuration", "Fix immediately" },
-                    },
-                    firstColumnFillByValue: map
-                );
-            }
+            // Manual legend (no SectionLegend helper)
+            overview.Section("Legend");
+            int hdr = overview.CurrentRow;
+            overview.Sheet.Cell(hdr, 1, "Status"); overview.Sheet.CellBold(hdr, 1, true); overview.Sheet.CellBackground(hdr, 1, "#F2F2F2");
+            overview.Sheet.Cell(hdr, 2, "Meaning"); overview.Sheet.CellBold(hdr, 2, true); overview.Sheet.CellBackground(hdr, 2, "#F2F2F2");
+            overview.Sheet.Cell(hdr, 3, "Recommended Action"); overview.Sheet.CellBold(hdr, 3, true); overview.Sheet.CellBackground(hdr, 3, "#F2F2F2");
+            var pal = StatusPalettes.Default;
+            overview.Sheet.Cell(hdr + 1, 1, "OK"); if (pal.FillHexMap.TryGetValue("OK", out var ok)) overview.Sheet.CellBackground(hdr + 1, 1, ok);
+            overview.Sheet.Cell(hdr + 1, 2, "All checks passed or acceptable"); overview.Sheet.Cell(hdr + 1, 3, "No action required");
+            overview.Sheet.Cell(hdr + 2, 1, "Warning"); if (pal.FillHexMap.TryGetValue("Warning", out var wr)) overview.Sheet.CellBackground(hdr + 2, 1, wr);
+            overview.Sheet.Cell(hdr + 2, 2, "Requires attention; not blocking"); overview.Sheet.Cell(hdr + 2, 3, "Review recommendations");
+            overview.Sheet.Cell(hdr + 3, 1, "Error"); if (pal.FillHexMap.TryGetValue("Error", out var er)) overview.Sheet.CellBackground(hdr + 3, 1, er);
+            overview.Sheet.Cell(hdr + 3, 2, "Blocking or invalid configuration"); overview.Sheet.Cell(hdr + 3, 3, "Fix immediately");
+            overview.Spacer(rows: 4);
 
             // Finish overview
             overview.Finish(autoFitColumns: true);
 
-            // One detail sheet per domain (sequential by default)
+            // Detail sheets (classic)
             foreach (var d in rows) BuildDomainSheet(doc, d);
 
-            // Build Index/TOC last so it includes every sheet, then add back-links
+            // TOC + backlinks
             SheetIndex.Add(doc, sheetName: "Index", placeFirst: true, includeNamedRanges: false);
             SheetIndex.AddBackLinks(doc, tocSheetName: "Index", row: 2, col: 1, text: "← Index");
-
-            // Add header logo to Index (Left) with page number on Right for variety
-            var idx = doc["Index"]; if (idx != null) {
-                idx.SetHeaderFooter(headerLeft: null, headerCenter: null, headerRight: "Page &P of &N");
-                idx.SetHeaderImageUrl(OfficeIMO.Excel.Enums.HeaderFooterPosition.Left, logoUrl, widthPoints: 96, heightPoints: 32);
-            }
-
-            var errors = doc.ValidateOpenXml();
-            if (errors.Count > 0) Console.WriteLine($"[!] OpenXML validation issues: {errors.Count}");
 
             doc.Save(false);
             if (openExcel) doc.Open(filePath, true);
@@ -207,44 +161,41 @@ namespace OfficeIMO.Examples.Excel {
                     PercentThresholds = new double[] { 0, 60, 85 }
                 };
             });
-            // Header logo on the Right, page number on Left (complements Index/Overview)
-            s.HeaderFooter(h => { h.Left("Page &P of &N"); h.RightImageUrl("https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png", widthPoints: 96, heightPoints: 32); });
-            // Optional: embed the Evotec logo on each detail sheet near the title
-            s.ImageFromUrlAt(row: 1, column: 5, url: "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png", widthPixels: 100, heightPixels: 34);
 
-            // Legend per domain (reusable SectionLegend)
-            {
-                var pal = StatusPalettes.Default;
-                s.SectionLegend(
-                    title: "Legend",
-                    headers: new[] { "Status", "Meaning", "Recommended Action" },
-                    rows: new[] {
-                        new [] { "OK", "All checks passed or acceptable", "No action required" },
-                        new [] { "Warning", "Requires attention; not blocking", "Review recommendations" },
-                        new [] { "Error", "Blocking or invalid configuration", "Fix immediately" },
-                    },
-                    firstColumnFillByValue: pal.FillHexMap
-                );
-            }
+            // Legend (manual)
+            s.SectionWithAnchor("Legend");
+            int lhdr = s.CurrentRow;
+            s.Sheet.Cell(lhdr, 1, "Status"); s.Sheet.CellBold(lhdr, 1, true); s.Sheet.CellBackground(lhdr, 1, "#F2F2F2");
+            s.Sheet.Cell(lhdr, 2, "Meaning"); s.Sheet.CellBold(lhdr, 2, true); s.Sheet.CellBackground(lhdr, 2, "#F2F2F2");
+            s.Sheet.Cell(lhdr, 3, "Recommended Action"); s.Sheet.CellBold(lhdr, 3, true); s.Sheet.CellBackground(lhdr, 3, "#F2F2F2");
+            var pal = StatusPalettes.Default;
+            if (pal.FillHexMap.TryGetValue("OK", out var ok2)) { s.Sheet.Cell(lhdr + 1, 1, "OK"); s.Sheet.CellBackground(lhdr + 1, 1, ok2); s.Sheet.Cell(lhdr + 1, 2, "All checks passed or acceptable"); s.Sheet.Cell(lhdr + 1, 3, "No action required"); }
+            if (pal.FillHexMap.TryGetValue("Warning", out var wr2)) { s.Sheet.Cell(lhdr + 2, 1, "Warning"); s.Sheet.CellBackground(lhdr + 2, 1, wr2); s.Sheet.Cell(lhdr + 2, 2, "Requires attention; not blocking"); s.Sheet.Cell(lhdr + 2, 3, "Review recommendations"); }
+            if (pal.FillHexMap.TryGetValue("Error", out var er2)) { s.Sheet.Cell(lhdr + 3, 1, "Error"); s.Sheet.CellBackground(lhdr + 3, 1, er2); s.Sheet.Cell(lhdr + 3, 2, "Blocking or invalid configuration"); s.Sheet.Cell(lhdr + 3, 3, "Fix immediately"); }
+            s.Spacer(rows: 4);
 
-            // Recommendations highlighted (warning tone) using BulletedListWithFill
+            // Recommendations (manual bullet + fill)
             if (d.Recommendations.Length > 0)
             {
                 s.SectionWithAnchor("Recommendations");
-                s.BulletedListWithFill(d.Recommendations, fillHex: "#FFF4CE");
+                int start = s.CurrentRow;
+                s.BulletedList(d.Recommendations);
+                int end = start + d.Recommendations.Length - 1;
+                for (int r = start; r <= end; r++) s.Sheet.CellBackground(r, 1, "#FFF4CE");
             }
-            // Positives highlighted (success tone) using BulletedListWithFill
+            // Positives (manual bullet + fill)
             if (d.Positives.Length > 0)
             {
                 s.SectionWithAnchor("Positives");
-                s.BulletedListWithFill(d.Positives, fillHex: "#E7F4E4");
+                int startP = s.CurrentRow;
+                s.BulletedList(d.Positives);
+                int endP = startP + d.Positives.Length - 1;
+                for (int r = startP; r <= endP; r++) s.Sheet.CellBackground(r, 1, "#E7F4E4");
             }
             if (d.References.Length > 0) s.SectionWithAnchor("References").References(d.References);
 
             s.Finish(autoFitColumns: true);
         }
-
-        
 
         private static List<DomainRow> GenerateFakeData(int count, int seed) {
             var rnd = new Random(seed);
@@ -287,5 +238,7 @@ namespace OfficeIMO.Examples.Excel {
             }
             return list;
         }
+
+        
     }
 }

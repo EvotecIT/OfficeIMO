@@ -193,6 +193,16 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Downloads an image from URL and sets it in the header at the given position (convenience wrapper).
+        /// </summary>
+        public void SetHeaderImageUrl(HeaderFooterPosition position, string url, double? widthPoints = null, double? heightPoints = null)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return;
+            if (OfficeIMO.Excel.Utilities.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var _ ) && bytes != null)
+                SetHeaderImage(position, bytes, "image/png", widthPoints, heightPoints);
+        }
+
+        /// <summary>
         /// Adds an image to the worksheet footer at the given position. This will also ensure the footer text
         /// contains the picture placeholder (&amp;G) in the corresponding section. Subsequent calls replace any
         /// previously set header/footer images for this sheet.
@@ -204,6 +214,16 @@ namespace OfficeIMO.Excel {
             {
                 EnsureHeaderFooterPicture(position, isHeader: false, imageBytes, contentType, widthPoints, heightPoints);
             });
+        }
+
+        /// <summary>
+        /// Downloads an image from URL and sets it in the footer at the given position (convenience wrapper).
+        /// </summary>
+        public void SetFooterImageUrl(HeaderFooterPosition position, string url, double? widthPoints = null, double? heightPoints = null)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return;
+            if (OfficeIMO.Excel.Utilities.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var _ ) && bytes != null)
+                SetFooterImage(position, bytes, "image/png", widthPoints, heightPoints);
         }
 
         private static string EscapeHeaderFooter(string? text)

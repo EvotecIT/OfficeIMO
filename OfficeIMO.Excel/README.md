@@ -279,6 +279,72 @@ s.SetHyperlink(7, 1, "https://example.org", display: "Example", style: true);
 s.SetInternalLink(2, 1, "'Summary'!A1", display: "Summary", style: true);
 ```
 
+### Examples: Two Styles (Excelish vs Classic)
+
+The repo ships two parallel Excel report examples so you can choose the style that fits your project:
+
+- Excelish blocks (SheetComposer + helpers) — fast to author; consistent visuals; fewer foot‑guns.
+  - File: `OfficeIMO.Examples/Excel/DomainDetective.Report.Sheets.cs`
+  - Uses helpers such as `SectionLegend`, `KpiRow`, `Columns(...)`, `PrintDefaults`, `LinkByHeaderToInternalSheets*`.
+
+- Classic explicit build — minimal sugar; shows standard calls step‑by‑step.
+  - File: `OfficeIMO.Examples/Excel/DomainDetective.Report.Sheets.Classic.cs`
+  - Does legends, bullets, and print options with direct cell writes and sheet methods.
+
+Key helper snippets
+
+```csharp
+// Legend block (Status | Meaning | Action)
+composer.SectionLegend(
+    title: "Legend",
+    headers: new[] { "Status", "Meaning", "Recommended Action" },
+    rows: new[] {
+        new[] { "OK", "Acceptable", "None" },
+        new[] { "Warning", "Needs attention", "Review" },
+        new[] { "Error", "Blocking", "Fix" },
+    },
+    firstColumnFillByValue: StatusPalettes.Default.FillHexMap);
+
+// Side‑by‑side layout (3 columns)
+composer.Columns(3, cols => {
+    cols[0].Section("Totals").KeyValues(new[]{ ("Items", 120), ("Errors", 2) });
+    cols[1].Section("Status").KeyValues(new[]{ ("OK", 100), ("Warning", 18), ("Error", 2) });
+    cols[2].Section("Tips").BulletedList(new[]{ "Filter headers", "Click links" });
+});
+
+// Print polish (gridlines off, fit to width, landscape, narrow margins, repeat header row)
+composer.PrintDefaults(fitToWidth: 1)
+        .Orientation(ExcelPageOrientation.Landscape)
+        .Margins(ExcelMarginPreset.Narrow)
+        .RepeatHeaderRows(1, 1);
+```
+
+Tip: Prefer the Excelish style for velocity and consistency. Use the Classic example when you want fine‑grained control or to show exact underlying calls.
+
+### Logos and Images (Headers/Footers and In‑Sheet)
+
+- Header/Footer logos via builder:
+
+```csharp
+var logoPath = Path.Combine(AppContext.BaseDirectory, "Assets", "OfficeIMO.png");
+byte[] logo = File.ReadAllBytes(logoPath);
+
+composer.HeaderFooter(h =>
+{
+    h.Left("Report Title").Right("Page &P of &N");
+    h.RightImage(logo, widthPoints: 96, heightPoints: 32); // header logo
+    // h.FooterCenterImage(logo); // footer instead
+});
+```
+
+- In‑sheet logo anchored to a cell (first page):
+
+```csharp
+composer.ImageFromUrlAt(row: 1, column: 6, url: "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png", widthPixels: 120, heightPixels: 40);
+```
+
+To show a logo only on the second page, place a manual page break and anchor the image near the top row after the break, or keep it in the header and show a different first page (DifferentFirstPage) without the &G picture placeholder.
+
 ### Range variant (no table)
 
 When you have a plain rectangular range with headers in the first row, you can link by header inside that range:
