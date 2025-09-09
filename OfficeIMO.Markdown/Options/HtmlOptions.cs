@@ -26,6 +26,18 @@ public sealed class HtmlOptions {
     public string? BodyClass { get; set; } = "markdown-body";
     /// <summary>Include per-heading anchor links (e.g. '#') in HTML rendering. Default: false.</summary>
     public bool IncludeAnchorLinks { get; set; } = false;
+    /// <summary>When true, show a small anchor icon next to headings (on hover by default).</summary>
+    public bool ShowAnchorIcons { get; set; } = false;
+    /// <summary>Glyph or text for the anchor icon (e.g., "🔗", "¶"). Default: "🔗".</summary>
+    public string AnchorIcon { get; set; } = "🔗";
+    /// <summary>When true, clicking the anchor icon copies a deep link to the clipboard.</summary>
+    public bool CopyHeadingLinkOnClick { get; set; } = false;
+    /// <summary>Render small "Back to top" links for headings at or below the given level. 1=H1, 2=H2, etc. Set to false to disable.</summary>
+    public bool BackToTopLinks { get; set; } = false;
+    /// <summary>Heading level threshold for BackToTopLinks. Default: 2 (H2+).</summary>
+    public int BackToTopMinLevel { get; set; } = 2;
+    /// <summary>Text for the back-to-top link.</summary>
+    public string BackToTopText { get; set; } = "Back to top";
     /// <summary>When true, writes a small theme toggle control if <see cref="Style"/> supports it. Default: false.</summary>
     public bool ThemeToggle { get; set; } = false;
     /// <summary>Emit tags vs manifest-only. Default: <see cref="AssetEmitMode.Emit"/>.</summary>

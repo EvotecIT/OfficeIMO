@@ -212,10 +212,10 @@ namespace OfficeIMO.Excel {
                 CellValue(row, column, value);
             }
             if (!string.IsNullOrEmpty(formula)) {
-                CellFormula(row, column, formula);
+                CellFormula(row, column, formula!);
             }
             if (!string.IsNullOrEmpty(numberFormat)) {
-                FormatCell(row, column, numberFormat);
+                FormatCell(row, column, numberFormat!);
             }
         }
 
@@ -227,6 +227,40 @@ namespace OfficeIMO.Excel {
         /// <param name="numberFormat">The number format code to apply.</param>
         public void FormatCell(int row, int column, string numberFormat) {
             WriteLockConditional(() => FormatCellCore(row, column, numberFormat));
+        }
+
+        /// <summary>
+        /// Tries to read the display text of a cell at the given position.
+        /// Returns false if the cell is blank or out of bounds.
+        /// </summary>
+        public bool TryGetCellText(int row, int column, out string text)
+        {
+            text = string.Empty;
+            try
+            {
+                var cell = GetCell(row, column);
+                if (cell == null) return false;
+                // Resolve shared string if needed
+                if (cell.DataType != null && cell.DataType.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString)
+                {
+                    if (int.TryParse(cell.InnerText, System.Globalization.NumberStyles.Integer, CultureInfo.InvariantCulture, out int ssid))
+                    {
+                        var wb = _excelDocument._spreadSheetDocument.WorkbookPart;
+                        var sst = wb?.SharedStringTablePart?.SharedStringTable;
+                        var si = sst?.Elements<SharedStringItem>().ElementAtOrDefault(ssid);
+                        if (si != null)
+                        {
+                            text = si.InnerText ?? string.Empty;
+                            return true;
+                        }
+                        return false;
+                    }
+                }
+                // Otherwise, return inner text (numbers/booleans as invariant string)
+                text = cell.InnerText ?? string.Empty;
+                return !string.IsNullOrEmpty(text);
+            }
+            catch { return false; }
         }
 
         private void ApplyWrapText(int row, int column)
@@ -245,28 +279,12 @@ namespace OfficeIMO.Excel {
             }
 
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
-
-            stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
-            stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
-
-            stylesheet.Fills ??= new Fills(new Fill());
-            stylesheet.Fills.Count = (uint)stylesheet.Fills.Count();
-
-            stylesheet.Borders ??= new Borders(new Border());
-            stylesheet.Borders.Count = (uint)stylesheet.Borders.Count();
-
-            stylesheet.CellStyleFormats ??= new CellStyleFormats(new CellFormat());
-            stylesheet.CellStyleFormats.Count = (uint)stylesheet.CellStyleFormats.Count();
-
-            stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-            if (stylesheet.CellFormats.Count == null || stylesheet.CellFormats.Count.Value == 0)
-            {
-                stylesheet.CellFormats.Count = 1;
-            }
+            EnsureDefaultStylePrimitives(stylesheet);
 
             // Base on existing cell's style if present
             uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            var cellFormats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
+            var cellFormatsEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+            var cellFormats = cellFormatsEl.Elements<CellFormat>().ToList();
             var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? new CellFormat
             {
                 NumberFormatId = 0U,
@@ -305,13 +323,135 @@ namespace OfficeIMO.Excel {
                     ApplyAlignment = true,
                     Alignment = new Alignment { WrapText = true }
                 };
-                stylesheet.CellFormats.Append(newFormat);
-                stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
-                wrapIndex = (int)stylesheet.CellFormats.Count.Value - 1;
+                cellFormatsEl.Append(newFormat);
+                cellFormatsEl.Count = (uint)cellFormatsEl.Count();
+                wrapIndex = (int)cellFormatsEl.Count.Value - 1;
                 stylesPart.Stylesheet.Save();
             }
 
             cell.StyleIndex = (uint)wrapIndex;
+        }
+
+        /// <summary>
+        /// Applies a horizontal alignment to a single cell.
+        /// </summary>
+        public void CellAlign(int row, int column, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues alignment)
+        {
+            WriteLockConditional(() =>
+            {
+                var cell = GetCell(row, column);
+                var workbookPart = _excelDocument._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+                var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+                var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+                EnsureDefaultStylePrimitives(stylesheet);
+
+                uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+                var cfEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+                var cfs = cfEl.Elements<CellFormat>().ToList();
+                var baseFormat = cfs.ElementAtOrDefault((int)baseIndex) ?? new CellFormat
+                {
+                    NumberFormatId = 0U,
+                    FontId = 0U,
+                    FillId = 0U,
+                    BorderId = 0U,
+                    FormatId = 0U
+                };
+
+                // Try to reuse an existing format with same base ids and requested alignment
+                int found = -1;
+                for (int i = 0; i < cfs.Count; i++)
+                {
+                    var cf = cfs[i];
+                    var a = cf.Alignment;
+                    if (a != null && a.Horizontal != null && a.Horizontal.Value == alignment
+                        && cf.NumberFormatId?.Value == baseFormat.NumberFormatId?.Value
+                        && cf.FontId?.Value == baseFormat.FontId?.Value
+                        && cf.FillId?.Value == baseFormat.FillId?.Value
+                        && cf.BorderId?.Value == baseFormat.BorderId?.Value)
+                    {
+                        found = i; break;
+                    }
+                }
+                if (found == -1)
+                {
+                    var newFormat = new CellFormat
+                    {
+                        NumberFormatId = baseFormat.NumberFormatId ?? 0U,
+                        FontId = baseFormat.FontId ?? 0U,
+                        FillId = baseFormat.FillId ?? 0U,
+                        BorderId = baseFormat.BorderId ?? 0U,
+                        FormatId = baseFormat.FormatId ?? 0U,
+                        ApplyAlignment = true,
+                        Alignment = new Alignment { Horizontal = alignment }
+                    };
+                    cfEl.Append(newFormat);
+                    cfEl.Count = (uint)cfEl.Count();
+                    stylesPart.Stylesheet.Save();
+                    found = (int)cfEl.Count.Value - 1;
+                }
+                cell.StyleIndex = (uint)found;
+            });
+        }
+
+        /// <summary>
+        /// Applies a font color (ARGB hex or #RRGGBB) to a single cell.
+        /// </summary>
+        public void CellFontColor(int row, int column, string hexColor)
+        {
+            if (string.IsNullOrWhiteSpace(hexColor)) return;
+            WriteLockConditional(() =>
+            {
+                var cell = GetCell(row, column);
+                var workbookPart = _excelDocument._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+                var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+                var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+                EnsureDefaultStylePrimitives(stylesheet);
+
+                string argb = NormalizeHexColor(hexColor);
+
+                // Ensure a Font with this color exists
+                var fontsEl = stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
+                var fonts = fontsEl.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ToList();
+                int fontId = -1;
+                for (int i = 0; i < fonts.Count; i++)
+                {
+                    var c = fonts[i].Color?.Rgb?.Value;
+                    var b = fonts[i].Bold != null ? true : false;
+                    if (c == argb && !b) { fontId = i; break; }
+                }
+                if (fontId == -1)
+                {
+                var f = new DocumentFormat.OpenXml.Spreadsheet.Font();
+                f.Color = new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = argb };
+                fontsEl.Append(f);
+                fontsEl.Count = (uint)fontsEl.Count();
+                fontId = (int)fontsEl.Count.Value - 1;
+                }
+
+                uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+                var cellFormatsEl2 = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+                var cellFormats = cellFormatsEl2.Elements<CellFormat>().ToList();
+                var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? new CellFormat
+                {
+                    NumberFormatId = 0U,
+                    FontId = 0U,
+                    FillId = 0U,
+                    BorderId = 0U,
+                    FormatId = 0U,
+                };
+                var newFormat2 = new CellFormat
+                {
+                    NumberFormatId = baseFormat.NumberFormatId ?? 0U,
+                    FontId = (uint)fontId,
+                    FillId = baseFormat.FillId ?? 0U,
+                    BorderId = baseFormat.BorderId ?? 0U,
+                    FormatId = baseFormat.FormatId ?? 0U,
+                };
+                cellFormatsEl2.Append(newFormat2);
+                cellFormatsEl2.Count = (uint)cellFormatsEl2.Count();
+                cell.StyleIndex = (uint)cellFormatsEl2.Count.Value - 1;
+                stylesPart.Stylesheet.Save();
+            });
         }
 
         private void ApplyFontBold(Cell cell, bool bold)
@@ -322,15 +462,12 @@ namespace OfficeIMO.Excel {
                 stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
 
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
-            stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
-            stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
-            stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-            if (stylesheet.CellFormats.Count == null || stylesheet.CellFormats.Count.Value == 0)
-                stylesheet.CellFormats.Count = 1;
+            EnsureDefaultStylePrimitives(stylesheet);
 
             // Ensure we have a bold font entry
             int boldFontId = -1;
-            var fonts = stylesheet.Fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ToList();
+            var fontsEl = stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
+            var fonts = fontsEl.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ToList();
             for (int i = 0; i < fonts.Count; i++)
             {
                 bool hasBold = fonts[i].Bold != null;
@@ -344,13 +481,14 @@ namespace OfficeIMO.Excel {
             {
                 var f = new DocumentFormat.OpenXml.Spreadsheet.Font();
                 if (bold) f.Bold = new Bold();
-                stylesheet.Fonts.Append(f);
-                stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
-                boldFontId = (int)stylesheet.Fonts.Count.Value - 1;
+                fontsEl.Append(f);
+                fontsEl.Count = (uint)fontsEl.Count();
+                boldFontId = (int)fontsEl.Count.Value - 1;
             }
 
             uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            var cellFormats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
+            var cellFormatsEl3 = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+            var cellFormats = cellFormatsEl3.Elements<CellFormat>().ToList();
             var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? new CellFormat
             {
                 NumberFormatId = 0U,
@@ -370,9 +508,9 @@ namespace OfficeIMO.Excel {
                 FormatId = baseFormat.FormatId ?? 0U,
                 ApplyFont = true
             };
-            stylesheet.CellFormats.Append(newFormat);
-            stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
-            cell.StyleIndex = (uint)stylesheet.CellFormats.Count.Value - 1;
+            cellFormatsEl3.Append(newFormat);
+            cellFormatsEl3.Count = (uint)cellFormatsEl3.Count();
+            cell.StyleIndex = (uint)cellFormatsEl3.Count.Value - 1;
             stylesPart.Stylesheet.Save();
         }
 
@@ -394,12 +532,7 @@ namespace OfficeIMO.Excel {
                 stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
 
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
-            stylesheet.Fills ??= new Fills(new Fill(new PatternFill { PatternType = PatternValues.None }));
-            if (stylesheet.Fills.Count == null || stylesheet.Fills.Count.Value == 0)
-                stylesheet.Fills.Count = (uint)stylesheet.Fills.Count();
-            stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-            if (stylesheet.CellFormats.Count == null || stylesheet.CellFormats.Count.Value == 0)
-                stylesheet.CellFormats.Count = 1;
+            EnsureDefaultStylePrimitives(stylesheet);
 
             // Create a fill with solid color
             string argb = NormalizeHexColor(hexColor);
@@ -409,12 +542,14 @@ namespace OfficeIMO.Excel {
                 ForegroundColor = new ForegroundColor { Rgb = argb },
                 BackgroundColor = new BackgroundColor { Rgb = argb }
             });
-            stylesheet.Fills.Append(fill);
-            stylesheet.Fills.Count = (uint)stylesheet.Fills.Count();
-            int fillId = (int)stylesheet.Fills.Count.Value - 1;
+            var fillsEl = stylesheet.Fills ??= new Fills();
+            fillsEl.Append(fill);
+            fillsEl.Count = (uint)fillsEl.Count();
+            int fillId = (int)fillsEl.Count.Value - 1;
 
             uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            var cellFormats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
+            var cellFormatsEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+            var cellFormats = cellFormatsEl.Elements<CellFormat>().ToList();
             var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? new CellFormat
             {
                 NumberFormatId = 0U,
@@ -449,22 +584,10 @@ namespace OfficeIMO.Excel {
             }
 
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            EnsureDefaultStylePrimitives(stylesheet);
 
-            stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
-            stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
-
-            stylesheet.Fills ??= new Fills(new Fill(new PatternFill { PatternType = PatternValues.None }));
-            stylesheet.Fills.Count = (uint)stylesheet.Fills.Count();
-
-            stylesheet.Borders ??= new Borders(new DocumentFormat.OpenXml.Spreadsheet.Border());
-            stylesheet.Borders.Count = (uint)stylesheet.Borders.Count();
-
-            stylesheet.CellStyleFormats ??= new CellStyleFormats(new CellFormat());
-            stylesheet.CellStyleFormats.Count = (uint)stylesheet.CellStyleFormats.Count();
-
-            stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-
-            var cellFormats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
+            var cellFormatsEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+            var cellFormats = cellFormatsEl.Elements<CellFormat>().ToList();
             int formatIndex = cellFormats.FindIndex(cf => cf.NumberFormatId != null && cf.NumberFormatId.Value == builtInFormatId && cf.ApplyNumberFormat != null && cf.ApplyNumberFormat.Value);
             if (formatIndex == -1) {
                 CellFormat cellFormat = new CellFormat {
@@ -494,23 +617,7 @@ namespace OfficeIMO.Excel {
             }
 
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
-
-            stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
-            stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
-
-            stylesheet.Fills ??= new Fills(new Fill());
-            stylesheet.Fills.Count = (uint)stylesheet.Fills.Count();
-
-            stylesheet.Borders ??= new Borders(new Border());
-            stylesheet.Borders.Count = (uint)stylesheet.Borders.Count();
-
-            stylesheet.CellStyleFormats ??= new CellStyleFormats(new CellFormat());
-            stylesheet.CellStyleFormats.Count = (uint)stylesheet.CellStyleFormats.Count();
-
-            stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-            if (stylesheet.CellFormats.Count == null || stylesheet.CellFormats.Count.Value == 0) {
-                stylesheet.CellFormats.Count = 1;
-            }
+            EnsureDefaultStylePrimitives(stylesheet);
 
             stylesheet.NumberingFormats ??= new NumberingFormats();
             NumberingFormat? existingFormat = stylesheet.NumberingFormats.Elements<NumberingFormat>()
@@ -531,7 +638,8 @@ namespace OfficeIMO.Excel {
                 stylesheet.NumberingFormats.Count = (uint)stylesheet.NumberingFormats.Count();
             }
 
-            var cellFormats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
+            var cellFormatsEl4 = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+            var cellFormats = cellFormatsEl4.Elements<CellFormat>().ToList();
             int formatIndex = cellFormats.FindIndex(cf => cf.NumberFormatId != null && cf.NumberFormatId.Value == numberFormatId && cf.ApplyNumberFormat != null && cf.ApplyNumberFormat.Value);
             if (formatIndex == -1) {
                 CellFormat cellFormat = new CellFormat {
@@ -542,13 +650,73 @@ namespace OfficeIMO.Excel {
                     FormatId = 0,
                     ApplyNumberFormat = true
                 };
-                stylesheet.CellFormats.Append(cellFormat);
-                stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
+                cellFormatsEl4.Append(cellFormat);
+                cellFormatsEl4.Count = (uint)cellFormatsEl4.Count();
                 formatIndex = cellFormats.Count;
             }
 
             cell.StyleIndex = (uint)formatIndex;
-                stylesPart.Stylesheet.Save();
+            stylesPart.Stylesheet.Save();
+        }
+
+        /// <summary>
+        /// Ensures required default style primitives exist and their counts are consistent.
+        /// Excel expects at least 1 Font, 2 Fills (None, Gray125), 1 Border,
+        /// 1 CellStyleFormat, and 1 CellFormat present.
+        /// </summary>
+        private static void EnsureDefaultStylePrimitives(Stylesheet stylesheet)
+        {
+            // Fonts
+            if (stylesheet.Fonts == null || !stylesheet.Fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().Any())
+            {
+                stylesheet.Fonts = new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
+            }
+            stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
+
+            // Fills: ensure index 0 = None, index 1 = Gray125
+            if (stylesheet.Fills == null)
+            {
+                stylesheet.Fills = new Fills();
+            }
+            var fills = stylesheet.Fills.Elements<Fill>().ToList();
+            bool hasNone = fills.Any(f => f.PatternFill?.PatternType?.Value == PatternValues.None);
+            bool hasGray = fills.Any(f => f.PatternFill?.PatternType?.Value == PatternValues.Gray125);
+            if (!hasNone)
+            {
+                stylesheet.Fills.AppendChild(new Fill(new PatternFill { PatternType = PatternValues.None }));
+            }
+            if (!hasGray)
+            {
+                stylesheet.Fills.AppendChild(new Fill(new PatternFill { PatternType = PatternValues.Gray125 }));
+            }
+            stylesheet.Fills.Count = (uint)stylesheet.Fills.Count();
+
+            // Borders
+            if (stylesheet.Borders == null || !stylesheet.Borders.Elements<Border>().Any())
+            {
+                stylesheet.Borders = new Borders(new Border());
+            }
+            stylesheet.Borders.Count = (uint)stylesheet.Borders.Count();
+
+            // Cell style formats
+            if (stylesheet.CellStyleFormats == null || !stylesheet.CellStyleFormats.Elements<CellFormat>().Any())
+            {
+                stylesheet.CellStyleFormats = new CellStyleFormats(new CellFormat());
+            }
+            stylesheet.CellStyleFormats.Count = (uint)stylesheet.CellStyleFormats.Count();
+
+            // Cell formats
+            if (stylesheet.CellFormats == null || !stylesheet.CellFormats.Elements<CellFormat>().Any())
+            {
+                stylesheet.CellFormats = new CellFormats(new CellFormat());
+            }
+            stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
+
+            // Numbering formats count normalization
+            if (stylesheet.NumberingFormats != null)
+            {
+                stylesheet.NumberingFormats.Count = (uint)stylesheet.NumberingFormats.Count();
+            }
         }
 
         /// <summary>

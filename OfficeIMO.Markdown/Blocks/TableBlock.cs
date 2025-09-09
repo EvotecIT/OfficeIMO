@@ -56,11 +56,39 @@ public sealed class TableBlock : IMarkdownBlock {
                 var cell = row[i];
                 var style = (i < Alignments.Count) ? Alignments[i] : ColumnAlignment.None;
                 var styleAttr = style switch { ColumnAlignment.Left => " style=\"text-align:left\"", ColumnAlignment.Center => " style=\"text-align:center\"", ColumnAlignment.Right => " style=\"text-align:right\"", _ => string.Empty };
-                sb.Append($"<td{styleAttr}>{System.Net.WebUtility.HtmlEncode(cell)}</td>");
+                sb.Append($"<td{styleAttr}>");
+                sb.Append(RenderCellHtml(cell));
+                sb.Append("</td>");
             }
             sb.Append("</tr>");
         }
         sb.Append("</tbody></table>");
         return sb.ToString();
+    }
+
+    private static string RenderCellHtml(string cell) {
+        if (string.IsNullOrEmpty(cell)) return string.Empty;
+        // Minimal inline Markdown link recognizer: [text](url "opt title")
+        // No nested brackets/parentheses handling; good enough for our generated links.
+        if (cell.Length > 4 && cell[0] == '[') {
+            int closeText = cell.IndexOf(']');
+            if (closeText > 1 && closeText + 1 < cell.Length && cell[closeText + 1] == '(' && cell[cell.Length - 1] == ')') {
+                string text = cell.Substring(1, closeText - 1);
+                string inner = cell.Substring(closeText + 2, cell.Length - (closeText + 2) - 1);
+                string url; string? title = null;
+                int quoteIdx = inner.IndexOf('"');
+                if (quoteIdx >= 0) {
+                    // url "title"
+                    url = inner.Substring(0, quoteIdx).Trim();
+                    int quoteEnd = inner.LastIndexOf('"');
+                    if (quoteEnd > quoteIdx) title = inner.Substring(quoteIdx + 1, quoteEnd - quoteIdx - 1);
+                } else {
+                    url = inner.Trim();
+                }
+                string titleAttr = string.IsNullOrEmpty(title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(title)}\"";
+                return $"<a href=\"{System.Net.WebUtility.HtmlEncode(url)}\"{titleAttr}>{System.Net.WebUtility.HtmlEncode(text)}</a>";
+            }
+        }
+        return System.Net.WebUtility.HtmlEncode(cell);
     }
 }

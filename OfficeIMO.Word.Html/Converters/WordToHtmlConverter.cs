@@ -27,6 +27,7 @@ namespace OfficeIMO.Word.Html.Converters {
         /// </summary>
         /// <param name="document">Document to convert.</param>
         /// <param name="options">Conversion options controlling HTML output.</param>
+        /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
         /// <returns>HTML representation of the document.</returns>
         public async Task<string> ConvertAsync(WordDocument document, WordToHtmlOptions options, CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
@@ -46,7 +47,8 @@ namespace OfficeIMO.Word.Html.Converters {
 
             var props = document.BuiltinDocumentProperties;
             var title = htmlDoc.CreateElement("title");
-            title.TextContent = string.IsNullOrEmpty(props?.Title) ? "Document" : props.Title;
+            var titleText = string.IsNullOrEmpty(props?.Title) ? "Document" : props!.Title!;
+            title.TextContent = titleText;
             head.AppendChild(title);
 
             void AddMeta(string name, string? value) {
@@ -313,7 +315,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         spanClass.SetAttribute("class", run.CharacterStyleId);
                         spanClass.AppendChild(node);
                         node = spanClass;
-                        runStyles.Add(run.CharacterStyleId);
+                        runStyles.Add(run.CharacterStyleId!);
                     }
 
                     if (inQuote && quote != null) {
@@ -374,7 +376,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 if (IsCodeParagraph(para)) {
                     var pre = htmlDoc.CreateElement("pre");
                     var code = htmlDoc.CreateElement("code");
-                    code.TextContent = para.Text;
+                    code.TextContent = para.Text ?? string.Empty;
                     pre.AppendChild(code);
                     parent.AppendChild(pre);
                     return;
@@ -386,7 +388,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 var element = htmlDoc.CreateElement(isBlockQuote ? "blockquote" : (level > 0 ? $"h{level}" : "p"));
                 if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(para.StyleId)) {
                     element.SetAttribute("class", para.StyleId);
-                    paragraphStyles.Add(para.StyleId);
+                    paragraphStyles.Add(para.StyleId!);
                 }
                 AppendRuns(element, para);
                 parent.AppendChild(element);
@@ -714,7 +716,7 @@ namespace OfficeIMO.Word.Html.Converters {
                                 var figCap = htmlDoc.CreateElement("figcaption");
                                 if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(captionPara.StyleId)) {
                                     figCap.SetAttribute("class", captionPara.StyleId);
-                                    paragraphStyles.Add(captionPara.StyleId);
+                                    paragraphStyles.Add(captionPara.StyleId!);
                                 }
                                 AppendRuns(figCap, captionPara);
                                 figure.AppendChild(figCap);
@@ -775,7 +777,10 @@ namespace OfficeIMO.Word.Html.Converters {
                     var props = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
                     void Merge(string? id) {
-                        if (string.IsNullOrEmpty(id) || !visited.Add(id)) {
+                        if (string.IsNullOrEmpty(id)) {
+                            return;
+                        }
+                        if (!visited.Add(id!)) {
                             return;
                         }
                         if (!styleMap.TryGetValue(id, out var def)) {
@@ -812,7 +817,8 @@ namespace OfficeIMO.Word.Html.Converters {
                             }
                             var colorVal = rPr.Color?.Val?.Value;
                             if (!string.IsNullOrEmpty(colorVal)) {
-                                props["color"] = "#" + colorVal.ToLowerInvariant();
+                                var cv = colorVal!;
+                                props["color"] = "#" + cv.ToLowerInvariant();
                             }
                             var sizeVal = rPr.FontSize?.Val;
                             if (!string.IsNullOrEmpty(sizeVal) && int.TryParse(sizeVal, out int sz)) {
@@ -820,7 +826,7 @@ namespace OfficeIMO.Word.Html.Converters {
                             }
                             var font = rPr.RunFonts?.Ascii?.Value;
                             if (!string.IsNullOrEmpty(font)) {
-                                var value = font;
+                                var value = font!;
                                 props["font-family"] = value.Contains(' ') ? $"\"{value}\"" : value;
                             }
                         }

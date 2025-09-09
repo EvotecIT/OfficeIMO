@@ -29,7 +29,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                             if (strike) run.SetStrike();
                             if (underline) run.SetUnderline(UnderlineValues.Single);
                             if (!string.IsNullOrEmpty(options.FontFamily)) {
-                                run.SetFontFamily(options.FontFamily);
+                                run.SetFontFamily(options.FontFamily!);
                             }
                             break;
                         case EmphasisInline emphasis:
@@ -87,7 +87,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                                 string label = GetPlainText(link.FirstChild);
                                 var hyperlink = paragraph.AddHyperLink(label, new Uri(link.Url ?? string.Empty, UriKind.RelativeOrAbsolute));
                                 if (!string.IsNullOrEmpty(options.FontFamily)) {
-                                    hyperlink.SetFontFamily(options.FontFamily);
+                                    hyperlink.SetFontFamily(options.FontFamily!);
                                 }
                             }
                             break;
@@ -109,7 +109,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                                 if (strike) other.SetStrike();
                                 if (underline) other.SetUnderline(UnderlineValues.Single);
                                 if (!string.IsNullOrEmpty(options.FontFamily)) {
-                                    other.SetFontFamily(options.FontFamily);
+                                    other.SetFontFamily(options.FontFamily!);
                                 }
                             }
                             break;

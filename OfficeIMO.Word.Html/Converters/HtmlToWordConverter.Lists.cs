@@ -26,7 +26,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         _orderedListNumberId = (int?)field?.GetValue(list);
                     }
                 }
-                var level = list.Numbering.Levels[0];
+                var level = list.Numbering!.Levels[0];
                 var start = element.GetAttribute("start");
                 if (!string.IsNullOrEmpty(start) && int.TryParse(start, out int startVal)) {
                     level.SetStartNumberingValue(startVal);
@@ -40,19 +40,19 @@ namespace OfficeIMO.Word.Html.Converters {
                         "I" => NumberFormatValues.UpperRoman,
                         _ => NumberFormatValues.Decimal,
                     };
-                    level._level.NumberingFormat = new NumberingFormat { Val = format };
+                    level._level!.NumberingFormat = new NumberingFormat { Val = format };
                 }
             } else {
                 list = cell != null ? cell.AddList(WordListStyle.Bulleted) : headerFooter != null ? headerFooter.AddList(WordListStyle.Bulleted) : doc.AddListBulleted();
                 var type = element.GetAttribute("type")?.ToLowerInvariant();
                 if (!string.IsNullOrEmpty(type)) {
-                    var level = list.Numbering.Levels[0];
+                    var level = list.Numbering!.Levels[0];
                     switch (type) {
                         case "circle":
-                            level._level.LevelText.Val = "o";
+                            level._level!.LevelText!.Val = "o";
                             break;
                         case "square":
-                            level._level.LevelText.Val = "■";
+                            level._level!.LevelText!.Val = "■";
                             break;
                         // disc is the default, nothing to change
                     }

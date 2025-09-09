@@ -108,7 +108,7 @@ namespace OfficeIMO.Excel {
                   {
                       var cellRef = cell.CellReference?.Value;
                       if (string.IsNullOrEmpty(cellRef)) continue;
-                      columnIndexes.Add(GetColumnIndex(cellRef));
+                      columnIndexes.Add(GetColumnIndex(cellRef!));
                   }
               }
 
@@ -460,13 +460,13 @@ namespace OfficeIMO.Excel {
             if (merges == null) return null;
             var r = cell.CellReference?.Value;
             if (string.IsNullOrEmpty(r)) return null;
-            int selfCol = GetColumnIndex(r);
-            int selfRow = GetRowIndex(r);
+            int selfCol = GetColumnIndex(r!);
+            int selfRow = GetRowIndex(r!);
             foreach (var mc in merges.Elements<MergeCell>())
             {
                 var refAttr = mc.Reference?.Value; // e.g. "A1:C1"
                 if (string.IsNullOrEmpty(refAttr)) continue;
-                var parts = refAttr.Split(':');
+                var parts = refAttr!.Split(':');
                 if (parts.Length != 2) continue;
                 int fromRow = GetRowIndex(parts[0]);
                 int toRow = GetRowIndex(parts[1]);
@@ -847,6 +847,59 @@ namespace OfficeIMO.Excel {
                 });
 
                 worksheet.Save();
+            });
+        }
+
+        /// <summary>
+        /// Shows or hides gridlines on the current sheet (view-level setting).
+        /// </summary>
+        public void SetGridlinesVisible(bool visible)
+        {
+            WriteLock(() =>
+            {
+                var worksheet = _worksheetPart.Worksheet;
+                var sheetViews = worksheet.GetFirstChild<SheetViews>();
+                if (sheetViews == null)
+                {
+                    sheetViews = new SheetViews();
+                    worksheet.InsertAt(sheetViews, 0);
+                }
+                var view = sheetViews.GetFirstChild<SheetView>();
+                if (view == null)
+                {
+                    view = new SheetView { WorkbookViewId = 0U };
+                    sheetViews.Append(view);
+                }
+                view.ShowGridLines = visible ? true : (bool?)null; // null means default (true)
+                worksheet.Save();
+            });
+        }
+
+        /// <summary>
+        /// Configures basic print/page setup for the sheet.
+        /// </summary>
+        /// <param name="fitToWidth">Number of pages to fit horizontally (1 = fit to one page).</param>
+        /// <param name="fitToHeight">Number of pages to fit vertically (0 = unlimited).</param>
+        /// <param name="scale">Manual scale (10-400). Ignored if FitToWidth/Height are specified.</param>
+        public void SetPageSetup(uint? fitToWidth = null, uint? fitToHeight = null, uint? scale = null)
+        {
+            WriteLock(() =>
+            {
+                var ws = _worksheetPart.Worksheet;
+                var pageSetup = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.PageSetup>();
+                if (pageSetup == null)
+                {
+                    pageSetup = new DocumentFormat.OpenXml.Spreadsheet.PageSetup();
+                    // Insert after PageMargins when present, else at end
+                    var margins = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.PageMargins>();
+                    if (margins != null) ws.InsertAfter(pageSetup, margins); else ws.Append(pageSetup);
+                }
+
+                if (fitToWidth != null) pageSetup.FitToWidth = fitToWidth.Value;
+                if (fitToHeight != null) pageSetup.FitToHeight = fitToHeight.Value;
+                if (scale != null) pageSetup.Scale = scale.Value;
+
+                ws.Save();
             });
         }
 

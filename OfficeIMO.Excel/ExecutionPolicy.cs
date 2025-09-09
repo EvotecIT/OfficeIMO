@@ -27,6 +27,18 @@ namespace OfficeIMO.Excel
         public Action<string, int, ExecutionMode>? OnDecision { get; set; }
 
         /// <summary>
+        /// Optional timing callback invoked by long-running operations to report elapsed time.
+        /// Provides a lightweight hook for performance monitoring in large workbooks.
+        /// </summary>
+        public Action<string, TimeSpan>? OnTiming { get; set; }
+
+        /// <summary>
+        /// Helper to invoke the timing callback if configured.
+        /// </summary>
+        internal void ReportTiming(string operation, TimeSpan elapsed)
+            => OnTiming?.Invoke(operation, elapsed);
+
+        /// <summary>
         /// Decide execution mode for a given operation and workload size.
         /// </summary>
         /// <param name="operationName">Descriptive operation name (e.g. "ReadRange", "AutoFitColumns").</param>

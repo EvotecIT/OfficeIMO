@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void Table_FromSequence_WithSelectors() {
             var rows = new [] {
                 new { Host = "example.com", SPF = true, Score = 91.2 },
-                new { Host = "contoso.com", SPF = false, Score = 88.0 }
+                new { Host = "evotec.xyz", SPF = false, Score = 88.0 }
             };
             var md = MarkdownDoc.Create()
                 .Table(t => t.FromSequence(rows,

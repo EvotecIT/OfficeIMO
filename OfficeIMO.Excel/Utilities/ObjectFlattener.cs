@@ -24,6 +24,11 @@ namespace OfficeIMO.Excel.Utilities {
         public string[]? Columns { get; set; }
         /// <summary>Paths to exclude from output.</summary>
         public string[] Ignore { get; set; } = Array.Empty<string>();
+        /// <summary>
+        /// Optional list of dotted paths to pin to the front of the generated column order when <see cref="Columns"/> is not specified.
+        /// Matching paths keep the specified order; any non-matching paths follow in natural order.
+        /// </summary>
+        public string[] PinnedFirst { get; set; } = Array.Empty<string>();
         /// <summary>How null values are represented.</summary>
         public NullPolicy NullPolicy { get; set; } = NullPolicy.NullLiteral;
         /// <summary>Per‑path default values used when <see cref="NullPolicy.DefaultValue"/> is selected.</summary>
@@ -34,6 +39,13 @@ namespace OfficeIMO.Excel.Utilities {
         public CollectionMode CollectionMode { get; set; } = CollectionMode.JoinWith;
         /// <summary>Delimiter used when <see cref="CollectionMode.JoinWith"/> is selected.</summary>
         public string CollectionJoinWith { get; set; } = ",";
+
+        /// <summary>
+        /// Maps collection paths (e.g., "ScoreBreakdown") to dynamic columns using element properties.
+        /// Example: map path "ScoreBreakdown" with KeyProperty="Name", ValueProperty="Value" to produce columns like
+        /// "ScoreBreakdown.HasMX" = 2, "ScoreBreakdown.EffectiveSPFSends" = 2.
+        /// </summary>
+        public System.Collections.Generic.Dictionary<string, CollectionColumnMapping> CollectionMapColumns { get; } = new(System.StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -82,7 +94,11 @@ namespace OfficeIMO.Excel.Utilities {
                 }
 
                 if (isCollection) {
-                    dict[path] = HandleCollection(path, (IEnumerable)value, opts);
+                    if (opts.CollectionMapColumns.TryGetValue(path, out var map)) {
+                        MapCollectionToColumns(path, (IEnumerable)value, map, dict, opts);
+                    } else {
+                        dict[path] = HandleCollection(path, (IEnumerable)value, opts);
+                    }
                     continue;
                 }
 
@@ -98,6 +114,28 @@ namespace OfficeIMO.Excel.Utilities {
                 if (depth + 1 < opts.MaxDepth) {
                     FlattenInternal(value, dict, path, depth + 1, opts);
                 }
+            }
+        }
+
+        private static void MapCollectionToColumns(string basePath, IEnumerable enumerable, CollectionColumnMapping map, Dictionary<string, object?> dict, ObjectFlattenerOptions opts)
+        {
+            foreach (var item in enumerable)
+            {
+                if (item == null) continue;
+                var t = item.GetType();
+                var keyProp = t.GetProperty(map.KeyProperty);
+                var valProp = t.GetProperty(map.ValueProperty);
+                if (keyProp == null || valProp == null) continue;
+
+                var keyObj = keyProp.GetValue(item);
+                if (keyObj == null) continue;
+                var key = keyObj.ToString() ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(key)) continue;
+
+                var colPath = basePath + "." + key;
+                if (opts.Ignore.Any(i => colPath.StartsWith(i, StringComparison.OrdinalIgnoreCase))) continue;
+                var value = valProp.GetValue(item);
+                dict[colPath] = ApplyFormatting(colPath, value, opts);
             }
         }
 
@@ -153,4 +191,16 @@ namespace OfficeIMO.Excel.Utilities {
             return type.IsPrimitive || type.IsEnum || type == typeof(string) || type == typeof(decimal) || type == typeof(DateTime) || type == typeof(DateTimeOffset) || type == typeof(TimeSpan) || type == typeof(Guid);
         }
     }
+}
+    /// <summary>
+    /// Configuration for mapping a collection of objects into dynamic columns.
+    /// </summary>
+public sealed class CollectionColumnMapping
+{
+        /// <summary>Property name on the item to use as the header suffix (key).</summary>
+        public string KeyProperty { get; set; } = "Name";
+        /// <summary>Property name on the item to use as the cell value.</summary>
+        public string ValueProperty { get; set; } = "Value";
+        /// <summary>Optional prefix for generated column headers.</summary>
+        public string? HeaderPrefix { get; set; }
 }

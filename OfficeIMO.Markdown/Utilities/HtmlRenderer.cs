@@ -33,7 +33,12 @@ internal static class HtmlRenderer {
         var css = BuildCss(options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks);
         options._externalCssContentToWrite = cssToWrite; // pass back for SaveHtml
 
-        string bodyContent = RenderBody(realized, options);
+        // Insert a top anchor for back-to-top links
+        string bodyContent = (options.BackToTopLinks ? "<a id=\"top\"></a>" : string.Empty) + RenderBody(realized, options);
+        if (options.ThemeToggle) {
+            const string toggle = "<button class=\"theme-toggle\" data-theme-toggle title=\"Toggle theme\" aria-label=\"Toggle theme\">🌓</button>";
+            bodyContent = toggle + bodyContent;
+        }
         if (!string.IsNullOrEmpty(options.BodyClass)) {
             // Wrap in article
             bodyContent = $"<article class=\"{System.Net.WebUtility.HtmlEncode(options.BodyClass)}\">" + bodyContent + "</article>";
@@ -45,6 +50,7 @@ internal static class HtmlRenderer {
 
         StringBuilder scripts = new StringBuilder();
         if (options.ThemeToggle) scripts.Append(HtmlResources.ThemeToggleScript);
+        if (options.CopyHeadingLinkOnClick) scripts.Append(HtmlResources.AnchorCopyScript);
 
         // Additional JS: link in head when Online; download+inline into scripts when Offline
         if (options.AssetMode == AssetMode.Online) {
@@ -110,10 +116,17 @@ internal static class HtmlRenderer {
             if (block is HeadingBlock h) {
                 var id = MarkdownSlug.GitHub(h.Text);
                 var encoded = System.Net.WebUtility.HtmlEncode(h.Text);
-                if (options.IncludeAnchorLinks) {
-                    sb.Append($"<h{h.Level} id=\"{id}\"><a class=\"anchor\" href=\"#{id}\" aria-hidden=\"true\">#</a>{encoded}</h{h.Level}>");
-                } else {
-                    sb.Append($"<h{h.Level} id=\"{id}\">{encoded}</h{h.Level}>");
+                sb.Append($"<h{h.Level} id=\"{id}\">");
+                sb.Append(encoded);
+                if (options.IncludeAnchorLinks || options.ShowAnchorIcons) {
+                    var icon = System.Net.WebUtility.HtmlEncode(options.AnchorIcon ?? "🔗");
+                    // Anchor icon button; when CopyHeadingLinkOnClick, JS hooks it to copy full URL
+                    sb.Append($"<a class=\"heading-anchor\" href=\"#{id}\" data-anchor-id=\"{id}\" title=\"Copy link\" aria-label=\"Copy link\">{icon}</a>");
+                }
+                sb.Append($"</h{h.Level}>");
+                if (options.BackToTopLinks && h.Level >= options.BackToTopMinLevel) {
+                    var txt = System.Net.WebUtility.HtmlEncode(options.BackToTopText ?? "Back to top");
+                    sb.Append($"<div class=\"back-to-top\"><a href=\"#top\">{txt}</a></div>");
                 }
             } else if (block is TocPlaceholderBlock tp) {
                 sb.Append(BuildTocHtml(blocks, tp));
@@ -155,17 +168,48 @@ internal static class HtmlRenderer {
         var relevant = headings.Where(h => h.Index >= startIdx && h.Index < endIdx && h.Level >= opts.MinLevel && h.Level <= opts.MaxLevel)
                                .Select(h => (h.Level, h.Text, Anchor: MarkdownSlug.GitHub(h.Text)))
                                .ToList();
+        if (opts.IncludeTitle && !string.IsNullOrWhiteSpace(opts.Title)) {
+            var titleSlug = MarkdownSlug.GitHub(opts.Title);
+            relevant = relevant.Where(e => !string.Equals(e.Anchor, titleSlug, StringComparison.Ordinal)).ToList();
+        }
         if (relevant.Count == 0) return string.Empty;
 
+        // Build nested list of headings
         var listTag = opts.Ordered ? "ol" : "ul";
-        var sb = new StringBuilder();
-        sb.Append('<').Append(listTag).Append('>');
+        var sbNested = new StringBuilder();
+        int baseLevel = relevant.Min(r => r.Level);
+        int current = baseLevel - 1;
+        while (current < baseLevel) { sbNested.Append('<').Append(listTag).Append('>'); current++; }
         foreach (var e in relevant) {
-            sb.Append("<li><a href=\"").Append('#').Append(System.Net.WebUtility.HtmlEncode(e.Anchor)).Append("\">")
-              .Append(System.Net.WebUtility.HtmlEncode(e.Text)).Append("</a></li>");
+            while (current < e.Level) { sbNested.Append('<').Append(listTag).Append('>'); current++; }
+            while (current > e.Level) { sbNested.Append("</").Append(listTag).Append('>'); current--; }
+            sbNested.Append("<li><a href=\"")
+                    .Append('#').Append(System.Net.WebUtility.HtmlEncode(e.Anchor))
+                    .Append("\">").Append(System.Net.WebUtility.HtmlEncode(e.Text))
+                    .Append("</a></li>");
         }
-        sb.Append("</").Append(listTag).Append('>');
-        return sb.ToString();
+        while (current >= baseLevel) { sbNested.Append("</").Append(listTag).Append('>'); current--; }
+
+        if (opts.Collapsible) {
+            string open = opts.Collapsed ? string.Empty : " open";
+            string summary = System.Net.WebUtility.HtmlEncode(opts.Title ?? "Contents");
+            var sbWrap = new StringBuilder();
+            sbWrap.Append("<details class=\"md-toc\"").Append(open).Append("><summary>")
+                  .Append(summary).Append("</summary>")
+                  .Append(sbNested.ToString())
+                  .Append("</details>");
+            return sbWrap.ToString();
+        }
+
+        if (opts.IncludeTitle) {
+            var sbo = new StringBuilder();
+            sbo.Append("<h").Append(opts.TitleLevel).Append('>')
+               .Append(System.Net.WebUtility.HtmlEncode(opts.Title))
+               .Append("</h").Append(opts.TitleLevel).Append('>')
+               .Append(sbNested.ToString());
+            return sbo.ToString();
+        }
+        return sbNested.ToString();
     }
 
     private static string? BuildCss(HtmlOptions options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks) {
@@ -201,7 +245,7 @@ internal static class HtmlRenderer {
 
         if (options.CssDelivery == CssDelivery.LinkHref && !string.IsNullOrWhiteSpace(options.CssHref) && options.AssetMode == AssetMode.Offline) {
             // Attempt to download provided CSS and inline
-            var downloaded = TryDownloadText(options.CssHref);
+            var downloaded = TryDownloadText(options.CssHref!);
             if (!string.IsNullOrEmpty(downloaded)) cssBuilder.Append(downloaded).Append('\n');
         }
         // Additional CSS URLs
@@ -227,7 +271,7 @@ internal static class HtmlRenderer {
         return aggregatedCss;
     }
 
-    internal static string TryDownloadText(string url) {
+    internal static string TryDownloadText(string? url) {
         try {
             if (string.IsNullOrWhiteSpace(url)) return string.Empty;
             if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return string.Empty;
@@ -245,7 +289,7 @@ internal static class HtmlRenderer {
             bool okType = false;
             if (ct == null) okType = true; // be permissive when unknown
             else if (ct.StartsWith("text/")) okType = true;
-            else if (ct.Contains("javascript") || ct.Contains("ecmascript") || ct.Contains("css")) okType = true;
+            else if (ct.IndexOf("javascript", StringComparison.Ordinal) >= 0 || ct.IndexOf("ecmascript", StringComparison.Ordinal) >= 0 || ct.IndexOf("css", StringComparison.Ordinal) >= 0) okType = true;
             if (!okType) return string.Empty;
             var len = resp.Content.Headers.ContentLength;
             if (len.HasValue && len.Value > MaxBytes) return string.Empty;

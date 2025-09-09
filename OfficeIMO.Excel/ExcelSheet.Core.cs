@@ -366,7 +366,7 @@ namespace OfficeIMO.Excel {
                 var style = bold && italic ? FontStyle.BoldItalic : bold ? FontStyle.Bold : italic ? FontStyle.Italic : FontStyle.Regular;
                 if (!string.IsNullOrEmpty(fontName)) {
                     try {
-                        return SystemFonts.CreateFont(fontName, (float)fontSize, style);
+                        return SystemFonts.CreateFont(fontName!, (float)fontSize, style);
                     } catch (FontFamilyNotFoundException) {
                         return null;
                     }
@@ -411,7 +411,7 @@ namespace OfficeIMO.Excel {
             try {
                 var style = bold && italic ? FontStyle.BoldItalic : bold ? FontStyle.Bold : italic ? FontStyle.Italic : FontStyle.Regular;
                 if (!string.IsNullOrEmpty(fontName)) {
-                    return SystemFonts.CreateFont(fontName, (float)fontSize, style);
+                    return SystemFonts.CreateFont(fontName!, (float)fontSize, style);
                 }
                 return defaultFont.Family.CreateFont((float)fontSize, style);
             } catch (FontFamilyNotFoundException) {

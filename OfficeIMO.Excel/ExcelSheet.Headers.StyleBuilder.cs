@@ -117,5 +117,136 @@ namespace OfficeIMO.Excel
                 _sheet.CellBackground(r, _colIndex, color);
             return this;
         }
+
+        /// <summary>Aligns text left in the column.</summary>
+        public ColumnStyleByHeaderBuilder AlignLeft()
+        {
+            for (int r = _startRow; r <= _endRow; r++)
+                _sheet.CellAlign(r, _colIndex, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Left);
+            return this;
+        }
+
+        /// <summary>Centers text in the column.</summary>
+        public ColumnStyleByHeaderBuilder AlignCenter()
+        {
+            for (int r = _startRow; r <= _endRow; r++)
+                _sheet.CellAlign(r, _colIndex, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Center);
+            return this;
+        }
+
+        /// <summary>Aligns text right in the column.</summary>
+        public ColumnStyleByHeaderBuilder AlignRight()
+        {
+            for (int r = _startRow; r <= _endRow; r++)
+                _sheet.CellAlign(r, _colIndex, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Right);
+            return this;
+        }
+
+        /// <summary>Sets font color using hex (#RRGGBB or #AARRGGBB).</summary>
+        public ColumnStyleByHeaderBuilder FontColor(string hexColor)
+        {
+            for (int r = _startRow; r <= _endRow; r++)
+                _sheet.CellFontColor(r, _colIndex, hexColor);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets font colors by matching cell text to a provided mapping of text→hex color.
+        /// </summary>
+        public ColumnStyleByHeaderBuilder FontColorByTextMap(System.Collections.Generic.IDictionary<string, string> map, bool caseInsensitive = true)
+        {
+            if (map == null || map.Count == 0) return this;
+            var dict = caseInsensitive ? new System.Collections.Generic.Dictionary<string, string>(map, System.StringComparer.OrdinalIgnoreCase)
+                                       : new System.Collections.Generic.Dictionary<string, string>(map);
+            for (int r = _startRow; r <= _endRow; r++)
+            {
+                if (_sheet.TryGetCellText(r, _colIndex, out var value) && !string.IsNullOrEmpty(value) && dict.TryGetValue(value, out var color))
+                {
+                    _sheet.CellFontColor(r, _colIndex, color);
+                }
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Applies a background fill to cells in this column when their text equals the specified value.
+        /// Comparison is case-insensitive by default.
+        /// </summary>
+        public ColumnStyleByHeaderBuilder BackgroundWhenTextEquals(string text, string hexColor, bool caseInsensitive = true)
+        {
+            if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(hexColor)) return this;
+            var comparison = caseInsensitive ? System.StringComparison.OrdinalIgnoreCase : System.StringComparison.Ordinal;
+            for (int r = _startRow; r <= _endRow; r++)
+            {
+                if (_sheet.TryGetCellText(r, _colIndex, out var value))
+                {
+                    if (string.Equals(value, text, comparison))
+                        _sheet.CellBackground(r, _colIndex, hexColor);
+                }
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Applies background fills to cells based on a text→color mapping.
+        /// Keys are compared case-insensitively by default.
+        /// </summary>
+        public ColumnStyleByHeaderBuilder BackgroundByTextMap(System.Collections.Generic.IDictionary<string, string> map, bool caseInsensitive = true)
+        {
+            if (map == null || map.Count == 0) return this;
+            var dict = caseInsensitive ? new System.Collections.Generic.Dictionary<string, string>(map, System.StringComparer.OrdinalIgnoreCase)
+                                       : new System.Collections.Generic.Dictionary<string, string>(map);
+            for (int r = _startRow; r <= _endRow; r++)
+            {
+                if (_sheet.TryGetCellText(r, _colIndex, out var value) && !string.IsNullOrEmpty(value) && dict.TryGetValue(value, out var color))
+                {
+                    _sheet.CellBackground(r, _colIndex, color);
+                }
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Overload that accepts SixLabors colors for convenience.
+        /// </summary>
+        public ColumnStyleByHeaderBuilder BackgroundByTextMap(System.Collections.Generic.IDictionary<string, SixLabors.ImageSharp.Color> map, bool caseInsensitive = true)
+        {
+            if (map == null || map.Count == 0) return this;
+            var hex = new System.Collections.Generic.Dictionary<string, string>(caseInsensitive ? System.StringComparer.OrdinalIgnoreCase : System.StringComparer.Ordinal);
+            foreach (var kv in map)
+                hex[kv.Key] = OfficeIMO.Excel.ExcelColor.ToArgbHex(kv.Value);
+            return BackgroundByTextMap(hex, caseInsensitive);
+        }
+
+        /// <summary>
+        /// Makes the cell bold when its text equals the specified value.
+        /// </summary>
+        public ColumnStyleByHeaderBuilder BoldWhenTextEquals(string text, bool caseInsensitive = true)
+        {
+            if (string.IsNullOrEmpty(text)) return this;
+            var comparison = caseInsensitive ? System.StringComparison.OrdinalIgnoreCase : System.StringComparison.Ordinal;
+            for (int r = _startRow; r <= _endRow; r++)
+            {
+                if (_sheet.TryGetCellText(r, _colIndex, out var value) && string.Equals(value, text, comparison))
+                    _sheet.CellBold(r, _colIndex, true);
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Makes the cell bold when its text is in the provided set.
+        /// </summary>
+        public ColumnStyleByHeaderBuilder BoldByTextSet(System.Collections.Generic.ISet<string> values, bool caseInsensitive = true)
+        {
+            if (values == null || values.Count == 0) return this;
+            var set = caseInsensitive ? new System.Collections.Generic.HashSet<string>(values, System.StringComparer.OrdinalIgnoreCase)
+                                      : new System.Collections.Generic.HashSet<string>(values);
+            for (int r = _startRow; r <= _endRow; r++)
+            {
+                if (_sheet.TryGetCellText(r, _colIndex, out var value) && !string.IsNullOrEmpty(value) && set.Contains(value))
+                    _sheet.CellBold(r, _colIndex, true);
+            }
+            return this;
+        }
     }
 }

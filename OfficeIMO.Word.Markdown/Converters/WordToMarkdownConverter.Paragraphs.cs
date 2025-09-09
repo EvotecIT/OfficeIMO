@@ -12,8 +12,9 @@ namespace OfficeIMO.Word.Markdown.Converters {
             string? styleId = paragraph.StyleId;
             string? codeFont = options.FontFamily ?? FontResolver.Resolve("monospace");
             if (!string.IsNullOrEmpty(styleId) && styleId.StartsWith(codeLangPrefix, StringComparison.Ordinal) && !string.IsNullOrEmpty(codeFont)) {
+                var codeFontValue = codeFont!;
                 var runs = paragraph.GetRuns().ToList();
-                if (runs.Count > 0 && runs.All(r => string.Equals(r.FontFamily, codeFont, StringComparison.OrdinalIgnoreCase))) {
+                if (runs.Count > 0 && runs.All(r => string.Equals(r.FontFamily ?? string.Empty, codeFontValue, StringComparison.OrdinalIgnoreCase))) {
                     string language = styleId.Substring(codeLangPrefix.Length);
                     string code = string.Concat(runs.Select(r => r.Text));
                     return $"```{language}\n{code}\n```";
@@ -135,7 +136,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
                 }
                 string fileName = string.IsNullOrEmpty(image.FileName)
                     ? Guid.NewGuid().ToString("N") + extension
-                    : image.FileName;
+                    : image.FileName!;
                 string targetPath = Path.Combine(directory, fileName);
 
                 if (!string.IsNullOrEmpty(image.FilePath) && File.Exists(image.FilePath)) {

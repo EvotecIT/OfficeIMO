@@ -12,6 +12,10 @@ namespace OfficeIMO.Word.Html {
     /// Extension methods enabling HTML conversions for <see cref="WordDocument"/> instances.
     /// </summary>
     public static class WordHtmlConverterExtensions {
+        /// <summary>
+        /// Raised when an HTML element references a CSS class that has no built-in mapping.
+        /// Handlers may supply <see cref="StyleMissingEventArgs.Style"/> or <see cref="StyleMissingEventArgs.StyleId"/>.
+        /// </summary>
         public static event EventHandler<StyleMissingEventArgs>? StyleMissing;
 
         internal static StyleMissingEventArgs OnStyleMissing(WordParagraph paragraph, string className) {
