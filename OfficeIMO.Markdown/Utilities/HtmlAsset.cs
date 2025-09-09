@@ -1,4 +1,4 @@
-namespace OfficeIMO.Markdown.Utilities;
+namespace OfficeIMO.Markdown;
 
 /// <summary>Represents a CSS/JS asset with a stable id for deduplication.</summary>
 public sealed class HtmlAsset {

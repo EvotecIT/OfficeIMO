@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
-using OfficeIMO.Excel.Read;
-using OfficeIMO.Excel.Read.Edit;
+using OfficeIMO.Excel;
 
-namespace OfficeIMO.Excel.Read.Fluent
+namespace OfficeIMO.Excel.Fluent
 {
     /// <summary>
     /// Entry point for fluent read pipelines.

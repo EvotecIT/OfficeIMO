@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.Enums;
+using OfficeIMO.Excel;
 
 namespace OfficeIMO.Examples.Excel {
     internal static class HeadersFootersAndProperties {

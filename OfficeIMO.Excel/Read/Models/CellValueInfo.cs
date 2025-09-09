@@ -1,4 +1,4 @@
-namespace OfficeIMO.Excel.Read
+namespace OfficeIMO.Excel
 {
     /// <summary>
     /// A typed cell value with row/column coordinates.

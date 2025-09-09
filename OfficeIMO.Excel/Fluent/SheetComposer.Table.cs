@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using OfficeIMO.Excel.Utilities;
+using OfficeIMO.Excel;
 
 namespace OfficeIMO.Excel.Fluent
 {
@@ -174,4 +174,3 @@ namespace OfficeIMO.Excel.Fluent
         }
     }
 }
-

@@ -1,5 +1,5 @@
 using System;
-using OfficeIMO.Excel.Enums;
+using OfficeIMO.Excel;
 
 namespace OfficeIMO.Excel
 {
@@ -28,4 +28,3 @@ namespace OfficeIMO.Excel
         }
     }
 }
-

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.Read;
+using OfficeIMO.Excel;
 
 namespace OfficeIMO.Examples.Excel
 {

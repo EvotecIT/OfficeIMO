@@ -5,7 +5,7 @@ using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using OfficeIMO.Excel.Enums;
+using OfficeIMO.Excel;
 using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Excel {
@@ -198,7 +198,7 @@ namespace OfficeIMO.Excel {
         public void SetHeaderImageUrl(HeaderFooterPosition position, string url, double? widthPoints = null, double? heightPoints = null)
         {
             if (string.IsNullOrWhiteSpace(url)) return;
-            if (OfficeIMO.Excel.Utilities.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var _ ) && bytes != null)
+            if (OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var _ ) && bytes != null)
                 SetHeaderImage(position, bytes, "image/png", widthPoints, heightPoints);
         }
 
@@ -222,7 +222,7 @@ namespace OfficeIMO.Excel {
         public void SetFooterImageUrl(HeaderFooterPosition position, string url, double? widthPoints = null, double? heightPoints = null)
         {
             if (string.IsNullOrWhiteSpace(url)) return;
-            if (OfficeIMO.Excel.Utilities.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var _ ) && bytes != null)
+            if (OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var _ ) && bytes != null)
                 SetFooterImage(position, bytes, "image/png", widthPoints, heightPoints);
         }
 

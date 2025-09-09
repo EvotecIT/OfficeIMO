@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace OfficeIMO.Markdown.Utilities;
+namespace OfficeIMO.Markdown;
 
 /// <summary>
 /// Built-in CSS and tiny scripts for HTML rendering.

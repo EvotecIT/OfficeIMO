@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
-using OfficeIMO.Excel.Utilities;
+using OfficeIMO.Excel;
 using System.Linq;
 
 namespace OfficeIMO.Examples.Excel {

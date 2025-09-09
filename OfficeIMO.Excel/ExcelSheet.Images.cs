@@ -107,7 +107,7 @@ namespace OfficeIMO.Excel
         public void AddImageFromUrlAt(int row, int column, string url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0)
         {
             if (string.IsNullOrWhiteSpace(url)) return;
-            if (Utilities.ImageDownloader.TryFetch(url, timeoutSeconds: 5, maxBytes: 2_000_000, out var bytes, out var ct) && bytes != null)
+            if (ImageDownloader.TryFetch(url, timeoutSeconds: 5, maxBytes: 2_000_000, out var bytes, out var ct) && bytes != null)
             {
                 AddImageAt(row, column, bytes, contentType: string.IsNullOrEmpty(ct) ? "image/png" : ct!, widthPixels: widthPixels, heightPixels: heightPixels, offsetXPixels: offsetXPixels, offsetYPixels: offsetYPixels);
             }

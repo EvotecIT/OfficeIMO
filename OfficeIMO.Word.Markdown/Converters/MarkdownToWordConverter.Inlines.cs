@@ -12,7 +12,7 @@ using System.Linq;
 using SixLabors.ImageSharp;
 using DocumentFormat.OpenXml.Wordprocessing;
 
-namespace OfficeIMO.Word.Markdown.Converters {
+namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
         private static void ProcessInline(Inline? inline, WordParagraph paragraph, MarkdownToWordOptions options, WordDocument document) {
             if (inline == null) {

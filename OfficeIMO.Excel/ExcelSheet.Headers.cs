@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using OfficeIMO.Excel.Read;
+using OfficeIMO.Excel;
 
 namespace OfficeIMO.Excel
 {
@@ -34,7 +34,7 @@ namespace OfficeIMO.Excel
 
                 int cols = values.GetLength(1);
                 var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                var (_, c1, _, _) = OfficeIMO.Excel.Read.A1.ParseRange(a1Used);
+                var (_, c1, _, _) = A1.ParseRange(a1Used);
                 for (int c = 0; c < cols; c++)
                 {
                     var hdr = values[0, c]?.ToString() ?? $"Column{c + 1}";

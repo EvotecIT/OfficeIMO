@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
-using OfficeIMO.Word.Html.Converters;
+using OfficeIMO.Word.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests {

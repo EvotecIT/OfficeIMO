@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using DocumentFormat.OpenXml.Spreadsheet;
-using OfficeIMO.Excel.Read;
+using OfficeIMO.Excel;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -239,8 +239,8 @@ namespace OfficeIMO.Excel {
             }
             if (hasCols)
             {
-                string c1 = global::OfficeIMO.Excel.Read.A1.ColumnIndexToLetters(firstCol!.Value);
-                string c2 = global::OfficeIMO.Excel.Read.A1.ColumnIndexToLetters(lastCol!.Value);
+                string c1 = A1.ColumnIndexToLetters(firstCol!.Value);
+                string c2 = A1.ColumnIndexToLetters(lastCol!.Value);
                 colsPart = $"'{sheet.Name}'!${c1}:${c2}";
             }
 

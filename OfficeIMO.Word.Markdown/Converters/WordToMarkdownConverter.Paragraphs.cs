@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace OfficeIMO.Word.Markdown.Converters {
+namespace OfficeIMO.Word.Markdown {
     internal partial class WordToMarkdownConverter {
         private string ConvertParagraph(WordParagraph paragraph, WordToMarkdownOptions options) {
             const string codeLangPrefix = "CodeLang_";

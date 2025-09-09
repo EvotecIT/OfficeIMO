@@ -13,7 +13,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OfficeIMO.Word.Html.Converters {
+namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Converts <see cref="WordDocument"/> instances into HTML markup.
     /// </summary>

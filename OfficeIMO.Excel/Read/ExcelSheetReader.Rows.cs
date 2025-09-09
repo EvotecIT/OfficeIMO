@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace OfficeIMO.Excel.Read
+namespace OfficeIMO.Excel
 {
     /// <summary>
     /// Row-oriented readers for <see cref="ExcelSheetReader"/>.

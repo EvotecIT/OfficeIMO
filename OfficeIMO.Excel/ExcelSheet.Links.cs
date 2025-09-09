@@ -1,6 +1,6 @@
 using System;
 using System.Text.RegularExpressions;
-using OfficeIMO.Excel.Read;
+using OfficeIMO.Excel;
 
 namespace OfficeIMO.Excel
 {
@@ -245,7 +245,7 @@ namespace OfficeIMO.Excel
             var table = tdp.Table;
             string? refA1 = table.Reference?.Value;
             if (string.IsNullOrWhiteSpace(refA1)) throw new InvalidOperationException($"Table '{tableName}' has no Reference.");
-            var (r1, c1, r2, c2) = Read.A1.ParseRange(refA1);
+            var (r1, c1, r2, c2) = A1.ParseRange(refA1);
             // Determine header offset
             var headers = table.TableColumns?.Elements<DocumentFormat.OpenXml.Spreadsheet.TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList() ?? new System.Collections.Generic.List<string>();
             int colOffset = headers.FindIndex(h => string.Equals(h, header, StringComparison.OrdinalIgnoreCase));
@@ -292,7 +292,7 @@ namespace OfficeIMO.Excel
             var table = tdp.Table;
             string? refA1 = table.Reference?.Value;
             if (string.IsNullOrWhiteSpace(refA1)) throw new InvalidOperationException($"Table '{tableName}' has no Reference.");
-            var (r1, c1, r2, c2) = Read.A1.ParseRange(refA1);
+            var (r1, c1, r2, c2) = A1.ParseRange(refA1);
             var headers = table.TableColumns?.Elements<DocumentFormat.OpenXml.Spreadsheet.TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList() ?? new System.Collections.Generic.List<string>();
             int colOffset = headers.FindIndex(h => string.Equals(h, header, StringComparison.OrdinalIgnoreCase));
             if (colOffset < 0) throw new InvalidOperationException($"Header '{header}' not found in table '{tableName}'.");
@@ -334,7 +334,7 @@ namespace OfficeIMO.Excel
         {
             if (string.IsNullOrWhiteSpace(rangeA1)) throw new ArgumentNullException(nameof(rangeA1));
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            var (r1, c1, r2, c2) = Read.A1.ParseRange(rangeA1);
+            var (r1, c1, r2, c2) = A1.ParseRange(rangeA1);
             // Find header column within first row of range
             int headerCol = -1;
             for (int c = c1; c <= c2; c++)
@@ -376,7 +376,7 @@ namespace OfficeIMO.Excel
             if (string.IsNullOrWhiteSpace(rangeA1)) throw new ArgumentNullException(nameof(rangeA1));
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
             if (urlForCellText is null) throw new ArgumentNullException(nameof(urlForCellText));
-            var (r1, c1, r2, c2) = Read.A1.ParseRange(rangeA1);
+            var (r1, c1, r2, c2) = A1.ParseRange(rangeA1);
             int headerCol = -1;
             for (int c = c1; c <= c2; c++)
             {

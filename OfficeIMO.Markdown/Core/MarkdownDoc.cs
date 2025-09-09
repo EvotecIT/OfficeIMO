@@ -194,14 +194,14 @@ public class MarkdownDoc {
     public string ToHtmlFragment(HtmlOptions? options = null) {
         options ??= new HtmlOptions { Kind = HtmlKind.Fragment };
         options.Kind = HtmlKind.Fragment;
-        return Utilities.HtmlRenderer.Render(this, options);
+        return HtmlRenderer.Render(this, options);
     }
 
     /// <summary>Renders a standalone HTML5 document with optional CSS/JS assets.</summary>
     public string ToHtmlDocument(HtmlOptions? options = null) {
         options ??= new HtmlOptions { Kind = HtmlKind.Document };
         options.Kind = HtmlKind.Document;
-        return Utilities.HtmlRenderer.Render(this, options);
+        return HtmlRenderer.Render(this, options);
     }
 
     /// <summary>Asynchronously renders an embeddable HTML fragment.</summary>
@@ -212,7 +212,7 @@ public class MarkdownDoc {
     /// <summary>Returns rendered parts for advanced embedding (Head, Body, Css, Scripts).</summary>
     public HtmlRenderParts ToHtmlParts(HtmlOptions? options = null) {
         options ??= new HtmlOptions { Kind = HtmlKind.Fragment };
-        return Utilities.HtmlRenderer.RenderParts(this, options);
+        return HtmlRenderer.RenderParts(this, options);
     }
 
     /// <summary>
@@ -249,9 +249,9 @@ public class MarkdownDoc {
         }
         var html = options.Kind == HtmlKind.Document ? ToHtmlDocument(options) : ToHtmlFragment(options);
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path)) ?? ".");
-        await Utilities.FileCompat.WriteAllTextAsync(path, html, System.Text.Encoding.UTF8).ConfigureAwait(false);
+        await FileCompat.WriteAllTextAsync(path, html, System.Text.Encoding.UTF8).ConfigureAwait(false);
         if (!string.IsNullOrEmpty(options.ExternalCssOutputPath) && options._externalCssContentToWrite is not null) {
-            await Utilities.FileCompat.WriteAllTextAsync(options.ExternalCssOutputPath!, options._externalCssContentToWrite, System.Text.Encoding.UTF8).ConfigureAwait(false);
+            await FileCompat.WriteAllTextAsync(options.ExternalCssOutputPath!, options._externalCssContentToWrite, System.Text.Encoding.UTF8).ConfigureAwait(false);
         }
     }
 

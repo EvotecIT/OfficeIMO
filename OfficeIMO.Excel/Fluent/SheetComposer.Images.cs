@@ -18,4 +18,3 @@ namespace OfficeIMO.Excel.Fluent
         }
     }
 }
-

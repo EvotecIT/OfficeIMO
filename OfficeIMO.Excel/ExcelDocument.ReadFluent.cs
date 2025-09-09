@@ -1,5 +1,5 @@
-using OfficeIMO.Excel.Read;
-using OfficeIMO.Excel.Read.Fluent;
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Fluent;
 
 namespace OfficeIMO.Excel
 {

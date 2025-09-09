@@ -1,4 +1,4 @@
-using OfficeIMO.Excel.Enums;
+using OfficeIMO.Excel;
 
 namespace OfficeIMO.Excel.Fluent
 {

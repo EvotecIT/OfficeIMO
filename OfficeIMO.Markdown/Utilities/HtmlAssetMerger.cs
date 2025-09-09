@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace OfficeIMO.Markdown.Utilities;
+namespace OfficeIMO.Markdown;
 
 /// <summary>
 /// Host-facing helper to merge multiple HtmlAsset manifests into deduplicated CSS/JS tags and inline blobs.

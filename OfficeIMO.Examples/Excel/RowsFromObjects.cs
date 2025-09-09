@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
-using OfficeIMO.Excel.Utilities;
+using OfficeIMO.Excel;
 
 namespace OfficeIMO.Examples.Excel {
     public static class RowsFromObjects {

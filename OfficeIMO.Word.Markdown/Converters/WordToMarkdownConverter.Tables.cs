@@ -3,7 +3,7 @@ using OfficeIMO.Word;
 using System.Linq;
 using System.Text;
 
-namespace OfficeIMO.Word.Markdown.Converters {
+namespace OfficeIMO.Word.Markdown {
     internal partial class WordToMarkdownConverter {
         private string ConvertTable(WordTable table, WordToMarkdownOptions options) {
             var sb = new StringBuilder();

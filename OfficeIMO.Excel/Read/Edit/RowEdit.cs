@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace OfficeIMO.Excel.Read.Edit
+namespace OfficeIMO.Excel
 {
     /// <summary>
     /// Editable row view over a worksheet range row. Provides header-aware access and setters.

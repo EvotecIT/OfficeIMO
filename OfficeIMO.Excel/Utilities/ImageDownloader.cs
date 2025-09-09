@@ -6,7 +6,7 @@ using System.Net;
 using System.Net.Http;
 #endif
 
-namespace OfficeIMO.Excel.Utilities
+namespace OfficeIMO.Excel
 {
     internal static class ImageDownloader
     {

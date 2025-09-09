@@ -8,7 +8,7 @@ using AngleSharp.Io;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
-using OfficeIMO.Word.Html.Helpers;
+using OfficeIMO.Word.Html;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -21,7 +21,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace OfficeIMO.Word.Html.Converters {
+namespace OfficeIMO.Word.Html {
     /// <summary>
     /// IMPLEMENTATION GUIDELINES:
     /// 1. Use OfficeIMO.Word API methods instead of direct OpenXML manipulation

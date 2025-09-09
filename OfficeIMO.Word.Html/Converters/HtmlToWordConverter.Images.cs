@@ -2,13 +2,13 @@ using AngleSharp.Html.Dom;
 using AngleSharp.Dom;
 using Wp = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using OfficeIMO.Word;
-using OfficeIMO.Word.Html.Helpers;
+using OfficeIMO.Word.Html;
 using System;
 using System.IO;
 using System.Net.Http;
 using System.Text;
 
-namespace OfficeIMO.Word.Html.Converters {
+namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
         private void ProcessImage(IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
             var src = img.GetAttribute("src") ?? string.Empty;

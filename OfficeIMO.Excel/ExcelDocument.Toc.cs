@@ -66,7 +66,7 @@ namespace OfficeIMO.Excel {
                 string used = sh.GetUsedRangeA1();
                 try
                 {
-                    var (r1, c1, r2, c2) = OfficeIMO.Excel.Read.A1.ParseRange(used);
+                    var (r1, c1, r2, c2) = A1.ParseRange(used);
                     int rows = System.Math.Max(0, r2 - r1 + 1);
                     int cols = System.Math.Max(0, c2 - c1 + 1);
                     toc.Cell(r, 2, $"Used {used} ({rows}×{cols})");

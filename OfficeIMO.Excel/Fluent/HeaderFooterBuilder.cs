@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using OfficeIMO.Excel.Enums;
+using OfficeIMO.Excel;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
 
@@ -98,7 +98,7 @@ namespace OfficeIMO.Excel.Fluent {
                 byte[]? bytes = img.Bytes;
                 string contentType = img.ContentType;
                 if (bytes == null && !string.IsNullOrWhiteSpace(img.Url)) {
-                    if (Utilities.ImageDownloader.TryFetch(img.Url!, 5, 2_000_000, out var fetched, out var _)) { bytes = fetched; }
+                    if (ImageDownloader.TryFetch(img.Url!, 5, 2_000_000, out var fetched, out var _)) { bytes = fetched; }
                 }
                 // Normalize to PNG to match working path used by local asset case
                 if (bytes != null && contentType != "image/png")

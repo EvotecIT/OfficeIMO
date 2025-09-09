@@ -43,4 +43,3 @@ namespace OfficeIMO.Excel.Fluent
         }
     }
 }
-

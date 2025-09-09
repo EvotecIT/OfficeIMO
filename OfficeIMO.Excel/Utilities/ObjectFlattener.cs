@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace OfficeIMO.Excel.Utilities {
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Configuration for flattening objects into key/value pairs where keys represent dotted paths.
     /// </summary>

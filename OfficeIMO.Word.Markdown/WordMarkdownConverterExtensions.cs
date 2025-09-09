@@ -1,5 +1,5 @@
 using OfficeIMO.Word;
-using OfficeIMO.Word.Markdown.Converters;
+using OfficeIMO.Word.Markdown;
 using System.IO;
 using System.Text;
 using System.Threading;
