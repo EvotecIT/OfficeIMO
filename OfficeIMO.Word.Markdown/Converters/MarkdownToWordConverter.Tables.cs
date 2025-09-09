@@ -48,8 +48,8 @@ namespace OfficeIMO.Word.Markdown.Converters {
             }
         }
 
-        private static TableColumnAlign?[]? GetRowAlignments(TableRow row) {
-            object data = row.GetData("alignment") ?? row.GetData("alignments");
+        private static TableColumnAlign?[]? GetRowAlignments(TableRow row) {
+            object? data = row.GetData("alignment") ?? row.GetData("alignments");
             if (data is IEnumerable enumerable) {
                 List<TableColumnAlign?> list = new List<TableColumnAlign?>();
                 foreach (var item in enumerable) {

@@ -73,7 +73,7 @@ public class AdvancedDocumentTests : VerifyTestBase {
         var paragraphWithHyperlink = document.AddHyperLink("Go to Evotec Blogs", new Uri("https://evotec.xyz"),
             true, "URL with tooltip");
         // you can also change the hyperlink text, uri later on using properties
-        paragraphWithHyperlink.Hyperlink.Uri = new Uri("https://evotec.xyz/hub");
+        paragraphWithHyperlink.Hyperlink!.Uri = new Uri("https://evotec.xyz/hub");
         paragraphWithHyperlink.ParagraphAlignment = JustificationValues.Center;
 
         list.AddItem("3rd element of list, but added after hyperlink", 0);
@@ -118,6 +118,6 @@ public class AdvancedDocumentTests : VerifyTestBase {
 
         document.Save();
 
-        await DoTest(document._wordprocessingDocument);
+        await DoTest(document._wordprocessingDocument!);
     }
 }

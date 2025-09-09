@@ -11,7 +11,7 @@ using System.Text;
 namespace OfficeIMO.Word.Html.Converters {
     internal partial class HtmlToWordConverter {
         private void ProcessImage(IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
-            var src = img.GetAttribute("src");
+            var src = img.GetAttribute("src") ?? string.Empty;
             if (string.IsNullOrEmpty(src)) return;
 
             var decl = _inlineParser.ParseDeclaration(img.GetAttribute("style") ?? string.Empty);
@@ -65,7 +65,7 @@ namespace OfficeIMO.Word.Html.Converters {
                         }
                         paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                         paragraph.AddImageFromBase64(base64, "image." + ext, width, height, wrap, description: alt);
-                        image = paragraph.Image;
+                        image = paragraph.Image!;
                     } catch (Exception ex) {
                         Console.WriteLine($"Failed to decode data-image: {ex.Message}");
                         if (!string.IsNullOrEmpty(alt)) {
@@ -81,7 +81,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 try {
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                     paragraph.AddImage(uri.LocalPath, width, height, wrap, description: alt);
-                    image = paragraph.Image;
+                    image = paragraph.Image!;
                 } catch (Exception ex) {
                     Console.WriteLine($"Failed to load image from file '{uri.LocalPath}': {ex.Message}");
                     if (!string.IsNullOrEmpty(alt)) {
@@ -94,7 +94,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 try {
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                     paragraph.AddImage(src, width, height, wrap, description: alt);
-                    image = paragraph.Image;
+                    image = paragraph.Image!;
                 } catch (Exception ex) {
                     Console.WriteLine($"Failed to load image from file '{src}': {ex.Message}");
                     if (!string.IsNullOrEmpty(alt)) {
@@ -111,14 +111,14 @@ namespace OfficeIMO.Word.Html.Converters {
                     string fileName = "image";
                     try {
                         var uriSrc = new Uri(src);
-                        fileName = Path.GetFileName(uriSrc.LocalPath);
+                        fileName = Path.GetFileName(uriSrc.LocalPath) ?? "image";
                         if (string.IsNullOrEmpty(fileName)) fileName = "image";
                     } catch (UriFormatException) {
                         // ignore
                     }
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                     paragraph.AddImage(ms, fileName, width, height, wrap, description: alt);
-                    image = paragraph.Image;
+                    image = paragraph.Image!;
                 } catch (Exception ex) {
                     Console.WriteLine($"Failed to load image from '{src}': {ex.Message}");
                     if (!string.IsNullOrEmpty(alt)) {
@@ -166,12 +166,12 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             try {
-                SvgHelper.AddSvg(paragraph, svgContent, width, height, alt);
-                _imageCache[src] = paragraph.Image;
+                SvgHelper.AddSvg(paragraph, svgContent, width, height, alt ?? string.Empty);
+                _imageCache[src] = paragraph.Image!;
             } catch (System.Exception ex) {
                 System.Console.WriteLine($"Failed to embed SVG: {ex.Message}");
                 if (!string.IsNullOrEmpty(alt)) {
-                    paragraph.AddText(alt);
+                    paragraph.AddText(alt ?? string.Empty);
                 }
             }
         }

@@ -136,7 +136,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 foreach (var li in footnoteSection.QuerySelectorAll("li")) {
                     var id = li.GetAttribute("id");
                     if (!string.IsNullOrEmpty(id)) {
-                        _footnoteMap[id] = li.TextContent?.Trim() ?? string.Empty;
+                        _footnoteMap[id!] = li.TextContent?.Trim() ?? string.Empty;
                     }
                 }
                 footnoteSection.Remove();
@@ -248,7 +248,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     cancellationToken.ThrowIfCancellationRequested();
                     var id = li.GetAttribute("id");
                     if (!string.IsNullOrEmpty(id)) {
-                        _footnoteMap[id] = li.TextContent?.Trim() ?? string.Empty;
+                        _footnoteMap[id!] = li.TextContent?.Trim() ?? string.Empty;
                     }
                 }
                 footnoteSection.Remove();
@@ -357,7 +357,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     cancellationToken.ThrowIfCancellationRequested();
                     var id = li.GetAttribute("id");
                     if (!string.IsNullOrEmpty(id)) {
-                        _footnoteMap[id] = li.TextContent?.Trim() ?? string.Empty;
+                        _footnoteMap[id!] = li.TextContent?.Trim() ?? string.Empty;
                     }
                 }
                 footnoteSection.Remove();
@@ -513,7 +513,7 @@ namespace OfficeIMO.Word.Html.Converters {
                                 }
                             }
                             if (!string.IsNullOrEmpty(cite)) {
-                                firstPara.AddFootNote(cite);
+                                firstPara?.AddFootNote(cite ?? string.Empty);
                             }
                             break;
                         }
@@ -549,7 +549,7 @@ namespace OfficeIMO.Word.Html.Converters {
                                     var paragraph = i == start ? preCell.AddParagraph("", true) : preCell.AddParagraph("");
                                     paragraph.SetStyleId("HTMLPreformatted");
                                     if (!string.IsNullOrEmpty(mono)) {
-                                        paragraph.SetFontFamily(mono);
+                                        paragraph.SetFontFamily(mono!);
                                     }
                                     if (!bookmarkAdded) {
                                         AddBookmarkIfPresent(element, paragraph);
@@ -564,7 +564,7 @@ namespace OfficeIMO.Word.Html.Converters {
                                     var paragraph = cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
                                     paragraph.SetStyleId("HTMLPreformatted");
                                     if (!string.IsNullOrEmpty(mono)) {
-                                        paragraph.SetFontFamily(mono);
+                                        paragraph.SetFontFamily(mono!);
                                     }
                                     if (!bookmarkAdded) {
                                         AddBookmarkIfPresent(element, paragraph);
@@ -763,7 +763,8 @@ namespace OfficeIMO.Word.Html.Converters {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
                             if (!string.IsNullOrEmpty(title)) {
-                                var fnRun = currentParagraph.AddFootNote(title);
+                                currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                                var fnRun = currentParagraph.AddFootNote(title ?? string.Empty);
                                 fnRun.SetCharacterStyleId("HtmlAbbr");
                             }
                             break;
@@ -779,14 +780,14 @@ namespace OfficeIMO.Word.Html.Converters {
                               }
                               if (!string.IsNullOrEmpty(href) && href.StartsWith("#") && _footnoteMap.TryGetValue(href.TrimStart('#'), out var fnText)) {
                                   currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
-                                  currentParagraph.AddFootNote(fnText);
+                                  currentParagraph!.AddFootNote(fnText ?? string.Empty);
                               } else if (!string.IsNullOrEmpty(href)) {
                                   currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
                                 if (href.StartsWith("#")) {
                                     var anchor = href.TrimStart('#');
-                                    var linkPara = currentParagraph.AddHyperLink(element.TextContent, anchor);
+                                    var linkPara = currentParagraph!.AddHyperLink(element.TextContent, anchor);
                                     if (!string.IsNullOrEmpty(options.FontFamily)) {
-                                        linkPara.SetFontFamily(options.FontFamily);
+                                        linkPara.SetFontFamily(options.FontFamily!);
                                     }
                                     var link = linkPara.Hyperlink;
                                     if (link != null) {
@@ -799,9 +800,9 @@ namespace OfficeIMO.Word.Html.Converters {
                                     }
                                 } else {
                                     var uri = new Uri(href, UriKind.RelativeOrAbsolute);
-                                    var linkPara = currentParagraph.AddHyperLink(element.TextContent, uri);
+                                    var linkPara = currentParagraph!.AddHyperLink(element.TextContent, uri);
                                     if (!string.IsNullOrEmpty(options.FontFamily)) {
-                                        linkPara.SetFontFamily(options.FontFamily);
+                                        linkPara.SetFontFamily(options.FontFamily!);
                                     }
                                     var link = linkPara.Hyperlink;
                                     if (link != null) {
@@ -910,7 +911,7 @@ namespace OfficeIMO.Word.Html.Converters {
         private static void AddBookmarkIfPresent(IElement element, WordParagraph paragraph) {
             var id = element.GetAttribute("id");
             if (!string.IsNullOrEmpty(id)) {
-                WordBookmark.AddBookmark(paragraph, id);
+                WordBookmark.AddBookmark(paragraph, id!);
             }
         }
 
@@ -920,7 +921,7 @@ namespace OfficeIMO.Word.Html.Converters {
                 return;
             }
 
-            foreach (var cls in classAttr.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
+            foreach (var cls in (classAttr ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
                 if (options.ClassStyles.TryGetValue(cls, out var style) || _cssClassStyles.TryGetValue(cls, out style)) {
                     paragraph.Style = style;
                     break;
@@ -932,7 +933,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     break;
                 }
                 if (!string.IsNullOrEmpty(args.StyleId)) {
-                    paragraph.SetStyleId(args.StyleId);
+                    paragraph.SetStyleId(args.StyleId!);
                     break;
                 }
             }

@@ -191,8 +191,9 @@ namespace OfficeIMO.Word.Html.Converters {
             foreach (var col in colElements) {
                 string? width = null;
                 var style = col.GetAttribute("style");
+                var styleColText = style ?? string.Empty;
                 if (!string.IsNullOrEmpty(style)) {
-                    foreach (var part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                    foreach (var part in styleColText.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
                         var pieces = part.Split(new[] { ':' }, 2);
                         if (pieces.Length == 2 && pieces[0].Trim().Equals("width", StringComparison.OrdinalIgnoreCase)) {
                             width = pieces[1].Trim();
@@ -212,8 +213,9 @@ namespace OfficeIMO.Word.Html.Converters {
 
                 int size;
                 TableWidthUnitValues thisType;
-                if (width.EndsWith("%", StringComparison.Ordinal)) {
-                    var num = width.TrimEnd('%');
+                var widthText = width ?? string.Empty;
+                if (widthText.EndsWith("%", StringComparison.Ordinal)) {
+                    var num = widthText.TrimEnd('%');
                     if (!int.TryParse(num, out int pct)) {
                         continue;
                     }
@@ -221,7 +223,7 @@ namespace OfficeIMO.Word.Html.Converters {
                     thisType = TableWidthUnitValues.Pct;
                 } else {
                     var parser = new CssParser();
-                    var decl = parser.ParseDeclaration($"x:{width}");
+                    var decl = parser.ParseDeclaration($"x:{widthText}");
                     if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int w)) {
                         size = w;
                         thisType = TableWidthUnitValues.Dxa;
@@ -263,7 +265,7 @@ namespace OfficeIMO.Word.Html.Converters {
             bool collapse = true;
 
             if (!string.IsNullOrWhiteSpace(style)) {
-                foreach (var part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                foreach (var part in (style ?? string.Empty).Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
                     var pieces = part.Split(new[] { ':' }, 2);
                     if (pieces.Length != 2) {
                         continue;
@@ -392,7 +394,7 @@ namespace OfficeIMO.Word.Html.Converters {
             UInt32Value? borderSize = null;
             SixColor borderColor = default;
 
-            foreach (var part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+            foreach (var part in (style ?? string.Empty).Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
                 var pieces = part.Split(new[] { ':' }, 2);
                 if (pieces.Length != 2) {
                     continue;
@@ -493,7 +495,7 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             if (alignment == null && !string.IsNullOrWhiteSpace(alignAttr)) {
-                var align = alignAttr.Trim().ToLowerInvariant();
+                var align = (alignAttr ?? string.Empty).Trim().ToLowerInvariant();
                 alignment = align switch {
                     "center" => JustificationValues.Center,
                     "right" => JustificationValues.Right,
