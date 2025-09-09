@@ -264,9 +264,15 @@ namespace OfficeIMO.Excel.Fluent
                     string colRange = $"{ColumnLetter(startCol + i)}{headerRow + 1}:{ColumnLetter(startCol + i)}{_row - 1}";
 
                     if (viz.NumericColumnFormats.TryGetValue(hdr, out var fmt))
-                        try { _sheet.ColumnStyleByHeader(hdr).NumberFormat(fmt); } catch { }
+                    {
+                        if (_sheet.TryGetColumnIndexByHeader(hdr, out _))
+                            _sheet.ColumnStyleByHeader(hdr).NumberFormat(fmt);
+                    }
                     else if (viz.NumericColumnDecimals.TryGetValue(hdr, out var dec))
-                        try { _sheet.ColumnStyleByHeader(hdr).Number(dec); } catch { }
+                    {
+                        if (_sheet.TryGetColumnIndexByHeader(hdr, out _))
+                            _sheet.ColumnStyleByHeader(hdr).Number(dec);
+                    }
 
                     if (viz.DataBars.TryGetValue(hdr, out var color))
                         try { _sheet.AddConditionalDataBar(colRange, color); } catch { }
@@ -278,9 +284,11 @@ namespace OfficeIMO.Excel.Fluent
 
                     if (viz.TextBackgrounds.TryGetValue(hdr, out var map))
                     {
-                        bool appliedViaHeader = false;
-                        try { _sheet.ColumnStyleByHeader(hdr).BackgroundByTextMap(map); appliedViaHeader = true; } catch { }
-                        if (!appliedViaHeader)
+                        if (_sheet.TryGetColumnIndexByHeader(hdr, out _))
+                        {
+                            _sheet.ColumnStyleByHeader(hdr).BackgroundByTextMap(map);
+                        }
+                        else
                         {
                             for (int r = headerRow + 1; r <= _row - 1; r++)
                                 if (_sheet.TryGetCellText(r, startCol + i, out var t) && t != null && map.TryGetValue(t, out var colorHex))
@@ -289,9 +297,11 @@ namespace OfficeIMO.Excel.Fluent
                     }
                     if (viz.BoldByText.TryGetValue(hdr, out var boldSet))
                     {
-                        bool boldViaHeader = false;
-                        try { _sheet.ColumnStyleByHeader(hdr).BoldByTextSet(boldSet); boldViaHeader = true; } catch { }
-                        if (!boldViaHeader)
+                        if (_sheet.TryGetColumnIndexByHeader(hdr, out _))
+                        {
+                            _sheet.ColumnStyleByHeader(hdr).BoldByTextSet(boldSet);
+                        }
+                        else
                         {
                             var setCI = new HashSet<string>(boldSet, StringComparer.OrdinalIgnoreCase);
                             for (int r = headerRow + 1; r <= _row - 1; r++)
@@ -308,7 +318,8 @@ namespace OfficeIMO.Excel.Fluent
                         if (paths[i].Contains('.'))
                         {
                             var hdr = headers[i];
-                            try { _sheet.ColumnStyleByHeader(hdr).Number(viz.AutoFormatDecimals); } catch { }
+                            if (_sheet.TryGetColumnIndexByHeader(hdr, out _))
+                                _sheet.ColumnStyleByHeader(hdr).Number(viz.AutoFormatDecimals);
                             string colRangeAuto = $"{ColumnLetter(startCol + i)}{headerRow + 1}:{ColumnLetter(startCol + i)}{_row - 1}";
                             try { _sheet.AddConditionalDataBar(colRangeAuto, viz.AutoFormatDataBarColor); } catch { }
                         }

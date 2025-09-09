@@ -3,6 +3,21 @@ OfficeIMO.Markdown
 
 Fluent and object‑model Markdown builder for .NET with CommonMark/GFM‑style output. Zero runtime dependencies, rich table/list helpers, HTML export (fragment or full document) with built‑in styles and Prism highlighting.
 
+## Why OfficeIMO.Markdown
+
+- Pure .NET, cross‑platform — no native renderers required
+- Fluent API or explicit object model — compose documents predictably
+- CommonMark/GFM‑style output that renders well on GitHub, wikis, and docs sites
+- HTML export with clean themes (Clean, GitHub Light/Dark/Auto), CDN/offline assets, and Prism highlighting
+- Designed for reporting — tables from sequences/objects, callouts, TOC, and front matter
+
+### Design & Expectations
+
+- Deterministic output — stable ordering and formatting make diffs/snapshots easy
+- Extensible blocks — add custom blocks with small helpers instead of string concatenation
+- Good defaults — header transforms (Pretty + acronyms), numeric/date alignment heuristics
+- Performance — string builders and pooled buffers; no exceptions in hot loops (e.g., header lookups)
+
 Badges
 
 <!-- Replace OWNER/REPO and workflow names to match your repo; update NuGet id when published. -->

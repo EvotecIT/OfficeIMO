@@ -2,6 +2,54 @@
 
 OfficeIMO.Excel provides a lightweight, typed, and ergonomic API for reading and writing .xlsx files on top of Open XML. It focuses on fast values reads, editable row workflows, and write helpers that avoid extra file handles.
 
+## Why OfficeIMO.Excel
+
+- Pure .NET, cross‑platform — no COM automation, no Excel process required.
+- Works directly on Open XML parts, but exposes ergonomic helpers (headers, ranges, tables, styles).
+- Thread‑safe by design — scales heavy work across cores while keeping writes safe.
+- Deterministic and validation‑friendly — predictable element ordering, optional Open XML validation.
+- Practical guardrails — e.g., smart AutoFilter/table conflict handling; safe table naming; sensible defaults.
+
+### Thread Safety & Parallelism (How it works)
+
+- Compute vs. apply phases:
+  - Heavy work (e.g., measuring column widths, coercing values, building shared strings) runs in parallel.
+  - The short “apply” phase that mutates the Open XML DOM is serialized using a document‑level lock.
+- ExecutionPolicy controls behavior:
+  - `doc.Execution.Mode` = `Automatic` (default), `Sequential`, or `Parallel`.
+  - `Automatic` switches to parallel per operation when the workload exceeds a threshold.
+  - `doc.Execution.MaxDegreeOfParallelism` caps parallelism (set to CPU count for best results).
+  - Optional diagnostics callbacks: `OnDecision(op, items, mode)`, `OnTiming(op, elapsed)`.
+- Safe across tasks:
+  - Multiple tasks can operate on the same `ExcelDocument`; the library coordinates writes.
+  - Multiple `ExcelDocument` instances can run in parallel without interaction.
+
+Quick setup
+
+```csharp
+using var doc = ExcelDocument.Create(path);
+// Prefer all cores for compute; keep writes safe
+doc.Execution.Mode = ExecutionMode.Automatic;
+doc.Execution.MaxDegreeOfParallelism = Environment.ProcessorCount;
+doc.Execution.OnDecision = (op, n, m) => Console.WriteLine($"[Exec] {op}: {n} → {m}");
+```
+
+What to expect
+
+- Noticeable wins on:
+  - `AutoFitColumns/Rows` (thousands of rows),
+  - bulk cell writes (`CellValues(...)`),
+  - object→table transforms (when mapping + formatting is non‑trivial).
+- Small ranges may remain sequential (overhead would dominate); thresholds are configurable.
+- Exceptions are avoided in hot loops (e.g., header styling uses `TryGetColumnIndexByHeader`), so perf is stable.
+
+Design choices you’ll run into
+
+- Tables + AutoFilter: the library resolves conflicts for you (worksheet filter is migrated to the table when needed).
+- Named ranges & sheet ops: sheet moves/removals re‑index local names; broken names are repaired before save.
+- Deterministic ordering: element order is normalized before save to keep Excel happy and validation stable.
+
+
 ## Quick Read Patterns
 
 These helpers streamline reading Excel without extra reader boilerplate. They reuse the open `ExcelDocument` handle and infer headers/types for you.
