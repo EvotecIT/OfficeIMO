@@ -118,6 +118,7 @@ namespace OfficeIMO.Excel
             return this;
         }
 
+        /// <summary>Aligns text left in the column.</summary>
         public ColumnStyleByHeaderBuilder AlignLeft()
         {
             for (int r = _startRow; r <= _endRow; r++)
@@ -125,6 +126,7 @@ namespace OfficeIMO.Excel
             return this;
         }
 
+        /// <summary>Centers text in the column.</summary>
         public ColumnStyleByHeaderBuilder AlignCenter()
         {
             for (int r = _startRow; r <= _endRow; r++)
@@ -132,6 +134,7 @@ namespace OfficeIMO.Excel
             return this;
         }
 
+        /// <summary>Aligns text right in the column.</summary>
         public ColumnStyleByHeaderBuilder AlignRight()
         {
             for (int r = _startRow; r <= _endRow; r++)
@@ -139,6 +142,7 @@ namespace OfficeIMO.Excel
             return this;
         }
 
+        /// <summary>Sets font color using hex (#RRGGBB or #AARRGGBB).</summary>
         public ColumnStyleByHeaderBuilder FontColor(string hexColor)
         {
             for (int r = _startRow; r <= _endRow; r++)
@@ -146,6 +150,9 @@ namespace OfficeIMO.Excel
             return this;
         }
 
+        /// <summary>
+        /// Sets font colors by matching cell text to a provided mapping of text→hex color.
+        /// </summary>
         public ColumnStyleByHeaderBuilder FontColorByTextMap(System.Collections.Generic.IDictionary<string, string> map, bool caseInsensitive = true)
         {
             if (map == null || map.Count == 0) return this;

@@ -173,7 +173,7 @@ namespace OfficeIMO.Excel {
                             foreach (var tdp in ws.TableDefinitionParts)
                             {
                                 var n = tdp.Table?.Name?.Value;
-                                if (!string.IsNullOrEmpty(n)) set.Add(n);
+                                if (!string.IsNullOrEmpty(n)) set.Add(n!);
                             }
                         }
                     }
@@ -195,7 +195,7 @@ namespace OfficeIMO.Excel {
                         foreach (var tdp in ws.TableDefinitionParts)
                         {
                             var n = tdp.Table?.Name?.Value;
-                            if (!string.IsNullOrEmpty(n)) set.Add(n);
+                            if (!string.IsNullOrEmpty(n)) set.Add(n!);
                         }
                     }
                 }

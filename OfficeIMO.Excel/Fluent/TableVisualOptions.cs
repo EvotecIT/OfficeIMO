@@ -3,10 +3,16 @@ using SixColor = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Excel.Fluent
 {
+    /// <summary>
+    /// Options for conditional-formatting icon sets applied to a column.
+    /// </summary>
     public sealed class IconSetOptions
     {
+        /// <summary>Icon set type (e.g., ThreeTrafficLights1).</summary>
         public DocumentFormat.OpenXml.Spreadsheet.IconSetValues IconSet { get; set; } = DocumentFormat.OpenXml.Spreadsheet.IconSetValues.ThreeTrafficLights1;
+        /// <summary>Whether to show the cell’s value alongside icons.</summary>
         public bool ShowValue { get; set; } = true;
+        /// <summary>Reverse the icon order.</summary>
         public bool ReverseOrder { get; set; } = false;
         /// <summary>Optional explicit percent thresholds (0..100). Length must match icon count (3/4/5).</summary>
         public double[]? PercentThresholds { get; set; }

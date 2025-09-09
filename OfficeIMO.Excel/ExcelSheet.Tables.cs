@@ -177,25 +177,6 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Adds an Excel table to the worksheet over the specified range with optional AutoFilter.
-        /// </summary>
-        /// <param name="range">Cell range (e.g. "A1:B3") defining the table area.</param>
-        /// <param name="hasHeader">Indicates whether the first row is a header row.</param>
-        /// <param name="name">Name of the table. If empty, a default name is used.</param>
-        /// <param name="style">Table style to apply.</param>
-        /// <param name="includeAutoFilter">Whether to include AutoFilter dropdowns in the table headers.</param>
-        /// <remarks>
-        /// Smart AutoFilter handling:
-        /// - If includeAutoFilter is true and a worksheet-level AutoFilter exists on the same range, 
-        ///   it's moved to the table (preserving any filter criteria)
-        /// - If includeAutoFilter is false and a worksheet-level AutoFilter exists, it's removed 
-        ///   (Excel doesn't allow both worksheet AutoFilter and table on same range)
-        /// - Order doesn't matter - the final state will be consistent regardless of operation order
-        /// </remarks>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="range"/> is null or empty.</exception>
-        /// <exception cref="ArgumentException">Thrown when <paramref name="range"/> is not in a valid format.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the specified range overlaps with an existing table.</exception>
-        /// <summary>
         /// Adds an Excel table to the worksheet over the specified range with optional AutoFilter and name validation behavior.
         /// </summary>
         /// <param name="range">Cell range (e.g. "A1:B3") defining the table area.</param>
@@ -206,6 +187,12 @@ namespace OfficeIMO.Excel {
         /// <param name="validationMode">Controls how invalid table names are handled:
         /// <see cref="TableNameValidationMode.Sanitize"/> (default) replaces invalid characters and adjusts the name;
         /// <see cref="TableNameValidationMode.Strict"/> throws descriptive exceptions for invalid names.</param>
+        /// <remarks>
+        /// Smart AutoFilter handling:
+        /// - If includeAutoFilter is true and a worksheet-level AutoFilter exists on the same range, it's moved to the table (preserving any filter criteria).
+        /// - If includeAutoFilter is false and a worksheet-level AutoFilter exists, it's removed (Excel doesn't allow both worksheet AutoFilter and a table on the same range).
+        /// - Order doesn't matter — the final state will be consistent regardless of operation order.
+        /// </remarks>
         public void AddTable(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
@@ -230,7 +217,7 @@ namespace OfficeIMO.Excel {
                 foreach (var existingPart in _worksheetPart.TableDefinitionParts) {
                     var existingRange = existingPart.Table?.Reference?.Value;
                     if (string.IsNullOrEmpty(existingRange)) continue;
-                    var existingCells = existingRange.Split(':');
+                    var existingCells = existingRange!.Split(':');
                     if (existingCells.Length != 2) continue;
                     string existingStartRef = existingCells[0];
                     string existingEndRef = existingCells[1];

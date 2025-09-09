@@ -212,10 +212,10 @@ namespace OfficeIMO.Excel {
                 CellValue(row, column, value);
             }
             if (!string.IsNullOrEmpty(formula)) {
-                CellFormula(row, column, formula);
+                CellFormula(row, column, formula!);
             }
             if (!string.IsNullOrEmpty(numberFormat)) {
-                FormatCell(row, column, numberFormat);
+                FormatCell(row, column, numberFormat!);
             }
         }
 
@@ -283,7 +283,8 @@ namespace OfficeIMO.Excel {
 
             // Base on existing cell's style if present
             uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            var cellFormats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
+            var cellFormatsEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+            var cellFormats = cellFormatsEl.Elements<CellFormat>().ToList();
             var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? new CellFormat
             {
                 NumberFormatId = 0U,
@@ -322,9 +323,9 @@ namespace OfficeIMO.Excel {
                     ApplyAlignment = true,
                     Alignment = new Alignment { WrapText = true }
                 };
-                stylesheet.CellFormats.Append(newFormat);
-                stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
-                wrapIndex = (int)stylesheet.CellFormats.Count.Value - 1;
+                cellFormatsEl.Append(newFormat);
+                cellFormatsEl.Count = (uint)cellFormatsEl.Count();
+                wrapIndex = (int)cellFormatsEl.Count.Value - 1;
                 stylesPart.Stylesheet.Save();
             }
 
@@ -345,7 +346,8 @@ namespace OfficeIMO.Excel {
                 EnsureDefaultStylePrimitives(stylesheet);
 
                 uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-                var cfs = stylesheet.CellFormats.Elements<CellFormat>().ToList();
+                var cfEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+                var cfs = cfEl.Elements<CellFormat>().ToList();
                 var baseFormat = cfs.ElementAtOrDefault((int)baseIndex) ?? new CellFormat
                 {
                     NumberFormatId = 0U,
@@ -382,10 +384,10 @@ namespace OfficeIMO.Excel {
                         ApplyAlignment = true,
                         Alignment = new Alignment { Horizontal = alignment }
                     };
-                    stylesheet.CellFormats.Append(newFormat);
-                    stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
+                    cfEl.Append(newFormat);
+                    cfEl.Count = (uint)cfEl.Count();
                     stylesPart.Stylesheet.Save();
-                    found = (int)stylesheet.CellFormats.Count.Value - 1;
+                    found = (int)cfEl.Count.Value - 1;
                 }
                 cell.StyleIndex = (uint)found;
             });
@@ -408,7 +410,8 @@ namespace OfficeIMO.Excel {
                 string argb = NormalizeHexColor(hexColor);
 
                 // Ensure a Font with this color exists
-                var fonts = stylesheet.Fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ToList();
+                var fontsEl = stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
+                var fonts = fontsEl.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ToList();
                 int fontId = -1;
                 for (int i = 0; i < fonts.Count; i++)
                 {
@@ -418,15 +421,16 @@ namespace OfficeIMO.Excel {
                 }
                 if (fontId == -1)
                 {
-                    var f = new DocumentFormat.OpenXml.Spreadsheet.Font();
-                    f.Color = new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = argb };
-                    stylesheet.Fonts.Append(f);
-                    stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
-                    fontId = (int)stylesheet.Fonts.Count.Value - 1;
+                var f = new DocumentFormat.OpenXml.Spreadsheet.Font();
+                f.Color = new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = argb };
+                fontsEl.Append(f);
+                fontsEl.Count = (uint)fontsEl.Count();
+                fontId = (int)fontsEl.Count.Value - 1;
                 }
 
                 uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-                var cellFormats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
+                var cellFormatsEl2 = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+                var cellFormats = cellFormatsEl2.Elements<CellFormat>().ToList();
                 var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? new CellFormat
                 {
                     NumberFormatId = 0U,
@@ -443,9 +447,9 @@ namespace OfficeIMO.Excel {
                     BorderId = baseFormat.BorderId ?? 0U,
                     FormatId = baseFormat.FormatId ?? 0U,
                 };
-                stylesheet.CellFormats.Append(newFormat2);
-                stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
-                cell.StyleIndex = (uint)stylesheet.CellFormats.Count.Value - 1;
+                cellFormatsEl2.Append(newFormat2);
+                cellFormatsEl2.Count = (uint)cellFormatsEl2.Count();
+                cell.StyleIndex = (uint)cellFormatsEl2.Count.Value - 1;
                 stylesPart.Stylesheet.Save();
             });
         }
@@ -462,7 +466,8 @@ namespace OfficeIMO.Excel {
 
             // Ensure we have a bold font entry
             int boldFontId = -1;
-            var fonts = stylesheet.Fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ToList();
+            var fontsEl = stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
+            var fonts = fontsEl.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ToList();
             for (int i = 0; i < fonts.Count; i++)
             {
                 bool hasBold = fonts[i].Bold != null;
@@ -476,13 +481,14 @@ namespace OfficeIMO.Excel {
             {
                 var f = new DocumentFormat.OpenXml.Spreadsheet.Font();
                 if (bold) f.Bold = new Bold();
-                stylesheet.Fonts.Append(f);
-                stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
-                boldFontId = (int)stylesheet.Fonts.Count.Value - 1;
+                fontsEl.Append(f);
+                fontsEl.Count = (uint)fontsEl.Count();
+                boldFontId = (int)fontsEl.Count.Value - 1;
             }
 
             uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            var cellFormats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
+            var cellFormatsEl3 = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+            var cellFormats = cellFormatsEl3.Elements<CellFormat>().ToList();
             var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? new CellFormat
             {
                 NumberFormatId = 0U,
@@ -502,9 +508,9 @@ namespace OfficeIMO.Excel {
                 FormatId = baseFormat.FormatId ?? 0U,
                 ApplyFont = true
             };
-            stylesheet.CellFormats.Append(newFormat);
-            stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
-            cell.StyleIndex = (uint)stylesheet.CellFormats.Count.Value - 1;
+            cellFormatsEl3.Append(newFormat);
+            cellFormatsEl3.Count = (uint)cellFormatsEl3.Count();
+            cell.StyleIndex = (uint)cellFormatsEl3.Count.Value - 1;
             stylesPart.Stylesheet.Save();
         }
 
@@ -536,12 +542,14 @@ namespace OfficeIMO.Excel {
                 ForegroundColor = new ForegroundColor { Rgb = argb },
                 BackgroundColor = new BackgroundColor { Rgb = argb }
             });
-            stylesheet.Fills.Append(fill);
-            stylesheet.Fills.Count = (uint)stylesheet.Fills.Count();
-            int fillId = (int)stylesheet.Fills.Count.Value - 1;
+            var fillsEl = stylesheet.Fills ??= new Fills();
+            fillsEl.Append(fill);
+            fillsEl.Count = (uint)fillsEl.Count();
+            int fillId = (int)fillsEl.Count.Value - 1;
 
             uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            var cellFormats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
+            var cellFormatsEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+            var cellFormats = cellFormatsEl.Elements<CellFormat>().ToList();
             var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? new CellFormat
             {
                 NumberFormatId = 0U,
@@ -578,7 +586,8 @@ namespace OfficeIMO.Excel {
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            var cellFormats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
+            var cellFormatsEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+            var cellFormats = cellFormatsEl.Elements<CellFormat>().ToList();
             int formatIndex = cellFormats.FindIndex(cf => cf.NumberFormatId != null && cf.NumberFormatId.Value == builtInFormatId && cf.ApplyNumberFormat != null && cf.ApplyNumberFormat.Value);
             if (formatIndex == -1) {
                 CellFormat cellFormat = new CellFormat {
@@ -629,7 +638,8 @@ namespace OfficeIMO.Excel {
                 stylesheet.NumberingFormats.Count = (uint)stylesheet.NumberingFormats.Count();
             }
 
-            var cellFormats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
+            var cellFormatsEl4 = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+            var cellFormats = cellFormatsEl4.Elements<CellFormat>().ToList();
             int formatIndex = cellFormats.FindIndex(cf => cf.NumberFormatId != null && cf.NumberFormatId.Value == numberFormatId && cf.ApplyNumberFormat != null && cf.ApplyNumberFormat.Value);
             if (formatIndex == -1) {
                 CellFormat cellFormat = new CellFormat {
@@ -640,8 +650,8 @@ namespace OfficeIMO.Excel {
                     FormatId = 0,
                     ApplyNumberFormat = true
                 };
-                stylesheet.CellFormats.Append(cellFormat);
-                stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
+                cellFormatsEl4.Append(cellFormat);
+                cellFormatsEl4.Count = (uint)cellFormatsEl4.Count();
                 formatIndex = cellFormats.Count;
             }
 

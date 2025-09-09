@@ -195,9 +195,12 @@ namespace OfficeIMO.Excel.Utilities {
     /// <summary>
     /// Configuration for mapping a collection of objects into dynamic columns.
     /// </summary>
-    public sealed class CollectionColumnMapping
-    {
+public sealed class CollectionColumnMapping
+{
+        /// <summary>Property name on the item to use as the header suffix (key).</summary>
         public string KeyProperty { get; set; } = "Name";
+        /// <summary>Property name on the item to use as the cell value.</summary>
         public string ValueProperty { get; set; } = "Value";
+        /// <summary>Optional prefix for generated column headers.</summary>
         public string? HeaderPrefix { get; set; }
-    }
+}

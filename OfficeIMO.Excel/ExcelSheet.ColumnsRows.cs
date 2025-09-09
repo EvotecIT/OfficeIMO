@@ -108,7 +108,7 @@ namespace OfficeIMO.Excel {
                   {
                       var cellRef = cell.CellReference?.Value;
                       if (string.IsNullOrEmpty(cellRef)) continue;
-                      columnIndexes.Add(GetColumnIndex(cellRef));
+                      columnIndexes.Add(GetColumnIndex(cellRef!));
                   }
               }
 
@@ -460,13 +460,13 @@ namespace OfficeIMO.Excel {
             if (merges == null) return null;
             var r = cell.CellReference?.Value;
             if (string.IsNullOrEmpty(r)) return null;
-            int selfCol = GetColumnIndex(r);
-            int selfRow = GetRowIndex(r);
+            int selfCol = GetColumnIndex(r!);
+            int selfRow = GetRowIndex(r!);
             foreach (var mc in merges.Elements<MergeCell>())
             {
                 var refAttr = mc.Reference?.Value; // e.g. "A1:C1"
                 if (string.IsNullOrEmpty(refAttr)) continue;
-                var parts = refAttr.Split(':');
+                var parts = refAttr!.Split(':');
                 if (parts.Length != 2) continue;
                 int fromRow = GetRowIndex(parts[0]);
                 int toRow = GetRowIndex(parts[1]);
@@ -878,7 +878,6 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Configures basic print/page setup for the sheet.
         /// </summary>
-        /// <param name="orientation">Portrait or Landscape.</param>
         /// <param name="fitToWidth">Number of pages to fit horizontally (1 = fit to one page).</param>
         /// <param name="fitToHeight">Number of pages to fit vertically (0 = unlimited).</param>
         /// <param name="scale">Manual scale (10-400). Ignored if FitToWidth/Height are specified.</param>

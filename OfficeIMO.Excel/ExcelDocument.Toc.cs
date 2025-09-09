@@ -31,8 +31,8 @@ namespace OfficeIMO.Excel {
             // Build a lookup of defined names to their metadata (for Hidden flag)
             var dnRoot = _workBookPart.Workbook.DefinedNames;
             var dnMeta = dnRoot?.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>()
-                                 .Where(d => d.Name != null)
-                                 .ToDictionary(d => d.Name!.Value, d => d, StringComparer.OrdinalIgnoreCase)
+                                 .Where(d => d.Name != null && !string.IsNullOrEmpty(d.Name.Value))
+                                 .ToDictionary(d => d.Name!.Value!, d => d, StringComparer.OrdinalIgnoreCase)
                          ?? new System.Collections.Generic.Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.DefinedName>(StringComparer.OrdinalIgnoreCase);
 
             // Header
@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel {
                     {
                         var name = kv.Key;
                         if (rangeNameFilter != null && !rangeNameFilter(name)) continue;
-                        if (dnMeta.TryGetValue(name, out var dn) && dn.Hidden == true && !includeHiddenNamedRanges) continue;
+                        if (dnMeta.TryGetValue(name, out var dn) && (dn.Hidden?.Value ?? false) && !includeHiddenNamedRanges) continue;
                         list.Add(name);
                     }
                     string joined = list.Count == 0 ? "—" : string.Join(", ", list);
@@ -135,7 +135,7 @@ namespace OfficeIMO.Excel {
             sheet.Remove();
             if (!string.IsNullOrEmpty(relId))
             {
-                var part = (DocumentFormat.OpenXml.Packaging.WorksheetPart)_workBookPart.GetPartById(relId);
+                var part = (DocumentFormat.OpenXml.Packaging.WorksheetPart)_workBookPart.GetPartById(relId!);
                 // Remove table parts to avoid orphan relationships
                 foreach (var t in part.TableDefinitionParts.ToList())
                 {

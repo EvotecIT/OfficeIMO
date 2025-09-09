@@ -14,6 +14,13 @@ namespace OfficeIMO.Excel.Fluent
         private ExcelSheet _sheet;
         private int _row;
 
+        /// <summary>
+        /// Creates a new sheet and prepares a composer for adding content top-to-bottom.
+        /// Also creates a hidden named range at the sheet top ("top_{sheet}") for navigation.
+        /// </summary>
+        /// <param name="workbook">Target workbook.</param>
+        /// <param name="sheetName">Name of the sheet to create.</param>
+        /// <param name="theme">Optional theme controlling colors and spacing.</param>
         public SheetComposer(ExcelDocument workbook, string sheetName, SheetTheme? theme = null)
         {
             _workbook = workbook ?? throw new ArgumentNullException(nameof(workbook));
@@ -27,11 +34,18 @@ namespace OfficeIMO.Excel.Fluent
             } catch { }
         }
 
+        /// <summary>The underlying sheet created by this composer.</summary>
         public ExcelSheet Sheet => _sheet;
+        /// <summary>Current row where the next write occurs (1-based).</summary>
         public int CurrentRow => _row;
 
+        /// <summary>Adds vertical spacing by advancing the current row.</summary>
+        /// <param name="rows">Number of rows to skip; when negative uses the theme default.</param>
         public SheetComposer Spacer(int rows = -1) { _row += rows > 0 ? rows : _theme.DefaultSpacingRows; return this; }
 
+        /// <summary>Writes a title (bold with themed background) and optional subtitle.</summary>
+        /// <param name="text">Title text.</param>
+        /// <param name="subtitle">Optional subtitle on the next row.</param>
         public SheetComposer Title(string text, string? subtitle = null)
         {
             if (string.IsNullOrWhiteSpace(text)) return this;
@@ -47,6 +61,7 @@ namespace OfficeIMO.Excel.Fluent
             return Spacer();
         }
 
+        /// <summary>Writes a section header (bold with themed background).</summary>
         public SheetComposer Section(string text)
         {
             _sheet.Cell(_row, 1, text);
@@ -56,6 +71,9 @@ namespace OfficeIMO.Excel.Fluent
             return this;
         }
 
+        /// <summary>Writes a paragraph-like line of text.</summary>
+        /// <param name="text">Text to write.</param>
+        /// <param name="widthColumns">Reserved for future wrapping/width behavior.</param>
         public SheetComposer Paragraph(string text, int widthColumns = 6)
         {
             if (string.IsNullOrEmpty(text)) return this;
@@ -108,9 +126,13 @@ namespace OfficeIMO.Excel.Fluent
         /// <summary>
         /// Renders a key/value list in a compact two-column grid. Alias for <see cref="PropertiesGrid"/>.
         /// </summary>
+        /// <summary>Alias for <see cref="PropertiesGrid"/>.</summary>
         public SheetComposer DefinitionList(IEnumerable<(string Key, object? Value)> items, int columns = 2)
             => PropertiesGrid(items, columns);
 
+        /// <summary>Renders a compact grid of key/value pairs (two columns per entry).</summary>
+        /// <param name="properties">Sequence of (Key, Value) items.</param>
+        /// <param name="columns">How many key/value pairs to render per row.</param>
         public SheetComposer PropertiesGrid(IEnumerable<(string Key, object? Value)> properties, int columns = 2)
         {
             if (properties == null) return this;
@@ -134,6 +156,7 @@ namespace OfficeIMO.Excel.Fluent
             return Spacer();
         }
 
+        /// <summary>Writes a simple bulleted list, one item per row.</summary>
         public SheetComposer BulletedList(IEnumerable<string> items)
         {
             if (items == null) return this;
@@ -145,6 +168,10 @@ namespace OfficeIMO.Excel.Fluent
             return Spacer();
         }
 
+        /// <summary>
+        /// Flattens a sequence of objects into a table and renders it with a header row.
+        /// Returns the A1 range used for the table.
+        /// </summary>
         public string TableFrom<T>(IEnumerable<T> items, string? title = null,
             Action<ObjectFlattenerOptions>? configure = null,
             TableStyle style = TableStyle.TableStyleMedium9,
@@ -319,6 +346,7 @@ namespace OfficeIMO.Excel.Fluent
             return range;
         }
 
+        /// <summary>Writes a simple References section with each URL as a hyperlink.</summary>
         public SheetComposer References(IEnumerable<string> urls)
         {
             var list = urls?.Where(u => !string.IsNullOrWhiteSpace(u)).ToList();
@@ -331,6 +359,7 @@ namespace OfficeIMO.Excel.Fluent
             return this;
         }
 
+        /// <summary>Writes a labeled numeric score with a data bar visualization.</summary>
         public SheetComposer Score(string label, double value, double min = 0, double max = 10)
         {
             _sheet.Cell(_row, 1, label);
@@ -342,6 +371,7 @@ namespace OfficeIMO.Excel.Fluent
             return Spacer();
         }
 
+        /// <summary>Applies optional autofit operations and returns the composer.</summary>
         public SheetComposer Finish(bool autoFitColumns = true, bool autoFitRows = false)
         {
             if (autoFitColumns) _sheet.AutoFitColumns();
@@ -352,6 +382,10 @@ namespace OfficeIMO.Excel.Fluent
         /// <summary>
         /// Inserts a section header with an optional anchor (named range) and a back-to-top internal link.
         /// </summary>
+        /// <param name="text">Section header text.</param>
+        /// <param name="anchorName">Optional anchor name; generated from text when null.</param>
+        /// <param name="backToTopLink">Whether to add a back-to-top link under the section.</param>
+        /// <param name="backToTopText">Link text for the back-to-top link.</param>
         public SheetComposer SectionWithAnchor(string text, string? anchorName = null, bool backToTopLink = true, string backToTopText = "↑ Top")
         {
             Section(text);
@@ -371,6 +405,8 @@ namespace OfficeIMO.Excel.Fluent
             return this;
         }
 
+        /// <summary>Configures header/footer content and images via a builder.</summary>
+        /// <param name="configure">Callback that applies header/footer settings.</param>
         public SheetComposer HeaderFooter(Action<HeaderFooterBuilder> configure)
         {
             if (configure == null) return this;

@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
 
             WriteLock(() => {
                 var cell = GetCell(row, column);
-                var text = string.IsNullOrEmpty(display) ? url : display;
+                string text = string.IsNullOrEmpty(display) ? url : display!;
                 // Avoid nested locks: write value using core method
                 CellValueCore(row, column, text);
 
@@ -51,7 +51,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(location)) throw new ArgumentNullException(nameof(location));
             WriteLock(() =>
             {
-                var text = string.IsNullOrEmpty(display) ? location : display;
+                string text = string.IsNullOrEmpty(display) ? location : display!;
                 CellValueCore(row, column, text);
                 var ws = _worksheetPart.Worksheet;
                 var hyperlinks = ws.Elements<Hyperlinks>().FirstOrDefault();

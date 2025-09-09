@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel {
         private static void FlattenObject(object? value, string? prefix, IDictionary<string, object?> result) {
             if (value == null) {
                 if (!string.IsNullOrEmpty(prefix)) {
-                    result[prefix] = null;
+                    result[prefix!] = null;
                 }
                 return;
             }
@@ -93,7 +93,7 @@ namespace OfficeIMO.Excel {
                     values.Add(item?.ToString() ?? string.Empty);
                 }
                 if (!string.IsNullOrEmpty(prefix)) {
-                    result[prefix] = string.Join(", ", values);
+                    result[prefix!] = string.Join(", ", values);
                 }
                 return;
             }
@@ -101,7 +101,7 @@ namespace OfficeIMO.Excel {
             Type type = value.GetType();
             if (type.IsPrimitive || value is string || value is decimal || value is DateTime || value is DateTimeOffset || value is Guid) {
                 if (!string.IsNullOrEmpty(prefix)) {
-                    result[prefix] = value;
+                    result[prefix!] = value;
                 }
                 return;
             }
@@ -115,7 +115,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (!hasAny && !string.IsNullOrEmpty(prefix)) {
-                result[prefix] = value.ToString();
+                result[prefix!] = value.ToString();
             }
         }
 

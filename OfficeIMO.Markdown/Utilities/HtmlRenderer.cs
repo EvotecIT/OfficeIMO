@@ -245,7 +245,7 @@ internal static class HtmlRenderer {
 
         if (options.CssDelivery == CssDelivery.LinkHref && !string.IsNullOrWhiteSpace(options.CssHref) && options.AssetMode == AssetMode.Offline) {
             // Attempt to download provided CSS and inline
-            var downloaded = TryDownloadText(options.CssHref);
+            var downloaded = TryDownloadText(options.CssHref!);
             if (!string.IsNullOrEmpty(downloaded)) cssBuilder.Append(downloaded).Append('\n');
         }
         // Additional CSS URLs
@@ -271,7 +271,7 @@ internal static class HtmlRenderer {
         return aggregatedCss;
     }
 
-    internal static string TryDownloadText(string url) {
+    internal static string TryDownloadText(string? url) {
         try {
             if (string.IsNullOrWhiteSpace(url)) return string.Empty;
             if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return string.Empty;
@@ -289,7 +289,7 @@ internal static class HtmlRenderer {
             bool okType = false;
             if (ct == null) okType = true; // be permissive when unknown
             else if (ct.StartsWith("text/")) okType = true;
-            else if (ct.Contains("javascript") || ct.Contains("ecmascript") || ct.Contains("css")) okType = true;
+            else if (ct.IndexOf("javascript", StringComparison.Ordinal) >= 0 || ct.IndexOf("ecmascript", StringComparison.Ordinal) >= 0 || ct.IndexOf("css", StringComparison.Ordinal) >= 0) okType = true;
             if (!okType) return string.Empty;
             var len = resp.Content.Headers.ContentLength;
             if (len.HasValue && len.Value > MaxBytes) return string.Empty;

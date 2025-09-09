@@ -10,17 +10,30 @@ using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        /// <summary>
+        /// Snapshot of header and footer text and related flags for this worksheet.
+        /// </summary>
         public sealed class HeaderFooterSnapshot
         {
+            /// <summary>Left section text of the header (odd pages).</summary>
             public string HeaderLeft { get; set; } = string.Empty;
+            /// <summary>Center section text of the header (odd pages).</summary>
             public string HeaderCenter { get; set; } = string.Empty;
+            /// <summary>Right section text of the header (odd pages).</summary>
             public string HeaderRight { get; set; } = string.Empty;
+            /// <summary>Left section text of the footer (odd pages).</summary>
             public string FooterLeft { get; set; } = string.Empty;
+            /// <summary>Center section text of the footer (odd pages).</summary>
             public string FooterCenter { get; set; } = string.Empty;
+            /// <summary>Right section text of the footer (odd pages).</summary>
             public string FooterRight { get; set; } = string.Empty;
+            /// <summary>First page has different header/footer.</summary>
             public bool DifferentFirstPage { get; set; }
+            /// <summary>Odd and even pages have different headers/footers.</summary>
             public bool DifferentOddEven { get; set; }
+            /// <summary>True if any header section contains the picture placeholder (&amp;G).</summary>
             public bool HeaderHasPicturePlaceholder { get; set; }
+            /// <summary>True if any footer section contains the picture placeholder (&amp;G).</summary>
             public bool FooterHasPicturePlaceholder { get; set; }
         }
 
@@ -193,7 +206,7 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private static string EscapeHeaderFooter(string text)
+        private static string EscapeHeaderFooter(string? text)
         {
             if (string.IsNullOrEmpty(text)) return string.Empty;
             bool IsTokenStarter(char c)
@@ -261,17 +274,18 @@ namespace OfficeIMO.Excel {
                     // Attempt to parse existing sections to preserve other content
                     // The header/footer schema uses &L, &C, &R markers.
                     int i = 0;
-                    while (i < current.Length)
+                    var curr = current!;
+                    while (i < curr.Length)
                     {
-                        char ch = current[i++];
-                        if (ch == '&' && i < current.Length)
+                        char ch = curr[i++];
+                        if (ch == '&' && i < curr.Length)
                         {
-                            char sec = current[i++];
+                            char sec = curr[i++];
                             var sb = new StringBuilder();
-                            while (i < current.Length)
+                            while (i < curr.Length)
                             {
-                                if (current[i] == '&' && i + 1 < current.Length && (current[i + 1] == 'L' || current[i + 1] == 'C' || current[i + 1] == 'R')) break;
-                                sb.Append(current[i++]);
+                                if (curr[i] == '&' && i + 1 < curr.Length && (curr[i + 1] == 'L' || curr[i + 1] == 'C' || curr[i + 1] == 'R')) break;
+                                sb.Append(curr[i++]);
                             }
                             string val = sb.ToString();
                             if (sec == 'L') l = val; else if (sec == 'C') c = val; else if (sec == 'R') r = val;

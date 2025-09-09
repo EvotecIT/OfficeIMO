@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel {
         /// <param name="range">A1 range (e.g. "A1:B10"). Can include a sheet prefix.</param>
         /// <param name="scope">Optional sheet scope for a local name.</param>
         /// <param name="save">When true, saves the workbook after the change.</param>
+        /// <param name="hidden">When true, marks the defined name as hidden.</param>
         public void SetNamedRange(string name, string range, ExcelSheet? scope = null, bool save = true, bool hidden = false) {
 #if NET8_0_OR_GREATER
             ArgumentNullException.ThrowIfNullOrWhiteSpace(name);

@@ -8,6 +8,9 @@ namespace OfficeIMO.Excel.Fluent
     /// </summary>
     public static class StatusPalettes
     {
+        /// <summary>
+        /// Default palette mapping common statuses to fill colors and a set of statuses to bold.
+        /// </summary>
         public static (IDictionary<string, string> FillHexMap, ISet<string> BoldSet) Default => (
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
