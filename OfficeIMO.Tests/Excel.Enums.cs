@@ -1,6 +1,5 @@
 using System;
 using OfficeIMO.Excel;
-using OfficeIMO.Excel;
 using Xunit;
 
 namespace OfficeIMO.Tests {

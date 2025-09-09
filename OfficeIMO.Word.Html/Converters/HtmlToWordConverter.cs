@@ -8,7 +8,6 @@ using AngleSharp.Io;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
-using OfficeIMO.Word.Html;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

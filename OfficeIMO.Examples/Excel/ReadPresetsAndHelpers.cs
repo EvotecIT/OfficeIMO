@@ -2,7 +2,6 @@ using System;
 using System.Data;
 using System.IO;
 using OfficeIMO.Excel;
-using OfficeIMO.Excel;
 
 namespace OfficeIMO.Examples.Excel
 {
