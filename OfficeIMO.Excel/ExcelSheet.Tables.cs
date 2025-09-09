@@ -181,7 +181,9 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="range">Cell range (e.g. "A1:B3") defining the table area.</param>
         /// <param name="hasHeader">Indicates whether the first row is a header row.</param>
-        /// <param name="name">Name of the table. If empty, a default name is used.</param>
+        /// <param name="name">Name of the table. If empty, a default name is used.
+        /// Examples: "My Table" becomes "My_Table"; "123Report" becomes "_123Report"; spaces and invalid characters are replaced with underscores.
+        /// If a name already exists in this workbook, a numeric suffix is appended (e.g., "Table", "Table2").</param>
         /// <param name="style">Table style to apply.</param>
         /// <param name="includeAutoFilter">Whether to include AutoFilter dropdowns in the table headers.</param>
         /// <param name="validationMode">Controls how invalid table names are handled:
@@ -247,6 +249,7 @@ namespace OfficeIMO.Excel {
 
                 // Generate unique table ID atomically (must be unique across the entire workbook)
                 uint tableId;
+                var swScan = System.Diagnostics.Stopwatch.StartNew();
                 lock (_tableIdLock) {
                     // Get max existing table ID across all sheets to ensure uniqueness when opening existing files
                     uint maxExistingId = 0;
@@ -265,6 +268,8 @@ namespace OfficeIMO.Excel {
                     tableId = (uint)next;
                     _nextTableId = next + 1;
                 }
+                swScan.Stop();
+                EffectiveExecution.ReportTiming("AddTable.ScanExistingIds", swScan.Elapsed);
 
                 var tableDefinitionPart = _worksheetPart.AddNewPart<TableDefinitionPart>();
 
@@ -365,10 +370,16 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Ensures a valid and unique table name according to OfficeIMO rules.
+        /// Rules:
         /// - Allowed characters: letters, digits, underscore; spaces become underscores.
         /// - Names cannot start with a digit; an underscore is prefixed if necessary.
         /// - Names are scoped per workbook and checked case-insensitively.
         /// - When <paramref name="mode"/> is <see cref="TableNameValidationMode.Strict"/>, throws for invalid input.
+        /// Examples:
+        /// - "My Table" ⇒ "My_Table"
+        /// - "Sales#2025" ⇒ "Sales_2025"
+        /// - "123Report" ⇒ "_123Report"
+        /// - If "Table" already exists, next becomes "Table2" ("Table3", ...)
         /// </summary>
         private string EnsureValidUniqueTableName(string name, TableNameValidationMode mode)
         {
