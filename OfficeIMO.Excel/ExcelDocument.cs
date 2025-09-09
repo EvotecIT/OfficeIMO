@@ -21,6 +21,28 @@ namespace OfficeIMO.Excel {
         internal List<UInt32Value> id = new List<UInt32Value>() { 0 };
         private readonly Dictionary<string, int> _sharedStringCache = new Dictionary<string, int>();
         private readonly object _sharedStringLock = new object();
+        // Workbook-level cache of table names for fast uniqueness checks
+        private HashSet<string>? _tableNameCache;
+        private System.Collections.Generic.IEqualityComparer<string> _tableNameComparer = System.StringComparer.OrdinalIgnoreCase;
+
+        /// <summary>
+        /// Controls how workbook-level table name uniqueness is compared.
+        /// Defaults to <see cref="StringComparer.OrdinalIgnoreCase"/>. Changing this will reset the
+        /// internal cache and rebuild it on next use. Set it once before adding tables for predictable behavior.
+        /// </summary>
+        public System.Collections.Generic.IEqualityComparer<string> TableNameComparer
+        {
+            get => _tableNameComparer;
+            set
+            {
+                if (value == null) throw new System.ArgumentNullException(nameof(value));
+                if (!object.ReferenceEquals(_tableNameComparer, value))
+                {
+                    _tableNameComparer = value;
+                    _tableNameCache = null; // rebuild lazily on next use with the new comparer
+                }
+            }
+        }
 
         /// <summary>
         /// Execution policy for controlling parallel vs sequential operations.
@@ -126,6 +148,81 @@ namespace OfficeIMO.Excel {
             get {
                 return ValidateDocument();
             }
+        }
+
+        /// <summary>
+        /// Returns the workbook-level cache of table names, initializing it from the current
+        /// document if needed. Case-insensitive comparison.
+        /// </summary>
+        internal HashSet<string> GetOrInitTableNameCache()
+        {
+            // Fast path without locking
+            if (_tableNameCache != null) return _tableNameCache;
+
+            // Initialize without taking a new lock if we're already in a write scope
+            if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld))
+            {
+                if (_tableNameCache == null)
+                {
+                    var set = new HashSet<string>(_tableNameComparer);
+                    var wb = _spreadSheetDocument.WorkbookPart;
+                    if (wb != null)
+                    {
+                        foreach (var ws in wb.WorksheetParts)
+                        {
+                            foreach (var tdp in ws.TableDefinitionParts)
+                            {
+                                var n = tdp.Table?.Name?.Value;
+                                if (!string.IsNullOrEmpty(n)) set.Add(n);
+                            }
+                        }
+                    }
+                    _tableNameCache = set;
+                }
+                return _tableNameCache!;
+            }
+
+            // Otherwise, use write lock for thread safety
+            return Locking.ExecuteWrite(EnsureLock(), () =>
+            {
+                if (_tableNameCache != null) return _tableNameCache;
+                var set = new HashSet<string>(_tableNameComparer);
+                var wb = _spreadSheetDocument.WorkbookPart;
+                if (wb != null)
+                {
+                    foreach (var ws in wb.WorksheetParts)
+                    {
+                        foreach (var tdp in ws.TableDefinitionParts)
+                        {
+                            var n = tdp.Table?.Name?.Value;
+                            if (!string.IsNullOrEmpty(n)) set.Add(n);
+                        }
+                    }
+                }
+                _tableNameCache = set;
+                return _tableNameCache;
+            });
+        }
+
+        /// <summary>
+        /// Adds the given table name to the cache. Should be called once the name is finalized.
+        /// </summary>
+        internal void ReserveTableName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return;
+            var cache = GetOrInitTableNameCache();
+            cache.Add(name);
+        }
+
+        /// <summary>
+        /// Removes the given table name from the cache. Intended for future table deletion APIs.
+        /// Safe to call even if the cache hasn't been initialized.
+        /// </summary>
+        internal void RemoveReservedTableName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return;
+            if (_tableNameCache == null) return;
+            _tableNameCache.Remove(name);
         }
 
         /// <summary>
