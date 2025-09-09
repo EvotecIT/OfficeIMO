@@ -27,11 +27,8 @@ namespace OfficeIMO.Excel.Fluent
             _theme = theme ?? SheetTheme.Default;
             _sheet = _workbook.AddWorkSheet(sheetName);
             _row = 1;
-            try {
-                // Provide a per-sheet top anchor for internal links
-                string topName = SanitizeName($"top_{_sheet.Name}");
-                _sheet.SetNamedRange(topName, "A1:A1", save: false, hidden: true);
-            } catch { }
+            // Note: We no longer create hidden named ranges by default (to avoid Excel repairs on some versions).
+            // Internal links use explicit "'Sheet'!A1" locations instead.
         }
 
         /// <summary>The underlying sheet created by this composer.</summary>
@@ -252,30 +249,7 @@ namespace OfficeIMO.Excel.Fluent
             var tableName = title ?? "Table";
             _sheet.AddTable(range, hasHeader: true, name: tableName, style: style, includeAutoFilter: autoFilter);
 
-            try
-            {
-                string Sanitize(string name)
-                {
-                    if (string.IsNullOrWhiteSpace(name)) return "rng_Table";
-                    var sb = new System.Text.StringBuilder(name.Length + 4);
-                    sb.Append("rng_");
-                    foreach (char ch in name)
-                    {
-                        if (char.IsLetterOrDigit(ch) || ch == '_') sb.Append(ch);
-                        else if (ch == ' ') sb.Append('_');
-                        else sb.Append('_');
-                    }
-                    if (char.IsDigit(sb[0])) sb.Insert(0, '_');
-                    return sb.ToString();
-                }
-                string dnBase = Sanitize(tableName);
-                string dn = dnBase;
-                var existing = _workbook.GetAllNamedRanges();
-                int idx = 2;
-                while (existing.ContainsKey(dn)) { dn = dnBase + idx.ToString(System.Globalization.CultureInfo.InvariantCulture); idx++; }
-                _sheet.SetNamedRange(dn, range, save: false, hidden: true);
-            }
-            catch { }
+            // Avoid creating a named range for the table by default; callers can add one explicitly if needed.
 
             var viz = new TableVisualOptions();
             viz.FreezeHeaderRow = freezeHeaderRow; visuals?.Invoke(viz);
@@ -389,10 +363,7 @@ namespace OfficeIMO.Excel.Fluent
         public SheetComposer SectionWithAnchor(string text, string? anchorName = null, bool backToTopLink = true, string backToTopText = "↑ Top")
         {
             Section(text);
-            string anchor = string.IsNullOrWhiteSpace(anchorName) ? SanitizeName($"sec_{text}") : SanitizeName(anchorName!);
-            try {
-                _sheet.SetNamedRange(anchor, $"A{_row - 1}:A{_row - 1}", save: false, hidden: true);
-            } catch { }
+            // Named range anchor intentionally omitted (explicit cell links are used instead).
             if (backToTopLink)
             {
                 try {

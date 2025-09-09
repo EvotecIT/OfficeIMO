@@ -199,6 +199,49 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Repairs common issues with defined names that can trigger Excel's file repair, such as
+        /// duplicates within the same scope, invalid LocalSheetId after sheet reordering/removal,
+        /// or references containing #REF!.
+        /// </summary>
+        internal void RepairDefinedNames(bool save = true)
+        {
+            var wb = _workBookPart.Workbook;
+            var definedNames = wb.DefinedNames;
+            if (definedNames == null) return;
+
+            var sheets = wb.Sheets?.OfType<Sheet>().ToList() ?? new();
+            int sheetCount = sheets.Count;
+
+            var toRemove = new System.Collections.Generic.HashSet<DocumentFormat.OpenXml.Spreadsheet.DefinedName>();
+            var seen = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var dn in definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>())
+            {
+                string? name = dn.Name;
+                if (string.IsNullOrWhiteSpace(name)) { toRemove.Add(dn); continue; }
+
+                uint? local = dn.LocalSheetId?.Value;
+                if (local.HasValue && (local.Value >= (uint)sheetCount)) { toRemove.Add(dn); continue; }
+
+                string key = (local.HasValue ? local.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "G") + "|" + name;
+                if (!seen.Add(key)) { toRemove.Add(dn); continue; }
+
+                string text = dn.Text ?? string.Empty;
+                if (text.IndexOf("#REF!", StringComparison.OrdinalIgnoreCase) >= 0) { toRemove.Add(dn); continue; }
+            }
+
+            if (toRemove.Count > 0)
+            {
+                foreach (var dn in toRemove) dn.Remove();
+                if (!definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>().Any())
+                {
+                    wb.DefinedNames = null;
+                }
+                if (save) wb.Save();
+            }
+        }
+
+        /// <summary>
         /// Normalizes an A1-style range, ensuring absolute references and validating format.
         /// Accepts an optional sheet prefix (e.g. '<c>'Sheet1'!A1:B2</c>').
         /// Throws <see cref="ArgumentException"/> if the input is not a valid A1 range or cell reference.
