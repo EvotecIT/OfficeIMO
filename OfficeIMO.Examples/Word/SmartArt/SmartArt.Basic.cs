@@ -9,6 +9,7 @@ namespace OfficeIMO.Examples.Word {
             using WordDocument document = WordDocument.Create(filePath);
             document.AddSmartArt(SmartArtType.BasicProcess);
             document.Save(openWord);
+            OfficeIMO.Examples.Utils.Validation.ValidateDoc(filePath);
         }
     }
 }

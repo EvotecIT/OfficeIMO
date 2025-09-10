@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using A = DocumentFormat.OpenXml.Drawing;
 using Drawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
@@ -16,6 +17,11 @@ namespace OfficeIMO.Word {
     /// Represents simple shapes inside a paragraph.
     /// </summary>
     public class WordShape : WordElement {
+        private static int _docPrIdSeed = 1;
+        private static UInt32Value NextDocPrId() {
+            int id = Interlocked.Increment(ref _docPrIdSeed);
+            return (UInt32Value)(uint)id;
+        }
         /// <summary>Parent document.</summary>
         internal WordDocument _document = null!;
         /// <summary>Parent paragraph.</summary>
@@ -37,6 +43,51 @@ namespace OfficeIMO.Word {
         /// <summary>DrawingML shape element if present.</summary>
         internal Drawing? _drawing;
         internal Wps.WordprocessingShape? _wpsShape;
+        
+        private static (A.ShapeTypeValues preset, A.AdjustValueList adjustList) MapPresetGeometry(ShapeType shapeType) {
+            var adjustList = new A.AdjustValueList();
+            switch (shapeType) {
+                case ShapeType.Line:
+                    return (A.ShapeTypeValues.Line, adjustList);
+                case ShapeType.Ellipse:
+                    return (A.ShapeTypeValues.Ellipse, adjustList);
+                case ShapeType.Rectangle:
+                    return (A.ShapeTypeValues.Rectangle, adjustList);
+                case ShapeType.RoundedRectangle:
+                    adjustList.Append(new A.ShapeGuide() { Name = "adj", Formula = "val 16667" });
+                    return (A.ShapeTypeValues.RoundRectangle, adjustList);
+                case ShapeType.Triangle:
+                    return (A.ShapeTypeValues.Triangle, adjustList);
+                case ShapeType.Diamond:
+                    return (A.ShapeTypeValues.Diamond, adjustList);
+                case ShapeType.Pentagon:
+                    return (A.ShapeTypeValues.Pentagon, adjustList);
+                case ShapeType.Hexagon:
+                    return (A.ShapeTypeValues.Hexagon, adjustList);
+                case ShapeType.RightArrow:
+                    return (A.ShapeTypeValues.RightArrow, adjustList);
+                case ShapeType.LeftArrow:
+                    return (A.ShapeTypeValues.LeftArrow, adjustList);
+                case ShapeType.UpArrow:
+                    return (A.ShapeTypeValues.UpArrow, adjustList);
+                case ShapeType.DownArrow:
+                    return (A.ShapeTypeValues.DownArrow, adjustList);
+                case ShapeType.Star5:
+                    return (A.ShapeTypeValues.Star5, adjustList);
+                case ShapeType.Heart:
+                    return (A.ShapeTypeValues.Heart, adjustList);
+                case ShapeType.Cloud:
+                    return (A.ShapeTypeValues.Cloud, adjustList);
+                case ShapeType.Donut:
+                    return (A.ShapeTypeValues.Donut, adjustList);
+                case ShapeType.Can:
+                    return (A.ShapeTypeValues.Can, adjustList);
+                case ShapeType.Cube:
+                    return (A.ShapeTypeValues.Cube, adjustList);
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(shapeType), shapeType, null);
+            }
+        }
 
         /// <summary>
         /// Initializes a new rectangle shape and appends it to the paragraph.
@@ -45,10 +96,14 @@ namespace OfficeIMO.Word {
             _document = document;
             _wordParagraph = paragraph;
 
+            // Ensure VML color has leading '#'
+            var vmlFill = fillColor;
+            if (!string.IsNullOrEmpty(vmlFill) && !vmlFill.StartsWith("#", StringComparison.Ordinal)) vmlFill = "#" + vmlFill;
+
             _rectangle = new V.Rectangle() {
                 Id = "Rectangle" + Guid.NewGuid().ToString("N"),
                 Style = $"width:{widthPt}pt;height:{heightPt}pt;mso-wrap-style:square",
-                FillColor = fillColor,
+                FillColor = vmlFill,
                 Stroked = false
             };
 
@@ -82,10 +137,12 @@ namespace OfficeIMO.Word {
         /// Adds an ellipse shape to the given paragraph.
         /// </summary>
         public static WordShape AddEllipse(WordParagraph paragraph, double widthPt, double heightPt, string fillColor = "#FFFFFF") {
+            var vmlFill = fillColor;
+            if (!string.IsNullOrEmpty(vmlFill) && !vmlFill.StartsWith("#", StringComparison.Ordinal)) vmlFill = "#" + vmlFill;
             var ellipse = new V.Oval() {
                 Id = "Ellipse" + Guid.NewGuid().ToString("N"),
                 Style = $"width:{widthPt}pt;height:{heightPt}pt;mso-wrap-style:square",
-                FillColor = fillColor,
+                FillColor = vmlFill,
                 Stroked = false
             };
 
@@ -111,10 +168,12 @@ namespace OfficeIMO.Word {
         public static WordShape AddRoundedRectangle(WordParagraph paragraph, double widthPt, double heightPt,
             string fillColor = "#FFFFFF", double arcSize = 0.25) {
             var arc = (int)Math.Round(arcSize * 65536d);
+            var vmlFill = fillColor;
+            if (!string.IsNullOrEmpty(vmlFill) && !vmlFill.StartsWith("#", StringComparison.Ordinal)) vmlFill = "#" + vmlFill;
             var roundRect = new V.RoundRectangle() {
                 Id = "RoundedRect" + Guid.NewGuid().ToString("N"),
                 Style = $"width:{widthPt}pt;height:{heightPt}pt;mso-wrap-style:square",
-                FillColor = fillColor,
+                FillColor = vmlFill,
                 Stroked = false,
                 ArcSize = $"{arc}f"
             };
@@ -132,12 +191,14 @@ namespace OfficeIMO.Word {
         /// Adds a line shape to the given paragraph.
         /// </summary>
         public static WordShape AddLine(WordParagraph paragraph, double startXPt, double startYPt, double endXPt, double endYPt, string color = "#000000", double strokeWeightPt = 1) {
+            var vmlStroke = color;
+            if (!string.IsNullOrEmpty(vmlStroke) && !vmlStroke.StartsWith("#", StringComparison.Ordinal)) vmlStroke = "#" + vmlStroke;
             var line = new V.Line() {
                 Id = "Line" + Guid.NewGuid().ToString("N"),
                 Style = "mso-wrap-style:square",
                 From = $"{startXPt}pt,{startYPt}pt",
                 To = $"{endXPt}pt,{endYPt}pt",
-                StrokeColor = color,
+                StrokeColor = vmlStroke,
                 StrokeWeight = $"{strokeWeightPt}pt"
             };
 
@@ -161,12 +222,14 @@ namespace OfficeIMO.Word {
         /// Adds a polygon shape to the given paragraph.
         /// </summary>
         public static WordShape AddPolygon(WordParagraph paragraph, string points, string fillColor = "#FFFFFF", string strokeColor = "#000000") {
+            var vmlFill = fillColor; if (!string.IsNullOrEmpty(vmlFill) && !vmlFill.StartsWith("#", StringComparison.Ordinal)) vmlFill = "#" + vmlFill;
+            var vmlStroke = strokeColor; if (!string.IsNullOrEmpty(vmlStroke) && !vmlStroke.StartsWith("#", StringComparison.Ordinal)) vmlStroke = "#" + vmlStroke;
             var poly = new V.PolyLine() {
                 Id = "Polygon" + Guid.NewGuid().ToString("N"),
                 Style = "mso-wrap-style:square",
                 Points = points,
-                FillColor = fillColor,
-                StrokeColor = strokeColor
+                FillColor = vmlFill,
+                StrokeColor = vmlStroke
             };
 
             Picture pict = new Picture();
@@ -208,7 +271,7 @@ namespace OfficeIMO.Word {
 
             inline.Append(new DW.Extent() { Cx = cx, Cy = cy });
             inline.Append(new DW.EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L });
-            inline.Append(new DW.DocProperties() { Id = 1U, Name = "Shape" });
+            inline.Append(new DW.DocProperties() { Id = NextDocPrId(), Name = "Shape" });
             inline.Append(new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks() { NoChangeAspect = true }));
 
             var graphic = new A.Graphic();
@@ -216,28 +279,40 @@ namespace OfficeIMO.Word {
             var wsp = new Wps.WordprocessingShape();
             wsp.Append(new Wps.NonVisualDrawingShapeProperties(new A.ShapeLocks() { NoChangeArrowheads = true }));
 
-            var shapeProps = new A.ShapeProperties();
+            // Use Wps.ShapeProperties (wps:spPr) per schema; do not emit a:spPr directly under wps:wsp
+            var shapeProps = new Wps.ShapeProperties();
             shapeProps.Append(new A.Transform2D(new A.Offset() { X = 0L, Y = 0L }, new A.Extents() { Cx = cx, Cy = cy }));
 
-            A.ShapeTypeValues preset;
-            var adjustList = new A.AdjustValueList();
-            switch (shapeType) {
-                case ShapeType.Ellipse:
-                    preset = A.ShapeTypeValues.Ellipse;
-                    break;
-                case ShapeType.Rectangle:
-                    preset = A.ShapeTypeValues.Rectangle;
-                    break;
-                case ShapeType.RoundedRectangle:
-                    preset = A.ShapeTypeValues.RoundRectangle;
-                    adjustList.Append(new A.ShapeGuide() { Name = "adj", Formula = "val 16667" });
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(shapeType), shapeType, null);
-            }
+            var (preset, adjustList) = MapPresetGeometry(shapeType);
 
             shapeProps.Append(new A.PresetGeometry(adjustList) { Preset = preset });
             wsp.Append(shapeProps);
+
+            var textBodyProps = new Wps.TextBodyProperties() {
+                Rotation = 0,
+                UseParagraphSpacing = false,
+                VerticalOverflow = A.TextVerticalOverflowValues.Overflow,
+                HorizontalOverflow = A.TextHorizontalOverflowValues.Overflow,
+                Vertical = A.TextVerticalValues.Horizontal,
+                Wrap = A.TextWrappingValues.Square,
+                LeftInset = 91440,
+                TopInset = 45720,
+                RightInset = 91440,
+                BottomInset = 45720,
+                ColumnCount = 1,
+                ColumnSpacing = 0,
+                RightToLeftColumns = false,
+                FromWordArt = false,
+                Anchor = A.TextAnchoringTypeValues.Center,
+                AnchorCenter = false,
+                ForceAntiAlias = false,
+                CompatibleLineSpacing = true
+            };
+            // Basic text behavior (no auto-fit). Word tolerates missing preset text wrap.
+            textBodyProps.Append(new A.NoAutoFit());
+
+            wsp.Append(textBodyProps);
+
             graphicData.Append(wsp);
             graphic.Append(graphicData);
             inline.Append(graphic);
@@ -249,23 +324,151 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the fill color as hexadecimal string.
+        /// Adds a DrawingML shape anchored at an absolute position on the page.
+        /// </summary>
+        /// <param name="paragraph">Paragraph to host the drawing anchor.</param>
+        /// <param name="shapeType">Type of shape.</param>
+        /// <param name="widthPt">Width in points.</param>
+        /// <param name="heightPt">Height in points.</param>
+        /// <param name="leftPt">Left offset in points from the page.</param>
+        /// <param name="topPt">Top offset in points from the page.</param>
+        public static WordShape AddDrawingShapeAnchored(WordParagraph paragraph, ShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt) {
+            const int emusPerPoint = 12700;
+            long cx = (long)(widthPt * emusPerPoint);
+            long cy = (long)(heightPt * emusPerPoint);
+            long offX = (long)(leftPt * emusPerPoint);
+            long offY = (long)(topPt * emusPerPoint);
+
+            var run = paragraph.VerifyRun();
+
+            var anchor = new DW.Anchor() {
+                DistanceFromTop = 0U,
+                DistanceFromBottom = 0U,
+                DistanceFromLeft = 0U,
+                DistanceFromRight = 0U,
+                SimplePos = false,
+                RelativeHeight = 0U,
+                BehindDoc = false,
+                Locked = false,
+                LayoutInCell = true,
+                AllowOverlap = true
+            };
+
+            anchor.Append(new DW.SimplePosition() { X = 0L, Y = 0L });
+            var hpos = new DW.HorizontalPosition() { RelativeFrom = DW.HorizontalRelativePositionValues.Page };
+            hpos.Append(new DW.PositionOffset(offX.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            anchor.Append(hpos);
+            var vpos = new DW.VerticalPosition() { RelativeFrom = DW.VerticalRelativePositionValues.Page };
+            vpos.Append(new DW.PositionOffset(offY.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            anchor.Append(vpos);
+            anchor.Append(new DW.Extent() { Cx = cx, Cy = cy });
+            anchor.Append(new DW.EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L });
+            anchor.Append(new DW.WrapSquare() { WrapText = DW.WrapTextValues.BothSides });
+            anchor.Append(new DW.DocProperties() { Id = NextDocPrId(), Name = "Shape" });
+            anchor.Append(new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks() { NoChangeAspect = true }));
+
+            var graphic = new A.Graphic();
+            var graphicData = new A.GraphicData() { Uri = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape" };
+            var wsp = new Wps.WordprocessingShape();
+            wsp.Append(new Wps.NonVisualDrawingShapeProperties(new A.ShapeLocks() { NoChangeArrowheads = true }));
+
+            var shapeProps = new Wps.ShapeProperties();
+            shapeProps.Append(new A.Transform2D(new A.Offset() { X = 0L, Y = 0L }, new A.Extents() { Cx = cx, Cy = cy }));
+
+            var (preset2, adjustList2) = MapPresetGeometry(shapeType);
+
+            shapeProps.Append(new A.PresetGeometry(adjustList2) { Preset = preset2 });
+            wsp.Append(shapeProps);
+
+            var textBodyProps = new Wps.TextBodyProperties() {
+                Rotation = 0,
+                UseParagraphSpacing = false,
+                VerticalOverflow = A.TextVerticalOverflowValues.Overflow,
+                HorizontalOverflow = A.TextHorizontalOverflowValues.Overflow,
+                Vertical = A.TextVerticalValues.Horizontal,
+                Wrap = A.TextWrappingValues.Square,
+                LeftInset = 91440,
+                TopInset = 45720,
+                RightInset = 91440,
+                BottomInset = 45720,
+                ColumnCount = 1,
+                ColumnSpacing = 0,
+                RightToLeftColumns = false,
+                FromWordArt = false,
+                Anchor = A.TextAnchoringTypeValues.Center,
+                AnchorCenter = false,
+                ForceAntiAlias = false,
+                CompatibleLineSpacing = true
+            };
+            textBodyProps.Append(new A.NoAutoFit());
+            wsp.Append(textBodyProps);
+
+            graphicData.Append(wsp);
+            graphic.Append(graphicData);
+            anchor.Append(graphic);
+
+            var drawing = new Drawing(anchor);
+            run.Append(drawing);
+            return new WordShape(paragraph._document!, paragraph._paragraph!, run, drawing);
+        }
+
+        private static string NormalizeHexNoHash(string? v) {
+            if (string.IsNullOrEmpty(v)) return string.Empty;
+            var s = v!.Trim();
+            if (s.StartsWith("#", StringComparison.Ordinal)) s = s.Substring(1);
+            return s.ToLowerInvariant();
+        }
+
+        /// <summary>
+        /// Gets or sets the fill color as hexadecimal string (no leading '#', lowercase).
         /// </summary>
         public string FillColorHex {
             get {
-                if (_rectangle?.FillColor?.Value is string rect) return rect;
-                if (_roundRectangle?.FillColor?.Value is string round) return round;
-                if (_ellipse?.FillColor?.Value is string ellipse) return ellipse;
-                if (_polygon?.FillColor?.Value is string poly) return poly;
-                if (_shape?.FillColor?.Value is string shape) return shape;
+                if (_rectangle?.FillColor?.Value is string rect) return NormalizeHexNoHash(rect);
+                if (_roundRectangle?.FillColor?.Value is string round) return NormalizeHexNoHash(round);
+                if (_ellipse?.FillColor?.Value is string ellipse) return NormalizeHexNoHash(ellipse);
+                if (_polygon?.FillColor?.Value is string poly) return NormalizeHexNoHash(poly);
+                if (_shape?.FillColor?.Value is string shape) return NormalizeHexNoHash(shape);
+                if (_wpsShape != null) {
+                    var spPr = _wpsShape.GetFirstChild<Wps.ShapeProperties>();
+                    var solid = spPr?.GetFirstChild<A.SolidFill>();
+                    var rgb = solid?.GetFirstChild<A.RgbColorModelHex>();
+                    if (rgb?.Val != null) return NormalizeHexNoHash(rgb.Val.Value);
+                }
                 return string.Empty;
             }
             set {
-                if (_rectangle != null) _rectangle.FillColor = value;
-                if (_roundRectangle != null) _roundRectangle.FillColor = value;
-                if (_ellipse != null) _ellipse.FillColor = value;
-                if (_polygon != null) _polygon.FillColor = value;
-                if (_shape != null) _shape.FillColor = value;
+                string? v = value;
+                if (!string.IsNullOrEmpty(v) && !v.StartsWith("#", StringComparison.Ordinal)) v = "#" + v;
+                if (_rectangle != null) _rectangle.FillColor = v;
+                if (_roundRectangle != null) _roundRectangle.FillColor = v;
+                if (_ellipse != null) _ellipse.FillColor = v;
+                if (_polygon != null) _polygon.FillColor = v;
+                if (_shape != null) _shape.FillColor = v;
+                if (_wpsShape != null && !string.IsNullOrEmpty(v)) {
+                    var spPr = _wpsShape.GetFirstChild<Wps.ShapeProperties>();
+                    if (spPr != null) {
+                        // Remove NoFill if present
+                        var noFill = spPr.GetFirstChild<A.NoFill>();
+                        noFill?.Remove();
+
+                        var solid = spPr.GetFirstChild<A.SolidFill>();
+                        if (solid == null) {
+                            solid = new A.SolidFill();
+                            // Insert after geometry if possible
+                            var geom = (OpenXmlElement?)spPr.GetFirstChild<A.CustomGeometry>() ?? spPr.GetFirstChild<A.PresetGeometry>();
+                            if (geom != null) spPr.InsertAfter(solid, geom);
+                            else spPr.Append(solid);
+                        }
+                        var rgb = solid.GetFirstChild<A.RgbColorModelHex>();
+                        if (rgb == null) {
+                            rgb = new A.RgbColorModelHex();
+                            solid.RemoveAllChildren();
+                            solid.Append(rgb);
+                        }
+                        rgb.Val = v!.TrimStart('#');
+                    }
+                }
             }
         }
 
@@ -370,25 +573,57 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Outline color in hex format. Null when not applicable.
+        /// Outline color in hex format (no leading '#', lowercase). Null when not applicable.
         /// </summary>
         public string? StrokeColorHex {
             get {
-                if (_rectangle != null) return _rectangle.StrokeColor?.Value;
-                if (_roundRectangle != null) return _roundRectangle.StrokeColor?.Value;
-                if (_ellipse != null) return _ellipse.StrokeColor?.Value;
-                if (_polygon != null) return _polygon.StrokeColor?.Value;
-                if (_line != null) return _line.StrokeColor?.Value;
-                if (_shape != null) return _shape.StrokeColor?.Value;
+                if (_rectangle != null) return NormalizeHexNoHash(_rectangle.StrokeColor?.Value);
+                if (_roundRectangle != null) return NormalizeHexNoHash(_roundRectangle.StrokeColor?.Value);
+                if (_ellipse != null) return NormalizeHexNoHash(_ellipse.StrokeColor?.Value);
+                if (_polygon != null) return NormalizeHexNoHash(_polygon.StrokeColor?.Value);
+                if (_line != null) return NormalizeHexNoHash(_line.StrokeColor?.Value);
+                if (_shape != null) return NormalizeHexNoHash(_shape.StrokeColor?.Value);
+                if (_wpsShape != null) {
+                    var spPr = _wpsShape.GetFirstChild<Wps.ShapeProperties>();
+                    var outline = spPr?.GetFirstChild<A.Outline>();
+                    var solid = outline?.GetFirstChild<A.SolidFill>();
+                    var rgb = solid?.GetFirstChild<A.RgbColorModelHex>();
+                    if (rgb?.Val != null) return NormalizeHexNoHash(rgb.Val.Value);
+                }
                 return null;
             }
             set {
-                if (_rectangle != null) _rectangle.StrokeColor = value;
-                if (_roundRectangle != null) _roundRectangle.StrokeColor = value;
-                if (_ellipse != null) _ellipse.StrokeColor = value;
-                if (_polygon != null) _polygon.StrokeColor = value;
-                if (_line != null) _line.StrokeColor = value;
-                if (_shape != null) _shape.StrokeColor = value;
+                string? v = value;
+                if (!string.IsNullOrEmpty(v) && !v.StartsWith("#", StringComparison.Ordinal)) v = "#" + v;
+                if (_rectangle != null) _rectangle.StrokeColor = v;
+                if (_roundRectangle != null) _roundRectangle.StrokeColor = v;
+                if (_ellipse != null) _ellipse.StrokeColor = v;
+                if (_polygon != null) _polygon.StrokeColor = v;
+                if (_line != null) _line.StrokeColor = v;
+                if (_shape != null) _shape.StrokeColor = v;
+                if (_wpsShape != null && !string.IsNullOrEmpty(v)) {
+                    var spPr = _wpsShape.GetFirstChild<Wps.ShapeProperties>();
+                    if (spPr != null) {
+                        var outline = spPr.GetFirstChild<A.Outline>();
+                        if (outline == null) {
+                            outline = new A.Outline();
+                            spPr.Append(outline);
+                        }
+                        var solid = outline.GetFirstChild<A.SolidFill>();
+                        if (solid == null) {
+                            solid = new A.SolidFill();
+                            outline.RemoveAllChildren<A.FillProperties>();
+                            outline.Append(solid);
+                        }
+                        var rgb = solid.GetFirstChild<A.RgbColorModelHex>();
+                        if (rgb == null) {
+                            rgb = new A.RgbColorModelHex();
+                            solid.RemoveAllChildren();
+                            solid.Append(rgb);
+                        }
+                        rgb.Val = v!.TrimStart('#');
+                    }
+                }
             }
         }
 
@@ -428,6 +663,18 @@ namespace OfficeIMO.Word {
                 if (_polygon != null) _polygon.StrokeWeight = v;
                 if (_line != null) _line.StrokeWeight = v;
                 if (_shape != null) _shape.StrokeWeight = v;
+                if (_wpsShape != null && value != null) {
+                    const int emusPerPoint = 12700;
+                    var spPr = _wpsShape.GetFirstChild<Wps.ShapeProperties>();
+                    if (spPr != null) {
+                        var outline = spPr.GetFirstChild<A.Outline>();
+                        if (outline == null) {
+                            outline = new A.Outline();
+                            spPr.Append(outline);
+                        }
+                        outline.Width = (Int32Value)(int)Math.Round(value.Value * emusPerPoint);
+                    }
+                }
             }
         }
 
@@ -498,6 +745,25 @@ namespace OfficeIMO.Word {
                 if (kv.Length == 2 && kv[0] == name) return kv[1];
             }
             return null;
+        }
+
+        /// <summary>
+        /// Gets or sets the z-index for VML shapes (style "z-index"). DrawingML is not affected.
+        /// </summary>
+        public int? ZIndex {
+            get {
+                var v = GetStyleValue("z-index");
+                if (string.IsNullOrEmpty(v)) return null;
+                if (int.TryParse(v, out var n)) return n;
+                return null;
+            }
+            set {
+                if (value == null) {
+                    RemoveStyleValue("z-index");
+                } else {
+                    SetStyleValue("z-index", value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                }
+            }
         }
 
         private void SetStyleValue(string name, string value) {

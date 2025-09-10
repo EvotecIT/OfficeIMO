@@ -17,12 +17,14 @@ namespace OfficeIMO.Word {
         internal WordLine(WordDocument document, WordParagraph paragraph, double startXPt, double startYPt, double endXPt, double endYPt, string color = "#000000", double strokeWeightPt = 1) {
             _document = document;
             _wordParagraph = paragraph;
+            var vmlStroke = color;
+            if (!string.IsNullOrEmpty(vmlStroke) && !vmlStroke.StartsWith("#", StringComparison.Ordinal)) vmlStroke = "#" + vmlStroke;
             _line = new V.Line() {
                 Id = "Line" + Guid.NewGuid().ToString("N"),
                 Style = "mso-wrap-style:square",
                 From = $"{startXPt}pt,{startYPt}pt",
                 To = $"{endXPt}pt,{endYPt}pt",
-                StrokeColor = color,
+                StrokeColor = vmlStroke,
                 StrokeWeight = $"{strokeWeightPt}pt"
             };
 
@@ -44,8 +46,16 @@ namespace OfficeIMO.Word {
         /// Gets or sets the stroke color as hexadecimal string.
         /// </summary>
         public string ColorHex {
-            get => _line.StrokeColor?.Value ?? string.Empty;
-            set => _line.StrokeColor = value;
+            get {
+                var v = _line.StrokeColor?.Value ?? string.Empty;
+                if (v.StartsWith("#", StringComparison.Ordinal)) v = v.Substring(1);
+                return v.ToLowerInvariant();
+            }
+            set {
+                var v = value;
+                if (!string.IsNullOrEmpty(v) && !v.StartsWith("#", StringComparison.Ordinal)) v = "#" + v;
+                _line.StrokeColor = v;
+            }
         }
 
         /// <summary>
@@ -57,7 +67,11 @@ namespace OfficeIMO.Word {
                 if (!color.StartsWith("#", StringComparison.Ordinal)) color = "#" + color;
                 return Color.Parse(color);
             }
-            set => _line.StrokeColor = value.ToHexColor();
+            set {
+                var hex = value.ToHexColor();
+                if (!hex.StartsWith("#", StringComparison.Ordinal)) hex = "#" + hex;
+                _line.StrokeColor = hex;
+            }
         }
 
         /// <summary>

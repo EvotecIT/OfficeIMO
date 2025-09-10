@@ -398,6 +398,14 @@ namespace OfficeIMO.Examples {
             // Word/SmartArt
             OfficeIMO.Examples.Word.SmartArt.Example_AddAdvancedSmartArt(folderPath, false);
             OfficeIMO.Examples.Word.SmartArt.Example_AddBasicSmartArt(folderPath, false);
+            // Additional SmartArt examples from FixSmartArtShapes branch
+            OfficeIMO.Examples.Word.SmartArt.Example_AddCustomSmartArt1(folderPath, false);
+            OfficeIMO.Examples.Word.SmartArt.Example_AddCustomSmartArt2(folderPath, false);
+            // SmartArt edit flows
+            OfficeIMO.Examples.Word.SmartArt.Example_EditCustomSmartArt1(folderPath, false);
+            OfficeIMO.Examples.Word.SmartArt.Example_EditCustomSmartArt2(folderPath, false);
+            OfficeIMO.Examples.Word.SmartArt.Example_FlexibleBasicSmartArt_FullFlow(folderPath, false);
+            OfficeIMO.Examples.Word.SmartArt.Example_FlexibleCycleSmartArt_FullFlow(folderPath, false);
             // Word/Tables
             OfficeIMO.Examples.Word.Tables.Example_AllTables(folderPath, false);
             OfficeIMO.Examples.Word.Tables.Example_BasicTables1(folderPath, false);
