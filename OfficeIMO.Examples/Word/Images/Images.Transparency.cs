@@ -11,8 +11,9 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph();
-                var image = paragraph.AddImage(Path.Combine(imagePaths, "Kulek.jpg"), 100, 100);
-                image.Transparency = 30;
+                // AddImage returns the paragraph (fluent API). Set transparency on the last added image.
+                paragraph.AddImage(Path.Combine(imagePaths, "Kulek.jpg"), 100, 100);
+                document.Images[document.Images.Count - 1].Transparency = 30;
                 document.Save(openWord);
             }
         }
