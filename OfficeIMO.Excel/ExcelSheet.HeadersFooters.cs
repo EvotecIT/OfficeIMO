@@ -82,6 +82,18 @@ namespace OfficeIMO.Excel {
             var (hl, hc, hr) = Parse(oddHeader);
             var (fl, fc, fr) = Parse(oddFooter);
 
+            // If &G is missing from the text, but a LegacyDrawingHeaderFooter part exists,
+            // treat it as picture-present (defensive for files where tokens were stripped).
+            bool hasHeaderImageRel = false, hasFooterImageRel = false;
+            try {
+                var legacy = _worksheetPart.Worksheet.GetFirstChild<LegacyDrawingHeaderFooter>();
+                if (legacy?.Id?.Value is string relId && !string.IsNullOrEmpty(relId)) {
+                    var part = _worksheetPart.GetPartById(relId);
+                    hasHeaderImageRel = part is VmlDrawingPart; // both header/footer share the same VML part
+                    hasFooterImageRel = hasHeaderImageRel;
+                }
+            } catch { /* ignore */ }
+
             return new HeaderFooterSnapshot
             {
                 HeaderLeft = hl,
@@ -92,8 +104,8 @@ namespace OfficeIMO.Excel {
                 FooterRight = fr,
                 DifferentFirstPage = hf?.DifferentFirst?.Value ?? false,
                 DifferentOddEven = hf?.DifferentOddEven?.Value ?? false,
-                HeaderHasPicturePlaceholder = (hl.IndexOf("&G", StringComparison.Ordinal) >= 0) || (hc.IndexOf("&G", StringComparison.Ordinal) >= 0) || (hr.IndexOf("&G", StringComparison.Ordinal) >= 0),
-                FooterHasPicturePlaceholder = (fl.IndexOf("&G", StringComparison.Ordinal) >= 0) || (fc.IndexOf("&G", StringComparison.Ordinal) >= 0) || (fr.IndexOf("&G", StringComparison.Ordinal) >= 0)
+                HeaderHasPicturePlaceholder = (hl.IndexOf("&G", StringComparison.Ordinal) >= 0) || (hc.IndexOf("&G", StringComparison.Ordinal) >= 0) || (hr.IndexOf("&G", StringComparison.Ordinal) >= 0) || hasHeaderImageRel,
+                FooterHasPicturePlaceholder = (fl.IndexOf("&G", StringComparison.Ordinal) >= 0) || (fc.IndexOf("&G", StringComparison.Ordinal) >= 0) || (fr.IndexOf("&G", StringComparison.Ordinal) >= 0) || hasFooterImageRel
             };
         }
         /// <summary>
