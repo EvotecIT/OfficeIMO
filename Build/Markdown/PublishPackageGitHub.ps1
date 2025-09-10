@@ -8,6 +8,7 @@ $publishGitHubReleaseAssetSplat = @{
     GitHubUsername       = "EvotecIT"
     GitHubRepositoryName = "OfficeIMO"
     IsPreRelease         = $false
+    IncludeProjectNameInTag = $true
 }
 
 Publish-GitHubReleaseAsset @publishGitHubReleaseAssetSplat

@@ -3,11 +3,12 @@
 $GitHubAccessToken = Get-Content -Raw 'C:\Support\Important\GithubAPI.txt'
 
 $publishGitHubReleaseAssetSplat = @{
-    ProjectPath          = "$PSScriptRoot\..\..\OfficeIMO.Excel"
-    GitHubAccessToken    = $GitHubAccessToken
-    GitHubUsername       = "EvotecIT"
-    GitHubRepositoryName = "OfficeIMO"
-    IsPreRelease         = $false
+    ProjectPath             = "$PSScriptRoot\..\..\OfficeIMO.Excel"
+    GitHubAccessToken       = $GitHubAccessToken
+    GitHubUsername          = "EvotecIT"
+    GitHubRepositoryName    = "OfficeIMO"
+    IsPreRelease            = $false
+    IncludeProjectNameInTag = $true
 }
 
 Publish-GitHubReleaseAsset @publishGitHubReleaseAssetSplat
