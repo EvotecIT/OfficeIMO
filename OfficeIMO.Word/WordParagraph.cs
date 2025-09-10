@@ -653,8 +653,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool IsField {
             get {
-                var field = Field;
-                return field is not null && field.Field is not null;
+                var wf = Field;
+                return wf is not null && wf.Field is not null;
             }
         }
 
