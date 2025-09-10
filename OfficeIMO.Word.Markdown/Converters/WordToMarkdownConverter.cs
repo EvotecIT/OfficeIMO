@@ -6,7 +6,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OfficeIMO.Word.Markdown.Converters {
+namespace OfficeIMO.Word.Markdown {
     /// <summary>
     /// IMPLEMENTATION GUIDELINES:
     /// 1. Read document content using OfficeIMO.Word API:

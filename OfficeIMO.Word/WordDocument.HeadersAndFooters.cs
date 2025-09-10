@@ -7,13 +7,13 @@ namespace OfficeIMO.Word {
     /// </summary>
     public partial class WordDocument {
         // internal header properties for easy usage
-        internal Header _headerFirst;
-        internal Header _headerEven;
-        internal Header _headerDefault;
+        internal Header? _headerFirst;
+        internal Header? _headerEven;
+        internal Header? _headerDefault;
         // internal footer properties for easy usage
-        internal Footer _footerFirst;
-        internal Footer _footerDefault;
-        internal Footer _footerEven;
+        internal Footer? _footerFirst;
+        internal Footer? _footerDefault;
+        internal Footer? _footerEven;
 
         private void WarnIfMultipleSections(string componentName) {
             if (this.Sections.Count > 1) {

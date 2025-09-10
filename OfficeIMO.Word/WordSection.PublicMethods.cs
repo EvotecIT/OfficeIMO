@@ -180,7 +180,7 @@ namespace OfficeIMO.Word {
         public WordImage AddImageVml(string filePathImage, double? width = null, double? height = null) {
             var paragraph = AddParagraph(newRun: true);
             paragraph.AddImageVml(filePathImage, width, height);
-            return paragraph.Image;
+            return paragraph.Image ?? throw new InvalidOperationException("Failed to create VML image.");
         }
 
         /// <summary>
@@ -346,7 +346,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns>The cloned <see cref="WordSection"/>.</returns>
         public WordSection CloneSection() {
-            var body = _document._wordprocessingDocument.MainDocumentPart.Document.Body;
+            var body = _document._wordprocessingDocument!.MainDocumentPart!.Document!.Body!;
             OpenXmlElement sectionEnd;
             if (_sectionProperties.Parent is ParagraphProperties pPr && pPr.Parent is Paragraph para) {
                 sectionEnd = para;
@@ -432,7 +432,7 @@ namespace OfficeIMO.Word {
                         var mainDocumentPart = _document._wordprocessingDocument?.MainDocumentPart;
                         var part = mainDocumentPart?.GetPartById(id) as HeaderPart;
                         if (part != null) {
-                            mainDocumentPart.DeletePart(part);
+                            mainDocumentPart!.DeletePart(part);
                         }
                     }
                 }
@@ -449,7 +449,7 @@ namespace OfficeIMO.Word {
                         var mainDocumentPart = _document._wordprocessingDocument?.MainDocumentPart;
                         var part = mainDocumentPart?.GetPartById(id) as FooterPart;
                         if (part != null) {
-                            mainDocumentPart.DeletePart(part);
+                            mainDocumentPart!.DeletePart(part);
                         }
                     }
                 }

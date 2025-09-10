@@ -2,6 +2,9 @@ using OfficeIMO.Excel;
 using System;
 
 namespace OfficeIMO.Excel.Fluent {
+    /// <summary>
+    /// Fluent helper for writing a single row.
+    /// </summary>
     public class RowBuilder {
         private readonly ExcelSheet _sheet;
         private readonly int _rowIndex;
@@ -11,18 +14,21 @@ namespace OfficeIMO.Excel.Fluent {
             _rowIndex = rowIndex;
         }
 
+        /// <summary>Writes a cell in this row by 1‑based column index.</summary>
         public RowBuilder Cell(int column, object? value = null, string? formula = null, string? numberFormat = null) {
             if (column < 1) throw new ArgumentOutOfRangeException(nameof(column));
             _sheet.Cell(_rowIndex, column, value, formula, numberFormat);
             return this;
         }
 
+        /// <summary>Writes a cell in this row using a column letter reference (e.g., "A", "BC").</summary>
         public RowBuilder Cell(string columnReference, object? value = null, string? formula = null, string? numberFormat = null) {
             if (string.IsNullOrWhiteSpace(columnReference)) throw new ArgumentNullException(nameof(columnReference));
             int column = ColumnLetterToIndex(columnReference);
             return Cell(column, value, formula, numberFormat);
         }
 
+        /// <summary>Writes a full set of values across the row starting at column 1.</summary>
         public RowBuilder Values(params object?[] values) {
             if (values == null || values.Length == 0) return this;
             var cells = new System.Collections.Generic.List<(int Row, int Column, object Value)>(values.Length);

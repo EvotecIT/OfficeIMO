@@ -41,7 +41,7 @@ public class CoverPageTests : VerifyTestBase {
 
         document.Save();
 
-        await DoTest(document._wordprocessingDocument);
+        await DoTest(document._wordprocessingDocument!);
     }
 
     [Fact]
@@ -72,10 +72,10 @@ public class CoverPageTests : VerifyTestBase {
 
         wordListToc.AddItem("More on the next page");
 
-        document.TableOfContent.Update();
+        document.TableOfContent!.Update();
 
         document.Save();
 
-        await DoTest(document._wordprocessingDocument);
+        await DoTest(document._wordprocessingDocument!);
     }
 }

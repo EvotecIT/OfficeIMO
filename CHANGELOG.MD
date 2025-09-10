@@ -1202,3 +1202,8 @@ paragraph.ColorHex = "#FFFF00";
 
 ## - 0.1.4 - 2022.04.03
 - First official release
+## Unreleased
+### Reporting (Markdown + Excel)
+- Examples: add DomainDetective Markdown report (summary, background, per‑domain), generate HTML, and wire into examples runner.
+- Excel: per‑domain Status callout; Legends on Summary and per‑domain sheets; use DefinitionList for Overview.
+- Excel Fluent: add `SheetComposer.Callout(kind, title, body, width=8)` and `DefinitionList(...)` (alias for PropertiesGrid) to streamline reporting layouts.

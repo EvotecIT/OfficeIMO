@@ -10,7 +10,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace OfficeIMO.Excel.Read
+namespace OfficeIMO.Excel
 {
     /// <summary>
     /// Reader for a single worksheet. Offers enumeration and conversion helpers.

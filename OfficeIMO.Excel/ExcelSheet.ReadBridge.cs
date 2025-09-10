@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using OfficeIMO.Excel.Read;
-using OfficeIMO.Excel.Read.Edit;
+using OfficeIMO.Excel;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -74,10 +73,10 @@ namespace OfficeIMO.Excel {
             return BuildRowEditsFromRange(sh, a1Range, options ?? new ExcelReadOptions());
         }
 
-        private IEnumerable<RowEdit> BuildRowEditsFromRange(Excel.Read.ExcelSheetReader sh, string a1Range, ExcelReadOptions opt)
+        private IEnumerable<RowEdit> BuildRowEditsFromRange(ExcelSheetReader sh, string a1Range, ExcelReadOptions opt)
         {
             var values = sh.ReadRange(a1Range);
-            var (r1, c1, r2, c2) = OfficeIMO.Excel.Read.A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
             int rows = values.GetLength(0);
             int cols = values.GetLength(1);
             if (rows == 0 || cols == 0) yield break;

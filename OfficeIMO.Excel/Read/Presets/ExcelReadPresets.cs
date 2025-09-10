@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 
-namespace OfficeIMO.Excel.Read
+namespace OfficeIMO.Excel
 {
     /// <summary>
     /// Convenience presets for common read conversions to keep user code minimal.
@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel.Read
         }
 
         /// <summary>
-        /// Applies the same converters as <see cref="BasicConverters"/> to an existing options instance.
+        /// Applies the same converters as returned by <see cref="Simple"/> to an existing options instance.
         /// </summary>
         public static void ApplyBasicConverters(ExcelReadOptions options)
         {
@@ -119,9 +119,10 @@ namespace OfficeIMO.Excel.Read
                         return new ExcelCellValue(false);
 
                     // Percent → decimal
-                    if (s.EndsWith("%", StringComparison.Ordinal))
+                    var sLocal = s!;
+                    if (sLocal.EndsWith("%", StringComparison.Ordinal))
                     {
-                        var val = s.Substring(0, s.Length - 1);
+                        var val = sLocal.Substring(0, sLocal.Length - 1);
                         if (double.TryParse(val, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var pInv))
                             return new ExcelCellValue((decimal)(pInv / 100.0));
                         if (double.TryParse(val, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.CurrentCulture, out var pCur))

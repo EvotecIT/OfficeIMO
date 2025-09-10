@@ -19,6 +19,36 @@ using SixLaborsColor = SixLabors.ImageSharp.Color;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>
+        /// Enables a totals row for the table covering <paramref name="range"/> and assigns per-column functions by header name.
+        /// Supported functions are those in TotalsRowFunctionValues (Sum, Average, Count, Min, Max, etc.).
+        /// </summary>
+        public void SetTableTotals(string range, System.Collections.Generic.Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> byHeader)
+        {
+            if (string.IsNullOrWhiteSpace(range)) throw new System.ArgumentNullException(nameof(range));
+            WriteLock(() =>
+            {
+                foreach (var tdp in _worksheetPart.TableDefinitionParts)
+                {
+                    var table = tdp.Table;
+                    if (table?.Reference?.Value != range) continue;
+                    table.TotalsRowShown = true;
+                    var headerNames = table.TableColumns?.Elements<TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList() ?? new System.Collections.Generic.List<string>();
+                    int idx = 0;
+                    foreach (var tc in table.TableColumns!.Elements<TableColumn>())
+                    {
+                        var name = headerNames[idx++];
+                        if (byHeader.TryGetValue(name, out var fn))
+                        {
+                            tc.TotalsRowFunction = fn;
+                        }
+                    }
+                    tdp.Table.Save();
+                    break;
+                }
+                _worksheetPart.Worksheet.Save();
+            });
+        }
+        /// <summary>
         /// Adds an AutoFilter to the worksheet or table.
         /// </summary>
         /// <param name="range">The cell range to apply the filter to.</param>
@@ -143,29 +173,29 @@ namespace OfficeIMO.Excel {
         /// <exception cref="ArgumentException">Thrown when <paramref name="range"/> is not in a valid format.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the specified range overlaps with an existing table.</exception>
         public void AddTable(string range, bool hasHeader, string name, TableStyle style) {
-            AddTable(range, hasHeader, name, style, true);
+            AddTable(range, hasHeader, name, style, includeAutoFilter: true);
         }
 
         /// <summary>
-        /// Adds an Excel table to the worksheet over the specified range with optional AutoFilter.
+        /// Adds an Excel table to the worksheet over the specified range with optional AutoFilter and name validation behavior.
         /// </summary>
         /// <param name="range">Cell range (e.g. "A1:B3") defining the table area.</param>
         /// <param name="hasHeader">Indicates whether the first row is a header row.</param>
-        /// <param name="name">Name of the table. If empty, a default name is used.</param>
+        /// <param name="name">Name of the table. If empty, a default name is used.
+        /// Examples: "My Table" becomes "My_Table"; "123Report" becomes "_123Report"; spaces and invalid characters are replaced with underscores.
+        /// If a name already exists in this workbook, a numeric suffix is appended (e.g., "Table", "Table2").</param>
         /// <param name="style">Table style to apply.</param>
         /// <param name="includeAutoFilter">Whether to include AutoFilter dropdowns in the table headers.</param>
+        /// <param name="validationMode">Controls how invalid table names are handled:
+        /// <see cref="TableNameValidationMode.Sanitize"/> (default) replaces invalid characters and adjusts the name;
+        /// <see cref="TableNameValidationMode.Strict"/> throws descriptive exceptions for invalid names.</param>
         /// <remarks>
         /// Smart AutoFilter handling:
-        /// - If includeAutoFilter is true and a worksheet-level AutoFilter exists on the same range, 
-        ///   it's moved to the table (preserving any filter criteria)
-        /// - If includeAutoFilter is false and a worksheet-level AutoFilter exists, it's removed 
-        ///   (Excel doesn't allow both worksheet AutoFilter and table on same range)
-        /// - Order doesn't matter - the final state will be consistent regardless of operation order
+        /// - If includeAutoFilter is true and a worksheet-level AutoFilter exists on the same range, it's moved to the table (preserving any filter criteria).
+        /// - If includeAutoFilter is false and a worksheet-level AutoFilter exists, it's removed (Excel doesn't allow both worksheet AutoFilter and a table on the same range).
+        /// - Order doesn't matter — the final state will be consistent regardless of operation order.
         /// </remarks>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="range"/> is null or empty.</exception>
-        /// <exception cref="ArgumentException">Thrown when <paramref name="range"/> is not in a valid format.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the specified range overlaps with an existing table.</exception>
-        public void AddTable(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter) {
+        public void AddTable(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
@@ -189,7 +219,7 @@ namespace OfficeIMO.Excel {
                 foreach (var existingPart in _worksheetPart.TableDefinitionParts) {
                     var existingRange = existingPart.Table?.Reference?.Value;
                     if (string.IsNullOrEmpty(existingRange)) continue;
-                    var existingCells = existingRange.Split(':');
+                    var existingCells = existingRange!.Split(':');
                     if (existingCells.Length != 2) continue;
                     string existingStartRef = existingCells[0];
                     string existingEndRef = existingCells[1];
@@ -217,25 +247,41 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                // Generate unique table ID atomically
+                // Generate unique table ID atomically (must be unique across the entire workbook)
                 uint tableId;
+                var swScan = System.Diagnostics.Stopwatch.StartNew();
                 lock (_tableIdLock) {
-                    // Get max existing table ID to ensure uniqueness
+                    // Get max existing table ID across all sheets to ensure uniqueness when opening existing files
                     uint maxExistingId = 0;
-                    foreach (var part in _worksheetPart.TableDefinitionParts) {
-                        if (part.Table?.Id?.Value != null && part.Table.Id.Value > maxExistingId) {
-                            maxExistingId = part.Table.Id.Value;
+                    var wbPart = _spreadSheetDocument.WorkbookPart;
+                    if (wbPart != null) {
+                        foreach (var ws in wbPart.WorksheetParts) {
+                            foreach (var part in ws.TableDefinitionParts) {
+                                var idv = part.Table?.Id?.Value;
+                                if (idv != null && idv.Value > maxExistingId)
+                                    maxExistingId = idv.Value;
+                            }
                         }
                     }
-                    tableId = Math.Max((uint)_nextTableId, maxExistingId + 1);
-                    _nextTableId = (int)tableId + 1;
+                    // Ensure _nextTableId always advances beyond any seen IDs
+                    var next = Math.Max(_nextTableId, (int)(maxExistingId + 1));
+                    tableId = (uint)next;
+                    _nextTableId = next + 1;
                 }
+                swScan.Stop();
+                EffectiveExecution.ReportTiming("AddTable.ScanExistingIds", swScan.Elapsed);
 
                 var tableDefinitionPart = _worksheetPart.AddNewPart<TableDefinitionPart>();
 
-                if (string.IsNullOrEmpty(name)) {
+                if (string.IsNullOrWhiteSpace(name)) {
                     name = $"Table{tableId}";
                 }
+                name = EnsureValidUniqueTableName(name, validationMode);
+                if (string.IsNullOrWhiteSpace(name)) {
+                    throw new InvalidOperationException("Table name cannot be empty after validation.");
+                }
+                // Reserve the final name in the workbook-level cache for fast uniqueness checks
+                _excelDocument.ReserveTableName(name);
 
                 var table = new Table {
                     Id = tableId,
@@ -247,21 +293,26 @@ namespace OfficeIMO.Excel {
                 };
 
                 var tableColumns = new TableColumns { Count = columnsCount };
+                var usedHeaders = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
                 for (uint i = 0; i < columnsCount; i++) {
-                    string columnName = $"Column{i + 1}";
-
+                    string baseName = $"Column{i + 1}";
                     // If the table has headers, try to get the actual header value
                     if (hasHeader && startRowIndex > 0) {
                         var headerCell = GetCell(startRowIndex, startColumnIndex + (int)i);
                         if (headerCell != null) {
                             string headerValue = GetCellText(headerCell);
                             if (!string.IsNullOrWhiteSpace(headerValue)) {
-                                columnName = headerValue;
+                                baseName = headerValue;
                             }
                         }
                     }
-
-                    tableColumns.Append(new TableColumn { Id = i + 1, Name = columnName });
+                    string candidate = baseName;
+                    int suffix = 2;
+                    while (!usedHeaders.Add(candidate))
+                    {
+                        candidate = $"{baseName} ({suffix++})";
+                    }
+                    tableColumns.Append(new TableColumn { Id = i + 1, Name = candidate });
                 }
                 
                 // SMART AUTOFILTER HANDLING
@@ -310,17 +361,101 @@ namespace OfficeIMO.Excel {
 
                 var tableParts = _worksheetPart.Worksheet.Elements<TableParts>().FirstOrDefault();
                 if (tableParts == null) {
-                    tableParts = new TableParts { Count = 1 };
+                    tableParts = new TableParts();
                     _worksheetPart.Worksheet.Append(tableParts);
-                } else {
-                    tableParts.Count = (tableParts.Count ?? 0) + 1;
                 }
 
                 var relId = _worksheetPart.GetIdOfPart(tableDefinitionPart);
-                tableParts.Append(new TablePart { Id = relId });
+                // Avoid duplicate TablePart entries
+                bool hasPart = tableParts.Elements<TablePart>().Any(tp => tp.Id?.Value == relId);
+                if (!hasPart)
+                    tableParts.Append(new TablePart { Id = relId });
+                tableParts.Count = (uint)tableParts.Elements<TablePart>().Count();
 
                 _worksheetPart.Worksheet.Save();
             });
+        }
+
+        /// <summary>
+        /// Ensures a valid and unique table name according to OfficeIMO rules.
+        /// Rules:
+        /// - Allowed characters: letters, digits, underscore; spaces become underscores.
+        /// - Names cannot start with a digit; an underscore is prefixed if necessary.
+        /// - Names are scoped per workbook and checked case-insensitively.
+        /// - When <paramref name="mode"/> is <see cref="TableNameValidationMode.Strict"/>, throws for invalid input.
+        /// Examples:
+        /// - "My Table" ⇒ "My_Table"
+        /// - "Sales#2025" ⇒ "Sales_2025"
+        /// - "123Report" ⇒ "_123Report"
+        /// - If "Table" already exists, next becomes "Table2" ("Table3", ...)
+        /// </summary>
+        private string EnsureValidUniqueTableName(string name, TableNameValidationMode mode)
+        {
+            const int MaxLen = 255; // Excel UI limit; conservative
+
+            if (string.IsNullOrWhiteSpace(name)) {
+                if (mode == TableNameValidationMode.Strict)
+                    throw new ArgumentException("Table name cannot be null, empty, or whitespace.", nameof(name));
+                name = "Table";
+            }
+
+            // Sanitize characters
+            bool changed = false;
+            var sanitized = new System.Text.StringBuilder(name.Length);
+            foreach (char ch in name)
+            {
+                if (char.IsLetterOrDigit(ch) || ch == '_') {
+                    sanitized.Append(ch);
+                } else if (char.IsWhiteSpace(ch)) {
+                    sanitized.Append('_');
+                    if (ch != '_') changed = true;
+                } else {
+                    sanitized.Append('_');
+                    changed = true;
+                }
+            }
+            if (sanitized.Length == 0) {
+                if (mode == TableNameValidationMode.Strict)
+                    throw new ArgumentException("Table name must contain at least one letter, digit or underscore.", nameof(name));
+                sanitized.Append("Table");
+                changed = true;
+            }
+            if (char.IsDigit(sanitized[0])) {
+                if (mode == TableNameValidationMode.Strict)
+                    throw new ArgumentException("Table name cannot start with a digit.", nameof(name));
+                sanitized.Insert(0, '_');
+                changed = true;
+            }
+
+            // If any character required sanitation, and in strict mode, throw
+            if (mode == TableNameValidationMode.Strict && changed)
+                throw new ArgumentException("Table name contains invalid characters or spaces. Allowed: letters, digits, and underscore.", nameof(name));
+
+            // Trim to max length
+            if (sanitized.Length > MaxLen) {
+                if (mode == TableNameValidationMode.Strict)
+                    throw new ArgumentException($"Table name exceeds maximum length of {MaxLen} characters.", nameof(name));
+                sanitized.Length = MaxLen;
+                changed = true;
+            }
+
+            string baseName = sanitized.ToString();
+
+            // Use workbook-level cache for efficiency
+            var used = _excelDocument.GetOrInitTableNameCache();
+            if (!used.Contains(baseName)) return baseName;
+
+            // Add numeric suffix until unique; trim if needed to fit
+            int i = 2;
+            while (true)
+            {
+                string suffix = i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                int maxBase = Math.Max(1, MaxLen - suffix.Length);
+                string trimmedBase = baseName.Length > maxBase ? baseName.Substring(0, maxBase) : baseName;
+                string candidate = trimmedBase + suffix;
+                if (!used.Contains(candidate)) return candidate;
+                i++;
+            }
         }
 
     }

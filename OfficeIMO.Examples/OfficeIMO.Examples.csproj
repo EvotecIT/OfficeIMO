@@ -10,6 +10,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\\OfficeIMO.Excel\\OfficeIMO.Excel.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Markdown\\OfficeIMO.Markdown.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word\\OfficeIMO.Word.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word.Pdf\\OfficeIMO.Word.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word.Html\\OfficeIMO.Word.Html.csproj" />
@@ -19,6 +20,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <None Include="..\\Assets\\**">
+            <Link>Assets\\%(RecursiveDir)%(Filename)%(Extension)</Link>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
         <None Update="Images\\**">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>

@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace OfficeIMO.Excel.Read
+namespace OfficeIMO.Excel
 {
     /// <summary>
     /// Reading options controlling conversion behavior and execution policy.

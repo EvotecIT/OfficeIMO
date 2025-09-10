@@ -20,12 +20,12 @@ namespace OfficeIMO.Word;
 /// Inserts and controls page-number elements.
 /// </summary>
 public partial class WordPageNumber {
-    private WordDocument _document;
-    private SdtBlock _sdtBlock;
-    private WordHeader _wordHeader;
-    private WordFooter _wordFooter;
-    private WordParagraph _wordParagraph;
-    private readonly List<WordParagraph> _listParagraphs;
+    private WordDocument _document = null!;
+    private SdtBlock _sdtBlock = null!;
+    private WordHeader? _wordHeader;
+    private WordFooter? _wordFooter;
+    private WordParagraph _wordParagraph = null!;
+    private readonly List<WordParagraph> _listParagraphs = new();
 
     /// <summary>
     /// Gets or sets the alignment of the page-number paragraph.
@@ -42,23 +42,17 @@ public partial class WordPageNumber {
     /// <summary>
     /// Gets the primary paragraph containing the page number field.
     /// </summary>
-    public WordParagraph Paragraph {
-        get { return _wordParagraph; }
-    }
+    public WordParagraph Paragraph { get { return _wordParagraph; } }
 
     /// <summary>
     /// Gets all paragraphs that make up the page number content.
     /// </summary>
-    public IReadOnlyList<WordParagraph> Paragraphs {
-        get { return _listParagraphs; }
-    }
+    public IReadOnlyList<WordParagraph> Paragraphs { get { return _listParagraphs; } }
 
     /// <summary>
     /// Gets the underlying field representing the page number.
     /// </summary>
-    public WordField Field {
-        get { return _wordParagraph.Field; }
-    }
+    public WordField Field { get { return _wordParagraph.Field; } }
 
     /// <summary>
     /// Gets the numeric value from the field text if available.

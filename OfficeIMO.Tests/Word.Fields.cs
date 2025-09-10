@@ -321,8 +321,8 @@ namespace OfficeIMO.Tests {
                     Author = "John Doe",
                     Year = "2024"
                 };
-                document.BibliographySources[src.Tag] = src;
-                document.AddCitation(src.Tag);
+                document.BibliographySources[src.Tag!] = src;
+                document.AddCitation(src.Tag!);
                 document.Save();
 
                 Assert.Single(document.BibliographySources);

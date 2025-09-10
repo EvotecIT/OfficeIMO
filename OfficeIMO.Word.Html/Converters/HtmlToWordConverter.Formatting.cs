@@ -5,7 +5,7 @@ using AngleSharp.Css.Parser;
 using AngleSharp.Css.Values;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using OfficeIMO.Word.Html.Helpers;
+using OfficeIMO.Word.Html;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -13,7 +13,7 @@ using System.Text.RegularExpressions;
 using Color = SixLabors.ImageSharp.Color;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace OfficeIMO.Word.Html.Converters {
+namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
         private enum TextTransform {
             None,
@@ -73,7 +73,7 @@ namespace OfficeIMO.Word.Html.Converters {
             if (string.IsNullOrWhiteSpace(text)) {
                 return false;
             }
-            text = text.Trim().ToLowerInvariant();
+            text = (text ?? string.Empty).Trim().ToLowerInvariant();
             if (text.EndsWith("pt") && double.TryParse(text.Substring(0, text.Length - 2), NumberStyles.Float, CultureInfo.InvariantCulture, out double pt)) {
                 size = (int)Math.Round(pt);
                 return size > 0;
@@ -148,7 +148,7 @@ namespace OfficeIMO.Word.Html.Converters {
             if (string.IsNullOrWhiteSpace(family)) {
                 return null;
             }
-            foreach (var part in family.Split(',')) {
+            foreach (var part in (family ?? string.Empty).Split(',')) {
                 var trimmed = part.Trim('"', '\'', ' ');
                 if (string.IsNullOrEmpty(trimmed)) {
                     continue;
@@ -212,7 +212,7 @@ namespace OfficeIMO.Word.Html.Converters {
 
             var align = declaration.GetPropertyValue("text-align")?.Trim();
             if (!string.IsNullOrEmpty(align)) {
-                alignment = align.ToLowerInvariant() switch {
+                alignment = align!.ToLowerInvariant() switch {
                     "center" => JustificationValues.Center,
                     "right" => JustificationValues.Right,
                     "justify" => JustificationValues.Both,
@@ -222,8 +222,9 @@ namespace OfficeIMO.Word.Html.Converters {
             }
 
             var floatVal = declaration.GetPropertyValue("float")?.Trim();
-            if (!string.IsNullOrEmpty(floatVal)) {
-                alignment = floatVal.ToLowerInvariant() switch {
+            if (floatVal != null) {
+                var f = floatVal.ToLowerInvariant();
+                alignment = f switch {
                     "left" => JustificationValues.Left,
                     "right" => JustificationValues.Right,
                     _ => alignment
@@ -311,7 +312,7 @@ namespace OfficeIMO.Word.Html.Converters {
             if (formatting.Strike) run.SetStrike();
             if (formatting.Superscript) run.SetSuperScript();
             if (formatting.Subscript) run.SetSubScript();
-            if (!string.IsNullOrEmpty(formatting.ColorHex)) run.SetColorHex(formatting.ColorHex);
+            if (!string.IsNullOrEmpty(formatting.ColorHex)) run.SetColorHex(formatting.ColorHex!);
             if (formatting.Highlight.HasValue) run.SetHighlight(formatting.Highlight.Value);
             if (formatting.FontSize.HasValue) run.SetFontSize(formatting.FontSize.Value);
             if (formatting.Caps.HasValue) run.SetCapsStyle(formatting.Caps.Value);
@@ -319,12 +320,12 @@ namespace OfficeIMO.Word.Html.Converters {
             if (!string.IsNullOrEmpty(formatting.FontFamily)) {
                 var font = ResolveFontFamily(formatting.FontFamily);
                 if (!string.IsNullOrEmpty(font)) {
-                    run.SetFontFamily(font);
+                    run.SetFontFamily(font!);
                 }
             } else if (!string.IsNullOrEmpty(options.FontFamily)) {
                 var font = ResolveFontFamily(options.FontFamily);
                 if (!string.IsNullOrEmpty(font)) {
-                    run.SetFontFamily(font);
+                    run.SetFontFamily(font!);
                 }
             }
         }
@@ -451,9 +452,9 @@ namespace OfficeIMO.Word.Html.Converters {
             }
         }
 
-        private static string MergeStyles(string parentStyle, string? childStyle) {
+        private static string MergeStyles(string? parentStyle, string? childStyle) {
             var parser = new CssParser();
-            var parent = parser.ParseDeclaration(parentStyle);
+            var parent = parser.ParseDeclaration(parentStyle ?? string.Empty);
             var child = parser.ParseDeclaration(childStyle ?? string.Empty);
             foreach (var prop in parent) {
                 if (string.IsNullOrEmpty(child.GetPropertyValue(prop.Name))) {
@@ -464,16 +465,16 @@ namespace OfficeIMO.Word.Html.Converters {
         }
 
 
-        private static string? NormalizeColor(string value) {
+        private static string? NormalizeColor(string? value) {
             if (string.IsNullOrWhiteSpace(value)) {
                 return null;
             }
-            value = value.Trim();
-            if (value.StartsWith("rgb", StringComparison.OrdinalIgnoreCase)) {
-                int start = value.IndexOf('(');
-                int end = value.IndexOf(')');
+            string v = value!.Trim();
+            if (v.StartsWith("rgb", StringComparison.OrdinalIgnoreCase)) {
+                int start = v.IndexOf('(');
+                int end = v.IndexOf(')');
                 if (start >= 0 && end > start) {
-                    var parts = value.Substring(start + 1, end - start - 1).Split(',');
+                    var parts = v.Substring(start + 1, end - start - 1).Split(',');
                     if (parts.Length >= 3 &&
                         byte.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte r) &&
                         byte.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte g) &&
@@ -485,12 +486,12 @@ namespace OfficeIMO.Word.Html.Converters {
                 return null;
             }
             try {
-                var parsed = Color.Parse(value);
+                var parsed = Color.Parse(v);
                 return parsed.ToHexColor();
             } catch {
-                if (!value.StartsWith("#", StringComparison.Ordinal)) {
+                if (!v.StartsWith("#", StringComparison.Ordinal)) {
                     try {
-                        var parsed = Color.Parse("#" + value);
+                        var parsed = Color.Parse("#" + v);
                         return parsed.ToHexColor();
                     } catch {
                         return null;
@@ -519,7 +520,10 @@ namespace OfficeIMO.Word.Html.Converters {
             { HighlightColorValues.White, Color.White }
         };
 
-        private static HighlightColorValues? MapColorToHighlight(string hex) {
+        private static HighlightColorValues? MapColorToHighlight(string? hex) {
+            if (string.IsNullOrEmpty(hex)) {
+                return null;
+            }
             try {
                 var target = Color.Parse("#" + hex);
                 var targetRgb = target.ToPixel<Rgb24>();

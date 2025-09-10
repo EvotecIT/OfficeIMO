@@ -1,6 +1,6 @@
 using System;
 
-namespace OfficeIMO.Excel.Read.Edit
+namespace OfficeIMO.Excel
 {
     /// <summary>
     /// Editable cell view used by RowEdit to read current snapshot value and write new value back to the sheet.

@@ -16,11 +16,35 @@ namespace OfficeIMO.Excel {
     /// loading and saving spreadsheets.
     /// </summary>
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
+        private static readonly System.Text.RegularExpressions.Regex _multipleUnderscoresRegex =
+            new System.Text.RegularExpressions.Regex("_+", System.Text.RegularExpressions.RegexOptions.Compiled);
         // Allocated only when an operation actually needs a serialized apply stage
         internal ReaderWriterLockSlim? _lock;
         internal List<UInt32Value> id = new List<UInt32Value>() { 0 };
         private readonly Dictionary<string, int> _sharedStringCache = new Dictionary<string, int>();
         private readonly object _sharedStringLock = new object();
+        // Workbook-level cache of table names for fast uniqueness checks
+        private HashSet<string>? _tableNameCache;
+        private System.Collections.Generic.IEqualityComparer<string> _tableNameComparer = System.StringComparer.OrdinalIgnoreCase;
+
+        /// <summary>
+        /// Controls how workbook-level table name uniqueness is compared.
+        /// Defaults to <see cref="StringComparer.OrdinalIgnoreCase"/>. Changing this will reset the
+        /// internal cache and rebuild it on next use. Set it once before adding tables for predictable behavior.
+        /// </summary>
+        public System.Collections.Generic.IEqualityComparer<string> TableNameComparer
+        {
+            get => _tableNameComparer;
+            set
+            {
+                if (value == null) throw new System.ArgumentNullException(nameof(value));
+                if (!object.ReferenceEquals(_tableNameComparer, value))
+                {
+                    _tableNameComparer = value;
+                    _tableNameCache = null; // rebuild lazily on next use with the new comparer
+                }
+            }
+        }
 
         /// <summary>
         /// Execution policy for controlling parallel vs sequential operations.
@@ -72,10 +96,34 @@ namespace OfficeIMO.Excel {
         private WorkbookPart _workBookPart = null!;
         private SharedStringTablePart? _sharedStringTablePart;
 
+        private static async Task<byte[]> ReadAllBytesCompatAsync(string path, CancellationToken ct)
+        {
+#if NETSTANDARD2_0 || NET472 || NET48
+            using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.Asynchronous))
+            {
+                var mem = new MemoryStream((int)Math.Max(0, fs.Length) + 8192);
+                await fs.CopyToAsync(mem, 81920, ct).ConfigureAwait(false);
+                return mem.ToArray();
+            }
+#else
+            return await File.ReadAllBytesAsync(path, ct).ConfigureAwait(false);
+#endif
+        }
+
         /// <summary>
         /// Path to the file backing this document.
         /// </summary>
         public string FilePath = string.Empty;
+
+        /// <summary>
+        /// Built-in (core) document properties (Title, Creator, etc.).
+        /// </summary>
+        public BuiltinDocumentProperties BuiltinDocumentProperties = null!;
+
+        /// <summary>
+        /// Extended (application) properties (Company, Manager, etc.).
+        /// </summary>
+        public ApplicationProperties ApplicationProperties = null!;
 
         /// <summary>
         /// FileOpenAccess of the document
@@ -102,6 +150,81 @@ namespace OfficeIMO.Excel {
             get {
                 return ValidateDocument();
             }
+        }
+
+        /// <summary>
+        /// Returns the workbook-level cache of table names, initializing it from the current
+        /// document if needed. Case-insensitive comparison.
+        /// </summary>
+        internal HashSet<string> GetOrInitTableNameCache()
+        {
+            // Fast path without locking
+            if (_tableNameCache != null) return _tableNameCache;
+
+            // Initialize without taking a new lock if we're already in a write scope
+            if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld))
+            {
+                if (_tableNameCache == null)
+                {
+                    var set = new HashSet<string>(_tableNameComparer);
+                    var wb = _spreadSheetDocument.WorkbookPart;
+                    if (wb != null)
+                    {
+                        foreach (var ws in wb.WorksheetParts)
+                        {
+                            foreach (var tdp in ws.TableDefinitionParts)
+                            {
+                                var n = tdp.Table?.Name?.Value;
+                                if (!string.IsNullOrEmpty(n)) set.Add(n!);
+                            }
+                        }
+                    }
+                    _tableNameCache = set;
+                }
+                return _tableNameCache!;
+            }
+
+            // Otherwise, use write lock for thread safety
+            return Locking.ExecuteWrite(EnsureLock(), () =>
+            {
+                if (_tableNameCache != null) return _tableNameCache;
+                var set = new HashSet<string>(_tableNameComparer);
+                var wb = _spreadSheetDocument.WorkbookPart;
+                if (wb != null)
+                {
+                    foreach (var ws in wb.WorksheetParts)
+                    {
+                        foreach (var tdp in ws.TableDefinitionParts)
+                        {
+                            var n = tdp.Table?.Name?.Value;
+                            if (!string.IsNullOrEmpty(n)) set.Add(n!);
+                        }
+                    }
+                }
+                _tableNameCache = set;
+                return _tableNameCache;
+            });
+        }
+
+        /// <summary>
+        /// Adds the given table name to the cache. Should be called once the name is finalized.
+        /// </summary>
+        internal void ReserveTableName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return;
+            var cache = GetOrInitTableNameCache();
+            cache.Add(name);
+        }
+
+        /// <summary>
+        /// Removes the given table name from the cache. Intended for future table deletion APIs.
+        /// Safe to call even if the cache hasn't been initialized.
+        /// </summary>
+        internal void RemoveReservedTableName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return;
+            if (_tableNameCache == null) return;
+            _tableNameCache.Remove(name);
         }
 
         /// <summary>
@@ -207,6 +330,10 @@ namespace OfficeIMO.Excel {
 
             document._workBookPart = workbookpart;
 
+            // Initialize document property helpers
+            document.BuiltinDocumentProperties = new BuiltinDocumentProperties(document);
+            document.ApplicationProperties = new ApplicationProperties(document);
+
             return document;
         }
         /// <summary>
@@ -238,7 +365,36 @@ namespace OfficeIMO.Excel {
             //// Add a WorkbookPart to the document.
             document._workBookPart = spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
 
+            // Initialize document property helpers
+            document.BuiltinDocumentProperties = new BuiltinDocumentProperties(document);
+            document.ApplicationProperties = new ApplicationProperties(document);
+
             return document;
+        }
+
+        /// <summary>
+        /// Validates the current spreadsheet with Open XML validator and returns error messages (if any).
+        /// Useful for troubleshooting "Repaired Records" issues in Excel.
+        /// </summary>
+        public System.Collections.Generic.IReadOnlyList<string> ValidateOpenXml()
+        {
+            var list = new System.Collections.Generic.List<string>();
+            if (_spreadSheetDocument == null) return list;
+            // Ensure worksheet element order prior to validation so schema checks reflect final layout
+            try
+            {
+                foreach (var sheet in Sheets)
+                {
+                    sheet.EnsureWorksheetElementOrder();
+                }
+            }
+            catch { }
+            var validator = new OpenXmlValidator();
+            foreach (var error in validator.Validate(_spreadSheetDocument))
+            {
+                list.Add($"{error.ErrorType}: {error.Description} at {error.Path}");
+            }
+            return list;
         }
 
         /// <summary>
@@ -258,7 +414,7 @@ namespace OfficeIMO.Excel {
             }
             using var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite, readOnly ? FileShare.Read : FileShare.ReadWrite, 4096, FileOptions.Asynchronous);
             var memoryStream = new MemoryStream();
-            await fileStream.CopyToAsync(memoryStream);
+            await fileStream.CopyToAsync(memoryStream).ConfigureAwait(false);
             memoryStream.Seek(0, SeekOrigin.Begin);
 
             var openSettings = new OpenSettings {
@@ -284,7 +440,8 @@ namespace OfficeIMO.Excel {
         /// <returns>Created <see cref="ExcelDocument"/> instance.</returns>
         public static ExcelDocument Create(string filePath, string workSheetName) {
             ExcelDocument excelDocument = Create(filePath);
-            excelDocument.AddWorkSheet(workSheetName);
+            // Prefer a sanitized sheet name for convenience in the common Create(path, name) flow
+            excelDocument.AddWorkSheet(workSheetName, SheetNameValidationMode.Sanitize);
             return excelDocument;
         }
 
@@ -294,10 +451,89 @@ namespace OfficeIMO.Excel {
         /// <param name="workSheetName">Worksheet name.</param>
         /// <returns>Created <see cref="ExcelSheet"/> instance.</returns>
         public ExcelSheet AddWorkSheet(string workSheetName = "") {
+            return AddWorkSheet(workSheetName, SheetNameValidationMode.None);
+        }
+
+        /// <summary>
+        /// Adds a worksheet to the document with control over name validation.
+        /// </summary>
+        /// <param name="workSheetName">Requested worksheet name.</param>
+        /// <param name="validationMode">How to validate the sheet name: None (no checks), Sanitize (coerce), or Strict (throw on invalid).</param>
+        /// <returns>Created <see cref="ExcelSheet"/> instance.</returns>
+        public ExcelSheet AddWorkSheet(string workSheetName, SheetNameValidationMode validationMode) {
             return Locking.ExecuteWrite(EnsureLock(), () => {
-                ExcelSheet excelSheet = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, workSheetName);
+                string name = ValidateOrSanitizeSheetName(workSheetName, validationMode);
+                ExcelSheet excelSheet = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, name);
                 return excelSheet;
             });
+        }
+
+        private string ValidateOrSanitizeSheetName(string name, SheetNameValidationMode mode)
+        {
+            // Collect existing names (case-insensitive)
+            var existing = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+            foreach (var s in _workBookPart.Workbook.Sheets?.OfType<DocumentFormat.OpenXml.Spreadsheet.Sheet>() ?? System.Linq.Enumerable.Empty<DocumentFormat.OpenXml.Spreadsheet.Sheet>())
+            {
+                var existingName = s.Name?.Value;
+                if (!string.IsNullOrEmpty(existingName)) existing.Add(existingName!);
+            }
+
+            if (mode == SheetNameValidationMode.None)
+            {
+                // Preserve historical behavior: default to "Sheet1" when empty
+                if (string.IsNullOrEmpty(name)) name = "Sheet1";
+                return name;
+            }
+
+            // Rules common to Sanitize/Strict
+            static bool ContainsInvalidChars(string s)
+            {
+                foreach (char c in s)
+                {
+                    if (c == ':' || c == '\\' || c == '/' || c == '?' || c == '*' || c == '[' || c == ']') return true;
+                }
+                return false;
+            }
+
+            string baseName = name ?? string.Empty;
+            baseName = baseName.Trim();
+            baseName = baseName.Trim('\'', ' ');
+
+            if (mode == SheetNameValidationMode.Strict)
+            {
+                if (string.IsNullOrEmpty(baseName)) throw new System.ArgumentException("Worksheet name cannot be empty.", nameof(name));
+                if (baseName.Length > 31) throw new System.ArgumentException("Worksheet name cannot exceed 31 characters.", nameof(name));
+                if (ContainsInvalidChars(baseName)) throw new System.ArgumentException("Worksheet name contains invalid characters (: \\ / ? * [ ]).", nameof(name));
+                if (existing.Contains(baseName)) throw new System.ArgumentException($"Worksheet name '{baseName}' already exists.", nameof(name));
+                return baseName;
+            }
+
+            // Sanitize
+            var sb = new System.Text.StringBuilder(baseName.Length > 0 ? baseName.Length : 5);
+            foreach (char c in baseName)
+            {
+                if (c == ':' || c == '\\' || c == '/' || c == '?' || c == '*' || c == '[' || c == ']') sb.Append('_');
+                else sb.Append(c);
+            }
+            string cleaned = sb.ToString().Trim();
+            // Collapse multiple underscores and trim leading/trailing underscores for nicer names
+            cleaned = _multipleUnderscoresRegex.Replace(cleaned, "_");
+            cleaned = cleaned.Trim('_');
+            if (cleaned.Length == 0) cleaned = "Sheet";
+            if (cleaned.Length > 31) cleaned = cleaned.Substring(0, 31);
+
+            // Ensure uniqueness by appending (2), (3), ...
+            string candidate = cleaned;
+            int n = 2;
+            while (existing.Contains(candidate))
+            {
+                string suffix = " (" + n.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
+                int maxBase = 31 - suffix.Length;
+                string basePart = cleaned.Length > maxBase ? cleaned.Substring(0, maxBase) : cleaned;
+                candidate = basePart + suffix;
+                n++;
+            }
+            return candidate;
         }
 
         /// <summary>
@@ -313,6 +549,19 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Performs a safety preflight across all worksheets to reduce the likelihood of Excel prompting
+        /// for repairs on open. It removes empty containers (Hyperlinks/MergeCells), drops orphaned drawing
+        /// and header/footer references, and cleans up invalid table references.
+        /// </summary>
+        public void PreflightWorkbook()
+        {
+            foreach (var sheet in Sheets)
+            {
+                sheet.Preflight();
+            }
+        }
+
+        /// <summary>
         /// Closes the underlying spreadsheet document.
         /// </summary>
         public void Close() {
@@ -325,20 +574,37 @@ namespace OfficeIMO.Excel {
         /// <param name="filePath">Path to save to.</param>
         /// <param name="openExcel">Whether to open the file after saving.</param>
         public void Save(string filePath, bool openExcel) {
-            // Ensure all worksheets have proper element ordering before saving
+            Save(filePath, openExcel, options: null);
+        }
+
+        /// <summary>
+        /// Saves the document with optional robustness options.
+        /// </summary>
+        /// <param name="filePath">Destination path. When empty, uses the original <see cref="FilePath"/>.</param>
+        /// <param name="openExcel">When true, opens the saved file in the system's associated app.</param>
+        /// <param name="options">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
+        public void Save(string filePath, bool openExcel, ExcelSaveOptions? options) {
+            // Ensure all worksheets have up-to-date dimensions and proper element ordering before saving
             foreach (var sheet in Sheets) {
+                sheet.UpdateSheetDimension();
                 sheet.EnsureWorksheetElementOrder();
                 sheet.Commit();
             }
+
+            if (options?.SafePreflight == true)
+            {
+                try { PreflightWorkbook(); } catch { }
+            }
+
+            if (options?.SafeRepairDefinedNames == true)
+            {
+                try { RepairDefinedNames(save: true); } catch { }
+            }
             
             _workBookPart.Workbook.Save();
+            try { _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow; } catch { }
 
             var path = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
-
-            // Prepare serialized snapshot of current document
-            var snapshot = new MemoryStream();
-            using (_spreadSheetDocument.Clone(snapshot)) { }
-            snapshot.Position = 0;
 
             // Ensure target directory is writable
             if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
@@ -352,31 +618,62 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            // Release any file handles by disposing the current document first
+            // Save using OpenXML SaveAs to ensure package-level properties are persisted
+            // Snapshot current package and properties
+            string? pTitle = null, pCreator = null, pSubject = null, pCategory = null, pDescription = null, pKeywords = null, pLastModifiedBy = null, pVersion = null;
+            DateTime? pCreated = null, pModified = null, pLastPrinted = null;
             try {
-                _spreadSheetDocument.Dispose();
-            } catch (NotSupportedException) {
-                // ignore dispose failures on some streams
+                var src = _spreadSheetDocument.PackageProperties;
+                pTitle = src.Title; pCreator = src.Creator; pSubject = src.Subject; pCategory = src.Category; pDescription = src.Description;
+                pKeywords = src.Keywords; pLastModifiedBy = src.LastModifiedBy; pVersion = src.Version; pCreated = src.Created; pModified = src.Modified; pLastPrinted = src.LastPrinted;
+            } catch { }
+
+            using (var fallback = new MemoryStream())
+            {
+                using (_spreadSheetDocument.Clone(fallback)) { }
+                // Release any file handle on the original file before overwrite
+                try { _spreadSheetDocument.Dispose(); } catch { }
+                fallback.Position = 0;
+                using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+                {
+                    fallback.CopyTo(fs);
+                    fs.Flush();
+                }
             }
 
-            // Write snapshot to disk
-            using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None)) {
-                snapshot.CopyTo(fs);
-                fs.Flush();
+            // Ensure core properties are persisted in the saved package
+            try
+            {
+                using var pkg = Package.Open(path, FileMode.Open, FileAccess.ReadWrite);
+                var dst = pkg.PackageProperties;
+                dst.Title = pTitle; dst.Creator = pCreator; dst.Subject = pSubject; dst.Category = pCategory;
+                dst.Description = pDescription; dst.Keywords = pKeywords; dst.LastModifiedBy = pLastModifiedBy; dst.Version = pVersion;
+                dst.Created = pCreated; dst.Modified = pModified ?? DateTime.UtcNow; dst.LastPrinted = pLastPrinted;
             }
+            catch { }
             FilePath = path;
-
+            
             // Reopen as in-memory document for further operations on an expandable stream
-            var mem = new MemoryStream();
-            snapshot.Position = 0;
-            snapshot.CopyTo(mem);
+            var fileBytes = File.ReadAllBytes(path);
+            var mem = new MemoryStream(fileBytes.Length + 8192);
+            mem.Write(fileBytes, 0, fileBytes.Length);
             mem.Position = 0;
-            _spreadSheetDocument = SpreadsheetDocument.Open(mem, true);
+            var reopenSettings = new OpenSettings { AutoSave = true };
+            _spreadSheetDocument = SpreadsheetDocument.Open(mem, true, reopenSettings);
             _workBookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
             _sharedStringTablePart = null;
 
             if (openExcel) {
                 Helpers.Open(path, true);
+            }
+
+            if (options?.ValidateOpenXml == true)
+            {
+                var errors = ValidateOpenXml();
+                if (errors.Count > 0)
+                {
+                    throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+                }
             }
         }
 
@@ -396,6 +693,16 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Fluent sugar: compose a worksheet using <see cref="Fluent.SheetComposer"/> without exposing the builder type to callers.
+        /// </summary>
+        public void Compose(string sheetName, System.Action<OfficeIMO.Excel.Fluent.SheetComposer> compose, OfficeIMO.Excel.Fluent.SheetTheme? theme = null)
+        {
+            if (compose == null) throw new System.ArgumentNullException(nameof(compose));
+            var c = new OfficeIMO.Excel.Fluent.SheetComposer(this, sheetName, theme);
+            compose(c);
+        }
+
+        /// <summary>
         /// Asynchronously saves the document.
         /// </summary>
         /// <param name="filePath">Optional path to save to.</param>
@@ -403,10 +710,32 @@ namespace OfficeIMO.Excel {
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         public async Task SaveAsync(string filePath, bool openExcel, CancellationToken cancellationToken = default) {
+            await SaveAsync(filePath, openExcel, options: null, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Asynchronously saves the document with optional robustness options.
+        /// </summary>
+        /// <param name="filePath">Destination path. When empty, uses the original <see cref="FilePath"/>.</param>
+        /// <param name="openExcel">When true, opens the saved file in the system's associated app.</param>
+        /// <param name="options">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
+        /// <param name="cancellationToken">Cancels the asynchronous save work.</param>
+        public async Task SaveAsync(string filePath, bool openExcel, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
             // Ensure all worksheets have proper element ordering before saving
             foreach (var sheet in Sheets) {
+                sheet.UpdateSheetDimension();
                 sheet.EnsureWorksheetElementOrder();
                 sheet.Commit();
+            }
+
+            if (options?.SafePreflight == true)
+            {
+                try { PreflightWorkbook(); } catch { }
+            }
+
+            if (options?.SafeRepairDefinedNames == true)
+            {
+                try { RepairDefinedNames(save: true); } catch { }
             }
             
             _workBookPart.Workbook.Save();
@@ -429,23 +758,54 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                // Dispose current document to release file handle (if any)
+                // Snapshot props
+                string? pTitle = null, pCreator = null, pSubject = null, pCategory = null, pDescription = null, pKeywords = null, pLastModifiedBy = null, pVersion = null;
+                DateTime? pCreated = null, pModified = null, pLastPrinted = null;
+                try { var src = _spreadSheetDocument.PackageProperties; pTitle = src.Title; pCreator = src.Creator; pSubject = src.Subject; pCategory = src.Category; pDescription = src.Description; pKeywords = src.Keywords; pLastModifiedBy = src.LastModifiedBy; pVersion = src.Version; pCreated = src.Created; pModified = src.Modified; pLastPrinted = src.LastPrinted; } catch { }
+
+                // Release any on-disk file handle to avoid sharing violations
                 try { _spreadSheetDocument.Dispose(); } catch { }
 
-                // Write snapshot to disk asynchronously
+                // Write package via snapshot
                 using (var fs = new FileStream(target, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 8192, FileOptions.Asynchronous)) {
                     snapshot.Position = 0;
-                    // Use explicit buffer size overload for broad TFMs compatibility
-                    await snapshot.CopyToAsync(fs, 81920, cancellationToken);
-                    await fs.FlushAsync(cancellationToken);
+                    await snapshot.CopyToAsync(fs, 81920, cancellationToken).ConfigureAwait(false);
+                    await fs.FlushAsync(cancellationToken).ConfigureAwait(false);
                 }
+                // Ensure core properties persisted
+                try
+                {
+                    using var pkg = Package.Open(target, FileMode.Open, FileAccess.ReadWrite);
+                    var dst = pkg.PackageProperties;
+                    dst.Title = pTitle; dst.Creator = pCreator; dst.Subject = pSubject; dst.Category = pCategory; dst.Description = pDescription; dst.Keywords = pKeywords; dst.LastModifiedBy = pLastModifiedBy; dst.Version = pVersion; dst.Created = pCreated; dst.Modified = pModified ?? DateTime.UtcNow; dst.LastPrinted = pLastPrinted;
+                }
+                catch { }
                 FilePath = target;
+
+                // Reopen as in-memory document for continued operations without locking the file
+                var fileBytes = await ReadAllBytesCompatAsync(target, cancellationToken).ConfigureAwait(false);
+                var mem = new MemoryStream(fileBytes.Length + 8192);
+                await mem.WriteAsync(fileBytes, 0, fileBytes.Length, cancellationToken).ConfigureAwait(false);
+                mem.Position = 0;
+                var reopenSettings = new OpenSettings { AutoSave = true };
+                _spreadSheetDocument = SpreadsheetDocument.Open(mem, true, reopenSettings);
+                _workBookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+                _sharedStringTablePart = null;
             } catch (Exception) {
                 throw;
             }
 
             if (openExcel) {
                 Open(filePath, true);
+            }
+
+            if (options?.ValidateOpenXml == true)
+            {
+                var errors = ValidateOpenXml();
+                if (errors.Count > 0)
+                {
+                    throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+                }
             }
         }
 
@@ -489,7 +849,7 @@ namespace OfficeIMO.Excel {
                         _workBookPart?.Workbook.Save();
                     }
 
-                    await Task.Run(() => this._spreadSheetDocument.Dispose());
+                    await Task.Run(() => this._spreadSheetDocument.Dispose()).ConfigureAwait(false);
                 } catch {
                     // ignored
                 }

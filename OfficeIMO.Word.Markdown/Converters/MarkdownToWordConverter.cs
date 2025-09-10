@@ -10,7 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OfficeIMO.Word.Markdown.Converters {
+namespace OfficeIMO.Word.Markdown {
     /// <summary>
     /// IMPLEMENTATION GUIDELINES:
     /// 1. Use Markdig to parse markdown into AST (Abstract Syntax Tree)

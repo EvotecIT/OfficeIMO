@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using JustificationValues = DocumentFormat.OpenXml.Wordprocessing.JustificationValues;
 
-namespace OfficeIMO.Word.Markdown.Converters {
+namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
         private static void ProcessTable(Table table, WordDocument document, MarkdownToWordOptions options) {
             int rows = table.Count();
@@ -48,8 +48,8 @@ namespace OfficeIMO.Word.Markdown.Converters {
             }
         }
 
-        private static TableColumnAlign?[]? GetRowAlignments(TableRow row) {
-            object data = row.GetData("alignment") ?? row.GetData("alignments");
+        private static TableColumnAlign?[]? GetRowAlignments(TableRow row) {
+            object? data = row.GetData("alignment") ?? row.GetData("alignments");
             if (data is IEnumerable enumerable) {
                 List<TableColumnAlign?> list = new List<TableColumnAlign?>();
                 foreach (var item in enumerable) {

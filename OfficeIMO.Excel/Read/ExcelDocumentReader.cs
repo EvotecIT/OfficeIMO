@@ -4,7 +4,7 @@ using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace OfficeIMO.Excel.Read
+namespace OfficeIMO.Excel
 {
     /// <summary>
     /// Reader for an Excel workbook (read-only). Provides access to sheet readers and basic metadata.

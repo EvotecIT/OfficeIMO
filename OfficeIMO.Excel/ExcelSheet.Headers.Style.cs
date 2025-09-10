@@ -1,6 +1,6 @@
 using System;
 using System.Globalization;
-using OfficeIMO.Excel.Read;
+using OfficeIMO.Excel;
 
 namespace OfficeIMO.Excel
 {
@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel
         {
             int colIndex = ColumnIndexByHeader(header, options);
             var a1 = GetUsedRangeA1();
-            var (r1, _, r2, _) = OfficeIMO.Excel.Read.A1.ParseRange(a1);
+            var (r1, _, r2, _) = A1.ParseRange(a1);
             int startRow = includeHeader ? r1 : r1 + 1;
             return new ColumnStyleByHeaderBuilder(this, colIndex, startRow, r2);
         }

@@ -20,7 +20,7 @@ namespace OfficeIMO.Word.Pdf {
             if (string.IsNullOrWhiteSpace(fontFamily)) {
                 return;
             }
-            if (!_embeddedFonts.Add(fontFamily)) {
+            if (!_embeddedFonts.Add(fontFamily!)) {
                 return;
             }
             try {
@@ -42,7 +42,7 @@ namespace OfficeIMO.Word.Pdf {
                     }
                 }
                 ms.Position = 0;
-                FontManager.RegisterFontWithCustomName(fontFamily, ms);
+                FontManager.RegisterFontWithCustomName(fontFamily!, ms);
             } catch {
             }
         }
@@ -71,13 +71,13 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (!string.IsNullOrEmpty(paragraph.Bookmark?.Name)) {
-                container = container.Section(paragraph.Bookmark!.Name);
+                container = container.Section(paragraph.Bookmark!.Name!);
             }
 
             if (paragraph.IsHyperLink && paragraph.Hyperlink != null) {
                 var link = paragraph.Hyperlink;
                 if (!string.IsNullOrEmpty(link.Anchor)) {
-                    container = container.SectionLink(link.Anchor);
+                    container = container.SectionLink(link.Anchor!);
                 } else if (link.Uri != null) {
                     container = container.Hyperlink(link.Uri.ToString());
                 }
@@ -143,10 +143,11 @@ namespace OfficeIMO.Word.Pdf {
             void ApplyFormatting(TextSpanDescriptor span) {
                 if (!string.IsNullOrEmpty(paragraph.FontFamily)) {
                     EmbedFont(paragraph.FontFamily);
-                    span = span.FontFamily(paragraph.FontFamily);
+                    span = span.FontFamily(paragraph.FontFamily!);
                 } else if (!string.IsNullOrEmpty(options?.FontFamily)) {
-                    EmbedFont(options.FontFamily);
-                    span = span.FontFamily(options.FontFamily);
+                    var defFont = options!.FontFamily!;
+                    EmbedFont(defFont);
+                    span = span.FontFamily(defFont);
                 }
                 if (paragraph.Bold) {
                     span = span.Bold();
@@ -208,7 +209,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (!string.IsNullOrEmpty(link.Anchor)) {
-                container = container.SectionLink(link.Anchor);
+                container = container.SectionLink(link.Anchor!);
             } else if (link.Uri != null) {
                 container = container.Hyperlink(link.Uri.ToString());
             }

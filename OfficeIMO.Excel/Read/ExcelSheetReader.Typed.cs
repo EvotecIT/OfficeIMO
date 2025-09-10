@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 
-namespace OfficeIMO.Excel.Read
+namespace OfficeIMO.Excel
 {
     /// <summary>
     /// Strongly-typed convenience readers for <see cref="ExcelSheetReader"/>.

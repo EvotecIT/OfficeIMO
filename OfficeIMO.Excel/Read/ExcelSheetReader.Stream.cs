@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace OfficeIMO.Excel.Read
+namespace OfficeIMO.Excel
 {
     /// <summary>
     /// Streaming APIs for large ranges.
@@ -142,10 +142,15 @@ namespace OfficeIMO.Excel.Read
         /// </summary>
         public sealed class RangeChunk
         {
+            /// <summary>First row index (1-based) covered by this chunk.</summary>
             public int StartRow { get; }
+            /// <summary>Number of rows in this chunk.</summary>
             public int RowCount { get; }
+            /// <summary>First column index (1-based) covered by this chunk.</summary>
             public int StartCol { get; }
+            /// <summary>Number of columns in this chunk.</summary>
             public int ColCount { get; }
+            /// <summary>Row-major values array. Size is <see cref="RowCount"/> x <see cref="ColCount"/>.</summary>
             public object?[][] Rows { get; }
 
             internal RangeChunk(int startRow, int rowCount, int startCol, int colCount, object?[][] rows)
