@@ -2,6 +2,9 @@
 
 OfficeIMO.Excel provides a lightweight, typed, and ergonomic API for reading and writing .xlsx files on top of Open XML. It focuses on fast values reads, editable row workflows, and write helpers that avoid extra file handles.
 
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Excel)](https://www.nuget.org/packages/OfficeIMO.Excel)
+[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Excel?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Excel)
+
 ## Why OfficeIMO.Excel
 
 - Pure .NET, cross‑platform — no COM automation, no Excel process required.
@@ -86,6 +89,23 @@ public sealed class Person {
     public int    Value { get; set; }
     public string Status { get; set; }
 }
+```
+
+### Named ranges
+```csharp
+// Workbook-global
+doc.SetNamedRange("GlobalArea", "'Data'!A1:B10");
+// Sheet-local
+var data = doc["Data"];
+data.SetNamedRange("LocalStart", "A1");
+```
+
+### Header & Footer
+```csharp
+var s = doc.AddWorkSheet("Summary");
+s.SetHeaderFooter(headerCenter: "Demo", headerRight: "Page &P of &N");
+var logo = File.ReadAllBytes("logo.png");
+s.SetHeaderImage(HeaderFooterPosition.Center, logo, widthPoints: 96, heightPoints: 32);
 ```
 
 ### Link a table column by header
@@ -327,6 +347,40 @@ s.SetHyperlink(7, 1, "https://example.org", display: "Example", style: true);
 s.SetInternalLink(2, 1, "'Summary'!A1", display: "Summary", style: true);
 ```
 
+## Print Setup & TOC
+
+```csharp
+// Print area and titles
+var sheet = doc["Data"];
+doc.SetPrintArea(sheet, "A1:H100");
+doc.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null);
+
+// Table of Contents sheet with named ranges included
+doc.AddTableOfContents(sheetName: "TOC", placeFirst: true, withHyperlinks: true, includeNamedRanges: true);
+```
+
+## Link Helpers by Header
+
+```csharp
+var summary = doc["Summary"];
+// Link a column by header name to same-named internal sheets
+summary.LinkByHeaderToInternalSheets("Domain", targetA1: "A1", styled: true);
+// Or within a specific range
+summary.LinkByHeaderToInternalSheetsInRange("A1:B20", "Domain", targetA1: "A1", styled: true);
+// URL mapping by header
+summary.LinkByHeaderToUrlsInRange("A1:B20", "RFC", rfc => $"https://datatracker.ietf.org/doc/html/{rfc}", styled: true);
+```
+
+## Conditional Formatting
+
+```csharp
+var data = doc["Data"];
+// 2‑color scale over a range
+data.AddConditionalColorScale("C2:C100", "#FFF0F0", "#70AD47");
+// Data bar
+data.AddConditionalDataBar("D2:D100", "#5B9BD5");
+```
+
 ## Namespaces (updated)
 
 - A1 helpers are under `OfficeIMO.Excel.A1` (no `OfficeIMO.Excel.Read` import needed for A1).
@@ -334,6 +388,8 @@ s.SetInternalLink(2, 1, "'Summary'!A1", display: "Summary", style: true);
 - Fluent write entrypoints:
   - `doc.Compose(...)` uses `OfficeIMO.Excel.Fluent.SheetComposer` internally.
   - `doc.AsFluent()` returns `OfficeIMO.Excel.Fluent.ExcelFluentWorkbook` (advanced builder APIs).
+
+<!-- (No migration notes: these APIs are new additions.) -->
 
 ### Examples: Two Styles (Excelish vs Classic)
 
