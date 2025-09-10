@@ -9,7 +9,8 @@
         <VersionPrefix>0.1.0</VersionPrefix>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             netstandard2.0;net472;net48;net8.0;net9.0</TargetFrameworks>
-        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))' Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">
+        <TargetFrameworks
+            Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))' Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">
             net8.0;net9.0</TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 
@@ -40,8 +41,13 @@
         <PackageReference Include="SixLabors.Fonts" Version="1.0.1" />
     </ItemGroup>
 
-    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'net48'">
+    <ItemGroup
+        Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'net48'">
         <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.Net.Http" />
     </ItemGroup>
 
     <ItemGroup>
