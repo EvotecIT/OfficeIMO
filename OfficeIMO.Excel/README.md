@@ -35,6 +35,10 @@ using var doc = ExcelDocument.Create(path);
 doc.Execution.Mode = ExecutionMode.Automatic;
 doc.Execution.MaxDegreeOfParallelism = Environment.ProcessorCount;
 doc.Execution.OnDecision = (op, n, m) => Console.WriteLine($"[Exec] {op}: {n} → {m}");
+// AutoFit with parallel compute
+var s = doc.AddWorkSheet("Data");
+// ... fill sheet ...
+s.AutoFitColumns();
 ```
 
 What to expect
@@ -89,6 +93,17 @@ public sealed class Person {
     public int    Value { get; set; }
     public string Status { get; set; }
 }
+```
+
+### Validation lists & typed reads together
+```csharp
+var s = doc["Data"];
+// Add a validation list for a status column
+s.ValidationList("C2:C100", new[] { "New", "Processed", "Hold" });
+
+// Typed read back into POCOs
+public sealed class RowModel { public string Name {get;set;} = ""; public string Status {get;set;} = ""; }
+var rows = doc.Read().Sheet("Data").Range("A1:C10").AsObjects<RowModel>().ToList();
 ```
 
 ### Named ranges

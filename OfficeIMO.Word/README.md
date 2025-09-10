@@ -77,6 +77,18 @@ var para = doc.AddParagraph();
 var field = para.AddField(WordFieldType.Date, wordFieldFormat: WordFieldFormat.ShortDate);
 ```
 
+### Mail Merge (MERGEFIELD)
+```csharp
+var para2 = doc.AddParagraph();
+// Simple MERGEFIELD with a custom format
+para2.AddField(WordFieldType.MergeField, customFormat: "CustomerName");
+// Advanced builder for complex instructions/switches
+var builder = new WordFieldBuilder(WordFieldType.MergeField)
+    .CustomFormat("OrderTotal")
+    .Format(WordFieldFormat.Numeric);
+para2.AddField(builder);
+```
+
 ### Footnotes / Endnotes
 ```csharp
 var r = doc.AddParagraph("See note").AddText(" ");
@@ -95,6 +107,9 @@ var shp = doc.AddShape(ShapeTypeValues.Rectangle, 150, 50);
 shp.FillColorHex = "#E7FFE7"; shp.StrokeColorHex = "#008000";
 var ch = doc.AddChart(ChartType.Bar, 400, 250);
 ch.AddSeries("S1", new[]{1,3,2});
+ch.AddLegend(LegendPositionValues.Right);
+ch.SetXAxisTitle("Categories");
+ch.SetYAxisTitle("Values");
 ```
 
 ### Watermarks
@@ -105,6 +120,15 @@ doc.SetTextWatermark("CONFIDENTIAL", opacity: 0.15);
 ### Protection
 ```csharp
 doc.ProtectDocument(enforce: true, password: "secret");
+```
+
+### Table of Contents (TOC)
+```csharp
+// Add headings (styles must map to heading levels)
+doc.AddParagraph("Chapter 1").SetStyle("Heading1");
+doc.AddParagraph("Section 1.1").SetStyle("Heading2");
+// Insert TOC near the top (field will update on open)
+doc.Paragraphs[0].AddField(WordFieldType.TOC);
 ```
 
 ## Converters — HTML / Markdown / PDF
@@ -187,12 +211,12 @@ doc.SaveAsPdf("out.pdf");
 - Markdown: `OfficeIMO.Word.Markdown` (Markdig) — convert to/from Markdown
 - PDF: `OfficeIMO.Word.Pdf` (QuestPDF/SkiaSharp) — export to PDF
 
+> Note: Converters are in active development and will be released to NuGet once they meet quality and test coverage goals. Until then, they ship in‑repo for early evaluation.
+
 ## Notes on Versioning
 
 - Minor releases may include additive APIs and perf improvements.
 - Patch releases fix bugs and compatibility issues without breaking APIs.
-
-<!-- (No migration notes: these packages are new components.) -->
 
 ## Notes
 
