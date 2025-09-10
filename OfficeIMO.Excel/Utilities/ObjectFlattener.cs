@@ -137,29 +137,34 @@ namespace OfficeIMO.Excel {
 
         private static void FlattenValueTuple(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts)
         {
-            // Try ITuple for length-based enumeration; fall back to public fields named Item{n}
-            var ituple = obj as System.Runtime.CompilerServices.ITuple;
-            if (ituple != null)
+            // Try ITuple via reflection (available on newer frameworks). Avoids compile-time dependency for netstandard2.0
+            var iTupleType = Type.GetType("System.Runtime.CompilerServices.ITuple");
+            if (iTupleType != null && iTupleType.IsAssignableFrom(obj.GetType()))
             {
-                for (int i = 0; i < ituple.Length; i++)
+                var lenProp = iTupleType.GetProperty("Length");
+                var itemProp = iTupleType.GetProperty("Item"); // indexer
+                if (lenProp != null && itemProp != null)
                 {
-                    var path = string.IsNullOrEmpty(prefix) ? $"Item{i+1}" : $"{prefix}.Item{i+1}";
-                    var val = ituple[i];
-                    if (val == null)
+                    int length = Convert.ToInt32(lenProp.GetValue(obj, null));
+                    for (int i = 0; i < length; i++)
                     {
-                        dict[path] = ApplyNullPolicy(path, null, opts);
+                        var path = string.IsNullOrEmpty(prefix) ? $"Item{i + 1}" : $"{prefix}.Item{i + 1}";
+                        var val = itemProp.GetValue(obj, new object[] { i });
+                        if (val == null)
+                        {
+                            dict[path] = ApplyNullPolicy(path, null, opts);
+                        }
+                        else if (IsSimple(val.GetType()))
+                        {
+                            dict[path] = ApplyFormatting(path, val, opts);
+                        }
+                        else
+                        {
+                            FlattenInternal(val, dict, path, depth + 1, opts);
+                        }
                     }
-                    else if (IsSimple(val.GetType()))
-                    {
-                        dict[path] = ApplyFormatting(path, val, opts);
-                    }
-                    else
-                    {
-                        // Recurse for complex items
-                        FlattenInternal(val, dict, path, depth + 1, opts);
-                    }
+                    return;
                 }
-                return;
             }
 
             // Fallback: reflect public instance fields Item1..ItemN
