@@ -4,8 +4,8 @@
     <Description>Fluent and object-model Markdown builder for .NET with CommonMark/GFM-style output. No external dependencies.</Description>
     <AssemblyName>OfficeIMO.Markdown</AssemblyName>
     <AssemblyTitle>OfficeIMO.Markdown</AssemblyTitle>
-    <VersionPrefix>0.1.0</VersionPrefix>
-    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">netstandard2.0;net8.0;net9.0</TargetFrameworks>
+    <VersionPrefix>0.2.0</VersionPrefix>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">net472;netstandard2.0;net8.0;net9.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))'  Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">net8.0</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
@@ -51,4 +51,3 @@
   </ItemGroup>
 
 </Project>
-
