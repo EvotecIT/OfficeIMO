@@ -169,34 +169,36 @@ doc.SaveAsPdf("out.pdf");
 
 ## Detailed Feature Matrix
 
-- Documents
-  - Create/Load/Save, SaveAs (sync/async), clean & repair
-  - Compatibility settings, document variables, protection (enforce/read‑only recommended/final)
-  - Digital signatures (see tests), macros (add/extract/remove modules)
-- Sections & Page Setup
-  - Orientation, paper size, margins, columns, header/footer variants (default/even/first)
-  - Page breaks, repeating header rows in tables, background color
-- Paragraphs & Runs
-  - Styles (paragraph/run), bold/italic/underline/strike, shading, alignment, indentation, line spacing, tabs and tab stops
-  - Find/replace helpers
-- Tables
-  - Create/append, built‑in styles (105), borders/shading, widths, merge/split (h/v), nested tables
-  - Control row heights and page breaks, detect merged cells
-- Images
-  - From file/stream/base64/URL, description/alt text
-  - Sizing (px/pt/EMU), wrap/layout, crop, transparency, flip/rotate, position; read/write EMU sizes
-- Links & Bookmarks
-  - External/internal hyperlinks (tooltip/target), bookmarks and cross‑references
-- Fields
-  - Add/read/remove/update; common types (DATE, PAGE, NUMPAGES, TOC, MERGEFIELD, etc.)
-  - Simple fields and advanced representation; custom formats
-- Notes
-  - Footnotes and endnotes: add/read/remove
-- Content Controls (SDT)
-  - Checkbox, date picker, dropdown, combobox, picture, repeating section
-- Shapes & Charts
-  - Basic AutoShapes (fill/stroke), SmartArt detection
-  - Charts (pie/bar/line/combo/scatter/area/radar), axes/legends/series
+- 📄 Documents
+  - ✅ Create/Load/Save, SaveAs (sync/async); clean & repair
+  - ✅ Compatibility settings; document variables; protection (read‑only recommended/final/enforced)
+  - ⚠️ Digital signatures (basic scenarios); ✅ macros (add/extract/remove modules)
+- 📑 Sections & Page Setup
+  - ✅ Orientation, paper size, margins, columns
+  - ✅ Headers/footers (default/even/first), page breaks, repeating table header rows, background color
+- ✍️ Paragraphs & Runs
+  - ✅ Styles (paragraph/run); bold/italic/underline/strike; shading; alignment; indentation; line spacing; tabs/tab stops
+  - ✅ Find/replace helpers
+- 🧱 Tables
+  - ✅ Create/append; built‑in styles (105); borders/shading; widths; merge/split (H/V); nested tables
+  - ✅ Row heights and page‑break control; merged‑cell detection
+- 🖼️ Images
+  - ✅ From file/stream/base64/URL; alt text
+  - ✅ Size (px/pt/EMU); wrap/layout; crop; transparency; flip/rotate; position; read/write EMU sizes
+- 🔗 Links & Bookmarks
+  - ✅ External/internal hyperlinks (tooltip/target); bookmarks; cross‑references
+- 🧾 Fields
+  - ✅ Add/read/remove/update (DATE, PAGE, NUMPAGES, TOC, MERGEFIELD, …)
+  - ✅ Simple and advanced representations; custom formats
+- 📝 Notes
+  - ✅ Footnotes and endnotes: add/read/remove
+- 🧩 Content Controls (SDT)
+  - ✅ Checkbox, date picker, dropdown, combobox, picture, repeating section
+- 📊 Charts
+  - ✅ Pie/Bar/Line/Combo/Scatter/Area/Radar; axes/legends/series; axis titles
+  - ⚠️ Formatting depth varies by chart type
+- 🔷 Shapes/SmartArt
+  - ✅ Basic AutoShapes with fill/stroke; ⚠️ SmartArt detection/limited operations
 
 
 ## Dependencies & Versions

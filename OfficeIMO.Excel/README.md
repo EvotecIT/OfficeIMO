@@ -398,6 +398,29 @@ data.AddConditionalColorScale("C2:C100", "#FFF0F0", "#70AD47");
 data.AddConditionalDataBar("D2:D100", "#5B9BD5");
 ```
 
+## Feature Matrix
+
+- 📘 Workbook & Core
+  - ✅ Create/Load/Save (sync/async); deterministic save ordering; optional validation
+  - ✅ ExecutionPolicy (Automatic/Sequential/Parallel) with diagnostics hooks
+- 📥 Reading
+  - ✅ Used range detection; A1 range reads; typed reads (`RowsAs<T>()`); editable rows (`RowsObjects()`); range enumeration
+- ✍️ Writing
+  - ✅ Cells & ranges; object→table (`RowsFrom<T>()`); Excel table builder with AutoFilter
+  - ✅ Named ranges (global & sheet‑local); header/footer text + images; print area/titles; freeze panes
+  - ✅ TOC generator and back links
+- 🎨 Styles & Formatting
+  - ✅ Number formats (integer/decimal/percent/currency/date/datetime/custom); alignment; background fills
+  - ✅ Column/Range builders; conditional formatting (color scale, data bar)
+- 🔗 Links
+  - ✅ Internal/external links; smart host/title helpers; link‑by‑header (whole sheet or within range)
+- 🔍 Filters & Sort
+  - ✅ AutoFilter add/filter by header; conflict migration to table; multi‑column sort helpers
+- 🧰 Data Quality
+  - ✅ Validation lists; find/replace; header utilities (header→index, set by header)
+- 🚀 Performance
+  - ✅ AutoFit Columns/Rows and bulk writes leverage multi‑core compute phase
+
 ## Namespaces (updated)
 
 - A1 helpers are under `OfficeIMO.Excel.A1` (no `OfficeIMO.Excel.Read` import needed for A1).

@@ -29,10 +29,10 @@ See `OfficeIMO.Examples/Visio/*` for more.
 
 ## Feature Scope (early)
 
-- Pages: add/remove pages
-- Shapes: add basic shapes from masters (rectangle, etc.), set text
-- Connectors: basic connectors between shapes
-- Themes: minimal/default theme usage
+- 📄 Pages: ✅ add/remove pages
+- 🧱 Shapes: ✅ basic shapes from masters (rectangle, etc.), ✅ set text
+- 🔗 Connectors: ✅ basic connectors between shapes
+- 🎨 Themes: ⚠️ minimal/default theme usage
 
 This package is intentionally minimal at this stage and will expand over time.
 

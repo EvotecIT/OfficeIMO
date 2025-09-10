@@ -85,14 +85,18 @@ ppt.AsFluent()
 
 ## Feature Matrix (scope today)
 
-- Slides
-  - Add slides, set title, add text boxes, basic bullets
-- Images & Shapes
-  - Insert images; basic shapes (rect/ellipse/line) with fill/stroke
-- Notes & Layout
-  - Add speaker notes; select basic layouts (limited)
-- Properties
-  - Built‑in and application properties
+- 📽️ Slides
+  - ✅ Add slides; ✅ set title; ✅ add text boxes; ✅ basic bullets
+- 🖼️ Media & Shapes
+  - ✅ Insert images; ✅ basic shapes (rect/ellipse/line) with fill/stroke
+- 🗒️ Notes & Layout
+  - ✅ Speaker notes; ⚠️ basic layout selection
+- 📋 Tables
+  - ⚠️ Basic only (where supported)
+- 📊 Charts
+  - 🚧 Not yet
+- ✨ Themes/Transitions
+  - 🚧 Not yet
 
 > Roadmap: richer shape/text APIs, layout/mast er controls, charts, transitions — tracked in issues.
 
