@@ -68,6 +68,19 @@ namespace OfficeIMO.Excel.Fluent
             int headerRow = _row;
             var cells = new List<(int Row, int Column, object Value)>(System.Math.Max(1, (rows.Count + 1) * System.Math.Max(1, paths.Count)));
             var headersT = paths.Select(p => TransformHeader(p, opts)).ToList();
+            // De-duplicate header captions to avoid Excel silently renaming duplicates
+            var usedHeaders = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < headersT.Count; i++)
+            {
+                string baseName = string.IsNullOrWhiteSpace(headersT[i]) ? $"Column{i+1}" : headersT[i];
+                string candidate = baseName;
+                int suffix = 2;
+                while (!usedHeaders.Add(candidate))
+                {
+                    candidate = $"{baseName} ({suffix++})";
+                }
+                headersT[i] = candidate;
+            }
             var seen = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < headersT.Count; i++)
             {

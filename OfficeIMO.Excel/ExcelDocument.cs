@@ -438,7 +438,8 @@ namespace OfficeIMO.Excel {
         /// <returns>Created <see cref="ExcelDocument"/> instance.</returns>
         public static ExcelDocument Create(string filePath, string workSheetName) {
             ExcelDocument excelDocument = Create(filePath);
-            excelDocument.AddWorkSheet(workSheetName);
+            // Prefer a sanitized sheet name for convenience in the common Create(path, name) flow
+            excelDocument.AddWorkSheet(workSheetName, SheetNameValidationMode.Sanitize);
             return excelDocument;
         }
 
@@ -448,10 +449,88 @@ namespace OfficeIMO.Excel {
         /// <param name="workSheetName">Worksheet name.</param>
         /// <returns>Created <see cref="ExcelSheet"/> instance.</returns>
         public ExcelSheet AddWorkSheet(string workSheetName = "") {
+            return AddWorkSheet(workSheetName, SheetNameValidationMode.None);
+        }
+
+        /// <summary>
+        /// Adds a worksheet to the document with control over name validation.
+        /// </summary>
+        /// <param name="workSheetName">Requested worksheet name.</param>
+        /// <param name="validationMode">How to validate the sheet name: None (no checks), Sanitize (coerce), or Strict (throw on invalid).</param>
+        /// <returns>Created <see cref="ExcelSheet"/> instance.</returns>
+        public ExcelSheet AddWorkSheet(string workSheetName, SheetNameValidationMode validationMode) {
             return Locking.ExecuteWrite(EnsureLock(), () => {
-                ExcelSheet excelSheet = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, workSheetName);
+                string name = ValidateOrSanitizeSheetName(workSheetName, validationMode);
+                ExcelSheet excelSheet = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, name);
                 return excelSheet;
             });
+        }
+
+        private string ValidateOrSanitizeSheetName(string name, SheetNameValidationMode mode)
+        {
+            // Collect existing names (case-insensitive)
+            var existing = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+            foreach (var s in _workBookPart.Workbook.Sheets?.OfType<DocumentFormat.OpenXml.Spreadsheet.Sheet>() ?? System.Linq.Enumerable.Empty<DocumentFormat.OpenXml.Spreadsheet.Sheet>())
+            {
+                if (!string.IsNullOrEmpty(s.Name?.Value)) existing.Add(s.Name!.Value);
+            }
+
+            if (mode == SheetNameValidationMode.None)
+            {
+                // Preserve historical behavior: default to "Sheet1" when empty
+                if (string.IsNullOrEmpty(name)) name = "Sheet1";
+                return name;
+            }
+
+            // Rules common to Sanitize/Strict
+            static bool ContainsInvalidChars(string s)
+            {
+                foreach (char c in s)
+                {
+                    if (c == ':' || c == '\\' || c == '/' || c == '?' || c == '*' || c == '[' || c == ']') return true;
+                }
+                return false;
+            }
+
+            string baseName = name ?? string.Empty;
+            baseName = baseName.Trim();
+            baseName = baseName.Trim('\'', ' ');
+
+            if (mode == SheetNameValidationMode.Strict)
+            {
+                if (string.IsNullOrEmpty(baseName)) throw new System.ArgumentException("Worksheet name cannot be empty.", nameof(name));
+                if (baseName.Length > 31) throw new System.ArgumentException("Worksheet name cannot exceed 31 characters.", nameof(name));
+                if (ContainsInvalidChars(baseName)) throw new System.ArgumentException("Worksheet name contains invalid characters (: \\ / ? * [ ]).", nameof(name));
+                if (existing.Contains(baseName)) throw new System.ArgumentException($"Worksheet name '{baseName}' already exists.", nameof(name));
+                return baseName;
+            }
+
+            // Sanitize
+            var sb = new System.Text.StringBuilder(baseName.Length > 0 ? baseName.Length : 5);
+            foreach (char c in baseName)
+            {
+                if (c == ':' || c == '\\' || c == '/' || c == '?' || c == '*' || c == '[' || c == ']') sb.Append('_');
+                else sb.Append(c);
+            }
+            string cleaned = sb.ToString().Trim();
+            // Collapse multiple underscores and trim leading/trailing underscores for nicer names
+            cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, "_+", "_");
+            cleaned = cleaned.Trim('_');
+            if (cleaned.Length == 0) cleaned = "Sheet";
+            if (cleaned.Length > 31) cleaned = cleaned.Substring(0, 31);
+
+            // Ensure uniqueness by appending (2), (3), ...
+            string candidate = cleaned;
+            int n = 2;
+            while (existing.Contains(candidate))
+            {
+                string suffix = " (" + n.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
+                int maxBase = 31 - suffix.Length;
+                string basePart = cleaned.Length > maxBase ? cleaned.Substring(0, maxBase) : cleaned;
+                candidate = basePart + suffix;
+                n++;
+            }
+            return candidate;
         }
 
         /// <summary>
@@ -467,6 +546,19 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Performs a safety preflight across all worksheets to reduce the likelihood of Excel prompting
+        /// for repairs on open. It removes empty containers (Hyperlinks/MergeCells), drops orphaned drawing
+        /// and header/footer references, and cleans up invalid table references.
+        /// </summary>
+        public void PreflightWorkbook()
+        {
+            foreach (var sheet in Sheets)
+            {
+                sheet.Preflight();
+            }
+        }
+
+        /// <summary>
         /// Closes the underlying spreadsheet document.
         /// </summary>
         public void Close() {
@@ -479,10 +571,31 @@ namespace OfficeIMO.Excel {
         /// <param name="filePath">Path to save to.</param>
         /// <param name="openExcel">Whether to open the file after saving.</param>
         public void Save(string filePath, bool openExcel) {
-            // Ensure all worksheets have proper element ordering before saving
+            Save(filePath, openExcel, options: null);
+        }
+
+        /// <summary>
+        /// Saves the document with optional robustness options.
+        /// </summary>
+        /// <param name="filePath">Destination path. When empty, uses the original <see cref="FilePath"/>.</param>
+        /// <param name="openExcel">When true, opens the saved file in the system's associated app.</param>
+        /// <param name="options">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
+        public void Save(string filePath, bool openExcel, ExcelSaveOptions? options) {
+            // Ensure all worksheets have up-to-date dimensions and proper element ordering before saving
             foreach (var sheet in Sheets) {
+                sheet.UpdateSheetDimension();
                 sheet.EnsureWorksheetElementOrder();
                 sheet.Commit();
+            }
+
+            if (options?.SafePreflight == true)
+            {
+                try { PreflightWorkbook(); } catch { }
+            }
+
+            if (options?.SafeRepairDefinedNames == true)
+            {
+                try { RepairDefinedNames(save: true); } catch { }
             }
             
             _workBookPart.Workbook.Save();
@@ -550,6 +663,15 @@ namespace OfficeIMO.Excel {
             if (openExcel) {
                 Helpers.Open(path, true);
             }
+
+            if (options?.ValidateOpenXml == true)
+            {
+                var errors = ValidateOpenXml();
+                if (errors.Count > 0)
+                {
+                    throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+                }
+            }
         }
 
         /// <summary>
@@ -585,10 +707,32 @@ namespace OfficeIMO.Excel {
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         public async Task SaveAsync(string filePath, bool openExcel, CancellationToken cancellationToken = default) {
+            await SaveAsync(filePath, openExcel, options: null, cancellationToken: cancellationToken);
+        }
+
+        /// <summary>
+        /// Asynchronously saves the document with optional robustness options.
+        /// </summary>
+        /// <param name="filePath">Destination path. When empty, uses the original <see cref="FilePath"/>.</param>
+        /// <param name="openExcel">When true, opens the saved file in the system's associated app.</param>
+        /// <param name="options">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
+        /// <param name="cancellationToken">Cancels the asynchronous save work.</param>
+        public async Task SaveAsync(string filePath, bool openExcel, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
             // Ensure all worksheets have proper element ordering before saving
             foreach (var sheet in Sheets) {
+                sheet.UpdateSheetDimension();
                 sheet.EnsureWorksheetElementOrder();
                 sheet.Commit();
+            }
+
+            if (options?.SafePreflight == true)
+            {
+                try { PreflightWorkbook(); } catch { }
+            }
+
+            if (options?.SafeRepairDefinedNames == true)
+            {
+                try { RepairDefinedNames(save: true); } catch { }
             }
             
             _workBookPart.Workbook.Save();
@@ -650,6 +794,15 @@ namespace OfficeIMO.Excel {
 
             if (openExcel) {
                 Open(filePath, true);
+            }
+
+            if (options?.ValidateOpenXml == true)
+            {
+                var errors = ValidateOpenXml();
+                if (errors.Count > 0)
+                {
+                    throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+                }
             }
         }
 

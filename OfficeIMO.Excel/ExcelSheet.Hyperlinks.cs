@@ -5,6 +5,9 @@ using System.Linq;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private static string EscapeSheetNameForLink(string name) {
+            return (name ?? string.Empty).Replace("'", "''");
+        }
         /// <summary>
         /// Sets an external hyperlink on a single cell. If <paramref name="display"/> is null or empty, the URL is shown.
         /// </summary>
@@ -68,17 +71,14 @@ namespace OfficeIMO.Excel {
         /// <param name="location">Target location inside the workbook (e.g., "'Summary'!A1").</param>
         /// <param name="display">Optional display text. When null/empty, <paramref name="location"/> is displayed.</param>
         /// <param name="style">When true, applies hyperlink styling (blue + underline).</param>
-        public void SetInternalLink(int row, int column, string location, string? display = null, bool style = true)
-        {
+        public void SetInternalLink(int row, int column, string location, string? display = null, bool style = true) {
             if (string.IsNullOrWhiteSpace(location)) throw new ArgumentNullException(nameof(location));
-            WriteLock(() =>
-            {
+            WriteLock(() => {
                 string text = string.IsNullOrEmpty(display) ? location : display!;
                 CellValueCore(row, column, text);
                 var ws = _worksheetPart.Worksheet;
                 var hyperlinks = ws.Elements<Hyperlinks>().FirstOrDefault();
-                if (hyperlinks == null)
-                {
+                if (hyperlinks == null) {
                     hyperlinks = new Hyperlinks();
                     var tableParts = ws.Elements<TableParts>().FirstOrDefault();
                     if (tableParts != null) ws.InsertBefore(hyperlinks, tableParts); else ws.Append(hyperlinks);
@@ -96,8 +96,23 @@ namespace OfficeIMO.Excel {
         /// sheet.SetInternalLink(2, 1, "'Summary'!A1", display: "Summary", style: true);
         /// </example>
 
-        private void ApplyHyperlinkStyle(Cell cell)
-        {
+        /// <summary>
+        /// Sets an internal hyperlink to a target sheet and A1 location using safe quoting rules.
+        /// </summary>
+        /// <param name="row">1-based row index.</param>
+        /// <param name="column">1-based column index.</param>
+        /// <param name="target">Target sheet.</param>
+        /// <param name="a1">A1 reference on the target sheet.</param>
+        /// <param name="display">Optional display text. When null/empty, the location is displayed.</param>
+        /// <param name="style">When true, applies hyperlink styling (blue + underline).</param>
+        public void SetInternalLink(int row, int column, ExcelSheet target, string a1, string? display = null, bool style = true) {
+            if (target == null) throw new ArgumentNullException(nameof(target));
+            if (string.IsNullOrWhiteSpace(a1)) throw new ArgumentNullException(nameof(a1));
+            string loc = $"'{EscapeSheetNameForLink(target.Name)}'!{a1}";
+            SetInternalLink(row, column, loc, display, style);
+        }
+
+        private void ApplyHyperlinkStyle(Cell cell) {
             var workbookPart = _excelDocument._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
             var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
@@ -109,21 +124,17 @@ namespace OfficeIMO.Excel {
             var fontsEl = stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
             int hyperlinkFontIndex = -1;
             int idx = 0;
-            foreach (var f in fontsEl.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>())
-            {
+            foreach (var f in fontsEl.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>()) {
                 bool hasUnderline = f.Underline != null;
                 string rgb = f.Color?.Rgb?.Value ?? string.Empty;
-                if (hasUnderline && string.Equals(rgb, hyperlinkRgb, StringComparison.OrdinalIgnoreCase))
-                {
+                if (hasUnderline && string.Equals(rgb, hyperlinkRgb, StringComparison.OrdinalIgnoreCase)) {
                     hyperlinkFontIndex = idx;
                     break;
                 }
                 idx++;
             }
-            if (hyperlinkFontIndex == -1)
-            {
-                var font = new DocumentFormat.OpenXml.Spreadsheet.Font
-                {
+            if (hyperlinkFontIndex == -1) {
+                var font = new DocumentFormat.OpenXml.Spreadsheet.Font {
                     Color = new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = hyperlinkRgb },
                     Underline = new DocumentFormat.OpenXml.Spreadsheet.Underline()
                 };
@@ -135,8 +146,7 @@ namespace OfficeIMO.Excel {
             uint baseIndex = cell.StyleIndex?.Value ?? 0U;
             var cellFormatsEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
             var cellFormats = cellFormatsEl.Elements<CellFormat>().ToList();
-            var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? new CellFormat
-            {
+            var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? new CellFormat {
                 NumberFormatId = 0U,
                 FontId = 0U,
                 FillId = 0U,
@@ -146,23 +156,19 @@ namespace OfficeIMO.Excel {
 
             // Try to find an existing format matching base but with hyperlink font
             int hyperlinkFormatIndex = -1;
-            for (int i = 0; i < cellFormats.Count; i++)
-            {
+            for (int i = 0; i < cellFormats.Count; i++) {
                 var cf = cellFormats[i];
                 if ((cf.NumberFormatId?.Value ?? 0U) == (baseFormat.NumberFormatId?.Value ?? 0U)
                     && (cf.FillId?.Value ?? 0U) == (baseFormat.FillId?.Value ?? 0U)
                     && (cf.BorderId?.Value ?? 0U) == (baseFormat.BorderId?.Value ?? 0U)
                     && (cf.FormatId?.Value ?? 0U) == (baseFormat.FormatId?.Value ?? 0U)
-                    && (cf.FontId?.Value ?? 0U) == (uint)hyperlinkFontIndex)
-                {
+                    && (cf.FontId?.Value ?? 0U) == (uint)hyperlinkFontIndex) {
                     hyperlinkFormatIndex = i;
                     break;
                 }
             }
-            if (hyperlinkFormatIndex == -1)
-            {
-                var newFormat = new CellFormat
-                {
+            if (hyperlinkFormatIndex == -1) {
+                var newFormat = new CellFormat {
                     NumberFormatId = baseFormat.NumberFormatId ?? 0U,
                     FontId = (uint)hyperlinkFontIndex,
                     FillId = baseFormat.FillId ?? 0U,

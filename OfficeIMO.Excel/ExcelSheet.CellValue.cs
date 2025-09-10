@@ -82,6 +82,29 @@ namespace OfficeIMO.Excel {
                     return (new CellValue(((double)sb).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 case short sh:
                     return (new CellValue(((double)sh).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
+                case Guid guid:
+                    {
+                        int idx = _excelDocument.GetSharedStringIndex(guid.ToString());
+                        return (new CellValue(idx.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
+                    }
+                case Enum e:
+                    {
+                        string name = e.ToString();
+                        int idx = _excelDocument.GetSharedStringIndex(name);
+                        return (new CellValue(idx.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
+                    }
+                case char ch:
+                    {
+                        int idx = _excelDocument.GetSharedStringIndex(ch.ToString());
+                        return (new CellValue(idx.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
+                    }
+                case System.DBNull:
+                    return (new CellValue(string.Empty), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.String));
+                case Uri uri:
+                    {
+                        int idx = _excelDocument.GetSharedStringIndex(uri.ToString());
+                        return (new CellValue(idx.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
+                    }
                 default:
                     string stringValue = value?.ToString() ?? string.Empty;
                     int defaultIndex = _excelDocument.GetSharedStringIndex(stringValue);

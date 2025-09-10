@@ -12,6 +12,18 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Creates or updates a named range in the workbook, scoped to this sheet, with validation control.
+        /// </summary>
+        /// <param name="name">Defined name to create or update.</param>
+        /// <param name="range">A1 range (e.g. "A1:B5").</param>
+        /// <param name="save">When true, saves the workbook after the change.</param>
+        /// <param name="hidden">When true, marks the defined name as hidden.</param>
+        /// <param name="validationMode">Controls how the name and range are validated: Sanitize (default) clamps/adjusts; Strict throws on invalid input.</param>
+        public void SetNamedRange(string name, string range, bool save, bool hidden, NameValidationMode validationMode) {
+            _excelDocument.SetNamedRange(name, range, this, save, hidden, validationMode);
+        }
+
+        /// <summary>
         /// Gets the A1 range for the given defined name, scoped to this sheet when applicable.
         /// </summary>
         /// <param name="name">Defined name to resolve.</param>
