@@ -16,6 +16,8 @@ namespace OfficeIMO.Excel {
     /// loading and saving spreadsheets.
     /// </summary>
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
+        private static readonly System.Text.RegularExpressions.Regex _multipleUnderscoresRegex =
+            new System.Text.RegularExpressions.Regex("_+", System.Text.RegularExpressions.RegexOptions.Compiled);
         // Allocated only when an operation actually needs a serialized apply stage
         internal ReaderWriterLockSlim? _lock;
         internal List<UInt32Value> id = new List<UInt32Value>() { 0 };
@@ -100,11 +102,11 @@ namespace OfficeIMO.Excel {
             using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.Asynchronous))
             {
                 var mem = new MemoryStream((int)Math.Max(0, fs.Length) + 8192);
-                await fs.CopyToAsync(mem, 81920, ct);
+                await fs.CopyToAsync(mem, 81920, ct).ConfigureAwait(false);
                 return mem.ToArray();
             }
 #else
-            return await File.ReadAllBytesAsync(path, ct);
+            return await File.ReadAllBytesAsync(path, ct).ConfigureAwait(false);
 #endif
         }
 
@@ -412,7 +414,7 @@ namespace OfficeIMO.Excel {
             }
             using var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite, readOnly ? FileShare.Read : FileShare.ReadWrite, 4096, FileOptions.Asynchronous);
             var memoryStream = new MemoryStream();
-            await fileStream.CopyToAsync(memoryStream);
+            await fileStream.CopyToAsync(memoryStream).ConfigureAwait(false);
             memoryStream.Seek(0, SeekOrigin.Begin);
 
             var openSettings = new OpenSettings {
@@ -514,7 +516,7 @@ namespace OfficeIMO.Excel {
             }
             string cleaned = sb.ToString().Trim();
             // Collapse multiple underscores and trim leading/trailing underscores for nicer names
-            cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, "_+", "_");
+            cleaned = _multipleUnderscoresRegex.Replace(cleaned, "_");
             cleaned = cleaned.Trim('_');
             if (cleaned.Length == 0) cleaned = "Sheet";
             if (cleaned.Length > 31) cleaned = cleaned.Substring(0, 31);
@@ -707,7 +709,7 @@ namespace OfficeIMO.Excel {
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         public async Task SaveAsync(string filePath, bool openExcel, CancellationToken cancellationToken = default) {
-            await SaveAsync(filePath, openExcel, options: null, cancellationToken: cancellationToken);
+            await SaveAsync(filePath, openExcel, options: null, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -766,8 +768,8 @@ namespace OfficeIMO.Excel {
                 // Write package via snapshot
                 using (var fs = new FileStream(target, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 8192, FileOptions.Asynchronous)) {
                     snapshot.Position = 0;
-                    await snapshot.CopyToAsync(fs, 81920, cancellationToken);
-                    await fs.FlushAsync(cancellationToken);
+                    await snapshot.CopyToAsync(fs, 81920, cancellationToken).ConfigureAwait(false);
+                    await fs.FlushAsync(cancellationToken).ConfigureAwait(false);
                 }
                 // Ensure core properties persisted
                 try
@@ -780,9 +782,9 @@ namespace OfficeIMO.Excel {
                 FilePath = target;
 
                 // Reopen as in-memory document for continued operations without locking the file
-                var fileBytes = await ReadAllBytesCompatAsync(target, cancellationToken);
+                var fileBytes = await ReadAllBytesCompatAsync(target, cancellationToken).ConfigureAwait(false);
                 var mem = new MemoryStream(fileBytes.Length + 8192);
-                await mem.WriteAsync(fileBytes, 0, fileBytes.Length, cancellationToken);
+                await mem.WriteAsync(fileBytes, 0, fileBytes.Length, cancellationToken).ConfigureAwait(false);
                 mem.Position = 0;
                 var reopenSettings = new OpenSettings { AutoSave = true };
                 _spreadSheetDocument = SpreadsheetDocument.Open(mem, true, reopenSettings);
@@ -846,7 +848,7 @@ namespace OfficeIMO.Excel {
                         _workBookPart?.Workbook.Save();
                     }
 
-                    await Task.Run(() => this._spreadSheetDocument.Dispose());
+                    await Task.Run(() => this._spreadSheetDocument.Dispose()).ConfigureAwait(false);
                 } catch {
                     // ignored
                 }

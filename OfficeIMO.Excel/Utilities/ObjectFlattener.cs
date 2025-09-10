@@ -219,14 +219,13 @@ namespace OfficeIMO.Excel {
             if (depth >= opts.MaxDepth) return;
             if (IsValueTuple(type))
             {
-                // We don't have arity here without closing generics, but we can infer from generic args count up to 8.
-                int arity = type.IsGenericType ? type.GetGenericArguments().Length : 0;
-                if (arity == 0)
-                {
-                    // fallback to Items 1..8 as a conservative default
-                    arity = 8;
-                }
-                for (int i = 1; i <= arity; i++)
+                // Prefer counting actual Item* fields for precision (covers non-generic System.ValueTuple)
+                int itemCount = objFieldCount(type);
+                // If field count is 0 but the type is generic, fall back to generic arity (covers ITuple-backed cases)
+                if (itemCount == 0 && type.IsGenericType)
+                    itemCount = type.GetGenericArguments().Length;
+
+                for (int i = 1; i <= itemCount; i++)
                 {
                     var path = string.IsNullOrEmpty(prefix) ? $"Item{i}" : $"{prefix}.Item{i}";
                     if (!opts.Ignore.Any(x => path.StartsWith(x, StringComparison.OrdinalIgnoreCase)))
@@ -252,6 +251,17 @@ namespace OfficeIMO.Excel {
                     BuildPaths(prop.PropertyType, path, depth + 1, opts, paths);
                 }
             }
+        }
+
+        private static int objFieldCount(Type valueTupleType)
+        {
+            try
+            {
+                return valueTupleType
+                    .GetFields(BindingFlags.Public | BindingFlags.Instance)
+                    .Count(f => f.Name.StartsWith("Item", StringComparison.Ordinal));
+            }
+            catch { return 0; }
         }
 
         private static object? HandleCollection(string path, IEnumerable enumerable, ObjectFlattenerOptions opts) {

@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel.Fluent
             {
                 Sheet.Cell(_row, 1, "(no data)");
                 _row++;
-                return $"A{_row}:A{_row}";
+                return $"A{_row-1}:A{_row-1}";
             }
 
             var opts = new ObjectFlattenerOptions();
@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel.Fluent
             {
                 Sheet.Cell(_row, 1, "(no tabular columns for row type)");
                 _row++;
-                return $"A{_row}:A{_row}";
+                return $"A{_row-1}:A{_row-1}";
             }
 
             int headerRow = _row;

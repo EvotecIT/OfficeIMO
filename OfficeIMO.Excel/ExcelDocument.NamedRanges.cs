@@ -398,7 +398,7 @@ namespace OfficeIMO.Excel {
             const int MaxLen = 255;
             if (string.IsNullOrWhiteSpace(name))
             {
-                if (mode == NameValidationMode.Strict) throw new System.ArgumentException("Defined name cannot be null or whitespace.", nameof(name));
+                if (mode == NameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' cannot be null or whitespace.", nameof(name));
                 name = "_";
             }
 
@@ -416,7 +416,7 @@ namespace OfficeIMO.Excel {
             var normalized = sb.ToString();
             if (string.Equals(normalized, "TRUE", System.StringComparison.OrdinalIgnoreCase) || string.Equals(normalized, "FALSE", System.StringComparison.OrdinalIgnoreCase))
             {
-                if (mode == NameValidationMode.Strict) throw new System.ArgumentException("Defined name cannot be TRUE or FALSE.", nameof(name));
+                if (mode == NameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' cannot be TRUE or FALSE.", nameof(name));
                 normalized = "_" + normalized;
             }
 
@@ -440,13 +440,13 @@ namespace OfficeIMO.Excel {
 
             if (LooksLikeA1(normalized) || LooksLikeR1C1(normalized))
             {
-                if (mode == NameValidationMode.Strict) throw new System.ArgumentException("Defined name cannot be a cell address or R1C1 reference.", nameof(name));
+                if (mode == NameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' cannot be a cell address or R1C1 reference.", nameof(name));
                 normalized = "_" + normalized;
             }
 
             if (normalized.Length > MaxLen)
             {
-                if (mode == NameValidationMode.Strict) throw new System.ArgumentException($"Defined name exceeds maximum length of {MaxLen}.", nameof(name));
+                if (mode == NameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' exceeds maximum length of {MaxLen} characters (actual {normalized.Length}).", nameof(name));
                 normalized = normalized.Substring(0, MaxLen);
             }
 
