@@ -12,6 +12,8 @@ OfficeIMO.Excel provides a lightweight, typed, and ergonomic API for reading and
 - Thread‑safe by design — scales heavy work across cores while keeping writes safe.
 - Deterministic and validation‑friendly — predictable element ordering, optional Open XML validation.
 - Practical guardrails — e.g., smart AutoFilter/table conflict handling; safe table naming; sensible defaults.
+ - Fluent composers for rapid report building; can drop to explicit sheet APIs when needed.
+ - A1 helpers and link‑by‑header utilities make “Excelish” operations straightforward.
 
 ### Thread Safety & Parallelism (How it works)
 

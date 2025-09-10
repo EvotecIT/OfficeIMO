@@ -83,6 +83,25 @@ ppt.AsFluent()
 - Images: add images from file/stream
 - Properties: set built‑in and application properties
 
+## Feature Matrix (scope today)
+
+- Slides
+  - Add slides, set title, add text boxes, basic bullets
+- Images & Shapes
+  - Insert images; basic shapes (rect/ellipse/line) with fill/stroke
+- Notes & Layout
+  - Add speaker notes; select basic layouts (limited)
+- Properties
+  - Built‑in and application properties
+
+> Roadmap: richer shape/text APIs, layout/mast er controls, charts, transitions — tracked in issues.
+
+## Why OfficeIMO.PowerPoint (today)
+
+- Cross‑platform, pure Open XML — no Office automation
+- Simple API surface to add slides, titles, text, bullets, and images without repair prompts
+- Fluent helpers available for quick demos and templated decks
+
 ## Dependencies & License
 
 - DocumentFormat.OpenXml: 3.3.x (range [3.3.0, 4.0.0))

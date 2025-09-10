@@ -35,3 +35,15 @@ See `OfficeIMO.Examples/Visio/*` for more.
 - Themes: minimal/default theme usage
 
 This package is intentionally minimal at this stage and will expand over time.
+
+## At a glance
+
+- Create/Load/Save .vsdx (OPC packaging)
+- Add simple pages, shapes, and connectors
+- Fluent wrapper for quick composition
+
+## Why OfficeIMO.Visio (early)
+
+- Minimal, no‑frills VSDX generation and reading using OPC + LINQ to XML
+- Practical starting point for simple diagrams (pages, basic shapes, connectors)
+- Designed to evolve as core scenarios are validated

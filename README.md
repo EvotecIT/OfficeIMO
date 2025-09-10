@@ -44,7 +44,7 @@ Each project ships as its own NuGet package under the MIT license.
 
 ## Licenses
 
-All OfficeIMO packages are MIT‑licensed. See individual project READMEs for third‑party dependency licenses (Open XML SDK, ImageSharp, AngleSharp, Markdig, QuestPDF, SkiaSharp, etc.).
+All OfficeIMO packages are MIT‑licensed with exception of Visio which is not yet licensed. See individual project READMEs for third‑party dependency licenses (Open XML SDK, ImageSharp, AngleSharp, Markdig, QuestPDF, SkiaSharp, etc.).
 
 ## Dependencies at a glance
 
@@ -53,33 +53,39 @@ Below are product‑centric graphs. Arrows point from a package to what it depen
 ### Word
 
 ```mermaid
-flowchart TD
+flowchart TB
   WCore[OfficeIMO.Word]
-  WHtml[OfficeIMO.Word.Html]
-  WMd[OfficeIMO.Word.Markdown]
-  WPdf[OfficeIMO.Word.Pdf]
+  subgraph Extensions
+    WHtml[OfficeIMO.Word.Html]
+    WMd[OfficeIMO.Word.Markdown]
+    WPdf[OfficeIMO.Word.Pdf]
+  end
 
-  OXml[DocumentFormat.OpenXml]
+  %% External deps
   Angle[AngleSharp]
   AngleCss[AngleSharp.Css]
   Markdig[Markdig]
   Quest[QuestPDF]
   Skia[SkiaSharp]
 
-  %% OfficeIMO package relationships
-  WHtml --> WCore
-  WMd --> WCore
-  %% Word.Markdown currently references Word.Html in this repo
-  WMd --> WHtml
-  WPdf --> WCore
+  %% Core to extensions (install these when you need that capability)
+  WCore --> WHtml
+  WCore --> WMd
+  WCore --> WPdf
 
-  %% External dependencies
-  WCore --> OXml
+  %% Extension uses
+  WMd --> WHtml
+
+  %% External dependencies per extension
   WHtml --> Angle
   WHtml --> AngleCss
   WMd   --> Markdig
   WPdf  --> Quest
   WPdf  --> Skia
+```
+
+> Converters (Word.Html, Word.Markdown, Word.Pdf) are actively developed and will be released to NuGet once quality and test coverage goals are met. They ship in‑repo for early evaluation.
+```
 ```
 
 ### Excel
