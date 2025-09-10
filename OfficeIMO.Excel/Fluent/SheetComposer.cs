@@ -29,7 +29,8 @@ namespace OfficeIMO.Excel.Fluent
             _row = 1;
             // Create a sheet-local top anchor so callers/tests can rely on a defined name at A1.
             // Keep it simple and safe: local to this sheet, absolute A1.
-            try { _workbook.SetNamedRange($"top_{SanitizeName(_sheet.Name)}", "$A$1", _sheet, save: true, hidden: true); } catch { }
+            // Use a simple A1 reference so the normalizer can expand to $A$1
+            try { _workbook.SetNamedRange($"top_{SanitizeName(_sheet.Name)}", "A1", _sheet, save: true, hidden: true); } catch { }
         }
 
         /// <summary>The underlying sheet created by this composer.</summary>

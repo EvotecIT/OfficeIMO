@@ -38,7 +38,10 @@ namespace OfficeIMO.Word {
                 paragraph._simpleField = simpleField;
             }
 
-            paragraph.Field.UpdateField = true;
+            var field = paragraph.Field;
+            if (field != null) {
+                field.UpdateField = true;
+            }
             return paragraph;
         }
 

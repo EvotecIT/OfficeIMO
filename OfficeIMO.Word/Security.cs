@@ -208,10 +208,12 @@ namespace OfficeIMO.Word {
 
         internal static void SetWriteProtection(WordprocessingDocument wordDocument, string password) {
             string hashValue = GenerateLegacyWriteProtectionHash(password);
-            var settings = wordDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+            var main = wordDocument.MainDocumentPart;
+            if (main == null) return;
+            var settingsPart = main.DocumentSettingsPart ?? main.AddNewPart<DocumentSettingsPart>();
+            var settings = settingsPart.Settings ?? (settingsPart.Settings = new Settings());
             if (settings.WriteProtection == null) {
-                WriteProtection documentProtection = new WriteProtection();
-                settings.AppendChild(documentProtection);
+                settings.WriteProtection = new WriteProtection();
             }
             // Set recommended read-only flag
             OnOffValue docProtection = new OnOffValue(true);
@@ -229,7 +231,10 @@ namespace OfficeIMO.Word {
 
         internal static void SetWriteProtectionHashOnly(WordprocessingDocument wordDocument, string password) {
             string hashValue = GenerateLegacyWriteProtectionHash(password);
-            var settings = wordDocument.MainDocumentPart.DocumentSettingsPart.Settings;
+            var main = wordDocument.MainDocumentPart;
+            if (main == null) return;
+            var settingsPart = main.DocumentSettingsPart ?? main.AddNewPart<DocumentSettingsPart>();
+            var settings = settingsPart.Settings ?? (settingsPart.Settings = new Settings());
             if (settings.WriteProtection == null) {
                 settings.WriteProtection = new WriteProtection();
             }

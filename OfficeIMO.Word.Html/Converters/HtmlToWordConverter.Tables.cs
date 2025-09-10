@@ -443,7 +443,8 @@ namespace OfficeIMO.Word.Html {
             JustificationValues? alignment = null;
             bool borderSet = false;
             if (!string.IsNullOrWhiteSpace(style)) {
-                foreach (var part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                var styleText = style!;
+                foreach (var part in styleText.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
                     var pieces = part.Split(new[] { ':' }, 2);
                     if (pieces.Length != 2) {
                         continue;

@@ -777,13 +777,14 @@ namespace OfficeIMO.Word.Html {
                                   currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
                                   AddBookmarkIfPresent(element, currentParagraph);
                               }
-                              if (!string.IsNullOrEmpty(href) && href.StartsWith("#") && _footnoteMap.TryGetValue(href.TrimStart('#'), out var fnText)) {
+                              if (href is { Length: > 0 } h1 && h1.StartsWith("#") && _footnoteMap.TryGetValue(h1.TrimStart('#'), out var fnText)) {
                                   currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
                                   currentParagraph!.AddFootNote(fnText ?? string.Empty);
                               } else if (!string.IsNullOrEmpty(href)) {
-                                  currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
-                                if (href.StartsWith("#")) {
-                                    var anchor = href.TrimStart('#');
+                                currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                                var h = href!;
+                                if (h.StartsWith("#")) {
+                                    var anchor = h.TrimStart('#');
                                     var linkPara = currentParagraph!.AddHyperLink(element.TextContent, anchor);
                                     if (!string.IsNullOrEmpty(options.FontFamily)) {
                                         linkPara.SetFontFamily(options.FontFamily!);

@@ -11,11 +11,11 @@ namespace OfficeIMO.Word.Markdown {
             const string codeLangPrefix = "CodeLang_";
             string? styleId = paragraph.StyleId;
             string? codeFont = options.FontFamily ?? FontResolver.Resolve("monospace");
-            if (!string.IsNullOrEmpty(styleId) && styleId.StartsWith(codeLangPrefix, StringComparison.Ordinal) && !string.IsNullOrEmpty(codeFont)) {
+            if (styleId is { Length: > 0 } sid && sid.StartsWith(codeLangPrefix, StringComparison.Ordinal) && !string.IsNullOrEmpty(codeFont)) {
                 var codeFontValue = codeFont!;
                 var runs = paragraph.GetRuns().ToList();
                 if (runs.Count > 0 && runs.All(r => string.Equals(r.FontFamily ?? string.Empty, codeFontValue, StringComparison.OrdinalIgnoreCase))) {
-                    string language = styleId.Substring(codeLangPrefix.Length);
+                    string language = sid.Substring(codeLangPrefix.Length);
                     string code = string.Concat(runs.Select(r => r.Text));
                     return $"```{language}\n{code}\n```";
                 }
