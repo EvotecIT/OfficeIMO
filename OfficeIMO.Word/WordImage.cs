@@ -596,7 +596,7 @@ namespace OfficeIMO.Word {
         public int? Rotation {
             get {
                 if (_Image.Inline != null) {
-                    var picture = _Image.Inline.Graphic?.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    var picture = _Image.Inline.Graphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                     if (picture?.ShapeProperties?.Transform2D?.Rotation != null) {
                         return picture.ShapeProperties.Transform2D.Rotation / 10000;
                     }
@@ -614,7 +614,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (_Image.Inline != null) {
-                    var picture = _Image.Inline.Graphic?.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    var picture = _Image.Inline.Graphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                     if (picture != null) {
                         var shape = picture.ShapeProperties;
                         if (shape == null) {
@@ -656,7 +656,7 @@ namespace OfficeIMO.Word {
 
         private DocumentFormat.OpenXml.Drawing.Pictures.Picture? GetPicture() {
             if (_Image.Inline != null) {
-                return _Image.Inline.Graphic?.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                return _Image.Inline.Graphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
             }
 
             if (_Image.Anchor != null) {
@@ -691,7 +691,7 @@ namespace OfficeIMO.Word {
         public int? CropTop {
             get {
                 var picture = GetPicture();
-                return (int?)picture?.BlipFill?.SourceRectangle?.Top;
+                return picture?.BlipFill?.SourceRectangle?.Top?.Value;
             }
             set {
                 _cropTop = value;
@@ -725,7 +725,7 @@ namespace OfficeIMO.Word {
         public int? CropBottom {
             get {
                 var picture = GetPicture();
-                return (int?)picture?.BlipFill?.SourceRectangle?.Bottom;
+                return picture?.BlipFill?.SourceRectangle?.Bottom?.Value;
             }
             set {
                 _cropBottom = value;
@@ -759,7 +759,7 @@ namespace OfficeIMO.Word {
         public int? CropLeft {
             get {
                 var picture = GetPicture();
-                return (int?)picture?.BlipFill?.SourceRectangle?.Left;
+                return picture?.BlipFill?.SourceRectangle?.Left?.Value;
             }
             set {
                 _cropLeft = value;
@@ -793,7 +793,7 @@ namespace OfficeIMO.Word {
         public int? CropRight {
             get {
                 var picture = GetPicture();
-                return (int?)picture?.BlipFill?.SourceRectangle?.Right;
+                return picture?.BlipFill?.SourceRectangle?.Right?.Value;
             }
             set {
                 _cropRight = value;

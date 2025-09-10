@@ -83,15 +83,10 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-                Indentation indentation;
-                if (_paragraphProperties.Indentation == null) {
-                    indentation = new Indentation();
-                } else {
-                    indentation = _paragraphProperties.Indentation;
-                }
-
+                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
+                var indentation = props.Indentation ?? new Indentation();
                 indentation.Left = value?.ToString();
-                _paragraphProperties.Indentation = indentation;
+                props.Indentation = indentation;
             }
         }
 
@@ -126,15 +121,10 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-                Indentation indentation;
-                if (_paragraphProperties.Indentation == null) {
-                    indentation = new Indentation();
-                } else {
-                    indentation = _paragraphProperties.Indentation;
-                }
-
+                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
+                var indentation = props.Indentation ?? new Indentation();
                 indentation.Right = value?.ToString();
-                _paragraphProperties.Indentation = indentation;
+                props.Indentation = indentation;
             }
         }
 
@@ -164,11 +154,11 @@ namespace OfficeIMO.Word {
                 return _paragraphProperties != null && _paragraphProperties.PageBreakBefore is not null;
             }
             set {
+                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 if (value == true) {
-                    var pageBreakBefore = new PageBreakBefore();
-                    _paragraphProperties.PageBreakBefore = pageBreakBefore;
+                    props.PageBreakBefore = new PageBreakBefore();
                 } else {
-                    _paragraphProperties.PageBreakBefore = null;
+                    props.PageBreakBefore = null;
                 }
             }
         }
@@ -187,15 +177,10 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-                Indentation indentation;
-                if (_paragraphProperties.Indentation == null) {
-                    indentation = new Indentation();
-                } else {
-                    indentation = _paragraphProperties.Indentation;
-                }
-
+                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
+                var indentation = props.Indentation ?? new Indentation();
                 indentation.FirstLine = value?.ToString();
-                _paragraphProperties.Indentation = indentation;
+                props.Indentation = indentation;
             }
         }
 
@@ -230,15 +215,10 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-                Indentation indentation;
-                if (_paragraphProperties.Indentation == null) {
-                    indentation = new Indentation();
-                } else {
-                    indentation = _paragraphProperties.Indentation;
-                }
-
+                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
+                var indentation = props.Indentation ?? new Indentation();
                 indentation.Hanging = value?.ToString();
-                _paragraphProperties.Indentation = indentation;
+                props.Indentation = indentation;
             }
         }
 
@@ -311,14 +291,10 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-                SpacingBetweenLines spacing;
-                if (_paragraphProperties.SpacingBetweenLines == null) {
-                    spacing = new SpacingBetweenLines();
-                } else {
-                    spacing = _paragraphProperties.SpacingBetweenLines;
-                }
+                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
+                var spacing = props.SpacingBetweenLines ?? new SpacingBetweenLines();
                 spacing.LineRule = value;
-                _paragraphProperties.SpacingBetweenLines = spacing;
+                props.SpacingBetweenLines = spacing;
             }
         }
         /// <summary>
@@ -336,15 +312,10 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-                SpacingBetweenLines spacing;
-                if (_paragraphProperties.SpacingBetweenLines == null) {
-                    spacing = new SpacingBetweenLines();
-                } else {
-                    spacing = _paragraphProperties.SpacingBetweenLines;
-                }
-
+                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
+                var spacing = props.SpacingBetweenLines ?? new SpacingBetweenLines();
                 spacing.Line = value?.ToString();
-                _paragraphProperties.SpacingBetweenLines = spacing;
+                props.SpacingBetweenLines = spacing;
             }
         }
 
@@ -378,15 +349,10 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-                SpacingBetweenLines spacing;
-                if (_paragraphProperties.SpacingBetweenLines == null) {
-                    spacing = new SpacingBetweenLines();
-                } else {
-                    spacing = _paragraphProperties.SpacingBetweenLines;
-                }
-
+                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
+                var spacing = props.SpacingBetweenLines ?? new SpacingBetweenLines();
                 spacing.Before = value?.ToString();
-                _paragraphProperties.SpacingBetweenLines = spacing;
+                props.SpacingBetweenLines = spacing;
             }
         }
 
@@ -421,15 +387,10 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-                SpacingBetweenLines spacing;
-                if (_paragraphProperties.SpacingBetweenLines == null) {
-                    spacing = new SpacingBetweenLines();
-                } else {
-                    spacing = _paragraphProperties.SpacingBetweenLines;
-                }
-
+                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
+                var spacing = props.SpacingBetweenLines ?? new SpacingBetweenLines();
                 spacing.After = value?.ToString();
-                _paragraphProperties.SpacingBetweenLines = spacing;
+                props.SpacingBetweenLines = spacing;
             }
         }
 

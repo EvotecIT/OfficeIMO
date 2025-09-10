@@ -37,7 +37,7 @@ namespace OfficeIMO.Excel
                 {
                     var cref = cell.CellReference?.Value;
                     if (string.IsNullOrEmpty(cref)) continue;
-                    var (r, c) = A1.ParseCellRef(cref);
+                    var (r, c) = A1.ParseCellRef(cref!);
                     if (r <= 0 || c <= 0) continue;
                     if (r < minRow) minRow = r;
                     if (r > maxRow) maxRow = r;
@@ -70,4 +70,3 @@ namespace OfficeIMO.Excel
         }
     }
 }
-

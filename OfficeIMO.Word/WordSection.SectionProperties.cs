@@ -22,24 +22,24 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int? ColumnsSpace {
             get {
-                Columns columns = _sectionProperties.GetFirstChild<Columns>();
+                Columns? columns = _sectionProperties.GetFirstChild<Columns>();
                 if (columns == null) {
                     return null;
                 }
 
                 if (columns.Space != null) {
-                    return int.Parse(columns.Space);
+                    return int.Parse(columns.Space!.Value!);
                 }
 
                 return null;
             }
             set {
-                Columns columns = _sectionProperties.GetFirstChild<Columns>();
+                Columns? columns = _sectionProperties.GetFirstChild<Columns>();
                 if (columns == null) {
                     columns = new Columns();
                     _sectionProperties.Append(columns);
                 }
-                columns.Space = value.ToString();
+                columns.Space = value?.ToString();
             }
         }
 
@@ -48,19 +48,19 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int? ColumnCount {
             get {
-                Columns columns = _sectionProperties.GetFirstChild<Columns>();
+                Columns? columns = _sectionProperties.GetFirstChild<Columns>();
                 if (columns == null) {
                     return null;
                 }
 
                 if (columns.ColumnCount != null) {
-                    return int.Parse(columns.ColumnCount);
+                    return (int)columns.ColumnCount!.Value!;
                 }
 
                 return null;
             }
             set {
-                Columns columns = _sectionProperties.GetFirstChild<Columns>();
+                Columns? columns = _sectionProperties.GetFirstChild<Columns>();
                 if (columns == null) {
                     columns = new Columns();
                     _sectionProperties.Append(columns);
@@ -74,7 +74,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public FootnoteProperties FootnoteProperties {
             get {
-                return _sectionProperties.GetFirstChild<FootnoteProperties>();
+                var fp = _sectionProperties.GetFirstChild<FootnoteProperties>();
+                if (fp == null) {
+                    fp = new FootnoteProperties();
+                    _sectionProperties.InsertAt(fp, 0);
+                }
+                return fp;
             }
             set {
                 var existing = _sectionProperties.GetFirstChild<FootnoteProperties>();
@@ -90,7 +95,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public EndnoteProperties EndnoteProperties {
             get {
-                return _sectionProperties.GetFirstChild<EndnoteProperties>();
+                var ep = _sectionProperties.GetFirstChild<EndnoteProperties>();
+                if (ep == null) {
+                    ep = new EndnoteProperties();
+                    _sectionProperties.InsertAt(ep, 0);
+                }
+                return ep;
             }
             set {
                 var existing = _sectionProperties.GetFirstChild<EndnoteProperties>();
@@ -112,7 +122,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public PageNumberType PageNumberType {
             get {
-                return _sectionProperties.GetFirstChild<PageNumberType>();
+                var pn = _sectionProperties.GetFirstChild<PageNumberType>();
+                if (pn == null) {
+                    pn = new PageNumberType();
+                    _sectionProperties.InsertAt(pn, 0);
+                }
+                return pn;
             }
             set {
                 var existing = _sectionProperties.GetFirstChild<PageNumberType>();

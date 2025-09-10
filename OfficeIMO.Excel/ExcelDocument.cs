@@ -474,7 +474,8 @@ namespace OfficeIMO.Excel {
             var existing = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
             foreach (var s in _workBookPart.Workbook.Sheets?.OfType<DocumentFormat.OpenXml.Spreadsheet.Sheet>() ?? System.Linq.Enumerable.Empty<DocumentFormat.OpenXml.Spreadsheet.Sheet>())
             {
-                if (!string.IsNullOrEmpty(s.Name?.Value)) existing.Add(s.Name!.Value);
+                var existingName = s.Name?.Value;
+                if (!string.IsNullOrEmpty(existingName)) existing.Add(existingName!);
             }
 
             if (mode == SheetNameValidationMode.None)

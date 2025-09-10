@@ -58,7 +58,7 @@ namespace OfficeIMO.Word {
     };
 
     /// <summary>
-    /// Shape types supported by <see cref="WordDocument.AddShape(ShapeType,double,double,string,string,double)"/>.
+    /// Shape types supported by <see cref="WordDocument.AddShape(ShapeType,double,double,string,string,double,double)"/>.
     /// </summary>
     public enum ShapeType {
         /// <summary>

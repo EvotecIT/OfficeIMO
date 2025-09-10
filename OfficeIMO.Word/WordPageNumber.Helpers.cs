@@ -43,19 +43,18 @@ public partial class WordPageNumber {
         this._wordHeader = wordHeader;
         this._sdtBlock = GetStyle(wordPageNumberStyle);
 
-        if (_sdtBlock != null) {
-            _sdtBlock.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
-            _sdtBlock.AddNamespaceDeclaration("wpg", "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup");
-            _sdtBlock.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
-            try {
-                _sdtBlock.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
-            } catch (InvalidOperationException) {
-                // prefix already defined
-            }
-
-            _listParagraphs = WordSection.ConvertParagraphsToWordParagraphs(_document, _sdtBlock.SdtContentBlock.ChildElements.OfType<Paragraph>());
-            this._wordParagraph = _listParagraphs[0];
+        _sdtBlock.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
+        _sdtBlock.AddNamespaceDeclaration("wpg", "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup");
+        _sdtBlock.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
+        try {
+            _sdtBlock.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
+        } catch (InvalidOperationException) {
+            // prefix already defined
         }
+
+        _listParagraphs.Clear();
+        _listParagraphs.AddRange(WordSection.ConvertParagraphsToWordParagraphs(_document, _sdtBlock.SdtContentBlock!.ChildElements.OfType<Paragraph>()));
+        this._wordParagraph = _listParagraphs[0];
         wordHeader._header.Append(_sdtBlock);
     }
     /// <summary>
@@ -69,22 +68,17 @@ public partial class WordPageNumber {
         this._wordFooter = wordFooter;
         this._sdtBlock = GetStyle(wordPageNumberStyle);
 
-        if (_sdtBlock != null) {
-            _sdtBlock.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
-            _sdtBlock.AddNamespaceDeclaration("wpg", "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup");
-            _sdtBlock.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
-            try {
-                _sdtBlock.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
-            } catch (InvalidOperationException) {
-                // prefix already defined
-            }
-            //var paragraphs = _sdtBlock.SdtContentBlock.ChildElements.OfType<Paragraph>();
-            //foreach (var paragraph in paragraphs) {
-            //    this._wordParagraph = new WordParagraph(_document, paragraph);
-            //}
-            _listParagraphs = WordSection.ConvertParagraphsToWordParagraphs(_document, _sdtBlock.SdtContentBlock.ChildElements.OfType<Paragraph>());
-            this._wordParagraph = _listParagraphs[0];
+        _sdtBlock.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
+        _sdtBlock.AddNamespaceDeclaration("wpg", "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup");
+        _sdtBlock.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
+        try {
+            _sdtBlock.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
+        } catch (InvalidOperationException) {
+            // prefix already defined
         }
+        _listParagraphs.Clear();
+        _listParagraphs.AddRange(WordSection.ConvertParagraphsToWordParagraphs(_document, _sdtBlock.SdtContentBlock!.ChildElements.OfType<Paragraph>()));
+        this._wordParagraph = _listParagraphs[0];
         wordFooter._footer.Append(_sdtBlock);
     }
 
