@@ -38,7 +38,11 @@ namespace OfficeIMO.Excel.Fluent
             foreach (var item in data)
                 rows.Add(flattener.Flatten(item, opts));
 
-            var paths = opts.Columns?.ToList() ?? rows.SelectMany(r => r.Keys).Distinct(System.StringComparer.OrdinalIgnoreCase).OrderBy(s => s, System.StringComparer.Ordinal).ToList();
+            var paths = opts.Columns?.ToList() ?? rows.SelectMany(r => r.Keys)
+                                                     .Where(k => !string.IsNullOrWhiteSpace(k))
+                                                     .Distinct(System.StringComparer.OrdinalIgnoreCase)
+                                                     .OrderBy(s => s, System.StringComparer.Ordinal)
+                                                     .ToList();
             if (opts.Columns == null && opts.PinnedFirst.Length > 0)
             {
                 var pinned = new System.Collections.Generic.HashSet<string>(opts.PinnedFirst, System.StringComparer.OrdinalIgnoreCase);
@@ -50,6 +54,15 @@ namespace OfficeIMO.Excel.Fluent
                 }
                 var rest = paths.Where(p => !pinned.Contains(p)).ToList();
                 paths = front.Concat(rest).ToList();
+            }
+
+            // If we still have no columns (e.g., row type exposes fields but no public properties),
+            // degrade gracefully rather than producing an invalid table definition.
+            if (paths.Count == 0)
+            {
+                Sheet.Cell(_row, 1, "(no tabular columns for row type)");
+                _row++;
+                return $"A{_row}:A{_row}";
             }
 
             int headerRow = _row;

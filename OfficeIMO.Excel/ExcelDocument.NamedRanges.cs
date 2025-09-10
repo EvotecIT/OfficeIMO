@@ -45,7 +45,8 @@ namespace OfficeIMO.Excel {
                 ushort sheetPos = GetSheetPositionIndex(scope);
                 foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == name && d.LocalSheetId != null && d.LocalSheetId.Value == sheetPos).ToList())
                     dn.Remove();
-                string localRef = NormalizeRange(range); // local names store unqualified A1
+                // Use an explicit sheet-qualified reference for maximum Excel compatibility
+                string localRef = NormalizeRange($"'{scope.Name}'!{range}");
                 var dnNew = new DefinedName { Name = name, Text = localRef, LocalSheetId = sheetPos, Hidden = hidden ? true : (bool?)null };
                 definedNames.Append(dnNew);
             }
