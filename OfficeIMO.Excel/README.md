@@ -115,6 +115,17 @@ doc.SetNamedRange("GlobalArea", "'Data'!A1:B10");
 // Sheet-local
 var data = doc["Data"];
 data.SetNamedRange("LocalStart", "A1");
+// Reading a local name returns an unqualified A1 for convenience
+Assert.Equal("$A$1", data.GetNamedRange("LocalStart"));
+// Reading a global name returns a sheet-qualified A1
+Assert.Equal("'Data'!$A$1:$B$10", doc.GetNamedRange("GlobalArea"));
+
+// Validation modes: Sanitize (default) vs. Strict
+// Name and range are both checked. Sanitize will coerce; Strict throws.
+doc.SetNamedRange("123 Bad Name", "'Data'!A1:B10000000", validationMode: NameValidationMode.Sanitize); // becomes _123_Bad_Name and clamps rows
+Assert.Equal("'Data'!$A$1:$B$1048576", doc.GetNamedRange("_123_Bad_Name"));
+Assert.Throws<ArgumentOutOfRangeException>(() =>
+    doc.SetNamedRange("BadStrict", "'Data'!A1:B10000000", validationMode: NameValidationMode.Strict));
 ```
 
 ### Header & Footer
@@ -193,6 +204,40 @@ s.ValidationList("C2:C100", new[] { "New", "Processed", "Hold" });
 // Find/Replace
 var first = s.FindFirst("Beta");
 int changed = s.ReplaceAll("New", "Processed");
+```
+
+## Saving & Validation
+
+- Element order and sheet dimensions are normalized on save to avoid Excel repair prompts.
+- Optional save options let you enable defined-name repairs and package validation.
+
+```csharp
+// Safe repair + OpenXML validation (throws on validation errors)
+doc.Save("report.xlsx", openExcel: false, options: new ExcelSaveOptions {
+    SafeRepairDefinedNames = true,
+    ValidateOpenXml = true,
+    SafePreflight = true // removes empty containers, drops orphaned refs
+});
+
+// Async variant
+await doc.SaveAsync("report.xlsx", false, new ExcelSaveOptions {
+    SafeRepairDefinedNames = true,
+    ValidateOpenXml = true
+}, ct);
+```
+
+## Sheet Names
+
+- Excel allows up to 31 characters; disallows : \ / ? * [ ] and duplicate names (case-insensitive).
+- Use the validation overload to coerce or enforce rules when adding sheets:
+
+```csharp
+// Sanitize mode: fixes invalid characters, trims to 31 chars, and ensures uniqueness (adds " (2)")
+var s = doc.AddWorkSheet("Q4:Revenue/Forecast?*", SheetNameValidationMode.Sanitize);
+Console.WriteLine(s.Name); // => "Q4_Revenue_Forecast"
+
+// Strict mode: throws if invalid
+Assert.Throws<ArgumentException>(() => doc.AddWorkSheet("Bad:Name", SheetNameValidationMode.Strict));
 ```
 
 ## Colors and Styles

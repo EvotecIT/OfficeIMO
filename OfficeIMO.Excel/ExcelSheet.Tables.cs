@@ -293,21 +293,26 @@ namespace OfficeIMO.Excel {
                 };
 
                 var tableColumns = new TableColumns { Count = columnsCount };
+                var usedHeaders = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
                 for (uint i = 0; i < columnsCount; i++) {
-                    string columnName = $"Column{i + 1}";
-
+                    string baseName = $"Column{i + 1}";
                     // If the table has headers, try to get the actual header value
                     if (hasHeader && startRowIndex > 0) {
                         var headerCell = GetCell(startRowIndex, startColumnIndex + (int)i);
                         if (headerCell != null) {
                             string headerValue = GetCellText(headerCell);
                             if (!string.IsNullOrWhiteSpace(headerValue)) {
-                                columnName = headerValue;
+                                baseName = headerValue;
                             }
                         }
                     }
-
-                    tableColumns.Append(new TableColumn { Id = i + 1, Name = columnName });
+                    string candidate = baseName;
+                    int suffix = 2;
+                    while (!usedHeaders.Add(candidate))
+                    {
+                        candidate = $"{baseName} ({suffix++})";
+                    }
+                    tableColumns.Append(new TableColumn { Id = i + 1, Name = candidate });
                 }
                 
                 // SMART AUTOFILTER HANDLING
@@ -361,7 +366,10 @@ namespace OfficeIMO.Excel {
                 }
 
                 var relId = _worksheetPart.GetIdOfPart(tableDefinitionPart);
-                tableParts.Append(new TablePart { Id = relId });
+                // Avoid duplicate TablePart entries
+                bool hasPart = tableParts.Elements<TablePart>().Any(tp => tp.Id?.Value == relId);
+                if (!hasPart)
+                    tableParts.Append(new TablePart { Id = relId });
                 tableParts.Count = (uint)tableParts.Elements<TablePart>().Count();
 
                 _worksheetPart.Worksheet.Save();

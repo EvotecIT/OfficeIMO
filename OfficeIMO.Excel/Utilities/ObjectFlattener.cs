@@ -78,7 +78,16 @@ namespace OfficeIMO.Excel {
         private static void FlattenInternal(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts) {
             if (depth >= opts.MaxDepth) return;
 
-            var props = _cache.GetOrAdd(obj.GetType(), t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            var type = obj.GetType();
+
+            // Special-case: ValueTuple (struct tuples) expose public fields (Item1..ItemN) not properties.
+            if (IsValueTuple(type))
+            {
+                FlattenValueTuple(obj, dict, prefix, depth, opts);
+                return;
+            }
+
+            var props = _cache.GetOrAdd(type, t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                                                                 .OrderBy(p => p.MetadataToken).ToArray());
             foreach (var prop in props) {
                 var value = prop.GetValue(obj);
@@ -117,6 +126,73 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static bool IsValueTuple(Type t)
+        {
+            if (!t.IsValueType) return false;
+            var n = t.Name;
+            if (n.StartsWith("ValueTuple`", StringComparison.Ordinal)) return true;
+            // non-generic System.ValueTuple
+            return string.Equals(t.FullName, "System.ValueTuple", StringComparison.Ordinal);
+        }
+
+        private static void FlattenValueTuple(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts)
+        {
+            // Try ITuple via reflection (available on newer frameworks). Avoids compile-time dependency for netstandard2.0
+            var iTupleType = Type.GetType("System.Runtime.CompilerServices.ITuple");
+            if (iTupleType != null && iTupleType.IsAssignableFrom(obj.GetType()))
+            {
+                var lenProp = iTupleType.GetProperty("Length");
+                var itemProp = iTupleType.GetProperty("Item"); // indexer
+                if (lenProp != null && itemProp != null)
+                {
+                    int length = Convert.ToInt32(lenProp.GetValue(obj, null));
+                    for (int i = 0; i < length; i++)
+                    {
+                        var path = string.IsNullOrEmpty(prefix) ? $"Item{i + 1}" : $"{prefix}.Item{i + 1}";
+                        var val = itemProp.GetValue(obj, new object[] { i });
+                        if (val == null)
+                        {
+                            dict[path] = ApplyNullPolicy(path, null, opts);
+                        }
+                        else if (IsSimple(val.GetType()))
+                        {
+                            dict[path] = ApplyFormatting(path, val, opts);
+                        }
+                        else
+                        {
+                            FlattenInternal(val, dict, path, depth + 1, opts);
+                        }
+                    }
+                    return;
+                }
+            }
+
+            // Fallback: reflect public instance fields Item1..ItemN
+            var fields = obj.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance)
+                .Where(f => f.Name.StartsWith("Item", StringComparison.Ordinal))
+                .OrderBy(f => f.Name, StringComparer.Ordinal)
+                .ToArray();
+            int idx = 1;
+            foreach (var f in fields)
+            {
+                var path = string.IsNullOrEmpty(prefix) ? $"Item{idx}" : $"{prefix}.Item{idx}";
+                var val = f.GetValue(obj);
+                if (val == null)
+                {
+                    dict[path] = ApplyNullPolicy(path, null, opts);
+                }
+                else if (IsSimple(val.GetType()))
+                {
+                    dict[path] = ApplyFormatting(path, val, opts);
+                }
+                else
+                {
+                    FlattenInternal(val, dict, path, depth + 1, opts);
+                }
+                idx++;
+            }
+        }
+
         private static void MapCollectionToColumns(string basePath, IEnumerable enumerable, CollectionColumnMapping map, Dictionary<string, object?> dict, ObjectFlattenerOptions opts)
         {
             foreach (var item in enumerable)
@@ -141,6 +217,22 @@ namespace OfficeIMO.Excel {
 
         private static void BuildPaths(Type type, string prefix, int depth, ObjectFlattenerOptions opts, List<string> paths) {
             if (depth >= opts.MaxDepth) return;
+            if (IsValueTuple(type))
+            {
+                // Prefer counting actual Item* fields for precision (covers non-generic System.ValueTuple)
+                int itemCount = objFieldCount(type);
+                // If field count is 0 but the type is generic, fall back to generic arity (covers ITuple-backed cases)
+                if (itemCount == 0 && type.IsGenericType)
+                    itemCount = type.GetGenericArguments().Length;
+
+                for (int i = 1; i <= itemCount; i++)
+                {
+                    var path = string.IsNullOrEmpty(prefix) ? $"Item{i}" : $"{prefix}.Item{i}";
+                    if (!opts.Ignore.Any(x => path.StartsWith(x, StringComparison.OrdinalIgnoreCase)))
+                        paths.Add(path);
+                }
+                return;
+            }
             var props = _cache.GetOrAdd(type, t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                                                    .OrderBy(p => p.MetadataToken).ToArray());
             foreach (var prop in props) {
@@ -159,6 +251,17 @@ namespace OfficeIMO.Excel {
                     BuildPaths(prop.PropertyType, path, depth + 1, opts, paths);
                 }
             }
+        }
+
+        private static int objFieldCount(Type valueTupleType)
+        {
+            try
+            {
+                return valueTupleType
+                    .GetFields(BindingFlags.Public | BindingFlags.Instance)
+                    .Count(f => f.Name.StartsWith("Item", StringComparison.Ordinal));
+            }
+            catch { return 0; }
         }
 
         private static object? HandleCollection(string path, IEnumerable enumerable, ObjectFlattenerOptions opts) {

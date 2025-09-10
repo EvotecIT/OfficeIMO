@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel.Fluent
             {
                 Sheet.Cell(_row, 1, "(no data)");
                 _row++;
-                return $"A{_row}:A{_row}";
+                return $"A{_row-1}:A{_row-1}";
             }
 
             var opts = new ObjectFlattenerOptions();
@@ -38,7 +38,11 @@ namespace OfficeIMO.Excel.Fluent
             foreach (var item in data)
                 rows.Add(flattener.Flatten(item, opts));
 
-            var paths = opts.Columns?.ToList() ?? rows.SelectMany(r => r.Keys).Distinct(System.StringComparer.OrdinalIgnoreCase).OrderBy(s => s, System.StringComparer.Ordinal).ToList();
+            var paths = opts.Columns?.ToList() ?? rows.SelectMany(r => r.Keys)
+                                                     .Where(k => !string.IsNullOrWhiteSpace(k))
+                                                     .Distinct(System.StringComparer.OrdinalIgnoreCase)
+                                                     .OrderBy(s => s, System.StringComparer.Ordinal)
+                                                     .ToList();
             if (opts.Columns == null && opts.PinnedFirst.Length > 0)
             {
                 var pinned = new System.Collections.Generic.HashSet<string>(opts.PinnedFirst, System.StringComparer.OrdinalIgnoreCase);
@@ -52,9 +56,31 @@ namespace OfficeIMO.Excel.Fluent
                 paths = front.Concat(rest).ToList();
             }
 
+            // If we still have no columns (e.g., row type exposes fields but no public properties),
+            // degrade gracefully rather than producing an invalid table definition.
+            if (paths.Count == 0)
+            {
+                Sheet.Cell(_row, 1, "(no tabular columns for row type)");
+                _row++;
+                return $"A{_row-1}:A{_row-1}";
+            }
+
             int headerRow = _row;
             var cells = new List<(int Row, int Column, object Value)>(System.Math.Max(1, (rows.Count + 1) * System.Math.Max(1, paths.Count)));
             var headersT = paths.Select(p => TransformHeader(p, opts)).ToList();
+            // De-duplicate header captions to avoid Excel silently renaming duplicates
+            var usedHeaders = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < headersT.Count; i++)
+            {
+                string baseName = string.IsNullOrWhiteSpace(headersT[i]) ? $"Column{i+1}" : headersT[i];
+                string candidate = baseName;
+                int suffix = 2;
+                while (!usedHeaders.Add(candidate))
+                {
+                    candidate = $"{baseName} ({suffix++})";
+                }
+                headersT[i] = candidate;
+            }
             var seen = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < headersT.Count; i++)
             {

@@ -36,7 +36,7 @@ namespace OfficeIMO.Word {
                 count++;
             } while (count < 10 || parent != null);
 
-            return null;
+            throw new InvalidOperationException("Unable to determine paragraph location within 10 ancestors.");
         }
 
         /// <summary>
@@ -107,12 +107,11 @@ namespace OfficeIMO.Word {
         private Text VerifyText() {
             if (_text == null) {
                 var run = VerifyRun();
-
-                var text = new Text { Space = SpaceProcessingModeValues.Preserve }; // this ensures spaces are preserved between runs
-                this._run.Append(text);
+                var text = new Text { Space = SpaceProcessingModeValues.Preserve };
+                run.Append(text);
+                return text;
             }
-
-            return this._text;
+            return this._text!;
         }
 
         //private void LoadListToDocument(WordDocument document, WordParagraph wordParagraph) {
@@ -174,7 +173,7 @@ namespace OfficeIMO.Word {
         private WordParagraph ConvertToTextWithBreaks(string text) {
             string[] splitStrings = { Environment.NewLine, "\r\n", "\n" };
 
-            WordParagraph wordParagraph = null;
+            WordParagraph? wordParagraph = null;
 
             // check if there's a new line in the text
             if (splitStrings.Any(text.Contains)) {
@@ -187,16 +186,16 @@ namespace OfficeIMO.Word {
                     } else {
                         wordParagraph = new WordParagraph(this._document, this._paragraph, new Run());
                         wordParagraph.Text = line;
-                        this._paragraph.Append(wordParagraph._run);
+                        this._paragraph.Append(wordParagraph._run!);
                     }
                 }
             } else {
                 wordParagraph = new WordParagraph(this._document, this._paragraph, new Run());
                 wordParagraph.Text = text;
-                this._paragraph.Append(wordParagraph._run);
+                this._paragraph.Append(wordParagraph._run!);
             }
 
-            return wordParagraph;
+            return wordParagraph!;
         }
     }
 }

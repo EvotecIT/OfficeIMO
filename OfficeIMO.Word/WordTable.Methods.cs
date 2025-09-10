@@ -123,7 +123,8 @@ namespace OfficeIMO.Word {
         public WordTable SetStyleId(string styleId) {
             // Todo: Verify that the style exists in the document.
             if (!string.IsNullOrEmpty(styleId)) {
-                if (_tableProperties?.TableStyle == null) {
+                CheckTableProperties();
+                if (_tableProperties!.TableStyle == null) {
                     _tableProperties.TableStyle = new TableStyle() { Val = styleId };
                 } else {
                     _tableProperties.TableStyle.Val = styleId;
@@ -194,7 +195,7 @@ namespace OfficeIMO.Word {
             switch (layoutType) {
                 case WordTableLayoutType.FixedWidth:
                     // Set OpenXML layout type to Fixed
-                    if (_tableProperties.TableLayout == null) {
+                    if (_tableProperties!.TableLayout == null) {
                         _tableProperties.TableLayout = new TableLayout();
                     }
                     _tableProperties.TableLayout.Type = TableLayoutValues.Fixed;
@@ -212,7 +213,7 @@ namespace OfficeIMO.Word {
 
                 case WordTableLayoutType.AutoFitToContents:
                     // Set OpenXML layout type to Autofit
-                    if (_tableProperties.TableLayout == null) {
+                    if (_tableProperties!.TableLayout == null) {
                         _tableProperties.TableLayout = new TableLayout();
                     }
                     _tableProperties.TableLayout.Type = TableLayoutValues.Autofit;
@@ -224,7 +225,7 @@ namespace OfficeIMO.Word {
 
                 case WordTableLayoutType.AutoFitToWindow:
                     // Set OpenXML layout type to Fixed
-                    if (_tableProperties.TableLayout == null) {
+                    if (_tableProperties!.TableLayout == null) {
                         _tableProperties.TableLayout = new TableLayout();
                     }
                     _tableProperties.TableLayout.Type = TableLayoutValues.Fixed;
@@ -243,7 +244,7 @@ namespace OfficeIMO.Word {
             CheckTableProperties();
 
             // 1. Set Table Layout to Autofit
-            if (_tableProperties.TableLayout == null) {
+            if (_tableProperties!.TableLayout == null) {
                 _tableProperties.TableLayout = new TableLayout();
             }
             _tableProperties.TableLayout.Type = TableLayoutValues.Autofit;
@@ -367,7 +368,7 @@ namespace OfficeIMO.Word {
             CheckTableProperties();
 
             // 1. Set Table Layout to Fixed (or ensure it exists)
-            if (_tableProperties.TableLayout == null) {
+            if (_tableProperties!.TableLayout == null) {
                 _tableProperties.TableLayout = new TableLayout();
             }
             _tableProperties.TableLayout.Type = TableLayoutValues.Fixed;
@@ -428,7 +429,7 @@ namespace OfficeIMO.Word {
 
             // Set table layout type to Fixed
             CheckTableProperties();
-            if (_tableProperties.TableLayout == null) {
+            if (_tableProperties!.TableLayout == null) {
                 _tableProperties.TableLayout = new TableLayout();
             }
             _tableProperties.TableLayout.Type = TableLayoutValues.Fixed;
