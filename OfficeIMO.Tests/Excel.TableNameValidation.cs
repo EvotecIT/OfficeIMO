@@ -159,6 +159,7 @@ namespace OfficeIMO.Tests {
         public async Task TableId_Generation_IsThreadSafe_AcrossMultipleWorkbooks() {
             string dir = _directoryWithFiles;
             async Task<string> CreateOneAsync(int idx) {
+                await Task.Yield();
                 string fp = Path.Combine(dir, $"Table.Concurrent.WB{idx}.xlsx");
                 using (var doc = ExcelDocument.Create(fp)) {
                     var s = doc.AddWorkSheet($"S{idx}");

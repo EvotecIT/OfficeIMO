@@ -8,6 +8,10 @@ namespace OfficeIMO.Excel.Fluent
     /// </summary>
     public sealed partial class SheetComposer
     {
+        /// <summary>
+        /// Column-scoped composer used by <see cref="Columns"/> to
+        /// write simple sections into a single column while keeping track of vertical position.
+        /// </summary>
         public sealed class ColumnComposer
         {
             private readonly ExcelSheet _sheet;
@@ -19,10 +23,14 @@ namespace OfficeIMO.Excel.Fluent
             internal ColumnComposer(ExcelSheet sheet, SheetTheme theme, int startRow, int baseCol)
             { _sheet = sheet; _theme = theme; _startRow = startRow; _row = startRow; _baseCol = baseCol; }
 
+            /// <summary>Total number of rows consumed by this column since it was created.</summary>
             public int RowsUsed => _row - _startRow;
 
+            /// <summary>Adds vertical space.</summary>
+            /// <param name="rows">Number of rows to skip (minimum 1).</param>
             public ColumnComposer Spacer(int rows = 1) { _row += Math.Max(1, rows); return this; }
 
+            /// <summary>Writes a section header cell using the current theme's section style.</summary>
             public ColumnComposer Section(string text)
             {
                 _sheet.Cell(_row, _baseCol, text);
@@ -32,12 +40,14 @@ namespace OfficeIMO.Excel.Fluent
                 return this;
             }
 
+            /// <summary>Writes a single paragraph cell and advances the row.</summary>
             public ColumnComposer Paragraph(string text)
             {
                 if (!string.IsNullOrEmpty(text)) { _sheet.Cell(_row, _baseCol, text); _row++; }
                 return this;
             }
 
+            /// <summary>Writes a bullet for each item (• text) in this column.</summary>
             public ColumnComposer BulletedList(IEnumerable<string> items)
             {
                 if (items == null) return this;
@@ -45,6 +55,7 @@ namespace OfficeIMO.Excel.Fluent
                 return this;
             }
 
+            /// <summary>Writes a two-column key/value row with styled key cell.</summary>
             public ColumnComposer KeyValue(string key, object? value)
             {
                 _sheet.Cell(_row, _baseCol, key);
@@ -55,6 +66,7 @@ namespace OfficeIMO.Excel.Fluent
                 return this;
             }
 
+            /// <summary>Writes multiple key/value rows in order.</summary>
             public ColumnComposer KeyValues(IEnumerable<(string Key, object? Value)> pairs)
             {
                 if (pairs == null) return this;

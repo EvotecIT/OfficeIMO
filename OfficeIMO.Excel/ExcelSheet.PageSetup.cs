@@ -76,16 +76,22 @@ namespace OfficeIMO.Excel
     /// <summary>Common presets for page margins.</summary>
     public enum ExcelMarginPreset
     {
+        /// <summary>Standard margins: left/right 0.7 inch, top/bottom 0.75 inch, header/footer 0.3 inch.</summary>
         Normal,
+        /// <summary>Narrow margins: left/right 0.25 inch, top/bottom 0.5 inch, header/footer 0.3 inch.</summary>
         Narrow,
+        /// <summary>Moderate margins: left/right 0.75 inch, top/bottom 1.0 inch, header/footer 0.5 inch.</summary>
         Moderate,
+        /// <summary>Wide margins: left/right 1.0 inch, top/bottom 1.0 inch, header/footer 0.5 inch.</summary>
         Wide
     }
 
-    /// <summary>Simple orientation enum for Excel worksheets.</summary>
+    /// <summary>Sheet page orientation.</summary>
     public enum ExcelPageOrientation
     {
+        /// <summary>Portrait orientation (vertical).</summary>
         Portrait,
+        /// <summary>Landscape orientation (horizontal).</summary>
         Landscape
     }
 }

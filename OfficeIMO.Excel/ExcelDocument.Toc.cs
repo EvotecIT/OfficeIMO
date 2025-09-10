@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel {
                         var name = d.Name?.Value;
                         if (string.IsNullOrEmpty(name)) continue;
                         bool hidden = d.Hidden?.Value ?? false;
-                        if (dnHiddenLookup.TryGetValue(name, out var prior)) dnHiddenLookup[name] = prior || hidden; else dnHiddenLookup[name] = hidden;
+                        if (dnHiddenLookup.TryGetValue(name!, out var prior)) dnHiddenLookup[name!] = prior || hidden; else dnHiddenLookup[name!] = hidden;
                     }
                 }
             }
@@ -80,9 +80,10 @@ namespace OfficeIMO.Excel {
                     foreach (var kv in names)
                     {
                         var name = kv.Key;
+                        if (string.IsNullOrEmpty(name)) continue;
                         if (rangeNameFilter != null && !rangeNameFilter(name)) continue;
-                        if (dnHiddenLookup != null && dnHiddenLookup.TryGetValue(name, out var isHidden) && isHidden && !includeHiddenNamedRanges) continue;
-                        list.Add(name);
+                        if (dnHiddenLookup != null && dnHiddenLookup.TryGetValue(name!, out var isHidden) && isHidden && !includeHiddenNamedRanges) continue;
+                        list.Add(name!);
                     }
                     string joined = list.Count == 0 ? "—" : string.Join(", ", list);
                     toc.Cell(r, 3, joined);

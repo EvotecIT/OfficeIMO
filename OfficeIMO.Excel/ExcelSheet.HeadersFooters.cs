@@ -244,15 +244,16 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            var sb = new StringBuilder(text.Length + 8);
-            for (int i = 0; i < text.Length; i++)
+            var t = text!;
+            var sb = new StringBuilder(t.Length + 8);
+            for (int i = 0; i < t.Length; i++)
             {
-                char ch = text[i];
+                char ch = t[i];
                 if (ch == '&')
                 {
-                    if (i + 1 < text.Length)
+                    if (i + 1 < t.Length)
                     {
-                        char n = text[i + 1];
+                        char n = t[i + 1];
                         if (n == '&') { sb.Append("&&"); i++; continue; }
                         if (n == '"') { sb.Append('&'); continue; } // font name spec: &"Name,Style"
                         if (IsTokenStarter(n)) { sb.Append('&'); continue; }

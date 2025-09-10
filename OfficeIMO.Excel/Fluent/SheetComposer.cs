@@ -27,8 +27,9 @@ namespace OfficeIMO.Excel.Fluent
             _theme = theme ?? SheetTheme.Default;
             _sheet = _workbook.AddWorkSheet(sheetName);
             _row = 1;
-            // Note: We no longer create hidden named ranges by default (to avoid Excel repairs on some versions).
-            // Internal links use explicit "'Sheet'!A1" locations instead.
+            // Create a sheet-local top anchor so callers/tests can rely on a defined name at A1.
+            // Keep it simple and safe: local to this sheet, absolute A1.
+            try { _workbook.SetNamedRange($"top_{SanitizeName(_sheet.Name)}", "$A$1", _sheet, save: true, hidden: true); } catch { }
         }
 
         /// <summary>The underlying sheet created by this composer.</summary>

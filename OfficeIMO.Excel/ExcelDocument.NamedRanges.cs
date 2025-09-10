@@ -235,12 +235,12 @@ namespace OfficeIMO.Excel {
             string? rowsPart = null, colsPart = null;
             if (hasRows)
             {
-                rowsPart = $"'{sheet.Name}'!${firstRow.Value}:${lastRow.Value}";
+                rowsPart = $"'{sheet.Name}'!${firstRow.GetValueOrDefault()}:${lastRow.GetValueOrDefault()}";
             }
             if (hasCols)
             {
-                string c1 = A1.ColumnIndexToLetters(firstCol!.Value);
-                string c2 = A1.ColumnIndexToLetters(lastCol!.Value);
+                string c1 = A1.ColumnIndexToLetters(firstCol.GetValueOrDefault());
+                string c2 = A1.ColumnIndexToLetters(lastCol.GetValueOrDefault());
                 colsPart = $"'{sheet.Name}'!${c1}:${c2}";
             }
 

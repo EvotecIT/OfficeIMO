@@ -245,7 +245,7 @@ namespace OfficeIMO.Excel
             var table = tdp.Table;
             string? refA1 = table.Reference?.Value;
             if (string.IsNullOrWhiteSpace(refA1)) throw new InvalidOperationException($"Table '{tableName}' has no Reference.");
-            var (r1, c1, r2, c2) = A1.ParseRange(refA1);
+            var (r1, c1, r2, c2) = A1.ParseRange(refA1!);
             // Determine header offset
             var headers = table.TableColumns?.Elements<DocumentFormat.OpenXml.Spreadsheet.TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList() ?? new System.Collections.Generic.List<string>();
             int colOffset = headers.FindIndex(h => string.Equals(h, header, StringComparison.OrdinalIgnoreCase));
@@ -292,7 +292,7 @@ namespace OfficeIMO.Excel
             var table = tdp.Table;
             string? refA1 = table.Reference?.Value;
             if (string.IsNullOrWhiteSpace(refA1)) throw new InvalidOperationException($"Table '{tableName}' has no Reference.");
-            var (r1, c1, r2, c2) = A1.ParseRange(refA1);
+            var (r1, c1, r2, c2) = A1.ParseRange(refA1!);
             var headers = table.TableColumns?.Elements<DocumentFormat.OpenXml.Spreadsheet.TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList() ?? new System.Collections.Generic.List<string>();
             int colOffset = headers.FindIndex(h => string.Equals(h, header, StringComparison.OrdinalIgnoreCase));
             if (colOffset < 0) throw new InvalidOperationException($"Header '{header}' not found in table '{tableName}'.");

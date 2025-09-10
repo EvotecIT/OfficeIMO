@@ -75,14 +75,22 @@ namespace OfficeIMO.Excel.Fluent {
         /// <summary>Adds a centered header image from URL (downloaded on apply).</summary>
         public HeaderFooterBuilder CenterImageUrl(string url, double? widthPoints = null, double? heightPoints = null)
             => ImageUrl(true, HeaderFooterPosition.Center, url, widthPoints, heightPoints);
+        /// <summary>Adds a left header image from URL (downloaded on apply).</summary>
+        /// <param name="url">Direct URL to an image (PNG/JPEG/GIF/BMP).</param>
+        /// <param name="widthPoints">Optional width in points; inferred from image when null.</param>
+        /// <param name="heightPoints">Optional height in points; inferred from image when null.</param>
         public HeaderFooterBuilder LeftImageUrl(string url, double? widthPoints = null, double? heightPoints = null)
             => ImageUrl(true, HeaderFooterPosition.Left, url, widthPoints, heightPoints);
+        /// <summary>Adds a right header image from URL (downloaded on apply).</summary>
         public HeaderFooterBuilder RightImageUrl(string url, double? widthPoints = null, double? heightPoints = null)
             => ImageUrl(true, HeaderFooterPosition.Right, url, widthPoints, heightPoints);
+        /// <summary>Adds a centered footer image from URL (downloaded on apply).</summary>
         public HeaderFooterBuilder FooterCenterImageUrl(string url, double? widthPoints = null, double? heightPoints = null)
             => ImageUrl(false, HeaderFooterPosition.Center, url, widthPoints, heightPoints);
+        /// <summary>Adds a left footer image from URL (downloaded on apply).</summary>
         public HeaderFooterBuilder FooterLeftImageUrl(string url, double? widthPoints = null, double? heightPoints = null)
             => ImageUrl(false, HeaderFooterPosition.Left, url, widthPoints, heightPoints);
+        /// <summary>Adds a right footer image from URL (downloaded on apply).</summary>
         public HeaderFooterBuilder FooterRightImageUrl(string url, double? widthPoints = null, double? heightPoints = null)
             => ImageUrl(false, HeaderFooterPosition.Right, url, widthPoints, heightPoints);
 
