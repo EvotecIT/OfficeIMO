@@ -45,6 +45,10 @@
     <Using Include="System.Linq" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Examples" />

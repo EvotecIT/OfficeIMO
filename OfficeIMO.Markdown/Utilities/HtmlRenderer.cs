@@ -285,9 +285,8 @@ internal static class HtmlRenderer {
             using var resp = client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cts.Token).GetAwaiter().GetResult();
             if (!resp.IsSuccessStatusCode) return string.Empty;
             var ct = resp.Content.Headers.ContentType?.MediaType?.ToLowerInvariant();
-            // Allow common text assets used by this library
             bool okType = false;
-            if (ct == null) okType = true; // be permissive when unknown
+            if (ct == null) okType = true;
             else if (ct.StartsWith("text/")) okType = true;
             else if (ct.IndexOf("javascript", StringComparison.Ordinal) >= 0 || ct.IndexOf("ecmascript", StringComparison.Ordinal) >= 0 || ct.IndexOf("css", StringComparison.Ordinal) >= 0) okType = true;
             if (!okType) return string.Empty;
@@ -304,7 +303,6 @@ internal static class HtmlRenderer {
                 if (total > MaxBytes) return string.Empty;
                 mem.Write(buffer, 0, read);
             }
-            // Determine encoding
             var charset = resp.Content.Headers.ContentType?.CharSet;
             Encoding enc;
             try { enc = !string.IsNullOrWhiteSpace(charset) ? Encoding.GetEncoding(charset!) : new UTF8Encoding(false); }
