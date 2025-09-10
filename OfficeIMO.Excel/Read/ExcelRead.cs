@@ -4,7 +4,7 @@ using System.Data;
 using System.Linq;
 using OfficeIMO.Excel;
 
-namespace OfficeIMO.Excel.Read
+namespace OfficeIMO.Excel
 {
     /// <summary>
     /// Static helpers for quick one‑liner read operations.

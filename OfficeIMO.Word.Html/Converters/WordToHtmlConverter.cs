@@ -13,7 +13,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OfficeIMO.Word.Html.Converters {
+namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Converts <see cref="WordDocument"/> instances into HTML markup.
     /// </summary>
@@ -777,13 +777,14 @@ namespace OfficeIMO.Word.Html.Converters {
                     var props = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
                     void Merge(string? id) {
-                        if (string.IsNullOrEmpty(id)) {
+                        var key = id;
+                        if (string.IsNullOrEmpty(key)) {
                             return;
                         }
-                        if (!visited.Add(id!)) {
+                        if (!visited.Add(key)) {
                             return;
                         }
-                        if (!styleMap.TryGetValue(id, out var def)) {
+                        if (!styleMap.TryGetValue(key, out var def)) {
                             return;
                         }
                         var baseId = def.BasedOn?.Val;

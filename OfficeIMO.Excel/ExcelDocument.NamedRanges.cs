@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using DocumentFormat.OpenXml.Spreadsheet;
-using OfficeIMO.Excel.Read;
+using OfficeIMO.Excel;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -196,6 +196,101 @@ namespace OfficeIMO.Excel {
                 if (sheets[i].Name == sheet.Name) return i; // 0-based position
             }
             throw new ArgumentException("Worksheet not found in workbook.", nameof(sheet));
+        }
+
+        /// <summary>
+        /// Sets rows/columns to repeat at top/left when printing a specific sheet by creating a sheet-local
+        /// defined name _xlnm.Print_Titles. Pass nulls to clear existing print titles.
+        /// </summary>
+        /// <param name="sheet">Target sheet.</param>
+        /// <param name="firstRow">First row to repeat (1-based), or null.</param>
+        /// <param name="lastRow">Last row to repeat (1-based), or null.</param>
+        /// <param name="firstCol">First column to repeat (1-based), or null.</param>
+        /// <param name="lastCol">Last column to repeat (1-based), or null.</param>
+        /// <param name="save">Whether to save the workbook after the change.</param>
+        public void SetPrintTitles(ExcelSheet sheet, int? firstRow, int? lastRow, int? firstCol, int? lastCol, bool save = true)
+        {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+
+            var workbook = _workBookPart.Workbook;
+            var definedNames = workbook.DefinedNames ??= new DefinedNames();
+
+            // Remove existing sheet-local Print_Titles for this sheet
+            ushort sheetPos = GetSheetPositionIndex(sheet);
+            foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == "_xlnm.Print_Titles").ToList())
+            {
+                if (dn.LocalSheetId != null && dn.LocalSheetId.Value == sheetPos)
+                    dn.Remove();
+            }
+
+            // Nothing to set? stop here (clears existing titles)
+            bool hasRows = firstRow.HasValue && lastRow.HasValue && firstRow.Value > 0 && lastRow.Value >= firstRow.Value;
+            bool hasCols = firstCol.HasValue && lastCol.HasValue && firstCol.Value > 0 && lastCol.Value >= firstCol.Value;
+            if (!hasRows && !hasCols)
+            {
+                if (save) workbook.Save();
+                return;
+            }
+
+            string? rowsPart = null, colsPart = null;
+            if (hasRows)
+            {
+                rowsPart = $"'{sheet.Name}'!${firstRow.GetValueOrDefault()}:${lastRow.GetValueOrDefault()}";
+            }
+            if (hasCols)
+            {
+                string c1 = A1.ColumnIndexToLetters(firstCol.GetValueOrDefault());
+                string c2 = A1.ColumnIndexToLetters(lastCol.GetValueOrDefault());
+                colsPart = $"'{sheet.Name}'!${c1}:${c2}";
+            }
+
+            string text = hasRows && hasCols ? string.Concat(rowsPart, ",", colsPart) : (rowsPart ?? colsPart)!;
+            var dnNew = new DefinedName { Name = "_xlnm.Print_Titles", LocalSheetId = sheetPos, Text = text };
+            definedNames.Append(dnNew);
+            if (save) workbook.Save();
+        }
+
+        /// <summary>
+        /// Repairs common issues with defined names that can trigger Excel's file repair, such as
+        /// duplicates within the same scope, invalid LocalSheetId after sheet reordering/removal,
+        /// or references containing #REF!.
+        /// </summary>
+        internal void RepairDefinedNames(bool save = true)
+        {
+            var wb = _workBookPart.Workbook;
+            var definedNames = wb.DefinedNames;
+            if (definedNames == null) return;
+
+            var sheets = wb.Sheets?.OfType<Sheet>().ToList() ?? new();
+            int sheetCount = sheets.Count;
+
+            var toRemove = new System.Collections.Generic.HashSet<DocumentFormat.OpenXml.Spreadsheet.DefinedName>();
+            var seen = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var dn in definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>())
+            {
+                string? name = dn.Name;
+                if (string.IsNullOrWhiteSpace(name)) { toRemove.Add(dn); continue; }
+
+                uint? local = dn.LocalSheetId?.Value;
+                if (local.HasValue && (local.Value >= (uint)sheetCount)) { toRemove.Add(dn); continue; }
+
+                string key = (local.HasValue ? local.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "G") + "|" + name;
+                if (!seen.Add(key)) { toRemove.Add(dn); continue; }
+
+                string text = dn.Text ?? string.Empty;
+                if (text.IndexOf("#REF!", StringComparison.OrdinalIgnoreCase) >= 0) { toRemove.Add(dn); continue; }
+            }
+
+            if (toRemove.Count > 0)
+            {
+                foreach (var dn in toRemove) dn.Remove();
+                if (!definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>().Any())
+                {
+                    wb.DefinedNames = null;
+                }
+                if (save) wb.Save();
+            }
         }
 
         /// <summary>

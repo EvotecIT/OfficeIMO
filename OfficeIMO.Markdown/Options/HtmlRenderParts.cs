@@ -1,4 +1,4 @@
-using OfficeIMO.Markdown.Utilities;
+using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Markdown;
 

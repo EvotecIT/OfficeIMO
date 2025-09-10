@@ -1,4 +1,4 @@
-namespace OfficeIMO.Markdown.Utilities;
+namespace OfficeIMO.Markdown;
 
 /// <summary>Kind of asset.</summary>
 public enum HtmlAssetKind {

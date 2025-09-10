@@ -9,7 +9,7 @@ using SixColor = SixLabors.ImageSharp.Color;
 using System;
 using System.Collections.Generic;
 
-namespace OfficeIMO.Word.Html.Converters {
+namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
         private void ProcessTable(IHtmlTableElement tableElem, WordDocument doc, WordSection section, HtmlToWordOptions options,
             Stack<WordList> listStack, WordTableCell? cell, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
@@ -443,7 +443,8 @@ namespace OfficeIMO.Word.Html.Converters {
             JustificationValues? alignment = null;
             bool borderSet = false;
             if (!string.IsNullOrWhiteSpace(style)) {
-                foreach (var part in style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                var styleText = style!;
+                foreach (var part in styleText.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
                     var pieces = part.Split(new[] { ':' }, 2);
                     if (pieces.Length != 2) {
                         continue;

@@ -28,12 +28,23 @@ namespace OfficeIMO.Excel {
             toc.Cell(r, 1, "Workbook Navigation"); toc.CellBold(r, 1, true); toc.CellBackground(r, 1, "#D9E1F2"); r++;
             toc.Cell(r++, 1, $"Generated: {System.DateTime.Now:yyyy-MM-dd HH:mm}");
 
-            // Build a lookup of defined names to their metadata (for Hidden flag)
-            var dnRoot = _workBookPart.Workbook.DefinedNames;
-            var dnMeta = dnRoot?.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>()
-                                 .Where(d => d.Name != null && !string.IsNullOrEmpty(d.Name.Value))
-                                 .ToDictionary(d => d.Name!.Value!, d => d, StringComparer.OrdinalIgnoreCase)
-                         ?? new System.Collections.Generic.Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.DefinedName>(StringComparer.OrdinalIgnoreCase);
+            // Build a simple Hidden lookup for defined names only when we plan to list them.
+            System.Collections.Generic.Dictionary<string, bool>? dnHiddenLookup = null;
+            if (includeNamedRanges)
+            {
+                dnHiddenLookup = new System.Collections.Generic.Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+                var dnRoot = _workBookPart.Workbook.DefinedNames;
+                if (dnRoot != null)
+                {
+                    foreach (var d in dnRoot.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>())
+                    {
+                        var name = d.Name?.Value;
+                        if (string.IsNullOrEmpty(name)) continue;
+                        bool hidden = d.Hidden?.Value ?? false;
+                        if (dnHiddenLookup.TryGetValue(name!, out var prior)) dnHiddenLookup[name!] = prior || hidden; else dnHiddenLookup[name!] = hidden;
+                    }
+                }
+            }
 
             // Header
             int headerRow = r;
@@ -55,7 +66,7 @@ namespace OfficeIMO.Excel {
                 string used = sh.GetUsedRangeA1();
                 try
                 {
-                    var (r1, c1, r2, c2) = OfficeIMO.Excel.Read.A1.ParseRange(used);
+                    var (r1, c1, r2, c2) = A1.ParseRange(used);
                     int rows = System.Math.Max(0, r2 - r1 + 1);
                     int cols = System.Math.Max(0, c2 - c1 + 1);
                     toc.Cell(r, 2, $"Used {used} ({rows}×{cols})");
@@ -69,9 +80,10 @@ namespace OfficeIMO.Excel {
                     foreach (var kv in names)
                     {
                         var name = kv.Key;
+                        if (string.IsNullOrEmpty(name)) continue;
                         if (rangeNameFilter != null && !rangeNameFilter(name)) continue;
-                        if (dnMeta.TryGetValue(name, out var dn) && (dn.Hidden?.Value ?? false) && !includeHiddenNamedRanges) continue;
-                        list.Add(name);
+                        if (dnHiddenLookup != null && dnHiddenLookup.TryGetValue(name!, out var isHidden) && isHidden && !includeHiddenNamedRanges) continue;
+                        list.Add(name!);
                     }
                     string joined = list.Count == 0 ? "—" : string.Join(", ", list);
                     toc.Cell(r, 3, joined);
@@ -89,6 +101,9 @@ namespace OfficeIMO.Excel {
                 toc.AutoFitColumns();
             }
             if (placeFirst) MoveSheetToBeginning(sheetName);
+
+            // As a safety net, clean up any broken/duplicate defined names after sheet changes.
+            RepairDefinedNames(save: true);
         }
 
         /// <summary>
@@ -110,14 +125,40 @@ namespace OfficeIMO.Excel {
 
         private void MoveSheetToBeginning(string sheetName)
         {
-            var sheets = _workBookPart.Workbook.Sheets;
+            var wb = _workBookPart.Workbook;
+            var sheets = wb.Sheets;
             if (sheets == null) return;
-            var sheet = sheets.Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>()
-                               .FirstOrDefault(s => string.Equals(s.Name, sheetName, StringComparison.Ordinal));
-            if (sheet == null) return;
-            sheet.Remove();
-            sheets.InsertAt(sheet, 0);
-            _workBookPart.Workbook.Save();
+
+            var all = sheets.Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>().ToList();
+            var target = all.FirstOrDefault(s => string.Equals(s.Name, sheetName, StringComparison.Ordinal));
+            if (target == null) return;
+
+            int oldIdx = all.IndexOf(target);
+            if (oldIdx <= 0)
+            {
+                // Already first or not found
+                return;
+            }
+
+            // Reorder sheet nodes
+            target.Remove();
+            sheets.InsertAt(target, 0);
+
+            // Adjust LocalSheetId for all defined names to reflect new sheet positions
+            var definedNames = wb.DefinedNames;
+            if (definedNames != null)
+            {
+                foreach (var dn in definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>())
+                {
+                    if (dn.LocalSheetId == null) continue;
+                    uint v = dn.LocalSheetId.Value;
+                    if (v == (uint)oldIdx) dn.LocalSheetId = 0u; // moved sheet
+                    else if (v < (uint)oldIdx) dn.LocalSheetId = v + 1; // sheets that were before moved one shift right
+                    // v > oldIdx unchanged
+                }
+            }
+
+            wb.Save();
         }
 
         /// <summary>
@@ -128,15 +169,42 @@ namespace OfficeIMO.Excel {
             var wb = _workBookPart.Workbook;
             var sheets = wb.Sheets;
             if (sheets == null) return;
-            var sheet = sheets.Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>()
-                              .FirstOrDefault(s => string.Equals(s.Name, sheetName, StringComparison.Ordinal));
+            var all = sheets.Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>().ToList();
+            var sheet = all.FirstOrDefault(s => string.Equals(s.Name, sheetName, StringComparison.Ordinal));
             if (sheet == null) return;
+
+            int removedIdx = all.IndexOf(sheet);
             var relId = sheet.Id?.Value;
             sheet.Remove();
+
+            // Clean up defined names scoped to the removed sheet, and reindex others after the removal
+            var definedNames = wb.DefinedNames;
+            if (definedNames != null)
+            {
+                foreach (var dn in definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>().ToList())
+                {
+                    if (dn.LocalSheetId == null) continue;
+                    uint v = dn.LocalSheetId.Value;
+                    if (v == (uint)removedIdx)
+                    {
+                        // Remove names that belonged to the deleted sheet to avoid Excel repair
+                        dn.Remove();
+                    }
+                    else if (v > (uint)removedIdx)
+                    {
+                        // Shift indices down so names remain attached to the same logical sheet
+                        dn.LocalSheetId = v - 1;
+                    }
+                }
+                if (!definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>().Any())
+                {
+                    wb.DefinedNames = null;
+                }
+            }
+
             if (!string.IsNullOrEmpty(relId))
             {
                 var part = (DocumentFormat.OpenXml.Packaging.WorksheetPart)_workBookPart.GetPartById(relId!);
-                // Remove table parts to avoid orphan relationships
                 foreach (var t in part.TableDefinitionParts.ToList())
                 {
                     part.DeletePart(t);

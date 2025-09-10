@@ -5,7 +5,7 @@ using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using OfficeIMO.Excel.Enums;
+using OfficeIMO.Excel;
 using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Excel {
@@ -82,6 +82,18 @@ namespace OfficeIMO.Excel {
             var (hl, hc, hr) = Parse(oddHeader);
             var (fl, fc, fr) = Parse(oddFooter);
 
+            // If &G is missing from the text, but a LegacyDrawingHeaderFooter part exists,
+            // treat it as picture-present (defensive for files where tokens were stripped).
+            bool hasHeaderImageRel = false, hasFooterImageRel = false;
+            try {
+                var legacy = _worksheetPart.Worksheet.GetFirstChild<LegacyDrawingHeaderFooter>();
+                if (legacy?.Id?.Value is string relId && !string.IsNullOrEmpty(relId)) {
+                    var part = _worksheetPart.GetPartById(relId);
+                    hasHeaderImageRel = part is VmlDrawingPart; // both header/footer share the same VML part
+                    hasFooterImageRel = hasHeaderImageRel;
+                }
+            } catch { /* ignore */ }
+
             return new HeaderFooterSnapshot
             {
                 HeaderLeft = hl,
@@ -92,8 +104,8 @@ namespace OfficeIMO.Excel {
                 FooterRight = fr,
                 DifferentFirstPage = hf?.DifferentFirst?.Value ?? false,
                 DifferentOddEven = hf?.DifferentOddEven?.Value ?? false,
-                HeaderHasPicturePlaceholder = (hl.IndexOf("&G", StringComparison.Ordinal) >= 0) || (hc.IndexOf("&G", StringComparison.Ordinal) >= 0) || (hr.IndexOf("&G", StringComparison.Ordinal) >= 0),
-                FooterHasPicturePlaceholder = (fl.IndexOf("&G", StringComparison.Ordinal) >= 0) || (fc.IndexOf("&G", StringComparison.Ordinal) >= 0) || (fr.IndexOf("&G", StringComparison.Ordinal) >= 0)
+                HeaderHasPicturePlaceholder = (hl.IndexOf("&G", StringComparison.Ordinal) >= 0) || (hc.IndexOf("&G", StringComparison.Ordinal) >= 0) || (hr.IndexOf("&G", StringComparison.Ordinal) >= 0) || hasHeaderImageRel,
+                FooterHasPicturePlaceholder = (fl.IndexOf("&G", StringComparison.Ordinal) >= 0) || (fc.IndexOf("&G", StringComparison.Ordinal) >= 0) || (fr.IndexOf("&G", StringComparison.Ordinal) >= 0) || hasFooterImageRel
             };
         }
         /// <summary>
@@ -193,6 +205,16 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Downloads an image from URL and sets it in the header at the given position (convenience wrapper).
+        /// </summary>
+        public void SetHeaderImageUrl(HeaderFooterPosition position, string url, double? widthPoints = null, double? heightPoints = null)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return;
+            if (OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var _ ) && bytes != null)
+                SetHeaderImage(position, bytes, "image/png", widthPoints, heightPoints);
+        }
+
+        /// <summary>
         /// Adds an image to the worksheet footer at the given position. This will also ensure the footer text
         /// contains the picture placeholder (&amp;G) in the corresponding section. Subsequent calls replace any
         /// previously set header/footer images for this sheet.
@@ -204,6 +226,16 @@ namespace OfficeIMO.Excel {
             {
                 EnsureHeaderFooterPicture(position, isHeader: false, imageBytes, contentType, widthPoints, heightPoints);
             });
+        }
+
+        /// <summary>
+        /// Downloads an image from URL and sets it in the footer at the given position (convenience wrapper).
+        /// </summary>
+        public void SetFooterImageUrl(HeaderFooterPosition position, string url, double? widthPoints = null, double? heightPoints = null)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return;
+            if (OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var _ ) && bytes != null)
+                SetFooterImage(position, bytes, "image/png", widthPoints, heightPoints);
         }
 
         private static string EscapeHeaderFooter(string? text)
@@ -224,15 +256,16 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            var sb = new StringBuilder(text.Length + 8);
-            for (int i = 0; i < text.Length; i++)
+            var t = text!;
+            var sb = new StringBuilder(t.Length + 8);
+            for (int i = 0; i < t.Length; i++)
             {
-                char ch = text[i];
+                char ch = t[i];
                 if (ch == '&')
                 {
-                    if (i + 1 < text.Length)
+                    if (i + 1 < t.Length)
                     {
-                        char n = text[i + 1];
+                        char n = t[i + 1];
                         if (n == '&') { sb.Append("&&"); i++; continue; }
                         if (n == '"') { sb.Append('&'); continue; } // font name spec: &"Name,Style"
                         if (IsTokenStarter(n)) { sb.Append('&'); continue; }

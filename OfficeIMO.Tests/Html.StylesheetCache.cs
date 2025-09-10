@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
     public partial class Html {
         private static IDictionary GetCache() {
             var assembly = typeof(HtmlToWordOptions).Assembly;
-            var converterType = assembly.GetType("OfficeIMO.Word.Html.Converters.HtmlToWordConverter", true)!;
+            var converterType = assembly.GetType("OfficeIMO.Word.Html.HtmlToWordConverter", true)!;
             var field = converterType.GetField("_stylesheetCache", BindingFlags.NonPublic | BindingFlags.Static)!;
             return (IDictionary)field.GetValue(null)!;
         }

@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel
                     ws.InsertAfter(af, ws.GetFirstChild<SheetData>());
                 }
 
-                var (r1, c1, r2, c2) = Read.A1.ParseRange(af.Reference!);
+                var (r1, c1, r2, c2) = A1.ParseRange(af.Reference!);
                 int colIndex = ColumnIndexByHeader(header);
                 if (colIndex < c1 || colIndex > c2)
                     throw new ArgumentOutOfRangeException(nameof(header), $"Header '{header}' is outside the AutoFilter range {af.Reference}.");
@@ -109,7 +109,7 @@ namespace OfficeIMO.Excel
                     ws.InsertAfter(af, ws.GetFirstChild<SheetData>());
                 }
 
-                var (r1, c1, r2, c2) = Read.A1.ParseRange(af.Reference!);
+                var (r1, c1, r2, c2) = A1.ParseRange(af.Reference!);
 
                 foreach (var (header, values) in filters)
                 {
@@ -155,7 +155,7 @@ namespace OfficeIMO.Excel
                     ws.InsertAfter(af, ws.GetFirstChild<SheetData>());
                 }
 
-                var (r1, c1, r2, c2) = Read.A1.ParseRange(af.Reference!);
+                var (r1, c1, r2, c2) = A1.ParseRange(af.Reference!);
                 int colIndex = ColumnIndexByHeader(header);
                 if (colIndex < c1 || colIndex > c2)
                     throw new ArgumentOutOfRangeException(nameof(header), $"Header '{header}' is outside the AutoFilter range {af.Reference}.");
@@ -224,7 +224,7 @@ namespace OfficeIMO.Excel
                         {
                             var replaced = ReplaceIgnoreCase(current, oldText, newText);
                             // write back
-                            var (r, c) = Read.A1.ParseCellRef(cell.CellReference?.Value ?? "");
+                            var (r, c) = A1.ParseCellRef(cell.CellReference?.Value ?? "");
                             CellValue(r, c, replaced);
                             count++;
                         }
@@ -400,7 +400,7 @@ namespace OfficeIMO.Excel
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
 
             var a1 = GetUsedRangeA1();
-            var (r1, c1, r2, c2) = Read.A1.ParseRange(a1);
+            var (r1, c1, r2, c2) = A1.ParseRange(a1);
             if (r2 - r1 < 1) return; // nothing to sort
 
             int targetCol = ColumnIndexByHeader(header);
@@ -467,7 +467,7 @@ namespace OfficeIMO.Excel
             if (keys == null || keys.Length == 0) throw new ArgumentException("At least one key is required.", nameof(keys));
 
             var a1 = GetUsedRangeA1();
-            var (r1, c1, r2, c2) = Read.A1.ParseRange(a1);
+            var (r1, c1, r2, c2) = A1.ParseRange(a1);
             if (r2 - r1 < 1) return;
 
             // Resolve column indices and validate

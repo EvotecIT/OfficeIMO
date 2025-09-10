@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace OfficeIMO.Excel.Read
+namespace OfficeIMO.Excel
 {
     /// <summary>
     /// Range enumeration for <see cref="ExcelSheetReader"/>.

@@ -7,7 +7,7 @@ using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace OfficeIMO.Word.Html.Helpers {
+namespace OfficeIMO.Word.Html {
     internal enum WhiteSpaceMode {
         Normal,
         Pre,

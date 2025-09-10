@@ -1,7 +1,7 @@
 using System.Globalization;
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace OfficeIMO.Excel.Read
+namespace OfficeIMO.Excel
 {
     /// <summary>
     /// Describes a cell's raw OpenXML data for custom conversion hooks.

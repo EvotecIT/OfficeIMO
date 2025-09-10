@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var opts = new HtmlOptions { EmitMode = AssetEmitMode.ManifestOnly, Prism = new PrismOptions { Enabled = true, Theme = PrismTheme.GithubAuto, Languages = { "csharp" } } };
             var p1 = MarkdownDoc.Create().Code("csharp", "Console.WriteLine(1);").ToHtmlParts(opts);
             var p2 = MarkdownDoc.Create().Code("csharp", "Console.WriteLine(2);").ToHtmlParts(opts);
-            var merged = OfficeIMO.Markdown.Utilities.HtmlAssetMerger.Build(new[] { p1.Assets, p2.Assets });
+            var merged = OfficeIMO.Markdown.HtmlAssetMerger.Build(new[] { p1.Assets, p2.Assets });
             // Only one core and one light/dark theme pair expected
             Assert.Contains("data-asset-id=\"prism-core\"", merged.headLinks);
             Assert.Contains("prefers-color-scheme: dark", merged.headLinks);

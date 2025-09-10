@@ -59,7 +59,7 @@ namespace OfficeIMO.Examples.Markdown {
             // Merge manifests from multiple fragments (simulate host behavior)
             var more = MarkdownDoc.Create().H2("Code").Code("bash", "echo 'hi'");
             var parts2 = more.ToHtmlParts(opts);
-            var merged = OfficeIMO.Markdown.Utilities.HtmlAssetMerger.Build(new[] { parts.Assets, parts2.Assets });
+            var merged = OfficeIMO.Markdown.HtmlAssetMerger.Build(new[] { parts.Assets, parts2.Assets });
             File.WriteAllText(Path.Combine(outDir, "Sample.Prism.MergedHead.html"), "<!-- head links -->\n" + merged.headLinks);
             File.WriteAllText(Path.Combine(outDir, "Sample.Prism.MergedInline.css"), merged.inlineCss);
             File.WriteAllText(Path.Combine(outDir, "Sample.Prism.MergedInline.js"), merged.inlineJs);

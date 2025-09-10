@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 
-namespace OfficeIMO.Excel.Read
+namespace OfficeIMO.Excel
 {
     /// <summary>
     /// Convenience presets for common read conversions to keep user code minimal.

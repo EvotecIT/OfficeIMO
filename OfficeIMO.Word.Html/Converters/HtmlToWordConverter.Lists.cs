@@ -5,7 +5,7 @@ using OfficeIMO.Word;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace OfficeIMO.Word.Html.Converters {
+namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
         private int? _orderedListNumberId;
 

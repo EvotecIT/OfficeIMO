@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace OfficeIMO.Excel.Read
+namespace OfficeIMO.Excel
 {
     /// <summary>
     /// Streaming APIs for large ranges.

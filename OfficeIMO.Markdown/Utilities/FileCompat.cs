@@ -1,7 +1,7 @@
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OfficeIMO.Markdown.Utilities;
+namespace OfficeIMO.Markdown;
 
 /// <summary>
 /// Small compatibility helpers for APIs missing on netstandard2.0.

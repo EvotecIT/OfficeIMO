@@ -67,7 +67,12 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Excel.PowerShellRoundTrip.Example(folderPath, false);
             // Excel/Headers + Footers + Properties
             OfficeIMO.Examples.Excel.HeadersFootersAndProperties.Example(folderPath, false);
-            OfficeIMO.Examples.Excel.DomainDetectiveReport.Example(folderPath, false);
+            OfficeIMO.Examples.Excel.DomainDetectiveReport.Example(folderPath, true);
+            // Excel: New Excelish Sheets demo (side-by-side comparison)
+            OfficeIMO.Examples.Excel.DomainDetectiveReportSheets.Example(folderPath, true);
+            // Excel: Classic baseline Sheets demo (explicit/standard techniques)
+            OfficeIMO.Examples.Excel.DomainDetectiveReportSheetsClassic.Example(folderPath, false);
+            return;
             // Excel: Anchors and back-to-top demo
             OfficeIMO.Examples.Excel.AnchorsAndBackToTop.Example(folderPath, false);
             // Markdown: Anchors + Theme Toggle

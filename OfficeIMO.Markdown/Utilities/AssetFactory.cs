@@ -1,4 +1,4 @@
-namespace OfficeIMO.Markdown.Utilities;
+namespace OfficeIMO.Markdown;
 
 internal static class AssetFactory {
     internal static System.Collections.Generic.IEnumerable<HtmlAsset> PrismAssets(PrismOptions po, AssetMode mode, CssDelivery cssDelivery, string scopeSelector) {

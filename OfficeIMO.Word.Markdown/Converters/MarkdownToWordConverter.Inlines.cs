@@ -12,7 +12,7 @@ using System.Linq;
 using SixLabors.ImageSharp;
 using DocumentFormat.OpenXml.Wordprocessing;
 
-namespace OfficeIMO.Word.Markdown.Converters {
+namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
         private static void ProcessInline(Inline? inline, WordParagraph paragraph, MarkdownToWordOptions options, WordDocument document) {
             if (inline == null) {
@@ -142,7 +142,7 @@ namespace OfficeIMO.Word.Markdown.Converters {
 
             // Size hints may also appear after the title
             if (!string.IsNullOrEmpty(title)) {
-                var titleText = title;
+                var titleText = title!;
                 var matchTitle = Regex.Match(titleText, @"\s*=([0-9]+)(?:x([0-9]+))?\s*$");
                 if (matchTitle.Success) {
                     width ??= double.Parse(matchTitle.Groups[1].Value);

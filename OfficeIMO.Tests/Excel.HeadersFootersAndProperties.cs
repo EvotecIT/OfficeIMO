@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Linq;
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.Enums;
 using Xunit;
 
 namespace OfficeIMO.Tests {

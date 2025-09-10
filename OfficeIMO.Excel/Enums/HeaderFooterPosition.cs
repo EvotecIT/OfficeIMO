@@ -1,4 +1,4 @@
-namespace OfficeIMO.Excel.Enums {
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Position of a header or footer section.
     /// </summary>

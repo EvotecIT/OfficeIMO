@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using JustificationValues = DocumentFormat.OpenXml.Wordprocessing.JustificationValues;
 
-namespace OfficeIMO.Word.Markdown.Converters {
+namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
         private static void ProcessTable(Table table, WordDocument document, MarkdownToWordOptions options) {
             int rows = table.Count();

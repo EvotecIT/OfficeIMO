@@ -5,7 +5,7 @@ using AngleSharp.Css.Parser;
 using AngleSharp.Css.Values;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using OfficeIMO.Word.Html.Helpers;
+using OfficeIMO.Word.Html;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -13,7 +13,7 @@ using System.Text.RegularExpressions;
 using Color = SixLabors.ImageSharp.Color;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace OfficeIMO.Word.Html.Converters {
+namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
         private enum TextTransform {
             None,
@@ -469,12 +469,12 @@ namespace OfficeIMO.Word.Html.Converters {
             if (string.IsNullOrWhiteSpace(value)) {
                 return null;
             }
-            value = value.Trim();
-            if (value.StartsWith("rgb", StringComparison.OrdinalIgnoreCase)) {
-                int start = value.IndexOf('(');
-                int end = value.IndexOf(')');
+            string v = value!.Trim();
+            if (v.StartsWith("rgb", StringComparison.OrdinalIgnoreCase)) {
+                int start = v.IndexOf('(');
+                int end = v.IndexOf(')');
                 if (start >= 0 && end > start) {
-                    var parts = value.Substring(start + 1, end - start - 1).Split(',');
+                    var parts = v.Substring(start + 1, end - start - 1).Split(',');
                     if (parts.Length >= 3 &&
                         byte.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte r) &&
                         byte.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte g) &&
@@ -486,12 +486,12 @@ namespace OfficeIMO.Word.Html.Converters {
                 return null;
             }
             try {
-                var parsed = Color.Parse(value);
+                var parsed = Color.Parse(v);
                 return parsed.ToHexColor();
             } catch {
-                if (!value.StartsWith("#", StringComparison.Ordinal)) {
+                if (!v.StartsWith("#", StringComparison.Ordinal)) {
                     try {
-                        var parsed = Color.Parse("#" + value);
+                        var parsed = Color.Parse("#" + v);
                         return parsed.ToHexColor();
                     } catch {
                         return null;

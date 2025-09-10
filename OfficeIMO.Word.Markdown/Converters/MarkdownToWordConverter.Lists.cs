@@ -4,7 +4,7 @@ using Markdig.Syntax.Inlines;
 using OfficeIMO.Word;
 using System.Linq;
 
-namespace OfficeIMO.Word.Markdown.Converters {
+namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
         private static void ProcessListBlock(ListBlock listBlock, WordDocument document, MarkdownToWordOptions options, WordList? currentList, int listLevel) {
             var list = currentList ?? (listBlock.IsOrdered ? document.AddListNumbered() : document.AddListBulleted());
