@@ -14,6 +14,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesAdditional.xlsx");
             var dateOffset = new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.Zero);
             var time = new TimeSpan(1, 2, 3, 4);
+#if NET6_0_OR_GREATER
+            var dateOnly = new DateOnly(2024, 1, 2);
+            var timeOnly = new TimeOnly(3, 4, 5);
+#endif
             uint ui = 123u;
             ulong ul = 1234567890UL;
             ushort us = 32100;
@@ -41,6 +45,12 @@ namespace OfficeIMO.Tests {
                 sheet.FormatCell(9, 1, "yyyy-mm-dd hh:mm");
                 sheet.CellValue(10, 1, nullableTs);
                 sheet.FormatCell(10, 1, "hh:mm:ss");
+#if NET6_0_OR_GREATER
+                sheet.CellValue(11, 1, dateOnly);
+                sheet.FormatCell(11, 1, "yyyy-mm-dd");
+                sheet.CellValue(12, 1, timeOnly);
+                sheet.FormatCell(12, 1, "hh:mm:ss");
+#endif
                 document.Save();
             }
 
@@ -86,12 +96,22 @@ namespace OfficeIMO.Tests {
 
                 Cell cellNullableTs = cells.First(c => c.CellReference == "A10");
                 Assert.Equal(nullableTs.Value.TotalDays.ToString(CultureInfo.InvariantCulture), cellNullableTs.CellValue!.Text);
+#if NET6_0_OR_GREATER
+                Cell cellDateOnly = cells.First(c => c.CellReference == "A11");
+                Assert.Equal(dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate().ToString(CultureInfo.InvariantCulture), cellDateOnly.CellValue!.Text);
+
+                Cell cellTimeOnly = cells.First(c => c.CellReference == "A12");
+                Assert.Equal(timeOnly.ToTimeSpan().TotalDays.ToString(CultureInfo.InvariantCulture), cellTimeOnly.CellValue!.Text);
+#endif
 
                 var styles = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
                 var numberingFormats = styles.NumberingFormats!.Elements<NumberingFormat>().ToList();
                 Assert.Contains(numberingFormats, n => n.FormatCode != null && n.FormatCode.Value == "yyyy-mm-dd hh:mm");
                 Assert.Contains(numberingFormats, n => n.FormatCode != null && n.FormatCode.Value == "hh:mm:ss");
                 Assert.Contains(numberingFormats, n => n.FormatCode != null && n.FormatCode.Value == "000000");
+#if NET6_0_OR_GREATER
+                Assert.Contains(numberingFormats, n => n.FormatCode != null && n.FormatCode.Value == "yyyy-mm-dd");
+#endif
             }
         }
     }
