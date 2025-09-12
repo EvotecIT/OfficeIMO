@@ -22,10 +22,15 @@ namespace OfficeIMO.Excel {
         // Core implementation: single source of truth (no locks here)
         private void CellValueCore(int row, int column, object value)
         {
+            var ssPlanner = new SharedStringPlanner();
+            var (cellValue, dataType) = CoerceForCell(value, ssPlanner);
+
+            var prepared = new[] { (Row: row, Col: column, Val: cellValue, Type: dataType) };
+            ssPlanner.ApplyAndFixup(prepared, _excelDocument);
+
             var cell = GetCell(row, column);
-            var (cellValue, dataType) = CoerceForCell(value);
-            cell.CellValue = cellValue;
-            cell.DataType = dataType;
+            cell.CellValue = prepared[0].Val;
+            cell.DataType = prepared[0].Type;
 
             // Automatically apply date format for DateTime values
             // Using Excel's built-in date format code 14 (invariant short date)
@@ -41,17 +46,16 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        // Compute-only coercion (no OpenXML mutations, except SharedString for now)
-        private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCell(object value)
+        // Core coercion logic shared between sequential and parallel operations
+        private static (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCellInternal(object value, SharedStringPlanner planner)
         {
             switch (value)
             {
                 case null:
                     return (new CellValue(string.Empty), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.String));
                 case string s:
-                    // TODO: SharedString index should be resolved via planner in parallel scenarios
-                    int sharedStringIndex = _excelDocument.GetSharedStringIndex(s);
-                    return (new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
+                    planner.Note(s);
+                    return (new CellValue(s), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
                 case double d:
                     return (new CellValue(d.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 case float f:
@@ -83,33 +87,42 @@ namespace OfficeIMO.Excel {
                 case short sh:
                     return (new CellValue(((double)sh).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 case Guid guid:
-                    {
-                        int idx = _excelDocument.GetSharedStringIndex(guid.ToString());
-                        return (new CellValue(idx.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-                    }
+                {
+                    string text = guid.ToString();
+                    planner.Note(text);
+                    return (new CellValue(text), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
+                }
                 case Enum e:
-                    {
-                        string name = e.ToString();
-                        int idx = _excelDocument.GetSharedStringIndex(name);
-                        return (new CellValue(idx.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-                    }
+                {
+                    string name = e.ToString();
+                    planner.Note(name);
+                    return (new CellValue(name), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
+                }
                 case char ch:
-                    {
-                        int idx = _excelDocument.GetSharedStringIndex(ch.ToString());
-                        return (new CellValue(idx.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-                    }
+                {
+                    string text = ch.ToString();
+                    planner.Note(text);
+                    return (new CellValue(text), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
+                }
                 case System.DBNull:
                     return (new CellValue(string.Empty), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.String));
                 case Uri uri:
-                    {
-                        int idx = _excelDocument.GetSharedStringIndex(uri.ToString());
-                        return (new CellValue(idx.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-                    }
+                {
+                    string text = uri.ToString();
+                    planner.Note(text);
+                    return (new CellValue(text), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
+                }
                 default:
                     string stringValue = value?.ToString() ?? string.Empty;
-                    int defaultIndex = _excelDocument.GetSharedStringIndex(stringValue);
-                    return (new CellValue(defaultIndex.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
+                    planner.Note(stringValue);
+                    return (new CellValue(stringValue), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
             }
+        }
+
+        // Compute-only coercion (no OpenXML mutations, strings queued via planner)
+        private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCell(object value, SharedStringPlanner planner)
+        {
+            return CoerceForCellInternal(value, planner);
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
