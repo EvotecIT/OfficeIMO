@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,6 +10,8 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
+        private enum DummyEnum { Alpha, Beta }
+
         [Fact]
         public async Task Test_SetCellValuesParallelStrings() {
             string filePath = Path.Combine(_directoryWithFiles, "SetCellValuesParallelStrings.xlsx");
@@ -55,6 +58,68 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(validator.Validate(spreadsheet));
 
                 Assert.Equal(2000, shared.SharedStringTable!.Count());
+            }
+        }
+
+        [Fact]
+        public void Test_SetCellValuesParallelMixedTypes() {
+            string filePath = Path.Combine(_directoryWithFiles, "SetCellValuesParallelMixedTypes.xlsx");
+            Guid guid = Guid.NewGuid();
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                var uri = new Uri("https://example.com");
+                var cells = new (int, int, object)[] {
+                    (1, 1, (object)guid),
+                    (1, 2, (object)DummyEnum.Beta),
+                    (1, 3, (object)'Z'),
+                    (1, 4, (object)DBNull.Value),
+                    (1, 5, (object)uri)
+                };
+                sheet.SetCellValues(cells, ExecutionMode.Parallel);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                ValidateSpreadsheetDocument(filePath, spreadsheet);
+
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                SharedStringTablePart shared = spreadsheet.WorkbookPart!.SharedStringTablePart!;
+
+                string cellRefA1 = "A1";
+                Cell a1 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == cellRefA1);
+                Assert.Equal(CellValues.SharedString, a1.DataType!.Value);
+                int idx = int.Parse(a1.CellValue!.Text);
+                Assert.Equal(guid.ToString(), shared.SharedStringTable!.ElementAt(idx).InnerText);
+
+                Cell b1 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "B1");
+                Assert.Equal(CellValues.SharedString, b1.DataType!.Value);
+                idx = int.Parse(b1.CellValue!.Text);
+                Assert.Equal("Beta", shared.SharedStringTable!.ElementAt(idx).InnerText);
+
+                Cell c1 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "C1");
+                Assert.Equal(CellValues.SharedString, c1.DataType!.Value);
+                idx = int.Parse(c1.CellValue!.Text);
+                Assert.Equal("Z", shared.SharedStringTable!.ElementAt(idx).InnerText);
+
+                Cell d1 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "D1");
+                Assert.Equal(CellValues.String, d1.DataType!.Value);
+                Assert.True(string.IsNullOrEmpty(d1.CellValue?.Text));
+
+                Cell e1 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "E1");
+                Assert.Equal(CellValues.SharedString, e1.DataType!.Value);
+                idx = int.Parse(e1.CellValue!.Text);
+                Assert.Equal("https://example.com/", shared.SharedStringTable!.ElementAt(idx).InnerText);
+            }
+        }
+
+        [Fact]
+        public void Test_CellValueThrowsOnTooLongString() {
+            string filePath = Path.Combine(_directoryWithFiles, "TooLongString.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                string longText = new string('a', 32768);
+                Assert.Throws<ArgumentException>(() => sheet.CellValue(1, 1, longText));
             }
         }
     }

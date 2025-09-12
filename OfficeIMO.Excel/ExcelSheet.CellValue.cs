@@ -46,8 +46,8 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        // Compute-only coercion (no OpenXML mutations, strings queued via planner)
-        private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCell(object value, SharedStringPlanner planner)
+        // Core coercion logic shared between sequential and parallel operations
+        private static (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCellInternal(object value, SharedStringPlanner planner)
         {
             switch (value)
             {
@@ -87,36 +87,42 @@ namespace OfficeIMO.Excel {
                 case short sh:
                     return (new CellValue(((double)sh).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 case Guid guid:
-                    {
-                        string text = guid.ToString();
-                        planner.Note(text);
-                        return (new CellValue(text), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-                    }
+                {
+                    string text = guid.ToString();
+                    planner.Note(text);
+                    return (new CellValue(text), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
+                }
                 case Enum e:
-                    {
-                        string name = e.ToString();
-                        planner.Note(name);
-                        return (new CellValue(name), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-                    }
+                {
+                    string name = e.ToString();
+                    planner.Note(name);
+                    return (new CellValue(name), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
+                }
                 case char ch:
-                    {
-                        string text = ch.ToString();
-                        planner.Note(text);
-                        return (new CellValue(text), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-                    }
+                {
+                    string text = ch.ToString();
+                    planner.Note(text);
+                    return (new CellValue(text), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
+                }
                 case System.DBNull:
                     return (new CellValue(string.Empty), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.String));
                 case Uri uri:
-                    {
-                        string text = uri.ToString();
-                        planner.Note(text);
-                        return (new CellValue(text), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-                    }
+                {
+                    string text = uri.ToString();
+                    planner.Note(text);
+                    return (new CellValue(text), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
+                }
                 default:
                     string stringValue = value?.ToString() ?? string.Empty;
                     planner.Note(stringValue);
                     return (new CellValue(stringValue), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
             }
+        }
+
+        // Compute-only coercion (no OpenXML mutations, strings queued via planner)
+        private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCell(object value, SharedStringPlanner planner)
+        {
+            return CoerceForCellInternal(value, planner);
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
