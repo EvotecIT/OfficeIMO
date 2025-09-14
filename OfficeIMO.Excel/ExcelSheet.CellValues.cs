@@ -93,7 +93,13 @@ namespace OfficeIMO.Excel
         /// </summary>
         private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCellNoDom(object value, SharedStringPlanner planner)
         {
-            return CoerceForCellInternal(value, planner);
+            var (cellValue, type) = CoerceValueHelper(value, s =>
+            {
+                planner.Note(s);
+                return new CellValue(s);
+            });
+
+            return (cellValue, new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(type));
         }
 
         /// <summary>
