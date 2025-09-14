@@ -96,7 +96,12 @@ namespace OfficeIMO.Word.Markdown {
 
                 bool code = !string.IsNullOrEmpty(codeFont) && string.Equals(run.FontFamily, codeFont, StringComparison.OrdinalIgnoreCase);
                 if (code) {
-                    text = $"`{text}`";
+                    // Choose a fence that is one longer than the longest run of backticks in the text
+                    int longest = 0; int current = 0;
+                    foreach (char ch in text) { if (ch == '`') { current++; longest = current > longest ? current : longest; } else { current = 0; } }
+                    int fenceLen = longest + 1; if (fenceLen < 1) fenceLen = 1;
+                    string fence = new string('`', fenceLen);
+                    text = fence + text + fence;
                 }
 
                 if (run.IsHyperLink && run.Hyperlink != null && run.Hyperlink.Uri != null) {

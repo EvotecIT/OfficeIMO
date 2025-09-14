@@ -150,7 +150,7 @@ namespace OfficeIMO.Word.Fluent {
         /// <param name="content">Code text.</param>
         public WordFluentDocument Code(string language, string content) {
             var p = Document.AddParagraph(content);
-            var mono = Helpers.FontResolver.Resolve("monospace") ?? "Consolas";
+            var mono = FontResolver.Resolve("monospace") ?? "Consolas";
             p.SetFontFamily(mono);
             return this;
         }

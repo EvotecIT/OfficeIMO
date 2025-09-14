@@ -35,7 +35,33 @@ Highlights
 - Table of Contents: at top, here, or scoped to sections; GitHub‑style anchors.
 - HTML: fragment or full document; styles (Clean, GitHub Light/Dark/Auto), CSS delivery (inline/link/external file), Online/Offline asset modes.
 - Prism highlighting: CDN link or offline inline; manifest for safe dedupe across fragments.
- - Reader (experimental): parse Markdown back into the typed object model you can traverse.
+- Reader (experimental): parse Markdown back into the typed object model you can traverse.
+
+## Supported Markdown
+
+Blocks
+- Headings: ATX `#..######` with space; levels 1–6
+- Paragraphs and hard breaks: two spaces or explicit `\n` from composed content
+- Fenced code blocks: triple backticks with optional language; optional `_caption_` line below
+- Images: `![alt](src "title")` with optional `{width=.. height=..}` hints
+- Lists: unordered `-/*/+`, ordered `1.` (single level); task items `- [ ]` / `- [x]`
+- Tables: GitHub pipe tables with per‑column alignment markers (`:---`, `:---:`, `---:`)
+- Block quotes: `>` lines (single level)
+- Callouts: `> [!info] Title` lines (Docs‑style), followed by body paragraphs
+- Horizontal rule: `---`
+- Footnotes: references `[^id]` and definitions `[^id]:` with continuation lines
+- Front matter: top‑of‑file YAML between `---` fences
+
+Inlines
+- Text, bold `**..**`, italic `*..*`, bold+italic `***..***`
+- Strikethrough `~~..~~`
+- Underline via `<u>text</u>`
+- Code spans: backtick‑delimited; supports multi‑backtick fences when content contains backticks
+- Links: inline `[text](url "title")`, autolinks, and reference‑style `[text][label]` with separate definitions
+
+Writer guarantees
+- Deterministic formatting and spacing for stable diffs
+- GitHub‑friendly output (tables, footnotes, task lists)
 
 Install
 
