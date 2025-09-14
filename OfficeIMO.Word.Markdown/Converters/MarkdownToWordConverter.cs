@@ -15,6 +15,18 @@ namespace OfficeIMO.Word.Markdown {
     /// code, quotes, callouts, footnotes, etc.).
     /// </summary>
     internal partial class MarkdownToWordConverter {
+        private static bool LocalPathAllowed(string path, MarkdownToWordOptions options) {
+            if (!options.AllowLocalImages) return false;
+            if (options.AllowedImageDirectories.Count == 0) return true;
+            try {
+                var full = System.IO.Path.GetFullPath(path);
+                foreach (var root in options.AllowedImageDirectories) {
+                    var rootFull = System.IO.Path.GetFullPath(root.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar) + System.IO.Path.DirectorySeparatorChar);
+                    if (full.StartsWith(rootFull, System.StringComparison.OrdinalIgnoreCase)) return true;
+                }
+            } catch { return false; }
+            return false;
+        }
         public WordDocument Convert(string markdown, MarkdownToWordOptions options) {
             return ConvertAsync(markdown, options).GetAwaiter().GetResult();
         }
@@ -49,21 +61,23 @@ namespace OfficeIMO.Word.Markdown {
         //
 
         // New OfficeIMO.Markdown path
+        private const int IndentTwipsPerLevel = 720; // 0.5 inch per level
+
         private static void ProcessBlockOmd(Omd.IMarkdownBlock block, WordDocument document, MarkdownToWordOptions options, WordList? currentList = null, int listLevel = 0, int quoteDepth = 0) {
             switch (block) {
                 case Omd.HeadingBlock h:
                     var headingParagraph = document.AddParagraph(h.Text ?? string.Empty);
-                    if (quoteDepth > 0) headingParagraph.IndentationBefore = 720 * quoteDepth;
+                    if (quoteDepth > 0) headingParagraph.IndentationBefore = IndentTwipsPerLevel * quoteDepth;
                     headingParagraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(h.Level);
                     break;
                 case Omd.ParagraphBlock p:
                     if (currentList == null) {
                         var para = document.AddParagraph(string.Empty);
-                        if (quoteDepth > 0) para.IndentationBefore = 720 * quoteDepth;
+                        if (quoteDepth > 0) para.IndentationBefore = IndentTwipsPerLevel * quoteDepth;
                         ProcessInlinesOmd(p.Inlines, para, options, document, _currentFootnotes);
                     } else {
                         var li = currentList.AddItem(string.Empty, listLevel);
-                        if (quoteDepth > 0) li.IndentationBefore = 720 * quoteDepth;
+                        if (quoteDepth > 0) li.IndentationBefore = IndentTwipsPerLevel * quoteDepth;
                         ProcessInlinesOmd(p.Inlines, li, options, document, _currentFootnotes);
                     }
                     break;
@@ -74,26 +88,39 @@ namespace OfficeIMO.Word.Markdown {
                         double? w = img.Width;
                         double? h = img.Height;
                         if (System.IO.File.Exists(pathOrUrl)) {
-                            if (w == null || h == null) {
-                                try {
-                                    using var image = SixLabors.ImageSharp.Image.Load(pathOrUrl, out _);
-                                    w ??= image.Width;
-                                    h ??= image.Height;
-                                } catch { }
+                            if (options.AllowLocalImages && LocalPathAllowed(pathOrUrl, options)) {
+                                if (w == null || h == null) {
+                                    try { using var image = SixLabors.ImageSharp.Image.Load(pathOrUrl, out _); w ??= image.Width; h ??= image.Height; } catch { /* ignore size probe */ }
+                                }
+                                par.AddImage(pathOrUrl, w, h, description: img.Alt ?? string.Empty);
+                            } else {
+                                // Not allowed: insert as text/link
+                                var t1 = par.AddText(img.Alt ?? System.IO.Path.GetFileName(pathOrUrl));
+                                if (!string.IsNullOrEmpty(options.FontFamily)) t1.SetFontFamily(options.FontFamily!);
                             }
-                            par.AddImage(pathOrUrl, w, h, description: img.Alt ?? string.Empty);
-                        } else if (pathOrUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)) {
-                            document.AddImageFromUrl(pathOrUrl, w, h).Description = img.Alt ?? string.Empty;
+                        } else if (System.Uri.TryCreate(pathOrUrl, System.UriKind.Absolute, out var uri)) {
+                            if (options.AllowedImageSchemes.Contains(uri.Scheme) &&
+                                (options.ImageUrlValidator == null || options.ImageUrlValidator(uri))) {
+                                if (options.AllowRemoteImages) {
+                                    // This call is synchronous inside OfficeIMO.Word; users can choose to disable remote downloads.
+                                    document.AddImageFromUrl(uri.ToString(), w, h).Description = img.Alt ?? string.Empty;
+                                } else if (options.FallbackRemoteImagesToHyperlinks) {
+                                    par.AddHyperLink(img.Alt ?? uri.ToString(), uri);
+                                }
+                            } else if (options.FallbackRemoteImagesToHyperlinks) {
+                                par.AddHyperLink(img.Alt ?? uri.ToString(), uri);
+                            }
                         } else {
-                            var hl = par.AddHyperLink(img.Alt ?? pathOrUrl, new System.Uri(pathOrUrl, System.UriKind.RelativeOrAbsolute));
-                            if (!string.IsNullOrEmpty(options.FontFamily)) hl.SetFontFamily(options.FontFamily!);
+                            // Not a file or valid URL → insert as text
+                            var t2 = par.AddText(img.Alt ?? pathOrUrl);
+                            if (!string.IsNullOrEmpty(options.FontFamily)) t2.SetFontFamily(options.FontFamily!);
                         }
                         if (!string.IsNullOrWhiteSpace(img.Caption)) document.AddParagraph(img.Caption!);
                         break;
                     }
                 case Omd.CodeBlock cb:
                     var codeParagraph = document.AddParagraph(string.Empty);
-                    if (quoteDepth > 0) codeParagraph.IndentationBefore = 720 * quoteDepth;
+                    if (quoteDepth > 0) codeParagraph.IndentationBefore = IndentTwipsPerLevel * quoteDepth;
                     var monoFont = FontResolver.Resolve("monospace") ?? "Consolas";
                     codeParagraph.AddFormattedText(cb.Content ?? string.Empty).SetFontFamily(monoFont);
                     if (!string.IsNullOrWhiteSpace(cb.Caption)) document.AddParagraph(cb.Caption!);
@@ -126,7 +153,7 @@ namespace OfficeIMO.Word.Markdown {
                     {
                         var list = document.AddList(WordListStyle.Bulleted);
                         foreach (var item in ul.Items) {
-                            var li = list.AddItem(string.Empty, listLevel);
+                            var li = list.AddItem(string.Empty, item.Level);
                             // Task list support
                             if (item.IsTask) li.AddCheckBox(item.Checked);
                             ProcessInlinesOmd(item.Content, li, options, document, _currentFootnotes);
@@ -138,7 +165,7 @@ namespace OfficeIMO.Word.Markdown {
                         var list = document.AddList(WordListStyle.Numbered);
                         if (ol.Start != 1) list.Numbering.Levels[0].SetStartNumberingValue(ol.Start);
                         foreach (var item in ol.Items) {
-                            var li = list.AddItem(string.Empty, listLevel);
+                            var li = list.AddItem(string.Empty, item.Level);
                             ProcessInlinesOmd(item.Content, li, options, document, _currentFootnotes);
                         }
                         break;

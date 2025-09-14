@@ -14,15 +14,7 @@ public static partial class MarkdownReader {
         int pos = 0;
         while (pos < text.Length) {
             // Hard break signal encoded by paragraph joiner as a bare '\n'
-            if (text[pos] == '\n') {
-                // Insert a hard break inline
-                var field = typeof(InlineSequence).GetField("_inlines", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                if (field != null) {
-                    var list = (System.Collections.Generic.List<object>)field.GetValue(seq)!;
-                    list.Add(new HardBreakInline());
-                }
-                pos++; continue;
-            }
+            if (text[pos] == '\n') { seq.HardBreak(); pos++; continue; }
             // Backslash escape: consume next char literally
             if (text[pos] == '\\' && pos + 1 < text.Length) {
                 seq.Text(text[pos + 1].ToString());

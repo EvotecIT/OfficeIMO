@@ -22,8 +22,7 @@ namespace OfficeIMO.Word.Markdown {
             // Since InlineSequence is ours, we can read items by splitting RenderMarkdown conservatively
             // but a better approach is to expose items. For now, rely on known inline classes via dynamic.
 
-            var field = typeof(Omd.InlineSequence).GetField("_inlines", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var list = (System.Collections.Generic.List<object>) (field?.GetValue(inlines) ?? new System.Collections.Generic.List<object>());
+            var list = inlines?.Items ?? System.Array.Empty<object>();
 
             string? defaultFont = options.FontFamily;
 
@@ -35,10 +34,11 @@ namespace OfficeIMO.Word.Markdown {
                         break;
                     case Omd.LinkInline l:
                         try {
-                            var hl = paragraph.AddHyperLink(l.Text, new Uri(l.Url, UriKind.RelativeOrAbsolute));
+                            var uri = new Uri(l.Url, UriKind.RelativeOrAbsolute);
+                            var hl = paragraph.AddHyperLink(l.Text, uri);
                             if (!string.IsNullOrEmpty(defaultFont)) hl.SetFontFamily(defaultFont!);
-                        } catch {
-                            // Fallback to plain text if URI invalid
+                        } catch (UriFormatException ex) {
+                            options.OnWarning?.Invoke($"Invalid URI '{l.Url}' — emitting as text. {ex.Message}");
                             var r = paragraph.AddText(l.Text);
                             if (!string.IsNullOrEmpty(defaultFont)) r.SetFontFamily(defaultFont!);
                         }
@@ -69,11 +69,13 @@ namespace OfficeIMO.Word.Markdown {
                         rc.SetFontFamily(mono);
                         break;
                     case Omd.ImageLinkInline il:
-                        // Minimal mapping: insert hyperlink with alt text; images inside runs are supported but optional here.
+                        // Minimal mapping: insert hyperlink with alt text; inline image support optional
                         try {
-                            var hli = paragraph.AddHyperLink(il.Alt ?? il.ImageUrl ?? il.LinkUrl, new Uri(il.LinkUrl, UriKind.RelativeOrAbsolute));
+                            var uri = new Uri(il.LinkUrl, UriKind.RelativeOrAbsolute);
+                            var hli = paragraph.AddHyperLink(il.Alt ?? il.ImageUrl ?? il.LinkUrl, uri);
                             if (!string.IsNullOrEmpty(defaultFont)) hli.SetFontFamily(defaultFont!);
-                        } catch {
+                        } catch (UriFormatException ex) {
+                            options.OnWarning?.Invoke($"Invalid URI '{il.LinkUrl}' — emitting alt text. {ex.Message}");
                             var ralt = paragraph.AddText(il.Alt ?? string.Empty);
                             if (!string.IsNullOrEmpty(defaultFont)) ralt.SetFontFamily(defaultFont!);
                         }
@@ -99,4 +101,3 @@ namespace OfficeIMO.Word.Markdown {
         }
     }
 }
-

@@ -73,5 +73,18 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Title", h1!.Text);
             Assert.NotNull(h2);
         }
+
+        [Fact]
+        public void Nested_Lists_Parse_And_Preserve_Indentation_On_Write() {
+            string md = "- A\n  - B\n    - C\n1. One\n  1. One.A\n2. Two\n";
+            using var doc = md.LoadFromMarkdown();
+            var outMd = doc.ToMarkdown();
+            Assert.Contains("- A", outMd);
+            Assert.Contains("  - B", outMd);
+            Assert.Contains("    - C", outMd);
+            Assert.Contains("1. One", outMd);
+            Assert.Contains("  1. One.A", outMd);
+            Assert.Contains("2. Two", outMd);
+        }
     }
 }

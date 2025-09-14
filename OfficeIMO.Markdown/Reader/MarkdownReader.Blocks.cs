@@ -143,11 +143,28 @@ public static partial class MarkdownReader {
     private static bool IsOrderedListLine(string line, out int number, out string content) {
         number = 0; content = string.Empty;
         if (string.IsNullOrEmpty(line)) return false;
-        int i = 0; while (i < line.Length && char.IsDigit(line[i])) i++;
-        if (i == 0) return false;
+        // Allow indentation; compute after leading spaces
+        int spaces = 0; while (spaces < line.Length && line[spaces] == ' ') spaces++;
+        int i = spaces; while (i < line.Length && char.IsDigit(line[i])) i++;
+        if (i == spaces) return false;
         if (i < line.Length && line[i] == '.' && i + 1 < line.Length && line[i + 1] == ' ') {
-            if (!int.TryParse(line.Substring(0, i), NumberStyles.Integer, CultureInfo.InvariantCulture, out number)) number = 1;
+            if (!int.TryParse(line.Substring(spaces, i - spaces), NumberStyles.Integer, CultureInfo.InvariantCulture, out number)) number = 1;
             content = line.Substring(i + 2);
+            return true;
+        }
+        return false;
+    }
+
+    private static bool IsOrderedListLine(string line, out int level, out int number, out string content) {
+        level = 0; number = 0; content = string.Empty;
+        if (string.IsNullOrEmpty(line)) return false;
+        int spaces = 0; while (spaces < line.Length && line[spaces] == ' ') spaces++;
+        int i = spaces; while (i < line.Length && char.IsDigit(line[i])) i++;
+        if (i == spaces) return false;
+        if (i < line.Length && line[i] == '.' && i + 1 < line.Length && line[i + 1] == ' ') {
+            if (!int.TryParse(line.Substring(spaces, i - spaces), NumberStyles.Integer, CultureInfo.InvariantCulture, out number)) number = 1;
+            content = line.Substring(i + 2);
+            level = spaces / 2;
             return true;
         }
         return false;
@@ -162,6 +179,21 @@ public static partial class MarkdownReader {
             if (c.StartsWith("[ ]")) { isTask = true; done = false; content = c.Length > 3 && c[2] == ']' && c.Length > 4 && c[3] == ' ' ? c.Substring(4) : c; return true; }
             if (c.StartsWith("[x]", StringComparison.OrdinalIgnoreCase)) { isTask = true; done = true; content = c.Length > 4 && c[3] == ' ' ? c.Substring(4) : c; return true; }
             content = c; return true;
+        }
+        return false;
+    }
+
+    private static bool IsUnorderedListLine(string line, out int level, out bool isTask, out bool done, out string content) {
+        level = 0; isTask = false; done = false; content = string.Empty;
+        if (string.IsNullOrEmpty(line)) return false;
+        int spaces = 0; while (spaces < line.Length && line[spaces] == ' ') spaces++;
+        if (spaces >= line.Length) return false;
+        char ch = line[spaces];
+        if ((ch == '-' || ch == '*' || ch == '+') && spaces + 1 < line.Length && line[spaces + 1] == ' ') {
+            string c = line.Substring(spaces + 2);
+            if (c.StartsWith("[ ]")) { isTask = true; done = false; content = c.Length > 3 && c[2] == ']' && c.Length > 4 && c[3] == ' ' ? c.Substring(4) : c; level = spaces / 2; return true; }
+            if (c.StartsWith("[x]", StringComparison.OrdinalIgnoreCase)) { isTask = true; done = true; content = c.Length > 4 && c[3] == ' ' ? c.Substring(4) : c; level = spaces / 2; return true; }
+            content = c; level = spaces / 2; return true;
         }
         return false;
     }

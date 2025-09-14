@@ -8,6 +8,8 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class InlineSequence : IMarkdownInline {
     private readonly List<object> _inlines = new List<object>();
+    /// <summary>Exposes the inline nodes for safe iteration.</summary>
+    public IReadOnlyList<object> Items => _inlines;
     /// <summary>Adds plain text.</summary>
     public InlineSequence Text(string text) { _inlines.Add(new TextRun(text)); return this; }
     /// <summary>Adds a hyperlink.</summary>
@@ -26,6 +28,8 @@ public sealed class InlineSequence : IMarkdownInline {
     public InlineSequence Underline(string text) { _inlines.Add(new UnderlineInline(text)); return this; }
     /// <summary>Adds a linked image (useful for badges).</summary>
     public InlineSequence ImageLink(string alt, string imageUrl, string linkUrl, string? title = null) { _inlines.Add(new ImageLinkInline(alt, imageUrl, linkUrl, title)); return this; }
+    /// <summary>Adds a hard line break.</summary>
+    public InlineSequence HardBreak() { _inlines.Add(new HardBreakInline()); return this; }
 
     internal string RenderMarkdown() {
         StringBuilder sb = new StringBuilder();

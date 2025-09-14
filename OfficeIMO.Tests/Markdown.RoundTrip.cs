@@ -48,8 +48,8 @@ namespace OfficeIMO.Tests {
             doc.AsFluent()
                 .H1("Title")
                 .P("Hello world")
-                .Ul(ul => ul.Item("One").ItemTask("Done", true).ItemLink("Docs", "https://example.com"))
-                .Ol(ol => ol.Item("First").Item("Second"))
+                .Ul(ul => ul.Item("One").ItemTask("Done", true).ItemLink("Docs", "https://example.com").Indent().Item("SubOne").Indent().Item("SubSub").Outdent())
+                .Ol(ol => ol.Item("First").Indent().Item("First.A").Outdent().Item("Second"))
                 .Paragraph(p => p.Bold("B").Text(" ").Italic("I").Text(" ").Underline("U").Text(" ").Strike("S").Text(" ").Code("C"))
                 .Table(t => t.Headers("Name", "Score").Row("Alice", "98.5").Row("Bob", "91.0"));
 
@@ -57,9 +57,12 @@ namespace OfficeIMO.Tests {
             Assert.Contains("# Title", md);
             Assert.Contains("Hello world", md);
             Assert.Contains("- One", md);
+            Assert.Contains("  - SubOne", md);
+            Assert.Contains("    - SubSub", md);
             Assert.Contains("- [x] Done", md);
             Assert.Contains("[Docs](https://example.com)", md);
             Assert.Contains("1. First", md);
+            Assert.Contains("  1. First.A", md);
             Assert.Contains("**B**", md);
             Assert.Contains("*I*", md);
             Assert.Contains("<u>U</u>", md);
