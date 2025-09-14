@@ -62,5 +62,16 @@ namespace OfficeIMO.Tests {
             // Alignment row should remain intact
             Assert.Contains("|:---|---:|:---:|", outMd.Replace(" ", string.Empty));
         }
+
+        [Fact]
+        public void Setext_Headings_Are_Read_As_Headings() {
+            string md = "Title\n=====\n\nSub\n-----\n";
+            var model = MarkdownReader.Parse(md);
+            var h1 = model.Blocks.OfType<HeadingBlock>().FirstOrDefault(h => h.Level == 1);
+            var h2 = model.Blocks.OfType<HeadingBlock>().FirstOrDefault(h => h.Level == 2 && h.Text == "Sub");
+            Assert.NotNull(h1);
+            Assert.Equal("Title", h1!.Text);
+            Assert.NotNull(h2);
+        }
     }
 }

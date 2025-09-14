@@ -28,6 +28,7 @@ public sealed class MarkdownReaderPipeline {
         p.Add(new MarkdownReader.DefinitionListParser());
         p.Add(new MarkdownReader.OrderedListParser());
         p.Add(new MarkdownReader.UnorderedListParser());
+        p.Add(new MarkdownReader.SetextHeadingParser());
         p.Add(new MarkdownReader.HeadingParser());
         p.Add(new MarkdownReader.ParagraphParser()); // must be last
         return p;
