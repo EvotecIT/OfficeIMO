@@ -35,6 +35,7 @@ Highlights
 - Table of Contents: at top, here, or scoped to sections; GitHub‑style anchors.
 - HTML: fragment or full document; styles (Clean, GitHub Light/Dark/Auto), CSS delivery (inline/link/external file), Online/Offline asset modes.
 - Prism highlighting: CDN link or offline inline; manifest for safe dedupe across fragments.
+ - Reader (experimental): parse Markdown back into the typed object model you can traverse.
 
 Install
 
@@ -120,6 +121,21 @@ md.SaveHtml("Report.html", new HtmlOptions { Style = HtmlStyle.Clean, CssDeliver
 var cdn = "https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.1/github-markdown.min.css";
 var htmlCdnOnline  = md.ToHtmlDocument(new HtmlOptions { CssDelivery = CssDelivery.LinkHref, CssHref = cdn, AssetMode = AssetMode.Online, BodyClass = "markdown-body" });
 var htmlCdnOffline = md.ToHtmlDocument(new HtmlOptions { CssDelivery = CssDelivery.LinkHref, CssHref = cdn, AssetMode = AssetMode.Offline, BodyClass = "markdown-body" });
+```
+
+Reader (experimental)
+
+```csharp
+// Parse Markdown back into typed blocks/inlines
+var doc = MarkdownReader.Parse(File.ReadAllText("README.md"));
+
+// Inspect blocks
+foreach (var h2 in doc.Blocks.OfType<HeadingBlock>().Where(h => h.Level == 2)) {
+    Console.WriteLine($"Section: {h2.Text}");
+}
+
+// Feature toggles align with OfficeIMO blocks/inlines
+var parsed = MarkdownReader.Parse(markdown, new MarkdownReaderOptions { Tables = true, Callouts = true });
 ```
 
 Header transforms and acronyms

@@ -210,7 +210,7 @@ doc.SaveAsPdf("out.pdf");
 ## Converters (adjacent packages)
 
 - HTML: `OfficeIMO.Word.Html` (AngleSharp) — convert to/from HTML
-- Markdown: `OfficeIMO.Word.Markdown` (Markdig) — convert to/from Markdown
+- Markdown: `OfficeIMO.Word.Markdown` — convert to/from Markdown using OfficeIMO.Markdown
 - PDF: `OfficeIMO.Word.Pdf` (QuestPDF/SkiaSharp) — export to PDF
 
 > Note: Converters are in active development and will be released to NuGet once they meet quality and test coverage goals. Until then, they ship in‑repo for early evaluation.

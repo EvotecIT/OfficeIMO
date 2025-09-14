@@ -10,6 +10,10 @@ public sealed class ImageBlock : IMarkdownBlock, ICaptionable {
     public string? Alt { get; }
     /// <summary>Optional title attribute.</summary>
     public string? Title { get; }
+    /// <summary>Optional width hint (points/pixels as provided).</summary>
+    public double? Width { get; set; }
+    /// <summary>Optional height hint.</summary>
+    public double? Height { get; set; }
     /// <inheritdoc />
     public string? Caption { get; set; }
 
@@ -25,7 +29,14 @@ public sealed class ImageBlock : IMarkdownBlock, ICaptionable {
         string alt = Alt ?? string.Empty;
         string title = string.IsNullOrEmpty(Title) ? string.Empty : " \"" + Title + "\"";
         System.Text.StringBuilder sb = new System.Text.StringBuilder();
-        sb.AppendLine($"![{alt}]({Path}{title})");
+        sb.Append($"![{alt}]({Path}{title})");
+        if (Width != null || Height != null) {
+            var w = Width != null ? $"width={Width.Value}" : string.Empty;
+            var h = Height != null ? $"height={Height.Value}" : string.Empty;
+            var sep = (w != string.Empty && h != string.Empty) ? " " : string.Empty;
+            sb.Append($"{{{w}{sep}{h}}}");
+        }
+        sb.AppendLine();
         if (!string.IsNullOrWhiteSpace(Caption)) sb.AppendLine("_" + Caption + "_");
         return sb.ToString().TrimEnd();
     }
@@ -35,7 +46,10 @@ public sealed class ImageBlock : IMarkdownBlock, ICaptionable {
         string alt = System.Net.WebUtility.HtmlEncode(Alt ?? string.Empty);
         string title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title!)}\"";
         string src = System.Net.WebUtility.HtmlEncode(Path);
-        string img = $"<img src=\"{src}\" alt=\"{alt}\"{title} />";
+        string size = string.Empty;
+        if (Width != null) size += $" width=\"{Width.Value}\"";
+        if (Height != null) size += $" height=\"{Height.Value}\"";
+        string img = $"<img src=\"{src}\" alt=\"{alt}\"{title}{size} />";
         string caption = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{System.Net.WebUtility.HtmlEncode(Caption!)}</div>";
         return img + caption;
     }

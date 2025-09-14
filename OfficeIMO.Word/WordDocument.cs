@@ -450,6 +450,23 @@ namespace OfficeIMO.Word {
                 foreach (var section in this.Sections) {
                     list.AddRange(section.FootNotes);
                 }
+                if (list.Count == 0) {
+                    // Fallback: enumerate footnotes part when no body references were materialized yet.
+                    var footnotesPart = _wordprocessingDocument.MainDocumentPart?.FootnotesPart;
+                    var footnotes = footnotesPart != null ? footnotesPart.Footnotes : null;
+                    if (footnotes != null) {
+                        foreach (var fn in footnotes.ChildElements.OfType<DocumentFormat.OpenXml.Wordprocessing.Footnote>()) {
+                            if (fn.Type != null) continue; // skip separators
+                            // create a lightweight run containing a reference to this id so WordFootNote can resolve paragraphs
+                            var p = new DocumentFormat.OpenXml.Wordprocessing.Paragraph();
+                            var r = new DocumentFormat.OpenXml.Wordprocessing.Run();
+                            r.Append(new DocumentFormat.OpenXml.Wordprocessing.RunProperties());
+                            r.Append(new DocumentFormat.OpenXml.Wordprocessing.FootnoteReference() { Id = fn.Id });
+                            p.Append(r);
+                            list.Add(new WordFootNote(this, p, r));
+                        }
+                    }
+                }
                 return list;
             }
         }
