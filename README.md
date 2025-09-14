@@ -150,6 +150,7 @@ We keep package ranges conservative to avoid breaking changes; see each projectâ
 - OfficeIMO.Visio: License TBD (not MIT yet)
 
 Thirdâ€‘party dependency licenses: see their upstream repos (Open XML SDK, SixLabors, AngleSharp, QuestPDF, SkiaSharp).
+ 
 ## Support This Project
 
 If you find this project helpful, please consider supporting its development.

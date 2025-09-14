@@ -88,6 +88,31 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         /// <summary>
+        /// Adds a hyperlink item to the list (Markdown parity helper).
+        /// </summary>
+        public ListBuilder ItemLink(string text, string url, bool style = false) {
+            if (_list != null) {
+                var p = _list.AddItem(string.Empty, _level);
+                p.AddHyperLink(text, new System.Uri(url), style);
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a task (checkbox) item to the list (Markdown parity helper).
+        /// </summary>
+        public ListBuilder ItemTask(string text, bool done = false) {
+            if (_list != null) {
+                var p = _list.AddItem(string.Empty, _level);
+                p.AddCheckBox(done);
+                if (!string.IsNullOrEmpty(text)) {
+                    p.AddText(" "+ text);
+                }
+            }
+            return this;
+        }
+
+        /// <summary>
         /// Sets the nesting level for subsequent items.
         /// </summary>
         /// <param name="level">The explicit level to apply.</param>

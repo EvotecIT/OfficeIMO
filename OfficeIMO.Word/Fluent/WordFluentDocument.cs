@@ -92,6 +92,70 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         /// <summary>
+        /// Adds a plain paragraph (Markdown-style alias of <see cref="Paragraph(Action{ParagraphBuilder})"/>).
+        /// </summary>
+        /// <param name="text">Text to insert.</param>
+        public WordFluentDocument P(string text) {
+            var p = Document.AddParagraph(text);
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a heading paragraph styled as Heading 1 (alias mirrors MarkdownDoc.H1).
+        /// </summary>
+        public WordFluentDocument H1(string text) { var p = Document.AddParagraph(text); p.SetStyle(WordParagraphStyles.Heading1); return this; }
+        /// <summary>
+        /// Adds a heading paragraph styled as Heading 2 (alias mirrors MarkdownDoc.H2).
+        /// </summary>
+        public WordFluentDocument H2(string text) { var p = Document.AddParagraph(text); p.SetStyle(WordParagraphStyles.Heading2); return this; }
+        /// <summary>
+        /// Adds a heading paragraph styled as Heading 3 (alias mirrors MarkdownDoc.H3).
+        /// </summary>
+        public WordFluentDocument H3(string text) { var p = Document.AddParagraph(text); p.SetStyle(WordParagraphStyles.Heading3); return this; }
+        /// <summary>
+        /// Adds a heading paragraph styled as Heading 4 (alias mirrors MarkdownDoc.H4).
+        /// </summary>
+        public WordFluentDocument H4(string text) { var p = Document.AddParagraph(text); p.SetStyle(WordParagraphStyles.Heading4); return this; }
+        /// <summary>
+        /// Adds a heading paragraph styled as Heading 5 (alias mirrors MarkdownDoc.H5).
+        /// </summary>
+        public WordFluentDocument H5(string text) { var p = Document.AddParagraph(text); p.SetStyle(WordParagraphStyles.Heading5); return this; }
+        /// <summary>
+        /// Adds a heading paragraph styled as Heading 6 (alias mirrors MarkdownDoc.H6).
+        /// </summary>
+        public WordFluentDocument H6(string text) { var p = Document.AddParagraph(text); p.SetStyle(WordParagraphStyles.Heading6); return this; }
+
+        /// <summary>
+        /// Adds a bulleted list using the list builder (alias mirrors MarkdownDoc.Ul).
+        /// </summary>
+        public WordFluentDocument Ul(Action<ListBuilder> action) {
+            var lb = new ListBuilder(this).Bulleted();
+            action(lb);
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a numbered list using the list builder (alias mirrors MarkdownDoc.Ol).
+        /// </summary>
+        public WordFluentDocument Ol(Action<ListBuilder> action) {
+            var lb = new ListBuilder(this).Numbered();
+            action(lb);
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a monospace code paragraph (alias mirrors MarkdownDoc.Code).
+        /// </summary>
+        /// <param name="language">Optional language hint (not used for styling).</param>
+        /// <param name="content">Code text.</param>
+        public WordFluentDocument Code(string language, string content) {
+            var p = Document.AddParagraph(content);
+            var mono = Helpers.FontResolver.Resolve("monospace") ?? "Consolas";
+            p.SetFontFamily(mono);
+            return this;
+        }
+
+        /// <summary>
         /// Configures document headers.
         /// </summary>
         /// <param name="action">Action that receives a <see cref="HeadersBuilder"/>.</param>
@@ -106,6 +170,72 @@ namespace OfficeIMO.Word.Fluent {
         /// <param name="action">Action that receives a <see cref="FootersBuilder"/>.</param>
         public WordFluentDocument Footer(Action<FootersBuilder> action) {
             action(new FootersBuilder(this));
+            return this;
+        }
+
+        /// <summary>
+        /// Inserts a Table of Contents near the top of the document (Markdown parity: TocAtTop).
+        /// </summary>
+        /// <param name="title">Heading shown above the TOC.</param>
+        /// <param name="minLevel">Minimum heading level to include.</param>
+        /// <param name="maxLevel">Maximum heading level to include.</param>
+        /// <param name="titleLevel">Heading level for the title (1..6).</param>
+        public WordFluentDocument TocAtTop(string title = "Contents", int minLevel = 1, int maxLevel = 3, int titleLevel = 2) {
+            // Insert heading at top
+            WordParagraph heading;
+            if (Document.Paragraphs.Count > 0) {
+                heading = Document.Paragraphs[0].AddParagraphBeforeSelf();
+            } else {
+                heading = Document.AddParagraph();
+            }
+            heading.Text = title;
+            heading.SetStyle((WordParagraphStyles)Math.Max((int)WordParagraphStyles.Heading1, Math.Min((int)WordParagraphStyles.Heading9, (int)WordParagraphStyles.Heading1 + (titleLevel - 1))));
+
+            // Add TOC field right after heading with desired levels
+            var tocPara = heading.AddParagraphAfterSelf();
+            var builder = new WordFieldBuilder(WordFieldType.TOC)
+                .AddSwitch($"\\o \"{minLevel}-{maxLevel}\"")
+                .AddSwitch("\\h")
+                .AddSwitch("\\z")
+                .AddSwitch("\\u");
+            tocPara.AddField(builder);
+            Document.Settings.UpdateFieldsOnOpen = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Appends a Table of Contents at the end (Markdown parity: TocHere).
+        /// </summary>
+        public WordFluentDocument TocHere(string title = "Contents", int minLevel = 1, int maxLevel = 3, int titleLevel = 3) {
+            var heading = Document.AddParagraph(title);
+            heading.SetStyle((WordParagraphStyles)Math.Max((int)WordParagraphStyles.Heading1, Math.Min((int)WordParagraphStyles.Heading9, (int)WordParagraphStyles.Heading1 + (titleLevel - 1))));
+            var tocPara = Document.AddParagraph();
+            var builder = new WordFieldBuilder(WordFieldType.TOC)
+                .AddSwitch($"\\o \"{minLevel}-{maxLevel}\"")
+                .AddSwitch("\\h")
+                .AddSwitch("\\z")
+                .AddSwitch("\\u");
+            tocPara.AddField(builder);
+            Document.Settings.UpdateFieldsOnOpen = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Creates a simple callout block (Markdown parity: Callout(kind,title,body)).
+        /// </summary>
+        public WordFluentDocument Callout(string kind, string title, string body) {
+            var color = kind?.ToLowerInvariant() switch {
+                "info" => SixLabors.ImageSharp.Color.LightBlue,
+                "warning" => SixLabors.ImageSharp.Color.Khaki,
+                "danger" => SixLabors.ImageSharp.Color.MistyRose,
+                "tip" => SixLabors.ImageSharp.Color.Honeydew,
+                _ => SixLabors.ImageSharp.Color.LightGray
+            };
+            var p1 = Document.AddParagraph();
+            p1.ShadingFillColor = color;
+            p1.AddFormattedText(title, bold: true);
+            var p2 = Document.AddParagraph(body);
+            p2.ShadingFillColor = color;
             return this;
         }
 

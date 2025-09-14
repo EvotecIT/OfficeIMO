@@ -149,6 +149,42 @@ using OfficeIMO.Word.Pdf;
 doc.SaveAsPdf("out.pdf");
 ```
 
+### HTML via Markdown (OfficeIMO.Markdown)
+
+```csharp
+using OfficeIMO.Word.Markdown; // also uses OfficeIMO.Markdown under the hood
+
+// Full HTML document or embeddable fragment produced via Markdown pipeline
+var htmlDoc  = doc.ToHtmlViaMarkdown();
+var htmlFrag = doc.ToHtmlFragmentViaMarkdown();
+
+// Save to file (supports external CSS sidecar via HtmlOptions)
+doc.SaveAsHtmlViaMarkdown("report.html");
+```
+
+### Fluent API Shortcuts
+
+Common shortcuts for composing content:
+
+- `H1..H6(string)` — adds styled heading paragraphs
+- `P(string)` — adds a plain paragraph
+- `Ul(Action<ListBuilder>)` — bulleted list; supports `.Item`, `.ItemLink`, `.ItemTask`
+- `Ol(Action<ListBuilder>)` — numbered list; supports `.Item`, `.ItemLink`
+- `Paragraph(pb => pb.Text/Link/Bold/Italic/Underline/Strike/Code/InlineImage(...))` — inline helpers
+- `Table(tb => tb.Headers(...).Row(...).Rows(...))` — convenience wrappers
+
+Example
+```csharp
+using OfficeIMO.Word.Fluent;
+
+var fluent = new WordFluentDocument(doc)
+    .H1("Report")
+    .P("All‑in‑one DNS/TLS report.")
+    .Ul(ul => ul.Item("SPF/DKIM/DMARC").ItemLink("Docs", "https://evotec.xyz"))
+    .Ol(ol => ol.Item("Step one").Item("Step two"))
+    .Paragraph(p => p.Bold("Note:").Text(" Works with Markdown too."));
+```
+
 ## Feature Highlights
 
 - Document: create/load/save, clean/repair, compatibility settings, protection

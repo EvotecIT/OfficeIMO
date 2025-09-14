@@ -42,6 +42,11 @@ namespace OfficeIMO.Word.Markdown {
                 int level = listInfo.Value.Level;
                 sb.Append(new string(' ', level * 2));
                 sb.Append(listInfo.Value.Ordered ? "1. " : "- ");
+                // Task list (checkbox) mapping
+                if (paragraph.IsCheckBox) {
+                    bool done = paragraph.CheckBox?.IsChecked == true;
+                    sb.Append(done ? "[x] " : "[ ] ");
+                }
             }
 
             sb.Append(RenderRuns(paragraph, options));
@@ -162,4 +167,3 @@ namespace OfficeIMO.Word.Markdown {
         }
     }
 }
-
