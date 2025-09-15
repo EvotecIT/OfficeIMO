@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("[x]", md);
             Assert.Contains("Done", md);
             // Link rendering may be plain text in list items; accept either form
-            Assert.True(md.Contains("[Docs](https://example.com)") || md.Contains("Docs"));
+            Assert.Matches("(\\[Docs\\]\\(https://example\\.com\\)|\\bDocs\\b)", md);
             Assert.Contains("1. First", md);
             Assert.Contains("  1. First.A", md);
             Assert.Contains("**B**", md);
@@ -82,8 +82,8 @@ namespace OfficeIMO.Tests {
             var checkboxParagraph = doc2.Paragraphs.FirstOrDefault(p => p.IsCheckBox);
             Assert.NotNull(checkboxParagraph);
             Assert.True(checkboxParagraph!.CheckBox!.IsChecked);
-            // Verify heading style
-            Assert.True(doc2.Paragraphs.Any(p => p.Style == WordParagraphStyles.Heading1));
+            // Verify heading style exists in the collection
+            Assert.Contains(doc2.Paragraphs, p => p.Style == WordParagraphStyles.Heading1);
         }
     }
 }

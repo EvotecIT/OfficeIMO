@@ -1251,7 +1251,8 @@ namespace OfficeIMO.Word {
                 AutoSave = autoSave
             };
 
-                using (var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite)) {
+                // Read the source file into memory with a shared read handle to avoid test collisions.
+                using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) {
                 var memoryStream = new MemoryStream();
                 fileStream.CopyTo(memoryStream);
                 memoryStream.Seek(0, SeekOrigin.Begin);

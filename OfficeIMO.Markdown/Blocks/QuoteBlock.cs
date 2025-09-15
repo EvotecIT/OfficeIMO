@@ -6,9 +6,13 @@ namespace OfficeIMO.Markdown;
 /// Simple blockquote block consisting of raw text lines.
 /// </summary>
 public sealed class QuoteBlock : IMarkdownBlock {
+    /// <summary>Raw text lines for a simple quote (used when <see cref="Children"/> is empty).</summary>
     public System.Collections.Generic.List<string> Lines { get; } = new System.Collections.Generic.List<string>();
+    /// <summary>Nested blocks rendered inside the quote.</summary>
     public System.Collections.Generic.List<IMarkdownBlock> Children { get; } = new System.Collections.Generic.List<IMarkdownBlock>();
+    /// <summary>Create an empty quote block.</summary>
     public QuoteBlock() { }
+    /// <summary>Create a quote block with initial lines.</summary>
     public QuoteBlock(System.Collections.Generic.IEnumerable<string> lines) { Lines.AddRange(lines); }
 
     string IMarkdownBlock.RenderMarkdown() {

@@ -18,7 +18,7 @@ public partial class Word {
     [InlineData("sample.emf", CustomImagePartType.Emf)]
     public void Test_GetImageСharacteristics(string filename, CustomImagePartType expectedType) {
         var filePath = Path.Combine(_directoryWithImages, filename);
-        using var imageStream = new FileStream(filePath, FileMode.Open);
+        using var imageStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         var imageСharacteristics = Helpers.GetImageCharacteristics(imageStream, filename);
         Assert.Equal(expectedType, imageСharacteristics.Type);
     }

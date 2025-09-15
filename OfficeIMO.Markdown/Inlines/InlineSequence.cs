@@ -16,11 +16,13 @@ public sealed class InlineSequence : IMarkdownInline {
     public InlineSequence Link(string text, string url, string? title = null) { _inlines.Add(new LinkInline(text, url, title)); return this; }
     /// <summary>Adds bold text.</summary>
     public InlineSequence Bold(string text) { _inlines.Add(new BoldInline(text)); return this; }
+    /// <summary>Adds bold+italic text.</summary>
     public InlineSequence BoldItalic(string text) { _inlines.Add(new BoldItalicInline(text)); return this; }
     /// <summary>Adds italic text.</summary>
     public InlineSequence Italic(string text) { _inlines.Add(new ItalicInline(text)); return this; }
     /// <summary>Adds inline code.</summary>
     public InlineSequence Code(string text) { _inlines.Add(new CodeSpanInline(text)); return this; }
+    /// <summary>Adds a footnote reference (e.g., [^id]).</summary>
     public InlineSequence FootnoteRef(string label) { _inlines.Add(new FootnoteRefInline(label)); return this; }
     /// <summary>Adds strikethrough text.</summary>
     public InlineSequence Strike(string text) { _inlines.Add(new StrikethroughInline(text)); return this; }

@@ -7,9 +7,12 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class MarkdownReaderPipeline {
     private readonly List<IMarkdownBlockParser> _parsers = new List<IMarkdownBlockParser>();
+    /// <summary>Gets the ordered list of block parsers.</summary>
     public IReadOnlyList<IMarkdownBlockParser> Parsers => _parsers;
 
+    /// <summary>Add a parser to the end of the pipeline.</summary>
     public MarkdownReaderPipeline Add(IMarkdownBlockParser parser) { _parsers.Add(parser); return this; }
+    /// <summary>Insert a parser at the given index in the pipeline.</summary>
     public MarkdownReaderPipeline Insert(int index, IMarkdownBlockParser parser) { _parsers.Insert(index, parser); return this; }
 
     /// <summary>Default pipeline covering the syntax OfficeIMO.Markdown emits today.</summary>
