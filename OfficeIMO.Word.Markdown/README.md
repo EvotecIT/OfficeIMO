@@ -24,10 +24,19 @@ using var doc2 = "# Title\nBody".LoadFromMarkdown(); // Markdown → Word
 
 ```csharp
 using OfficeIMO.Markdown;
-var html = doc.ToHtmlViaMarkdown();           // full HTML document
+var html = doc.ToHtmlViaMarkdown();           // full HTML document (defaults to HtmlStyle.Word)
 var fragment = doc.ToHtmlFragmentViaMarkdown();
-doc.SaveAsHtmlViaMarkdown("report.html");
+doc.SaveAsHtmlViaMarkdown("report.html");     // defaults to HtmlStyle.Word
+
+// Override style if desired:
+doc.SaveAsHtmlViaMarkdown("report.html", new HtmlOptions { Style = HtmlStyle.GithubAuto });
 ```
+
+### Notes
+- Default styling: ToHtmlViaMarkdown/SaveAsHtmlViaMarkdown use HtmlStyle.Word for a document‑like look.
+- TOC markers: `[TOC]`, `[[TOC]]`, `{:toc}`, and `<!-- TOC -->` are recognized and rendered.
+  Parameterized form: `[TOC min=2 max=3 layout=sidebar-right sticky=true scrollspy=true title="On this page"]`.
+- Table cells: inline markdown (code/links/emphasis/images) is supported and `<br>` becomes a real line break in HTML.
 
 ## Supported features (core)
 

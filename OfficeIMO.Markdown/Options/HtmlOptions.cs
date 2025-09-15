@@ -50,4 +50,7 @@ public sealed class HtmlOptions {
     // The following are used internally by the renderer; not part of the public API surface.
     internal string? ExternalCssOutputPath { get; set; }
     internal string? _externalCssContentToWrite { get; set; }
+
+    /// <summary>Optional theme color overrides for links, headings, and TOC.</summary>
+    public ThemeColors Theme { get; set; } = new ThemeColors();
 }

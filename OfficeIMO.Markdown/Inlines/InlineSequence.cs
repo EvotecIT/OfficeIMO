@@ -30,6 +30,8 @@ public sealed class InlineSequence : IMarkdownInline {
     public InlineSequence Underline(string text) { _inlines.Add(new UnderlineInline(text)); return this; }
     /// <summary>Adds a linked image (useful for badges).</summary>
     public InlineSequence ImageLink(string alt, string imageUrl, string linkUrl, string? title = null) { _inlines.Add(new ImageLinkInline(alt, imageUrl, linkUrl, title)); return this; }
+    /// <summary>Adds a standalone inline image.</summary>
+    public InlineSequence Image(string alt, string src, string? title = null) { _inlines.Add(new ImageInline(alt, src, title)); return this; }
     /// <summary>Adds a hard line break.</summary>
     public InlineSequence HardBreak() { _inlines.Add(new HardBreakInline()); return this; }
 
@@ -49,6 +51,7 @@ public sealed class InlineSequence : IMarkdownInline {
             else if (node is ItalicInline it) sb.Append(it.RenderMarkdown());
             else if (node is CodeSpanInline cs) sb.Append(cs.RenderMarkdown());
             else if (node is ImageLinkInline il) sb.Append(il.RenderMarkdown());
+            else if (node is ImageInline im) sb.Append(im.RenderMarkdown());
             else if (node is StrikethroughInline st) sb.Append(st.RenderMarkdown());
             else if (node is UnderlineInline un) sb.Append(un.RenderMarkdown());
             else if (node is FootnoteRefInline fn) sb.Append(fn.RenderMarkdown());
@@ -72,6 +75,7 @@ public sealed class InlineSequence : IMarkdownInline {
             else if (node is ItalicInline it) sb.Append(it.RenderHtml());
             else if (node is CodeSpanInline cs) sb.Append(cs.RenderHtml());
             else if (node is ImageLinkInline il) sb.Append(il.RenderHtml());
+            else if (node is ImageInline im) sb.Append(im.RenderHtml());
             else if (node is StrikethroughInline st) sb.Append(st.RenderHtml());
             else if (node is UnderlineInline un) sb.Append(un.RenderHtml());
             else if (node is FootnoteRefInline fn) sb.Append(fn.RenderHtml());

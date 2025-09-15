@@ -33,7 +33,8 @@ Highlights
 - Core blocks: headings, paragraphs, links, images (with captions), lists (UL/OL/task/definition), tables, code blocks, callouts, front matter (YAML).
 - Tables from objects/sequences: include/exclude/order/rename/formatters, alignment presets, date/number heuristics.
 - Table of Contents: at top, here, or scoped to sections; GitHub‑style anchors.
-- HTML: fragment or full document; styles (Clean, GitHub Light/Dark/Auto), CSS delivery (inline/link/external file), Online/Offline asset modes.
+- Table of Contents: at top, here, or scoped to sections; GitHub‑style anchors; HTML layouts (panel/sidebar) with optional ScrollSpy.
+- HTML: fragment or full document; styles (Clean, GitHub Light/Dark/Auto, Word), CSS delivery (inline/link/external file), Online/Offline asset modes.
 - Prism highlighting: CDN link or offline inline; manifest for safe dedupe across fragments.
 - Reader (experimental): parse Markdown back into the typed object model you can traverse.
 
@@ -58,6 +59,7 @@ Inlines
 - Underline via `<u>text</u>`
 - Code spans: backtick‑delimited; supports multi‑backtick fences when content contains backticks
 - Links: inline `[text](url "title")`, autolinks, and reference‑style `[text][label]` with separate definitions
+- Images: `![alt](src "title")` and linked images `[![alt](img "title")](href)`
 
 Writer guarantees
 - Deterministic formatting and spacing for stable diffs
@@ -162,6 +164,10 @@ foreach (var h2 in doc.Blocks.OfType<HeadingBlock>().Where(h => h.Level == 2)) {
 
 // Feature toggles align with OfficeIMO blocks/inlines
 var parsed = MarkdownReader.Parse(markdown, new MarkdownReaderOptions { Tables = true, Callouts = true });
+
+// TOC placeholders in Markdown are recognized and rendered:
+// [TOC] or [[TOC]] or {:toc} or <!-- TOC -->
+// Parameterized form: [TOC min=2 max=3 layout=sidebar-right sticky=true scrollspy=true title="On this page"]
 ```
 
 Header transforms and acronyms
@@ -182,10 +188,26 @@ var md = MarkdownDoc.Create()
     .H1("Report")
     .H2("Intro").P("...")
     .H2("Usage").H3("Tables").H3("Lists")
-    .TocAtTop("Contents", min: 2, max: 3) // top-level TOC
+    .TocAtTop("Contents", min: 2, max: 3) // top-level TOC (plain list)
     .H2("Appendix").H3("Extra")
     .TocHere(o => { o.MinLevel = 3; o.MaxLevel = 3; }) // TOC at current position
     .TocForSection("Usage", "Usage Contents", min: 3, max: 3); // scoped to a named section
+
+// TOC HTML styling (new)
+MarkdownDoc.Create()
+    .H1("Guide").H2("Install").H2("Usage").H2("FAQ")
+    // 1) Compact panel card with title
+    .TocAtTop("Contents", min: 2, max: 3)
+    .TocHere(o => {
+        o.MinLevel = 2; o.MaxLevel = 3;
+        o.IncludeTitle = true; o.Title = "On this page"; o.Layout = TocLayout.Panel; o.Collapsible = false;
+    })
+    // 2) Right sidebar, sticky + ScrollSpy (highlights current section)
+    .TocAtTop("On this page", min: 2, max: 3)
+    .TocHere(o => {
+        o.MinLevel = 2; o.MaxLevel = 3;
+        o.Layout = TocLayout.SidebarRight; o.Sticky = true; o.ScrollSpy = true; o.IncludeTitle = true; o.Title = "On this page";
+    });
 ```
 
 Column Options (FromAny)
@@ -208,14 +230,28 @@ Doc‑level helpers
 - TableAuto(build, alignNumeric=true, alignDates=true)
 - TableFromAuto(data, configure?, alignNumeric=true, alignDates=true)
 
-HTML options
+ HTML options
 - Kind: Fragment | Document
-- Style: Plain | Clean | GithubLight | GithubDark | GithubAuto
+- Style: Plain | Clean | GithubLight | GithubDark | GithubAuto | Word
 - CssDelivery: Inline | ExternalFile | LinkHref | None
 - AssetMode: Online (link) | Offline (download+inline)
 - Title, BodyClass (default "markdown-body"), IncludeAnchorLinks, ThemeToggle
 - EmitMode: Emit (default) | ManifestOnly for host-side asset merging
 - Prism: Enabled, Theme (Prism/Okaidia/GithubDark/GithubAuto), Languages, Plugins, CdnBase
+TOC HTML options (via TocOptions in TocAtTop/TocHere/TocFor*)
+- Layout: List (default, plain nested list), Panel (card), SidebarRight/SidebarLeft
+- Collapsible: wrap in <details>; Collapsed: default state
+- ScrollSpy: highlight active heading while scrolling; Sticky: keep TOC visible (position: sticky)
+
+Word style
+- HtmlStyle.Word gives a document‑like look (Calibri/Cambria headings), Wordish tables (header shading, banded rows, borders), and comfortable spacing.
+- Table cells support inline markdown (code, links, emphasis, images) and `<br>` tags become line breaks.
+
+Embedding fragments with CSS
+```csharp
+// Get a self‑contained fragment with CSS and tiny scripts inlined
+var frag = md.ToHtmlFragmentWithCss(new HtmlOptions { Style = HtmlStyle.Word });
+```
 
 De‑duping assets
 - ToHtmlParts returns Assets: a list of { Id, Kind (Css/Js), Href or Inline }.

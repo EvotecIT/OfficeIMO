@@ -197,6 +197,21 @@ public class MarkdownDoc {
         return HtmlRenderer.Render(this, options);
     }
 
+    /// <summary>
+    /// Renders an embeddable HTML fragment and inlines the computed CSS and tiny scripts at the top/bottom
+    /// of the fragment. Useful when you want a single self-contained chunk without a full HTML document.
+    /// </summary>
+    public string ToHtmlFragmentWithCss(HtmlOptions? options = null) {
+        options ??= new HtmlOptions { Kind = HtmlKind.Fragment };
+        options.Kind = HtmlKind.Fragment;
+        var parts = HtmlRenderer.RenderParts(this, options);
+        var sb = new StringBuilder();
+        if (!string.IsNullOrEmpty(parts.Css)) sb.Append("<style>\n").Append(parts.Css).Append("\n</style>");
+        sb.Append(parts.Body);
+        if (!string.IsNullOrEmpty(parts.Scripts)) sb.Append("<script>\n").Append(parts.Scripts).Append("\n</script>");
+        return sb.ToString();
+    }
+
     /// <summary>Renders a standalone HTML5 document with optional CSS/JS assets.</summary>
     public string ToHtmlDocument(HtmlOptions? options = null) {
         options ??= new HtmlOptions { Kind = HtmlKind.Document };
@@ -327,7 +342,10 @@ public class MarkdownDoc {
         for (int i = 0; i < realized.Count; i++) {
             if (realized[i] is TocPlaceholderBlock tp) {
                 var opts = tp.Options;
-                var toc = new TocBlock { Ordered = opts.Ordered };
+                // Enforce top-level if requested
+                int effectiveMin = opts.RequireTopLevel && opts.MinLevel > 1 ? 1 : opts.MinLevel;
+                int effectiveMax = opts.MaxLevel;
+                var toc = new TocBlock { Ordered = opts.Ordered, NormalizeLevels = opts.NormalizeToMinLevel };
                 // Determine scope bounds
                 int startIdx = 0; int endIdx = realized.Count;
                 if (opts.Scope == TocScope.PreviousHeading) {
@@ -349,7 +367,7 @@ public class MarkdownDoc {
                 }
                 foreach (var h in headings) {
                     if (h.Index < startIdx || h.Index >= endIdx) continue;
-                    if (h.Level < opts.MinLevel || h.Level > opts.MaxLevel) continue;
+                    if (h.Level < effectiveMin || h.Level > effectiveMax) continue;
                     var anchor = MarkdownSlug.GitHub(h.Text);
                     toc.Entries.Add(new TocBlock.Entry { Level = h.Level, Text = h.Text, Anchor = anchor });
                 }

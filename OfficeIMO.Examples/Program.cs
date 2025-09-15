@@ -16,68 +16,80 @@ namespace OfficeIMO.Examples {
             string folderPath = Path.Combine(baseFolder, "Documents");
             Setup(folderPath);
             // Visio - Core Examples
-            OfficeIMO.Examples.Visio.BasicVisioDocument.Example_BasicVisio(folderPath, false);
-            OfficeIMO.Examples.Visio.ConnectRectangles.Example_ConnectRectangles(folderPath, false);
-            OfficeIMO.Examples.Visio.ConnectionPoints.Example_ConnectionPoints(folderPath, false);
-            OfficeIMO.Examples.Visio.ComprehensiveColoredShapes.Example_ComprehensiveColoredShapes(folderPath, false);
-            OfficeIMO.Examples.Visio.ReadVisioDocument.Example_ReadVisio(folderPath, false);
+            // OfficeIMO.Examples.Visio.BasicVisioDocument.Example_BasicVisio(folderPath, false);
+            // OfficeIMO.Examples.Visio.ConnectRectangles.Example_ConnectRectangles(folderPath, false);
+            // OfficeIMO.Examples.Visio.ConnectionPoints.Example_ConnectionPoints(folderPath, false);
+            // OfficeIMO.Examples.Visio.ComprehensiveColoredShapes.Example_ComprehensiveColoredShapes(folderPath, false);
+            // OfficeIMO.Examples.Visio.ReadVisioDocument.Example_ReadVisio(folderPath, false);
 
-            // Excel/BasicExcelFunctionality
-            OfficeIMO.Examples.Excel.BasicExcelFunctionality.BasicExcel_Example1(folderPath, false);
-            OfficeIMO.Examples.Excel.BasicExcelFunctionality.BasicExcel_Example2(folderPath, false);
-            OfficeIMO.Examples.Excel.BasicExcelFunctionality.BasicExcel_Example3(false);
-            // Excel/BasicExcelFunctionalityAsync
-            OfficeIMO.Examples.Excel.BasicExcelFunctionalityAsync.Example_ExcelAsync(folderPath).GetAwaiter().GetResult();
-            // Excel/AutoFit
-            OfficeIMO.Examples.Excel.AutoFit.Example(folderPath, false);
-            // Excel/AddTable
-            OfficeIMO.Examples.Excel.AddTable.Example(folderPath, false);
-            // Excel/AddTableMissingCells
-            OfficeIMO.Examples.Excel.AddTableMissingCells.Example(folderPath, false);
-            // Excel/AutoFilter
-            OfficeIMO.Examples.Excel.AutoFilter.Example(folderPath, false);
-            // Excel/Styles & Colors
-            OfficeIMO.Examples.Excel.StylesColors.Example(folderPath, false);
-            // Excel/Freeze
-            OfficeIMO.Examples.Excel.Freeze.Example(folderPath, false);
-            // Excel/ConditionalFormatting
-            OfficeIMO.Examples.Excel.ConditionalFormatting.Example(folderPath, false);
-            // Excel/ConcurrentWrites
-            OfficeIMO.Examples.Excel.ConcurrentWrites.Example(folderPath, false);
-            // Excel/ExcelConcurrentAccessAsync
-            OfficeIMO.Examples.Excel.ExcelConcurrentAccessAsync.Example_ExcelAsyncConcurrent(folderPath).GetAwaiter().GetResult();
-            // Excel/CellValues
-            OfficeIMO.Examples.Excel.CellValues.Example(folderPath, false);
-            // Excel/CellValuesParallel
-            OfficeIMO.Examples.Excel.CellValuesParallel.Example(folderPath, false);
-            // Excel/ValidateDocument
-            OfficeIMO.Examples.Excel.ValidateDocument.Example(folderPath, false);
-            // Excel/Fluent
-            OfficeIMO.Examples.Excel.FluentWorkbook.Example_FluentWorkbook(folderPath, false);
-            OfficeIMO.Examples.Excel.FluentWorkbook.Example_RangeBuilder(folderPath, false);
-            OfficeIMO.Examples.Excel.FluentWorkbook.Example_FluentWorkbook_AutoFilter(folderPath, false);
-            OfficeIMO.Examples.Excel.TestDateTime.Example_TestDateTime(folderPath, false);
-            // Excel/Read with custom converters
-            OfficeIMO.Examples.Excel.ReadWithConverters.Example(folderPath, false);
-            // Excel/Read presets and static helpers
-            OfficeIMO.Examples.Excel.ReadPresetsAndHelpers.Example(folderPath, false);
-            // Excel/Read for PowerShell consumption (emits JSON rows)
-            OfficeIMO.Examples.Excel.ReadForPowerShell.Example(folderPath, false);
-            // Excel/PowerShell-style round trip: write → read → modify → write → JSON
-            OfficeIMO.Examples.Excel.PowerShellRoundTrip.Example(folderPath, false);
-            // Excel/Headers + Footers + Properties
-            OfficeIMO.Examples.Excel.HeadersFootersAndProperties.Example(folderPath, false);
-            OfficeIMO.Examples.Excel.DomainDetectiveReport.Example(folderPath, false);
-            // Excel: New Excelish Sheets demo (side-by-side comparison)
-            OfficeIMO.Examples.Excel.DomainDetectiveReportSheets.Example(folderPath, false);
-            // Excel: Classic baseline Sheets demo (explicit/standard techniques)
-            OfficeIMO.Examples.Excel.DomainDetectiveReportSheetsClassic.Example(folderPath, false);
-            // Excel: Anchors and back-to-top demo
-            OfficeIMO.Examples.Excel.AnchorsAndBackToTop.Example(folderPath, false);
-            // Markdown: Anchors + Theme Toggle
-            OfficeIMO.Examples.Markdown.Markdown03_Anchors_Theme.Example_AnchorsAndTheme(folderPath, false);
+            // // Excel/BasicExcelFunctionality
+            // OfficeIMO.Examples.Excel.BasicExcelFunctionality.BasicExcel_Example1(folderPath, false);
+            // OfficeIMO.Examples.Excel.BasicExcelFunctionality.BasicExcel_Example2(folderPath, false);
+            // OfficeIMO.Examples.Excel.BasicExcelFunctionality.BasicExcel_Example3(false);
+            // // Excel/BasicExcelFunctionalityAsync
+            // OfficeIMO.Examples.Excel.BasicExcelFunctionalityAsync.Example_ExcelAsync(folderPath).GetAwaiter().GetResult();
+            // // Excel/AutoFit
+            // OfficeIMO.Examples.Excel.AutoFit.Example(folderPath, false);
+            // // Excel/AddTable
+            // OfficeIMO.Examples.Excel.AddTable.Example(folderPath, false);
+            // // Excel/AddTableMissingCells
+            // OfficeIMO.Examples.Excel.AddTableMissingCells.Example(folderPath, false);
+            // // Excel/AutoFilter
+            // OfficeIMO.Examples.Excel.AutoFilter.Example(folderPath, false);
+            // // Excel/Styles & Colors
+            // OfficeIMO.Examples.Excel.StylesColors.Example(folderPath, false);
+            // // Excel/Freeze
+            // OfficeIMO.Examples.Excel.Freeze.Example(folderPath, false);
+            // // Excel/ConditionalFormatting
+            // OfficeIMO.Examples.Excel.ConditionalFormatting.Example(folderPath, false);
+            // // Excel/ConcurrentWrites
+            // OfficeIMO.Examples.Excel.ConcurrentWrites.Example(folderPath, false);
+            // // Excel/ExcelConcurrentAccessAsync
+            // OfficeIMO.Examples.Excel.ExcelConcurrentAccessAsync.Example_ExcelAsyncConcurrent(folderPath).GetAwaiter().GetResult();
+            // // Excel/CellValues
+            // OfficeIMO.Examples.Excel.CellValues.Example(folderPath, false);
+            // // Excel/CellValuesParallel
+            // OfficeIMO.Examples.Excel.CellValuesParallel.Example(folderPath, false);
+            // // Excel/ValidateDocument
+            // OfficeIMO.Examples.Excel.ValidateDocument.Example(folderPath, false);
+            // // Excel/Fluent
+            // OfficeIMO.Examples.Excel.FluentWorkbook.Example_FluentWorkbook(folderPath, false);
+            // OfficeIMO.Examples.Excel.FluentWorkbook.Example_RangeBuilder(folderPath, false);
+            // OfficeIMO.Examples.Excel.FluentWorkbook.Example_FluentWorkbook_AutoFilter(folderPath, false);
+            // OfficeIMO.Examples.Excel.TestDateTime.Example_TestDateTime(folderPath, false);
+            // // Excel/Read with custom converters
+            // OfficeIMO.Examples.Excel.ReadWithConverters.Example(folderPath, false);
+            // // Excel/Read presets and static helpers
+            // OfficeIMO.Examples.Excel.ReadPresetsAndHelpers.Example(folderPath, false);
+            // // Excel/Read for PowerShell consumption (emits JSON rows)
+            // OfficeIMO.Examples.Excel.ReadForPowerShell.Example(folderPath, false);
+            // // Excel/PowerShell-style round trip: write → read → modify → write → JSON
+            // OfficeIMO.Examples.Excel.PowerShellRoundTrip.Example(folderPath, false);
+            // // Excel/Headers + Footers + Properties
+            // OfficeIMO.Examples.Excel.HeadersFootersAndProperties.Example(folderPath, false);
+            // OfficeIMO.Examples.Excel.DomainDetectiveReport.Example(folderPath, false);
+            // // Excel: New Excelish Sheets demo (side-by-side comparison)
+            // OfficeIMO.Examples.Excel.DomainDetectiveReportSheets.Example(folderPath, false);
+            // // Excel: Classic baseline Sheets demo (explicit/standard techniques)
+            // OfficeIMO.Examples.Excel.DomainDetectiveReportSheetsClassic.Example(folderPath, false);
+            // // Excel: Anchors and back-to-top demo
+            // OfficeIMO.Examples.Excel.AnchorsAndBackToTop.Example(folderPath, false);
+            // // Markdown: Anchors + Theme Toggle
+            // OfficeIMO.Examples.Markdown.Markdown03_Anchors_Theme.Example_AnchorsAndTheme(folderPath, false);
+            // Markdown: TOC Layouts & Themes
+            OfficeIMO.Examples.Markdown.Markdown04_TocLayoutsAndThemes.Example_Toc_PanelTop(folderPath, false);
+            OfficeIMO.Examples.Markdown.Markdown04_TocLayoutsAndThemes.Example_Toc_SidebarLeft(folderPath, false);
+            OfficeIMO.Examples.Markdown.Markdown04_TocLayoutsAndThemes.Example_Toc_SidebarRight_ScrollSpy(folderPath, false);
+            OfficeIMO.Examples.Markdown.Markdown04_TocLayoutsAndThemes.Example_Toc_ScrollSpy_Long_IndigoTheme(folderPath, false);
+            // Markdown: Built-in HTML style gallery
+            OfficeIMO.Examples.Markdown.Markdown05_ThemesGallery.Example_Themes(folderPath, false);
+
+            // Word ⇄ Markdown ⇄ HTML End-to-End
+            OfficeIMO.Examples.Word.EndToEnd.Word_EndToEnd.Example(folderPath, false);
             // Markdown/DomainDetective report (mirrors the Excel structure)
             OfficeIMO.Examples.Markdown.DomainDetectiveReportMarkdown.Example(folderPath, false);
+
+            return;
             // PowerPoint
             OfficeIMO.Examples.PowerPoint.BasicPowerPointDocument.Example_BasicPowerPoint(folderPath, false);
             OfficeIMO.Examples.PowerPoint.AdvancedPowerPoint.Example_AdvancedPowerPoint(folderPath, false);

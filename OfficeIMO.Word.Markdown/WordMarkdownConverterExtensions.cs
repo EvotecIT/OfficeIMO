@@ -166,7 +166,8 @@ namespace OfficeIMO.Word.Markdown {
         /// Converts the document to a full HTML5 document via OfficeIMO.Markdown.
         /// </summary>
         public static string ToHtmlViaMarkdown(this WordDocument document, HtmlOptions? options = null) {
-            options ??= new HtmlOptions { Kind = HtmlKind.Document };
+            options ??= new HtmlOptions { Kind = HtmlKind.Document, Style = HtmlStyle.Word };
+            if (options.Style == default) options.Style = HtmlStyle.Word;
             var md = document.ToMarkdown();
             var model = MarkdownReader.Parse(md);
             return model.ToHtmlDocument(options);
@@ -176,7 +177,8 @@ namespace OfficeIMO.Word.Markdown {
         /// Converts the document to an embeddable HTML fragment via OfficeIMO.Markdown.
         /// </summary>
         public static string ToHtmlFragmentViaMarkdown(this WordDocument document, HtmlOptions? options = null) {
-            options ??= new HtmlOptions { Kind = HtmlKind.Fragment };
+            options ??= new HtmlOptions { Kind = HtmlKind.Fragment, Style = HtmlStyle.Word };
+            if (options.Style == default) options.Style = HtmlStyle.Word;
             var md = document.ToMarkdown();
             var model = MarkdownReader.Parse(md);
             return model.ToHtmlFragment(options);
@@ -186,7 +188,8 @@ namespace OfficeIMO.Word.Markdown {
         /// Saves the document as HTML via OfficeIMO.Markdown. Supports external CSS sidecar when configured in <see cref="HtmlOptions"/>.
         /// </summary>
         public static void SaveAsHtmlViaMarkdown(this WordDocument document, string path, HtmlOptions? options = null) {
-            options ??= new HtmlOptions { Kind = HtmlKind.Document };
+            options ??= new HtmlOptions { Kind = HtmlKind.Document, Style = HtmlStyle.Word };
+            if (options.Style == default) options.Style = HtmlStyle.Word;
             var md = document.ToMarkdown();
             var model = MarkdownReader.Parse(md);
             model.SaveHtml(path, options);
@@ -196,7 +199,8 @@ namespace OfficeIMO.Word.Markdown {
         /// Asynchronously saves the document as HTML via OfficeIMO.Markdown.
         /// </summary>
         public static async Task SaveAsHtmlViaMarkdownAsync(this WordDocument document, string path, HtmlOptions? options = null, CancellationToken cancellationToken = default) {
-            options ??= new HtmlOptions { Kind = HtmlKind.Document };
+            options ??= new HtmlOptions { Kind = HtmlKind.Document, Style = HtmlStyle.Word };
+            if (options.Style == default) options.Style = HtmlStyle.Word;
             var md = await document.ToMarkdownAsync().ConfigureAwait(false);
             var model = MarkdownReader.Parse(md);
             // MarkdownDoc.SaveHtml does sync I/O; for now, delegate synchronously to keep surface small
