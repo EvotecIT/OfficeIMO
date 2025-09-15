@@ -6,6 +6,20 @@ namespace OfficeIMO.Excel;
 
 internal static class CoerceValueHelper
 {
+    private const long DoublePrecisionSafeIntegerBound = 9_007_199_254_740_992L;
+    private const ulong DoublePrecisionSafeIntegerBoundUnsigned = 9_007_199_254_740_992UL;
+
+    /// <summary>
+    /// Converts an arbitrary CLR value into the <see cref="CellValue" /> and <see cref="CellValues" /> tuple used by Excel.
+    /// </summary>
+    /// <param name="value">The value to be represented in a worksheet cell.</param>
+    /// <param name="sharedStringHandler">Delegate that materialises a <see cref="CellValue" /> entry for shared strings.</param>
+    /// <returns>The OpenXML representation of the supplied value.</returns>
+    /// <remarks>
+    /// Integer values with an absolute magnitude above ±9,007,199,254,740,992 are written using their string form to prevent
+    /// double precision loss while keeping the cell typed as <see cref="CellValues.Number" />.
+    /// </remarks>
+    /// <exception cref="ArgumentException">Thrown when the resulting shared-string payload exceeds Excel's 32,767 character limit.</exception>
     internal static (CellValue cellValue, CellValues type) Coerce(object? value, Func<string, CellValue> sharedStringHandler)
     {
         return value switch
@@ -13,25 +27,25 @@ internal static class CoerceValueHelper
             null => (new CellValue(string.Empty), CellValues.String),
             System.DBNull => (new CellValue(string.Empty), CellValues.String),
             string s => HandleSharedString(s),
-            double d => (new CellValue(d.ToString(CultureInfo.InvariantCulture)), CellValues.Number),
-            float f => (new CellValue(Convert.ToDouble(f).ToString(CultureInfo.InvariantCulture)), CellValues.Number),
+            double d => HandleNumber(d),
+            float f => HandleNumber(Convert.ToDouble(f)),
             decimal dec => (new CellValue(dec.ToString(CultureInfo.InvariantCulture)), CellValues.Number),
-            int i => (new CellValue(((double)i).ToString(CultureInfo.InvariantCulture)), CellValues.Number),
-            long l => (new CellValue(((double)l).ToString(CultureInfo.InvariantCulture)), CellValues.Number),
-            DateTime dt => (new CellValue(dt.ToOADate().ToString(CultureInfo.InvariantCulture)), CellValues.Number),
-            DateTimeOffset dto => (new CellValue(dto.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture)), CellValues.Number),
+            int i => HandleSignedInteger(i),
+            long l => HandleSignedInteger(l),
+            DateTime dt => HandleNumber(dt.ToOADate()),
+            DateTimeOffset dto => HandleNumber(dto.UtcDateTime.ToOADate()),
 #if NET6_0_OR_GREATER
-            DateOnly dateOnly => (new CellValue(dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate().ToString(CultureInfo.InvariantCulture)), CellValues.Number),
-            TimeOnly timeOnly => (new CellValue(timeOnly.ToTimeSpan().TotalDays.ToString(CultureInfo.InvariantCulture)), CellValues.Number),
+            DateOnly dateOnly => HandleNumber(dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate()),
+            TimeOnly timeOnly => HandleNumber(timeOnly.ToTimeSpan().TotalDays),
 #endif
-            TimeSpan ts => (new CellValue(ts.TotalDays.ToString(CultureInfo.InvariantCulture)), CellValues.Number),
+            TimeSpan ts => HandleNumber(ts.TotalDays),
             bool b => (new CellValue(b ? "1" : "0"), CellValues.Boolean),
-            uint ui => (new CellValue(((double)ui).ToString(CultureInfo.InvariantCulture)), CellValues.Number),
-            ulong ul => (new CellValue(((double)ul).ToString(CultureInfo.InvariantCulture)), CellValues.Number),
-            ushort us => (new CellValue(((double)us).ToString(CultureInfo.InvariantCulture)), CellValues.Number),
-            byte by => (new CellValue(((double)by).ToString(CultureInfo.InvariantCulture)), CellValues.Number),
-            sbyte sb => (new CellValue(((double)sb).ToString(CultureInfo.InvariantCulture)), CellValues.Number),
-            short sh => (new CellValue(((double)sh).ToString(CultureInfo.InvariantCulture)), CellValues.Number),
+            uint ui => HandleUnsignedInteger(ui),
+            ulong ul => HandleUnsignedInteger(ul),
+            ushort us => HandleUnsignedInteger(us),
+            byte by => HandleUnsignedInteger(by),
+            sbyte sb => HandleSignedInteger(sb),
+            short sh => HandleSignedInteger(sh),
             Guid guid => HandleSharedString(guid.ToString()),
             Enum e => HandleSharedString(e.ToString()),
             char ch => HandleSharedString(ch.ToString()),
@@ -39,13 +53,31 @@ internal static class CoerceValueHelper
             _ => HandleSharedString(value.ToString() ?? string.Empty)
         };
 
+        (CellValue, CellValues) HandleNumber(double number) =>
+            (new CellValue(number.ToString(CultureInfo.InvariantCulture)), CellValues.Number);
+
+        (CellValue, CellValues) HandleSignedInteger(long integer) =>
+            integer is >= -DoublePrecisionSafeIntegerBound and <= DoublePrecisionSafeIntegerBound
+                ? HandleNumber(integer)
+                : (new CellValue(integer.ToString(CultureInfo.InvariantCulture)), CellValues.Number);
+
+        (CellValue, CellValues) HandleUnsignedInteger(ulong integer) =>
+            integer <= DoublePrecisionSafeIntegerBoundUnsigned
+                ? HandleNumber(integer)
+                : (new CellValue(integer.ToString(CultureInfo.InvariantCulture)), CellValues.Number);
+
         (CellValue, CellValues) HandleSharedString(string text)
         {
-            if (text.Length > 32767)
-            {
-                throw new ArgumentException("String exceeds Excel's limit of 32,767 characters", nameof(value));
-            }
+            ValidateSharedStringLength(text);
             return (sharedStringHandler(text), CellValues.SharedString);
+        }
+
+        void ValidateSharedStringLength(string text)
+        {
+            if (text.Length > 32_767)
+            {
+                throw new ArgumentException("String exceeds Excel's limit of 32,767 characters.", nameof(value));
+            }
         }
     }
 }
