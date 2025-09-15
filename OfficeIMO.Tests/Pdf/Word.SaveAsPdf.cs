@@ -80,7 +80,6 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Hello World");
-            document.Save();
 
             using (MemoryStream pdfStream = new MemoryStream()) {
                 document.SaveAsPdf(pdfStream);
@@ -252,7 +251,6 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.Sections[0].PageSettings.Orientation = orientation;
             document.AddParagraph("Hello World");
-            document.Save();
             document.SaveAsPdf(pdfPath);
         }
 
@@ -278,7 +276,6 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Hello World");
-            document.Save();
 
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                 PageSize = size
@@ -304,7 +301,6 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Hello World");
-            document.Save();
 
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                 Margin = (float)marginCm,

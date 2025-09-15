@@ -30,7 +30,10 @@ namespace OfficeIMO.Tests {
 
             string md = $"![Local]({imagePath}){{width=40 height=30}}\n" +
                          $"![Remote](http://localhost:{port}/){{width=50 height=20}}";
-            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions {
+                AllowLocalImages = true,
+                AllowRemoteImages = true
+            });
 
             Assert.Equal(2, doc.Images.Count);
             Assert.Equal("Local", doc.Images[0].Description);
@@ -48,7 +51,9 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_UsesNaturalSizeWhenNoHints() {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string md = $"![Local]({imagePath})";
-            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions {
+                AllowLocalImages = true
+            });
 
             using var image = Image.Load(imagePath, out _);
 

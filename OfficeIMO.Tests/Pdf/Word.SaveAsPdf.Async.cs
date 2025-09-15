@@ -15,7 +15,6 @@ public partial class Word {
 
         using (var document = WordDocument.Create(docPath)) {
             document.AddParagraph("Hello World");
-            document.Save();
 
             var saveTask = document.SaveAsPdfAsync(pdfPath, cancellationToken: CancellationToken.None);
             await saveTask;
@@ -30,7 +29,6 @@ public partial class Word {
 
         using (var document = WordDocument.Create(docPath)) {
             document.AddParagraph("Hello World");
-            document.Save();
 
             using (var stream = new MemoryStream()) {
                 var saveTask = document.SaveAsPdfAsync(stream, cancellationToken: CancellationToken.None);
@@ -48,7 +46,6 @@ public partial class Word {
 
         using (var document = WordDocument.Create(docPath)) {
             document.AddParagraph("Hello World");
-            document.Save();
             var ex = await Assert.ThrowsAsync<ArgumentException>(() => document.SaveAsPdfAsync(path, cancellationToken: CancellationToken.None));
             Assert.Contains("empty or whitespace", ex.Message);
         }
@@ -61,7 +58,6 @@ public partial class Word {
 
         using (var document = WordDocument.Create(docPath)) {
             document.AddParagraph("Hello World");
-            document.Save();
             using (var cts = new CancellationTokenSource()) {
                 cts.Cancel();
                 await Assert.ThrowsAsync<OperationCanceledException>(() => document.SaveAsPdfAsync(pdfPath, cancellationToken: cts.Token));
@@ -75,7 +71,6 @@ public partial class Word {
 
         using (var document = WordDocument.Create(docPath)) {
             document.AddParagraph("Hello World");
-            document.Save();
             using (var stream = new MemoryStream()) {
                 using (var cts = new CancellationTokenSource()) {
                     cts.Cancel();
