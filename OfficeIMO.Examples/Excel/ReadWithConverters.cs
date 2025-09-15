@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Excel
             public decimal Amount { get; set; }
             public DateTime Date { get; set; }
             public int Qty { get; set; }
-            public string Note { get; set; }
+            public string Note { get; set; } = string.Empty;
         }
 
         public static void Example(string folderPath, bool openExcel)

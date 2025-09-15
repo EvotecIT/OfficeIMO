@@ -43,14 +43,16 @@ namespace OfficeIMO.Word.Markdown {
 
             // Parse using OfficeIMO.Markdown reader.
             var omd = Omd.MarkdownReader.Parse(markdown);
+            var blocks = omd.Blocks;
             // Build footnote definitions map for this document
-            _currentFootnotes = omd.Blocks is not null
-                ? omd.Blocks
+            _currentFootnotes = blocks is not null
+                ? blocks
                     .OfType<Omd.FootnoteDefinitionBlock>()
                     .GroupBy(f => f.Label)
                     .ToDictionary(g => g.Key, g => g.Last().Text)
                 : null;
-            foreach (var block in omd.Blocks) {
+
+            foreach (var block in blocks ?? Array.Empty<Omd.IMarkdownBlock>()) {
                 cancellationToken.ThrowIfCancellationRequested();
                 ProcessBlockOmd(block, document, options, quoteDepth: 0);
             }
