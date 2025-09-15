@@ -116,15 +116,10 @@ namespace OfficeIMO.Word.Markdown {
 
         private string RenderFootnote(WordFootNote footNote, WordToMarkdownOptions options) {
             var paragraphs = footNote.Paragraphs;
-            if (paragraphs == null || paragraphs.Count < 2) {
-                return string.Empty;
-            }
-
+            if (paragraphs == null || paragraphs.Count == 0) return string.Empty;
             var sb = new StringBuilder();
-            for (int i = 1; i < paragraphs.Count; i++) {
-                if (i > 1) {
-                    sb.Append(' ');
-                }
+            for (int i = 0; i < paragraphs.Count; i++) {
+                if (i > 0) sb.Append(' ');
                 sb.Append(RenderRuns(paragraphs[i], options));
             }
             return sb.ToString();

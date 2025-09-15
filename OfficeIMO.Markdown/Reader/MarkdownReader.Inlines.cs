@@ -46,6 +46,12 @@ public static partial class MarkdownReader {
                 }
             }
 
+            // Footnote ref [^id] should be recognized before generic link parsing
+            if (text[pos] == '[' && pos + 2 < text.Length && text[pos + 1] == '^') {
+                int rb = text.IndexOf(']', pos + 2);
+                if (rb > pos + 2) { var lab = text.Substring(pos + 2, rb - (pos + 2)); seq.FootnoteRef(lab); pos = rb + 1; continue; }
+            }
+
             if (TryParseImageLink(text, pos, out int consumed, out var alt2, out var img2, out var imgTitle2, out var href2)) {
                 seq.ImageLink(alt2, img2, href2, imgTitle2); pos += consumed; continue;
             }
