@@ -304,7 +304,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("  ✗ Bookmarks/TOC navigation");
             
             Console.WriteLine("\n📌 RECOMMENDED IMPROVEMENTS:");
-            Console.WriteLine("  1. Add Markdig or CommonMark.NET for proper Markdown parsing");
+            Console.WriteLine("  1. OfficeIMO.Markdown handles Markdown parsing");
             Console.WriteLine("  2. Add HtmlAgilityPack for better HTML parsing");
             Console.WriteLine("  3. Implement table support in Markdown converter");
             Console.WriteLine("  4. Add hyperlink support across all converters");

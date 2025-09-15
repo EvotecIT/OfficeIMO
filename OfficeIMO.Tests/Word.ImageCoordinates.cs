@@ -12,7 +12,8 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create(filePath);
 
             var paragraph = document.AddParagraph();
-            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+            var imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "Kulek.jpg");
+            paragraph.AddImage(imagePath, 50, 50);
 
             var image = document.Images.FirstOrDefault();
             Assert.NotNull(image);
@@ -29,7 +30,8 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create(filePath);
 
             var paragraph = document.AddParagraph();
-            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50, WrapTextImage.Square);
+            var imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "Kulek.jpg");
+            paragraph.AddImage(imagePath, 50, 50, WrapTextImage.Square);
             var paraImage = paragraph.Image;
             Assert.NotNull(paraImage);
             int offset = 914400;

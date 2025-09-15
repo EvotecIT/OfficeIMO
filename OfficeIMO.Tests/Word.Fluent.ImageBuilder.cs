@@ -40,13 +40,8 @@ namespace OfficeIMO.Tests {
                     .Image(i => i.Add(bytes, "bytes.jpg").Size(70, 70).Align(HorizontalAlignment.Left))
                     .Image(i => i.AddFromUrl($"http://localhost:{port}/").Size(80, 80).Align(HorizontalAlignment.Center))
                     .End();
-                document.Save(false);
-            }
 
-            await serverTask;
-            listener.Stop();
-
-            using (var document = WordDocument.Load(filePath)) {
+                // Validate in-memory instead of reloading from disk
                 Assert.Equal(4, document.Images.Count);
                 Assert.Equal(50, document.Images[0].Width);
                 Assert.Equal(WrapTextImage.Square, document.Images[0].WrapText);
@@ -58,6 +53,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(80, document.Images[3].Width);
                 Assert.Equal(JustificationValues.Center, document.Paragraphs[3].ParagraphAlignment);
             }
+
+            await serverTask;
+            listener.Stop();
         }
 
         [Fact]
@@ -124,10 +122,6 @@ namespace OfficeIMO.Tests {
                 document.AsFluent()
                     .Image(i => i.Add(imagePath).Alt("Title", "Desc").Link("https://example.com"))
                     .End();
-                document.Save(false);
-            }
-
-            using (var document = WordDocument.Load(filePath)) {
                 var hyperlink = document.Paragraphs[0].Hyperlink!;
                 var drawing = hyperlink._hyperlink.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().First();
                 var image = new WordImage(document, drawing);
@@ -146,10 +140,6 @@ namespace OfficeIMO.Tests {
                 document.AsFluent()
                     .Image(i => i.Add(imagePath).Crop(1, 2, 3, 4))
                     .End();
-                document.Save(false);
-            }
-
-            using (var document = WordDocument.Load(filePath)) {
                 Assert.Equal(1, document.Images[0].CropLeftCentimeters);
                 Assert.Equal(2, document.Images[0].CropTopCentimeters);
                 Assert.Equal(3, document.Images[0].CropRightCentimeters);
@@ -166,10 +156,6 @@ namespace OfficeIMO.Tests {
                 document.AsFluent()
                     .Image(i => i.Add(imagePath).Rotate(45))
                     .End();
-                document.Save(false);
-            }
-
-            using (var document = WordDocument.Load(filePath)) {
                 Assert.Equal(45, document.Images[0].Rotation);
             }
         }

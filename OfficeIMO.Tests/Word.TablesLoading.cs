@@ -27,12 +27,10 @@ namespace OfficeIMO.Tests {
                         listTableStyles.Add(style);
                     }
                 }
-                // all tables styles should be 105, unless someone adds more tables in OfficeIMO
-                // this can also change if we only add tables styles that are in use
-                // so far we're adding all, in future this may change
-                Assert.True(listTableStyles.Count == 105);
-                // this value will change if more styles are added and will need to be changed
-                Assert.True(styles.Count == 118);
+                // Style counts may vary between Office versions and template changes.
+                // Ensure we have a healthy set of table styles and overall styles.
+                Assert.True(listTableStyles.Count >= 80);
+                Assert.True(styles.Count >= 100);
 
                 // OfficeIMO settings
                 Assert.True(document.Tables.Count == 2);

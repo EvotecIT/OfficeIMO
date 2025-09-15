@@ -315,7 +315,8 @@ internal static class HtmlRenderer {
         if (string.IsNullOrEmpty(css)) return string.Empty;
         // Naive scoping: prefix common selectors with the scope to avoid global bleed.
         // This is intentionally conservative.
-        var s = css.Replace("code[class*=\"language-\"]", scopeSelector + " code[class*=\\\"language-\\\"]")
+        var cssText = css!; // guarded by IsNullOrEmpty above
+        var s = cssText.Replace("code[class*=\"language-\"]", scopeSelector + " code[class*=\\\"language-\\\"]")
                    .Replace("pre[class*=\"language-\"]", scopeSelector + " pre[class*=\\\"language-\\\"]")
                    .Replace("pre[class*=\"language-\"] code", scopeSelector + " pre[class*=\\\"language-\\\"] code");
         // Also prefix top-level element rules we own

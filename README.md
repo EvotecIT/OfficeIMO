@@ -44,7 +44,7 @@ Each project ships as its own NuGet package under the MIT license.
 
 ## Licenses
 
-All OfficeIMO packages are MIT‑licensed with exception of Visio which is not yet licensed. See individual project READMEs for third‑party dependency licenses (Open XML SDK, ImageSharp, AngleSharp, Markdig, QuestPDF, SkiaSharp, etc.).
+All OfficeIMO packages are MIT‑licensed with exception of Visio which is not yet licensed. See individual project READMEs for third‑party dependency licenses (Open XML SDK, ImageSharp, AngleSharp, QuestPDF, SkiaSharp, etc.).
 
 ## Dependencies at a glance
 
@@ -64,7 +64,7 @@ flowchart TB
   %% External deps
   Angle[AngleSharp]
   AngleCss[AngleSharp.Css]
-  Markdig[Markdig]
+  OfficeIMO.Markdown
   Quest[QuestPDF]
   Skia[SkiaSharp]
 
@@ -79,7 +79,7 @@ flowchart TB
   %% External dependencies per extension
   WHtml --> Angle
   WHtml --> AngleCss
-  WMd   --> Markdig
+  WMd   --> OfficeIMO.Markdown
   WPdf  --> Quest
   WPdf  --> Skia
 ```
@@ -129,7 +129,7 @@ flowchart TD
 - Only editing/creating Word (.docx): add `OfficeIMO.Word`.
 - Word → PDF export: add `OfficeIMO.Word` + `OfficeIMO.Word.Pdf` (pulls QuestPDF + SkiaSharp).
 - Word ↔ HTML: add `OfficeIMO.Word` + `OfficeIMO.Word.Html` (pulls AngleSharp + AngleSharp.Css).
-- Word ↔ Markdown: add `OfficeIMO.Word` + `OfficeIMO.Word.Markdown` (pulls Markdig; also uses `OfficeIMO.Word.Html`).
+- Word ↔ Markdown: add `OfficeIMO.Word` + `OfficeIMO.Word.Markdown` (uses OfficeIMO.Markdown and `OfficeIMO.Word.Html`).
 - Excel read/write, tables, styles: add `OfficeIMO.Excel` (pulls ImageSharp + Fonts for sizing and header images).
 - PowerPoint slides: add `OfficeIMO.PowerPoint`.
 - Visio drawings: add `OfficeIMO.Visio` (uses ImageSharp and System.IO.Packaging).
@@ -139,7 +139,7 @@ flowchart TD
 - DocumentFormat.OpenXml: 3.3.x (constraints: [3.3.0, 4.0.0))
 - SixLabors.ImageSharp: 2.1.x; SixLabors.Fonts: 1.0.x (Excel)
 - AngleSharp: 1.3.x; AngleSharp.Css: 1.0.0‑beta.154 (Word.Html)
-- Markdig: 0.41.x (Word.Markdown)
+ 
 - QuestPDF: 2025.7.x; SkiaSharp: 3.119.x (Word.Pdf)
 
 We keep package ranges conservative to avoid breaking changes; see each project’s csproj for exact ranges.
@@ -149,7 +149,8 @@ We keep package ranges conservative to avoid breaking changes; see each project�
 - OfficeIMO.Word, OfficeIMO.Excel, OfficeIMO.PowerPoint, OfficeIMO.Word.Html, OfficeIMO.Word.Markdown, OfficeIMO.Word.Pdf: MIT
 - OfficeIMO.Visio: License TBD (not MIT yet)
 
-Third‑party dependency licenses: see their upstream repos (Open XML SDK, SixLabors, AngleSharp, Markdig, QuestPDF, SkiaSharp).
+Third‑party dependency licenses: see their upstream repos (Open XML SDK, SixLabors, AngleSharp, QuestPDF, SkiaSharp).
+ 
 ## Support This Project
 
 If you find this project helpful, please consider supporting its development.

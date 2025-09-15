@@ -26,10 +26,11 @@ namespace OfficeIMO.Tests {
         }
 
         public Word() {
-            _directoryDocuments = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
-            _directoryWithImages = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
-            //_directoryDocuments = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Tests", "TempDocuments");
-            _directoryWithFiles = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TempDocuments2");
+            _directoryDocuments = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents");
+            _directoryWithImages = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images");
+            // Create a unique per-test directory to avoid parallel write collisions
+            string unique = Guid.NewGuid().ToString("N");
+            _directoryWithFiles = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TempDocuments2", unique);
             Setup(_directoryWithFiles);
         }
 

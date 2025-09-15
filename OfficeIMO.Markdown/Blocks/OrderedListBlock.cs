@@ -15,7 +15,17 @@ public sealed class OrderedListBlock : IMarkdownBlock {
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() {
         int i = Start;
-        return string.Join("\n", Items.Select(item => (i++) + ". " + item.RenderMarkdown()));
+        var sb = new System.Text.StringBuilder();
+        foreach (var item in Items) {
+            var indent = new string(' ', item.Level * 2);
+            if (item.Level == 0) {
+                sb.Append(indent).Append(i++).Append(". ").Append(item.RenderMarkdown()).Append('\n');
+            } else {
+                // For nested levels, emit "1." which most renderers normalize visually
+                sb.Append(indent).Append("1. ").Append(item.RenderMarkdown()).Append('\n');
+            }
+        }
+        return sb.ToString().TrimEnd();
     }
 
     /// <inheritdoc />
