@@ -42,11 +42,15 @@ namespace OfficeIMO.Word.Markdown {
                 int level = listInfo.Value.Level;
                 sb.Append(new string(' ', level * 2));
                 sb.Append(listInfo.Value.Ordered ? "1. " : "- ");
-                // Task list (checkbox) mapping
-                if (paragraph.IsCheckBox) {
-                    bool done = paragraph.CheckBox?.IsChecked == true;
-                    sb.Append(done ? "[x] " : "[ ] ");
+                // Task list (checkbox) mapping — look across all runs in the underlying paragraph
+                bool hasCheckbox = paragraph.IsCheckBox;
+                bool done = paragraph.CheckBox?.IsChecked == true;
+                if (!hasCheckbox) {
+                    try {
+                        foreach (var r in paragraph.GetRuns()) { if (r.IsCheckBox) { hasCheckbox = true; done = r.CheckBox?.IsChecked == true; break; } }
+                    } catch { /* best-effort */ }
                 }
+                if (hasCheckbox) sb.Append(done ? "[x] " : "[ ] ");
             }
 
             sb.Append(RenderRuns(paragraph, options));
@@ -62,9 +66,12 @@ namespace OfficeIMO.Word.Markdown {
 
         private string RenderRuns(WordParagraph paragraph, WordToMarkdownOptions options) {
             var sb = new StringBuilder();
-            // Only honor explicitly provided code font for inline code; otherwise use a conservative
-            // well-known monospace font list to avoid false positives (e.g., Calibri fallback).
-            string? preferredCodeFont = options.FontFamily; // do NOT auto-resolve generics for detection
+            // Inline code detection:
+            // 1) If caller specifies options.FontFamily, treat runs with that font as code
+            // 2) Else, treat runs with the platform monospace (FontResolver.Resolve("monospace")) as code
+            // 3) Else, fallback to a conservative known-monospace allowlist or names containing "Mono"
+            string? preferredCodeFont = options.FontFamily;
+            string? platformMono = FontResolver.Resolve("monospace");
             foreach (var run in paragraph.GetRuns()) {
                 // Respect explicit line breaks embedded in runs (non-page breaks)
                 if (run.Break != null && run.PageBreak == null) {
@@ -109,11 +116,16 @@ namespace OfficeIMO.Word.Markdown {
                 }
 
                 bool code = false;
-                if (!string.IsNullOrEmpty(run.FontFamily)) {
+                var runFont = run.FontFamily;
+                if (!string.IsNullOrEmpty(runFont)) {
                     if (!string.IsNullOrEmpty(preferredCodeFont)) {
-                        code = string.Equals(run.FontFamily, preferredCodeFont, StringComparison.OrdinalIgnoreCase);
-                    } else {
-                        code = KnownMonospaceFonts.Contains(run.FontFamily!);
+                        code = string.Equals(runFont, preferredCodeFont, StringComparison.OrdinalIgnoreCase);
+                    }
+                    if (!code && !string.IsNullOrEmpty(platformMono)) {
+                        code = string.Equals(runFont, platformMono, StringComparison.OrdinalIgnoreCase);
+                    }
+                    if (!code) {
+                        code = KnownMonospaceFonts.Contains(runFont!) || runFont!.IndexOf("Mono", StringComparison.OrdinalIgnoreCase) >= 0;
                     }
                 }
                 if (code) {
