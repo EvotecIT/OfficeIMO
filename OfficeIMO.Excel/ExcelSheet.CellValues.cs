@@ -89,11 +89,18 @@ namespace OfficeIMO.Excel
 
         /// <summary>
         /// Compute-only coercion for parallel scenarios. Does not mutate DOM.
-        /// Uses SharedStringPlanner for string values.
+        /// Uses <see cref="SharedStringPlanner"/> for string values.
         /// </summary>
         private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCellNoDom(object value, SharedStringPlanner planner)
         {
-            return CoerceForCellInternal(value, planner);
+            var (cellValue, cellType) = CoerceValueHelper.Coerce(
+                value,
+                s =>
+                {
+                    planner.Note(s);
+                    return new CellValue(s);
+                });
+            return (cellValue, new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType));
         }
 
         /// <summary>
