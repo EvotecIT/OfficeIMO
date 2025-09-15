@@ -50,6 +50,15 @@ namespace OfficeIMO.Word.Markdown {
                     cancellationToken.ThrowIfCancellationRequested();
                     var el = elements[i];
                     if (el is WordParagraph p) {
+                        // Elements may include multiple WordParagraph wrappers for a single
+                        // underlying OpenXml paragraph (one per run/hyperlink). Rendering each
+                        // would duplicate content. Only render once per paragraph by processing
+                        // the first run wrapper (IsFirstRun), or paragraphs that have no runs at all.
+                        bool hasRuns = false;
+                        try { hasRuns = p.GetRuns().Any(); } catch { /* best-effort */ }
+                        if (hasRuns && !p.IsFirstRun) {
+                            continue; // skip subsequent run wrappers
+                        }
                         var text = ConvertParagraph(p, options);
                         if (!string.IsNullOrEmpty(text)) {
                             _output.AppendLine(text);

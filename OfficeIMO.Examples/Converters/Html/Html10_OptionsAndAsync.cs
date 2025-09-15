@@ -23,6 +23,7 @@ namespace OfficeIMO.Examples.Html {
             options.AdditionalMetaTags.Add(("x-example", "demo"));
             // Example link tag
             options.AdditionalLinkTags.Add(("stylesheet", "/css/site.css"));
+            options.IncludeDefaultCss = true;
             doc.SaveAsHtml(syncPath, options);
 
             // Also generate HTML asynchronously
@@ -30,7 +31,7 @@ namespace OfficeIMO.Examples.Html {
             await doc.SaveAsHtmlAsync(asyncPath);
 
             // Round-trip both sync and async html strings
-            string htmlSync = doc.ToHtml(new WordToHtmlOptions { IncludeFontStyles = true });
+            string htmlSync = doc.ToHtml(new WordToHtmlOptions { IncludeFontStyles = true, IncludeDefaultCss = true });
             using var roundTripSync = htmlSync.LoadFromHtml(new HtmlToWordOptions { FontFamily = "Calibri" });
 
             string htmlAsync = await doc.ToHtmlAsync();

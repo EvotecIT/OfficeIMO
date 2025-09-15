@@ -36,7 +36,7 @@ namespace OfficeIMO.Word.Markdown {
         private string GetCellText(WordTableCell cell, WordToMarkdownOptions options) {
             var sb = new StringBuilder();
             foreach (var p in cell.Paragraphs) {
-                if (sb.Length > 0) sb.Append("<br>");
+                if (sb.Length > 0) sb.Append('\n'); // hard break between paragraph lines inside a cell
                 sb.Append(RenderRuns(p, options));
             }
             return sb.ToString();
@@ -57,4 +57,3 @@ namespace OfficeIMO.Word.Markdown {
         }
     }
 }
-

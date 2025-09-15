@@ -54,9 +54,17 @@ namespace OfficeIMO.Word.Markdown {
             return sb.ToString();
         }
 
+        private static readonly System.Collections.Generic.HashSet<string> KnownMonospaceFonts = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase) {
+            "Consolas", "Courier New", "Lucida Console", "DejaVu Sans Mono",
+            "Menlo", "Monaco", "Inconsolata", "Source Code Pro", "Fira Code",
+            "Cascadia Mono", "Cascadia Code", "JetBrains Mono"
+        };
+
         private string RenderRuns(WordParagraph paragraph, WordToMarkdownOptions options) {
             var sb = new StringBuilder();
-            string? codeFont = options.FontFamily ?? FontResolver.Resolve("monospace");
+            // Only honor explicitly provided code font for inline code; otherwise use a conservative
+            // well-known monospace font list to avoid false positives (e.g., Calibri fallback).
+            string? preferredCodeFont = options.FontFamily; // do NOT auto-resolve generics for detection
             foreach (var run in paragraph.GetRuns()) {
                 if (run.IsFootNote && run.FootNote != null && run.FootNote.ReferenceId.HasValue) {
                     long id = run.FootNote.ReferenceId.Value;
@@ -94,7 +102,14 @@ namespace OfficeIMO.Word.Markdown {
                     text = $"=={text}==";
                 }
 
-                bool code = !string.IsNullOrEmpty(codeFont) && string.Equals(run.FontFamily, codeFont, StringComparison.OrdinalIgnoreCase);
+                bool code = false;
+                if (!string.IsNullOrEmpty(run.FontFamily)) {
+                    if (!string.IsNullOrEmpty(preferredCodeFont)) {
+                        code = string.Equals(run.FontFamily, preferredCodeFont, StringComparison.OrdinalIgnoreCase);
+                    } else {
+                        code = KnownMonospaceFonts.Contains(run.FontFamily!);
+                    }
+                }
                 if (code) {
                     // Choose a fence that is one longer than the longest run of backticks in the text
                     int longest = 0; int current = 0;

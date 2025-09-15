@@ -167,6 +167,7 @@ namespace OfficeIMO.Word.Markdown {
         /// </summary>
         public static string ToHtmlViaMarkdown(this WordDocument document, HtmlOptions? options = null) {
             options ??= new HtmlOptions { Kind = HtmlKind.Document, Style = HtmlStyle.Word };
+            options.Kind = HtmlKind.Document;
             if (options.Style == default) options.Style = HtmlStyle.Word;
             var md = document.ToMarkdown();
             var model = MarkdownReader.Parse(md);
@@ -195,6 +196,7 @@ namespace OfficeIMO.Word.Markdown {
         /// </summary>
         public static void SaveAsHtmlViaMarkdown(this WordDocument document, string path, HtmlOptions? options = null) {
             options ??= new HtmlOptions { Kind = HtmlKind.Document, Style = HtmlStyle.Word };
+            options.Kind = HtmlKind.Document;
             if (options.Style == default) options.Style = HtmlStyle.Word;
             var md = document.ToMarkdown();
             var model = MarkdownReader.Parse(md);
@@ -209,6 +211,7 @@ namespace OfficeIMO.Word.Markdown {
         /// </summary>
         public static async Task SaveAsHtmlViaMarkdownAsync(this WordDocument document, string path, HtmlOptions? options = null, CancellationToken cancellationToken = default) {
             options ??= new HtmlOptions { Kind = HtmlKind.Document, Style = HtmlStyle.Word };
+            options.Kind = HtmlKind.Document;
             if (options.Style == default) options.Style = HtmlStyle.Word;
             var md = await document.ToMarkdownAsync().ConfigureAwait(false);
             var model = MarkdownReader.Parse(md);

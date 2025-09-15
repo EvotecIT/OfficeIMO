@@ -76,6 +76,7 @@ namespace OfficeIMO.Examples.Word.EndToEnd {
                 // 4) Export to styled HTML (via Markdown) with TOC at top using simple options
                 string htmlPath = Path.Combine(outDir, "EndToEnd.html");
                 doc.SaveAsHtmlViaMarkdown(htmlPath, new HtmlOptions {
+                    Kind = HtmlKind.Document,
                     Style = HtmlStyle.Word,
                     Title = "End-to-End Demo",
                     IncludeAnchorLinks = true,
@@ -103,8 +104,21 @@ namespace OfficeIMO.Examples.Word.EndToEnd {
             using (var round = WordDocument.Load(fromMdDocx)) {
                 string md2 = round.ToMarkdown();
                 File.WriteAllText(Path.Combine(outDir, "EndToEnd.RoundTrip.md"), md2);
-                string html2 = round.ToHtml();
-                File.WriteAllText(Path.Combine(outDir, "EndToEnd.RoundTrip.html"), html2);
+                string rtHtmlPath = Path.Combine(outDir, "EndToEnd.RoundTrip.html");
+                round.SaveAsHtmlViaMarkdown(rtHtmlPath, new HtmlOptions {
+                    Kind = HtmlKind.Document,
+                    Style = HtmlStyle.Word,
+                    Title = "End-to-End Demo (Round-Trip)",
+                    IncludeAnchorLinks = true,
+                    BackToTopLinks = true,
+                    BackToTopMinLevel = 2,
+                    InjectTocAtTop = true,
+                    InjectTocTitle = "Contents",
+                    InjectTocMinLevel = 1,
+                    InjectTocMaxLevel = 3,
+                    InjectTocOrdered = false,
+                    InjectTocTitleLevel = 2
+                });
                 Console.WriteLine("✓ Round-trip: Word ⇄ Markdown and Word ⇄ HTML written");
             }
         }
