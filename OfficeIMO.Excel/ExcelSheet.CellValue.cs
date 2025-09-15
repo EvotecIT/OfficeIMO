@@ -375,6 +375,21 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Enables WrapText for every cell in a column within a given row range.
+        /// </summary>
+        public void WrapCells(int fromRow, int toRow, int column)
+        {
+            if (fromRow < 1 || toRow < fromRow || column < 1) return;
+            WriteLockConditional(() =>
+            {
+                for (int r = fromRow; r <= toRow; r++)
+                {
+                    ApplyWrapText(r, column);
+                }
+            });
+        }
+
+        /// <summary>
         /// Applies a horizontal alignment to a single cell.
         /// </summary>
         public void CellAlign(int row, int column, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues alignment)

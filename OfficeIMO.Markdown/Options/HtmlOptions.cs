@@ -53,4 +53,21 @@ public sealed class HtmlOptions {
 
     /// <summary>Optional theme color overrides for links, headings, and TOC.</summary>
     public ThemeColors Theme { get; set; } = new ThemeColors();
+
+    // TOC injection (used by higher-level pipelines like Word→Markdown→HTML)
+    /// <summary>
+    /// When true, injects a Table of Contents at the top of the document before rendering HTML.
+    /// This is applied by host pipelines that have access to the MarkdownDoc model.
+    /// </summary>
+    public bool InjectTocAtTop { get; set; } = false;
+    /// <summary>Title for the injected TOC. Default: "Contents".</summary>
+    public string InjectTocTitle { get; set; } = "Contents";
+    /// <summary>Minimum heading level to include in injected TOC. Default: 1.</summary>
+    public int InjectTocMinLevel { get; set; } = 1;
+    /// <summary>Maximum heading level to include in injected TOC. Default: 3.</summary>
+    public int InjectTocMaxLevel { get; set; } = 3;
+    /// <summary>Whether the injected TOC should be ordered (true) or unordered (false). Default: false.</summary>
+    public bool InjectTocOrdered { get; set; } = false;
+    /// <summary>Heading level used for the TOC title. Default: 2.</summary>
+    public int InjectTocTitleLevel { get; set; } = 2;
 }

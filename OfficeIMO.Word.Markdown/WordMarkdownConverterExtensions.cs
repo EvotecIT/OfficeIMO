@@ -170,6 +170,9 @@ namespace OfficeIMO.Word.Markdown {
             if (options.Style == default) options.Style = HtmlStyle.Word;
             var md = document.ToMarkdown();
             var model = MarkdownReader.Parse(md);
+            if (options.InjectTocAtTop && !model.Blocks.Any(b => string.Equals(b.GetType().Name, "TocPlaceholderBlock", System.StringComparison.Ordinal))) {
+                model.TocAtTop(options.InjectTocTitle, options.InjectTocMinLevel, options.InjectTocMaxLevel, options.InjectTocOrdered, options.InjectTocTitleLevel);
+            }
             return model.ToHtmlDocument(options);
         }
 
@@ -181,6 +184,9 @@ namespace OfficeIMO.Word.Markdown {
             if (options.Style == default) options.Style = HtmlStyle.Word;
             var md = document.ToMarkdown();
             var model = MarkdownReader.Parse(md);
+            if (options.InjectTocAtTop && !model.Blocks.Any(b => string.Equals(b.GetType().Name, "TocPlaceholderBlock", System.StringComparison.Ordinal))) {
+                model.TocAtTop(options.InjectTocTitle, options.InjectTocMinLevel, options.InjectTocMaxLevel, options.InjectTocOrdered, options.InjectTocTitleLevel);
+            }
             return model.ToHtmlFragment(options);
         }
 
@@ -192,6 +198,9 @@ namespace OfficeIMO.Word.Markdown {
             if (options.Style == default) options.Style = HtmlStyle.Word;
             var md = document.ToMarkdown();
             var model = MarkdownReader.Parse(md);
+            if (options.InjectTocAtTop && !model.Blocks.Any(b => string.Equals(b.GetType().Name, "TocPlaceholderBlock", System.StringComparison.Ordinal))) {
+                model.TocAtTop(options.InjectTocTitle, options.InjectTocMinLevel, options.InjectTocMaxLevel, options.InjectTocOrdered, options.InjectTocTitleLevel);
+            }
             model.SaveHtml(path, options);
         }
 
@@ -203,6 +212,9 @@ namespace OfficeIMO.Word.Markdown {
             if (options.Style == default) options.Style = HtmlStyle.Word;
             var md = await document.ToMarkdownAsync().ConfigureAwait(false);
             var model = MarkdownReader.Parse(md);
+            if (options.InjectTocAtTop && !model.Blocks.Any(b => string.Equals(b.GetType().Name, "TocPlaceholderBlock", System.StringComparison.Ordinal))) {
+                model.TocAtTop(options.InjectTocTitle, options.InjectTocMinLevel, options.InjectTocMaxLevel, options.InjectTocOrdered, options.InjectTocTitleLevel);
+            }
             // MarkdownDoc.SaveHtml does sync I/O; for now, delegate synchronously to keep surface small
             model.SaveHtml(path, options);
         }

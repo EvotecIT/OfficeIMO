@@ -30,10 +30,7 @@ namespace OfficeIMO.Examples.Html {
             table.Rows[1].Cells[1].Paragraphs[0].Text = "Data 2";
 
             string htmlPath = Path.Combine(folderPath, "Html02_FromWord.html");
-            doc.SaveAsHtml(htmlPath, new WordToHtmlOptions {
-                IncludeFontStyles = true,
-                IncludeListStyles = true
-            });
+            doc.SaveAsHtml(htmlPath, new WordToHtmlOptions { IncludeDefaultCss = true, IncludeFontStyles = true, IncludeListStyles = true });
 
             string docxPath = Path.Combine(folderPath, "Html02_FromWord.docx");
             doc.Save(docxPath);

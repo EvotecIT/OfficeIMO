@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.Html {
             string docxPath = Path.Combine(folderPath, "Html01_Basics.docx");
             doc.Save(docxPath);
 
-            string roundTrip = doc.ToHtml(new WordToHtmlOptions { IncludeFontStyles = true, IncludeListStyles = true });
+            string roundTrip = doc.ToHtml(new WordToHtmlOptions { IncludeFontStyles = true, IncludeListStyles = true, IncludeDefaultCss = true });
             string htmlOut = Path.Combine(folderPath, "Html01_Basics.roundtrip.html");
             File.WriteAllText(htmlOut, roundTrip);
 

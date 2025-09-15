@@ -3,6 +3,7 @@ using System.IO;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Markdown;
+using OfficeIMO.Markdown;
 using OfficeIMO.Word.Fluent;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -35,11 +36,20 @@ namespace OfficeIMO.Examples.Word.EndToEnd {
                         doc.AddParagraph($"Topic {ch}.{sec}").Style = WordParagraphStyles.Heading2;
                         // a few paragraphs per topic
                         for (int p = 0; p < 4; p++) doc.AddParagraph(lorem);
-                        // a list
+                        // Demonstrate lists: bulleted + nested numbered under this topic
                         var list = doc.AddList(WordListStyle.Bulleted);
                         list.AddItem($"Point A{ch}{sec}");
                         list.AddItem($"Point B{ch}{sec}");
                         list.AddItem($"Point C{ch}{sec}");
+                        // Nested numbered list under the last bullet for variety
+                        var fluent = new WordFluentDocument(doc);
+                        fluent.List(l => l.Numbered()
+                            .Item($"Nested 1 for {ch}.{sec}")
+                            .Indent()
+                            .Item($"Nested 1.1 {ch}.{sec}")
+                            .Item($"Nested 1.2 {ch}.{sec}")
+                            .Outdent()
+                            .Item($"Nested 2 for {ch}.{sec}"));
                         // a table
                         var t = doc.AddTable(6, 3);
                         t.Rows[0].Cells[0].Paragraphs[0].Text = "Col1";
@@ -63,10 +73,22 @@ namespace OfficeIMO.Examples.Word.EndToEnd {
                 doc.SaveAsMarkdown(mdPath, new WordToMarkdownOptions());
                 Console.WriteLine($"✓ Markdown: {mdPath}");
 
-                // 4) Export to HTML
+                // 4) Export to styled HTML (via Markdown) with TOC at top using simple options
                 string htmlPath = Path.Combine(outDir, "EndToEnd.html");
-                doc.SaveAsHtml(htmlPath, new WordToHtmlOptions { IncludeFontStyles = true, IncludeListStyles = true });
-                Console.WriteLine($"✓ HTML: {htmlPath}");
+                doc.SaveAsHtmlViaMarkdown(htmlPath, new HtmlOptions {
+                    Style = HtmlStyle.Word,
+                    Title = "End-to-End Demo",
+                    IncludeAnchorLinks = true,
+                    BackToTopLinks = true,
+                    BackToTopMinLevel = 2,
+                    InjectTocAtTop = true,
+                    InjectTocTitle = "Contents",
+                    InjectTocMinLevel = 1,
+                    InjectTocMaxLevel = 3,
+                    InjectTocOrdered = false,
+                    InjectTocTitleLevel = 2
+                });
+                Console.WriteLine($"✓ Styled HTML (via Markdown+Word style): {htmlPath}");
             }
 
             // 5) Load the generated Markdown back into Word

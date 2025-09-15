@@ -73,6 +73,104 @@ namespace OfficeIMO.Excel.Fluent
                 foreach (var (k, v) in pairs) KeyValue(k, v);
                 return this;
             }
+
+            /// <summary>
+            /// Renders a table inside this column starting at the current row and returns the A1 range.
+            /// This variant avoids freezing panes to prevent conflicts when multiple tables are placed per sheet.
+            /// </summary>
+            public string TableFrom<T>(IEnumerable<T> items, string? title = null,
+                System.Action<ObjectFlattenerOptions>? configure = null,
+                TableStyle style = TableStyle.TableStyleMedium9,
+                bool autoFilter = true,
+                System.Action<TableVisualOptions>? visuals = null)
+            {
+                if (!string.IsNullOrWhiteSpace(title)) Section(title!);
+
+                var list = items?.ToList() ?? new List<T>();
+                if (list.Count == 0)
+                {
+                    _sheet.Cell(_row, _baseCol, "(no data)");
+                    _row++;
+                    return $"{SheetComposer.ColumnLetter(_baseCol)}{_row-1}:{SheetComposer.ColumnLetter(_baseCol)}{_row-1}";
+                }
+
+                var opts = new ObjectFlattenerOptions();
+                configure?.Invoke(opts);
+                var flattener = new ObjectFlattener();
+
+                var rows = new List<Dictionary<string, object?>>();
+                foreach (var item in list) rows.Add(flattener.Flatten(item, opts));
+
+                var paths = opts.Columns?.ToList() ?? rows.SelectMany(r => r.Keys)
+                    .Where(k => !string.IsNullOrWhiteSpace(k))
+                    .Distinct(System.StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(s => s, System.StringComparer.Ordinal)
+                    .ToList();
+                if (paths.Count == 0)
+                {
+                    _sheet.Cell(_row, _baseCol, "(no tabular columns)");
+                    _row++;
+                    return $"{SheetComposer.ColumnLetter(_baseCol)}{_row-1}:{SheetComposer.ColumnLetter(_baseCol)}{_row-1}";
+                }
+
+                int headerRow = _row;
+                var headersT = paths.Select(p => SheetComposer.TransformHeader(p, opts)).ToList();
+                var usedHeaders = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+                for (int i = 0; i < headersT.Count; i++)
+                {
+                    string baseName = string.IsNullOrWhiteSpace(headersT[i]) ? $"Column{i+1}" : headersT[i];
+                    string candidate = baseName; int suffix = 2;
+                    while (!usedHeaders.Add(candidate)) candidate = $"{baseName} ({suffix++})";
+                    headersT[i] = candidate;
+                }
+                for (int i = 0; i < headersT.Count; i++)
+                {
+                    _sheet.Cell(headerRow, _baseCol + i, headersT[i]);
+                    _sheet.CellBold(headerRow, _baseCol + i, true);
+                    _sheet.CellBackground(headerRow, _baseCol + i, _theme.KeyFillHex);
+                }
+                _row++;
+                foreach (var dict in rows)
+                {
+                    for (int i = 0; i < paths.Count; i++)
+                    {
+                        dict.TryGetValue(paths[i], out var val);
+                        _sheet.Cell(_row, _baseCol + i, val ?? string.Empty);
+                    }
+                    _row++;
+                }
+
+                int lastRow = _row - 1;
+                string start = SheetComposer.ColumnLetter(_baseCol) + headerRow.ToString();
+                string end = SheetComposer.ColumnLetter(_baseCol + paths.Count - 1) + lastRow.ToString();
+                string range = start + ":" + end;
+
+                string tableName = title ?? "Table";
+                _sheet.AddTable(range, hasHeader: true, name: tableName, style: style, includeAutoFilter: autoFilter);
+
+                var viz = new TableVisualOptions(); visuals?.Invoke(viz);
+                try
+                {
+                    for (int i = 0; i < headersT.Count; i++)
+                    {
+                        string hdr = headersT[i];
+                        string colRange = $"{SheetComposer.ColumnLetter(_baseCol + i)}{headerRow + 1}:{SheetComposer.ColumnLetter(_baseCol + i)}{_row - 1}";
+                        if (viz.NumericColumnFormats.TryGetValue(hdr, out var fmt))
+                            _sheet.ColumnStyleByHeader(hdr).NumberFormat(fmt);
+                        else if (viz.NumericColumnDecimals.TryGetValue(hdr, out var dec))
+                            _sheet.ColumnStyleByHeader(hdr).Number(dec);
+                        if (viz.DataBars.TryGetValue(hdr, out var color))
+                            _sheet.AddConditionalDataBar(colRange, color);
+                        if (viz.IconSets.TryGetValue(hdr, out var icon))
+                            _sheet.AddConditionalIconSet(colRange, icon.IconSet, icon.ShowValue, icon.ReverseOrder, icon.PercentThresholds, icon.NumberThresholds);
+                        else if (viz.IconSetColumns.Contains(hdr))
+                            _sheet.AddConditionalIconSet(colRange);
+                    }
+                }
+                catch { }
+
+                return range;
+            }
         }
 
         /// <summary>
