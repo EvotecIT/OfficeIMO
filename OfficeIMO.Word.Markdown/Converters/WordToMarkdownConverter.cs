@@ -56,10 +56,19 @@ namespace OfficeIMO.Word.Markdown {
                         // the first run wrapper (IsFirstRun), or paragraphs that have no runs at all.
                         bool hasRuns = false;
                         try { hasRuns = p.GetRuns().Any(); } catch { /* best-effort */ }
+                        // Detect checkbox state across sibling wrappers for the same underlying paragraph
+                        bool paraHasCheckbox = p.IsCheckBox;
+                        bool paraCheckboxChecked = p.CheckBox?.IsChecked == true;
+                        // Look ahead within the same paragraph group
+                        int j = i + 1;
+                        while (j < elements.Count && elements[j] is WordParagraph p2 && p2.Equals(p)) {
+                            if (p2.IsCheckBox) { paraHasCheckbox = true; paraCheckboxChecked = p2.CheckBox?.IsChecked == true; }
+                            j++;
+                        }
                         if (hasRuns && !p.IsFirstRun) {
                             continue; // skip subsequent run wrappers
                         }
-                        var text = ConvertParagraph(p, options);
+                        var text = ConvertParagraph(p, options, paraHasCheckbox, paraCheckboxChecked);
                         if (!string.IsNullOrEmpty(text)) {
                             _output.AppendLine(text);
                         }

@@ -7,7 +7,7 @@ using System.Text;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class WordToMarkdownConverter {
-        private string ConvertParagraph(WordParagraph paragraph, WordToMarkdownOptions options) {
+        private string ConvertParagraph(WordParagraph paragraph, WordToMarkdownOptions options, bool? hasCheckboxOverride = null, bool checkboxCheckedOverride = false) {
             const string codeLangPrefix = "CodeLang_";
             string? styleId = paragraph.StyleId;
             string? codeFont = options.FontFamily ?? FontResolver.Resolve("monospace");
@@ -43,9 +43,9 @@ namespace OfficeIMO.Word.Markdown {
                 sb.Append(new string(' ', level * 2));
                 sb.Append(listInfo.Value.Ordered ? "1. " : "- ");
                 // Task list (checkbox) mapping — look across all runs in the underlying paragraph
-                bool hasCheckbox = paragraph.IsCheckBox;
-                bool done = paragraph.CheckBox?.IsChecked == true;
-                if (!hasCheckbox) {
+                bool hasCheckbox = hasCheckboxOverride ?? paragraph.IsCheckBox;
+                bool done = hasCheckboxOverride.HasValue ? checkboxCheckedOverride : (paragraph.CheckBox?.IsChecked == true);
+                if (!hasCheckbox && !hasCheckboxOverride.HasValue) {
                     try {
                         foreach (var r in paragraph.GetRuns()) { if (r.IsCheckBox) { hasCheckbox = true; done = r.CheckBox?.IsChecked == true; break; } }
                     } catch { /* best-effort */ }
