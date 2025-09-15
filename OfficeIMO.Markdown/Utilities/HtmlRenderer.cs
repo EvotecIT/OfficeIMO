@@ -246,21 +246,53 @@ internal static class HtmlRenderer {
         }
         if (relevant.Count == 0) return string.Empty;
 
-        // Build nested list of headings
+        // Build nested list of headings, ensuring nested lists are children of their parent <li>
+        // HTML shape produced (example):
+        // <ul>
+        //   <li>H2
+        //     <ul>
+        //       <li>H3</li>
+        //       <li>H3</li>
+        //     </ul>
+        //   </li>
+        //   <li>H2</li>
+        // </ul>
         var listTag = opts.Ordered ? "ol" : "ul";
         var sbNested = new StringBuilder();
         int baseLevel = (opts.NormalizeToMinLevel ? relevant.Min(r => r.Level) : 1);
-        int current = baseLevel - 1;
-        while (current < baseLevel) { sbNested.Append('<').Append(listTag).Append('>'); current++; }
-        foreach (var e in relevant) {
-            while (current < e.Level) { sbNested.Append('<').Append(listTag).Append('>'); current++; }
-            while (current > e.Level) { sbNested.Append("</").Append(listTag).Append('>'); current--; }
+        int currentDepth = 0; // relative to baseLevel
+        bool any = false;
+        sbNested.Append('<').Append(listTag).Append('>');
+        for (int i = 0; i < relevant.Count; i++) {
+            var e = relevant[i];
+            int depth = Math.Max(0, e.Level - baseLevel);
+
+            if (any) {
+                if (depth == currentDepth) {
+                    // sibling at same depth: close previous item
+                    sbNested.Append("</li>");
+                } else if (depth > currentDepth) {
+                    // dive: open nested lists inside the current <li>
+                    for (int d = currentDepth; d < depth; d++) sbNested.Append('<').Append(listTag).Append('>');
+                } else /* depth < currentDepth */ {
+                    // ascend: close open item and unwind lists
+                    for (int d = currentDepth; d > depth; d--) sbNested.Append("</li></").Append(listTag).Append('>');
+                    // close the parent item at the new depth as we move to a sibling
+                    sbNested.Append("</li>");
+                }
+            }
+
             sbNested.Append("<li><a href=\"")
                     .Append('#').Append(System.Net.WebUtility.HtmlEncode(e.Anchor))
-                    .Append("\">").Append(System.Net.WebUtility.HtmlEncode(e.Text))
-                    .Append("</a></li>");
+                    .Append("\">")
+                    .Append(System.Net.WebUtility.HtmlEncode(e.Text))
+                    .Append("</a>");
+
+            currentDepth = depth; any = true;
         }
-        while (current >= baseLevel) { sbNested.Append("</").Append(listTag).Append('>'); current--; }
+        if (any) sbNested.Append("</li>");
+        for (int d = currentDepth; d > 0; d--) sbNested.Append("</").Append(listTag).Append("></li>");
+        sbNested.Append("</").Append(listTag).Append('>');
 
         // Collapsible panel (legacy + styled)
         if (opts.Collapsible) {
@@ -276,8 +308,8 @@ internal static class HtmlRenderer {
 
         // Enhanced layouts: wrap in <nav> with classes for styling/scrollspy when requested
         bool enhanced = opts.Layout != TocLayout.List || opts.ScrollSpy || opts.Sticky;
-            if (enhanced) {
-                var classes = new StringBuilder("md-toc");
+        if (enhanced) {
+            var classes = new StringBuilder("md-toc");
                 if (opts.Layout == TocLayout.Panel) classes.Append(" panel");
                 if (opts.Layout == TocLayout.SidebarRight) classes.Append(" sidebar right");
                 if (opts.Layout == TocLayout.SidebarLeft) classes.Append(" sidebar left");
@@ -313,9 +345,16 @@ internal static class HtmlRenderer {
         return sbNested.ToString();
     }
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _scopedBaseCssCache = new System.Collections.Concurrent.ConcurrentDictionary<string, string>(System.StringComparer.Ordinal);
+
     private static string? BuildCss(HtmlOptions options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks) {
         cssLinkTag = null; cssToWrite = null; extraHeadLinks = null;
-        var baseCss = ScopeCss(HtmlResources.GetStyleCss(options.Style) + HtmlResources.CommonExtraCss, options.CssScopeSelector);
+        // Cache scoped base CSS (style preset + common extras) by (style|scopeSelector)
+        string cacheKey = ((int)options.Style).ToString() + "|" + (options.CssScopeSelector ?? string.Empty);
+        if (!_scopedBaseCssCache.TryGetValue(cacheKey, out var baseCss)) {
+            baseCss = ScopeCss(HtmlResources.GetStyleCss(options.Style) + HtmlResources.CommonExtraCss, options.CssScopeSelector);
+            _scopedBaseCssCache[cacheKey] = baseCss;
+        }
 
         // Additional CSS/JS URLs may be included in head as link/script or inlined depending on AssetMode
         StringBuilder headLinks = new StringBuilder();

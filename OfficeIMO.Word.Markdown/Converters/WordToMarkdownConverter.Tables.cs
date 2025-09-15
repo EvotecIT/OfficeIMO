@@ -35,9 +35,25 @@ namespace OfficeIMO.Word.Markdown {
 
         private string GetCellText(WordTableCell cell, WordToMarkdownOptions options) {
             var sb = new StringBuilder();
+            bool first = true;
             foreach (var p in cell.Paragraphs) {
-                if (sb.Length > 0) sb.Append('\n'); // hard break between paragraph lines inside a cell
-                sb.Append(RenderRuns(p, options));
+                bool hasRuns = false;
+                try { hasRuns = p.GetRuns().Any(); } catch { }
+                // Render only once per underlying OpenXml paragraph:
+                // - If there are runs, render the first-run wrapper only
+                // - If there are no runs, render this paragraph once
+                if (hasRuns && !p.IsFirstRun) continue;
+
+                var text = RenderRuns(p, options);
+                // Guard against accidental newlines inside a cell which would break Markdown tables
+                if (!string.IsNullOrEmpty(text)) {
+                    text = text.Replace("\r\n", " ").Replace('\n', ' ').Replace('\r', ' ');
+                    // Escape pipes to retain column boundaries
+                    text = text.Replace("|", "\\|");
+                    if (!first) sb.Append("<br/>"); // explicit line break between distinct paragraphs
+                    sb.Append(text);
+                    first = false;
+                }
             }
             return sb.ToString();
         }

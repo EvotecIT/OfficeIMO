@@ -15,6 +15,15 @@ public static partial class MarkdownReader {
         while (pos < text.Length) {
             // Hard break signal encoded by paragraph joiner as a bare '\n'
             if (text[pos] == '\n') { seq.HardBreak(); pos++; continue; }
+            // HTML-style line breaks in source (commonly used inside table cells): <br>, <br/>, <br />
+            if (text[pos] == '<') {
+                // case-insensitive compare for small tokens only; keep compatible with .NET Framework
+                int rem = text.Length - pos;
+                bool br1 = rem >= 4 && (text[pos + 1] == 'b' || text[pos + 1] == 'B') && (text[pos + 2] == 'r' || text[pos + 2] == 'R') && text[pos + 3] == '>';
+                bool br2 = rem >= 5 && (text[pos + 1] == 'b' || text[pos + 1] == 'B') && (text[pos + 2] == 'r' || text[pos + 2] == 'R') && text[pos + 3] == '/' && text[pos + 4] == '>';
+                bool br3 = rem >= 6 && (text[pos + 1] == 'b' || text[pos + 1] == 'B') && (text[pos + 2] == 'r' || text[pos + 2] == 'R') && text[pos + 3] == ' ' && text[pos + 4] == '/' && text[pos + 5] == '>';
+                if (br1 || br2 || br3) { seq.HardBreak(); pos += br1 ? 4 : (br2 ? 5 : 6); continue; }
+            }
             // Backslash escape: consume next char literally
             if (text[pos] == '\\' && pos + 1 < text.Length) {
                 seq.Text(text[pos + 1].ToString());

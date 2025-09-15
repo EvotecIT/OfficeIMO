@@ -252,7 +252,10 @@ namespace OfficeIMO.Excel {
             return int.Parse(digits, CultureInfo.InvariantCulture);
         }
 
-        private string GetCellText(Cell cell) {
+        // Exposed as internal so other components in the same assembly (e.g., SheetComposer)
+        // can reuse the shared-string/inline-string resolution logic when they already have
+        // a Cell reference. Prefer using public TryGetCellText(row,col, out text) when possible.
+        internal string GetCellText(Cell cell) {
             // Shared string lookup
             if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString)
             {

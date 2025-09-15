@@ -66,6 +66,12 @@ namespace OfficeIMO.Word.Markdown {
             // well-known monospace font list to avoid false positives (e.g., Calibri fallback).
             string? preferredCodeFont = options.FontFamily; // do NOT auto-resolve generics for detection
             foreach (var run in paragraph.GetRuns()) {
+                // Respect explicit line breaks embedded in runs (non-page breaks)
+                if (run.Break != null && run.PageBreak == null) {
+                    // Emit as <br/> marker to stay safe inside tables; the Markdown reader will
+                    // translate this back into a hard break when converting to Word/HTML.
+                    if (sb.Length > 0) sb.Append("<br/>");
+                }
                 if (run.IsFootNote && run.FootNote != null && run.FootNote.ReferenceId.HasValue) {
                     long id = run.FootNote.ReferenceId.Value;
                     sb.Append($"[^{id}]");

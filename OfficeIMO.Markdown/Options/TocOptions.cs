@@ -4,10 +4,18 @@ namespace OfficeIMO.Markdown;
 /// Options controlling TOC generation.
 /// </summary>
 public sealed class TocOptions {
+    /// <summary>Default minimum heading level.</summary>
+    public const int DefaultMinLevel = 1;
+    /// <summary>Default maximum heading level.</summary>
+    public const int DefaultMaxLevel = 3;
+    /// <summary>Default title heading level.</summary>
+    public const int DefaultTitleLevel = 2;
+    /// <summary>Default sidebar width in pixels.</summary>
+    public const int DefaultSidebarWidthPx = 260;
     /// <summary>Minimum heading level to include (default 1).</summary>
-    public int MinLevel { get; set; } = 1;
+    public int MinLevel { get; set; } = DefaultMinLevel;
     /// <summary>Maximum heading level to include (default 3).</summary>
-    public int MaxLevel { get; set; } = 3;
+    public int MaxLevel { get; set; } = DefaultMaxLevel;
     /// <summary>When true, generates an ordered list; otherwise unordered (default).</summary>
     public bool Ordered { get; set; } = false;
     /// <summary>Include a title heading above the TOC (default true).</summary>
@@ -15,7 +23,7 @@ public sealed class TocOptions {
     /// <summary>Title text (default "Table of Contents").</summary>
     public string Title { get; set; } = "Table of Contents";
     /// <summary>Heading level for the title (default 2).</summary>
-    public int TitleLevel { get; set; } = 2;
+    public int TitleLevel { get; set; } = DefaultTitleLevel;
     /// <summary>Limits TOC scope. Document = all headings; PreviousHeading = only headings under the nearest preceding heading; HeadingTitle = headings under the named heading.</summary>
     public TocScope Scope { get; set; } = TocScope.Document;
     /// <summary>For Scope=HeadingTitle, the heading text to scope under (case-insensitive).</summary>

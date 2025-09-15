@@ -32,7 +32,18 @@ public static partial class MarkdownReader {
             if (t.StartsWith("[TOC", System.StringComparison.OrdinalIgnoreCase) && t.EndsWith("]")) {
                 var inner = t.Substring(4, t.Length - 5).Trim(); // after [TOC and before ]
                 var opts = new TocOptions();
-                if (!string.IsNullOrWhiteSpace(inner)) ApplyAttributes(inner, opts);
+                if (!string.IsNullOrWhiteSpace(inner)) {
+                    try { ApplyAttributes(inner, opts); }
+                    catch { /* ignore malformed attributes; fall back to defaults */ }
+                }
+                // Clamp levels and sanitize options
+                if (opts.MinLevel < 1) opts.MinLevel = TocOptions.DefaultMinLevel;
+                if (opts.MaxLevel < opts.MinLevel) opts.MaxLevel = opts.MinLevel;
+                if (opts.MaxLevel > 6) opts.MaxLevel = 6;
+                if (opts.MinLevel > 6) opts.MinLevel = 6;
+                if (opts.TitleLevel < 1) opts.TitleLevel = TocOptions.DefaultTitleLevel;
+                if (opts.TitleLevel > 6) opts.TitleLevel = 6;
+                if (opts.WidthPx.HasValue && opts.WidthPx.Value <= 0) opts.WidthPx = TocOptions.DefaultSidebarWidthPx;
                 var ph = new TocPlaceholderBlock(opts);
                 doc.Add(ph); i++; return true;
             }
@@ -97,4 +108,3 @@ public static partial class MarkdownReader {
         }
     }
 }
-
