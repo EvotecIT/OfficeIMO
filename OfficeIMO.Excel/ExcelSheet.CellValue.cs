@@ -133,6 +133,17 @@ namespace OfficeIMO.Excel {
             return CoerceForCellInternal(value, planner);
         }
 
+        // Compatibility overload used by older call sites (e.g., on master) which did not pass a planner.
+        // For single-cell writes this creates a short-lived planner, applies to the document, and returns the fixed-up values.
+        private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCell(object value)
+        {
+            var planner = new SharedStringPlanner();
+            var (cv, dt) = CoerceForCellInternal(value, planner);
+            var prepared = new[] { (Row: 0, Col: 0, Val: cv, Type: dt) };
+            planner.ApplyAndFixup(prepared, _excelDocument);
+            return (prepared[0].Val, prepared[0].Type);
+        }
+
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, string value) {
             WriteLockConditional(() => CellValueCore(row, column, value));
