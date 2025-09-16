@@ -22,15 +22,11 @@ namespace OfficeIMO.Excel {
         // Core implementation: single source of truth (no locks here)
         private void CellValueCore(int row, int column, object value)
         {
-            var ssPlanner = new SharedStringPlanner();
-            var (cellValue, dataType) = CoerceForCell(value, ssPlanner);
-
-            var prepared = new[] { (Row: row, Col: column, Val: cellValue, Type: dataType) };
-            ssPlanner.ApplyAndFixup(prepared, _excelDocument);
+            var (cellValue, dataType) = CoerceForCell(value);
 
             var cell = GetCell(row, column);
-            cell.CellValue = prepared[0].Val;
-            cell.DataType = prepared[0].Type;
+            cell.CellValue = cellValue;
+            cell.DataType = dataType;
 
             // Automatically apply date format for DateTime values
             // Using Excel's built-in date format code 14 (invariant short date)
@@ -47,102 +43,19 @@ namespace OfficeIMO.Excel {
         }
 
         // Core coercion logic shared between sequential and parallel operations
-        private static (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCellInternal(object value, SharedStringPlanner planner)
-        {
-            switch (value)
-            {
-                case null:
-                    return (new CellValue(string.Empty), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.String));
-                case string s:
-                    // Sanitize dangerous control characters and clamp length before sharing
-                    var safe = Utilities.ExcelSanitizer.SanitizeString(s);
-                    planner.Note(safe);
-                    return (new CellValue(safe), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-                case double d:
-                    return (new CellValue(d.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case float f:
-                    return (new CellValue(Convert.ToDouble(f).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case decimal dec:
-                    return (new CellValue(dec.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case int i:
-                    return (new CellValue(((double)i).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case long l:
-                    return (new CellValue(((double)l).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case DateTime dt:
-                    return (new CellValue(dt.ToOADate().ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case DateTimeOffset dto:
-                    return (new CellValue(dto.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-#if NET6_0_OR_GREATER
-                case DateOnly dateOnly:
-                    return (new CellValue(dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate().ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case TimeOnly timeOnly:
-                    return (new CellValue(timeOnly.ToTimeSpan().TotalDays.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-#endif
-                case TimeSpan ts:
-                    return (new CellValue(ts.TotalDays.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case bool b:
-                    return (new CellValue(b ? "1" : "0"), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean));
-                case uint ui:
-                    return (new CellValue(((double)ui).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case ulong ul:
-                    return (new CellValue(((double)ul).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case ushort us:
-                    return (new CellValue(((double)us).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case byte by:
-                    return (new CellValue(((double)by).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case sbyte sb:
-                    return (new CellValue(((double)sb).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case short sh:
-                    return (new CellValue(((double)sh).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case Guid guid:
-                {
-                    string text = guid.ToString();
-                    planner.Note(text);
-                    return (new CellValue(text), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-                }
-                case Enum e:
-                {
-                    string name = e.ToString();
-                    planner.Note(name);
-                    return (new CellValue(name), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-                }
-                case char ch:
-                {
-                    string text = ch.ToString();
-                    planner.Note(text);
-                    return (new CellValue(text), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-                }
-                case System.DBNull:
-                    return (new CellValue(string.Empty), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.String));
-                case Uri uri:
-                {
-                    string text = uri.ToString();
-                    planner.Note(text);
-                    return (new CellValue(text), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-                }
-                default:
-                    string stringValue = value?.ToString() ?? string.Empty;
-                    planner.Note(stringValue);
-                    return (new CellValue(stringValue), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-            }
-        }
-
-        // Compute-only coercion (no OpenXML mutations, strings queued via planner)
-        private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCell(object value, SharedStringPlanner planner)
-        {
-            return CoerceForCellInternal(value, planner);
-        }
-
-        // Compatibility overload used by older call sites (e.g., on master) which did not pass a planner.
-        // For single-cell writes this creates a short-lived planner, applies to the document, and returns the fixed-up values.
         private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCell(object value)
         {
-            var planner = new SharedStringPlanner();
-            var (cv, dt) = CoerceForCellInternal(value, planner);
-            var prepared = new[] { (Row: 0, Col: 0, Val: cv, Type: dt) };
-            planner.ApplyAndFixup(prepared, _excelDocument);
-            return (prepared[0].Val, prepared[0].Type);
+            var (cellValue, cellType) = CoerceValueHelper.Coerce(
+                value,
+                s =>
+                {
+                    int idx = _excelDocument.GetSharedStringIndex(s);
+                    return new CellValue(idx.ToString(CultureInfo.InvariantCulture));
+                });
+            return (cellValue, new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType));
         }
+
+        
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, string value) {
@@ -831,4 +744,3 @@ namespace OfficeIMO.Excel {
 
     }
 }
-
