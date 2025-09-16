@@ -3,12 +3,6 @@ using System.IO;
 
 namespace OfficeIMO.Examples {
     internal static class Program {
-        private static bool Flag(string name, bool defaultValue) {
-            var v = Environment.GetEnvironmentVariable(name);
-            if (string.IsNullOrWhiteSpace(v)) return defaultValue;
-            v = v.Trim();
-            return v == "1" || v.Equals("true", StringComparison.OrdinalIgnoreCase) || v.Equals("yes", StringComparison.OrdinalIgnoreCase) || v.Equals("on", StringComparison.OrdinalIgnoreCase);
-        }
         private static void Setup(string path) {
             if (!Directory.Exists(path)) {
                 Directory.CreateDirectory(path);
