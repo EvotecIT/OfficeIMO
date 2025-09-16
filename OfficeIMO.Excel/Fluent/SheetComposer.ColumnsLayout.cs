@@ -20,12 +20,24 @@ namespace OfficeIMO.Excel.Fluent
             private readonly int _baseCol;
             private readonly int _startRow;
             private int _row;
+            private int _maxColUsed;
+            private int? _maxTableColumns;
+            private OverflowMode _overflowMode = OverflowMode.Throw;
 
             internal ColumnComposer(ExcelSheet sheet, SheetTheme theme, int startRow, int baseCol)
-            { _sheet = sheet; _theme = theme; _startRow = startRow; _row = startRow; _baseCol = baseCol; }
+            { _sheet = sheet; _theme = theme; _startRow = startRow; _row = startRow; _baseCol = baseCol; _maxColUsed = baseCol; }
 
             /// <summary>Total number of rows consumed by this column since it was created.</summary>
             public int RowsUsed => _row - _startRow;
+
+            /// <summary>Total number of sheet columns used by this column content (>=1).</summary>
+            public int ColumnsUsed => Math.Max(1, _maxColUsed - _baseCol + 1);
+
+            internal void SetGridConstraints(int columnWidth, OverflowMode overflow)
+            {
+                _maxTableColumns = Math.Max(1, columnWidth);
+                _overflowMode = overflow;
+            }
 
             /// <summary>Adds vertical space.</summary>
             /// <param name="rows">Number of rows to skip (minimum 1).</param>
@@ -37,6 +49,7 @@ namespace OfficeIMO.Excel.Fluent
                 _sheet.Cell(_row, _baseCol, text);
                 _sheet.CellBold(_row, _baseCol, true);
                 _sheet.CellBackground(_row, _baseCol, _theme.SectionHeaderFillHex);
+                if (_baseCol > 0) _maxColUsed = Math.Max(_maxColUsed, _baseCol);
                 _row++;
                 return this;
             }
@@ -45,6 +58,7 @@ namespace OfficeIMO.Excel.Fluent
             public ColumnComposer Paragraph(string text)
             {
                 if (!string.IsNullOrEmpty(text)) { _sheet.Cell(_row, _baseCol, text); _row++; }
+                if (_baseCol > 0) _maxColUsed = Math.Max(_maxColUsed, _baseCol);
                 return this;
             }
 
@@ -53,6 +67,7 @@ namespace OfficeIMO.Excel.Fluent
             {
                 if (items == null) return this;
                 foreach (var item in items) { _sheet.Cell(_row, _baseCol, $"• {item}"); _row++; }
+                if (_baseCol > 0) _maxColUsed = Math.Max(_maxColUsed, _baseCol);
                 return this;
             }
 
@@ -63,6 +78,7 @@ namespace OfficeIMO.Excel.Fluent
                 _sheet.CellBold(_row, _baseCol, true);
                 _sheet.CellBackground(_row, _baseCol, _theme.KeyFillHex);
                 _sheet.Cell(_row, _baseCol + 1, value ?? string.Empty);
+                _maxColUsed = Math.Max(_maxColUsed, _baseCol + 1);
                 _row++;
                 return this;
             }
@@ -115,7 +131,36 @@ namespace OfficeIMO.Excel.Fluent
                 }
 
                 int headerRow = _row;
-                var headersT = paths.Select(p => SheetComposer.TransformHeader(p, opts)).ToList();
+                // Enforce fixed-grid overflow behavior if configured
+                List<string> effPaths = paths;
+                bool summarize = false;
+                if (_maxTableColumns.HasValue && paths.Count > _maxTableColumns.Value)
+                {
+                    if (_overflowMode == OverflowMode.Throw)
+                        throw new InvalidOperationException($"Table has {paths.Count} columns but only {_maxTableColumns.Value} fit in the fixed grid. Increase columnWidth or use ColumnsAdaptive(...).");
+                    if (_overflowMode == OverflowMode.Shrink)
+                    {
+                        effPaths = paths.Take(_maxTableColumns.Value).ToList();
+                        try { _sheet.EffectiveExecution.ReportInfo($"[Columns Shrink] Sheet='{_sheet.Name}', baseCol={_baseCol}, kept={effPaths.Count}, dropped={paths.Count - effPaths.Count}"); } catch { }
+                    }
+                    else if (_overflowMode == OverflowMode.Summarize)
+                    {
+                        int keep = Math.Max(1, _maxTableColumns.Value - 1);
+                        if (keep <= 0)
+                        {
+                            effPaths = new List<string> { "__More__" };
+                        }
+                        else
+                        {
+                            effPaths = paths.Take(keep).ToList();
+                            effPaths.Add("__More__");
+                        }
+                        summarize = true;
+                        try { _sheet.EffectiveExecution.ReportInfo($"[Columns Summarize] Sheet='{_sheet.Name}', baseCol={_baseCol}, kept={(effPaths.Contains("__More__") ? effPaths.Count - 1 : effPaths.Count)}, summarized={paths.Count - (effPaths.Contains("__More__") ? effPaths.Count - 1 : effPaths.Count)}"); } catch { }
+                    }
+                }
+
+                var headersT = effPaths.Select(p => p == "__More__" ? "More" : SheetComposer.TransformHeader(p, opts)).ToList();
                 var usedHeaders = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
                 for (int i = 0; i < headersT.Count; i++)
                 {
@@ -133,17 +178,43 @@ namespace OfficeIMO.Excel.Fluent
                 _row++;
                 foreach (var dict in rows)
                 {
-                    for (int i = 0; i < paths.Count; i++)
+                    if (summarize)
                     {
-                        dict.TryGetValue(paths[i], out var val);
-                        _sheet.Cell(_row, _baseCol + i, val ?? string.Empty);
+                        string more = string.Empty;
+                        if (_maxTableColumns.HasValue && paths.Count > _maxTableColumns.Value)
+                        {
+                            int keep = Math.Max(1, _maxTableColumns.Value - 1);
+                            var omitted = paths.Skip(keep);
+                            var parts = new System.Collections.Generic.List<string>();
+                            foreach (var p in omitted)
+                            {
+                                dict.TryGetValue(p, out var v);
+                                var label = SheetComposer.TransformHeader(p, opts);
+                                parts.Add(string.Concat(label, "=", v?.ToString() ?? string.Empty));
+                            }
+                            more = string.Join("; ", parts);
+                        }
+                        for (int i = 0; i < effPaths.Count; i++)
+                        {
+                            object? val;
+                            if (effPaths[i] == "__More__") val = more; else { dict.TryGetValue(effPaths[i], out val); }
+                            _sheet.Cell(_row, _baseCol + i, val ?? string.Empty);
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < effPaths.Count; i++)
+                        {
+                            dict.TryGetValue(effPaths[i], out var val);
+                            _sheet.Cell(_row, _baseCol + i, val ?? string.Empty);
+                        }
                     }
                     _row++;
                 }
 
                 int lastRow = _row - 1;
                 string start = SheetComposer.ColumnLetter(_baseCol) + headerRow.ToString();
-                string end = SheetComposer.ColumnLetter(_baseCol + paths.Count - 1) + lastRow.ToString();
+                string end = SheetComposer.ColumnLetter(_baseCol + headersT.Count - 1) + lastRow.ToString();
                 string range = start + ":" + end;
 
                 string tableName = title ?? "Table";
@@ -170,6 +241,9 @@ namespace OfficeIMO.Excel.Fluent
                 }
                 catch { }
 
+                // Track used width for adaptive column placement
+                int usedCols = Math.Max(1, headersT.Count);
+                _maxColUsed = Math.Max(_maxColUsed, _baseCol + usedCols - 1);
                 return range;
             }
 
@@ -181,7 +255,7 @@ namespace OfficeIMO.Excel.Fluent
             /// <param name="configure">Callback receiving the nested ColumnComposer instances.</param>
             /// <param name="columnWidth">Width per sub-column in grid columns.</param>
             /// <param name="gutter">Spacing between sub-columns in grid columns.</param>
-            public ColumnComposer Columns(int count, Action<ColumnComposer[]> configure, int columnWidth = 3, int gutter = 1)
+            public ColumnComposer Columns(int count, Action<ColumnComposer[]> configure, int columnWidth = 3, int gutter = 1, OverflowMode overflow = OverflowMode.Throw)
             {
                 if (count <= 1) return this;
                 int startRow = _row;
@@ -190,6 +264,7 @@ namespace OfficeIMO.Excel.Fluent
                 for (int i = 0; i < count; i++)
                 {
                     cols[i] = new ColumnComposer(_sheet, _theme, startRow, baseCol);
+                    cols[i].SetGridConstraints(columnWidth, overflow);
                     baseCol += columnWidth + gutter;
                 }
                 configure?.Invoke(cols);
@@ -211,7 +286,7 @@ namespace OfficeIMO.Excel.Fluent
         /// <param name="configure">Callback that receives an array of ColumnComposer objects.</param>
         /// <param name="columnWidth">Width per column in grid columns (for relative positioning only).</param>
         /// <param name="gutter">Spacing between columns in grid columns.</param>
-        public SheetComposer Columns(int count, Action<ColumnComposer[]> configure, int columnWidth = 3, int gutter = 1)
+        public SheetComposer Columns(int count, Action<ColumnComposer[]> configure, int columnWidth = 3, int gutter = 1, OverflowMode overflow = OverflowMode.Throw)
         {
             if (count <= 1) return this;
             int startRow = _row;
@@ -220,12 +295,48 @@ namespace OfficeIMO.Excel.Fluent
             for (int i = 0; i < count; i++)
             {
                 cols[i] = new ColumnComposer(Sheet, _theme, startRow, baseCol);
+                cols[i].SetGridConstraints(columnWidth, overflow);
                 baseCol += columnWidth + gutter;
             }
             configure?.Invoke(cols);
             int maxRows = 0; foreach (var c in cols) if (c.RowsUsed > maxRows) maxRows = c.RowsUsed;
             _row = startRow + maxRows;
             return Spacer();
+        }
+
+        /// <summary>
+        /// Places columns left-to-right starting at the current row using adaptive widths derived from each column's content.
+        /// Each column is rendered at the computed base column and the next column starts at (previous end + 1 + gutter).
+        /// </summary>
+        public SheetComposer ColumnsAdaptive(IReadOnlyList<Action<ColumnComposer>> builders, int gutter = 1)
+        {
+            if (builders == null || builders.Count == 0) return this;
+            int startRow = _row;
+            int baseCol = 1;
+            int maxRows = 0;
+            foreach (var b in builders)
+            {
+                if (b == null) continue;
+                var col = new ColumnComposer(Sheet, _theme, startRow, baseCol);
+                b(col);
+                maxRows = Math.Max(maxRows, col.RowsUsed);
+                baseCol += col.ColumnsUsed + Math.Max(0, gutter);
+            }
+            _row = startRow + maxRows;
+            return Spacer();
+        }
+
+        /// <summary>
+        /// Renders multiple rows of adaptive columns. Each inner list is a left-to-right band; rows stack vertically.
+        /// </summary>
+        public SheetComposer ColumnsAdaptiveRows(IReadOnlyList<IReadOnlyList<Action<ColumnComposer>>> rows, int gutter = 1)
+        {
+            if (rows == null || rows.Count == 0) return this;
+            foreach (var row in rows)
+            {
+                ColumnsAdaptive(row, gutter);
+            }
+            return this;
         }
 
         /// <summary>

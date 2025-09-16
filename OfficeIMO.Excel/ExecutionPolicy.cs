@@ -33,10 +33,19 @@ namespace OfficeIMO.Excel
         public Action<string, TimeSpan>? OnTiming { get; set; }
 
         /// <summary>
+        /// Optional informational callback for verbose/debug diagnostics (no sheet output).
+        /// Use to observe non-fatal events (e.g., grid overflow handled by Shrink/Summarize).
+        /// </summary>
+        public Action<string>? OnInfo { get; set; }
+
+        /// <summary>
         /// Helper to invoke the timing callback if configured.
         /// </summary>
         internal void ReportTiming(string operation, TimeSpan elapsed)
             => OnTiming?.Invoke(operation, elapsed);
+
+        internal void ReportInfo(string message)
+            => OnInfo?.Invoke(message);
 
         /// <summary>
         /// Decide execution mode for a given operation and workload size.
