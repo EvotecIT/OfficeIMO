@@ -201,6 +201,23 @@ namespace OfficeIMO.Excel {
             return maxWidth;
         }
 
+        private const double MaxExcelColumnWidth = 255.0;
+
+        private static double NormalizeColumnWidth(double width)
+        {
+            if (double.IsNaN(width) || double.IsInfinity(width))
+            {
+                return 0;
+            }
+
+            if (width <= 0)
+            {
+                return 0;
+            }
+
+            return Math.Min(width, MaxExcelColumnWidth);
+        }
+
         private void SetColumnWidthCore(int columnIndex, double width)
         {
             var worksheet = _worksheetPart.Worksheet;
@@ -217,6 +234,8 @@ namespace OfficeIMO.Excel {
             {
                 column = SplitColumn(columns, column, (uint)columnIndex);
             }
+
+            width = NormalizeColumnWidth(width);
 
             if (width > 0)
             {
@@ -696,6 +715,7 @@ namespace OfficeIMO.Excel {
         /// <param name="columnIndex">1-based column index.</param>
         /// <param name="width">The column width.</param>
         public void SetColumnWidth(int columnIndex, double width) {
+            width = NormalizeColumnWidth(width);
             WriteLock(() => {
                 var worksheet = _worksheetPart.Worksheet;
                 var columns = worksheet.GetFirstChild<Columns>();
@@ -708,8 +728,17 @@ namespace OfficeIMO.Excel {
                     column = new Column { Min = (uint)columnIndex, Max = (uint)columnIndex };
                     columns.Append(column);
                 }
-                column.Width = width;
-                column.CustomWidth = true;
+                if (width > 0)
+                {
+                    column.Width = width;
+                    column.CustomWidth = true;
+                }
+                else
+                {
+                    column.Width = null;
+                    column.CustomWidth = false;
+                    column.BestFit = null;
+                }
                 worksheet.Save();
             });
         }
@@ -906,4 +935,3 @@ namespace OfficeIMO.Excel {
 
     }
 }
-

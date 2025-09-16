@@ -52,7 +52,7 @@ namespace OfficeIMO.Examples.Excel {
                 }
             } catch { }
 
-            s.Finish(autoFitColumns: true);
+            s.Finish(autoFitColumns: false);
 
             doc.Save(false);
             if (openExcel) doc.Open(filePath, true);
@@ -66,4 +66,3 @@ namespace OfficeIMO.Examples.Excel {
         }
     }
 }
-

@@ -54,8 +54,10 @@ namespace OfficeIMO.Excel {
                 case null:
                     return (new CellValue(string.Empty), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.String));
                 case string s:
-                    planner.Note(s);
-                    return (new CellValue(s), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
+                    // Sanitize dangerous control characters and clamp length before sharing
+                    var safe = Utilities.ExcelSanitizer.SanitizeString(s);
+                    planner.Note(safe);
+                    return (new CellValue(safe), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
                 case double d:
                     return (new CellValue(d.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
                 case float f:
@@ -203,7 +205,9 @@ namespace OfficeIMO.Excel {
         public void CellFormula(int row, int column, string formula) {
             WriteLock(() => {
                 Cell cell = GetCell(row, column);
-                cell.CellFormula = new CellFormula(formula);
+                // Excel formulas in XML should not start with '=' and must not include illegal control characters
+                var safe = Utilities.ExcelSanitizer.SanitizeFormula(formula);
+                cell.CellFormula = new CellFormula(safe);
             });
         }
 

@@ -74,6 +74,10 @@ namespace OfficeIMO.Examples {
             // OfficeIMO.Examples.Excel.DomainDetectiveReportSheetsClassic.Example(folderPath, false);
             // // Excel: Anchors and back-to-top demo
             // OfficeIMO.Examples.Excel.AnchorsAndBackToTop.Example(folderPath, false);
+             // Excel: Left-to-right multiple tables on same sheet
+            OfficeIMO.Examples.Excel.SheetComposerMultiTables.Example_LeftToRight(folderPath, true);
+            return;
+
             // // Markdown: Anchors + Theme Toggle
             // OfficeIMO.Examples.Markdown.Markdown03_Anchors_Theme.Example_AnchorsAndTheme(folderPath, false);
             // Markdown: TOC Layouts & Themes

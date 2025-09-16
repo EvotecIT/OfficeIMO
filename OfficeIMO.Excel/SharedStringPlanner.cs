@@ -20,12 +20,9 @@ namespace OfficeIMO.Excel
         public void Note(string s)
         {
             if (s is null) return;
-            if (s.Length > 32767)
-            {
-                throw new ArgumentException("String exceeds Excel's limit of 32,767 characters", nameof(s));
-            }
-
-            _distinct.TryAdd(s, 0);
+            // Clamp and strip illegal XML control characters defensively
+            var safe = Utilities.ExcelSanitizer.SanitizeString(s);
+            _distinct.TryAdd(safe, 0);
         }
 
         /// <summary>

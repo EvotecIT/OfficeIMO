@@ -143,7 +143,8 @@ namespace OfficeIMO.Examples.Excel {
             }
 
             // Finish overview
-            overview.Finish(autoFitColumns: true);
+            // Overview has multiple side-by-side sections; use explicit column sizing per table
+            overview.Finish(autoFitColumns: false);
 
             // One detail sheet per domain (sequential by default)
             foreach (var d in rows) BuildDomainSheet(doc, d);
@@ -235,7 +236,7 @@ namespace OfficeIMO.Examples.Excel {
             }
             if (d.References.Length > 0) s.SectionWithAnchor("References").References(d.References);
 
-            s.Finish(autoFitColumns: true);
+            s.Finish(autoFitColumns: false);
         }
 
 

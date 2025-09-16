@@ -158,7 +158,8 @@ namespace OfficeIMO.Examples.Excel {
                 });
                 // Back links to TOC on all sheets
                 doc.AddBackLinksToToc();
-                composer.Finish(autoFitColumns: true);
+                // Horizontal band: avoid full-sheet auto-fit to prevent column width fights
+                composer.Finish(autoFitColumns: false);
 
                 // One sheet per domain with richer layout
                 foreach (var d in data) {
@@ -220,7 +221,7 @@ namespace OfficeIMO.Examples.Excel {
                         rs.SectionWithAnchor("Positives").BulletedList(d.Positives);
                     }
                     rs.SectionWithAnchor("References");
-                    rs.References(d.References).Finish(autoFitColumns: true);
+                    rs.References(d.References).Finish(autoFitColumns: false);
                 }
 
                 // TOC for easy navigation (first sheet)

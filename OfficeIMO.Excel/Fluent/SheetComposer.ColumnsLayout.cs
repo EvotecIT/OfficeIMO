@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OfficeIMO.Excel.Fluent
 {
@@ -171,6 +172,35 @@ namespace OfficeIMO.Excel.Fluent
 
                 return range;
             }
+
+            /// <summary>
+            /// Splits the current column region into horizontal sub-columns, rendering each via a nested ColumnComposer.
+            /// Advances the parent column by the tallest child block and applies a spacer afterwards.
+            /// </summary>
+            /// <param name="count">Number of sub-columns to create.</param>
+            /// <param name="configure">Callback receiving the nested ColumnComposer instances.</param>
+            /// <param name="columnWidth">Width per sub-column in grid columns.</param>
+            /// <param name="gutter">Spacing between sub-columns in grid columns.</param>
+            public ColumnComposer Columns(int count, Action<ColumnComposer[]> configure, int columnWidth = 3, int gutter = 1)
+            {
+                if (count <= 1) return this;
+                int startRow = _row;
+                var cols = new ColumnComposer[count];
+                int baseCol = _baseCol;
+                for (int i = 0; i < count; i++)
+                {
+                    cols[i] = new ColumnComposer(_sheet, _theme, startRow, baseCol);
+                    baseCol += columnWidth + gutter;
+                }
+                configure?.Invoke(cols);
+                int maxRows = 0;
+                foreach (var c in cols)
+                {
+                    if (c.RowsUsed > maxRows) maxRows = c.RowsUsed;
+                }
+                _row = startRow + maxRows;
+                return Spacer();
+            }
         }
 
         /// <summary>
@@ -196,6 +226,56 @@ namespace OfficeIMO.Excel.Fluent
             int maxRows = 0; foreach (var c in cols) if (c.RowsUsed > maxRows) maxRows = c.RowsUsed;
             _row = startRow + maxRows;
             return Spacer();
+        }
+
+        /// <summary>
+        /// Renders a sequence of column blocks left-to-right using a fixed number of columns per band.
+        /// Each band uses <see cref="Columns(int, Action{ColumnComposer[]}, int, int)"/> under the hood and advances
+        /// the composer by the tallest block in that band.
+        /// </summary>
+        public SheetComposer FlowColumns(IReadOnlyList<IReadOnlyList<Action<ColumnComposer>>> columnGroups, int columnWidth = 12, int gutter = 2)
+        {
+            if (columnGroups == null || columnGroups.Count == 0)
+            {
+                return this;
+            }
+
+            int columns = columnGroups.Count;
+            int index = 0;
+            while (true)
+            {
+                bool any = false;
+                for (int i = 0; i < columns; i++)
+                {
+                    var group = columnGroups[i];
+                    if (group != null && index < group.Count)
+                    {
+                        any = true;
+                        break;
+                    }
+                }
+
+                if (!any)
+                {
+                    break;
+                }
+
+                Columns(columns, cols =>
+                {
+                    for (int i = 0; i < columns; i++)
+                    {
+                        var group = columnGroups[i];
+                        if (group != null && index < group.Count)
+                        {
+                            group[index](cols[i]);
+                        }
+                    }
+                }, columnWidth, gutter);
+
+                index++;
+            }
+
+            return this;
         }
     }
 }
