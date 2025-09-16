@@ -21,11 +21,38 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Automatically fits all columns based on their content.
         /// </summary>
-        public void AutoFitColumns(ExecutionMode? mode = null, CancellationToken ct = default) {
-            var columnIndexes = GetAllColumnIndices();
-            if (columnIndexes.Count == 0) return;
+        public void AutoFitColumns(ExecutionMode? mode = null, CancellationToken ct = default)
+        {
+            var columns = GetAllColumnIndices();
+            if (columns.Count == 0) return;
+            AutoFitColumnsInternal(columns.OrderBy(i => i).ToList(), mode, ct);
+        }
 
-            var columnsList = columnIndexes.OrderBy(i => i).ToList();
+        /// <summary>
+        /// Automatically fits the supplied set of column indexes.
+        /// </summary>
+        public void AutoFitColumnsFor(IEnumerable<int> columnIndexes, ExecutionMode? mode = null, CancellationToken ct = default)
+        {
+            if (columnIndexes == null) return;
+            var list = columnIndexes.Where(i => i > 0).Distinct().OrderBy(i => i).ToList();
+            if (list.Count == 0) return;
+            AutoFitColumnsInternal(list, mode, ct);
+        }
+
+        /// <summary>
+        /// Automatically fits all columns except the supplied indexes.
+        /// </summary>
+        public void AutoFitColumnsExcept(IEnumerable<int> columnsToSkip, ExecutionMode? mode = null, CancellationToken ct = default)
+        {
+            var skip = new HashSet<int>(columnsToSkip ?? Array.Empty<int>());
+            var remaining = GetAllColumnIndices().Where(i => i > 0 && !skip.Contains(i)).OrderBy(i => i).ToList();
+            if (remaining.Count == 0) return;
+            AutoFitColumnsInternal(remaining, mode, ct);
+        }
+
+        private void AutoFitColumnsInternal(IReadOnlyList<int> columnsList, ExecutionMode? mode, CancellationToken ct)
+        {
+            if (columnsList.Count == 0) return;
             double[] computed = new double[columnsList.Count];
 
             ExecuteWithPolicy(
@@ -34,27 +61,25 @@ namespace OfficeIMO.Excel {
                 overrideMode: mode,
                 sequentialCore: () =>
                 {
-                    // Sequential path with NoLock
-                      var worksheet = _worksheetPart.Worksheet;
-                      SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
-                      if (sheetData == null) return;
+                    var worksheet = _worksheetPart.Worksheet;
+                    var sheetData = worksheet.GetFirstChild<SheetData>();
+                    if (sheetData == null) return;
 
                     for (int i = 0; i < columnsList.Count; i++)
                     {
                         computed[i] = CalculateColumnWidth(columnsList[i]);
                     }
-                    
+
                     for (int i = 0; i < columnsList.Count; i++)
                     {
                         SetColumnWidthCore(columnsList[i], computed[i]);
                     }
-                    
+
                     worksheet.Save();
                 },
                 computeParallel: () =>
                 {
-                    // Parallel compute phase - calculate widths without DOM mutation
-                    var failures = new System.Collections.Concurrent.ConcurrentBag<int>();
+                    var failures = new ConcurrentBag<int>();
                     Parallel.For(0, columnsList.Count, new ParallelOptions
                     {
                         CancellationToken = ct,
@@ -81,7 +106,6 @@ namespace OfficeIMO.Excel {
                 },
                 applySequential: () =>
                 {
-                    // Apply phase - write all column widths to DOM
                     var worksheet = _worksheetPart.Worksheet;
                     for (int i = 0; i < columnsList.Count; i++)
                     {

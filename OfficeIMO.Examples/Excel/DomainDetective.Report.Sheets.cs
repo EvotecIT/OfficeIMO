@@ -102,8 +102,13 @@ namespace OfficeIMO.Examples.Excel {
                 opts.HeaderCase = HeaderCase.Title;
                 opts.HeaderPrefixTrimPaths = new[] { nameof(DomainRow.ScoreBreakdown) + "." };
                 opts.NullPolicy = NullPolicy.EmptyString;
-                // Keep "Domain" as first column for easy linking
-                opts.PinnedFirst = new[] { nameof(DomainRow.Domain) };
+                // Keep "Domain" first, then Status/WarningCount/ErrorCount/Score, and push References to the end
+                // Using the single-call convenience Order(pinFirst, priority, pinLast)
+                opts.Order(
+                    pinFirst: new[] { nameof(DomainRow.Domain) },
+                    priority: new[] { nameof(DomainRow.Status), nameof(DomainRow.WarningCount), nameof(DomainRow.ErrorCount), nameof(DomainRow.Score) },
+                    pinLast: new[] { nameof(DomainRow.References) }
+                );
             }, visuals: v => {
                 // Icon set for overall score
                 v.IconSetColumns.Add("Score");

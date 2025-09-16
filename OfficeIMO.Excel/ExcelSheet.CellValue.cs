@@ -394,6 +394,19 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Enables WrapText for the specified column and pins the target column width (in Excel character units).
+        /// Useful when mixed with auto-fit operations so wrapped columns keep a predictable width.
+        /// </summary>
+        public void WrapCells(int fromRow, int toRow, int column, double targetColumnWidth)
+        {
+            WrapCells(fromRow, toRow, column);
+            if (targetColumnWidth > 0)
+            {
+                try { SetColumnWidth(column, targetColumnWidth); } catch { }
+            }
+        }
+
+        /// <summary>
         /// Applies a horizontal alignment to a single cell.
         /// </summary>
         public void CellAlign(int row, int column, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues alignment)

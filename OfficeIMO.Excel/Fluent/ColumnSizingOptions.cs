@@ -53,9 +53,23 @@ namespace OfficeIMO.Excel.Fluent {
         public HashSet<string> WrapHeaders { get; } = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
+        /// Default width (in characters) used for headers registered in <see cref="WrapHeaders"/>.
+        /// </summary>
+        public double WrapWidth { get; set; } = 32;
+
+        /// <summary>
+        /// Headers that should be auto-fit instead of using the preset widths.
+        /// </summary>
+        public HashSet<string> AutoFitHeaders { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// When true, headers that do not have an explicit width/preset will be auto-fit.
+        /// </summary>
+        public bool AutoFitRemainingColumns { get; set; } = false;
+
+        /// <summary>
         /// Explicit column width overrides keyed by header name. Values are Excel character widths.
         /// </summary>
         public Dictionary<string, double> WidthByHeader { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
 }
-

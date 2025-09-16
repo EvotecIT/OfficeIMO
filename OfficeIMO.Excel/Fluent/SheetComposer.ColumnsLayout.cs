@@ -118,11 +118,18 @@ namespace OfficeIMO.Excel.Fluent
                 var rows = new List<Dictionary<string, object?>>();
                 foreach (var item in list) rows.Add(flattener.Flatten(item, opts));
 
-                var paths = opts.Columns?.ToList() ?? rows.SelectMany(r => r.Keys)
-                    .Where(k => !string.IsNullOrWhiteSpace(k))
-                    .Distinct(System.StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(s => s, System.StringComparer.Ordinal)
-                    .ToList();
+                var paths = opts.Columns?.ToList();
+                if (paths == null)
+                {
+                    paths = rows.SelectMany(r => r.Keys)
+                        .Where(k => !string.IsNullOrWhiteSpace(k))
+                        .Distinct(System.StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(s => s, System.StringComparer.Ordinal)
+                        .ToList();
+                    // Respect selection (Ignore/Exclude/Include) and ordering (Pinned/Priority)
+                    paths = OfficeIMO.Excel.ObjectFlattener.ApplySelection(paths, opts);
+                    paths = OfficeIMO.Excel.ObjectFlattener.ApplyOrdering(paths, opts);
+                }
                 if (paths.Count == 0)
                 {
                     _sheet.Cell(_row, _baseCol, "(no tabular columns)");

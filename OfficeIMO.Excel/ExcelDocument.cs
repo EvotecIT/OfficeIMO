@@ -1,13 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.IO.Packaging;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml;
-using System.Xml.Linq;
+using OfficeIMO.Excel.Utilities;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -657,7 +655,7 @@ namespace OfficeIMO.Excel {
             }
             catch { }
 
-            try { NormalizeContentTypes(path); } catch { }
+            try { ExcelPackageUtilities.NormalizeContentTypes(path); } catch { }
             FilePath = path;
 
             // Reopen as in-memory document for further operations on an expandable stream
@@ -818,7 +816,7 @@ namespace OfficeIMO.Excel {
                     dst.Title = pTitle; dst.Creator = pCreator; dst.Subject = pSubject; dst.Category = pCategory; dst.Description = pDescription; dst.Keywords = pKeywords; dst.LastModifiedBy = pLastModifiedBy; dst.Version = pVersion; dst.Created = pCreated; dst.Modified = pModified ?? DateTime.UtcNow; dst.LastPrinted = pLastPrinted;
                 }
                 catch { }
-                try { NormalizeContentTypes(target); } catch { }
+                try { ExcelPackageUtilities.NormalizeContentTypes(target); } catch { }
                 FilePath = target;
 
                 // Reopen as in-memory document for continued operations without locking the file
@@ -856,108 +854,6 @@ namespace OfficeIMO.Excel {
             return SaveAsync("", false, cancellationToken);
         }
 
-        private static void NormalizeContentTypes(string packagePath)
-        {
-            if (string.IsNullOrWhiteSpace(packagePath)) return;
-            if (!File.Exists(packagePath)) return;
-
-            using var fs = new FileStream(packagePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-            using var archive = new ZipArchive(fs, ZipArchiveMode.Update, leaveOpen: true);
-            var entry = archive.GetEntry("[Content_Types].xml");
-            if (entry == null) return;
-
-            string xml;
-            using (var stream = entry.Open())
-            using (var reader = new StreamReader(stream, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: false))
-            {
-                xml = reader.ReadToEnd();
-            }
-
-            if (string.IsNullOrWhiteSpace(xml)) return;
-
-            XDocument doc;
-            try
-            {
-                doc = XDocument.Parse(xml, LoadOptions.PreserveWhitespace);
-            }
-            catch
-            {
-                doc = XDocument.Parse(xml, LoadOptions.None);
-            }
-
-            var root = doc.Root;
-            if (root == null) return;
-            XNamespace ns = root.Name.Namespace;
-
-            bool changed = false;
-            var defaults = root.Elements(ns + "Default")
-                               .Where(e => string.Equals((string?)e.Attribute("Extension"), "xml", StringComparison.OrdinalIgnoreCase))
-                               .ToList();
-            if (defaults.Count == 0)
-            {
-                root.AddFirst(new XElement(ns + "Default",
-                    new XAttribute("Extension", "xml"),
-                    new XAttribute("ContentType", "application/xml")));
-                changed = true;
-            }
-            else
-            {
-                var first = defaults[0];
-                if (!string.Equals((string?)first.Attribute("ContentType"), "application/xml", StringComparison.OrdinalIgnoreCase))
-                {
-                    first.SetAttributeValue("ContentType", "application/xml");
-                    changed = true;
-                }
-                for (int i = 1; i < defaults.Count; i++)
-                {
-                    defaults[i].Remove();
-                    changed = true;
-                }
-            }
-
-            const string workbookPath = "/xl/workbook.xml";
-            const string workbookContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml";
-            var workbookOverride = root.Elements(ns + "Override")
-                                       .FirstOrDefault(e => string.Equals((string?)e.Attribute("PartName"), workbookPath, StringComparison.OrdinalIgnoreCase));
-            if (workbookOverride == null)
-            {
-                var newOverride = new XElement(ns + "Override",
-                    new XAttribute("PartName", workbookPath),
-                    new XAttribute("ContentType", workbookContentType));
-                var firstOverride = root.Elements(ns + "Override").FirstOrDefault();
-                if (firstOverride != null)
-                {
-                    firstOverride.AddBeforeSelf(newOverride);
-                }
-                else
-                {
-                    root.Add(newOverride);
-                }
-                changed = true;
-            }
-            else if (!string.Equals((string?)workbookOverride.Attribute("ContentType"), workbookContentType, StringComparison.OrdinalIgnoreCase))
-            {
-                workbookOverride.SetAttributeValue("ContentType", workbookContentType);
-                changed = true;
-            }
-
-            if (!changed) return;
-
-            doc.Declaration = new XDeclaration("1.0", "utf-8", null);
-
-            entry.Delete();
-            var newEntry = archive.CreateEntry("[Content_Types].xml", CompressionLevel.Optimal);
-            using var outStream = newEntry.Open();
-            var settings = new XmlWriterSettings {
-                Encoding = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
-                Indent = false,
-                OmitXmlDeclaration = false,
-                NewLineHandling = NewLineHandling.None
-            };
-            using var xmlWriter = XmlWriter.Create(outStream, settings);
-            doc.Save(xmlWriter);
-            xmlWriter.Flush();
-        }
 
         /// <summary>
         /// Asynchronously saves the document and optionally opens Excel.

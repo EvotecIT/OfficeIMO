@@ -140,22 +140,58 @@ namespace OfficeIMO.Excel.Fluent
                 return false;
             }
 
+            var autoFitTargets = new HashSet<int>();
+
             foreach (var kv in headers)
             {
                 int col = kv.Key; string h = kv.Value;
-                double width = opts.MediumWidth;
-                if (opts.WidthByHeader.TryGetValue(h, out var w)) width = w;
-                else if (IsMatch(opts.LongHeaders, h)) width = opts.LongWidth;
-                else if (IsMatch(opts.NumericHeaders, h)) width = opts.NumericWidth;
-                else if (IsMatch(opts.ShortHeaders, h)) width = opts.ShortWidth;
-                // Apply width
-                try { Sheet.SetColumnWidth(col, width); } catch { }
+                bool hasHeader = !string.IsNullOrEmpty(h);
 
-                // Wrap long/content columns as requested
-                if (IsMatch(opts.WrapHeaders, h) || IsMatch(opts.LongHeaders, h))
+                double? width = null;
+                if (hasHeader && opts.WidthByHeader.TryGetValue(h, out var explicitWidth))
                 {
-                    try { Sheet.WrapCells(fromRow + 1, toRow, col); } catch { }
+                    width = explicitWidth;
                 }
+                else if (hasHeader && IsMatch(opts.ShortHeaders, h)) width = opts.ShortWidth;
+                else if (hasHeader && IsMatch(opts.NumericHeaders, h)) width = opts.NumericWidth;
+                else if (hasHeader && IsMatch(opts.LongHeaders, h)) width = opts.LongWidth;
+
+                bool shouldWrap = hasHeader && (IsMatch(opts.WrapHeaders, h) || IsMatch(opts.LongHeaders, h));
+                if (shouldWrap && width == null)
+                {
+                    width = opts.WrapWidth;
+                }
+
+                if (width == null && !opts.AutoFitRemainingColumns)
+                {
+                    width = opts.MediumWidth;
+                }
+
+                if (width.HasValue)
+                {
+                    try { Sheet.SetColumnWidth(col, width.Value); } catch { }
+                }
+
+                if (shouldWrap)
+                {
+                    try
+                    {
+                        if (width.HasValue) Sheet.WrapCells(fromRow + 1, toRow, col, width.Value);
+                        else Sheet.WrapCells(fromRow + 1, toRow, col);
+                    }
+                    catch { }
+                }
+
+                bool explicitAutoFit = hasHeader && IsMatch(opts.AutoFitHeaders, h);
+                if (!shouldWrap && !width.HasValue && (explicitAutoFit || opts.AutoFitRemainingColumns))
+                {
+                    autoFitTargets.Add(col);
+                }
+            }
+
+            if (autoFitTargets.Count > 0)
+            {
+                try { Sheet.AutoFitColumnsFor(autoFitTargets); } catch { }
             }
             return this;
         }
