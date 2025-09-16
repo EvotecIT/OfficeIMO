@@ -352,6 +352,30 @@ namespace OfficeIMO.Excel {
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
+
+            // Normalize content types up-front to avoid failures on malformed packages
+            // where /docProps/app.xml can be incorrectly typed as application/xml.
+            // Prefer in-memory normalization to avoid file-share conflicts in parallel runners.
+            try
+            {
+                var bytes = File.ReadAllBytes(filePath);
+                using var ms = new MemoryStream(bytes.Length + 4096);
+                ms.Write(bytes, 0, bytes.Length);
+                ms.Position = 0;
+                Utilities.ExcelPackageUtilities.NormalizeContentTypes(ms, leaveOpen: true);
+                ms.Position = 0;
+                // Open from normalized memory stream to avoid touching the original file yet
+                var openSettingsMem = new OpenSettings { AutoSave = autoSave };
+                var memDoc = SpreadsheetDocument.Open(ms, !readOnly, openSettingsMem);
+                ExcelDocument documentMem = new ExcelDocument();
+                documentMem.FilePath = filePath;
+                documentMem._spreadSheetDocument = memDoc;
+                documentMem._workBookPart = memDoc.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+                documentMem.BuiltinDocumentProperties = new BuiltinDocumentProperties(documentMem);
+                documentMem.ApplicationProperties = new ApplicationProperties(documentMem);
+                return documentMem;
+            }
+            catch { }
             ExcelDocument document = new ExcelDocument();
             document.FilePath = filePath;
 
