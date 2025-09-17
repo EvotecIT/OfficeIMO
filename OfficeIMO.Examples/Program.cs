@@ -74,8 +74,23 @@ namespace OfficeIMO.Examples {
             OfficeIMO.Examples.Excel.DomainDetectiveReportSheetsClassic.Example(folderPath, false);
             // Excel: Anchors and back-to-top demo
             OfficeIMO.Examples.Excel.AnchorsAndBackToTop.Example(folderPath, false);
-            // Markdown: Anchors + Theme Toggle
+            // Excel: Left-to-right multiple tables on same sheet
+            OfficeIMO.Examples.Excel.SheetComposerMultiTables.Example_LeftToRight(folderPath, true);
+            OfficeIMO.Examples.Excel.WrapText.Example(folderPath, false);
+            OfficeIMO.Examples.Excel.RowsFromObjects.Example(folderPath, false);
+            OfficeIMO.Examples.Excel.RowsFromObjectsPriorityProperties.Example(folderPath, false);
+            OfficeIMO.Examples.Excel.DomainDetectiveReportSheets.Example(folderPath, false);
+            // // Markdown: Anchors + Theme Toggle
             OfficeIMO.Examples.Markdown.Markdown03_Anchors_Theme.Example_AnchorsAndTheme(folderPath, false);
+            // Markdown: TOC Layouts & Themes
+            OfficeIMO.Examples.Markdown.Markdown04_TocLayoutsAndThemes.Example_Toc_PanelTop(folderPath, false);
+            OfficeIMO.Examples.Markdown.Markdown04_TocLayoutsAndThemes.Example_Toc_SidebarLeft(folderPath, false);
+            OfficeIMO.Examples.Markdown.Markdown04_TocLayoutsAndThemes.Example_Toc_SidebarRight_ScrollSpy(folderPath, false);
+            OfficeIMO.Examples.Markdown.Markdown04_TocLayoutsAndThemes.Example_Toc_ScrollSpy_Long_IndigoTheme(folderPath, false);
+            // Markdown: Built-in HTML style gallery
+            OfficeIMO.Examples.Markdown.Markdown05_ThemesGallery.Example_Themes(folderPath, false);
+            // Word ⇄ Markdown ⇄ HTML End-to-End
+            OfficeIMO.Examples.Word.EndToEnd.Word_EndToEnd.Example(folderPath, false);
             // Markdown/DomainDetective report (mirrors the Excel structure)
             OfficeIMO.Examples.Markdown.DomainDetectiveReportMarkdown.Example(folderPath, false);
             // PowerPoint

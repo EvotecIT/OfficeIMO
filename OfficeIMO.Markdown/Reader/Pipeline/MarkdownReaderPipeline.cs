@@ -25,6 +25,7 @@ public sealed class MarkdownReaderPipeline {
         p.Add(new MarkdownReader.ImageParser());
         p.Add(new MarkdownReader.HrParser());
         p.Add(new MarkdownReader.HtmlBlockParser());
+        p.Add(new MarkdownReader.TocParser());
         p.Add(new MarkdownReader.ReferenceLinkDefParser());
         p.Add(new MarkdownReader.FootnoteParser());
         p.Add(new MarkdownReader.TableParser());

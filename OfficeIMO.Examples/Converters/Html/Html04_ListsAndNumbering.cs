@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Html {
             doc.Save(docxPath);
 
             string htmlOut = Path.Combine(folderPath, "Html04_ListsAndNumbering.roundtrip.html");
-            File.WriteAllText(htmlOut, doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true }));
+            File.WriteAllText(htmlOut, doc.ToHtml(new WordToHtmlOptions { IncludeDefaultCss = true, IncludeListStyles = true }));
 
             Console.WriteLine($"✓ Created: {docxPath}");
             Console.WriteLine($"✓ Round-trip HTML: {htmlOut}");

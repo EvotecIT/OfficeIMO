@@ -41,7 +41,9 @@ namespace OfficeIMO.Examples.Word {
                 
                 string htmlPath = Path.Combine(folderPath, "UnifiedExample.html");
                 document.SaveAsHtml(htmlPath, new WordToHtmlOptions { 
-                    IncludeFontStyles = true 
+                    IncludeFontStyles = true,
+                    IncludeListStyles = true,
+                    IncludeDefaultCss = true
                 });
                 Console.WriteLine($"✓ Saved as HTML: {htmlPath}");
                 
@@ -49,7 +51,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("\nMarkdown output:");
                 Console.WriteLine(markdown);
                 
-                string html = document.ToHtml();
+                string html = document.ToHtml(new WordToHtmlOptions { IncludeDefaultCss = true });
                 Console.WriteLine("\nHTML output (first 200 chars):");
                 Console.WriteLine(html.Substring(0, Math.Min(200, html.Length)) + "...");
             }
@@ -109,7 +111,7 @@ This is a paragraph with **bold** and *italic* text.
                 fromHtml.Save(docPath);
                 Console.WriteLine($"✓ HTML → Word: {docPath}");
                 
-                string backToHtml = fromHtml.ToHtml();
+                string backToHtml = fromHtml.ToHtml(new WordToHtmlOptions { IncludeDefaultCss = true });
                 Console.WriteLine("\nRound-trip HTML (first 200 chars):");
                 Console.WriteLine(backToHtml.Substring(0, Math.Min(200, backToHtml.Length)) + "...");
             }
@@ -140,7 +142,7 @@ This is a paragraph with **bold** and *italic* text.
                 }
                 
                 using (MemoryStream htmlStream = new MemoryStream()) {
-                    document.SaveAsHtml(htmlStream);
+                    document.SaveAsHtml(htmlStream, new WordToHtmlOptions { IncludeDefaultCss = true });
                     htmlStream.Position = 0;
                     using (StreamReader reader = new StreamReader(htmlStream)) {
                         string html = reader.ReadToEnd();

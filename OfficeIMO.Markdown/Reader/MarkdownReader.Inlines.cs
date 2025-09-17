@@ -15,6 +15,15 @@ public static partial class MarkdownReader {
         while (pos < text.Length) {
             // Hard break signal encoded by paragraph joiner as a bare '\n'
             if (text[pos] == '\n') { seq.HardBreak(); pos++; continue; }
+            // HTML-style line breaks in source (commonly used inside table cells): <br>, <br/>, <br />
+            if (text[pos] == '<') {
+                // case-insensitive compare for small tokens only; keep compatible with .NET Framework
+                int rem = text.Length - pos;
+                bool br1 = rem >= 4 && (text[pos + 1] == 'b' || text[pos + 1] == 'B') && (text[pos + 2] == 'r' || text[pos + 2] == 'R') && text[pos + 3] == '>';
+                bool br2 = rem >= 5 && (text[pos + 1] == 'b' || text[pos + 1] == 'B') && (text[pos + 2] == 'r' || text[pos + 2] == 'R') && text[pos + 3] == '/' && text[pos + 4] == '>';
+                bool br3 = rem >= 6 && (text[pos + 1] == 'b' || text[pos + 1] == 'B') && (text[pos + 2] == 'r' || text[pos + 2] == 'R') && text[pos + 3] == ' ' && text[pos + 4] == '/' && text[pos + 5] == '>';
+                if (br1 || br2 || br3) { seq.HardBreak(); pos += br1 ? 4 : (br2 ? 5 : 6); continue; }
+            }
             // Backslash escape: consume next char literally
             if (text[pos] == '\\' && pos + 1 < text.Length) {
                 seq.Text(text[pos + 1].ToString());
@@ -56,6 +65,12 @@ public static partial class MarkdownReader {
                 seq.ImageLink(alt2, img2, href2, imgTitle2); pos += consumed; continue;
             }
 
+            if (text[pos] == '!') {
+                // Inline image: ![alt](src "title")
+                if (TryParseInlineImage(text, pos, out int consumedImg, out var altImg, out var srcImg, out var titleImg)) {
+                    seq.Image(altImg, srcImg, titleImg); pos += consumedImg; continue;
+                }
+            }
             if (text[pos] == '[') {
                 if (state != null && TryParseCollapsedRef(text, pos, out int consumedC, out var lbl2)) {
                     if (state.LinkRefs.TryGetValue(lbl2, out var def2)) seq.Link(lbl2, def2.Url, def2.Title); else seq.Text(text.Substring(pos, consumedC));
@@ -212,6 +227,23 @@ public static partial class MarkdownReader {
         if (parenClose2 < 0) return false;
         href = text.Substring(parenOpen2 + 1, parenClose2 - (parenOpen2 + 1));
         consumed = parenClose2 - start + 1;
+        return true;
+    }
+
+    private static bool TryParseInlineImage(string text, int start, out int consumed, out string alt, out string src, out string? title) {
+        consumed = 0; alt = src = string.Empty; title = null;
+        if (start + 1 >= text.Length || text[start] != '!' || text[start + 1] != '[') return false;
+        int altEnd = text.IndexOf(']', start + 2);
+        if (altEnd < 0) return false;
+        if (altEnd + 1 >= text.Length || text[altEnd + 1] != '(') return false;
+        int parenClose = FindMatchingParen(text, altEnd + 1);
+        if (parenClose < 0) return false;
+        alt = text.Substring(start + 2, altEnd - (start + 2));
+        string inner = text.Substring(altEnd + 2, parenClose - (altEnd + 2)).Trim();
+        int q = inner.IndexOf('"');
+        if (q >= 0) { src = inner.Substring(0, q).Trim(); int q2 = inner.LastIndexOf('"'); if (q2 > q) title = inner.Substring(q + 1, q2 - q - 1); }
+        else { src = inner.Trim(); }
+        consumed = parenClose - start + 1;
         return true;
     }
 

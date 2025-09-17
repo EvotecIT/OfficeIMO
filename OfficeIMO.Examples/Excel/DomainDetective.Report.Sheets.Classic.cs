@@ -112,7 +112,7 @@ namespace OfficeIMO.Examples.Excel {
             overview.Spacer(rows: 4);
 
             // Finish overview
-            overview.Finish(autoFitColumns: true);
+            overview.Finish(autoFitColumns: false);
 
             // Detail sheets (classic)
             foreach (var d in rows) BuildDomainSheet(doc, d);
@@ -194,7 +194,7 @@ namespace OfficeIMO.Examples.Excel {
             }
             if (d.References.Length > 0) s.SectionWithAnchor("References").References(d.References);
 
-            s.Finish(autoFitColumns: true);
+            s.Finish(autoFitColumns: false);
         }
 
         private static List<DomainRow> GenerateFakeData(int count, int seed) {

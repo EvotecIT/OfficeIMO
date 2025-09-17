@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.Excel {
                  .Paragraph("Key findings listed here...")
                  .SectionWithAnchor("Details")
                  .Paragraph("Supporting details go here...")
-                 .Finish(autoFitColumns: true);
+                 .Finish(autoFitColumns: false);
 
                 // Add TOC for convenience
                 doc.AddTableOfContents(placeFirst: true, withHyperlinks: true);
@@ -30,4 +30,3 @@ namespace OfficeIMO.Examples.Excel {
         }
     }
 }
-

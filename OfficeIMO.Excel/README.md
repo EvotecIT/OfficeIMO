@@ -377,6 +377,47 @@ doc.AsFluent()
 doc.Save();
 ```
 
+### Selecting and ordering POCO columns
+
+When converting objects to rows, you can control what columns appear and in which order:
+
+- `Include(params string[])` – keep only these properties (full path or last segment).
+- `Exclude(params string[])` – drop these properties.
+- `PinFirst(params string[])` – pin specific columns to the front in the given order.
+- `PinLast(params string[])` – push specific columns to the end in the given order.
+- `PriorityOrder(params string[])` – set relative order after pinned‑first (1..N by position).
+
+All methods are chainable. These are convenience wrappers over `IncludeProperties`, `ExcludeProperties`, `PinnedFirst`, `PinnedLast`, and `PropertyPriority`.
+
+```csharp
+s.RowsFrom(users, o => {
+    o.ExpandProperties.Add(nameof(User.Address));
+    o.HeaderCase = HeaderCase.Title;
+    o.Include(nameof(User.Id), nameof(User.FirstName), nameof(User.LastName), "Address.City")
+     .Exclude(nameof(User.Email))
+     .PinFirst(nameof(User.Id))
+     .PriorityOrder(nameof(User.LastName), nameof(User.FirstName), "Address.City")
+     .PinLast(nameof(User.Email));
+});
+
+// Same for SheetComposer
+composer.TableFrom(users, title: "Users", configure: o =>
+{
+    // Either chain them...
+    o.PinFirst(nameof(User.Id))
+     .PriorityOrder(nameof(User.LastName), nameof(User.FirstName), "Address.City")
+     .PinLast(nameof(User.Email));
+    // ...or use a single call
+    // o.Order(
+    //     pinFirst: new[] { nameof(User.Id) },
+    //     priority: new[] { nameof(User.LastName), nameof(User.FirstName), "Address.City" },
+    //     pinLast: new[] { nameof(User.Email) }
+    // );
+    o.HeaderCase = HeaderCase.Title;
+    o.ExpandProperties.Add(nameof(User.Address));
+});
+```
+
 ## Links and Ranges
 
 Use built-in helpers to parse A1 ranges, iterate rows/columns, and create clear, styled hyperlinks.

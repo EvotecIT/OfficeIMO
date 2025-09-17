@@ -182,6 +182,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AutoFitColumns_ClampsToExcelMaxWidth() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoFit.MaxWidth.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, new string('A', 5000));
+                sheet.AutoFitColumns();
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var column = wsPart.Worksheet.GetFirstChild<Columns>()?.Elements<Column>().FirstOrDefault(c => c.Min?.Value == 1 && c.Max?.Value == 1);
+                Assert.NotNull(column);
+                Assert.True(column!.Width.HasValue);
+                Assert.True(column.Width!.Value <= 255.0);
+                Assert.True(column.Width.Value >= 200.0); // ensure we actually expanded significantly
+
+                OpenXmlValidator validator = new();
+                var validationErrors = validator.Validate(spreadsheet);
+                Assert.Empty(validationErrors);
+            }
+        }
+
+        [Fact]
         public void Test_AutoFitSingleRow_DoesNotAffectOthers() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.SingleRow.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {

@@ -42,7 +42,7 @@ namespace OfficeIMO.Examples.Markdown {
 
             var html = md.ToHtmlDocument(new HtmlOptions {
                 Title = "Markdown Anchors & Theme",
-                Style = HtmlStyle.GithubAuto,
+                Style = HtmlStyle.Word,
                 CssDelivery = CssDelivery.Inline,
                 ShowAnchorIcons = true,
                 AnchorIcon = "🔗",

@@ -1,6 +1,7 @@
 using OfficeIMO.Word;
 using System;
 using System.Linq;
+using System.Collections.Generic;
 using System.Text;
 using System.IO;
 using System.Threading;
@@ -38,27 +39,50 @@ namespace OfficeIMO.Word.Markdown {
             _output.Clear();
             foreach (var section in DocumentTraversal.EnumerateSections(document)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                foreach (var paragraph in section.Paragraphs) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var text = ConvertParagraph(paragraph, options);
-                    if (!string.IsNullOrEmpty(text)) {
-                        _output.AppendLine(text);
-                    }
+                var elements = section.Elements;
+                if (elements == null || elements.Count == 0) {
+                    // Fallback: compose from known collections when Elements isn't available
+                    elements = new List<WordElement>(section.Paragraphs.Count + section.Tables.Count);
+                    elements.AddRange(section.Paragraphs);
+                    elements.AddRange(section.Tables);
                 }
-
-                foreach (var table in section.Tables) {
+                for (int i = 0; i < elements.Count; i++) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var tableText = ConvertTable(table, options);
-                    if (!string.IsNullOrEmpty(tableText)) {
-                        _output.AppendLine(tableText);
-                    }
-                }
-
-                foreach (var embedded in section.EmbeddedDocuments) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var html = embedded.GetHtml();
-                    if (!string.IsNullOrEmpty(html)) {
-                        _output.AppendLine(html);
+                    var el = elements[i];
+                    if (el is WordParagraph p) {
+                        // Elements may include multiple WordParagraph wrappers for a single
+                        // underlying OpenXml paragraph (one per run/hyperlink). Rendering each
+                        // would duplicate content. Only render once per paragraph by processing
+                        // the first run wrapper (IsFirstRun), or paragraphs that have no runs at all.
+                        bool hasRuns = false;
+                        try { hasRuns = p.GetRuns().Any(); } catch { /* best-effort */ }
+                        // Detect checkbox state across sibling wrappers for the same underlying paragraph
+                        bool paraHasCheckbox = p.IsCheckBox;
+                        bool paraCheckboxChecked = p.CheckBox?.IsChecked == true;
+                        // Look ahead within the same paragraph group
+                        int j = i + 1;
+                        while (j < elements.Count && elements[j] is WordParagraph p2 && p2.Equals(p)) {
+                            if (p2.IsCheckBox) { paraHasCheckbox = true; paraCheckboxChecked = p2.CheckBox?.IsChecked == true; }
+                            j++;
+                        }
+                        if (hasRuns && !p.IsFirstRun) {
+                            continue; // skip subsequent run wrappers
+                        }
+                        var text = ConvertParagraph(p, options, paraHasCheckbox, paraCheckboxChecked);
+                        if (!string.IsNullOrEmpty(text)) {
+                            _output.AppendLine(text);
+                        }
+                    } else if (el is WordTable t) {
+                        var tableText = ConvertTable(t, options);
+                        if (!string.IsNullOrEmpty(tableText)) {
+                            _output.AppendLine(tableText);
+                            _output.AppendLine(); // ensure separation so following content isn't merged into table
+                        }
+                    } else if (el is WordEmbeddedDocument ed) {
+                        var html = ed.GetHtml();
+                        if (!string.IsNullOrEmpty(html)) {
+                            _output.AppendLine(html);
+                        }
                     }
                 }
             }

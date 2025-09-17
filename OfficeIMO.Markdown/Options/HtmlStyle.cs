@@ -13,6 +13,7 @@ public enum HtmlStyle {
     /// <summary>GitHub-like dark theme.</summary>
     GithubDark,
     /// <summary>Auto light/dark using prefers-color-scheme.</summary>
-    GithubAuto
+    GithubAuto,
+    /// <summary>Word-like styling: Calibri/Cambria headings, comfortable spacing, and Word-ish tables/lists.</summary>
+    Word
 }
-

@@ -127,7 +127,8 @@ namespace OfficeIMO.Examples.Word {
                     string htmlPath = Path.Combine(folderPath, "README_to_html.html");
                     document.SaveAsHtml(htmlPath, new WordToHtmlOptions {
                         IncludeFontStyles = true,
-                        IncludeListStyles = true
+                        IncludeListStyles = true,
+                        IncludeDefaultCss = true
                     });
                     
                     string html = File.ReadAllText(htmlPath);

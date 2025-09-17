@@ -55,6 +55,8 @@ namespace OfficeIMO.Excel {
             return (cellValue, new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType));
         }
 
+        
+
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, string value) {
             WriteLockConditional(() => CellValueCore(row, column, value));
@@ -127,7 +129,9 @@ namespace OfficeIMO.Excel {
         public void CellFormula(int row, int column, string formula) {
             WriteLock(() => {
                 Cell cell = GetCell(row, column);
-                cell.CellFormula = new CellFormula(formula);
+                // Excel formulas in XML should not start with '=' and must not include illegal control characters
+                var safe = Utilities.ExcelSanitizer.SanitizeFormula(formula);
+                cell.CellFormula = new CellFormula(safe);
             });
         }
 
@@ -296,6 +300,34 @@ namespace OfficeIMO.Excel {
             }
 
             cell.StyleIndex = (uint)wrapIndex;
+        }
+
+        /// <summary>
+        /// Enables WrapText for every cell in a column within a given row range.
+        /// </summary>
+        public void WrapCells(int fromRow, int toRow, int column)
+        {
+            if (fromRow < 1 || toRow < fromRow || column < 1) return;
+            WriteLockConditional(() =>
+            {
+                for (int r = fromRow; r <= toRow; r++)
+                {
+                    ApplyWrapText(r, column);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Enables WrapText for the specified column and pins the target column width (in Excel character units).
+        /// Useful when mixed with auto-fit operations so wrapped columns keep a predictable width.
+        /// </summary>
+        public void WrapCells(int fromRow, int toRow, int column, double targetColumnWidth)
+        {
+            WrapCells(fromRow, toRow, column);
+            if (targetColumnWidth > 0)
+            {
+                try { SetColumnWidth(column, targetColumnWidth); } catch { }
+            }
         }
 
         /// <summary>
@@ -712,4 +744,3 @@ namespace OfficeIMO.Excel {
 
     }
 }
-

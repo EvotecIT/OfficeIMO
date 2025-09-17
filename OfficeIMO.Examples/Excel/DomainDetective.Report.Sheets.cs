@@ -102,8 +102,13 @@ namespace OfficeIMO.Examples.Excel {
                 opts.HeaderCase = HeaderCase.Title;
                 opts.HeaderPrefixTrimPaths = new[] { nameof(DomainRow.ScoreBreakdown) + "." };
                 opts.NullPolicy = NullPolicy.EmptyString;
-                // Keep "Domain" as first column for easy linking
-                opts.PinnedFirst = new[] { nameof(DomainRow.Domain) };
+                // Keep "Domain" first, then Status/WarningCount/ErrorCount/Score, and push References to the end
+                // Using the single-call convenience Order(pinFirst, priority, pinLast)
+                opts.Order(
+                    pinFirst: new[] { nameof(DomainRow.Domain) },
+                    priority: new[] { nameof(DomainRow.Status), nameof(DomainRow.WarningCount), nameof(DomainRow.ErrorCount), nameof(DomainRow.Score) },
+                    pinLast: new[] { nameof(DomainRow.References) }
+                );
             }, visuals: v => {
                 // Icon set for overall score
                 v.IconSetColumns.Add("Score");
@@ -143,7 +148,8 @@ namespace OfficeIMO.Examples.Excel {
             }
 
             // Finish overview
-            overview.Finish(autoFitColumns: true);
+            // Overview has multiple side-by-side sections; use explicit column sizing per table
+            overview.Finish(autoFitColumns: false);
 
             // One detail sheet per domain (sequential by default)
             foreach (var d in rows) BuildDomainSheet(doc, d);
@@ -235,7 +241,7 @@ namespace OfficeIMO.Examples.Excel {
             }
             if (d.References.Length > 0) s.SectionWithAnchor("References").References(d.References);
 
-            s.Finish(autoFitColumns: true);
+            s.Finish(autoFitColumns: false);
         }
 
 

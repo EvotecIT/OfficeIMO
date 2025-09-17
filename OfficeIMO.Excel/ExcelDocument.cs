@@ -5,6 +5,7 @@ using System.IO.Packaging;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using OfficeIMO.Excel.Utilities;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -351,6 +352,33 @@ namespace OfficeIMO.Excel {
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
+
+            // Normalize content types up-front to avoid failures on malformed packages
+            // where /docProps/app.xml can be incorrectly typed as application/xml.
+            // Prefer in-memory normalization to avoid file-share conflicts in parallel runners.
+            try
+            {
+                var bytes = File.ReadAllBytes(filePath);
+                // Do NOT dispose this stream until the SpreadsheetDocument is disposed.
+                // Returning a document backed by a disposed stream causes ObjectDisposedException
+                // when Open XML attempts to read parts/relationships.
+                var ms = new MemoryStream(bytes.Length + 4096);
+                ms.Write(bytes, 0, bytes.Length);
+                ms.Position = 0;
+                Utilities.ExcelPackageUtilities.NormalizeContentTypes(ms, leaveOpen: true);
+                ms.Position = 0;
+                // Open from normalized memory stream to avoid touching the original file yet
+                var openSettingsMem = new OpenSettings { AutoSave = autoSave };
+                var memDoc = SpreadsheetDocument.Open(ms, !readOnly, openSettingsMem);
+                ExcelDocument documentMem = new ExcelDocument();
+                documentMem.FilePath = filePath;
+                documentMem._spreadSheetDocument = memDoc;
+                documentMem._workBookPart = memDoc.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+                documentMem.BuiltinDocumentProperties = new BuiltinDocumentProperties(documentMem);
+                documentMem.ApplicationProperties = new ApplicationProperties(documentMem);
+                return documentMem;
+            }
+            catch { }
             ExcelDocument document = new ExcelDocument();
             document.FilePath = filePath;
 
@@ -591,9 +619,11 @@ namespace OfficeIMO.Excel {
                 sheet.Commit();
             }
 
+            // Always preflight to remove orphaned/empty containers that can trigger Excel repairs
+            try { PreflightWorkbook(); } catch { }
             if (options?.SafePreflight == true)
             {
-                try { PreflightWorkbook(); } catch { }
+                // Already performed above; keep branch for compatibility/telemetry semantics
             }
 
             if (options?.SafeRepairDefinedNames == true)
@@ -651,8 +681,10 @@ namespace OfficeIMO.Excel {
                 dst.Created = pCreated; dst.Modified = pModified ?? DateTime.UtcNow; dst.LastPrinted = pLastPrinted;
             }
             catch { }
+
+            try { ExcelPackageUtilities.NormalizeContentTypes(path); } catch { }
             FilePath = path;
-            
+
             // Reopen as in-memory document for further operations on an expandable stream
             var fileBytes = File.ReadAllBytes(path);
             var mem = new MemoryStream(fileBytes.Length + 8192);
@@ -675,6 +707,35 @@ namespace OfficeIMO.Excel {
                     throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
                 }
             }
+        }
+
+        /// <summary>
+        /// Saves the document and writes an optional OpenXML validation report (sidecar file)
+        /// next to the saved .xlsx when issues are detected. Useful to diagnose any remaining
+        /// problems that could cause Excel's repair dialog.
+        /// </summary>
+        /// <param name="filePath">Destination path. Empty uses <see cref="FilePath"/>.</param>
+        /// <param name="openExcel">When true, launches the saved file.</param>
+        /// <param name="writeReportOnIssues">When true (default), writes <c>.xlsx.validation.txt</c> on issues.</param>
+        public void SafeSave(string filePath = "", bool openExcel = false, bool writeReportOnIssues = true)
+        {
+            Save(filePath, openExcel);
+            try
+            {
+                var errs = ValidateDocument();
+                if (errs.Count > 0 && writeReportOnIssues)
+                {
+                    var target = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
+                    var reportPath = System.IO.Path.ChangeExtension(target, ".xlsx.validation.txt");
+                    var lines = new System.Collections.Generic.List<string>(errs.Count);
+                    foreach (var e in errs)
+                    {
+                        lines.Add($"{e.ErrorType}: {e.Description} at {e.Path?.XPath}");
+                    }
+                    System.IO.File.WriteAllLines(reportPath, lines);
+                }
+            }
+            catch { }
         }
 
         /// <summary>
@@ -728,9 +789,11 @@ namespace OfficeIMO.Excel {
                 sheet.Commit();
             }
 
+            // Always preflight to avoid later repair prompts
+            try { PreflightWorkbook(); } catch { }
             if (options?.SafePreflight == true)
             {
-                try { PreflightWorkbook(); } catch { }
+                // Already performed above
             }
 
             if (options?.SafeRepairDefinedNames == true)
@@ -780,6 +843,7 @@ namespace OfficeIMO.Excel {
                     dst.Title = pTitle; dst.Creator = pCreator; dst.Subject = pSubject; dst.Category = pCategory; dst.Description = pDescription; dst.Keywords = pKeywords; dst.LastModifiedBy = pLastModifiedBy; dst.Version = pVersion; dst.Created = pCreated; dst.Modified = pModified ?? DateTime.UtcNow; dst.LastPrinted = pLastPrinted;
                 }
                 catch { }
+                try { ExcelPackageUtilities.NormalizeContentTypes(target); } catch { }
                 FilePath = target;
 
                 // Reopen as in-memory document for continued operations without locking the file
@@ -816,6 +880,7 @@ namespace OfficeIMO.Excel {
         public Task SaveAsync(CancellationToken cancellationToken = default) {
             return SaveAsync("", false, cancellationToken);
         }
+
 
         /// <summary>
         /// Asynchronously saves the document and optionally opens Excel.
