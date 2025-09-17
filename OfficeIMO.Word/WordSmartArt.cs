@@ -141,6 +141,27 @@ namespace OfficeIMO.Word {
         public void ReplaceTexts(params string[] texts) => ReplaceTexts((IEnumerable<string>)texts);
 
         /// <summary>
+        /// Replaces texts of all nodes with optional formatting applied uniformly to each replacement.
+        /// If more texts are provided than nodes, extras are ignored. If fewer, remaining nodes are unchanged.
+        /// </summary>
+        public void ReplaceTexts(IEnumerable<string> texts, bool bold, bool italic, bool underline, string? colorHex = null, double? sizePt = null) {
+            var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
+            int i = 0;
+            foreach (var t in texts) {
+                if (i >= paras.Count) break;
+                ReplaceParagraphText(paras[i], ns.a, t, bold, italic, underline, colorHex, sizePt);
+                i++;
+            }
+            SaveDiagramData(dataPart, xdoc);
+        }
+
+        /// <summary>
+        /// Convenience overload to apply formatting to each provided text.
+        /// </summary>
+        public void ReplaceTexts(bool bold, bool italic, bool underline, string? colorHex = null, double? sizePt = null, params string[] texts)
+            => ReplaceTexts((IEnumerable<string>)texts, bold, italic, underline, colorHex, sizePt);
+
+        /// <summary>
         /// Sets node text with optional basic formatting and newline support.
         /// </summary>
         public void SetNodeText(int index, string text, bool bold, bool italic) {
