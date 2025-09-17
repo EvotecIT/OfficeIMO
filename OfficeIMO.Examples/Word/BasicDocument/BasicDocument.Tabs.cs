@@ -16,8 +16,10 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine(document.Paragraphs.Count);
 
-                Console.WriteLine(document.Paragraphs[1].IsTab);
-                Console.WriteLine(document.Paragraphs[2].IsTab);
+                if (document.Paragraphs.Count > 2) {
+                    Console.WriteLine(document.Paragraphs[1].IsTab);
+                    Console.WriteLine(document.Paragraphs[2].IsTab);
+                }
 
                 Console.WriteLine(paragraph1.IsTab);
 
@@ -27,7 +29,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine(paragraph2.IsTab);
 
-                paragraph2.Tab.Remove();
+                paragraph2.Tab?.Remove();
                 document.Save(openWord);
             }
         }

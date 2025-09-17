@@ -27,7 +27,9 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddHorizontalLine(BorderValues.Double);
 
-                document.Sections[0].AddHorizontalLine();
+                if (document.Sections.Count > 0) {
+                    document.Sections[0].AddHorizontalLine();
+                }
 
                 var wordListToc = document.AddTableOfContentList(WordListStyle.Numbered);
 
@@ -73,7 +75,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddPageBreak();
 
                 // lets find a list which has items which suggest it's a TOC attached list
-                WordList wordListToc = null;
+                WordList? wordListToc = null;
                 foreach (var list in document.Lists) {
                     if (list.IsToc) {
                         wordListToc = list;

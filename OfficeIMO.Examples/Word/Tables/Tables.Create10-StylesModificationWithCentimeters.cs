@@ -1,4 +1,7 @@
+using System;
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
 
@@ -20,20 +23,21 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("This table uses the original twips-based method for setting margins.");
 
                 WordTable wordTable1 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
-                wordTable1.Rows[0].Cells[0].Paragraphs[0].Text = "Twips Example";
-                wordTable1.Rows[1].Cells[0].Paragraphs[0].Text = "Using Original Method";
-                wordTable1.Rows[2].Cells[0].Paragraphs[0].Text = "All sides 110 twips";
+                SetCellText(wordTable1, 0, 0, "Twips Example");
+                SetCellText(wordTable1, 1, 0, "Using Original Method");
+                SetCellText(wordTable1, 2, 0, "All sides 110 twips");
 
                 // Set margins using twips
-                wordTable1.StyleDetails.MarginDefaultTopWidth = 110;
-                wordTable1.StyleDetails.MarginDefaultBottomWidth = 110;
-                wordTable1.StyleDetails.MarginDefaultLeftWidth = 110;
-                wordTable1.StyleDetails.MarginDefaultRightWidth = 110;
-                wordTable1.StyleDetails.CellSpacing = 50;
+                var styleDetails1 = Guard.NotNull(wordTable1.StyleDetails, "Table style details should be available.");
+                styleDetails1.MarginDefaultTopWidth = 110;
+                styleDetails1.MarginDefaultBottomWidth = 110;
+                styleDetails1.MarginDefaultLeftWidth = 110;
+                styleDetails1.MarginDefaultRightWidth = 110;
+                styleDetails1.CellSpacing = 50;
 
                 Console.WriteLine("\nFirst table (Twips):");
-                Console.WriteLine("Table MarginDefaultTopWidth: " + wordTable1.StyleDetails.MarginDefaultTopWidth);
-                Console.WriteLine("Table MarginDefaultTopCentimeters: " + wordTable1.StyleDetails.MarginDefaultTopCentimeters);
+                Console.WriteLine("Table MarginDefaultTopWidth: " + styleDetails1.MarginDefaultTopWidth);
+                Console.WriteLine("Table MarginDefaultTopCentimeters: " + styleDetails1.MarginDefaultTopCentimeters);
 
                 document.AddParagraph();
 
@@ -43,20 +47,21 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("This table uses the new centimeters-based method for setting margins.");
 
                 WordTable wordTable2 = document.AddTable(3, 4, WordTableStyle.GridTable1Light);
-                wordTable2.Rows[0].Cells[0].Paragraphs[0].Text = "Centimeters Example";
-                wordTable2.Rows[1].Cells[0].Paragraphs[0].Text = "Using New Method";
-                wordTable2.Rows[2].Cells[0].Paragraphs[0].Text = "All sides 0.2 cm";
+                SetCellText(wordTable2, 0, 0, "Centimeters Example");
+                SetCellText(wordTable2, 1, 0, "Using New Method");
+                SetCellText(wordTable2, 2, 0, "All sides 0.2 cm");
 
                 // Set margins using centimeters
-                wordTable2.StyleDetails.MarginDefaultTopCentimeters = 0.2;
-                wordTable2.StyleDetails.MarginDefaultBottomCentimeters = 0.2;
-                wordTable2.StyleDetails.MarginDefaultLeftCentimeters = 0.2;
-                wordTable2.StyleDetails.MarginDefaultRightCentimeters = 0.2;
-                wordTable2.StyleDetails.CellSpacingCentimeters = 0.1;
+                var styleDetails2 = Guard.NotNull(wordTable2.StyleDetails, "Table style details should be available.");
+                styleDetails2.MarginDefaultTopCentimeters = 0.2;
+                styleDetails2.MarginDefaultBottomCentimeters = 0.2;
+                styleDetails2.MarginDefaultLeftCentimeters = 0.2;
+                styleDetails2.MarginDefaultRightCentimeters = 0.2;
+                styleDetails2.CellSpacingCentimeters = 0.1;
 
                 Console.WriteLine("\nSecond table (Centimeters):");
-                Console.WriteLine("Table MarginDefaultTopCentimeters: " + wordTable2.StyleDetails.MarginDefaultTopCentimeters);
-                Console.WriteLine("Table MarginDefaultTopWidth: " + wordTable2.StyleDetails.MarginDefaultTopWidth);
+                Console.WriteLine("Table MarginDefaultTopCentimeters: " + styleDetails2.MarginDefaultTopCentimeters);
+                Console.WriteLine("Table MarginDefaultTopWidth: " + styleDetails2.MarginDefaultTopWidth);
 
                 document.AddParagraph();
 
@@ -66,21 +71,22 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("This table demonstrates using both twips and centimeters for different sides.");
 
                 WordTable wordTable3 = document.AddTable(3, 4, WordTableStyle.GridTable1Light);
-                wordTable3.Rows[0].Cells[0].Paragraphs[0].Text = "Mixed Units Example";
-                wordTable3.Rows[1].Cells[0].Paragraphs[0].Text = "Using Both Methods";
-                wordTable3.Rows[2].Cells[0].Paragraphs[0].Text = "Different sides";
+                SetCellText(wordTable3, 0, 0, "Mixed Units Example");
+                SetCellText(wordTable3, 1, 0, "Using Both Methods");
+                SetCellText(wordTable3, 2, 0, "Different sides");
 
                 // Mix of twips and centimeters
-                wordTable3.StyleDetails.MarginDefaultTopWidth = 120;  // Using twips
-                wordTable3.StyleDetails.MarginDefaultBottomCentimeters = 0.3;  // Using centimeters
-                wordTable3.StyleDetails.MarginDefaultLeftWidth = 150;  // Using twips
-                wordTable3.StyleDetails.MarginDefaultRightCentimeters = 0.25;  // Using centimeters
+                var styleDetails3 = Guard.NotNull(wordTable3.StyleDetails, "Table style details should be available.");
+                styleDetails3.MarginDefaultTopWidth = 120;  // Using twips
+                styleDetails3.MarginDefaultBottomCentimeters = 0.3;  // Using centimeters
+                styleDetails3.MarginDefaultLeftWidth = 150;  // Using twips
+                styleDetails3.MarginDefaultRightCentimeters = 0.25;  // Using centimeters
 
                 Console.WriteLine("\nThird table (Mixed):");
-                Console.WriteLine("Table MarginDefaultTopWidth: " + wordTable3.StyleDetails.MarginDefaultTopWidth);
-                Console.WriteLine("Table MarginDefaultBottomCentimeters: " + wordTable3.StyleDetails.MarginDefaultBottomCentimeters);
-                Console.WriteLine("Table MarginDefaultLeftWidth: " + wordTable3.StyleDetails.MarginDefaultLeftWidth);
-                Console.WriteLine("Table MarginDefaultRightCentimeters: " + wordTable3.StyleDetails.MarginDefaultRightCentimeters);
+                Console.WriteLine("Table MarginDefaultTopWidth: " + styleDetails3.MarginDefaultTopWidth);
+                Console.WriteLine("Table MarginDefaultBottomCentimeters: " + styleDetails3.MarginDefaultBottomCentimeters);
+                Console.WriteLine("Table MarginDefaultLeftWidth: " + styleDetails3.MarginDefaultLeftWidth);
+                Console.WriteLine("Table MarginDefaultRightCentimeters: " + styleDetails3.MarginDefaultRightCentimeters);
 
                 document.AddParagraph();
 
@@ -90,24 +96,32 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("This table demonstrates border styles with different units for spacing.");
 
                 WordTable wordTable4 = document.AddTable(3, 4, WordTableStyle.GridTable1Light);
-                wordTable4.Rows[0].Cells[0].Paragraphs[0].Text = "Border Styles";
-                wordTable4.Rows[1].Cells[0].Paragraphs[0].Text = "With Different Units";
-                wordTable4.Rows[2].Cells[0].Paragraphs[0].Text = "For Spacing";
+                SetCellText(wordTable4, 0, 0, "Border Styles");
+                SetCellText(wordTable4, 1, 0, "With Different Units");
+                SetCellText(wordTable4, 2, 0, "For Spacing");
 
                 // Set borders with different units
-                wordTable4.StyleDetails.SetBordersOutsideInside(
+                var styleDetails4 = Guard.NotNull(wordTable4.StyleDetails, "Table style details should be available.");
+                styleDetails4.SetBordersOutsideInside(
                     BorderValues.Double, 24U, Color.Red,  // Outside borders
                     BorderValues.Single, 12U, Color.Blue  // Inside borders
                 );
 
                 // Set cell spacing using centimeters
-                wordTable4.StyleDetails.CellSpacingCentimeters = 0.15;
+                styleDetails4.CellSpacingCentimeters = 0.15;
 
                 Console.WriteLine("\nFourth table (Borders):");
-                Console.WriteLine("Table CellSpacingCentimeters: " + wordTable4.StyleDetails.CellSpacingCentimeters);
-                Console.WriteLine("Table CellSpacing: " + wordTable4.StyleDetails.CellSpacing);
+                Console.WriteLine("Table CellSpacingCentimeters: " + styleDetails4.CellSpacingCentimeters);
+                Console.WriteLine("Table CellSpacing: " + styleDetails4.CellSpacing);
 
                 document.Save(openWord);
+
+                static void SetCellText(WordTable table, int rowIndex, int columnIndex, string text) {
+                    var row = Guard.GetRequiredItem(table.Rows, rowIndex, $"Table must contain row index {rowIndex}.");
+                    var cell = Guard.GetRequiredItem(row.Cells, columnIndex, $"Row must contain cell index {columnIndex}.");
+                    var paragraph = cell.Paragraphs.FirstOrDefault() ?? cell.AddParagraph();
+                    paragraph.Text = text;
+                }
             }
         }
     }

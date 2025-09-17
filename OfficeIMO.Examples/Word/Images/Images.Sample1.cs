@@ -1,5 +1,6 @@
 using System;
 using DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -20,8 +21,11 @@ namespace OfficeIMO.Examples.Word {
             // lets add image to paragraph
             var paragraphImage = paragraph1.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 22, 22, WrapTextImage.BehindText);
 
-            Console.WriteLine(paragraph1.Image.WrapText);
-            Console.WriteLine(paragraphImage.Image.WrapText);
+            var paragraph1Image = Guard.NotNull(paragraph1.Image, "Paragraph should contain the inserted image.");
+            var paragraphImageImage = Guard.NotNull(paragraphImage.Image, "Paragraph should contain the inserted image.");
+
+            Console.WriteLine(paragraph1Image.WrapText);
+            Console.WriteLine(paragraphImageImage.WrapText);
 
             var paragraph2 = paragraph1.AddText("and more text");
             paragraph2.Bold = true;
@@ -32,9 +36,10 @@ namespace OfficeIMO.Examples.Word {
             document.AddParagraph("This adds another picture with 500x500");
             var paragraph3 = document.AddParagraph();
             paragraph3.AddImage(filePathImage, 500, 500);
-            //paragraph2.Image.BlackWiteMode = BlackWhiteModeValues.GrayWhite;
-            paragraph3.Image.Rotation = 180;
-            paragraph3.Image.Shape = ShapeTypeValues.ActionButtonMovie;
+            var paragraph3Image = Guard.NotNull(paragraph3.Image, "Paragraph should contain the large image.");
+            //paragraph3Image.BlackWiteMode = BlackWhiteModeValues.GrayWhite;
+            paragraph3Image.Rotation = 180;
+            paragraph3Image.Shape = ShapeTypeValues.ActionButtonMovie;
 
             document.AddParagraph("This adds another picture with 100x100");
             var paragraph4 = document.AddParagraph();
@@ -49,20 +54,22 @@ namespace OfficeIMO.Examples.Word {
             // we add paragraph with an image
             var paragraph6 = document.AddParagraph();
             paragraph6.AddImage(filePathImage);
+            var paragraph6Image = Guard.NotNull(paragraph6.Image, "Paragraph should contain the default-sized image.");
             // we can get the height of the image from paragraph
-            Console.WriteLine("This document has image, which has height of: " + paragraph6.Image.Height + " pixels (I think) ;-)");
+            Console.WriteLine("This document has image, which has height of: " + paragraph6Image.Height + " pixels (I think) ;-)");
             // we can also overwrite height later on
-            paragraph6.Image.Height = 50;
-            paragraph6.Image.Width = 50;
+            paragraph6Image.Height = 50;
+            paragraph6Image.Width = 50;
             // this doesn't work
-            paragraph6.Image.HorizontalFlip = true;
+            paragraph6Image.HorizontalFlip = true;
 
             // or we can get any image and overwrite it's size
-            document.Images[0].Height = 200;
-            document.Images[0].Width = 200;
+            var firstImage = Guard.GetRequiredItem(document.Images, 0, "Document should contain at least one image.");
+            firstImage.Height = 200;
+            firstImage.Width = 200;
 
             var fileToSave = System.IO.Path.Combine(imagePaths, "OutputPrzemyslawKlysAndKulkozaurr.jpg");
-            document.Images[0].SaveToFile(fileToSave);
+            firstImage.SaveToFile(fileToSave);
 
             document.Save(openWord);
         }

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
 
@@ -12,26 +13,31 @@ namespace OfficeIMO.Examples.Word {
                 var firstList = document.AddList(WordListStyle.Bulleted);
                 var googlePara = firstList.AddItem("").AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
                 googlePara.Bold = true;
-                var googleLink = googlePara.Hyperlink;
+                var googleLink = Guard.NotNull(googlePara.Hyperlink, "Expected Google hyperlink to be created.");
 
                 var bingPara = firstList.AddItem("").AddHyperLink("Bing", new Uri("https://bing.com"), addStyle: true);
                 bingPara.Italic = true;
-                var bingLink = bingPara.Hyperlink;
+                var bingLink = Guard.NotNull(bingPara.Hyperlink, "Expected Bing hyperlink to be created.");
 
                 var yahooPara = firstList.AddItem("").AddHyperLink("Yahoo", new Uri("https://yahoo.com"), addStyle: true);
                 yahooPara.Color = Color.Purple;
-                var yahooLink = yahooPara.Hyperlink;
+                var yahooLink = Guard.NotNull(yahooPara.Hyperlink, "Expected Yahoo hyperlink to be created.");
 
                 document.AddParagraph("Some paragraph separating the lists.");
                 document.AddParagraph("Another paragraph.");
 
                 var secondList = document.AddList(WordListStyle.Bulleted);
-                secondList.AddItem("").AddHyperLink("DuckDuckGo", new Uri("https://duckduckgo.com")).Hyperlink
-                    .CopyFormattingFrom(googleLink);
-                secondList.AddItem("").AddHyperLink("Startpage", new Uri("https://startpage.com")).Hyperlink
-                    .CopyFormattingFrom(bingLink);
-                secondList.AddItem("").AddHyperLink("GitHub", new Uri("https://github.com")).Hyperlink
-                    .CopyFormattingFrom(yahooLink);
+                var duckLink = Guard.NotNull(secondList.AddItem("").AddHyperLink("DuckDuckGo", new Uri("https://duckduckgo.com"))
+                    .Hyperlink, "Expected DuckDuckGo hyperlink to be created.");
+                duckLink.CopyFormattingFrom(googleLink);
+
+                var startPageLink = Guard.NotNull(secondList.AddItem("").AddHyperLink("Startpage", new Uri("https://startpage.com"))
+                    .Hyperlink, "Expected Startpage hyperlink to be created.");
+                startPageLink.CopyFormattingFrom(bingLink);
+
+                var gitHubLink = Guard.NotNull(secondList.AddItem("").AddHyperLink("GitHub", new Uri("https://github.com"))
+                    .Hyperlink, "Expected GitHub hyperlink to be created.");
+                gitHubLink.CopyFormattingFrom(yahooLink);
 
                 document.Save(openWord);
             }

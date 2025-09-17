@@ -1,4 +1,5 @@
 using System;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -13,7 +14,8 @@ namespace OfficeIMO.Examples.Word {
             paragraph1.AddImage(imagePath, 100, 100);
 
             var paragraph2 = document.AddParagraph();
-            paragraph1.Image.Clone(paragraph2);
+            var image = Guard.NotNull(paragraph1.Image, "Source paragraph is expected to contain an image to clone.");
+            image.Clone(paragraph2);
 
             document.Save(openWord);
         }

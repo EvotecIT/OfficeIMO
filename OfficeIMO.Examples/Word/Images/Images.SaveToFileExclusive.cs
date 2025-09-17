@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -12,17 +13,18 @@ namespace OfficeIMO.Examples.Word {
             using var document = WordDocument.Create(filePath);
             var paragraph = document.AddParagraph();
             paragraph.AddImage(Path.Combine(imagePaths, "Kulek.jpg"), 50, 50);
+            var image = Guard.NotNull(paragraph.Image, "Paragraph should contain the image before saving.");
 
             string fileToSave = Path.Combine(folderPath, "LockedImage.jpg");
             using (var lockStream = new FileStream(fileToSave, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite)) {
                 try {
-                    paragraph.Image.SaveToFile(fileToSave);
+                    image.SaveToFile(fileToSave);
                 } catch (IOException) {
                     Console.WriteLine("[!] Unable to save image while file is locked");
                 }
             }
 
-            paragraph.Image.SaveToFile(fileToSave);
+            image.SaveToFile(fileToSave);
             document.Save(openWord);
         }
     }

@@ -1,5 +1,6 @@
 using System;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
 
@@ -66,7 +67,8 @@ namespace OfficeIMO.Examples.Word {
 
                 var paragraphWithHyperlink = document.AddHyperLink("Go to Evotec Blogs", new Uri("https://evotec.xyz"), true, "URL with tooltip");
                 // you can also change the hyperlink text, uri later on using properties
-                paragraphWithHyperlink.Hyperlink.Uri = new Uri("https://evotec.xyz/hub");
+                var hyperlink = Guard.NotNull(paragraphWithHyperlink.Hyperlink, "Hyperlink should be created when calling AddHyperLink.");
+                hyperlink.Uri = new Uri("https://evotec.xyz/hub");
                 paragraphWithHyperlink.ParagraphAlignment = JustificationValues.Center;
 
                 list.AddItem("3rd element of list, but added after hyperlink", 0);
