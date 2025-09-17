@@ -170,6 +170,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a VML text box paragraph to the section.
         /// </summary>
+        /// <param name="text">Initial text content inserted into the VML text box.</param>
         public WordTextBox AddTextBoxVml(string text) {
             return AddParagraph(newRun: true).AddTextBoxVml(text);
         }
@@ -177,6 +178,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a VML image to the section.
         /// </summary>
+        /// <param name="filePathImage">Path to the image file to embed.</param>
+        /// <param name="width">Optional image width in points.</param>
+        /// <param name="height">Optional image height in points.</param>
         public WordImage AddImageVml(string filePathImage, double? width = null, double? height = null) {
             var paragraph = AddParagraph(newRun: true);
             paragraph.AddImageVml(filePathImage, width, height);
@@ -189,10 +193,10 @@ namespace OfficeIMO.Word {
         /// <param name="shapeType">Type of shape to create.</param>
         /// <param name="widthPt">Width in points or line end X.</param>
         /// <param name="heightPt">Height in points or line end Y.</param>
-        /// <param name="fillColor">Fill color in hex format.</param>
-        /// <param name="strokeColor">Stroke color in hex format.</param>
+        /// <param name="fillColor">Fill color specified as a hex string (for example, <c>#RRGGBB</c>).</param>
+        /// <param name="strokeColor">Stroke color specified as a hex string (for example, <c>#RRGGBB</c>).</param>
         /// <param name="strokeWeightPt">Stroke weight in points.</param>
-        /// <param name="arcSize">Corner roundness fraction for rounded rectangles.</param>
+        /// <param name="arcSize">Rounded corner size expressed as a fraction between 0 and 1.</param>
         public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
             string fillColor = "#FFFFFF", string strokeColor = "#000000", double strokeWeightPt = 1, double arcSize = 0.25) {
             return AddParagraph(newRun: true).AddShape(shapeType, widthPt, heightPt, fillColor, strokeColor, strokeWeightPt, arcSize);
