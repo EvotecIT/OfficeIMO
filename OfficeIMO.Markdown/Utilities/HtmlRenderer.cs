@@ -425,17 +425,17 @@ internal static class HtmlRenderer {
                  || !string.IsNullOrWhiteSpace(t.ActiveLinkLight) || !string.IsNullOrWhiteSpace(t.ActiveLinkDark);
         if (!any) return string.Empty;
         var sb = new StringBuilder();
-        var scope = options.CssScopeSelector;
+        var scope = NormalizeScope(options.CssScopeSelector);
         // Expose variables on scope for both themes
         sb.Append('\n');
-        sb.Append("html[data-theme=light] ").Append(scope).Append(" {");
+        sb.Append(CombineSelectors("html[data-theme=light]", scope)).Append(" {");
         if (!string.IsNullOrWhiteSpace(t.HeadingLight)) sb.Append(" --md-heading: ").Append(t.HeadingLight).Append(';');
         if (!string.IsNullOrWhiteSpace(t.AccentLight)) sb.Append(" --md-accent: ").Append(t.AccentLight).Append(';');
         if (!string.IsNullOrWhiteSpace(t.TocBgLight)) sb.Append(" --md-toc-bg: ").Append(t.TocBgLight).Append(';');
         if (!string.IsNullOrWhiteSpace(t.TocBorderLight)) sb.Append(" --md-toc-border: ").Append(t.TocBorderLight).Append(';');
         if (!string.IsNullOrWhiteSpace(t.ActiveLinkLight)) sb.Append(" --md-active: ").Append(t.ActiveLinkLight).Append(';');
         sb.Append(" }\n");
-        sb.Append("html[data-theme=dark] ").Append(scope).Append(" {");
+        sb.Append(CombineSelectors("html[data-theme=dark]", scope)).Append(" {");
         if (!string.IsNullOrWhiteSpace(t.HeadingDark)) sb.Append(" --md-heading: ").Append(t.HeadingDark).Append(';');
         if (!string.IsNullOrWhiteSpace(t.AccentDark)) sb.Append(" --md-accent: ").Append(t.AccentDark).Append(';');
         if (!string.IsNullOrWhiteSpace(t.TocBgDark)) sb.Append(" --md-toc-bg: ").Append(t.TocBgDark).Append(';');
@@ -443,16 +443,17 @@ internal static class HtmlRenderer {
         if (!string.IsNullOrWhiteSpace(t.ActiveLinkDark)) sb.Append(" --md-active: ").Append(t.ActiveLinkDark).Append(';');
         sb.Append(" }\n");
         // Map variables to elements
-        sb.Append(scope).Append(" h1,").Append(scope).Append(" h2,").Append(scope).Append(" h3,")
-          .Append(scope).Append(" h4,").Append(scope).Append(" h5,").Append(scope).Append(" h6 { color: var(--md-heading, inherit); }\n");
-        sb.Append(scope).Append(" a { color: var(--md-accent, #0969da); }\n");
-        sb.Append(scope).Append(" nav.md-toc { background: var(--md-toc-bg, #f6f8fa); border-color: var(--md-toc-border, #d0d7de); }\n");
-        sb.Append(scope).Append(" nav.md-toc a.active { color: var(--md-active, var(--md-accent, #0969da)); border-left-color: var(--md-active, var(--md-accent, #0969da)); }\n");
+        sb.Append(string.Join(", ", Descendant(scope, "h1"), Descendant(scope, "h2"), Descendant(scope, "h3"),
+            Descendant(scope, "h4"), Descendant(scope, "h5"), Descendant(scope, "h6")))
+          .Append(" { color: var(--md-heading, inherit); }\n");
+        sb.Append(Descendant(scope, "a")).Append(" { color: var(--md-accent, #0969da); }\n");
+        sb.Append(Descendant(scope, "nav.md-toc")).Append(" { background: var(--md-toc-bg, #f6f8fa); border-color: var(--md-toc-border, #d0d7de); }\n");
+        sb.Append(Descendant(scope, "nav.md-toc a.active")).Append(" { color: var(--md-active, var(--md-accent, #0969da)); border-left-color: var(--md-active, var(--md-accent, #0969da)); }\n");
         // Accented borders and anchors for stronger theme feel
-        sb.Append(scope).Append(" h2 { border-bottom-color: var(--md-accent, #d8dee4); }\n");
-        sb.Append(scope).Append(" blockquote { border-left-color: var(--md-accent, #d0d7de); }\n");
-        sb.Append(scope).Append(" blockquote.callout { border-left-color: var(--md-accent, #0969da); background: var(--md-toc-bg, #f6f8fa); }\n");
-        sb.Append(scope).Append(" .heading-anchor { color: var(--md-accent, inherit); }\n");
+        sb.Append(Descendant(scope, "h2")).Append(" { border-bottom-color: var(--md-accent, #d8dee4); }\n");
+        sb.Append(Descendant(scope, "blockquote")).Append(" { border-left-color: var(--md-accent, #d0d7de); }\n");
+        sb.Append(Descendant(scope, "blockquote.callout")).Append(" { border-left-color: var(--md-accent, #0969da); background: var(--md-toc-bg, #f6f8fa); }\n");
+        sb.Append(Descendant(scope, ".heading-anchor")).Append(" { color: var(--md-accent, inherit); }\n");
         return sb.ToString();
     }
 
@@ -498,15 +499,32 @@ internal static class HtmlRenderer {
 
     internal static string ScopeCss(string? css, string? scopeSelector) {
         if (string.IsNullOrEmpty(css)) return string.Empty;
-        if (string.IsNullOrEmpty(scopeSelector)) return css!;
+        var scope = NormalizeScope(scopeSelector);
         // Naive scoping: prefix common selectors with the scope to avoid global bleed.
         // This is intentionally conservative.
         var cssText = css!; // guarded by IsNullOrEmpty above
-        var s = cssText.Replace("code[class*=\"language-\"]", scopeSelector + " code[class*=\\\"language-\\\"]")
-                   .Replace("pre[class*=\"language-\"]", scopeSelector + " pre[class*=\\\"language-\\\"]")
-                   .Replace("pre[class*=\"language-\"] code", scopeSelector + " pre[class*=\\\"language-\\\"] code");
+        var s = cssText.Replace("code[class*=\"language-\"]", scope + " code[class*=\\\"language-\\\"]")
+                   .Replace("pre[class*=\"language-\"]", scope + " pre[class*=\\\"language-\\\"]")
+                   .Replace("pre[class*=\"language-\"] code", scope + " pre[class*=\\\"language-\\\"] code");
         // Also prefix top-level element rules we own
-        s = s.Replace("article.markdown-body", scopeSelector);
+        s = s.Replace("article.markdown-body", scope);
         return s;
+    }
+
+    private static string NormalizeScope(string? scopeSelector) {
+        if (string.IsNullOrWhiteSpace(scopeSelector)) return "body";
+        return scopeSelector.Trim();
+    }
+
+    private static string CombineSelectors(string prefix, string scope) {
+        if (string.IsNullOrEmpty(prefix)) return scope;
+        if (string.IsNullOrEmpty(scope)) return prefix;
+        return prefix + " " + scope;
+    }
+
+    private static string Descendant(string scope, string selector) {
+        if (string.IsNullOrEmpty(scope)) return selector;
+        if (string.IsNullOrEmpty(selector)) return scope;
+        return scope + " " + selector;
     }
 }
