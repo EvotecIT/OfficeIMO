@@ -22,6 +22,8 @@ namespace OfficeIMO.Excel {
         /// Enables a totals row for the table covering <paramref name="range"/> and assigns per-column functions by header name.
         /// Supported functions are those in TotalsRowFunctionValues (Sum, Average, Count, Min, Max, etc.).
         /// </summary>
+        /// <param name="range">Address of the table range (for example, "A1:D10") whose totals row should be displayed.</param>
+        /// <param name="byHeader">Mapping of table header names to the totals function that should be applied for each column.</param>
         public void SetTableTotals(string range, System.Collections.Generic.Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> byHeader)
         {
             if (string.IsNullOrWhiteSpace(range)) throw new System.ArgumentNullException(nameof(range));
