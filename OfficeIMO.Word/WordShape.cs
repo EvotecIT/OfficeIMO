@@ -45,46 +45,31 @@ namespace OfficeIMO.Word {
         internal Drawing? _drawing;
         internal Wps.WordprocessingShape? _wpsShape;
         
+        // Cached templates to avoid rebuilding geometry adjust lists; cloned per use.
+        private static readonly A.AdjustValueList _roundRectAdjustTemplate = new A.AdjustValueList(
+            new A.ShapeGuide() { Name = "adj", Formula = "val 16667" });
+
         private static (A.ShapeTypeValues preset, A.AdjustValueList adjustList) MapPresetGeometry(ShapeType shapeType) {
-            var adjustList = new A.AdjustValueList();
+            // Clone the template for shapes that require adjust lists; otherwise return an empty instance.
             switch (shapeType) {
-                case ShapeType.Line:
-                    return (A.ShapeTypeValues.Line, adjustList);
-                case ShapeType.Ellipse:
-                    return (A.ShapeTypeValues.Ellipse, adjustList);
-                case ShapeType.Rectangle:
-                    return (A.ShapeTypeValues.Rectangle, adjustList);
-                case ShapeType.RoundedRectangle:
-                    adjustList.Append(new A.ShapeGuide() { Name = "adj", Formula = "val 16667" });
-                    return (A.ShapeTypeValues.RoundRectangle, adjustList);
-                case ShapeType.Triangle:
-                    return (A.ShapeTypeValues.Triangle, adjustList);
-                case ShapeType.Diamond:
-                    return (A.ShapeTypeValues.Diamond, adjustList);
-                case ShapeType.Pentagon:
-                    return (A.ShapeTypeValues.Pentagon, adjustList);
-                case ShapeType.Hexagon:
-                    return (A.ShapeTypeValues.Hexagon, adjustList);
-                case ShapeType.RightArrow:
-                    return (A.ShapeTypeValues.RightArrow, adjustList);
-                case ShapeType.LeftArrow:
-                    return (A.ShapeTypeValues.LeftArrow, adjustList);
-                case ShapeType.UpArrow:
-                    return (A.ShapeTypeValues.UpArrow, adjustList);
-                case ShapeType.DownArrow:
-                    return (A.ShapeTypeValues.DownArrow, adjustList);
-                case ShapeType.Star5:
-                    return (A.ShapeTypeValues.Star5, adjustList);
-                case ShapeType.Heart:
-                    return (A.ShapeTypeValues.Heart, adjustList);
-                case ShapeType.Cloud:
-                    return (A.ShapeTypeValues.Cloud, adjustList);
-                case ShapeType.Donut:
-                    return (A.ShapeTypeValues.Donut, adjustList);
-                case ShapeType.Can:
-                    return (A.ShapeTypeValues.Can, adjustList);
-                case ShapeType.Cube:
-                    return (A.ShapeTypeValues.Cube, adjustList);
+                case ShapeType.Line:              return (A.ShapeTypeValues.Line, new A.AdjustValueList());
+                case ShapeType.Ellipse:           return (A.ShapeTypeValues.Ellipse, new A.AdjustValueList());
+                case ShapeType.Rectangle:         return (A.ShapeTypeValues.Rectangle, new A.AdjustValueList());
+                case ShapeType.RoundedRectangle:  return (A.ShapeTypeValues.RoundRectangle, (A.AdjustValueList)_roundRectAdjustTemplate.CloneNode(true));
+                case ShapeType.Triangle:          return (A.ShapeTypeValues.Triangle, new A.AdjustValueList());
+                case ShapeType.Diamond:           return (A.ShapeTypeValues.Diamond, new A.AdjustValueList());
+                case ShapeType.Pentagon:          return (A.ShapeTypeValues.Pentagon, new A.AdjustValueList());
+                case ShapeType.Hexagon:           return (A.ShapeTypeValues.Hexagon, new A.AdjustValueList());
+                case ShapeType.RightArrow:        return (A.ShapeTypeValues.RightArrow, new A.AdjustValueList());
+                case ShapeType.LeftArrow:         return (A.ShapeTypeValues.LeftArrow, new A.AdjustValueList());
+                case ShapeType.UpArrow:           return (A.ShapeTypeValues.UpArrow, new A.AdjustValueList());
+                case ShapeType.DownArrow:         return (A.ShapeTypeValues.DownArrow, new A.AdjustValueList());
+                case ShapeType.Star5:             return (A.ShapeTypeValues.Star5, new A.AdjustValueList());
+                case ShapeType.Heart:             return (A.ShapeTypeValues.Heart, new A.AdjustValueList());
+                case ShapeType.Cloud:             return (A.ShapeTypeValues.Cloud, new A.AdjustValueList());
+                case ShapeType.Donut:             return (A.ShapeTypeValues.Donut, new A.AdjustValueList());
+                case ShapeType.Can:               return (A.ShapeTypeValues.Can, new A.AdjustValueList());
+                case ShapeType.Cube:              return (A.ShapeTypeValues.Cube, new A.AdjustValueList());
                 default:
                     throw new ArgumentOutOfRangeException(nameof(shapeType), shapeType, null);
             }
@@ -114,6 +99,78 @@ namespace OfficeIMO.Word {
             if (topPt < 0) throw new ArgumentOutOfRangeException(nameof(topPt), "Top offset cannot be negative.");
         }
 
+        private static string? EnsureHashPrefix(string? color)
+        {
+            if (string.IsNullOrEmpty(color)) return color;
+            return color!.StartsWith("#", StringComparison.Ordinal) ? color : "#" + color;
+        }
+
+        private static Wps.WordprocessingShape BuildWpsShape(long cx, long cy, ShapeType shapeType)
+        {
+            var wsp = new Wps.WordprocessingShape();
+            wsp.Append(new Wps.NonVisualDrawingShapeProperties(new A.ShapeLocks() { NoChangeArrowheads = true }));
+
+            var spPr = new Wps.ShapeProperties();
+            spPr.Append(new A.Transform2D(new A.Offset() { X = 0L, Y = 0L }, new A.Extents() { Cx = cx, Cy = cy }));
+            var (preset, adjustList) = MapPresetGeometry(shapeType);
+            spPr.Append(new A.PresetGeometry(adjustList) { Preset = preset });
+            wsp.Append(spPr);
+
+            var tbProps = new Wps.TextBodyProperties() {
+                Rotation = 0,
+                UseParagraphSpacing = false,
+                VerticalOverflow = A.TextVerticalOverflowValues.Overflow,
+                HorizontalOverflow = A.TextHorizontalOverflowValues.Overflow,
+                Vertical = A.TextVerticalValues.Horizontal,
+                Wrap = A.TextWrappingValues.Square,
+                LeftInset = 91440,
+                TopInset = 45720,
+                RightInset = 91440,
+                BottomInset = 45720,
+                ColumnCount = 1,
+                ColumnSpacing = 0,
+                RightToLeftColumns = false,
+                FromWordArt = false,
+                Anchor = A.TextAnchoringTypeValues.Center,
+                AnchorCenter = false,
+                ForceAntiAlias = false,
+                CompatibleLineSpacing = true
+            };
+            tbProps.Append(new A.NoAutoFit());
+            wsp.Append(tbProps);
+            return wsp;
+        }
+
+        private static DW.Anchor BuildAnchor(long cx, long cy, long offX, long offY, A.Graphic graphic)
+        {
+            var anchor = new DW.Anchor() {
+                DistanceFromTop = 0U,
+                DistanceFromBottom = 0U,
+                DistanceFromLeft = 0U,
+                DistanceFromRight = 0U,
+                SimplePos = false,
+                RelativeHeight = 0U,
+                BehindDoc = false,
+                Locked = false,
+                LayoutInCell = true,
+                AllowOverlap = true
+            };
+            anchor.Append(new DW.SimplePosition() { X = 0L, Y = 0L });
+            var hpos = new DW.HorizontalPosition() { RelativeFrom = DW.HorizontalRelativePositionValues.Page };
+            hpos.Append(new DW.PositionOffset(offX.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            anchor.Append(hpos);
+            var vpos = new DW.VerticalPosition() { RelativeFrom = DW.VerticalRelativePositionValues.Page };
+            vpos.Append(new DW.PositionOffset(offY.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            anchor.Append(vpos);
+            anchor.Append(new DW.Extent() { Cx = cx, Cy = cy });
+            anchor.Append(new DW.EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L });
+            anchor.Append(new DW.WrapSquare() { WrapText = DW.WrapTextValues.BothSides });
+            anchor.Append(new DW.DocProperties() { Id = NextDocPrId(), Name = "Shape" });
+            anchor.Append(new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks() { NoChangeAspect = true }));
+            anchor.Append(graphic);
+            return anchor;
+        }
+
         /// <summary>
         /// Initializes a new rectangle shape and appends it to the paragraph.
         /// </summary>
@@ -122,8 +179,7 @@ namespace OfficeIMO.Word {
             _wordParagraph = paragraph;
 
             // Ensure VML color has leading '#'
-            var vmlFill = fillColor;
-            if (!string.IsNullOrEmpty(vmlFill) && !vmlFill.StartsWith("#", StringComparison.Ordinal)) vmlFill = "#" + vmlFill;
+            var vmlFill = EnsureHashPrefix(fillColor);
 
             _rectangle = new V.Rectangle() {
                 Id = "Rectangle" + Guid.NewGuid().ToString("N"),
@@ -216,8 +272,7 @@ namespace OfficeIMO.Word {
         /// Adds a line shape to the given paragraph.
         /// </summary>
         public static WordShape AddLine(WordParagraph paragraph, double startXPt, double startYPt, double endXPt, double endYPt, string color = "#000000", double strokeWeightPt = 1) {
-            var vmlStroke = color;
-            if (!string.IsNullOrEmpty(vmlStroke) && !vmlStroke.StartsWith("#", StringComparison.Ordinal)) vmlStroke = "#" + vmlStroke;
+            var vmlStroke = EnsureHashPrefix(color);
             var line = new V.Line() {
                 Id = "Line" + Guid.NewGuid().ToString("N"),
                 Style = "mso-wrap-style:square",
@@ -247,8 +302,8 @@ namespace OfficeIMO.Word {
         /// Adds a polygon shape to the given paragraph.
         /// </summary>
         public static WordShape AddPolygon(WordParagraph paragraph, string points, string fillColor = "#FFFFFF", string strokeColor = "#000000") {
-            var vmlFill = fillColor; if (!string.IsNullOrEmpty(vmlFill) && !vmlFill.StartsWith("#", StringComparison.Ordinal)) vmlFill = "#" + vmlFill;
-            var vmlStroke = strokeColor; if (!string.IsNullOrEmpty(vmlStroke) && !vmlStroke.StartsWith("#", StringComparison.Ordinal)) vmlStroke = "#" + vmlStroke;
+            var vmlFill = EnsureHashPrefix(fillColor);
+            var vmlStroke = EnsureHashPrefix(strokeColor);
             var poly = new V.PolyLine() {
                 Id = "Polygon" + Guid.NewGuid().ToString("N"),
                 Style = "mso-wrap-style:square",
@@ -366,73 +421,9 @@ namespace OfficeIMO.Word {
             long offY = ToEmuChecked(topPt, nameof(topPt));
 
             var run = paragraph.VerifyRun();
-
-            var anchor = new DW.Anchor() {
-                DistanceFromTop = 0U,
-                DistanceFromBottom = 0U,
-                DistanceFromLeft = 0U,
-                DistanceFromRight = 0U,
-                SimplePos = false,
-                RelativeHeight = 0U,
-                BehindDoc = false,
-                Locked = false,
-                LayoutInCell = true,
-                AllowOverlap = true
-            };
-
-            anchor.Append(new DW.SimplePosition() { X = 0L, Y = 0L });
-            var hpos = new DW.HorizontalPosition() { RelativeFrom = DW.HorizontalRelativePositionValues.Page };
-            hpos.Append(new DW.PositionOffset(offX.ToString(System.Globalization.CultureInfo.InvariantCulture)));
-            anchor.Append(hpos);
-            var vpos = new DW.VerticalPosition() { RelativeFrom = DW.VerticalRelativePositionValues.Page };
-            vpos.Append(new DW.PositionOffset(offY.ToString(System.Globalization.CultureInfo.InvariantCulture)));
-            anchor.Append(vpos);
-            anchor.Append(new DW.Extent() { Cx = cx, Cy = cy });
-            anchor.Append(new DW.EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L });
-            anchor.Append(new DW.WrapSquare() { WrapText = DW.WrapTextValues.BothSides });
-            anchor.Append(new DW.DocProperties() { Id = NextDocPrId(), Name = "Shape" });
-            anchor.Append(new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks() { NoChangeAspect = true }));
-
-            var graphic = new A.Graphic();
-            var graphicData = new A.GraphicData() { Uri = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape" };
-            var wsp = new Wps.WordprocessingShape();
-            wsp.Append(new Wps.NonVisualDrawingShapeProperties(new A.ShapeLocks() { NoChangeArrowheads = true }));
-
-            var shapeProps = new Wps.ShapeProperties();
-            shapeProps.Append(new A.Transform2D(new A.Offset() { X = 0L, Y = 0L }, new A.Extents() { Cx = cx, Cy = cy }));
-
-            var (preset2, adjustList2) = MapPresetGeometry(shapeType);
-
-            shapeProps.Append(new A.PresetGeometry(adjustList2) { Preset = preset2 });
-            wsp.Append(shapeProps);
-
-            var textBodyProps = new Wps.TextBodyProperties() {
-                Rotation = 0,
-                UseParagraphSpacing = false,
-                VerticalOverflow = A.TextVerticalOverflowValues.Overflow,
-                HorizontalOverflow = A.TextHorizontalOverflowValues.Overflow,
-                Vertical = A.TextVerticalValues.Horizontal,
-                Wrap = A.TextWrappingValues.Square,
-                LeftInset = 91440,
-                TopInset = 45720,
-                RightInset = 91440,
-                BottomInset = 45720,
-                ColumnCount = 1,
-                ColumnSpacing = 0,
-                RightToLeftColumns = false,
-                FromWordArt = false,
-                Anchor = A.TextAnchoringTypeValues.Center,
-                AnchorCenter = false,
-                ForceAntiAlias = false,
-                CompatibleLineSpacing = true
-            };
-            textBodyProps.Append(new A.NoAutoFit());
-            wsp.Append(textBodyProps);
-
-            graphicData.Append(wsp);
-            graphic.Append(graphicData);
-            anchor.Append(graphic);
-
+            var wsp = BuildWpsShape(cx, cy, shapeType);
+            var graphic = new A.Graphic(new A.GraphicData(wsp) { Uri = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape" });
+            var anchor = BuildAnchor(cx, cy, offX, offY, graphic);
             var drawing = new Drawing(anchor);
             run.Append(drawing);
             return new WordShape(paragraph._document!, paragraph._paragraph!, run, drawing);
