@@ -146,7 +146,7 @@ namespace OfficeIMO.Word.Html {
 
             options ??= new HtmlToWordOptions();
 
-            var section = doc.Sections.Last();
+            var section = doc.Sections.LastOrDefault() ?? throw new System.InvalidOperationException("The document does not contain any sections to append HTML to the body.");
             var converter = new HtmlToWordConverter();
             await converter.AddHtmlToBodyAsync(doc, section, html, options, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
@@ -176,17 +176,22 @@ namespace OfficeIMO.Word.Html {
             if (html == null) throw new System.ArgumentNullException(nameof(html));
             cancellationToken.ThrowIfCancellationRequested();
 
-            doc.AddHeadersAndFooters();
             options ??= new HtmlToWordOptions();
             type ??= HeaderFooterValues.Default;
 
             // Prefer section-scoped headers to avoid multi-section warnings
-            var targetSection = doc.Sections.Last();
-            var headers = targetSection.Header;
-            WordHeader header;
-            if (type == HeaderFooterValues.First) header = headers.First;
-            else if (type == HeaderFooterValues.Even) header = headers.Even;
-            else header = headers.Default;
+            var targetSection = doc.Sections.LastOrDefault() ?? throw new System.InvalidOperationException("The document does not contain any sections to append HTML to the header.");
+            doc.AddHeadersAndFooters();
+            var headers = targetSection.Header ?? throw new System.InvalidOperationException("The target section does not have any headers defined. Call AddHeadersAndFooters() before appending HTML to the header.");
+            WordHeader? header = type == HeaderFooterValues.First
+                ? headers.First
+                : type == HeaderFooterValues.Even
+                    ? headers.Even
+                    : headers.Default;
+
+            if (header == null) {
+                throw new System.InvalidOperationException($"The {DescribeHeaderFooter(type.Value)} header could not be located for the current section.");
+            }
 
             var converter = new HtmlToWordConverter();
             await converter.AddHtmlToHeaderAsync(doc, header, html, options, cancellationToken).ConfigureAwait(false);
@@ -201,7 +206,16 @@ namespace OfficeIMO.Word.Html {
         /// <param name="type">Footer type to target.</param>
         /// <param name="options">Optional conversion options.</param>
         public static void AddHtmlToFooter(this WordDocument doc, string html, HeaderFooterValues? type = null, HtmlToWordOptions? options = null) {
-            doc.AddHtmlToFooterAsync(html, type, options).GetAwaiter().GetResult();
+            if (doc == null) throw new System.ArgumentNullException(nameof(doc));
+            if (html == null) throw new System.ArgumentNullException(nameof(html));
+
+            var footerType = type ?? HeaderFooterValues.Default;
+            var targetSection = doc.Sections.LastOrDefault() ?? throw new System.InvalidOperationException("The document does not contain any sections to append HTML to the footer.");
+            doc.AddHeadersAndFooters();
+            var footers = targetSection.Footer ?? throw new System.InvalidOperationException("The target section does not have any footers defined. Call AddHeadersAndFooters() before appending HTML to the footer.");
+            _ = GetOrCreateFooter(doc, targetSection, footers, footerType);
+
+            doc.AddHtmlToFooterAsync(html, footerType, options).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -217,21 +231,39 @@ namespace OfficeIMO.Word.Html {
             if (html == null) throw new System.ArgumentNullException(nameof(html));
             cancellationToken.ThrowIfCancellationRequested();
 
-            doc.AddHeadersAndFooters();
             options ??= new HtmlToWordOptions();
-            type ??= HeaderFooterValues.Default;
+            var footerType = type ?? HeaderFooterValues.Default;
 
-            // Prefer section-scoped footers to avoid multi-section warnings
-            var targetSection = doc.Sections.Last();
-            var footers = targetSection.Footer;
-            WordFooter footer;
-            if (type == HeaderFooterValues.First) footer = footers.First;
-            else if (type == HeaderFooterValues.Even) footer = footers.Even;
-            else footer = footers.Default;
+            var targetSection = doc.Sections.LastOrDefault() ?? throw new System.InvalidOperationException("The document does not contain any sections to append HTML to the footer.");
+            doc.AddHeadersAndFooters();
+            var footers = targetSection.Footer ?? throw new System.InvalidOperationException("The target section does not have any footers defined. Call AddHeadersAndFooters() before appending HTML to the footer.");
+            var footer = GetOrCreateFooter(doc, targetSection, footers, footerType);
 
             var converter = new HtmlToWordConverter();
             await converter.AddHtmlToFooterAsync(doc, footer, html, options, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        private static WordFooter GetOrCreateFooter(WordDocument document, WordSection targetSection, WordFooters footers, HeaderFooterValues footerType) {
+            WordFooter? footer = SelectFooter(footers, footerType);
+            if (footer == null) {
+                WordHeadersAndFooters.AddFooterReference(document, targetSection, footerType);
+                footer = SelectFooter(footers, footerType);
+            }
+
+            return footer ?? throw new System.InvalidOperationException($"The {DescribeHeaderFooter(footerType)} footer could not be located or created for the current section.");
+
+            static WordFooter? SelectFooter(WordFooters source, HeaderFooterValues type) {
+                if (type == HeaderFooterValues.First) return source.First;
+                if (type == HeaderFooterValues.Even) return source.Even;
+                return source.Default;
+            }
+        }
+
+        private static string DescribeHeaderFooter(HeaderFooterValues type) {
+            if (type == HeaderFooterValues.First) return "first-page";
+            if (type == HeaderFooterValues.Even) return "even-page";
+            return "default";
         }
 
         /// <summary>

@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using Xunit;
@@ -59,6 +60,62 @@ namespace OfficeIMO.Tests {
             docSync.AddHtmlToFooter(footerFrag);
             await docAsync.AddHtmlToFooterAsync(footerFrag);
             Assert.Equal(docSync.Footer!.Default.Paragraphs[0].Text, docAsync.Footer!.Default.Paragraphs[0].Text);
+        }
+
+        [Fact]
+        public async Task AddHtmlToFooterAsync_CreatesFirstFooter() {
+            await AssertFooterCreatedAsync(HeaderFooterValues.First, "First footer fragment", doc => doc.DifferentFirstPage = true);
+        }
+
+        [Fact]
+        public async Task AddHtmlToFooterAsync_CreatesEvenFooter() {
+            await AssertFooterCreatedAsync(HeaderFooterValues.Even, "Even footer fragment", doc => doc.DifferentOddAndEvenPages = true);
+        }
+
+        private static async Task AssertFooterCreatedAsync(HeaderFooterValues footerType, string expectedText, Action<WordDocument> configure) {
+            using var doc = WordDocument.Create();
+            configure(doc);
+
+            string html = $"<p>{expectedText}</p>";
+            await doc.AddHtmlToFooterAsync(html, footerType);
+
+            var section = doc.Sections.Last();
+            var footers = section.Footer;
+            Assert.NotNull(footers);
+            Assert.NotNull(ResolveFooter(footers!, footerType));
+
+            string innerText = GetFooterInnerText(doc, footerType);
+            Assert.Contains(expectedText, innerText);
+        }
+
+        private static WordFooter? ResolveFooter(WordFooters footers, HeaderFooterValues type) {
+            if (type == HeaderFooterValues.First) return footers.First;
+            if (type == HeaderFooterValues.Even) return footers.Even;
+            return footers.Default;
+        }
+
+        private static string GetFooterInnerText(WordDocument doc, HeaderFooterValues footerType) {
+            using var ms = new MemoryStream();
+            doc.Save(ms);
+            ms.Position = 0;
+
+            using var package = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(ms, false);
+            var body = package.MainDocumentPart?.Document?.Body ?? throw new InvalidOperationException("The saved document body is missing.");
+            var sectionProperties = body.Descendants<SectionProperties>().LastOrDefault() ?? throw new InvalidOperationException("The document does not define section properties.");
+
+            FooterReference? footerReference = sectionProperties.Elements<FooterReference>().FirstOrDefault(reference =>
+                footerType == HeaderFooterValues.Default
+                    ? reference.Type == null || reference.Type.Value == HeaderFooterValues.Default
+                    : reference.Type?.Value == footerType);
+
+            if (footerReference?.Id == null) {
+                throw new InvalidOperationException($"The {footerType} footer reference could not be located in the saved document.");
+            }
+
+            var footerPart = package.MainDocumentPart!.GetPartById(footerReference.Id.Value) as DocumentFormat.OpenXml.Packaging.FooterPart
+                ?? throw new InvalidOperationException("Unable to resolve the footer part from the document package.");
+
+            return footerPart.Footer?.InnerText ?? string.Empty;
         }
 
         [Fact]
