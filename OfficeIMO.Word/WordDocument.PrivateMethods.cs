@@ -37,7 +37,7 @@ public partial class WordDocument {
         }
     }
 
-    private Numbering GetNumbering() {
+    private Numbering? GetNumbering() {
         return _wordprocessingDocument?.MainDocumentPart?.NumberingDefinitionsPart?.Numbering;
     }
 
@@ -113,7 +113,7 @@ public partial class WordDocument {
         return !paragraph.Elements<Run>().Any() && paragraph.ChildElements.All(e => e is ParagraphProperties);
     }
 
-    private static bool AreRunPropertiesEqual(RunProperties rPr1, RunProperties rPr2) {
+    private static bool AreRunPropertiesEqual(RunProperties? rPr1, RunProperties? rPr2) {
         if (rPr1 == null && rPr2 == null) {
             return true;
         }

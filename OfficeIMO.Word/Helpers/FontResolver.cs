@@ -114,8 +114,8 @@ public static class FontResolver {
         IEnumerable<string> paths;
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-            string? fontsDir = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
-            paths = Directory.Exists(fontsDir) ? new[] { fontsDir } : Array.Empty<string>();
+            string fontsDir = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
+            paths = !string.IsNullOrEmpty(fontsDir) && Directory.Exists(fontsDir) ? new[] { fontsDir } : Array.Empty<string>();
         } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
             paths = new[] {
                 "/usr/share/fonts",

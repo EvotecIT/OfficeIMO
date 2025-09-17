@@ -21,9 +21,9 @@ namespace OfficeIMO.Word {
         /// <param name="paragraph">Paragraph containing the tab.</param>
         /// <param name="run">Run that holds the tab character.</param>
         public WordTabChar(WordDocument document, Paragraph paragraph, Run run) {
-            this._document = document;
-            this._paragraph = paragraph;
-            this._run = run;
+            this._document = document ?? throw new ArgumentNullException(nameof(document));
+            this._paragraph = paragraph ?? throw new ArgumentNullException(nameof(paragraph));
+            this._run = run ?? throw new ArgumentNullException(nameof(run));
         }
 
         /// <summary>
