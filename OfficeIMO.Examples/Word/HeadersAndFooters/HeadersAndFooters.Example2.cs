@@ -9,6 +9,23 @@ namespace OfficeIMO.Examples.Word {
         internal static void Example_BasicWordWithHeaderAndFooter1(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating standard document with Headers and Footers 1");
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers Default 1.docx");
+
+            WordHeaders RequireHeaders(WordHeaders? headers, string description) {
+                if (headers == null) {
+                    throw new InvalidOperationException($"{description} are not available.");
+                }
+
+                return headers;
+            }
+
+            WordHeader RequireHeader(WordHeader? header, string description) {
+                if (header == null) {
+                    throw new InvalidOperationException($"{description} is not available.");
+                }
+
+                return header;
+            }
+
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Sections[0].ColumnsSpace = 50;
                 Console.WriteLine("+ Settings Zoom Preset: " + document.Settings.ZoomPreset);
@@ -26,10 +43,14 @@ namespace OfficeIMO.Examples.Word {
                 //var paragraphInFooter = document.Footer!.Default.InsertParagraph();
                 //paragraphInFooter.Text = "This is a test on odd pages (aka default if no options are set)";
 
-                var paragraphInHeader = document.Header!.Default.AddParagraph();
+                var headers = RequireHeaders(document.Header, "Document headers");
+                var defaultHeader = RequireHeader(headers.Default, "Default header");
+                var firstHeader = RequireHeader(headers.First, "First header");
+
+                var paragraphInHeader = defaultHeader.AddParagraph();
                 paragraphInHeader.Text = "Default Header / Section 0";
 
-                paragraphInHeader = document.Header!.First.AddParagraph();
+                paragraphInHeader = firstHeader.AddParagraph();
                 paragraphInHeader.Text = "First Header / Section 0";
 
                 //var paragraphInFooterFirst = document.Footer!.First.InsertParagraph();
@@ -87,14 +108,19 @@ namespace OfficeIMO.Examples.Word {
                 //var paragraghInHeaderSection = section2.Header!.First.InsertParagraph();
                 //paragraghInHeaderSection.Text = "Ok, work please?";
 
-                var paragraghInHeaderSection1 = section2.Header!.Default.AddParagraph();
+                var section2Headers = RequireHeaders(section2.Header, "Section 2 headers");
+                var section2DefaultHeader = RequireHeader(section2Headers.Default, "Section 2 default header");
+                var section2FirstHeader = RequireHeader(section2Headers.First, "Section 2 first header");
+                var section2EvenHeader = RequireHeader(section2Headers.Even, "Section 2 even header");
+
+                var paragraghInHeaderSection1 = section2DefaultHeader.AddParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit? 1";
 
-                paragraghInHeaderSection1 = section2.Header!.First.AddParagraph();
+                paragraghInHeaderSection1 = section2FirstHeader.AddParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit 2?";
                 // paragraghInHeaderSection1.InsertText("ok?");
 
-                paragraghInHeaderSection1 = section2.Header!.Even.AddParagraph();
+                paragraghInHeaderSection1 = section2EvenHeader.AddParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit? 3";
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 6");
