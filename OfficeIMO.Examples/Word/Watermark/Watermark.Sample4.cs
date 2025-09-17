@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Section 0");
                 document.AddHeadersAndFooters();
-                var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "HexColor");
+                var watermark = document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "HexColor");
                 watermark.ColorHex = "00ff00";
                 document.Save(openWord);
             }

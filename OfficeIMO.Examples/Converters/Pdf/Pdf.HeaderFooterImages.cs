@@ -13,8 +13,8 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddHeadersAndFooters();
-                document.Header.Default.AddParagraph().AddImage(imagePath, 50, 50);
-                document.Footer.Default.AddParagraph().AddImage(imagePath, 300, 300);
+                document.Header!.Default.AddParagraph().AddImage(imagePath, 50, 50);
+                document.Footer!.Default.AddParagraph().AddImage(imagePath, 300, 300);
                 document.Save();
                 document.SaveAsPdf(pdfPath);
             }

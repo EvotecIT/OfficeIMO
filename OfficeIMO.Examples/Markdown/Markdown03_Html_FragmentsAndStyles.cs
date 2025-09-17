@@ -45,6 +45,17 @@ namespace OfficeIMO.Examples.Markdown {
             File.WriteAllText(Path.Combine(outDir, "Sample.Document.CdnOfflineInline.html"), offline);
             Console.WriteLine("✓ HTML document (CDN downloaded + inlined)");
 
+            // Global CSS example when hosts provide their own container and want to opt out of scoping
+            var globalOptions = new HtmlOptions {
+                Title = "Global Scope",
+                Style = HtmlStyle.Clean,
+                BodyClass = null,
+                CssScopeSelector = null
+            };
+            var globalPath = Path.Combine(outDir, "Sample.Document.GlobalScope.html");
+            File.WriteAllText(globalPath, doc.ToHtmlDocument(globalOptions));
+            Console.WriteLine($"✓ HTML document (global CSS scope): {globalPath}");
+
             // Prism highlighting with manifest only (host can dedupe) + plugin example
             var opts = new HtmlOptions {
                 Kind = HtmlKind.Fragment,

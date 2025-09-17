@@ -465,14 +465,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FormattedHeaderFooter.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                var header = document.Header.Default;
+                var header = document.Header!.Default;
                 var paraHeader = header.AddParagraph("Search using ");
                 paraHeader.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
                 var refHeader = paraHeader.Hyperlink;
                 Assert.NotNull(refHeader);
                 refHeader!.InsertFormattedHyperlinkAfter("Bing", new Uri("https://bing.com"));
 
-                var footer = document.Footer.Default;
+                var footer = document.Footer!.Default;
                 var paraFooter = footer.AddParagraph("Find us on ");
                 paraFooter.AddHyperLink("Yahoo", new Uri("https://yahoo.com"), addStyle: true);
                 var refFooter = paraFooter.Hyperlink;
@@ -485,9 +485,9 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var headerPara = document.Header.Default.Paragraphs[0];
+                var headerPara = document.Header!.Default.Paragraphs[0];
                 Assert.Equal(2, headerPara._paragraph.Elements<Hyperlink>().Count());
-                var footerPara = document.Footer.Default.Paragraphs[0];
+                var footerPara = document.Footer!.Default.Paragraphs[0];
                 Assert.Equal(2, footerPara._paragraph.Elements<Hyperlink>().Count());
                 document.Save();
             }
