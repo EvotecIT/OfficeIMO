@@ -184,39 +184,50 @@ namespace OfficeIMO.Word {
             private const int EndOfChain = unchecked((int)0xFFFFFFFE);
 
             /// <summary>Represents a directory entry inside the compound file.</summary>
-            private class DirEntry {
+            private sealed class DirEntry {
+                internal DirEntry(string name, byte type, int left, int right, int child, int startSector, long size) {
+                    Name = name;
+                    Type = type;
+                    Left = left;
+                    Right = right;
+                    Child = child;
+                    StartSector = startSector;
+                    Size = size;
+                    Parent = -1;
+                }
+
                 /// <summary>
                 /// Name of the entry.
                 /// </summary>
-                public string Name = string.Empty;
+                internal string Name { get; }
                 /// <summary>
                 /// Directory entry type (0 = unknown, 1 = storage, 2 = stream, 5 = root).
                 /// </summary>
-                public byte Type;
+                internal byte Type { get; }
                 /// <summary>
                 /// Index of the left sibling entry.
                 /// </summary>
-                public int Left;
+                internal int Left { get; }
                 /// <summary>
                 /// Index of the right sibling entry.
                 /// </summary>
-                public int Right;
+                internal int Right { get; }
                 /// <summary>
                 /// Index of the first child entry.
                 /// </summary>
-                public int Child;
+                internal int Child { get; }
                 /// <summary>
                 /// Starting sector of the stream associated with this entry.
                 /// </summary>
-                public int StartSector;
+                internal int StartSector { get; }
                 /// <summary>
                 /// Size of the stream in bytes.
                 /// </summary>
-                public long Size;
+                internal long Size { get; }
                 /// <summary>
                 /// Index of the parent directory entry.
                 /// </summary>
-                public int Parent = -1;
+                internal int Parent { get; set; }
             }
 
             /// <summary>
@@ -376,7 +387,7 @@ namespace OfficeIMO.Word {
                     int child = BitConverter.ToInt32(data, offset + 76);
                     int start = BitConverter.ToInt32(data, offset + 116);
                     long size = BitConverter.ToInt64(data, offset + 120);
-                    list.Add(new DirEntry { Name = name, Type = type, Left = left, Right = right, Child = child, StartSector = start, Size = size });
+                    list.Add(new DirEntry(name, type, left, right, child, start, size));
                 }
                 return list;
             }

@@ -23,6 +23,32 @@ namespace OfficeIMO.Tests {
             using (var projectStream = root.CreateStream("PROJECT")) projectStream.Write(Array.Empty<byte>(), 0, 0);
             return path;
         }
+
+        private static string CreateComplexVba(string path) {
+            using var root = RootStorage.Create(path, Version.V3, StorageModeFlags.None);
+            var vba = root.CreateStorage("VBA");
+            using (var dir = vba.CreateStream("dir")) dir.Write(Array.Empty<byte>(), 0, 0);
+            using (var project = vba.CreateStream("_VBA_PROJECT")) project.Write(Array.Empty<byte>(), 0, 0);
+            using (var module = vba.CreateStream("Module1")) {
+                var bytes = Encoding.UTF8.GetBytes("Option Explicit");
+                module.Write(bytes, 0, bytes.Length);
+            }
+
+            var nested = vba.CreateStorage("Nested");
+            using (var hidden = nested.CreateStream("HiddenModule")) {
+                var bytes = Encoding.UTF8.GetBytes("Sub Foo()\nEnd Sub");
+                hidden.Write(bytes, 0, bytes.Length);
+            }
+
+            var extra = root.CreateStorage("Extra");
+            using (var extraStream = extra.CreateStream("ModuleOutside")) {
+                var bytes = Encoding.UTF8.GetBytes("Sub Bar()\nEnd Sub");
+                extraStream.Write(bytes, 0, bytes.Length);
+            }
+
+            using (var projectStream = root.CreateStream("PROJECT")) projectStream.Write(Array.Empty<byte>(), 0, 0);
+            return path;
+        }
         [Fact]
         public void Test_CreatingDocmWithMacro() {
             string macroPath = Path.Combine(_directoryDocuments, "vbaProject.bin");
@@ -188,6 +214,29 @@ namespace OfficeIMO.Tests {
             File.Delete(sourcePath);
             File.Delete(targetPath);
             File.Delete(macroFile);
+        }
+
+        [Fact]
+        public void Test_MacroParser_IgnoresNonVbaModules() {
+            string vbaPath = Path.Combine(_directoryDocuments, "complexVba.bin");
+            string documentPath = Path.Combine(_directoryWithFiles, "ComplexMacro.docm");
+
+            CreateComplexVba(vbaPath);
+            if (File.Exists(documentPath)) File.Delete(documentPath);
+
+            using (WordDocument document = WordDocument.Create(documentPath)) {
+                document.AddMacro(vbaPath);
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(documentPath)) {
+                Assert.True(document.HasMacros);
+                Assert.Single(document.Macros);
+                Assert.Equal("Module1", document.Macros[0].Name);
+            }
+
+            File.Delete(documentPath);
+            File.Delete(vbaPath);
         }
     }
 }

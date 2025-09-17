@@ -23,22 +23,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private struct TextFormatting {
-            public bool Bold;
-            public bool Italic;
-            public bool Underline;
-            public bool Strike;
-            public bool Superscript;
-            public bool Subscript;
-            public string? ColorHex;
-            public string? FontFamily;
-            public int? FontSize;
-            public HighlightColorValues? Highlight;
-            public CapsStyle? Caps;
-            public int? LetterSpacing;
-            public TextTransform Transform;
-            public WhiteSpaceMode? WhiteSpace;
-
-            public TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null, int? letterSpacing = null, TextTransform transform = TextTransform.None, WhiteSpaceMode? whiteSpace = null) {
+            internal TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null, int? letterSpacing = null, TextTransform transform = TextTransform.None, WhiteSpaceMode? whiteSpace = null) {
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
@@ -54,6 +39,21 @@ namespace OfficeIMO.Word.Html {
                 Transform = transform;
                 WhiteSpace = whiteSpace;
             }
+
+            internal bool Bold { get; set; }
+            internal bool Italic { get; set; }
+            internal bool Underline { get; set; }
+            internal bool Strike { get; set; }
+            internal bool Superscript { get; set; }
+            internal bool Subscript { get; set; }
+            internal string? ColorHex { get; set; }
+            internal string? FontFamily { get; set; }
+            internal int? FontSize { get; set; }
+            internal HighlightColorValues? Highlight { get; set; }
+            internal CapsStyle? Caps { get; set; }
+            internal int? LetterSpacing { get; set; }
+            internal TextTransform Transform { get; set; }
+            internal WhiteSpaceMode? WhiteSpace { get; set; }
         }
 
         private static readonly DefaultRenderDevice _renderDevice = new() { FontSize = 16 };
