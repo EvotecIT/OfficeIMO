@@ -17,16 +17,16 @@ namespace OfficeIMO.Word.Html {
 
     internal static class CssStyleMapper {
         internal class CssProperties {
-            public int? MarginLeft;
-            public int? MarginRight;
-            public int? MarginTop;
-            public int? MarginBottom;
-            public bool Underline;
-            public bool Strike;
-            public string? BackgroundColor;
-            public int? LineHeight;
-            public LineSpacingRuleValues? LineHeightRule;
-            public WhiteSpaceMode? WhiteSpace;
+            internal int? MarginLeft { get; set; }
+            internal int? MarginRight { get; set; }
+            internal int? MarginTop { get; set; }
+            internal int? MarginBottom { get; set; }
+            internal bool Underline { get; set; }
+            internal bool Strike { get; set; }
+            internal string? BackgroundColor { get; set; }
+            internal int? LineHeight { get; set; }
+            internal LineSpacingRuleValues? LineHeightRule { get; set; }
+            internal WhiteSpaceMode? WhiteSpace { get; set; }
         }
 
         public static WordParagraphStyles? MapParagraphStyle(string? style) {
