@@ -11,6 +11,10 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Reflection;
+#if !(NET472 || NET48 || NETSTANDARD2_0)
+using System.Runtime.Loader;
+#endif
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
@@ -43,13 +47,13 @@ namespace OfficeIMO.Word.Pdf {
                 Directory.CreateDirectory(directory);
             }
 
-            var originalLicense = QuestPDF.Settings.License;
+            var originalLicense = QuestPdfLicenseUtil.GetEffectiveLicenseValue();
             try {
                 Document pdf = CreatePdfDocument(document, options);
                 pdf.GeneratePdf(path);
             } finally {
-                // Restore whatever license was set before conversion
-                QuestPDF.Settings.License = originalLicense;
+                // Restore whatever license was set before conversion across all loaded QuestPDF TFMs
+                QuestPdfLicenseUtil.SetLicenseForAll(originalLicense);
             }
         }
 
@@ -72,7 +76,7 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentException("Stream must be writable.", nameof(stream));
             }
 
-            var originalLicense = QuestPDF.Settings.License;
+            var originalLicense = QuestPdfLicenseUtil.GetEffectiveLicenseValue();
             try {
                 Document pdf = CreatePdfDocument(document, options);
                 pdf.GeneratePdf(stream);
@@ -81,7 +85,7 @@ namespace OfficeIMO.Word.Pdf {
                     stream.Position = 0;
                 }
             } finally {
-                QuestPDF.Settings.License = originalLicense;
+                QuestPdfLicenseUtil.SetLicenseForAll(originalLicense);
             }
         }
 
@@ -96,7 +100,7 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentNullException(nameof(document));
             }
 
-            var originalLicense = QuestPDF.Settings.License;
+            var originalLicense = QuestPdfLicenseUtil.GetEffectiveLicenseValue();
             try {
                 using (MemoryStream stream = new MemoryStream()) {
                     Document pdf = CreatePdfDocument(document, options);
@@ -104,7 +108,7 @@ namespace OfficeIMO.Word.Pdf {
                     return stream.ToArray();
                 }
             } finally {
-                QuestPDF.Settings.License = originalLicense;
+                QuestPdfLicenseUtil.SetLicenseForAll(originalLicense);
             }
         }
 
@@ -183,7 +187,7 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentException("Stream must be writable.", nameof(stream));
             }
 
-            var originalLicense = QuestPDF.Settings.License;
+            var originalLicense = QuestPdfLicenseUtil.GetEffectiveLicenseValue();
             Document pdf = CreatePdfDocument(document, options);
             return Task.Run(() => {
                 try {
@@ -192,14 +196,19 @@ namespace OfficeIMO.Word.Pdf {
                         stream.Position = 0;
                     }
                 } finally {
-                    QuestPDF.Settings.License = originalLicense;
+                    QuestPdfLicenseUtil.SetLicenseForAll(originalLicense);
                 }
             }, cancellationToken);
         }
 
         private static Document CreatePdfDocument(WordDocument document, PdfSaveOptions? options) {
-            if (QuestPDF.Settings.License == null) {
-                QuestPDF.Settings.License = options?.QuestPdfLicenseType ?? LicenseType.Community;
+            // Respect an existing license from any loaded QuestPDF TFM; only set when none is present
+            if (QuestPdfLicenseUtil.GetEffectiveLicenseValue() == null) {
+                var desired = options?.QuestPdfLicenseType ?? LicenseType.Community;
+                // Set on all loaded QuestPDF TFMs
+                QuestPdfLicenseUtil.SetLicenseForAll((int)desired);
+                // And set directly on the currently referenced assembly as a reliable fallback
+                QuestPDF.Settings.License = desired;
             }
 
             RegisterFonts(options);
@@ -442,6 +451,74 @@ namespace OfficeIMO.Word.Pdf {
                         }
                     }
                 }
+            }
+        }
+
+        // Helpers to read/set QuestPDF license across all loaded TFMs (net8, net9) within the process.
+        private static class QuestPdfLicenseUtil {
+            private const string QuestPdfAssemblyName = "QuestPDF";
+            private const string SettingsTypeName = "QuestPDF.Infrastructure.Settings";
+            private const string LicensePropertyName = "License";
+
+            public static int? GetEffectiveLicenseValue() {
+                foreach (var asm in EnumerateQuestPdfAssemblies()) {
+                    var val = ReadLicenseFromAssembly(asm);
+                    if (val != null) return val;
+                }
+                return null;
+            }
+
+            public static void SetLicenseForAll(int? licenseValue) {
+                foreach (var asm in EnumerateQuestPdfAssemblies()) {
+                    WriteLicenseToAssembly(asm, licenseValue);
+                }
+            }
+
+            private static IEnumerable<Assembly> EnumerateQuestPdfAssemblies() {
+                // Enumerate currently loaded assemblies in the AppDomain (works on all TFMs)
+                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies()) {
+                    var name = asm.GetName().Name;
+                    if (string.Equals(name, QuestPdfAssemblyName, StringComparison.Ordinal)) {
+                        yield return asm;
+                    }
+                }
+#if !(NET472 || NET48 || NETSTANDARD2_0)
+                // Additionally enumerate across AssemblyLoadContexts when available
+                foreach (var alc in AssemblyLoadContext.All) {
+                    foreach (var asm in alc.Assemblies) {
+                        var name = asm.GetName().Name;
+                        if (string.Equals(name, QuestPdfAssemblyName, StringComparison.Ordinal)) {
+                            yield return asm;
+                        }
+                    }
+                }
+#endif
+            }
+
+            private static int? ReadLicenseFromAssembly(Assembly asm) {
+                var settingsType = asm.GetType(SettingsTypeName);
+                if (settingsType == null) return null;
+                var prop = settingsType.GetProperty(LicensePropertyName, BindingFlags.Public | BindingFlags.Static);
+                if (prop == null) return null;
+                var val = prop.GetValue(null);
+                if (val == null) return null;
+                // val is an enum boxed from that asm; convert to int
+                try { return Convert.ToInt32(val); } catch { return null; }
+            }
+
+            private static void WriteLicenseToAssembly(Assembly asm, int? licenseValue) {
+                var settingsType = asm.GetType(SettingsTypeName);
+                if (settingsType == null) return;
+                var prop = settingsType.GetProperty(LicensePropertyName, BindingFlags.Public | BindingFlags.Static);
+                if (prop == null) return;
+                if (licenseValue == null) {
+                    prop.SetValue(null, null);
+                    return;
+                }
+                var enumType = settingsType.Assembly.GetType("QuestPDF.Infrastructure.LicenseType");
+                if (enumType == null) return;
+                var boxed = Enum.ToObject(enumType, licenseValue.Value);
+                prop.SetValue(null, boxed);
             }
         }
 

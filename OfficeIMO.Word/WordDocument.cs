@@ -1266,6 +1266,11 @@ namespace OfficeIMO.Word {
                 word._wordprocessingDocument = wordDocument;
                     word._document = wordDocument.MainDocumentPart!.Document;
                 word.LoadDocument();
+                if (applyOverrideStyles) {
+                    // Ensure overrides are applied after any document initialization that may touch styles
+                    InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
+                    EnsureCustomStyleNames(wordDocument);
+                }
                 WordChart.InitializeAxisIdSeed(wordDocument);
                 WordChart.InitializeDocPrIdSeed(wordDocument);
 
@@ -1313,6 +1318,10 @@ namespace OfficeIMO.Word {
             bool applyOverrideStyles = overrideStyles && !readOnly;
             InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
             word.LoadDocument();
+            if (applyOverrideStyles) {
+                InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
+                EnsureCustomStyleNames(wordDocument);
+            }
             WordChart.InitializeAxisIdSeed(wordDocument);
             WordChart.InitializeDocPrIdSeed(wordDocument);
             WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
@@ -1343,6 +1352,12 @@ namespace OfficeIMO.Word {
             document._wordprocessingDocument = wordDocument;
             document._document = wordDocument.MainDocumentPart!.Document;
             document.LoadDocument();
+            if (applyOverrideStyles) {
+                InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
+                EnsureCustomStyleNames(wordDocument);
+            }
+
+        
             WordChart.InitializeAxisIdSeed(wordDocument);
             WordChart.InitializeDocPrIdSeed(wordDocument);
 
@@ -1739,24 +1754,56 @@ namespace OfficeIMO.Word {
         }
 
         private static void InitialiseStyleDefinitions(WordprocessingDocument wordDocument, bool readOnly, bool overrideStyles) {
-            // if document is read only we shouldn't be doing any new styles, hopefully it doesn't break anything
-            if (readOnly == false) {
-            var styleDefinitionsPart = wordDocument.MainDocumentPart!
+            // In read-only mode we don't touch styles.
+            if (readOnly) return;
+
+            // Guard against malformed packages missing a main document part.
+            var mainPart = wordDocument.MainDocumentPart;
+            if (mainPart == null) {
+                // Nothing we can do; leave silently to avoid NREs when loading odd files.
+                return;
+            }
+
+            var styleDefinitionsPart = mainPart
                 .GetPartsOfType<StyleDefinitionsPart>()
                 .FirstOrDefault();
-                if (styleDefinitionsPart != null) {
-                    AddStyleDefinitions(styleDefinitionsPart, overrideStyles);
-                } else {
-
-                    var styleDefinitionsPart1 = wordDocument.MainDocumentPart!.AddNewPart<StyleDefinitionsPart>("rId1");
-                    GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
-
-                }
+            if (styleDefinitionsPart != null) {
+                // Safe-guard missing Styles root element.
+                styleDefinitionsPart.Styles ??= new Styles();
+                AddStyleDefinitions(styleDefinitionsPart, overrideStyles);
+            } else {
+                // Create Styles part if it doesn't exist yet.
+                var styleDefinitionsPart1 = mainPart.AddNewPart<StyleDefinitionsPart>("rId1");
+                GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
             }
         }
 
         internal WordSection _currentSection => this.Sections.Last();
 
+
+        private static void EnsureCustomStyleNames(WordprocessingDocument wordDocument) {
+            var stylePart = wordDocument.MainDocumentPart?.StyleDefinitionsPart;
+            var styles = stylePart?.Styles;
+            if (styles == null) return;
+            var map = WordParagraphStyle.CustomStyles
+                .Where(s => !string.IsNullOrEmpty(s.StyleId?.Value))
+                .GroupBy(s => s.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.Last(), StringComparer.OrdinalIgnoreCase);
+            bool changed = false;
+            foreach (var s in styles.OfType<DocumentFormat.OpenXml.Wordprocessing.Style>()) {
+                var id = s.StyleId?.Value;
+                if (id != null && map.TryGetValue(id, out var def)) {
+                    var newName = def.StyleName?.Val ?? def.StyleId?.Value;
+                    if (!string.IsNullOrEmpty(newName)) {
+                        if (s.StyleName == null || !string.Equals(s.StyleName.Val, newName, StringComparison.Ordinal)) {
+                            s.StyleName = new DocumentFormat.OpenXml.Wordprocessing.StyleName { Val = newName };
+                            changed = true;
+                        }
+                    }
+                }
+            }
+            if (changed) styles.Save();
+        }
 
         /// <summary>
         /// Provides access to the document background settings.

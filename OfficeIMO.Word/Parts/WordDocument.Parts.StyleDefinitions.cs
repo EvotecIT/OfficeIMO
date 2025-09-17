@@ -29,7 +29,7 @@ namespace OfficeIMO.Word {
             var listOfTableStyles = (WordTableStyle[])Enum.GetValues(typeof(WordTableStyle));
             foreach (var style in listOfTableStyles) {
                 var definition = WordTableStyles.GetStyleDefinition(style);
-                var existing = styles.OfType<Style>().FirstOrDefault(s => s.StyleId == definition.StyleId);
+                var existing = styles.OfType<Style>().FirstOrDefault(s => s.StyleId?.Value == definition.StyleId?.Value);
                 if (existing == null) {
                     styles.Append((Style)definition.CloneNode(true));
                 } else if (overrideExisting) {
@@ -48,17 +48,54 @@ namespace OfficeIMO.Word {
             var styles = styleDefinitionsPart.Styles ??= new Styles();
             AddTableStyles(styles, overrideExisting);
 
-            foreach (var style in WordParagraphStyle.CustomStyles) {
-                var existing = styles.OfType<Style>().FirstOrDefault(s => s.StyleId == style.StyleId);
-                if (existing == null) {
-                    styles.Append((Style)style.CloneNode(true));
-                } else if (overrideExisting) {
-                    existing.Remove();
-                    styles.Append((Style)style.CloneNode(true));
+            var customList = WordParagraphStyle.CustomStyles
+                .Where(s => !string.IsNullOrEmpty(s.StyleId?.Value))
+                .ToList();
+            if (overrideExisting) {
+                // Replace custom styles only when explicitly requested
+                var byId = customList
+                    .GroupBy(s => s.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(g => g.Key, g => g.Last(), StringComparer.OrdinalIgnoreCase);
+
+                Styles newStyles = new Styles();
+                foreach (var child in styles.ChildElements) {
+                    if (child is Style st) {
+                        var id = st.StyleId?.Value;
+                        if (id != null && byId.ContainsKey(id)) {
+                            // Skip existing definitions for ids we override
+                            continue;
+                        }
+                    }
+                    newStyles.Append(child.CloneNode(true));
+                }
+                foreach (var kv in byId) {
+                    newStyles.Append((Style)kv.Value.CloneNode(true));
+                }
+                styleDefinitionsPart.Styles = newStyles;
+            } else {
+                // Add any missing custom styles, but do not replace existing definitions.
+                // This preserves the document as-is while ensuring newly registered styles
+                // (e.g., via EmbedFont) become available for use.
+                var existingIds = new HashSet<string>(
+                    styles.OfType<Style>()
+                          .Select(s => s.StyleId?.Value)
+                          .Where(id => id != null)!
+                          .Cast<string>(),
+                    StringComparer.OrdinalIgnoreCase);
+
+                foreach (var custom in customList) {
+                    var id = custom.StyleId!.Value!;
+                    if (!existingIds.Contains(id)) {
+                        styles.Append((Style)custom.CloneNode(true));
+                    }
                 }
             }
 
             FindMissingStyleDefinitions(styleDefinitionsPart, overrideExisting);
+
+            // Persist changes into the part DOM immediately to ensure subsequent callers
+            // reading Styles from a different object graph see updated content.
+            styleDefinitionsPart.Styles?.Save();
         }
 
         internal static void FindMissingStyleDefinitions(StyleDefinitionsPart styleDefinitionsPart, bool overrideExisting) {
