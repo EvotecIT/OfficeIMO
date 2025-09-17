@@ -52,7 +52,7 @@ namespace OfficeIMO.Word {
                 .Where(s => !string.IsNullOrEmpty(s.StyleId?.Value))
                 .ToList();
             if (overrideExisting) {
-                // Build a new Styles root with all non-replaced children, then append custom definitions once
+                // Replace custom styles only when explicitly requested
                 var byId = customList
                     .GroupBy(s => s.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
                     .ToDictionary(g => g.Key, g => g.Last(), StringComparer.OrdinalIgnoreCase);
@@ -73,18 +73,7 @@ namespace OfficeIMO.Word {
                 }
                 styleDefinitionsPart.Styles = newStyles;
             } else {
-                // Only add missing styles
-                var existingIds = new HashSet<string>(styles.OfType<Style>()
-                    .Select(s => s.StyleId?.Value)
-                    .Where(v => v != null)!
-                    .Cast<string>(), StringComparer.OrdinalIgnoreCase);
-                foreach (var custom in customList) {
-                    var id = custom.StyleId!.Value!;
-                    if (!existingIds.Contains(id)) {
-                        styles.Append((Style)custom.CloneNode(true));
-                        existingIds.Add(id);
-                    }
-                }
+                // Do not inject custom styles at all when overrideExisting is false; preserve document as-is
             }
 
             FindMissingStyleDefinitions(styleDefinitionsPart, overrideExisting);
