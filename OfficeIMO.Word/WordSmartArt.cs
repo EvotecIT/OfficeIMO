@@ -182,7 +182,8 @@ namespace OfficeIMO.Word {
             string newId = "{" + Guid.NewGuid().ToString().ToUpper() + "}";
             var p = new XElement(a + "p", new XElement(a + "endParaRPr",
                 new XAttribute("lang", "en-US")));
-            var txBody = new XElement(dgm + "txBody",
+            // In data model, the text container element is 'dgm:t' (alias of txBody)
+            var txBody = new XElement(dgm + "t",
                 new XElement(a + "bodyPr"),
                 new XElement(a + "lstStyle"),
                 p);
@@ -241,7 +242,7 @@ namespace OfficeIMO.Word {
             string newId = "{" + Guid.NewGuid().ToString().ToUpper() + "}";
             var p = new XElement(a + "p", new XElement(a + "endParaRPr",
                 new XAttribute("lang", "en-US")));
-            var txBody = new XElement(dgm + "txBody",
+            var txBody = new XElement(dgm + "t",
                 new XElement(a + "bodyPr"),
                 new XElement(a + "lstStyle"),
                 p);
@@ -276,7 +277,11 @@ namespace OfficeIMO.Word {
             var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
             var dgm = ns.dgm; var a = ns.a;
             var pts = xdoc.Descendants(dgm + "pt").ToList();
-            var nodePts = pts.Where(p => p.Attribute("type") == null && p.Element(dgm + "txBody") != null).ToList();
+            // Consider both 't' and legacy 'txBody' spellings; include explicit type="node"
+            var nodePts = pts.Where(p => {
+                var typ = (string?)p.Attribute("type");
+                return (typ == null || typ == "node") && (p.Element(dgm + "t") != null || p.Element(dgm + "txBody") != null);
+            }).ToList();
             foreach (var pt in nodePts) pt.Remove();
             var docPt = xdoc.Descendants(dgm + "pt").FirstOrDefault(p => (string)p.Attribute("type") == "doc");
             var docId = (string?)docPt?.Attribute("modelId");
@@ -299,7 +304,7 @@ namespace OfficeIMO.Word {
 
             // Re-identify node pts to make sure we remove the correct one (same filter as LoadNodeParagraphs)
             var pts = xdoc.Descendants(dgm + "pt");
-            var nodePts = pts.Where(p => p.Attribute("type") == null && p.Element(dgm + "txBody") != null).ToList();
+            var nodePts = pts.Where(p => { var typ = (string?)p.Attribute("type"); return (typ == null || typ == "node") && (p.Element(dgm + "t") != null || p.Element(dgm + "txBody") != null); }).ToList();
             var targetPt = nodePts[index];
             var targetId = (string)targetPt.Attribute("modelId")!;
 
@@ -333,14 +338,14 @@ namespace OfficeIMO.Word {
             var dgm = (XNamespace)"http://schemas.openxmlformats.org/drawingml/2006/diagram";
             var a = (XNamespace)"http://schemas.openxmlformats.org/drawingml/2006/main";
 
-            // Points with no @type and with a dgm:txBody are treated as editable nodes.
+            // Points with no @type and with a dgm:t (or dgm:txBody) are treated as editable nodes.
             var pts = xdoc.Descendants(dgm + "pt");
             var nodePts = pts.Where(p => {
-                var t = (string)p.Attribute("type");
-                return (t == null || t == "node") && p.Descendants(dgm + "txBody").Any();
+                var typ = (string)p.Attribute("type");
+                return (typ == null || typ == "node") && (p.Element(dgm + "t") != null || p.Element(dgm + "txBody") != null);
             });
             var paras = nodePts
-                .Select(p => p.Descendants(dgm + "txBody").FirstOrDefault()?.Element(a + "p"))
+                .Select(p => (p.Element(dgm + "t") ?? p.Element(dgm + "txBody"))?.Element(a + "p"))
                 .Where(p => p != null)
                 .Cast<XElement>()
                 .ToList();
@@ -355,11 +360,11 @@ namespace OfficeIMO.Word {
 
             var pts = xdoc.Descendants(dgm + "pt");
             var nodePts = pts.Where(p => {
-                var t = (string)p.Attribute("type");
-                return (t == null || t == "node") && p.Descendants(dgm + "txBody").Any();
+                var typ = (string)p.Attribute("type");
+                return (typ == null || typ == "node") && (p.Element(dgm + "t") != null || p.Element(dgm + "txBody") != null);
             });
             var paras = nodePts
-                .Select(p => p.Descendants(dgm + "txBody").FirstOrDefault()?.Element(a + "p"))
+                .Select(p => (p.Element(dgm + "t") ?? p.Element(dgm + "txBody"))?.Element(a + "p"))
                 .Where(p => p != null)
                 .Cast<XElement>()
                 .ToList();
