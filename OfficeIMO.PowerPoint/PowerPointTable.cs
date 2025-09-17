@@ -62,6 +62,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Removes a row at the specified index.
         /// </summary>
+        /// <param name="index">Zero-based index of the row to remove.</param>
         public void RemoveRow(int index) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             A.TableRow row = table.Elements<A.TableRow>().ElementAt(index);
@@ -103,6 +104,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Removes a column at the specified index.
         /// </summary>
+        /// <param name="index">Zero-based index of the column to remove.</param>
         public void RemoveColumn(int index) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             A.TableGrid grid = table.TableGrid!;
