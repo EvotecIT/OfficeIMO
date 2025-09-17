@@ -21,6 +21,8 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Automatically fits all columns based on their content.
         /// </summary>
+        /// <param name="mode">Overrides how the auto-fit work is scheduled across columns.</param>
+        /// <param name="ct">Cancels the auto-fit pass while widths are being measured or applied.</param>
         public void AutoFitColumns(ExecutionMode? mode = null, CancellationToken ct = default)
         {
             var columns = GetAllColumnIndices();
@@ -31,6 +33,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Automatically fits the supplied set of column indexes.
         /// </summary>
+        /// <param name="columnIndexes">1-based column indexes that should be resized to fit their content.</param>
+        /// <param name="mode">Overrides how the auto-fit work is scheduled across the selected columns.</param>
+        /// <param name="ct">Cancels the auto-fit pass for the selected columns.</param>
         public void AutoFitColumnsFor(IEnumerable<int> columnIndexes, ExecutionMode? mode = null, CancellationToken ct = default)
         {
             if (columnIndexes == null) return;
@@ -42,6 +47,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Automatically fits all columns except the supplied indexes.
         /// </summary>
+        /// <param name="columnsToSkip">1-based column indexes that should not be resized.</param>
+        /// <param name="mode">Overrides how the auto-fit work is scheduled for the remaining columns.</param>
+        /// <param name="ct">Cancels the auto-fit pass before it completes.</param>
         public void AutoFitColumnsExcept(IEnumerable<int> columnsToSkip, ExecutionMode? mode = null, CancellationToken ct = default)
         {
             var skip = new HashSet<int>(columnsToSkip ?? Array.Empty<int>());
@@ -595,6 +603,8 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Automatically fits all rows based on their content.
         /// </summary>
+        /// <param name="mode">Overrides how the auto-fit work is scheduled across rows.</param>
+        /// <param name="ct">Cancels the row auto-fit pass while heights are being calculated or applied.</param>
         public void AutoFitRows(ExecutionMode? mode = null, CancellationToken ct = default) {
             var worksheet = _worksheetPart.Worksheet;
               SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
