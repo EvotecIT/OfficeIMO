@@ -15,12 +15,35 @@ namespace OfficeIMO.Examples.Word {
                 section.AddShapeDrawing(ShapeType.Ellipse, 40, 40);
 
                 section.AddHeadersAndFooters();
-                section.Header!.Default.AddShape(ShapeType.Rectangle, 30, 20, Color.Blue, Color.Black);
-                section.Header!.Default.AddShape(ShapeType.RoundedRectangle, 25, 15, Color.Green, Color.Black, 1, arcSize: 0.3);
-                section.Header!.Default.AddShapeDrawing(ShapeType.Ellipse, 20, 20);
+                var defaultHeader = RequireDefaultSectionHeader(section, "Section 0 default header");
+                defaultHeader.AddShape(ShapeType.Rectangle, 30, 20, Color.Blue, Color.Black);
+                defaultHeader.AddShape(ShapeType.RoundedRectangle, 25, 15, Color.Green, Color.Black, 1, arcSize: 0.3);
+                defaultHeader.AddShapeDrawing(ShapeType.Ellipse, 20, 20);
 
                 document.Save(openWord);
             }
+        }
+
+        private static WordHeader RequireDefaultSectionHeader(WordSection section, string description) {
+            if (section == null) {
+                throw new ArgumentNullException(nameof(section));
+            }
+
+            if (section.Header == null) {
+                section.AddHeadersAndFooters();
+            }
+
+            var headers = section.Header;
+            if (headers == null) {
+                throw new InvalidOperationException($"{description} headers are not available.");
+            }
+
+            var header = headers.Default;
+            if (header == null) {
+                throw new InvalidOperationException($"{description} is not available.");
+            }
+
+            return header;
         }
     }
 }

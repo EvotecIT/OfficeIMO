@@ -71,8 +71,8 @@ namespace OfficeIMO.Examples.Word {
                 section1.Margins.Type = WordMargin.Narrow;
                 Console.WriteLine("----");
 
-                Console.WriteLine("Section 0 - Paragraphs Count: " + document.Sections[0].Header!.Default.Paragraphs.Count);
-                Console.WriteLine("Section 1 - Paragraphs Count: " + document.Sections[1].Header!.Default.Paragraphs.Count);
+                Console.WriteLine("Section 0 - Paragraphs Count: " + section0Header.Paragraphs.Count);
+                Console.WriteLine("Section 1 - Paragraphs Count: " + section1Header.Paragraphs.Count);
 
                 Console.WriteLine("----");
                 section1.AddParagraph("Test");
@@ -91,17 +91,21 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("----");
 
-                Console.WriteLine("Watermarks in default header: " + document.Header!.Default.Watermarks.Count);
+                var documentHeaders = document.Header ?? throw new InvalidOperationException("Document headers must exist when inspecting watermarks.");
+                var documentDefaultHeader = documentHeaders.Default ?? throw new InvalidOperationException("The default document header must exist when inspecting watermarks.");
+                Console.WriteLine("Watermarks in default header: " + documentDefaultHeader.Watermarks.Count);
 
-                Console.WriteLine("Watermarks in default footer: " + document.Footer!.Default.Watermarks.Count);
+                var documentFooters = document.Footer ?? throw new InvalidOperationException("Document footers must exist when inspecting watermarks.");
+                var documentDefaultFooter = documentFooters.Default ?? throw new InvalidOperationException("The default document footer must exist when inspecting watermarks.");
+                Console.WriteLine("Watermarks in default footer: " + documentDefaultFooter.Watermarks.Count);
 
                 Console.WriteLine("Watermarks in section 0: " + document.Sections[0].Watermarks.Count);
-                Console.WriteLine("Watermarks in section 0 (header): " + document.Sections[0].Header!.Default.Watermarks.Count);
-                Console.WriteLine("Paragraphs in section 0 (header): " + document.Sections[0].Header!.Default.Paragraphs.Count);
+                Console.WriteLine("Watermarks in section 0 (header): " + section0Header.Watermarks.Count);
+                Console.WriteLine("Paragraphs in section 0 (header): " + section0Header.Paragraphs.Count);
 
                 Console.WriteLine("Watermarks in section 1: " + document.Sections[1].Watermarks.Count);
-                Console.WriteLine("Watermarks in section 1 (header): " + document.Sections[1].Header!.Default.Watermarks.Count);
-                Console.WriteLine("Paragraphs in section 1 (header): " + document.Sections[1].Header!.Default.Paragraphs.Count);
+                Console.WriteLine("Watermarks in section 1 (header): " + section1Header.Watermarks.Count);
+                Console.WriteLine("Paragraphs in section 1 (header): " + section1Header.Paragraphs.Count);
 
                 Console.WriteLine("Watermarks in document: " + document.Watermarks.Count);
 
