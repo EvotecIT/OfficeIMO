@@ -52,7 +52,8 @@ namespace OfficeIMO.Word {
         /// <returns>A paragraph containing the inserted tab.</returns>
         internal static WordParagraph AddTab(WordDocument document, WordParagraph wordParagraph) {
             var newWordParagraph = new WordParagraph(document, wordParagraph._paragraph, true);
-            newWordParagraph._run.Append(new TabChar());
+            var run = newWordParagraph.VerifyRun();
+            run.Append(new TabChar());
             return newWordParagraph;
         }
     }

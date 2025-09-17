@@ -195,9 +195,9 @@ namespace OfficeIMO.Word {
             if (cxnLst == null) { cxnLst = new XElement(dgm + "cxnLst"); xdoc.Root?.Add(cxnLst); }
 
             // Find document node id
-            var docPt = xdoc.Descendants(dgm + "pt").FirstOrDefault(p => (string)p.Attribute("type") == "doc");
+            var docPt = xdoc.Descendants(dgm + "pt").FirstOrDefault(p => (string?)p.Attribute("type") == "doc");
             if (docPt == null) throw new InvalidOperationException("Cannot locate document point in SmartArt data model.");
-            var docId = (string)docPt.Attribute("modelId")!;
+            var docId = (string?)docPt.Attribute("modelId") ?? throw new InvalidOperationException("Document point missing modelId.");
 
             // Create node point
             string newId = "{" + Guid.NewGuid().ToString().ToUpper() + "}";
@@ -219,7 +219,7 @@ namespace OfficeIMO.Word {
             ptLst.Add(pt);
 
             // Determine next position
-            var existing = cxnLst.Elements(dgm + "cxn").Where(x => (string)x.Attribute("srcId") == docId).ToList();
+            var existing = cxnLst.Elements(dgm + "cxn").Where(x => (string?)x.Attribute("srcId") == docId).ToList();
             uint nextPos = existing.Any() ? (uint)(existing.Select(x => (int?)x.Attribute("srcOrd") ?? 0).DefaultIfEmpty(0).Max() + 1) : 0U;
 
             // Create connection
@@ -247,12 +247,12 @@ namespace OfficeIMO.Word {
             var cxnLst = xdoc.Descendants(dgm + "cxnLst").FirstOrDefault();
             if (ptLst == null) throw new InvalidOperationException("SmartArt data model missing ptLst.");
             if (cxnLst == null) { cxnLst = new XElement(dgm + "cxnLst"); xdoc.Root?.Add(cxnLst); }
-            var docPt = xdoc.Descendants(dgm + "pt").FirstOrDefault(p => (string)p.Attribute("type") == "doc");
+            var docPt = xdoc.Descendants(dgm + "pt").FirstOrDefault(p => (string?)p.Attribute("type") == "doc");
             if (docPt == null) throw new InvalidOperationException("Cannot locate document point in SmartArt data model.");
-            var docId = (string)docPt.Attribute("modelId")!;
+            var docId = (string?)docPt.Attribute("modelId") ?? throw new InvalidOperationException("Document point missing modelId.");
 
             // Resequence existing srcOrd >= index
-            var conns = cxnLst.Elements(dgm + "cxn").Where(c => (string)c.Attribute("srcId") == docId).OrderBy(c => (int?)c.Attribute("srcOrd") ?? 0).ToList();
+            var conns = cxnLst.Elements(dgm + "cxn").Where(c => (string?)c.Attribute("srcId") == docId).OrderBy(c => (int?)c.Attribute("srcOrd") ?? 0).ToList();
             if (index < 0 || index > conns.Count) throw new ArgumentOutOfRangeException(nameof(index));
             foreach (var c in conns.Where((c, i) => i >= index)) {
                 var cur = (int?)c.Attribute("srcOrd") ?? 0;
@@ -362,7 +362,7 @@ namespace OfficeIMO.Word {
             // Points with no @type and with a dgm:t (or dgm:txBody) are treated as editable nodes.
             var pts = xdoc.Descendants(dgm + "pt");
             var nodePts = pts.Where(p => {
-                var typ = (string)p.Attribute("type");
+                var typ = (string?)p.Attribute("type");
                 return (typ == null || typ == "node") && (p.Element(dgm + "t") != null || p.Element(dgm + "txBody") != null);
             });
             var paras = nodePts
@@ -381,7 +381,7 @@ namespace OfficeIMO.Word {
 
             var pts = xdoc.Descendants(dgm + "pt");
             var nodePts = pts.Where(p => {
-                var typ = (string)p.Attribute("type");
+                var typ = (string?)p.Attribute("type");
                 return (typ == null || typ == "node") && (p.Element(dgm + "t") != null || p.Element(dgm + "txBody") != null);
             });
             var paras = nodePts
@@ -463,8 +463,9 @@ namespace OfficeIMO.Word {
             try {
                 var rel = _drawing.Descendants<RelationshipIds>().FirstOrDefault();
                 var main = _document._wordprocessingDocument.MainDocumentPart!;
-                if (rel?.LayoutPart == null) return null;
-                var part = main.GetPartById(rel.LayoutPart.Value) as DiagramLayoutDefinitionPart;
+                var layoutId = rel?.LayoutPart?.Value;
+                if (string.IsNullOrEmpty(layoutId)) return null;
+                var part = main.GetPartById(layoutId) as DiagramLayoutDefinitionPart;
                 if (part?.LayoutDefinition == null) return null;
                 var uid = part.LayoutDefinition.UniqueId?.Value ?? string.Empty;
                 if (uid.EndsWith("/layout/cycle2")) return SmartArtType.Cycle;
@@ -496,9 +497,10 @@ namespace OfficeIMO.Word {
 
         private DiagramDataPart GetDiagramDataPart() {
             var rel = _drawing.Descendants<RelationshipIds>().FirstOrDefault();
-            if (rel == null || rel.DataPart == null) throw new InvalidOperationException("SmartArt data relationship not found.");
+            var dataId = rel?.DataPart?.Value;
+            if (string.IsNullOrEmpty(dataId)) throw new InvalidOperationException("SmartArt data relationship not found.");
             var mainPart = _document._wordprocessingDocument.MainDocumentPart!;
-            var part = mainPart.GetPartById(rel.DataPart.Value);
+            var part = mainPart.GetPartById(dataId);
             if (part is DiagramDataPart ddp) return ddp;
             throw new InvalidOperationException("DiagramDataPart not found for SmartArt.");
         }

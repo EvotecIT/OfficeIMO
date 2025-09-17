@@ -181,7 +181,11 @@ namespace OfficeIMO.Word {
             wordParagraph._paragraph.ParagraphProperties = paragraphProperties1;
 
             var run = wordParagraph._paragraph.GetFirstChild<Run>();
-            run.InsertBeforeSelf(run1);
+            if (run != null) {
+                run.InsertBeforeSelf(run1);
+            } else {
+                wordParagraph._paragraph.PrependChild(run1);
+            }
 
             endNote.Append(wordParagraph._paragraph);
 

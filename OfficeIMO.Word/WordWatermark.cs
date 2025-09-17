@@ -586,7 +586,7 @@ namespace OfficeIMO.Word {
             if (wordHeader == null) {
                 // user didn't create headers first, so we do it for the user
                 wordDocument.AddHeadersAndFooters();
-                wordHeader = wordDocument.Header.Default;
+                wordHeader = wordDocument.Header.Default ?? throw new InvalidOperationException("Header not initialized after AddHeadersAndFooters().");
             }
             this._wordHeader = wordHeader;
 

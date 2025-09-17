@@ -36,7 +36,8 @@ namespace OfficeIMO.Tests {
                         foreach (var cell in row.Elements<Cell>()) {
                             var reference = cell.CellReference?.Value;
                             if (string.IsNullOrEmpty(reference)) continue;
-                            int current = ColumnIndex(reference);
+                            var referenceNonNull = reference!;
+                            int current = ColumnIndex(referenceNonNull);
                             Assert.True(current >= previousColumn,
                                 $"Row {row.RowIndex} contains out-of-order cell '{reference}'.");
                             previousColumn = current;

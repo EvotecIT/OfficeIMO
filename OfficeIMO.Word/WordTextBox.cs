@@ -116,8 +116,8 @@ namespace OfficeIMO.Word {
                 var anchor = _anchor;
                 if (anchor != null) {
                     var horizontalPosition = anchor.HorizontalPosition;
-                    if (horizontalPosition != null) {
-                        horizontalPosition.RelativeFrom = value;
+                    if (horizontalPosition != null && value.HasValue) {
+                        horizontalPosition.RelativeFrom = value.Value;
                     }
                 }
             }
@@ -198,8 +198,8 @@ namespace OfficeIMO.Word {
                 var anchor = _anchor;
                 if (anchor != null) {
                     var verticalPosition = anchor.VerticalPosition;
-                    if (verticalPosition != null) {
-                        return int.Parse(verticalPosition.PositionOffset.Text);
+                    if (verticalPosition?.PositionOffset?.Text != null && int.TryParse(verticalPosition.PositionOffset.Text, out var parsed)) {
+                        return parsed;
                     }
                 }
 
@@ -209,8 +209,9 @@ namespace OfficeIMO.Word {
                 var anchor = _anchor;
                 if (anchor != null) {
                     var verticalPosition = AddVerticalPosition(anchor, true);
-                    if (verticalPosition != null) {
-                        verticalPosition.PositionOffset.Text = value.ToString();
+                    if (verticalPosition != null && value.HasValue) {
+                        verticalPosition.PositionOffset ??= new PositionOffset();
+                        verticalPosition.PositionOffset.Text = value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     }
                 }
             }
@@ -225,8 +226,8 @@ namespace OfficeIMO.Word {
                 var anchor = _anchor;
                 if (anchor != null) {
                     var horizontalPosition = anchor.HorizontalPosition;
-                    if (horizontalPosition != null && horizontalPosition.PositionOffset != null) {
-                        return int.Parse(horizontalPosition.PositionOffset.Text);
+                    if (horizontalPosition?.PositionOffset?.Text != null && int.TryParse(horizontalPosition.PositionOffset.Text, out var px)) {
+                        return px;
                     }
                 }
                 return null;
@@ -235,8 +236,9 @@ namespace OfficeIMO.Word {
                 var anchor = _anchor;
                 if (anchor != null) {
                     var horizontalPosition = AddHorizontalPosition(anchor, true);
-                    if (horizontalPosition != null) {
-                        horizontalPosition.PositionOffset.Text = value.ToString();
+                    if (horizontalPosition != null && value.HasValue) {
+                        horizontalPosition.PositionOffset ??= new PositionOffset();
+                        horizontalPosition.PositionOffset.Text = value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     }
                 }
             }
