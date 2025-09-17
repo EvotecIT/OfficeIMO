@@ -61,15 +61,18 @@ namespace OfficeIMO.Word {
                     var cloneInst = (NumberingInstance)inst.CloneNode(true);
                     cloneInst.NumberID = newNum;
                     var absId = cloneInst.GetFirstChild<AbstractNumId>();
-                    int? absIdValue = absId?.Val?.Value;
-                    if (absIdValue != null && abstractMap.TryGetValue(absIdValue.Value, out var mapped)) {
-                        absId.Val = mapped;
+                    if (absId != null && absId.Val != null) {
+                        int? absIdValue = absId.Val.Value;
+                        if (absIdValue != null && abstractMap.TryGetValue(absIdValue.Value, out var mapped)) {
+                            absId.Val = mapped;
+                        }
                     }
                     destNumbering.Append(cloneInst);
                     numMap[oldNum] = newNum;
                 }
             }
 
+            if (srcMain.Document?.Body == null || destMain.Document?.Body == null) return;
             foreach (var element in srcMain.Document.Body.ChildElements) {
                 var clone = element.CloneNode(true);
                 foreach (var numId in clone.Descendants<NumberingId>()) {
@@ -84,14 +87,14 @@ namespace OfficeIMO.Word {
 
         private static int GetNextAbstractNumId(Numbering numbering) {
             var ids = numbering.ChildElements.OfType<AbstractNum>()
-                .Select(n => (int)n.AbstractNumberId.Value)
+                .Select(n => (int)(n.AbstractNumberId?.Value ?? 0))
                 .ToList();
             return ids.Count > 0 ? ids.Max() + 1 : 0;
         }
 
         private static int GetNextNumberingId(Numbering numbering) {
             var ids = numbering.ChildElements.OfType<NumberingInstance>()
-                .Select(n => (int)n.NumberID.Value)
+                .Select(n => (int)(n.NumberID?.Value ?? 0))
                 .ToList();
             return ids.Count > 0 ? ids.Max() + 1 : 1;
         }

@@ -74,7 +74,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static IEnumerable<WordParagraph> EnumerateHeaderFooterParagraphs(WordHeaderFooter headerFooter) {
+        private static IEnumerable<WordParagraph> EnumerateHeaderFooterParagraphs(WordHeaderFooter? headerFooter) {
             if (headerFooter == null) yield break;
 
             foreach (var paragraph in headerFooter.Paragraphs) {

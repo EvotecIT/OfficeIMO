@@ -55,7 +55,7 @@ public partial class WordPageNumber {
         _listParagraphs.Clear();
         _listParagraphs.AddRange(WordSection.ConvertParagraphsToWordParagraphs(_document, _sdtBlock.SdtContentBlock!.ChildElements.OfType<Paragraph>()));
         this._wordParagraph = _listParagraphs[0];
-        wordHeader._header.Append(_sdtBlock);
+        wordHeader._header?.Append(_sdtBlock);
     }
     /// <summary>
     /// Initializes a new instance of <see cref="WordPageNumber"/> and appends it to the specified footer.
@@ -79,7 +79,7 @@ public partial class WordPageNumber {
         _listParagraphs.Clear();
         _listParagraphs.AddRange(WordSection.ConvertParagraphsToWordParagraphs(_document, _sdtBlock.SdtContentBlock!.ChildElements.OfType<Paragraph>()));
         this._wordParagraph = _listParagraphs[0];
-        wordFooter._footer.Append(_sdtBlock);
+        wordFooter._footer?.Append(_sdtBlock);
     }
 
     private static SdtBlock GetStyle(WordPageNumberStyle style) {

@@ -20,10 +20,10 @@ namespace OfficeIMO.Word {
         internal override List<string> GetParameters() {
             var parameters = new List<string>();
             if (!string.IsNullOrWhiteSpace(Bookmark)) {
-                parameters.Add(Bookmark);
+                parameters.Add(Bookmark!);
             }
             if (!string.IsNullOrWhiteSpace(Value)) {
-                parameters.Add($"\"{Value}\"");
+                parameters.Add($"\"{Value!}\"");
             }
             return parameters;
         }

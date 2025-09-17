@@ -98,7 +98,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document">Document containing macros.</param>
         /// <returns>Byte array with the macros or <c>null</c> when absent.</returns>
-        internal static byte[] ExtractMacros(WordDocument document) {
+        internal static byte[]? ExtractMacros(WordDocument document) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             var mainPart = document._wordprocessingDocument.MainDocumentPart;
             var vbaPart = mainPart?.VbaProjectPart;

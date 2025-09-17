@@ -37,7 +37,7 @@ namespace OfficeIMO.Word.Fluent {
                 }
             }
 
-            return header;
+            return header ?? throw new InvalidOperationException("Failed to create header instance.");
         }
 
         /// <summary>

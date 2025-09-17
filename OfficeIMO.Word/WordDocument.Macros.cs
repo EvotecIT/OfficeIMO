@@ -22,7 +22,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Indicates whether the document contains a VBA project.
         /// </summary>
-        public bool HasMacros => _wordprocessingDocument.MainDocumentPart.VbaProjectPart != null;
+        public bool HasMacros => _wordprocessingDocument.MainDocumentPart?.VbaProjectPart != null;
 
         /// <summary>
         /// Gets all macros (module streams) in the document.
@@ -54,7 +54,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns>Byte array with macro content or null when no macros are present.</returns>
         public byte[] ExtractMacros() {
-            return WordMacro.ExtractMacros(this);
+            return WordMacro.ExtractMacros(this) ?? Array.Empty<byte>();
         }
 
         /// <summary>

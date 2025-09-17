@@ -195,7 +195,9 @@ namespace OfficeIMO.Word {
                 symbolProps.Append(new RunFonts { Ascii = fontName, HighAnsi = fontName });
             }
             if (!string.IsNullOrEmpty(colorHex)) {
-                symbolProps.Append(new DocumentFormat.OpenXml.Wordprocessing.Color { Val = colorHex.Replace("#", "").ToLowerInvariant() });
+                if (colorHex is { Length: > 0 } hex) {
+                    symbolProps.Append(new DocumentFormat.OpenXml.Wordprocessing.Color { Val = hex.Replace("#", "").ToLowerInvariant() });
+                }
             }
             if (fontSize.HasValue) {
                 var size = (fontSize.Value * 2).ToString();

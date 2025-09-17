@@ -13,17 +13,17 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the default header.
         /// </summary>
-        public WordHeader Default { get; set; }
+        public WordHeader? Default { get; set; }
 
         /// <summary>
         /// Gets or sets the header for even pages.
         /// </summary>
-        public WordHeader Even { get; set; }
+        public WordHeader? Even { get; set; }
 
         /// <summary>
         /// Gets or sets the header for the first page.
         /// </summary>
-        public WordHeader First { get; set; }
+        public WordHeader? First { get; set; }
     }
     /// <summary>
     /// Represents a single header instance within a section.
@@ -37,11 +37,12 @@ namespace OfficeIMO.Word {
             _type = WordSection.GetType(headerReference.Type);
             _section = section;
 
-            var listHeaders = document._wordprocessingDocument.MainDocumentPart.HeaderParts.ToList();
+            var listHeaders = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.ToList();
             foreach (HeaderPart headerPart in listHeaders) {
                 var id = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(headerPart);
                 if (id == _id) {
                     _headerPart = headerPart;
+                    if (headerPart.Header == null) headerPart.Header = new Header();
                     _header = headerPart.Header;
                 }
             }
@@ -81,10 +82,10 @@ namespace OfficeIMO.Word {
         /// <param name="types">Header types to remove.</param>
         public static void RemoveHeaders(WordprocessingDocument wordprocessingDocument, params HeaderFooterValues[] types) {
             var docPart = wordprocessingDocument.MainDocumentPart;
-            DocumentFormat.OpenXml.Wordprocessing.Document document = docPart.Document;
+            var document = docPart?.Document;
 
             if (types == null || types.Length == 0) {
-                if (docPart.HeaderParts.Any()) {
+                if (docPart?.HeaderParts.Any() == true && document != null) {
                     docPart.DeleteParts(docPart.HeaderParts);
                     var headers = document.Descendants<HeaderReference>().ToList();
                     foreach (var header in headers) {
@@ -95,17 +96,18 @@ namespace OfficeIMO.Word {
             }
 
             var partsToDelete = new HashSet<HeaderPart>();
-            var headersToRemove = document.Descendants<HeaderReference>()
-                .Where(h => types.Contains(h.Type)).ToList();
+            var headersToRemove = (document ?? throw new InvalidOperationException("Main document is missing.")).Descendants<HeaderReference>()
+                .Where(h => h.Type != null && types.Contains(WordSection.GetType(h.Type))).ToList();
             foreach (var header in headersToRemove) {
-                var part = docPart.GetPartById(header.Id) as HeaderPart;
+                if (header.Id == null || docPart == null) continue;
+                var part = docPart.GetPartById(header.Id.Value!) as HeaderPart;
                 if (part != null) {
                     partsToDelete.Add(part);
                 }
                 header.Remove();
             }
             foreach (var part in partsToDelete) {
-                docPart.DeletePart(part);
+                docPart!.DeletePart(part);
             }
         }
         /// <summary>
@@ -156,7 +158,7 @@ namespace OfficeIMO.Word {
         public WordImage AddImageVml(string filePathImage, double? width = null, double? height = null) {
             var paragraph = AddParagraph(newRun: true);
             paragraph.AddImageVml(filePathImage, width, height);
-            return paragraph.Image;
+            return paragraph.Image ?? throw new InvalidOperationException("Image was not added to the paragraph.");
         }
 
         /// <summary>

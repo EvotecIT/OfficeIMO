@@ -82,7 +82,7 @@ namespace OfficeIMO.Word {
 
             _drawing = new Drawing(inline);
             _paragraph.VerifyRun();
-            _paragraph._run.Append(_drawing);
+            _paragraph._run?.Append(_drawing);
         }
 
         // All SmartArt parts are created in SmartArtBuiltIn.
@@ -304,11 +304,12 @@ namespace OfficeIMO.Word {
                 return (typ == null || typ == "node") && (p.Element(dgm + "t") != null || p.Element(dgm + "txBody") != null);
             }).ToList();
             foreach (var pt in nodePts) pt.Remove();
-            var docPt = xdoc.Descendants(dgm + "pt").FirstOrDefault(p => (string)p.Attribute("type") == "doc");
+            XElement? docPt = xdoc.Descendants(dgm + "pt").FirstOrDefault(p => (string?)p.Attribute("type") == "doc");
             var docId = (string?)docPt?.Attribute("modelId");
-            var cxnLst = xdoc.Descendants(dgm + "cxnLst").FirstOrDefault();
+            XElement? cxnLst = xdoc.Descendants(dgm + "cxnLst").FirstOrDefault();
             if (docId != null && cxnLst != null) {
-                var toRemove = cxnLst.Elements(dgm + "cxn").Where(x => (string)x.Attribute("srcId") == docId).ToList();
+                var cxn = cxnLst!;
+                var toRemove = cxn.Elements(dgm + "cxn").Where(x => (string?)x.Attribute("srcId") == docId).ToList();
                 foreach (var c in toRemove) c.Remove();
             }
             SaveDiagramData(dataPart, xdoc);
@@ -330,15 +331,16 @@ namespace OfficeIMO.Word {
             var targetId = (string)targetPt.Attribute("modelId")!;
 
             // Remove cxn entries
-            var cxnLst = xdoc.Descendants(dgm + "cxnLst").FirstOrDefault();
+            XElement? cxnLst = xdoc.Descendants(dgm + "cxnLst").FirstOrDefault();
             if (cxnLst != null) {
-                var toRemove = cxnLst.Elements(dgm + "cxn").Where(x => (string)x.Attribute("destId") == targetId).ToList();
+                var cxn = cxnLst!;
+                var toRemove = cxn.Elements(dgm + "cxn").Where(x => (string?)x.Attribute("destId") == targetId).ToList();
                 foreach (var c in toRemove) c.Remove();
                 // Resequence srcOrd for remaining doc->child connections
-                var docPt = xdoc.Descendants(dgm + "pt").FirstOrDefault(p => (string)p.Attribute("type") == "doc");
+                XElement? docPt = xdoc.Descendants(dgm + "pt").FirstOrDefault(p => (string?)p.Attribute("type") == "doc");
                 var docId = (string?)docPt?.Attribute("modelId");
                 if (docId != null) {
-                    var conns = cxnLst.Elements(dgm + "cxn").Where(x => (string)x.Attribute("srcId") == docId).ToList();
+                    var conns = cxn.Elements(dgm + "cxn").Where(x => (string?)x.Attribute("srcId") == docId).ToList();
                     uint ord = 0;
                     foreach (var c in conns.OrderBy(c => (int?)c.Attribute("srcOrd") ?? 0)) {
                         c.SetAttributeValue("srcOrd", ord++);
@@ -351,6 +353,9 @@ namespace OfficeIMO.Word {
             SaveDiagramData(dataPart, xdoc);
         }
 
+        /// <summary>
+        /// Indicates whether this SmartArt type supports adding/removing/reordering nodes.
+        /// </summary>
         public bool CanModifyNodes => _type == SmartArtType.BasicProcess || _type == SmartArtType.Cycle;
 
         private (XDocument xdoc, (XNamespace dgm, XNamespace a) ns, List<XElement> paras) LoadNodeParagraphs() {
@@ -368,7 +373,7 @@ namespace OfficeIMO.Word {
             var paras = nodePts
                 .Select(p => (p.Element(dgm + "t") ?? p.Element(dgm + "txBody"))?.Element(a + "p"))
                 .Where(p => p != null)
-                .Cast<XElement>()
+                .Select(p => p!)
                 .ToList();
             return (xdoc, (dgm, a), paras);
         }
@@ -387,7 +392,7 @@ namespace OfficeIMO.Word {
             var paras = nodePts
                 .Select(p => (p.Element(dgm + "t") ?? p.Element(dgm + "txBody"))?.Element(a + "p"))
                 .Where(p => p != null)
-                .Cast<XElement>()
+                .Select(p => p!)
                 .ToList();
             return (xdoc, (dgm, a), paras, dataPart);
         }
@@ -463,8 +468,8 @@ namespace OfficeIMO.Word {
             try {
                 var rel = _drawing.Descendants<RelationshipIds>().FirstOrDefault();
                 var main = _document._wordprocessingDocument.MainDocumentPart!;
-                var layoutId = rel?.LayoutPart?.Value;
-                if (string.IsNullOrEmpty(layoutId)) return null;
+                var layoutIdOpt = rel?.LayoutPart?.Value;
+                if (layoutIdOpt is not { Length: > 0 } layoutId) return null;
                 var part = main.GetPartById(layoutId) as DiagramLayoutDefinitionPart;
                 if (part?.LayoutDefinition == null) return null;
                 var uid = part.LayoutDefinition.UniqueId?.Value ?? string.Empty;
@@ -497,8 +502,8 @@ namespace OfficeIMO.Word {
 
         private DiagramDataPart GetDiagramDataPart() {
             var rel = _drawing.Descendants<RelationshipIds>().FirstOrDefault();
-            var dataId = rel?.DataPart?.Value;
-            if (string.IsNullOrEmpty(dataId)) throw new InvalidOperationException("SmartArt data relationship not found.");
+            var dataIdOpt = rel?.DataPart?.Value;
+            if (dataIdOpt is not { Length: > 0 } dataId) throw new InvalidOperationException("SmartArt data relationship not found.");
             var mainPart = _document._wordprocessingDocument.MainDocumentPart!;
             var part = mainPart.GetPartById(dataId);
             if (part is DiagramDataPart ddp) return ddp;

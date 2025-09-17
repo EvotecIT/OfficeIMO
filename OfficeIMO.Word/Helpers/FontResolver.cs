@@ -67,22 +67,22 @@ public static class FontResolver {
         }
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-            return ResolvePlatform(fontFamily, _windowsFonts, _windowsFallbackFonts);
+            return ResolvePlatform(fontFamily!, _windowsFonts, _windowsFallbackFonts);
         }
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-            return ResolvePlatform(fontFamily, _linuxFonts, _linuxFallbackFonts);
+            return ResolvePlatform(fontFamily!, _linuxFonts, _linuxFallbackFonts);
         }
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-            return ResolvePlatform(fontFamily, _macFonts, _macFallbackFonts);
+            return ResolvePlatform(fontFamily!, _macFonts, _macFallbackFonts);
         }
 
         return fontFamily;
     }
 
     private static string ResolvePlatform(string fontFamily, Dictionary<string, string> genericFonts, IEnumerable<string> fallbackFonts) {
-        if (genericFonts.TryGetValue(fontFamily, out string value)) {
+        if (genericFonts.TryGetValue(fontFamily, out string? value) && !string.IsNullOrEmpty(value)) {
             fontFamily = value;
         }
 

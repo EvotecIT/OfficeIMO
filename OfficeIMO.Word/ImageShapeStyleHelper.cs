@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
@@ -27,9 +29,25 @@ namespace OfficeIMO.Word {
         /// <param name="shape">The VML <see cref="Shape"/> whose style should be parsed.</param>
         /// <returns>A dictionary containing style names and values.</returns>
         public static Dictionary<string, string> GetStyle(Shape shape) {
-            return shape.Style.Value.Split(';')
-                .Select(part => part.Split(':'))
-                .ToDictionary(split => split[0], split => split[1]);
+            if (shape == null) throw new ArgumentNullException(nameof(shape));
+
+            string? styleValue = shape.Style?.Value;
+            if (string.IsNullOrWhiteSpace(styleValue)) {
+                return new Dictionary<string, string>();
+            }
+
+            // Compatible with net472/netstandard2.0: avoid newer Split overloads and TrimEntries flag
+            var pairs = new List<KeyValuePair<string, string>>();
+            var segments = styleValue!.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var segment in segments) {
+                var parts = segment.Split(new[] { ':' }, 2);
+                if (parts.Length < 2) continue;
+                var key = parts[0].Trim();
+                if (key.Length == 0) continue;
+                var value = parts[1].Trim();
+                pairs.Add(new KeyValuePair<string, string>(key, value));
+            }
+            return pairs.ToDictionary(kv => kv.Key, kv => kv.Value);
         }
 
         /// <summary>
@@ -38,6 +56,15 @@ namespace OfficeIMO.Word {
         /// <param name="shape">The VML <see cref="Shape"/> to update.</param>
         /// <param name="style">The style dictionary to serialize and assign.</param>
         public static void SetStyle(Shape shape, Dictionary<string, string> style) {
+            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            if (style == null) throw new ArgumentNullException(nameof(style));
+
+            if (style.Count == 0) {
+                shape.Style = null;
+                return;
+            }
+
+            if (shape.Style == null) shape.Style = new StringValue();
             shape.Style.Value = string.Join(";", style.Select(kvp => $"{kvp.Key}:{kvp.Value}"));
         }
     }

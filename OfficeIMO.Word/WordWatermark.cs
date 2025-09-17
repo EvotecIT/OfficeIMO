@@ -586,7 +586,9 @@ namespace OfficeIMO.Word {
             if (wordHeader == null) {
                 // user didn't create headers first, so we do it for the user
                 wordDocument.AddHeadersAndFooters();
-                wordHeader = wordDocument.Header.Default ?? throw new InvalidOperationException("Header not initialized after AddHeadersAndFooters().");
+                var hdrs = wordDocument.Header ?? throw new InvalidOperationException("Headers not initialized after AddHeadersAndFooters().");
+                var def = hdrs.Default ?? throw new InvalidOperationException("Default header not initialized after AddHeadersAndFooters().");
+                wordHeader = def;
             }
             this._wordHeader = wordHeader;
 
@@ -595,14 +597,14 @@ namespace OfficeIMO.Word {
 
                 this.Text = textOrFilePath;
 
-                wordHeader._header.Append(_sdtBlock);
+                wordHeader._header?.Append(_sdtBlock);
             } else {
                 this._sdtBlock = GetStyle(style);
 
                 var fileName = System.IO.Path.GetFileName(textOrFilePath);
                 using var imageStream = new System.IO.FileStream(textOrFilePath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read);
 
-                wordHeader._header.Append(_sdtBlock);
+                wordHeader._header?.Append(_sdtBlock);
 
                 var sdtContentBlock = this._sdtBlock.SdtContentBlock ?? throw new InvalidOperationException("Missing content block in watermark");
                 var paragraph = sdtContentBlock.GetFirstChild<Paragraph>() ?? sdtContentBlock.AppendChild(new Paragraph());

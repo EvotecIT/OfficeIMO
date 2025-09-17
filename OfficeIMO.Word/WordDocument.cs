@@ -1862,42 +1862,42 @@ namespace OfficeIMO.Word {
                 result.FindRegex(table.Paragraphs, regex, result.Tables);
             }
 
-            if (document.Header.Default != null) {
+            if (document.Header?.Default != null) {
                 result.FindRegex(document.Header.Default.Paragraphs, regex, result.HeaderDefault);
                 foreach (var table in document.Header.Default.Tables) {
                     result.FindRegex(table.Paragraphs, regex, result.HeaderDefault);
                 }
             }
 
-            if (document.Header.Even != null) {
+            if (document.Header?.Even != null) {
                 result.FindRegex(document.Header.Even.Paragraphs, regex, result.HeaderEven);
                 foreach (var table in document.Header.Even.Tables) {
                     result.FindRegex(table.Paragraphs, regex, result.HeaderEven);
                 }
             }
 
-            if (document.Header.First != null) {
+            if (document.Header?.First != null) {
                 result.FindRegex(document.Header.First.Paragraphs, regex, result.HeaderFirst);
                 foreach (var table in document.Header.First.Tables) {
                     result.FindRegex(table.Paragraphs, regex, result.HeaderFirst);
                 }
             }
 
-            if (document.Footer.Default != null) {
+            if (document.Footer?.Default != null) {
                 result.FindRegex(document.Footer.Default.Paragraphs, regex, result.FooterDefault);
                 foreach (var table in document.Footer.Default.Tables) {
                     result.FindRegex(table.Paragraphs, regex, result.FooterDefault);
                 }
             }
 
-            if (document.Footer.Even != null) {
+            if (document.Footer?.Even != null) {
                 result.FindRegex(document.Footer.Even.Paragraphs, regex, result.FooterEven);
                 foreach (var table in document.Footer.Even.Tables) {
                     result.FindRegex(table.Paragraphs, regex, result.FooterEven);
                 }
             }
 
-            if (document.Footer.First != null) {
+            if (document.Footer?.First != null) {
                 result.FindRegex(document.Footer.First.Paragraphs, regex, result.FooterFirst);
                 foreach (var table in document.Footer.First.Tables) {
                     result.FindRegex(table.Paragraphs, regex, result.FooterFirst);

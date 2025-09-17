@@ -9,7 +9,7 @@ namespace OfficeIMO.Word {
     public partial class WordChart {
         private CategoryAxisData InitializeCategoryAxisData() {
             var pieChartSeries = InitializePieChartSeries();
-            CategoryAxisData categoryAxis = pieChartSeries?.GetFirstChild<CategoryAxisData>();
+            CategoryAxisData? categoryAxis = pieChartSeries?.GetFirstChild<CategoryAxisData>();
             // If CategoryAxisData does not exist, create it
             if (categoryAxis == null) {
                 categoryAxis = new CategoryAxisData();
@@ -20,14 +20,14 @@ namespace OfficeIMO.Word {
         }
 
         private NumberLiteral InitializeNumberLiteral() {
-            NumberLiteral literal = _chart?.PlotArea?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ValueAxis>()?.GetFirstChild<Values>()?.GetFirstChild<NumberLiteral>();
+            NumberLiteral? literal = _chart?.PlotArea?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ValueAxis>()?.GetFirstChild<Values>()?.GetFirstChild<NumberLiteral>();
             // If NumberLiteral does not exist, create it
             if (literal == null) {
                 literal = new NumberLiteral();
                 FormatCode format = new FormatCode() { Text = "General" };
                 literal.Append(format);
             }
-            return literal;
+            return literal!;
         }
 
         private Values InitializeValues() {
@@ -36,12 +36,12 @@ namespace OfficeIMO.Word {
             return values;
         }
 
-        private PieChartSeries InitializePieChartSeries() {
+        private PieChartSeries? InitializePieChartSeries() {
             if (_chart != null) {
-                var pieChart = _chart.PlotArea.GetFirstChild<PieChart>();
-                OpenXmlCompositeElement chartElement = pieChart;
+                var pieChart = _chart.PlotArea?.GetFirstChild<PieChart>();
+                OpenXmlCompositeElement? chartElement = pieChart;
                 if (chartElement == null) {
-                    chartElement = _chart.PlotArea.GetFirstChild<Pie3DChart>();
+                    chartElement = _chart.PlotArea?.GetFirstChild<Pie3DChart>();
                 }
 
                 if (chartElement != null) {
@@ -83,7 +83,7 @@ namespace OfficeIMO.Word {
 
             CategoryAxisData categoryAxis = InitializeCategoryAxisData();
 
-            StringLiteral stringLiteral = categoryAxis.GetFirstChild<StringLiteral>();
+            StringLiteral? stringLiteral = categoryAxis.GetFirstChild<StringLiteral>();
             // If StringLiteral does not exist, create it
             if (stringLiteral == null) {
                 stringLiteral = new StringLiteral();
@@ -91,7 +91,7 @@ namespace OfficeIMO.Word {
             }
             stringLiteral.Append(new StringPoint() { Index = _currentIndexCategory, NumericValue = new DocumentFormat.OpenXml.Drawing.Charts.NumericValue() { Text = category } });
             // Update the PointCount
-            PointCount pointCount = stringLiteral.GetFirstChild<PointCount>();
+            PointCount? pointCount = stringLiteral.GetFirstChild<PointCount>();
             if (pointCount != null) {
                 pointCount.Val = _currentIndexCategory + 1;
             } else {
@@ -100,8 +100,10 @@ namespace OfficeIMO.Word {
             // Increment the current index
             _currentIndexCategory++;
 
-            if (!pieChartSeries.Elements<CategoryAxisData>().Any()) {
-                pieChartSeries.Append(categoryAxis);
+            if (pieChartSeries != null) {
+                if (!pieChartSeries.Elements<CategoryAxisData>().Any()) {
+                    pieChartSeries.Append(categoryAxis);
+                }
             }
         }
 
@@ -125,7 +127,7 @@ namespace OfficeIMO.Word {
 
             literal.Append(new NumericPoint() { Index = _currentIndexValues, NumericValue = new NumericValue() { Text = valueText } });
             // Update the PointCount
-            PointCount pointCount = literal.GetFirstChild<PointCount>();
+            PointCount? pointCount = literal.GetFirstChild<PointCount>();
             if (pointCount != null) {
                 pointCount.Val = _currentIndexValues + 1;
             } else {
@@ -135,8 +137,10 @@ namespace OfficeIMO.Word {
             // Increment the current index
             _currentIndexValues++;
             // add values to the series if it does not exist
-            if (!pieChartSeries.Elements<Values>().Any()) {
-                pieChartSeries.Append(values);
+            if (pieChartSeries != null) {
+                if (!pieChartSeries.Elements<Values>().Any()) {
+                    pieChartSeries.Append(values);
+                }
             }
         }
 
@@ -203,7 +207,7 @@ namespace OfficeIMO.Word {
             if (_chart == null) {
                 _chart = GenerateChart();
                 _chart = CreatePieChart(_chart);
-                _chartPart.ChartSpace.Append(_chart);
+                _chartPart?.ChartSpace?.Append(_chart);
 
                 // since the title may have changed, we need to update it
                 UpdateTitle();
@@ -215,21 +219,26 @@ namespace OfficeIMO.Word {
             if (_chart == null) {
                 _chart = GenerateChart();
                 _chart = GenerateChartBar(_chart);
-                _chartPart.ChartSpace.Append(_chart);
+                _chartPart?.ChartSpace?.Append(_chart);
 
                 // since the title may have changed, we need to update it
                 UpdateTitle();
                 UpdateAxisTitles();
-            } else if (_chart.PlotArea.GetFirstChild<BarChart>() == null) {
-                var lineChart = _chart.PlotArea.GetFirstChild<LineChart>();
+            } else if ((_chart.PlotArea ??= new PlotArea()).GetFirstChild<BarChart>() == null) {
+                var plot = _chart.PlotArea;
+                var lineChart = plot.GetFirstChild<LineChart>();
                 if (lineChart != null) {
                     var ids = lineChart.Elements<AxisId>().ToList();
-                    var barChart = CreateBarChart(ids[0].Val, ids[1].Val);
-                    var catAxis = _chart.PlotArea.GetFirstChild<CategoryAxis>();
-                    if (catAxis != null) {
-                        _chart.PlotArea.InsertBefore(barChart, catAxis);
+                    if (ids.Count >= 2 && ids[0].Val != null && ids[1].Val != null) {
+                        var barChart = CreateBarChart(ids[0].Val!, ids[1].Val!);
+                        var catAxis = plot.GetFirstChild<CategoryAxis>();
+                        if (catAxis != null) {
+                            plot.InsertBefore(barChart, catAxis);
+                        } else {
+                            plot!.Append(barChart);
+                        }
                     } else {
-                        _chart.PlotArea!.Append(barChart);
+                        _chart = GenerateChartBar(_chart);
                     }
                 } else {
                     _chart = GenerateChartBar(_chart);
@@ -241,7 +250,7 @@ namespace OfficeIMO.Word {
             if (_chart == null) {
                 _chart = GenerateChart();
                 _chart = GenerateAreaChart(_chart);
-                _chartPart.ChartSpace.Append(_chart);
+                _chartPart?.ChartSpace?.Append(_chart);
 
                 // since the title may have changed, we need to update it
                 UpdateTitle();
@@ -253,21 +262,26 @@ namespace OfficeIMO.Word {
             if (_chart == null) {
                 _chart = GenerateChart();
                 _chart = GenerateLineChart(_chart);
-                _chartPart.ChartSpace.Append(_chart);
+                _chartPart?.ChartSpace?.Append(_chart);
 
                 // since the title may have changed, we need to update it
                 UpdateTitle();
                 UpdateAxisTitles();
-            } else if (_chart.PlotArea.GetFirstChild<LineChart>() == null) {
-                var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
+            } else if ((_chart.PlotArea ??= new PlotArea()).GetFirstChild<LineChart>() == null) {
+                var plot = _chart.PlotArea;
+                var barChart = plot.GetFirstChild<BarChart>();
                 if (barChart != null) {
                     var ids = barChart.Elements<AxisId>().ToList();
-                    var lineChart = CreateLineChart(ids[0].Val, ids[1].Val);
-                    var catAxis = _chart.PlotArea.GetFirstChild<CategoryAxis>();
-                    if (catAxis != null) {
-                        _chart.PlotArea.InsertBefore(lineChart, catAxis);
+                    if (ids.Count >= 2 && ids[0].Val != null && ids[1].Val != null) {
+                        var lineChart = CreateLineChart(ids[0].Val!, ids[1].Val!);
+                        var catAxis = plot.GetFirstChild<CategoryAxis>();
+                        if (catAxis != null) {
+                            plot.InsertBefore(lineChart, catAxis);
+                        } else {
+                            plot!.Append(lineChart);
+                        }
                     } else {
-                        _chart.PlotArea!.Append(lineChart);
+                        _chart = GenerateLineChart(_chart);
                     }
                 } else {
                     _chart = GenerateLineChart(_chart);
@@ -828,7 +842,7 @@ namespace OfficeIMO.Word {
             if (_chart == null) {
                 _chart = GenerateChart();
                 _chart = GenerateScatterChart(_chart);
-                _chartPart.ChartSpace.Append(_chart);
+                _chartPart?.ChartSpace?.Append(_chart);
                 UpdateTitle();
                 UpdateAxisTitles();
             }
@@ -838,7 +852,7 @@ namespace OfficeIMO.Word {
             if (_chart == null) {
                 _chart = GenerateChart();
                 _chart = GenerateRadarChart(_chart);
-                _chartPart.ChartSpace.Append(_chart);
+                _chartPart?.ChartSpace?.Append(_chart);
                 UpdateTitle();
                 UpdateAxisTitles();
             }
@@ -848,7 +862,7 @@ namespace OfficeIMO.Word {
             if (_chart == null) {
                 _chart = GenerateChart();
                 _chart = GenerateArea3DChart(_chart);
-                _chartPart.ChartSpace.Append(_chart);
+                _chartPart?.ChartSpace?.Append(_chart);
                 UpdateTitle();
                 UpdateAxisTitles();
             }
@@ -858,7 +872,7 @@ namespace OfficeIMO.Word {
             if (_chart == null) {
                 _chart = GenerateChart();
                 _chart = GenerateBar3DChart(_chart);
-                _chartPart.ChartSpace.Append(_chart);
+                _chartPart?.ChartSpace?.Append(_chart);
                 UpdateTitle();
                 UpdateAxisTitles();
             }
@@ -868,7 +882,7 @@ namespace OfficeIMO.Word {
             if (_chart == null) {
                 _chart = GenerateChart();
                 _chart = GeneratePie3DChart(_chart);
-                _chartPart.ChartSpace.Append(_chart);
+                _chartPart?.ChartSpace?.Append(_chart);
                 UpdateTitle();
             }
         }
@@ -877,7 +891,7 @@ namespace OfficeIMO.Word {
             if (_chart == null) {
                 _chart = GenerateChart();
                 _chart = GenerateLine3DChart(_chart);
-                _chartPart.ChartSpace.Append(_chart);
+                _chartPart?.ChartSpace?.Append(_chart);
                 UpdateTitle();
             }
         }

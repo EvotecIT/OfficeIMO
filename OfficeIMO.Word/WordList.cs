@@ -174,10 +174,10 @@ public partial class WordList : WordElement {
     /// </summary>
     public string ColorHex {
         get {
-            return GetNumberingProperty<string>(props => {
+            return (GetNumberingProperty<string>(props => {
                 var color = props.Elements<DocumentFormat.OpenXml.Wordprocessing.Color>().FirstOrDefault();
                 return color?.Val ?? string.Empty;
-            });
+            }, string.Empty)) ?? string.Empty;
         }
         set {
             SetNumberingProperty(props => {
@@ -211,7 +211,7 @@ public partial class WordList : WordElement {
     /// </summary>
     public UnderlineValues? Underline {
         get => GetNumberingProperty<UnderlineValues?>(props =>
-            props.Elements<Underline>().FirstOrDefault()?.Val);
+            props.Elements<Underline>().FirstOrDefault()?.Val?.Value);
         set => SetNumberingProperty(props => {
             props.RemoveAllChildren<Underline>();
             if (value.HasValue) {
@@ -250,8 +250,8 @@ public partial class WordList : WordElement {
     /// Gets or sets the font name of the numbering symbols.
     /// </summary>
     public string FontName {
-        get => GetNumberingProperty<string>(props =>
-            props.Elements<RunFonts>().FirstOrDefault()?.Ascii);
+        get => (GetNumberingProperty<string>(props =>
+            props.Elements<RunFonts>().FirstOrDefault()?.Ascii, string.Empty)) ?? string.Empty;
         set => SetNumberingProperty(props => {
             props.RemoveAllChildren<RunFonts>();
             if (!string.IsNullOrEmpty(value)) {
@@ -263,7 +263,7 @@ public partial class WordList : WordElement {
     /// <summary>
     /// Gets the list style or <see cref="WordListStyle.Custom"/> when the list does not match a built-in style.
     /// </summary>
-    public WordListStyle Style => WordListStyles.MatchStyle(GetAbstractNum());
+    public WordListStyle Style => GetAbstractNum() is AbstractNum a ? WordListStyles.MatchStyle(a) : WordListStyle.Custom;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WordList"/> class.

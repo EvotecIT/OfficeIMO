@@ -11,10 +11,10 @@ namespace OfficeIMO.Word {
     /// A wrapper for Word document comments.
     /// </summary>
     public partial class WordComment : WordElement {
-        private WordParagraph _paragraph;
+        private readonly WordParagraph _paragraph;
         private readonly WordDocument _document;
         private readonly Comment _comment;
-        private readonly CommentEx _commentEx;
+        private readonly CommentEx? _commentEx;
         private readonly List<WordParagraph> _list;
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace OfficeIMO.Word {
                 return _paragraph.Text;
             }
             set {
-                _paragraph.Text = value;
+                _paragraph.Text = value ?? string.Empty;
             }
         }
 

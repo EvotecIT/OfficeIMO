@@ -54,7 +54,7 @@ namespace OfficeIMO.Word {
                 }
 
                 var value = variable.Val?.Value ?? string.Empty;
-                _document.DocumentVariables[name] = value;
+                _document.DocumentVariables[name!] = value;
             }
         }
 
@@ -86,7 +86,7 @@ namespace OfficeIMO.Word {
             var toRemove = _variables.Elements<DocumentVariable>()
                 .Where(v => {
                     var name = v.Name?.Value;
-                    return string.IsNullOrEmpty(name) || !_document.DocumentVariables.ContainsKey(name);
+                    return string.IsNullOrEmpty(name) || (name != null && !_document.DocumentVariables.ContainsKey(name));
                 })
                 .ToList();
             foreach (var variable in toRemove) {

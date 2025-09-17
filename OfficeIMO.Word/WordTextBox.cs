@@ -106,7 +106,7 @@ namespace OfficeIMO.Word {
                 if (anchor != null) {
                     var horizontalPosition = anchor.HorizontalPosition;
                     if (horizontalPosition != null) {
-                        return horizontalPosition.RelativeFrom;
+                        return horizontalPosition.RelativeFrom?.Value;
                     }
                 }
 
@@ -174,7 +174,7 @@ namespace OfficeIMO.Word {
                 if (anchor != null) {
                     var verticalPosition = anchor.VerticalPosition;
                     if (verticalPosition != null) {
-                        return verticalPosition.RelativeFrom;
+                        return verticalPosition.RelativeFrom?.Value ?? VerticalRelativePositionValues.Page;
                     }
                 }
                 return VerticalRelativePositionValues.Page;
@@ -376,7 +376,17 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets text body properties
         /// </summary>
-        public TextBodyProperties TextBodyProperties => _wordprocessingShape.ChildElements.OfType<TextBodyProperties>().FirstOrDefault();
+        public TextBodyProperties TextBodyProperties {
+            get {
+                var wsp = _wordprocessingShape ?? throw new InvalidOperationException("Text box shape is not available.");
+                var tbp = wsp.ChildElements.OfType<TextBodyProperties>().FirstOrDefault();
+                if (tbp == null) {
+                    tbp = new TextBodyProperties();
+                    wsp.Append(tbp);
+                }
+                return tbp;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the AutoFit behavior for the textbox.
@@ -446,14 +456,15 @@ namespace OfficeIMO.Word {
         /// </summary>
         public Int64 Width {
             get {
+                long result = 0L;
                 var anchor = _anchor;
                 if (anchor != null) {
                     var extent = anchor.ChildElements.OfType<Extent>().FirstOrDefault();
-                    if (extent != null) {
-                        return Int64.Parse(extent.Cx);
+                    if (extent?.Cx?.HasValue == true) {
+                        result = extent.Cx.Value;
                     }
                 }
-                return 0;
+                return result;
             }
             set {
                 var anchor = _anchor;
@@ -477,14 +488,15 @@ namespace OfficeIMO.Word {
         /// </summary>
         public Int64 Height {
             get {
+                long result = 0L;
                 var anchor = _anchor;
                 if (anchor != null) {
                     var extent = anchor.ChildElements.OfType<DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent>().FirstOrDefault();
-                    if (extent != null) {
-                        return Int64.Parse(extent.Cy);
+                    if (extent?.Cy?.HasValue == true) {
+                        result = extent.Cy.Value;
                     }
                 }
-                return 0;
+                return result;
             }
             set {
                 var anchor = _anchor;
@@ -600,11 +612,11 @@ namespace OfficeIMO.Word {
             verticalPosition1.Append(positionOffset1);
 
             // Copy INLINE to ANCHOR
-            Extent extent1 = (Extent)inline.Extent.CloneNode(true);
-            EffectExtent effectExtent1 = (EffectExtent)inline.EffectExtent.CloneNode(true);
-            DocProperties docProperties1 = (DocProperties)inline.DocProperties.CloneNode(true);
-            NonVisualGraphicFrameDrawingProperties nonVisualGraphicFrameDrawingProperties1 = (NonVisualGraphicFrameDrawingProperties)inline.NonVisualGraphicFrameDrawingProperties.CloneNode(true);
-            Graphic graphic1 = (Graphic)inline.Graphic.CloneNode(true);
+            Extent extent1 = (Extent)(inline.Extent?.CloneNode(true) ?? new Extent() { Cx = 0L, Cy = 0L });
+            EffectExtent effectExtent1 = (EffectExtent)(inline.EffectExtent?.CloneNode(true) ?? new EffectExtent());
+            DocProperties docProperties1 = (DocProperties)(inline.DocProperties?.CloneNode(true) ?? new DocProperties());
+            NonVisualGraphicFrameDrawingProperties nonVisualGraphicFrameDrawingProperties1 = (NonVisualGraphicFrameDrawingProperties)(inline.NonVisualGraphicFrameDrawingProperties?.CloneNode(true) ?? new NonVisualGraphicFrameDrawingProperties());
+            Graphic graphic1 = (Graphic)(inline.Graphic?.CloneNode(true) ?? new Graphic(new DocumentFormat.OpenXml.Drawing.GraphicData()));
 
             // continuation of anchor
             DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeWidth relativeWidth1 = new DocumentFormat.OpenXml.Office2010.Word.Drawing.RelativeWidth() { ObjectId = DocumentFormat.OpenXml.Office2010.Word.Drawing.SizeRelativeHorizontallyValues.Margin };
@@ -638,17 +650,17 @@ namespace OfficeIMO.Word {
         internal static Inline ConvertAnchorToInline(Anchor anchor) {
             Inline inline1 = new Inline() { DistanceFromTop = (UInt32Value)0U, DistanceFromBottom = (UInt32Value)0U, DistanceFromLeft = (UInt32Value)0U, DistanceFromRight = (UInt32Value)0U, AnchorId = "29D0141D", EditId = "5A52866D" };
 
-            Extent extent1 = (Extent)anchor.Extent.CloneNode(true);
-            EffectExtent effectExtent1 = (EffectExtent)anchor.EffectExtent.CloneNode(true);
-            DocProperties docProperties1 = (DocProperties)anchor.OfType<DocProperties>().FirstOrDefault()?.CloneNode(true);
-            NonVisualGraphicFrameDrawingProperties nonVisualGraphicFrameDrawingProperties1 = (NonVisualGraphicFrameDrawingProperties)anchor.OfType<NonVisualGraphicFrameDrawingProperties>().FirstOrDefault()?.CloneNode(true);
-            Graphic graphic1 = (Graphic)anchor.OfType<Graphic>().FirstOrDefault()?.CloneNode(true);
+            Extent extent1 = (Extent)(anchor.Extent?.CloneNode(true) ?? new Extent() { Cx = 0L, Cy = 0L });
+            EffectExtent effectExtent1 = (EffectExtent)(anchor.EffectExtent?.CloneNode(true) ?? new EffectExtent());
+            DocProperties docProperties1 = (DocProperties)(anchor.OfType<DocProperties>().FirstOrDefault()?.CloneNode(true) ?? new DocProperties());
+            NonVisualGraphicFrameDrawingProperties nonVisualGraphicFrameDrawingProperties1 = (NonVisualGraphicFrameDrawingProperties)(anchor.OfType<NonVisualGraphicFrameDrawingProperties>().FirstOrDefault()?.CloneNode(true) ?? new NonVisualGraphicFrameDrawingProperties());
+            Graphic graphic1 = (Graphic)(anchor.OfType<Graphic>().FirstOrDefault()?.CloneNode(true) ?? new Graphic(new DocumentFormat.OpenXml.Drawing.GraphicData()));
 
             inline1.Append(extent1);
             inline1.Append(effectExtent1);
-            inline1.Append(docProperties1);
-            inline1.Append(nonVisualGraphicFrameDrawingProperties1);
-            inline1.Append(graphic1);
+            if (docProperties1 != null) inline1.Append(docProperties1);
+            if (nonVisualGraphicFrameDrawingProperties1 != null) inline1.Append(nonVisualGraphicFrameDrawingProperties1);
+            if (graphic1 != null) inline1.Append(graphic1);
 
             return inline1;
         }
@@ -813,7 +825,8 @@ namespace OfficeIMO.Word {
 
             alternateContent1.Append(alternateContentChoice1);
             //alternateContent1.Append(alternateContentFallback1);
-            wordParagraph._run.Append(alternateContent1);
+            wordParagraph.VerifyRun();
+            wordParagraph._run?.Append(alternateContent1);
         }
 
         private Inline GenerateInline(string text) {
@@ -827,9 +840,9 @@ namespace OfficeIMO.Word {
 
             inline1.Append(extent1);
             inline1.Append(effectExtent1);
-            inline1.Append(docProperties1);
-            inline1.Append(nonVisualGraphicFrameDrawingProperties1);
-            inline1.Append(graphic1);
+            if (docProperties1 != null) inline1.Append(docProperties1);
+            if (nonVisualGraphicFrameDrawingProperties1 != null) inline1.Append(nonVisualGraphicFrameDrawingProperties1);
+            if (graphic1 != null) inline1.Append(graphic1);
 
             return inline1;
         }

@@ -13,7 +13,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the custom date or time format.
         /// </summary>
-        public string CustomFormat { get; private set; }
+        public string CustomFormat { get; private set; } = string.Empty;
 
         internal override WordFieldType FieldType { get; }
 
@@ -87,7 +87,7 @@ namespace OfficeIMO.Word {
                 if (part is WordFieldBuilder builder) {
                     parameters.Add($"{{ {builder.Build()} }}");
                 } else {
-                    parameters.Add(part.ToString());
+                    parameters.Add(part.ToString() ?? string.Empty);
                 }
             }
             return parameters;

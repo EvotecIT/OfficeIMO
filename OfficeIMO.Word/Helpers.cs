@@ -57,7 +57,7 @@ namespace OfficeIMO.Word {
                 var parsed = SixLabors.ImageSharp.Color.Parse(color);
                 return parsed.ToHexColor();
             } catch {
-                if (!color.StartsWith("#", StringComparison.Ordinal)) {
+                if (!color!.StartsWith("#", StringComparison.Ordinal)) {
                     try {
                         var parsedHex = SixLabors.ImageSharp.Color.Parse("#" + color);
                         return parsedHex.ToHexColor();
@@ -128,7 +128,7 @@ namespace OfficeIMO.Word {
             // Fast-path by extension to avoid throwing/catching first-chance exceptions from ImageSharp
             string? ext = null;
             if (!string.IsNullOrEmpty(fileName)) {
-                ext = Path.GetExtension(fileName).ToLowerInvariant();
+                ext = Path.GetExtension(fileName!).ToLowerInvariant();
                 if (ext == ".svg") {
                     try {
                         using var reader = new StreamReader(imageStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);

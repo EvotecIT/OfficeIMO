@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Globalization;
 using System.Text;
 using DocumentFormat.OpenXml.CustomProperties;
 using DocumentFormat.OpenXml.Packaging;
@@ -89,23 +90,23 @@ namespace OfficeIMO.Word {
                     break;
 
                 case PropertyTypes.NumberInteger:
-                    if ((value) is int) {
-                        newProp.VTInt32 = new VTInt32(value.ToString());
+                    if (value is int i) {
+                        newProp.VTInt32 = new VTInt32(i.ToString(CultureInfo.InvariantCulture));
                         propSet = true;
                     }
 
                     break;
 
                 case PropertyTypes.NumberDouble:
-                    if (value is double) {
-                        newProp.VTFloat = new VTFloat(value.ToString());
+                    if (value is double d) {
+                        newProp.VTFloat = new VTFloat(d.ToString(CultureInfo.InvariantCulture));
                         propSet = true;
                     }
 
                     break;
 
                 case PropertyTypes.Text:
-                    newProp.VTLPWSTR = new VTLPWSTR(value.ToString());
+                    newProp.VTLPWSTR = new VTLPWSTR(Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty);
                     propSet = true;
 
                     break;
@@ -124,17 +125,17 @@ namespace OfficeIMO.Word {
                         // Must be lowercase.
                         newProp.VTBool = new VTBool(Convert.ToBoolean(value).ToString().ToLower());
                         propSet = true;
-                    } else if (value is string) {
-                        newProp.VTLPWSTR = new VTLPWSTR(value.ToString());
+                    } else if (value is string s) {
+                        newProp.VTLPWSTR = new VTLPWSTR(s);
                         propSet = true;
-                    } else if (value is double) {
-                        newProp.VTFloat = new VTFloat(value.ToString());
+                    } else if (value is double d2) {
+                        newProp.VTFloat = new VTFloat(d2.ToString(CultureInfo.InvariantCulture));
                         propSet = true;
-                    } else if (value is int) {
-                        newProp.VTInt32 = new VTInt32(value.ToString());
+                    } else if (value is int i2) {
+                        newProp.VTInt32 = new VTInt32(i2.ToString(CultureInfo.InvariantCulture));
                         propSet = true;
-                    } else if (value is DateTime) {
-                        newProp.VTFileTime = new VTFileTime(string.Format("{0:s}Z", Convert.ToDateTime(value)));
+                    } else if (value is DateTime dt) {
+                        newProp.VTFileTime = new VTFileTime(string.Format(CultureInfo.InvariantCulture, "{0:s}Z", dt));
                         propSet = true;
                     }
 

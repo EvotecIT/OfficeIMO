@@ -404,8 +404,8 @@ public partial class WordList : WordElement {
             var ignorable = numbering.MCAttributes.Ignorable?.Value;
             if (string.IsNullOrEmpty(ignorable)) {
                 numbering.MCAttributes.Ignorable = prefix;
-            } else if (!ignorable.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Contains(prefix)) {
-                numbering.MCAttributes.Ignorable = ignorable + " " + prefix;
+            } else if (ignorable is { Length: > 0 } ig && !ig.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Contains(prefix)) {
+                numbering.MCAttributes.Ignorable = ig + " " + prefix;
             }
         }
     }

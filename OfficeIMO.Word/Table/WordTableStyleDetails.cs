@@ -1,3 +1,5 @@
+using System;
+using System.Globalization;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
@@ -13,19 +15,18 @@ public partial class WordTableStyleDetails {
     /// </summary>
     /// <param name="table"></param>
     internal WordTableStyleDetails(WordTable table) {
-        _table = table;
-        _tableProperties = table._tableProperties;
+        _table = table ?? throw new ArgumentNullException(nameof(table));
+        _table.CheckTableProperties();
+        _tableProperties = table._tableProperties ?? throw new InvalidOperationException("Table properties could not be initialized.");
     }
 
     /// <summary>
     /// Get or set the top margin in twips
     /// </summary>
-    public Int16? MarginDefaultTopWidth {
+    public short? MarginDefaultTopWidth {
         get {
-            if (_tableProperties != null && _tableProperties.TableCellMarginDefault?.TopMargin?.Width?.Value != null) {
-                return short.Parse(_tableProperties.TableCellMarginDefault.TopMargin.Width.Value);
-            }
-            return null;
+            string? widthValue = _tableProperties.TableCellMarginDefault?.TopMargin?.Width?.Value;
+            return ParseOptionalShort(widthValue);
         }
         set {
             _table.CheckTableProperties();
@@ -34,11 +35,11 @@ public partial class WordTableStyleDetails {
                 _tableProperties.TableCellMarginDefault = new TableCellMarginDefault();
             }
 
-            if (value != null) {
+            if (value.HasValue) {
                 if (_tableProperties.TableCellMarginDefault.TopMargin == null) {
                     _tableProperties.TableCellMarginDefault.TopMargin = new TopMargin();
                 }
-                _tableProperties.TableCellMarginDefault.TopMargin.Width = value.ToString();
+                _tableProperties.TableCellMarginDefault.TopMargin.Width = value.Value.ToString(CultureInfo.InvariantCulture);
                 _tableProperties.TableCellMarginDefault.TopMargin.Type = TableWidthUnitValues.Dxa;
             } else {
                 if (_tableProperties.TableCellMarginDefault.TopMargin != null) {
@@ -70,12 +71,10 @@ public partial class WordTableStyleDetails {
     /// <summary>
     /// Get or set the bottom margin in twips
     /// </summary>
-    public Int16? MarginDefaultBottomWidth {
+    public short? MarginDefaultBottomWidth {
         get {
-            if (_tableProperties?.TableCellMarginDefault?.BottomMargin?.Width?.Value != null) {
-                return short.Parse(_tableProperties.TableCellMarginDefault.BottomMargin.Width.Value);
-            }
-            return null;
+            string? widthValue = _tableProperties.TableCellMarginDefault?.BottomMargin?.Width?.Value;
+            return ParseOptionalShort(widthValue);
         }
         set {
             _table.CheckTableProperties();
@@ -84,11 +83,11 @@ public partial class WordTableStyleDetails {
                 _tableProperties.TableCellMarginDefault = new TableCellMarginDefault();
             }
 
-            if (value != null) {
+            if (value.HasValue) {
                 if (_tableProperties.TableCellMarginDefault.BottomMargin == null) {
                     _tableProperties.TableCellMarginDefault.BottomMargin = new BottomMargin();
                 }
-                _tableProperties.TableCellMarginDefault.BottomMargin.Width = value.ToString();
+                _tableProperties.TableCellMarginDefault.BottomMargin.Width = value.Value.ToString(CultureInfo.InvariantCulture);
                 _tableProperties.TableCellMarginDefault.BottomMargin.Type = TableWidthUnitValues.Dxa;
             } else {
                 if (_tableProperties.TableCellMarginDefault.BottomMargin != null) {
@@ -220,21 +219,19 @@ public partial class WordTableStyleDetails {
     /// <summary>
     /// Get or set the cell spacing in twips
     /// </summary>
-    public Int16? CellSpacing {
+    public short? CellSpacing {
         get {
-            if (_tableProperties?.TableCellSpacing?.Width?.Value != null) {
-                return short.Parse(_tableProperties.TableCellSpacing.Width.Value);
-            }
-            return null;
+            string? widthValue = _tableProperties.TableCellSpacing?.Width?.Value;
+            return ParseOptionalShort(widthValue);
         }
         set {
             _table.CheckTableProperties();
 
-            if (value != null) {
+            if (value.HasValue) {
                 if (_tableProperties.TableCellSpacing == null) {
                     _tableProperties.TableCellSpacing = new TableCellSpacing();
                 }
-                _tableProperties.TableCellSpacing.Width = value.ToString();
+                _tableProperties.TableCellSpacing.Width = value.Value.ToString(CultureInfo.InvariantCulture);
                 _tableProperties.TableCellSpacing.Type = TableWidthUnitValues.Dxa;
             } else {
                 if (_tableProperties.TableCellSpacing != null) {
@@ -266,7 +263,7 @@ public partial class WordTableStyleDetails {
     /// <summary>
     /// Get or set the table borders
     /// </summary>
-    public TableBorders TableBorders {
+    public TableBorders? TableBorders {
         get {
             return _tableProperties?.TableBorders;
         }
@@ -288,7 +285,7 @@ public partial class WordTableStyleDetails {
     /// <summary>
     /// Get or set the table cell margin default
     /// </summary>
-    public TableCellMarginDefault TableCellMarginDefault {
+    public TableCellMarginDefault? TableCellMarginDefault {
         get {
             return _tableProperties?.TableCellMarginDefault;
         }
@@ -305,5 +302,11 @@ public partial class WordTableStyleDetails {
                 _tableProperties.TableCellMarginDefault.Remove();
             }
         }
+    }
+
+    private static short? ParseOptionalShort(string? value) {
+        return short.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out short result)
+            ? result
+            : null;
     }
 }

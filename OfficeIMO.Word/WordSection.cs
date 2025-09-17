@@ -872,5 +872,12 @@ namespace OfficeIMO.Word {
                 return HeaderFooterValues.First;
             }
         }
+
+        internal static HeaderFooterValues GetType(DocumentFormat.OpenXml.EnumValue<HeaderFooterValues>? type) {
+            var value = type?.Value;
+            if (value == HeaderFooterValues.Even) return HeaderFooterValues.Even;
+            if (value == HeaderFooterValues.First) return HeaderFooterValues.First;
+            return HeaderFooterValues.Default;
+        }
     }
 }

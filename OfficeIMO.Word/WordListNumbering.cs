@@ -104,7 +104,7 @@ namespace OfficeIMO.Word {
         /// <param name="document">The parent document.</param>
         /// <param name="abstractNumberId">The abstract numbering identifier.</param>
         /// <returns>The <see cref="WordListNumbering"/> if found; otherwise, <c>null</c>.</returns>
-        public static WordListNumbering GetNumberingDefinition(WordDocument document, int abstractNumberId) {
+        public static WordListNumbering? GetNumberingDefinition(WordDocument document, int abstractNumberId) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }

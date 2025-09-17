@@ -150,7 +150,7 @@ public enum WordListLevelKind {
             if (element == null) {
                 element = new StartNumberingValue { Val = 1 };
                 _level.Append(element);
-            } else if (!element.Val.HasValue) {
+            } else if (element.Val == null || !element.Val.HasValue) {
                 element.Val = 1;
             }
 
@@ -191,7 +191,7 @@ public enum WordListLevelKind {
             if (justification == null) {
                 justification = new LevelJustification { Val = LevelJustificationValues.Left };
                 _level.Append(justification);
-            } else if (!justification.Val.HasValue) {
+            } else if (justification.Val == null || !justification.Val.HasValue) {
                 justification.Val = LevelJustificationValues.Left;
             }
 

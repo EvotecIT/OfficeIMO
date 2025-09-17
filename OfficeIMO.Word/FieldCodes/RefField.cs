@@ -20,7 +20,7 @@ namespace OfficeIMO.Word {
         internal override List<string> GetParameters() {
             var parameters = new List<string>();
             if (!string.IsNullOrWhiteSpace(Bookmark)) {
-                parameters.Add(Bookmark);
+                parameters.Add(Bookmark!);
             }
             if (InsertHyperlink) {
                 parameters.Add("\\h");

@@ -60,12 +60,12 @@ namespace OfficeIMO.Word {
             _document = wordDocument;
             options ??= WordEmbeddedObjectOptions.Icon();
 
-            string iconPath = options.IconPath;
+            string? iconPath = options.IconPath;
             if (string.IsNullOrEmpty(iconPath)) {
                 throw new ArgumentException("An icon path must be provided for embedded objects on this platform.", nameof(options));
             }
 
-            var embeddedObject = ConvertFileToEmbeddedObject(wordDocument, fileName, iconPath, options.Width, options.Height);
+            var embeddedObject = ConvertFileToEmbeddedObject(wordDocument, fileName, iconPath!, options.Width, options.Height);
 
             Run run = new Run();
             run.Append(embeddedObject);
@@ -115,11 +115,12 @@ namespace OfficeIMO.Word {
         }
 
         private EmbeddedObject ConvertFileToEmbeddedObject(WordDocument wordDocument, string fileName, string fileImage, double width, double height) {
-            ImagePart imagePart = wordDocument._document.MainDocumentPart.AddImagePart(ImagePartType.Png);
+            var main = wordDocument._document.MainDocumentPart ?? throw new InvalidOperationException("The document does not contain a main document part.");
+            ImagePart imagePart = main.AddImagePart(ImagePartType.Png);
             using (FileStream stream = new FileStream(fileImage, FileMode.Open, FileAccess.Read, FileShare.Read)) {
                 imagePart.FeedData(stream);
             }
-            MainDocumentPart mainPart = wordDocument._document.MainDocumentPart;
+            MainDocumentPart mainPart = main;
 
             var (contentType, programId) = GetObjectInfo(fileName);
             //ProgId = "Package",

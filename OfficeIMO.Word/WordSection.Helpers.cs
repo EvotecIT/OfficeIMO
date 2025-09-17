@@ -8,7 +8,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Returns the section header of the requested type (Default/Even/First).
         /// </summary>
-        public WordHeader GetHeader(HeaderFooterValues type) {
+        public WordHeader? GetHeader(HeaderFooterValues type) {
             if (type == HeaderFooterValues.First) return this.Header.First;
             if (type == HeaderFooterValues.Even) return this.Header.Even;
             return this.Header.Default;
@@ -16,12 +16,12 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Returns the default section header.
         /// </summary>
-        public WordHeader GetHeader() => GetHeader(HeaderFooterValues.Default);
+        public WordHeader? GetHeader() => GetHeader(HeaderFooterValues.Default);
 
         /// <summary>
         /// Returns the section footer of the requested type (Default/Even/First).
         /// </summary>
-        public WordFooter GetFooter(HeaderFooterValues type) {
+        public WordFooter? GetFooter(HeaderFooterValues type) {
             if (type == HeaderFooterValues.First) return this.Footer.First;
             if (type == HeaderFooterValues.Even) return this.Footer.Even;
             return this.Footer.Default;
@@ -29,13 +29,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Returns the default section footer.
         /// </summary>
-        public WordFooter GetFooter() => GetFooter(HeaderFooterValues.Default);
+        public WordFooter? GetFooter() => GetFooter(HeaderFooterValues.Default);
 
         /// <summary>
         /// Adds a paragraph to the section header of the requested type.
         /// </summary>
         public WordParagraph AddHeaderParagraph(string text, HeaderFooterValues type, bool removeExistingParagraphs = false) {
-            var header = GetHeader(type);
+            var header = GetHeader(type) ?? throw new InvalidOperationException("Header not available for this section.");
             if (removeExistingParagraphs) {
                 // Clear existing header paragraphs
                 foreach (var p in header.Paragraphs.ToList()) p.Remove();
@@ -54,7 +54,7 @@ namespace OfficeIMO.Word {
         /// Adds a paragraph to the section footer of the requested type.
         /// </summary>
         public WordParagraph AddFooterParagraph(string text, HeaderFooterValues type, bool removeExistingParagraphs = false) {
-            var footer = GetFooter(type);
+            var footer = GetFooter(type) ?? throw new InvalidOperationException("Footer not available for this section.");
             if (removeExistingParagraphs) {
                 foreach (var p in footer.Paragraphs.ToList()) p.Remove();
             }

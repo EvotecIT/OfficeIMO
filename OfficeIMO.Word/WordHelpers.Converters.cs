@@ -16,7 +16,7 @@ namespace OfficeIMO.Word {
             using (WordprocessingDocument doc = WordprocessingDocument.Open(filename, true)) {
                 WordHeader.RemoveHeaders(doc, types);
                 WordFooter.RemoveFooters(doc, types);
-                doc.MainDocumentPart.Document.Save();
+                doc.MainDocumentPart?.Document?.Save();
             }
         }
     }

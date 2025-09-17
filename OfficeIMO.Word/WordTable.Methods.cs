@@ -106,7 +106,7 @@ namespace OfficeIMO.Word {
             }
 
             // Update the TableGrid for consistency
-            TableGrid tableGrid = _table.GetFirstChild<TableGrid>();
+            TableGrid? tableGrid = _table.GetFirstChild<TableGrid>();
             if (tableGrid != null) {
                 tableGrid.RemoveAllChildren<GridColumn>();
                 foreach (int width in newColumnWidths) {

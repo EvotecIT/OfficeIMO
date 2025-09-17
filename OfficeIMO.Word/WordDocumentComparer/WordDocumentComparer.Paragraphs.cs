@@ -48,7 +48,7 @@ namespace OfficeIMO.Word {
                     result.AddInsertedText(inserted, "Comparer");
                 }
 
-                Run resRun = result._paragraph.Elements<Run>().LastOrDefault();
+                Run? resRun = result._paragraph.Elements<Run>().LastOrDefault();
                 ApplyFormattingChange(srcRuns[i], tgtRuns[i], resRun);
             }
 
@@ -61,7 +61,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void ApplyFormattingChange(Run srcRun, Run tgtRun, Run resRun) {
+        private static void ApplyFormattingChange(Run srcRun, Run tgtRun, Run? resRun) {
             if (srcRun == null || tgtRun == null || resRun == null) {
                 return;
             }
@@ -70,12 +70,17 @@ namespace OfficeIMO.Word {
             string tgtXml = tgtRun.RunProperties?.OuterXml ?? string.Empty;
 
             if (srcXml != tgtXml) {
-                resRun.RunProperties = (RunProperties)tgtRun.RunProperties?.CloneNode(true) ?? new RunProperties();
+                resRun.RunProperties = tgtRun.RunProperties != null
+                    ? (RunProperties)tgtRun.RunProperties.CloneNode(true)
+                    : new RunProperties();
                 resRun.RunProperties.RunPropertiesChange = new RunPropertiesChange() {
                     Author = "Comparer",
                     Date = DateTime.Now
                 };
-                resRun.RunProperties.RunPropertiesChange.Append((RunProperties)srcRun.RunProperties?.CloneNode(true) ?? new RunProperties());
+                var originalProps = srcRun.RunProperties != null
+                    ? (RunProperties)srcRun.RunProperties.CloneNode(true)
+                    : new RunProperties();
+                resRun.RunProperties.RunPropertiesChange.Append(originalProps);
             }
         }
 

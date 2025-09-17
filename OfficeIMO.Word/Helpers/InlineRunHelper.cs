@@ -31,14 +31,14 @@ public static class InlineRunHelper {
                         var textPart = value.Substring(lastIndex, urlMatch.Index - lastIndex);
                         var textRun = paragraph.AddFormattedText(textPart);
                         if (!string.IsNullOrEmpty(fontFamily)) {
-                            textRun.SetFontFamily(fontFamily);
+                            textRun.SetFontFamily(fontFamily!);
                         }
                     }
 
                     string url = urlMatch.Value;
                     var linkRun = paragraph.AddHyperLink(url, new Uri(url));
                     if (!string.IsNullOrEmpty(fontFamily)) {
-                        linkRun.SetFontFamily(fontFamily);
+                        linkRun.SetFontFamily(fontFamily!);
                     }
 
                     lastIndex = urlMatch.Index + urlMatch.Length;
@@ -47,13 +47,13 @@ public static class InlineRunHelper {
                 if (lastIndex < value.Length) {
                     var tailRun = paragraph.AddFormattedText(value.Substring(lastIndex));
                     if (!string.IsNullOrEmpty(fontFamily)) {
-                        tailRun.SetFontFamily(fontFamily);
+                        tailRun.SetFontFamily(fontFamily!);
                     }
                 }
             } else {
                 var run = paragraph.AddFormattedText(value, bold, italic);
                 if (!string.IsNullOrEmpty(fontFamily)) {
-                    run.SetFontFamily(fontFamily);
+                    run.SetFontFamily(fontFamily!);
                 }
             }
         }

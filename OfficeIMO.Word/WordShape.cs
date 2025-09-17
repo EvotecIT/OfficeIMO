@@ -611,14 +611,16 @@ namespace OfficeIMO.Word {
             }
             set {
                 string? v = value;
-                if (!string.IsNullOrEmpty(v) && !v.StartsWith("#", StringComparison.Ordinal)) v = "#" + v;
+                if (v is { Length: > 0 } s0) {
+                    if (!s0.StartsWith("#", StringComparison.Ordinal)) v = "#" + s0;
+                }
                 if (_rectangle != null) _rectangle.StrokeColor = v;
                 if (_roundRectangle != null) _roundRectangle.StrokeColor = v;
                 if (_ellipse != null) _ellipse.StrokeColor = v;
                 if (_polygon != null) _polygon.StrokeColor = v;
                 if (_line != null) _line.StrokeColor = v;
                 if (_shape != null) _shape.StrokeColor = v;
-                if (_wpsShape != null && !string.IsNullOrEmpty(v)) {
+                if (_wpsShape != null && v is { Length: > 0 } s1) {
                     var spPr = _wpsShape.GetFirstChild<Wps.ShapeProperties>();
                     if (spPr != null) {
                         var outline = spPr.GetFirstChild<A.Outline>();
@@ -638,7 +640,7 @@ namespace OfficeIMO.Word {
                             solid.RemoveAllChildren();
                             solid.Append(rgb);
                         }
-                        rgb.Val = v!.TrimStart('#');
+                        rgb.Val = s1.TrimStart('#');
                     }
                 }
             }
@@ -650,9 +652,9 @@ namespace OfficeIMO.Word {
         public SixLabors.ImageSharp.Color StrokeColor {
             get {
                 var hex = StrokeColorHex;
-                if (string.IsNullOrEmpty(hex)) return SixLabors.ImageSharp.Color.Transparent;
-                if (!hex.StartsWith("#", StringComparison.Ordinal)) hex = "#" + hex;
-                return SixLabors.ImageSharp.Color.Parse(hex);
+                if (hex is not { Length: > 0 } s) return SixLabors.ImageSharp.Color.Transparent;
+                if (!s.StartsWith("#", StringComparison.Ordinal)) s = "#" + s;
+                return SixLabors.ImageSharp.Color.Parse(s);
             }
             set => StrokeColorHex = value.ToHexColor();
         }
@@ -669,8 +671,8 @@ namespace OfficeIMO.Word {
                 if (_polygon != null) v ??= _polygon.StrokeWeight?.Value;
                 if (_line != null) v ??= _line.StrokeWeight?.Value;
                 if (_shape != null) v ??= _shape.StrokeWeight?.Value;
-                if (string.IsNullOrEmpty(v)) return null;
-                return double.Parse(v.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
+                if (v is not { Length: > 0 } s) return null;
+                return double.Parse(s.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
             }
             set {
                 string? v = value != null ? $"{value.Value.ToString(CultureInfo.InvariantCulture)}pt" : null;
@@ -755,8 +757,8 @@ namespace OfficeIMO.Word {
 
         private string? GetStyleValue(string name) {
             var style = GetStyle();
-            if (string.IsNullOrEmpty(style)) return null;
-            foreach (var part in style.Split(';')) {
+            if (style is not { Length: > 0 } s) return null;
+            foreach (var part in s.Split(';')) {
                 var kv = part.Split(':');
                 if (kv.Length == 2 && kv[0] == name) return kv[1];
             }
@@ -800,8 +802,8 @@ namespace OfficeIMO.Word {
 
         private void RemoveStyleValue(string name) {
             var style = GetStyle();
-            if (string.IsNullOrEmpty(style)) return;
-            var parts = style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            if (style is not { Length: > 0 } s) return;
+            var parts = s.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).ToList();
             parts.RemoveAll(p => p.Split(':').FirstOrDefault() == name);
             SetStyle(string.Join(";", parts));
         }
@@ -812,7 +814,7 @@ namespace OfficeIMO.Word {
         public double Width {
             get {
                 var v = GetStyleValue("width");
-                if (!string.IsNullOrEmpty(v)) return double.Parse(v.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
+                if (v is { Length: > 0 } s) return double.Parse(s.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
                 return 0;
             }
             set => SetStyleValue("width", $"{value.ToString(CultureInfo.InvariantCulture)}pt");
@@ -824,7 +826,7 @@ namespace OfficeIMO.Word {
         public double Height {
             get {
                 var v = GetStyleValue("height");
-                if (!string.IsNullOrEmpty(v)) return double.Parse(v.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
+                if (v is { Length: > 0 } s) return double.Parse(s.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
                 return 0;
             }
             set => SetStyleValue("height", $"{value.ToString(CultureInfo.InvariantCulture)}pt");
@@ -836,8 +838,8 @@ namespace OfficeIMO.Word {
         public double? Left {
             get {
                 var v = GetStyleValue("margin-left");
-                if (string.IsNullOrEmpty(v)) return null;
-                return double.Parse(v.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
+                if (v is not { Length: > 0 } s) return null;
+                return double.Parse(s.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
             }
             set {
                 if (value == null) {
@@ -855,8 +857,8 @@ namespace OfficeIMO.Word {
         public double? Top {
             get {
                 var v = GetStyleValue("margin-top");
-                if (string.IsNullOrEmpty(v)) return null;
-                return double.Parse(v.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
+                if (v is not { Length: > 0 } s) return null;
+                return double.Parse(s.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
             }
             set {
                 if (value == null) {
