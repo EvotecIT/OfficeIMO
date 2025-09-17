@@ -1,3 +1,5 @@
+using System;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -17,7 +19,8 @@ namespace OfficeIMO.Examples.Word {
                 document.AddHeadersAndFooters();
 
                 var imagePathToAdd = System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg");
-                var watermark = document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Image, imagePathToAdd);
+                var watermark = Guard.NotNull(document.Sections[0].Header?.Default, "Section 0 should expose a default header after adding headers and footers.")
+                    .AddWatermark(WordWatermarkStyle.Image, imagePathToAdd);
 
                 //Console.WriteLine(watermark.Height);
                 //Console.WriteLine(watermark.Width);

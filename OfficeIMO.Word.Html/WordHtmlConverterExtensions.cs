@@ -1,3 +1,4 @@
+using System;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
@@ -182,11 +183,16 @@ namespace OfficeIMO.Word.Html {
 
             // Prefer section-scoped headers to avoid multi-section warnings
             var targetSection = doc.Sections.Last();
-            var headers = targetSection.Header;
-            WordHeader header;
-            if (type == HeaderFooterValues.First) header = headers.First;
-            else if (type == HeaderFooterValues.Even) header = headers.Even;
-            else header = headers.Default;
+            var headers = targetSection.Header ?? throw new InvalidOperationException("Headers should exist after calling AddHeadersAndFooters.");
+            WordHeader? selectedHeader;
+            if (type == HeaderFooterValues.First) {
+                selectedHeader = headers.First;
+            } else if (type == HeaderFooterValues.Even) {
+                selectedHeader = headers.Even;
+            } else {
+                selectedHeader = headers.Default;
+            }
+            var header = selectedHeader ?? throw new InvalidOperationException($"The {type} header is not available after adding headers and footers.");
 
             var converter = new HtmlToWordConverter();
             await converter.AddHtmlToHeaderAsync(doc, header, html, options, cancellationToken).ConfigureAwait(false);
@@ -223,11 +229,16 @@ namespace OfficeIMO.Word.Html {
 
             // Prefer section-scoped footers to avoid multi-section warnings
             var targetSection = doc.Sections.Last();
-            var footers = targetSection.Footer;
-            WordFooter footer;
-            if (type == HeaderFooterValues.First) footer = footers.First;
-            else if (type == HeaderFooterValues.Even) footer = footers.Even;
-            else footer = footers.Default;
+            var footers = targetSection.Footer ?? throw new InvalidOperationException("Footers should exist after calling AddHeadersAndFooters.");
+            WordFooter? selectedFooter;
+            if (type == HeaderFooterValues.First) {
+                selectedFooter = footers.First;
+            } else if (type == HeaderFooterValues.Even) {
+                selectedFooter = footers.Even;
+            } else {
+                selectedFooter = footers.Default;
+            }
+            var footer = selectedFooter ?? throw new InvalidOperationException($"The {type} footer is not available after adding headers and footers.");
 
             var converter = new HtmlToWordConverter();
             await converter.AddHtmlToFooterAsync(doc, footer, html, options, cancellationToken).ConfigureAwait(false);

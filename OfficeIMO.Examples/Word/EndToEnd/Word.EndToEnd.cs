@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Markdown;
@@ -18,8 +19,10 @@ namespace OfficeIMO.Examples.Word.EndToEnd {
             using (var doc = WordDocument.Create()) {
                 // Headers/Footers + page numbering
                 doc.AddHeadersAndFooters();
-                doc.Header!.Default.AddParagraph("End-to-End Demo");
-                doc.Footer!.Default.AddParagraph().AddPageNumber(includeTotalPages: true);
+                var defaultHeader = Guard.NotNull(doc.Header?.Default, "Default header should exist after calling AddHeadersAndFooters.");
+                defaultHeader.AddParagraph("End-to-End Demo");
+                var defaultFooter = Guard.NotNull(doc.Footer?.Default, "Default footer should exist after calling AddHeadersAndFooters.");
+                defaultFooter.AddParagraph().AddPageNumber(includeTotalPages: true);
 
                 // TOC at top (updates on open)
                 new WordFluentDocument(doc).TocAtTop("Contents", minLevel: 1, maxLevel: 3, titleLevel: 2);

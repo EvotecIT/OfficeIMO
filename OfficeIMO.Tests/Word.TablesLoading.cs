@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
                 // We check for style definition part.
                 StyleDefinitionsPart? styleDefinitionsPart = document._document?.MainDocumentPart?.GetPartsOfType<StyleDefinitionsPart>().FirstOrDefault();
                 // It should exists
-                Assert.True(styleDefinitionsPart != null);
+                Assert.NotNull(styleDefinitionsPart);
 
                 // we now check if all table styles are available for use
                 List<Style> listTableStyles = new List<Style>();

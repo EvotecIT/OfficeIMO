@@ -1,5 +1,6 @@
 using System;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -24,29 +25,31 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Images count: " + document.Images.Count);
 
-                document.Header!.Default.AddParagraph().AddImage(filePathImage, 734, 92);
-                document.Header!.Default.Paragraphs[0].SetFontFamily("Arial");
-                document.Header!.Default.Paragraphs[0].SetFontSize(7).Bold = false;
+                var defaultHeader = Guard.NotNull(document.Header?.Default, "Default header should exist after calling AddHeadersAndFooters.");
+                defaultHeader.AddParagraph().AddImage(filePathImage, 734, 92);
+                defaultHeader.Paragraphs[0].SetFontFamily("Arial");
+                defaultHeader.Paragraphs[0].SetFontSize(7).Bold = false;
 
                 Console.WriteLine("Images Count: " + document.Images.Count);
-                Console.WriteLine("Images in Header Count: " + document.Header!.Default.Images.Count);
+                Console.WriteLine("Images in Header Count: " + defaultHeader.Images.Count);
 
-                document.Footer!.Default.AddParagraph();
-                document.Footer!.Default.Paragraphs[0].SetFontFamily("Arial");
-                document.Footer!.Default.Paragraphs[0].SetFontSize(7).Bold = false;
-                document.Footer!.Default.Paragraphs[0].ParagraphAlignment = JustificationValues.Right;
-                document.Footer!.Default.Paragraphs[0].Text = "SMA.5.doc 04/10/19";
-                document.Footer!.Default.Paragraphs[0].LineSpacingAfter = 0;
-                document.Footer!.Default.Paragraphs[0].LineSpacingBefore = 0;
-                document.Footer!.Default.AddPageNumber(WordPageNumberStyle.PageNumberXofY);
+                var defaultFooter = Guard.NotNull(document.Footer?.Default, "Default footer should exist after calling AddHeadersAndFooters.");
+                defaultFooter.AddParagraph();
+                defaultFooter.Paragraphs[0].SetFontFamily("Arial");
+                defaultFooter.Paragraphs[0].SetFontSize(7).Bold = false;
+                defaultFooter.Paragraphs[0].ParagraphAlignment = JustificationValues.Right;
+                defaultFooter.Paragraphs[0].Text = "SMA.5.doc 04/10/19";
+                defaultFooter.Paragraphs[0].LineSpacingAfter = 0;
+                defaultFooter.Paragraphs[0].LineSpacingBefore = 0;
+                defaultFooter.AddPageNumber(WordPageNumberStyle.PageNumberXofY);
 
-                document.Footer!.Default.AddParagraph();
-                document.Footer!.Default.Paragraphs[1].SetFontFamily("Arial");
-                document.Footer!.Default.Paragraphs[1].SetFontSize(7).Bold = false;
-                document.Footer!.Default.Paragraphs[1].ParagraphAlignment = JustificationValues.Center;
-                document.Footer!.Default.Paragraphs[1].Text = "My address";
-                document.Footer!.Default.Paragraphs[1].LineSpacingAfter = 0;
-                document.Footer!.Default.Paragraphs[1].LineSpacingBefore = 0;
+                defaultFooter.AddParagraph();
+                defaultFooter.Paragraphs[1].SetFontFamily("Arial");
+                defaultFooter.Paragraphs[1].SetFontSize(7).Bold = false;
+                defaultFooter.Paragraphs[1].ParagraphAlignment = JustificationValues.Center;
+                defaultFooter.Paragraphs[1].Text = "My address";
+                defaultFooter.Paragraphs[1].LineSpacingAfter = 0;
+                defaultFooter.Paragraphs[1].LineSpacingBefore = 0;
 
                 var par00 = document.AddParagraph("My text");
                 par00.ParagraphAlignment = JustificationValues.Left;

@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -13,7 +14,9 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddHeadersAndFooters();
 
-                var textBox = document.Header!.Default.AddTextBox("My textbox on the left");
+                var headers = Guard.NotNull(document.Header, "Headers should exist after calling AddHeadersAndFooters.");
+                var defaultHeader = Guard.NotNull(headers.Default, "Default header should exist after calling AddHeadersAndFooters.");
+                var textBox = defaultHeader.AddTextBox("My textbox on the left");
 
                 textBox.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
                 // horizontal alignment overwrites the horizontal position offset so only one will work

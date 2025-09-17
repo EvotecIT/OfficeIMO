@@ -1,5 +1,6 @@
 using System;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -26,10 +27,12 @@ namespace OfficeIMO.Examples.Word {
                 //var paragraphInFooter = document.Footer!.Default.InsertParagraph();
                 //paragraphInFooter.Text = "This is a test on odd pages (aka default if no options are set)";
 
-                var paragraphInHeader = document.Header!.Default.AddParagraph();
+                var defaultHeader = Guard.NotNull(document.Header?.Default, "Default header should exist after calling AddHeadersAndFooters.");
+                var paragraphInHeader = defaultHeader.AddParagraph();
                 paragraphInHeader.Text = "Default Header / Section 0";
 
-                paragraphInHeader = document.Header!.First.AddParagraph();
+                var firstHeader = Guard.NotNull(document.Header?.First, "First header should exist after enabling different first page.");
+                paragraphInHeader = firstHeader.AddParagraph();
                 paragraphInHeader.Text = "First Header / Section 0";
 
                 //var paragraphInFooterFirst = document.Footer!.First.InsertParagraph();
@@ -87,14 +90,17 @@ namespace OfficeIMO.Examples.Word {
                 //var paragraghInHeaderSection = section2.Header!.First.InsertParagraph();
                 //paragraghInHeaderSection.Text = "Ok, work please?";
 
-                var paragraghInHeaderSection1 = section2.Header!.Default.AddParagraph();
+                var section2DefaultHeader = Guard.NotNull(section2.Header?.Default, "Section 2 should expose a default header after adding headers and footers.");
+                var paragraghInHeaderSection1 = section2DefaultHeader.AddParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit? 1";
 
-                paragraghInHeaderSection1 = section2.Header!.First.AddParagraph();
+                var section2FirstHeader = Guard.NotNull(section2.Header?.First, "Section 2 should expose a first header after enabling different first page.");
+                paragraghInHeaderSection1 = section2FirstHeader.AddParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit 2?";
                 // paragraghInHeaderSection1.InsertText("ok?");
 
-                paragraghInHeaderSection1 = section2.Header!.Even.AddParagraph();
+                var section2EvenHeader = Guard.NotNull(section2.Header?.Even, "Section 2 should expose an even header after enabling different odd and even pages.");
+                paragraghInHeaderSection1 = section2EvenHeader.AddParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit? 3";
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 6");

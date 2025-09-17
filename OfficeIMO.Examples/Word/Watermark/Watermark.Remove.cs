@@ -1,4 +1,5 @@
 using System;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -18,9 +19,14 @@ namespace OfficeIMO.Examples.Word {
                 document.DifferentFirstPage = true;
                 document.DifferentOddAndEvenPages = true;
 
-                document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Default");
-                document.Sections[0].Header!.First.AddWatermark(WordWatermarkStyle.Text, "First");
-                document.Sections[0].Header!.Even.AddWatermark(WordWatermarkStyle.Text, "Even");
+                var firstSection = document.Sections[0];
+                var headers = Guard.NotNull(firstSection.Header, "Headers should exist after calling AddHeadersAndFooters.");
+                var defaultHeader = Guard.NotNull(headers.Default, "Default header should exist after calling AddHeadersAndFooters.");
+                defaultHeader.AddWatermark(WordWatermarkStyle.Text, "Default");
+                var firstHeader = Guard.NotNull(headers.First, "First header should exist after enabling different first page.");
+                firstHeader.AddWatermark(WordWatermarkStyle.Text, "First");
+                var evenHeader = Guard.NotNull(headers.Even, "Even header should exist after enabling different odd and even pages.");
+                evenHeader.AddWatermark(WordWatermarkStyle.Text, "Even");
 
                 Console.WriteLine("Watermarks before: " + document.Watermarks.Count);
                 foreach (var watermark in document.Watermarks.ToList()) {

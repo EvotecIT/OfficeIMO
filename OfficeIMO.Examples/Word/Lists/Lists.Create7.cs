@@ -1,4 +1,5 @@
 using System;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -130,20 +131,22 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddHeadersAndFooters();
 
-                var listInHeader = document.Header!.Default.AddList(WordListStyle.Bulleted);
+                var defaultHeader = Guard.NotNull(document.Header?.Default, "Default header should exist after calling AddHeadersAndFooters.");
+                var listInHeader = defaultHeader.AddList(WordListStyle.Bulleted);
 
                 listInHeader.AddItem("Test Header 1");
 
-                document.Footer!.Default.AddParagraph("Test Me Header");
+                var defaultFooter = Guard.NotNull(document.Footer?.Default, "Default footer should exist after calling AddHeadersAndFooters.");
+                defaultFooter.AddParagraph("Test Me Header");
 
                 listInHeader.AddItem("Test Header 2");
 
 
-                var listInFooter = document.Footer!.Default.AddList(WordListStyle.Numbered);
+                var listInFooter = defaultFooter.AddList(WordListStyle.Numbered);
 
                 listInFooter.AddItem("Test Footer 1");
 
-                document.Footer!.Default.AddParagraph("Test Me Footer");
+                defaultFooter.AddParagraph("Test Me Footer");
 
                 listInFooter.AddItem("Test Footer 2");
 

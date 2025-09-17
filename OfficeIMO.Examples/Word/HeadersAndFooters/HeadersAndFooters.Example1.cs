@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using SixLabors.ImageSharp;
 
@@ -16,37 +17,53 @@ namespace OfficeIMO.Examples.Word {
                 document.DifferentOddAndEvenPages = true;
                 document.DifferentFirstPage = true;
 
-                document.Header!.Default.AddParagraph().SetColor(Color.Red).SetText("Test Header");
+                var defaultHeader = Guard.NotNull(document.Header?.Default, "Default header should exist after calling AddHeadersAndFooters.");
+                defaultHeader.AddParagraph().SetColor(Color.Red).SetText("Test Header");
 
-                document.Footer!.Default.AddParagraph().SetColor(Color.Blue).SetText("Test Footer");
+                var defaultFooter = Guard.NotNull(document.Footer?.Default, "Default footer should exist after calling AddHeadersAndFooters.");
+                defaultFooter.AddParagraph().SetColor(Color.Blue).SetText("Test Footer");
 
-                Console.WriteLine("Header Default Count: " + document.Header!.Default.Paragraphs.Count);
-                Console.WriteLine("Header Even Count: " + document.Header!.Even.Paragraphs.Count);
-                Console.WriteLine("Header First Count: " + document.Header!.First.Paragraphs.Count);
+                var evenHeader = Guard.NotNull(document.Header?.Even, "Even header should exist after enabling different odd and even pages.");
+                var firstHeader = Guard.NotNull(document.Header?.First, "First header should exist after enabling different first page.");
 
-                Console.WriteLine("Header text: " + document.Header!.Default.Paragraphs[0].Text);
+                var evenFooter = Guard.NotNull(document.Footer?.Even, "Even footer should exist after enabling different odd and even pages.");
+                var firstFooter = Guard.NotNull(document.Footer?.First, "First footer should exist after enabling different first page.");
 
-                Console.WriteLine("Footer Default Count: " + document.Footer!.Default.Paragraphs.Count);
-                Console.WriteLine("Footer Even Count: " + document.Footer!.Even.Paragraphs.Count);
-                Console.WriteLine("Footer First Count: " + document.Footer!.First.Paragraphs.Count);
+                Console.WriteLine("Header Default Count: " + defaultHeader.Paragraphs.Count);
+                Console.WriteLine("Header Even Count: " + evenHeader.Paragraphs.Count);
+                Console.WriteLine("Header First Count: " + firstHeader.Paragraphs.Count);
 
-                Console.WriteLine("Footer text: " + document.Footer!.Default.Paragraphs[0].Text);
+                Console.WriteLine("Header text: " + defaultHeader.Paragraphs[0].Text);
+
+                Console.WriteLine("Footer Default Count: " + defaultFooter.Paragraphs.Count);
+                Console.WriteLine("Footer Even Count: " + evenFooter.Paragraphs.Count);
+                Console.WriteLine("Footer First Count: " + firstFooter.Paragraphs.Count);
+
+                Console.WriteLine("Footer text: " + defaultFooter.Paragraphs[0].Text);
 
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Console.WriteLine("Header Default Count: " + document.Header!.Default.Paragraphs.Count);
-                Console.WriteLine("Header Even Count: " + document.Header!.Even.Paragraphs.Count);
-                Console.WriteLine("Header First Count: " + document.Header!.First.Paragraphs.Count);
+                var loadDefaultHeader = Guard.NotNull(document.Header?.Default, "Default header should exist when reloading the document.");
+                var loadEvenHeader = Guard.NotNull(document.Header?.Even, "Even header should exist when reloading the document.");
+                var loadFirstHeader = Guard.NotNull(document.Header?.First, "First header should exist when reloading the document.");
 
-                Console.WriteLine("Header text: " + document.Header!.Default.Paragraphs[0].Text);
+                Console.WriteLine("Header Default Count: " + loadDefaultHeader.Paragraphs.Count);
+                Console.WriteLine("Header Even Count: " + loadEvenHeader.Paragraphs.Count);
+                Console.WriteLine("Header First Count: " + loadFirstHeader.Paragraphs.Count);
 
-                Console.WriteLine("Footer Default Count: " + document.Footer!.Default.Paragraphs.Count);
-                Console.WriteLine("Footer Even Count: " + document.Footer!.Even.Paragraphs.Count);
-                Console.WriteLine("Footer First Count: " + document.Footer!.First.Paragraphs.Count);
+                Console.WriteLine("Header text: " + loadDefaultHeader.Paragraphs[0].Text);
 
-                Console.WriteLine("Footer text: " + document.Footer!.Default.Paragraphs[0].Text);
+                var loadDefaultFooter = Guard.NotNull(document.Footer?.Default, "Default footer should exist when reloading the document.");
+                var loadEvenFooter = Guard.NotNull(document.Footer?.Even, "Even footer should exist when reloading the document.");
+                var loadFirstFooter = Guard.NotNull(document.Footer?.First, "First footer should exist when reloading the document.");
+
+                Console.WriteLine("Footer Default Count: " + loadDefaultFooter.Paragraphs.Count);
+                Console.WriteLine("Footer Even Count: " + loadEvenFooter.Paragraphs.Count);
+                Console.WriteLine("Footer First Count: " + loadFirstFooter.Paragraphs.Count);
+
+                Console.WriteLine("Footer text: " + loadDefaultFooter.Paragraphs[0].Text);
 
                 document.Save(openWord);
             }

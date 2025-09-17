@@ -133,26 +133,30 @@ namespace OfficeIMO.Tests {
                 document.Header!.Default.AddParagraph().SetText("Test Section 0 - Header");
                 document.Footer!.Default.AddParagraph().SetText("Test Section 0 - Footer");
 
-                Assert.True(document.Header!.First == null);
-                Assert.True(document.Footer!.First == null);
+                Assert.Null(document.Header!.First);
+                Assert.Null(document.Footer!.First);
 
                 document.DifferentFirstPage = true;
 
-                Assert.True(document.Header!.First != null);
-                Assert.True(document.Footer!.First != null);
-                document.Header!.First.AddParagraph().SetText("Test Section 0 - First Header");
-                document.Footer!.First.AddParagraph().SetText("Test Section 0 - First Footer");
+                var firstHeader = document.Header!.First;
+                var firstFooter = document.Footer!.First;
+                Assert.NotNull(firstHeader);
+                Assert.NotNull(firstFooter);
+                firstHeader!.AddParagraph().SetText("Test Section 0 - First Header");
+                firstFooter!.AddParagraph().SetText("Test Section 0 - First Footer");
 
-                Assert.True(document.Header!.Even == null);
-                Assert.True(document.Footer!.Even == null);
+                Assert.Null(document.Header!.Even);
+                Assert.Null(document.Footer!.Even);
 
                 document.DifferentOddAndEvenPages = true;
 
-                Assert.True(document.Header!.Even != null);
-                Assert.True(document.Footer!.Even != null);
+                var evenHeader = document.Header!.Even;
+                var evenFooter = document.Footer!.Even;
+                Assert.NotNull(evenHeader);
+                Assert.NotNull(evenFooter);
 
-                document.Header!.Even.AddParagraph().SetText("Test Section 0 - Header Even");
-                document.Footer!.Even.AddParagraph().SetText("Test Section 0 - Footer Even");
+                evenHeader!.AddParagraph().SetText("Test Section 0 - Header Even");
+                evenFooter!.AddParagraph().SetText("Test Section 0 - Footer Even");
 
                 Assert.True(document.Header!.Default.Paragraphs[0].Text == "Test Section 0 - Header");
                 Assert.True(document.Footer!.Default.Paragraphs[0].Text == "Test Section 0 - Footer");
@@ -228,31 +232,31 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs.Count == 1, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 2, "Number of sections during creation is wrong.");
 
-                Assert.True(document.Sections[1].Header!.Default == null);
-                Assert.True(document.Sections[1].Footer!.Default == null);
-                Assert.True(document.Sections[1].Header!.First == null);
-                Assert.True(document.Sections[1].Footer!.First == null);
-                Assert.True(document.Sections[1].Header!.Even == null);
-                Assert.True(document.Sections[1].Footer!.Even == null);
+                Assert.Null(document.Sections[1].Header!.Default);
+                Assert.Null(document.Sections[1].Footer!.Default);
+                Assert.Null(document.Sections[1].Header!.First);
+                Assert.Null(document.Sections[1].Footer!.First);
+                Assert.Null(document.Sections[1].Header!.Even);
+                Assert.Null(document.Sections[1].Footer!.Even);
 
                 document.AddSection();
                 document.Sections[2].PageOrientation = PageOrientationValues.Landscape;
 
-                Assert.True(document.Sections[2].Header!.Default == null);
-                Assert.True(document.Sections[2].Footer!.Default == null);
-                Assert.True(document.Sections[2].Header!.First == null);
-                Assert.True(document.Sections[2].Footer!.First == null);
-                Assert.True(document.Sections[2].Header!.Even == null);
-                Assert.True(document.Sections[2].Footer!.Even == null);
+                Assert.Null(document.Sections[2].Header!.Default);
+                Assert.Null(document.Sections[2].Footer!.Default);
+                Assert.Null(document.Sections[2].Header!.First);
+                Assert.Null(document.Sections[2].Footer!.First);
+                Assert.Null(document.Sections[2].Header!.Even);
+                Assert.Null(document.Sections[2].Footer!.Even);
 
                 document.Sections[2].AddHeadersAndFooters();
 
-                Assert.True(document.Sections[2].Header!.Default != null);
-                Assert.True(document.Sections[2].Footer!.Default != null);
-                Assert.True(document.Sections[2].Header!.First == null);
-                Assert.True(document.Sections[2].Footer!.First == null);
-                Assert.True(document.Sections[2].Header!.Even == null);
-                Assert.True(document.Sections[2].Footer!.Even == null);
+                Assert.NotNull(document.Sections[2].Header!.Default);
+                Assert.NotNull(document.Sections[2].Footer!.Default);
+                Assert.Null(document.Sections[2].Header!.First);
+                Assert.Null(document.Sections[2].Footer!.First);
+                Assert.Null(document.Sections[2].Header!.Even);
+                Assert.Null(document.Sections[2].Footer!.Even);
 
                 document.Save();
             }
@@ -282,12 +286,12 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs.Count == 1, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 4, "Number of sections during creation is wrong.");
 
-                Assert.True(document.Sections[3].Header!.Default != null);
-                Assert.True(document.Sections[3].Footer!.Default != null);
-                Assert.True(document.Sections[3].Header!.First == null);
-                Assert.True(document.Sections[3].Footer!.First == null);
-                Assert.True(document.Sections[3].Header!.Even == null);
-                Assert.True(document.Sections[3].Footer!.Even == null);
+                Assert.NotNull(document.Sections[3].Header!.Default);
+                Assert.NotNull(document.Sections[3].Footer!.Default);
+                Assert.Null(document.Sections[3].Header!.First);
+                Assert.Null(document.Sections[3].Footer!.First);
+                Assert.Null(document.Sections[3].Header!.Even);
+                Assert.Null(document.Sections[3].Footer!.Even);
 
                 document.Sections[3].DifferentFirstPage = true;
                 document.Sections[3].DifferentOddAndEvenPages = true;
@@ -296,12 +300,12 @@ namespace OfficeIMO.Tests {
                 document.Sections[3].Header!.First.AddParagraph().SetText("Test Section 0 - First Header");
                 document.Sections[3].Header!.Even.AddParagraph().SetText("Test Section 0 - Even");
 
-                Assert.True(document.Sections[3].Header!.Default != null);
-                Assert.True(document.Sections[3].Footer!.Default != null);
-                Assert.True(document.Sections[3].Header!.First != null);
-                Assert.True(document.Sections[3].Footer!.First != null);
-                Assert.True(document.Sections[3].Header!.Even != null);
-                Assert.True(document.Sections[3].Footer!.Even != null);
+                Assert.NotNull(document.Sections[3].Header!.Default);
+                Assert.NotNull(document.Sections[3].Footer!.Default);
+                Assert.NotNull(document.Sections[3].Header!.First);
+                Assert.NotNull(document.Sections[3].Footer!.First);
+                Assert.NotNull(document.Sections[3].Header!.Even);
+                Assert.NotNull(document.Sections[3].Footer!.Even);
 
 
                 Assert.True(document.Sections[2].Header!.Default.Paragraphs[0].Text == "Test Section 0 - Header");

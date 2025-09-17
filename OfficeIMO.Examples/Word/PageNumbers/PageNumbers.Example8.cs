@@ -1,4 +1,5 @@
 using System;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -15,7 +16,8 @@ namespace OfficeIMO.Examples.Word {
                 string filePath = System.IO.Path.Combine(folderPath, $"Document_PageNumbers_{safeFormat}.docx");
                 using (WordDocument document = WordDocument.Create(filePath)) {
                     document.AddHeadersAndFooters();
-                    var pageNumber = document.Footer!.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
+                    var defaultFooter = Guard.NotNull(document.Footer?.Default, "Default footer should exist after calling AddHeadersAndFooters.");
+                    var pageNumber = defaultFooter.AddPageNumber(WordPageNumberStyle.PlainNumber);
                     pageNumber.CustomFormat = format;
                     document.Save(openWord);
                 }

@@ -191,26 +191,30 @@ namespace OfficeIMO.Tests {
                 document.Header!.Default.AddParagraph().SetText("Test Section 0 - Header");
                 document.Footer!.Default.AddParagraph().SetText("Test Section 0 - Footer");
 
-                Assert.True(document.Header!.First == null);
-                Assert.True(document.Footer!.First == null);
+                Assert.Null(document.Header!.First);
+                Assert.Null(document.Footer!.First);
 
                 document.DifferentFirstPage = true;
 
-                Assert.True(document.Header!.First != null);
-                Assert.True(document.Footer!.First != null);
-                document.Header!.First.AddParagraph().SetText("Test Section 0 - First Header");
-                document.Footer!.First.AddParagraph().SetText("Test Section 0 - First Footer");
+                var firstHeader = document.Header!.First;
+                var firstFooter = document.Footer!.First;
+                Assert.NotNull(firstHeader);
+                Assert.NotNull(firstFooter);
+                firstHeader!.AddParagraph().SetText("Test Section 0 - First Header");
+                firstFooter!.AddParagraph().SetText("Test Section 0 - First Footer");
 
-                Assert.True(document.Header!.Even == null);
-                Assert.True(document.Footer!.Even == null);
+                Assert.Null(document.Header!.Even);
+                Assert.Null(document.Footer!.Even);
 
                 document.DifferentOddAndEvenPages = true;
 
-                Assert.True(document.Header!.Even != null);
-                Assert.True(document.Footer!.Even != null);
+                var evenHeader = document.Header!.Even;
+                var evenFooter = document.Footer!.Even;
+                Assert.NotNull(evenHeader);
+                Assert.NotNull(evenFooter);
 
-                document.Header!.Even.AddParagraph().SetText("Test Section 0 - Header Even");
-                document.Footer!.Even.AddParagraph().SetText("Test Section 0 - Footer Even");
+                evenHeader!.AddParagraph().SetText("Test Section 0 - Header Even");
+                evenFooter!.AddParagraph().SetText("Test Section 0 - Footer Even");
 
                 Assert.True(document.Header!.Default.Paragraphs[0].Text == "Test Section 0 - Header");
                 Assert.True(document.Footer!.Default.Paragraphs[0].Text == "Test Section 0 - Footer");
@@ -266,26 +270,30 @@ namespace OfficeIMO.Tests {
                 document.Header!.Default.AddParagraph().SetText("Test Section 0 - Header");
                 document.Footer!.Default.AddParagraph().SetText("Test Section 0 - Footer");
 
-                Assert.True(document.Header!.First == null);
-                Assert.True(document.Footer!.First == null);
+                Assert.Null(document.Header!.First);
+                Assert.Null(document.Footer!.First);
 
                 document.DifferentFirstPage = true;
 
-                Assert.True(document.Header!.First != null);
-                Assert.True(document.Footer!.First != null);
-                document.Header!.First.AddParagraph().SetText("Test Section 0 - First Header");
-                document.Footer!.First.AddParagraph().SetText("Test Section 0 - First Footer");
+                var sectionFirstHeader = document.Header!.First;
+                var sectionFirstFooter = document.Footer!.First;
+                Assert.NotNull(sectionFirstHeader);
+                Assert.NotNull(sectionFirstFooter);
+                sectionFirstHeader!.AddParagraph().SetText("Test Section 0 - First Header");
+                sectionFirstFooter!.AddParagraph().SetText("Test Section 0 - First Footer");
 
-                Assert.True(document.Header!.Even == null);
-                Assert.True(document.Footer!.Even == null);
+                Assert.Null(document.Header!.Even);
+                Assert.Null(document.Footer!.Even);
 
                 document.DifferentOddAndEvenPages = true;
 
-                Assert.True(document.Header!.Even != null);
-                Assert.True(document.Footer!.Even != null);
+                var sectionEvenHeader = document.Header!.Even;
+                var sectionEvenFooter = document.Footer!.Even;
+                Assert.NotNull(sectionEvenHeader);
+                Assert.NotNull(sectionEvenFooter);
 
-                document.Header!.Even.AddParagraph().SetText("Test Section 0 - Header Even");
-                document.Footer!.Even.AddParagraph().SetText("Test Section 0 - Footer Even");
+                sectionEvenHeader!.AddParagraph().SetText("Test Section 0 - Header Even");
+                sectionEvenFooter!.AddParagraph().SetText("Test Section 0 - Footer Even");
 
 
                 var section1 = document.AddSection();

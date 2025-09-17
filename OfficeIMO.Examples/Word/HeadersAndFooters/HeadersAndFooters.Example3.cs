@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -17,7 +18,8 @@ namespace OfficeIMO.Examples.Word {
 
                 document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
 
-                var paragraphInHeader = document.Header!.Default.AddParagraph();
+                var defaultHeader = Guard.NotNull(document.Header?.Default, "Default header should exist after calling AddHeadersAndFooters.");
+                var paragraphInHeader = defaultHeader.AddParagraph();
                 paragraphInHeader.Text = "Default Header / Section 0";
 
                 document.AddPageBreak();
@@ -29,7 +31,8 @@ namespace OfficeIMO.Examples.Word {
                 var section2 = document.AddSection();
                 section2.AddHeadersAndFooters();
 
-                var paragraghInHeaderSection1 = section2.Header!.Default.AddParagraph();
+                var section2DefaultHeader = Guard.NotNull(section2.Header?.Default, "Section 2 should expose a default header after adding headers and footers.");
+                var paragraghInHeaderSection1 = section2DefaultHeader.AddParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit? 1";
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
@@ -39,7 +42,8 @@ namespace OfficeIMO.Examples.Word {
                 var section3 = document.AddSection();
                 section3.AddHeadersAndFooters();
 
-                var paragraghInHeaderSection3 = section3.Header!.Default.AddParagraph();
+                var section3DefaultHeader = Guard.NotNull(section3.Header?.Default, "Section 3 should expose a default header after adding headers and footers.");
+                var paragraghInHeaderSection3 = section3DefaultHeader.AddParagraph();
                 paragraghInHeaderSection3.Text = "Weird shit? 2";
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");

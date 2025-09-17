@@ -21,14 +21,14 @@ namespace OfficeIMO.Examples.Word {
                 document.AddHeadersAndFooters();
                 document.DifferentOddAndEvenPages = true;
 
-                var header = Guard.NotNull(document.Header!.Default, "Default header must exist after enabling headers.");
+                var header = Guard.NotNull(document.Header?.Default, "Default header must exist after enabling headers.");
                 var paragraphHeader = header.AddParagraph("This is header");
 
                 // add image to header, directly to paragraph
                 header.AddParagraph().AddImage(filePathImage, 100, 100);
 
                 // add image to footer, directly to paragraph
-                var footer = Guard.NotNull(document.Footer!.Default, "Default footer must exist after enabling headers.");
+                var footer = Guard.NotNull(document.Footer?.Default, "Default footer must exist after enabling headers.");
                 footer.AddParagraph().AddImage(filePathImage, 100, 100);
 
                 // add image to header, but to a table
@@ -93,7 +93,7 @@ namespace OfficeIMO.Examples.Word {
                 string fileToSave = System.IO.Path.Combine(imagePaths, "OutputPrzemyslawKlysAndKulkozaurr.jpg");
                 firstImage.SaveToFile(fileToSave);
 
-                var headerEven = Guard.NotNull(document.Header!.Even, "Even header must exist after enabling different odd/even pages.");
+                var headerEven = Guard.NotNull(document.Header?.Even, "Even header must exist after enabling different odd/even pages.");
                 var paragraphHeaderEven = headerEven.AddParagraph("This adds another picture via Stream with 100x100 to Header Even");
                 const string fileNameImageEvotec = "EvotecLogo.png";
                 var filePathImageEvotec = System.IO.Path.Combine(imagePaths, fileNameImageEvotec);

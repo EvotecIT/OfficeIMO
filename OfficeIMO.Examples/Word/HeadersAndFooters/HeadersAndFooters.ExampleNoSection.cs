@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -23,10 +24,12 @@ namespace OfficeIMO.Examples.Word {
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
-                var paragraphInHeaderO = document.Header!.Default.AddParagraph();
+                var defaultHeader = Guard.NotNull(document.Header?.Default, "Default header should exist after calling AddHeadersAndFooters.");
+                var paragraphInHeaderO = defaultHeader.AddParagraph();
                 paragraphInHeaderO.Text = "Odd Header / Section 0";
 
-                var paragraphInHeaderE = document.Header!.Even.AddParagraph();
+                var evenHeader = Guard.NotNull(document.Header?.Even, "Even header should exist after enabling different odd and even pages.");
+                var paragraphInHeaderE = evenHeader.AddParagraph();
                 paragraphInHeaderE.Text = "Even Header / Section 0";
 
                 document.AddPageBreak();

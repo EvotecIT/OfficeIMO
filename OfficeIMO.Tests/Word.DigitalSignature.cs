@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void Test_DigitalSignature_MissingPart_ReturnsNull() {
             string tempFile = Path.GetTempFileName();
             using (WordDocument document = WordDocument.Create(tempFile)) {
-                Assert.True(document.ApplicationProperties.DigitalSignature == null);
+                Assert.Null(document.ApplicationProperties.DigitalSignature);
             }
         }
 
@@ -18,11 +18,11 @@ namespace OfficeIMO.Tests {
             string tempFile = Path.GetTempFileName();
             using (WordDocument document = WordDocument.Create(tempFile)) {
                 document.ApplicationProperties.DigitalSignature = new DigitalSignature();
-                Assert.True(document.ApplicationProperties.DigitalSignature != null);
+                Assert.NotNull(document.ApplicationProperties.DigitalSignature);
                 var extendedPart = document._wordprocessingDocument!.ExtendedFilePropertiesPart;
                 Assert.NotNull(extendedPart);
                 document._wordprocessingDocument!.DeletePart(extendedPart);
-                Assert.True(document.ApplicationProperties.DigitalSignature == null);
+                Assert.Null(document.ApplicationProperties.DigitalSignature);
             }
         }
     }

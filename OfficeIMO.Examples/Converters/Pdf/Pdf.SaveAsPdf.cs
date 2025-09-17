@@ -1,3 +1,4 @@
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
 using QuestPDF.Helpers;
@@ -22,11 +23,15 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddHeadersAndFooters();
-                document.Header!.Default.AddParagraph("Example Header");
-                WordTable headerTable = document.Header!.Default.AddTable(1, 1);
+                var headers = Guard.NotNull(document.Header, "Headers should exist after calling AddHeadersAndFooters.");
+                var defaultHeader = Guard.NotNull(headers.Default, "Default header should exist after calling AddHeadersAndFooters.");
+                defaultHeader.AddParagraph("Example Header");
+                WordTable headerTable = defaultHeader.AddTable(1, 1);
                 headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "H1";
-                document.Footer!.Default.AddParagraph("Example Footer");
-                WordTable footerTable = document.Footer!.Default.AddTable(1, 1);
+                var footers = Guard.NotNull(document.Footer, "Footers should exist after calling AddHeadersAndFooters.");
+                var defaultFooter = Guard.NotNull(footers.Default, "Default footer should exist after calling AddHeadersAndFooters.");
+                defaultFooter.AddParagraph("Example Footer");
+                WordTable footerTable = defaultFooter.AddTable(1, 1);
                 footerTable.Rows[0].Cells[0].Paragraphs[0].Text = "F1";
 
                 WordParagraph heading = document.AddParagraph("Sample Heading");

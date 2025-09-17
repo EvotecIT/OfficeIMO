@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_OpeningExcel() {
             using (var document = ExcelDocument.Load(Path.Combine(_directoryDocuments, "BasicExcel.xlsx"))) {
-                Assert.True(document.FilePath != null);
+                Assert.NotNull(document.FilePath);
                 Assert.True(document.Sheets.Count == 4);
 
                 Assert.True(document.Sheets[0].Name == "Sheet1");

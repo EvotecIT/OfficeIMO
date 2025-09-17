@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System;
 using System.Text;
 using System.Threading.Tasks;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -23,56 +25,67 @@ namespace OfficeIMO.Examples.Word {
                 document.AddPageBreak();
 
                 document.AddHeadersAndFooters();
-                document.Sections[0].Header!.Default.AddParagraph().AddText("Section 0").AddBookmark("BookmarkInSection0Header1");
+                var section0 = document.Sections[0];
+                var section0DefaultHeader = Guard.NotNull(section0.Header?.Default, "Section 0 should expose a default header after adding headers and footers.");
+                section0DefaultHeader.AddParagraph().AddText("Section 0").AddBookmark("BookmarkInSection0Header1");
 
-                var tableHeader = document.Sections[0].Header!.Default.AddTable(3, 4);
+                var tableHeader = section0DefaultHeader.AddTable(3, 4);
                 tableHeader.Rows[0].Cells[3].Paragraphs[0].Text = "This is sparta";
-                Console.WriteLine(document.Sections[0].Header!.Default.Tables.Count);
+                Console.WriteLine(section0DefaultHeader.Tables.Count);
 
-                document.Sections[0].Header!.Default.AddHorizontalLine();
+                section0DefaultHeader.AddHorizontalLine();
 
-                document.Sections[0].Header!.Default.AddHyperLink("Link to website!", new Uri("https://evotec.xyz"));
+                section0DefaultHeader.AddHyperLink("Link to website!", new Uri("https://evotec.xyz"));
 
-                document.Sections[0].Header!.Default.AddHyperLink("Przemysław Klys Email Me", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject"));
+                section0DefaultHeader.AddHyperLink("Przemysław Klys Email Me", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject"));
 
-                document.Sections[0].Header!.Default.AddField(WordFieldType.Author, WordFieldFormat.FirstCap);
+                section0DefaultHeader.AddField(WordFieldType.Author, WordFieldFormat.FirstCap);
 
 
-                document.Sections[0].Footer!.Default.AddParagraph().AddText("Section 0").AddBookmark("BookmarkInSection0Header2");
+                var section0DefaultFooter = Guard.NotNull(section0.Footer?.Default, "Section 0 should expose a default footer after adding headers and footers.");
+                section0DefaultFooter.AddParagraph().AddText("Section 0").AddBookmark("BookmarkInSection0Header2");
 
-                var tableFooter = document.Sections[0].Footer!.Default.AddTable(2, 3);
+                var tableFooter = section0DefaultFooter.AddTable(2, 3);
                 tableFooter.Rows[0].Cells[2].Paragraphs[0].Text = "This is not sparta";
 
-                document.Sections[0].Footer!.Default.AddHorizontalLine();
+                section0DefaultFooter.AddHorizontalLine();
 
-                document.Sections[0].Footer!.Default.AddHyperLink("Link to website!", new Uri("https://evotec.xyz"));
+                section0DefaultFooter.AddHyperLink("Link to website!", new Uri("https://evotec.xyz"));
 
-                document.Sections[0].Footer!.Default.AddHyperLink("Przemysław Klys Email Me", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject"));
+                section0DefaultFooter.AddHyperLink("Przemysław Klys Email Me", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject"));
 
-                document.Sections[0].Footer!.Default.AddField(WordFieldType.Author, WordFieldFormat.FirstCap);
+                section0DefaultFooter.AddField(WordFieldType.Author, WordFieldFormat.FirstCap);
 
 
                 var section1 = document.AddSection();
                 section1.AddParagraph("Test Middle1 Section - 1");
                 section1.AddHeadersAndFooters();
-                section1.Header!.Default.AddParagraph().AddText("Section 1 - Header");
-                section1.Footer!.Default.AddParagraph().AddText("Section 1 - Footer");
+                var section1DefaultHeader = Guard.NotNull(section1.Header?.Default, "Section 1 should expose a default header after adding headers and footers.");
+                section1DefaultHeader.AddParagraph().AddText("Section 1 - Header");
+                var section1DefaultFooter = Guard.NotNull(section1.Footer?.Default, "Section 1 should expose a default footer after adding headers and footers.");
+                section1DefaultFooter.AddParagraph().AddText("Section 1 - Footer");
 
                 var section2 = document.AddSection();
                 section2.AddParagraph("Test Middle2 Section - 1");
                 section2.AddHeadersAndFooters();
-                section2.Header!.Default.AddParagraph().AddText("Section 2 - Header");
-                section2.Footer!.Default.AddParagraph().AddText("Section 2 - Footer");
+                var section2DefaultHeader = Guard.NotNull(section2.Header?.Default, "Section 2 should expose a default header after adding headers and footers.");
+                section2DefaultHeader.AddParagraph().AddText("Section 2 - Header");
+                var section2DefaultFooter = Guard.NotNull(section2.Footer?.Default, "Section 2 should expose a default footer after adding headers and footers.");
+                section2DefaultFooter.AddParagraph().AddText("Section 2 - Footer");
 
                 var section3 = document.AddSection();
                 section3.AddParagraph("Test Last Section - 1");
                 section3.AddHeadersAndFooters();
                 section3.DifferentOddAndEvenPages = true;
                 section3.DifferentFirstPage = true;
-                section3.Header!.Default.AddParagraph().AddText("Section 3 - Header Odd/Default");
-                section3.Footer!.Default.AddParagraph().AddText("Section 3 - Footer Odd/Default");
-                section3.Header!.Even.AddParagraph().AddText("Section 3 - Header Even");
-                section3.Footer!.Even.AddParagraph().AddText("Section 3 - Footer Even");
+                var section3DefaultHeader = Guard.NotNull(section3.Header?.Default, "Section 3 should expose a default header after adding headers and footers.");
+                section3DefaultHeader.AddParagraph().AddText("Section 3 - Header Odd/Default");
+                var section3DefaultFooter = Guard.NotNull(section3.Footer?.Default, "Section 3 should expose a default footer after adding headers and footers.");
+                section3DefaultFooter.AddParagraph().AddText("Section 3 - Footer Odd/Default");
+                var section3EvenHeader = Guard.NotNull(section3.Header?.Even, "Section 3 should expose an even header after enabling different odd and even pages.");
+                section3EvenHeader.AddParagraph().AddText("Section 3 - Header Even");
+                var section3EvenFooter = Guard.NotNull(section3.Footer?.Even, "Section 3 should expose an even footer after enabling different odd and even pages.");
+                section3EvenFooter.AddParagraph().AddText("Section 3 - Footer Even");
 
                 document.AddPageBreak();
                 section3.AddParagraph("Test Last Section - 2");

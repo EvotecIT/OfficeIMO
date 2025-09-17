@@ -92,7 +92,9 @@ namespace OfficeIMO.Examples.Word {
                 document.AddHeadersAndFooters();
 
                 // adding text to default header
-                document.Header!.Default.AddParagraph("Text added to header - Default");
+                var headers = Guard.NotNull(document.Header, "Headers should exist after calling AddHeadersAndFooters.");
+                var defaultHeader = Guard.NotNull(headers.Default, "Default header should exist after calling AddHeadersAndFooters.");
+                defaultHeader.AddParagraph("Text added to header - Default");
 
                 var section1 = document.AddSection();
                 section1.PageOrientation = PageOrientationValues.Portrait;
@@ -105,7 +107,9 @@ namespace OfficeIMO.Examples.Word {
                 document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
                 // add page numbers
-                document.Footer!.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
+                var footers = Guard.NotNull(document.Footer, "Footers should exist after calling AddHeadersAndFooters.");
+                var defaultFooter = Guard.NotNull(footers.Default, "Default footer should exist after calling AddHeadersAndFooters.");
+                defaultFooter.AddPageNumber(WordPageNumberStyle.PlainNumber);
 
                 // add watermark
                 document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Draft");

@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs.Count == 0, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Tables.Count == 0, "Tables count matches");
                 Assert.True(document.Lists.Count == 0, "List count matches");
-                Assert.True(document.TableOfContent == null, "TableOfContent Should not be set");
+                Assert.Null(document.TableOfContent);
                 Assert.True(document.Settings.UpdateFieldsOnOpen == false, "UpdateFieldsOnOpen should not be set");
 
                 WordTableOfContent wordTableContent = document.AddTableOfContent(TableOfContentStyle.Template1);
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
                 paragraph.Style = WordParagraphStyles.Heading1;
 
                 Assert.True(document.Settings.UpdateFieldsOnOpen == true, "UpdateFieldsOnOpen should be set");
-                Assert.True(document.TableOfContent != null, "TableOfContent Should be set");
+                Assert.NotNull(document.TableOfContent);
                 Assert.True(document.Tables.Count == 0, "Tables count matches");
                 Assert.True(document.Lists.Count == 0, "List count matches");
                 Assert.True(document.PageBreaks.Count == 1, "PageBreak count should be 1");
@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTOC.docx"))) {
                 Assert.True(document.Settings.UpdateFieldsOnOpen == true, "UpdateFieldsOnOpen should be set");
-                Assert.True(document.TableOfContent != null, "TableOfContent Should be set");
+                Assert.NotNull(document.TableOfContent);
                 Assert.True(document.Tables.Count == 0, "Tables count matches");
                 Assert.True(document.Lists.Count == 0, "List count matches");
                 Assert.True(document.PageBreaks.Count == 1, "PageBreak count should be 1");
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTOC.docx"))) {
                 Assert.True(document.Settings.UpdateFieldsOnOpen == false, "UpdateFieldsOnOpen should not be set");
-                Assert.True(document.TableOfContent != null, "TableOfContent Should be set");
+                Assert.NotNull(document.TableOfContent);
                 Assert.True(document.Tables.Count == 0, "Tables count matches");
                 Assert.True(document.Lists.Count == 0, "List count matches");
                 Assert.True(document.PageBreaks.Count == 1, "PageBreak count should be 1");

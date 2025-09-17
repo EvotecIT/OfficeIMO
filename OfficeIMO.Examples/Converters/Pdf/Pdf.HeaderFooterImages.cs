@@ -1,3 +1,4 @@
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
 using System;
@@ -13,8 +14,12 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddHeadersAndFooters();
-                document.Header!.Default.AddParagraph().AddImage(imagePath, 50, 50);
-                document.Footer!.Default.AddParagraph().AddImage(imagePath, 300, 300);
+                var headers = Guard.NotNull(document.Header, "Headers should exist after calling AddHeadersAndFooters.");
+                var defaultHeader = Guard.NotNull(headers.Default, "Default header should exist after calling AddHeadersAndFooters.");
+                defaultHeader.AddParagraph().AddImage(imagePath, 50, 50);
+                var footers = Guard.NotNull(document.Footer, "Footers should exist after calling AddHeadersAndFooters.");
+                var defaultFooter = Guard.NotNull(footers.Default, "Default footer should exist after calling AddHeadersAndFooters.");
+                defaultFooter.AddParagraph().AddImage(imagePath, 300, 300);
                 document.Save();
                 document.SaveAsPdf(pdfPath);
             }

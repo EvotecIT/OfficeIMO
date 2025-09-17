@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
 
@@ -17,7 +18,8 @@ namespace OfficeIMO.Examples.Word {
                 document.Settings.UpdateFieldsOnOpen = true;
                 document.AddTableOfContent(tableOfContentStyle: TableOfContentStyle.Template2);
                 document.AddHeadersAndFooters();
-                var pageNumber = document.Header!.Default.AddPageNumber(WordPageNumberStyle.Dots);
+                var defaultHeader = Guard.NotNull(document.Header?.Default, "Default header should exist after calling AddHeadersAndFooters.");
+                var pageNumber = defaultHeader.AddPageNumber(WordPageNumberStyle.Dots);
                 //var pageNumber = document.Footer!.Default.AddPageNumber(WordPageNumberStyle.VerticalOutline2);
                 //var pageNumber = document.Footer!.Default.AddPageNumber(WordPageNumberStyle.Dots);
 

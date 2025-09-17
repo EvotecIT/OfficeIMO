@@ -1,5 +1,6 @@
 using System;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -10,7 +11,8 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
 
-                var para = document.Header!.Default.AddParagraph();
+                var defaultHeader = Guard.NotNull(document.Header?.Default, "Default header should exist after calling AddHeadersAndFooters.");
+                var para = defaultHeader.AddParagraph();
                 para.ParagraphAlignment = JustificationValues.Center;
                 para.AddPageNumber();
 

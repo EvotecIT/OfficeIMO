@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using SixLabors.ImageSharp;
 
@@ -19,7 +21,8 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Section 0");
                 document.AddHeadersAndFooters();
-                var watermark = document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "HexColor");
+                var section0DefaultHeader = Guard.NotNull(document.Sections[0].Header?.Default, "Section 0 should expose a default header after adding headers and footers.");
+                var watermark = section0DefaultHeader.AddWatermark(WordWatermarkStyle.Text, "HexColor");
                 watermark.ColorHex = "00ff00";
                 document.Save(openWord);
             }

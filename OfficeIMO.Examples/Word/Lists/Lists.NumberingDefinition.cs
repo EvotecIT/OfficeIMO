@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -9,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var numbering = document.CreateNumberingDefinition();
                 numbering.AddLevel(new WordListLevel(WordListLevelKind.Decimal));
-                var retrieved = document.GetNumberingDefinition(numbering.AbstractNumberId);
+                var retrieved = Guard.NotNull(document.GetNumberingDefinition(numbering.AbstractNumberId), "Numbering definition should exist after creation.");
                 Console.WriteLine("Numbering levels: " + retrieved.Levels.Count);
                 document.Save(openWord);
             }

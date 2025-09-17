@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -23,9 +25,13 @@ namespace OfficeIMO.Examples.Word {
                 document.DifferentFirstPage = true;
                 document.DifferentOddAndEvenPages = true;
 
-                document.Sections[0].Header!.Default.AddParagraph().SetText("Test Section 0 - Header");
-                document.Sections[0].Header!.First.AddParagraph().SetText("Test Section 0 - First Header");
-                document.Sections[0].Header!.Even.AddParagraph().SetText("Test Section 0 - Even");
+                var section0 = document.Sections[0];
+                var section0DefaultHeader = Guard.NotNull(section0.Header?.Default, "Section 0 should expose a default header after adding headers and footers.");
+                section0DefaultHeader.AddParagraph().SetText("Test Section 0 - Header");
+                var section0FirstHeader = Guard.NotNull(section0.Header?.First, "Section 0 should expose a first header after enabling different first page.");
+                section0FirstHeader.AddParagraph().SetText("Test Section 0 - First Header");
+                var section0EvenHeader = Guard.NotNull(section0.Header?.Even, "Section 0 should expose an even header after enabling different odd and even pages.");
+                section0EvenHeader.AddParagraph().SetText("Test Section 0 - Even");
 
                 document.Sections[0].Paragraphs[0].AddComment("Przemysław Kłys", "PK", "This should be a comment");
 
@@ -57,17 +63,24 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.Sections[1].AddHeadersAndFooters();
-                document.Sections[1].Header!.Default.AddParagraph().SetText("Test Section 1 - Header");
-                document.Sections[1].Footer!.Default.AddParagraph().SetText("Test Section 1 - Header");
+                var section1 = document.Sections[1];
+                var section1DefaultHeader = Guard.NotNull(section1.Header?.Default, "Section 1 should expose a default header after adding headers and footers.");
+                section1DefaultHeader.AddParagraph().SetText("Test Section 1 - Header");
+                var section1DefaultFooter = Guard.NotNull(section1.Footer?.Default, "Section 1 should expose a default footer after adding headers and footers.");
+                section1DefaultFooter.AddParagraph().SetText("Test Section 1 - Header");
 
                 document.Sections[1].DifferentFirstPage = true;
-                document.Sections[1].Header!.First.AddParagraph().SetText("Test Section 1 - First Header");
-                document.Sections[1].Footer!.First.AddParagraph().SetText("Test Section 1 - First Footer");
+                var section1FirstHeader = Guard.NotNull(section1.Header?.First, "Section 1 should expose a first header after enabling different first page.");
+                section1FirstHeader.AddParagraph().SetText("Test Section 1 - First Header");
+                var section1FirstFooter = Guard.NotNull(section1.Footer?.First, "Section 1 should expose a first footer after enabling different first page.");
+                section1FirstFooter.AddParagraph().SetText("Test Section 1 - First Footer");
 
                 document.Sections[1].DifferentOddAndEvenPages = true;
 
-                document.Sections[1].Header!.Even.AddParagraph().SetText("Test Section 1 - Even Header");
-                document.Sections[1].Footer!.Even.AddParagraph().SetText("Test Section 1 - Even Footer");
+                var section1EvenHeader = Guard.NotNull(section1.Header?.Even, "Section 1 should expose an even header after enabling different odd and even pages.");
+                section1EvenHeader.AddParagraph().SetText("Test Section 1 - Even Header");
+                var section1EvenFooter = Guard.NotNull(section1.Footer?.Even, "Section 1 should expose an even footer after enabling different odd and even pages.");
+                section1EvenFooter.AddParagraph().SetText("Test Section 1 - Even Footer");
 
                 document.Settings.ProtectionPassword = "ThisIsTest";
                 document.Settings.ProtectionType = DocumentProtectionValues.ReadOnly;

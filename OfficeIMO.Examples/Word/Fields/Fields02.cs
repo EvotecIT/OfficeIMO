@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -27,7 +28,8 @@ namespace OfficeIMO.Examples.Word {
                 document.AddField(WordFieldType.GreetingLine);
 
                 // added page number using dedicated way
-                var pageNumber = document.Header!.Default.AddPageNumber(WordPageNumberStyle.Roman);
+                var defaultHeader = Guard.NotNull(document.Header?.Default, "Default header should exist after calling AddHeadersAndFooters.");
+                var pageNumber = defaultHeader.AddPageNumber(WordPageNumberStyle.Roman);
 
                 document.Save(openWord);
             }

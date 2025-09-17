@@ -1,5 +1,6 @@
 using System;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -10,7 +11,8 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
 
-                var firstFooter = document.Footer!.Default.AddParagraph();
+                var defaultFooter = Guard.NotNull(document.Footer?.Default, "Default footer should exist after calling AddHeadersAndFooters.");
+                var firstFooter = defaultFooter.AddParagraph();
                 firstFooter.ParagraphAlignment = JustificationValues.Right;
                 firstFooter.AddText("Page ");
                 firstFooter.AddPageNumber(includeTotalPages: true, separator: " of ");
@@ -21,7 +23,7 @@ namespace OfficeIMO.Examples.Word {
                 section.AddPageNumbering(1);
                 section.AddParagraph("Section 2");
 
-                var secondFooter = document.Footer!.Default.AddParagraph();
+                var secondFooter = defaultFooter.AddParagraph();
                 secondFooter.ParagraphAlignment = JustificationValues.Right;
                 secondFooter.AddText("Page ");
                 secondFooter.AddPageNumber(includeTotalPages: true, separator: " of ");
