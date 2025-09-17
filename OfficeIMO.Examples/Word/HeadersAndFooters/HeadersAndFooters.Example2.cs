@@ -1,6 +1,7 @@
 using System;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
+using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class HeadersAndFooters {
@@ -26,10 +27,12 @@ namespace OfficeIMO.Examples.Word {
                 //var paragraphInFooter = document.Footer!.Default.InsertParagraph();
                 //paragraphInFooter.Text = "This is a test on odd pages (aka default if no options are set)";
 
-                var paragraphInHeader = document.Header!.Default.AddParagraph();
+                var defaultHeader = GetDocumentHeaderOrThrow(document);
+                var paragraphInHeader = defaultHeader.AddParagraph();
                 paragraphInHeader.Text = "Default Header / Section 0";
 
-                paragraphInHeader = document.Header!.First.AddParagraph();
+                var firstHeader = GetDocumentHeaderOrThrow(document, HeaderFooterValues.First);
+                paragraphInHeader = firstHeader.AddParagraph();
                 paragraphInHeader.Text = "First Header / Section 0";
 
                 //var paragraphInFooterFirst = document.Footer!.First.InsertParagraph();
@@ -87,14 +90,17 @@ namespace OfficeIMO.Examples.Word {
                 //var paragraghInHeaderSection = section2.Header!.First.InsertParagraph();
                 //paragraghInHeaderSection.Text = "Ok, work please?";
 
-                var paragraghInHeaderSection1 = section2.Header!.Default.AddParagraph();
+                var section2HeaderDefault = GetSectionHeaderOrThrow(section2);
+                var paragraghInHeaderSection1 = section2HeaderDefault.AddParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit? 1";
 
-                paragraghInHeaderSection1 = section2.Header!.First.AddParagraph();
+                var section2HeaderFirst = GetSectionHeaderOrThrow(section2, HeaderFooterValues.First);
+                paragraghInHeaderSection1 = section2HeaderFirst.AddParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit 2?";
                 // paragraghInHeaderSection1.InsertText("ok?");
 
-                paragraghInHeaderSection1 = section2.Header!.Even.AddParagraph();
+                var section2HeaderEven = GetSectionHeaderOrThrow(section2, HeaderFooterValues.Even);
+                paragraghInHeaderSection1 = section2HeaderEven.AddParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit? 3";
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 6");

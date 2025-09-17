@@ -26,7 +26,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "CustomFormattedHeaderDate.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                document.Header!.Default.AddField(WordFieldType.Date, customFormat: "yyyy-MM-dd", advanced: true);
+                GetDocumentHeaderOrThrow(document).AddField(WordFieldType.Date, customFormat: "yyyy-MM-dd", advanced: true);
                 document.AddParagraph("Body paragraph");
                 document.Save(openWord);
             }

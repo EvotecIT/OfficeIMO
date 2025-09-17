@@ -17,15 +17,17 @@ internal static partial class CleanupDocuments {
         using (WordDocument document = WordDocument.Create(filePath)) {
             document.AddHeadersAndFooters();
 
-            var headerParagraph = document.Header!.Default.AddParagraph("Header ");
+            var header = GetDocumentHeaderOrThrow(document);
+            var headerParagraph = header.AddParagraph("Header ");
             headerParagraph.AddText("clutter ");
             headerParagraph.AddText("text");
-            document.Header!.Default.AddParagraph();
+            header.AddParagraph();
 
-            var footerParagraph = document.Footer!.Default.AddParagraph("Footer ");
+            var footer = GetDocumentFooterOrThrow(document);
+            var footerParagraph = footer.AddParagraph("Footer ");
             footerParagraph.AddText("clutter ");
             footerParagraph.AddText("text");
-            document.Footer!.Default.AddParagraph();
+            footer.AddParagraph();
 
             document.CleanupDocument();
             document.Save(openWord);

@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddHeadersAndFooters();
 
-                var textBox = document.Header!.Default.AddTextBox("My textbox on the left");
+                var textBox = GetDocumentHeaderOrThrow(document).AddTextBox("My textbox on the left");
 
                 textBox.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
                 // horizontal alignment overwrites the horizontal position offset so only one will work

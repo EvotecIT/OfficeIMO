@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Word {
                 string filePath = System.IO.Path.Combine(folderPath, $"Document_PageNumbers_{safeFormat}.docx");
                 using (WordDocument document = WordDocument.Create(filePath)) {
                     document.AddHeadersAndFooters();
-                    var pageNumber = document.Footer!.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
+                    var pageNumber = GetDocumentFooterOrThrow(document).AddPageNumber(WordPageNumberStyle.PlainNumber);
                     pageNumber.CustomFormat = format;
                     document.Save(openWord);
                 }

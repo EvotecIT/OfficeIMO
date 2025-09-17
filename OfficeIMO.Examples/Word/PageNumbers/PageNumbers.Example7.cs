@@ -9,7 +9,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with PageNumbers7.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                var pageNumber = document.Footer!.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
+                var pageNumber = GetDocumentFooterOrThrow(document).AddPageNumber(WordPageNumberStyle.PlainNumber);
                 pageNumber.AppendText(" of ");
                 pageNumber.Paragraph.AddField(WordFieldType.NumPages);
                 document.Save(openWord);

@@ -10,6 +10,10 @@ namespace OfficeIMO.Examples.Word {
                 var numbering = document.CreateNumberingDefinition();
                 numbering.AddLevel(new WordListLevel(WordListLevelKind.Decimal));
                 var retrieved = document.GetNumberingDefinition(numbering.AbstractNumberId);
+                if (retrieved == null) {
+                    throw new InvalidOperationException("Numbering definition should exist after creation.");
+                }
+
                 Console.WriteLine("Numbering levels: " + retrieved.Levels.Count);
                 document.Save(openWord);
             }

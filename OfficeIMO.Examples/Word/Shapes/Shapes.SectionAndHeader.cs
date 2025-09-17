@@ -15,9 +15,10 @@ namespace OfficeIMO.Examples.Word {
                 section.AddShapeDrawing(ShapeType.Ellipse, 40, 40);
 
                 section.AddHeadersAndFooters();
-                section.Header!.Default.AddShape(ShapeType.Rectangle, 30, 20, Color.Blue, Color.Black);
-                section.Header!.Default.AddShape(ShapeType.RoundedRectangle, 25, 15, Color.Green, Color.Black, 1, arcSize: 0.3);
-                section.Header!.Default.AddShapeDrawing(ShapeType.Ellipse, 20, 20);
+                var sectionHeader = GetSectionHeaderOrThrow(section);
+                sectionHeader.AddShape(ShapeType.Rectangle, 30, 20, Color.Blue, Color.Black);
+                sectionHeader.AddShape(ShapeType.RoundedRectangle, 25, 15, Color.Green, Color.Black, 1, arcSize: 0.3);
+                sectionHeader.AddShapeDrawing(ShapeType.Ellipse, 20, 20);
 
                 document.Save(openWord);
             }

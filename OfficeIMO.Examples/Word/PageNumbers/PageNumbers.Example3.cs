@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Word {
                 document.Sections[0].AddPageNumbering(2, NumberFormatValues.LowerRoman);
                 document.AddHeadersAndFooters();
 
-                var para = document.Footer!.Default.AddParagraph();
+                var para = GetDocumentFooterOrThrow(document).AddParagraph();
                 para.AddText("Page ");
                 para.AddPageNumber();
 

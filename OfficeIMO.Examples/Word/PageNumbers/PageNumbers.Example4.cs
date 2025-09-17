@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
 
-                var para = document.Header!.Default.AddParagraph();
+                var para = GetDocumentHeaderOrThrow(document).AddParagraph();
                 para.ParagraphAlignment = JustificationValues.Center;
                 para.AddPageNumber();
 

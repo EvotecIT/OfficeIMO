@@ -24,12 +24,12 @@ namespace OfficeIMO.Examples.Word {
                 var yahoo = baseLink.InsertFormattedHyperlinkAfter("Yahoo", new Uri("https://yahoo.com"));
                 yahoo.CopyFormattingFrom(baseLink);
 
-                var headerPara = document.Header!.Default.AddParagraph("Search with ");
+                var headerPara = GetDocumentHeaderOrThrow(document).AddParagraph("Search with ");
                 var duck = headerPara.AddHyperLink("DuckDuckGo", new Uri("https://duckduckgo.com"), addStyle: true);
                 var duckLink = Guard.NotNull(duck.Hyperlink, "Expected DuckDuckGo hyperlink to be created.");
                 duckLink.InsertFormattedHyperlinkAfter("Startpage", new Uri("https://startpage.com"));
 
-                var footerPara = document.Footer!.Default.AddParagraph("Code on ");
+                var footerPara = GetDocumentFooterOrThrow(document).AddParagraph("Code on ");
                 var gitHub = footerPara.AddHyperLink("GitHub", new Uri("https://github.com"), addStyle: true);
                 var gitHubLink = Guard.NotNull(gitHub.Hyperlink, "Expected GitHub hyperlink to be created.");
                 gitHubLink.InsertFormattedHyperlinkBefore("GitLab", new Uri("https://gitlab.com"));

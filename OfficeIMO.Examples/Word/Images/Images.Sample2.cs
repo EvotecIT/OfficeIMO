@@ -16,8 +16,9 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "DocumentWithImagesWraps.docx"), true)) {
                 Console.WriteLine("+ Document paragraphs: " + document.Paragraphs.Count);
                 Console.WriteLine("+ Document images: " + document.Images.Count);
-                Console.WriteLine("+ Document images in header: " + document.Header!.Default.Images.Count);
-                Console.WriteLine("+ Document images in footer: " + document.Footer!.Default.Images.Count);
+                var header = GetDocumentHeaderOrThrow(document);
+                Console.WriteLine("+ Document images in header: " + header.Images.Count);
+                Console.WriteLine("+ Document images in footer: " + GetDocumentFooterOrThrow(document).Images.Count);
                 //document.Images[0].SaveToFile(System.IO.Path.Combine(outputPath, "random.jpg"));
 
                 Console.WriteLine("----");

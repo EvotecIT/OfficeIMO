@@ -18,8 +18,8 @@ namespace OfficeIMO.Examples.Word.EndToEnd {
             using (var doc = WordDocument.Create()) {
                 // Headers/Footers + page numbering
                 doc.AddHeadersAndFooters();
-                doc.Header!.Default.AddParagraph("End-to-End Demo");
-                doc.Footer!.Default.AddParagraph().AddPageNumber(includeTotalPages: true);
+                GetDocumentHeaderOrThrow(doc).AddParagraph("End-to-End Demo");
+                GetDocumentFooterOrThrow(doc).AddParagraph().AddPageNumber(includeTotalPages: true);
 
                 // TOC at top (updates on open)
                 new WordFluentDocument(doc).TocAtTop("Contents", minLevel: 1, maxLevel: 3, titleLevel: 2);
@@ -122,5 +122,17 @@ namespace OfficeIMO.Examples.Word.EndToEnd {
                 Console.WriteLine("✓ Round-trip: Word ⇄ Markdown and Word ⇄ HTML written");
             }
         }
+
+        private static WordHeader GetDocumentHeaderOrThrow(WordDocument document) =>
+            WordHeaderFooterAccessHelper.GetDocumentHeaderOrThrow(document, HeaderFooterValues.Default);
+
+        private static WordHeader GetDocumentHeaderOrThrow(WordDocument document, HeaderFooterValues type) =>
+            WordHeaderFooterAccessHelper.GetDocumentHeaderOrThrow(document, type);
+
+        private static WordFooter GetDocumentFooterOrThrow(WordDocument document) =>
+            WordHeaderFooterAccessHelper.GetDocumentFooterOrThrow(document, HeaderFooterValues.Default);
+
+        private static WordFooter GetDocumentFooterOrThrow(WordDocument document, HeaderFooterValues type) =>
+            WordHeaderFooterAccessHelper.GetDocumentFooterOrThrow(document, type);
     }
 }

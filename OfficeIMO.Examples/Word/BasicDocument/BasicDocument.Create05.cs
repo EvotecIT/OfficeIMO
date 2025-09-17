@@ -24,29 +24,31 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Images count: " + document.Images.Count);
 
-                document.Header!.Default.AddParagraph().AddImage(filePathImage, 734, 92);
-                document.Header!.Default.Paragraphs[0].SetFontFamily("Arial");
-                document.Header!.Default.Paragraphs[0].SetFontSize(7).Bold = false;
+                var header = GetDocumentHeaderOrThrow(document);
+                header.AddParagraph().AddImage(filePathImage, 734, 92);
+                header.Paragraphs[0].SetFontFamily("Arial");
+                header.Paragraphs[0].SetFontSize(7).Bold = false;
 
                 Console.WriteLine("Images Count: " + document.Images.Count);
-                Console.WriteLine("Images in Header Count: " + document.Header!.Default.Images.Count);
+                Console.WriteLine("Images in Header Count: " + header.Images.Count);
 
-                document.Footer!.Default.AddParagraph();
-                document.Footer!.Default.Paragraphs[0].SetFontFamily("Arial");
-                document.Footer!.Default.Paragraphs[0].SetFontSize(7).Bold = false;
-                document.Footer!.Default.Paragraphs[0].ParagraphAlignment = JustificationValues.Right;
-                document.Footer!.Default.Paragraphs[0].Text = "SMA.5.doc 04/10/19";
-                document.Footer!.Default.Paragraphs[0].LineSpacingAfter = 0;
-                document.Footer!.Default.Paragraphs[0].LineSpacingBefore = 0;
-                document.Footer!.Default.AddPageNumber(WordPageNumberStyle.PageNumberXofY);
+                var footer = GetDocumentFooterOrThrow(document);
+                footer.AddParagraph();
+                footer.Paragraphs[0].SetFontFamily("Arial");
+                footer.Paragraphs[0].SetFontSize(7).Bold = false;
+                footer.Paragraphs[0].ParagraphAlignment = JustificationValues.Right;
+                footer.Paragraphs[0].Text = "SMA.5.doc 04/10/19";
+                footer.Paragraphs[0].LineSpacingAfter = 0;
+                footer.Paragraphs[0].LineSpacingBefore = 0;
+                footer.AddPageNumber(WordPageNumberStyle.PageNumberXofY);
 
-                document.Footer!.Default.AddParagraph();
-                document.Footer!.Default.Paragraphs[1].SetFontFamily("Arial");
-                document.Footer!.Default.Paragraphs[1].SetFontSize(7).Bold = false;
-                document.Footer!.Default.Paragraphs[1].ParagraphAlignment = JustificationValues.Center;
-                document.Footer!.Default.Paragraphs[1].Text = "My address";
-                document.Footer!.Default.Paragraphs[1].LineSpacingAfter = 0;
-                document.Footer!.Default.Paragraphs[1].LineSpacingBefore = 0;
+                footer.AddParagraph();
+                footer.Paragraphs[1].SetFontFamily("Arial");
+                footer.Paragraphs[1].SetFontSize(7).Bold = false;
+                footer.Paragraphs[1].ParagraphAlignment = JustificationValues.Center;
+                footer.Paragraphs[1].Text = "My address";
+                footer.Paragraphs[1].LineSpacingAfter = 0;
+                footer.Paragraphs[1].LineSpacingBefore = 0;
 
                 var par00 = document.AddParagraph("My text");
                 par00.ParagraphAlignment = JustificationValues.Left;

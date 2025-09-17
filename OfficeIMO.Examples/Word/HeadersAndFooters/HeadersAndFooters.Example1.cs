@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using SixLabors.ImageSharp;
 
@@ -16,37 +17,53 @@ namespace OfficeIMO.Examples.Word {
                 document.DifferentOddAndEvenPages = true;
                 document.DifferentFirstPage = true;
 
-                document.Header!.Default.AddParagraph().SetColor(Color.Red).SetText("Test Header");
+                var defaultHeader = GetDocumentHeaderOrThrow(document);
+                defaultHeader.AddParagraph().SetColor(SixLabors.ImageSharp.Color.Red).SetText("Test Header");
 
-                document.Footer!.Default.AddParagraph().SetColor(Color.Blue).SetText("Test Footer");
+                var defaultFooter = GetDocumentFooterOrThrow(document);
+                defaultFooter.AddParagraph().SetColor(SixLabors.ImageSharp.Color.Blue).SetText("Test Footer");
 
-                Console.WriteLine("Header Default Count: " + document.Header!.Default.Paragraphs.Count);
-                Console.WriteLine("Header Even Count: " + document.Header!.Even.Paragraphs.Count);
-                Console.WriteLine("Header First Count: " + document.Header!.First.Paragraphs.Count);
+                var evenHeader = GetDocumentHeaderOrThrow(document, HeaderFooterValues.Even);
+                var firstHeader = GetDocumentHeaderOrThrow(document, HeaderFooterValues.First);
 
-                Console.WriteLine("Header text: " + document.Header!.Default.Paragraphs[0].Text);
+                Console.WriteLine("Header Default Count: " + defaultHeader.Paragraphs.Count);
+                Console.WriteLine("Header Even Count: " + evenHeader.Paragraphs.Count);
+                Console.WriteLine("Header First Count: " + firstHeader.Paragraphs.Count);
 
-                Console.WriteLine("Footer Default Count: " + document.Footer!.Default.Paragraphs.Count);
-                Console.WriteLine("Footer Even Count: " + document.Footer!.Even.Paragraphs.Count);
-                Console.WriteLine("Footer First Count: " + document.Footer!.First.Paragraphs.Count);
+                Console.WriteLine("Header text: " + defaultHeader.Paragraphs[0].Text);
 
-                Console.WriteLine("Footer text: " + document.Footer!.Default.Paragraphs[0].Text);
+                var evenFooter = GetDocumentFooterOrThrow(document, HeaderFooterValues.Even);
+                var firstFooter = GetDocumentFooterOrThrow(document, HeaderFooterValues.First);
+
+                Console.WriteLine("Footer Default Count: " + defaultFooter.Paragraphs.Count);
+                Console.WriteLine("Footer Even Count: " + evenFooter.Paragraphs.Count);
+                Console.WriteLine("Footer First Count: " + firstFooter.Paragraphs.Count);
+
+                Console.WriteLine("Footer text: " + defaultFooter.Paragraphs[0].Text);
 
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Console.WriteLine("Header Default Count: " + document.Header!.Default.Paragraphs.Count);
-                Console.WriteLine("Header Even Count: " + document.Header!.Even.Paragraphs.Count);
-                Console.WriteLine("Header First Count: " + document.Header!.First.Paragraphs.Count);
+                var defaultHeader = GetDocumentHeaderOrThrow(document);
+                var evenHeader = GetDocumentHeaderOrThrow(document, HeaderFooterValues.Even);
+                var firstHeader = GetDocumentHeaderOrThrow(document, HeaderFooterValues.First);
 
-                Console.WriteLine("Header text: " + document.Header!.Default.Paragraphs[0].Text);
+                Console.WriteLine("Header Default Count: " + defaultHeader.Paragraphs.Count);
+                Console.WriteLine("Header Even Count: " + evenHeader.Paragraphs.Count);
+                Console.WriteLine("Header First Count: " + firstHeader.Paragraphs.Count);
 
-                Console.WriteLine("Footer Default Count: " + document.Footer!.Default.Paragraphs.Count);
-                Console.WriteLine("Footer Even Count: " + document.Footer!.Even.Paragraphs.Count);
-                Console.WriteLine("Footer First Count: " + document.Footer!.First.Paragraphs.Count);
+                Console.WriteLine("Header text: " + defaultHeader.Paragraphs[0].Text);
 
-                Console.WriteLine("Footer text: " + document.Footer!.Default.Paragraphs[0].Text);
+                var defaultFooter = GetDocumentFooterOrThrow(document);
+                var evenFooter = GetDocumentFooterOrThrow(document, HeaderFooterValues.Even);
+                var firstFooter = GetDocumentFooterOrThrow(document, HeaderFooterValues.First);
+
+                Console.WriteLine("Footer Default Count: " + defaultFooter.Paragraphs.Count);
+                Console.WriteLine("Footer Even Count: " + evenFooter.Paragraphs.Count);
+                Console.WriteLine("Footer First Count: " + firstFooter.Paragraphs.Count);
+
+                Console.WriteLine("Footer text: " + defaultFooter.Paragraphs[0].Text);
 
                 document.Save(openWord);
             }

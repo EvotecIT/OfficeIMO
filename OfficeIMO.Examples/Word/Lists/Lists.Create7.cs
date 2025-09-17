@@ -130,20 +130,22 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddHeadersAndFooters();
 
-                var listInHeader = document.Header!.Default.AddList(WordListStyle.Bulleted);
+                var header = GetDocumentHeaderOrThrow(document);
+                var listInHeader = header.AddList(WordListStyle.Bulleted);
 
                 listInHeader.AddItem("Test Header 1");
 
-                document.Footer!.Default.AddParagraph("Test Me Header");
+                var footer = GetDocumentFooterOrThrow(document);
+                footer.AddParagraph("Test Me Header");
 
                 listInHeader.AddItem("Test Header 2");
 
 
-                var listInFooter = document.Footer!.Default.AddList(WordListStyle.Numbered);
+                var listInFooter = footer.AddList(WordListStyle.Numbered);
 
                 listInFooter.AddItem("Test Footer 1");
 
-                document.Footer!.Default.AddParagraph("Test Me Footer");
+                footer.AddParagraph("Test Me Footer");
 
                 listInFooter.AddItem("Test Footer 2");
 

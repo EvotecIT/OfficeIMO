@@ -23,10 +23,10 @@ namespace OfficeIMO.Examples.Word {
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
-                var paragraphInHeaderO = document.Header!.Default.AddParagraph();
+                var paragraphInHeaderO = GetDocumentHeaderOrThrow(document).AddParagraph();
                 paragraphInHeaderO.Text = "Odd Header / Section 0";
 
-                var paragraphInHeaderE = document.Header!.Even.AddParagraph();
+                var paragraphInHeaderE = GetDocumentHeaderOrThrow(document, HeaderFooterValues.Even).AddParagraph();
                 paragraphInHeaderE.Text = "Even Header / Section 0";
 
                 document.AddPageBreak();
