@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -35,20 +36,52 @@ namespace OfficeIMO.Tests {
             using var loaded = WordDocument.Load(filePath);
             Assert.Equal(2, loaded.Sections.Count);
 
-            var defaultHeader = loaded.Sections[1].Header!.Default;
-            Assert.Equal(3, defaultHeader.Paragraphs.Count);
+            var sectionHeaders = Assert.NotNull(loaded.Sections[1].Header);
+            WordHeader GetHeader(Func<WordHeaders, WordHeader?> selector) {
+                return Assert.IsType<WordHeader>(Assert.NotNull(selector(sectionHeaders)));
+            }
+
+            var defaultHeader = GetHeader(h => h.Default);
+            var defaultHeaderParagraphs = defaultHeader.Paragraphs;
+            Assert.Equal(3, defaultHeaderParagraphs.Count);
             Assert.Single(defaultHeader.Tables);
             Assert.Single(defaultHeader.ParagraphsImages);
 
-            Assert.Equal("First header", loaded.Sections[1].Header!.First.Paragraphs[0].Text);
-            Assert.Equal("Even header", loaded.Sections[1].Header!.Even.Paragraphs[0].Text);
+            var firstHeader = GetHeader(h => h.First);
+            var firstHeaderParagraphs = firstHeader.Paragraphs;
+            Assert.NotEmpty(firstHeaderParagraphs);
+            Assert.Equal("First header", firstHeaderParagraphs[0].Text);
 
-            Assert.Equal("Default footer", loaded.Sections[1].Footer!.Default.Paragraphs[0].Text);
-            Assert.Equal("First footer", loaded.Sections[1].Footer!.First.Paragraphs[0].Text);
-            Assert.Equal("Even footer", loaded.Sections[1].Footer!.Even.Paragraphs[0].Text);
+            var evenHeader = GetHeader(h => h.Even);
+            var evenHeaderParagraphs = evenHeader.Paragraphs;
+            Assert.NotEmpty(evenHeaderParagraphs);
+            Assert.Equal("Even header", evenHeaderParagraphs[0].Text);
 
-            Assert.Null(loaded.Sections[0].Header!.Default);
-            Assert.Null(loaded.Sections[0].Footer!.Default);
+            var sectionFooters = Assert.NotNull(loaded.Sections[1].Footer);
+            WordFooter GetFooter(Func<WordFooters, WordFooter?> selector) {
+                return Assert.IsType<WordFooter>(Assert.NotNull(selector(sectionFooters)));
+            }
+
+            var defaultFooter = GetFooter(f => f.Default);
+            var defaultFooterParagraphs = defaultFooter.Paragraphs;
+            Assert.NotEmpty(defaultFooterParagraphs);
+            Assert.Equal("Default footer", defaultFooterParagraphs[0].Text);
+
+            var firstFooter = GetFooter(f => f.First);
+            var firstFooterParagraphs = firstFooter.Paragraphs;
+            Assert.NotEmpty(firstFooterParagraphs);
+            Assert.Equal("First footer", firstFooterParagraphs[0].Text);
+
+            var evenFooter = GetFooter(f => f.Even);
+            var evenFooterParagraphs = evenFooter.Paragraphs;
+            Assert.NotEmpty(evenFooterParagraphs);
+            Assert.Equal("Even footer", evenFooterParagraphs[0].Text);
+
+            var firstSectionHeaders = Assert.NotNull(loaded.Sections[0].Header);
+            Assert.Null(firstSectionHeaders.Default);
+
+            var firstSectionFooters = Assert.NotNull(loaded.Sections[0].Footer);
+            Assert.Null(firstSectionFooters.Default);
         }
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -16,12 +17,14 @@ namespace OfficeIMO.Tests {
                 document.DifferentOddAndEvenPages = true;
                 document.DifferentFirstPage = true;
 
-                document.Header!.Default.AddParagraph().SetText("Default Header");
-                document.Footer!.Default.AddParagraph().SetText("Default Footer");
-                document.Header!.Even.AddParagraph().SetText("Even Header");
-                document.Footer!.Even.AddParagraph().SetText("Even Footer");
-                document.Header!.First.AddParagraph().SetText("First Header");
-                document.Footer!.First.AddParagraph().SetText("First Footer");
+                var (defaultHeader, defaultFooter, evenHeader, evenFooter, firstHeader, firstFooter) = RequireHeaderFooterVariants(document);
+
+                defaultHeader.AddParagraph().SetText("Default Header");
+                defaultFooter.AddParagraph().SetText("Default Footer");
+                evenHeader.AddParagraph().SetText("Even Header");
+                evenFooter.AddParagraph().SetText("Even Footer");
+                firstHeader.AddParagraph().SetText("First Header");
+                firstFooter.AddParagraph().SetText("First Footer");
 
                 document.Save(false);
             }
@@ -29,12 +32,14 @@ namespace OfficeIMO.Tests {
             WordHelpers.RemoveHeadersAndFooters(filePath, HeaderFooterValues.Default);
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Null(document.Header!.Default);
-                Assert.Null(document.Footer!.Default);
-                Assert.NotNull(document.Header!.First);
-                Assert.NotNull(document.Footer!.First);
-                Assert.NotNull(document.Header!.Even);
-                Assert.NotNull(document.Footer!.Even);
+                var headers = Assert.NotNull(document.Header);
+                var footers = Assert.NotNull(document.Footer);
+                Assert.Null(headers.Default);
+                Assert.Null(footers.Default);
+                Assert.NotNull(headers.First);
+                Assert.NotNull(footers.First);
+                Assert.NotNull(headers.Even);
+                Assert.NotNull(footers.Even);
             }
         }
 
@@ -46,12 +51,14 @@ namespace OfficeIMO.Tests {
                 document.DifferentOddAndEvenPages = true;
                 document.DifferentFirstPage = true;
 
-                document.Header!.Default.AddParagraph().SetText("Default Header");
-                document.Footer!.Default.AddParagraph().SetText("Default Footer");
-                document.Header!.Even.AddParagraph().SetText("Even Header");
-                document.Footer!.Even.AddParagraph().SetText("Even Footer");
-                document.Header!.First.AddParagraph().SetText("First Header");
-                document.Footer!.First.AddParagraph().SetText("First Footer");
+                var (defaultHeader, defaultFooter, evenHeader, evenFooter, firstHeader, firstFooter) = RequireHeaderFooterVariants(document);
+
+                defaultHeader.AddParagraph().SetText("Default Header");
+                defaultFooter.AddParagraph().SetText("Default Footer");
+                evenHeader.AddParagraph().SetText("Even Header");
+                evenFooter.AddParagraph().SetText("Even Footer");
+                firstHeader.AddParagraph().SetText("First Header");
+                firstFooter.AddParagraph().SetText("First Footer");
 
                 document.Save(false);
             }
@@ -59,12 +66,14 @@ namespace OfficeIMO.Tests {
             WordHelpers.RemoveHeadersAndFooters(filePath, HeaderFooterValues.Even);
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Null(document.Header!.Even);
-                Assert.Null(document.Footer!.Even);
-                Assert.NotNull(document.Header!.First);
-                Assert.NotNull(document.Footer!.First);
-                Assert.NotNull(document.Header!.Default);
-                Assert.NotNull(document.Footer!.Default);
+                var headers = Assert.NotNull(document.Header);
+                var footers = Assert.NotNull(document.Footer);
+                Assert.Null(headers.Even);
+                Assert.Null(footers.Even);
+                Assert.NotNull(headers.First);
+                Assert.NotNull(footers.First);
+                Assert.NotNull(headers.Default);
+                Assert.NotNull(footers.Default);
             }
         }
 
@@ -76,12 +85,14 @@ namespace OfficeIMO.Tests {
                 document.DifferentOddAndEvenPages = true;
                 document.DifferentFirstPage = true;
 
-                document.Header!.Default.AddParagraph().SetText("Default Header");
-                document.Footer!.Default.AddParagraph().SetText("Default Footer");
-                document.Header!.Even.AddParagraph().SetText("Even Header");
-                document.Footer!.Even.AddParagraph().SetText("Even Footer");
-                document.Header!.First.AddParagraph().SetText("First Header");
-                document.Footer!.First.AddParagraph().SetText("First Footer");
+                var (defaultHeader, defaultFooter, evenHeader, evenFooter, firstHeader, firstFooter) = RequireHeaderFooterVariants(document);
+
+                defaultHeader.AddParagraph().SetText("Default Header");
+                defaultFooter.AddParagraph().SetText("Default Footer");
+                evenHeader.AddParagraph().SetText("Even Header");
+                evenFooter.AddParagraph().SetText("Even Footer");
+                firstHeader.AddParagraph().SetText("First Header");
+                firstFooter.AddParagraph().SetText("First Footer");
 
                 document.Save(false);
             }
@@ -89,13 +100,28 @@ namespace OfficeIMO.Tests {
             WordHelpers.RemoveHeadersAndFooters(filePath, HeaderFooterValues.First);
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Null(document.Header!.First);
-                Assert.Null(document.Footer!.First);
-                Assert.NotNull(document.Header!.Even);
-                Assert.NotNull(document.Footer!.Even);
-                Assert.NotNull(document.Header!.Default);
-                Assert.NotNull(document.Footer!.Default);
+                var headers = Assert.NotNull(document.Header);
+                var footers = Assert.NotNull(document.Footer);
+                Assert.Null(headers.First);
+                Assert.Null(footers.First);
+                Assert.NotNull(headers.Even);
+                Assert.NotNull(footers.Even);
+                Assert.NotNull(headers.Default);
+                Assert.NotNull(footers.Default);
             }
+        }
+
+        private static (WordHeader DefaultHeader, WordFooter DefaultFooter, WordHeader EvenHeader, WordFooter EvenFooter, WordHeader FirstHeader, WordFooter FirstFooter) RequireHeaderFooterVariants(WordDocument document) {
+            var headers = Assert.NotNull(document.Header);
+            var footers = Assert.NotNull(document.Footer);
+            return (
+                Assert.IsType<WordHeader>(Assert.NotNull(headers.Default)),
+                Assert.IsType<WordFooter>(Assert.NotNull(footers.Default)),
+                Assert.IsType<WordHeader>(Assert.NotNull(headers.Even)),
+                Assert.IsType<WordFooter>(Assert.NotNull(footers.Even)),
+                Assert.IsType<WordHeader>(Assert.NotNull(headers.First)),
+                Assert.IsType<WordFooter>(Assert.NotNull(footers.First))
+            );
         }
     }
 }
