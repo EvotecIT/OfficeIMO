@@ -119,18 +119,33 @@ namespace OfficeIMO.Word {
                             var closing = listStack.Pop();
                             yield return new WordListEvent(WordListEventType.EndList, null, closing.ordered, level);
                             if (listStack.Count > 0) {
-                                yield return new WordListEvent(WordListEventType.EndItem, null, listStack.Peek().ordered, level - 1);
+                                yield return new WordListEvent(WordListEventType.EndItem, null, CurrentOrdered(listStack), level - 1);
                             }
                         }
                         if (listStack.Count <= level) {
                             yield return new WordListEvent(WordListEventType.StartList, null, ordered, level);
                             listStack.Push((numId, ordered));
                         }
+                    }
+
+                    yield return new WordListEvent(WordListEventType.StartItem, paragraph, ordered, level);
+                    previousLevel = level;
+                    continue;
                 }
 
-                yield return new WordListEvent(WordListEventType.StartItem, paragraph, ordered, level);
-                previousLevel = level;
-                continue;
+                if (previousLevel != -1) {
+                    yield return new WordListEvent(WordListEventType.EndItem, null, CurrentOrdered(listStack), previousLevel);
+                    while (listStack.Count > 0) {
+                        var closing = listStack.Pop();
+                        yield return new WordListEvent(WordListEventType.EndList, null, closing.ordered, previousLevel);
+                        if (listStack.Count > 0) {
+                            yield return new WordListEvent(WordListEventType.EndItem, null, CurrentOrdered(listStack), previousLevel - 1);
+                        }
+                    }
+                    previousLevel = -1;
+                }
+
+                yield return new WordListEvent(WordListEventType.Paragraph, paragraph, false, 0);
             }
 
             if (previousLevel != -1) {
@@ -142,22 +157,7 @@ namespace OfficeIMO.Word {
                         yield return new WordListEvent(WordListEventType.EndItem, null, CurrentOrdered(listStack), previousLevel - 1);
                     }
                 }
-                previousLevel = -1;
             }
-
-            yield return new WordListEvent(WordListEventType.Paragraph, paragraph, false, 0);
-        }
-
-        if (previousLevel != -1) {
-            yield return new WordListEvent(WordListEventType.EndItem, null, CurrentOrdered(listStack), previousLevel);
-            while (listStack.Count > 0) {
-                var closing = listStack.Pop();
-                yield return new WordListEvent(WordListEventType.EndList, null, closing.ordered, previousLevel);
-                if (listStack.Count > 0) {
-                    yield return new WordListEvent(WordListEventType.EndItem, null, CurrentOrdered(listStack), previousLevel - 1);
-                }
-            }
-        }
         }
 
         /// <summary>
