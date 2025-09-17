@@ -20,7 +20,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the raw value of the custom property.
         /// </summary>
         /// <remarks>The actual type is defined by <see cref="PropertyType"/>.</remarks>
-        public object Value;
+        public object Value { get; set; } = string.Empty;
         /// <summary>
         /// Gets or sets the kind of custom property.
         /// </summary>

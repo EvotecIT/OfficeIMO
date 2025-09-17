@@ -1,3 +1,4 @@
+using System;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Collections.Generic;
@@ -13,9 +14,9 @@ namespace OfficeIMO.Word {
         internal readonly SdtRun _sdtRun;
 
         internal WordDropDownList(WordDocument document, Paragraph paragraph, SdtRun sdtRun) {
-            _document = document;
-            _paragraph = paragraph;
-            _sdtRun = sdtRun;
+            _document = document ?? throw new ArgumentNullException(nameof(document));
+            _paragraph = paragraph ?? throw new ArgumentNullException(nameof(paragraph));
+            _sdtRun = sdtRun ?? throw new ArgumentNullException(nameof(sdtRun));
         }
 
         /// <summary>
@@ -25,25 +26,28 @@ namespace OfficeIMO.Word {
             get {
                 var ddl = _sdtRun.SdtProperties?.Elements<SdtContentDropDownList>().FirstOrDefault();
                 if (ddl != null) {
-                    return ddl.Elements<ListItem>().Select(li => li.DisplayText?.Value ?? li.Value?.Value).ToList();
+                    return ddl.Elements<ListItem>()
+                        .Select(li => li.DisplayText?.Value ?? li.Value?.Value ?? string.Empty)
+                        .ToList();
                 }
-                return new List<string>();
+                return Array.Empty<string>();
             }
         }
 
         /// <summary>
         /// Gets or sets the tag value for this dropdown list control.
         /// </summary>
-        public string Tag {
+        public string? Tag {
             get {
-                var tag = _sdtRun.SdtProperties.OfType<Tag>().FirstOrDefault();
+                var tag = _sdtRun.SdtProperties?.OfType<Tag>().FirstOrDefault();
                 return tag?.Val;
             }
             set {
-                var tag = _sdtRun.SdtProperties.OfType<Tag>().FirstOrDefault();
+                var properties = EnsureProperties();
+                var tag = properties.OfType<Tag>().FirstOrDefault();
                 if (tag == null) {
                     tag = new Tag();
-                    _sdtRun.SdtProperties.Append(tag);
+                    properties.Append(tag);
                 }
                 tag.Val = value;
             }
@@ -52,9 +56,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the alias associated with this dropdown list control.
         /// </summary>
-        public string Alias {
+        public string? Alias {
             get {
-                var sdtAlias = _sdtRun.SdtProperties.OfType<SdtAlias>().FirstOrDefault();
+                var sdtAlias = _sdtRun.SdtProperties?.OfType<SdtAlias>().FirstOrDefault();
                 return sdtAlias?.Val;
             }
         }
@@ -64,6 +68,16 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void Remove() {
             _sdtRun.Remove();
+        }
+
+        private SdtProperties EnsureProperties() {
+            var properties = _sdtRun.SdtProperties;
+            if (properties == null) {
+                properties = new SdtProperties();
+                _sdtRun.SdtProperties = properties;
+            }
+
+            return properties;
         }
     }
 }
