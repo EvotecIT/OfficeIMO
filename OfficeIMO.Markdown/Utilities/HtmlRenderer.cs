@@ -258,7 +258,7 @@ internal static class HtmlRenderer {
         //   <li>H2</li>
         // </ul>
         var listTag = opts.Ordered ? "ol" : "ul";
-        var sbNested = new StringBuilder();
+        var sbNested = new StringBuilder(relevant.Count * 64);
         int baseLevel = (opts.NormalizeToMinLevel ? relevant.Min(r => r.Level) : 1);
         int currentDepth = 0; // relative to baseLevel
         bool any = false;

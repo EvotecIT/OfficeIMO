@@ -359,7 +359,10 @@ namespace OfficeIMO.Excel {
             try
             {
                 var bytes = File.ReadAllBytes(filePath);
-                using var ms = new MemoryStream(bytes.Length + 4096);
+                // Do NOT dispose this stream until the SpreadsheetDocument is disposed.
+                // Returning a document backed by a disposed stream causes ObjectDisposedException
+                // when Open XML attempts to read parts/relationships.
+                var ms = new MemoryStream(bytes.Length + 4096);
                 ms.Write(bytes, 0, bytes.Length);
                 ms.Position = 0;
                 Utilities.ExcelPackageUtilities.NormalizeContentTypes(ms, leaveOpen: true);
