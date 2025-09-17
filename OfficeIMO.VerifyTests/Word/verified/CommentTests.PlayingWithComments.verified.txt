@@ -25,18 +25,18 @@
   <w:body>
     <w:p>
       <w:pPr />
-      <w:commentRangeStart w:id="0" />
       <w:commentRangeStart w:id="1" />
+      <w:commentRangeStart w:id="2" />
       <w:r>
         <w:t xml:space="preserve">Test Section</w:t>
-      </w:r>
-      <w:commentRangeEnd w:id="0" />
-      <w:r>
-        <w:commentReference w:id="0" />
       </w:r>
       <w:commentRangeEnd w:id="1" />
       <w:r>
         <w:commentReference w:id="1" />
+      </w:r>
+      <w:commentRangeEnd w:id="2" />
+      <w:r>
+        <w:commentReference w:id="2" />
       </w:r>
     </w:p>
     <w:p>
@@ -10866,14 +10866,14 @@
 /word/comments.xml
 <!--------------------------------------------------------------------------------------------------------------------->
 <w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:comment w:initials="PK" w:author="Przemysław" w:date="9999-12-31T23:59:59.9999999" w:id="0">
+  <w:comment w:initials="PK" w:author="Przemysław" w:date="9999-12-31T23:59:59.9999999" w:id="1">
     <w:p>
       <w:r>
         <w:t>This is my comment</w:t>
       </w:r>
     </w:p>
   </w:comment>
-  <w:comment w:initials="PK" w:author="Przemysław" w:date="9999-12-31T23:59:59.9999999" w:id="1">
+  <w:comment w:initials="PK" w:author="Przemysław" w:date="9999-12-31T23:59:59.9999999" w:id="2">
     <w:p>
       <w:r>
         <w:t>More comments</w:t>
