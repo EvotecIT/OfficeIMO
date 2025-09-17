@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -13,15 +14,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "RemoveDefaultHeaderFooter.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                document.DifferentOddAndEvenPages = true;
-                document.DifferentFirstPage = true;
 
-                document.Header!.Default.AddParagraph().SetText("Default Header");
-                document.Footer!.Default.AddParagraph().SetText("Default Footer");
-                document.Header!.Even.AddParagraph().SetText("Even Header");
-                document.Footer!.Even.AddParagraph().SetText("Even Footer");
-                document.Header!.First.AddParagraph().SetText("First Header");
-                document.Footer!.First.AddParagraph().SetText("First Footer");
+                RequireHeader(document, HeaderFooterValues.Default).AddParagraph().SetText("Default Header");
+                RequireFooter(document, HeaderFooterValues.Default).AddParagraph().SetText("Default Footer");
+                RequireHeader(document, HeaderFooterValues.Even).AddParagraph().SetText("Even Header");
+                RequireFooter(document, HeaderFooterValues.Even).AddParagraph().SetText("Even Footer");
+                RequireHeader(document, HeaderFooterValues.First).AddParagraph().SetText("First Header");
+                RequireFooter(document, HeaderFooterValues.First).AddParagraph().SetText("First Footer");
 
                 document.Save(false);
             }
@@ -29,12 +28,12 @@ namespace OfficeIMO.Tests {
             WordHelpers.RemoveHeadersAndFooters(filePath, HeaderFooterValues.Default);
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Null(document.Header!.Default);
-                Assert.Null(document.Footer!.Default);
-                Assert.NotNull(document.Header!.First);
-                Assert.NotNull(document.Footer!.First);
-                Assert.NotNull(document.Header!.Even);
-                Assert.NotNull(document.Footer!.Even);
+                Assert.Null(document.Header?.Default);
+                Assert.Null(document.Footer?.Default);
+                RequireHeader(document, HeaderFooterValues.First);
+                RequireFooter(document, HeaderFooterValues.First);
+                RequireHeader(document, HeaderFooterValues.Even);
+                RequireFooter(document, HeaderFooterValues.Even);
             }
         }
 
@@ -43,15 +42,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "RemoveEvenHeaderFooter.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                document.DifferentOddAndEvenPages = true;
-                document.DifferentFirstPage = true;
 
-                document.Header!.Default.AddParagraph().SetText("Default Header");
-                document.Footer!.Default.AddParagraph().SetText("Default Footer");
-                document.Header!.Even.AddParagraph().SetText("Even Header");
-                document.Footer!.Even.AddParagraph().SetText("Even Footer");
-                document.Header!.First.AddParagraph().SetText("First Header");
-                document.Footer!.First.AddParagraph().SetText("First Footer");
+                RequireHeader(document, HeaderFooterValues.Default).AddParagraph().SetText("Default Header");
+                RequireFooter(document, HeaderFooterValues.Default).AddParagraph().SetText("Default Footer");
+                RequireHeader(document, HeaderFooterValues.Even).AddParagraph().SetText("Even Header");
+                RequireFooter(document, HeaderFooterValues.Even).AddParagraph().SetText("Even Footer");
+                RequireHeader(document, HeaderFooterValues.First).AddParagraph().SetText("First Header");
+                RequireFooter(document, HeaderFooterValues.First).AddParagraph().SetText("First Footer");
 
                 document.Save(false);
             }
@@ -59,12 +56,12 @@ namespace OfficeIMO.Tests {
             WordHelpers.RemoveHeadersAndFooters(filePath, HeaderFooterValues.Even);
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Null(document.Header!.Even);
-                Assert.Null(document.Footer!.Even);
-                Assert.NotNull(document.Header!.First);
-                Assert.NotNull(document.Footer!.First);
-                Assert.NotNull(document.Header!.Default);
-                Assert.NotNull(document.Footer!.Default);
+                Assert.Null(document.Header?.Even);
+                Assert.Null(document.Footer?.Even);
+                RequireHeader(document, HeaderFooterValues.First);
+                RequireFooter(document, HeaderFooterValues.First);
+                RequireHeader(document, HeaderFooterValues.Default);
+                RequireFooter(document, HeaderFooterValues.Default);
             }
         }
 
@@ -73,15 +70,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "RemoveFirstHeaderFooter.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                document.DifferentOddAndEvenPages = true;
-                document.DifferentFirstPage = true;
 
-                document.Header!.Default.AddParagraph().SetText("Default Header");
-                document.Footer!.Default.AddParagraph().SetText("Default Footer");
-                document.Header!.Even.AddParagraph().SetText("Even Header");
-                document.Footer!.Even.AddParagraph().SetText("Even Footer");
-                document.Header!.First.AddParagraph().SetText("First Header");
-                document.Footer!.First.AddParagraph().SetText("First Footer");
+                RequireHeader(document, HeaderFooterValues.Default).AddParagraph().SetText("Default Header");
+                RequireFooter(document, HeaderFooterValues.Default).AddParagraph().SetText("Default Footer");
+                RequireHeader(document, HeaderFooterValues.Even).AddParagraph().SetText("Even Header");
+                RequireFooter(document, HeaderFooterValues.Even).AddParagraph().SetText("Even Footer");
+                RequireHeader(document, HeaderFooterValues.First).AddParagraph().SetText("First Header");
+                RequireFooter(document, HeaderFooterValues.First).AddParagraph().SetText("First Footer");
 
                 document.Save(false);
             }
@@ -89,13 +84,61 @@ namespace OfficeIMO.Tests {
             WordHelpers.RemoveHeadersAndFooters(filePath, HeaderFooterValues.First);
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Null(document.Header!.First);
-                Assert.Null(document.Footer!.First);
-                Assert.NotNull(document.Header!.Even);
-                Assert.NotNull(document.Footer!.Even);
-                Assert.NotNull(document.Header!.Default);
-                Assert.NotNull(document.Footer!.Default);
+                Assert.Null(document.Header?.First);
+                Assert.Null(document.Footer?.First);
+                RequireHeader(document, HeaderFooterValues.Even);
+                RequireFooter(document, HeaderFooterValues.Even);
+                RequireHeader(document, HeaderFooterValues.Default);
+                RequireFooter(document, HeaderFooterValues.Default);
             }
+        }
+
+        private static WordHeader RequireHeader(WordDocument document, HeaderFooterValues type) {
+            Assert.NotNull(document.Header);
+
+            if (type == HeaderFooterValues.First) {
+                document.DifferentFirstPage = true;
+            } else if (type == HeaderFooterValues.Even) {
+                document.DifferentOddAndEvenPages = true;
+            } else if (type != HeaderFooterValues.Default) {
+                throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported header type.");
+            }
+
+            var headers = document.Header!;
+            WordHeader? header = type == HeaderFooterValues.Default
+                ? headers.Default
+                : type == HeaderFooterValues.First
+                    ? headers.First
+                    : type == HeaderFooterValues.Even
+                        ? headers.Even
+                        : throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported header type.");
+
+            Assert.NotNull(header);
+            return header!;
+        }
+
+        private static WordFooter RequireFooter(WordDocument document, HeaderFooterValues type) {
+            Assert.NotNull(document.Footer);
+
+            if (type == HeaderFooterValues.First) {
+                document.DifferentFirstPage = true;
+            } else if (type == HeaderFooterValues.Even) {
+                document.DifferentOddAndEvenPages = true;
+            } else if (type != HeaderFooterValues.Default) {
+                throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported footer type.");
+            }
+
+            var footers = document.Footer!;
+            WordFooter? footer = type == HeaderFooterValues.Default
+                ? footers.Default
+                : type == HeaderFooterValues.First
+                    ? footers.First
+                    : type == HeaderFooterValues.Even
+                        ? footers.Even
+                        : throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported footer type.");
+
+            Assert.NotNull(footer);
+            return footer!;
         }
     }
 }
