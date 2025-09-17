@@ -20,8 +20,11 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Section 0");
                 document.AddHeadersAndFooters();
-                document.Sections[0].Header!.Default.AddParagraph("Section 0 - In header");
-                document.Sections[0].SetMargins(WordMargin.Normal);
+
+                var section0 = document.Sections[0];
+                var section0Header = GetRequiredHeader(section0);
+                section0Header.AddParagraph("Section 0 - In header");
+                section0.SetMargins(WordMargin.Normal);
 
                 Console.WriteLine(document.Sections[0].Margins.Left.Value);
                 Console.WriteLine(document.Sections[0].Margins.Right.Value);
@@ -33,7 +36,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine(document.Sections[0].Margins.Type);
 
                 Console.WriteLine("----");
-                var watermark = document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Watermark");
+                var watermark = section0Header.AddWatermark(WordWatermarkStyle.Text, "Watermark");
                 watermark.Color = Color.Red;
 
                 // ColorHex normally returns hex colors, but for watermark it returns string as the underlying value is in string name, not hex
@@ -61,17 +64,19 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddParagraph("Section 1");
 
-                document.Sections[1].AddHeadersAndFooters();
-                document.Sections[1].Header!.Default.AddParagraph("Section 1 - In header");
-                document.Sections[1].Margins.Type = WordMargin.Narrow;
+                var section1 = document.Sections[1];
+                section1.AddHeadersAndFooters();
+                var section1Header = GetRequiredHeader(section1);
+                section1Header.AddParagraph("Section 1 - In header");
+                section1.Margins.Type = WordMargin.Narrow;
                 Console.WriteLine("----");
 
                 Console.WriteLine("Section 0 - Paragraphs Count: " + document.Sections[0].Header!.Default.Paragraphs.Count);
                 Console.WriteLine("Section 1 - Paragraphs Count: " + document.Sections[1].Header!.Default.Paragraphs.Count);
 
                 Console.WriteLine("----");
-                document.Sections[1].AddParagraph("Test");
-                document.Sections[1].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Draft");
+                section1.AddParagraph("Test");
+                section1Header.AddWatermark(WordWatermarkStyle.Text, "Draft");
 
                 Console.WriteLine(document.Sections[0].Margins.Left.Value);
                 Console.WriteLine(document.Sections[0].Margins.Right.Value);

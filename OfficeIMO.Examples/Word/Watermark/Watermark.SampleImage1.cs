@@ -16,8 +16,11 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Section 0");
                 document.AddHeadersAndFooters();
 
+                var section0 = document.Sections[0];
+                var section0Header = GetRequiredHeader(section0);
+
                 var imagePathToAdd = System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg");
-                var watermark = document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Image, imagePathToAdd);
+                var watermark = section0Header.AddWatermark(WordWatermarkStyle.Image, imagePathToAdd);
 
                 //Console.WriteLine(watermark.Height);
                 //Console.WriteLine(watermark.Width);
