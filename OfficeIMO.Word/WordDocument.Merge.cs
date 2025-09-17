@@ -37,7 +37,12 @@ namespace OfficeIMO.Word {
             Dictionary<int, int> abstractMap = new();
             if (srcNumbering != null) {
                 foreach (var abs in srcNumbering.Elements<AbstractNum>()) {
-                    int oldAbs = (int)abs.AbstractNumberId.Value;
+                    int? abstractIdValue = abs.AbstractNumberId?.Value;
+                    if (abstractIdValue == null) {
+                        continue;
+                    }
+
+                    int oldAbs = abstractIdValue.Value;
                     int newAbs = GetNextAbstractNumId(destNumbering);
                     abstractMap[oldAbs] = newAbs;
                     var cloneAbs = (AbstractNum)abs.CloneNode(true);
@@ -46,12 +51,18 @@ namespace OfficeIMO.Word {
                 }
 
                 foreach (var inst in srcNumbering.Elements<NumberingInstance>()) {
-                    int oldNum = (int)inst.NumberID.Value;
+                    int? numberIdValue = inst.NumberID?.Value;
+                    if (numberIdValue == null) {
+                        continue;
+                    }
+
+                    int oldNum = numberIdValue.Value;
                     int newNum = GetNextNumberingId(destNumbering);
                     var cloneInst = (NumberingInstance)inst.CloneNode(true);
                     cloneInst.NumberID = newNum;
                     var absId = cloneInst.GetFirstChild<AbstractNumId>();
-                    if (absId != null && abstractMap.TryGetValue((int)absId.Val.Value, out var mapped)) {
+                    int? absIdValue = absId?.Val?.Value;
+                    if (absIdValue != null && abstractMap.TryGetValue(absIdValue.Value, out var mapped)) {
                         absId.Val = mapped;
                     }
                     destNumbering.Append(cloneInst);
@@ -62,7 +73,8 @@ namespace OfficeIMO.Word {
             foreach (var element in srcMain.Document.Body.ChildElements) {
                 var clone = element.CloneNode(true);
                 foreach (var numId in clone.Descendants<NumberingId>()) {
-                    if (numMap.TryGetValue((int)numId.Val.Value, out var mapped)) {
+                    int? numberIdValue = numId.Val?.Value;
+                    if (numberIdValue != null && numMap.TryGetValue(numberIdValue.Value, out var mapped)) {
                         numId.Val = mapped;
                     }
                 }

@@ -21,10 +21,16 @@ namespace OfficeIMO.Word {
             NumberingDefinitionsPart? numberingPart = mainPart.NumberingDefinitionsPart;
             if (numberingPart?.Numbering != null) {
                 foreach (NumberingInstance instance in numberingPart.Numbering.Elements<NumberingInstance>()) {
-                    int id = instance.NumberID!.Value;
-                    int absId = instance.AbstractNumId!.Val!.Value;
+                    var numberIdValue = instance.NumberID?.Value;
+                    var abstractIdValue = instance.AbstractNumId?.Val?.Value;
+                    if (numberIdValue == null || abstractIdValue == null) {
+                        continue;
+                    }
+
+                    int id = numberIdValue.Value;
+                    int absId = abstractIdValue.Value;
                     AbstractNum? abs = numberingPart.Numbering.Elements<AbstractNum>()
-                        .FirstOrDefault(a => a.AbstractNumberId!.Value == absId);
+                        .FirstOrDefault(a => a.AbstractNumberId?.Value == absId);
                     bool ordered = true;
                     Level? lvl = abs?.Elements<Level>().FirstOrDefault(l => l.LevelIndex == 0);
                     NumberFormatValues? format = lvl?.NumberingFormat?.Val;
@@ -44,7 +50,7 @@ namespace OfficeIMO.Word {
         /// <param name="mainPart">Main document part.</param>
         public static bool IsBullet(Paragraph paragraph, MainDocumentPart mainPart) {
             var numProps = paragraph.ParagraphProperties?.NumberingProperties;
-            if (numProps?.NumberingId?.Val == null) {
+            if (numProps?.NumberingId?.Val?.Value == null) {
                 return false;
             }
             int numId = numProps.NumberingId.Val.Value;
@@ -59,7 +65,7 @@ namespace OfficeIMO.Word {
         /// <param name="mainPart">Main document part.</param>
         public static bool IsOrdered(Paragraph paragraph, MainDocumentPart mainPart) {
             var numProps = paragraph.ParagraphProperties?.NumberingProperties;
-            if (numProps?.NumberingId?.Val == null) {
+            if (numProps?.NumberingId?.Val?.Value == null) {
                 return false;
             }
             int numId = numProps.NumberingId.Val.Value;

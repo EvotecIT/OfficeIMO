@@ -21,9 +21,10 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the alias associated with this repeating section control.
         /// </summary>
-        public string Alias {
+        public string? Alias {
             get {
-                var sdtAlias = _sdtRun.SdtProperties.OfType<SdtAlias>().FirstOrDefault();
+                var properties = _sdtRun.SdtProperties;
+                var sdtAlias = properties?.OfType<SdtAlias>().FirstOrDefault();
                 return sdtAlias?.Val;
             }
         }
@@ -31,16 +32,22 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the tag value for this repeating section control.
         /// </summary>
-        public string Tag {
+        public string? Tag {
             get {
-                var tag = _sdtRun.SdtProperties.OfType<Tag>().FirstOrDefault();
+                var properties = _sdtRun.SdtProperties;
+                var tag = properties?.OfType<Tag>().FirstOrDefault();
                 return tag?.Val;
             }
             set {
-                var tag = _sdtRun.SdtProperties.OfType<Tag>().FirstOrDefault();
+                var properties = EnsureProperties();
+                var tag = properties.OfType<Tag>().FirstOrDefault();
+                if (value == null) {
+                    tag?.Remove();
+                    return;
+                }
                 if (tag == null) {
                     tag = new Tag();
-                    _sdtRun.SdtProperties.Append(tag);
+                    properties.Append(tag);
                 }
                 tag.Val = value;
             }
@@ -51,6 +58,13 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void Remove() {
             _sdtRun.Remove();
+        }
+
+        private SdtProperties EnsureProperties() {
+            if (_sdtRun.SdtProperties == null) {
+                _sdtRun.SdtProperties = new SdtProperties();
+            }
+            return _sdtRun.SdtProperties;
         }
     }
 }

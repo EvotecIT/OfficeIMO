@@ -325,7 +325,10 @@ namespace OfficeIMO.Word {
                     foreach (var cell in row.Cells) {
                         var paragraphs = cell.Paragraphs.Where(p => p.IsStructuredDocumentTag).ToList();
                         foreach (var paragraph in paragraphs) {
-                            list.Add(paragraph.StructuredDocumentTag);
+                            var structuredDocumentTag = paragraph.StructuredDocumentTag;
+                            if (structuredDocumentTag != null) {
+                                list.Add(structuredDocumentTag);
+                            }
                         }
                     }
                 }
@@ -343,7 +346,10 @@ namespace OfficeIMO.Word {
                     foreach (var cell in row.Cells) {
                         var paragraphs = cell.Paragraphs.Where(p => p.IsCheckBox).ToList();
                         foreach (var paragraph in paragraphs) {
-                            list.Add(paragraph.CheckBox);
+                            var checkBox = paragraph.CheckBox;
+                            if (checkBox != null) {
+                                list.Add(checkBox);
+                            }
                         }
                     }
                 }
@@ -360,7 +366,10 @@ namespace OfficeIMO.Word {
                     foreach (var cell in row.Cells) {
                         var paragraphs = cell.Paragraphs.Where(p => p.IsDatePicker).ToList();
                         foreach (var paragraph in paragraphs) {
-                            list.Add(paragraph.DatePicker);
+                            var datePicker = paragraph.DatePicker;
+                            if (datePicker != null) {
+                                list.Add(datePicker);
+                            }
                         }
                     }
                 }
@@ -378,7 +387,10 @@ namespace OfficeIMO.Word {
                     foreach (var cell in row.Cells) {
                         var paragraphs = cell.Paragraphs.Where(p => p.IsDropDownList).ToList();
                         foreach (var paragraph in paragraphs) {
-                            list.Add(paragraph.DropDownList);
+                            var dropDownList = paragraph.DropDownList;
+                            if (dropDownList != null) {
+                                list.Add(dropDownList);
+                            }
                         }
                     }
                 }
@@ -396,7 +408,10 @@ namespace OfficeIMO.Word {
                     foreach (var cell in row.Cells) {
                         var paragraphs = cell.Paragraphs.Where(p => p.IsRepeatingSection).ToList();
                         foreach (var paragraph in paragraphs) {
-                            list.Add(paragraph.RepeatingSection);
+                            var repeatingSection = paragraph.RepeatingSection;
+                            if (repeatingSection != null) {
+                                list.Add(repeatingSection);
+                            }
                         }
                     }
                 }
