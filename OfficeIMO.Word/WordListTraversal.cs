@@ -78,7 +78,15 @@ namespace OfficeIMO.Word {
 
             Dictionary<int, bool> listTypes = GetListTypes(document);
             Stack<(int numId, bool ordered)> listStack = new Stack<(int numId, bool ordered)>();
-            List<Paragraph> paragraphs = document.MainDocumentPart!.Document.Body!.Elements<Paragraph>().ToList();
+            var mainPart = document.MainDocumentPart ?? throw new InvalidOperationException("The document does not contain a main document part.");
+            var body = mainPart.Document?.Body;
+            if (body == null) {
+                yield break;
+            }
+
+            static bool CurrentOrdered(Stack<(int numId, bool ordered)> stack) => stack.Count > 0 && stack.Peek().ordered;
+
+            List<Paragraph> paragraphs = body.Elements<Paragraph>().ToList();
             int previousLevel = -1;
 
             foreach (Paragraph paragraph in paragraphs) {
@@ -99,12 +107,12 @@ namespace OfficeIMO.Word {
                             listStack.Push((numId, ordered));
                         }
                     } else {
-                        yield return new WordListEvent(WordListEventType.EndItem, null, listStack.Peek().ordered, previousLevel);
+                        yield return new WordListEvent(WordListEventType.EndItem, null, CurrentOrdered(listStack), previousLevel);
                         for (int lvl = previousLevel; lvl > level; lvl--) {
                             var closing = listStack.Pop();
                             yield return new WordListEvent(WordListEventType.EndList, null, closing.ordered, lvl);
                             if (listStack.Count > 0) {
-                                yield return new WordListEvent(WordListEventType.EndItem, null, listStack.Peek().ordered, lvl - 1);
+                                yield return new WordListEvent(WordListEventType.EndItem, null, CurrentOrdered(listStack), lvl - 1);
                             }
                         }
                         if (listStack.Count > 0 && listStack.Peek().numId != numId) {
@@ -118,38 +126,38 @@ namespace OfficeIMO.Word {
                             yield return new WordListEvent(WordListEventType.StartList, null, ordered, level);
                             listStack.Push((numId, ordered));
                         }
-                    }
-
-                    yield return new WordListEvent(WordListEventType.StartItem, paragraph, ordered, level);
-                    previousLevel = level;
-                    continue;
                 }
 
-                if (previousLevel != -1) {
-                    yield return new WordListEvent(WordListEventType.EndItem, null, listStack.Peek().ordered, previousLevel);
-                    while (listStack.Count > 0) {
-                        var closing = listStack.Pop();
-                        yield return new WordListEvent(WordListEventType.EndList, null, closing.ordered, previousLevel);
-                        if (listStack.Count > 0) {
-                            yield return new WordListEvent(WordListEventType.EndItem, null, listStack.Peek().ordered, previousLevel - 1);
-                        }
-                    }
-                    previousLevel = -1;
-                }
-
-                yield return new WordListEvent(WordListEventType.Paragraph, paragraph, false, 0);
+                yield return new WordListEvent(WordListEventType.StartItem, paragraph, ordered, level);
+                previousLevel = level;
+                continue;
             }
 
             if (previousLevel != -1) {
-                yield return new WordListEvent(WordListEventType.EndItem, null, listStack.Peek().ordered, previousLevel);
+                yield return new WordListEvent(WordListEventType.EndItem, null, CurrentOrdered(listStack), previousLevel);
                 while (listStack.Count > 0) {
                     var closing = listStack.Pop();
                     yield return new WordListEvent(WordListEventType.EndList, null, closing.ordered, previousLevel);
                     if (listStack.Count > 0) {
-                        yield return new WordListEvent(WordListEventType.EndItem, null, listStack.Peek().ordered, previousLevel - 1);
+                        yield return new WordListEvent(WordListEventType.EndItem, null, CurrentOrdered(listStack), previousLevel - 1);
                     }
                 }
+                previousLevel = -1;
             }
+
+            yield return new WordListEvent(WordListEventType.Paragraph, paragraph, false, 0);
+        }
+
+        if (previousLevel != -1) {
+            yield return new WordListEvent(WordListEventType.EndItem, null, CurrentOrdered(listStack), previousLevel);
+            while (listStack.Count > 0) {
+                var closing = listStack.Pop();
+                yield return new WordListEvent(WordListEventType.EndList, null, closing.ordered, previousLevel);
+                if (listStack.Count > 0) {
+                    yield return new WordListEvent(WordListEventType.EndItem, null, CurrentOrdered(listStack), previousLevel - 1);
+                }
+            }
+        }
         }
 
         /// <summary>
@@ -158,22 +166,38 @@ namespace OfficeIMO.Word {
         /// <param name="document">Document containing numbering definitions.</param>
         /// <returns>Dictionary mapping numbering IDs to <c>true</c> when ordered, <c>false</c> when bullet.</returns>
         private static Dictionary<int, bool> GetListTypes(WordprocessingDocument document) {
-            NumberingDefinitionsPart? numberingPart = document.MainDocumentPart!.NumberingDefinitionsPart;
             Dictionary<int, bool> listTypes = new Dictionary<int, bool>();
-            if (numberingPart?.Numbering != null) {
-                foreach (NumberingInstance instance in numberingPart.Numbering.Elements<NumberingInstance>()) {
-                    int id = instance.NumberID!.Value;
-                    int absId = instance.AbstractNumId!.Val!.Value;
-                    AbstractNum? abs = numberingPart.Numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId!.Value == absId);
-                    bool ordered = true;
-                    Level? lvl = abs?.Elements<Level>().FirstOrDefault(l => l.LevelIndex == 0);
-                    NumberFormatValues? format = lvl?.NumberingFormat?.Val;
-                    if (format == NumberFormatValues.Bullet) {
-                        ordered = false;
-                    }
-                    listTypes[id] = ordered;
-                }
+
+            var mainPart = document.MainDocumentPart;
+            var numberingPart = mainPart?.NumberingDefinitionsPart;
+            if (numberingPart?.Numbering == null) {
+                return listTypes;
             }
+
+            foreach (NumberingInstance instance in numberingPart.Numbering.Elements<NumberingInstance>()) {
+                if (instance.NumberID?.Value is not int id) {
+                    continue;
+                }
+
+                if (instance.AbstractNumId?.Val?.Value is not int absId) {
+                    continue;
+                }
+
+                AbstractNum? abs = numberingPart.Numbering.Elements<AbstractNum>()
+                    .FirstOrDefault(a => a.AbstractNumberId?.Value == absId);
+                if (abs == null) {
+                    continue;
+                }
+
+                bool ordered = true;
+                Level? lvl = abs.Elements<Level>().FirstOrDefault(l => l.LevelIndex?.Value == 0);
+                NumberFormatValues? format = lvl?.NumberingFormat?.Val?.Value;
+                if (format == NumberFormatValues.Bullet) {
+                    ordered = false;
+                }
+                listTypes[id] = ordered;
+            }
+
             return listTypes;
         }
     }
