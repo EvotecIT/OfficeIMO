@@ -1,5 +1,6 @@
 using System;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -22,31 +23,41 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddHeadersAndFooters();
 
+                var headers = Guard.NotNull(document.Header, "Document headers must exist after enabling headers.");
+                var defaultHeader = Guard.NotNull(headers.Default, "Default header must exist after enabling headers.");
+                var footers = Guard.NotNull(document.Footer, "Document footers must exist after enabling headers.");
+                var defaultFooter = Guard.NotNull(footers.Default, "Default footer must exist after enabling headers.");
+
                 Console.WriteLine("Images count: " + document.Images.Count);
 
-                document.Header!.Default.AddParagraph().AddImage(filePathImage, 734, 92);
-                document.Header!.Default.Paragraphs[0].SetFontFamily("Arial");
-                document.Header!.Default.Paragraphs[0].SetFontSize(7).Bold = false;
+                var headerParagraph = defaultHeader.AddParagraph();
+                headerParagraph.AddImage(filePathImage, 734, 92);
+
+                var firstHeaderParagraph = Guard.GetRequiredItem(defaultHeader.Paragraphs, 0, "Default header should expose the inserted paragraph.");
+                firstHeaderParagraph.SetFontFamily("Arial");
+                firstHeaderParagraph.SetFontSize(7).Bold = false;
 
                 Console.WriteLine("Images Count: " + document.Images.Count);
-                Console.WriteLine("Images in Header Count: " + document.Header!.Default.Images.Count);
+                Console.WriteLine("Images in Header Count: " + defaultHeader.Images.Count);
 
-                document.Footer!.Default.AddParagraph();
-                document.Footer!.Default.Paragraphs[0].SetFontFamily("Arial");
-                document.Footer!.Default.Paragraphs[0].SetFontSize(7).Bold = false;
-                document.Footer!.Default.Paragraphs[0].ParagraphAlignment = JustificationValues.Right;
-                document.Footer!.Default.Paragraphs[0].Text = "SMA.5.doc 04/10/19";
-                document.Footer!.Default.Paragraphs[0].LineSpacingAfter = 0;
-                document.Footer!.Default.Paragraphs[0].LineSpacingBefore = 0;
-                document.Footer!.Default.AddPageNumber(WordPageNumberStyle.PageNumberXofY);
+                defaultFooter.AddParagraph();
+                var firstFooterParagraph = Guard.GetRequiredItem(defaultFooter.Paragraphs, 0, "Default footer should expose the first paragraph after adding one.");
+                firstFooterParagraph.SetFontFamily("Arial");
+                firstFooterParagraph.SetFontSize(7).Bold = false;
+                firstFooterParagraph.ParagraphAlignment = JustificationValues.Right;
+                firstFooterParagraph.Text = "SMA.5.doc 04/10/19";
+                firstFooterParagraph.LineSpacingAfter = 0;
+                firstFooterParagraph.LineSpacingBefore = 0;
+                defaultFooter.AddPageNumber(WordPageNumberStyle.PageNumberXofY);
 
-                document.Footer!.Default.AddParagraph();
-                document.Footer!.Default.Paragraphs[1].SetFontFamily("Arial");
-                document.Footer!.Default.Paragraphs[1].SetFontSize(7).Bold = false;
-                document.Footer!.Default.Paragraphs[1].ParagraphAlignment = JustificationValues.Center;
-                document.Footer!.Default.Paragraphs[1].Text = "My address";
-                document.Footer!.Default.Paragraphs[1].LineSpacingAfter = 0;
-                document.Footer!.Default.Paragraphs[1].LineSpacingBefore = 0;
+                defaultFooter.AddParagraph();
+                var secondFooterParagraph = Guard.GetRequiredItem(defaultFooter.Paragraphs, 1, "Default footer should expose the second paragraph after adding two paragraphs.");
+                secondFooterParagraph.SetFontFamily("Arial");
+                secondFooterParagraph.SetFontSize(7).Bold = false;
+                secondFooterParagraph.ParagraphAlignment = JustificationValues.Center;
+                secondFooterParagraph.Text = "My address";
+                secondFooterParagraph.LineSpacingAfter = 0;
+                secondFooterParagraph.LineSpacingBefore = 0;
 
                 var par00 = document.AddParagraph("My text");
                 par00.ParagraphAlignment = JustificationValues.Left;
