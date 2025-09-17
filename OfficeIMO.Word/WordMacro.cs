@@ -44,7 +44,12 @@ namespace OfficeIMO.Word {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (!document.HasMacros) return new List<WordMacro>();
 
-            var vbaPart = document._wordprocessingDocument.MainDocumentPart.VbaProjectPart;
+            var mainPart = document._wordprocessingDocument.MainDocumentPart;
+            var vbaPart = mainPart?.VbaProjectPart;
+            if (vbaPart == null) {
+                return new List<WordMacro>();
+            }
+
             using var stream = vbaPart.GetStream();
             var names = Parser.GetModuleNames(stream);
             var modules = new List<WordMacro>(names.Count);
@@ -76,6 +81,10 @@ namespace OfficeIMO.Word {
             if (data == null || data.Length == 0) throw new ArgumentNullException(nameof(data));
 
             var main = document._wordprocessingDocument.MainDocumentPart;
+            if (main == null) {
+                throw new InvalidOperationException("The document does not contain a main document part.");
+            }
+
             if (main.VbaProjectPart != null) {
                 main.DeletePart(main.VbaProjectPart);
             }
@@ -91,7 +100,8 @@ namespace OfficeIMO.Word {
         /// <returns>Byte array with the macros or <c>null</c> when absent.</returns>
         internal static byte[] ExtractMacros(WordDocument document) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            var vbaPart = document._wordprocessingDocument.MainDocumentPart.VbaProjectPart;
+            var mainPart = document._wordprocessingDocument.MainDocumentPart;
+            var vbaPart = mainPart?.VbaProjectPart;
             if (vbaPart == null) return null;
             using var ms = new MemoryStream();
             using var partStream = vbaPart.GetStream();
@@ -121,7 +131,12 @@ namespace OfficeIMO.Word {
             if (string.IsNullOrEmpty(name)) throw new ArgumentNullException(nameof(name));
             if (!document.HasMacros) return;
 
-            var vbaPart = document._wordprocessingDocument.MainDocumentPart.VbaProjectPart;
+            var mainPart = document._wordprocessingDocument.MainDocumentPart;
+            var vbaPart = mainPart?.VbaProjectPart;
+            if (vbaPart == null) {
+                return;
+            }
+
             using var ms = new MemoryStream();
             using (var partStream = vbaPart.GetStream()) {
                 partStream.CopyTo(ms);
@@ -146,18 +161,20 @@ namespace OfficeIMO.Word {
         internal static void RemoveMacros(WordDocument document) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             var main = document._wordprocessingDocument.MainDocumentPart;
-            if (main.VbaProjectPart != null) {
-                var vbaUri = main.VbaProjectPart.Uri;
-                var packageProp = document._wordprocessingDocument.GetType().GetProperty("Package", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                if (packageProp?.GetValue(document._wordprocessingDocument) is Package package) {
-                    foreach (var rel in package.GetRelationshipsByType("http://schemas.microsoft.com/office/2006/relationships/vbaProject").ToList()) {
-                        if (rel.TargetUri == vbaUri) {
-                            package.DeleteRelationship(rel.Id);
-                        }
+            if (main?.VbaProjectPart == null) {
+                return;
+            }
+
+            var vbaUri = main.VbaProjectPart.Uri;
+            var packageProp = document._wordprocessingDocument.GetType().GetProperty("Package", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (packageProp?.GetValue(document._wordprocessingDocument) is Package package) {
+                foreach (var rel in package.GetRelationshipsByType("http://schemas.microsoft.com/office/2006/relationships/vbaProject").ToList()) {
+                    if (rel.TargetUri == vbaUri) {
+                        package.DeleteRelationship(rel.Id);
                     }
                 }
-                main.DeletePart(main.VbaProjectPart);
             }
+            main.DeletePart(main.VbaProjectPart);
         }
 
         /// <summary>

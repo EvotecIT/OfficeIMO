@@ -472,7 +472,7 @@ namespace OfficeIMO.Word {
             // Get properties defensively
             TableLayoutValues? layoutType = null;
             TableWidthUnitValues? widthType = null;
-            string widthValue = null;
+            string? widthValue = null;
 
             if (_tableProperties != null) {
                 if (_tableProperties.TableLayout != null && _tableProperties.TableLayout.Type != null) {
