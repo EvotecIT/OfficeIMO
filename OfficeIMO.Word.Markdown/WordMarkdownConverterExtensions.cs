@@ -12,9 +12,9 @@ namespace OfficeIMO.Word.Markdown {
     /// </summary>
     public static class WordMarkdownConverterExtensions {
         /// <summary>
-        /// Saves the document as a Markdown file at the specified path.
+        /// Synchronously saves the document as a Markdown file at the specified path.
         /// </summary>
-        /// <param name="document">Document to convert.</param>
+        /// <param name="document">The <see cref="WordDocument"/> to convert to Markdown.</param>
         /// <param name="path">Destination file path.</param>
         /// <param name="options">Optional conversion options.</param>
         public static void SaveAsMarkdown(this WordDocument document, string path, WordToMarkdownOptions? options = null) {
@@ -22,9 +22,9 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         /// <summary>
-        /// Saves the document as Markdown to the provided stream.
+        /// Synchronously saves the document as Markdown to the provided stream.
         /// </summary>
-        /// <param name="document">Document to convert.</param>
+        /// <param name="document">The <see cref="WordDocument"/> to convert to Markdown.</param>
         /// <param name="stream">Target stream.</param>
         /// <param name="options">Optional conversion options.</param>
         public static void SaveAsMarkdown(this WordDocument document, Stream stream, WordToMarkdownOptions? options = null) {
@@ -34,10 +34,11 @@ namespace OfficeIMO.Word.Markdown {
         /// <summary>
         /// Asynchronously saves the document as a Markdown file at the specified path.
         /// </summary>
-        /// <param name="document">Document to convert.</param>
+        /// <param name="document">The <see cref="WordDocument"/> to convert to Markdown.</param>
         /// <param name="path">Destination file path.</param>
         /// <param name="options">Optional conversion options.</param>
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+        /// <returns>A task representing the asynchronous save operation.</returns>
         public static async Task SaveAsMarkdownAsync(this WordDocument document, string path, WordToMarkdownOptions? options = null, CancellationToken cancellationToken = default) {
             options ??= new WordToMarkdownOptions();
             if (options.ImageExportMode == ImageExportMode.File && string.IsNullOrEmpty(options.ImageDirectory)) {
@@ -55,10 +56,11 @@ namespace OfficeIMO.Word.Markdown {
         /// <summary>
         /// Asynchronously saves the document as Markdown to the provided stream.
         /// </summary>
-        /// <param name="document">Document to convert.</param>
+        /// <param name="document">The <see cref="WordDocument"/> to convert to Markdown.</param>
         /// <param name="stream">Target stream.</param>
         /// <param name="options">Optional conversion options.</param>
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+        /// <returns>A task representing the asynchronous save operation.</returns>
         public static async Task SaveAsMarkdownAsync(this WordDocument document, Stream stream, WordToMarkdownOptions? options = null, CancellationToken cancellationToken = default) {
             options ??= new WordToMarkdownOptions();
             var markdown = await document.ToMarkdownAsync(options, cancellationToken).ConfigureAwait(false);
