@@ -138,6 +138,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies bold font to a single cell.
         /// </summary>
+        /// <param name="row">The 1-based row index of the cell to modify.</param>
+        /// <param name="column">The 1-based column index of the cell to modify.</param>
+        /// <param name="bold">Whether the font should be bold (true) or regular (false).</param>
         public void CellBold(int row, int column, bool bold = true)
         {
             WriteLockConditional(() =>
@@ -150,6 +153,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies solid background to a single cell. Accepts #RRGGBB or #AARRGGBB.
         /// </summary>
+        /// <param name="row">The 1-based row index of the cell to fill.</param>
+        /// <param name="column">The 1-based column index of the cell to fill.</param>
+        /// <param name="hexColor">The background color expressed as an ARGB or RGB hex string.</param>
         public void CellBackground(int row, int column, string hexColor)
         {
             if (string.IsNullOrWhiteSpace(hexColor)) return;
@@ -163,6 +169,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies solid background to a single cell using SixLabors color.
         /// </summary>
+        /// <param name="row">The 1-based row index of the cell to fill.</param>
+        /// <param name="column">The 1-based column index of the cell to fill.</param>
+        /// <param name="color">The <see cref="SixLabors.ImageSharp.Color"/> to convert to a hex value.</param>
         public void CellBackground(int row, int column, SixLabors.ImageSharp.Color color)
         {
             var argb = OfficeIMO.Excel.ExcelColor.ToArgbHex(color);
@@ -203,6 +212,10 @@ namespace OfficeIMO.Excel {
         /// Tries to read the display text of a cell at the given position.
         /// Returns false if the cell is blank or out of bounds.
         /// </summary>
+        /// <param name="row">The 1-based row index of the cell to inspect.</param>
+        /// <param name="column">The 1-based column index of the cell to inspect.</param>
+        /// <param name="text">When this method returns, contains the extracted cell text if successful; otherwise, an empty string.</param>
+        /// <returns><see langword="true"/> if text was read successfully; otherwise, <see langword="false"/>.</returns>
         public bool TryGetCellText(int row, int column, out string text)
         {
             text = string.Empty;
@@ -305,6 +318,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Enables WrapText for every cell in a column within a given row range.
         /// </summary>
+        /// <param name="fromRow">The first 1-based row index in the range.</param>
+        /// <param name="toRow">The last 1-based row index in the range.</param>
+        /// <param name="column">The 1-based column index whose cells should wrap.</param>
         public void WrapCells(int fromRow, int toRow, int column)
         {
             if (fromRow < 1 || toRow < fromRow || column < 1) return;
@@ -321,6 +337,10 @@ namespace OfficeIMO.Excel {
         /// Enables WrapText for the specified column and pins the target column width (in Excel character units).
         /// Useful when mixed with auto-fit operations so wrapped columns keep a predictable width.
         /// </summary>
+        /// <param name="fromRow">The first 1-based row index in the range.</param>
+        /// <param name="toRow">The last 1-based row index in the range.</param>
+        /// <param name="column">The 1-based column index whose cells should wrap.</param>
+        /// <param name="targetColumnWidth">The column width, in Excel character units, to enforce when wrapping.</param>
         public void WrapCells(int fromRow, int toRow, int column, double targetColumnWidth)
         {
             WrapCells(fromRow, toRow, column);
@@ -333,6 +353,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies a horizontal alignment to a single cell.
         /// </summary>
+        /// <param name="row">The 1-based row index of the cell to align.</param>
+        /// <param name="column">The 1-based column index of the cell to align.</param>
+        /// <param name="alignment">The horizontal alignment value to apply.</param>
         public void CellAlign(int row, int column, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues alignment)
         {
             WriteLockConditional(() =>
@@ -394,6 +417,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies a font color (ARGB hex or #RRGGBB) to a single cell.
         /// </summary>
+        /// <param name="row">The 1-based row index of the cell to recolor.</param>
+        /// <param name="column">The 1-based column index of the cell to recolor.</param>
+        /// <param name="hexColor">The desired font color expressed as an ARGB or RGB hex string.</param>
         public void CellFontColor(int row, int column, string hexColor)
         {
             if (string.IsNullOrWhiteSpace(hexColor)) return;
