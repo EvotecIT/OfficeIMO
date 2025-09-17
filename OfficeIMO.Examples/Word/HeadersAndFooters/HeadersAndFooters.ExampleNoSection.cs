@@ -18,15 +18,35 @@ namespace OfficeIMO.Examples.Word {
                 document.AddHeadersAndFooters();
                 document.DifferentOddAndEvenPages = true;
 
+                WordHeaders RequireHeaders(WordHeaders? headers, string description) {
+                    if (headers == null) {
+                        throw new InvalidOperationException($"{description} are not available.");
+                    }
+
+                    return headers;
+                }
+
+                WordHeader RequireHeader(WordHeader? header, string description) {
+                    if (header == null) {
+                        throw new InvalidOperationException($"{description} is not available.");
+                    }
+
+                    return header;
+                }
+
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
-                var paragraphInHeaderO = document.Header!.Default.AddParagraph();
+                var headers = RequireHeaders(document.Header, "Document headers");
+                var defaultHeader = RequireHeader(headers.Default, "Default header");
+                var evenHeader = RequireHeader(headers.Even, "Even header");
+
+                var paragraphInHeaderO = defaultHeader.AddParagraph();
                 paragraphInHeaderO.Text = "Odd Header / Section 0";
 
-                var paragraphInHeaderE = document.Header!.Even.AddParagraph();
+                var paragraphInHeaderE = evenHeader.AddParagraph();
                 paragraphInHeaderE.Text = "Even Header / Section 0";
 
                 document.AddPageBreak();
