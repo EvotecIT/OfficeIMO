@@ -1430,7 +1430,8 @@ namespace OfficeIMO.Word {
                         throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
                     }
 
-                    using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite);
+                    // Allow concurrent readers (other tests may have opened the sample file with Read/ReadWrite sharing)
+                    using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete);
                     using (var clone = this._wordprocessingDocument.Clone(fs)) {
                         CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                     }
@@ -1505,7 +1506,7 @@ namespace OfficeIMO.Word {
                     throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
                 }
 
-                using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite);
+                using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete);
                 using (var clone = _wordprocessingDocument.Clone(fs)) {
                     CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                 }
@@ -1619,7 +1620,7 @@ namespace OfficeIMO.Word {
                         }
                     }
 
-                    using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous)) {
+                    using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.Asynchronous)) {
                         using (var clone = this._wordprocessingDocument.Clone(fs)) {
                             CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                         }
