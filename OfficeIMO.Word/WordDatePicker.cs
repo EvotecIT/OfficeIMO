@@ -14,9 +14,9 @@ namespace OfficeIMO.Word {
         internal readonly SdtRun _sdtRun;
 
         internal WordDatePicker(WordDocument document, Paragraph paragraph, SdtRun sdtRun) {
-            _document = document;
-            _paragraph = paragraph;
-            _sdtRun = sdtRun;
+            _document = document ?? throw new ArgumentNullException(nameof(document));
+            _paragraph = paragraph ?? throw new ArgumentNullException(nameof(paragraph));
+            _sdtRun = sdtRun ?? throw new ArgumentNullException(nameof(sdtRun));
         }
 
         /// <summary>
@@ -31,10 +31,11 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-                var dp = _sdtRun.SdtProperties.Elements<SdtContentDate>().FirstOrDefault();
+                var properties = EnsureProperties();
+                var dp = properties.Elements<SdtContentDate>().FirstOrDefault();
                 if (dp == null) {
                     dp = new SdtContentDate();
-                    _sdtRun.SdtProperties.Append(dp);
+                    properties.Append(dp);
                 }
                 dp.FullDate = value.HasValue ? new DateTimeValue(value.Value) : null;
             }
@@ -43,9 +44,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the alias associated with this date picker control.
         /// </summary>
-        public string Alias {
+        public string? Alias {
             get {
-                var sdtAlias = _sdtRun.SdtProperties.OfType<SdtAlias>().FirstOrDefault();
+                var sdtAlias = _sdtRun.SdtProperties?.OfType<SdtAlias>().FirstOrDefault();
                 return sdtAlias?.Val;
             }
         }
@@ -53,16 +54,17 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the tag value for this date picker control.
         /// </summary>
-        public string Tag {
+        public string? Tag {
             get {
-                var tag = _sdtRun.SdtProperties.OfType<Tag>().FirstOrDefault();
+                var tag = _sdtRun.SdtProperties?.OfType<Tag>().FirstOrDefault();
                 return tag?.Val;
             }
             set {
-                var tag = _sdtRun.SdtProperties.OfType<Tag>().FirstOrDefault();
+                var properties = EnsureProperties();
+                var tag = properties.OfType<Tag>().FirstOrDefault();
                 if (tag == null) {
                     tag = new Tag();
-                    _sdtRun.SdtProperties.Append(tag);
+                    properties.Append(tag);
                 }
                 tag.Val = value;
             }
@@ -73,6 +75,16 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void Remove() {
             _sdtRun.Remove();
+        }
+
+        private SdtProperties EnsureProperties() {
+            var properties = _sdtRun.SdtProperties;
+            if (properties == null) {
+                properties = new SdtProperties();
+                _sdtRun.SdtProperties = properties;
+            }
+
+            return properties;
         }
     }
 }
