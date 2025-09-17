@@ -99,8 +99,10 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Returns the text of the node at the given index (0-based).
+        /// Returns the text of the node at the specified 0-based index.
         /// </summary>
+        /// <param name="index">The 0-based position of the SmartArt node whose text should be retrieved.</param>
+        /// <returns>The concatenated text content of the targeted node, or an empty string when the node has no text.</returns>
         public string GetNodeText(int index) {
             var (xdoc, ns, paras) = LoadNodeParagraphs();
             if (index < 0 || index >= paras.Count) throw new ArgumentOutOfRangeException(nameof(index));
@@ -111,8 +113,10 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Sets the text of the node at the given index (0-based). Preserves end paragraph run properties.
+        /// Sets the text of the node at the specified 0-based index while preserving the paragraph end run properties.
         /// </summary>
+        /// <param name="index">The 0-based position of the SmartArt node whose content should be replaced.</param>
+        /// <param name="text">The replacement text to apply to the node.</param>
         public void SetNodeText(int index, string text) {
             var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
             if (index < 0 || index >= paras.Count) throw new ArgumentOutOfRangeException(nameof(index));
@@ -121,9 +125,10 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Replaces texts of all nodes in order. If more texts provided than nodes, extras are ignored.
-        /// If fewer texts provided, remaining nodes are left unchanged.
+        /// Replaces node texts sequentially starting at index 0.
+        /// If more texts are provided than nodes, extras are ignored. If fewer texts are provided, remaining nodes are left unchanged.
         /// </summary>
+        /// <param name="texts">The ordered replacement strings to apply to each node in turn.</param>
         public void ReplaceTexts(IEnumerable<string> texts) {
             var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
             int i = 0;
@@ -136,14 +141,21 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Convenience overload for replacing texts.
+        /// Convenience overload for replacing node texts sequentially using a parameter array.
         /// </summary>
+        /// <param name="texts">The ordered replacement strings to apply to each node in turn.</param>
         public void ReplaceTexts(params string[] texts) => ReplaceTexts((IEnumerable<string>)texts);
 
         /// <summary>
-        /// Replaces texts of all nodes with optional formatting applied uniformly to each replacement.
-        /// If more texts are provided than nodes, extras are ignored. If fewer, remaining nodes are unchanged.
+        /// Replaces node texts sequentially while applying the same formatting to every replacement value.
+        /// If more texts are provided than nodes, extras are ignored. If fewer are provided, remaining nodes are unchanged.
         /// </summary>
+        /// <param name="texts">The ordered replacement strings to apply to each node in turn.</param>
+        /// <param name="bold">True to render each replacement in bold; otherwise false.</param>
+        /// <param name="italic">True to render each replacement in italics; otherwise false.</param>
+        /// <param name="underline">True to underline each replacement; otherwise false.</param>
+        /// <param name="colorHex">An optional RGB color value (for example, "FF0000") applied to each replacement, or <c>null</c> to keep the existing color.</param>
+        /// <param name="sizePt">An optional font size in points applied to each replacement, or <c>null</c> to keep the existing size.</param>
         public void ReplaceTexts(IEnumerable<string> texts, bool bold, bool italic, bool underline, string? colorHex = null, double? sizePt = null) {
             var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
             int i = 0;
@@ -156,14 +168,24 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Convenience overload to apply formatting to each provided text.
+        /// Convenience overload that applies the specified formatting to each provided replacement string.
         /// </summary>
+        /// <param name="bold">True to render each replacement in bold; otherwise false.</param>
+        /// <param name="italic">True to render each replacement in italics; otherwise false.</param>
+        /// <param name="underline">True to underline each replacement; otherwise false.</param>
+        /// <param name="colorHex">An optional RGB color value (for example, "FF0000") applied to each replacement, or <c>null</c> to keep the existing color.</param>
+        /// <param name="sizePt">An optional font size in points applied to each replacement, or <c>null</c> to keep the existing size.</param>
+        /// <param name="texts">The ordered replacement strings to apply to each node in turn.</param>
         public void ReplaceTexts(bool bold, bool italic, bool underline, string? colorHex = null, double? sizePt = null, params string[] texts)
             => ReplaceTexts((IEnumerable<string>)texts, bold, italic, underline, colorHex, sizePt);
 
         /// <summary>
-        /// Sets node text with optional basic formatting and newline support.
+        /// Sets the text of the node at the specified 0-based index while applying basic formatting options.
         /// </summary>
+        /// <param name="index">The 0-based position of the SmartArt node whose content should be replaced.</param>
+        /// <param name="text">The replacement text to apply to the node.</param>
+        /// <param name="bold">True to render the new text in bold; otherwise false.</param>
+        /// <param name="italic">True to render the new text in italics; otherwise false.</param>
         public void SetNodeText(int index, string text, bool bold, bool italic) {
             var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
             if (index < 0 || index >= paras.Count) throw new ArgumentOutOfRangeException(nameof(index));
@@ -172,8 +194,15 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Sets the text of the node with extended formatting.
+        /// Sets the text of the node at the specified 0-based index while applying extended formatting options.
         /// </summary>
+        /// <param name="index">The 0-based position of the SmartArt node whose content should be replaced.</param>
+        /// <param name="text">The replacement text to apply to the node.</param>
+        /// <param name="bold">True to render the new text in bold; otherwise false.</param>
+        /// <param name="italic">True to render the new text in italics; otherwise false.</param>
+        /// <param name="underline">True to underline the new text; otherwise false.</param>
+        /// <param name="colorHex">An optional RGB color value (for example, "FF0000") applied to the new text, or <c>null</c> to keep the existing color.</param>
+        /// <param name="sizePt">An optional font size in points applied to the new text, or <c>null</c> to keep the existing size.</param>
         public void SetNodeText(int index, string text, bool bold, bool italic, bool underline, string? colorHex, double? sizePt) {
             var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
             if (index < 0 || index >= paras.Count) throw new ArgumentOutOfRangeException(nameof(index));
