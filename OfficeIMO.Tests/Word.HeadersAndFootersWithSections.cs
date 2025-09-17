@@ -255,26 +255,32 @@ namespace OfficeIMO.Tests {
                 GetDocumentDefaultHeader(document, "document default header").AddParagraph().SetText("Test Section 0 - Header");
                 GetDocumentDefaultFooter(document, "document default footer").AddParagraph().SetText("Test Section 0 - Footer");
 
-                Assert.Null(GetDocumentHeaders(document, "document headers state").First);
-                Assert.Null(GetDocumentFooters(document, "document footers state").First);
+                var documentHeaders = GetDocumentHeaders(document, "document headers state before first header creation");
+                Assert.Null(documentHeaders.First);
+                var documentFooters = GetDocumentFooters(document, "document footers state before first footer creation");
+                Assert.Null(documentFooters.First);
 
                 document.DifferentFirstPage = true;
 
-                Assert.NotNull(GetDocumentHeaders(document, "document headers state").First);
-                Assert.NotNull(GetDocumentFooters(document, "document footers state").First);
-                GetDocumentFirstHeader(document, "document first header").AddParagraph().SetText("Test Section 0 - First Header");
-                GetDocumentFirstFooter(document, "document first footer").AddParagraph().SetText("Test Section 0 - First Footer");
+                var documentFirstHeader = GetDocumentFirstHeader(document, "document first header after enabling DifferentFirstPage");
+                var documentFirstFooter = GetDocumentFirstFooter(document, "document first footer after enabling DifferentFirstPage");
+                Assert.NotNull(documentFirstHeader);
+                Assert.NotNull(documentFirstFooter);
+                documentFirstHeader.AddParagraph().SetText("Test Section 0 - First Header");
+                documentFirstFooter.AddParagraph().SetText("Test Section 0 - First Footer");
 
-                Assert.Null(GetDocumentHeaders(document, "document headers state").Even);
-                Assert.Null(GetDocumentFooters(document, "document footers state").Even);
+                Assert.Null(documentHeaders.Even);
+                Assert.Null(documentFooters.Even);
 
                 document.DifferentOddAndEvenPages = true;
 
-                Assert.NotNull(GetDocumentHeaders(document, "document headers state").Even);
-                Assert.NotNull(GetDocumentFooters(document, "document footers state").Even);
+                var documentEvenHeader = GetDocumentEvenHeader(document, "document even header after enabling DifferentOddAndEvenPages");
+                var documentEvenFooter = GetDocumentEvenFooter(document, "document even footer after enabling DifferentOddAndEvenPages");
+                Assert.NotNull(documentEvenHeader);
+                Assert.NotNull(documentEvenFooter);
 
-                GetDocumentEvenHeader(document, "document even header").AddParagraph().SetText("Test Section 0 - Header Even");
-                GetDocumentEvenFooter(document, "document even footer").AddParagraph().SetText("Test Section 0 - Footer Even");
+                documentEvenHeader.AddParagraph().SetText("Test Section 0 - Header Even");
+                documentEvenFooter.AddParagraph().SetText("Test Section 0 - Footer Even");
 
                 Assert.True(GetParagraphAt(GetDocumentDefaultHeader(document, "document default header").Paragraphs, 0, "document default header paragraphs").Text == "Test Section 0 - Header");
                 Assert.True(GetParagraphAt(GetDocumentDefaultFooter(document, "document default footer").Paragraphs, 0, "document default footer paragraphs").Text == "Test Section 0 - Footer");
@@ -350,31 +356,37 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs.Count == 1, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 2, "Number of sections during creation is wrong.");
 
-                Assert.Null(GetSectionHeaders(document, 1, "section 1 headers state").Default);
-                Assert.Null(GetSectionFooters(document, 1, "section 1 footers state").Default);
-                Assert.Null(GetSectionHeaders(document, 1, "section 1 headers state").First);
-                Assert.Null(GetSectionFooters(document, 1, "section 1 footers state").First);
-                Assert.Null(GetSectionHeaders(document, 1, "section 1 headers state").Even);
-                Assert.Null(GetSectionFooters(document, 1, "section 1 footers state").Even);
+                var section1Headers = GetSectionHeaders(document, 1, "section 1 headers state after reload");
+                Assert.Null(section1Headers.Default);
+                Assert.Null(section1Headers.First);
+                Assert.Null(section1Headers.Even);
+                var section1Footers = GetSectionFooters(document, 1, "section 1 footers state after reload");
+                Assert.Null(section1Footers.Default);
+                Assert.Null(section1Footers.First);
+                Assert.Null(section1Footers.Even);
 
-                document.AddSection();
-                document.Sections[2].PageOrientation = PageOrientationValues.Landscape;
+                var section2 = document.AddSection();
+                section2.PageOrientation = PageOrientationValues.Landscape;
 
-                Assert.Null(GetSectionHeaders(document, 2, "section 2 headers state").Default);
-                Assert.Null(GetSectionFooters(document, 2, "section 2 footers state").Default);
-                Assert.Null(GetSectionHeaders(document, 2, "section 2 headers state").First);
-                Assert.Null(GetSectionFooters(document, 2, "section 2 footers state").First);
-                Assert.Null(GetSectionHeaders(document, 2, "section 2 headers state").Even);
-                Assert.Null(GetSectionFooters(document, 2, "section 2 footers state").Even);
+                var section2Headers = GetSectionHeaders(section2, "section 2 headers state prior to AddHeadersAndFooters");
+                Assert.Null(section2Headers.Default);
+                Assert.Null(section2Headers.First);
+                Assert.Null(section2Headers.Even);
+                var section2Footers = GetSectionFooters(section2, "section 2 footers state prior to AddHeadersAndFooters");
+                Assert.Null(section2Footers.Default);
+                Assert.Null(section2Footers.First);
+                Assert.Null(section2Footers.Even);
 
-                document.Sections[2].AddHeadersAndFooters();
+                section2.AddHeadersAndFooters();
 
-                Assert.NotNull(GetSectionHeaders(document, 2, "section 2 headers state").Default);
-                Assert.NotNull(GetSectionFooters(document, 2, "section 2 footers state").Default);
-                Assert.Null(GetSectionHeaders(document, 2, "section 2 headers state").First);
-                Assert.Null(GetSectionFooters(document, 2, "section 2 footers state").First);
-                Assert.Null(GetSectionHeaders(document, 2, "section 2 headers state").Even);
-                Assert.Null(GetSectionFooters(document, 2, "section 2 footers state").Even);
+                var section2DefaultHeader = GetSectionDefaultHeader(section2, "section 2 default header after AddHeadersAndFooters");
+                var section2DefaultFooter = GetSectionDefaultFooter(section2, "section 2 default footer after AddHeadersAndFooters");
+                Assert.NotNull(section2DefaultHeader);
+                Assert.NotNull(section2DefaultFooter);
+                Assert.Null(section2Headers.First);
+                Assert.Null(section2Footers.First);
+                Assert.Null(section2Headers.Even);
+                Assert.Null(section2Footers.Even);
 
                 document.Save();
             }
@@ -386,14 +398,17 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(GetSectionDefaultHeader(document, 2, "section 2 default header").Paragraphs.Count == 1);
 
-                document.AddSection();
-                document.Sections[3].AddHeadersAndFooters();
-                document.Sections[3].PageOrientation = PageOrientationValues.Landscape;
+                var newSection3 = document.AddSection();
+                newSection3.AddHeadersAndFooters();
+                newSection3.PageOrientation = PageOrientationValues.Landscape;
 
-                document.Sections[1].AddHeadersAndFooters();
-                document.Sections[1].DifferentOddAndEvenPages = true;
+                var updatedSection1 = document.Sections[1];
+                updatedSection1.AddHeadersAndFooters();
+                updatedSection1.DifferentOddAndEvenPages = true;
 
-                GetSectionEvenFooter(document, 1, "section 1 even footer").AddParagraph().SetText("Test Section 1 - Even");
+                var section1EvenFooter = GetSectionEvenFooter(updatedSection1, "section 1 even footer after enabling DifferentOddAndEvenPages");
+                Assert.NotNull(section1EvenFooter);
+                section1EvenFooter.AddParagraph().SetText("Test Section 1 - Even");
 
                 Assert.True(document.Sections.Count == 4, "Number of sections during creation is wrong.");
 
@@ -404,26 +419,36 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs.Count == 1, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 4, "Number of sections during creation is wrong.");
 
-                Assert.NotNull(GetSectionHeaders(document, 3, "section 3 headers state").Default);
-                Assert.NotNull(GetSectionFooters(document, 3, "section 3 footers state").Default);
-                Assert.Null(GetSectionHeaders(document, 3, "section 3 headers state").First);
-                Assert.Null(GetSectionFooters(document, 3, "section 3 footers state").First);
-                Assert.Null(GetSectionHeaders(document, 3, "section 3 headers state").Even);
-                Assert.Null(GetSectionFooters(document, 3, "section 3 footers state").Even);
+                var section3 = document.Sections[3];
+                var section3Headers = GetSectionHeaders(section3, "section 3 headers state before enabling page differences");
+                Assert.NotNull(section3Headers.Default);
+                Assert.Null(section3Headers.First);
+                Assert.Null(section3Headers.Even);
+                var section3Footers = GetSectionFooters(section3, "section 3 footers state before enabling page differences");
+                Assert.NotNull(section3Footers.Default);
+                Assert.Null(section3Footers.First);
+                Assert.Null(section3Footers.Even);
 
-                document.Sections[3].DifferentFirstPage = true;
-                document.Sections[3].DifferentOddAndEvenPages = true;
+                section3.DifferentFirstPage = true;
+                section3.DifferentOddAndEvenPages = true;
 
-                GetSectionDefaultHeader(document, 3, "section 3 default header").AddParagraph().SetText("Test Section 0 - Header");
-                GetSectionFirstHeader(document, 3, "section 3 first header").AddParagraph().SetText("Test Section 0 - First Header");
-                GetSectionEvenHeader(document, 3, "section 3 even header").AddParagraph().SetText("Test Section 0 - Even");
+                var section3DefaultHeader = GetSectionDefaultHeader(section3, "section 3 default header after enabling page differences");
+                var section3FirstHeader = GetSectionFirstHeader(section3, "section 3 first header after enabling page differences");
+                var section3EvenHeader = GetSectionEvenHeader(section3, "section 3 even header after enabling page differences");
+                var section3DefaultFooter = GetSectionDefaultFooter(section3, "section 3 default footer after enabling page differences");
+                var section3FirstFooter = GetSectionFirstFooter(section3, "section 3 first footer after enabling page differences");
+                var section3EvenFooter = GetSectionEvenFooter(section3, "section 3 even footer after enabling page differences");
 
-                Assert.NotNull(GetSectionHeaders(document, 3, "section 3 headers state").Default);
-                Assert.NotNull(GetSectionFooters(document, 3, "section 3 footers state").Default);
-                Assert.NotNull(GetSectionHeaders(document, 3, "section 3 headers state").First);
-                Assert.NotNull(GetSectionFooters(document, 3, "section 3 footers state").First);
-                Assert.NotNull(GetSectionHeaders(document, 3, "section 3 headers state").Even);
-                Assert.NotNull(GetSectionFooters(document, 3, "section 3 footers state").Even);
+                Assert.NotNull(section3DefaultHeader);
+                Assert.NotNull(section3FirstHeader);
+                Assert.NotNull(section3EvenHeader);
+                Assert.NotNull(section3DefaultFooter);
+                Assert.NotNull(section3FirstFooter);
+                Assert.NotNull(section3EvenFooter);
+
+                section3DefaultHeader.AddParagraph().SetText("Test Section 0 - Header");
+                section3FirstHeader.AddParagraph().SetText("Test Section 0 - First Header");
+                section3EvenHeader.AddParagraph().SetText("Test Section 0 - Even");
 
 
                 Assert.True(GetParagraphAt(GetSectionDefaultHeader(document, 2, "section 2 default header").Paragraphs, 0, "section 2 default header paragraphs").Text == "Test Section 0 - Header");
@@ -463,10 +488,25 @@ namespace OfficeIMO.Tests {
                 section3.AddHeadersAndFooters();
                 section3.DifferentOddAndEvenPages = true;
                 section3.DifferentFirstPage = true;
-                GetSectionDefaultHeader(section3, "section3 default header").AddParagraph().AddText("Section 3 - Header Odd/Default");
-                GetSectionDefaultFooter(section3, "section3 default footer").AddParagraph().AddText("Section 3 - Footer Odd/Default");
-                GetSectionEvenHeader(section3, "section3 even header").AddParagraph().AddText("Section 3 - Header Even");
-                GetSectionEvenFooter(section3, "section3 even footer").AddParagraph().AddText("Section 3 - Footer Even");
+
+                var section3DefaultHeader = GetSectionDefaultHeader(section3, "section3 default header after enabling page differences");
+                var section3DefaultFooter = GetSectionDefaultFooter(section3, "section3 default footer after enabling page differences");
+                var section3EvenHeader = GetSectionEvenHeader(section3, "section3 even header after enabling page differences");
+                var section3EvenFooter = GetSectionEvenFooter(section3, "section3 even footer after enabling page differences");
+                var section3FirstHeader = GetSectionFirstHeader(section3, "section3 first header after enabling page differences");
+                var section3FirstFooter = GetSectionFirstFooter(section3, "section3 first footer after enabling page differences");
+
+                Assert.NotNull(section3DefaultHeader);
+                Assert.NotNull(section3DefaultFooter);
+                Assert.NotNull(section3EvenHeader);
+                Assert.NotNull(section3EvenFooter);
+                Assert.NotNull(section3FirstHeader);
+                Assert.NotNull(section3FirstFooter);
+
+                section3DefaultHeader.AddParagraph().AddText("Section 3 - Header Odd/Default");
+                section3DefaultFooter.AddParagraph().AddText("Section 3 - Footer Odd/Default");
+                section3EvenHeader.AddParagraph().AddText("Section 3 - Header Even");
+                section3EvenFooter.AddParagraph().AddText("Section 3 - Footer Even");
 
                 document.AddPageBreak();
                 section3.AddParagraph("Test Last Section - 2");
@@ -540,8 +580,19 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[3].DifferentOddAndEvenPages == true);
                 Assert.True(document.Sections[3].DifferentFirstPage == true);
 
-                document.Sections[1].DifferentOddAndEvenPages = true;
-                document.Sections[2].DifferentFirstPage = true;
+                var evenSection1 = document.Sections[1];
+                evenSection1.DifferentOddAndEvenPages = true;
+                var section1EvenHeader = GetSectionEvenHeader(evenSection1, "section 1 even header after enabling DifferentOddAndEvenPages");
+                var section1EvenFooterReloaded = GetSectionEvenFooter(evenSection1, "section 1 even footer after enabling DifferentOddAndEvenPages");
+                Assert.NotNull(section1EvenHeader);
+                Assert.NotNull(section1EvenFooterReloaded);
+
+                var firstSection2 = document.Sections[2];
+                firstSection2.DifferentFirstPage = true;
+                var section2FirstHeader = GetSectionFirstHeader(firstSection2, "section 2 first header after enabling DifferentFirstPage");
+                var section2FirstFooter = GetSectionFirstFooter(firstSection2, "section 2 first footer after enabling DifferentFirstPage");
+                Assert.NotNull(section2FirstHeader);
+                Assert.NotNull(section2FirstFooter);
 
                 Assert.True(document.Sections[0].DifferentOddAndEvenPages == false);
                 Assert.True(document.Sections[0].DifferentFirstPage == false);
