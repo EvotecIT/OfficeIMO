@@ -194,10 +194,10 @@ namespace OfficeIMO.Tests {
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 var column = wsPart.Worksheet.GetFirstChild<Columns>()?.Elements<Column>().FirstOrDefault(c => c.Min?.Value == 1 && c.Max?.Value == 1);
-                Assert.NotNull(column);
-                Assert.True(column!.Width.HasValue);
-                Assert.True(column.Width!.Value <= 255.0);
-                Assert.True(column.Width.Value >= 200.0); // ensure we actually expanded significantly
+                Column nonNullColumn = Assert.IsType<Column>(column);
+                Assert.True(nonNullColumn.Width!.HasValue);
+                Assert.True(nonNullColumn.Width.Value <= 255.0);
+                Assert.True(nonNullColumn.Width.Value >= 200.0); // ensure we actually expanded significantly
 
                 OpenXmlValidator validator = new();
                 var validationErrors = validator.Validate(spreadsheet);

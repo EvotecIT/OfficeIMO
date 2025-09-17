@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
                     var xdoc = System.Xml.Linq.XDocument.Load(s);
                     var dgm = (System.Xml.Linq.XNamespace)"http://schemas.openxmlformats.org/drawingml/2006/diagram";
                     var a = (System.Xml.Linq.XNamespace)"http://schemas.openxmlformats.org/drawingml/2006/main";
-                    var nodePts = xdoc.Descendants(dgm + "pt").Where(p => (string)p.Attribute("type") == null && (p.Element(dgm + "t") != null || p.Element(dgm + "txBody") != null)).ToList();
+                    var nodePts = xdoc.Descendants(dgm + "pt").Where(p => p.Attribute("type") == null && (p.Element(dgm + "t") != null || p.Element(dgm + "txBody") != null)).ToList();
                     var paras = nodePts.Select(p => (p.Element(dgm + "t") ?? p.Element(dgm + "txBody"))?.Element(a + "p")).Where(p => p != null).ToList();
                     if (paras.Count < 1) {
                         var debugDir = Path.Combine(_directoryWithFiles, "_debug");

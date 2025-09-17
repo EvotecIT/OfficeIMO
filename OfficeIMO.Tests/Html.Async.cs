@@ -53,12 +53,12 @@ namespace OfficeIMO.Tests {
             string fragment = "<p>Header</p>";
             docSync.AddHtmlToHeader(fragment);
             await docAsync.AddHtmlToHeaderAsync(fragment);
-            Assert.Equal(docSync.Header.Default.Paragraphs[0].Text, docAsync.Header.Default.Paragraphs[0].Text);
+            Assert.Equal(docSync.Header!.Default.Paragraphs[0].Text, docAsync.Header!.Default.Paragraphs[0].Text);
 
             string footerFrag = "<p>Footer</p>";
             docSync.AddHtmlToFooter(footerFrag);
             await docAsync.AddHtmlToFooterAsync(footerFrag);
-            Assert.Equal(docSync.Footer.Default.Paragraphs[0].Text, docAsync.Footer.Default.Paragraphs[0].Text);
+            Assert.Equal(docSync.Footer!.Default.Paragraphs[0].Text, docAsync.Footer!.Default.Paragraphs[0].Text);
         }
 
         [Fact]

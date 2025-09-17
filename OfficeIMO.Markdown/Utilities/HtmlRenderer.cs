@@ -352,7 +352,8 @@ internal static class HtmlRenderer {
         // Cache scoped base CSS (style preset + common extras) by (style|scopeSelector)
         string cacheKey = ((int)options.Style).ToString() + "|" + (options.CssScopeSelector ?? string.Empty);
         if (!_scopedBaseCssCache.TryGetValue(cacheKey, out var baseCss)) {
-            baseCss = ScopeCss(HtmlResources.GetStyleCss(options.Style) + HtmlResources.CommonExtraCss, options.CssScopeSelector);
+            string scopeSelector = options.CssScopeSelector ?? "article.markdown-body";
+            baseCss = ScopeCss(HtmlResources.GetStyleCss(options.Style) + HtmlResources.CommonExtraCss, scopeSelector);
             _scopedBaseCssCache[cacheKey] = baseCss;
         }
 

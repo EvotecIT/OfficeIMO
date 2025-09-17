@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddHeadersAndFooters();
 
-                var textBox = document.Header.Default.AddTextBox("My textbox in header");
+                var textBox = document.Header!.Default.AddTextBox("My textbox in header");
 
                 Console.WriteLine("Textbox (header) wraptext: " + textBox.WrapText);
 

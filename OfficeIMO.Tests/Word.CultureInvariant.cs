@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Section 0");
                 document.AddHeadersAndFooters();
 
-                var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Watermark");
+                var watermark = document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Watermark");
 
                 Assert.Equal(90, watermark.Rotation);
 
