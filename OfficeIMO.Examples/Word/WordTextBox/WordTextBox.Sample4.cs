@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -13,7 +14,9 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddHeadersAndFooters();
 
-                var textBox = document.Header!.Default.AddTextBox("My textbox in header");
+                var headers = Guard.NotNull(document.Header, "Document headers must exist after enabling headers.");
+                var defaultHeader = Guard.NotNull(headers.Default, "Default header must exist after enabling headers.");
+                var textBox = defaultHeader.AddTextBox("My textbox in header");
 
                 Console.WriteLine("Textbox (header) wraptext: " + textBox.WrapText);
 
