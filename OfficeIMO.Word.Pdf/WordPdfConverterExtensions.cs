@@ -12,7 +12,9 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Reflection;
+#if !(NET472 || NET48 || NETSTANDARD2_0)
 using System.Runtime.Loader;
+#endif
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
@@ -203,7 +205,10 @@ namespace OfficeIMO.Word.Pdf {
             // Respect an existing license from any loaded QuestPDF TFM; only set when none is present
             if (QuestPdfLicenseUtil.GetEffectiveLicenseValue() == null) {
                 var desired = options?.QuestPdfLicenseType ?? LicenseType.Community;
+                // Set on all loaded QuestPDF TFMs
                 QuestPdfLicenseUtil.SetLicenseForAll((int)desired);
+                // And set directly on the currently referenced assembly as a reliable fallback
+                QuestPDF.Settings.License = desired;
             }
 
             RegisterFonts(options);
@@ -470,7 +475,15 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             private static IEnumerable<Assembly> EnumerateQuestPdfAssemblies() {
-                // Include all ALCs to catch mixed-TFM loads
+                // Enumerate currently loaded assemblies in the AppDomain (works on all TFMs)
+                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies()) {
+                    var name = asm.GetName().Name;
+                    if (string.Equals(name, QuestPdfAssemblyName, StringComparison.Ordinal)) {
+                        yield return asm;
+                    }
+                }
+#if !(NET472 || NET48 || NETSTANDARD2_0)
+                // Additionally enumerate across AssemblyLoadContexts when available
                 foreach (var alc in AssemblyLoadContext.All) {
                     foreach (var asm in alc.Assemblies) {
                         var name = asm.GetName().Name;
@@ -479,6 +492,7 @@ namespace OfficeIMO.Word.Pdf {
                         }
                     }
                 }
+#endif
             }
 
             private static int? ReadLicenseFromAssembly(Assembly asm) {
