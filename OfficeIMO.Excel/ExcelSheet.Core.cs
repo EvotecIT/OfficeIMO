@@ -195,8 +195,7 @@ namespace OfficeIMO.Excel {
             Cell? insertAfterCell = null;
             int targetColumnIndex = column;
             foreach (Cell c in rowElement.Elements<Cell>()) {
-                string? existingRef = c.CellReference?.Value;
-                if (!string.IsNullOrEmpty(existingRef)) {
+                if (c.CellReference?.Value is { Length: > 0 } existingRef) {
                     int existingColumnIndex = GetColumnIndex(existingRef);
                     if (existingColumnIndex == targetColumnIndex) {
                         cell = c;
@@ -219,8 +218,7 @@ namespace OfficeIMO.Excel {
                     // Insert at beginning or append when row is empty or existing first cell has larger column index
                     var firstCell = rowElement.Elements<Cell>().FirstOrDefault();
                     if (firstCell != null) {
-                        var firstRef = firstCell.CellReference?.Value;
-                        if (!string.IsNullOrEmpty(firstRef) && GetColumnIndex(firstRef) > targetColumnIndex) {
+                        if (firstCell.CellReference?.Value is { Length: > 0 } firstRef && GetColumnIndex(firstRef) > targetColumnIndex) {
                             rowElement.InsertBefore(cell, firstCell);
                         } else {
                             rowElement.Append(cell);
@@ -248,6 +246,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static int GetColumnIndex(string cellReference) {
+            ArgumentNullException.ThrowIfNull(cellReference);
             int columnIndex = 0;
             foreach (char ch in cellReference.Where(char.IsLetter)) {
                 columnIndex = (columnIndex * 26) + (ch - 'A' + 1);
