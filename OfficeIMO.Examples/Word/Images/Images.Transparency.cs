@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -13,7 +14,9 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph = document.AddParagraph();
                 // AddImage returns the paragraph (fluent API). Set transparency on the last added image.
                 paragraph.AddImage(Path.Combine(imagePaths, "Kulek.jpg"), 100, 100);
-                document.Images[document.Images.Count - 1].Transparency = 30;
+                var images = document.Images;
+                var insertedImage = Guard.GetRequiredItem(images, images.Count - 1, "Document should contain the inserted image before setting transparency.");
+                insertedImage.Transparency = 30;
                 document.Save(openWord);
             }
         }
@@ -25,7 +28,9 @@ namespace OfficeIMO.Examples.Word {
             File.Copy(Path.Combine(templatesPath, "BasicDocumentWithImages.docx"), filePath, true);
 
             using (WordDocument document = WordDocument.Load(filePath, false)) {
-                document.Images[0].Transparency = 75;
+                var loadedImages = document.Images;
+                var firstImage = Guard.GetRequiredItem(loadedImages, 0, "Template document should contain at least one image before adjusting transparency.");
+                firstImage.Transparency = 75;
                 document.Save(openWord);
             }
         }

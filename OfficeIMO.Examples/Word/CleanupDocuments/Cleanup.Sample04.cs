@@ -1,4 +1,5 @@
 using System;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word;
@@ -17,15 +18,21 @@ internal static partial class CleanupDocuments {
         using (WordDocument document = WordDocument.Create(filePath)) {
             document.AddHeadersAndFooters();
 
-            var headerParagraph = document.Header!.Default.AddParagraph("Header ");
+            var headers = Guard.NotNull(document.Header, "Document headers must exist after enabling headers.");
+            var defaultHeader = Guard.NotNull(headers.Default, "Default header must exist after enabling headers.");
+
+            var headerParagraph = defaultHeader.AddParagraph("Header ");
             headerParagraph.AddText("clutter ");
             headerParagraph.AddText("text");
-            document.Header!.Default.AddParagraph();
+            defaultHeader.AddParagraph();
 
-            var footerParagraph = document.Footer!.Default.AddParagraph("Footer ");
+            var footers = Guard.NotNull(document.Footer, "Document footers must exist after enabling headers.");
+            var defaultFooter = Guard.NotNull(footers.Default, "Default footer must exist after enabling headers.");
+
+            var footerParagraph = defaultFooter.AddParagraph("Footer ");
             footerParagraph.AddText("clutter ");
             footerParagraph.AddText("text");
-            document.Footer!.Default.AddParagraph();
+            defaultFooter.AddParagraph();
 
             document.CleanupDocument();
             document.Save(openWord);

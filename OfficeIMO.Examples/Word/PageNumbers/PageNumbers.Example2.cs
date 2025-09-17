@@ -1,5 +1,6 @@
 using System;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -10,7 +11,10 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
 
-                var table = document.Footer!.Default.AddTable(1, 2, WordTableStyle.TableGrid);
+                var footers = Guard.NotNull(document.Footer, "Document footers must exist after enabling headers.");
+                var defaultFooter = Guard.NotNull(footers.Default, "Default footer must exist after enabling headers.");
+
+                var table = defaultFooter.AddTable(1, 2, WordTableStyle.TableGrid);
                 table.WidthType = TableWidthUnitValues.Pct;
                 // 5000 represents 100% when using Pct width
                 table.Width = 5000;

@@ -1,5 +1,6 @@
 using System;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -11,7 +12,10 @@ namespace OfficeIMO.Examples.Word {
                 document.Sections[0].AddPageNumbering(2, NumberFormatValues.LowerRoman);
                 document.AddHeadersAndFooters();
 
-                var para = document.Footer!.Default.AddParagraph();
+                var footers = Guard.NotNull(document.Footer, "Document footers must exist after enabling headers.");
+                var defaultFooter = Guard.NotNull(footers.Default, "Default footer must exist after enabling headers.");
+
+                var para = defaultFooter.AddParagraph();
                 para.AddText("Page ");
                 para.AddPageNumber();
 

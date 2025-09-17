@@ -12,6 +12,11 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
 
+                var headers = Guard.NotNull(document.Header, "Document headers must exist after enabling headers.");
+                var defaultHeader = Guard.NotNull(headers.Default, "Default header must exist after enabling headers.");
+                var footers = Guard.NotNull(document.Footer, "Document footers must exist after enabling headers.");
+                var defaultFooter = Guard.NotNull(footers.Default, "Default footer must exist after enabling headers.");
+
                 var paragraph = document.AddParagraph("Visit ");
                 var google = paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
                 google.Bold = true;
@@ -24,12 +29,12 @@ namespace OfficeIMO.Examples.Word {
                 var yahoo = baseLink.InsertFormattedHyperlinkAfter("Yahoo", new Uri("https://yahoo.com"));
                 yahoo.CopyFormattingFrom(baseLink);
 
-                var headerPara = document.Header!.Default.AddParagraph("Search with ");
+                var headerPara = defaultHeader.AddParagraph("Search with ");
                 var duck = headerPara.AddHyperLink("DuckDuckGo", new Uri("https://duckduckgo.com"), addStyle: true);
                 var duckLink = Guard.NotNull(duck.Hyperlink, "Expected DuckDuckGo hyperlink to be created.");
                 duckLink.InsertFormattedHyperlinkAfter("Startpage", new Uri("https://startpage.com"));
 
-                var footerPara = document.Footer!.Default.AddParagraph("Code on ");
+                var footerPara = defaultFooter.AddParagraph("Code on ");
                 var gitHub = footerPara.AddHyperLink("GitHub", new Uri("https://github.com"), addStyle: true);
                 var gitHubLink = Guard.NotNull(gitHub.Hyperlink, "Expected GitHub hyperlink to be created.");
                 gitHubLink.InsertFormattedHyperlinkBefore("GitLab", new Uri("https://gitlab.com"));

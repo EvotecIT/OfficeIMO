@@ -1,5 +1,6 @@
 using System;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -9,7 +10,9 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with PageNumbers7.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                var pageNumber = document.Footer!.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
+                var footers = Guard.NotNull(document.Footer, "Document footers must exist after enabling headers.");
+                var defaultFooter = Guard.NotNull(footers.Default, "Default footer must exist after enabling headers.");
+                var pageNumber = defaultFooter.AddPageNumber(WordPageNumberStyle.PlainNumber);
                 pageNumber.AppendText(" of ");
                 pageNumber.Paragraph.AddField(WordFieldType.NumPages);
                 document.Save(openWord);
