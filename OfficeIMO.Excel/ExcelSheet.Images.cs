@@ -104,6 +104,13 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Downloads an image from URL (with timeout and size limits) and anchors it to the specified cell.
         /// </summary>
+        /// <param name="row">1-based row index where the top edge of the image will be anchored.</param>
+        /// <param name="column">1-based column index where the left edge of the image will be anchored.</param>
+        /// <param name="url">Remote image URL to download. Requests timeout after 5 seconds and must be smaller than 2 MB.</param>
+        /// <param name="widthPixels">Desired image width in pixels. Defaults to 96 px, converted to English Metric Units (EMUs) for OpenXML positioning.</param>
+        /// <param name="heightPixels">Desired image height in pixels. Defaults to 32 px, converted to EMUs.</param>
+        /// <param name="offsetXPixels">Optional horizontal offset in pixels from the cell's left boundary. Positive values move the image right; defaults to 0 px.</param>
+        /// <param name="offsetYPixels">Optional vertical offset in pixels from the cell's top boundary. Positive values move the image down; defaults to 0 px.</param>
         public void AddImageFromUrlAt(int row, int column, string url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0)
         {
             if (string.IsNullOrWhiteSpace(url)) return;
