@@ -19,6 +19,10 @@ namespace OfficeIMO.Excel
         /// Reads the used range of a sheet as dictionaries (first row as headers) using an already-open ExcelDocument.
         /// Avoids re-opening the file and potential file locks.
         /// </summary>
+        /// <param name="doc">Existing <see cref="ExcelDocument"/> to read from.</param>
+        /// <param name="sheetName">Worksheet name containing the data.</param>
+        /// <param name="options">Optional read options controlling type conversion and trimming.</param>
+        /// <returns>List of dictionaries representing each row in the sheet's used range.</returns>
         public static List<Dictionary<string, object?>> ReadUsedRangeObjects(ExcelDocument doc, string sheetName, ExcelReadOptions? options = null)
         {
             using var rdr = ExcelDocumentReader.Wrap(doc._spreadSheetDocument, options ?? new ExcelReadOptions());
@@ -59,7 +63,12 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Reads an A1 range into a dense typed matrix.
         /// </summary>
-        /// <typeparam name="T">Element type.</typeparam>
+        /// <typeparam name="T">Element type for each cell in the matrix.</typeparam>
+        /// <param name="path">Path to the .xlsx file.</param>
+        /// <param name="sheetName">Worksheet name.</param>
+        /// <param name="a1Range">Inclusive A1 range to read.</param>
+        /// <param name="options">Optional read options.</param>
+        /// <returns>Typed matrix populated from the requested range.</returns>
         public static T[,] ReadRangeAs<T>(string path, string sheetName, string a1Range, ExcelReadOptions? options = null)
         {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
@@ -113,7 +122,12 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Reads an A1 range into a dense typed matrix by sheet index (1‑based).
         /// </summary>
-        /// <typeparam name="T">Element type.</typeparam>
+        /// <typeparam name="T">Element type for each cell in the matrix.</typeparam>
+        /// <param name="path">Path to the .xlsx file.</param>
+        /// <param name="sheetIndex">1‑based sheet index in workbook order.</param>
+        /// <param name="a1Range">Inclusive A1 range to read.</param>
+        /// <param name="options">Optional read options.</param>
+        /// <returns>Typed matrix populated from the requested range.</returns>
         public static T[,] ReadRangeAs<T>(string path, int sheetIndex, string a1Range, ExcelReadOptions? options = null)
         {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
@@ -138,6 +152,10 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Reads the used range of a sheet as dictionaries (first row as headers).
         /// </summary>
+        /// <param name="path">Path to the .xlsx file.</param>
+        /// <param name="sheetName">Worksheet name containing the data.</param>
+        /// <param name="options">Optional read options controlling type conversion and trimming.</param>
+        /// <returns>List of dictionaries representing each row in the sheet's used range.</returns>
         public static List<Dictionary<string, object?>> ReadUsedRangeObjects(string path, string sheetName, ExcelReadOptions? options = null)
         {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
@@ -169,7 +187,7 @@ namespace OfficeIMO.Excel
         /// <param name="sheetNames">Worksheet names to read.</param>
         /// <param name="a1Range">Inclusive A1 range (first row must contain headers).</param>
         /// <param name="options">Optional read options.</param>
-        /// <returns>Dictionary mapping sheet name to list of row dictionaries.</returns>
+        /// <returns>Dictionary mapping each sheet name to the list of row dictionaries read from that sheet.</returns>
         public static Dictionary<string, List<Dictionary<string, object?>>> ReadRangeObjectsFromSheets(string path, IEnumerable<string> sheetNames, string a1Range, ExcelReadOptions? options = null)
         {
             var result = new Dictionary<string, List<Dictionary<string, object?>>>(StringComparer.OrdinalIgnoreCase);
@@ -185,6 +203,10 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Reads an A1 range from every sheet in the workbook as dictionaries using the first row as headers.
         /// </summary>
+        /// <param name="path">Path to the .xlsx file.</param>
+        /// <param name="a1Range">Inclusive A1 range (first row must contain headers).</param>
+        /// <param name="options">Optional read options.</param>
+        /// <returns>Dictionary mapping each sheet name to the list of row dictionaries read from that sheet.</returns>
         public static Dictionary<string, List<Dictionary<string, object?>>> ReadRangeObjectsFromAllSheets(string path, string a1Range, ExcelReadOptions? options = null)
         {
             var result = new Dictionary<string, List<Dictionary<string, object?>>>(StringComparer.OrdinalIgnoreCase);
@@ -200,6 +222,10 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Reads the used range of the given sheet into a dense 2D array of typed values.
         /// </summary>
+        /// <param name="path">Path to the .xlsx file.</param>
+        /// <param name="sheetName">Worksheet name containing the data.</param>
+        /// <param name="options">Optional read options.</param>
+        /// <returns>Typed matrix populated from the used range.</returns>
         public static object?[,] ReadUsedRange(string path, string sheetName, ExcelReadOptions? options = null)
         {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
@@ -211,6 +237,11 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Reads the used range of the given sheet into a DataTable. First row is used as headers when present.
         /// </summary>
+        /// <param name="path">Path to the .xlsx file.</param>
+        /// <param name="sheetName">Worksheet name containing the data.</param>
+        /// <param name="headersInFirstRow">Whether to treat the first row as column headers.</param>
+        /// <param name="options">Optional read options.</param>
+        /// <returns>DataTable containing the values from the sheet's used range.</returns>
         public static DataTable ReadUsedRangeAsDataTable(string path, string sheetName, bool headersInFirstRow = true, ExcelReadOptions? options = null)
         {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
@@ -223,6 +254,12 @@ namespace OfficeIMO.Excel
         /// Reads an A1 range and maps rows (excluding the header row) to instances of <typeparamref name="T"/>.
         /// Header cells are matched to public writable properties on <typeparamref name="T"/> by name (case‑insensitive).
         /// </summary>
+        /// <typeparam name="T">Target type whose writable properties receive the row values.</typeparam>
+        /// <param name="path">Path to the .xlsx file.</param>
+        /// <param name="sheetName">Worksheet name.</param>
+        /// <param name="a1Range">Inclusive A1 range (first row must contain headers).</param>
+        /// <param name="options">Optional read options.</param>
+        /// <returns>List of <typeparamref name="T"/> populated from each data row.</returns>
         public static System.Collections.Generic.List<T> ReadRangeObjectsAs<T>(string path, string sheetName, string a1Range, ExcelReadOptions? options = null) where T : new()
         {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
