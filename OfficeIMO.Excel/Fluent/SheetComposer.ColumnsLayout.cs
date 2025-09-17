@@ -262,6 +262,7 @@ namespace OfficeIMO.Excel.Fluent
             /// <param name="configure">Callback receiving the nested ColumnComposer instances.</param>
             /// <param name="columnWidth">Width per sub-column in grid columns.</param>
             /// <param name="gutter">Spacing between sub-columns in grid columns.</param>
+            /// <param name="overflow">Specifies how content that exceeds the allocated width should be handled.</param>
             public ColumnComposer Columns(int count, Action<ColumnComposer[]> configure, int columnWidth = 3, int gutter = 1, OverflowMode overflow = OverflowMode.Throw)
             {
                 if (count <= 1) return this;
@@ -293,6 +294,7 @@ namespace OfficeIMO.Excel.Fluent
         /// <param name="configure">Callback that receives an array of ColumnComposer objects.</param>
         /// <param name="columnWidth">Width per column in grid columns (for relative positioning only).</param>
         /// <param name="gutter">Spacing between columns in grid columns.</param>
+        /// <param name="overflow">Specifies how to handle content that exceeds the allocated width of a column.</param>
         public SheetComposer Columns(int count, Action<ColumnComposer[]> configure, int columnWidth = 3, int gutter = 1, OverflowMode overflow = OverflowMode.Throw)
         {
             if (count <= 1) return this;
@@ -348,7 +350,7 @@ namespace OfficeIMO.Excel.Fluent
 
         /// <summary>
         /// Renders a sequence of column blocks left-to-right using a fixed number of columns per band.
-        /// Each band uses <see cref="Columns(int, Action{ColumnComposer[]}, int, int)"/> under the hood and advances
+        /// Each band uses <see cref="Columns(int, Action{ColumnComposer[]}, int, int, OverflowMode)"/> under the hood and advances
         /// the composer by the tallest block in that band.
         /// </summary>
         public SheetComposer FlowColumns(IReadOnlyList<IReadOnlyList<Action<ColumnComposer>>> columnGroups, int columnWidth = 12, int gutter = 2)
