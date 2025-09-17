@@ -73,14 +73,25 @@ namespace OfficeIMO.Word {
                 }
                 styleDefinitionsPart.Styles = newStyles;
             } else {
-                // Do not inject custom styles at all when overrideExisting is false; preserve document as-is
+                // Add any missing custom styles, but do not replace existing definitions.
+                // This preserves the document as-is while ensuring newly registered styles
+                // (e.g., via EmbedFont) become available for use.
+                var existingIds = new HashSet<string>(
+                    styles.OfType<Style>()
+                          .Select(s => s.StyleId?.Value)
+                          .Where(id => id != null)!
+                          .Cast<string>(),
+                    StringComparer.OrdinalIgnoreCase);
+
+                foreach (var custom in customList) {
+                    var id = custom.StyleId!.Value!;
+                    if (!existingIds.Contains(id)) {
+                        styles.Append((Style)custom.CloneNode(true));
+                    }
+                }
             }
 
             FindMissingStyleDefinitions(styleDefinitionsPart, overrideExisting);
-
-            // Persist changes into the part DOM immediately to ensure subsequent callers
-            // reading Styles from a different object graph see updated content.
-            styleDefinitionsPart.Styles?.Save();
 
             // Persist changes into the part DOM immediately to ensure subsequent callers
             // reading Styles from a different object graph see updated content.
