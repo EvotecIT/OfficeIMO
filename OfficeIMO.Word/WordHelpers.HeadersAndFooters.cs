@@ -21,7 +21,7 @@ namespace OfficeIMO.Word {
                     template.ChangeDocumentType(DocumentFormat.OpenXml.WordprocessingDocumentType.Document);
 
                     // Get the main document part
-                    MainDocumentPart mainPart = template.MainDocumentPart;
+                    MainDocumentPart mainPart = template.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart is missing in template.");
 
                     // Ensure the DocumentSettingsPart exists
                     if (mainPart.DocumentSettingsPart == null) {
@@ -29,12 +29,12 @@ namespace OfficeIMO.Word {
                     }
 
                     // Add an external relationship to the template
-                    mainPart.DocumentSettingsPart.AddExternalRelationship(
+                    mainPart.DocumentSettingsPart!.AddExternalRelationship(
                         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/attachedTemplate",
                         new Uri(templatePath, UriKind.Absolute));
 
                     // Save the changes to the main document part
-                    mainPart.Document.Save();
+                    mainPart.Document?.Save();
                 }
 
                 // Write the MemoryStream contents to the output file

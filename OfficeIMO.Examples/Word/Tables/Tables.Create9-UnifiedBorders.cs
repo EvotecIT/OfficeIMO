@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System;
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
 
@@ -25,18 +28,19 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("This table has the same border style, size, and color applied to all sides.");
 
                 WordTable table1 = document.AddTable(3, 3);
-                table1.Rows[0].Cells[0].Paragraphs[0].Text = "Uniform";
-                table1.Rows[0].Cells[1].Paragraphs[0].Text = "Border";
-                table1.Rows[0].Cells[2].Paragraphs[0].Text = "Example";
-                table1.Rows[1].Cells[0].Paragraphs[0].Text = "All";
-                table1.Rows[1].Cells[1].Paragraphs[0].Text = "Sides";
-                table1.Rows[1].Cells[2].Paragraphs[0].Text = "Same";
-                table1.Rows[2].Cells[0].Paragraphs[0].Text = "Single";
-                table1.Rows[2].Cells[1].Paragraphs[0].Text = "Blue";
-                table1.Rows[2].Cells[2].Paragraphs[0].Text = "Size 12";
+                SetCellText(table1, 0, 0, "Uniform");
+                SetCellText(table1, 0, 1, "Border");
+                SetCellText(table1, 0, 2, "Example");
+                SetCellText(table1, 1, 0, "All");
+                SetCellText(table1, 1, 1, "Sides");
+                SetCellText(table1, 1, 2, "Same");
+                SetCellText(table1, 2, 0, "Single");
+                SetCellText(table1, 2, 1, "Blue");
+                SetCellText(table1, 2, 2, "Size 12");
 
                 // Using the new helper method to set uniform borders
-                table1.StyleDetails.SetBordersForAllSides(
+                var table1Style = Guard.NotNull(table1.StyleDetails, "Table style details should be available.");
+                table1Style.SetBordersForAllSides(
                     BorderValues.Single,
                     12U,
                     Color.Blue
@@ -51,18 +55,19 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("This table has different border styles for outside edges vs. inside grid lines.");
 
                 WordTable table2 = document.AddTable(3, 3);
-                table2.Rows[0].Cells[0].Paragraphs[0].Text = "Outside";
-                table2.Rows[0].Cells[1].Paragraphs[0].Text = "Different";
-                table2.Rows[0].Cells[2].Paragraphs[0].Text = "From Inside";
-                table2.Rows[1].Cells[0].Paragraphs[0].Text = "Double";
-                table2.Rows[1].Cells[1].Paragraphs[0].Text = "Red";
-                table2.Rows[1].Cells[2].Paragraphs[0].Text = "Outside";
-                table2.Rows[2].Cells[0].Paragraphs[0].Text = "Single";
-                table2.Rows[2].Cells[1].Paragraphs[0].Text = "Blue";
-                table2.Rows[2].Cells[2].Paragraphs[0].Text = "Inside";
+                SetCellText(table2, 0, 0, "Outside");
+                SetCellText(table2, 0, 1, "Different");
+                SetCellText(table2, 0, 2, "From Inside");
+                SetCellText(table2, 1, 0, "Double");
+                SetCellText(table2, 1, 1, "Red");
+                SetCellText(table2, 1, 2, "Outside");
+                SetCellText(table2, 2, 0, "Single");
+                SetCellText(table2, 2, 1, "Blue");
+                SetCellText(table2, 2, 2, "Inside");
 
                 // Using the helper method to set different border styles for outside vs inside
-                table2.StyleDetails.SetBordersOutsideInside(
+                var table2Style = Guard.NotNull(table2.StyleDetails, "Table style details should be available.");
+                table2Style.SetBordersOutsideInside(
                     BorderValues.Double, 16U, Color.Red,  // Outside borders
                     BorderValues.Single, 8U, Color.Blue   // Inside borders
                 );
@@ -76,18 +81,19 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("This table has different border styles for each side.");
 
                 WordTable table3 = document.AddTable(3, 3);
-                table3.Rows[0].Cells[0].Paragraphs[0].Text = "Top";
-                table3.Rows[0].Cells[1].Paragraphs[0].Text = "DotDash";
-                table3.Rows[0].Cells[2].Paragraphs[0].Text = "Green";
-                table3.Rows[1].Cells[0].Paragraphs[0].Text = "Left";
-                table3.Rows[1].Cells[1].Paragraphs[0].Text = "Custom";
-                table3.Rows[1].Cells[2].Paragraphs[0].Text = "Right";
-                table3.Rows[2].Cells[0].Paragraphs[0].Text = "Triple";
-                table3.Rows[2].Cells[1].Paragraphs[0].Text = "Dotted";
-                table3.Rows[2].Cells[2].Paragraphs[0].Text = "Bottom";
+                SetCellText(table3, 0, 0, "Top");
+                SetCellText(table3, 0, 1, "DotDash");
+                SetCellText(table3, 0, 2, "Green");
+                SetCellText(table3, 1, 0, "Left");
+                SetCellText(table3, 1, 1, "Custom");
+                SetCellText(table3, 1, 2, "Right");
+                SetCellText(table3, 2, 0, "Triple");
+                SetCellText(table3, 2, 1, "Dotted");
+                SetCellText(table3, 2, 2, "Bottom");
 
                 // Using the custom border method to set different styles for each side
-                table3.StyleDetails.SetCustomBorders(
+                var table3Style = Guard.NotNull(table3.StyleDetails, "Table style details should be available.");
+                table3Style.SetCustomBorders(
                     topStyle: BorderValues.DotDash, topSize: 16U, topColor: Color.Green,
                     bottomStyle: BorderValues.Triple, bottomSize: 16U, bottomColor: Color.Purple,
                     leftStyle: BorderValues.Thick, leftSize: 12U, leftColor: Color.Orange,
@@ -105,24 +111,25 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("This table has borders defined at the table level and then applied to all individual cells.");
 
                 WordTable table4 = document.AddTable(3, 3);
-                table4.Rows[0].Cells[0].Paragraphs[0].Text = "Table";
-                table4.Rows[0].Cells[1].Paragraphs[0].Text = "Borders";
-                table4.Rows[0].Cells[2].Paragraphs[0].Text = "Applied";
-                table4.Rows[1].Cells[0].Paragraphs[0].Text = "To";
-                table4.Rows[1].Cells[1].Paragraphs[0].Text = "All";
-                table4.Rows[1].Cells[2].Paragraphs[0].Text = "Cells";
-                table4.Rows[2].Cells[0].Paragraphs[0].Text = "Consistent";
-                table4.Rows[2].Cells[1].Paragraphs[0].Text = "Border";
-                table4.Rows[2].Cells[2].Paragraphs[0].Text = "Styling";
+                SetCellText(table4, 0, 0, "Table");
+                SetCellText(table4, 0, 1, "Borders");
+                SetCellText(table4, 0, 2, "Applied");
+                SetCellText(table4, 1, 0, "To");
+                SetCellText(table4, 1, 1, "All");
+                SetCellText(table4, 1, 2, "Cells");
+                SetCellText(table4, 2, 0, "Consistent");
+                SetCellText(table4, 2, 1, "Border");
+                SetCellText(table4, 2, 2, "Styling");
 
                 // Set table borders first
-                table4.StyleDetails.SetBordersOutsideInside(
+                var table4Style = Guard.NotNull(table4.StyleDetails, "Table style details should be available.");
+                table4Style.SetBordersOutsideInside(
                     BorderValues.Double, 24U, Color.DarkBlue,   // Outside borders
                     BorderValues.Single, 12U, Color.DarkGreen   // Inside borders
                 );
 
                 // Then apply those borders to all cells
-                table4.StyleDetails.ApplyBordersToAllCells();
+                table4Style.ApplyBordersToAllCells();
 
                 document.AddParagraph();
                 document.AddParagraph();
@@ -135,7 +142,8 @@ namespace OfficeIMO.Examples.Word {
                 WordTable table5 = document.AddTable(3, 3);
 
                 // Set some border styles first
-                table5.StyleDetails.SetCustomBorders(
+                var table5Style = Guard.NotNull(table5.StyleDetails, "Table style details should be available.");
+                table5Style.SetCustomBorders(
                     topStyle: BorderValues.Thick, topSize: 16U, topColor: Color.DarkRed,
                     bottomStyle: BorderValues.Thick, bottomSize: 16U, bottomColor: Color.DarkRed,
                     leftStyle: BorderValues.Single, leftSize: 8U, leftColor: Color.DarkBlue,
@@ -143,24 +151,31 @@ namespace OfficeIMO.Examples.Word {
                 );
 
                 // Retrieve the properties and display them
-                var topBorderProps = table5.StyleDetails.GetBorderProperties(WordTableBorderSide.Top);
-                var bottomBorderProps = table5.StyleDetails.GetBorderProperties(WordTableBorderSide.Bottom);
-                var leftBorderProps = table5.StyleDetails.GetBorderProperties(WordTableBorderSide.Left);
-                var rightBorderProps = table5.StyleDetails.GetBorderProperties(WordTableBorderSide.Right);
+                var topBorderProps = table5Style.GetBorderProperties(WordTableBorderSide.Top);
+                var bottomBorderProps = table5Style.GetBorderProperties(WordTableBorderSide.Bottom);
+                var leftBorderProps = table5Style.GetBorderProperties(WordTableBorderSide.Left);
+                var rightBorderProps = table5Style.GetBorderProperties(WordTableBorderSide.Right);
 
-                table5.Rows[0].Cells[0].Paragraphs[0].Text = "Top";
-                table5.Rows[0].Cells[1].Paragraphs[0].Text = $"Style: {topBorderProps.Style}";
-                table5.Rows[0].Cells[2].Paragraphs[0].Text = $"Size: {topBorderProps.Size}";
+                SetCellText(table5, 0, 0, "Top");
+                SetCellText(table5, 0, 1, $"Style: {topBorderProps.Style}");
+                SetCellText(table5, 0, 2, $"Size: {topBorderProps.Size}");
 
-                table5.Rows[1].Cells[0].Paragraphs[0].Text = "Bottom";
-                table5.Rows[1].Cells[1].Paragraphs[0].Text = $"Style: {bottomBorderProps.Style}";
-                table5.Rows[1].Cells[2].Paragraphs[0].Text = $"Size: {bottomBorderProps.Size}";
+                SetCellText(table5, 1, 0, "Bottom");
+                SetCellText(table5, 1, 1, $"Style: {bottomBorderProps.Style}");
+                SetCellText(table5, 1, 2, $"Size: {bottomBorderProps.Size}");
 
-                table5.Rows[2].Cells[0].Paragraphs[0].Text = "Left/Right";
-                table5.Rows[2].Cells[1].Paragraphs[0].Text = $"Style: {leftBorderProps.Style}";
-                table5.Rows[2].Cells[2].Paragraphs[0].Text = $"Size: {rightBorderProps.Size}";
+                SetCellText(table5, 2, 0, "Left/Right");
+                SetCellText(table5, 2, 1, $"Style: {leftBorderProps.Style}");
+                SetCellText(table5, 2, 2, $"Size: {rightBorderProps.Size}");
 
                 document.Save(openWord);
+
+                static void SetCellText(WordTable table, int rowIndex, int columnIndex, string text) {
+                    var row = Guard.GetRequiredItem(table.Rows, rowIndex, $"Table must contain row index {rowIndex}.");
+                    var cell = Guard.GetRequiredItem(row.Cells, columnIndex, $"Row must contain cell index {columnIndex}.");
+                    var paragraph = cell.Paragraphs.FirstOrDefault() ?? cell.AddParagraph();
+                    paragraph.Text = text;
+                }
             }
         }
     }

@@ -9,7 +9,7 @@ namespace OfficeIMO.Word {
     public partial class WordField {
         internal string GetCustomFormat() {
             var match = Regex.Match(Field, "\\\\@ \\\"([^\\\"]+)\\\"");
-            return match.Success ? match.Groups[1].Value : null;
+            return match.Success ? match.Groups[1].Value : string.Empty;
         }
 
         internal void SetCustomFormat(string format) {

@@ -45,7 +45,7 @@ public sealed class HtmlOptions {
     /// <summary>Optional Prism highlighting configuration.</summary>
     public PrismOptions? Prism { get; set; }
     /// <summary>Prefix selectors in emitted CSS with this scope selector to avoid collisions. Default: "article.markdown-body".</summary>
-    public string CssScopeSelector { get; set; } = "article.markdown-body";
+    public string? CssScopeSelector { get; set; } = "article.markdown-body";
 
     // The following are used internally by the renderer; not part of the public API surface.
     internal string? ExternalCssOutputPath { get; set; }

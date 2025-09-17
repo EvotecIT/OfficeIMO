@@ -35,8 +35,8 @@ namespace OfficeIMO.Word {
                   if (_paragraph != null && _run != null) {
                       long referenceId = 0;
                       var endNoteReference = _run.ChildElements.OfType<EndnoteReference>().FirstOrDefault();
-                      if (endNoteReference != null) {
-                          referenceId = endNoteReference.Id;
+                      if (endNoteReference?.Id != null) {
+                          referenceId = endNoteReference.Id.Value;
                       }
 
                       if (referenceId != 0) {
@@ -77,8 +77,8 @@ namespace OfficeIMO.Word {
             get {
                 if (_paragraph != null && _run != null) {
                     var endNoteReference = _run.ChildElements.OfType<EndnoteReference>().FirstOrDefault();
-                    if (endNoteReference != null) {
-                        return endNoteReference.Id;
+                    if (endNoteReference?.Id != null) {
+                        return endNoteReference.Id.Value;
                     }
                 }
                 return null;
@@ -91,8 +91,8 @@ namespace OfficeIMO.Word {
         public void Remove() {
             long referenceId = 0;
             var endNoteReference = _run.ChildElements.OfType<EndnoteReference>().FirstOrDefault();
-            if (endNoteReference != null) {
-                referenceId = endNoteReference.Id;
+            if (endNoteReference?.Id != null) {
+                referenceId = endNoteReference.Id.Value;
             }
               var endNotesPart = _document._wordprocessingDocument.MainDocumentPart?.EndnotesPart;
               var footNotes = endNotesPart?.Endnotes?.ChildElements.OfType<Endnote>().ToList();
@@ -120,24 +120,29 @@ namespace OfficeIMO.Word {
                 RunStyle = runStyle
             };
             EndnoteReference endNoteReference = new EndnoteReference() { Id = endNoteReferenceId };
+            if (newWordParagraph._run == null) {
+                newWordParagraph._run = new Run();
+                newWordParagraph._paragraph.Append(newWordParagraph._run);
+            }
             newWordParagraph._run.Append(runProperties);
             newWordParagraph._run.Append(endNoteReference);
 
             var endNote = GenerateEndNote(endNoteReferenceId, footerWordParagraph);
 
-            var endNotesPart = document._wordprocessingDocument.MainDocumentPart.EndnotesPart;
+            var main = document._wordprocessingDocument.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart is missing.");
+            var endNotesPart = main.EndnotesPart;
             if (endNotesPart == null) {
-                endNotesPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<EndnotesPart>();
+                endNotesPart = main.AddNewPart<EndnotesPart>();
                 WordDocument.GenerateEndNotesPart1Content(endNotesPart);
             }
-            endNotesPart.Endnotes.Append(endNote);
+            endNotesPart.Endnotes!.Append(endNote);
 
             return newWordParagraph;
         }
 
         internal static long GetNextEndNoteReferenceId(WordDocument document) {
             long highestId = 0;
-            var endnotesPart = document._wordprocessingDocument.MainDocumentPart.EndnotesPart;
+            var endnotesPart = document._wordprocessingDocument.MainDocumentPart?.EndnotesPart;
 
             // Null check for Endnotes property
             if (endnotesPart?.Endnotes != null) {
@@ -181,7 +186,11 @@ namespace OfficeIMO.Word {
             wordParagraph._paragraph.ParagraphProperties = paragraphProperties1;
 
             var run = wordParagraph._paragraph.GetFirstChild<Run>();
-            run.InsertBeforeSelf(run1);
+            if (run != null) {
+                run.InsertBeforeSelf(run1);
+            } else {
+                wordParagraph._paragraph.PrependChild(run1);
+            }
 
             endNote.Append(wordParagraph._paragraph);
 

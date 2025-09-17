@@ -554,23 +554,23 @@ public partial class Word {
 
             document.AddHeadersAndFooters();
 
-            var listInHeader = document.Header.Default.AddList(WordListStyle.Bulleted);
+            var listInHeader = document.Header!.Default.AddList(WordListStyle.Bulleted);
 
             Assert.True(document.Lists.Count == 12);
 
             listInHeader.AddItem("Test Header 1");
 
-            document.Footer.Default.AddParagraph("Test Me Header");
+            document.Footer!.Default.AddParagraph("Test Me Header");
 
             listInHeader.AddItem("Test Header 2");
 
-            var listInFooter = document.Footer.Default.AddList(WordListStyle.Numbered);
+            var listInFooter = document.Footer!.Default.AddList(WordListStyle.Numbered);
 
             Assert.True(document.Lists.Count == 13);
 
             listInFooter.AddItem("Test Footer 1");
 
-            document.Footer.Default.AddParagraph("Test Me Footer");
+            document.Footer!.Default.AddParagraph("Test Me Footer");
 
             listInFooter.AddItem("Test Footer 2");
 
@@ -743,11 +743,11 @@ public partial class Word {
         using (var document = WordDocument.Create(filePath)) {
             document.AddHeadersAndFooters();
 
-            var headerList = document.Header.Default.AddList(WordListStyle.Bulleted);
+            var headerList = document.Header!.Default.AddList(WordListStyle.Bulleted);
             headerList.AddItem("Header 1");
             headerList.AddItem("Header 2");
 
-            var footerList = document.Footer.Default.AddList(WordListStyle.Bulleted);
+            var footerList = document.Footer!.Default.AddList(WordListStyle.Bulleted);
             footerList.AddItem("Footer 1");
             footerList.AddItem("Footer 2");
 
@@ -757,16 +757,16 @@ public partial class Word {
             footerList.Remove();
 
             Assert.Empty(document.Lists);
-            Assert.Empty(document.Header.Default.Paragraphs);
-            Assert.Empty(document.Footer.Default.Paragraphs);
+            Assert.Empty(document.Header!.Default.Paragraphs);
+            Assert.Empty(document.Footer!.Default.Paragraphs);
 
             document.Save(false);
         }
 
         using (var document = WordDocument.Load(filePath)) {
             Assert.Empty(document.Lists);
-            Assert.Empty(document.Header.Default.Paragraphs);
-            Assert.Empty(document.Footer.Default.Paragraphs);
+            Assert.Empty(document.Header!.Default.Paragraphs);
+            Assert.Empty(document.Footer!.Default.Paragraphs);
         }
     }
 

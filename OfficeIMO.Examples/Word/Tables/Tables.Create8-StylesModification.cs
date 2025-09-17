@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System;
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
 
@@ -18,37 +21,39 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph();
 
                 WordTable wordTable = document.AddTable(3, 4, WordTableStyle.PlainTable1);
-                wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
-                wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
-                wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
+                SetCellText(wordTable, 0, 0, "Test 1");
+                SetCellText(wordTable, 1, 0, "Test 2");
+                SetCellText(wordTable, 2, 0, "Test 3");
 
                 // Set margins for all sides
-                wordTable.StyleDetails.MarginDefaultTopWidth = 110;
-                wordTable.StyleDetails.MarginDefaultBottomWidth = 110;
-                wordTable.StyleDetails.MarginDefaultLeftWidth = 110;
-                wordTable.StyleDetails.MarginDefaultRightWidth = 110;
-                wordTable.StyleDetails.CellSpacing = 50;
+                var styleDetails1 = Guard.NotNull(wordTable.StyleDetails, "Table style details should be available.");
+                styleDetails1.MarginDefaultTopWidth = 110;
+                styleDetails1.MarginDefaultBottomWidth = 110;
+                styleDetails1.MarginDefaultLeftWidth = 110;
+                styleDetails1.MarginDefaultRightWidth = 110;
+                styleDetails1.CellSpacing = 50;
 
                 Console.WriteLine("Table style: " + wordTable.Style);
-                Console.WriteLine("Table MarginDefaultTopWidth: " + wordTable.StyleDetails.MarginDefaultTopWidth);
-                Console.WriteLine("Table MarginDefaultBottomWidth: " + wordTable.StyleDetails.MarginDefaultBottomWidth);
-                Console.WriteLine("Table MarginDefaultLeftWidth: " + wordTable.StyleDetails.MarginDefaultLeftWidth);
-                Console.WriteLine("Table MarginDefaultRightWidth: " + wordTable.StyleDetails.MarginDefaultRightWidth);
-                Console.WriteLine("Table CellSpacing: " + wordTable.StyleDetails.CellSpacing);
+                Console.WriteLine("Table MarginDefaultTopWidth: " + styleDetails1.MarginDefaultTopWidth);
+                Console.WriteLine("Table MarginDefaultBottomWidth: " + styleDetails1.MarginDefaultBottomWidth);
+                Console.WriteLine("Table MarginDefaultLeftWidth: " + styleDetails1.MarginDefaultLeftWidth);
+                Console.WriteLine("Table MarginDefaultRightWidth: " + styleDetails1.MarginDefaultRightWidth);
+                Console.WriteLine("Table CellSpacing: " + styleDetails1.CellSpacing);
 
                 document.AddParagraph();
 
                 // Create another table with different style and margins
                 WordTable wordTable2 = document.AddTable(3, 4, WordTableStyle.GridTable1Light);
-                wordTable2.Rows[0].Cells[0].Paragraphs[0].Text = "Style 2 Test 1";
-                wordTable2.Rows[1].Cells[0].Paragraphs[0].Text = "Style 2 Test 2";
-                wordTable2.Rows[2].Cells[0].Paragraphs[0].Text = "Style 2 Test 3";
+                SetCellText(wordTable2, 0, 0, "Style 2 Test 1");
+                SetCellText(wordTable2, 1, 0, "Style 2 Test 2");
+                SetCellText(wordTable2, 2, 0, "Style 2 Test 3");
 
                 // Set different margins for each side
-                wordTable2.StyleDetails.MarginDefaultTopWidth = 120;
-                wordTable2.StyleDetails.MarginDefaultBottomWidth = 180;
-                wordTable2.StyleDetails.MarginDefaultLeftWidth = 150;
-                wordTable2.StyleDetails.MarginDefaultRightWidth = 150;
+                var styleDetails2 = Guard.NotNull(wordTable2.StyleDetails, "Table style details should be available.");
+                styleDetails2.MarginDefaultTopWidth = 120;
+                styleDetails2.MarginDefaultBottomWidth = 180;
+                styleDetails2.MarginDefaultLeftWidth = 150;
+                styleDetails2.MarginDefaultRightWidth = 150;
 
                 // Add custom borders
                 TableBorders borders = new TableBorders(
@@ -59,7 +64,7 @@ namespace OfficeIMO.Examples.Word {
                     new InsideHorizontalBorder() { Val = BorderValues.Single, Size = 12 },
                     new InsideVerticalBorder() { Val = BorderValues.Single, Size = 12 }
                 );
-                wordTable2.StyleDetails.TableBorders = borders;
+                styleDetails2.TableBorders = borders;
 
                 wordTable2.Rows[0].Cells[2].Borders.TopColor = Color.Red;
                 wordTable2.Rows[0].Cells[2].Borders.BottomColor = Color.Green;
@@ -68,12 +73,19 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("\nSecond table settings:");
                 Console.WriteLine("Table style: " + wordTable2.Style);
-                Console.WriteLine("Table MarginDefaultTopWidth: " + wordTable2.StyleDetails.MarginDefaultTopWidth);
-                Console.WriteLine("Table MarginDefaultBottomWidth: " + wordTable2.StyleDetails.MarginDefaultBottomWidth);
-                Console.WriteLine("Table MarginDefaultLeftWidth: " + wordTable2.StyleDetails.MarginDefaultLeftWidth);
-                Console.WriteLine("Table MarginDefaultRightWidth: " + wordTable2.StyleDetails.MarginDefaultRightWidth);
+                Console.WriteLine("Table MarginDefaultTopWidth: " + styleDetails2.MarginDefaultTopWidth);
+                Console.WriteLine("Table MarginDefaultBottomWidth: " + styleDetails2.MarginDefaultBottomWidth);
+                Console.WriteLine("Table MarginDefaultLeftWidth: " + styleDetails2.MarginDefaultLeftWidth);
+                Console.WriteLine("Table MarginDefaultRightWidth: " + styleDetails2.MarginDefaultRightWidth);
 
                 document.Save(openWord);
+
+                static void SetCellText(WordTable table, int rowIndex, int columnIndex, string text) {
+                    var row = Guard.GetRequiredItem(table.Rows, rowIndex, $"Table must contain row index {rowIndex}.");
+                    var cell = Guard.GetRequiredItem(row.Cells, columnIndex, $"Row must contain cell index {columnIndex}.");
+                    var paragraph = cell.Paragraphs.FirstOrDefault() ?? cell.AddParagraph();
+                    paragraph.Text = text;
+                }
             }
         }
     }

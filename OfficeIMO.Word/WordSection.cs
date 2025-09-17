@@ -446,7 +446,10 @@ namespace OfficeIMO.Word {
                 List<WordEquation> list = new List<WordEquation>();
                 var paragraphs = Paragraphs.Where(p => p.IsEquation).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.Equation);
+                    var equation = paragraph.Equation;
+                    if (equation != null) {
+                        list.Add(equation);
+                    }
                 }
                 return list;
             }
@@ -460,7 +463,10 @@ namespace OfficeIMO.Word {
                 List<WordStructuredDocumentTag> list = new List<WordStructuredDocumentTag>();
                 var paragraphs = Paragraphs.Where(p => p.IsStructuredDocumentTag).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.StructuredDocumentTag);
+                    var structuredDocumentTag = paragraph.StructuredDocumentTag;
+                    if (structuredDocumentTag != null) {
+                        list.Add(structuredDocumentTag);
+                    }
                 }
 
                 var sdtBlocks = GetSdtBlockList();
@@ -483,7 +489,10 @@ namespace OfficeIMO.Word {
                 List<WordCheckBox> list = new List<WordCheckBox>();
                 var paragraphs = Paragraphs.Where(p => p.IsCheckBox).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.CheckBox);
+                    var checkBox = paragraph.CheckBox;
+                    if (checkBox != null) {
+                        list.Add(checkBox);
+                    }
                 }
                 return list;
             }
@@ -497,7 +506,10 @@ namespace OfficeIMO.Word {
                 List<WordDatePicker> list = new List<WordDatePicker>();
                 var paragraphs = Paragraphs.Where(p => p.IsDatePicker).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.DatePicker);
+                    var datePicker = paragraph.DatePicker;
+                    if (datePicker != null) {
+                        list.Add(datePicker);
+                    }
                 }
                 return list;
             }
@@ -511,7 +523,10 @@ namespace OfficeIMO.Word {
                 List<WordDropDownList> list = new List<WordDropDownList>();
                 var paragraphs = Paragraphs.Where(p => p.IsDropDownList).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.DropDownList);
+                    var dropDownList = paragraph.DropDownList;
+                    if (dropDownList != null) {
+                        list.Add(dropDownList);
+                    }
                 }
                 return list;
             }
@@ -525,7 +540,10 @@ namespace OfficeIMO.Word {
                 List<WordComboBox> list = new List<WordComboBox>();
                 var paragraphs = Paragraphs.Where(p => p.IsComboBox).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.ComboBox);
+                    var comboBox = paragraph.ComboBox;
+                    if (comboBox != null) {
+                        list.Add(comboBox);
+                    }
                 }
                 return list;
             }
@@ -539,7 +557,10 @@ namespace OfficeIMO.Word {
                 List<WordPictureControl> list = new List<WordPictureControl>();
                 var paragraphs = Paragraphs.Where(p => p.IsPictureControl).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.PictureControl);
+                    var pictureControl = paragraph.PictureControl;
+                    if (pictureControl != null) {
+                        list.Add(pictureControl);
+                    }
                 }
                 return list;
             }
@@ -553,7 +574,10 @@ namespace OfficeIMO.Word {
                 List<WordRepeatingSection> list = new List<WordRepeatingSection>();
                 var paragraphs = Paragraphs.Where(p => p.IsRepeatingSection).ToList();
                 foreach (var paragraph in paragraphs) {
-                    list.Add(paragraph.RepeatingSection);
+                    var repeatingSection = paragraph.RepeatingSection;
+                    if (repeatingSection != null) {
+                        list.Add(repeatingSection);
+                    }
                 }
                 return list;
             }
@@ -847,6 +871,13 @@ namespace OfficeIMO.Word {
             } else {
                 return HeaderFooterValues.First;
             }
+        }
+
+        internal static HeaderFooterValues GetType(DocumentFormat.OpenXml.EnumValue<HeaderFooterValues>? type) {
+            var value = type?.Value;
+            if (value == HeaderFooterValues.Even) return HeaderFooterValues.Even;
+            if (value == HeaderFooterValues.First) return HeaderFooterValues.First;
+            return HeaderFooterValues.Default;
         }
     }
 }

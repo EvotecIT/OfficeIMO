@@ -16,7 +16,7 @@ namespace OfficeIMO.Word {
         internal override List<string> GetParameters() {
             var parameters = new List<string>();
             if (!string.IsNullOrWhiteSpace(SourceTag)) {
-                parameters.Add(SourceTag);
+                parameters.Add(SourceTag!);
             }
             return parameters;
         }

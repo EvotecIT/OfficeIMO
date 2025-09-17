@@ -19,11 +19,11 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
-            document.Header.Default.AddParagraph("Sample Header");
-            WordTable headerTable = document.Header.Default.AddTable(1, 1);
+            document.Header!.Default.AddParagraph("Sample Header");
+            WordTable headerTable = document.Header!.Default.AddTable(1, 1);
             headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "H1";
-            document.Footer.Default.AddParagraph("Sample Footer");
-            WordTable footerTable = document.Footer.Default.AddTable(1, 1);
+            document.Footer!.Default.AddParagraph("Sample Footer");
+            WordTable footerTable = document.Footer!.Default.AddTable(1, 1);
             footerTable.Rows[0].Cells[0].Paragraphs[0].Text = "F1";
 
             WordParagraph heading = document.AddParagraph("Heading One");
@@ -65,8 +65,8 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
-            document.Header.Default.AddParagraph().AddImage(imagePath, 20, 20);
-            document.Footer.Default.AddParagraph().AddImage(imagePath, 400, 400);
+            document.Header!.Default.AddParagraph().AddImage(imagePath, 20, 20);
+            document.Footer!.Default.AddParagraph().AddImage(imagePath, 400, 400);
             document.Save();
             document.SaveAsPdf(pdfPath);
         }

@@ -12,6 +12,7 @@ namespace OfficeIMO.Examples.Word {
             document.AddSmartArt(SmartArtType.Cycle);
             document.AddSmartArt(SmartArtType.PictureOrgChart);
             document.Save(openWord);
+            OfficeIMO.Examples.Utils.Validation.ValidateDoc(filePath);
         }
     }
 }

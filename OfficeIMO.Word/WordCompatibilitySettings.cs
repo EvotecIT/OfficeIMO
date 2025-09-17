@@ -1,5 +1,6 @@
 using System;
 using DocumentFormat.OpenXml;
+using System.Globalization;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -38,8 +39,8 @@ namespace OfficeIMO.Word {
     /// reading or changing the compatibility mode.
     /// </summary>
     public class WordCompatibilitySettings {
-        private WordprocessingDocument _wordprocessingDocument;
-        private WordDocument _document;
+        private readonly WordprocessingDocument _wordprocessingDocument;
+        private readonly WordDocument _document;
 
         /// <summary>
         /// Initializes a new instance of <see cref="WordCompatibilitySettings"/>
@@ -47,8 +48,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document">Word document associated with the settings.</param>
         public WordCompatibilitySettings(WordDocument document) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+
             _document = document;
-            _wordprocessingDocument = document._wordprocessingDocument;
+            _wordprocessingDocument = document._wordprocessingDocument ?? throw new InvalidOperationException("The document does not contain an associated WordprocessingDocument instance.");
             document.CompatibilitySettings = this;
         }
 
@@ -57,44 +60,59 @@ namespace OfficeIMO.Word {
         /// </summary>
         public CompatibilityMode CompatibilityMode {
             get {
-                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
-                var compatibility = settings.OfType<Compatibility>().FirstOrDefault();
+                Settings settings = GetSettings();
+                Compatibility? compatibility = settings.Elements<Compatibility>().FirstOrDefault();
                 if (compatibility == null) {
                     return CompatibilityMode.None;
                 }
-                foreach (var setting in compatibility.OfType<CompatibilitySetting>()) {
-                    if (setting.Name == CompatSettingNameValues.CompatibilityMode) {
-                        return (CompatibilityMode)int.Parse(setting.Val);
+                foreach (CompatibilitySetting setting in compatibility.Elements<CompatibilitySetting>()) {
+                    if (setting.Name?.Value == CompatSettingNameValues.CompatibilityMode) {
+                        string? valueText = setting.Val?.Value ?? setting.Val;
+                        if (int.TryParse(valueText, NumberStyles.Integer, CultureInfo.InvariantCulture, out int modeValue) && Enum.IsDefined(typeof(CompatibilityMode), modeValue)) {
+                            return (CompatibilityMode)modeValue;
+                        }
+                        break;
                     }
                 }
 
                 return CompatibilityMode.None;
             }
             set {
-                var settings = _document._wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings;
-                var compatibility = settings.OfType<Compatibility>().FirstOrDefault();
+                Settings settings = GetSettings();
+                Compatibility? compatibility = settings.Elements<Compatibility>().FirstOrDefault();
                 if (compatibility == null) {
                     compatibility = new Compatibility();
                     settings.Append(compatibility);
                 }
 
-                foreach (var setting in compatibility.OfType<CompatibilitySetting>()) {
-                    if (setting.Name == CompatSettingNameValues.CompatibilityMode) {
+                foreach (CompatibilitySetting setting in compatibility.Elements<CompatibilitySetting>()) {
+                    if (setting.Name?.Value == CompatSettingNameValues.CompatibilityMode) {
                         if (value == CompatibilityMode.None) {
                             setting.Remove();
                         } else {
-                            setting.Val = ((int)value).ToString();
+                            setting.Val = ((int)value).ToString(CultureInfo.InvariantCulture);
                             setting.Uri = "http://schemas.microsoft.com/office/word";
                         }
+
                         return;
                     }
                 }
-                compatibility.Append(new CompatibilitySetting() {
-                    Name = CompatSettingNameValues.CompatibilityMode,
-                    Uri = "http://schemas.microsoft.com/office/word",
-                    Val = ((int)value).ToString()
-                });
+
+                if (value != CompatibilityMode.None) {
+                    compatibility.Append(new CompatibilitySetting {
+                        Name = CompatSettingNameValues.CompatibilityMode,
+                        Uri = "http://schemas.microsoft.com/office/word",
+                        Val = ((int)value).ToString(CultureInfo.InvariantCulture)
+                    });
+                }
             }
+        }
+
+        private Settings GetSettings() {
+            MainDocumentPart mainPart = _wordprocessingDocument.MainDocumentPart ?? throw new InvalidOperationException("The document does not contain a main document part.");
+            DocumentSettingsPart settingsPart = mainPart.DocumentSettingsPart ?? mainPart.AddNewPart<DocumentSettingsPart>();
+            settingsPart.Settings ??= new Settings();
+            return settingsPart.Settings;
         }
     }
 }

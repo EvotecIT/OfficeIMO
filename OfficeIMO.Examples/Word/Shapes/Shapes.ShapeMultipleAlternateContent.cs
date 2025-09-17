@@ -4,6 +4,7 @@ using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using Path = System.IO.Path;
@@ -19,11 +20,15 @@ namespace OfficeIMO.Examples.Word {
                 document.Save(false);
             }
             using (WordprocessingDocument word = WordprocessingDocument.Open(filePath, true)) {
-                var body = word.MainDocumentPart.Document.Body;
-                var shapeRun = body.Descendants<Run>().First(r => r.Descendants<Drawing>().Any() && !r.Descendants<Wps.TextBoxInfo2>().Any());
-                var textBoxRun = body.Descendants<Run>().First(r => r.Descendants<Wps.TextBoxInfo2>().Any());
-                var shapeDrawing = (Drawing)shapeRun.Descendants<Drawing>().First().CloneNode(true);
-                var textBoxDrawing = (Drawing)textBoxRun.Descendants<Drawing>().First().CloneNode(true);
+                var body = Guard.NotNull(word.MainDocumentPart?.Document?.Body, "Document body must exist.");
+                var shapeRun = body.Descendants<Run>().FirstOrDefault(r => r.Descendants<Drawing>().Any() && !r.Descendants<Wps.TextBoxInfo2>().Any())
+                    ?? throw new InvalidOperationException("Run containing a shape drawing was not found.");
+                var textBoxRun = body.Descendants<Run>().FirstOrDefault(r => r.Descendants<Wps.TextBoxInfo2>().Any())
+                    ?? throw new InvalidOperationException("Run containing a textbox drawing was not found.");
+                var shapeDrawing = (Drawing)(shapeRun.Descendants<Drawing>().FirstOrDefault()?.CloneNode(true)
+                    ?? throw new InvalidOperationException("Shape drawing was not found."));
+                var textBoxDrawing = (Drawing)(textBoxRun.Descendants<Drawing>().FirstOrDefault()?.CloneNode(true)
+                    ?? throw new InvalidOperationException("Textbox drawing was not found."));
 
                 var shapeAc = new AlternateContent();
                 var shapeChoice = new AlternateContentChoice() { Requires = "wps" };
@@ -39,11 +44,11 @@ namespace OfficeIMO.Examples.Word {
                 run.Append(shapeAc);
                 run.Append(textBoxAc);
 
-                shapeRun.Parent.InsertBefore(run, shapeRun);
+                Guard.NotNull(shapeRun.Parent, "Shape run must have a parent.").InsertBefore(run, shapeRun);
                 shapeRun.Remove();
                 textBoxRun.Remove();
 
-                var document = word.MainDocumentPart.Document;
+                var document = Guard.NotNull(word.MainDocumentPart?.Document, "Main document part must contain a document.");
                 if (document.LookupNamespace("wps") == null) {
                     document.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
                 }

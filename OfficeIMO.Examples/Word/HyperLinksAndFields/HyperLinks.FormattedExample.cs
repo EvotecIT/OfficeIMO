@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -12,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph = document.AddParagraph("Search using ");
                 var google = paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
                 google.Bold = true;
-                var reference = google.Hyperlink;
+                var reference = Guard.NotNull(google.Hyperlink, "Expected the Google hyperlink to be created.");
 
                 reference.InsertFormattedHyperlinkAfter("Bing", new Uri("https://bing.com"));
 

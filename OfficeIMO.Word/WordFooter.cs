@@ -14,7 +14,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the default footer for the section.
         /// </summary>
-        public WordFooter Default {
+        public WordFooter? Default {
             get;
             set;
         }
@@ -22,7 +22,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the footer used for even pages.
         /// </summary>
-        public WordFooter Even {
+        public WordFooter? Even {
             get;
             set;
         }
@@ -30,7 +30,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the footer used for the first page.
         /// </summary>
-        public WordFooter First {
+        public WordFooter? First {
             get;
             set;
         }
@@ -48,11 +48,12 @@ namespace OfficeIMO.Word {
             _type = WordSection.GetType(footerReference.Type);
             _section = section;
 
-            var listHeaders = document._wordprocessingDocument.MainDocumentPart.FooterParts.ToList();
+            var listHeaders = document._wordprocessingDocument.MainDocumentPart!.FooterParts.ToList();
             foreach (FooterPart footerPart in listHeaders) {
                 var id = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(footerPart);
                 if (id == _id) {
                     _footerPart = footerPart;
+                    if (footerPart.Footer == null) footerPart.Footer = new Footer();
                     _footer = footerPart.Footer;
                 }
             }
@@ -93,10 +94,10 @@ namespace OfficeIMO.Word {
         /// <param name="types">Footer types to remove.</param>
         public static void RemoveFooters(WordprocessingDocument wordprocessingDocument, params HeaderFooterValues[] types) {
             var docPart = wordprocessingDocument.MainDocumentPart;
-            DocumentFormat.OpenXml.Wordprocessing.Document document = docPart.Document;
+            var document = docPart?.Document;
 
             if (types == null || types.Length == 0) {
-                if (docPart.FooterParts.Any()) {
+                if (docPart?.FooterParts.Any() == true && document != null) {
                     docPart.DeleteParts(docPart.FooterParts);
                     var footers = document.Descendants<FooterReference>().ToList();
                     foreach (var footer in footers) {
@@ -107,17 +108,18 @@ namespace OfficeIMO.Word {
             }
 
             var partsToDelete = new HashSet<FooterPart>();
-            var footersToRemove = document.Descendants<FooterReference>()
-                .Where(f => types.Contains(f.Type)).ToList();
+            var footersToRemove = (document ?? throw new InvalidOperationException("Main document is missing.")).Descendants<FooterReference>()
+                .Where(f => f.Type != null && types.Contains(WordSection.GetType(f.Type))).ToList();
             foreach (var footer in footersToRemove) {
-                var part = docPart.GetPartById(footer.Id) as FooterPart;
+                if (footer.Id == null || docPart == null) continue;
+                var part = docPart.GetPartById(footer.Id.Value!) as FooterPart;
                 if (part != null) {
                     partsToDelete.Add(part);
                 }
                 footer.Remove();
             }
             foreach (var part in partsToDelete) {
-                docPart.DeletePart(part);
+                docPart!.DeletePart(part);
             }
         }
         /// <summary>

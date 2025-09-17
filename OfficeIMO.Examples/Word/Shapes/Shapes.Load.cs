@@ -1,4 +1,5 @@
 using System;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -16,7 +17,8 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 foreach (var paragraph in document.Paragraphs) {
                     if (paragraph.IsShape) {
-                        Console.WriteLine($"Found shape {paragraph.Shape.Width}x{paragraph.Shape.Height}");
+                        var shape = Guard.NotNull(paragraph.Shape, "Paragraph flagged as shape should expose shape information.");
+                        Console.WriteLine($"Found shape {shape.Width}x{shape.Height}");
                     }
                 }
                 document.Save(openWord);

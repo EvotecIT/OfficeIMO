@@ -37,7 +37,7 @@ public partial class WordDocument {
         }
     }
 
-    private Numbering GetNumbering() {
+    private Numbering? GetNumbering() {
         return _wordprocessingDocument?.MainDocumentPart?.NumberingDefinitionsPart?.Numbering;
     }
 
@@ -51,8 +51,8 @@ public partial class WordDocument {
         List<Run> runsToRemove = new List<Run>();
         List<Run> runs = paragraph.Elements<Run>().ToList();
         for (int i = runs.Count - 2; i >= 0; i--) {
-            Text text1 = runs[i].GetFirstChild<Text>();
-            Text text2 = runs[i + 1].GetFirstChild<Text>();
+            Text? text1 = runs[i].GetFirstChild<Text>();
+            Text? text2 = runs[i + 1].GetFirstChild<Text>();
             if (text1 != null && text2 != null) {
                 if (AreRunPropertiesEqual(runs[i].RunProperties, runs[i + 1].RunProperties)) {
                     text1.Text += text2.Text;
@@ -113,7 +113,7 @@ public partial class WordDocument {
         return !paragraph.Elements<Run>().Any() && paragraph.ChildElements.All(e => e is ParagraphProperties);
     }
 
-    private static bool AreRunPropertiesEqual(RunProperties rPr1, RunProperties rPr2) {
+    private static bool AreRunPropertiesEqual(RunProperties? rPr1, RunProperties? rPr2) {
         if (rPr1 == null && rPr2 == null) {
             return true;
         }

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using DocumentFormat.OpenXml.Bibliography;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -20,11 +21,14 @@ namespace OfficeIMO.Examples.Word {
                     Year = "2023"
                 };
 
-                document.BibliographySources[book.Tag] = book;
-                document.BibliographySources[article.Tag] = article;
+                string bookTag = Guard.NotNullOrWhiteSpace(book.Tag, "Bibliography source 'book' must define a tag.");
+                string articleTag = Guard.NotNullOrWhiteSpace(article.Tag, "Bibliography source 'article' must define a tag.");
 
-                document.AddParagraph("Book reference: ").AddCitation(book.Tag);
-                document.AddParagraph("Article reference: ").AddCitation(article.Tag);
+                document.BibliographySources[bookTag] = book;
+                document.BibliographySources[articleTag] = article;
+
+                document.AddParagraph("Book reference: ").AddCitation(bookTag);
+                document.AddParagraph("Article reference: ").AddCitation(articleTag);
 
                 document.Save(openWord);
             }

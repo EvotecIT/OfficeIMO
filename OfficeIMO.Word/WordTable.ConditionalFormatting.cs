@@ -72,23 +72,23 @@ namespace OfficeIMO.Word {
                     var targetCell = Rows[r].Cells[colIndex];
                     if (isMatch) {
                         if (!string.IsNullOrEmpty(matchFillColorHex)) {
-                            targetCell.ShadingFillColorHex = matchFillColorHex;
+                            targetCell.ShadingFillColorHex = matchFillColorHex ?? string.Empty;
                         }
                     } else {
                         if (!string.IsNullOrEmpty(noMatchFillColorHex)) {
-                            targetCell.ShadingFillColorHex = noMatchFillColorHex;
+                            targetCell.ShadingFillColorHex = noMatchFillColorHex ?? string.Empty;
                         }
                     }
 
                     foreach (var p in targetCell.Paragraphs) {
                         if (isMatch) {
                             if (!string.IsNullOrEmpty(matchFontColorHex)) {
-                                p.ColorHex = matchFontColorHex;
+                                p.ColorHex = matchFontColorHex ?? string.Empty;
                             }
                             matchTextFormat?.Invoke(p);
                         } else {
                             if (!string.IsNullOrEmpty(noMatchFontColorHex)) {
-                                p.ColorHex = noMatchFontColorHex;
+                                p.ColorHex = noMatchFontColorHex ?? string.Empty;
                             }
                             noMatchTextFormat?.Invoke(p);
                         }
@@ -211,23 +211,23 @@ namespace OfficeIMO.Word {
                     var targetCell = Rows[r].Cells[colIndex];
                     if (match) {
                         if (!string.IsNullOrEmpty(matchFillColorHex)) {
-                            targetCell.ShadingFillColorHex = matchFillColorHex;
+                            targetCell.ShadingFillColorHex = matchFillColorHex ?? string.Empty;
                         }
                     } else {
                         if (!string.IsNullOrEmpty(noMatchFillColorHex)) {
-                            targetCell.ShadingFillColorHex = noMatchFillColorHex;
+                            targetCell.ShadingFillColorHex = noMatchFillColorHex ?? string.Empty;
                         }
                     }
 
                     foreach (var p in targetCell.Paragraphs) {
                         if (match) {
                             if (!string.IsNullOrEmpty(matchFontColorHex)) {
-                                p.ColorHex = matchFontColorHex;
+                                p.ColorHex = matchFontColorHex ?? string.Empty;
                             }
                             matchTextFormat?.Invoke(p);
                         } else {
                             if (!string.IsNullOrEmpty(noMatchFontColorHex)) {
-                                p.ColorHex = noMatchFontColorHex;
+                                p.ColorHex = noMatchFontColorHex ?? string.Empty;
                             }
                             noMatchTextFormat?.Invoke(p);
                         }

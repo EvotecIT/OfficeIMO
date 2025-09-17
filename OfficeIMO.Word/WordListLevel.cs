@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -135,24 +136,79 @@ public enum WordListLevelKind {
         /// </summary>
         /// <param name="level">The underlying Open XML list level element.</param>
         public WordListLevel(Level level) {
-            _level = level;
+            _level = level ?? throw new ArgumentNullException(nameof(level));
         }
 
         /// <summary>
         /// Gets or sets the underlying Open XML list level element that backs
         /// this instance.
         /// </summary>
-        public Level _level { get; set; }
+        public Level _level { get; set; } = null!;
+
+        private StartNumberingValue GetStartNumberingValueElement() {
+            var element = _level.Descendants<StartNumberingValue>().FirstOrDefault();
+            if (element == null) {
+                element = new StartNumberingValue { Val = 1 };
+                _level.Append(element);
+            } else if (element.Val == null || !element.Val.HasValue) {
+                element.Val = 1;
+            }
+
+            return element;
+        }
+
+        private Indentation GetIndentationElement() {
+            var indentation = _level.Descendants<Indentation>().FirstOrDefault();
+            if (indentation != null) {
+                return indentation;
+            }
+
+            var paragraphProperties = _level.GetFirstChild<PreviousParagraphProperties>();
+            if (paragraphProperties == null) {
+                paragraphProperties = new PreviousParagraphProperties();
+                _level.Append(paragraphProperties);
+            }
+
+            indentation = new Indentation { Left = "0", Hanging = "0" };
+            paragraphProperties.Append(indentation);
+            return indentation;
+        }
+
+        private LevelText GetLevelTextElement() {
+            var levelText = _level.GetFirstChild<LevelText>();
+            if (levelText == null) {
+                levelText = new LevelText { Val = string.Empty };
+                _level.Append(levelText);
+            } else if (levelText.Val == null) {
+                levelText.Val = string.Empty;
+            }
+
+            return levelText;
+        }
+
+        private LevelJustification GetLevelJustificationElement() {
+            var justification = _level.GetFirstChild<LevelJustification>();
+            if (justification == null) {
+                justification = new LevelJustification { Val = LevelJustificationValues.Left };
+                _level.Append(justification);
+            } else if (justification.Val == null || !justification.Val.HasValue) {
+                justification.Val = LevelJustificationValues.Left;
+            }
+
+            return justification;
+        }
 
         /// <summary>
         /// Gets or sets the start numbering value.
         /// </summary>
         public int StartNumberingValue {
             get {
-                return _level.Descendants<StartNumberingValue>().First().Val;
+                var element = GetStartNumberingValueElement();
+                return element.Val?.Value ?? 0;
             }
             set {
-                _level.Descendants<StartNumberingValue>().First().Val = value;
+                var element = GetStartNumberingValueElement();
+                element.Val = value;
             }
         }
 
@@ -171,10 +227,12 @@ public enum WordListLevelKind {
         /// </summary>
         public int IndentationLeft {
             get {
-                return int.Parse(_level.Descendants<Indentation>().First().Left);
+                var indentation = GetIndentationElement();
+                return int.TryParse(indentation.Left, out int value) ? value : 0;
             }
             set {
-                _level.Descendants<Indentation>().First().Left = value.ToString();
+                var indentation = GetIndentationElement();
+                indentation.Left = value.ToString();
             }
         }
 
@@ -191,10 +249,12 @@ public enum WordListLevelKind {
         /// </summary>
         public int IndentationHanging {
             get {
-                return int.Parse(_level.Descendants<Indentation>().First().Hanging);
+                var indentation = GetIndentationElement();
+                return int.TryParse(indentation.Hanging, out int value) ? value : 0;
             }
             set {
-                _level.Descendants<Indentation>().First().Hanging = value.ToString();
+                var indentation = GetIndentationElement();
+                indentation.Hanging = value.ToString();
             }
         }
 
@@ -211,10 +271,12 @@ public enum WordListLevelKind {
         /// </summary>
         public string LevelText {
             get {
-                return _level.Descendants<LevelText>().First().Val;
+                var element = GetLevelTextElement();
+                return element.Val?.Value ?? string.Empty;
             }
             set {
-                _level.Descendants<LevelText>().First().Val = value;
+                var element = GetLevelTextElement();
+                element.Val = value ?? string.Empty;
             }
         }
 
@@ -223,10 +285,12 @@ public enum WordListLevelKind {
         /// </summary>
         public LevelJustificationValues LevelJustification {
             get {
-                return _level.Descendants<LevelJustification>().First().Val;
+                var element = GetLevelJustificationElement();
+                return element.Val?.Value ?? LevelJustificationValues.Left;
             }
             set {
-                _level.Descendants<LevelJustification>().First().Val = value;
+                var element = GetLevelJustificationElement();
+                element.Val = value;
             }
         }
 

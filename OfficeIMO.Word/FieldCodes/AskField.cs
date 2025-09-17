@@ -31,13 +31,13 @@ namespace OfficeIMO.Word {
         internal override List<string> GetParameters() {
             var parameters = new List<string>();
             if (!string.IsNullOrWhiteSpace(Bookmark)) {
-                parameters.Add(Bookmark);
+                parameters.Add(Bookmark!);
             }
             if (!string.IsNullOrWhiteSpace(Prompt)) {
-                parameters.Add($"\"{Prompt}\"");
+                parameters.Add($"\"{Prompt!}\"");
             }
             if (!string.IsNullOrWhiteSpace(DefaultResponse)) {
-                parameters.Add($"\\d \"{DefaultResponse}\"");
+                parameters.Add($"\\d \"{DefaultResponse!}\"");
             }
             if (PromptOnce) {
                 parameters.Add("\\o");

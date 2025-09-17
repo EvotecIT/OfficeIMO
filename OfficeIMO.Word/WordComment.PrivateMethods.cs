@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
@@ -11,84 +12,86 @@ namespace OfficeIMO.Word {
     /// A wrapper for Word document comments.
     /// </summary>
     public partial class WordComment {
-        private WordComment(WordDocument document, Comment comment, CommentEx commentEx) {
+        private WordComment(WordDocument document, Comment comment, CommentEx? commentEx) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            if (comment == null) throw new ArgumentNullException(nameof(comment));
+
             _document = document;
             _comment = comment;
             _commentEx = commentEx;
 
-            var paragraph = comment.ChildElements.OfType<Paragraph>();
-            List<WordParagraph> list = WordSection.ConvertParagraphsToWordParagraphs(document, paragraph);
+            IEnumerable<Paragraph> paragraphs = comment.ChildElements.OfType<Paragraph>();
+            List<WordParagraph> list = WordSection.ConvertParagraphsToWordParagraphs(document, paragraphs).ToList();
+            if (list.Count == 0) {
+                throw new InvalidOperationException("A comment must contain at least one paragraph.");
+            }
+
             _paragraph = list.Count > 1 ? list[1] : list[0];
             _list = list;
         }
 
         internal static string GetNewId(WordDocument document) {
-            string id = "0";
-            var comments = GetCommentsPart(document);
-            if (comments.HasChildren) {
-                // Obtain an unused ID.
-                id = (comments.Descendants<Comment>().Select(e => int.Parse(e.Id.Value)).Max() + 1).ToString();
-            }
-            return id;
+            Comments comments = GetCommentsPart(document);
+            int maxId = comments.Descendants<Comment>()
+                .Select(e => e.Id?.Value)
+                .Select(value => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) ? parsed : 0)
+                .DefaultIfEmpty(0)
+                .Max();
+
+            return (maxId + 1).ToString(CultureInfo.InvariantCulture);
         }
 
         internal static string GetNewId(WordDocument document, Comments comments) {
-            string id = "0";
-            if (comments.HasChildren) {
-                // Obtain an unused ID.
-                id = (comments.Descendants<Comment>().Select(e => int.Parse(e.Id.Value)).Max() + 1).ToString();
-            }
-            return id;
+            if (comments == null) throw new ArgumentNullException(nameof(comments));
+
+            int maxId = comments.Descendants<Comment>()
+                .Select(e => e.Id?.Value)
+                .Select(value => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) ? parsed : 0)
+                .DefaultIfEmpty(0)
+                .Max();
+
+            return (maxId + 1).ToString(CultureInfo.InvariantCulture);
         }
 
         internal static Comments GetCommentsPart(WordDocument document) {
-            Comments comments = null;
-            if (document._wordprocessingDocument.MainDocumentPart != null && document._wordprocessingDocument.MainDocumentPart.GetPartsOfType<WordprocessingCommentsPart>().Any()) {
-                if (document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart != null)
-                    comments = document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart.Comments;
-            } else {
-                // No WordprocessingCommentsPart part exists, so add one to the package.
-                if (document._wordprocessingDocument.MainDocumentPart != null) {
-                    WordprocessingCommentsPart commentPart = document._wordprocessingDocument.MainDocumentPart.AddNewPart<WordprocessingCommentsPart>();
-                    commentPart.Comments = new Comments();
-                    comments = commentPart.Comments;
-                }
-            }
+            if (document == null) throw new ArgumentNullException(nameof(document));
 
-            return comments;
+            MainDocumentPart mainPart = GetMainDocumentPart(document);
+            WordprocessingCommentsPart commentsPart = mainPart.WordprocessingCommentsPart ?? mainPart.AddNewPart<WordprocessingCommentsPart>();
+            commentsPart.Comments ??= new Comments();
+            return commentsPart.Comments;
         }
 
         internal static CommentsEx GetCommentsExPart(WordDocument document) {
-            CommentsEx commentsEx = null;
-            var mainPart = document._wordprocessingDocument.MainDocumentPart;
-            if (mainPart != null && mainPart.GetPartsOfType<WordprocessingCommentsExPart>().Any()) {
-                commentsEx = mainPart.WordprocessingCommentsExPart?.CommentsEx;
-            } else {
-                if (mainPart != null) {
-                    var commentExPart = mainPart.AddNewPart<WordprocessingCommentsExPart>();
-                    commentExPart.CommentsEx = new CommentsEx();
-                    commentsEx = commentExPart.CommentsEx;
-                }
-            }
+            if (document == null) throw new ArgumentNullException(nameof(document));
 
-            return commentsEx;
+            MainDocumentPart mainPart = GetMainDocumentPart(document);
+            WordprocessingCommentsExPart commentsExPart = mainPart.WordprocessingCommentsExPart ?? mainPart.AddNewPart<WordprocessingCommentsExPart>();
+            commentsExPart.CommentsEx ??= new CommentsEx();
+            return commentsExPart.CommentsEx;
         }
 
         internal static string GetNewParaId(CommentsEx commentsEx) {
+            if (commentsEx == null) throw new ArgumentNullException(nameof(commentsEx));
+
             var existing = commentsEx
                 .Descendants<CommentEx>()
                 .Select(c => c.ParaId?.Value)
-                .Where(v => v != null)
+                .Where(v => !string.IsNullOrEmpty(v))
                 .ToList();
 
             int max = 0;
             foreach (var v in existing) {
-                if (int.TryParse(v, System.Globalization.NumberStyles.HexNumber, null, out int num)) {
+                if (int.TryParse(v, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int num)) {
                     if (num > max) max = num;
                 }
             }
 
-            return (max + 1).ToString("X8");
+            return (max + 1).ToString("X8", CultureInfo.InvariantCulture);
+        }
+
+        private static MainDocumentPart GetMainDocumentPart(WordDocument document) {
+            return document._wordprocessingDocument?.MainDocumentPart ?? throw new InvalidOperationException("The Word document is not associated with a main document part.");
         }
     }
 }

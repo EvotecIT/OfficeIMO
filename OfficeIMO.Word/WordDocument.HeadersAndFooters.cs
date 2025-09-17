@@ -24,7 +24,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the headers of the first section.
         /// </summary>
-        public WordHeaders Header {
+        public WordHeaders? Header {
             get {
                 if (this.Sections.Count == 0) {
                     return null;
@@ -36,7 +36,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the footers of the first section.
         /// </summary>
-        public WordFooters Footer {
+        public WordFooters? Footer {
             get {
                 if (this.Sections.Count == 0) {
                     return null;

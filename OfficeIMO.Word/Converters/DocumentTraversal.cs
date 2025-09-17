@@ -130,7 +130,7 @@ namespace OfficeIMO.Word {
                 return formatted + ".";
             }
 
-            string marker = pattern;
+            string marker = pattern!;
             marker = marker.Replace("%CurrentLevel", FormatNumber(index, formats[level]));
             marker = Regex.Replace(marker, "%([0-9]+)", m => {
                 int lvl = int.Parse(m.Groups[1].Value) - 1;

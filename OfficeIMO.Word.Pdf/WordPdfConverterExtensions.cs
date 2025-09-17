@@ -43,8 +43,14 @@ namespace OfficeIMO.Word.Pdf {
                 Directory.CreateDirectory(directory);
             }
 
-            Document pdf = CreatePdfDocument(document, options);
-            pdf.GeneratePdf(path);
+            var originalLicense = QuestPDF.Settings.License;
+            try {
+                Document pdf = CreatePdfDocument(document, options);
+                pdf.GeneratePdf(path);
+            } finally {
+                // Restore whatever license was set before conversion
+                QuestPDF.Settings.License = originalLicense;
+            }
         }
 
         /// <summary>
@@ -66,11 +72,16 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentException("Stream must be writable.", nameof(stream));
             }
 
-            Document pdf = CreatePdfDocument(document, options);
-            pdf.GeneratePdf(stream);
+            var originalLicense = QuestPDF.Settings.License;
+            try {
+                Document pdf = CreatePdfDocument(document, options);
+                pdf.GeneratePdf(stream);
 
-            if (stream.CanSeek) {
-                stream.Position = 0;
+                if (stream.CanSeek) {
+                    stream.Position = 0;
+                }
+            } finally {
+                QuestPDF.Settings.License = originalLicense;
             }
         }
 
@@ -85,10 +96,15 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentNullException(nameof(document));
             }
 
-            using (MemoryStream stream = new MemoryStream()) {
-                Document pdf = CreatePdfDocument(document, options);
-                pdf.GeneratePdf(stream);
-                return stream.ToArray();
+            var originalLicense = QuestPDF.Settings.License;
+            try {
+                using (MemoryStream stream = new MemoryStream()) {
+                    Document pdf = CreatePdfDocument(document, options);
+                    pdf.GeneratePdf(stream);
+                    return stream.ToArray();
+                }
+            } finally {
+                QuestPDF.Settings.License = originalLicense;
             }
         }
 
@@ -167,11 +183,16 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentException("Stream must be writable.", nameof(stream));
             }
 
+            var originalLicense = QuestPDF.Settings.License;
             Document pdf = CreatePdfDocument(document, options);
             return Task.Run(() => {
-                pdf.GeneratePdf(stream);
-                if (stream.CanSeek) {
-                    stream.Position = 0;
+                try {
+                    pdf.GeneratePdf(stream);
+                    if (stream.CanSeek) {
+                        stream.Position = 0;
+                    }
+                } finally {
+                    QuestPDF.Settings.License = originalLicense;
                 }
             }, cancellationToken);
         }

@@ -20,41 +20,58 @@ namespace OfficeIMO.Word {
         /// <param name="sourcefilepath">Path to the source document containing styles to copy.</param>
         /// <param name="destinationfilepath">Path to the destination document that receives the styles.</param>
         internal static void ImportTableStyles(string sourcefilepath, string destinationfilepath) {
-            using (var repeaterSourceDocument = WordprocessingDocument.Open(sourcefilepath, true)) {
-                XDocument source_style_doc;
+            using WordprocessingDocument sourceDocument = WordprocessingDocument.Open(sourcefilepath, true);
+            MainDocumentPart sourceMainPart = sourceDocument.MainDocumentPart ?? throw new InvalidOperationException("Source document is missing a main document part.");
+            StyleDefinitionsPart sourceStylePart = sourceMainPart.StyleDefinitionsPart ?? throw new InvalidOperationException("Source document does not contain styles.");
 
-                var repeaterSourceDocumentStylePart = repeaterSourceDocument.MainDocumentPart.StyleDefinitionsPart;
+            XDocument sourceStyleDoc;
+            using (TextReader reader = new StreamReader(sourceStylePart.GetStream())) {
+                sourceStyleDoc = XDocument.Load(reader);
+            }
 
-                // Get styles.xml
-                using (TextReader tr = new StreamReader(repeaterSourceDocumentStylePart.GetStream())) {
-                    source_style_doc = XDocument.Load(tr);
+            XName stylesName = XName.Get("styles", w.NamespaceName);
+            XName styleName = XName.Get("style", w.NamespaceName);
+            XName styleIdName = XName.Get("styleId");
+            XName typeName = XName.Get("type", w.NamespaceName);
+
+            List<XElement> sourceTableStyles = sourceStyleDoc
+                .Element(stylesName)?
+                .Elements(styleName)
+                .Where(style => string.Equals((string?)style.Attribute(typeName), "table", StringComparison.Ordinal))
+                .Select(style => new XElement(style))
+                .ToList() ?? new List<XElement>();
+
+            using WordprocessingDocument destinationDocument = WordprocessingDocument.Open(destinationfilepath, true);
+            MainDocumentPart destinationMainPart = destinationDocument.MainDocumentPart ?? throw new InvalidOperationException("Destination document is missing a main document part.");
+            StyleDefinitionsPart destinationStylePart = destinationMainPart.StyleDefinitionsPart ?? throw new InvalidOperationException("Destination document does not contain styles.");
+
+            XDocument destinationStyleDoc;
+            using (TextReader reader = new StreamReader(destinationStylePart.GetStream())) {
+                destinationStyleDoc = XDocument.Load(reader);
+            }
+
+            XElement stylesRoot = destinationStyleDoc.Element(stylesName) ?? new XElement(stylesName);
+            if (stylesRoot.Parent == null) {
+                destinationStyleDoc.Add(stylesRoot);
+            }
+
+            foreach (XElement styleElement in sourceTableStyles) {
+                string? styleId = styleElement.Attribute(styleIdName)?.Value;
+                if (string.IsNullOrEmpty(styleId)) {
+                    continue;
                 }
 
-                var tableStylesFromRepeaterSource = source_style_doc.Descendants(w + "style").Where(x => x.Attribute(w + "type").Value == "table").Select(x => x).ToList();
+                bool exists = stylesRoot
+                    .Elements(styleName)
+                    .Any(existing => string.Equals((string?)existing.Attribute(styleIdName), styleId, StringComparison.Ordinal));
 
-                using (var targetFileToImportTableStyles = WordprocessingDocument.Open(destinationfilepath, true)) {
-                    XDocument dest_style_doc;
-
-                    var destStylePart = targetFileToImportTableStyles.MainDocumentPart.StyleDefinitionsPart;
-
-                    // Get styles.xml
-                    using (TextReader trd = new StreamReader(destStylePart.GetStream())) {
-                        dest_style_doc = XDocument.Load(trd);
-                    }
-
-                    // Add all the style elements from source document styles.xml 
-                    foreach (var styleelement in tableStylesFromRepeaterSource) {
-                        if (!dest_style_doc.Elements(XName.Get("styles", w.NamespaceName)).Any(x => (string)x.Attribute("styleId") == (string)styleelement.Attribute("styleId"))) {
-                            dest_style_doc.Element(XName.Get("styles", w.NamespaceName)).Add(styleelement);
-                        }
-                    }
-
-                    // Save the style.xml of targetFile
-                    using (TextWriter tw = new StreamWriter(destStylePart.GetStream(FileMode.Create))) {
-                        dest_style_doc.Save(tw, SaveOptions.None);
-                    }
+                if (!exists) {
+                    stylesRoot.Add(new XElement(styleElement));
                 }
             }
+
+            using TextWriter writer = new StreamWriter(destinationStylePart.GetStream(FileMode.Create));
+            destinationStyleDoc.Save(writer, SaveOptions.None);
         }
     }
 }

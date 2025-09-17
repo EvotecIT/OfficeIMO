@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -52,14 +52,15 @@ public partial class WordPageNumber {
     /// <summary>
     /// Gets the underlying field representing the page number.
     /// </summary>
-    public WordField Field { get { return _wordParagraph.Field; } }
+    public WordField? Field { get { return _wordParagraph.Field; } }
 
     /// <summary>
     /// Gets the numeric value from the field text if available.
     /// </summary>
     public int? Number {
         get {
-            return int.TryParse(Field.Text, out int result) ? result : null;
+            var pageField = Field;
+            return pageField != null && int.TryParse(pageField.Text, out int result) ? result : null;
         }
     }
 }

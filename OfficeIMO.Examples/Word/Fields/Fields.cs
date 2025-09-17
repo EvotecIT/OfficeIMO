@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -21,11 +22,14 @@ namespace OfficeIMO.Examples.Word {
                 }
 
                 //Replace ask field with new question
-                var askField = document.Fields.Last();
-                askField.Remove();
+                if (document.Fields.Count > 0) {
+                    var askField = document.Fields.Last();
+                    askField.Remove();
+                }
 
-                var bookmark = document.Bookmarks.ToArray()[0];
-                document.AddField(WordFieldType.Ask, parameters: new List<String> { bookmark.Name.ToString(), "\"How was your day?\"", "\\d \"Thanks for asking\"" });
+                var bookmark = document.Bookmarks.FirstOrDefault();
+                var bookmarkName = Guard.NotNullOrWhiteSpace(bookmark?.Name, "The template is expected to contain a bookmark with a name.");
+                document.AddField(WordFieldType.Ask, parameters: new List<string> { bookmarkName, "\"How was your day?\"", "\\d \"Thanks for asking\"" });
 
                 var fileTarget = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents", "DocumentWithFields.docx");
                 document.Save(fileTarget, openWord);

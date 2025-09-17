@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create(filePath);
             document.AddHeadersAndFooters();
 
-            var paragraph = document.Header.Default.AddParagraph();
+            var paragraph = document.Header!.Default.AddParagraph();
             paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
 
             var mainPart = document._wordprocessingDocument.MainDocumentPart!;
@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create(filePath);
             document.AddHeadersAndFooters();
 
-            var paragraph = document.Footer.Default.AddParagraph();
+            var paragraph = document.Footer!.Default.AddParagraph();
             paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
 
             var mainPart = document._wordprocessingDocument.MainDocumentPart!;

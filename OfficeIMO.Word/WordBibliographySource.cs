@@ -34,7 +34,7 @@ namespace OfficeIMO.Word {
                 if (string.IsNullOrEmpty(value)) {
                     Source.Tag = null;
                 } else {
-                    Source.Tag = new Tag { Text = value };
+                    Source.Tag = new Tag { Text = value! };
                 }
             }
         }
@@ -103,7 +103,7 @@ namespace OfficeIMO.Word {
             if (string.IsNullOrEmpty(_tag)) {
                 Source.Tag = null;
             } else {
-                Source.Tag = new Tag { Text = _tag };
+                Source.Tag = new Tag { Text = _tag! };
             }
             return Source;
         }

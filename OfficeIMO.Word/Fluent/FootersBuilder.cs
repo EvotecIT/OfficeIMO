@@ -37,7 +37,7 @@ namespace OfficeIMO.Word.Fluent {
                 }
             }
 
-            return footer;
+            return footer ?? throw new InvalidOperationException("Failed to create footer instance.");
         }
 
         /// <summary>

@@ -17,9 +17,9 @@ namespace OfficeIMO.Examples.Word {
                 document.Settings.UpdateFieldsOnOpen = true;
                 document.AddTableOfContent(tableOfContentStyle: TableOfContentStyle.Template2);
                 document.AddHeadersAndFooters();
-                var pageNumber = document.Header.Default.AddPageNumber(WordPageNumberStyle.Dots);
-                //var pageNumber = document.Footer.Default.AddPageNumber(WordPageNumberStyle.VerticalOutline2);
-                //var pageNumber = document.Footer.Default.AddPageNumber(WordPageNumberStyle.Dots);
+                var pageNumber = document.Header!.Default.AddPageNumber(WordPageNumberStyle.Dots);
+                //var pageNumber = document.Footer!.Default.AddPageNumber(WordPageNumberStyle.VerticalOutline2);
+                //var pageNumber = document.Footer!.Default.AddPageNumber(WordPageNumberStyle.Dots);
 
                 pageNumber.ParagraphAlignment = JustificationValues.Center;
 
@@ -27,7 +27,9 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddHorizontalLine(BorderValues.Double);
 
-                document.Sections[0].AddHorizontalLine();
+                if (document.Sections.Count > 0) {
+                    document.Sections[0].AddHorizontalLine();
+                }
 
                 var wordListToc = document.AddTableOfContentList(WordListStyle.Numbered);
 
@@ -73,7 +75,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddPageBreak();
 
                 // lets find a list which has items which suggest it's a TOC attached list
-                WordList wordListToc = null;
+                WordList? wordListToc = null;
                 foreach (var list in document.Lists) {
                     if (list.IsToc) {
                         wordListToc = list;

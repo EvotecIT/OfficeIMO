@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -18,7 +19,7 @@ namespace OfficeIMO.Examples.Word {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var loaded = document.GetStructuredDocumentTagByTag("ExampleTag");
+                var loaded = Guard.NotNull(document.GetStructuredDocumentTagByTag("ExampleTag"), "Structured document tag 'ExampleTag' was not found.");
                 Console.WriteLine($"Loaded text: {loaded.Text}");
                 document.Save(openWord);
             }

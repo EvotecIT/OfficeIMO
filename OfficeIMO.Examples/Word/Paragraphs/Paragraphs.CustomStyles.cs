@@ -60,7 +60,7 @@ internal static partial class Paragraphs {
     internal static void Example_OverrideBuiltInParagraphStyle(string folderPath, bool openWord) {
         Console.WriteLine("[*] Overriding built-in Normal style");
         string filePath = Path.Combine(folderPath, "OverrideNormalStyle.docx");
-        var original = WordParagraphStyle.GetStyleDefinition(WordParagraphStyles.Normal);
+        var original = WordParagraphStyle.GetStyleDefinition(WordParagraphStyles.Normal) ?? throw new InvalidOperationException("Normal style definition was not found.");
 
         var custom = new Style { Type = StyleValues.Paragraph, StyleId = "Normal" };
         var run = new StyleRunProperties();

@@ -28,16 +28,16 @@ public class ImageRemoveTests : VerifyTestBase {
         stream.Position = 0;
         using var document = WordDocument.Create();
         document.AddHeadersAndFooters();
-        var paragraph = document.Header.Default.AddParagraph();
+        var paragraph = document.Header!.Default.AddParagraph();
         paragraph.AddImage(stream, "tiny.png", 50, 50);
 
-        Assert.Single(document.Header.Default.Images);
+        Assert.Single(document.Header!.Default.Images);
         var headerPart = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.First();
         Assert.Single(headerPart.ImageParts);
 
-        document.Header.Default.Images[0].Remove();
+        document.Header!.Default.Images[0].Remove();
 
-        Assert.Empty(document.Header.Default.Images);
+        Assert.Empty(document.Header!.Default.Images);
         Assert.Empty(headerPart.ImageParts);
 
         document.Save();

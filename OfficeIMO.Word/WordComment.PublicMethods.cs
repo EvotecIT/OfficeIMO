@@ -55,7 +55,7 @@ namespace OfficeIMO.Word {
         public static List<WordComment> GetAllComments(WordDocument document) {
             List<WordComment> comments = new List<WordComment>();
             var part = document._wordprocessingDocument.MainDocumentPart;
-            if (part.WordprocessingCommentsPart != null && part.WordprocessingCommentsPart.Comments != null) {
+            if (part?.WordprocessingCommentsPart != null && part.WordprocessingCommentsPart.Comments != null) {
                 var commentList = part.WordprocessingCommentsPart.Comments.OfType<Comment>().ToList();
                 var commentExList = part.WordprocessingCommentsExPart?.CommentsEx?.OfType<CommentEx>().ToList() ?? new List<CommentEx>();
                 for (int i = 0; i < commentList.Count; i++) {
@@ -70,8 +70,8 @@ namespace OfficeIMO.Word {
         /// Deletes this comment and removes all references from the document.
         /// </summary>
         public void Delete() {
-            var commentsPart = _document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsPart;
-            var commentsExPart = _document._wordprocessingDocument.MainDocumentPart.WordprocessingCommentsExPart;
+            var commentsPart = _document._wordprocessingDocument.MainDocumentPart?.WordprocessingCommentsPart;
+            var commentsExPart = _document._wordprocessingDocument.MainDocumentPart?.WordprocessingCommentsExPart;
             int index = -1;
             if (commentsPart?.Comments != null) {
                 var list = commentsPart.Comments.Elements<Comment>().ToList();
@@ -85,7 +85,7 @@ namespace OfficeIMO.Word {
                 commentsExPart.CommentsEx.Save();
             }
 
-            var body = _document._document.Body;
+            var body = _document._document.Body ?? throw new InvalidOperationException("Document body is missing.");
             foreach (var start in body.Descendants<CommentRangeStart>().Where(c => c.Id == _comment.Id).ToList()) {
                 start.Remove();
             }

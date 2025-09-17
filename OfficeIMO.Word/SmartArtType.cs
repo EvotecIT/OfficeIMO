@@ -13,5 +13,9 @@ public enum SmartArtType {
     /// <summary>Picture organization chart layout.</summary>
     PictureOrgChart,
     /// <summary>Continuous block process layout.</summary>
-    ContinuousBlockProcess
+    ContinuousBlockProcess,
+    /// <summary>Custom SmartArt template 1 (from exported design).</summary>
+    CustomSmartArt1,
+    /// <summary>Custom SmartArt template 2 (from exported design).</summary>
+    CustomSmartArt2
 }

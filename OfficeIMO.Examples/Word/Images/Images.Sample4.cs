@@ -1,5 +1,6 @@
 using System;
 using DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -13,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
 
             var paragraph1 = document.AddParagraph("This paragraph starts with some text");
             paragraph1.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200);
-            paragraph1.Image.Shape = ShapeTypeValues.Cube;
+            Guard.NotNull(paragraph1.Image, "Paragraph should contain the first image.").Shape = ShapeTypeValues.Cube;
 
             var paragraph2 = document.AddParagraph("Image will be placed behind text");
             paragraph2.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapTextImage.BehindText, "Przemek and Kulek on an image");
@@ -37,7 +38,7 @@ namespace OfficeIMO.Examples.Word {
 
             var paragraph8 = document.AddParagraph("Image will be Top And Bottom");
             paragraph8.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapTextImage.TopAndBottom, "Przemek and Kulek on an image");
-            paragraph8.Image.Shape = ShapeTypeValues.Can;
+            Guard.NotNull(paragraph8.Image, "Paragraph should contain the last image.").Shape = ShapeTypeValues.Can;
 
             document.Save(openWord);
         }

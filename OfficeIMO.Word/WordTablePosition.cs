@@ -1,4 +1,5 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+using System;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -13,8 +14,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="table"></param>
         internal WordTablePosition(WordTable table) {
-            _table = table;
-            _tableProperties = table._tableProperties;
+            _table = table ?? throw new ArgumentNullException(nameof(table));
+            _table.CheckTableProperties();
+            _tableProperties = table._tableProperties ?? throw new InvalidOperationException("Table properties are not available.");
         }
 
         /// <summary>

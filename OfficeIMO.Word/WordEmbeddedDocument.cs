@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace OfficeIMO.Word {
@@ -9,8 +10,8 @@ namespace OfficeIMO.Word {
     /// Represents an embedded document within a <see cref="WordDocument"/>.
     /// </summary>
     public class WordEmbeddedDocument : WordElement {
-        private string _id;
-        private AltChunk _altChunk;
+        private readonly string _id;
+        private readonly AltChunk _altChunk;
         private readonly AlternativeFormatImportPart _altContent;
         private readonly WordDocument _document;
 
@@ -29,9 +30,10 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            using var stream = _altContent.GetStream();
-            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-            return reader.ReadToEnd();
+            using (var stream = _altContent.GetStream())
+            using (var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true)) {
+                return reader.ReadToEnd();
+            }
         }
 
 
@@ -41,8 +43,9 @@ namespace OfficeIMO.Word {
         /// <param name="fileName">Target file path.</param>
         public void Save(string fileName) {
             using (FileStream stream = new FileStream(fileName, FileMode.Create)) {
-                using var altStream = _altContent.GetStream();
-                altStream.CopyTo(stream);
+                using (var altStream = _altContent.GetStream()) {
+                    altStream.CopyTo(stream);
+                }
             }
         }
 
@@ -50,16 +53,9 @@ namespace OfficeIMO.Word {
         /// Removes the embedded document from the parent <see cref="WordDocument"/>.
         /// </summary>
         public void Remove() {
+            MainDocumentPart mainPart = GetMainDocumentPart(_document);
             _altChunk.Remove();
-
-            var list = _document._document.MainDocumentPart.AlternativeFormatImportParts;
-            foreach (var item in list) {
-                var relationshipId = _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(item);
-                if (relationshipId == _id) {
-                    _document._wordprocessingDocument.MainDocumentPart.DeletePart(item);
-                    break;
-                }
-            }
+            mainPart.DeletePart(_altContent);
         }
 
         /// <summary>
@@ -69,17 +65,24 @@ namespace OfficeIMO.Word {
         /// <param name="wordDocument">Parent <see cref="WordDocument"/>.</param>
         /// <param name="altChunk">AltChunk that defines the embedded content.</param>
         public WordEmbeddedDocument(WordDocument wordDocument, AltChunk altChunk) {
-            _id = altChunk.Id;
-            _altChunk = altChunk;
-            _document = wordDocument;
+            if (wordDocument == null) throw new ArgumentNullException(nameof(wordDocument));
+            if (altChunk == null) throw new ArgumentNullException(nameof(altChunk));
 
-            var list = wordDocument._document.MainDocumentPart.AlternativeFormatImportParts;
-            foreach (var item in list) {
-                var relationshipId = wordDocument._wordprocessingDocument.MainDocumentPart.GetIdOfPart(item);
-                if (relationshipId == _id) {
-                    _altContent = item;
-                }
+            _document = wordDocument;
+            _altChunk = altChunk;
+
+            string? chunkId = altChunk.Id?.Value ?? altChunk.Id;
+            if (string.IsNullOrWhiteSpace(chunkId)) {
+                throw new InvalidOperationException("The supplied AltChunk does not declare a relationship id.");
             }
+
+            _id = chunkId!;
+
+            MainDocumentPart mainPart = GetMainDocumentPart(wordDocument);
+            AlternativeFormatImportPart? matchingPart = mainPart.AlternativeFormatImportParts
+                .FirstOrDefault(part => string.Equals(mainPart.GetIdOfPart(part), _id, StringComparison.Ordinal));
+
+            _altContent = matchingPart ?? throw new InvalidOperationException($"Could not find an alternative format part with id '{_id}'.");
         }
 
         /// <summary>
@@ -91,14 +94,18 @@ namespace OfficeIMO.Word {
         /// <param name="alternativeFormatImportPartType">Explicit part type or <c>null</c> to infer from the file extension.</param>
         /// <param name="htmlFragment">When <c>true</c>, <paramref name="fileNameOrContent"/> is treated as HTML markup rather than a file path.</param>
         public WordEmbeddedDocument(WordDocument wordDocument, string fileNameOrContent, WordAlternativeFormatImportPartType? alternativeFormatImportPartType, bool htmlFragment) {
+            if (wordDocument == null) throw new ArgumentNullException(nameof(wordDocument));
+            if (string.IsNullOrWhiteSpace(fileNameOrContent)) throw new ArgumentException("Value cannot be null or whitespace.", nameof(fileNameOrContent));
+
             WordAlternativeFormatImportPartType partType;
             if (alternativeFormatImportPartType == null) {
                 FileInfo fileInfo = new FileInfo(fileNameOrContent);
-                if (fileInfo.Extension == ".rtf") {
+                string extension = fileInfo.Extension;
+                if (extension.Equals(".rtf", StringComparison.OrdinalIgnoreCase)) {
                     partType = WordAlternativeFormatImportPartType.Rtf;
-                } else if (fileInfo.Extension == ".html") {
+                } else if (extension.Equals(".html", StringComparison.OrdinalIgnoreCase) || extension.Equals(".htm", StringComparison.OrdinalIgnoreCase)) {
                     partType = WordAlternativeFormatImportPartType.Html;
-                } else if (fileInfo.Extension == ".log" || fileInfo.Extension == ".txt") {
+                } else if (extension.Equals(".log", StringComparison.OrdinalIgnoreCase) || extension.Equals(".txt", StringComparison.OrdinalIgnoreCase)) {
                     partType = WordAlternativeFormatImportPartType.TextPlain;
                 } else {
                     throw new InvalidOperationException("Only RTF and HTML files are supported for now :-)");
@@ -107,7 +114,7 @@ namespace OfficeIMO.Word {
                 partType = alternativeFormatImportPartType.Value;
             }
 
-            MainDocumentPart mainDocPart = wordDocument._document.MainDocumentPart;
+            MainDocumentPart mainDocPart = GetMainDocumentPart(wordDocument);
 
             PartTypeInfo partTypeInfo = partType switch {
                 WordAlternativeFormatImportPartType.Rtf => AlternativeFormatImportPartType.Rtf,
@@ -135,13 +142,19 @@ namespace OfficeIMO.Word {
                 _altContent = chunk;
                 _document = wordDocument;
 
-                mainDocPart.Document.Body.Append(altChunk);
+                var body = mainDocPart.Document.Body ?? throw new InvalidOperationException("The document does not contain a body element.");
+                body.Append(altChunk);
 
                 mainDocPart.Document.Save();
             } catch {
                 mainDocPart.DeletePart(chunk);
                 throw;
             }
+        }
+
+        private static MainDocumentPart GetMainDocumentPart(WordDocument document) {
+            MainDocumentPart? mainPart = document._wordprocessingDocument?.MainDocumentPart;
+            return mainPart ?? throw new InvalidOperationException("The Word document is not associated with a main document part.");
         }
     }
 }

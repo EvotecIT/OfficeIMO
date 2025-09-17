@@ -782,7 +782,7 @@ namespace OfficeIMO.Word.Html {
                     var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     var props = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-                    void Merge(string? id) {
+                    void Merge(string id) {
                         var key = id;
                         if (string.IsNullOrEmpty(key)) {
                             return;
@@ -795,7 +795,7 @@ namespace OfficeIMO.Word.Html {
                         }
                         var baseId = def.BasedOn?.Val;
                         if (!string.IsNullOrEmpty(baseId)) {
-                            Merge(baseId);
+                            Merge(baseId!);
                         }
                         var pPr = def.StyleParagraphProperties;
                         if (pPr?.Justification?.Val != null) {

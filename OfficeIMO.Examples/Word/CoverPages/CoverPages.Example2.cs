@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddCoverPage(CoverPageTemplate.Austin);
 
-                document.AddTableOfContent();
+                var tableOfContent = document.AddTableOfContent();
 
                 document.AddPageBreak();
 
@@ -38,7 +38,7 @@ namespace OfficeIMO.Examples.Word {
 
                 wordListToc.AddItem("More on the next page");
 
-                document.TableOfContent.Update();
+                tableOfContent.Update();
 
                 document.Save(openWord);
             }

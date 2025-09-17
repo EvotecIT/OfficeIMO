@@ -85,8 +85,8 @@ namespace OfficeIMO.Word {
             get {
                 if (_tableProperties != null && _tableProperties.TableStyle != null) {
                     var styleValue = _tableProperties.TableStyle.Val?.Value;
-                    if (!string.IsNullOrEmpty(styleValue)) {
-                        return WordTableStyles.GetStyle(styleValue);
+                    if (styleValue is { Length: > 0 } s) {
+                        return WordTableStyles.GetStyle(s);
                     }
                 }
                 return null;

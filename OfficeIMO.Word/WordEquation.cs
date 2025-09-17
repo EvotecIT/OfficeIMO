@@ -15,8 +15,8 @@ namespace OfficeIMO.Word {
         private WordDocument _document;
         private Paragraph _paragraph;
         //private DocumentFormat.OpenXml.Math.Paragraph mathParagraph;
-        private readonly DocumentFormat.OpenXml.Math.OfficeMath _officeMath;
-        private readonly DocumentFormat.OpenXml.Math.Paragraph _mathParagraph;
+        private readonly DocumentFormat.OpenXml.Math.OfficeMath? _officeMath;
+        private readonly DocumentFormat.OpenXml.Math.Paragraph? _mathParagraph;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WordEquation"/> class using

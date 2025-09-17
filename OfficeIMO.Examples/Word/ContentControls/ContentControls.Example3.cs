@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -21,9 +22,9 @@ namespace OfficeIMO.Examples.Word {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var aliasControl = document.GetStructuredDocumentTagByAlias("Alias2");
+                var aliasControl = Guard.NotNull(document.GetStructuredDocumentTagByAlias("Alias2"), "Content control with alias 'Alias2' was not found.");
                 aliasControl.Text = "Changed";
-                var tagControl = document.GetStructuredDocumentTagByTag("Tag3");
+                var tagControl = Guard.NotNull(document.GetStructuredDocumentTagByTag("Tag3"), "Content control with tag 'Tag3' was not found.");
                 Console.WriteLine("Tag3 text before: " + tagControl.Text);
                 tagControl.Text = "Modified";
                 document.Save(openWord);

@@ -1,5 +1,6 @@
 using System;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -24,22 +25,36 @@ namespace OfficeIMO.Examples.Word {
                 wordList1.AddItem("Text 9 - List1", 8);
 
                 // let's display some properties of the list
-                Console.WriteLine(wordList1.Numbering.Levels[0]._level.LevelIndex.ToString());
-                Console.WriteLine(wordList1.Numbering.Levels[1]._level.LevelIndex.ToString());
-                Console.WriteLine(wordList1.Numbering.Levels[2]._level.LevelIndex.ToString());
-                Console.WriteLine(wordList1.Numbering.Levels[0].IndentationHanging);
-                Console.WriteLine(wordList1.Numbering.Levels[0].IndentationLeft);
-                Console.WriteLine(wordList1.Numbering.Levels[0].IndentationLeftCentimeters);
-                Console.WriteLine(wordList1.Numbering.Levels[1].IndentationLeftCentimeters);
-                Console.WriteLine(wordList1.Numbering.Levels[2].IndentationLeftCentimeters);
-                Console.WriteLine(wordList1.Numbering.Levels[3].IndentationLeftCentimeters);
-                Console.WriteLine(wordList1.Numbering.Levels[1].LevelJustification);
-                Console.WriteLine(wordList1.Numbering.Levels[1].StartNumberingValue);
+                var levels = wordList1.Numbering.Levels;
+                if (levels.Count > 0) {
+                    var levelDefinition = Guard.NotNull(levels[0]._level, "List level definition is missing.");
+                    Console.WriteLine(levelDefinition.LevelIndex?.ToString() ?? "0");
+                    Console.WriteLine(levels[0].IndentationHanging);
+                    Console.WriteLine(levels[0].IndentationLeft);
+                    Console.WriteLine(levels[0].IndentationLeftCentimeters);
+                }
+                if (levels.Count > 1) {
+                    var levelDefinition = Guard.NotNull(levels[1]._level, "List level definition is missing.");
+                    Console.WriteLine(levelDefinition.LevelIndex?.ToString() ?? "0");
+                    Console.WriteLine(levels[1].IndentationLeftCentimeters);
+                    Console.WriteLine(levels[1].LevelJustification);
+                    Console.WriteLine(levels[1].StartNumberingValue);
+                }
+                if (levels.Count > 2) {
+                    var levelDefinition = Guard.NotNull(levels[2]._level, "List level definition is missing.");
+                    Console.WriteLine(levelDefinition.LevelIndex?.ToString() ?? "0");
+                    Console.WriteLine(levels[2].IndentationLeftCentimeters);
+                }
+                if (levels.Count > 3) {
+                    Console.WriteLine(levels[3].IndentationLeftCentimeters);
+                }
 
                 Console.WriteLine("Current levels count: " + wordList1.Numbering.Levels.Count);
 
                 // remove single level
-                wordList1.Numbering.Levels[0].Remove();
+                if (levels.Count > 0) {
+                    levels[0].Remove();
+                }
                 // remove all levels
                 wordList1.Numbering.RemoveAllLevels();
 

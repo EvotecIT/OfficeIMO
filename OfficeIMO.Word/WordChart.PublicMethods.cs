@@ -125,7 +125,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void AddBar(string name, int[] values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsBar();
-            var barChart = _chart.PlotArea.GetFirstChild<BarChart>();
+            var barChart = _chart?.PlotArea?.GetFirstChild<BarChart>();
             if (barChart != null) {
                 BarChartSeries barChartSeries = AddBarChartSeries(this._index, name, color, this.Categories, values.ToList());
                 InsertSeries(barChart, barChartSeries);
@@ -142,7 +142,7 @@ namespace OfficeIMO.Word {
         public void AddArea<T>(string name, List<T> values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsArea();
             if (_chart != null) {
-                var barChart = _chart.PlotArea.GetFirstChild<AreaChart>();
+                var barChart = _chart.PlotArea?.GetFirstChild<AreaChart>();
                 if (barChart != null) {
                     AreaChartSeries areaChartSeries = AddAreaChartSeries(this._index, name, color, this.Categories, values);
                     InsertSeries(barChart, areaChartSeries);
@@ -160,7 +160,7 @@ namespace OfficeIMO.Word {
         public void AddArea<T>(string name, int[] values, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsArea();
             if (_chart != null) {
-                var barChart = _chart.PlotArea.GetFirstChild<AreaChart>();
+                var barChart = _chart.PlotArea?.GetFirstChild<AreaChart>();
                 if (barChart != null) {
                     AreaChartSeries areaChartSeries = AddAreaChartSeries(this._index, name, color, this.Categories, values.ToList());
                     InsertSeries(barChart, areaChartSeries);
@@ -178,7 +178,7 @@ namespace OfficeIMO.Word {
         public void AddScatter(string name, List<double> xValues, List<double> yValues, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsScatter();
             if (_chart != null) {
-                var scatterChart = _chart.PlotArea.GetFirstChild<ScatterChart>();
+                var scatterChart = _chart?.PlotArea?.GetFirstChild<ScatterChart>();
                 if (scatterChart != null) {
                     var series = AddScatterChartSeries(this._index, name, color, xValues, yValues);
                     InsertSeries(scatterChart, series);

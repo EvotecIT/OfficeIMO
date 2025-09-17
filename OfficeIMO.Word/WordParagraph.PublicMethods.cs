@@ -803,6 +803,18 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Adds a DrawingML shape anchored at an absolute position on the page.
+        /// </summary>
+        /// <param name="shapeType">Type of shape to create.</param>
+        /// <param name="widthPt">Width in points.</param>
+        /// <param name="heightPt">Height in points.</param>
+        /// <param name="leftPt">Left offset from page in points.</param>
+        /// <param name="topPt">Top offset from page in points.</param>
+        public WordShape AddShapeDrawing(ShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt) {
+            return WordShape.AddDrawingShapeAnchored(this, shapeType, widthPt, heightPt, leftPt, topPt);
+        }
+
+        /// <summary>
         /// Add a line shape to the paragraph.
         /// </summary>
         /// <param name="startXPt">Start X position in points.</param>
@@ -812,7 +824,9 @@ namespace OfficeIMO.Word {
         /// <param name="color">Stroke color in hex format.</param>
         /// <param name="strokeWeightPt">Stroke weight in points.</param>
         public WordLine AddLine(double startXPt, double startYPt, double endXPt, double endYPt, string color = "#000000", double strokeWeightPt = 1) {
-            WordLine wordLine = new WordLine(this._document, this, startXPt, startYPt, endXPt, endYPt, color, strokeWeightPt);
+            var v = color;
+            if (!string.IsNullOrEmpty(v) && !v.StartsWith("#", StringComparison.Ordinal)) v = "#" + v;
+            WordLine wordLine = new WordLine(this._document, this, startXPt, startYPt, endXPt, endYPt, v, strokeWeightPt);
             return wordLine;
         }
 

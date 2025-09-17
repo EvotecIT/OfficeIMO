@@ -21,9 +21,9 @@ namespace OfficeIMO.Word {
         /// <param name="paragraph">Paragraph containing the tab.</param>
         /// <param name="run">Run that holds the tab character.</param>
         public WordTabChar(WordDocument document, Paragraph paragraph, Run run) {
-            this._document = document;
-            this._paragraph = paragraph;
-            this._run = run;
+            this._document = document ?? throw new ArgumentNullException(nameof(document));
+            this._paragraph = paragraph ?? throw new ArgumentNullException(nameof(paragraph));
+            this._run = run ?? throw new ArgumentNullException(nameof(run));
         }
 
         /// <summary>
@@ -52,7 +52,8 @@ namespace OfficeIMO.Word {
         /// <returns>A paragraph containing the inserted tab.</returns>
         internal static WordParagraph AddTab(WordDocument document, WordParagraph wordParagraph) {
             var newWordParagraph = new WordParagraph(document, wordParagraph._paragraph, true);
-            newWordParagraph._run.Append(new TabChar());
+            var run = newWordParagraph.VerifyRun();
+            run.Append(new TabChar());
             return newWordParagraph;
         }
     }

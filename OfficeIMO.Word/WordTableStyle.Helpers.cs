@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
@@ -284,9 +284,13 @@ public static partial class WordTableStyles {
     internal static bool IsAvailableStyle(Styles styles, WordTableStyle style) {
         var listCurrentStyles = styles.OfType<Style>().ToList();
         // Compare against style ID from the style definition to avoid duplicate styles (#85)
-        string styleId = GetStyleDefinition(style).StyleId!.Value;
+        var styleDefinition = GetStyleDefinition(style);
+        var styleIdValue = styleDefinition.StyleId?.Value;
+        if (styleIdValue == null) {
+            return false;
+        }
         foreach (var currentStyle in listCurrentStyles) {
-            if (currentStyle.StyleId == styleId) {
+            if (currentStyle.StyleId == styleIdValue) {
                 return true;
             }
         }

@@ -70,7 +70,7 @@ namespace OfficeIMO.Word {
             get {
                 if (_Image.Inline == null) {
                     var anchor = _Image.Anchor ?? throw new InvalidOperationException("Anchor is missing.");
-                    return anchor.HorizontalPosition;
+                    return anchor.HorizontalPosition ?? throw new InvalidOperationException("HorizontalPosition is missing.");
                 }
 
                 throw new InvalidOperationException("Inline images do not have HorizontalPosition property.");
@@ -92,7 +92,7 @@ namespace OfficeIMO.Word {
             get {
                 if (_Image.Inline == null) {
                     var anchor = _Image.Anchor ?? throw new InvalidOperationException("Anchor is missing.");
-                    return anchor.VerticalPosition;
+                    return anchor.VerticalPosition ?? throw new InvalidOperationException("VerticalPosition is missing.");
                 }
 
                 throw new InvalidOperationException("Inline images do not have VerticalPosition property.");
@@ -113,12 +113,16 @@ namespace OfficeIMO.Word {
         public BlipCompressionValues? CompressionQuality {
             get {
                 var picture = GetPicture();
-                return picture?.BlipFill?.Blip?.CompressionState;
+                return picture?.BlipFill?.Blip?.CompressionState?.Value;
             }
             set {
                 var picture = GetPicture();
                 if (picture?.BlipFill?.Blip != null) {
-                    picture.BlipFill.Blip.CompressionState = value;
+                    if (value.HasValue) {
+                        picture.BlipFill.Blip.CompressionState = value.Value;
+                    } else {
+                        picture.BlipFill.Blip.CompressionState = null;
+                    }
                     SetPicture(picture);
                 }
             }
@@ -130,7 +134,7 @@ namespace OfficeIMO.Word {
         public string? RelationshipId {
             get {
                 if (_Image.Inline != null) {
-                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    var picture = _Image.Inline?.Graphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                     return picture?.BlipFill?.Blip?.Embed;
                 }
 
@@ -180,7 +184,7 @@ namespace OfficeIMO.Word {
         public string? FileName {
             get {
                 if (_Image.Inline != null) {
-                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    var picture = _Image.Inline?.Graphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                     return picture?.NonVisualPictureProperties?.NonVisualDrawingProperties?.Name;
                 }
 
@@ -198,7 +202,7 @@ namespace OfficeIMO.Word {
             set {
                 if (value == null) throw new ArgumentNullException(nameof(value));
                 if (_Image.Inline != null) {
-                    var picture = _Image.Inline.Graphic.GraphicData.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
+                    var picture = _Image.Inline?.Graphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                     if (picture?.NonVisualPictureProperties?.NonVisualDrawingProperties != null) {
                         picture.NonVisualPictureProperties.NonVisualDrawingProperties.Name = value;
                     }
@@ -224,20 +228,21 @@ namespace OfficeIMO.Word {
             get {
 
                 if (_Image.Inline != null) {
-                    return _Image.Inline.DocProperties.Description;
+                    return _Image.Inline.DocProperties?.Description;
 
                 }
 
                 var anchor = _Image.Anchor;
-                if (anchor != null) {
-                    var anchoDocPropertiesr = anchor.OfType<DocProperties>().FirstOrDefault();
-                    return anchoDocPropertiesr?.Description;
-                }
+                    if (anchor != null) {
+                        var anchoDocPropertiesr = anchor.OfType<DocProperties>().FirstOrDefault();
+                        return anchoDocPropertiesr?.Description;
+                    }
 
                 return null;
             }
             set {
                 if (_Image.Inline != null) {
+                    if (_Image.Inline.DocProperties == null) _Image.Inline.DocProperties = new DocProperties();
                     _Image.Inline.DocProperties.Description = value;
                 } else {
                     var anchor = _Image.Anchor;
@@ -257,7 +262,7 @@ namespace OfficeIMO.Word {
         public string? Title {
             get {
                 if (_Image.Inline != null) {
-                    _title = _Image.Inline.DocProperties.Title;
+                    _title = _Image.Inline.DocProperties?.Title;
                 } else {
                     var anchor = _Image.Anchor;
                     if (anchor != null) {
@@ -270,6 +275,7 @@ namespace OfficeIMO.Word {
             set {
                 _title = value;
                 if (_Image.Inline != null) {
+                    if (_Image.Inline.DocProperties == null) _Image.Inline.DocProperties = new DocProperties();
                     _Image.Inline.DocProperties.Title = value;
                 } else {
                     var anchor = _Image.Anchor;
@@ -281,8 +287,9 @@ namespace OfficeIMO.Word {
                 var pic = GetPicture();
                 if (pic != null) {
                     var nv = pic.NonVisualPictureProperties;
-                    if (nv != null) {
-                        nv.NonVisualDrawingProperties.Title = value;
+                    var nvd = nv?.NonVisualDrawingProperties;
+                    if (nvd != null) {
+                        nvd.Title = value;
                     }
                 }
             }
@@ -294,7 +301,7 @@ namespace OfficeIMO.Word {
         public bool? Hidden {
             get {
                 if (_Image.Inline != null) {
-                    _hidden = _Image.Inline.DocProperties.Hidden?.Value;
+                    _hidden = _Image.Inline.DocProperties?.Hidden?.Value;
                 } else {
                     var anchor = _Image.Anchor;
                     if (anchor != null) {
@@ -307,6 +314,7 @@ namespace OfficeIMO.Word {
             set {
                 _hidden = value;
                 if (_Image.Inline != null) {
+                    if (_Image.Inline.DocProperties == null) _Image.Inline.DocProperties = new DocProperties();
                     _Image.Inline.DocProperties.Hidden = value;
                 } else {
                     var anchor = _Image.Anchor;
@@ -318,8 +326,10 @@ namespace OfficeIMO.Word {
                 var pic = GetPicture();
                 if (pic != null) {
                     var nv = pic.NonVisualPictureProperties;
-                    if (nv != null) {
-                        nv.NonVisualDrawingProperties.Hidden = value;
+                    var nvd = nv?.NonVisualPictureDrawingProperties;
+                    var nvdProps = nv?.NonVisualDrawingProperties;
+                    if (nvdProps != null) {
+                        nvdProps.Hidden = value;
                     }
                 }
             }
@@ -351,10 +361,10 @@ namespace OfficeIMO.Word {
                         ext.Cx = (Int64Value)emuWidth;
                     }
                 } else {
-                    var anchor = _Image.Anchor;
-                    if (anchor?.Extent != null) {
-                        anchor.Extent.Cx = (long)emuWidth;
-                        var anchorGraphic = anchor.OfType<Graphic>().FirstOrDefault();
+                    var a = _Image.Anchor;
+                    if (a?.Extent != null) {
+                        a.Extent.Cx = (long)emuWidth;
+                        var anchorGraphic = a.OfType<Graphic>().FirstOrDefault();
                         var picture = anchorGraphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                         var ext = picture?.ShapeProperties?.Transform2D?.Extents;
                         if (ext != null) {
@@ -393,14 +403,14 @@ namespace OfficeIMO.Word {
                         ext.Cy = (Int64Value)emuHeight;
                     }
                 } else {
-                    var anchor = _Image.Anchor;
-                    if (anchor?.Extent != null) {
+                    var a = _Image.Anchor;
+                    if (a?.Extent != null) {
                         double emuHeight = value.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
-                        anchor.Extent.Cy = (Int64Value)emuHeight;
-                        var anchorGraphic = anchor.OfType<Graphic>().FirstOrDefault();
+                        a.Extent.Cy = (Int64Value)emuHeight;
+                        var anchorGraphic = a.OfType<Graphic>().FirstOrDefault();
                         var picture = anchorGraphic?.GraphicData?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Pictures.Picture>();
                         var ext = picture?.ShapeProperties?.Transform2D?.Extents;
-                    	if (ext != null) {
+                        if (ext != null) {
                             ext.Cy = (Int64Value)emuHeight;
                         }
                     }
@@ -2056,9 +2066,9 @@ namespace OfficeIMO.Word {
             if (initialBlip != null) {
                 if (initialBlip.Link != null) {
                     _externalRelationshipId = initialBlip.Link;
-                } else if (!string.IsNullOrEmpty(initialBlip.Embed?.Value)) {
+                } else if (initialBlip.Embed?.Value is { Length: > 0 } embedId) {
                     var part = GetContainingPart();
-                    _imagePart = part.GetPartById(initialBlip.Embed.Value) as ImagePart;
+                    _imagePart = part.GetPartById(embedId) as ImagePart;
                 }
             }
 

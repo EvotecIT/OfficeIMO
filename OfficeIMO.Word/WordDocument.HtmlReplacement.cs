@@ -42,7 +42,8 @@ namespace OfficeIMO.Word {
                 RemoveTextSegment(paragraphs, seg);
             }
 
-            _document.MainDocumentPart.Document.Save();
+            var mdp = _document.MainDocumentPart ?? throw new InvalidOperationException("The document does not contain a main document part.");
+            mdp.Document?.Save();
 
             return segments.Count;
         }
@@ -72,7 +73,7 @@ namespace OfficeIMO.Word {
         /// <returns>The created <see cref="WordEmbeddedDocument"/>.</returns>
         private WordEmbeddedDocument InsertHtmlFragmentAfter(WordParagraph paragraph,
             string htmlContent, WordAlternativeFormatImportPartType type) {
-            MainDocumentPart mainDocPart = _document.MainDocumentPart;
+            MainDocumentPart mainDocPart = _document.MainDocumentPart ?? throw new InvalidOperationException("The document does not contain a main document part.");
 
             PartTypeInfo partTypeInfo = type switch {
                 WordAlternativeFormatImportPartType.Rtf => AlternativeFormatImportPartType.Rtf,

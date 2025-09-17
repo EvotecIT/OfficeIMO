@@ -23,9 +23,9 @@ namespace OfficeIMO.Examples.Word {
                 document.DifferentFirstPage = true;
                 document.DifferentOddAndEvenPages = true;
 
-                document.Sections[0].Header.Default.AddParagraph().SetText("Test Section 0 - Header");
-                document.Sections[0].Header.First.AddParagraph().SetText("Test Section 0 - First Header");
-                document.Sections[0].Header.Even.AddParagraph().SetText("Test Section 0 - Even");
+                document.Sections[0].Header!.Default.AddParagraph().SetText("Test Section 0 - Header");
+                document.Sections[0].Header!.First.AddParagraph().SetText("Test Section 0 - First Header");
+                document.Sections[0].Header!.Even.AddParagraph().SetText("Test Section 0 - Even");
 
                 document.Sections[0].Paragraphs[0].AddComment("Przemysław Kłys", "PK", "This should be a comment");
 
@@ -48,26 +48,26 @@ namespace OfficeIMO.Examples.Word {
                 //Console.WriteLine("Section 2 - Text 1: " + document.Sections[2].Paragraphs[1].Text);
                 //Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Paragraphs[0].Text);
 
-                //Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Header.Default.Paragraphs[0].Text);
-                //Console.WriteLine("Section 1 - Text 0: " + document.Sections[1].Header.Default.Paragraphs[0].Text);
-                //Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Header.Default.Paragraphs[0].Text);
-                //Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Header.Default.Paragraphs[0].Text);
+                //Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Header!.Default.Paragraphs[0].Text);
+                //Console.WriteLine("Section 1 - Text 0: " + document.Sections[1].Header!.Default.Paragraphs[0].Text);
+                //Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Header!.Default.Paragraphs[0].Text);
+                //Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Header!.Default.Paragraphs[0].Text);
                 document.Save(false);
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.Sections[1].AddHeadersAndFooters();
-                document.Sections[1].Header.Default.AddParagraph().SetText("Test Section 1 - Header");
-                document.Sections[1].Footer.Default.AddParagraph().SetText("Test Section 1 - Header");
+                document.Sections[1].Header!.Default.AddParagraph().SetText("Test Section 1 - Header");
+                document.Sections[1].Footer!.Default.AddParagraph().SetText("Test Section 1 - Header");
 
                 document.Sections[1].DifferentFirstPage = true;
-                document.Sections[1].Header.First.AddParagraph().SetText("Test Section 1 - First Header");
-                document.Sections[1].Footer.First.AddParagraph().SetText("Test Section 1 - First Footer");
+                document.Sections[1].Header!.First.AddParagraph().SetText("Test Section 1 - First Header");
+                document.Sections[1].Footer!.First.AddParagraph().SetText("Test Section 1 - First Footer");
 
                 document.Sections[1].DifferentOddAndEvenPages = true;
 
-                document.Sections[1].Header.Even.AddParagraph().SetText("Test Section 1 - Even Header");
-                document.Sections[1].Footer.Even.AddParagraph().SetText("Test Section 1 - Even Footer");
+                document.Sections[1].Header!.Even.AddParagraph().SetText("Test Section 1 - Even Header");
+                document.Sections[1].Footer!.Even.AddParagraph().SetText("Test Section 1 - Even Footer");
 
                 document.Settings.ProtectionPassword = "ThisIsTest";
                 document.Settings.ProtectionType = DocumentProtectionValues.ReadOnly;
