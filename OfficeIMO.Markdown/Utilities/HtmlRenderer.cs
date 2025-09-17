@@ -352,8 +352,7 @@ internal static class HtmlRenderer {
         // Cache scoped base CSS (style preset + common extras) by (style|scopeSelector)
         string cacheKey = ((int)options.Style).ToString() + "|" + (options.CssScopeSelector ?? string.Empty);
         if (!_scopedBaseCssCache.TryGetValue(cacheKey, out var baseCss)) {
-            string scopeSelector = options.CssScopeSelector ?? "article.markdown-body";
-            baseCss = ScopeCss(HtmlResources.GetStyleCss(options.Style) + HtmlResources.CommonExtraCss, scopeSelector);
+            baseCss = ScopeCss(HtmlResources.GetStyleCss(options.Style) + HtmlResources.CommonExtraCss, options.CssScopeSelector);
             _scopedBaseCssCache[cacheKey] = baseCss;
         }
 
@@ -497,8 +496,9 @@ internal static class HtmlRenderer {
         } catch { return string.Empty; }
     }
 
-    internal static string ScopeCss(string? css, string scopeSelector) {
+    internal static string ScopeCss(string? css, string? scopeSelector) {
         if (string.IsNullOrEmpty(css)) return string.Empty;
+        if (string.IsNullOrEmpty(scopeSelector)) return css!;
         // Naive scoping: prefix common selectors with the scope to avoid global bleed.
         // This is intentionally conservative.
         var cssText = css!; // guarded by IsNullOrEmpty above

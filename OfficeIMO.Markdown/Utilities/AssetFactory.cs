@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 internal static class AssetFactory {
-    internal static System.Collections.Generic.IEnumerable<HtmlAsset> PrismAssets(PrismOptions po, AssetMode mode, CssDelivery cssDelivery, string scopeSelector) {
+    internal static System.Collections.Generic.IEnumerable<HtmlAsset> PrismAssets(PrismOptions po, AssetMode mode, CssDelivery cssDelivery, string? scopeSelector) {
         // Build URLs
         string coreJs = po.CdnBase.TrimEnd('/') + "/components/prism-core.min.js";
         string prismLightCss = po.CdnBase.TrimEnd('/') + "/themes/prism.min.css";
