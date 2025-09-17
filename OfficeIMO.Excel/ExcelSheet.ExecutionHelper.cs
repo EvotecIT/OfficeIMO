@@ -21,9 +21,15 @@ namespace OfficeIMO.Excel
         /// <param name="opName">A short operation name used for diagnostics and policy decisions.</param>
         /// <param name="itemCount">Approximate number of items to process; used to decide parallel vs sequential.
         /// This does not have to be exact but should reflect relative workload.</param>
-        /// <param name="overrideMode">Force a specific execution mode (Sequential/Parallel); null to use policy (Automatic).</param>
-        /// <param name="sequentialCore">Single-threaded path. Used either when policy decides sequential or when compute/apply are not provided.</param>
-        /// <param name="computeParallel">Compute phase that is safe to run without locks and must not mutate the OpenXML DOM.</param>
+        /// <param name="overrideMode">
+        /// Force a specific execution mode (Sequential/Parallel); null to use policy (Automatic).
+        /// </param>
+        /// <param name="sequentialCore">
+        /// Single-threaded path. Used either when policy decides sequential or when compute/apply are not provided.
+        /// </param>
+        /// <param name="computeParallel">
+        /// Compute phase that is safe to run without locks and must not mutate the OpenXML DOM.
+        /// </param>
         /// <param name="applySequential">Apply phase that writes to the DOM. This runs once under a serialized lock.</param>
         /// <param name="ct">Cancellation token for the compute phase.</param>
         private void ExecuteWithPolicy(
