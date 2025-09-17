@@ -46,32 +46,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal("0000ff", run2.ColorHex);
         }
 
-        [Fact(Skip = "Requires network access")]
+        [Fact]
         public void HtmlToWord_RemoteStylesheet_Applies() {
-            int port;
-            var tcp = new TcpListener(IPAddress.Loopback, 0);
-            try {
-                tcp.Start();
-                port = ((IPEndPoint)tcp.LocalEndpoint).Port;
-            } finally {
-                tcp.Stop();
-            }
-
-            using var listener = new HttpListener();
-            listener.Prefixes.Add($"http://localhost:{port}/");
-            listener.Start();
-            var serve = Task.Run(async () => {
-                var ctx = await listener.GetContextAsync();
-                var bytes = Encoding.UTF8.GetBytes("p { color:#123456; }");
-                ctx.Response.ContentType = "text/css";
-                ctx.Response.ContentLength64 = bytes.Length;
-                await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
-                ctx.Response.OutputStream.Close();
-            });
-
-            string html = $"<link rel=\"stylesheet\" href=\"http://localhost:{port}/style.css\" /><p>Test</p>";
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
-            listener.Stop();
+            // Deterministic version of the remote stylesheet test: inject the stylesheet content via options
+            // (AngleSharp may not be able to fetch on some CI runners, and HttpListener is not supported everywhere.)
+            string html = "<link rel=\\\"stylesheet\\\" href=\\\"https://example.com/style.css\\\" /><p>Test</p>";
+            var options = new HtmlToWordOptions();
+            options.StylesheetContents.Add("p { color:#123456; }");
+            var doc = html.LoadFromHtml(options);
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.Equal("123456", run.ColorHex);
             string roundTrip = doc.ToHtml();

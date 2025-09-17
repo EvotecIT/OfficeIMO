@@ -48,25 +48,50 @@ namespace OfficeIMO.Word {
             var styles = styleDefinitionsPart.Styles ??= new Styles();
             AddTableStyles(styles, overrideExisting);
 
-            foreach (var custom in WordParagraphStyle.CustomStyles) {
-                var matches = styles.OfType<Style>().Where(s => s.StyleId?.Value == custom.StyleId?.Value).ToList();
-                if (matches.Count == 0) {
-                    styles.Append((Style)custom.CloneNode(true));
-                } else if (overrideExisting) {
-                    // Replace the entire style definition while preserving the original position.
-                    var first = matches[0];
-                    int insertIndex = 0;
-                    for (int i = 0; i < styles.ChildElements.Count; i++) {
-                        if (object.ReferenceEquals(styles.ChildElements[i], first)) { insertIndex = i; break; }
+            var customList = WordParagraphStyle.CustomStyles
+                .Where(s => !string.IsNullOrEmpty(s.StyleId?.Value))
+                .ToList();
+            if (overrideExisting) {
+                // Build a new Styles root with all non-replaced children, then append custom definitions once
+                var byId = customList
+                    .GroupBy(s => s.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(g => g.Key, g => g.Last(), StringComparer.OrdinalIgnoreCase);
+
+                Styles newStyles = new Styles();
+                foreach (var child in styles.ChildElements) {
+                    if (child is Style st) {
+                        var id = st.StyleId?.Value;
+                        if (id != null && byId.ContainsKey(id)) {
+                            // Skip existing definitions for ids we override
+                            continue;
+                        }
                     }
-                    foreach (var m in matches) m.Remove();
-                    styles.InsertAt((Style)custom.CloneNode(true), Math.Max(insertIndex, 0));
+                    newStyles.Append(child.CloneNode(true));
+                }
+                foreach (var kv in byId) {
+                    newStyles.Append((Style)kv.Value.CloneNode(true));
+                }
+                styleDefinitionsPart.Styles = newStyles;
+            } else {
+                // Only add missing styles
+                var existingIds = new HashSet<string>(styles.OfType<Style>()
+                    .Select(s => s.StyleId?.Value)
+                    .Where(v => v != null)!
+                    .Cast<string>(), StringComparer.OrdinalIgnoreCase);
+                foreach (var custom in customList) {
+                    var id = custom.StyleId!.Value!;
+                    if (!existingIds.Contains(id)) {
+                        styles.Append((Style)custom.CloneNode(true));
+                        existingIds.Add(id);
+                    }
                 }
             }
 
             FindMissingStyleDefinitions(styleDefinitionsPart, overrideExisting);
 
-            // No extra in-place name patching: we already replaced full style nodes above when requested.
+            // Persist changes into the part DOM immediately to ensure subsequent callers
+            // reading Styles from a different object graph see updated content.
+            styleDefinitionsPart.Styles?.Save();
 
             // Persist changes into the part DOM immediately to ensure subsequent callers
             // reading Styles from a different object graph see updated content.
