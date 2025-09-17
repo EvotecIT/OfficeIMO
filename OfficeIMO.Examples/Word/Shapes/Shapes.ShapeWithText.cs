@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using V = DocumentFormat.OpenXml.Vml;
 using SixLabors.ImageSharp;
@@ -17,11 +18,12 @@ namespace OfficeIMO.Examples.Word {
                 document.Save(false);
             }
             using (WordprocessingDocument word = WordprocessingDocument.Open(filePath, true)) {
-                var oval = word.MainDocumentPart.Document.Body.Descendants<V.Oval>().First();
+                var oval = word.MainDocumentPart?.Document?.Body?.Descendants<V.Oval>().FirstOrDefault()
+                    ?? throw new InvalidOperationException("Oval shape was not found in the document.");
                 var textBox = new V.TextBox();
                 textBox.Append(new TextBoxContent(new Paragraph(new Run(new Text("Text")))));
                 oval.Append(textBox);
-                word.MainDocumentPart.Document.Save();
+                word.MainDocumentPart!.Document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine($"Shapes count: {document.Shapes.Count}");

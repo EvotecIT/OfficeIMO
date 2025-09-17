@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -14,7 +15,7 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph = document.AddParagraph("Visit ");
                 var google = paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
                 google.Bold = true;
-                var baseLink = google.Hyperlink;
+                var baseLink = Guard.NotNull(google.Hyperlink, "Expected the hyperlink to be created for Google link.");
 
                 baseLink.InsertFormattedHyperlinkBefore("Bing", new Uri("https://bing.com"));
                 var duplicate = WordHyperLink.DuplicateHyperlink(baseLink);
@@ -25,11 +26,13 @@ namespace OfficeIMO.Examples.Word {
 
                 var headerPara = document.Header.Default.AddParagraph("Search with ");
                 var duck = headerPara.AddHyperLink("DuckDuckGo", new Uri("https://duckduckgo.com"), addStyle: true);
-                duck.Hyperlink.InsertFormattedHyperlinkAfter("Startpage", new Uri("https://startpage.com"));
+                var duckLink = Guard.NotNull(duck.Hyperlink, "Expected DuckDuckGo hyperlink to be created.");
+                duckLink.InsertFormattedHyperlinkAfter("Startpage", new Uri("https://startpage.com"));
 
                 var footerPara = document.Footer.Default.AddParagraph("Code on ");
                 var gitHub = footerPara.AddHyperLink("GitHub", new Uri("https://github.com"), addStyle: true);
-                gitHub.Hyperlink.InsertFormattedHyperlinkBefore("GitLab", new Uri("https://gitlab.com"));
+                var gitHubLink = Guard.NotNull(gitHub.Hyperlink, "Expected GitHub hyperlink to be created.");
+                gitHubLink.InsertFormattedHyperlinkBefore("GitLab", new Uri("https://gitlab.com"));
 
                 document.Save(openWord);
             }

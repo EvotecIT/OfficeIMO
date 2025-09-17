@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using DocumentFormat.OpenXml;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
@@ -18,11 +19,15 @@ namespace OfficeIMO.Examples.Word {
                 document.Save(false);
             }
             using (WordprocessingDocument word = WordprocessingDocument.Open(filePath, true)) {
-                var body = word.MainDocumentPart.Document.Body;
-                var shapeRun = body.Descendants<Run>().First(r => r.Descendants<Drawing>().Any() && !r.Descendants<Wps.TextBoxInfo2>().Any());
-                var textBoxRun = body.Descendants<Run>().First(r => r.Descendants<Wps.TextBoxInfo2>().Any());
-                var shapeDrawing = shapeRun.Descendants<Drawing>().First();
-                var textBoxDrawing = textBoxRun.Descendants<Drawing>().First();
+                var body = Guard.NotNull(word.MainDocumentPart?.Document?.Body, "Document body must exist.");
+                var shapeRun = body.Descendants<Run>().FirstOrDefault(r => r.Descendants<Drawing>().Any() && !r.Descendants<Wps.TextBoxInfo2>().Any())
+                    ?? throw new InvalidOperationException("Run containing a shape drawing was not found.");
+                var textBoxRun = body.Descendants<Run>().FirstOrDefault(r => r.Descendants<Wps.TextBoxInfo2>().Any())
+                    ?? throw new InvalidOperationException("Run containing a textbox drawing was not found.");
+                var shapeDrawing = shapeRun.Descendants<Drawing>().FirstOrDefault()
+                    ?? throw new InvalidOperationException("Shape drawing was not found.");
+                var textBoxDrawing = textBoxRun.Descendants<Drawing>().FirstOrDefault()
+                    ?? throw new InvalidOperationException("Textbox drawing was not found.");
                 shapeDrawing.Remove();
                 var choice = new AlternateContentChoice() { Requires = "wps" };
                 choice.Append(shapeDrawing);
@@ -33,7 +38,7 @@ namespace OfficeIMO.Examples.Word {
                 alt.Append(fallback);
                 shapeRun.Append(alt);
                 textBoxRun.Remove();
-                word.MainDocumentPart.Document.Save();
+                word.MainDocumentPart!.Document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine($"Shapes count: {document.Shapes.Count}");

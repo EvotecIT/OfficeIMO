@@ -1,5 +1,6 @@
 using System;
 using DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -12,7 +13,8 @@ namespace OfficeIMO.Examples.Word {
             using var document = WordDocument.Create(filePath);
             var paragraph = document.AddParagraph("Image with compression quality");
             paragraph.AddImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 100, WrapTextImage.BehindText);
-            paragraph.Image.CompressionQuality = BlipCompressionValues.HighQualityPrint;
+            var image = Guard.NotNull(paragraph.Image, "Paragraph should contain an image before setting compression quality.");
+            image.CompressionQuality = BlipCompressionValues.HighQualityPrint;
             document.Save(openWord);
         }
     }

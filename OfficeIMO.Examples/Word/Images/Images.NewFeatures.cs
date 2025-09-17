@@ -1,4 +1,5 @@
 using System;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
 
@@ -12,38 +13,40 @@ namespace OfficeIMO.Examples.Word {
             using var document = WordDocument.Create(filePath);
             var paragraph1 = document.AddParagraph("Tiled image with local DPI");
             paragraph1.AddImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 100);
-            paragraph1.Image.FillMode = ImageFillMode.Tile;
-            paragraph1.Image.UseLocalDpi = true;
-            paragraph1.Image.Title = "Sample image";
-            paragraph1.Image.Hidden = false;
-            paragraph1.Image.PreferRelativeResize = true;
-            paragraph1.Image.NoChangeAspect = true;
-            paragraph1.Image.FixedOpacity = 80;
-            paragraph1.Image.AlphaInversionColor = Color.Red;
-            paragraph1.Image.BlackWhiteThreshold = 60;
-            paragraph1.Image.BlurRadius = 5000;
-            paragraph1.Image.BlurGrow = true;
-            paragraph1.Image.ColorChangeFrom = Color.Parse("#97E4FE");
-            paragraph1.Image.ColorChangeTo = Color.Parse("#FF3399");
-            paragraph1.Image.ColorReplacement = Color.Lime;
-            paragraph1.Image.DuotoneColor1 = Color.Black;
-            paragraph1.Image.DuotoneColor2 = Color.White;
-            paragraph1.Image.GrayScale = true;
-            paragraph1.Image.LuminanceBrightness = 65;
-            paragraph1.Image.LuminanceContrast = 30;
-            paragraph1.Image.TintAmount = 50;
-            paragraph1.Image.TintHue = 300;
+            var paragraph1Image = Guard.NotNull(paragraph1.Image, "Paragraph should contain the first image.");
+            paragraph1Image.FillMode = ImageFillMode.Tile;
+            paragraph1Image.UseLocalDpi = true;
+            paragraph1Image.Title = "Sample image";
+            paragraph1Image.Hidden = false;
+            paragraph1Image.PreferRelativeResize = true;
+            paragraph1Image.NoChangeAspect = true;
+            paragraph1Image.FixedOpacity = 80;
+            paragraph1Image.AlphaInversionColor = Color.Red;
+            paragraph1Image.BlackWhiteThreshold = 60;
+            paragraph1Image.BlurRadius = 5000;
+            paragraph1Image.BlurGrow = true;
+            paragraph1Image.ColorChangeFrom = Color.Parse("#97E4FE");
+            paragraph1Image.ColorChangeTo = Color.Parse("#FF3399");
+            paragraph1Image.ColorReplacement = Color.Lime;
+            paragraph1Image.DuotoneColor1 = Color.Black;
+            paragraph1Image.DuotoneColor2 = Color.White;
+            paragraph1Image.GrayScale = true;
+            paragraph1Image.LuminanceBrightness = 65;
+            paragraph1Image.LuminanceContrast = 30;
+            paragraph1Image.TintAmount = 50;
+            paragraph1Image.TintHue = 300;
 
             var paragraph2 = document.AddParagraph("Fit image");
             paragraph2.AddImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 50);
-            paragraph2.Image.FillMode = ImageFillMode.Fit;
+            Guard.NotNull(paragraph2.Image, "Paragraph should contain the second image.").FillMode = ImageFillMode.Fit;
 
             var paragraph3 = document.AddParagraph("Centered image");
             paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 50);
-            paragraph3.Image.FillMode = ImageFillMode.Center;
+            Guard.NotNull(paragraph3.Image, "Paragraph should contain the third image.").FillMode = ImageFillMode.Center;
 
             var paragraph4 = document.AddParagraph("Linked image from web");
             paragraph4.AddImage(new Uri("http://example.com/logo.png"), 100, 100);
+            Guard.NotNull(paragraph4.Image, "Paragraph should contain the linked image.");
 
             document.Save(openWord);
         }

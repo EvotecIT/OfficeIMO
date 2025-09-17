@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -46,15 +47,18 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Is paragraph foot note: " + lastFootNoteParagraph.IsFootNote);
 
-                var footNoteParagraphs = lastFootNoteParagraph.FootNote.Paragraphs;
+                var footNote = Guard.NotNull(lastFootNoteParagraph.FootNote, "Footnote should be created on the paragraph.");
+                var footNoteParagraphs = Guard.NotNull(footNote.Paragraphs, "Footnote should expose paragraph content.");
 
-
-                Console.WriteLine("Text with attached footnote: " + lastFootNoteParagraph.FootNote.ParentParagraph.Text);
+                var parentParagraph = Guard.NotNull(footNote.ParentParagraph, "Footnote should expose its parent paragraph.");
+                Console.WriteLine("Text with attached footnote: " + parentParagraph.Text);
                 Console.WriteLine("Paragraphs within footnote: " + footNoteParagraphs.Count);
-                Console.WriteLine("What's the text: " + footNoteParagraphs[1].Text);
-
-                // lets make bold that footnote
-                footNoteParagraphs[1].Bold = true;
+                if (footNoteParagraphs.Count > 1) {
+                    var secondParagraph = footNoteParagraphs[1];
+                    Console.WriteLine("What's the text: " + secondParagraph.Text);
+                    // lets make bold that footnote
+                    secondParagraph.Bold = true;
+                }
 
                 document.AddParagraph("Testing endnote - 1").AddEndNote("Test end note 1");
 
@@ -75,13 +79,20 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("FootNotes count " + document.FootNotes.Count);
 
-                document.FootNotes[1].Remove();
+                if (document.FootNotes.Count > 1) {
+                    document.FootNotes[1].Remove();
+                }
 
                 document.Save(openWord);
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 foreach (var footNote in document.FootNotes) {
-                    foreach (var paragraph1 in footNote.Paragraphs) {
+                    var paragraphs = footNote.Paragraphs;
+                    if (paragraphs == null) {
+                        continue;
+                    }
+
+                    foreach (var paragraph1 in paragraphs) {
                         if (paragraph1.IsHyperLink) {
                             //paragraph1.Hyperlink.Text = "xxx";
                         }

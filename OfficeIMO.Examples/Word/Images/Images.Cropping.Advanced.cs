@@ -1,5 +1,6 @@
 using System;
 using DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -12,12 +13,13 @@ namespace OfficeIMO.Examples.Word {
             using var document = WordDocument.Create(filePath);
             var paragraph = document.AddParagraph("Advanced crop with shape:");
             paragraph.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 300, 300, WrapTextImage.Square);
+            var image = Guard.NotNull(paragraph.Image, "Paragraph should contain an image for cropping.");
 
-            paragraph.Image.Shape = ShapeTypeValues.Cube;
-            paragraph.Image.CropTopCentimeters = 2;
-            paragraph.Image.CropBottomCentimeters = 1.5;
-            paragraph.Image.CropLeftCentimeters = 0.5;
-            paragraph.Image.CropRightCentimeters = 0.5;
+            image.Shape = ShapeTypeValues.Cube;
+            image.CropTopCentimeters = 2;
+            image.CropBottomCentimeters = 1.5;
+            image.CropLeftCentimeters = 0.5;
+            image.CropRightCentimeters = 0.5;
 
             document.Save(openWord);
         }

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using DocumentFormat.OpenXml.Bibliography;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -14,9 +15,11 @@ namespace OfficeIMO.Examples.Word {
                     Author = "John Doe",
                     Year = "2024"
                 };
-                document.BibliographySources[source.Tag] = source;
+                string sourceTag = Guard.NotNullOrWhiteSpace(source.Tag, "Bibliography source must define a tag.");
 
-                document.AddParagraph("Referenced text: ").AddCitation(source.Tag);
+                document.BibliographySources[sourceTag] = source;
+
+                document.AddParagraph("Referenced text: ").AddCitation(sourceTag);
                 document.Save(openWord);
             }
         }

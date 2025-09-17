@@ -7,9 +7,9 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Removing and regenerating TOC");
             string filePath = System.IO.Path.Combine(folderPath, "DocumentTOCRemoveRegenerate.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddTableOfContent();
+                var toc = document.AddTableOfContent();
                 document.AddParagraph("Heading 1").Style = WordParagraphStyles.Heading1;
-                document.TableOfContent.Remove();
+                toc.Remove();
                 document.RegenerateTableOfContent();
                 document.Save();
             }

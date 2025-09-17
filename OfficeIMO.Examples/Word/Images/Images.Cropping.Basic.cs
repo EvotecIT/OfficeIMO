@@ -1,4 +1,5 @@
 using System;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -11,11 +12,12 @@ namespace OfficeIMO.Examples.Word {
             using var document = WordDocument.Create(filePath);
             var paragraph = document.AddParagraph("Cropped picture below:");
             paragraph.AddImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 200, 200);
+            var image = Guard.NotNull(paragraph.Image, "Paragraph should contain an image for cropping.");
 
-            paragraph.Image.CropTopCentimeters = 1;
-            paragraph.Image.CropBottomCentimeters = 1;
-            paragraph.Image.CropLeftCentimeters = 1;
-            paragraph.Image.CropRightCentimeters = 1;
+            image.CropTopCentimeters = 1;
+            image.CropBottomCentimeters = 1;
+            image.CropLeftCentimeters = 1;
+            image.CropRightCentimeters = 1;
 
             document.Save(openWord);
         }
