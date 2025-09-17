@@ -82,6 +82,7 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Applies an Excel number format to this cell (e.g., "0.00", "yyyy-mm-dd", "[h]:mm:ss").
         /// </summary>
+        /// <param name="format">The Excel number format code to apply, matching the codes accepted by the Excel UI (such as "General", "0.00", "#,##0", or date/time masks).</param>
         public void NumberFormat(string format)
         {
             if (string.IsNullOrWhiteSpace(format)) return;
@@ -91,6 +92,7 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Sets a formula on this cell.
         /// </summary>
+        /// <param name="formula">The Excel formula expression using standard worksheet syntax (for example "SUM(A1:A10)" or "A1*0.2") without a leading '=' character.</param>
         public void Formula(string formula)
         {
             if (string.IsNullOrWhiteSpace(formula)) return;
