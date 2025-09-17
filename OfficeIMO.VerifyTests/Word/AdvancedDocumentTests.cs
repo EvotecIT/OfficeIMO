@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using VerifyXunit;
 using Xunit;
+using Assert = OfficeIMO.VerifyTests.TestAssert;
 
 using Color = SixLabors.ImageSharp.Color;
 
@@ -98,7 +99,9 @@ public class AdvancedDocumentTests : VerifyTestBase {
         document.AddHeadersAndFooters();
 
         // adding text to default header
-        document.Header!.Default.AddParagraph("Text added to header - Default");
+        var headers = Assert.NotNull(document.Header);
+        var defaultHeader = Assert.IsType<WordHeader>(headers.Default);
+        defaultHeader.AddParagraph("Text added to header - Default");
 
         var section1 = document.AddSection();
         section1.PageOrientation = PageOrientationValues.Portrait;
@@ -111,7 +114,9 @@ public class AdvancedDocumentTests : VerifyTestBase {
         document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
         // add page numbers
-        document.Footer!.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
+        var footers = Assert.NotNull(document.Footer);
+        var defaultFooter = Assert.IsType<WordFooter>(footers.Default);
+        defaultFooter.AddPageNumber(WordPageNumberStyle.PlainNumber);
 
         // add watermark
         document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Draft");
