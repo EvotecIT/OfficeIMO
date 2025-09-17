@@ -141,6 +141,9 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Transforms a point from the shape's local coordinate system to the page coordinate system.
         /// </summary>
+        /// <param name="x">X coordinate of the point relative to the shape's local coordinate system.</param>
+        /// <param name="y">Y coordinate of the point relative to the shape's local coordinate system.</param>
+        /// <returns>The point's absolute coordinates on the page.</returns>
         public (double X, double Y) GetAbsolutePoint(double x, double y) {
             double cos = Math.Cos(Angle);
             double sin = Math.Sin(Angle);
