@@ -30,7 +30,7 @@ internal static class AssetFactory {
                 yield return new HtmlAsset($"prism-theme:{po.Theme}", HtmlAssetKind.Css, themeCss, null);
             } else {
                 var css = HtmlRenderer.TryDownloadText(themeCss);
-                if (!string.IsNullOrEmpty(css)) css = HtmlRenderer.ScopeCss(css!, scopeSelector);
+                if (!string.IsNullOrEmpty(css)) css = HtmlRenderer.ScopeCss(css, scopeSelector);
                 yield return new HtmlAsset($"prism-theme:{po.Theme}", HtmlAssetKind.Css, null, css);
             }
         }

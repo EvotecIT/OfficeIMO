@@ -498,11 +498,11 @@ internal static class HtmlRenderer {
     }
 
     internal static string ScopeCss(string? css, string? scopeSelector) {
-        if (string.IsNullOrEmpty(css)) return string.Empty;
+        string? cssText = css;
+        if (string.IsNullOrEmpty(cssText)) return string.Empty;
         var scope = NormalizeScope(scopeSelector);
         // Naive scoping: prefix common selectors with the scope to avoid global bleed.
         // This is intentionally conservative.
-        var cssText = css!; // guarded by IsNullOrEmpty above
         var s = cssText.Replace("code[class*=\"language-\"]", scope + " code[class*=\\\"language-\\\"]")
                    .Replace("pre[class*=\"language-\"]", scope + " pre[class*=\\\"language-\\\"]")
                    .Replace("pre[class*=\"language-\"] code", scope + " pre[class*=\\\"language-\\\"] code");
