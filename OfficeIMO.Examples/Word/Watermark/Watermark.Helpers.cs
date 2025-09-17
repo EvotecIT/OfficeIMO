@@ -1,6 +1,5 @@
 using System;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -14,23 +13,36 @@ namespace OfficeIMO.Examples.Word {
                 throw new ArgumentNullException(nameof(section));
             }
 
-            WordHeader? header;
+            if (section.Header == null) {
+                section.AddHeadersAndFooters();
+            }
+
+            var headers = section.Header;
+            if (headers == null) {
+                throw new InvalidOperationException("Headers are not available after attempting to add them.");
+            }
+
             string description;
+            WordHeader? header;
 
             if (type == HeaderFooterValues.Default) {
-                header = section.Header.Default;
                 description = "default";
+                header = headers.Default;
             } else if (type == HeaderFooterValues.Even) {
-                header = section.Header.Even;
                 description = "even";
+                header = headers.Even;
             } else if (type == HeaderFooterValues.First) {
-                header = section.Header.First;
                 description = "first";
+                header = headers.First;
             } else {
                 throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported header type.");
             }
 
-            return Guard.NotNull(header, $"Call AddHeadersAndFooters before accessing the {description} header.");
+            if (header == null) {
+                throw new InvalidOperationException($"The {description} header is not available.");
+            }
+
+            return header;
         }
     }
 }
