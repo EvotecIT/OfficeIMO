@@ -190,21 +190,24 @@ namespace OfficeIMO.Excel {
 
             string cellReference = GetColumnName(column) + row.ToString(CultureInfo.InvariantCulture);
 
-            // Find or create cell with proper ordering
-              Cell? cell = null;
-              Cell? insertAfterCell = null;
+            // Find or create cell with proper ordering (by numeric column index)
+            Cell? cell = null;
+            Cell? insertAfterCell = null;
+            int targetColumnIndex = column;
             foreach (Cell c in rowElement.Elements<Cell>()) {
-                if (c.CellReference != null) {
-                    if (c.CellReference.Value == cellReference) {
+                string? existingRef = c.CellReference?.Value;
+                if (!string.IsNullOrEmpty(existingRef)) {
+                    int existingColumnIndex = GetColumnIndex(existingRef);
+                    if (existingColumnIndex == targetColumnIndex) {
                         cell = c;
                         break;
                     }
-                    var compareResult = string.Compare(c.CellReference.Value, cellReference, StringComparison.Ordinal);
-                    if (compareResult < 0) {
+                    if (existingColumnIndex < targetColumnIndex) {
                         insertAfterCell = c;
-                    } else {
-                        break;
+                        continue;
                     }
+                    // existingColumnIndex > targetColumnIndex => insert before this cell
+                    break;
                 }
             }
 
@@ -213,10 +216,15 @@ namespace OfficeIMO.Excel {
                 if (insertAfterCell != null) {
                     rowElement.InsertAfter(cell, insertAfterCell);
                 } else {
-                    // Insert at beginning
+                    // Insert at beginning or append when row is empty or existing first cell has larger column index
                     var firstCell = rowElement.Elements<Cell>().FirstOrDefault();
-                    if (firstCell != null && string.Compare(firstCell.CellReference?.Value, cellReference, StringComparison.Ordinal) > 0) {
-                        rowElement.InsertBefore(cell, firstCell);
+                    if (firstCell != null) {
+                        var firstRef = firstCell.CellReference?.Value;
+                        if (!string.IsNullOrEmpty(firstRef) && GetColumnIndex(firstRef) > targetColumnIndex) {
+                            rowElement.InsertBefore(cell, firstCell);
+                        } else {
+                            rowElement.Append(cell);
+                        }
                     } else {
                         rowElement.Append(cell);
                     }
@@ -252,7 +260,10 @@ namespace OfficeIMO.Excel {
             return int.Parse(digits, CultureInfo.InvariantCulture);
         }
 
-        private string GetCellText(Cell cell) {
+        // Exposed as internal so other components in the same assembly (e.g., SheetComposer)
+        // can reuse the shared-string/inline-string resolution logic when they already have
+        // a Cell reference. Prefer using public TryGetCellText(row,col, out text) when possible.
+        internal string GetCellText(Cell cell) {
             // Shared string lookup
             if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString)
             {

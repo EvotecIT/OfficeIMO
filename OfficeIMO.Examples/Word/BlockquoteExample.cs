@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
                 document.Save(docPath);
                 Console.WriteLine($"✓ Created: {docPath}");
 
-                string roundTrip = document.ToHtml();
+                string roundTrip = document.ToHtml(new WordToHtmlOptions { IncludeDefaultCss = true });
                 Console.WriteLine("Round-trip HTML:");
                 Console.WriteLine(roundTrip);
             }

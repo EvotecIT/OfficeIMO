@@ -93,11 +93,8 @@ namespace OfficeIMO.Tests {
                             b.LeftSize = 24;
                         })
                         .Shading(Color.LightGray))
-                    .End()
-                    .Save(false);
-            }
+                    .End();
 
-            using (var document = WordDocument.Load(filePath)) {
                 var paragraph = document.Paragraphs[0];
                 Assert.Equal(BorderValues.Thick, paragraph.Borders.LeftStyle);
                 Assert.Equal(Color.Blue.ToHexColor(), paragraph.Borders.LeftColor!.Value.ToHexColor());

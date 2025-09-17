@@ -9,7 +9,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Markdown {
-        [Fact(Skip = "TODO: Implement Markdown to Word conversion with Markdig parser")]
+        [Fact(Skip = "TODO: Implement additional Markdown to Word scenarios with OfficeIMO.Markdown reader")]
         public void Test_Markdown_RoundTrip() {
             string md = "# Heading 1\n\nHello **world** and *universe*.";
 

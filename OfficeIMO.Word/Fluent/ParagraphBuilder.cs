@@ -64,6 +64,42 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         /// <summary>
+        /// Appends bold text (Markdown parity helper).
+        /// </summary>
+        public ParagraphBuilder Bold(string text) {
+            return Text(text, t => t.BoldOn());
+        }
+
+        /// <summary>
+        /// Appends italic text (Markdown parity helper).
+        /// </summary>
+        public ParagraphBuilder Italic(string text) {
+            return Text(text, t => t.ItalicOn());
+        }
+
+        /// <summary>
+        /// Appends underlined text (Markdown parity helper).
+        /// </summary>
+        public ParagraphBuilder Underline(string text) {
+            return Text(text, t => t.Underline(UnderlineValues.Single));
+        }
+
+        /// <summary>
+        /// Appends strikethrough text (Markdown parity helper).
+        /// </summary>
+        public ParagraphBuilder Strike(string text) {
+            return Text(text, t => t.Strike());
+        }
+
+        /// <summary>
+        /// Appends inline code using a monospace font (Markdown parity helper).
+        /// </summary>
+        public ParagraphBuilder Code(string text) {
+            var mono = FontResolver.Resolve("monospace") ?? "Consolas";
+            return Text(text, t => t.FontFamily(mono));
+        }
+
+        /// <summary>
         /// Inserts a break into the paragraph.
         /// </summary>
         /// <param name="breakType">Optional break type.</param>

@@ -1,5 +1,6 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
+using OfficeIMO.Markdown;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -157,6 +158,68 @@ namespace OfficeIMO.Word.Markdown {
             string markdown = await reader.ReadToEndAsync().ConfigureAwait(false);
             var converter = new MarkdownToWordConverter();
             return await converter.ConvertAsync(markdown, options ?? new MarkdownToWordOptions(), cancellationToken).ConfigureAwait(false);
+        }
+
+        // HTML via OfficeIMO.Markdown (Word -> Markdown -> HTML)
+
+        /// <summary>
+        /// Converts the document to a full HTML5 document via OfficeIMO.Markdown.
+        /// </summary>
+        public static string ToHtmlViaMarkdown(this WordDocument document, HtmlOptions? options = null) {
+            options ??= new HtmlOptions { Kind = HtmlKind.Document, Style = HtmlStyle.Word };
+            options.Kind = HtmlKind.Document;
+            if (options.Style == default) options.Style = HtmlStyle.Word;
+            var md = document.ToMarkdown();
+            var model = MarkdownReader.Parse(md);
+            if (options.InjectTocAtTop && !model.Blocks.Any(b => string.Equals(b.GetType().Name, "TocPlaceholderBlock", System.StringComparison.Ordinal))) {
+                model.TocAtTop(options.InjectTocTitle, options.InjectTocMinLevel, options.InjectTocMaxLevel, options.InjectTocOrdered, options.InjectTocTitleLevel);
+            }
+            return model.ToHtmlDocument(options);
+        }
+
+        /// <summary>
+        /// Converts the document to an embeddable HTML fragment via OfficeIMO.Markdown.
+        /// </summary>
+        public static string ToHtmlFragmentViaMarkdown(this WordDocument document, HtmlOptions? options = null) {
+            options ??= new HtmlOptions { Kind = HtmlKind.Fragment, Style = HtmlStyle.Word };
+            if (options.Style == default) options.Style = HtmlStyle.Word;
+            var md = document.ToMarkdown();
+            var model = MarkdownReader.Parse(md);
+            if (options.InjectTocAtTop && !model.Blocks.Any(b => string.Equals(b.GetType().Name, "TocPlaceholderBlock", System.StringComparison.Ordinal))) {
+                model.TocAtTop(options.InjectTocTitle, options.InjectTocMinLevel, options.InjectTocMaxLevel, options.InjectTocOrdered, options.InjectTocTitleLevel);
+            }
+            return model.ToHtmlFragment(options);
+        }
+
+        /// <summary>
+        /// Saves the document as HTML via OfficeIMO.Markdown. Supports external CSS sidecar when configured in <see cref="HtmlOptions"/>.
+        /// </summary>
+        public static void SaveAsHtmlViaMarkdown(this WordDocument document, string path, HtmlOptions? options = null) {
+            options ??= new HtmlOptions { Kind = HtmlKind.Document, Style = HtmlStyle.Word };
+            options.Kind = HtmlKind.Document;
+            if (options.Style == default) options.Style = HtmlStyle.Word;
+            var md = document.ToMarkdown();
+            var model = MarkdownReader.Parse(md);
+            if (options.InjectTocAtTop && !model.Blocks.Any(b => string.Equals(b.GetType().Name, "TocPlaceholderBlock", System.StringComparison.Ordinal))) {
+                model.TocAtTop(options.InjectTocTitle, options.InjectTocMinLevel, options.InjectTocMaxLevel, options.InjectTocOrdered, options.InjectTocTitleLevel);
+            }
+            model.SaveHtml(path, options);
+        }
+
+        /// <summary>
+        /// Asynchronously saves the document as HTML via OfficeIMO.Markdown.
+        /// </summary>
+        public static async Task SaveAsHtmlViaMarkdownAsync(this WordDocument document, string path, HtmlOptions? options = null, CancellationToken cancellationToken = default) {
+            options ??= new HtmlOptions { Kind = HtmlKind.Document, Style = HtmlStyle.Word };
+            options.Kind = HtmlKind.Document;
+            if (options.Style == default) options.Style = HtmlStyle.Word;
+            var md = await document.ToMarkdownAsync().ConfigureAwait(false);
+            var model = MarkdownReader.Parse(md);
+            if (options.InjectTocAtTop && !model.Blocks.Any(b => string.Equals(b.GetType().Name, "TocPlaceholderBlock", System.StringComparison.Ordinal))) {
+                model.TocAtTop(options.InjectTocTitle, options.InjectTocMinLevel, options.InjectTocMaxLevel, options.InjectTocOrdered, options.InjectTocTitleLevel);
+            }
+            // MarkdownDoc.SaveHtml does sync I/O; for now, delegate synchronously to keep surface small
+            model.SaveHtml(path, options);
         }
     }
 }

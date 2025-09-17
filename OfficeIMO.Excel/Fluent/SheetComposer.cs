@@ -25,7 +25,8 @@ namespace OfficeIMO.Excel.Fluent
         {
             _workbook = workbook ?? throw new ArgumentNullException(nameof(workbook));
             _theme = theme ?? SheetTheme.Default;
-            _sheet = _workbook.AddWorkSheet(sheetName);
+            // Use sanitized sheet names to avoid Excel repair prompts for invalid characters/length
+            _sheet = _workbook.AddWorkSheet(sheetName, SheetNameValidationMode.Sanitize);
             _row = 1;
             // Create a sheet-local top anchor so callers/tests can rely on a defined name at A1.
             // Keep it simple and safe: local to this sheet, absolute A1.
@@ -98,6 +99,101 @@ namespace OfficeIMO.Excel.Fluent
             if (string.IsNullOrEmpty(s)) s = "_";
             if (char.IsDigit(s[0])) s = "_" + s;
             return s.Length > 255 ? s.Substring(0, 255) : s;
+        }
+
+        /// <summary>
+        /// Applies clamped widths and optional wrap based on table headers for a given A1 range.
+        /// The first row of the range is treated as the header row.
+        /// </summary>
+        /// <param name="a1Range">A1 range returned from TableFrom (e.g., "A10:F42").</param>
+        /// <param name="configure">Configure sizing options and header categories.</param>
+        public SheetComposer ApplyColumnSizing(string? a1Range, Action<ColumnSizingOptions> configure)
+        {
+            if (string.IsNullOrWhiteSpace(a1Range)) return this;
+            var (fromCol, fromRow) = OfficeIMO.Excel.A1.ParseCellRef(a1Range!.Split(':')[0]);
+            var (toCol, toRow) = OfficeIMO.Excel.A1.ParseCellRef(a1Range!.Split(':')[1]);
+            if (fromCol <= 0 || fromRow <= 0 || toCol <= 0 || toRow <= 0) return this;
+
+            // Read header texts from first row
+            var headers = new Dictionary<int, string>(toCol - fromCol + 1);
+            for (int c = fromCol; c <= toCol; c++)
+            {
+                string text = string.Empty;
+                try { Sheet.TryGetCellText(fromRow, c, out text); } catch { }
+                headers[c] = (text ?? string.Empty).Trim();
+            }
+
+            var opts = new ColumnSizingOptions();
+            configure?.Invoke(opts);
+
+            bool IsMatch(HashSet<string> set, string header)
+            {
+                if (string.IsNullOrEmpty(header)) return false;
+                if (set.Contains(header)) return true;
+                // Loose match: allow simple aliases like "TLS 1.3" → "TLS13"
+                var norm = header.Replace(" ", string.Empty).Replace("-", string.Empty);
+                foreach (var s in set)
+                {
+                    var sn = s.Replace(" ", string.Empty).Replace("-", string.Empty);
+                    if (norm.Equals(sn, StringComparison.OrdinalIgnoreCase)) return true;
+                }
+                return false;
+            }
+
+            var autoFitTargets = new HashSet<int>();
+
+            foreach (var kv in headers)
+            {
+                int col = kv.Key; string h = kv.Value;
+                bool hasHeader = !string.IsNullOrEmpty(h);
+
+                double? width = null;
+                if (hasHeader && opts.WidthByHeader.TryGetValue(h, out var explicitWidth))
+                {
+                    width = explicitWidth;
+                }
+                else if (hasHeader && IsMatch(opts.ShortHeaders, h)) width = opts.ShortWidth;
+                else if (hasHeader && IsMatch(opts.NumericHeaders, h)) width = opts.NumericWidth;
+                else if (hasHeader && IsMatch(opts.LongHeaders, h)) width = opts.LongWidth;
+
+                bool shouldWrap = hasHeader && (IsMatch(opts.WrapHeaders, h) || IsMatch(opts.LongHeaders, h));
+                if (shouldWrap && width == null)
+                {
+                    width = opts.WrapWidth;
+                }
+
+                if (width == null && !opts.AutoFitRemainingColumns)
+                {
+                    width = opts.MediumWidth;
+                }
+
+                if (width.HasValue)
+                {
+                    try { Sheet.SetColumnWidth(col, width.Value); } catch { }
+                }
+
+                if (shouldWrap)
+                {
+                    try
+                    {
+                        if (width.HasValue) Sheet.WrapCells(fromRow + 1, toRow, col, width.Value);
+                        else Sheet.WrapCells(fromRow + 1, toRow, col);
+                    }
+                    catch { }
+                }
+
+                bool explicitAutoFit = hasHeader && IsMatch(opts.AutoFitHeaders, h);
+                if (!shouldWrap && !width.HasValue && (explicitAutoFit || opts.AutoFitRemainingColumns))
+                {
+                    autoFitTargets.Add(col);
+                }
+            }
+
+            if (autoFitTargets.Count > 0)
+            {
+                try { Sheet.AutoFitColumnsFor(autoFitTargets); } catch { }
+            }
+            return this;
         }
     }
 }

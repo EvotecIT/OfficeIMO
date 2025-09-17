@@ -112,6 +112,14 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         /// <summary>
+        /// Sets header cells using strings (Markdown parity helper).
+        /// </summary>
+        public TableBuilder Headers(params string[] headers) {
+            object[] cells = headers?.Cast<object>().ToArray() ?? Array.Empty<object>();
+            return Header(cells);
+        }
+
+        /// <summary>
         /// Adds a row to the table.
         /// </summary>
         public TableBuilder Row(params object[] cells) {
@@ -128,6 +136,32 @@ namespace OfficeIMO.Word.Fluent {
             for (int i = 0; i < _columns && i < cells.Length; i++) {
                 row.Cells[i].AddParagraph(cells[i]?.ToString() ?? string.Empty, true);
             }
+            return this;
+        }
+
+        /// <summary>
+        /// Adds multiple rows from a sequence of string lists (Markdown parity helper).
+        /// </summary>
+        public TableBuilder Rows(System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<string>> rows) {
+            foreach (var r in rows) {
+                Row(r?.Cast<object>().ToArray() ?? Array.Empty<object>());
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Adds two-column rows from tuples (Markdown parity helper).
+        /// </summary>
+        public TableBuilder Rows(System.Collections.Generic.IEnumerable<(string, string)> rows) {
+            foreach (var (a, b) in rows) Row(a, b);
+            return this;
+        }
+
+        /// <summary>
+        /// Adds two-column rows from key/value pairs (Markdown parity helper).
+        /// </summary>
+        public TableBuilder Rows(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, string>> rows) {
+            foreach (var kv in rows) Row(kv.Key, kv.Value);
             return this;
         }
 
@@ -388,4 +422,3 @@ namespace OfficeIMO.Word.Fluent {
         }
     }
 }
-

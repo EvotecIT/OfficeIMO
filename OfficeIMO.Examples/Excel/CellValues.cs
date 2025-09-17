@@ -38,6 +38,14 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.CellFormula(9, 2, "SUM(B2)");
                 sheet.CellValue(10, 1, "Combined");
                 sheet.Cell(10, 2, 1.23, "B2+1", "0.00");
+#if NET6_0_OR_GREATER
+                sheet.CellValue(11, 1, "DateOnly");
+                sheet.CellValue(11, 2, DateOnly.FromDateTime(DateTime.Today));
+                sheet.FormatCell(11, 2, "yyyy-mm-dd");
+                sheet.CellValue(12, 1, "TimeOnly");
+                sheet.CellValue(12, 2, new TimeOnly(1, 2, 3));
+                sheet.FormatCell(12, 2, "hh:mm:ss");
+#endif
 
                 document.Save(openExcel);
             }

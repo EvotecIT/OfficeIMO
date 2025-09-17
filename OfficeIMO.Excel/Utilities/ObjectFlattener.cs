@@ -25,10 +25,31 @@ namespace OfficeIMO.Excel {
         /// <summary>Paths to exclude from output.</summary>
         public string[] Ignore { get; set; } = Array.Empty<string>();
         /// <summary>
+        /// Optional convenience include list using property names or dotted paths. When specified, only matching
+        /// columns are kept. A match occurs when the full dotted path matches or the last segment (property name)
+        /// matches case-insensitively. This is a friendlier alias for <see cref="Columns"/>.
+        /// </summary>
+        public string[] IncludeProperties { get; set; } = Array.Empty<string>();
+        /// <summary>
+        /// Optional convenience exclude list using property names or dotted paths. A match occurs when the full dotted path
+        /// matches or the last segment (property name) matches case-insensitively. This augments <see cref="Ignore"/> which
+        /// treats values as dotted-path prefixes.
+        /// </summary>
+        public string[] ExcludeProperties { get; set; } = Array.Empty<string>();
+        /// <summary>
         /// Optional list of dotted paths to pin to the front of the generated column order when <see cref="Columns"/> is not specified.
         /// Matching paths keep the specified order; any non-matching paths follow in natural order.
         /// </summary>
         public string[] PinnedFirst { get; set; } = Array.Empty<string>();
+        /// <summary>
+        /// Optional list of dotted paths to pin to the end of the generated column order. Processed after <see cref="PinnedFirst"/>.
+        /// </summary>
+        public string[] PinnedLast { get; set; } = Array.Empty<string>();
+        /// <summary>
+        /// Optional per-column priority ordering. Lower numbers appear earlier. Keys can be dotted paths or property names.
+        /// When not specified, relative discovery order is preserved. Applied after <see cref="PinnedFirst"/> and before <see cref="PinnedLast"/>.
+        /// </summary>
+        public Dictionary<string, int> PropertyPriority { get; } = new(StringComparer.OrdinalIgnoreCase);
         /// <summary>How null values are represented.</summary>
         public NullPolicy NullPolicy { get; set; } = NullPolicy.NullLiteral;
         /// <summary>Per‑path default values used when <see cref="NullPolicy.DefaultValue"/> is selected.</summary>
@@ -46,6 +67,75 @@ namespace OfficeIMO.Excel {
         /// "ScoreBreakdown.HasMX" = 2, "ScoreBreakdown.EffectiveSPFSends" = 2.
         /// </summary>
         public System.Collections.Generic.Dictionary<string, CollectionColumnMapping> CollectionMapColumns { get; } = new(System.StringComparer.OrdinalIgnoreCase);
+
+        // Convenience fluent helpers ------------------------------------------------------------
+        /// <summary>Adds or appends to <see cref="PinnedFirst"/> while preserving order and uniqueness.</summary>
+        public ObjectFlattenerOptions PinFirst(params string[] paths)
+        {
+            if (paths == null || paths.Length == 0) return this;
+            var list = new List<string>(PinnedFirst ?? Array.Empty<string>());
+            foreach (var p in paths)
+                if (!string.IsNullOrWhiteSpace(p) && !list.Contains(p, StringComparer.OrdinalIgnoreCase)) list.Add(p);
+            PinnedFirst = list.ToArray();
+            return this;
+        }
+
+        /// <summary>Adds or appends to <see cref="PinnedLast"/> while preserving order and uniqueness.</summary>
+        public ObjectFlattenerOptions PinLast(params string[] paths)
+        {
+            if (paths == null || paths.Length == 0) return this;
+            var list = new List<string>(PinnedLast ?? Array.Empty<string>());
+            foreach (var p in paths)
+                if (!string.IsNullOrWhiteSpace(p) && !list.Contains(p, StringComparer.OrdinalIgnoreCase)) list.Add(p);
+            PinnedLast = list.ToArray();
+            return this;
+        }
+
+        /// <summary>Sets priority order 1..N for the provided paths (full path or property name).</summary>
+        public ObjectFlattenerOptions PriorityOrder(params string[] paths)
+        {
+            if (paths == null || paths.Length == 0) return this;
+            for (int i = 0; i < paths.Length; i++)
+            {
+                var key = paths[i]; if (string.IsNullOrWhiteSpace(key)) continue;
+                PropertyPriority[key] = i + 1;
+            }
+            return this;
+        }
+
+        /// <summary>Appends to <see cref="IncludeProperties"/> while preserving uniqueness.</summary>
+        public ObjectFlattenerOptions Include(params string[] properties)
+        {
+            if (properties == null || properties.Length == 0) return this;
+            var list = new List<string>(IncludeProperties ?? Array.Empty<string>());
+            foreach (var p in properties)
+                if (!string.IsNullOrWhiteSpace(p) && !list.Contains(p, StringComparer.OrdinalIgnoreCase)) list.Add(p);
+            IncludeProperties = list.ToArray();
+            return this;
+        }
+
+        /// <summary>Appends to <see cref="ExcludeProperties"/> while preserving uniqueness.</summary>
+        public ObjectFlattenerOptions Exclude(params string[] properties)
+        {
+            if (properties == null || properties.Length == 0) return this;
+            var list = new List<string>(ExcludeProperties ?? Array.Empty<string>());
+            foreach (var p in properties)
+                if (!string.IsNullOrWhiteSpace(p) && !list.Contains(p, StringComparer.OrdinalIgnoreCase)) list.Add(p);
+            ExcludeProperties = list.ToArray();
+            return this;
+        }
+
+        /// <summary>
+        /// One-call convenience: set pin-first, priority order, and pin-last.
+        /// Any argument may be null; order is applied as PinFirst → PriorityOrder → PinLast.
+        /// </summary>
+        public ObjectFlattenerOptions Order(string[]? pinFirst = null, string[]? priority = null, string[]? pinLast = null)
+        {
+            if (pinFirst != null && pinFirst.Length > 0) PinFirst(pinFirst);
+            if (priority != null && priority.Length > 0) PriorityOrder(priority);
+            if (pinLast != null && pinLast.Length > 0) PinLast(pinLast);
+            return this;
+        }
     }
 
     /// <summary>
@@ -70,9 +160,28 @@ namespace OfficeIMO.Excel {
         public List<string> GetPaths(Type type, ObjectFlattenerOptions opts) {
             var paths = new List<string>();
             BuildPaths(type, string.Empty, 0, opts, paths);
-            return paths
+            // Apply prefix-based ignore first
+            var filtered = paths
                 .Where(p => !opts.Ignore.Any(i => p.StartsWith(i, StringComparison.OrdinalIgnoreCase)))
                 .ToList();
+
+            // Apply property-name based excludes
+            if (opts.ExcludeProperties.Length > 0)
+            {
+                var ex = new HashSet<string>(opts.ExcludeProperties, StringComparer.OrdinalIgnoreCase);
+                filtered = filtered.Where(p => !ex.Contains(p) && !ex.Contains(LastSegment(p))).ToList();
+            }
+
+            // Apply property-name based includes (acts as a filter if provided)
+            if (opts.IncludeProperties.Length > 0)
+            {
+                var inc = new HashSet<string>(opts.IncludeProperties, StringComparer.OrdinalIgnoreCase);
+                filtered = filtered.Where(p => inc.Contains(p) || inc.Contains(LastSegment(p))).ToList();
+            }
+
+            // Apply ordering preferences
+            filtered = ApplyOrdering(filtered, opts);
+            return filtered;
         }
 
         private static void FlattenInternal(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts) {
@@ -292,6 +401,83 @@ namespace OfficeIMO.Excel {
 
         private static bool IsSimple(Type type) {
             return type.IsPrimitive || type.IsEnum || type == typeof(string) || type == typeof(decimal) || type == typeof(DateTime) || type == typeof(DateTimeOffset) || type == typeof(TimeSpan) || type == typeof(Guid);
+        }
+
+        private static string LastSegment(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return path;
+            int i = path.LastIndexOf('.');
+            return i >= 0 ? path.Substring(i + 1) : path;
+        }
+
+        internal static List<string> ApplyOrdering(List<string> input, ObjectFlattenerOptions opts)
+        {
+            if (input == null || input.Count == 0) return new List<string>();
+
+            var result = new List<string>(input.Count);
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // 1) PinnedFirst in the given order
+            foreach (var pin in opts.PinnedFirst)
+            {
+                var match = input.FirstOrDefault(p => string.Equals(p, pin, StringComparison.OrdinalIgnoreCase) ||
+                                                       string.Equals(LastSegment(p), pin, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(match) && set.Add(match)) result.Add(match);
+            }
+
+            // 2) Remaining, grouped by priority ascending
+            int GetPriority(string path)
+            {
+                var key = opts.PropertyPriority
+                    .FirstOrDefault(kv => string.Equals(kv.Key, path, StringComparison.OrdinalIgnoreCase) ||
+                                          string.Equals(LastSegment(path), kv.Key, StringComparison.OrdinalIgnoreCase)).Key;
+                if (!string.IsNullOrEmpty(key) && opts.PropertyPriority.TryGetValue(key, out var pr)) return pr;
+                return 0;
+            }
+
+            var remaining = input.Where(p => !set.Contains(p)).ToList();
+            var prioritized = remaining.OrderBy(p => GetPriority(p)).ThenBy(p => input.IndexOf(p)).ToList();
+
+            // 3) PinnedLast moved to the end in the given order
+            var pinnedLastMatches = new List<string>();
+            var pinLastSet = new HashSet<string>(opts.PinnedLast ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+            foreach (var pin in opts.PinnedLast ?? Array.Empty<string>())
+            {
+                var match = prioritized.FirstOrDefault(p => string.Equals(p, pin, StringComparison.OrdinalIgnoreCase) ||
+                                                            string.Equals(LastSegment(p), pin, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(match)) pinnedLastMatches.Add(match);
+            }
+            // Remove pinned-last matches from prioritized
+            var prioritizedNoPinnedLast = prioritized.Where(p => !pinnedLastMatches.Contains(p, StringComparer.OrdinalIgnoreCase)).ToList();
+
+            // Merge
+            foreach (var p in prioritizedNoPinnedLast) if (set.Add(p)) result.Add(p);
+            foreach (var p in pinnedLastMatches) if (set.Add(p)) result.Add(p);
+
+            return result;
+        }
+
+        internal static List<string> ApplySelection(List<string> input, ObjectFlattenerOptions opts)
+        {
+            if (input == null || input.Count == 0) return new List<string>();
+
+            var filtered = input
+                .Where(p => !opts.Ignore.Any(i => p.StartsWith(i, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+
+            if (opts.ExcludeProperties.Length > 0)
+            {
+                var ex = new HashSet<string>(opts.ExcludeProperties, StringComparer.OrdinalIgnoreCase);
+                filtered = filtered.Where(p => !ex.Contains(p) && !ex.Contains(LastSegment(p))).ToList();
+            }
+
+            if (opts.IncludeProperties.Length > 0)
+            {
+                var inc = new HashSet<string>(opts.IncludeProperties, StringComparer.OrdinalIgnoreCase);
+                filtered = filtered.Where(p => inc.Contains(p) || inc.Contains(LastSegment(p))).ToList();
+            }
+
+            return filtered;
         }
     }
 }

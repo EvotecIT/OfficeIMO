@@ -89,6 +89,12 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
+            if (options.IncludeDefaultCss) {
+                var style = htmlDoc.CreateElement("style");
+                style.TextContent = WordHtmlResources.DefaultCss;
+                head.AppendChild(style);
+            }
+
             if (!string.IsNullOrEmpty(options.FontFamily)) {
                 body.SetAttribute("style", $"font-family:{options.FontFamily}");
             }
@@ -859,4 +865,3 @@ namespace OfficeIMO.Word.Html {
         }
     }
 }
-

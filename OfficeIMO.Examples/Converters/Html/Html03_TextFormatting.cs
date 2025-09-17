@@ -21,7 +21,7 @@ namespace OfficeIMO.Examples.Html {
             doc.Save(docxPath);
 
             string htmlOut = Path.Combine(folderPath, "Html03_TextFormatting.roundtrip.html");
-            File.WriteAllText(htmlOut, doc.ToHtml(new WordToHtmlOptions { IncludeFontStyles = true }));
+            File.WriteAllText(htmlOut, doc.ToHtml(new WordToHtmlOptions { IncludeDefaultCss = true, IncludeFontStyles = true }));
 
             Console.WriteLine($"✓ Created: {docxPath}");
             Console.WriteLine($"✓ Round-trip HTML: {htmlOut}");

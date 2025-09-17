@@ -189,7 +189,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_LoadingWordDocumentWithImages() {
             var documentsPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
-            var filePath = Path.Combine(documentsPaths, "DocumentWithImagesWraps.docx");
+            var source = Path.Combine(documentsPaths, "DocumentWithImagesWraps.docx");
+            var filePath = Path.Combine(_directoryWithFiles, "DocumentWithImagesWraps.docx");
+            File.Copy(source, filePath, true);
             using (var document = WordDocument.Load(filePath)) {
                 Assert.True(document.Paragraphs.Count == 36);
                 Assert.True(document.Images.Count == 4);

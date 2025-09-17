@@ -38,22 +38,17 @@ namespace OfficeIMO.Excel.Fluent
             foreach (var item in data)
                 rows.Add(flattener.Flatten(item, opts));
 
-            var paths = opts.Columns?.ToList() ?? rows.SelectMany(r => r.Keys)
-                                                     .Where(k => !string.IsNullOrWhiteSpace(k))
-                                                     .Distinct(System.StringComparer.OrdinalIgnoreCase)
-                                                     .OrderBy(s => s, System.StringComparer.Ordinal)
-                                                     .ToList();
-            if (opts.Columns == null && opts.PinnedFirst.Length > 0)
+            var paths = opts.Columns?.ToList();
+            if (paths == null)
             {
-                var pinned = new System.Collections.Generic.HashSet<string>(opts.PinnedFirst, System.StringComparer.OrdinalIgnoreCase);
-                var front = new List<string>();
-                foreach (var p in opts.PinnedFirst)
-                {
-                    var match = paths.FirstOrDefault(x => string.Equals(x, p, System.StringComparison.OrdinalIgnoreCase));
-                    if (!string.IsNullOrEmpty(match)) front.Add(match);
-                }
-                var rest = paths.Where(p => !pinned.Contains(p)).ToList();
-                paths = front.Concat(rest).ToList();
+                paths = rows.SelectMany(r => r.Keys)
+                            .Where(k => !string.IsNullOrWhiteSpace(k))
+                            .Distinct(System.StringComparer.OrdinalIgnoreCase)
+                            .OrderBy(s => s, System.StringComparer.Ordinal)
+                            .ToList();
+                // Apply selection filters (Ignore/Exclude/Include) then ordering (Pinned/Priority)
+                paths = OfficeIMO.Excel.ObjectFlattener.ApplySelection(paths, opts);
+                paths = OfficeIMO.Excel.ObjectFlattener.ApplyOrdering(paths, opts);
             }
 
             // If we still have no columns (e.g., row type exposes fields but no public properties),

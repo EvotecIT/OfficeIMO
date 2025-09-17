@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Html {
             }
 
             string htmlOut = Path.Combine(folderPath, "Html06_ImagesAllModes.roundtrip.html");
-            File.WriteAllText(htmlOut, doc.ToHtml());
+            File.WriteAllText(htmlOut, doc.ToHtml(new WordToHtmlOptions { IncludeDefaultCss = true }));
 
             Console.WriteLine($"✓ Created: {docxPath}");
             Console.WriteLine($"✓ Round-trip HTML: {htmlOut}");

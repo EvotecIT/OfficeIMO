@@ -10,6 +10,8 @@ public sealed class ListItem {
     public bool IsTask { get; }
     /// <summary>Whether the task is checked.</summary>
     public bool Checked { get; }
+    /// <summary>Indentation level (0 = top-level). Used for nested lists.</summary>
+    public int Level { get; set; }
 
     /// <summary>Creates a plain list item.</summary>
     public ListItem(InlineSequence content) { Content = content; }
@@ -25,8 +27,9 @@ public sealed class ListItem {
     internal string RenderMarkdown() => Content.RenderMarkdown();
     internal string RenderHtml() => Content.RenderHtml();
     internal string ToMarkdownListLine() {
-        if (IsTask) return "- [" + (Checked ? "x" : " ") + "] " + RenderMarkdown();
-        return "- " + RenderMarkdown();
+        var indent = new string(' ', Level * 2);
+        if (IsTask) return indent + "- [" + (Checked ? "x" : " ") + "] " + RenderMarkdown();
+        return indent + "- " + RenderMarkdown();
     }
     internal string ToHtmlListItem() {
         if (IsTask) {

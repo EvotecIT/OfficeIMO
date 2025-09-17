@@ -51,6 +51,12 @@ internal static class HtmlRenderer {
         StringBuilder scripts = new StringBuilder();
         if (options.ThemeToggle) scripts.Append(HtmlResources.ThemeToggleScript);
         if (options.CopyHeadingLinkOnClick) scripts.Append(HtmlResources.AnchorCopyScript);
+        // ScrollSpy: include only if any TOC requests it
+        try {
+            if (doc.Blocks != null && doc.Blocks.Any(b => b is TocPlaceholderBlock tp && tp.Options.ScrollSpy)) {
+                scripts.Append(HtmlResources.ScrollSpyScript);
+            }
+        } catch { /* best-effort */ }
 
         // Additional JS: link in head when Online; download+inline into scripts when Offline
         if (options.AssetMode == AssetMode.Online) {
@@ -111,8 +117,72 @@ internal static class HtmlRenderer {
     }
 
     private static string RenderBody(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, HtmlOptions options) {
+        // Detect a sidebar TOC and render a two-column layout when present
+        TocPlaceholderBlock? sidebar = null;
+        for (int i = 0; i < blocks.Count; i++) {
+            if (blocks[i] is TocPlaceholderBlock tp && (tp.Options.Layout == TocLayout.SidebarLeft || tp.Options.Layout == TocLayout.SidebarRight)) {
+                sidebar = tp; break;
+            }
+        }
+
+        if (sidebar != null) {
+            var side = sidebar.Options.Layout == TocLayout.SidebarLeft ? "left" : "right";
+            var navHtml = BuildTocHtml(blocks, sidebar);
+            var content = new StringBuilder();
+            for (int i = 0; i < blocks.Count; i++) {
+                var block = blocks[i];
+                // Skip the TOC title heading for enhanced layouts to avoid duplicate "On this page" in content
+                if (block is HeadingBlock h0 && i + 1 < blocks.Count && blocks[i + 1] is TocPlaceholderBlock tp0) {
+                    var o0 = tp0.Options;
+                    if (o0.IncludeTitle && (o0.Layout == TocLayout.SidebarLeft || o0.Layout == TocLayout.SidebarRight || o0.Layout == TocLayout.Panel)) {
+                        continue; // do not render this heading in content
+                    }
+                }
+                if (ReferenceEquals(block, sidebar)) continue; // skip the sidebar placeholder; it's rendered as navHtml
+                if (block is HeadingBlock h) {
+                    var id = MarkdownSlug.GitHub(h.Text);
+                    var encoded = System.Net.WebUtility.HtmlEncode(h.Text);
+                    content.Append($"<h{h.Level} id=\"{id}\">");
+                    content.Append(encoded);
+                    if (options.IncludeAnchorLinks || options.ShowAnchorIcons) {
+                        var icon = System.Net.WebUtility.HtmlEncode(options.AnchorIcon ?? "🔗");
+                        content.Append($"<a class=\"heading-anchor\" href=\"#{id}\" data-anchor-id=\"{id}\" title=\"Copy link\" aria-label=\"Copy link\">{icon}</a>");
+                    }
+                    content.Append($"</h{h.Level}>");
+                    if (options.BackToTopLinks && h.Level >= options.BackToTopMinLevel) {
+                        var txt = System.Net.WebUtility.HtmlEncode(options.BackToTopText ?? "Back to top");
+                        content.Append($"<div class=\"back-to-top\"><a href=\"#top\">{txt}</a></div>");
+                    }
+                } else if (block is TocPlaceholderBlock tp) {
+                    // Render any non-sidebar TOCs inline within content
+                    if (!(tp.Options.Layout == TocLayout.SidebarLeft || tp.Options.Layout == TocLayout.SidebarRight))
+                        content.Append(BuildTocHtml(blocks, tp));
+                } else {
+                    content.Append(block.RenderHtml());
+                }
+            }
+            var sbLayout = new StringBuilder();
+            string widthStyle = sidebar.Options.WidthPx.HasValue ? $" style=\"--md-toc-width: {sidebar.Options.WidthPx.Value}px\"" : string.Empty;
+            sbLayout.Append($"<div class=\"md-layout two-col {side}\"{widthStyle}>");
+            if (side == "left") {
+                sbLayout.Append(navHtml).Append("<div class=\"md-content\">").Append(content.ToString()).Append("</div>");
+            } else {
+                sbLayout.Append("<div class=\"md-content\">").Append(content.ToString()).Append("</div>").Append(navHtml);
+            }
+            sbLayout.Append("</div>");
+            return sbLayout.ToString();
+        }
+
         var sb = new StringBuilder();
-        foreach (var block in blocks) {
+        for (int i = 0; i < blocks.Count; i++) {
+            var block = blocks[i];
+            // Skip TOC title heading for enhanced layouts
+            if (block is HeadingBlock h0 && i + 1 < blocks.Count && blocks[i + 1] is TocPlaceholderBlock tp0) {
+                var o0 = tp0.Options;
+                if (o0.IncludeTitle && (o0.Layout == TocLayout.SidebarLeft || o0.Layout == TocLayout.SidebarRight || o0.Layout == TocLayout.Panel)) {
+                    continue;
+                }
+            }
             if (block is HeadingBlock h) {
                 var id = MarkdownSlug.GitHub(h.Text);
                 var encoded = System.Net.WebUtility.HtmlEncode(h.Text);
@@ -139,6 +209,8 @@ internal static class HtmlRenderer {
 
     private static string BuildTocHtml(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, TocPlaceholderBlock tp) {
         var opts = tp.Options;
+        int effectiveMin = opts.RequireTopLevel && opts.MinLevel > 1 ? 1 : opts.MinLevel;
+        int effectiveMax = opts.MaxLevel;
         // Collect headings with indices
         var headings = blocks
             .Select((b, idx) => (b, idx))
@@ -165,7 +237,7 @@ internal static class HtmlRenderer {
             }
         }
 
-        var relevant = headings.Where(h => h.Index >= startIdx && h.Index < endIdx && h.Level >= opts.MinLevel && h.Level <= opts.MaxLevel)
+        var relevant = headings.Where(h => h.Index >= startIdx && h.Index < endIdx && h.Level >= effectiveMin && h.Level <= effectiveMax)
                                .Select(h => (h.Level, h.Text, Anchor: MarkdownSlug.GitHub(h.Text)))
                                .ToList();
         if (opts.IncludeTitle && !string.IsNullOrWhiteSpace(opts.Title)) {
@@ -174,22 +246,55 @@ internal static class HtmlRenderer {
         }
         if (relevant.Count == 0) return string.Empty;
 
-        // Build nested list of headings
+        // Build nested list of headings, ensuring nested lists are children of their parent <li>
+        // HTML shape produced (example):
+        // <ul>
+        //   <li>H2
+        //     <ul>
+        //       <li>H3</li>
+        //       <li>H3</li>
+        //     </ul>
+        //   </li>
+        //   <li>H2</li>
+        // </ul>
         var listTag = opts.Ordered ? "ol" : "ul";
-        var sbNested = new StringBuilder();
-        int baseLevel = relevant.Min(r => r.Level);
-        int current = baseLevel - 1;
-        while (current < baseLevel) { sbNested.Append('<').Append(listTag).Append('>'); current++; }
-        foreach (var e in relevant) {
-            while (current < e.Level) { sbNested.Append('<').Append(listTag).Append('>'); current++; }
-            while (current > e.Level) { sbNested.Append("</").Append(listTag).Append('>'); current--; }
+        var sbNested = new StringBuilder(relevant.Count * 64);
+        int baseLevel = (opts.NormalizeToMinLevel ? relevant.Min(r => r.Level) : 1);
+        int currentDepth = 0; // relative to baseLevel
+        bool any = false;
+        sbNested.Append('<').Append(listTag).Append('>');
+        for (int i = 0; i < relevant.Count; i++) {
+            var e = relevant[i];
+            int depth = Math.Max(0, e.Level - baseLevel);
+
+            if (any) {
+                if (depth == currentDepth) {
+                    // sibling at same depth: close previous item
+                    sbNested.Append("</li>");
+                } else if (depth > currentDepth) {
+                    // dive: open nested lists inside the current <li>
+                    for (int d = currentDepth; d < depth; d++) sbNested.Append('<').Append(listTag).Append('>');
+                } else /* depth < currentDepth */ {
+                    // ascend: close open item and unwind lists
+                    for (int d = currentDepth; d > depth; d--) sbNested.Append("</li></").Append(listTag).Append('>');
+                    // close the parent item at the new depth as we move to a sibling
+                    sbNested.Append("</li>");
+                }
+            }
+
             sbNested.Append("<li><a href=\"")
                     .Append('#').Append(System.Net.WebUtility.HtmlEncode(e.Anchor))
-                    .Append("\">").Append(System.Net.WebUtility.HtmlEncode(e.Text))
-                    .Append("</a></li>");
-        }
-        while (current >= baseLevel) { sbNested.Append("</").Append(listTag).Append('>'); current--; }
+                    .Append("\">")
+                    .Append(System.Net.WebUtility.HtmlEncode(e.Text))
+                    .Append("</a>");
 
+            currentDepth = depth; any = true;
+        }
+        if (any) sbNested.Append("</li>");
+        for (int d = currentDepth; d > 0; d--) sbNested.Append("</").Append(listTag).Append("></li>");
+        sbNested.Append("</").Append(listTag).Append('>');
+
+        // Collapsible panel (legacy + styled)
         if (opts.Collapsible) {
             string open = opts.Collapsed ? string.Empty : " open";
             string summary = System.Net.WebUtility.HtmlEncode(opts.Title ?? "Contents");
@@ -201,6 +306,34 @@ internal static class HtmlRenderer {
             return sbWrap.ToString();
         }
 
+        // Enhanced layouts: wrap in <nav> with classes for styling/scrollspy when requested
+        bool enhanced = opts.Layout != TocLayout.List || opts.ScrollSpy || opts.Sticky;
+        if (enhanced) {
+            var classes = new StringBuilder("md-toc");
+                if (opts.Layout == TocLayout.Panel) classes.Append(" panel");
+                if (opts.Layout == TocLayout.SidebarRight) classes.Append(" sidebar right");
+                if (opts.Layout == TocLayout.SidebarLeft) classes.Append(" sidebar left");
+                if (opts.Sticky) classes.Append(" sticky");
+                if (opts.ScrollSpy) classes.Append(" md-scrollspy autoscroll");
+                if (opts.Chrome == TocChrome.None) classes.Append(" no-chrome");
+                if (opts.Chrome == TocChrome.Outline) classes.Append(" outline");
+                if (opts.Chrome == TocChrome.Panel) classes.Append(" panel");
+                if (opts.HideOnNarrow) classes.Append(" hide-narrow");
+                string aria = System.Net.WebUtility.HtmlEncode(opts.AriaLabel ?? "Table of Contents");
+                var sb = new StringBuilder();
+            sb.Append("<nav role=\"navigation\" aria-label=\"").Append(aria).Append("\" class=\"").Append(classes).Append("\"");
+            if (opts.ScrollSpy) sb.Append(" data-md-scrollspy=\"1\"");
+            if (opts.Sticky) sb.Append(" data-autoscroll=\"1\"");
+            sb.Append(">");
+            if (opts.IncludeTitle && !string.IsNullOrWhiteSpace(opts.Title)) {
+                sb.Append("<div class=\"toc-title\">").Append(System.Net.WebUtility.HtmlEncode(opts.Title)).Append("</div>");
+            }
+            sb.Append(sbNested.ToString());
+            sb.Append("</nav>");
+            return sb.ToString();
+        }
+
+        // Legacy: emit plain heading + list without wrapper
         if (opts.IncludeTitle) {
             var sbo = new StringBuilder();
             sbo.Append("<h").Append(opts.TitleLevel).Append('>')
@@ -212,9 +345,16 @@ internal static class HtmlRenderer {
         return sbNested.ToString();
     }
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _scopedBaseCssCache = new System.Collections.Concurrent.ConcurrentDictionary<string, string>(System.StringComparer.Ordinal);
+
     private static string? BuildCss(HtmlOptions options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks) {
         cssLinkTag = null; cssToWrite = null; extraHeadLinks = null;
-        var baseCss = ScopeCss(HtmlResources.GetStyleCss(options.Style), options.CssScopeSelector);
+        // Cache scoped base CSS (style preset + common extras) by (style|scopeSelector)
+        string cacheKey = ((int)options.Style).ToString() + "|" + (options.CssScopeSelector ?? string.Empty);
+        if (!_scopedBaseCssCache.TryGetValue(cacheKey, out var baseCss)) {
+            baseCss = ScopeCss(HtmlResources.GetStyleCss(options.Style) + HtmlResources.CommonExtraCss, options.CssScopeSelector);
+            _scopedBaseCssCache[cacheKey] = baseCss;
+        }
 
         // Additional CSS/JS URLs may be included in head as link/script or inlined depending on AssetMode
         StringBuilder headLinks = new StringBuilder();
@@ -231,17 +371,19 @@ internal static class HtmlRenderer {
             return string.Empty;
         }
 
+        bool linkPrimary = false;
         if (options.CssDelivery == CssDelivery.LinkHref && !string.IsNullOrWhiteSpace(options.CssHref) && options.AssetMode == AssetMode.Online) {
+            linkPrimary = true;
             cssLinkTag = $"<link rel=\"stylesheet\" href=\"{System.Net.WebUtility.HtmlEncode(options.CssHref)}\">\n";
             foreach (var href in options.AdditionalCssHrefs.Where(u => !string.IsNullOrWhiteSpace(u)))
                 headLinks.Append($"<link rel=\"stylesheet\" href=\"{System.Net.WebUtility.HtmlEncode(href)}\">\n");
             extraHeadLinks = headLinks.ToString();
-            return string.Empty; // No inline CSS, referenced via link
+            // Do not return; we may inline small theme overrides below
         }
 
         // Inline or ExternalFile, or LinkHref with Offline mode
         var cssBuilder = new StringBuilder();
-        if (!string.IsNullOrEmpty(baseCss)) cssBuilder.Append(baseCss).Append('\n');
+        if (!linkPrimary && !string.IsNullOrEmpty(baseCss)) cssBuilder.Append(baseCss).Append('\n');
 
         if (options.CssDelivery == CssDelivery.LinkHref && !string.IsNullOrWhiteSpace(options.CssHref) && options.AssetMode == AssetMode.Offline) {
             // Attempt to download provided CSS and inline
@@ -259,6 +401,9 @@ internal static class HtmlRenderer {
         }
         extraHeadLinks = headLinks.ToString();
 
+        // Theme overrides appended last so they win
+        var overrides = BuildThemeOverrides(options);
+        if (!string.IsNullOrEmpty(overrides)) cssBuilder.Append(overrides);
         var aggregatedCss = cssBuilder.ToString();
         if (options.CssDelivery == CssDelivery.ExternalFile) {
             // Renderer expects caller to write this CSS; return empty inline CSS but set writable content
@@ -269,6 +414,46 @@ internal static class HtmlRenderer {
             return string.Empty;
         }
         return aggregatedCss;
+    }
+
+    private static string BuildThemeOverrides(HtmlOptions options) {
+        var t = options.Theme ?? new ThemeColors();
+        bool any = !string.IsNullOrWhiteSpace(t.AccentLight) || !string.IsNullOrWhiteSpace(t.AccentDark)
+                 || !string.IsNullOrWhiteSpace(t.HeadingLight) || !string.IsNullOrWhiteSpace(t.HeadingDark)
+                 || !string.IsNullOrWhiteSpace(t.TocBgLight) || !string.IsNullOrWhiteSpace(t.TocBgDark)
+                 || !string.IsNullOrWhiteSpace(t.TocBorderLight) || !string.IsNullOrWhiteSpace(t.TocBorderDark)
+                 || !string.IsNullOrWhiteSpace(t.ActiveLinkLight) || !string.IsNullOrWhiteSpace(t.ActiveLinkDark);
+        if (!any) return string.Empty;
+        var sb = new StringBuilder();
+        var scope = options.CssScopeSelector;
+        // Expose variables on scope for both themes
+        sb.Append('\n');
+        sb.Append("html[data-theme=light] ").Append(scope).Append(" {");
+        if (!string.IsNullOrWhiteSpace(t.HeadingLight)) sb.Append(" --md-heading: ").Append(t.HeadingLight).Append(';');
+        if (!string.IsNullOrWhiteSpace(t.AccentLight)) sb.Append(" --md-accent: ").Append(t.AccentLight).Append(';');
+        if (!string.IsNullOrWhiteSpace(t.TocBgLight)) sb.Append(" --md-toc-bg: ").Append(t.TocBgLight).Append(';');
+        if (!string.IsNullOrWhiteSpace(t.TocBorderLight)) sb.Append(" --md-toc-border: ").Append(t.TocBorderLight).Append(';');
+        if (!string.IsNullOrWhiteSpace(t.ActiveLinkLight)) sb.Append(" --md-active: ").Append(t.ActiveLinkLight).Append(';');
+        sb.Append(" }\n");
+        sb.Append("html[data-theme=dark] ").Append(scope).Append(" {");
+        if (!string.IsNullOrWhiteSpace(t.HeadingDark)) sb.Append(" --md-heading: ").Append(t.HeadingDark).Append(';');
+        if (!string.IsNullOrWhiteSpace(t.AccentDark)) sb.Append(" --md-accent: ").Append(t.AccentDark).Append(';');
+        if (!string.IsNullOrWhiteSpace(t.TocBgDark)) sb.Append(" --md-toc-bg: ").Append(t.TocBgDark).Append(';');
+        if (!string.IsNullOrWhiteSpace(t.TocBorderDark)) sb.Append(" --md-toc-border: ").Append(t.TocBorderDark).Append(';');
+        if (!string.IsNullOrWhiteSpace(t.ActiveLinkDark)) sb.Append(" --md-active: ").Append(t.ActiveLinkDark).Append(';');
+        sb.Append(" }\n");
+        // Map variables to elements
+        sb.Append(scope).Append(" h1,").Append(scope).Append(" h2,").Append(scope).Append(" h3,")
+          .Append(scope).Append(" h4,").Append(scope).Append(" h5,").Append(scope).Append(" h6 { color: var(--md-heading, inherit); }\n");
+        sb.Append(scope).Append(" a { color: var(--md-accent, #0969da); }\n");
+        sb.Append(scope).Append(" nav.md-toc { background: var(--md-toc-bg, #f6f8fa); border-color: var(--md-toc-border, #d0d7de); }\n");
+        sb.Append(scope).Append(" nav.md-toc a.active { color: var(--md-active, var(--md-accent, #0969da)); border-left-color: var(--md-active, var(--md-accent, #0969da)); }\n");
+        // Accented borders and anchors for stronger theme feel
+        sb.Append(scope).Append(" h2 { border-bottom-color: var(--md-accent, #d8dee4); }\n");
+        sb.Append(scope).Append(" blockquote { border-left-color: var(--md-accent, #d0d7de); }\n");
+        sb.Append(scope).Append(" blockquote.callout { border-left-color: var(--md-accent, #0969da); background: var(--md-toc-bg, #f6f8fa); }\n");
+        sb.Append(scope).Append(" .heading-anchor { color: var(--md-accent, inherit); }\n");
+        return sb.ToString();
     }
 
     internal static string TryDownloadText(string? url) {
@@ -315,7 +500,8 @@ internal static class HtmlRenderer {
         if (string.IsNullOrEmpty(css)) return string.Empty;
         // Naive scoping: prefix common selectors with the scope to avoid global bleed.
         // This is intentionally conservative.
-        var s = css.Replace("code[class*=\"language-\"]", scopeSelector + " code[class*=\\\"language-\\\"]")
+        var cssText = css!; // guarded by IsNullOrEmpty above
+        var s = cssText.Replace("code[class*=\"language-\"]", scopeSelector + " code[class*=\\\"language-\\\"]")
                    .Replace("pre[class*=\"language-\"]", scopeSelector + " pre[class*=\\\"language-\\\"]")
                    .Replace("pre[class*=\"language-\"] code", scopeSelector + " pre[class*=\\\"language-\\\"] code");
         // Also prefix top-level element rules we own

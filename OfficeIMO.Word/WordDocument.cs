@@ -450,6 +450,23 @@ namespace OfficeIMO.Word {
                 foreach (var section in this.Sections) {
                     list.AddRange(section.FootNotes);
                 }
+                if (list.Count == 0) {
+                    // Fallback: enumerate footnotes part when no body references were materialized yet.
+                    var footnotesPart = _wordprocessingDocument.MainDocumentPart?.FootnotesPart;
+                    var footnotes = footnotesPart != null ? footnotesPart.Footnotes : null;
+                    if (footnotes != null) {
+                        foreach (var fn in footnotes.ChildElements.OfType<DocumentFormat.OpenXml.Wordprocessing.Footnote>()) {
+                            if (fn.Type != null) continue; // skip separators
+                            // create a lightweight run containing a reference to this id so WordFootNote can resolve paragraphs
+                            var p = new DocumentFormat.OpenXml.Wordprocessing.Paragraph();
+                            var r = new DocumentFormat.OpenXml.Wordprocessing.Run();
+                            r.Append(new DocumentFormat.OpenXml.Wordprocessing.RunProperties());
+                            r.Append(new DocumentFormat.OpenXml.Wordprocessing.FootnoteReference() { Id = fn.Id });
+                            p.Append(r);
+                            list.Add(new WordFootNote(this, p, r));
+                        }
+                    }
+                }
                 return list;
             }
         }
@@ -1234,7 +1251,8 @@ namespace OfficeIMO.Word {
                 AutoSave = autoSave
             };
 
-                using (var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite)) {
+                // Read the source file into memory with a shared read handle to avoid test collisions.
+                using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) {
                 var memoryStream = new MemoryStream();
                 fileStream.CopyTo(memoryStream);
                 memoryStream.Seek(0, SeekOrigin.Begin);
@@ -1412,7 +1430,8 @@ namespace OfficeIMO.Word {
                         throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
                     }
 
-                    using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite);
+                    // Allow concurrent readers (other tests may have opened the sample file with Read/ReadWrite sharing)
+                    using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete);
                     using (var clone = this._wordprocessingDocument.Clone(fs)) {
                         CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                     }
@@ -1487,7 +1506,7 @@ namespace OfficeIMO.Word {
                     throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
                 }
 
-                using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite);
+                using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete);
                 using (var clone = _wordprocessingDocument.Clone(fs)) {
                     CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                 }
@@ -1601,7 +1620,7 @@ namespace OfficeIMO.Word {
                         }
                     }
 
-                    using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous)) {
+                    using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.Asynchronous)) {
                         using (var clone = this._wordprocessingDocument.Clone(fs)) {
                             CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                         }

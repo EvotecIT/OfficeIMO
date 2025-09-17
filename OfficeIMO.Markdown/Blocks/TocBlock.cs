@@ -20,13 +20,15 @@ public sealed class TocBlock : IMarkdownBlock {
 
     /// <summary>When true, renders an ordered list; otherwise unordered.</summary>
     public bool Ordered { get; set; }
+    /// <summary>Normalize indentation to the minimum included heading level (default true).</summary>
+    public bool NormalizeLevels { get; set; } = true;
     /// <summary>Entries included in the TOC.</summary>
     public List<Entry> Entries { get; } = new List<Entry>();
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() {
         if (Entries.Count == 0) return string.Empty;
-        int baseLevel = Entries.Min(e => e.Level);
+        int baseLevel = NormalizeLevels ? Entries.Min(e => e.Level) : 1;
         var sb = new StringBuilder();
         foreach (var e in Entries) {
             int indent = e.Level - baseLevel;
@@ -40,7 +42,7 @@ public sealed class TocBlock : IMarkdownBlock {
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
         if (Entries.Count == 0) return string.Empty;
-        int baseLevel = Entries.Min(e => e.Level);
+        int baseLevel = NormalizeLevels ? Entries.Min(e => e.Level) : 1;
 
         // Build a tree of nodes based on heading levels
         var root = new Node { Level = baseLevel - 1 };

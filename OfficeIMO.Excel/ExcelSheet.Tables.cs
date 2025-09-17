@@ -271,7 +271,20 @@ namespace OfficeIMO.Excel {
                 swScan.Stop();
                 EffectiveExecution.ReportTiming("AddTable.ScanExistingIds", swScan.Elapsed);
 
-                var tableDefinitionPart = _worksheetPart.AddNewPart<TableDefinitionPart>();
+                // Create the table part with a conventional relationship id (rIdN) to avoid Excel rewriting
+                string MakeRelId()
+                {
+                    // Find an unused rId# for this worksheet
+                    int n = 1;
+                    var existing = new System.Collections.Generic.HashSet<string>(
+                        _worksheetPart.Parts.Select(p => p.RelationshipId ?? string.Empty),
+                        System.StringComparer.Ordinal);
+                    string id;
+                    do { id = "rId" + n++; } while (existing.Contains(id));
+                    return id;
+                }
+                string relIdNew = MakeRelId();
+                var tableDefinitionPart = _worksheetPart.AddNewPart<TableDefinitionPart>(relIdNew);
 
                 if (string.IsNullOrWhiteSpace(name)) {
                     name = $"Table{tableId}";
@@ -364,7 +377,6 @@ namespace OfficeIMO.Excel {
                     tableParts = new TableParts();
                     _worksheetPart.Worksheet.Append(tableParts);
                 }
-
                 var relId = _worksheetPart.GetIdOfPart(tableDefinitionPart);
                 // Avoid duplicate TablePart entries
                 bool hasPart = tableParts.Elements<TablePart>().Any(tp => tp.Id?.Value == relId);
@@ -460,4 +472,3 @@ namespace OfficeIMO.Excel {
 
     }
 }
-

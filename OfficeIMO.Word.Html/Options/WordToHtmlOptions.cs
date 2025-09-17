@@ -54,5 +54,11 @@ namespace OfficeIMO.Word.Html {
         /// the <c>rel</c> and <c>href</c> attributes of a link element.
         /// </summary>
         public List<(string Rel, string Href)> AdditionalLinkTags { get; } = new();
+
+        /// <summary>
+        /// When true, injects a small, built-in "Word-like" CSS into the HTML &lt;head&gt; to make output readable out-of-the-box.
+        /// Default is false to preserve legacy behavior.
+        /// </summary>
+        public bool IncludeDefaultCss { get; set; } = false;
     }
 }

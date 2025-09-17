@@ -22,8 +22,9 @@ namespace OfficeIMO.Excel {
         // Core implementation: single source of truth (no locks here)
         private void CellValueCore(int row, int column, object value)
         {
-            var cell = GetCell(row, column);
             var (cellValue, dataType) = CoerceForCell(value);
+
+            var cell = GetCell(row, column);
             cell.CellValue = cellValue;
             cell.DataType = dataType;
 
@@ -41,76 +42,20 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        // Compute-only coercion (no OpenXML mutations, except SharedString for now)
+        // Core coercion logic shared between sequential and parallel operations
         private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCell(object value)
         {
-            switch (value)
-            {
-                case null:
-                    return (new CellValue(string.Empty), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.String));
-                case string s:
-                    // TODO: SharedString index should be resolved via planner in parallel scenarios
-                    int sharedStringIndex = _excelDocument.GetSharedStringIndex(s);
-                    return (new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-                case double d:
-                    return (new CellValue(d.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case float f:
-                    return (new CellValue(Convert.ToDouble(f).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case decimal dec:
-                    return (new CellValue(dec.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case int i:
-                    return (new CellValue(((double)i).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case long l:
-                    return (new CellValue(((double)l).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case DateTime dt:
-                    return (new CellValue(dt.ToOADate().ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case DateTimeOffset dto:
-                    return (new CellValue(dto.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case TimeSpan ts:
-                    return (new CellValue(ts.TotalDays.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case bool b:
-                    return (new CellValue(b ? "1" : "0"), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean));
-                case uint ui:
-                    return (new CellValue(((double)ui).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case ulong ul:
-                    return (new CellValue(((double)ul).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case ushort us:
-                    return (new CellValue(((double)us).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case byte by:
-                    return (new CellValue(((double)by).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case sbyte sb:
-                    return (new CellValue(((double)sb).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case short sh:
-                    return (new CellValue(((double)sh).ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number));
-                case Guid guid:
-                    {
-                        int idx = _excelDocument.GetSharedStringIndex(guid.ToString());
-                        return (new CellValue(idx.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-                    }
-                case Enum e:
-                    {
-                        string name = e.ToString();
-                        int idx = _excelDocument.GetSharedStringIndex(name);
-                        return (new CellValue(idx.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-                    }
-                case char ch:
-                    {
-                        int idx = _excelDocument.GetSharedStringIndex(ch.ToString());
-                        return (new CellValue(idx.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-                    }
-                case System.DBNull:
-                    return (new CellValue(string.Empty), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.String));
-                case Uri uri:
-                    {
-                        int idx = _excelDocument.GetSharedStringIndex(uri.ToString());
-                        return (new CellValue(idx.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-                    }
-                default:
-                    string stringValue = value?.ToString() ?? string.Empty;
-                    int defaultIndex = _excelDocument.GetSharedStringIndex(stringValue);
-                    return (new CellValue(defaultIndex.ToString(CultureInfo.InvariantCulture)), new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString));
-            }
+            var (cellValue, cellType) = CoerceValueHelper.Coerce(
+                value,
+                s =>
+                {
+                    int idx = _excelDocument.GetSharedStringIndex(s);
+                    return new CellValue(idx.ToString(CultureInfo.InvariantCulture));
+                });
+            return (cellValue, new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType));
         }
+
+        
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, string value) {
@@ -184,7 +129,9 @@ namespace OfficeIMO.Excel {
         public void CellFormula(int row, int column, string formula) {
             WriteLock(() => {
                 Cell cell = GetCell(row, column);
-                cell.CellFormula = new CellFormula(formula);
+                // Excel formulas in XML should not start with '=' and must not include illegal control characters
+                var safe = Utilities.ExcelSanitizer.SanitizeFormula(formula);
+                cell.CellFormula = new CellFormula(safe);
             });
         }
 
@@ -353,6 +300,34 @@ namespace OfficeIMO.Excel {
             }
 
             cell.StyleIndex = (uint)wrapIndex;
+        }
+
+        /// <summary>
+        /// Enables WrapText for every cell in a column within a given row range.
+        /// </summary>
+        public void WrapCells(int fromRow, int toRow, int column)
+        {
+            if (fromRow < 1 || toRow < fromRow || column < 1) return;
+            WriteLockConditional(() =>
+            {
+                for (int r = fromRow; r <= toRow; r++)
+                {
+                    ApplyWrapText(r, column);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Enables WrapText for the specified column and pins the target column width (in Excel character units).
+        /// Useful when mixed with auto-fit operations so wrapped columns keep a predictable width.
+        /// </summary>
+        public void WrapCells(int fromRow, int toRow, int column, double targetColumnWidth)
+        {
+            WrapCells(fromRow, toRow, column);
+            if (targetColumnWidth > 0)
+            {
+                try { SetColumnWidth(column, targetColumnWidth); } catch { }
+            }
         }
 
         /// <summary>
@@ -769,4 +744,3 @@ namespace OfficeIMO.Excel {
 
     }
 }
-

@@ -40,7 +40,9 @@ code
             Assert.True(quoteParagraph.IndentationBefore > 0);
 
             var codeParagraph = doc.Paragraphs.First(p => p.Text.Contains("code"));
-            Assert.Equal("CodeLang_c", codeParagraph.StyleId);
+            // New Markdown engine does not assign a language-specific style to code blocks.
+            // It uses monospace font on runs instead of paragraph style.
+            Assert.Null(codeParagraph.StyleId);
 
             using MemoryStream ms = new();
             doc.Save(ms);

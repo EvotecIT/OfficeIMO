@@ -7,7 +7,7 @@ using System.Text;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class WordToMarkdownConverter {
-        private string ConvertParagraph(WordParagraph paragraph, WordToMarkdownOptions options) {
+        private string ConvertParagraph(WordParagraph paragraph, WordToMarkdownOptions options, bool? hasCheckboxOverride = null, bool checkboxCheckedOverride = false) {
             const string codeLangPrefix = "CodeLang_";
             string? styleId = paragraph.StyleId;
             string? codeFont = options.FontFamily ?? FontResolver.Resolve("monospace");
@@ -42,6 +42,15 @@ namespace OfficeIMO.Word.Markdown {
                 int level = listInfo.Value.Level;
                 sb.Append(new string(' ', level * 2));
                 sb.Append(listInfo.Value.Ordered ? "1. " : "- ");
+                // Task list (checkbox) mapping — look across all runs in the underlying paragraph
+                bool hasCheckbox = hasCheckboxOverride ?? paragraph.IsCheckBox;
+                bool done = hasCheckboxOverride.HasValue ? checkboxCheckedOverride : (paragraph.CheckBox?.IsChecked == true);
+                if (!hasCheckbox && !hasCheckboxOverride.HasValue) {
+                    try {
+                        foreach (var r in paragraph.GetRuns()) { if (r.IsCheckBox) { hasCheckbox = true; done = r.CheckBox?.IsChecked == true; break; } }
+                    } catch { /* best-effort */ }
+                }
+                if (hasCheckbox) sb.Append(done ? "[x] " : "[ ] ");
             }
 
             sb.Append(RenderRuns(paragraph, options));
@@ -49,10 +58,27 @@ namespace OfficeIMO.Word.Markdown {
             return sb.ToString();
         }
 
+        private static readonly System.Collections.Generic.HashSet<string> KnownMonospaceFonts = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase) {
+            "Consolas", "Courier New", "Lucida Console", "DejaVu Sans Mono",
+            "Menlo", "Monaco", "Inconsolata", "Source Code Pro", "Fira Code",
+            "Cascadia Mono", "Cascadia Code", "JetBrains Mono"
+        };
+
         private string RenderRuns(WordParagraph paragraph, WordToMarkdownOptions options) {
             var sb = new StringBuilder();
-            string? codeFont = options.FontFamily ?? FontResolver.Resolve("monospace");
+            // Inline code detection:
+            // 1) If caller specifies options.FontFamily, treat runs with that font as code
+            // 2) Else, treat runs with the platform monospace (FontResolver.Resolve("monospace")) as code
+            // 3) Else, fallback to a conservative known-monospace allowlist or names containing "Mono"
+            string? preferredCodeFont = options.FontFamily;
+            string? platformMono = FontResolver.Resolve("monospace");
             foreach (var run in paragraph.GetRuns()) {
+                // Respect explicit line breaks embedded in runs (non-page breaks)
+                if (run.Break != null && run.PageBreak == null) {
+                    // Emit as <br/> marker to stay safe inside tables; the Markdown reader will
+                    // translate this back into a hard break when converting to Word/HTML.
+                    if (sb.Length > 0) sb.Append("<br/>");
+                }
                 if (run.IsFootNote && run.FootNote != null && run.FootNote.ReferenceId.HasValue) {
                     long id = run.FootNote.ReferenceId.Value;
                     sb.Append($"[^{id}]");
@@ -89,9 +115,26 @@ namespace OfficeIMO.Word.Markdown {
                     text = $"=={text}==";
                 }
 
-                bool code = !string.IsNullOrEmpty(codeFont) && string.Equals(run.FontFamily, codeFont, StringComparison.OrdinalIgnoreCase);
+                bool code = false;
+                var runFont = run.FontFamily;
+                if (!string.IsNullOrEmpty(runFont)) {
+                    if (!string.IsNullOrEmpty(preferredCodeFont)) {
+                        code = string.Equals(runFont, preferredCodeFont, StringComparison.OrdinalIgnoreCase);
+                    }
+                    if (!code && !string.IsNullOrEmpty(platformMono)) {
+                        code = string.Equals(runFont, platformMono, StringComparison.OrdinalIgnoreCase);
+                    }
+                    if (!code) {
+                        code = KnownMonospaceFonts.Contains(runFont!) || runFont!.IndexOf("Mono", StringComparison.OrdinalIgnoreCase) >= 0;
+                    }
+                }
                 if (code) {
-                    text = $"`{text}`";
+                    // Choose a fence that is one longer than the longest run of backticks in the text
+                    int longest = 0; int current = 0;
+                    foreach (char ch in text) { if (ch == '`') { current++; longest = current > longest ? current : longest; } else { current = 0; } }
+                    int fenceLen = longest + 1; if (fenceLen < 1) fenceLen = 1;
+                    string fence = new string('`', fenceLen);
+                    text = fence + text + fence;
                 }
 
                 if (run.IsHyperLink && run.Hyperlink != null && run.Hyperlink.Uri != null) {
@@ -106,15 +149,10 @@ namespace OfficeIMO.Word.Markdown {
 
         private string RenderFootnote(WordFootNote footNote, WordToMarkdownOptions options) {
             var paragraphs = footNote.Paragraphs;
-            if (paragraphs == null || paragraphs.Count < 2) {
-                return string.Empty;
-            }
-
+            if (paragraphs == null || paragraphs.Count == 0) return string.Empty;
             var sb = new StringBuilder();
-            for (int i = 1; i < paragraphs.Count; i++) {
-                if (i > 1) {
-                    sb.Append(' ');
-                }
+            for (int i = 0; i < paragraphs.Count; i++) {
+                if (i > 0) sb.Append(' ');
                 sb.Append(RenderRuns(paragraphs[i], options));
             }
             return sb.ToString();
@@ -162,4 +200,3 @@ namespace OfficeIMO.Word.Markdown {
         }
     }
 }
-

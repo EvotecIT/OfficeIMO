@@ -27,6 +27,7 @@ namespace OfficeIMO.Examples.Excel {
             };
 
             using (var document = ExcelDocument.Create(filePath)) {
+                // Sheet 1: Basic transform with formatting and title-case headers
                 document.AsFluent()
                     .Sheet("People", s => s
                         .RowsFrom(data, o => {
@@ -38,8 +39,38 @@ namespace OfficeIMO.Examples.Excel {
                         })
                         .Table("People", t => t.Style(TableStyle.TableStyleMedium9))
                         .AutoFit(columns: true, rows: false))
-                    .End()
-                    .Save(openExcel);
+                    .End();
+
+                // Sheet 2: Include/Exclude — keep Name/Age/Address.City; drop Address.Street
+                document.AsFluent()
+                    .Sheet("IncludeExclude", s => s
+                        .RowsFrom(data, o => {
+                            o.ExpandProperties.Add(nameof(Person.Address));
+                            o.HeaderCase = HeaderCase.Title;
+                            o.Include(nameof(Person.Name), nameof(Person.Age), "Address.City");
+                            o.Exclude("Address.Street");
+                        })
+                        .Table("People", t => t.Style(TableStyle.TableStyleMedium4))
+                        .AutoFit(columns: true, rows: false))
+                    .End();
+
+                // Sheet 3: Ordering — pin Name first, then Age, then Address.City, push Address.Street last
+                document.AsFluent()
+                    .Sheet("Ordering", s => s
+                        .RowsFrom(data, o => {
+                            o.ExpandProperties.Add(nameof(Person.Address));
+                            o.HeaderCase = HeaderCase.Title;
+                            o.Order(
+                                pinFirst: new[] { nameof(Person.Name) },
+                                priority: new[] { nameof(Person.Age), "Address.City" },
+                                pinLast: new[] { "Address.Street" }
+                            );
+                        })
+                        .Table("People", t => t.Style(TableStyle.TableStyleMedium6))
+                        .AutoFit(columns: true, rows: false))
+                    .End();
+
+                document.Save(openExcel);
             }
         }
     }

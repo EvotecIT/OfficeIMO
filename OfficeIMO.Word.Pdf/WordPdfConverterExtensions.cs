@@ -259,7 +259,7 @@ namespace OfficeIMO.Word.Pdf {
                         RenderHeader(page, section, footnotes, footnoteMap);
 
                         page.Content().Column(column => {
-                            foreach (WordElement element in section.ElementsByType) {
+                            foreach (WordElement element in section.Elements) {
                                 RenderElement(column, element, GetMarker, options, footnoteMap);
                             }
                         });

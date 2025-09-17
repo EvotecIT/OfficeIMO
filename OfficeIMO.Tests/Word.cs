@@ -26,12 +26,34 @@ namespace OfficeIMO.Tests {
         }
 
         public Word() {
-            _directoryDocuments = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
-            _directoryWithImages = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
-            //_directoryDocuments = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Tests", "TempDocuments");
-            _directoryWithFiles = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TempDocuments2");
+            _directoryDocuments = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents");
+            _directoryWithImages = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images");
+            // Create a unique per-test directory to avoid parallel write collisions
+            string unique = Guid.NewGuid().ToString("N");
+            _directoryWithFiles = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TempDocuments2", unique);
             Setup(_directoryWithFiles);
         }
+
+        /// <summary>
+        /// Copies a fixture document from the read-only Documents folder into the current
+        /// test's unique working directory and returns the destination path. Safe for
+        /// parallel execution and ideal for scenarios where the test saves modifications.
+        /// </summary>
+        /// <param name="fileName">Fixture file name that exists under the Documents folder.</param>
+        /// <returns>Absolute path to the copied file in the test's TempDocuments2 folder.</returns>
+        protected string CopyFixtureDoc(string fileName) {
+            string source = Path.Combine(_directoryDocuments, fileName);
+            string dest = Path.Combine(_directoryWithFiles, fileName);
+            Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+            File.Copy(source, dest, overwrite: true);
+            return dest;
+        }
+
+        /// <summary>
+        /// Returns the absolute path to a fixture under Documents. Use only for read-only
+        /// access; prefer <see cref="CopyFixtureDoc"/> if the test will modify or save.
+        /// </summary>
+        protected string GetFixtureDoc(string fileName) => Path.Combine(_directoryDocuments, fileName);
 
         /// <summary>
         /// This helps finding unexpected elements during validation. Should prevent unexpected changes
