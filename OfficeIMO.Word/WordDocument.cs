@@ -1754,19 +1754,27 @@ namespace OfficeIMO.Word {
         }
 
         private static void InitialiseStyleDefinitions(WordprocessingDocument wordDocument, bool readOnly, bool overrideStyles) {
-            // if document is read only we shouldn't be doing any new styles, hopefully it doesn't break anything
-            if (readOnly == false) {
-            var styleDefinitionsPart = wordDocument.MainDocumentPart!
+            // In read-only mode we don't touch styles.
+            if (readOnly) return;
+
+            // Guard against malformed packages missing a main document part.
+            var mainPart = wordDocument.MainDocumentPart;
+            if (mainPart == null) {
+                // Nothing we can do; leave silently to avoid NREs when loading odd files.
+                return;
+            }
+
+            var styleDefinitionsPart = mainPart
                 .GetPartsOfType<StyleDefinitionsPart>()
                 .FirstOrDefault();
-                if (styleDefinitionsPart != null) {
-                    AddStyleDefinitions(styleDefinitionsPart, overrideStyles);
-                } else {
-
-                    var styleDefinitionsPart1 = wordDocument.MainDocumentPart!.AddNewPart<StyleDefinitionsPart>("rId1");
-                    GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
-
-                }
+            if (styleDefinitionsPart != null) {
+                // Safe-guard missing Styles root element.
+                styleDefinitionsPart.Styles ??= new Styles();
+                AddStyleDefinitions(styleDefinitionsPart, overrideStyles);
+            } else {
+                // Create Styles part if it doesn't exist yet.
+                var styleDefinitionsPart1 = mainPart.AddNewPart<StyleDefinitionsPart>("rId1");
+                GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
             }
         }
 
