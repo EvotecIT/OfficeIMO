@@ -11,6 +11,7 @@ using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
+    [Collection("WordTests")]
     public partial class Word {
         private readonly string _directoryDocuments;
         private readonly string _directoryWithFiles;
