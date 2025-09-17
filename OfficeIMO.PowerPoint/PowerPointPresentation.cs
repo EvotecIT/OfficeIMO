@@ -79,6 +79,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Creates a new PowerPoint presentation at the specified file path.
         /// </summary>
+        /// <param name="filePath">Path where the presentation file will be created.</param>
         public static PowerPointPresentation Create(string filePath) {
             PresentationDocument document = PresentationDocument.Create(filePath, PresentationDocumentType.Presentation);
             PowerPointPresentation presentation = new(document, isNewPresentation: true);
@@ -90,6 +91,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Opens an existing PowerPoint presentation.
         /// </summary>
+        /// <param name="filePath">Path of the presentation file to open.</param>
         public static PowerPointPresentation Open(string filePath) {
             PresentationDocument document = PresentationDocument.Open(filePath, true);
             return new PowerPointPresentation(document, isNewPresentation: false);
