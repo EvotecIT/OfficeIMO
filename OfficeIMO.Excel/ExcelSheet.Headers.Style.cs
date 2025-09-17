@@ -14,6 +14,9 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Returns a builder for styling a column resolved by header with discoverable methods.
         /// </summary>
+        /// <param name="header">Header text used to resolve the target column after applying any configured normalization.</param>
+        /// <param name="includeHeader">True to include the header row when styling; false to begin styling from the first data row.</param>
+        /// <param name="options">Read options that control header normalization and other resolution behavior.</param>
         public ColumnStyleByHeaderBuilder ColumnStyleByHeader(string header, bool includeHeader = false, ExcelReadOptions? options = null)
         {
             int colIndex = ColumnIndexByHeader(header, options);
