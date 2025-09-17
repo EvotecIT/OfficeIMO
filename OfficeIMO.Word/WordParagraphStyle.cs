@@ -63,10 +63,18 @@ namespace OfficeIMO.Word {
     /// Provides helper methods for working with paragraph styles.
     /// </summary>
     public static class WordParagraphStyle {
+        private static readonly object _stylesLock = new();
         private static readonly Dictionary<string, Style> _customStyles = new(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<WordParagraphStyles, Style> _overrides = new();
 
-        internal static IEnumerable<Style> CustomStyles => _customStyles.Values;
+        internal static IEnumerable<Style> CustomStyles {
+            get {
+                lock (_stylesLock) {
+                    // Return a snapshot to avoid enumeration issues if tests mutate concurrently
+                    return _customStyles.Values.Select(s => (Style)s.CloneNode(true)).ToList();
+                }
+            }
+        }
 
         /// <summary>
         /// Registers a custom paragraph style for later retrieval.
@@ -74,7 +82,30 @@ namespace OfficeIMO.Word {
         public static void RegisterCustomStyle(string styleId, Style styleDefinition) {
             if (string.IsNullOrWhiteSpace(styleId)) throw new ArgumentException("StyleId cannot be empty", nameof(styleId));
             if (styleDefinition == null) throw new ArgumentNullException(nameof(styleDefinition));
-            _customStyles[styleId] = styleDefinition;
+
+            // Normalize: ensure StyleName exists (fallback to id)
+            var incoming = (Style)styleDefinition.CloneNode(true);
+            if (incoming.StyleName == null) {
+                incoming.Append(new StyleName { Val = styleId });
+            } else if (string.IsNullOrWhiteSpace(incoming.StyleName.Val)) {
+                incoming.StyleName.Val = styleId;
+            }
+
+            lock (_stylesLock) {
+                if (_customStyles.TryGetValue(styleId, out var existing)) {
+                    // Do not downgrade a previously-registered concrete name to a generic one
+                    var incomingName = incoming.StyleName?.Val;
+                    var existingName = existing.StyleName?.Val;
+                    bool incomingGeneric = string.Equals(incomingName, styleId, StringComparison.OrdinalIgnoreCase);
+                    bool existingHasSpecific = !string.IsNullOrEmpty(existingName) && !string.Equals(existingName, styleId, StringComparison.OrdinalIgnoreCase);
+
+                    if (incomingGeneric && existingHasSpecific) {
+                        // Keep existing richer definition
+                        return;
+                    }
+                }
+                _customStyles[styleId] = incoming;
+            }
         }
 
         /// <summary>
@@ -110,15 +141,19 @@ namespace OfficeIMO.Word {
         public static void OverrideBuiltInStyle(WordParagraphStyles style, Style styleDefinition) {
             if (style == WordParagraphStyles.Custom) throw new ArgumentException("Cannot override custom style placeholder", nameof(style));
             if (styleDefinition == null) throw new ArgumentNullException(nameof(styleDefinition));
-            _overrides[style] = styleDefinition;
+            lock (_stylesLock) {
+                _overrides[style] = (Style)styleDefinition.CloneNode(true);
+            }
         }
 
         /// <summary>
         /// Returns the Open XML style definition for the specified style.
         /// </summary>
         public static Style? GetStyleDefinition(WordParagraphStyles style) {
-            if (_overrides.TryGetValue(style, out var overrideStyle)) return (Style)overrideStyle.CloneNode(true);
-            if (_customStyles.TryGetValue(style.ToStringStyle(), out var customStyle)) return (Style)customStyle.CloneNode(true);
+            lock (_stylesLock) {
+                if (_overrides.TryGetValue(style, out var overrideStyle)) return (Style)overrideStyle.CloneNode(true);
+                if (_customStyles.TryGetValue(style.ToStringStyle(), out var customStyle)) return (Style)customStyle.CloneNode(true);
+            }
             return style switch {
                 WordParagraphStyles.Normal => StyleNormal,
                 WordParagraphStyles.Heading1 => StyleHeading1,
