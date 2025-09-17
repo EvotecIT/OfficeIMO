@@ -63,6 +63,19 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Null_CssScopeSelector_DisablesArticleScope() {
+            var doc = MarkdownDoc.Create().H1("Title").P("Hello world");
+            var html = doc.ToHtmlDocument(new HtmlOptions {
+                Style = HtmlStyle.Clean,
+                BodyClass = null,
+                CssScopeSelector = null
+            });
+            Assert.DoesNotContain("article.markdown-body", html, StringComparison.Ordinal);
+            Assert.Contains("body h1", html, StringComparison.Ordinal);
+            Assert.Contains("<body>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Prism_ManifestOnly_Does_Not_Emit_Tags() {
             var doc = MarkdownDoc.Create().H1("Code").Code("csharp", "Console.WriteLine(\"x\");");
             var parts = doc.ToHtmlParts(new HtmlOptions {

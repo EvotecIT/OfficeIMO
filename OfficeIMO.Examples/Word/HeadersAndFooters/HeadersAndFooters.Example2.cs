@@ -23,28 +23,28 @@ namespace OfficeIMO.Examples.Word {
                 document.AddHeadersAndFooters();
                 document.DifferentFirstPage = true;
                 //document.DifferentOddAndEvenPages = false;
-                //var paragraphInFooter = document.Footer.Default.InsertParagraph();
+                //var paragraphInFooter = document.Footer!.Default.InsertParagraph();
                 //paragraphInFooter.Text = "This is a test on odd pages (aka default if no options are set)";
 
-                var paragraphInHeader = document.Header.Default.AddParagraph();
+                var paragraphInHeader = document.Header!.Default.AddParagraph();
                 paragraphInHeader.Text = "Default Header / Section 0";
 
-                paragraphInHeader = document.Header.First.AddParagraph();
+                paragraphInHeader = document.Header!.First.AddParagraph();
                 paragraphInHeader.Text = "First Header / Section 0";
 
-                //var paragraphInFooterFirst = document.Footer.First.InsertParagraph();
+                //var paragraphInFooterFirst = document.Footer!.First.InsertParagraph();
                 //paragraphInFooterFirst.Text = "This is a test on first";
 
-                //var count = document.Footer.First.Paragraphs.Count;
+                //var count = document.Footer!.First.Paragraphs.Count;
 
-                //var paragraphInFooterOdd = document.Footer.Odd.InsertParagraph();
+                //var paragraphInFooterOdd = document.Footer!.Odd.InsertParagraph();
                 //paragraphInFooterOdd.Text = "This is a test odd";
 
 
-                //var paragraphHeader = document.Header.Odd.InsertParagraph();
+                //var paragraphHeader = document.Header!.Odd.InsertParagraph();
                 //paragraphHeader.Text = "Header - ODD";
 
-                //var paragraphInFooterEven = document.Footer.Even.InsertParagraph();
+                //var paragraphInFooterEven = document.Footer!.Even.InsertParagraph();
                 //paragraphInFooterEven.Text = "This is a test - Even";
 
 
@@ -84,17 +84,17 @@ namespace OfficeIMO.Examples.Word {
 
 
                 // Add header to section
-                //var paragraghInHeaderSection = section2.Header.First.InsertParagraph();
+                //var paragraghInHeaderSection = section2.Header!.First.InsertParagraph();
                 //paragraghInHeaderSection.Text = "Ok, work please?";
 
-                var paragraghInHeaderSection1 = section2.Header.Default.AddParagraph();
+                var paragraghInHeaderSection1 = section2.Header!.Default.AddParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit? 1";
 
-                paragraghInHeaderSection1 = section2.Header.First.AddParagraph();
+                paragraghInHeaderSection1 = section2.Header!.First.AddParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit 2?";
                 // paragraghInHeaderSection1.InsertText("ok?");
 
-                paragraghInHeaderSection1 = section2.Header.Even.AddParagraph();
+                paragraghInHeaderSection1 = section2.Header!.Even.AddParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit? 3";
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 6");
@@ -120,7 +120,7 @@ namespace OfficeIMO.Examples.Word {
 
                 paragraph = document.AddPageBreak();
 
-                //paragraph = document.Footer.Odd.InsertParagraph();
+                //paragraph = document.Footer!.Odd.InsertParagraph();
                 //paragraph.Text = "Lets see";
 
                 // 2 section, 9 paragraphs + 7 pagebreaks = 15 paragraphs, 7 pagebreaks

@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
                 document.AddHeadersAndFooters();
                 document.Sections[0].SetMargins(WordMargin.Normal);
 
-                var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Watermark");
+                var watermark = document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Watermark");
                 document.AddSection();
                 document.Sections[1].AddHeadersAndFooters();
                 document.Sections[1].Margins.Type = WordMargin.Narrow;
@@ -33,14 +33,14 @@ namespace OfficeIMO.Tests {
                 Assert.True(watermark.Color == Color.Silver);
                 Assert.True(watermark.Text == "Watermark");
 
-                document.Sections[1].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Draft");
+                document.Sections[1].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Draft");
 
                 document.Settings.SetBackgroundColor(Color.Azure);
 
                 Assert.True(document.Watermarks.Count == 2);
-                Assert.True(document.Header.Default.Watermarks.Count == 1); // this is actually first section's header.default
-                Assert.True(document.Sections[0].Header.Default.Watermarks.Count == 1);
-                Assert.True(document.Sections[1].Header.Default.Watermarks.Count == 1);
+                Assert.True(document.Header!.Default.Watermarks.Count == 1); // this is actually first section's header.default
+                Assert.True(document.Sections[0].Header!.Default.Watermarks.Count == 1);
+                Assert.True(document.Sections[1].Header!.Default.Watermarks.Count == 1);
 
                 document.AddSection();
 
@@ -49,49 +49,49 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "Test_CreatingWordDocumentWithWatermark.docx"))) {
 
-                Assert.True(document.Sections[0].Header.Default.Watermarks[0].Color == Color.Silver);
-                Assert.True(document.Sections[0].Header.Default.Watermarks[0].ColorHex == "silver");
-                Assert.True(document.Sections[0].Header.Default.Watermarks[0].Text == "Watermark");
-                Assert.True(document.Sections[0].Header.Default.Watermarks[0].Height == 131.95);
-                Assert.True(document.Sections[0].Header.Default.Watermarks[0].Width == 527.85);
-                Assert.True(document.Sections[0].Header.Default.Watermarks[0].Rotation == 90);
-                Assert.True(document.Sections[0].Header.Default.Watermarks[0].Stroked == false);
-                Assert.True(document.Sections[0].Header.Default.Watermarks[0].AllowInCell == false);
+                Assert.True(document.Sections[0].Header!.Default.Watermarks[0].Color == Color.Silver);
+                Assert.True(document.Sections[0].Header!.Default.Watermarks[0].ColorHex == "silver");
+                Assert.True(document.Sections[0].Header!.Default.Watermarks[0].Text == "Watermark");
+                Assert.True(document.Sections[0].Header!.Default.Watermarks[0].Height == 131.95);
+                Assert.True(document.Sections[0].Header!.Default.Watermarks[0].Width == 527.85);
+                Assert.True(document.Sections[0].Header!.Default.Watermarks[0].Rotation == 90);
+                Assert.True(document.Sections[0].Header!.Default.Watermarks[0].Stroked == false);
+                Assert.True(document.Sections[0].Header!.Default.Watermarks[0].AllowInCell == false);
 
-                document.Sections[0].Header.Default.Watermarks[0].Stroked = true;
+                document.Sections[0].Header!.Default.Watermarks[0].Stroked = true;
 
                 // let's add first headers and footers to section 2 so we can add watermark to it
                 document.Sections[2].AddHeadersAndFooters();
-                var watermark = document.Sections[2].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Check me");
+                var watermark = document.Sections[2].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Check me");
                 watermark.Rotation = 180;
 
-                Assert.True(document.Sections[2].Header.Default.Watermarks[0].Color == Color.Silver);
-                Assert.True(document.Sections[2].Header.Default.Watermarks[0].ColorHex == "silver");
-                Assert.True(document.Sections[2].Header.Default.Watermarks[0].Text == "Check me");
-                Assert.True(document.Sections[2].Header.Default.Watermarks[0].Height == 131.95);
-                Assert.True(document.Sections[2].Header.Default.Watermarks[0].Width == 527.85);
-                Assert.True(document.Sections[2].Header.Default.Watermarks[0].Rotation == 180);
-                Assert.True(document.Sections[2].Header.Default.Watermarks[0].Stroked == false);
+                Assert.True(document.Sections[2].Header!.Default.Watermarks[0].Color == Color.Silver);
+                Assert.True(document.Sections[2].Header!.Default.Watermarks[0].ColorHex == "silver");
+                Assert.True(document.Sections[2].Header!.Default.Watermarks[0].Text == "Check me");
+                Assert.True(document.Sections[2].Header!.Default.Watermarks[0].Height == 131.95);
+                Assert.True(document.Sections[2].Header!.Default.Watermarks[0].Width == 527.85);
+                Assert.True(document.Sections[2].Header!.Default.Watermarks[0].Rotation == 180);
+                Assert.True(document.Sections[2].Header!.Default.Watermarks[0].Stroked == false);
 
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "Test_CreatingWordDocumentWithWatermark.docx"))) {
 
-                Assert.True(document.Sections[0].Header.Default.Watermarks[0].Color == Color.Silver);
-                Assert.True(document.Sections[0].Header.Default.Watermarks[0].ColorHex == "silver");
-                Assert.True(document.Sections[0].Header.Default.Watermarks[0].Text == "Watermark");
-                Assert.True(document.Sections[0].Header.Default.Watermarks[0].Height == 131.95);
-                Assert.True(document.Sections[0].Header.Default.Watermarks[0].Width == 527.85);
-                Assert.True(document.Sections[0].Header.Default.Watermarks[0].Rotation == 90);
-                Assert.True(document.Sections[0].Header.Default.Watermarks[0].Stroked == true);
-                Assert.True(document.Sections[0].Header.Default.Watermarks[0].AllowInCell == false);
+                Assert.True(document.Sections[0].Header!.Default.Watermarks[0].Color == Color.Silver);
+                Assert.True(document.Sections[0].Header!.Default.Watermarks[0].ColorHex == "silver");
+                Assert.True(document.Sections[0].Header!.Default.Watermarks[0].Text == "Watermark");
+                Assert.True(document.Sections[0].Header!.Default.Watermarks[0].Height == 131.95);
+                Assert.True(document.Sections[0].Header!.Default.Watermarks[0].Width == 527.85);
+                Assert.True(document.Sections[0].Header!.Default.Watermarks[0].Rotation == 90);
+                Assert.True(document.Sections[0].Header!.Default.Watermarks[0].Stroked == true);
+                Assert.True(document.Sections[0].Header!.Default.Watermarks[0].AllowInCell == false);
 
                 Assert.True(document.Watermarks.Count == 3);
-                Assert.True(document.Header.Default.Watermarks.Count == 1); // this is actually first section's header.default
-                Assert.True(document.Sections[0].Header.Default.Watermarks.Count == 1);
-                Assert.True(document.Sections[1].Header.Default.Watermarks.Count == 1);
-                Assert.True(document.Sections[2].Header.Default.Watermarks.Count == 1);
+                Assert.True(document.Header!.Default.Watermarks.Count == 1); // this is actually first section's header.default
+                Assert.True(document.Sections[0].Header!.Default.Watermarks.Count == 1);
+                Assert.True(document.Sections[1].Header!.Default.Watermarks.Count == 1);
+                Assert.True(document.Sections[2].Header!.Default.Watermarks.Count == 1);
 
                 document.Save();
             }
@@ -105,27 +105,27 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Section 0");
 
                 document.AddHeadersAndFooters();
-                document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Watermark");
+                document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Watermark");
 
                 document.AddSection();
                 document.Sections[1].AddHeadersAndFooters();
-                document.Sections[1].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Draft");
+                document.Sections[1].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Draft");
                 document.Settings.SetBackgroundColor(Color.Azure);
                 document.AddSection();
 
                 Assert.True(document.Watermarks.Count == 2);
-                Assert.True(document.Header.Default.Watermarks.Count == 1); // this is actually first section's header.default
-                Assert.True(document.Sections[0].Header.Default.Watermarks.Count == 1);
-                Assert.True(document.Sections[1].Header.Default.Watermarks.Count == 1);
+                Assert.True(document.Header!.Default.Watermarks.Count == 1); // this is actually first section's header.default
+                Assert.True(document.Sections[0].Header!.Default.Watermarks.Count == 1);
+                Assert.True(document.Sections[1].Header!.Default.Watermarks.Count == 1);
 
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "Test_CreatingWordDocumentWithWatermark2.docx"))) {
                 Assert.True(document.Watermarks.Count == 2);
-                Assert.True(document.Header.Default.Watermarks.Count == 1); // this is actually first section's header.default
-                Assert.True(document.Sections[0].Header.Default.Watermarks.Count == 1);
-                Assert.True(document.Sections[1].Header.Default.Watermarks.Count == 1);
+                Assert.True(document.Header!.Default.Watermarks.Count == 1); // this is actually first section's header.default
+                Assert.True(document.Sections[0].Header!.Default.Watermarks.Count == 1);
+                Assert.True(document.Sections[1].Header!.Default.Watermarks.Count == 1);
 
                 document.Save();
             }
@@ -207,9 +207,9 @@ namespace OfficeIMO.Tests {
                 document.DifferentFirstPage = true;
                 document.DifferentOddAndEvenPages = true;
 
-                document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Default");
-                document.Sections[0].Header.First.AddWatermark(WordWatermarkStyle.Text, "First");
-                document.Sections[0].Header.Even.AddWatermark(WordWatermarkStyle.Text, "Even");
+                document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Default");
+                document.Sections[0].Header!.First.AddWatermark(WordWatermarkStyle.Text, "First");
+                document.Sections[0].Header!.Even.AddWatermark(WordWatermarkStyle.Text, "Even");
 
                 Assert.True(document.Sections[0].Watermarks.Count == 3);
 
@@ -218,9 +218,9 @@ namespace OfficeIMO.Tests {
                 }
 
                 Assert.True(document.Sections[0].Watermarks.Count == 0);
-                Assert.True(document.Sections[0].Header.Default.Watermarks.Count == 0);
-                Assert.True(document.Sections[0].Header.First.Watermarks.Count == 0);
-                Assert.True(document.Sections[0].Header.Even.Watermarks.Count == 0);
+                Assert.True(document.Sections[0].Header!.Default.Watermarks.Count == 0);
+                Assert.True(document.Sections[0].Header!.First.Watermarks.Count == 0);
+                Assert.True(document.Sections[0].Header!.Even.Watermarks.Count == 0);
             }
         }
 
@@ -231,13 +231,13 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Test");
                 document.AddHeadersAndFooters();
                 var imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
-                document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Image, imagePath);
+                document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Image, imagePath);
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.True(document.Watermarks.Count == 1);
-                Assert.True(document.Sections[0].Header.Default.Watermarks.Count == 1);
+                Assert.True(document.Sections[0].Header!.Default.Watermarks.Count == 1);
             }
         }
 
@@ -248,14 +248,14 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Test");
                 document.AddHeadersAndFooters();
                 var imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
-                var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Image, imagePath);
+                var watermark = document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Image, imagePath);
                 Assert.True(watermark.Width > 0);
                 Assert.True(watermark.Height > 0);
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var watermark = document.Sections[0].Header.Default.Watermarks[0];
+                var watermark = document.Sections[0].Header!.Default.Watermarks[0];
                 Assert.True(watermark.Width > 0);
                 Assert.True(watermark.Height > 0);
             }
@@ -267,7 +267,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Test");
                 document.AddHeadersAndFooters();
-                var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Offset", 10, 20, 2.0);
+                var watermark = document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Offset", 10, 20, 2.0);
                 Assert.Equal(10, watermark.HorizontalOffset);
                 Assert.Equal(20, watermark.VerticalOffset);
                 Assert.True(watermark.Width > 0);
@@ -276,7 +276,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var watermark = document.Sections[0].Header.Default.Watermarks[0];
+                var watermark = document.Sections[0].Header!.Default.Watermarks[0];
                 Assert.Equal(10, watermark.HorizontalOffset);
                 Assert.Equal(20, watermark.VerticalOffset);
                 Assert.True(watermark.Width > 0);
@@ -289,13 +289,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Test_WatermarkColorSupportsHex.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Hex");
+                var watermark = document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Hex");
                 watermark.Color = Color.Red;
                 document.Save();
             }
 
             using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(filePath, false)) {
-                var fill = wordDoc.MainDocumentPart!.HeaderParts.First().Header.Descendants<V.Shape>().First().FillColor?.Value;
+                var fill = wordDoc.MainDocumentPart!.HeaderParts.First().Header!.Descendants<V.Shape>().First().FillColor?.Value;
                 Assert.True(fill == "#ff0000");
             }
 
@@ -311,7 +311,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Test_WatermarkColorSupportsUppercaseHexWithHash.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Upper");
+                var watermark = document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Upper");
                 watermark.ColorHex = "#FF00FF";
                 document.Save();
             }
@@ -330,58 +330,58 @@ namespace OfficeIMO.Tests {
                 document.AddHeadersAndFooters();
 
                 // SixLabors colors
-                var red = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Red");
+                var red = document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Red");
                 red.Color = Color.Red;
 
                 document.AddSection();
                 document.Sections[1].AddHeadersAndFooters();
-                var green = document.Sections[1].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Green");
+                var green = document.Sections[1].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Green");
                 green.Color = Color.Green;
 
                 document.AddSection();
                 document.Sections[2].AddHeadersAndFooters();
-                var blue = document.Sections[2].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Blue");
+                var blue = document.Sections[2].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Blue");
                 blue.Color = Color.Blue;
 
                 // Hex without '#'
                 document.AddSection();
                 document.Sections[3].AddHeadersAndFooters();
-                var magenta = document.Sections[3].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Magenta");
+                var magenta = document.Sections[3].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Magenta");
                 magenta.ColorHex = "ff00ff";
 
                 // Hex with '#'
                 document.AddSection();
                 document.Sections[4].AddHeadersAndFooters();
-                var cyan = document.Sections[4].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Cyan");
+                var cyan = document.Sections[4].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Cyan");
                 cyan.ColorHex = "#00ffff";
 
                 // Named color string
                 document.AddSection();
                 document.Sections[5].AddHeadersAndFooters();
-                var yellow = document.Sections[5].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Yellow");
+                var yellow = document.Sections[5].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Yellow");
                 yellow.ColorHex = "yellow";
 
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Equal("ff0000", document.Sections[0].Header.Default.Watermarks[0].ColorHex);
-                Assert.Equal(Color.Red, document.Sections[0].Header.Default.Watermarks[0].Color);
+                Assert.Equal("ff0000", document.Sections[0].Header!.Default.Watermarks[0].ColorHex);
+                Assert.Equal(Color.Red, document.Sections[0].Header!.Default.Watermarks[0].Color);
 
-                Assert.Equal("008000", document.Sections[1].Header.Default.Watermarks[0].ColorHex);
-                Assert.Equal(Color.Green, document.Sections[1].Header.Default.Watermarks[0].Color);
+                Assert.Equal("008000", document.Sections[1].Header!.Default.Watermarks[0].ColorHex);
+                Assert.Equal(Color.Green, document.Sections[1].Header!.Default.Watermarks[0].Color);
 
-                Assert.Equal("0000ff", document.Sections[2].Header.Default.Watermarks[0].ColorHex);
-                Assert.Equal(Color.Blue, document.Sections[2].Header.Default.Watermarks[0].Color);
+                Assert.Equal("0000ff", document.Sections[2].Header!.Default.Watermarks[0].ColorHex);
+                Assert.Equal(Color.Blue, document.Sections[2].Header!.Default.Watermarks[0].Color);
 
-                Assert.Equal("ff00ff", document.Sections[3].Header.Default.Watermarks[0].ColorHex);
-                Assert.Equal(Color.Magenta, document.Sections[3].Header.Default.Watermarks[0].Color);
+                Assert.Equal("ff00ff", document.Sections[3].Header!.Default.Watermarks[0].ColorHex);
+                Assert.Equal(Color.Magenta, document.Sections[3].Header!.Default.Watermarks[0].Color);
 
-                Assert.Equal("00ffff", document.Sections[4].Header.Default.Watermarks[0].ColorHex);
-                Assert.Equal(Color.Cyan, document.Sections[4].Header.Default.Watermarks[0].Color);
+                Assert.Equal("00ffff", document.Sections[4].Header!.Default.Watermarks[0].ColorHex);
+                Assert.Equal(Color.Cyan, document.Sections[4].Header!.Default.Watermarks[0].Color);
 
-                Assert.Equal("ffff00", document.Sections[5].Header.Default.Watermarks[0].ColorHex);
-                Assert.Equal(Color.Yellow, document.Sections[5].Header.Default.Watermarks[0].Color);
+                Assert.Equal("ffff00", document.Sections[5].Header!.Default.Watermarks[0].ColorHex);
+                Assert.Equal(Color.Yellow, document.Sections[5].Header!.Default.Watermarks[0].Color);
             }
         }
 
@@ -396,20 +396,20 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Color");
+                var watermark = document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Color");
                 watermark.ColorHex = input;
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var watermark = document.Sections[0].Header.Default.Watermarks[0];
+                var watermark = document.Sections[0].Header!.Default.Watermarks[0];
                 Assert.Equal(expectedHex, watermark.ColorHex);
                 Assert.Equal(Color.Parse(expectedHex), watermark.Color);
             }
 
             using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(filePath, false)) {
                 var headerPart = wordDoc.MainDocumentPart!.HeaderParts.First();
-                var shape = headerPart.Header.Descendants<V.Shape>().First();
+                var shape = headerPart.Header!.Descendants<V.Shape>().First();
                 var fill = shape.GetFirstChild<V.Fill>();
                 var textPath = shape.GetFirstChild<V.TextPath>();
 
@@ -427,7 +427,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Test_WatermarkInvalidColorThrows.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Invalid");
+                var watermark = document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Invalid");
                 Assert.Throws<ArgumentException>(() => watermark.ColorHex = "notacolor");
             }
         }
@@ -437,7 +437,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Test_WatermarkEmptyColorThrows.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                var watermark = document.Sections[0].Header.Default.AddWatermark(WordWatermarkStyle.Text, "Invalid");
+                var watermark = document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Invalid");
                 Assert.Throws<ArgumentException>(() => watermark.ColorHex = "");
             }
         }

@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.Word {
 
                 document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
 
-                var paragraphInHeader = document.Header.Default.AddParagraph();
+                var paragraphInHeader = document.Header!.Default.AddParagraph();
                 paragraphInHeader.Text = "Default Header / Section 0";
 
                 document.AddPageBreak();
@@ -29,7 +29,7 @@ namespace OfficeIMO.Examples.Word {
                 var section2 = document.AddSection();
                 section2.AddHeadersAndFooters();
 
-                var paragraghInHeaderSection1 = section2.Header.Default.AddParagraph();
+                var paragraghInHeaderSection1 = section2.Header!.Default.AddParagraph();
                 paragraghInHeaderSection1.Text = "Weird shit? 1";
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
@@ -39,7 +39,7 @@ namespace OfficeIMO.Examples.Word {
                 var section3 = document.AddSection();
                 section3.AddHeadersAndFooters();
 
-                var paragraghInHeaderSection3 = section3.Header.Default.AddParagraph();
+                var paragraghInHeaderSection3 = section3.Header!.Default.AddParagraph();
                 paragraghInHeaderSection3.Text = "Weird shit? 2";
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");

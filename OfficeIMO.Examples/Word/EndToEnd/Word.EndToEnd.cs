@@ -18,8 +18,8 @@ namespace OfficeIMO.Examples.Word.EndToEnd {
             using (var doc = WordDocument.Create()) {
                 // Headers/Footers + page numbering
                 doc.AddHeadersAndFooters();
-                doc.Header.Default.AddParagraph("End-to-End Demo");
-                doc.Footer.Default.AddParagraph().AddPageNumber(includeTotalPages: true);
+                doc.Header!.Default.AddParagraph("End-to-End Demo");
+                doc.Footer!.Default.AddParagraph().AddPageNumber(includeTotalPages: true);
 
                 // TOC at top (updates on open)
                 new WordFluentDocument(doc).TocAtTop("Contents", minLevel: 1, maxLevel: 3, titleLevel: 2);

@@ -478,14 +478,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "HeaderTextBoxWithHyperlink.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                var textBox = document.Sections[0].Header.Default.AddTextBox("Header hyperlink test");
+                var textBox = document.Sections[0].Header!.Default.AddTextBox("Header hyperlink test");
 
                 textBox.Paragraphs[0].AddHyperLink(" to website?", new Uri("https://evotec.xyz"), addStyle: true);
 
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Contains(document.Sections[0].Header.Default.Paragraphs, p => p.IsTextBox);
+                Assert.Contains(document.Sections[0].Header!.Default.Paragraphs, p => p.IsTextBox);
 
             }
         }

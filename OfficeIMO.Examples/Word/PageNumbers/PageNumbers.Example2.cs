@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
 
-                var table = document.Footer.Default.AddTable(1, 2, WordTableStyle.TableGrid);
+                var table = document.Footer!.Default.AddTable(1, 2, WordTableStyle.TableGrid);
                 table.WidthType = TableWidthUnitValues.Pct;
                 // 5000 represents 100% when using Pct width
                 table.Width = 5000;

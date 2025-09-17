@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Word {
                 document.Sections[0].AddPageNumbering(1, NumberFormatValues.UpperRoman);
                 document.AddHeadersAndFooters();
 
-                var para = document.Footer.Default.AddParagraph();
+                var para = document.Footer!.Default.AddParagraph();
                 para.ParagraphAlignment = JustificationValues.Right;
                 para.AddText("Page ");
                 para.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.Roman, separator: " of ");

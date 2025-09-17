@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
 
-                var firstFooter = document.Footer.Default.AddParagraph();
+                var firstFooter = document.Footer!.Default.AddParagraph();
                 firstFooter.ParagraphAlignment = JustificationValues.Right;
                 firstFooter.AddText("Page ");
                 firstFooter.AddPageNumber(includeTotalPages: true, separator: " of ");
@@ -21,7 +21,7 @@ namespace OfficeIMO.Examples.Word {
                 section.AddPageNumbering(1);
                 section.AddParagraph("Section 2");
 
-                var secondFooter = document.Footer.Default.AddParagraph();
+                var secondFooter = document.Footer!.Default.AddParagraph();
                 secondFooter.ParagraphAlignment = JustificationValues.Right;
                 secondFooter.AddText("Page ");
                 secondFooter.AddPageNumber(includeTotalPages: true, separator: " of ");

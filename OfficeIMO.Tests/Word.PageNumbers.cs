@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PageNumberParagraph.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                var table = document.Footer.Default.AddTable(1, 2);
+                var table = document.Footer!.Default.AddTable(1, 2);
                 table.Rows[0].Cells[0].AddParagraph("Footer");
                 var para = table.Rows[0].Cells[1].AddParagraph();
                 para.AddPageNumber(includeTotalPages: true);
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Sections[0].AddPageNumbering(2, NumberFormatValues.LowerRoman);
                 document.AddHeadersAndFooters();
-                document.Footer.Default.AddParagraph().AddPageNumber();
+                document.Footer!.Default.AddParagraph().AddPageNumber();
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PageNumberSeparator.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                var para = document.Footer.Default.AddParagraph();
+                var para = document.Footer!.Default.AddParagraph();
                 para.AddPageNumber(includeTotalPages: true, separator: " / ");
                 document.Save(false);
             }
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
                 string filePath = Path.Combine(_directoryWithFiles, $"PageNumberStyle_{style}.docx");
                 using (WordDocument document = WordDocument.Create(filePath)) {
                     document.AddHeadersAndFooters();
-                    document.Header.Default.AddPageNumber(style);
+                    document.Header!.Default.AddPageNumber(style);
                     document.Save(false);
                 }
 
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PageNumberCustomText.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                var pageNumber = document.Header.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
+                var pageNumber = document.Header!.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
                 pageNumber.AppendText(" custom");
                 document.Save(false);
             }
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
                 var mainPart = document._wordprocessingDocument.MainDocumentPart;
                 Assert.NotNull(mainPart);
                 var headerPart = mainPart.HeaderParts.First();
-                string text = headerPart.Header.InnerText;
+                string text = headerPart.Header!.InnerText;
                 Assert.Contains("custom", text);
                 var errors = document.ValidateDocument();
                 errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue").ToList();
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PageNumberTotalPages.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                var pageNumber = document.Footer.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
+                var pageNumber = document.Footer!.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
                 pageNumber.AppendText(" of ");
                 pageNumber.Paragraph.AddField(WordFieldType.NumPages);
                 document.Save(false);
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
                 var mainPart = document._wordprocessingDocument.MainDocumentPart;
                 Assert.NotNull(mainPart);
                 var footerPart = mainPart.FooterParts.First();
-                string text = footerPart.Footer.InnerText;
+                string text = footerPart.Footer!.InnerText;
                 Assert.Contains(" of ", text);
                 var errors = document.ValidateDocument();
                 errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue").ToList();
@@ -133,13 +133,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SectionPageNumberReset.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                document.Footer.Default.AddParagraph().AddPageNumber();
+                document.Footer!.Default.AddParagraph().AddPageNumber();
 
                 document.AddParagraph("Section 1");
                 var section = document.AddSection();
                 section.AddPageNumbering(1);
                 section.AddParagraph("Section 2");
-                document.Footer.Default.AddParagraph().AddPageNumber();
+                document.Footer!.Default.AddParagraph().AddPageNumber();
 
                 document.Save(false);
             }
@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Sections[0].AddPageNumbering(1, NumberFormatValues.UpperRoman);
                 document.AddHeadersAndFooters();
-                var para = document.Footer.Default.AddParagraph();
+                var para = document.Footer!.Default.AddParagraph();
                 para.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.Roman);
                 document.Save(false);
             }
@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests {
                 var formatA = pageNumberTypeA.Format;
                 Assert.NotNull(formatA);
                 Assert.Equal(NumberFormatValues.UpperRoman, formatA.Value);
-                Assert.Contains(document.Sections[0].Footer.Default.Fields, f => f.FieldType == WordFieldType.Page && f.FieldFormat.Contains(WordFieldFormat.Roman));
+                Assert.Contains(document.Sections[0].Footer!.Default.Fields, f => f.FieldType == WordFieldType.Page && f.FieldFormat.Contains(WordFieldFormat.Roman));
                 var errors = document.ValidateDocument();
                 errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue" && e.Id != "Sch_UnexpectedElementContentExpectingComplex").ToList();
                 Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
@@ -202,7 +202,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, $"PageNumberCustomFormat_{Guid.NewGuid()}.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                var pageNumber = document.Footer.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
+                var pageNumber = document.Footer!.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
                 pageNumber.CustomFormat = format;
                 Assert.Equal(format, pageNumber.CustomFormat);
                 document.Save(false);
@@ -211,7 +211,7 @@ namespace OfficeIMO.Tests {
                 var mainPart2 = document._wordprocessingDocument.MainDocumentPart;
                 Assert.NotNull(mainPart2);
                 var footerPart = mainPart2.FooterParts.First();
-                string xml = footerPart.Footer.InnerXml;
+                string xml = footerPart.Footer!.InnerXml;
                 Assert.Contains($"\\@ \"{format}\"", xml);
                 var errors = document.ValidateDocument();
                 errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue" && e.Id != "Sch_UnexpectedElementContentExpectingComplex").ToList();

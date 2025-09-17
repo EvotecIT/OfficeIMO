@@ -91,8 +91,8 @@ namespace OfficeIMO.Tests {
                 document.Settings.UpdateFieldsOnOpen = true;
                 document.AddTableOfContent(tableOfContentStyle: TableOfContentStyle.Template2);
                 document.AddHeadersAndFooters();
-                //var pageNumber = document.Header.Default.AddPageNumber(WordPageNumberStyle.Circle);
-                var pageNumber = document.Footer.Default.AddPageNumber(WordPageNumberStyle.VerticalOutline2);
+                //var pageNumber = document.Header!.Default.AddPageNumber(WordPageNumberStyle.Circle);
+                var pageNumber = document.Footer!.Default.AddPageNumber(WordPageNumberStyle.VerticalOutline2);
                 pageNumber.ParagraphAlignment = JustificationValues.Center;
 
                 document.AddPageBreak();
