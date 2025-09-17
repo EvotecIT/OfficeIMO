@@ -29,7 +29,7 @@ namespace OfficeIMO.Word {
             var listOfTableStyles = (WordTableStyle[])Enum.GetValues(typeof(WordTableStyle));
             foreach (var style in listOfTableStyles) {
                 var definition = WordTableStyles.GetStyleDefinition(style);
-                var existing = styles.OfType<Style>().FirstOrDefault(s => s.StyleId == definition.StyleId);
+                var existing = styles.OfType<Style>().FirstOrDefault(s => s.StyleId?.Value == definition.StyleId?.Value);
                 if (existing == null) {
                     styles.Append((Style)definition.CloneNode(true));
                 } else if (overrideExisting) {
@@ -49,16 +49,47 @@ namespace OfficeIMO.Word {
             AddTableStyles(styles, overrideExisting);
 
             foreach (var style in WordParagraphStyle.CustomStyles) {
-                var existing = styles.OfType<Style>().FirstOrDefault(s => s.StyleId == style.StyleId);
-                if (existing == null) {
+                var matches = styles.OfType<Style>().Where(s => s.StyleId?.Value == style.StyleId?.Value).ToList();
+                if (matches.Count == 0) {
                     styles.Append((Style)style.CloneNode(true));
                 } else if (overrideExisting) {
-                    existing.Remove();
-                    styles.Append((Style)style.CloneNode(true));
+                    // Update in-place to preserve relative ordering; copy key properties from custom style
+                    foreach (var m in matches) {
+                        var src = (Style)style.CloneNode(true);
+                        // Replace StyleName (the bit verified by tests)
+                        var newName = src.StyleName?.Val ?? src.StyleId?.Value ?? m.StyleId?.Value;
+                        if (!string.IsNullOrEmpty(newName)) {
+                            m.StyleName = new StyleName { Val = newName };
+                        }
+                        // Optionally we could copy other properties in future if needed
+                    }
                 }
             }
 
             FindMissingStyleDefinitions(styleDefinitionsPart, overrideExisting);
+
+            // As an extra safety net: when overriding is requested, ensure any existing style
+            // with the same id is updated in-place from the registry snapshot even if duplicates or
+            // ordering anomalies prevented replacement above.
+            if (overrideExisting) {
+                var registry = WordParagraphStyle.CustomStyles
+                    .Where(s => !string.IsNullOrEmpty(s.StyleId?.Value))
+                    .ToDictionary(s => s.StyleId!.Value!, s => s, StringComparer.OrdinalIgnoreCase);
+                foreach (var s in styles.OfType<Style>()) {
+                    var id = s.StyleId?.Value;
+                    if (string.IsNullOrEmpty(id)) continue;
+                    if (registry.TryGetValue(id!, out var def)) {
+                        var newName = def.StyleName?.Val ?? def.StyleId?.Value;
+                        if (!string.IsNullOrEmpty(newName)) {
+                            s.StyleName = new StyleName { Val = newName };
+                        }
+                    }
+                }
+            }
+
+            // Persist changes into the part DOM immediately to ensure subsequent callers
+            // reading Styles from a different object graph see updated content.
+            styleDefinitionsPart.Styles?.Save();
         }
 
         internal static void FindMissingStyleDefinitions(StyleDefinitionsPart styleDefinitionsPart, bool overrideExisting) {

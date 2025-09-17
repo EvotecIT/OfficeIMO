@@ -1266,6 +1266,10 @@ namespace OfficeIMO.Word {
                 word._wordprocessingDocument = wordDocument;
                     word._document = wordDocument.MainDocumentPart!.Document;
                 word.LoadDocument();
+                if (applyOverrideStyles) {
+                    // Ensure overrides are applied after any document initialization that may touch styles
+                    InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
+                }
                 WordChart.InitializeAxisIdSeed(wordDocument);
                 WordChart.InitializeDocPrIdSeed(wordDocument);
 
@@ -1313,6 +1317,9 @@ namespace OfficeIMO.Word {
             bool applyOverrideStyles = overrideStyles && !readOnly;
             InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
             word.LoadDocument();
+            if (applyOverrideStyles) {
+                InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
+            }
             WordChart.InitializeAxisIdSeed(wordDocument);
             WordChart.InitializeDocPrIdSeed(wordDocument);
             WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
@@ -1343,6 +1350,9 @@ namespace OfficeIMO.Word {
             document._wordprocessingDocument = wordDocument;
             document._document = wordDocument.MainDocumentPart!.Document;
             document.LoadDocument();
+            if (applyOverrideStyles) {
+                InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
+            }
             WordChart.InitializeAxisIdSeed(wordDocument);
             WordChart.InitializeDocPrIdSeed(wordDocument);
 
