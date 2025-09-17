@@ -70,24 +70,29 @@ public static partial class WordListStyles {
     /// <param name="bulletNumberId">Returns the numbering identifier for bullets.</param>
     /// <param name="orderedNumberId">Returns the numbering identifier for ordered lists.</param>
     /// <returns>A <see cref="Numbering"/> instance containing the definitions.</returns>
-    public static Numbering CreateDefaultNumberingDefinitions(WordprocessingDocument document, out int bulletNumberId, out int orderedNumberId) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
+        public static Numbering CreateDefaultNumberingDefinitions(WordprocessingDocument document, out int bulletNumberId, out int orderedNumberId) {
+            if (document == null) {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            InitializeAbstractNumberId(document);
+
+            AbstractNum bulletAbstract = GetStyle(WordListStyle.Bulleted);
+            AbstractNum orderedAbstract = GetStyle(WordListStyle.Numbered);
+
+            var bulletAbstractNumberId = bulletAbstract.AbstractNumberId?.Value
+                ?? throw new InvalidOperationException("Bulleted style is missing an abstract number identifier.");
+            var orderedAbstractNumberId = orderedAbstract.AbstractNumberId?.Value
+                ?? throw new InvalidOperationException("Numbered style is missing an abstract number identifier.");
+
+            bulletNumberId = 1;
+            orderedNumberId = 2;
+
+            NumberingInstance bulletInstance = new NumberingInstance(new AbstractNumId { Val = bulletAbstractNumberId }) { NumberID = bulletNumberId };
+            NumberingInstance orderedInstance = new NumberingInstance(new AbstractNumId { Val = orderedAbstractNumberId }) { NumberID = orderedNumberId };
+
+            return new Numbering(bulletAbstract, bulletInstance, orderedAbstract, orderedInstance);
         }
-
-        InitializeAbstractNumberId(document);
-
-        AbstractNum bulletAbstract = GetStyle(WordListStyle.Bulleted);
-        AbstractNum orderedAbstract = GetStyle(WordListStyle.Numbered);
-
-        bulletNumberId = 1;
-        orderedNumberId = 2;
-
-        NumberingInstance bulletInstance = new NumberingInstance(new AbstractNumId { Val = bulletAbstract.AbstractNumberId }) { NumberID = bulletNumberId };
-        NumberingInstance orderedInstance = new NumberingInstance(new AbstractNumId { Val = orderedAbstract.AbstractNumberId }) { NumberID = orderedNumberId };
-
-        return new Numbering(bulletAbstract, bulletInstance, orderedAbstract, orderedInstance);
-    }
 
     /// <summary>
     /// The next abstract number identifier stored to be used when creating new abstract numbers
@@ -107,20 +112,32 @@ public static partial class WordListStyles {
     /// It makes sure that the next abstract number identifier is unique
     /// </summary>
     /// <param name="document">The document.</param>
-    internal static void InitializeAbstractNumberId(WordprocessingDocument document) {
-        // Find the highest AbstractNumberId currently in use
+        internal static void InitializeAbstractNumberId(WordprocessingDocument document) {
+            // Find the highest AbstractNumberId currently in use
 
-        var numberingDefinitionPart = document.MainDocumentPart.NumberingDefinitionsPart;
-        if (numberingDefinitionPart == null) {
-            // No numbering definitions part found, so no abstract numbers are in use
-            nextAbstractNumberId = 0;
-            return;
-        }
-        nextAbstractNumberId = numberingDefinitionPart
-            .Numbering.Descendants<AbstractNum>()
-            .Select(an => (int)an.AbstractNumberId.Value)
-            .DefaultIfEmpty(0)
-            .Max();
+            if (document == null) {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            var mainPart = document.MainDocumentPart;
+            if (mainPart == null) {
+                nextAbstractNumberId = 0;
+                return;
+            }
+
+            var numberingDefinitionPart = mainPart.NumberingDefinitionsPart;
+            if (numberingDefinitionPart?.Numbering == null) {
+                // No numbering definitions part found, so no abstract numbers are in use
+                nextAbstractNumberId = 0;
+                return;
+            }
+
+            nextAbstractNumberId = numberingDefinitionPart
+                .Numbering
+                .Descendants<AbstractNum>()
+                .Select(an => an.AbstractNumberId?.Value ?? -1)
+                .DefaultIfEmpty(-1)
+                .Max();
 
         // Start assigning AbstractNumberId values from the next number
         nextAbstractNumberId++;

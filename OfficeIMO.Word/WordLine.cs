@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
         internal WordDocument _document;
         internal WordParagraph _wordParagraph;
         internal Run _run;
-        internal V.Line _line;
+        internal V.Line _line = null!;
 
         internal WordLine(WordDocument document, WordParagraph paragraph, double startXPt, double startYPt, double endXPt, double endYPt, string color = "#000000", double strokeWeightPt = 1) {
             _document = document;
@@ -39,7 +39,8 @@ namespace OfficeIMO.Word {
             _document = document;
             _wordParagraph = new WordParagraph(document, paragraph, run);
             _run = run;
-            _line = run.Descendants<V.Line>().FirstOrDefault();
+            _line = run.Descendants<V.Line>().FirstOrDefault()
+                ?? throw new ArgumentException("The provided run does not contain a VML line.", nameof(run));
         }
 
         /// <summary>
