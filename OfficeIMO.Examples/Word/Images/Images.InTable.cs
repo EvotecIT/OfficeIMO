@@ -1,5 +1,6 @@
 using System;
 using DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Examples.Word {
@@ -20,7 +21,9 @@ namespace OfficeIMO.Examples.Word {
 
             document.AddHeadersAndFooters();
 
-            var tableInHeader = document.Header!.Default.AddTable(2, 2);
+            var headers = Guard.NotNull(document.Header, "Document headers must exist after enabling headers.");
+            var defaultHeader = Guard.NotNull(headers.Default, "Default header must exist after enabling headers.");
+            var tableInHeader = defaultHeader.AddTable(2, 2);
             tableInHeader.Rows[0].Cells[0].Paragraphs[0].AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200);
 
             // not really nessessary to add new paragraph since one is already there by default
