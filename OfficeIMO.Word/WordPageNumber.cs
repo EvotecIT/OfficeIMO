@@ -59,8 +59,8 @@ public partial class WordPageNumber {
     /// </summary>
     public int? Number {
         get {
-            var field = Field;
-            return field != null && int.TryParse(field.Text, out int result) ? result : null;
+            var pageField = Field;
+            return pageField != null && int.TryParse(pageField.Text, out int result) ? result : null;
         }
     }
 }
