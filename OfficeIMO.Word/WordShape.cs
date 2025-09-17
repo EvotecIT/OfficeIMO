@@ -17,6 +17,7 @@ namespace OfficeIMO.Word {
     /// Represents simple shapes inside a paragraph.
     /// </summary>
     public class WordShape : WordElement {
+        private const int EmusPerPoint = 12700; // 1 pt = 12700 EMUs
         private static int _docPrIdSeed = 1;
         private static UInt32Value NextDocPrId() {
             int id = Interlocked.Increment(ref _docPrIdSeed);
@@ -87,6 +88,30 @@ namespace OfficeIMO.Word {
                 default:
                     throw new ArgumentOutOfRangeException(nameof(shapeType), shapeType, null);
             }
+        }
+
+        private static long ToEmuChecked(double points, string paramName)
+        {
+            // reject NaN/Infinity and absurd negatives early
+            if (double.IsNaN(points) || double.IsInfinity(points))
+                throw new ArgumentOutOfRangeException(paramName, "Value must be a finite number.");
+            // Convert using checked bounds to avoid long overflow
+            double emu = points * EmusPerPoint;
+            if (emu > long.MaxValue || emu < long.MinValue)
+                throw new ArgumentOutOfRangeException(paramName, "Value is too large for EMU conversion.");
+            return (long)Math.Round(emu);
+        }
+
+        private static void ValidateDimensions(double widthPt, double heightPt)
+        {
+            if (widthPt <= 0) throw new ArgumentOutOfRangeException(nameof(widthPt), "Width must be positive.");
+            if (heightPt <= 0) throw new ArgumentOutOfRangeException(nameof(heightPt), "Height must be positive.");
+        }
+
+        private static void ValidatePosition(double leftPt, double topPt)
+        {
+            if (leftPt < 0) throw new ArgumentOutOfRangeException(nameof(leftPt), "Left offset cannot be negative.");
+            if (topPt < 0) throw new ArgumentOutOfRangeException(nameof(topPt), "Top offset cannot be negative.");
         }
 
         /// <summary>
@@ -256,9 +281,9 @@ namespace OfficeIMO.Word {
         /// <param name="widthPt">Width in points.</param>
         /// <param name="heightPt">Height in points.</param>
         public static WordShape AddDrawingShape(WordParagraph paragraph, ShapeType shapeType, double widthPt, double heightPt) {
-            const int emusPerPoint = 12700;
-            long cx = (long)(widthPt * emusPerPoint);
-            long cy = (long)(heightPt * emusPerPoint);
+            ValidateDimensions(widthPt, heightPt);
+            long cx = ToEmuChecked(widthPt, nameof(widthPt));
+            long cy = ToEmuChecked(heightPt, nameof(heightPt));
 
             var run = paragraph.VerifyRun();
 
@@ -333,11 +358,12 @@ namespace OfficeIMO.Word {
         /// <param name="leftPt">Left offset in points from the page.</param>
         /// <param name="topPt">Top offset in points from the page.</param>
         public static WordShape AddDrawingShapeAnchored(WordParagraph paragraph, ShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt) {
-            const int emusPerPoint = 12700;
-            long cx = (long)(widthPt * emusPerPoint);
-            long cy = (long)(heightPt * emusPerPoint);
-            long offX = (long)(leftPt * emusPerPoint);
-            long offY = (long)(topPt * emusPerPoint);
+            ValidateDimensions(widthPt, heightPt);
+            ValidatePosition(leftPt, topPt);
+            long cx = ToEmuChecked(widthPt, nameof(widthPt));
+            long cy = ToEmuChecked(heightPt, nameof(heightPt));
+            long offX = ToEmuChecked(leftPt, nameof(leftPt));
+            long offY = ToEmuChecked(topPt, nameof(topPt));
 
             var run = paragraph.VerifyRun();
 
@@ -664,7 +690,6 @@ namespace OfficeIMO.Word {
                 if (_line != null) _line.StrokeWeight = v;
                 if (_shape != null) _shape.StrokeWeight = v;
                 if (_wpsShape != null && value != null) {
-                    const int emusPerPoint = 12700;
                     var spPr = _wpsShape.GetFirstChild<Wps.ShapeProperties>();
                     if (spPr != null) {
                         var outline = spPr.GetFirstChild<A.Outline>();
@@ -672,7 +697,7 @@ namespace OfficeIMO.Word {
                             outline = new A.Outline();
                             spPr.Append(outline);
                         }
-                        outline.Width = (Int32Value)(int)Math.Round(value.Value * emusPerPoint);
+                        outline.Width = (Int32Value)(int)Math.Round(value.Value * EmusPerPoint);
                     }
                 }
             }
