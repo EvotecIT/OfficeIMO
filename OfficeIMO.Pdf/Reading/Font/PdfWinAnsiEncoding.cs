@@ -21,10 +21,30 @@ internal static class PdfWinAnsiEncoding {
         'ð','ñ','ò','ó','ô','õ','ö','÷','ø','ù','ú','û','ü','ý','þ','ÿ'
     };
 
+    private static readonly System.Collections.Generic.Dictionary<char, byte> ReverseMap = BuildReverse();
+
     public static string Decode(byte[] bytes) {
         var chars = new char[bytes.Length];
         for (int i = 0; i < bytes.Length; i++) chars[i] = Map[bytes[i]];
         return new string(chars);
     }
-}
 
+    public static byte[] Encode(string s) {
+        var bytes = new byte[s.Length];
+        for (int i = 0; i < s.Length; i++) {
+            var ch = s[i];
+            if (!ReverseMap.TryGetValue(ch, out var b)) b = (byte)'?';
+            bytes[i] = b;
+        }
+        return bytes;
+    }
+
+    private static System.Collections.Generic.Dictionary<char, byte> BuildReverse() {
+        var dict = new System.Collections.Generic.Dictionary<char, byte>();
+        for (int i = 0; i < Map.Length; i++) {
+            char c = Map[i];
+            if (!dict.ContainsKey(c)) dict[c] = (byte)i;
+        }
+        return dict;
+    }
+}

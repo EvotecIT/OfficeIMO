@@ -82,6 +82,12 @@ public sealed class PdfDoc {
         return this;
     }
 
+    /// <summary>Adds a simple table from rows of string arrays.</summary>
+    public PdfDoc Table(System.Collections.Generic.IEnumerable<string[]> rows, PdfAlign align = PdfAlign.Left) {
+        _blocks.Add(new TableBlock(rows, align));
+        return this;
+    }
+
     /// <summary>
     /// Renders the document into a PDF byte array in memory.
     /// </summary>

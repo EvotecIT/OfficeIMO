@@ -26,11 +26,11 @@ internal static class PdfWriter {
 
         // Add font objects
         var baseFont = ChooseNormal(opts.DefaultFont);
-        fontNormalId = AddObject(objects, "<< /Type /Font /Subtype /Type1 /BaseFont /" + baseFont.ToBaseFontName() + " >>\n");
+        fontNormalId = AddObject(objects, "<< /Type /Font /Subtype /Type1 /BaseFont /" + baseFont.ToBaseFontName() + " /Encoding /WinAnsiEncoding >>\n");
         fonts.Add(new FontRef("F1", baseFont, fontNormalId));
         if (needsBold) {
             var boldFont = ChooseBold(baseFont);
-            fontBoldId = AddObject(objects, "<< /Type /Font /Subtype /Type1 /BaseFont /" + boldFont.ToBaseFontName() + " >>\n");
+            fontBoldId = AddObject(objects, "<< /Type /Font /Subtype /Type1 /BaseFont /" + boldFont.ToBaseFontName() + " /Encoding /WinAnsiEncoding >>\n");
             fonts.Add(new FontRef("F2", boldFont, fontBoldId));
         }
 
@@ -200,7 +200,8 @@ internal static class PdfWriter {
                 if (align == PdfAlign.Center) dx = Math.Max(0, (widthContent - lineWidth) / 2);
                 else if (align == PdfAlign.Right) dx = Math.Max(0, (widthContent - lineWidth));
                 if (dx != 0) sb.Append(F(dx)).Append(" 0 Td\n");
-                sb.Append('(').Append(EscapeText(line)).Append(") Tj\n");
+                // Emit as hex string encoded in WinAnsi so extended chars (e.g., bullet) render correctly
+                sb.Append('<').Append(EncodeWinAnsiHex(line)).Append("> Tj\n");
                 if (dx != 0) sb.Append(F(-dx)).Append(" 0 Td\n");
             }
             sb.Append("ET\n");
@@ -247,9 +248,20 @@ internal static class PdfWriter {
             else if (block is TableBlock tb) {
                 double size = opts.DefaultFontSize;
                 double leading = size * 1.3;
+                // Compute column widths (characters) in monospaced metrics
+                int cols = tb.Rows.Count > 0 ? tb.Rows[0].Length : 0;
+                var colWidths = new int[cols];
+                foreach (var r in tb.Rows) {
+                    for (int c = 0; c < cols && c < r.Length; c++) colWidths[c] = Math.Max(colWidths[c], r[c]?.Length ?? 0);
+                }
                 foreach (var row in tb.Rows) {
-                    var text = string.Join(" | ", row);
-                    var lines = WrapMonospace(text, width, size, glyphWidthEm);
+                    var sbRow = new StringBuilder();
+                    for (int c = 0; c < cols && c < row.Length; c++) {
+                        string cell = row[c] ?? string.Empty;
+                        sbRow.Append(cell.PadRight(colWidths[c]));
+                        if (c < cols - 1) sbRow.Append("  ");
+                    }
+                    var lines = new List<string> { sbRow.ToString() };
                     double needed = lines.Count * leading;
                     if (y - needed < opts.MarginBottom) { NewPage(); }
                     WriteLines("F1", size, leading, opts.MarginLeft, y, lines, tb.Align);
@@ -278,6 +290,13 @@ internal static class PdfWriter {
         .Replace(")", "\\)")
         .Replace("\r", "\\r")
         .Replace("\n", "\\n");
+
+    private static string EncodeWinAnsiHex(string s) {
+        var bytes = PdfWinAnsiEncoding.Encode(s);
+        var sb = new StringBuilder(bytes.Length * 2);
+        for (int i = 0; i < bytes.Length; i++) sb.Append(bytes[i].ToString("X2", CultureInfo.InvariantCulture));
+        return sb.ToString();
+    }
 
     private static List<string> WrapMonospace(string text, double widthPts, double fontSize, double glyphWidthEm) {
         // Estimated chars per line for monospaced font
