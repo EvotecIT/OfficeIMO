@@ -473,7 +473,7 @@ internal static class PdfWriter {
         if (string.IsNullOrWhiteSpace(s)) return false;
         s = s.Trim();
         // currency/percent/simple numeric with separators
-        if (s.StartsWith("$", System.StringComparison.Ordinal) || s.EndsWith('%')) return true;
+        if (s.StartsWith("$", System.StringComparison.Ordinal) || s.EndsWith("%", System.StringComparison.Ordinal)) return true;
         int digits = 0;
         foreach (char ch in s) {
             if (char.IsDigit(ch)) digits++;
