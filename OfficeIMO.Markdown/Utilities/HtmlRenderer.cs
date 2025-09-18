@@ -498,8 +498,8 @@ internal static class HtmlRenderer {
     }
 
     internal static string ScopeCss(string? css, string? scopeSelector) {
-        string? cssText = css;
-        if (string.IsNullOrEmpty(cssText)) return string.Empty;
+        string cssText = css ?? string.Empty;
+        if (cssText.Length == 0) return string.Empty;
         string scope = NormalizeScope(scopeSelector);
         // Naive scoping: prefix common selectors with the scope to avoid global bleed.
         // This is intentionally conservative.
@@ -512,7 +512,7 @@ internal static class HtmlRenderer {
     }
 
     private static string NormalizeScope(string? scopeSelector) {
-        var selector = scopeSelector;
+        string selector = scopeSelector ?? string.Empty;
         if (string.IsNullOrWhiteSpace(selector)) return "body";
         return selector.Trim();
     }
