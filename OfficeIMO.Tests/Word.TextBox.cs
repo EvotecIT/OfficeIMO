@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
+using HeaderFooterValues = DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues;
 using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Tests {
@@ -478,14 +479,16 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "HeaderTextBoxWithHyperlink.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                var textBox = document.Sections[0].Header!.Default.AddTextBox("Header hyperlink test");
+                var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+                var textBox = defaultHeader.AddTextBox("Header hyperlink test");
 
                 textBox.Paragraphs[0].AddHyperLink(" to website?", new Uri("https://evotec.xyz"), addStyle: true);
 
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Contains(document.Sections[0].Header!.Default.Paragraphs, p => p.IsTextBox);
+                var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+                Assert.Contains(defaultHeader.Paragraphs, p => p.IsTextBox);
 
             }
         }

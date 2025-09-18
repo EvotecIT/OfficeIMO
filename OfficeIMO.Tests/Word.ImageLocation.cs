@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
+using HeaderFooterValues = DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -29,7 +30,9 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create(filePath);
             document.AddHeadersAndFooters();
 
-            var paragraph = document.Header!.Default.AddParagraph();
+            var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+            var defaultFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+            var paragraph = defaultHeader.AddParagraph();
             paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
 
             var mainPart = document._wordprocessingDocument.MainDocumentPart!;
@@ -37,6 +40,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Single(headerPart.ImageParts);
             Assert.Empty(mainPart.ImageParts);
+            Assert.Empty(defaultFooter.Images);
             Assert.Empty(mainPart.FooterParts.First().ImageParts);
 
             document.Save(false);
@@ -48,7 +52,9 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create(filePath);
             document.AddHeadersAndFooters();
 
-            var paragraph = document.Footer!.Default.AddParagraph();
+            var defaultFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+            var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+            var paragraph = defaultFooter.AddParagraph();
             paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
 
             var mainPart = document._wordprocessingDocument.MainDocumentPart!;
@@ -56,6 +62,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Single(footerPart.ImageParts);
             Assert.Empty(mainPart.ImageParts);
+            Assert.Empty(defaultHeader.Images);
             Assert.Empty(mainPart.HeaderParts.First().ImageParts);
 
             document.Save(false);

@@ -3,6 +3,7 @@ using System.IO;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
+using HeaderFooterValues = DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -114,26 +115,29 @@ namespace OfficeIMO.Tests {
             document.AddHeadersAndFooters();
             document.DifferentOddAndEvenPages = true;
 
-            Assert.True(document.Header!.Default.Images.Count == 0);
-            Assert.True(document.Header!.Even.Images.Count == 0);
+            var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+            var evenHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Even);
+            var defaultFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+            var evenFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Even);
+
+            Assert.True(defaultHeader.Images.Count == 0);
+            Assert.True(evenHeader.Images.Count == 0);
             Assert.True(document.Images.Count == 0);
-            Assert.True(document.Footer!.Default.Images.Count == 0);
-            Assert.True(document.Footer!.Even.Images.Count == 0);
+            Assert.True(defaultFooter.Images.Count == 0);
+            Assert.True(evenFooter.Images.Count == 0);
 
 
-            var header = document.Header!.Default;
             // add image to header, directly to paragraph
-            header.AddParagraph().AddImage(image, 100, 100);
+            defaultHeader.AddParagraph().AddImage(image, 100, 100);
 
-            var footer = document.Footer!.Default;
             // add image to footer, directly to paragraph
-            footer.AddParagraph().AddImage(image, 200, 200);
+            defaultFooter.AddParagraph().AddImage(image, 200, 200);
 
-            Assert.True(document.Header!.Default.Images.Count == 1);
-            Assert.True(document.Header!.Even.Images.Count == 0);
+            Assert.True(defaultHeader.Images.Count == 1);
+            Assert.True(evenHeader.Images.Count == 0);
             Assert.True(document.Images.Count == 0);
-            Assert.True(document.Footer!.Default.Images.Count == 1);
-            Assert.True(document.Footer!.Even.Images.Count == 0);
+            Assert.True(defaultFooter.Images.Count == 1);
+            Assert.True(evenFooter.Images.Count == 0);
 
             const string fileNameImage = "Kulek.jpg";
             var filePathImage = System.IO.Path.Combine(imagePaths, fileNameImage);
@@ -141,12 +145,12 @@ namespace OfficeIMO.Tests {
             using (var imageStream = System.IO.File.OpenRead(filePathImage)) {
                 paragraph.AddImage(imageStream, fileNameImage, 300, 300);
             }
-            Assert.True(document.Header!.Default.Images.Count == 1);
-            Assert.True(document.Header!.Even.Images.Count == 0);
+            Assert.True(defaultHeader.Images.Count == 1);
+            Assert.True(evenHeader.Images.Count == 0);
 
             Assert.True(document.Images.Count == 1);
-            Assert.True(document.Footer!.Default.Images.Count == 1);
-            Assert.True(document.Footer!.Even.Images.Count == 0);
+            Assert.True(defaultFooter.Images.Count == 1);
+            Assert.True(evenFooter.Images.Count == 0);
 
             Assert.True(document.Images[0].FileName == fileNameImage);
             Assert.True(document.Images[0].Rotation == null);
@@ -155,7 +159,7 @@ namespace OfficeIMO.Tests {
 
             const string fileNameImageEvotec = "EvotecLogo.png";
             var filePathImageEvotec = System.IO.Path.Combine(imagePaths, fileNameImageEvotec);
-            var paragraphHeader = document.Header!.Even.AddParagraph();
+            var paragraphHeader = evenHeader.AddParagraph();
             using (var imageStream = System.IO.File.OpenRead(filePathImageEvotec)) {
                 paragraphHeader.AddImage(imageStream, fileNameImageEvotec, 300, 300, WrapTextImage.InLineWithText, "This is a test");
                 var headerImage = paragraphHeader.Image;
@@ -163,12 +167,12 @@ namespace OfficeIMO.Tests {
                 Assert.True(headerImage!.CompressionQuality == BlipCompressionValues.Print);
             }
 
-            Assert.True(document.Header!.Default.Images.Count == 1);
-            Assert.True(document.Header!.Even.Images.Count == 1);
-            Assert.True(document.Header!.Even.Images[0].FileName == fileNameImageEvotec);
-            Assert.True(document.Header!.Even.Images[0].Description == "This is a test");
+            Assert.True(defaultHeader.Images.Count == 1);
+            Assert.True(evenHeader.Images.Count == 1);
+            Assert.True(evenHeader.Images[0].FileName == fileNameImageEvotec);
+            Assert.True(evenHeader.Images[0].Description == "This is a test");
 
-            var headerEvenImage = document.Header!.Even.Images[0];
+            var headerEvenImage = evenHeader.Images[0];
             Assert.NotNull(headerEvenImage);
             headerEvenImage!.Description = "Different description";
             Assert.True(headerEvenImage.VerticalFlip == null);
@@ -195,14 +199,16 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Load(filePath)) {
                 Assert.True(document.Paragraphs.Count == 36);
                 Assert.True(document.Images.Count == 4);
-                Assert.True(document.Header!.Default.Images.Count == 1);
-                Assert.True(document.Footer!.Default.Images.Count == 0);
+                var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+                var defaultFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+                Assert.True(defaultHeader.Images.Count == 1);
+                Assert.True(defaultFooter.Images.Count == 0);
 
                 Assert.True(document.Images[0].WrapText == WrapTextImage.InLineWithText);
                 Assert.True(document.Images[1].WrapText == WrapTextImage.Square);
                 Assert.True(document.Images[2].WrapText == WrapTextImage.InFrontOfText);
                 Assert.True(document.Images[3].WrapText == WrapTextImage.BehindText);
-                Assert.True(document.Header!.Default.Images[0].WrapText == WrapTextImage.InLineWithText);
+                Assert.True(defaultHeader.Images[0].WrapText == WrapTextImage.InLineWithText);
 
                 Assert.NotNull(document.Images[0].Shape);
                 Assert.NotNull(document.Images[1].Shape);
@@ -356,7 +362,8 @@ namespace OfficeIMO.Tests {
 
             document.AddHeadersAndFooters();
 
-            var tableInHeader = document.Header!.Default.AddTable(2, 2);
+            var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+            var tableInHeader = defaultHeader.AddTable(2, 2);
             tableInHeader.Rows[0].Cells[0].Paragraphs[0].AddImage(filePathImage, 200, 200);
 
             // not really necessary to add new paragraph since one is already there by default
@@ -367,7 +374,7 @@ namespace OfficeIMO.Tests {
             Assert.True(document.Tables[0].Rows.Count == 2);
             Assert.True(document.Tables[0].Rows[0].Cells.Count == 2);
 
-            Assert.True(document.Header!.Default.Tables.Count == 1);
+            Assert.True(defaultHeader.Tables.Count == 1);
 
             document.Save(false);
 
