@@ -179,13 +179,16 @@ namespace OfficeIMO.Tests {
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
-                var paragraphInHeaderF = document.Header!.First.AddParagraph();
+                var firstHeader = RequireSectionHeader(document, 0, HeaderFooterValues.First);
+                var paragraphInHeaderF = firstHeader.AddParagraph();
                 paragraphInHeaderF.Text = "First Header / Section 0";
 
-                var paragraphInHeaderO = document.Header!.Default.AddParagraph();
+                var oddHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+                var paragraphInHeaderO = oddHeader.AddParagraph();
                 paragraphInHeaderO.Text = "Odd Header / Section 0";
 
-                var paragraphInHeaderE = document.Header!.Even.AddParagraph();
+                var evenHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Even);
+                var paragraphInHeaderE = evenHeader.AddParagraph();
                 paragraphInHeaderE.Text = "Even Header / Section 0";
 
                 document.AddPageBreak();
@@ -200,14 +203,14 @@ namespace OfficeIMO.Tests {
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = SixLabors.ImageSharp.Color.Red;
 
-                Assert.True(document.Header!.Default.Paragraphs.Count == 1, "Should only have X paragraphs");
-                Assert.True(document.Header!.Default.Paragraphs[0].Text == "Odd Header / Section 0", "Text for default header is wrong (section 0)");
+                Assert.True(oddHeader.Paragraphs.Count == 1, "Should only have X paragraphs");
+                Assert.True(oddHeader.Paragraphs[0].Text == "Odd Header / Section 0", "Text for default header is wrong (section 0)");
 
-                Assert.True(document.Header!.Even.Paragraphs.Count == 1, "Should only have X paragraphs");
-                Assert.True(document.Header!.Even.Paragraphs[0].Text == "Even Header / Section 0", "Text for even header is wrong (section 0)");
+                Assert.True(evenHeader.Paragraphs.Count == 1, "Should only have X paragraphs");
+                Assert.True(evenHeader.Paragraphs[0].Text == "Even Header / Section 0", "Text for even header is wrong (section 0)");
 
-                Assert.True(document.Header!.First.Paragraphs.Count == 1, "Should only have X paragraphs");
-                Assert.True(document.Header!.First.Paragraphs[0].Text == "First Header / Section 0", "Text for first header is wrong (section 0)");
+                Assert.True(firstHeader.Paragraphs.Count == 1, "Should only have X paragraphs");
+                Assert.True(firstHeader.Paragraphs[0].Text == "First Header / Section 0", "Text for first header is wrong (section 0)");
 
                 Assert.True(document.Paragraphs.Count == 5, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.PageBreaks.Count == 2, "Number of page breaks during creation is wrong. Current: " + document.PageBreaks.Count);
@@ -219,14 +222,17 @@ namespace OfficeIMO.Tests {
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefaultFirst1.docx"))) {
                 // There is only one Paragraph at the document level.
-                Assert.True(document.Header!.Default.Paragraphs.Count == 1, "Should only have X paragraphs");
-                Assert.True(document.Header!.Default.Paragraphs[0].Text == "Odd Header / Section 0", "Text for default header is wrong (section 0)");
+                var oddHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+                Assert.True(oddHeader.Paragraphs.Count == 1, "Should only have X paragraphs");
+                Assert.True(oddHeader.Paragraphs[0].Text == "Odd Header / Section 0", "Text for default header is wrong (section 0)");
 
-                Assert.True(document.Header!.Even.Paragraphs.Count == 1, "Should only have X paragraphs");
-                Assert.True(document.Header!.Even.Paragraphs[0].Text == "Even Header / Section 0", "Text for even header is wrong (section 0)");
+                var evenHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Even);
+                Assert.True(evenHeader.Paragraphs.Count == 1, "Should only have X paragraphs");
+                Assert.True(evenHeader.Paragraphs[0].Text == "Even Header / Section 0", "Text for even header is wrong (section 0)");
 
-                Assert.True(document.Header!.First.Paragraphs.Count == 1, "Should only have X paragraphs");
-                Assert.True(document.Header!.First.Paragraphs[0].Text == "First Header / Section 0", "Text for first header is wrong (section 0)");
+                var firstHeader = RequireSectionHeader(document, 0, HeaderFooterValues.First);
+                Assert.True(firstHeader.Paragraphs.Count == 1, "Should only have X paragraphs");
+                Assert.True(firstHeader.Paragraphs[0].Text == "First Header / Section 0", "Text for first header is wrong (section 0)");
 
                 Assert.True(document.Paragraphs.Count == 5, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.PageBreaks.Count == 2, "Number of page breaks during creation is wrong. Current: " + document.PageBreaks.Count);
