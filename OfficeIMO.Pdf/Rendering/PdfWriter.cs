@@ -473,7 +473,12 @@ internal static class PdfWriter {
         if (string.IsNullOrWhiteSpace(s)) return false;
         s = s.Trim();
         // currency/percent/simple numeric with separators
+        // Use fast char overloads where available; fall back to string overloads on older TFMs.
+#if NET8_0_OR_GREATER
+        if (s.StartsWith('$') || s.EndsWith('%')) return true;
+#else
         if (s.StartsWith("$", System.StringComparison.Ordinal) || s.EndsWith("%", System.StringComparison.Ordinal)) return true;
+#endif
         int digits = 0;
         foreach (char ch in s) {
             if (char.IsDigit(ch)) digits++;

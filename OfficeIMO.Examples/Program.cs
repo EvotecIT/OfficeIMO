@@ -127,7 +127,10 @@ namespace OfficeIMO.Examples {
             Pdf.WriterDebugTables.Example_Pdf_TableDebug(folderPath, true);
             Pdf.ReadDocumentText.Example_Pdf_ReadDocumentText(folderPath, false);
             Pdf.WriterDefaults.Example_Pdf_DefaultStyles(folderPath, false);
-            return;
+            // Keep examples fast by default but avoid CS0162 unreachable code.
+            // Flip by setting environment variable OFFICEIMO_QUICK_DEMO=0 to run everything.
+            bool quickDemoOnly = Environment.GetEnvironmentVariable("OFFICEIMO_QUICK_DEMO") != "0";
+            if (quickDemoOnly) return;
 
             // Markdown/Markdown
             Markdown.Markdown.Example_MarkdownInterface(folderPath, false);
