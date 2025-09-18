@@ -1,5 +1,6 @@
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -11,41 +12,45 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
 
-                var headerParagraph = document.Header!.Default.AddParagraph("Header ");
+                var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+                var headerParagraph = defaultHeader.AddParagraph("Header ");
                 headerParagraph.AddText("clutter ");
                 headerParagraph.AddText("text");
-                document.Header!.Default.AddParagraph();
+                defaultHeader.AddParagraph();
 
-                var footerParagraph = document.Footer!.Default.AddParagraph("Footer ");
+                var defaultFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+                var footerParagraph = defaultFooter.AddParagraph("Footer ");
                 footerParagraph.AddText("clutter ");
                 footerParagraph.AddText("text");
-                document.Footer!.Default.AddParagraph();
+                defaultFooter.AddParagraph();
 
-                Assert.True(document.Header!.Default.Paragraphs.Count > 1);
+                Assert.True(defaultHeader.Paragraphs.Count > 1);
                 Assert.True(headerParagraph.GetRuns().Count() > 1);
-                Assert.True(document.Footer!.Default.Paragraphs.Count > 1);
+                Assert.True(defaultFooter.Paragraphs.Count > 1);
                 Assert.True(footerParagraph.GetRuns().Count() > 1);
 
                 document.CleanupDocument();
 
-                Assert.True(document.Header!.Default.Paragraphs.Count == 1);
-                Assert.True(document.Header!.Default.Paragraphs[0].GetRuns().Count() == 1);
-                Assert.True(document.Header!.Default.Paragraphs[0].Text == "Header clutter text");
+                Assert.True(defaultHeader.Paragraphs.Count == 1);
+                Assert.True(defaultHeader.Paragraphs[0].GetRuns().Count() == 1);
+                Assert.True(defaultHeader.Paragraphs[0].Text == "Header clutter text");
 
-                Assert.True(document.Footer!.Default.Paragraphs.Count == 1);
-                Assert.True(document.Footer!.Default.Paragraphs[0].GetRuns().Count() == 1);
-                Assert.True(document.Footer!.Default.Paragraphs[0].Text == "Footer clutter text");
+                Assert.True(defaultFooter.Paragraphs.Count == 1);
+                Assert.True(defaultFooter.Paragraphs[0].GetRuns().Count() == 1);
+                Assert.True(defaultFooter.Paragraphs[0].Text == "Footer clutter text");
 
                 document.Save(false);
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CleanupHeadersAndFooters.docx"))) {
-                Assert.True(document.Header!.Default.Paragraphs.Count == 1);
-                Assert.True(document.Header!.Default.Paragraphs[0].GetRuns().Count() == 1);
-                Assert.True(document.Header!.Default.Paragraphs[0].Text == "Header clutter text");
+                var reloadedHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+                Assert.True(reloadedHeader.Paragraphs.Count == 1);
+                Assert.True(reloadedHeader.Paragraphs[0].GetRuns().Count() == 1);
+                Assert.True(reloadedHeader.Paragraphs[0].Text == "Header clutter text");
 
-                Assert.True(document.Footer!.Default.Paragraphs.Count == 1);
-                Assert.True(document.Footer!.Default.Paragraphs[0].GetRuns().Count() == 1);
-                Assert.True(document.Footer!.Default.Paragraphs[0].Text == "Footer clutter text");
+                var reloadedFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+                Assert.True(reloadedFooter.Paragraphs.Count == 1);
+                Assert.True(reloadedFooter.Paragraphs[0].GetRuns().Count() == 1);
+                Assert.True(reloadedFooter.Paragraphs[0].Text == "Footer clutter text");
             }
         }
     }
