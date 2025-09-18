@@ -1,4 +1,5 @@
 using System.Globalization;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -31,8 +32,8 @@ namespace OfficeIMO.Tests {
                 using var document = WordDocument.Create();
                 document.AddParagraph("Section 0");
                 document.AddHeadersAndFooters();
-
-                var watermark = document.Sections[0].Header!.Default.AddWatermark(WordWatermarkStyle.Text, "Watermark");
+                var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+                var watermark = header.AddWatermark(WordWatermarkStyle.Text, "Watermark");
 
                 Assert.Equal(90, watermark.Rotation);
 
