@@ -182,13 +182,15 @@ internal static class PdfWriter {
         void NewPage() { FlushPage(); y = yStart; }
 
         // Helper to write a text block at (x, y) with leading and multiple lines
-        void WriteLines(string fontRes, double fontSize, double lineHeight, double x, double startY, IReadOnlyList<string> lines, PdfAlign align) {
+        void WriteLines(string fontRes, double fontSize, double lineHeight, double x, double startY, IReadOnlyList<string> lines, PdfAlign align, PdfColor? color = null) {
             // Begin text object once per block
             sb.Append("BT\n");
             sb.Append('/').Append(fontRes).Append(' ').Append(F(fontSize)).Append(" Tf\n");
             sb
                 .Append(F(lineHeight)).Append(" TL\n")
                 .Append("1 0 0 1 ").Append(F(opts.MarginLeft)).Append(' ').Append(F(startY)).Append(" Tm\n");
+            var effectiveColor = color ?? opts.DefaultTextColor;
+            if (effectiveColor.HasValue) sb.Append(SetFillColor(effectiveColor.Value));
             // First line
             for (int i = 0; i < lines.Count; i++) {
                 if (i != 0) sb.Append("T*\n");
@@ -221,7 +223,7 @@ internal static class PdfWriter {
                 // Page breaks as needed
                 double needed = lines.Count * leading + leading * 0.25; // small extra breathing room
                 if (y - needed < opts.MarginBottom) { NewPage(); }
-                WriteLines("F2", size, leading, opts.MarginLeft, y, lines, hb.Align);
+                WriteLines("F2", size, leading, opts.MarginLeft, y, lines, hb.Align, hb.Color);
                 y -= needed;
             }
             else if (block is ParagraphBlock pb) {
@@ -230,7 +232,7 @@ internal static class PdfWriter {
                 var lines = WrapMonospace(pb.Text, width, size, glyphWidthEm);
                 double needed = lines.Count * leading + leading * 0.3;
                 if (y - needed < opts.MarginBottom) { NewPage(); }
-                WriteLines("F1", size, leading, opts.MarginLeft, y, lines, pb.Align);
+                WriteLines("F1", size, leading, opts.MarginLeft, y, lines, pb.Align, pb.Color);
                 y -= needed;
             }
             else if (block is BulletListBlock bl) {
@@ -241,7 +243,7 @@ internal static class PdfWriter {
                     var lines = WrapMonospace(text, width, size, glyphWidthEm);
                     double needed = lines.Count * leading;
                     if (y - needed < opts.MarginBottom) { NewPage(); }
-                    WriteLines("F1", size, leading, opts.MarginLeft, y, lines, bl.Align);
+                    WriteLines("F1", size, leading, opts.MarginLeft, y, lines, bl.Align, bl.Color);
                     y -= needed;
                 }
             }
@@ -254,17 +256,56 @@ internal static class PdfWriter {
                 foreach (var r in tb.Rows) {
                     for (int c = 0; c < cols && c < r.Length; c++) colWidths[c] = Math.Max(colWidths[c], r[c]?.Length ?? 0);
                 }
-                foreach (var row in tb.Rows) {
-                    var sbRow = new StringBuilder();
+                var style = tb.Style ?? opts.DefaultTableStyle;
+                // Geometry
+                double emMono = GlyphWidthEmFor(ChooseNormal(opts.DefaultFont));
+                double colGapPx = size * emMono * 2; // gap ~= two spaces
+                var colPixel = new double[cols];
+                for (int c = 0; c < cols; c++) colPixel[c] = colWidths[c] * size * emMono + (style?.CellPaddingX ?? 0) * 2;
+                double rowWidth = 0; for (int c = 0; c < cols; c++) rowWidth += colPixel[c]; rowWidth += Math.Max(0, cols - 1) * colGapPx;
+
+                for (int rowIndex = 0; rowIndex < tb.Rows.Count; rowIndex++) {
+                    var row = tb.Rows[rowIndex];
+                    // Optional fills (header / zebra)
+                    double xOrigin = opts.MarginLeft;
+                    if (tb.Align == PdfAlign.Center) xOrigin += Math.Max(0, (width - rowWidth) / 2);
+                    else if (tb.Align == PdfAlign.Right) xOrigin += Math.Max(0, width - rowWidth);
+                    if (style is not null) {
+                        if (rowIndex == 0 && style.HeaderFill.HasValue) DrawRowFill(sb, style.HeaderFill.Value, xOrigin, y, rowWidth, leading);
+                        else if (rowIndex % 2 == 1 && style.RowStripeFill.HasValue) DrawRowFill(sb, style.RowStripeFill.Value, xOrigin, y, rowWidth, leading);
+                    }
+                    double needed = leading;
+                    if (y - needed < opts.MarginBottom) { NewPage(); }
+                    var textColor = style?.TextColor;
+                    if (rowIndex == 0 && style?.HeaderTextColor is not null) textColor = style.HeaderTextColor;
+                    // Header uses bold font
+                    string fontRes = rowIndex == 0 ? "F2" : "F1";
+                    // Render each cell precisely at computed x positions
+                    double xi = xOrigin;
+                    // Compute vertical baseline approx centered within row with a small optical adjustment
+                    double rowTop = y - leading * 0.85;
+                    double rowHeight = leading * 1.1;
+                    double yBase = rowTop + (rowHeight / 2) + (size * 0.35);
                     for (int c = 0; c < cols && c < row.Length; c++) {
                         string cell = row[c] ?? string.Empty;
-                        sbRow.Append(cell.PadRight(colWidths[c]));
-                        if (c < cols - 1) sbRow.Append("  ");
+                        double xCell = xi + (style?.CellPaddingX ?? 0);
+                        double yCell = yBase; // centered baseline
+                        WriteCell(sb, fontRes, size, xCell, yCell, cell, textColor, opts);
+                        xi += colPixel[c] + colGapPx;
                     }
-                    var lines = new List<string> { sbRow.ToString() };
-                    double needed = lines.Count * leading;
-                    if (y - needed < opts.MarginBottom) { NewPage(); }
-                    WriteLines("F1", size, leading, opts.MarginLeft, y, lines, tb.Align);
+                    // Borders (row rect + vertical grid)
+                    if (style?.BorderColor is not null && style.BorderWidth > 0) {
+                        DrawRowRect(sb, style.BorderColor.Value, style.BorderWidth, xOrigin, y, rowWidth, leading);
+                        // Vertical grid lines
+                        double xi2 = xOrigin;
+                        double yTop = y - leading * 0.85;
+                        double yBottom = yTop + leading * 1.1;
+                        for (int c = 0; c < cols - 1; c++) {
+                            xi2 += colPixel[c];
+                            DrawVLine(sb, style.BorderColor.Value, style.BorderWidth, xi2, yTop, yBottom);
+                            xi2 += colGapPx;
+                        }
+                    }
                     y -= needed;
                 }
             }
@@ -296,6 +337,44 @@ internal static class PdfWriter {
         var sb = new StringBuilder(bytes.Length * 2);
         for (int i = 0; i < bytes.Length; i++) sb.Append(bytes[i].ToString("X2", CultureInfo.InvariantCulture));
         return sb.ToString();
+    }
+
+    private static string SetFillColor(PdfColor color) => F(color.R) + " " + F(color.G) + " " + F(color.B) + " rg\n";
+    private static string SetStrokeColor(PdfColor color) => F(color.R) + " " + F(color.G) + " " + F(color.B) + " RG\n";
+
+    private static void DrawRowFill(StringBuilder sb, PdfColor color, double x, double yTop, double w, double leading) {
+        sb.Append("q\n");
+        sb.Append(SetFillColor(color));
+        double y = yTop - leading * 0.85; double h = leading * 1.1;
+        sb.Append(F(x)).Append(' ').Append(F(y)).Append(' ').Append(F(w)).Append(' ').Append(F(h)).Append(" re f\n");
+        sb.Append("Q\n");
+    }
+
+    private static void DrawRowRect(StringBuilder sb, PdfColor color, double widthStroke, double x, double yTop, double w, double leading) {
+        sb.Append("q\n");
+        sb.Append(SetStrokeColor(color));
+        sb.Append(F(widthStroke)).Append(" w\n");
+        double y = yTop - leading * 0.85; double h = leading * 1.1;
+        sb.Append(F(x)).Append(' ').Append(F(y)).Append(' ').Append(F(w)).Append(' ').Append(F(h)).Append(" re S\n");
+        sb.Append("Q\n");
+    }
+
+    private static void DrawVLine(StringBuilder sb, PdfColor color, double widthStroke, double x, double yTop, double yBottom) {
+        sb.Append("q\n");
+        sb.Append(SetStrokeColor(color));
+        sb.Append(F(widthStroke)).Append(" w\n");
+        sb.Append(F(x)).Append(' ').Append(F(yTop)).Append(" m ").Append(F(x)).Append(' ').Append(F(yBottom)).Append(" l S\n");
+        sb.Append("Q\n");
+    }
+
+    private static void WriteCell(StringBuilder sb, string fontRes, double fontSize, double x, double y, string text, PdfColor? color, PdfOptions opts) {
+        sb.Append("BT\n");
+        sb.Append('/').Append(fontRes).Append(' ').Append(F(fontSize)).Append(" Tf\n");
+        var effective = color ?? opts.DefaultTextColor;
+        if (effective.HasValue) sb.Append(SetFillColor(effective.Value));
+        sb.Append("1 0 0 1 ").Append(F(x)).Append(' ').Append(F(y)).Append(" Tm\n");
+        sb.Append('<').Append(EncodeWinAnsiHex(text)).Append("> Tj\n");
+        sb.Append("ET\n");
     }
 
     private static List<string> WrapMonospace(string text, double widthPts, double fontSize, double glyphWidthEm) {

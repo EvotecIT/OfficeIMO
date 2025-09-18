@@ -11,13 +11,19 @@ namespace OfficeIMO.Examples.Pdf {
                 new [] { "Bananas", "2", "$1.20" },
                 new [] { "Cherries", "12", "$5.00" }
             };
+            var style = new PdfTableStyle {
+                HeaderFill = PdfColor.LightGray,
+                RowStripeFill = PdfColor.FromRgb(248, 248, 248),
+                BorderColor = PdfColor.FromRgb(210, 210, 210),
+                BorderWidth = 0.5
+            };
             PdfDoc.Create()
                 .H1("Simple Lists and Tables", PdfAlign.Center)
                 .P("Below is a bullet list:")
-                .Bullets(new[] { "First item", "Second item", "Third item" })
+                .Bullets(new[] { "First item", "Second item", "Third item" }, PdfAlign.Left, PdfColor.FromRgb(60, 60, 60))
                 .P(" ")
                 .P("And a simple table (aligned columns):")
-                .Table(rows)
+                .Table(rows, PdfAlign.Left, style)
                 .Save(path);
             if (open) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });
         }

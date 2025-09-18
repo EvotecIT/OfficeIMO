@@ -125,6 +125,7 @@ namespace OfficeIMO.Examples {
             Pdf.WriterHeadersFooters.Example_Pdf_PageNumbers(folderPath, true);
             Pdf.WriterListsTables.Example_Pdf_BulletsAndTable(folderPath, true);
             Pdf.ReadDocumentText.Example_Pdf_ReadDocumentText(folderPath, true);
+            Pdf.WriterDefaults.Example_Pdf_DefaultStyles(folderPath, true);
             return;
 
             // Markdown/Markdown

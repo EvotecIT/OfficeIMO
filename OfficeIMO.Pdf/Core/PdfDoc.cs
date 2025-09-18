@@ -42,49 +42,33 @@ public sealed class PdfDoc {
     }
 
     /// <summary>Adds a level-1 heading.</summary>
-    public PdfDoc H1(string text, PdfAlign align = PdfAlign.Left) {
-#if NET8_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(text);
-#else
-        if (text is null) throw new ArgumentNullException(nameof(text));
-#endif
-        _blocks.Add(new HeadingBlock(1, text, align)); return this; }
+    public PdfDoc H1(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null) {
+        Guard.NotNull(text, nameof(text));
+        _blocks.Add(new HeadingBlock(1, text, align, color)); return this; }
     /// <summary>Adds a level-2 heading.</summary>
-    public PdfDoc H2(string text, PdfAlign align = PdfAlign.Left) {
-#if NET8_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(text);
-#else
-        if (text is null) throw new ArgumentNullException(nameof(text));
-#endif
-        _blocks.Add(new HeadingBlock(2, text, align)); return this; }
+    public PdfDoc H2(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null) {
+        Guard.NotNull(text, nameof(text));
+        _blocks.Add(new HeadingBlock(2, text, align, color)); return this; }
     /// <summary>Adds a level-3 heading.</summary>
-    public PdfDoc H3(string text, PdfAlign align = PdfAlign.Left) {
-#if NET8_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(text);
-#else
-        if (text is null) throw new ArgumentNullException(nameof(text));
-#endif
-        _blocks.Add(new HeadingBlock(3, text, align)); return this; }
+    public PdfDoc H3(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null) {
+        Guard.NotNull(text, nameof(text));
+        _blocks.Add(new HeadingBlock(3, text, align, color)); return this; }
     /// <summary>Adds a paragraph of text.</summary>
-    public PdfDoc P(string text, PdfAlign align = PdfAlign.Left) {
-#if NET8_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(text);
-#else
-        if (text is null) throw new ArgumentNullException(nameof(text));
-#endif
-        _blocks.Add(new ParagraphBlock(text, align)); return this; }
+    public PdfDoc P(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null) {
+        Guard.NotNull(text, nameof(text));
+        _blocks.Add(new ParagraphBlock(text, align, color)); return this; }
     /// <summary>Inserts a page break.</summary>
     public PdfDoc PageBreak() { _blocks.Add(new PageBreakBlock()); return this; }
 
     /// <summary>Adds a simple bullet list.</summary>
-    public PdfDoc Bullets(System.Collections.Generic.IEnumerable<string> items, PdfAlign align = PdfAlign.Left) {
-        _blocks.Add(new BulletListBlock(items, align));
+    public PdfDoc Bullets(System.Collections.Generic.IEnumerable<string> items, PdfAlign align = PdfAlign.Left, PdfColor? color = null) {
+        _blocks.Add(new BulletListBlock(items, align, color));
         return this;
     }
 
     /// <summary>Adds a simple table from rows of string arrays.</summary>
-    public PdfDoc Table(System.Collections.Generic.IEnumerable<string[]> rows, PdfAlign align = PdfAlign.Left) {
-        _blocks.Add(new TableBlock(rows, align));
+    public PdfDoc Table(System.Collections.Generic.IEnumerable<string[]> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {
+        _blocks.Add(new TableBlock(rows, align, style));
         return this;
     }
 

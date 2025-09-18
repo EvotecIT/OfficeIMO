@@ -33,4 +33,9 @@ public sealed class PdfOptions {
     public PdfAlign FooterAlign { get; set; } = PdfAlign.Center;
     /// <summary>Footer baseline Y position from bottom margin (points). Default 18.</summary>
     public double FooterOffsetY { get; set; } = 18;
+
+    /// <summary>Default text color for blocks when none is specified.</summary>
+    public PdfColor? DefaultTextColor { get; set; }
+    /// <summary>Default table style applied when none is provided.</summary>
+    public PdfTableStyle? DefaultTableStyle { get; set; }
 }
