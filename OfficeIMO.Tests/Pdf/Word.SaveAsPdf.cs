@@ -19,11 +19,13 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
-            document.Header!.Default.AddParagraph("Sample Header");
-            WordTable headerTable = document.Header!.Default.AddTable(1, 1);
+            var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+            var defaultFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+            defaultHeader.AddParagraph("Sample Header");
+            WordTable headerTable = defaultHeader.AddTable(1, 1);
             headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "H1";
-            document.Footer!.Default.AddParagraph("Sample Footer");
-            WordTable footerTable = document.Footer!.Default.AddTable(1, 1);
+            defaultFooter.AddParagraph("Sample Footer");
+            WordTable footerTable = defaultFooter.AddTable(1, 1);
             footerTable.Rows[0].Cells[0].Paragraphs[0].Text = "F1";
 
             WordParagraph heading = document.AddParagraph("Heading One");
@@ -65,8 +67,10 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
-            document.Header!.Default.AddParagraph().AddImage(imagePath, 20, 20);
-            document.Footer!.Default.AddParagraph().AddImage(imagePath, 400, 400);
+            var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+            var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+            header.AddParagraph().AddImage(imagePath, 20, 20);
+            footer.AddParagraph().AddImage(imagePath, 400, 400);
             document.Save();
             document.SaveAsPdf(pdfPath);
         }
