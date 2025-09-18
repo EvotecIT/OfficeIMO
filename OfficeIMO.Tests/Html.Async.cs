@@ -53,13 +53,17 @@ namespace OfficeIMO.Tests {
             using var docAsync = WordDocument.Create();
             string fragment = "<p>Header</p>";
             docSync.AddHtmlToHeader(fragment);
+            var syncHeader = RequireSectionHeader(docSync, 0, HeaderFooterValues.Default);
             await docAsync.AddHtmlToHeaderAsync(fragment);
-            Assert.Equal(docSync.Header!.Default.Paragraphs[0].Text, docAsync.Header!.Default.Paragraphs[0].Text);
+            var asyncHeader = RequireSectionHeader(docAsync, 0, HeaderFooterValues.Default);
+            Assert.Equal(syncHeader.Paragraphs[0].Text, asyncHeader.Paragraphs[0].Text);
 
             string footerFrag = "<p>Footer</p>";
             docSync.AddHtmlToFooter(footerFrag);
+            var syncFooter = RequireSectionFooter(docSync, 0, HeaderFooterValues.Default);
             await docAsync.AddHtmlToFooterAsync(footerFrag);
-            Assert.Equal(docSync.Footer!.Default.Paragraphs[0].Text, docAsync.Footer!.Default.Paragraphs[0].Text);
+            var asyncFooter = RequireSectionFooter(docAsync, 0, HeaderFooterValues.Default);
+            Assert.Equal(syncFooter.Paragraphs[0].Text, asyncFooter.Paragraphs[0].Text);
         }
 
         [Fact]
@@ -79,13 +83,63 @@ namespace OfficeIMO.Tests {
             string html = $"<p>{expectedText}</p>";
             await doc.AddHtmlToFooterAsync(html, footerType);
 
-            var section = doc.Sections.Last();
-            var footers = section.Footer;
-            Assert.NotNull(footers);
-            Assert.NotNull(ResolveFooter(footers!, footerType));
+            int sectionIndex = doc.Sections.Count - 1;
+            WordFooter footer = RequireSectionFooter(doc, sectionIndex, footerType);
+
+            var section = doc.Sections[sectionIndex];
+            var footers = Assert.IsAssignableFrom<WordFooters>(section.Footer);
+            Assert.Same(footer, ResolveFooter(footers, footerType));
 
             string innerText = GetFooterInnerText(doc, footerType);
             Assert.Contains(expectedText, innerText);
+        }
+
+        private static WordHeader RequireSectionHeader(WordDocument doc, int index, HeaderFooterValues type) {
+            Assert.NotNull(doc);
+            Assert.InRange(index, 0, doc.Sections.Count - 1);
+
+            var section = doc.Sections[index];
+            if (type == HeaderFooterValues.Default && section.Header.Default == null) {
+                section.AddHeadersAndFooters();
+            }
+
+            if (type == HeaderFooterValues.Default) {
+                return Assert.IsAssignableFrom<WordHeader>(section.Header.Default);
+            }
+
+            if (type == HeaderFooterValues.Even) {
+                return Assert.IsAssignableFrom<WordHeader>(section.Header.Even);
+            }
+
+            if (type == HeaderFooterValues.First) {
+                return Assert.IsAssignableFrom<WordHeader>(section.Header.First);
+            }
+
+            throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported header type.");
+        }
+
+        private static WordFooter RequireSectionFooter(WordDocument doc, int index, HeaderFooterValues type) {
+            Assert.NotNull(doc);
+            Assert.InRange(index, 0, doc.Sections.Count - 1);
+
+            var section = doc.Sections[index];
+            if (type == HeaderFooterValues.Default && section.Footer.Default == null) {
+                section.AddHeadersAndFooters();
+            }
+
+            if (type == HeaderFooterValues.Default) {
+                return Assert.IsAssignableFrom<WordFooter>(section.Footer.Default);
+            }
+
+            if (type == HeaderFooterValues.Even) {
+                return Assert.IsAssignableFrom<WordFooter>(section.Footer.Even);
+            }
+
+            if (type == HeaderFooterValues.First) {
+                return Assert.IsAssignableFrom<WordFooter>(section.Footer.First);
+            }
+
+            throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported footer type.");
         }
 
         private static WordFooter? ResolveFooter(WordFooters footers, HeaderFooterValues type) {
@@ -108,11 +162,10 @@ namespace OfficeIMO.Tests {
                     ? reference.Type == null || reference.Type.Value == HeaderFooterValues.Default
                     : reference.Type?.Value == footerType);
 
-            if (footerReference?.Id == null) {
-                throw new InvalidOperationException($"The {footerType} footer reference could not be located in the saved document.");
-            }
+            string footerPartId = footerReference?.Id?.Value
+                ?? throw new InvalidOperationException($"The {footerType} footer reference could not be located in the saved document.");
 
-            var footerPart = package.MainDocumentPart!.GetPartById(footerReference.Id.Value) as DocumentFormat.OpenXml.Packaging.FooterPart
+            var footerPart = package.MainDocumentPart!.GetPartById(footerPartId) as DocumentFormat.OpenXml.Packaging.FooterPart
                 ?? throw new InvalidOperationException("Unable to resolve the footer part from the document package.");
 
             return footerPart.Footer?.InnerText ?? string.Empty;

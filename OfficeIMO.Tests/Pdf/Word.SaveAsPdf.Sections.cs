@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using System.IO;
@@ -13,14 +14,18 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
-            document.Header!.Default.AddParagraph("Header1");
-            document.Footer!.Default.AddParagraph("Footer1");
+            var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+            var defaultFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+            defaultHeader.AddParagraph("Header1");
+            defaultFooter.AddParagraph("Footer1");
             document.AddParagraph("Section1 Paragraph");
 
             WordSection section2 = document.AddSection();
             section2.AddHeadersAndFooters();
-            section2.Header!.Default.AddParagraph("Header2");
-            section2.Footer!.Default.AddParagraph("Footer2");
+            var section2Header = RequireSectionHeader(document, 1, HeaderFooterValues.Default);
+            var section2Footer = RequireSectionFooter(document, 1, HeaderFooterValues.Default);
+            section2Header.AddParagraph("Header2");
+            section2Footer.AddParagraph("Footer2");
             document.AddParagraph("Section2 Paragraph");
 
             document.Save();
@@ -37,8 +42,10 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
-            document.Header!.Default.AddParagraph("DefaultHeader");
-            document.Footer!.Default.AddParagraph("DefaultFooter");
+            var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+            var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+            header.AddParagraph("DefaultHeader");
+            footer.AddParagraph("DefaultFooter");
 
             for (int i = 0; i < 100; i++) {
                 document.AddParagraph($"Paragraph {i}");
