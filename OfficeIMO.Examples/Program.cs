@@ -15,6 +15,12 @@ namespace OfficeIMO.Examples {
             string templatesPath = Path.Combine(baseFolder, "Templates");
             string folderPath = Path.Combine(baseFolder, "Documents");
             Setup(folderPath);
+
+            // Pdf
+            Pdf.BasicPdf.Example_Pdf_HelloWorld(folderPath, true);
+
+            return;
+
             // Visio - Core Examples
             Visio.BasicVisioDocument.Example_BasicVisio(folderPath, false);
             Visio.ConnectRectangles.Example_ConnectRectangles(folderPath, false);

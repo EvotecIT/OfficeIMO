@@ -142,6 +142,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.PowerPoint", "Off
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Markdown", "OfficeIMO.Markdown\OfficeIMO.Markdown.csproj", "{D8EEC8AF-DA25-48A8-8B26-750CE2C09BA5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Pdf", "OfficeIMO.Pdf\OfficeIMO.Pdf.csproj", "{CBE71378-A331-4DF3-A929-2721A07EC4C7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -284,6 +286,18 @@ Global
 		{D8EEC8AF-DA25-48A8-8B26-750CE2C09BA5}.Release|x64.Build.0 = Release|Any CPU
 		{D8EEC8AF-DA25-48A8-8B26-750CE2C09BA5}.Release|x86.ActiveCfg = Release|Any CPU
 		{D8EEC8AF-DA25-48A8-8B26-750CE2C09BA5}.Release|x86.Build.0 = Release|Any CPU
+		{CBE71378-A331-4DF3-A929-2721A07EC4C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CBE71378-A331-4DF3-A929-2721A07EC4C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CBE71378-A331-4DF3-A929-2721A07EC4C7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CBE71378-A331-4DF3-A929-2721A07EC4C7}.Debug|x64.Build.0 = Debug|Any CPU
+		{CBE71378-A331-4DF3-A929-2721A07EC4C7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CBE71378-A331-4DF3-A929-2721A07EC4C7}.Debug|x86.Build.0 = Debug|Any CPU
+		{CBE71378-A331-4DF3-A929-2721A07EC4C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CBE71378-A331-4DF3-A929-2721A07EC4C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CBE71378-A331-4DF3-A929-2721A07EC4C7}.Release|x64.ActiveCfg = Release|Any CPU
+		{CBE71378-A331-4DF3-A929-2721A07EC4C7}.Release|x64.Build.0 = Release|Any CPU
+		{CBE71378-A331-4DF3-A929-2721A07EC4C7}.Release|x86.ActiveCfg = Release|Any CPU
+		{CBE71378-A331-4DF3-A929-2721A07EC4C7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
