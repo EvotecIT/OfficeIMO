@@ -33,13 +33,34 @@ public sealed class PdfReadPage {
         var spans = new List<PdfTextSpan>();
         var streams = GetContentStreams();
         var decoders = ResourceResolver.GetFontDecoders(_pageDict, _objects);
+        var fonts = ResourceResolver.GetFontsForPage(_pageDict, _objects);
         string DecodeWithFont(string fontRes, byte[] bytes) =>
             decoders.TryGetValue(fontRes, out var dec) ? dec(bytes) : PdfWinAnsiEncoding.Decode(bytes);
+        double WidthEmForFont(string fontRes) {
+            if (fonts.TryGetValue(fontRes, out var f)) return GlyphWidthEmForBase(f.BaseFont);
+            return 0.55; // default
+        }
         foreach (var s in streams) {
             var content = PdfEncoding.Latin1GetString(s);
-            spans.AddRange(TextContentParser.Parse(content, DecodeWithFont));
+            spans.AddRange(TextContentParser.Parse(content, DecodeWithFont, WidthEmForFont));
         }
         return spans;
+    }
+
+    private static double GlyphWidthEmForBase(string baseFont) {
+        if (string.IsNullOrEmpty(baseFont)) return 0.55;
+        if (ContainsIgnoreCase(baseFont, "courier")) return 0.6;
+        if (ContainsIgnoreCase(baseFont, "times")) return 0.5;
+        if (ContainsIgnoreCase(baseFont, "helvetica")) return 0.55;
+        return 0.55;
+    }
+
+    private static bool ContainsIgnoreCase(string source, string value) {
+#if NET8_0_OR_GREATER
+        return source.Contains(value, System.StringComparison.OrdinalIgnoreCase);
+#else
+        return source.IndexOf(value, System.StringComparison.OrdinalIgnoreCase) >= 0;
+#endif
     }
 
     /// <summary>

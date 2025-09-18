@@ -20,4 +20,17 @@ public sealed class PdfOptions {
     public PdfStandardFont DefaultFont { get; set; } = PdfStandardFont.Courier;
     /// <summary>Default paragraph font size in points. Default 11.</summary>
     public double DefaultFontSize { get; set; } = 11;
+
+    /// <summary>When true, renders page numbers in the footer using <see cref="FooterFormat"/>.</summary>
+    public bool ShowPageNumbers { get; set; } // default false
+    /// <summary>Footer text format, supports {page} and {pages}. Default: "Page {page}/{pages}".</summary>
+    public string FooterFormat { get; set; } = "Page {page}/{pages}";
+    /// <summary>Footer font.</summary>
+    public PdfStandardFont FooterFont { get; set; } = PdfStandardFont.Courier;
+    /// <summary>Footer font size in points.</summary>
+    public double FooterFontSize { get; set; } = 9;
+    /// <summary>Footer alignment.</summary>
+    public PdfAlign FooterAlign { get; set; } = PdfAlign.Center;
+    /// <summary>Footer baseline Y position from bottom margin (points). Default 18.</summary>
+    public double FooterOffsetY { get; set; } = 18;
 }

@@ -42,39 +42,45 @@ public sealed class PdfDoc {
     }
 
     /// <summary>Adds a level-1 heading.</summary>
-    public PdfDoc H1(string text) {
+    public PdfDoc H1(string text, PdfAlign align = PdfAlign.Left) {
 #if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(text);
 #else
         if (text is null) throw new ArgumentNullException(nameof(text));
 #endif
-        _blocks.Add(new HeadingBlock(1, text)); return this; }
+        _blocks.Add(new HeadingBlock(1, text, align)); return this; }
     /// <summary>Adds a level-2 heading.</summary>
-    public PdfDoc H2(string text) {
+    public PdfDoc H2(string text, PdfAlign align = PdfAlign.Left) {
 #if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(text);
 #else
         if (text is null) throw new ArgumentNullException(nameof(text));
 #endif
-        _blocks.Add(new HeadingBlock(2, text)); return this; }
+        _blocks.Add(new HeadingBlock(2, text, align)); return this; }
     /// <summary>Adds a level-3 heading.</summary>
-    public PdfDoc H3(string text) {
+    public PdfDoc H3(string text, PdfAlign align = PdfAlign.Left) {
 #if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(text);
 #else
         if (text is null) throw new ArgumentNullException(nameof(text));
 #endif
-        _blocks.Add(new HeadingBlock(3, text)); return this; }
+        _blocks.Add(new HeadingBlock(3, text, align)); return this; }
     /// <summary>Adds a paragraph of text.</summary>
-    public PdfDoc P(string text) {
+    public PdfDoc P(string text, PdfAlign align = PdfAlign.Left) {
 #if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(text);
 #else
         if (text is null) throw new ArgumentNullException(nameof(text));
 #endif
-        _blocks.Add(new ParagraphBlock(text)); return this; }
+        _blocks.Add(new ParagraphBlock(text, align)); return this; }
     /// <summary>Inserts a page break.</summary>
     public PdfDoc PageBreak() { _blocks.Add(new PageBreakBlock()); return this; }
+
+    /// <summary>Adds a simple bullet list.</summary>
+    public PdfDoc Bullets(System.Collections.Generic.IEnumerable<string> items, PdfAlign align = PdfAlign.Left) {
+        _blocks.Add(new BulletListBlock(items, align));
+        return this;
+    }
 
     /// <summary>
     /// Renders the document into a PDF byte array in memory.

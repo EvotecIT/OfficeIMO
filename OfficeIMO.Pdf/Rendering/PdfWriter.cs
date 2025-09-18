@@ -35,14 +35,21 @@ internal static class PdfWriter {
         }
 
         // Create content streams and page objects
-        foreach (var page in layout.Pages) {
+        int totalPages = layout.Pages.Count;
+        for (int pageIndex = 0; pageIndex < layout.Pages.Count; pageIndex++) {
+            var page = layout.Pages[pageIndex];
             // Make a resources dict that references the fonts we declared
             string fontDict = needsBold
                 ? $"<< /F1 {fontNormalId} 0 R /F2 {fontBoldId} 0 R >>"
                 : $"<< /F1 {fontNormalId} 0 R >>";
 
             // Content stream
-            byte[] content = Encoding.ASCII.GetBytes(page.Content);
+            string contentStr = page.Content;
+            if (opts.ShowPageNumbers) {
+                string footer = BuildFooter(opts, pageIndex + 1, totalPages);
+                contentStr += footer;
+            }
+            byte[] content = Encoding.ASCII.GetBytes(contentStr);
             int contentId = AddObject(objects, "<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
             // Append raw content bytes + endstream/endobj
             // We'll append extra to the last object content after we compute indices; here we simply merge bytes.
@@ -143,6 +150,24 @@ internal static class PdfWriter {
         public sealed class Page { public string Content { get; set; } = string.Empty; }
     }
 
+    private static string BuildFooter(PdfOptions opts, int page, int pages) {
+        string text = opts.FooterFormat.Replace("{page}", page.ToString(CultureInfo.InvariantCulture)).Replace("{pages}", pages.ToString(CultureInfo.InvariantCulture));
+        double width = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
+        double em = GlyphWidthEmFor(ChooseNormal(opts.FooterFont));
+        double textWidth = text.Length * opts.FooterFontSize * em;
+        double x = opts.MarginLeft;
+        if (opts.FooterAlign == PdfAlign.Center) x = opts.MarginLeft + Math.Max(0, (width - textWidth) / 2);
+        else if (opts.FooterAlign == PdfAlign.Right) x = opts.MarginLeft + Math.Max(0, width - textWidth);
+        double y = opts.MarginBottom - opts.FooterOffsetY;
+        var sb = new StringBuilder();
+        sb.Append("BT\n");
+        sb.Append("/F1 ").Append(F(opts.FooterFontSize)).Append(" Tf\n");
+        sb.Append("1 0 0 1 ").Append(F(x)).Append(' ').Append(F(y)).Append(" Tm\n");
+        sb.Append('(').Append(EscapeText(text)).Append(") Tj\n");
+        sb.Append("ET\n");
+        return sb.ToString();
+    }
+
     private static LayoutResult LayoutBlocks(IEnumerable<IPdfBlock> blocks, PdfOptions opts) {
         double width = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
         double yStart = opts.PageHeight - opts.MarginTop;
@@ -157,7 +182,7 @@ internal static class PdfWriter {
         void NewPage() { FlushPage(); y = yStart; }
 
         // Helper to write a text block at (x, y) with leading and multiple lines
-        void WriteLines(string fontRes, double fontSize, double lineHeight, double x, double startY, IReadOnlyList<string> lines) {
+        void WriteLines(string fontRes, double fontSize, double lineHeight, double x, double startY, IReadOnlyList<string> lines, PdfAlign align) {
             // Begin text object once per block
             sb.Append("BT\n");
             sb.Append('/').Append(fontRes).Append(' ').Append(F(fontSize)).Append(" Tf\n");
@@ -166,12 +191,17 @@ internal static class PdfWriter {
                 .Append("1 0 0 1 ").Append(F(opts.MarginLeft)).Append(' ').Append(F(startY)).Append(" Tm\n");
             // First line
             for (int i = 0; i < lines.Count; i++) {
-                if (i == 0) {
-                    sb.Append('(').Append(EscapeText(lines[i])).Append(") Tj\n");
-                } else {
-                    sb.Append("T*\n");
-                    sb.Append('(').Append(EscapeText(lines[i])).Append(") Tj\n");
-                }
+                if (i != 0) sb.Append("T*\n");
+                var line = lines[i];
+                double em = fontRes == "F2" ? 0.6 : 0.6; // same approx for now
+                double widthContent = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
+                double lineWidth = line.Length * fontSize * em;
+                double dx = 0;
+                if (align == PdfAlign.Center) dx = Math.Max(0, (widthContent - lineWidth) / 2);
+                else if (align == PdfAlign.Right) dx = Math.Max(0, (widthContent - lineWidth));
+                if (dx != 0) sb.Append(F(dx)).Append(" 0 Td\n");
+                sb.Append('(').Append(EscapeText(line)).Append(") Tj\n");
+                if (dx != 0) sb.Append(F(-dx)).Append(" 0 Td\n");
             }
             sb.Append("ET\n");
         }
@@ -190,7 +220,7 @@ internal static class PdfWriter {
                 // Page breaks as needed
                 double needed = lines.Count * leading + leading * 0.25; // small extra breathing room
                 if (y - needed < opts.MarginBottom) { NewPage(); }
-                WriteLines("F2", size, leading, opts.MarginLeft, y, lines);
+                WriteLines("F2", size, leading, opts.MarginLeft, y, lines, hb.Align);
                 y -= needed;
             }
             else if (block is ParagraphBlock pb) {
@@ -199,8 +229,32 @@ internal static class PdfWriter {
                 var lines = WrapMonospace(pb.Text, width, size, glyphWidthEm);
                 double needed = lines.Count * leading + leading * 0.3;
                 if (y - needed < opts.MarginBottom) { NewPage(); }
-                WriteLines("F1", size, leading, opts.MarginLeft, y, lines);
+                WriteLines("F1", size, leading, opts.MarginLeft, y, lines, pb.Align);
                 y -= needed;
+            }
+            else if (block is BulletListBlock bl) {
+                double size = opts.DefaultFontSize;
+                double leading = size * 1.4;
+                foreach (var item in bl.Items) {
+                    var text = "• " + item;
+                    var lines = WrapMonospace(text, width, size, glyphWidthEm);
+                    double needed = lines.Count * leading;
+                    if (y - needed < opts.MarginBottom) { NewPage(); }
+                    WriteLines("F1", size, leading, opts.MarginLeft, y, lines, bl.Align);
+                    y -= needed;
+                }
+            }
+            else if (block is TableBlock tb) {
+                double size = opts.DefaultFontSize;
+                double leading = size * 1.3;
+                foreach (var row in tb.Rows) {
+                    var text = string.Join(" | ", row);
+                    var lines = WrapMonospace(text, width, size, glyphWidthEm);
+                    double needed = lines.Count * leading;
+                    if (y - needed < opts.MarginBottom) { NewPage(); }
+                    WriteLines("F1", size, leading, opts.MarginLeft, y, lines, tb.Align);
+                    y -= needed;
+                }
             }
             else {
                 // Unknown future block types – skip for now

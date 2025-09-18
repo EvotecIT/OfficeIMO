@@ -122,8 +122,11 @@ namespace OfficeIMO.Examples {
             Pdf.BasicPdf.Example_Pdf_HelloWorld(folderPath, true);
             Pdf.ReadPdf.Example_Pdf_ReadPlainText(folderPath, true);
             Pdf.ReadSpans.Example_Pdf_TextSpans(folderPath, true);
-
+            Pdf.WriterHeadersFooters.Example_Pdf_PageNumbers(folderPath, true);
+            Pdf.WriterListsTables.Example_Pdf_BulletsAndTable(folderPath, true);
+            Pdf.ReadDocumentText.Example_Pdf_ReadDocumentText(folderPath, true);
             return;
+
             // Markdown/Markdown
             Markdown.Markdown.Example_MarkdownInterface(folderPath, false);
             Markdown.Markdown.Example_MarkdownLists(folderPath, false);
