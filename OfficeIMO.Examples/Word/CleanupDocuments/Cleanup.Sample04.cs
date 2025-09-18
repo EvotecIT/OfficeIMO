@@ -16,18 +16,14 @@ internal static partial class CleanupDocuments {
     public static void CleanupDocuments_Sample04(string folderPath, bool openWord) {
         string filePath = System.IO.Path.Combine(folderPath, "CleanupHeadersFooters.docx");
         using (WordDocument document = WordDocument.Create(filePath)) {
-            document.AddHeadersAndFooters();
-
-            var headers = Guard.NotNull(document.Header, "Document headers must exist after enabling headers.");
-            var defaultHeader = Guard.NotNull(headers.Default, "Default header must exist after enabling headers.");
+            var defaultHeader = document.HeaderDefaultOrCreate;
 
             var headerParagraph = defaultHeader.AddParagraph("Header ");
             headerParagraph.AddText("clutter ");
             headerParagraph.AddText("text");
             defaultHeader.AddParagraph();
 
-            var footers = Guard.NotNull(document.Footer, "Document footers must exist after enabling headers.");
-            var defaultFooter = Guard.NotNull(footers.Default, "Default footer must exist after enabling headers.");
+            var defaultFooter = document.FooterDefaultOrCreate;
 
             var footerParagraph = defaultFooter.AddParagraph("Footer ");
             footerParagraph.AddText("clutter ");

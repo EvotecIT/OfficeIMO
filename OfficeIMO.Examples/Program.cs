@@ -75,7 +75,7 @@ namespace OfficeIMO.Examples {
             // Excel: Anchors and back-to-top demo
             Excel.AnchorsAndBackToTop.Example(folderPath, false);
             // Excel: Left-to-right multiple tables on same sheet
-            Excel.SheetComposerMultiTables.Example_LeftToRight(folderPath, true);
+            Excel.SheetComposerMultiTables.Example_LeftToRight(folderPath, false);
             Excel.WrapText.Example(folderPath, false);
             Excel.RowsFromObjects.Example(folderPath, false);
             Excel.RowsFromObjectsPriorityProperties.Example(folderPath, false);
@@ -411,16 +411,16 @@ namespace OfficeIMO.Examples {
             Word.Shapes.Example_LoadShapes(folderPath, false);
             Word.Shapes.Example_RemoveShape(folderPath, false);
             // Word/SmartArt
-            Word.SmartArt.Example_AddAdvancedSmartArt(folderPath, true);
-            Word.SmartArt.Example_AddBasicSmartArt(folderPath, true);
+            Word.SmartArt.Example_AddAdvancedSmartArt(folderPath, false);
+            Word.SmartArt.Example_AddBasicSmartArt(folderPath, false);
             // Additional SmartArt examples from FixSmartArtShapes branch
-            Word.SmartArt.Example_AddCustomSmartArt1(folderPath, true);
-            Word.SmartArt.Example_AddCustomSmartArt2(folderPath, true);
+            Word.SmartArt.Example_AddCustomSmartArt1(folderPath, false);
+            Word.SmartArt.Example_AddCustomSmartArt2(folderPath, false);
             // SmartArt edit flows
-            Word.SmartArt.Example_EditCustomSmartArt1(folderPath, true);
-            Word.SmartArt.Example_EditCustomSmartArt2(folderPath, true);
-            Word.SmartArt.Example_FlexibleBasicSmartArt_FullFlow(folderPath, true);
-            Word.SmartArt.Example_FlexibleCycleSmartArt_FullFlow(folderPath, true);
+            Word.SmartArt.Example_EditCustomSmartArt1(folderPath, false);
+            Word.SmartArt.Example_EditCustomSmartArt2(folderPath, false);
+            Word.SmartArt.Example_FlexibleBasicSmartArt_FullFlow(folderPath, false);
+            Word.SmartArt.Example_FlexibleCycleSmartArt_FullFlow(folderPath, false);
             // Word/Tables
             Word.Tables.Example_AllTables(folderPath, false);
             Word.Tables.Example_BasicTables1(folderPath, false);

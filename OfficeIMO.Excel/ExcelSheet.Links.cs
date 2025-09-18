@@ -177,6 +177,41 @@ namespace OfficeIMO.Excel
         }
 
         /// <summary>
+        /// Non-throwing variant of <see cref="LinkByHeaderToInternalSheets"/>.
+        /// Returns false when the header cannot be found or inputs are invalid.
+        /// </summary>
+        public bool TryLinkByHeaderToInternalSheets(
+            string header,
+            int rowFrom = 2,
+            int rowTo = -1,
+            Func<string, string>? destinationSheetForCellText = null,
+            string targetA1 = "A1",
+            Func<string, string>? display = null,
+            bool styled = true)
+        {
+            if (string.IsNullOrWhiteSpace(header)) return false;
+            if (!TryGetColumnIndexByHeader(header, out var col)) return false;
+            if (rowTo <= 0)
+            {
+                var ok = A1.TryParseRange(GetUsedRangeA1(), out var r1, out _, out var r2, out _);
+                if (!ok) return false;
+                rowTo = r2;
+                if (rowFrom < r1) rowFrom = r1 + 1;
+            }
+            var toSheet = destinationSheetForCellText ?? (text => text);
+            for (int r = rowFrom; r <= rowTo; r++)
+            {
+                if (!TryGetCellText(r, col, out var text) || string.IsNullOrWhiteSpace(text)) continue;
+                string sheetName = toSheet(text);
+                if (string.IsNullOrWhiteSpace(sheetName)) continue;
+                string location = $"'{sheetName}'!{targetA1}";
+                string disp = display?.Invoke(text) ?? text;
+                SetInternalLink(r, col, location, disp, styled);
+            }
+            return true;
+        }
+
+        /// <summary>
         /// Links a column identified by <paramref name="header"/> to external URLs built from each cell's text.
         /// </summary>
         /// <param name="header">Header text of the column to process.</param>
@@ -212,6 +247,41 @@ namespace OfficeIMO.Excel
                 else
                     SetHyperlinkSmart(r, col, url, null, styled);
             }
+        }
+
+        /// <summary>
+        /// Non-throwing variant of <see cref="LinkByHeaderToUrls"/>.
+        /// Returns false when the header cannot be found or inputs are invalid.
+        /// </summary>
+        public bool TryLinkByHeaderToUrls(
+            string header,
+            int rowFrom = 2,
+            int rowTo = -1,
+            Func<string, string>? urlForCellText = null,
+            Func<string, string>? titleForCellText = null,
+            bool styled = true)
+        {
+            if (string.IsNullOrWhiteSpace(header)) return false;
+            if (urlForCellText is null) return false;
+            if (!TryGetColumnIndexByHeader(header, out var col)) return false;
+            if (rowTo <= 0)
+            {
+                var ok = A1.TryParseRange(GetUsedRangeA1(), out var r1, out _, out var r2, out _);
+                if (!ok) return false;
+                rowTo = r2;
+                if (rowFrom < r1) rowFrom = r1 + 1;
+            }
+            for (int r = rowFrom; r <= rowTo; r++)
+            {
+                if (!TryGetCellText(r, col, out var text) || string.IsNullOrWhiteSpace(text)) continue;
+                string url = urlForCellText(text);
+                if (string.IsNullOrWhiteSpace(url)) continue;
+                if (titleForCellText != null)
+                    SetHyperlink(r, col, url, titleForCellText(text), styled);
+                else
+                    SetHyperlinkSmart(r, col, url, null, styled);
+            }
+            return true;
         }
 
         /// <example>
@@ -270,6 +340,45 @@ namespace OfficeIMO.Excel
         }
 
         /// <summary>
+        /// Non-throwing variant of <see cref="LinkByHeaderToInternalSheetsInTable"/>.
+        /// Returns false when the table or header cannot be found.
+        /// </summary>
+        public bool TryLinkByHeaderToInternalSheetsInTable(
+            string tableName,
+            string header,
+            Func<string, string>? destinationSheetForCellText = null,
+            string targetA1 = "A1",
+            Func<string, string>? display = null,
+            bool styled = true)
+        {
+            if (string.IsNullOrWhiteSpace(tableName) || string.IsNullOrWhiteSpace(header)) return false;
+            var tdp = _worksheetPart.TableDefinitionParts.FirstOrDefault(p => string.Equals(p.Table?.Name?.Value, tableName, StringComparison.OrdinalIgnoreCase));
+            var table = tdp?.Table; if (table == null) return false;
+            string? refA1 = table.Reference?.Value; if (string.IsNullOrWhiteSpace(refA1)) return false;
+            if (!A1.TryParseRange(refA1!, out var r1, out var c1, out var r2, out var c2)) return false;
+            var headers = table.TableColumns?.Elements<DocumentFormat.OpenXml.Spreadsheet.TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList() ?? new System.Collections.Generic.List<string>();
+            int colOffset = headers.FindIndex(h => string.Equals(h, header, StringComparison.OrdinalIgnoreCase));
+            if (colOffset < 0) return false;
+            int headerRows = (int)(table.HeaderRowCount?.Value ?? 1U);
+            bool totals = table.TotalsRowShown?.Value ?? false;
+            int totalsRows = totals ? 1 : 0;
+            int startRow = r1 + headerRows;
+            int endRow = r2 - totalsRows;
+            int column = c1 + colOffset;
+            var toSheet = destinationSheetForCellText ?? (text => text);
+            for (int r = startRow; r <= endRow; r++)
+            {
+                if (!TryGetCellText(r, column, out var text) || string.IsNullOrWhiteSpace(text)) continue;
+                string sheetName = toSheet(text);
+                if (string.IsNullOrWhiteSpace(sheetName)) continue;
+                string location = $"'{sheetName}'!{targetA1}";
+                string disp = display?.Invoke(text) ?? text;
+                SetInternalLink(r, column, location, disp, styled);
+            }
+            return true;
+        }
+
+        /// <summary>
         /// Links a column within a table to external URLs. The table range determines the row bounds.
         /// </summary>
         /// <param name="tableName">Name of the table.</param>
@@ -312,6 +421,45 @@ namespace OfficeIMO.Excel
                 else
                     SetHyperlinkSmart(r, column, url, null, styled);
             }
+        }
+
+        /// <summary>
+        /// Non-throwing variant of <see cref="LinkByHeaderToUrlsInTable"/>.
+        /// Returns false when the table or header cannot be found.
+        /// </summary>
+        public bool TryLinkByHeaderToUrlsInTable(
+            string tableName,
+            string header,
+            Func<string, string>? urlForCellText,
+            Func<string, string>? titleForCellText = null,
+            bool styled = true)
+        {
+            if (string.IsNullOrWhiteSpace(tableName) || string.IsNullOrWhiteSpace(header)) return false;
+            if (urlForCellText is null) return false;
+            var tdp = _worksheetPart.TableDefinitionParts.FirstOrDefault(p => string.Equals(p.Table?.Name?.Value, tableName, StringComparison.OrdinalIgnoreCase));
+            var table = tdp?.Table; if (table == null) return false;
+            string? refA1 = table.Reference?.Value; if (string.IsNullOrWhiteSpace(refA1)) return false;
+            if (!A1.TryParseRange(refA1!, out var r1, out var c1, out var r2, out var c2)) return false;
+            var headers = table.TableColumns?.Elements<DocumentFormat.OpenXml.Spreadsheet.TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList() ?? new System.Collections.Generic.List<string>();
+            int colOffset = headers.FindIndex(h => string.Equals(h, header, StringComparison.OrdinalIgnoreCase));
+            if (colOffset < 0) return false;
+            int headerRows = (int)(table.HeaderRowCount?.Value ?? 1U);
+            bool totals = table.TotalsRowShown?.Value ?? false;
+            int totalsRows = totals ? 1 : 0;
+            int startRow = r1 + headerRows;
+            int endRow = r2 - totalsRows;
+            int column = c1 + colOffset;
+            for (int r = startRow; r <= endRow; r++)
+            {
+                if (!TryGetCellText(r, column, out var text) || string.IsNullOrWhiteSpace(text)) continue;
+                string url = urlForCellText(text);
+                if (string.IsNullOrWhiteSpace(url)) continue;
+                if (titleForCellText != null)
+                    SetHyperlink(r, column, url, titleForCellText(text), styled);
+                else
+                    SetHyperlinkSmart(r, column, url, null, styled);
+            }
+            return true;
         }
 
         /// <summary>
@@ -394,6 +542,74 @@ namespace OfficeIMO.Excel
                 else
                     SetHyperlinkSmart(r, headerCol, url, null, styled);
             }
+        }
+
+        /// <summary>
+        /// Non-throwing variant of <see cref="LinkByHeaderToInternalSheetsInRange"/>.
+        /// Returns false when the range cannot be parsed or the header is missing.
+        /// </summary>
+        public bool TryLinkByHeaderToInternalSheetsInRange(
+            string rangeA1,
+            string header,
+            string targetA1 = "A1",
+            Func<string, string>? destinationSheetForCellText = null,
+            Func<string, string>? display = null,
+            bool styled = true)
+        {
+            if (string.IsNullOrWhiteSpace(rangeA1) || string.IsNullOrWhiteSpace(header)) return false;
+            if (!A1.TryParseRange(rangeA1, out var r1, out var c1, out var r2, out var c2)) return false;
+            int headerCol = -1;
+            for (int c = c1; c <= c2; c++)
+            {
+                if (TryGetCellText(r1, c, out var text) && !string.IsNullOrWhiteSpace(text) && string.Equals(text, header, StringComparison.OrdinalIgnoreCase))
+                { headerCol = c; break; }
+            }
+            if (headerCol < 0) return false;
+            var toSheet = destinationSheetForCellText ?? (t => t);
+            for (int r = r1 + 1; r <= r2; r++)
+            {
+                if (!TryGetCellText(r, headerCol, out var value) || string.IsNullOrWhiteSpace(value)) continue;
+                string sheetName = toSheet(value);
+                if (string.IsNullOrWhiteSpace(sheetName)) continue;
+                string location = $"'{sheetName}'!{targetA1}";
+                string disp = display?.Invoke(value) ?? value;
+                SetInternalLink(r, headerCol, location, disp, styled);
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Non-throwing variant of <see cref="LinkByHeaderToUrlsInRange"/>.
+        /// Returns false when the range cannot be parsed or the header is missing.
+        /// </summary>
+        public bool TryLinkByHeaderToUrlsInRange(
+            string rangeA1,
+            string header,
+            Func<string, string>? urlForCellText,
+            Func<string, string>? titleForCellText = null,
+            bool styled = true)
+        {
+            if (string.IsNullOrWhiteSpace(rangeA1) || string.IsNullOrWhiteSpace(header)) return false;
+            if (urlForCellText is null) return false;
+            if (!A1.TryParseRange(rangeA1, out var r1, out var c1, out var r2, out var c2)) return false;
+            int headerCol = -1;
+            for (int c = c1; c <= c2; c++)
+            {
+                if (TryGetCellText(r1, c, out var text) && !string.IsNullOrWhiteSpace(text) && string.Equals(text, header, StringComparison.OrdinalIgnoreCase))
+                { headerCol = c; break; }
+            }
+            if (headerCol < 0) return false;
+            for (int r = r1 + 1; r <= r2; r++)
+            {
+                if (!TryGetCellText(r, headerCol, out var value) || string.IsNullOrWhiteSpace(value)) continue;
+                string url = urlForCellText(value);
+                if (string.IsNullOrWhiteSpace(url)) continue;
+                if (titleForCellText != null)
+                    SetHyperlink(r, headerCol, url, titleForCellText(value), styled);
+                else
+                    SetHyperlinkSmart(r, headerCol, url, null, styled);
+            }
+            return true;
         }
     }
 }

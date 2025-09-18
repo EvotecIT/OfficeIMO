@@ -18,18 +18,16 @@ namespace OfficeIMO.Examples.Word {
                 document.BuiltinDocumentProperties.Creator = "Przemek";
                 var filePathImage = System.IO.Path.Combine(imagePaths, "Kulek.jpg");
 
-                document.AddHeadersAndFooters();
                 document.DifferentOddAndEvenPages = true;
 
-                var header = Guard.NotNull(document.Header!.Default, "Default header must exist after enabling headers.");
+                var header = document.HeaderDefaultOrCreate;
                 var paragraphHeader = header.AddParagraph("This is header");
 
                 // add image to header, directly to paragraph
                 header.AddParagraph().AddImage(filePathImage, 100, 100);
 
                 // add image to footer, directly to paragraph
-                var footer = Guard.NotNull(document.Footer!.Default, "Default footer must exist after enabling headers.");
-                footer.AddParagraph().AddImage(filePathImage, 100, 100);
+                document.FooterDefaultOrCreate.AddParagraph().AddImage(filePathImage, 100, 100);
 
                 // add image to header, but to a table
                 var table = header.AddTable(2, 2);
@@ -58,8 +56,7 @@ namespace OfficeIMO.Examples.Word {
 
 
                 WordParagraph paragraph2 = document.AddParagraph();
-                paragraph2.AddImage(filePathImage, 500, 500);
-                var paragraph2Image = Guard.NotNull(paragraph2.Image, "Paragraph should contain the newly added image.");
+                var paragraph2Image = paragraph2.InsertImage(filePathImage, 500, 500);
                 //paragraph2Image.BlackWiteMode = BlackWhiteModeValues.GrayWhite;
                 paragraph2Image.Rotation = 180;
                 paragraph2Image.Shape = ShapeTypeValues.ActionButtonMovie;
@@ -72,9 +69,7 @@ namespace OfficeIMO.Examples.Word {
 
                 // we add paragraph with an image
                 WordParagraph paragraph4 = document.AddParagraph();
-                paragraph4.AddImage(filePathImage);
-
-                var paragraph4Image = Guard.NotNull(paragraph4.Image, "Paragraph should contain the added image.");
+                var paragraph4Image = paragraph4.InsertImage(filePathImage);
 
                 // we can get the height of the image from paragraph
                 Console.WriteLine("This document has image, which has height of: " + paragraph4Image.Height + " pixels (I think) ;-)");
@@ -93,8 +88,7 @@ namespace OfficeIMO.Examples.Word {
                 string fileToSave = System.IO.Path.Combine(imagePaths, "OutputPrzemyslawKlysAndKulkozaurr.jpg");
                 firstImage.SaveToFile(fileToSave);
 
-                var headerEven = Guard.NotNull(document.Header!.Even, "Even header must exist after enabling different odd/even pages.");
-                var paragraphHeaderEven = headerEven.AddParagraph("This adds another picture via Stream with 100x100 to Header Even");
+                var paragraphHeaderEven = document.HeaderEvenOrCreate.AddParagraph("This adds another picture via Stream with 100x100 to Header Even");
                 const string fileNameImageEvotec = "EvotecLogo.png";
                 var filePathImageEvotec = System.IO.Path.Combine(imagePaths, fileNameImageEvotec);
                 using (var imageStream = System.IO.File.OpenRead(filePathImageEvotec)) {

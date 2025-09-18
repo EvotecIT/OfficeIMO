@@ -17,10 +17,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Settings.UpdateFieldsOnOpen = true;
                 document.AddTableOfContent(tableOfContentStyle: TableOfContentStyle.Template2);
-                document.AddHeadersAndFooters();
-                var headers = Guard.NotNull(document.Header, "Document headers must exist after enabling headers.");
-                var defaultHeader = Guard.NotNull(headers.Default, "Default header must exist after enabling headers.");
-                var pageNumber = defaultHeader.AddPageNumber(WordPageNumberStyle.Dots);
+                var pageNumber = document.HeaderDefaultOrCreate.AddPageNumber(WordPageNumberStyle.Dots);
                 //var pageNumber = document.Footer!.Default.AddPageNumber(WordPageNumberStyle.VerticalOutline2);
                 //var pageNumber = document.Footer!.Default.AddPageNumber(WordPageNumberStyle.Dots);
 

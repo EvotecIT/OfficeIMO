@@ -70,6 +70,19 @@ namespace OfficeIMO.Word {
             run.Append(wordImage._Image);
             return this;
         }
+
+        /// <summary>
+        /// Inserts an image and returns the created <see cref="WordImage"/> for immediate configuration.
+        /// This is a convenience alternative to <see cref="AddImage(string,double?,double?,WrapTextImage,string)"/>
+        /// when you want to set properties on the inserted image without accessing <see cref="Image"/>.
+        /// </summary>
+        public WordImage InsertImage(string filePathImage, double? width = null, double? height = null,
+            WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
+            var wordImage = new WordImage(_document, this, filePathImage, width, height, wrapImageText, description);
+            var run = VerifyRun();
+            run.Append(wordImage._Image);
+            return wordImage;
+        }
         /// <summary>
         /// Add image from Stream with ability to provide width and height of the image
         /// The image will be resized given new dimensions
@@ -89,6 +102,17 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Inserts an image from a stream and returns the created <see cref="WordImage"/>.
+        /// </summary>
+        public WordImage InsertImage(Stream imageStream, string fileName, double? width = null, double? height = null,
+            WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
+            var wordImage = new WordImage(_document, this, imageStream, fileName, width, height, wrapImageText, description);
+            var run = VerifyRun();
+            run.Append(wordImage._Image);
+            return wordImage;
+        }
+
+        /// <summary>
         /// Add an image that is stored outside the package.
         /// </summary>
         public WordParagraph AddImage(Uri imageUri, double width, double height, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
@@ -99,6 +123,17 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Inserts an external image (by URI) and returns the created <see cref="WordImage"/>.
+        /// </summary>
+        public WordImage InsertImage(Uri imageUri, double width, double height,
+            WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
+            var wordImage = new WordImage(_document, this, imageUri, width, height, wrapImageText, description);
+            var run = VerifyRun();
+            run.Append(wordImage._Image);
+            return wordImage;
+        }
+
+        /// <summary>
         /// Add image from a Base64 encoded string.
         /// </summary>
         public WordParagraph AddImageFromBase64(string base64String, string fileName, double? width = null, double? height = null, WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
@@ -106,6 +141,17 @@ namespace OfficeIMO.Word {
             var run = VerifyRun();
             run.Append(wordImage._Image);
             return this;
+        }
+
+        /// <summary>
+        /// Inserts an image from a Base64 payload and returns the created <see cref="WordImage"/>.
+        /// </summary>
+        public WordImage InsertImageFromBase64(string base64String, string fileName, double? width = null, double? height = null,
+            WrapTextImage wrapImageText = WrapTextImage.InLineWithText, string description = "") {
+            var wordImage = new WordImage(_document, this, base64String, fileName, width, height, wrapImageText, description);
+            var run = VerifyRun();
+            run.Append(wordImage._Image);
+            return wordImage;
         }
 
         /// <summary>

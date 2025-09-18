@@ -21,12 +21,8 @@ namespace OfficeIMO.Examples.Word {
                 document.Settings.FontFamily = "Arial";
                 document.Settings.FontSize = 9;
 
-                document.AddHeadersAndFooters();
-
-                var headers = Guard.NotNull(document.Header, "Document headers must exist after enabling headers.");
-                var defaultHeader = Guard.NotNull(headers.Default, "Default header must exist after enabling headers.");
-                var footers = Guard.NotNull(document.Footer, "Document footers must exist after enabling headers.");
-                var defaultFooter = Guard.NotNull(footers.Default, "Default footer must exist after enabling headers.");
+                var defaultHeader = document.HeaderDefaultOrCreate;
+                var defaultFooter = document.FooterDefaultOrCreate;
 
                 Console.WriteLine("Images count: " + document.Images.Count);
 

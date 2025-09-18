@@ -12,8 +12,7 @@ namespace OfficeIMO.Examples.Word {
 
             using var document = WordDocument.Create(filePath);
             var paragraph = document.AddParagraph();
-            paragraph.AddImage(Path.Combine(imagePaths, "Kulek.jpg"), 50, 50);
-            var image = Guard.NotNull(paragraph.Image, "Paragraph should contain the image before saving.");
+            var image = paragraph.InsertImage(Path.Combine(imagePaths, "Kulek.jpg"), 50, 50);
 
             string fileToSave = Path.Combine(folderPath, "LockedImage.jpg");
             using (var lockStream = new FileStream(fileToSave, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite)) {

@@ -30,6 +30,25 @@ namespace OfficeIMO.Excel
         }
 
         /// <summary>
+        /// Tries to parse an A1 range (e.g., "A1:B10") into 1-based, normalized bounds.
+        /// Returns false when the input is not a valid A1 range.
+        /// </summary>
+        public static bool TryParseRange(string a1Range, out int r1, out int c1, out int r2, out int c2)
+        {
+            r1 = c1 = r2 = c2 = 0;
+            if (string.IsNullOrWhiteSpace(a1Range)) return false;
+            var m = RangeRx.Match(a1Range);
+            if (!m.Success) return false;
+            c1 = ColumnLettersToIndex(m.Groups[1].Value);
+            r1 = int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture);
+            c2 = ColumnLettersToIndex(m.Groups[3].Value);
+            r2 = int.Parse(m.Groups[4].Value, CultureInfo.InvariantCulture);
+            if (c1 > c2) (c1, c2) = (c2, c1);
+            if (r1 > r2) (r1, r2) = (r2, r1);
+            return true;
+        }
+
+        /// <summary>
         /// Parses an A1 range (e.g., "A1:B10") into 1-based, normalized bounds.
         /// If the bounds are inverted, they are swapped so that r1 &lt;= r2 and c1 &lt;= c2.
         /// </summary>

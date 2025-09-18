@@ -10,12 +10,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with PageNumbers3.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Sections[0].AddPageNumbering(2, NumberFormatValues.LowerRoman);
-                document.AddHeadersAndFooters();
-
-                var footers = Guard.NotNull(document.Footer, "Document footers must exist after enabling headers.");
-                var defaultFooter = Guard.NotNull(footers.Default, "Default footer must exist after enabling headers.");
-
-                var para = defaultFooter.AddParagraph();
+                var para = document.FooterDefaultOrCreate.AddParagraph();
                 para.AddText("Page ");
                 para.AddPageNumber();
 

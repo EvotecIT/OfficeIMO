@@ -19,13 +19,11 @@ namespace OfficeIMO.Examples.Word {
                 var images = document.Images;
                 Console.WriteLine("+ Document images: " + images.Count);
 
-                var headers = Guard.NotNull(document.Header, "Document headers must exist when inspecting header images.");
-                var defaultHeader = Guard.NotNull(headers.Default, "Default header must exist when inspecting header images.");
+                var defaultHeader = document.HeaderDefaultOrCreate;
                 var headerImages = defaultHeader.Images;
                 Console.WriteLine("+ Document images in header: " + headerImages.Count);
 
-                var footers = Guard.NotNull(document.Footer, "Document footers must exist when inspecting footer images.");
-                var defaultFooter = Guard.NotNull(footers.Default, "Default footer must exist when inspecting footer images.");
+                var defaultFooter = document.FooterDefaultOrCreate;
                 var footerImages = defaultFooter.Images;
                 Console.WriteLine("+ Document images in footer: " + footerImages.Count);
                 //document.Images[0].SaveToFile(System.IO.Path.Combine(outputPath, "random.jpg"));

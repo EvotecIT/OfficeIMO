@@ -12,11 +12,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Adding paragraph with some text");
 
-                document.AddHeadersAndFooters();
-
-                var headers = Guard.NotNull(document.Header, "Document headers must exist after enabling headers.");
-                var defaultHeader = Guard.NotNull(headers.Default, "Default header must exist after enabling headers.");
-                var textBox = defaultHeader.AddTextBox("My textbox on the left");
+                var textBox = document.HeaderDefaultOrCreate.AddTextBox("My textbox on the left");
 
                 textBox.HorizontalPositionRelativeFrom = HorizontalRelativePositionValues.Page;
                 // horizontal alignment overwrites the horizontal position offset so only one will work
