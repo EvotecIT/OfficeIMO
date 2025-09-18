@@ -506,19 +506,22 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "RemoveSection.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
-                document.Header!.Default.AddParagraph().SetText("Header 0");
+                var header0 = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+                header0.AddParagraph().SetText("Header 0");
                 var p0 = document.AddParagraph("Section0");
                 p0.AddList(WordListStyle.Bulleted).AddItem("0");
 
                 var section1 = document.AddSection();
                 section1.AddHeadersAndFooters();
-                section1.Header!.Default.AddParagraph().SetText("Header 1");
+                var header1 = RequireSectionHeader(document, 1, HeaderFooterValues.Default);
+                header1.AddParagraph().SetText("Header 1");
                 var p1 = section1.AddParagraph("Section1");
                 p1.AddList(WordListStyle.Bulleted).AddItem("1");
 
                 var section2 = document.AddSection();
                 section2.AddHeadersAndFooters();
-                section2.Header!.Default.AddParagraph().SetText("Header 2");
+                var header2 = RequireSectionHeader(document, 2, HeaderFooterValues.Default);
+                header2.AddParagraph().SetText("Header 2");
                 var p2 = section2.AddParagraph("Section2");
                 p2.AddList(WordListStyle.Bulleted).AddItem("2");
 
@@ -533,8 +536,10 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(2, document.Sections.Count);
                 Assert.Equal(2, document.Lists.Count);
-                Assert.Equal("Header 0", document.Sections[0].Header!.Default.Paragraphs[0].Text);
-                Assert.Equal("Header 2", document.Sections[1].Header!.Default.Paragraphs[0].Text);
+                var remainingHeader0 = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+                var remainingHeader1 = RequireSectionHeader(document, 1, HeaderFooterValues.Default);
+                Assert.Equal("Header 0", remainingHeader0.Paragraphs[0].Text);
+                Assert.Equal("Header 2", remainingHeader1.Paragraphs[0].Text);
 
                 document.Save();
             }
@@ -542,8 +547,10 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Equal(2, document.Sections.Count);
                 Assert.Equal(2, document.Lists.Count);
-                Assert.Equal("Header 0", document.Sections[0].Header!.Default.Paragraphs[0].Text);
-                Assert.Equal("Header 2", document.Sections[1].Header!.Default.Paragraphs[0].Text);
+                var loadedHeader0 = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+                var loadedHeader1 = RequireSectionHeader(document, 1, HeaderFooterValues.Default);
+                Assert.Equal("Header 0", loadedHeader0.Paragraphs[0].Text);
+                Assert.Equal("Header 2", loadedHeader1.Paragraphs[0].Text);
             }
         }
 

@@ -27,11 +27,13 @@ namespace OfficeIMO.Tests {
                 tableList.AddItem("Table2");
 
                 document.AddHeadersAndFooters();
-                var headerList = document.Header!.Default.AddList(WordListStyle.Bulleted);
+                var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+                var headerList = header.AddList(WordListStyle.Bulleted);
                 headerList.AddItem("Header1");
                 headerList.AddItem("Header2");
 
-                var footerList = document.Footer!.Default.AddList(WordListStyle.Bulleted);
+                var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+                var footerList = footer.AddList(WordListStyle.Bulleted);
                 footerList.AddItem("Footer1");
                 footerList.AddItem("Footer2");
 
