@@ -4,12 +4,7 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfWriter {
-    private sealed class FontRef {
-        public string Name { get; }
-        public PdfStandardFont Font { get; }
-        public int ObjectId { get; }
-        public FontRef(string name, PdfStandardFont font, int objectId) { Name = name; Font = font; ObjectId = objectId; }
-    }
+    private static readonly char[] WordSplitChars = new[] { ' ', '\n', '\t' };
 
     public static byte[] Write(PdfDoc doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) {
         // Layout blocks into pages and create per-page content streams.
@@ -31,11 +26,11 @@ internal static class PdfWriter {
 
         // Add font objects
         var baseFont = ChooseNormal(opts.DefaultFont);
-        fontNormalId = AddObject(objects, $"<< /Type /Font /Subtype /Type1 /BaseFont /{baseFont.ToBaseFontName()} >>\n");
+        fontNormalId = AddObject(objects, "<< /Type /Font /Subtype /Type1 /BaseFont /" + baseFont.ToBaseFontName() + " >>\n");
         fonts.Add(new FontRef("F1", baseFont, fontNormalId));
         if (needsBold) {
             var boldFont = ChooseBold(baseFont);
-            fontBoldId = AddObject(objects, $"<< /Type /Font /Subtype /Type1 /BaseFont /{boldFont.ToBaseFontName()} >>\n");
+            fontBoldId = AddObject(objects, "<< /Type /Font /Subtype /Type1 /BaseFont /" + boldFont.ToBaseFontName() + " >>\n");
             fonts.Add(new FontRef("F2", boldFont, fontBoldId));
         }
 
@@ -48,12 +43,12 @@ internal static class PdfWriter {
 
             // Content stream
             byte[] content = Encoding.ASCII.GetBytes(page.Content);
-            int contentId = AddObject(objects, $"<< /Length {content.Length} >>\nstream\n");
+            int contentId = AddObject(objects, "<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
             // Append raw content bytes + endstream/endobj
             // We'll append extra to the last object content after we compute indices; here we simply merge bytes.
             // For simplicity, rebuild the last object with full content now.
             objects[contentId - 1] = Merge(
-                Encoding.ASCII.GetBytes($"{contentId} 0 obj\n<< /Length {content.Length} >>\nstream\n"),
+                Encoding.ASCII.GetBytes(contentId.ToString(CultureInfo.InvariantCulture) + " 0 obj\n<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n"),
                 content,
                 Encoding.ASCII.GetBytes("\nendstream\nendobj\n")
             );
@@ -61,31 +56,32 @@ internal static class PdfWriter {
 
             // Page object
             int pageId = AddObject(objects,
-                $"<< /Type /Page /Parent 0 0 R /MediaBox [0 0 {F0(opts.PageWidth)} {F0(opts.PageHeight)}] /Resources << /Font {fontDict} >> /Contents {contentId} 0 R >>\n");
+                "<< /Type /Page /Parent 0 0 R /MediaBox [0 0 " + F0(opts.PageWidth) + " " + F0(opts.PageHeight) + 
+                "] /Resources << /Font " + fontDict + " >> /Contents " + contentId.ToString(CultureInfo.InvariantCulture) + " 0 R >>\n");
             pageIds.Add(pageId);
         }
 
         // Pages tree
-        string kids = string.Join(" ", pageIds.Select(id => $"{id} 0 R"));
-        pagesId = AddObject(objects, $"<< /Type /Pages /Count {pageIds.Count} /Kids [ {kids} ] >>\n");
+        string kids = string.Join(" ", pageIds.Select(id => id.ToString(CultureInfo.InvariantCulture) + " 0 R"));
+        pagesId = AddObject(objects, "<< /Type /Pages /Count " + pageIds.Count.ToString(CultureInfo.InvariantCulture) + " /Kids [ " + kids + " ] >>\n");
 
         // Fix Parent references in each page now that we know pagesId.
         for (int i = 0; i < pageIds.Count; i++) {
             int pageId = pageIds[i];
             string original = Encoding.ASCII.GetString(objects[pageId - 1]);
-            string fixedObj = original.Replace("/Parent 0 0 R", $"/Parent {pagesId} 0 R");
+            string fixedObj = original.Replace("/Parent 0 0 R", "/Parent " + pagesId.ToString(CultureInfo.InvariantCulture) + " 0 R");
             objects[pageId - 1] = Encoding.ASCII.GetBytes(fixedObj);
         }
 
         // Catalog
-        catalogId = AddObject(objects, $"<< /Type /Catalog /Pages {pagesId} 0 R >>\n");
+        catalogId = AddObject(objects, "<< /Type /Catalog /Pages " + pagesId.ToString(CultureInfo.InvariantCulture) + " 0 R >>\n");
 
         // Info (metadata)
         var info = new StringBuilder("<< ");
-        if (!string.IsNullOrEmpty(title)) info.Append($"/Title {PdfString(title!)} ");
-        if (!string.IsNullOrEmpty(author)) info.Append($"/Author {PdfString(author!)} ");
-        if (!string.IsNullOrEmpty(subject)) info.Append($"/Subject {PdfString(subject!)} ");
-        if (!string.IsNullOrEmpty(keywords)) info.Append($"/Keywords {PdfString(keywords!)} ");
+        if (!string.IsNullOrEmpty(title)) info.Append("/Title ").Append(PdfString(title!)).Append(' ');
+        if (!string.IsNullOrEmpty(author)) info.Append("/Author ").Append(PdfString(author!)).Append(' ');
+        if (!string.IsNullOrEmpty(subject)) info.Append("/Subject ").Append(PdfString(subject!)).Append(' ');
+        if (!string.IsNullOrEmpty(keywords)) info.Append("/Keywords ").Append(PdfString(keywords!)).Append(' ');
         info.Append("/Producer (OfficeIMO.Pdf) >>\n");
         infoId = AddObject(objects, info.ToString());
 
@@ -105,15 +101,15 @@ internal static class PdfWriter {
         long xrefPos = ms.Position;
         var sw = new StreamWriter(ms, Encoding.ASCII, 1024, leaveOpen: true) { NewLine = "\n" };
         sw.WriteLine("xref");
-        sw.WriteLine($"0 {objects.Count + 1}");
+        sw.WriteLine("0 " + (objects.Count + 1).ToString(CultureInfo.InvariantCulture));
         sw.WriteLine("0000000000 65535 f ");
         for (int i = 1; i <= objects.Count; i++) {
-            sw.WriteLine($"{offsets[i]:0000000000} 00000 n ");
+            sw.WriteLine(offsets[i].ToString("0000000000", CultureInfo.InvariantCulture) + " 00000 n ");
         }
         sw.WriteLine("trailer");
-        sw.WriteLine($"<< /Size {objects.Count + 1} /Root {catalogId} 0 R /Info {infoId} 0 R >>");
+        sw.WriteLine("<< /Size " + (objects.Count + 1).ToString(CultureInfo.InvariantCulture) + " /Root " + catalogId.ToString(CultureInfo.InvariantCulture) + " 0 R /Info " + infoId.ToString(CultureInfo.InvariantCulture) + " 0 R >>");
         sw.WriteLine("startxref");
-        sw.WriteLine(xrefPos.ToString());
+        sw.WriteLine(xrefPos.ToString(System.Globalization.CultureInfo.InvariantCulture));
         sw.WriteLine("%%EOF");
         sw.Flush();
 
@@ -122,7 +118,7 @@ internal static class PdfWriter {
 
     private static int AddObject(List<byte[]> list, string body) {
         int id = list.Count + 1;
-        var bytes = Encoding.ASCII.GetBytes($"{id} 0 obj\n{body}endobj\n");
+        var bytes = Encoding.ASCII.GetBytes(id.ToString(CultureInfo.InvariantCulture) + " 0 obj\n" + body + "endobj\n");
         list.Add(bytes);
         return id;
     }
@@ -157,16 +153,17 @@ internal static class PdfWriter {
         bool usedBold = false;
 
         void FlushPage() { pages.Add(sb.ToString()); sb.Clear(); }
-        void EnsurePageIfNeeded() { if (sb.Length == 0 && pages.Count == 0) { /* first page implicit */ } }
+        // first page is implicit; content buffer starts empty
         void NewPage() { FlushPage(); y = yStart; }
 
         // Helper to write a text block at (x, y) with leading and multiple lines
         void WriteLines(string fontRes, double fontSize, double lineHeight, double x, double startY, IReadOnlyList<string> lines) {
             // Begin text object once per block
             sb.Append("BT\n");
-            sb.Append($"/{fontRes} {F(fontSize)} Tf\n");
-            sb.Append($"{F(lineHeight)} TL\n");
-            sb.Append($"1 0 0 1 {F(opts.MarginLeft)} {F(startY)} Tm\n");
+            sb.Append('/').Append(fontRes).Append(' ').Append(F(fontSize)).Append(" Tf\n");
+            sb
+                .Append(F(lineHeight)).Append(" TL\n")
+                .Append("1 0 0 1 ").Append(F(opts.MarginLeft)).Append(' ').Append(F(startY)).Append(" Tm\n");
             // First line
             for (int i = 0; i < lines.Count; i++) {
                 if (i == 0) {
@@ -232,7 +229,7 @@ internal static class PdfWriter {
         // Estimated chars per line for monospaced font
         double glyphWidth = fontSize * glyphWidthEm;
         int maxChars = Math.Max(8, (int)Math.Floor(widthPts / glyphWidth));
-        var words = text.Replace("\r", "").Split(new[] { ' ', '\n', '\t' }, StringSplitOptions.None);
+        var words = text.Replace("\r", "").Split(WordSplitChars, StringSplitOptions.None);
         var lines = new List<string>();
         var line = new StringBuilder();
         foreach (var w in words) {
