@@ -259,50 +259,75 @@ internal static class PdfWriter {
                 var style = tb.Style ?? opts.DefaultTableStyle;
                 // Geometry
                 double emMono = GlyphWidthEmFor(ChooseNormal(opts.DefaultFont));
-                double colGapPx = size * emMono * 2; // gap ~= two spaces
+                double colGapPx = 0; // rely on CellPadding for spacing; avoids misalignment
                 var colPixel = new double[cols];
                 for (int c = 0; c < cols; c++) colPixel[c] = colWidths[c] * size * emMono + (style?.CellPaddingX ?? 0) * 2;
                 double rowWidth = 0; for (int c = 0; c < cols; c++) rowWidth += colPixel[c]; rowWidth += Math.Max(0, cols - 1) * colGapPx;
 
                 for (int rowIndex = 0; rowIndex < tb.Rows.Count; rowIndex++) {
                     var row = tb.Rows[rowIndex];
+                    // Page break check BEFORE drawing the row
+                    double needed = leading;
+                    if (y - needed < opts.MarginBottom) { NewPage(); }
+
                     // Optional fills (header / zebra)
                     double xOrigin = opts.MarginLeft;
                     if (tb.Align == PdfAlign.Center) xOrigin += Math.Max(0, (width - rowWidth) / 2);
                     else if (tb.Align == PdfAlign.Right) xOrigin += Math.Max(0, width - rowWidth);
+                    double padX = style?.CellPaddingX ?? 0;
+                    double padY = style?.CellPaddingY ?? 0;
+                    double baselineOffset = style?.RowBaselineOffset ?? 0;
+                    // Define row box strictly from leading so rows never drift: height = leading
+                    // Padding Y is applied inside the box; baseline sits at y = yRect + hRect - padY
+                    double yRect = (y + baselineOffset) - leading + padY;
+                    double hRect = leading - 2 * padY;
                     if (style is not null) {
-                        if (rowIndex == 0 && style.HeaderFill.HasValue) DrawRowFill(sb, style.HeaderFill.Value, xOrigin, y, rowWidth, leading);
-                        else if (rowIndex % 2 == 1 && style.RowStripeFill.HasValue) DrawRowFill(sb, style.RowStripeFill.Value, xOrigin, y, rowWidth, leading);
+                        if (rowIndex == 0 && style.HeaderFill.HasValue) DrawRowFill(sb, style.HeaderFill.Value, xOrigin, yRect, rowWidth, hRect);
+                        else if (rowIndex % 2 == 1 && style.RowStripeFill.HasValue) DrawRowFill(sb, style.RowStripeFill.Value, xOrigin, yRect, rowWidth, hRect);
                     }
-                    double needed = leading;
-                    if (y - needed < opts.MarginBottom) { NewPage(); }
                     var textColor = style?.TextColor;
                     if (rowIndex == 0 && style?.HeaderTextColor is not null) textColor = style.HeaderTextColor;
                     // Header uses bold font
                     string fontRes = rowIndex == 0 ? "F2" : "F1";
                     // Render each cell precisely at computed x positions
                     double xi = xOrigin;
-                    // Compute vertical baseline approx centered within row with a small optical adjustment
-                    double rowTop = y - leading * 0.85;
-                    double rowHeight = leading * 1.1;
-                    double yBase = rowTop + (rowHeight / 2) + (size * 0.35);
+                    // Draw debug overlays if requested
+                    if (opts.Debug?.ShowTableRowBoxes == true) DrawRowRect(sb, new PdfColor(1, 0, 1), 0.6, xOrigin, yRect, rowWidth, hRect);
+                    if (opts.Debug?.ShowTableBaselines == true) {
+                        double x1 = xOrigin; double x2 = xOrigin + rowWidth;
+                        DrawHLine(sb, new PdfColor(0, 0.6, 0), 0.4, x1, x2, y + baselineOffset);
+                    }
+                    double yBase = y + baselineOffset; // baseline after applying offset
                     for (int c = 0; c < cols && c < row.Length; c++) {
                         string cell = row[c] ?? string.Empty;
-                        double xCell = xi + (style?.CellPaddingX ?? 0);
-                        double yCell = yBase; // centered baseline
+                        // alignment within cell
+                        double innerW = colPixel[c] - 2 * padX;
+                        double charEm = GlyphWidthEmFor(ChooseNormal(opts.DefaultFont));
+                        double textW = cell.Length * size * charEm;
+                        var align = PdfColumnAlign.Left;
+                        if (style?.Alignments != null && c < style.Alignments.Count) align = style.Alignments[c];
+                        if (style?.RightAlignNumeric == true && LooksNumeric(cell)) align = PdfColumnAlign.Right;
+                        double offset = 0;
+                        if (align == PdfColumnAlign.Center) offset = System.Math.Max(0, (innerW - textW) / 2);
+                        else if (align == PdfColumnAlign.Right) offset = System.Math.Max(0, innerW - textW);
+                        double xCell = xi + padX + offset;
+                        double yCell = yBase; // baseline
                         WriteCell(sb, fontRes, size, xCell, yCell, cell, textColor, opts);
                         xi += colPixel[c] + colGapPx;
                     }
                     // Borders (row rect + vertical grid)
                     if (style?.BorderColor is not null && style.BorderWidth > 0) {
-                        DrawRowRect(sb, style.BorderColor.Value, style.BorderWidth, xOrigin, y, rowWidth, leading);
+                        DrawRowRect(sb, style.BorderColor.Value, style.BorderWidth, xOrigin, yRect, rowWidth, hRect);
                         // Vertical grid lines
                         double xi2 = xOrigin;
-                        double yTop = y - leading * 0.85;
-                        double yBottom = yTop + leading * 1.1;
+                        double yTop = yRect;
+                        double yBottom = yRect + hRect;
                         for (int c = 0; c < cols - 1; c++) {
                             xi2 += colPixel[c];
-                            DrawVLine(sb, style.BorderColor.Value, style.BorderWidth, xi2, yTop, yBottom);
+                            if (opts.Debug?.ShowTableColumnGuides == true)
+                                DrawVLine(sb, new PdfColor(0, 0, 1), Math.Max(0.3, style.BorderWidth), xi2, yTop, yBottom);
+                            else
+                                DrawVLine(sb, style.BorderColor.Value, style.BorderWidth, xi2, yTop, yBottom);
                             xi2 += colGapPx;
                         }
                     }
@@ -364,6 +389,14 @@ internal static class PdfWriter {
         sb.Append(SetStrokeColor(color));
         sb.Append(F(widthStroke)).Append(" w\n");
         sb.Append(F(x)).Append(' ').Append(F(yTop)).Append(" m ").Append(F(x)).Append(' ').Append(F(yBottom)).Append(" l S\n");
+        sb.Append("Q\n");
+    }
+
+    private static void DrawHLine(StringBuilder sb, PdfColor color, double widthStroke, double x1, double x2, double y) {
+        sb.Append("q\n");
+        sb.Append(SetStrokeColor(color));
+        sb.Append(F(widthStroke)).Append(" w\n");
+        sb.Append(F(x1)).Append(' ').Append(F(y)).Append(" m ").Append(F(x2)).Append(' ').Append(F(y)).Append(" l S\n");
         sb.Append("Q\n");
     }
 
@@ -435,4 +468,18 @@ internal static class PdfWriter {
         PdfStandardFont.TimesRoman or PdfStandardFont.TimesBold => 0.5,
         _ => 0.6
     };
+
+    private static bool LooksNumeric(string s) {
+        if (string.IsNullOrWhiteSpace(s)) return false;
+        s = s.Trim();
+        // currency/percent/simple numeric with separators
+        if (s.StartsWith("$", System.StringComparison.Ordinal) || s.EndsWith('%')) return true;
+        int digits = 0;
+        foreach (char ch in s) {
+            if (char.IsDigit(ch)) digits++;
+            else if (ch == ',' || ch == '.' || ch == ' ' || ch == '+' || ch == '-' || ch == '$') continue;
+            else return false;
+        }
+        return digits > 0;
+    }
 }

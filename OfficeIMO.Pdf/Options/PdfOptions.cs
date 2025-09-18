@@ -37,5 +37,7 @@ public sealed class PdfOptions {
     /// <summary>Default text color for blocks when none is specified.</summary>
     public PdfColor? DefaultTextColor { get; set; }
     /// <summary>Default table style applied when none is provided.</summary>
-    public PdfTableStyle? DefaultTableStyle { get; set; }
+    public PdfTableStyle? DefaultTableStyle { get; set; } = TableStyles.Light();
+    /// <summary>Optional debug overlays (margins, baselines, boxes).</summary>
+    public PdfDebugOptions? Debug { get; set; }
 }

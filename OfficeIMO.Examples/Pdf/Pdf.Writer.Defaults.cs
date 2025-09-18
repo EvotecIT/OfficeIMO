@@ -7,15 +7,7 @@ namespace OfficeIMO.Examples.Pdf {
             string path = Path.Combine(folderPath, "Pdf.DefaultStyles.pdf");
             var options = new PdfOptions {
                 DefaultTextColor = PdfColor.FromRgb(50, 50, 50),
-                DefaultTableStyle = new PdfTableStyle {
-                    HeaderFill = PdfColor.LightGray,
-                    HeaderTextColor = PdfColor.Black,
-                    RowStripeFill = PdfColor.FromRgb(245,245,245),
-                    BorderColor = PdfColor.FromRgb(200,200,200),
-                    BorderWidth = 0.5,
-                    CellPaddingX = 6,
-                    CellPaddingY = 2
-                }
+                DefaultTableStyle = TableStyles.Light()
             };
 
             var rows = new[] {
@@ -28,11 +20,10 @@ namespace OfficeIMO.Examples.Pdf {
             PdfDoc.Create(options)
                 .H1("Defaults Demo", PdfAlign.Center, PdfColor.FromRgb(8,28,120))
                 .P("Document uses default text color and table style.")
-                .Table(rows) // picks up DefaultTableStyle
+                .Table(rows) // picks up DefaultTableStyle (Light preset)
                 .Save(path);
 
             if (open) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });
         }
     }
 }
-

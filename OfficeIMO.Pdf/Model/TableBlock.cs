@@ -16,4 +16,10 @@ public sealed class PdfTableStyle {
     public PdfColor? HeaderTextColor { get; set; }
     public double CellPaddingX { get; set; } = 4;
     public double CellPaddingY { get; set; } = 2;
+    /// <summary>Vertical baseline adjustment (points). Positive moves text down, negative up.</summary>
+    public double RowBaselineOffset { get; set; } = 0;
+    /// <summary>Optional per-column alignment (falls back to Left).</summary>
+    public System.Collections.Generic.List<PdfColumnAlign>? Alignments { get; set; }
+    /// <summary>When true, cells that look numeric are right-aligned automatically.</summary>
+    public bool RightAlignNumeric { get; set; }
 }

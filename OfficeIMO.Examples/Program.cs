@@ -119,13 +119,14 @@ namespace OfficeIMO.Examples {
             // Html.Html.Example_Html10_OptionsAndAsync(folderPath, false).GetAwaiter().GetResult();
             // Html.Html.Example_Html00_AllInOne(folderPath, false);
             // PDF: Zero-dependency writer + reader examples
-            Pdf.BasicPdf.Example_Pdf_HelloWorld(folderPath, true);
-            Pdf.ReadPdf.Example_Pdf_ReadPlainText(folderPath, true);
-            Pdf.ReadSpans.Example_Pdf_TextSpans(folderPath, true);
-            Pdf.WriterHeadersFooters.Example_Pdf_PageNumbers(folderPath, true);
+            Pdf.BasicPdf.Example_Pdf_HelloWorld(folderPath, false);
+            Pdf.ReadPdf.Example_Pdf_ReadPlainText(folderPath, false);
+            Pdf.ReadSpans.Example_Pdf_TextSpans(folderPath, false);
+            Pdf.WriterHeadersFooters.Example_Pdf_PageNumbers(folderPath, false);
             Pdf.WriterListsTables.Example_Pdf_BulletsAndTable(folderPath, true);
-            Pdf.ReadDocumentText.Example_Pdf_ReadDocumentText(folderPath, true);
-            Pdf.WriterDefaults.Example_Pdf_DefaultStyles(folderPath, true);
+            Pdf.WriterDebugTables.Example_Pdf_TableDebug(folderPath, true);
+            Pdf.ReadDocumentText.Example_Pdf_ReadDocumentText(folderPath, false);
+            Pdf.WriterDefaults.Example_Pdf_DefaultStyles(folderPath, false);
             return;
 
             // Markdown/Markdown
