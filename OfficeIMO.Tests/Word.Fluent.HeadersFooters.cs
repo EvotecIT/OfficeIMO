@@ -35,17 +35,23 @@ namespace OfficeIMO.Tests {
             using var loaded = WordDocument.Load(filePath);
             Assert.Equal(2, loaded.Sections.Count);
 
-            var defaultHeader = loaded.Sections[1].Header!.Default;
+            var defaultHeader = RequireSectionHeader(loaded, 1, HeaderFooterValues.Default);
+            var firstHeader = RequireSectionHeader(loaded, 1, HeaderFooterValues.First);
+            var evenHeader = RequireSectionHeader(loaded, 1, HeaderFooterValues.Even);
             Assert.Equal(3, defaultHeader.Paragraphs.Count);
             Assert.Single(defaultHeader.Tables);
             Assert.Single(defaultHeader.ParagraphsImages);
 
-            Assert.Equal("First header", loaded.Sections[1].Header!.First.Paragraphs[0].Text);
-            Assert.Equal("Even header", loaded.Sections[1].Header!.Even.Paragraphs[0].Text);
+            Assert.Equal("First header", firstHeader.Paragraphs[0].Text);
+            Assert.Equal("Even header", evenHeader.Paragraphs[0].Text);
 
-            Assert.Equal("Default footer", loaded.Sections[1].Footer!.Default.Paragraphs[0].Text);
-            Assert.Equal("First footer", loaded.Sections[1].Footer!.First.Paragraphs[0].Text);
-            Assert.Equal("Even footer", loaded.Sections[1].Footer!.Even.Paragraphs[0].Text);
+            var defaultFooter = RequireSectionFooter(loaded, 1, HeaderFooterValues.Default);
+            var firstFooter = RequireSectionFooter(loaded, 1, HeaderFooterValues.First);
+            var evenFooter = RequireSectionFooter(loaded, 1, HeaderFooterValues.Even);
+
+            Assert.Equal("Default footer", defaultFooter.Paragraphs[0].Text);
+            Assert.Equal("First footer", firstFooter.Paragraphs[0].Text);
+            Assert.Equal("Even footer", evenFooter.Paragraphs[0].Text);
 
             Assert.Null(loaded.Sections[0].Header!.Default);
             Assert.Null(loaded.Sections[0].Footer!.Default);
