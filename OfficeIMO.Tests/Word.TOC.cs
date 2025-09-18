@@ -92,7 +92,8 @@ namespace OfficeIMO.Tests {
                 document.AddTableOfContent(tableOfContentStyle: TableOfContentStyle.Template2);
                 document.AddHeadersAndFooters();
                 //var pageNumber = document.Header!.Default.AddPageNumber(WordPageNumberStyle.Circle);
-                var pageNumber = document.Footer!.Default.AddPageNumber(WordPageNumberStyle.VerticalOutline2);
+                var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+                var pageNumber = footer.AddPageNumber(WordPageNumberStyle.VerticalOutline2);
                 pageNumber.ParagraphAlignment = JustificationValues.Center;
 
                 document.AddPageBreak();
