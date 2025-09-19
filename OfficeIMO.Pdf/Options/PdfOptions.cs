@@ -45,10 +45,4 @@ public sealed class PdfOptions {
     public System.Collections.Generic.List<FooterSegment>? FooterSegments { get; set; }
 }
 
-public enum FooterSegmentKind { Text, PageNumber, TotalPages }
-
-public sealed class FooterSegment {
-    public FooterSegmentKind Kind { get; }
-    public string? Text { get; }
-    public FooterSegment(FooterSegmentKind kind, string? text = null) { Kind = kind; Text = text; }
-}
+ 

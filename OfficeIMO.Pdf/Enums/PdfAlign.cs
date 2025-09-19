@@ -7,5 +7,7 @@ public enum PdfAlign {
     /// <summary>Center text within the content area.</summary>
     Center,
     /// <summary>Align text to the right.</summary>
-    Right
+    Right,
+    /// <summary>Distribute extra space between words to fill the line width (last line not justified).</summary>
+    Justify
 }

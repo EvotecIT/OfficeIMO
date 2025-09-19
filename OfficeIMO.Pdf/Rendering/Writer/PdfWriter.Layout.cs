@@ -5,6 +5,12 @@ using System.Linq;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    // Helper shapes for column pagination
+    private abstract class ColItem { public string Kind = string.Empty; }
+    private sealed class ColPar : ColItem { public RichParagraphBlock Block = null!; public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines = null!; public System.Collections.Generic.List<double> Heights = null!; public double Leading; public double Size; public ColPar() { Kind = "P"; } }
+    private sealed class ColHead : ColItem { public HeadingBlock Block = null!; public System.Collections.Generic.List<string> Lines = null!; public double Leading; public double Size; public ColHead() { Kind = "H"; } }
+    private sealed class ColRule : ColItem { public HorizontalRuleBlock Block = null!; public ColRule() { Kind = "R"; } }
+    private sealed class ColImg : ColItem { public ImageBlock Block = null!; public ColImg() { Kind = "I"; } }
     private static string BuildFooter(PdfOptions opts, int page, int pages) {
         string text;
         if (opts.FooterSegments != null && opts.FooterSegments.Count > 0) {
@@ -51,7 +57,7 @@ internal static partial class PdfWriter {
         void FlushPage() { currentPage.Content = sb.ToString(); pages.Add(currentPage); currentPage = new LayoutResult.Page(); sb.Clear(); }
         void NewPage() { FlushPage(); y = yStart; }
 
-        void WriteLines(string fontRes, double fontSize, double lineHeight, double x, double startY, System.Collections.Generic.IReadOnlyList<string> lines, PdfAlign align, PdfColor? color = null, bool applyBaselineTweak = false) {
+        void WriteLinesInternal(string fontRes, double fontSize, double lineHeight, double x, double widthUsed, double startY, System.Collections.Generic.IReadOnlyList<string> lines, PdfAlign align, PdfColor? color = null, bool applyBaselineTweak = false) {
             sb.Append("BT\n");
             sb.Append('/').Append(fontRes).Append(' ').Append(F(fontSize)).Append(" Tf\n");
             sb.Append(F(lineHeight)).Append(" TL\n");
@@ -68,8 +74,8 @@ internal static partial class PdfWriter {
                 double dx = 0;
                 double em = fontRes == "F2" ? GlyphWidthEmFor(ChooseBold(ChooseNormal(opts.DefaultFont))) : GlyphWidthEmFor(ChooseNormal(opts.DefaultFont));
                 double estWidth = line.Length * fontSize * em;
-                if (align == PdfAlign.Center) dx = Math.Max(0, (width - estWidth) / 2);
-                else if (align == PdfAlign.Right) dx = Math.Max(0, (width - estWidth));
+                if (align == PdfAlign.Center) dx = Math.Max(0, (widthUsed - estWidth) / 2);
+                else if (align == PdfAlign.Right) dx = Math.Max(0, (widthUsed - estWidth));
                 if (dx != 0) sb.Append(F(dx)).Append(" 0 Td\n");
                 sb.Append('<').Append(EncodeWinAnsiHex(line)).Append("> Tj\n");
                 if (dx != 0) sb.Append(F(-dx)).Append(" 0 Td\n");
@@ -77,6 +83,9 @@ internal static partial class PdfWriter {
             }
             sb.Append("ET\n");
         }
+
+        void WriteLines(string fontRes, double fontSize, double lineHeight, double x, double startY, System.Collections.Generic.IReadOnlyList<string> lines, PdfAlign align, PdfColor? color = null, bool applyBaselineTweak = false)
+            => WriteLinesInternal(fontRes, fontSize, lineHeight, x, width, startY, lines, align, color, applyBaselineTweak);
 
         double glyphWidthEm = GlyphWidthEmFor(ChooseNormal(opts.DefaultFont));
         foreach (var block in blocks) {
@@ -107,7 +116,7 @@ internal static partial class PdfWriter {
                 var (lines, lineHeights) = WrapRichRuns(rpb.Runs, width, size, ChooseNormal(opts.DefaultFont));
                 double needed = lineHeights.Sum() + leading * 0.3;
                 if (y - needed < opts.MarginBottom) { NewPage(); }
-                WriteRichParagraph(sb, rpb, lines, lineHeights, opts, y, size, leading, currentPage.Annotations);
+                WriteRichParagraph(sb, rpb, lines, lineHeights, opts, y, size, leading, currentPage.Annotations, null, width);
                 usedBold |= rpb.Runs.Any(r => r.Bold);
                 usedItalic |= rpb.Runs.Any(r => r.Italic);
                 usedBoldItalic |= rpb.Runs.Any(r => r.Bold && r.Italic);
@@ -223,56 +232,120 @@ internal static partial class PdfWriter {
                 }
             }
             else if (block is RowBlock rb) {
+                // Column geometry
                 double contentWidth = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
-                double[] colXs = new double[rb.Columns.Count];
-                double[] colWs = new double[rb.Columns.Count];
+                int ncols = rb.Columns.Count;
+                double[] colXs = new double[ncols];
+                double[] colWs = new double[ncols];
                 double xAcc = opts.MarginLeft;
-                for (int i = 0; i < rb.Columns.Count; i++) {
-                    double w = System.Math.Max(0, contentWidth * (rb.Columns[i].WidthPercent / 100.0));
-                    colXs[i] = xAcc;
-                    colWs[i] = w;
-                    xAcc += w;
-                }
-                double[] colHeights = new double[rb.Columns.Count];
-                for (int ci = 0; ci < rb.Columns.Count; ci++) {
-                    double xCol = colXs[ci];
-                    double wCol = colWs[ci];
-                    double yCol = y;
-                    foreach (var cb in rb.Columns[ci].Blocks) {
+                for (int i = 0; i < ncols; i++) { double w = System.Math.Max(0, contentWidth * (rb.Columns[i].WidthPercent / 100.0)); colXs[i] = xAcc; colWs[i] = w; xAcc += w; }
+
+                // Prepare per-column paginatable items
+                var colStates = new System.Collections.Generic.List<(int idx, int line)>(ncols);
+                var colItems = new System.Collections.Generic.List<System.Collections.Generic.List<ColItem>>(ncols);
+                for (int i = 0; i < ncols; i++) {
+                    colStates.Add((0, 0));
+                    var items = new System.Collections.Generic.List<ColItem>();
+                    foreach (var cb in rb.Columns[i].Blocks) {
                         if (cb is HeadingBlock hb2) {
                             double size = hb2.Level switch { 1 => 24, 2 => 18, 3 => 14, _ => 12 };
                             double leading = size * 1.25;
-                            var lines = WrapMonospace(hb2.Text, wCol, size, GlyphWidthEmFor(ChooseBold(ChooseNormal(opts.DefaultFont))));
-                            double needed = lines.Count * leading + leading * 0.25;
-                            WriteLines("F2", size, leading, xCol, yCol, lines, hb2.Align, hb2.Color, applyBaselineTweak: false);
-                            yCol -= needed;
+                            var lines = WrapMonospace(hb2.Text, colWs[i], size, GlyphWidthEmFor(ChooseBold(ChooseNormal(opts.DefaultFont))));
+                            items.Add(new ColHead { Block = hb2, Lines = lines, Leading = leading, Size = size });
                         } else if (cb is RichParagraphBlock rpb2) {
                             double size = opts.DefaultFontSize;
                             double leading = size * 1.4;
-                            var (lines, lineHeights) = WrapRichRuns(rpb2.Runs, wCol, size, ChooseNormal(opts.DefaultFont));
-                            double needed = lineHeights.Sum() + leading * 0.3;
-                            WriteRichParagraph(sb, rpb2, lines, lineHeights, opts, yCol, size, leading, currentPage.Annotations, xCol);
-                            yCol -= needed;
+                            var wrap = WrapRichRuns(rpb2.Runs, colWs[i], size, ChooseNormal(opts.DefaultFont));
+                            items.Add(new ColPar { Block = rpb2, Lines = wrap.Lines, Heights = wrap.LineHeights, Leading = leading, Size = size });
                         } else if (cb is HorizontalRuleBlock hr2) {
-                            yCol -= hr2.SpacingBefore;
-                            double x1 = xCol;
-                            double x2 = xCol + wCol;
-                            double yLine = yCol - hr2.Thickness * 0.5;
-                            DrawHLine(sb, hr2.Color, System.Math.Max(0.2, hr2.Thickness), x1, x2, yLine);
-                            yCol -= hr2.SpacingAfter;
+                            items.Add(new ColRule { Block = hr2 });
                         } else if (cb is ImageBlock ib2) {
-                            double xImg = xCol;
-                            if (ib2.Align == PdfAlign.Center) xImg = xCol + System.Math.Max(0, (wCol - ib2.Width) / 2);
-                            else if (ib2.Align == PdfAlign.Right) xImg = xCol + System.Math.Max(0, wCol - ib2.Width);
-                            currentPage.Images.Add(new PageImage { Data = ib2.Data, X = xImg, Y = yCol - ib2.Height, W = ib2.Width, H = ib2.Height });
-                            yCol -= ib2.Height;
+                            items.Add(new ColImg { Block = ib2 });
                         }
                     }
-                    colHeights[ci] = y - yCol;
+                    colItems.Add(items);
                 }
-                double rowHeight = colHeights.Length > 0 ? colHeights.Max() : 0;
-                if (y - rowHeight < opts.MarginBottom) { NewPage(); }
-                y -= rowHeight;
+
+                bool AnyRemaining() {
+                    for (int i = 0; i < ncols; i++) if (colStates[i].idx < colItems[i].Count) return true; return false;
+                }
+
+                while (AnyRemaining()) {
+                    double avail = y - opts.MarginBottom;
+                    if (avail <= 0.5) { NewPage(); avail = y - opts.MarginBottom; }
+
+                    double maxConsumed = 0;
+                    for (int ci = 0; ci < ncols; ci++) {
+                        var items = colItems[ci];
+                        var (idx, line) = colStates[ci];
+                        double xCol = colXs[ci];
+                        double wCol = colWs[ci];
+                        double yCol = y;
+                        double consumed = 0;
+                        double remain = avail;
+                        while (idx < items.Count && remain > 0.1) {
+                            var it = items[idx];
+                            if (it is ColPar par) {
+                                var pblock = par.Block;
+                                var lines = par.Lines;
+                                var heights = par.Heights;
+                                double leading = par.Leading;
+                                double size = par.Size;
+                                // find how many lines fit
+                                int start = line;
+                                int take = 0; double hsum = 0;
+                                for (int li2 = start; li2 < lines.Count; li2++) {
+                                    double hAdd = heights[li2];
+                                    if (hsum + hAdd + (li2 == lines.Count - 1 ? leading * 0.3 : 0) > remain) break;
+                                    hsum += hAdd; take++;
+                                }
+                                if (take == 0) break; // not enough space for even one line -> stop column here
+                                // slice and draw
+                                var sliceLines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>();
+                                var sliceHeights = new System.Collections.Generic.List<double>();
+                                for (int k = 0; k < take; k++) { sliceLines.Add(lines[start + k]); sliceHeights.Add(heights[start + k]); }
+                                WriteRichParagraph(sb, pblock, sliceLines, sliceHeights, opts, yCol, size, leading, currentPage.Annotations, xCol, wCol);
+                                yCol -= hsum; remain -= hsum; consumed += hsum; line += take;
+                                // add paragraph spacing only if finished
+                                if (line >= lines.Count) { double space = leading * 0.3; if (space <= remain) { yCol -= space; remain -= space; consumed += space; } idx++; line = 0; }
+                            } else if (it is ColHead ch) {
+                                var hb2 = ch.Block;
+                                var lines = ch.Lines;
+                                double leading = ch.Leading;
+                                double size = ch.Size;
+                                double needed = lines.Count * leading + leading * 0.25;
+                                if (needed > remain && consumed > 0) break; // defer to next page slice
+                                if (needed > remain && consumed == 0) { remain = 0; break; }
+                                WriteLinesInternal("F2", size, leading, xCol, wCol, yCol, lines, hb2.Align, hb2.Color, applyBaselineTweak: false);
+                                yCol -= needed; remain -= needed; consumed += needed; idx++;
+                            } else if (it is ColRule cr) {
+                                var hr2 = cr.Block;
+                                double needed = hr2.SpacingBefore + hr2.SpacingAfter;
+                                if (needed > remain && consumed > 0) break;
+                                if (needed > remain && consumed == 0) { remain = 0; break; }
+                                yCol -= hr2.SpacingBefore;
+                                double x1 = xCol, x2 = xCol + wCol, yLine = yCol - hr2.Thickness * 0.5;
+                                DrawHLine(sb, hr2.Color, System.Math.Max(0.2, hr2.Thickness), x1, x2, yLine);
+                                yCol -= hr2.SpacingAfter; remain -= needed; consumed += needed; idx++;
+                            } else if (it is ColImg ciimg) {
+                                var ib2 = ciimg.Block;
+                                double needed = ib2.Height;
+                                if (needed > remain && consumed > 0) break;
+                                if (needed > remain && consumed == 0) { remain = 0; break; }
+                                double xImg = xCol;
+                                if (ib2.Align == PdfAlign.Center) xImg = xCol + System.Math.Max(0, (wCol - ib2.Width) / 2);
+                                else if (ib2.Align == PdfAlign.Right) xImg = xCol + System.Math.Max(0, wCol - ib2.Width);
+                                currentPage.Images.Add(new PageImage { Data = ib2.Data, X = xImg, Y = yCol - ib2.Height, W = ib2.Width, H = ib2.Height });
+                                yCol -= ib2.Height; remain -= ib2.Height; consumed += ib2.Height; idx++;
+                            }
+                        }
+                        colStates[ci] = (idx, line);
+                        if (consumed > maxConsumed) maxConsumed = consumed;
+                    }
+
+                    if (maxConsumed <= 0.01) { NewPage(); continue; }
+                    y -= maxConsumed;
+                }
             }
             else if (block is ImageBlock ib) {
                 double x = opts.MarginLeft;
@@ -286,26 +359,60 @@ internal static partial class PdfWriter {
             else if (block is PanelParagraphBlock ppb) {
                 double size = opts.DefaultFontSize;
                 double leading = size * 1.4;
-                var (lines, lineHeights) = WrapRichRuns(ppb.Runs, width, size, ChooseNormal(opts.DefaultFont));
-                double textHeight = lineHeights.Sum();
-                double panelTop = y;
+                // Compute available inner width for text (panel width minus horizontal padding)
                 double contentWidth = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
-                double innerWidth = contentWidth;
-                if (ppb.Style.MaxWidth.HasValue) innerWidth = System.Math.Min(contentWidth, ppb.Style.MaxWidth.Value);
+                double innerWidth = ppb.Style.MaxWidth.HasValue
+                    ? System.Math.Min(contentWidth, ppb.Style.MaxWidth.Value)
+                    : contentWidth;
+                double textWidthAvail = System.Math.Max(1, innerWidth - 2 * ppb.Style.PaddingX);
+                var (lines, lineHeights) = WrapRichRuns(ppb.Runs, textWidthAvail, size, ChooseNormal(opts.DefaultFont));
+                double panelWidth = innerWidth;
                 double xLeft = opts.MarginLeft;
                 if (ppb.Style.Align == PdfAlign.Center) xLeft = opts.MarginLeft + System.Math.Max(0, (contentWidth - innerWidth) / 2);
                 else if (ppb.Style.Align == PdfAlign.Right) xLeft = opts.MarginLeft + System.Math.Max(0, contentWidth - innerWidth);
-                double panelBottom = y - (ppb.Style.PaddingY + textHeight + ppb.Style.PaddingY);
-                if (panelBottom < opts.MarginBottom) { NewPage(); panelTop = y; panelBottom = y - (ppb.Style.PaddingY + textHeight + ppb.Style.PaddingY); }
-                double panelWidth = innerWidth;
-                if (ppb.Style.Background.HasValue) {
-                    DrawRowFill(sb, ppb.Style.Background.Value, xLeft, panelBottom, panelWidth, panelTop - panelBottom);
+
+                if (ppb.Style.KeepTogether) {
+                    double textHeight = lineHeights.Sum();
+                    double panelTop = y;
+                    double panelBottom = y - (ppb.Style.PaddingY + textHeight + ppb.Style.PaddingY);
+                    if (panelBottom < opts.MarginBottom) { NewPage(); panelTop = y; panelBottom = y - (ppb.Style.PaddingY + textHeight + ppb.Style.PaddingY); }
+                    if (ppb.Style.Background.HasValue) DrawRowFill(sb, ppb.Style.Background.Value, xLeft, panelBottom, panelWidth, panelTop - panelBottom);
+                    if (ppb.Style.BorderColor.HasValue && ppb.Style.BorderWidth > 0) DrawRowRect(sb, ppb.Style.BorderColor.Value, ppb.Style.BorderWidth, xLeft, panelBottom, panelWidth, panelTop - panelBottom);
+                    WriteRichParagraph(sb, new RichParagraphBlock(ppb.Runs, ppb.Align, ppb.DefaultColor), lines, lineHeights, opts, panelTop - ppb.Style.PaddingY, size, leading, currentPage.Annotations, xLeft + ppb.Style.PaddingX, textWidthAvail);
+                    y = panelBottom;
+                } else {
+                    // Split panel across pages by line slices
+                    int li = 0; bool firstSeg = true;
+                    while (li < lines.Count) {
+                        double avail = y - opts.MarginBottom;
+                        if (avail < 0.5) { NewPage(); firstSeg = false; continue; }
+                        double topPad = firstSeg ? ppb.Style.PaddingY : 0;
+                        // ensure at least one line fits
+                        double minLine = lineHeights[li];
+                        if (avail < topPad + minLine) { NewPage(); firstSeg = false; continue; }
+                        double roomForText = avail - topPad - ppb.Style.PaddingY;
+                        int take = 0; double hsum = 0;
+                        for (int k = li; k < lines.Count; k++) {
+                            double h = lineHeights[k];
+                            if (hsum + h > roomForText) break;
+                            hsum += h; take++;
+                        }
+                        bool lastSeg = (li + take) >= lines.Count;
+                        double panelTop = y;
+                        double usedBottomPad = ppb.Style.PaddingY;
+                        if (!lastSeg && topPad + hsum + usedBottomPad > avail) usedBottomPad = System.Math.Max(0, avail - (topPad + hsum));
+                        double panelBottom = y - (topPad + hsum + usedBottomPad);
+                        if (ppb.Style.Background.HasValue) DrawRowFill(sb, ppb.Style.Background.Value, xLeft, panelBottom, panelWidth, panelTop - panelBottom);
+                        if (ppb.Style.BorderColor.HasValue && ppb.Style.BorderWidth > 0) DrawRowRect(sb, ppb.Style.BorderColor.Value, ppb.Style.BorderWidth, xLeft, panelBottom, panelWidth, panelTop - panelBottom);
+                        // draw slice
+                        var sliceLines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>();
+                        var sliceHeights = new System.Collections.Generic.List<double>();
+                        for (int k = 0; k < take; k++) { sliceLines.Add(lines[li + k]); sliceHeights.Add(lineHeights[li + k]); }
+                        WriteRichParagraph(sb, new RichParagraphBlock(ppb.Runs, ppb.Align, ppb.DefaultColor), sliceLines, sliceHeights, opts, panelTop - topPad, size, leading, currentPage.Annotations, xLeft + ppb.Style.PaddingX, textWidthAvail);
+                        y = panelBottom; li += take; firstSeg = false;
+                        if (li < lines.Count) { NewPage(); }
+                    }
                 }
-                if (ppb.Style.BorderColor.HasValue && ppb.Style.BorderWidth > 0) {
-                    DrawRowRect(sb, ppb.Style.BorderColor.Value, ppb.Style.BorderWidth, xLeft, panelBottom, panelWidth, panelTop - panelBottom);
-                }
-                WriteRichParagraph(sb, new RichParagraphBlock(ppb.Runs, ppb.Align, ppb.DefaultColor), lines, lineHeights, opts, panelTop - ppb.Style.PaddingY, size, leading, currentPage.Annotations, xLeft + ppb.Style.PaddingX);
-                y = panelBottom;
             }
         }
 

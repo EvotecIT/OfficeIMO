@@ -1,20 +1,7 @@
 namespace OfficeIMO.Pdf;
 
-public sealed class PdfRowCompose {
-    private readonly PdfDoc _doc;
-    private readonly RowBlock _row = new RowBlock();
-    internal PdfRowCompose(PdfDoc doc) { _doc = doc; }
-    public PdfRowCompose Column(double widthPercent, System.Action<PdfRowColumnCompose> build) {
-        var col = new RowColumn(widthPercent);
-        var cc = new PdfRowColumnCompose(col);
-        build(cc);
-        _row.Columns.Add(col);
-        return this;
-    }
-    internal void Commit() { _doc.AddRow(_row); }
-}
-
-public sealed class PdfRowColumnCompose {
+/// <summary>Column content builder used within <see cref="PdfRowCompose"/>.</summary>
+public class PdfRowColumnCompose {
     private readonly RowColumn _col;
     internal PdfRowColumnCompose(RowColumn col) { _col = col; }
     public PdfRowColumnCompose H1(string text) { _col.Blocks.Add(new HeadingBlock(1, text, PdfAlign.Left, null)); return this; }

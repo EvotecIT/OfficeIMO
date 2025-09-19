@@ -1,6 +1,7 @@
 namespace OfficeIMO.Pdf;
 
-public sealed class PdfFooterCompose {
+/// <summary>Footer builder (alignment, text, page number tokens).</summary>
+public class PdfFooterCompose {
     private readonly PdfOptions _opts;
     internal PdfFooterCompose(PdfOptions opts) { _opts = opts; }
     public PdfFooterCompose AlignLeft() { _opts.FooterAlign = PdfAlign.Left; return this; }
@@ -15,13 +16,5 @@ public sealed class PdfFooterCompose {
         _opts.ShowPageNumbers = true; // might be needed when builder inserts tokens
         return this;
     }
-}
-
-public sealed class FooterTextBuilder {
-    private readonly System.Collections.Generic.List<FooterSegment> _segments;
-    internal FooterTextBuilder(System.Collections.Generic.List<FooterSegment> segs) { _segments = segs; }
-    public FooterTextBuilder Text(string s) { _segments.Add(new FooterSegment(FooterSegmentKind.Text, s)); return this; }
-    public FooterTextBuilder CurrentPage() { _segments.Add(new FooterSegment(FooterSegmentKind.PageNumber)); return this; }
-    public FooterTextBuilder TotalPages() { _segments.Add(new FooterSegment(FooterSegmentKind.TotalPages)); return this; }
 }
 

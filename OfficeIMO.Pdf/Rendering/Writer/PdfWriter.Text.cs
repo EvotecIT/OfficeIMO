@@ -145,8 +145,9 @@ internal static partial class PdfWriter {
         return (lines, heights);
     }
 
-    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null) {
+    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null) {
         double widthContent = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
+        double widthUsed = widthOverride ?? widthContent;
         double em = GlyphWidthEmFor(ChooseNormal(opts.DefaultFont));
         double spaceW = fontSize * em;
         var underlines = new System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color)>();
@@ -160,13 +161,21 @@ internal static partial class PdfWriter {
         for (int li = 0; li < lines.Count; li++) {
             if (li != 0) sb.Append("T*\n");
             var segs = lines[li];
-            double lineW = 0;
-            foreach (var s in segs) lineW += (s.Text.Length * fontSize * em);
-            if (segs.Count > 1) lineW += (segs.Count - 1) * spaceW;
+            double sumSeg = 0;
+            foreach (var s in segs) sumSeg += (s.Text.Length * fontSize * em);
+            double gapsCount = Math.Max(0, segs.Count - 1);
+            double baseLineW = sumSeg + gapsCount * spaceW;
+            double gapW = spaceW;
+            bool justify = block.Align == PdfAlign.Justify && li != lines.Count - 1 && gapsCount > 0;
+            if (justify && widthUsed > baseLineW) {
+                double extra = (widthUsed - baseLineW) / gapsCount;
+                gapW = spaceW + extra;
+            }
 
+            double lineWForAlign = justify ? widthUsed : baseLineW;
             double dx = 0;
-            if (block.Align == PdfAlign.Center) dx = Math.Max(0, (widthContent - lineW) / 2);
-            else if (block.Align == PdfAlign.Right) dx = Math.Max(0, widthContent - lineW);
+            if (block.Align == PdfAlign.Center) dx = Math.Max(0, (widthUsed - lineWForAlign) / 2);
+            else if (block.Align == PdfAlign.Right) dx = Math.Max(0, widthUsed - lineWForAlign);
             if (dx != 0) sb.Append(F(dx)).Append(" 0 Td\n");
 
             double xCursor = dx;
@@ -203,7 +212,7 @@ internal static partial class PdfWriter {
                     annots.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = s.Uri! });
                 }
                 xCursor += wSeg;
-                if (si != segs.Count - 1) { xCursor += spaceW; sb.Append(F(spaceW)).Append(" 0 Td\n"); }
+                if (si != segs.Count - 1) { xCursor += gapW; sb.Append(F(gapW)).Append(" 0 Td\n"); }
             }
             if (xCursor != 0) sb.Append(F(-xCursor)).Append(" 0 Td\n");
         }
@@ -225,4 +234,3 @@ internal static partial class PdfWriter {
         }
     }
 }
-
