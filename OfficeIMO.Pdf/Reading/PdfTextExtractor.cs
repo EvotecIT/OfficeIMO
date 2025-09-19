@@ -9,11 +9,20 @@ namespace OfficeIMO.Pdf;
 /// Not a general-purpose PDF parser; designed as a pragmatic starting point.
 /// </summary>
 public static class PdfTextExtractor {
-    private static readonly Regex ObjRegex = new Regex(@"(\d+)\s+0\s+obj", RegexOptions.Compiled);
-    private static readonly Regex InfoRefRegex = new Regex(@"/Info\s+(\d+)\s+0\s+R", RegexOptions.Compiled);
-    private static readonly Regex PageObjRegex = new Regex(@"<<(?:.|\n|\r)*?/Type\s*/Page(?:.|\n|\r)*?/Contents\s+(\d+)\s+0\s+R(?:.|\n|\r)*?>>", RegexOptions.Compiled);
-    private static readonly Regex StreamRegex = new Regex(@"stream\r?\n([\s\S]*?)\r?\nendstream", RegexOptions.Compiled);
-    private static readonly Regex TjRegex = new Regex(@"\((?<txt>(?:\\.|[^\\\)])*)\)\s*Tj", RegexOptions.Compiled);
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(2);
+#if NET8_0_OR_GREATER
+    private static readonly Regex ObjRegex = new Regex(@"(\d+)\s+0\s+obj", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
+    private static readonly Regex InfoRefRegex = new Regex(@"/Info\s+(\d+)\s+0\s+R", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
+    private static readonly Regex PageObjRegex = new Regex(@"<<(?:.*?)/Type\s*/Page(?:.*?)/Contents\s+(\d+)\s+0\s+R(?:.*?)/?>>", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.NonBacktracking, RegexTimeout);
+    private static readonly Regex StreamRegex = new Regex(@"stream\r?\n([\s\S]*?)\r?\nendstream", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.NonBacktracking, RegexTimeout);
+    private static readonly Regex TjRegex = new Regex(@"\((?<txt>(?:\\.|[^\\\)])*)\)\s*Tj", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
+#else
+    private static readonly Regex ObjRegex = new Regex(@"(\d+)\s+0\s+obj", RegexOptions.Compiled, RegexTimeout);
+    private static readonly Regex InfoRefRegex = new Regex(@"/Info\s+(\d+)\s+0\s+R", RegexOptions.Compiled, RegexTimeout);
+    private static readonly Regex PageObjRegex = new Regex(@"<<(?:.|\n|\r)*?/Type\s*/Page(?:.|\n|\r)*?/Contents\s+(\d+)\s+0\s+R(?:.|\n|\r)*?>>", RegexOptions.Compiled, RegexTimeout);
+    private static readonly Regex StreamRegex = new Regex(@"stream\r?\n([\s\S]*?)\r?\nendstream", RegexOptions.Compiled, RegexTimeout);
+    private static readonly Regex TjRegex = new Regex(@"\((?<txt>(?:\\.|[^\\\)])*)\)\s*Tj", RegexOptions.Compiled, RegexTimeout);
+#endif
 
     /// <summary>Extracts plain text from all pages, concatenated with blank lines between pages.</summary>
     public static string ExtractAllText(string path) {

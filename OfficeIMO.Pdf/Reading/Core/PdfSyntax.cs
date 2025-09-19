@@ -4,8 +4,14 @@ using System.Text.RegularExpressions;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfSyntax {
-    private static readonly Regex ObjRegex = new Regex(@"(\d+)\s+(\d+)\s+obj", RegexOptions.Compiled);
-    private static readonly Regex StreamRegex = new Regex(@"<<(.*?)>>\s*stream\r?\n([\s\S]*?)\r?\nendstream", RegexOptions.Compiled | RegexOptions.Singleline);
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(2);
+#if NET8_0_OR_GREATER
+    private static readonly Regex ObjRegex = new Regex(@"(\d+)\s+(\d+)\s+obj", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
+    private static readonly Regex StreamRegex = new Regex(@"<<(.*?)>>\s*stream\r?\n([\s\S]*?)\r?\nendstream", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.NonBacktracking, RegexTimeout);
+#else
+    private static readonly Regex ObjRegex = new Regex(@"(\d+)\s+(\d+)\s+obj", RegexOptions.Compiled, RegexTimeout);
+    private static readonly Regex StreamRegex = new Regex(@"<<(.*?)>>\s*stream\r?\n([\s\S]*?)\r?\nendstream", RegexOptions.Compiled | RegexOptions.Singleline, RegexTimeout);
+#endif
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf) {
         string text = PdfEncoding.Latin1GetString(pdf);
@@ -23,7 +29,13 @@ internal static class PdfSyntax {
                 var data = PdfEncoding.Latin1GetBytes(m.Groups[2].Value);
                 // Handle FlateDecode (best-effort, zero-dep)
                 if (HasFlateDecode(dict)) {
-                    try { data = Filters.FlateDecoder.Decode(data); } catch { /* keep original if decode fails */ }
+                    try { data = Filters.FlateDecoder.Decode(data); }
+                    catch (Exception ex) {
+                        // Provide failure feedback while keeping original bytes
+                        System.Diagnostics.Trace.WriteLine($"OfficeIMO.Pdf: FlateDecode failed for object {id} {gen} R: {ex.Message}");
+                        map[id] = new PdfIndirectObject(id, gen, new PdfStream(dict, data, decodingFailed: true, error: ex.Message));
+                        continue;
+                    }
                 }
                 map[id] = new PdfIndirectObject(id, gen, new PdfStream(dict, data));
             } else {

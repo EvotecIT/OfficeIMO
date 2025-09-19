@@ -123,8 +123,8 @@ namespace OfficeIMO.Examples {
             Pdf.ReadPdf.Example_Pdf_ReadPlainText(folderPath, false);
             Pdf.ReadSpans.Example_Pdf_TextSpans(folderPath, false);
             Pdf.WriterHeadersFooters.Example_Pdf_PageNumbers(folderPath, false);
-            Pdf.WriterListsTables.Example_Pdf_BulletsAndTable(folderPath, true);
-            Pdf.WriterDebugTables.Example_Pdf_TableDebug(folderPath, true);
+            Pdf.WriterListsTables.Example_Pdf_BulletsAndTable(folderPath, false);
+            Pdf.WriterDebugTables.Example_Pdf_TableDebug(folderPath, false);
             Pdf.ReadDocumentText.Example_Pdf_ReadDocumentText(folderPath, false);
             Pdf.WriterDefaults.Example_Pdf_DefaultStyles(folderPath, false);
             // Keep examples fast by default but avoid CS0162 unreachable code.

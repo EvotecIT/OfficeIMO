@@ -46,7 +46,13 @@ internal sealed class PdfReference : PdfObject {
 internal sealed class PdfStream : PdfObject {
     public PdfDictionary Dictionary { get; }
     public byte[] Data { get; }
-    public PdfStream(PdfDictionary dict, byte[] data) { Dictionary = dict; Data = data; }
+    /// <summary>True when a decode filter failed; <see cref="Data"/> contains original undecoded bytes.</summary>
+    public bool DecodingFailed { get; }
+    /// <summary>Error message from decode failure, when available.</summary>
+    public string? DecodingError { get; }
+    public PdfStream(PdfDictionary dict, byte[] data, bool decodingFailed = false, string? error = null) {
+        Dictionary = dict; Data = data; DecodingFailed = decodingFailed; DecodingError = error;
+    }
 }
 
 /// <summary>PDF indirect object wrapper.</summary>
