@@ -126,7 +126,12 @@ namespace OfficeIMO.Examples {
             Pdf.WriterListsTables.Example_Pdf_BulletsAndTable(folderPath, false);
             Pdf.WriterDebugTables.Example_Pdf_TableDebug(folderPath, false);
             Pdf.ReadDocumentText.Example_Pdf_ReadDocumentText(folderPath, false);
-            Pdf.WriterDefaults.Example_Pdf_DefaultStyles(folderPath, false);
+            Pdf.WriterDefaults.Example_Pdf_DefaultStyles(folderPath, true);
+            Pdf.WriterStyledRuns.Example_Pdf_StyledRuns(folderPath, true);
+            Pdf.WriterStyleCheatsheet.Example_Pdf_StyleCheatsheet(folderPath, true);
+            Pdf.FlowDslDemo.Example_Pdf_FlowDslDemo(folderPath, true);
+            Pdf.LinksAndRules.Example_Pdf_LinksAndRules(folderPath, true);
+            Pdf.LoremIpsumDemo.Example_Pdf_LoremIpsum(folderPath, true);
             // Keep examples fast by default but avoid CS0162 unreachable code.
             // Flip by setting environment variable OFFICEIMO_QUICK_DEMO=0 to run everything.
             bool quickDemoOnly = Environment.GetEnvironmentVariable("OFFICEIMO_QUICK_DEMO") != "0";

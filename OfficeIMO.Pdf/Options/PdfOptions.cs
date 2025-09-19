@@ -40,4 +40,15 @@ public sealed class PdfOptions {
     public PdfTableStyle? DefaultTableStyle { get; set; } = TableStyles.Light();
     /// <summary>Optional debug overlays (margins, baselines, boxes).</summary>
     public PdfDebugOptions? Debug { get; set; }
+
+    /// <summary>Advanced footer template segments. When set, overrides FooterFormat.</summary>
+    public System.Collections.Generic.List<FooterSegment>? FooterSegments { get; set; }
+}
+
+public enum FooterSegmentKind { Text, PageNumber, TotalPages }
+
+public sealed class FooterSegment {
+    public FooterSegmentKind Kind { get; }
+    public string? Text { get; }
+    public FooterSegment(FooterSegmentKind kind, string? text = null) { Kind = kind; Text = text; }
 }

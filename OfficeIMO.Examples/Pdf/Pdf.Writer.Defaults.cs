@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Pdf {
 
             PdfDoc.Create(options)
                 .H1("Defaults Demo", PdfAlign.Center, PdfColor.FromRgb(8,28,120))
-                .P("Document uses default text color and table style.")
+                .Paragraph(p => p.Text("Document uses default text color and table style."))
                 .Table(rows) // picks up DefaultTableStyle (Light preset)
                 .Save(path);
 

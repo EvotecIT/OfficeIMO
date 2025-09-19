@@ -18,11 +18,15 @@ internal static class PdfWriter {
         var pageIds = new List<int>();
         var contentIds = new List<int>();
 
-        // Collect required fonts across all pages (basic: Courier + Courier-Bold if headings used)
+        // Collect required fonts across all pages (basic: normal + optional bold/italic/bold-italic)
         bool needsBold = layout.UsedBold;
+        bool needsItalic = layout.UsedItalic;
+        bool needsBoldItalic = layout.UsedBoldItalic;
         var fonts = new List<FontRef>();
         int fontNormalId = 0;
         int fontBoldId = 0;
+        int fontItalicId = 0;
+        int fontBoldItalicId = 0;
 
         // Add font objects
         var baseFont = ChooseNormal(opts.DefaultFont);
@@ -33,18 +37,62 @@ internal static class PdfWriter {
             fontBoldId = AddObject(objects, "<< /Type /Font /Subtype /Type1 /BaseFont /" + boldFont.ToBaseFontName() + " /Encoding /WinAnsiEncoding >>\n");
             fonts.Add(new FontRef("F2", boldFont, fontBoldId));
         }
+        if (needsItalic) {
+            var italicFont = ChooseItalic(baseFont);
+            fontItalicId = AddObject(objects, "<< /Type /Font /Subtype /Type1 /BaseFont /" + italicFont.ToBaseFontName() + " /Encoding /WinAnsiEncoding >>\n");
+            fonts.Add(new FontRef("F3", italicFont, fontItalicId));
+        }
+        if (needsBoldItalic) {
+            var biFont = ChooseBoldItalic(baseFont);
+            fontBoldItalicId = AddObject(objects, "<< /Type /Font /Subtype /Type1 /BaseFont /" + biFont.ToBaseFontName() + " /Encoding /WinAnsiEncoding >>\n");
+            fonts.Add(new FontRef("F4", biFont, fontBoldItalicId));
+        }
 
         // Create content streams and page objects
         int totalPages = layout.Pages.Count;
         for (int pageIndex = 0; pageIndex < layout.Pages.Count; pageIndex++) {
             var page = layout.Pages[pageIndex];
             // Make a resources dict that references the fonts we declared
-            string fontDict = needsBold
-                ? $"<< /F1 {fontNormalId} 0 R /F2 {fontBoldId} 0 R >>"
-                : $"<< /F1 {fontNormalId} 0 R >>";
+            string fontDict;
+            if (needsBold || needsItalic || needsBoldItalic) {
+                var parts = new List<string> { $"/F1 {fontNormalId} 0 R" };
+                if (needsBold) parts.Add($"/F2 {fontBoldId} 0 R");
+                if (needsItalic) parts.Add($"/F3 {fontItalicId} 0 R");
+                if (needsBoldItalic) parts.Add($"/F4 {fontBoldItalicId} 0 R");
+                fontDict = $"<< {string.Join(" ", parts)} >>";
+            } else {
+                fontDict = $"<< /F1 {fontNormalId} 0 R >>";
+            }
 
-            // Content stream
+            // Content stream (append image draw commands at end)
             string contentStr = page.Content;
+            var xobjects = new List<(string Name, int Id)>();
+            if (page.Images.Count > 0) {
+                for (int i = 0; i < page.Images.Count; i++) {
+                    var img = page.Images[i];
+                    string name = "/Im" + (i + 1).ToString(CultureInfo.InvariantCulture);
+                    // Add image object (JPEG assumed: /Filter /DCTDecode)
+                    int imgLen = img.Data.Length;
+                    int imgId = AddObject(objects, "<< /Type /XObject /Subtype /Image /Width " + F0(img.W) + " /Height " + F0(img.H) + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + imgLen.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
+                    objects[imgId - 1] = Merge(
+                        Encoding.ASCII.GetBytes(imgId.ToString(CultureInfo.InvariantCulture) + " 0 obj\n<< /Type /XObject /Subtype /Image /Width " + F0(img.W) + " /Height " + F0(img.H) + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + imgLen.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n"),
+                        img.Data,
+                        Encoding.ASCII.GetBytes("\nendstream\nendobj\n")
+                    );
+                    img.ObjectId = imgId;
+                    img.Name = name;
+                    xobjects.Add((name, imgId));
+                }
+                // Append draw commands
+                var sbImgs = new StringBuilder();
+                foreach (var img in page.Images) {
+                    sbImgs.Append("q ")
+                          .Append(F(img.W)).Append(' ').Append("0 0 ")
+                          .Append(F(img.H)).Append(' ').Append(F(img.X)).Append(' ').Append(F(img.Y)).Append(" cm ")
+                          .Append(img.Name).Append(" Do Q\n");
+                }
+                contentStr += sbImgs.ToString();
+            }
             if (opts.ShowPageNumbers) {
                 string footer = BuildFooter(opts, pageIndex + 1, totalPages);
                 contentStr += footer;
@@ -61,10 +109,24 @@ internal static class PdfWriter {
             );
             contentIds.Add(contentId);
 
+            // Annotations (link URIs)
+            var pageAnnotIds = new List<int>();
+            if (page.Annotations.Count > 0) {
+                foreach (var a in page.Annotations) {
+                    string annot = "<< /Type /Annot /Subtype /Link /Border [0 0 0] /Rect [" +
+                        F(a.X1) + " " + F(a.Y1) + " " + F(a.X2) + " " + F(a.Y2) +
+                        "] /A << /S /URI /URI " + PdfString(a.Uri) + " >> >>\n";
+                    int annId = AddObject(objects, annot);
+                    pageAnnotIds.Add(annId);
+                }
+            }
+
             // Page object
+            string annotsPart = pageAnnotIds.Count > 0 ? " /Annots [ " + string.Join(" ", pageAnnotIds.Select(id => id.ToString(CultureInfo.InvariantCulture) + " 0 R")) + " ]" : string.Empty;
+            string xobjPart = xobjects.Count > 0 ? " /XObject << " + string.Join(" ", xobjects.Select(x => x.Name + " " + x.Id.ToString(CultureInfo.InvariantCulture) + " 0 R")) + " >>" : string.Empty;
             int pageId = AddObject(objects,
                 "<< /Type /Page /Parent 0 0 R /MediaBox [0 0 " + F0(opts.PageWidth) + " " + F0(opts.PageHeight) + 
-                "] /Resources << /Font " + fontDict + " >> /Contents " + contentId.ToString(CultureInfo.InvariantCulture) + " 0 R >>\n");
+                "] /Resources << /Font " + fontDict + (xobjPart.Length > 0 ? " /XObject " + xobjPart : string.Empty) + " >> /Contents " + contentId.ToString(CultureInfo.InvariantCulture) + " 0 R" + annotsPart + " >>\n");
             pageIds.Add(pageId);
         }
 
@@ -146,11 +208,48 @@ internal static class PdfWriter {
     private sealed class LayoutResult {
         public List<Page> Pages { get; } = new();
         public bool UsedBold { get; set; }
-        public sealed class Page { public string Content { get; set; } = string.Empty; }
+        public bool UsedItalic { get; set; }
+        public bool UsedBoldItalic { get; set; }
+        public sealed class Page {
+            public string Content { get; set; } = string.Empty;
+            public List<LinkAnnotation> Annotations { get; } = new();
+            public List<PageImage> Images { get; } = new();
+        }
+    }
+
+    private sealed class LinkAnnotation {
+        public double X1 { get; init; }
+        public double Y1 { get; init; }
+        public double X2 { get; init; }
+        public double Y2 { get; init; }
+        public string Uri { get; init; } = string.Empty;
+    }
+
+    private sealed class PageImage {
+        public byte[] Data { get; init; } = System.Array.Empty<byte>();
+        public double X { get; init; }
+        public double Y { get; init; }
+        public double W { get; init; }
+        public double H { get; init; }
+        public string Name { get; set; } = string.Empty;
+        public int ObjectId { get; set; }
     }
 
     private static string BuildFooter(PdfOptions opts, int page, int pages) {
-        string text = opts.FooterFormat.Replace("{page}", page.ToString(CultureInfo.InvariantCulture)).Replace("{pages}", pages.ToString(CultureInfo.InvariantCulture));
+        string text;
+        if (opts.FooterSegments != null && opts.FooterSegments.Count > 0) {
+            var sbFooter = new StringBuilder();
+            foreach (var seg in opts.FooterSegments) {
+                switch (seg.Kind) {
+                    case FooterSegmentKind.Text: sbFooter.Append(seg.Text); break;
+                    case FooterSegmentKind.PageNumber: sbFooter.Append(page.ToString(CultureInfo.InvariantCulture)); break;
+                    case FooterSegmentKind.TotalPages: sbFooter.Append(pages.ToString(CultureInfo.InvariantCulture)); break;
+                }
+            }
+            text = sbFooter.ToString();
+        } else {
+            text = opts.FooterFormat.Replace("{page}", page.ToString(CultureInfo.InvariantCulture)).Replace("{pages}", pages.ToString(CultureInfo.InvariantCulture));
+        }
         double width = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
         double em = GlyphWidthEmFor(ChooseNormal(opts.FooterFont));
         double textWidth = text.Length * opts.FooterFontSize * em;
@@ -173,10 +272,13 @@ internal static class PdfWriter {
         double y = yStart;
 
         var sb = new StringBuilder();
-        var pages = new List<string>();
+        var pages = new List<LayoutResult.Page>();
+        var currentPage = new LayoutResult.Page();
         bool usedBold = false;
+        bool usedItalic = false;
+        bool usedBoldItalic = false;
 
-        void FlushPage() { pages.Add(sb.ToString()); sb.Clear(); }
+        void FlushPage() { currentPage.Content = sb.ToString(); pages.Add(currentPage); currentPage = new LayoutResult.Page(); sb.Clear(); }
         // first page is implicit; content buffer starts empty
         void NewPage() { FlushPage(); y = yStart; }
 
@@ -194,7 +296,7 @@ internal static class PdfWriter {
                 // Using a very small descender-based tweak; can be tuned later if needed.
                 yStart -= GetDescender(font, fontSize) * 0.0;
             }
-            sb.Append("1 0 0 1 ").Append(F(opts.MarginLeft)).Append(' ').Append(F(yStart)).Append(" Tm\n");
+            sb.Append("1 0 0 1 ").Append(F(x)).Append(' ').Append(F(yStart)).Append(" Tm\n");
             var effectiveColor = color ?? opts.DefaultTextColor;
             if (effectiveColor.HasValue) sb.Append(SetFillColor(effectiveColor.Value));
             // First line
@@ -229,6 +331,25 @@ internal static class PdfWriter {
                 // Page breaks as needed
                 double needed = lines.Count * leading + leading * 0.25; // small extra breathing room
                 if (y - needed < opts.MarginBottom) { NewPage(); }
+                // If single-line heading and link provided, record annotation rect
+                bool singleLine = lines.Count == 1 && !string.IsNullOrEmpty(hb.LinkUri);
+                double widthContent = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
+                double em = GlyphWidthEmFor(ChooseBold(ChooseNormal(opts.DefaultFont)));
+                double lineWidth = lines[0].Length * size * em;
+                double dx = 0;
+                if (hb.Align == PdfAlign.Center) dx = Math.Max(0, (widthContent - lineWidth) / 2);
+                else if (hb.Align == PdfAlign.Right) dx = Math.Max(0, widthContent - lineWidth);
+                if (singleLine) {
+                    double baseline = y;
+                    var baseFont = ChooseBold(ChooseNormal(opts.DefaultFont));
+                    double asc = GetAscender(baseFont, size);
+                    double desc = GetDescender(baseFont, size);
+                    double x1 = opts.MarginLeft + dx;
+                    double x2 = x1 + lineWidth;
+                    double y1 = baseline - desc;
+                    double y2 = baseline + asc;
+                    currentPage.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = hb.LinkUri! });
+                }
                 WriteLines("F2", size, leading, opts.MarginLeft, y, lines, hb.Align, hb.Color, applyBaselineTweak: false);
                 y -= needed;
             }
@@ -240,6 +361,19 @@ internal static class PdfWriter {
                 if (y - needed < opts.MarginBottom) { NewPage(); }
                 WriteLines("F1", size, leading, opts.MarginLeft, y, lines, pb.Align, pb.Color, applyBaselineTweak: false);
                 y -= needed;
+            }
+            else if (block is RichParagraphBlock rpb) {
+                // Inline styled paragraph: detect style usage for font resource registration
+                if (rpb.Runs.Any(run => run.Bold && run.Italic)) usedBoldItalic = true;
+                if (rpb.Runs.Any(run => run.Bold)) usedBold = true;
+                if (rpb.Runs.Any(run => run.Italic)) usedItalic = true;
+                double size = opts.DefaultFontSize;
+                double leading = size * 1.4;
+                var (lines, lineHeights) = WrapRichRuns(rpb.Runs, width, size, ChooseNormal(opts.DefaultFont));
+                double totalNeeded = lineHeights.Sum() + leading * 0.3;
+                if (y - totalNeeded < opts.MarginBottom) { NewPage(); }
+                WriteRichParagraph(sb, rpb, lines, lineHeights, opts, y, size, leading, currentPage.Annotations);
+                y -= totalNeeded;
             }
             else if (block is BulletListBlock bl) {
                 double size = opts.DefaultFontSize;
@@ -324,6 +458,17 @@ internal static class PdfWriter {
                         double xCell = xi + padX + offset;
                         double yCell = yBase; // baseline
                         WriteCell(sb, fontRes, size, xCell, yCell, cell, textColor, opts);
+                        // Link for cell?
+                        if (tb.Links.TryGetValue((rowIndex, c), out var uri)) {
+                            var baseFont = fontRes == "F2" ? ChooseBold(ChooseNormal(opts.DefaultFont)) : ChooseNormal(opts.DefaultFont);
+                            double asc = GetAscender(baseFont, size);
+                            double desc = GetDescender(baseFont, size);
+                            double x1 = xCell;
+                            double x2 = xCell + textW;
+                            double y1 = yCell - desc;
+                            double y2 = yCell + asc;
+                            currentPage.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = uri });
+                        }
                         xi += colPixel[c] + colGapPx;
                     }
                     // Borders (row rect + vertical grid)
@@ -345,6 +490,95 @@ internal static class PdfWriter {
                     y -= needed;
                 }
             }
+            else if (block is RowBlock rb) {
+                // Compute column x positions
+                double contentWidth = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
+                double[] colXs = new double[rb.Columns.Count];
+                double[] colWs = new double[rb.Columns.Count];
+                double xAcc = opts.MarginLeft;
+                for (int i = 0; i < rb.Columns.Count; i++) {
+                    double w = System.Math.Max(0, contentWidth * (rb.Columns[i].WidthPercent / 100.0));
+                    colXs[i] = xAcc;
+                    colWs[i] = w;
+                    xAcc += w;
+                }
+                // Render each column separately, track max height
+                double[] colHeights = new double[rb.Columns.Count];
+                for (int ci = 0; ci < rb.Columns.Count; ci++) {
+                    double xCol = colXs[ci];
+                    double wCol = colWs[ci];
+                    double yCol = y;
+                    foreach (var cb in rb.Columns[ci].Blocks) {
+                        if (cb is HeadingBlock hb2) {
+                            double size = hb2.Level switch { 1 => 24, 2 => 18, 3 => 14, _ => 12 };
+                            double leading = size * 1.25;
+                            var lines = WrapMonospace(hb2.Text, wCol, size, GlyphWidthEmFor(ChooseBold(ChooseNormal(opts.DefaultFont))));
+                            double needed = lines.Count * leading + leading * 0.25;
+                            WriteLines("F2", size, leading, xCol, yCol, lines, hb2.Align, hb2.Color, applyBaselineTweak: false);
+                            yCol -= needed;
+                        } else if (cb is RichParagraphBlock rpb2) {
+                            double size = opts.DefaultFontSize;
+                            double leading = size * 1.4;
+                            var (lines, lineHeights) = WrapRichRuns(rpb2.Runs, wCol, size, ChooseNormal(opts.DefaultFont));
+                            double needed = lineHeights.Sum() + leading * 0.3;
+                            WriteRichParagraph(sb, rpb2, lines, lineHeights, opts, yCol, size, leading, currentPage.Annotations, xCol);
+                            yCol -= needed;
+                        } else if (cb is HorizontalRuleBlock hr2) {
+                            yCol -= hr2.SpacingBefore;
+                            double x1 = xCol;
+                            double x2 = xCol + wCol;
+                            double yLine = yCol - hr2.Thickness * 0.5;
+                            DrawHLine(sb, hr2.Color, System.Math.Max(0.2, hr2.Thickness), x1, x2, yLine);
+                            yCol -= hr2.SpacingAfter;
+                        } else if (cb is ImageBlock ib2) {
+                            double xImg = xCol;
+                            if (ib2.Align == PdfAlign.Center) xImg = xCol + System.Math.Max(0, (wCol - ib2.Width) / 2);
+                            else if (ib2.Align == PdfAlign.Right) xImg = xCol + System.Math.Max(0, wCol - ib2.Width);
+                            currentPage.Images.Add(new PageImage { Data = ib2.Data, X = xImg, Y = yCol - ib2.Height, W = ib2.Width, H = ib2.Height });
+                            yCol -= ib2.Height;
+                        }
+                    }
+                    colHeights[ci] = y - yCol;
+                }
+                double rowHeight = colHeights.Length > 0 ? colHeights.Max() : 0;
+                if (y - rowHeight < opts.MarginBottom) { NewPage(); }
+                y -= rowHeight;
+            }
+            else if (block is ImageBlock ib) {
+                double x = opts.MarginLeft;
+                double contentWidth = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
+                if (ib.Align == PdfAlign.Center) x = opts.MarginLeft + System.Math.Max(0, (contentWidth - ib.Width) / 2);
+                else if (ib.Align == PdfAlign.Right) x = opts.MarginLeft + System.Math.Max(0, contentWidth - ib.Width);
+                if (y - ib.Height < opts.MarginBottom) { NewPage(); }
+                currentPage.Images.Add(new PageImage { Data = ib.Data, X = x, Y = y - ib.Height, W = ib.Width, H = ib.Height });
+                y -= ib.Height;
+            }
+            else if (block is PanelParagraphBlock ppb) {
+                double size = opts.DefaultFontSize;
+                double leading = size * 1.4;
+                var (lines, lineHeights) = WrapRichRuns(ppb.Runs, width, size, ChooseNormal(opts.DefaultFont));
+                double textHeight = lineHeights.Sum();
+                double panelTop = y;
+                // Compute panel width including horizontal padding
+                double contentWidth = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
+                double innerWidth = contentWidth;
+                if (ppb.Style.MaxWidth.HasValue) innerWidth = System.Math.Min(contentWidth, ppb.Style.MaxWidth.Value);
+                double xLeft = opts.MarginLeft;
+                if (ppb.Style.Align == PdfAlign.Center) xLeft = opts.MarginLeft + System.Math.Max(0, (contentWidth - innerWidth) / 2);
+                else if (ppb.Style.Align == PdfAlign.Right) xLeft = opts.MarginLeft + System.Math.Max(0, contentWidth - innerWidth);
+                double panelBottom = y - (ppb.Style.PaddingY + textHeight + ppb.Style.PaddingY);
+                if (panelBottom < opts.MarginBottom) { NewPage(); panelTop = y; panelBottom = y - (ppb.Style.PaddingY + textHeight + ppb.Style.PaddingY); }
+                double panelWidth = innerWidth;
+                if (ppb.Style.Background.HasValue) {
+                    DrawRowFill(sb, ppb.Style.Background.Value, xLeft, panelBottom, panelWidth, panelTop - panelBottom);
+                }
+                if (ppb.Style.BorderColor.HasValue && ppb.Style.BorderWidth > 0) {
+                    DrawRowRect(sb, ppb.Style.BorderColor.Value, ppb.Style.BorderWidth, xLeft, panelBottom, panelWidth, panelTop - panelBottom);
+                }
+                // Write text starting at y = panelTop - paddingY
+                WriteRichParagraph(sb, new RichParagraphBlock(ppb.Runs, ppb.Align, ppb.DefaultColor), lines, lineHeights, opts, panelTop - ppb.Style.PaddingY, size, leading, currentPage.Annotations, xLeft + ppb.Style.PaddingX);
+                y = panelBottom;
+            }
             else {
                 // Unknown future block types – skip for now
             }
@@ -356,8 +590,8 @@ internal static class PdfWriter {
         // Close last page
         FlushPage();
 
-        var result = new LayoutResult { UsedBold = usedBold };
-        foreach (var c in pages) result.Pages.Add(new LayoutResult.Page { Content = c });
+        var result = new LayoutResult { UsedBold = usedBold, UsedItalic = usedItalic, UsedBoldItalic = usedBoldItalic };
+        foreach (var p in pages) result.Pages.Add(p);
         return result;
     }
 
@@ -492,16 +726,30 @@ internal static class PdfWriter {
     };
 
     private static PdfStandardFont ChooseBold(PdfStandardFont normal) => normal switch {
-        PdfStandardFont.Helvetica => PdfStandardFont.HelveticaBold,
-        PdfStandardFont.TimesRoman => PdfStandardFont.TimesBold,
-        PdfStandardFont.Courier => PdfStandardFont.CourierBold,
+        PdfStandardFont.Helvetica or PdfStandardFont.HelveticaOblique or PdfStandardFont.HelveticaBold => PdfStandardFont.HelveticaBold,
+        PdfStandardFont.TimesRoman or PdfStandardFont.TimesItalic or PdfStandardFont.TimesBold => PdfStandardFont.TimesBold,
+        PdfStandardFont.Courier or PdfStandardFont.CourierOblique or PdfStandardFont.CourierBold => PdfStandardFont.CourierBold,
         _ => PdfStandardFont.CourierBold
     };
 
+    private static PdfStandardFont ChooseItalic(PdfStandardFont normal) => normal switch {
+        PdfStandardFont.Helvetica or PdfStandardFont.HelveticaBold => PdfStandardFont.HelveticaOblique,
+        PdfStandardFont.TimesRoman or PdfStandardFont.TimesBold => PdfStandardFont.TimesItalic,
+        PdfStandardFont.Courier or PdfStandardFont.CourierBold => PdfStandardFont.CourierOblique,
+        _ => PdfStandardFont.HelveticaOblique
+    };
+
+    private static PdfStandardFont ChooseBoldItalic(PdfStandardFont normal) => normal switch {
+        PdfStandardFont.Helvetica or PdfStandardFont.HelveticaOblique or PdfStandardFont.HelveticaBold => PdfStandardFont.HelveticaBoldOblique,
+        PdfStandardFont.TimesRoman or PdfStandardFont.TimesItalic or PdfStandardFont.TimesBold => PdfStandardFont.TimesBoldItalic,
+        PdfStandardFont.Courier or PdfStandardFont.CourierOblique or PdfStandardFont.CourierBold => PdfStandardFont.CourierBoldOblique,
+        _ => PdfStandardFont.HelveticaBoldOblique
+    };
+
     private static double GlyphWidthEmFor(PdfStandardFont font) => font switch {
-        PdfStandardFont.Courier or PdfStandardFont.CourierBold => 0.6,
-        PdfStandardFont.Helvetica or PdfStandardFont.HelveticaBold => 0.55,
-        PdfStandardFont.TimesRoman or PdfStandardFont.TimesBold => 0.5,
+        PdfStandardFont.Courier or PdfStandardFont.CourierBold or PdfStandardFont.CourierOblique or PdfStandardFont.CourierBoldOblique => 0.6,
+        PdfStandardFont.Helvetica or PdfStandardFont.HelveticaBold or PdfStandardFont.HelveticaOblique or PdfStandardFont.HelveticaBoldOblique => 0.55,
+        PdfStandardFont.TimesRoman or PdfStandardFont.TimesBold or PdfStandardFont.TimesItalic or PdfStandardFont.TimesBoldItalic => 0.5,
         _ => 0.6
     };
 
@@ -511,6 +759,14 @@ internal static class PdfWriter {
         PdfStandardFont.Helvetica or PdfStandardFont.HelveticaBold => fontSize * 0.22,
         PdfStandardFont.TimesRoman or PdfStandardFont.TimesBold => fontSize * 0.26,
         _ => fontSize * 0.23
+    };
+
+    // Approximate ascender height (distance from baseline up to glyph top) in points.
+    private static double GetAscender(PdfStandardFont font, double fontSize) => font switch {
+        PdfStandardFont.Courier or PdfStandardFont.CourierBold => fontSize * 0.72,
+        PdfStandardFont.Helvetica or PdfStandardFont.HelveticaBold => fontSize * 0.74,
+        PdfStandardFont.TimesRoman or PdfStandardFont.TimesBold => fontSize * 0.72,
+        _ => fontSize * 0.72
     };
 
     private static bool LooksNumeric(string s) {
@@ -530,5 +786,171 @@ internal static class PdfWriter {
             else return false;
         }
         return digits > 0;
+    }
+
+    // Rich paragraph layout
+    private sealed record RichSeg(string Text, bool Bold, bool Italic, bool Underline, bool Strike, PdfColor? Color, string? Uri);
+
+    private static (List<List<RichSeg>> Lines, List<double> LineHeights) WrapRichRuns(IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont) {
+        // Monospace-ish width estimate per font family; bold uses same em width here.
+        double em = GlyphWidthEmFor(baseFont);
+        double spaceW = fontSize * em;
+        int maxChars = Math.Max(1, (int)System.Math.Floor(maxWidthPts / (fontSize * em)));
+        var lines = new List<List<RichSeg>> { new() };
+        var heights = new List<double>();
+        double lineWidth = 0;
+        foreach (var run in runs) {
+            string text = run.Text ?? string.Empty;
+            bool bold = run.Bold;
+            bool underline = run.Underline;
+            bool strike = run.Strike;
+            bool italic = run.Italic;
+            var color = run.Color;
+            string? uri = run.LinkUri;
+            int idx = 0;
+            while (idx < text.Length) {
+                // find next whitespace or newline as a break opportunity
+                int nextWs = text.IndexOfAny(new[] { ' ', '\n' }, idx);
+                bool hadNewline = false;
+                string token;
+                if (nextWs == -1) { token = text.Substring(idx); idx = text.Length; }
+                else {
+                    token = text.Substring(idx, nextWs - idx);
+                    hadNewline = text[nextWs] == '\n';
+                    idx = nextWs + 1;
+                }
+                double tokenW = token.Length * fontSize * em;
+                var lastLine = lines[lines.Count - 1];
+                double needed = (lastLine.Count == 0 ? tokenW : spaceW + tokenW);
+
+                // Hard break overly long tokens
+                if (tokenW > maxWidthPts) {
+                    if (lastLine.Count > 0) { heights.Add(fontSize * 1.4); lines.Add(new()); lineWidth = 0; lastLine = lines[lines.Count - 1]; }
+                    int pos = 0;
+                    while (pos < token.Length) {
+                        int take = System.Math.Min(maxChars, token.Length - pos);
+                        string chunk = token.Substring(pos, take);
+                        lastLine.Add(new RichSeg(chunk, bold, italic, underline, strike, color, uri));
+                        pos += take;
+                        if (pos < token.Length) { heights.Add(fontSize * 1.4); lines.Add(new()); lineWidth = 0; lastLine = lines[lines.Count - 1]; }
+                    }
+                    if (hadNewline) { heights.Add(fontSize * 1.4); lines.Add(new()); lineWidth = 0; }
+                    continue;
+                }
+                if (lineWidth + needed > maxWidthPts && lastLine.Count > 0) {
+                    // break line
+                    heights.Add(fontSize * 1.4);
+                    lines.Add(new());
+                    lineWidth = 0;
+                    needed = tokenW;
+                }
+                if (token.Length > 0) {
+                    if (lineWidth > 0) lineWidth += spaceW;
+                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, uri));
+                    lineWidth += tokenW;
+                }
+                if (hadNewline) {
+                    heights.Add(fontSize * 1.4);
+                    lines.Add(new());
+                    lineWidth = 0;
+                }
+            }
+        }
+        if (lines.Count > 0 && lines[lines.Count - 1].Count == 0) { lines.RemoveAt(lines.Count - 1); }
+        if (heights.Count < lines.Count) heights.Add(fontSize * 1.4);
+        return (lines, heights);
+    }
+
+    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, List<List<RichSeg>> lines, List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, List<LinkAnnotation> annots, double? xOverride = null) {
+        double widthContent = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
+        // Precompute run widths using monospace em for default font
+        double em = GlyphWidthEmFor(ChooseNormal(opts.DefaultFont));
+        double spaceW = fontSize * em;
+        // Underlines to draw after text
+        var underlines = new List<(double X1, double X2, double Y, PdfColor Color)>();
+        var strikes = new List<(double X1, double X2, double Y, PdfColor Color)>();
+
+        sb.Append("BT\n");
+        sb.Append(F(defaultLeading)).Append(" TL\n");
+        double xOrigin = xOverride ?? opts.MarginLeft;
+        sb.Append("1 0 0 1 ").Append(F(xOrigin)).Append(' ').Append(F(startY)).Append(" Tm\n");
+
+        for (int li = 0; li < lines.Count; li++) {
+            if (li != 0) sb.Append("T*\n");
+            var segs = lines[li];
+            // measure line width
+            double lineW = 0;
+            foreach (var s in segs) lineW += (s.Text.Length * fontSize * em);
+            // add spaces between tokens if present
+            if (segs.Count > 1) lineW += (segs.Count - 1) * spaceW;
+
+            double dx = 0;
+            if (block.Align == PdfAlign.Center) dx = Math.Max(0, (widthContent - lineW) / 2);
+            else if (block.Align == PdfAlign.Right) dx = Math.Max(0, widthContent - lineW);
+            if (dx != 0) sb.Append(F(dx)).Append(" 0 Td\n");
+
+            double xCursor = dx;
+            for (int si = 0; si < segs.Count; si++) {
+                var s = segs[si];
+                // font
+                string fontRes = (s.Bold && s.Italic) ? "F4" : s.Bold ? "F2" : s.Italic ? "F3" : "F1";
+                sb.Append('/').Append(fontRes).Append(' ').Append(F(fontSize)).Append(" Tf\n");
+                // color
+                var color = s.Color ?? block.DefaultColor ?? opts.DefaultTextColor;
+                if (color.HasValue) sb.Append(SetFillColor(color.Value));
+                // text
+                sb.Append('<').Append(EncodeWinAnsiHex(s.Text)).Append("> Tj\n");
+                double wSeg = s.Text.Length * fontSize * em;
+                // explicitly advance by segment width to ensure position progresses across viewers
+                sb.Append(F(wSeg)).Append(" 0 Td\n");
+
+                // underline plan
+                if (s.Underline) {
+                    var ulColor = (s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? PdfColor.Black;
+                    double yLine = startY - li * defaultLeading - fontSize * 0.15; // ~ underline offset
+                    underlines.Add((xOrigin + xCursor, xOrigin + xCursor + wSeg, yLine, ulColor));
+                }
+                if (s.Strike) {
+                    var stColor = (s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? PdfColor.Black;
+                    double yLine = startY - li * defaultLeading + fontSize * 0.32; // ~ strike offset
+                    strikes.Add((xOrigin + xCursor, xOrigin + xCursor + wSeg, yLine, stColor));
+                }
+                // link annotation
+                if (!string.IsNullOrEmpty(s.Uri)) {
+                    double baseline = startY - li * defaultLeading;
+                    var baseFont = ChooseNormal(opts.DefaultFont);
+                    var fontForMetrics = (s.Bold && s.Italic) ? ChooseBoldItalic(baseFont) : s.Bold ? ChooseBold(baseFont) : s.Italic ? ChooseItalic(baseFont) : baseFont;
+                    double asc = GetAscender(fontForMetrics, fontSize);
+                    double desc = GetDescender(fontForMetrics, fontSize);
+                    double x1 = xOrigin + xCursor;
+                    double x2 = x1 + wSeg;
+                    double y1 = baseline - desc;
+                    double y2 = baseline + asc;
+                    annots.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = s.Uri! });
+                }
+                // advance x by segment width + inter-token space if the next is not the first
+                xCursor += wSeg;
+                if (si != segs.Count - 1) { xCursor += spaceW; sb.Append(F(spaceW)).Append(" 0 Td\n"); }
+            }
+            // Return to start-of-line X for next line
+            if (xCursor != 0) sb.Append(F(-xCursor)).Append(" 0 Td\n");
+        }
+        sb.Append("ET\n");
+
+        // draw underlines
+        foreach (var ul in underlines) {
+            sb.Append("q\n");
+            sb.Append(SetStrokeColor(ul.Color));
+            sb.Append("0.5 w\n");
+            sb.Append(F(ul.X1)).Append(' ').Append(F(ul.Y)).Append(" m ").Append(F(ul.X2)).Append(' ').Append(F(ul.Y)).Append(" l S\n");
+            sb.Append("Q\n");
+        }
+        foreach (var st in strikes) {
+            sb.Append("q\n");
+            sb.Append(SetStrokeColor(st.Color));
+            sb.Append("0.5 w\n");
+            sb.Append(F(st.X1)).Append(' ').Append(F(st.Y)).Append(" m ").Append(F(st.X2)).Append(' ').Append(F(st.Y)).Append(" l S\n");
+            sb.Append("Q\n");
+        }
     }
 }

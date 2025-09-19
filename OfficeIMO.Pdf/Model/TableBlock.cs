@@ -4,6 +4,8 @@ internal sealed class TableBlock : IPdfBlock {
     public System.Collections.Generic.List<string[]> Rows { get; } = new();
     public PdfAlign Align { get; }
     public PdfTableStyle? Style { get; }
+    // Optional per-cell link URIs: key = (rowIndex, colIndex)
+    public System.Collections.Generic.Dictionary<(int Row, int Col), string> Links { get; } = new();
     public TableBlock(System.Collections.Generic.IEnumerable<string[]> rows, PdfAlign align, PdfTableStyle? style) {
         Guard.NotNull(rows, nameof(rows));
         Align = align; Style = style;

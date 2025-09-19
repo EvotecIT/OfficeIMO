@@ -8,12 +8,11 @@ namespace OfficeIMO.Examples.Pdf {
             PdfDoc.Create()
                 .Meta(title: "Hello PDF", author: "OfficeIMO")
                 .H1("OfficeIMO.Pdf — Hello World")
-                .P("This PDF was generated with zero external dependencies using standard PDF fonts.")
-                .P("The layout uses simple vertical flow and Courier for predictable wrapping.")
+                .Paragraph(p => p.Text("This PDF was generated with zero external dependencies using standard PDF fonts."))
+                .Paragraph(p => p.Text("The layout uses simple vertical flow and Courier for predictable wrapping."))
                 .Save(path);
 
             if (open) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });
         }
     }
 }
-

@@ -41,7 +41,7 @@ namespace OfficeIMO.Examples.Pdf {
                     CellPaddingY = styleBase.CellPaddingY,
                     RowBaselineOffset = -1.0
                 })
-                .P(" ")
+                .Paragraph(p => p.Text(" "))
                 .H1("Table Debug — Offset 0.0", PdfAlign.Left)
                 .Table(rows, PdfAlign.Left, new PdfTableStyle {
                     HeaderFill = styleBase.HeaderFill,
@@ -51,7 +51,7 @@ namespace OfficeIMO.Examples.Pdf {
                     CellPaddingY = styleBase.CellPaddingY,
                     RowBaselineOffset = 0.0
                 })
-                .P(" ")
+                .Paragraph(p => p.Text(" "))
                 .H1("Table Debug — Offset +1.0", PdfAlign.Left)
                 .Table(rows, PdfAlign.Left, new PdfTableStyle {
                     HeaderFill = styleBase.HeaderFill,

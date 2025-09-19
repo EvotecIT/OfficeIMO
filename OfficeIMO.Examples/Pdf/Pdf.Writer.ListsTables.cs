@@ -19,10 +19,10 @@ namespace OfficeIMO.Examples.Pdf {
             };
             PdfDoc.Create()
                 .H1("Simple Lists and Tables", PdfAlign.Center)
-                .P("Below is a bullet list:")
+                .Paragraph(p => p.Text("Below is a bullet list:"))
                 .Bullets(new[] { "First item", "Second item", "Third item" }, PdfAlign.Left, PdfColor.FromRgb(60, 60, 60))
-                .P(" ")
-                .P("And a simple table (aligned columns):")
+                .Paragraph(p => p.Text(" "))
+                .Paragraph(p => p.Text("And a simple table (aligned columns):"))
                 .Table(rows, PdfAlign.Left, style)
                 .Save(path);
             if (open) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });
