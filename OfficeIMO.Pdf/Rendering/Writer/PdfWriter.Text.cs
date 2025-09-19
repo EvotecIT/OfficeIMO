@@ -4,6 +4,7 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    private static readonly char[] TokenSplitChars = new[] { ' ', '\n' };
     private static string EscapeText(string s) => EscapeLiteral(s);
 
     private static string EscapeLiteral(string s) {
@@ -96,7 +97,7 @@ internal static partial class PdfWriter {
             string? uri = run.LinkUri;
             int idx = 0;
             while (idx < text.Length) {
-                int nextWs = text.IndexOfAny(new[] { ' ', '\n' }, idx);
+                int nextWs = text.IndexOfAny(TokenSplitChars, idx);
                 bool hadNewline = false;
                 string token;
                 if (nextWs == -1) { token = text.Substring(idx); idx = text.Length; }
