@@ -10,12 +10,8 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "Document with PageNumbers6.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Sections[0].AddPageNumbering(1, NumberFormatValues.UpperRoman);
-                document.AddHeadersAndFooters();
 
-                var footers = Guard.NotNull(document.Footer, "Document footers must exist after enabling headers.");
-                var defaultFooter = Guard.NotNull(footers.Default, "Default footer must exist after enabling headers.");
-
-                var para = defaultFooter.AddParagraph();
+                var para = document.FooterDefaultOrCreate.AddParagraph();
                 para.ParagraphAlignment = JustificationValues.Right;
                 para.AddText("Page ");
                 para.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.Roman, separator: " of ");

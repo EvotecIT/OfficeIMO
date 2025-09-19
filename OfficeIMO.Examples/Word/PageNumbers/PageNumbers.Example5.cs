@@ -9,10 +9,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating document with section page numbers");
             string filePath = System.IO.Path.Combine(folderPath, "Document with PageNumbers5.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
-
-                var footers = Guard.NotNull(document.Footer, "Document footers must exist after enabling headers.");
-                var defaultFooter = Guard.NotNull(footers.Default, "Default footer must exist after enabling headers.");
+                var defaultFooter = document.FooterDefaultOrCreate;
 
                 var firstFooter = defaultFooter.AddParagraph();
                 firstFooter.ParagraphAlignment = JustificationValues.Right;

@@ -22,14 +22,11 @@ namespace OfficeIMO.Examples.Word {
             string imagePath = Path.Combine(Directory.GetCurrentDirectory(), "Images", "EvotecLogo.png");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.AddHeadersAndFooters();
-                var headers = Guard.NotNull(document.Header, "Document headers must exist after enabling headers.");
-                var defaultHeader = Guard.NotNull(headers.Default, "Default header must exist after enabling headers.");
+                var defaultHeader = document.HeaderDefaultOrCreate;
                 defaultHeader.AddParagraph("Example Header");
                 WordTable headerTable = defaultHeader.AddTable(1, 1);
                 headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "H1";
-                var footers = Guard.NotNull(document.Footer, "Document footers must exist after enabling headers.");
-                var defaultFooter = Guard.NotNull(footers.Default, "Default footer must exist after enabling headers.");
+                var defaultFooter = document.FooterDefaultOrCreate;
                 defaultFooter.AddParagraph("Example Footer");
                 WordTable footerTable = defaultFooter.AddTable(1, 1);
                 footerTable.Rows[0].Cells[0].Paragraphs[0].Text = "F1";

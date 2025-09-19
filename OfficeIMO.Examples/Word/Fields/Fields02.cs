@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddParagraph();
 
-                document.AddHeadersAndFooters();
+                // Ensure headers/footers exist when needed; OrCreate accessors will create on demand
 
                 // added page number using fields which triggers fields refresh
                 document.AddField(WordFieldType.Page).AddText(" of ").AddField(WordFieldType.NumPages);
@@ -28,9 +28,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddField(WordFieldType.GreetingLine);
 
                 // added page number using dedicated way
-                var headers = Guard.NotNull(document.Header, "Document headers must exist after enabling headers.");
-                var defaultHeader = Guard.NotNull(headers.Default, "Default header must exist after enabling headers.");
-                var pageNumber = defaultHeader.AddPageNumber(WordPageNumberStyle.Roman);
+                var pageNumber = document.HeaderDefaultOrCreate.AddPageNumber(WordPageNumberStyle.Roman);
 
                 document.Save(openWord);
             }

@@ -47,6 +47,72 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Returns the default header of the first section, creating it on demand.
+        /// Prefer this over <see cref="Header"/> when you want a non-null result.
+        /// </summary>
+        public WordHeader HeaderDefaultOrCreate {
+            get {
+                WarnIfMultipleSections(nameof(HeaderDefaultOrCreate));
+                return this.Sections[0].GetOrCreateHeader(HeaderFooterValues.Default);
+            }
+        }
+
+        /// <summary>
+        /// Returns the first-page header of the first section, creating it on demand
+        /// by enabling <see cref="DifferentFirstPage"/> if necessary.
+        /// </summary>
+        public WordHeader HeaderFirstOrCreate {
+            get {
+                WarnIfMultipleSections(nameof(HeaderFirstOrCreate));
+                return this.Sections[0].GetOrCreateHeader(HeaderFooterValues.First);
+            }
+        }
+
+        /// <summary>
+        /// Returns the even-page header of the first section, creating it on demand
+        /// by enabling <see cref="DifferentOddAndEvenPages"/> if necessary.
+        /// </summary>
+        public WordHeader HeaderEvenOrCreate {
+            get {
+                WarnIfMultipleSections(nameof(HeaderEvenOrCreate));
+                return this.Sections[0].GetOrCreateHeader(HeaderFooterValues.Even);
+            }
+        }
+
+        /// <summary>
+        /// Returns the default footer of the first section, creating it on demand.
+        /// Prefer this over <see cref="Footer"/> when you want a non-null result.
+        /// </summary>
+        public WordFooter FooterDefaultOrCreate {
+            get {
+                WarnIfMultipleSections(nameof(FooterDefaultOrCreate));
+                return this.Sections[0].GetOrCreateFooter(HeaderFooterValues.Default);
+            }
+        }
+
+        /// <summary>
+        /// Returns the first-page footer of the first section, creating it on demand
+        /// by enabling <see cref="DifferentFirstPage"/> if necessary.
+        /// </summary>
+        public WordFooter FooterFirstOrCreate {
+            get {
+                WarnIfMultipleSections(nameof(FooterFirstOrCreate));
+                return this.Sections[0].GetOrCreateFooter(HeaderFooterValues.First);
+            }
+        }
+
+        /// <summary>
+        /// Returns the even-page footer of the first section, creating it on demand
+        /// by enabling <see cref="DifferentOddAndEvenPages"/> if necessary.
+        /// </summary>
+        public WordFooter FooterEvenOrCreate {
+            get {
+                WarnIfMultipleSections(nameof(FooterEvenOrCreate));
+                return this.Sections[0].GetOrCreateFooter(HeaderFooterValues.Even);
+            }
+        }
+
+        /// <summary>
         /// Gets or sets a value indicating whether the first page has different headers and footers.
         /// </summary>
         public bool DifferentFirstPage {

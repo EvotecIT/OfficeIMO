@@ -12,8 +12,7 @@ namespace OfficeIMO.Examples.Word {
 
             using var document = WordDocument.Create(filePath);
             var paragraph1 = document.AddParagraph("Tiled image with local DPI");
-            paragraph1.AddImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 100);
-            var paragraph1Image = Guard.NotNull(paragraph1.Image, "Paragraph should contain the first image.");
+            var paragraph1Image = paragraph1.InsertImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 100);
             paragraph1Image.FillMode = ImageFillMode.Tile;
             paragraph1Image.UseLocalDpi = true;
             paragraph1Image.Title = "Sample image";
@@ -37,16 +36,13 @@ namespace OfficeIMO.Examples.Word {
             paragraph1Image.TintHue = 300;
 
             var paragraph2 = document.AddParagraph("Fit image");
-            paragraph2.AddImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 50);
-            Guard.NotNull(paragraph2.Image, "Paragraph should contain the second image.").FillMode = ImageFillMode.Fit;
+            paragraph2.InsertImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 50).FillMode = ImageFillMode.Fit;
 
             var paragraph3 = document.AddParagraph("Centered image");
-            paragraph3.AddImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 50);
-            Guard.NotNull(paragraph3.Image, "Paragraph should contain the third image.").FillMode = ImageFillMode.Center;
+            paragraph3.InsertImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 50).FillMode = ImageFillMode.Center;
 
             var paragraph4 = document.AddParagraph("Linked image from web");
-            paragraph4.AddImage(new Uri("http://example.com/logo.png"), 100, 100);
-            Guard.NotNull(paragraph4.Image, "Paragraph should contain the linked image.");
+            paragraph4.InsertImage(new Uri("http://example.com/logo.png"), 100, 100);
 
             document.Save(openWord);
         }

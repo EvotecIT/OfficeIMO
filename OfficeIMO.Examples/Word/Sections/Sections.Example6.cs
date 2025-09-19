@@ -17,21 +17,22 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Settings.Language = "pl-PL";
 
-                document.Sections[0].PageOrientation = PageOrientationValues.Portrait;
-                document.AddParagraph("Test Section0");
-                document.AddHeadersAndFooters();
-                document.DifferentFirstPage = true;
-                document.DifferentOddAndEvenPages = true;
-
                 var section0 = document.Sections[0];
-                var section0DefaultHeader = RequireSectionHeader(section0, HeaderFooterValues.Default, "Section 0 default header");
-                section0DefaultHeader.AddParagraph().SetText("Test Section 0 - Header");
+                section0.PageOrientation = PageOrientationValues.Portrait;
+                section0.AddParagraph("Test Section0");
 
-                var section0FirstHeader = RequireSectionHeader(section0, HeaderFooterValues.First, "Section 0 first header");
-                section0FirstHeader.AddParagraph().SetText("Test Section 0 - First Header");
+                // Default header is created on demand; keep it simple
+                section0.GetOrCreateHeader(HeaderFooterValues.Default)
+                       .AddParagraph().SetText("Test Section 0 - Header");
 
-                var section0EvenHeader = RequireSectionHeader(section0, HeaderFooterValues.Even, "Section 0 even header");
-                section0EvenHeader.AddParagraph().SetText("Test Section 0 - Even");
+                // First/even require toggles; GetOrCreate does the rest
+                section0.DifferentFirstPage = true;
+                section0.GetOrCreateHeader(HeaderFooterValues.First)
+                       .AddParagraph().SetText("Test Section 0 - First Header");
+
+                section0.DifferentOddAndEvenPages = true;
+                section0.GetOrCreateHeader(HeaderFooterValues.Even)
+                       .AddParagraph().SetText("Test Section 0 - Even");
 
                 document.Sections[0].Paragraphs[0].AddComment("Przemysław Kłys", "PK", "This should be a comment");
 
@@ -40,8 +41,8 @@ namespace OfficeIMO.Examples.Word {
                 document.AddPageBreak();
                 document.AddPageBreak();
 
-                document.AddSection();
-                document.Sections[1].PageOrientation = PageOrientationValues.Landscape;
+                var section1Created = document.AddSection();
+                section1Created.PageOrientation = PageOrientationValues.Landscape;
 
                 document.AddPageBreak();
                 document.AddPageBreak();
@@ -63,27 +64,23 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var section1 = document.Sections[1];
-                var section1DefaultHeader = RequireSectionHeader(section1, HeaderFooterValues.Default, "Section 1 default header");
-                section1DefaultHeader.AddParagraph().SetText("Test Section 1 - Header");
+                section1.GetOrCreateHeader(HeaderFooterValues.Default)
+                        .AddParagraph().SetText("Test Section 1 - Header");
 
-                var section1DefaultFooter = RequireSectionFooter(section1, HeaderFooterValues.Default, "Section 1 default footer");
-                section1DefaultFooter.AddParagraph().SetText("Test Section 1 - Header");
+                section1.GetOrCreateFooter(HeaderFooterValues.Default)
+                        .AddParagraph().SetText("Test Section 1 - Header");
 
                 section1.DifferentFirstPage = true;
-
-                var section1FirstHeader = RequireSectionHeader(section1, HeaderFooterValues.First, "Section 1 first header");
-                section1FirstHeader.AddParagraph().SetText("Test Section 1 - First Header");
-
-                var section1FirstFooter = RequireSectionFooter(section1, HeaderFooterValues.First, "Section 1 first footer");
-                section1FirstFooter.AddParagraph().SetText("Test Section 1 - First Footer");
+                section1.GetOrCreateHeader(HeaderFooterValues.First)
+                        .AddParagraph().SetText("Test Section 1 - First Header");
+                section1.GetOrCreateFooter(HeaderFooterValues.First)
+                        .AddParagraph().SetText("Test Section 1 - First Footer");
 
                 section1.DifferentOddAndEvenPages = true;
-
-                var section1EvenHeader = RequireSectionHeader(section1, HeaderFooterValues.Even, "Section 1 even header");
-                section1EvenHeader.AddParagraph().SetText("Test Section 1 - Even Header");
-
-                var section1EvenFooter = RequireSectionFooter(section1, HeaderFooterValues.Even, "Section 1 even footer");
-                section1EvenFooter.AddParagraph().SetText("Test Section 1 - Even Footer");
+                section1.GetOrCreateHeader(HeaderFooterValues.Even)
+                        .AddParagraph().SetText("Test Section 1 - Even Header");
+                section1.GetOrCreateFooter(HeaderFooterValues.Even)
+                        .AddParagraph().SetText("Test Section 1 - Even Footer");
 
                 document.Settings.ProtectionPassword = "ThisIsTest";
                 document.Settings.ProtectionType = DocumentProtectionValues.ReadOnly;
@@ -93,70 +90,6 @@ namespace OfficeIMO.Examples.Word {
         }
 
 
-        private static WordHeader RequireSectionHeader(WordSection section, HeaderFooterValues type, string description) {
-            if (section == null) {
-                throw new ArgumentNullException(nameof(section));
-            }
-
-            EnsureSectionHeadersAndFooters(section);
-
-            var headers = section.Header;
-            if (headers == null) {
-                throw new InvalidOperationException($"{description} are not available.");
-            }
-
-            WordHeader? header;
-            if (type == HeaderFooterValues.Default) {
-                header = headers.Default;
-            } else if (type == HeaderFooterValues.Even) {
-                header = headers.Even;
-            } else if (type == HeaderFooterValues.First) {
-                header = headers.First;
-            } else {
-                throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported header type.");
-            }
-
-            if (header == null) {
-                throw new InvalidOperationException($"{description} is not available.");
-            }
-
-            return header;
-        }
-
-        private static WordFooter RequireSectionFooter(WordSection section, HeaderFooterValues type, string description) {
-            if (section == null) {
-                throw new ArgumentNullException(nameof(section));
-            }
-
-            EnsureSectionHeadersAndFooters(section);
-
-            var footers = section.Footer;
-            if (footers == null) {
-                throw new InvalidOperationException($"{description} are not available.");
-            }
-
-            WordFooter? footer;
-            if (type == HeaderFooterValues.Default) {
-                footer = footers.Default;
-            } else if (type == HeaderFooterValues.Even) {
-                footer = footers.Even;
-            } else if (type == HeaderFooterValues.First) {
-                footer = footers.First;
-            } else {
-                throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported footer type.");
-            }
-
-            if (footer == null) {
-                throw new InvalidOperationException($"{description} is not available.");
-            }
-
-            return footer;
-        }
-
-        private static void EnsureSectionHeadersAndFooters(WordSection section) {
-            if (section.Header == null || section.Footer == null) {
-                section.AddHeadersAndFooters();
-            }
-        }
+        // No helpers needed in examples; library provides GetOrCreateHeader/Footer.
     }
 }

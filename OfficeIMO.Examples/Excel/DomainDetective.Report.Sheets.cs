@@ -118,7 +118,8 @@ namespace OfficeIMO.Examples.Excel {
             });
 
             // Link only the Domain column in the summary table to its detail sheet (styled)
-            overview.Sheet.LinkByHeaderToInternalSheetsInRange(
+            // Use non-throwing variant to avoid exceptions if headers change
+            overview.Sheet.TryLinkByHeaderToInternalSheetsInRange(
                 rangeA1: summaryRange,
                 header: "Domain",
                 targetA1: "A1",

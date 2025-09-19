@@ -26,10 +26,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating document with custom formatted date in header");
             string filePath = System.IO.Path.Combine(folderPath, "CustomFormattedHeaderDate.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
-                var headers = Guard.NotNull(document.Header, "Document headers must exist after enabling headers.");
-                var defaultHeader = Guard.NotNull(headers.Default, "Default header must exist after enabling headers.");
-                defaultHeader.AddField(WordFieldType.Date, customFormat: "yyyy-MM-dd", advanced: true);
+                document.HeaderDefaultOrCreate.AddField(WordFieldType.Date, customFormat: "yyyy-MM-dd", advanced: true);
                 document.AddParagraph("Body paragraph");
                 document.Save(openWord);
             }

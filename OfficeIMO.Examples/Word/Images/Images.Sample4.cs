@@ -13,8 +13,7 @@ namespace OfficeIMO.Examples.Word {
             using var document = WordDocument.Create(filePath);
 
             var paragraph1 = document.AddParagraph("This paragraph starts with some text");
-            paragraph1.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200);
-            Guard.NotNull(paragraph1.Image, "Paragraph should contain the first image.").Shape = ShapeTypeValues.Cube;
+            paragraph1.InsertImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200).Shape = ShapeTypeValues.Cube;
 
             var paragraph2 = document.AddParagraph("Image will be placed behind text");
             paragraph2.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapTextImage.BehindText, "Przemek and Kulek on an image");
@@ -37,8 +36,7 @@ namespace OfficeIMO.Examples.Word {
 
 
             var paragraph8 = document.AddParagraph("Image will be Top And Bottom");
-            paragraph8.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapTextImage.TopAndBottom, "Przemek and Kulek on an image");
-            Guard.NotNull(paragraph8.Image, "Paragraph should contain the last image.").Shape = ShapeTypeValues.Can;
+            paragraph8.InsertImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapTextImage.TopAndBottom, "Przemek and Kulek on an image").Shape = ShapeTypeValues.Can;
 
             document.Save(openWord);
         }

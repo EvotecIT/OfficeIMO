@@ -12,8 +12,7 @@ namespace OfficeIMO.Examples.Word {
 
             using var document = WordDocument.Create(filePath);
             var paragraph = document.AddParagraph("Advanced crop with shape:");
-            paragraph.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 300, 300, WrapTextImage.Square);
-            var image = Guard.NotNull(paragraph.Image, "Paragraph should contain an image for cropping.");
+            var image = paragraph.InsertImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 300, 300, WrapTextImage.Square);
 
             image.Shape = ShapeTypeValues.Cube;
             image.CropTopCentimeters = 2;

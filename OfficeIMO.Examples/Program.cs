@@ -15,108 +15,128 @@ namespace OfficeIMO.Examples {
             string templatesPath = Path.Combine(baseFolder, "Templates");
             string folderPath = Path.Combine(baseFolder, "Documents");
             Setup(folderPath);
-            // Visio - Core Examples
-            Visio.BasicVisioDocument.Example_BasicVisio(folderPath, false);
-            Visio.ConnectRectangles.Example_ConnectRectangles(folderPath, false);
-            Visio.ConnectionPoints.Example_ConnectionPoints(folderPath, false);
-            Visio.ComprehensiveColoredShapes.Example_ComprehensiveColoredShapes(folderPath, false);
-            Visio.ReadVisioDocument.Example_ReadVisio(folderPath, false);
 
-            // Excel/BasicExcelFunctionality
-            Excel.BasicExcelFunctionality.BasicExcel_Example1(folderPath, false);
-            Excel.BasicExcelFunctionality.BasicExcel_Example2(folderPath, false);
-            Excel.BasicExcelFunctionality.BasicExcel_Example3(false);
-            // Excel/BasicExcelFunctionalityAsync
-            Excel.BasicExcelFunctionalityAsync.Example_ExcelAsync(folderPath).GetAwaiter().GetResult();
-            // Excel/AutoFit
-            Excel.AutoFit.Example(folderPath, false);
-            // Excel/AddTable
-            Excel.AddTable.Example(folderPath, false);
-            // Excel/AddTableMissingCells
-            Excel.AddTableMissingCells.Example(folderPath, false);
-            // Excel/AutoFilter
-            Excel.AutoFilter.Example(folderPath, false);
-            // Excel/Styles & Colors
-            Excel.StylesColors.Example(folderPath, false);
-            // Excel/Freeze
-            Excel.Freeze.Example(folderPath, false);
-            // Excel/ConditionalFormatting
-            Excel.ConditionalFormatting.Example(folderPath, false);
-            // Excel/ConcurrentWrites
-            Excel.ConcurrentWrites.Example(folderPath, false);
-            // Excel/ExcelConcurrentAccessAsync
-            Excel.ExcelConcurrentAccessAsync.Example_ExcelAsyncConcurrent(folderPath).GetAwaiter().GetResult();
-            // Excel/CellValues
-            Excel.CellValues.Example(folderPath, false);
-            // Excel/CellValuesParallel
-            Excel.CellValuesParallel.Example(folderPath, false);
-            // Excel/ValidateDocument
-            Excel.ValidateDocument.Example(folderPath, false);
-            // Excel/Fluent
-            Excel.FluentWorkbook.Example_FluentWorkbook(folderPath, false);
-            Excel.FluentWorkbook.Example_RangeBuilder(folderPath, false);
-            Excel.FluentWorkbook.Example_FluentWorkbook_AutoFilter(folderPath, false);
-            Excel.TestDateTime.Example_TestDateTime(folderPath, false);
-            // Excel/Read with custom converters
-            Excel.ReadWithConverters.Example(folderPath, false);
-            // Excel/Read presets and static helpers
-            Excel.ReadPresetsAndHelpers.Example(folderPath, false);
-            // Excel/Read for PowerShell consumption (emits JSON rows)
-            Excel.ReadForPowerShell.Example(folderPath, false);
-            // Excel/PowerShell-style round trip: write → read → modify → write → JSON
-            Excel.PowerShellRoundTrip.Example(folderPath, false);
-            // Excel/Headers + Footers + Properties
-            Excel.HeadersFootersAndProperties.Example(folderPath, false);
-            Excel.DomainDetectiveReport.Example(folderPath, false);
-            // Excel: New Excelish Sheets demo (side-by-side comparison)
-            Excel.DomainDetectiveReportSheets.Example(folderPath, false);
-            // Excel: Classic baseline Sheets demo (explicit/standard techniques)
-            Excel.DomainDetectiveReportSheetsClassic.Example(folderPath, false);
-            // Excel: Anchors and back-to-top demo
-            Excel.AnchorsAndBackToTop.Example(folderPath, false);
-            // Excel: Left-to-right multiple tables on same sheet
-            Excel.SheetComposerMultiTables.Example_LeftToRight(folderPath, true);
-            Excel.WrapText.Example(folderPath, false);
-            Excel.RowsFromObjects.Example(folderPath, false);
-            Excel.RowsFromObjectsPriorityProperties.Example(folderPath, false);
-            Excel.DomainDetectiveReportSheets.Example(folderPath, false);
-            // // Markdown: Anchors + Theme Toggle
-            Markdown.Markdown03_Anchors_Theme.Example_AnchorsAndTheme(folderPath, false);
-            // Markdown: TOC Layouts & Themes
-            Markdown.Markdown04_TocLayoutsAndThemes.Example_Toc_PanelTop(folderPath, false);
-            Markdown.Markdown04_TocLayoutsAndThemes.Example_Toc_SidebarLeft(folderPath, false);
-            Markdown.Markdown04_TocLayoutsAndThemes.Example_Toc_SidebarRight_ScrollSpy(folderPath, false);
-            Markdown.Markdown04_TocLayoutsAndThemes.Example_Toc_ScrollSpy_Long_IndigoTheme(folderPath, false);
-            // Markdown: Built-in HTML style gallery
-            Markdown.Markdown05_ThemesGallery.Example_Themes(folderPath, false);
-            // Word ⇄ Markdown ⇄ HTML End-to-End
-            Word.EndToEnd.Word_EndToEnd.Example(folderPath, false);
-            // Markdown/DomainDetective report (mirrors the Excel structure)
-            Markdown.DomainDetectiveReportMarkdown.Example(folderPath, false);
-            // PowerPoint
-            PowerPoint.BasicPowerPointDocument.Example_BasicPowerPoint(folderPath, false);
-            PowerPoint.AdvancedPowerPoint.Example_AdvancedPowerPoint(folderPath, false);
-            PowerPoint.FluentPowerPoint.Example_FluentPowerPoint(folderPath, false);
-            PowerPoint.ShapesPowerPoint.Example_PowerPointShapes(folderPath, false);
-            PowerPoint.SlidesManagementPowerPoint.Example_SlidesManagement(folderPath, false);
-            PowerPoint.TablesPowerPoint.Example_PowerPointTables(folderPath, false);
-            PowerPoint.TextFormattingPowerPoint.Example_TextFormattingPowerPoint(folderPath, false);
-            PowerPoint.ThemeAndLayoutPowerPoint.Example_PowerPointThemeAndLayout(folderPath, false);
-            PowerPoint.UpdatePicturePowerPoint.Example_PowerPointUpdatePicture(folderPath, false);
-            PowerPoint.ValidateDocument.Example(folderPath, false);
-            PowerPoint.TestLazyInit.Example_TestLazyInit(folderPath, false);
-            // Html/Html (consolidated set)
-            Html.Html.Example_Html01_LoadAndRoundTripBasics(folderPath, false);
-            Html.Html.Example_Html02_SaveAsHtmlFromWord(folderPath, false);
-            Html.Html.Example_Html03_TextFormatting(folderPath, false);
-            Html.Html.Example_Html04_ListsAndNumbering(folderPath, false);
-            Html.Html.Example_Html05_TablesComplex(folderPath, false);
-            Html.Html.Example_Html06_ImagesAllModes(folderPath, false);
-            Html.Html.Example_Html07_LinksAndAnchors(folderPath, false);
-            Html.Html.Example_Html08_SemanticsAndCitations(folderPath, false);
-            Html.Html.Example_Html09_CodePreWhitespace(folderPath, false);
-            Html.Html.Example_Html10_OptionsAndAsync(folderPath, false).GetAwaiter().GetResult();
-            Html.Html.Example_Html00_AllInOne(folderPath, false);
+            // // Visio - Core Examples
+            // Visio.BasicVisioDocument.Example_BasicVisio(folderPath, false);
+            // Visio.ConnectRectangles.Example_ConnectRectangles(folderPath, false);
+            // Visio.ConnectionPoints.Example_ConnectionPoints(folderPath, false);
+            // Visio.ComprehensiveColoredShapes.Example_ComprehensiveColoredShapes(folderPath, false);
+            // Visio.ReadVisioDocument.Example_ReadVisio(folderPath, false);
+
+            // // Excel/BasicExcelFunctionality
+            // Excel.BasicExcelFunctionality.BasicExcel_Example1(folderPath, false);
+            // Excel.BasicExcelFunctionality.BasicExcel_Example2(folderPath, false);
+            // Excel.BasicExcelFunctionality.BasicExcel_Example3(false);
+            // // Excel/BasicExcelFunctionalityAsync
+            // Excel.BasicExcelFunctionalityAsync.Example_ExcelAsync(folderPath).GetAwaiter().GetResult();
+            // // Excel/AutoFit
+            // Excel.AutoFit.Example(folderPath, false);
+            // // Excel/AddTable
+            // Excel.AddTable.Example(folderPath, false);
+            // // Excel/AddTableMissingCells
+            // Excel.AddTableMissingCells.Example(folderPath, false);
+            // // Excel/AutoFilter
+            // Excel.AutoFilter.Example(folderPath, false);
+            // // Excel/Styles & Colors
+            // Excel.StylesColors.Example(folderPath, false);
+            // // Excel/Freeze
+            // Excel.Freeze.Example(folderPath, false);
+            // // Excel/ConditionalFormatting
+            // Excel.ConditionalFormatting.Example(folderPath, false);
+            // // Excel/ConcurrentWrites
+            // Excel.ConcurrentWrites.Example(folderPath, false);
+            // // Excel/ExcelConcurrentAccessAsync
+            // Excel.ExcelConcurrentAccessAsync.Example_ExcelAsyncConcurrent(folderPath).GetAwaiter().GetResult();
+            // // Excel/CellValues
+            // Excel.CellValues.Example(folderPath, false);
+            // // Excel/CellValuesParallel
+            // Excel.CellValuesParallel.Example(folderPath, false);
+            // // Excel/ValidateDocument
+            // Excel.ValidateDocument.Example(folderPath, false);
+            // // Excel/Fluent
+            // Excel.FluentWorkbook.Example_FluentWorkbook(folderPath, false);
+            // Excel.FluentWorkbook.Example_RangeBuilder(folderPath, false);
+            // Excel.FluentWorkbook.Example_FluentWorkbook_AutoFilter(folderPath, false);
+            // Excel.TestDateTime.Example_TestDateTime(folderPath, false);
+            // // Excel/Read with custom converters
+            // Excel.ReadWithConverters.Example(folderPath, false);
+            // // Excel/Read presets and static helpers
+            // Excel.ReadPresetsAndHelpers.Example(folderPath, false);
+            // // Excel/Read for PowerShell consumption (emits JSON rows)
+            // Excel.ReadForPowerShell.Example(folderPath, false);
+            // // Excel/PowerShell-style round trip: write → read → modify → write → JSON
+            // Excel.PowerShellRoundTrip.Example(folderPath, false);
+            // // Excel/Headers + Footers + Properties
+            // Excel.HeadersFootersAndProperties.Example(folderPath, false);
+            // Excel.DomainDetectiveReport.Example(folderPath, false);
+            // // Excel: New Excelish Sheets demo (side-by-side comparison)
+            // Excel.DomainDetectiveReportSheets.Example(folderPath, false);
+            // // Excel: Classic baseline Sheets demo (explicit/standard techniques)
+            // Excel.DomainDetectiveReportSheetsClassic.Example(folderPath, false);
+            // // Excel: Anchors and back-to-top demo
+            // Excel.AnchorsAndBackToTop.Example(folderPath, false);
+            // // Excel: Left-to-right multiple tables on same sheet
+            // Excel.SheetComposerMultiTables.Example_LeftToRight(folderPath, false);
+            // Excel.WrapText.Example(folderPath, false);
+            // Excel.RowsFromObjects.Example(folderPath, false);
+            // Excel.RowsFromObjectsPriorityProperties.Example(folderPath, false);
+            // Excel.DomainDetectiveReportSheets.Example(folderPath, false);
+            // // // Markdown: Anchors + Theme Toggle
+            // Markdown.Markdown03_Anchors_Theme.Example_AnchorsAndTheme(folderPath, false);
+            // // Markdown: TOC Layouts & Themes
+            // Markdown.Markdown04_TocLayoutsAndThemes.Example_Toc_PanelTop(folderPath, false);
+            // Markdown.Markdown04_TocLayoutsAndThemes.Example_Toc_SidebarLeft(folderPath, false);
+            // Markdown.Markdown04_TocLayoutsAndThemes.Example_Toc_SidebarRight_ScrollSpy(folderPath, false);
+            // Markdown.Markdown04_TocLayoutsAndThemes.Example_Toc_ScrollSpy_Long_IndigoTheme(folderPath, false);
+            // // Markdown: Built-in HTML style gallery
+            // Markdown.Markdown05_ThemesGallery.Example_Themes(folderPath, false);
+            // // Word ⇄ Markdown ⇄ HTML End-to-End
+            // Word.EndToEnd.Word_EndToEnd.Example(folderPath, false);
+            // // Markdown/DomainDetective report (mirrors the Excel structure)
+            // Markdown.DomainDetectiveReportMarkdown.Example(folderPath, false);
+            // // PowerPoint
+            // PowerPoint.BasicPowerPointDocument.Example_BasicPowerPoint(folderPath, false);
+            // PowerPoint.AdvancedPowerPoint.Example_AdvancedPowerPoint(folderPath, false);
+            // PowerPoint.FluentPowerPoint.Example_FluentPowerPoint(folderPath, false);
+            // PowerPoint.ShapesPowerPoint.Example_PowerPointShapes(folderPath, false);
+            // PowerPoint.SlidesManagementPowerPoint.Example_SlidesManagement(folderPath, false);
+            // PowerPoint.TablesPowerPoint.Example_PowerPointTables(folderPath, false);
+            // PowerPoint.TextFormattingPowerPoint.Example_TextFormattingPowerPoint(folderPath, false);
+            // PowerPoint.ThemeAndLayoutPowerPoint.Example_PowerPointThemeAndLayout(folderPath, false);
+            // PowerPoint.UpdatePicturePowerPoint.Example_PowerPointUpdatePicture(folderPath, false);
+            // PowerPoint.ValidateDocument.Example(folderPath, false);
+            // PowerPoint.TestLazyInit.Example_TestLazyInit(folderPath, false);
+            // // Html/Html (consolidated set)
+            // Html.Html.Example_Html01_LoadAndRoundTripBasics(folderPath, false);
+            // Html.Html.Example_Html02_SaveAsHtmlFromWord(folderPath, false);
+            // Html.Html.Example_Html03_TextFormatting(folderPath, false);
+            // Html.Html.Example_Html04_ListsAndNumbering(folderPath, false);
+            // Html.Html.Example_Html05_TablesComplex(folderPath, false);
+            // Html.Html.Example_Html06_ImagesAllModes(folderPath, false);
+            // Html.Html.Example_Html07_LinksAndAnchors(folderPath, false);
+            // Html.Html.Example_Html08_SemanticsAndCitations(folderPath, false);
+            // Html.Html.Example_Html09_CodePreWhitespace(folderPath, false);
+            // Html.Html.Example_Html10_OptionsAndAsync(folderPath, false).GetAwaiter().GetResult();
+            // Html.Html.Example_Html00_AllInOne(folderPath, false);
+            // PDF: Zero-dependency writer + reader examples
+            Pdf.BasicPdf.Example_Pdf_HelloWorld(folderPath, false);
+            Pdf.ReadPdf.Example_Pdf_ReadPlainText(folderPath, false);
+            Pdf.ReadSpans.Example_Pdf_TextSpans(folderPath, false);
+            Pdf.WriterHeadersFooters.Example_Pdf_PageNumbers(folderPath, false);
+            Pdf.WriterListsTables.Example_Pdf_BulletsAndTable(folderPath, false);
+            Pdf.WriterDebugTables.Example_Pdf_TableDebug(folderPath, false);
+            Pdf.ReadDocumentText.Example_Pdf_ReadDocumentText(folderPath, false);
+            Pdf.WriterDefaults.Example_Pdf_DefaultStyles(folderPath, true);
+            Pdf.WriterStyledRuns.Example_Pdf_StyledRuns(folderPath, true);
+            Pdf.WriterStyleCheatsheet.Example_Pdf_StyleCheatsheet(folderPath, true);
+            Pdf.FlowDslDemo.Example_Pdf_FlowDslDemo(folderPath, true);
+            Pdf.LinksAndRules.Example_Pdf_LinksAndRules(folderPath, true);
+            Pdf.LoremIpsumDemo.Example_Pdf_LoremIpsum(folderPath, true);
+            // Keep examples fast by default but avoid CS0162 unreachable code.
+            // Flip by setting environment variable OFFICEIMO_QUICK_DEMO=0 to run everything.
+            bool quickDemoOnly = Environment.GetEnvironmentVariable("OFFICEIMO_QUICK_DEMO") != "0";
+            if (quickDemoOnly) return;
+
             // Markdown/Markdown
             Markdown.Markdown.Example_MarkdownInterface(folderPath, false);
             Markdown.Markdown.Example_MarkdownLists(folderPath, false);
@@ -411,16 +431,16 @@ namespace OfficeIMO.Examples {
             Word.Shapes.Example_LoadShapes(folderPath, false);
             Word.Shapes.Example_RemoveShape(folderPath, false);
             // Word/SmartArt
-            Word.SmartArt.Example_AddAdvancedSmartArt(folderPath, true);
-            Word.SmartArt.Example_AddBasicSmartArt(folderPath, true);
+            Word.SmartArt.Example_AddAdvancedSmartArt(folderPath, false);
+            Word.SmartArt.Example_AddBasicSmartArt(folderPath, false);
             // Additional SmartArt examples from FixSmartArtShapes branch
-            Word.SmartArt.Example_AddCustomSmartArt1(folderPath, true);
-            Word.SmartArt.Example_AddCustomSmartArt2(folderPath, true);
+            Word.SmartArt.Example_AddCustomSmartArt1(folderPath, false);
+            Word.SmartArt.Example_AddCustomSmartArt2(folderPath, false);
             // SmartArt edit flows
-            Word.SmartArt.Example_EditCustomSmartArt1(folderPath, true);
-            Word.SmartArt.Example_EditCustomSmartArt2(folderPath, true);
-            Word.SmartArt.Example_FlexibleBasicSmartArt_FullFlow(folderPath, true);
-            Word.SmartArt.Example_FlexibleCycleSmartArt_FullFlow(folderPath, true);
+            Word.SmartArt.Example_EditCustomSmartArt1(folderPath, false);
+            Word.SmartArt.Example_EditCustomSmartArt2(folderPath, false);
+            Word.SmartArt.Example_FlexibleBasicSmartArt_FullFlow(folderPath, false);
+            Word.SmartArt.Example_FlexibleCycleSmartArt_FullFlow(folderPath, false);
             // Word/Tables
             Word.Tables.Example_AllTables(folderPath, false);
             Word.Tables.Example_BasicTables1(folderPath, false);
