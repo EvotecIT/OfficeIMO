@@ -106,7 +106,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 .P("After the break.");
 
             string markdown = doc.ToMarkdown();
-            Assert.Contains("\n---\n", markdown, StringComparison.Ordinal);
+            string normalizedMarkdown = markdown.Replace("\r\n", "\n");
+            Assert.Contains("\n---\n", normalizedMarkdown, StringComparison.Ordinal);
 
             string html = doc.ToHtmlFragment();
             Assert.Contains("<hr />", html, StringComparison.Ordinal);
