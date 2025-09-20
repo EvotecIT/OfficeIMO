@@ -7,6 +7,7 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfDoc {
     private readonly System.Collections.Generic.List<IPdfBlock> _blocks = new();
     private readonly PdfOptions _options;
+    private readonly System.Collections.Generic.Stack<System.Collections.Generic.List<IPdfBlock>> _blockScopes;
 
     // Metadata
     private string? _title;
@@ -14,7 +15,11 @@ public sealed partial class PdfDoc {
     private string? _subject;
     private string? _keywords;
 
-    private PdfDoc(PdfOptions? options = null) { _options = options ?? new PdfOptions(); }
+    private PdfDoc(PdfOptions? options = null) {
+        _options = options ?? new PdfOptions();
+        _blockScopes = new System.Collections.Generic.Stack<System.Collections.Generic.List<IPdfBlock>>();
+        _blockScopes.Push(_blocks);
+    }
 
     /// <summary>
     /// Creates a new, empty PDF document with optional <paramref name="options"/>.
@@ -42,5 +47,30 @@ public sealed partial class PdfDoc {
     // Internal getters for writer/compose
     internal System.Collections.Generic.IEnumerable<IPdfBlock> Blocks => _blocks;
     internal PdfOptions Options => _options;
+
+    private System.Collections.Generic.List<IPdfBlock> CurrentBlocks => _blockScopes.Peek();
+
+    private void AddBlock(IPdfBlock block) { CurrentBlocks.Add(block); }
+
+    internal void AddPageBlock(PageBlock pageBlock) { Guard.NotNull(pageBlock, nameof(pageBlock)); AddBlock(pageBlock); }
+
+    internal System.IDisposable PushBlockScope(System.Collections.Generic.List<IPdfBlock> blocks) {
+        Guard.NotNull(blocks, nameof(blocks));
+        _blockScopes.Push(blocks);
+        return new Scope(this);
+    }
+
+    private void PopScope() { if (_blockScopes.Count > 1) _blockScopes.Pop(); }
+
+    private sealed class Scope : System.IDisposable {
+        private readonly PdfDoc _doc;
+        private bool _disposed;
+        public Scope(PdfDoc doc) { _doc = doc; }
+        public void Dispose() {
+            if (_disposed) return;
+            _doc.PopScope();
+            _disposed = true;
+        }
+    }
 }
 

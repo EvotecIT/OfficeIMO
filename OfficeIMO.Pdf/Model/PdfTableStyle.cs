@@ -27,5 +27,23 @@ public class PdfTableStyle {
     public System.Collections.Generic.List<PdfColumnAlign>? Alignments { get; set; }
     /// <summary>When true, cell values that look numeric are right-aligned automatically.</summary>
     public bool RightAlignNumeric { get; set; }
+
+    /// <summary>Creates a deep copy of this style.</summary>
+    public PdfTableStyle Clone() {
+        var clone = new PdfTableStyle {
+            BorderColor = BorderColor,
+            BorderWidth = BorderWidth,
+            HeaderFill = HeaderFill,
+            RowStripeFill = RowStripeFill,
+            TextColor = TextColor,
+            HeaderTextColor = HeaderTextColor,
+            CellPaddingX = CellPaddingX,
+            CellPaddingY = CellPaddingY,
+            RowBaselineOffset = RowBaselineOffset,
+            RightAlignNumeric = RightAlignNumeric
+        };
+        if (Alignments != null) clone.Alignments = new System.Collections.Generic.List<PdfColumnAlign>(Alignments);
+        return clone;
+    }
 }
 

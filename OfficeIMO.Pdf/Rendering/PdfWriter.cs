@@ -17,34 +17,14 @@ internal static partial class PdfWriter {
         var pageIds = new List<int>();
         var contentIds = new List<int>();
 
-        // Collect required fonts across all pages (basic: normal + optional bold/italic/bold-italic)
-        bool needsBold = layout.UsedBold;
-        bool needsItalic = layout.UsedItalic;
-        bool needsBoldItalic = layout.UsedBoldItalic;
-        var fonts = new List<FontRef>();
-        int fontNormalId = 0;
-        int fontBoldId = 0;
-        int fontItalicId = 0;
-        int fontBoldItalicId = 0;
-
-        // Add font objects
-        var baseFont = ChooseNormal(opts.DefaultFont);
-        fontNormalId = AddObject(objects, "<< /Type /Font /Subtype /Type1 /BaseFont /" + baseFont.ToBaseFontName() + " /Encoding /WinAnsiEncoding >>\n");
-        fonts.Add(new FontRef("F1", baseFont, fontNormalId));
-        if (needsBold) {
-            var boldFont = ChooseBold(baseFont);
-            fontBoldId = AddObject(objects, "<< /Type /Font /Subtype /Type1 /BaseFont /" + boldFont.ToBaseFontName() + " /Encoding /WinAnsiEncoding >>\n");
-            fonts.Add(new FontRef("F2", boldFont, fontBoldId));
-        }
-        if (needsItalic) {
-            var italicFont = ChooseItalic(baseFont);
-            fontItalicId = AddObject(objects, "<< /Type /Font /Subtype /Type1 /BaseFont /" + italicFont.ToBaseFontName() + " /Encoding /WinAnsiEncoding >>\n");
-            fonts.Add(new FontRef("F3", italicFont, fontItalicId));
-        }
-        if (needsBoldItalic) {
-            var biFont = ChooseBoldItalic(baseFont);
-            fontBoldItalicId = AddObject(objects, "<< /Type /Font /Subtype /Type1 /BaseFont /" + biFont.ToBaseFontName() + " /Encoding /WinAnsiEncoding >>\n");
-            fonts.Add(new FontRef("F4", biFont, fontBoldItalicId));
+        // Collect fonts used across pages
+        var fontObjectIds = new Dictionary<PdfStandardFont, int>();
+        int EnsureFont(PdfStandardFont font) {
+            if (!fontObjectIds.TryGetValue(font, out int id)) {
+                id = AddObject(objects, "<< /Type /Font /Subtype /Type1 /BaseFont /" + font.ToBaseFontName() + " /Encoding /WinAnsiEncoding >>\n");
+                fontObjectIds[font] = id;
+            }
+            return id;
         }
 
         // Create content streams and page objects
@@ -52,16 +32,23 @@ internal static partial class PdfWriter {
         for (int pageIndex = 0; pageIndex < layout.Pages.Count; pageIndex++) {
             var page = layout.Pages[pageIndex];
             // Make a resources dict that references the fonts we declared
-            string fontDict;
-            if (needsBold || needsItalic || needsBoldItalic) {
-                var parts = new List<string> { $"/F1 {fontNormalId} 0 R" };
-                if (needsBold) parts.Add($"/F2 {fontBoldId} 0 R");
-                if (needsItalic) parts.Add($"/F3 {fontItalicId} 0 R");
-                if (needsBoldItalic) parts.Add($"/F4 {fontBoldItalicId} 0 R");
-                fontDict = $"<< {string.Join(" ", parts)} >>";
-            } else {
-                fontDict = $"<< /F1 {fontNormalId} 0 R >>";
+            var pageOpts = page.Options ?? opts;
+            var normalFont = ChooseNormal(pageOpts.DefaultFont);
+            int normalFontId = EnsureFont(normalFont);
+            var fontParts = new List<string> { $"/F1 {normalFontId} 0 R" };
+            if (page.UsedBold) {
+                var boldFont = ChooseBold(normalFont);
+                fontParts.Add($"/F2 {EnsureFont(boldFont)} 0 R");
             }
+            if (page.UsedItalic) {
+                var italicFont = ChooseItalic(normalFont);
+                fontParts.Add($"/F3 {EnsureFont(italicFont)} 0 R");
+            }
+            if (page.UsedBoldItalic) {
+                var biFont = ChooseBoldItalic(normalFont);
+                fontParts.Add($"/F4 {EnsureFont(biFont)} 0 R");
+            }
+            string fontDict = $"<< {string.Join(" ", fontParts)} >>";
 
             // Content stream (append image draw commands at end)
             string contentStr = page.Content;
@@ -92,8 +79,8 @@ internal static partial class PdfWriter {
                 }
                 contentStr += sbImgs.ToString();
             }
-            if (opts.ShowPageNumbers) {
-                string footer = BuildFooter(opts, pageIndex + 1, totalPages);
+            if (pageOpts.ShowPageNumbers) {
+                string footer = BuildFooter(pageOpts, pageIndex + 1, totalPages);
                 contentStr += footer;
             }
             byte[] content = Encoding.ASCII.GetBytes(contentStr);
@@ -123,7 +110,7 @@ internal static partial class PdfWriter {
 
             // Page object
             int pageId = AddObject(objects,
-                "<< /Type /Page /Parent 0 0 R /MediaBox [0 0 " + F0(opts.PageWidth) + " " + F0(opts.PageHeight) +
+                "<< /Type /Page /Parent 0 0 R /MediaBox [0 0 " + F0(pageOpts.PageWidth) + " " + F0(pageOpts.PageHeight) +
                 "] /Resources << /Font " + fontDict + (xobjects.Count > 0 ? " /XObject << " + string.Join(" ", xobjects.Select(x => x.Name + " " + x.Id.ToString(CultureInfo.InvariantCulture) + " 0 R")) + " >>" : string.Empty) +
                 " >> /Contents " + contentId.ToString(CultureInfo.InvariantCulture) + " 0 R" + annotsPart + " >>\n");
             pageIds.Add(pageId);
