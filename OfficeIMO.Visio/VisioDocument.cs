@@ -26,6 +26,12 @@ namespace OfficeIMO.Visio {
         private const string ThemeContentType = "application/vnd.ms-visio.theme+xml";
         private const string WindowsRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/windows";
         private const string WindowsContentType = "application/vnd.ms-visio.windows+xml";
+        private const string PagesRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/pages";
+        private const string PagesContentType = "application/vnd.ms-visio.pages+xml";
+        private const string PageRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/page";
+        private const string PageContentType = "application/vnd.ms-visio.page+xml";
+        private const string MastersRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/masters";
+        private const string MasterRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/master";
 
         /// <summary>
         /// Collection of pages in the document.
@@ -514,6 +520,8 @@ namespace OfficeIMO.Visio {
 
         private void SaveInternal(string filePath) {
             bool includeTheme = Theme != null;
+            List<VisioPage> pagesToSave = _pages.Count > 0 ? _pages : new List<VisioPage> { new VisioPage("Page-1") { Id = 0 } };
+            int pageCount = pagesToSave.Count;
             int masterCount;
             using (Package package = Package.Open(filePath, FileMode.Create)) {
                 Uri documentUri = new("/visio/document.xml", UriKind.Relative);
@@ -537,8 +545,8 @@ namespace OfficeIMO.Visio {
                 package.CreateRelationship(thumbUri, TargetMode.Internal, "http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail", "rId5");
 
                 Uri pagesUri = new("/visio/pages/pages.xml", UriKind.Relative);
-                PackagePart pagesPart = package.CreatePart(pagesUri, "application/vnd.ms-visio.pages+xml");
-                documentPart.CreateRelationship(new Uri("pages/pages.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/pages", "rId1");
+                PackagePart pagesPart = package.CreatePart(pagesUri, PagesContentType);
+                documentPart.CreateRelationship(new Uri("pages/pages.xml", UriKind.Relative), TargetMode.Internal, PagesRelationshipType, "rId1");
 
                 Uri windowsUri = new("/visio/windows.xml", UriKind.Relative);
                 PackagePart windowsPart = package.CreatePart(windowsUri, WindowsContentType);
@@ -551,9 +559,14 @@ namespace OfficeIMO.Visio {
                     documentPart.CreateRelationship(new Uri("theme/theme1.xml", UriKind.Relative), TargetMode.Internal, ThemeRelationshipType, "rId3");
                 }
 
-                Uri page1Uri = new("/visio/pages/page1.xml", UriKind.Relative);
-                PackagePart page1Part = package.CreatePart(page1Uri, "application/vnd.ms-visio.page+xml");
-                PackageRelationship pageRel = pagesPart.CreateRelationship(new Uri("page1.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/page", "rId1");
+                List<(VisioPage Page, PackagePart Part, PackageRelationship Relationship)> pageParts = new();
+                for (int i = 0; i < pagesToSave.Count; i++) {
+                    VisioPage currentPage = pagesToSave[i];
+                    Uri pageUri = new($"/visio/pages/page{i + 1}.xml", UriKind.Relative);
+                    PackagePart pagePart = package.CreatePart(pageUri, PageContentType);
+                    PackageRelationship pageRelationship = pagesPart.CreateRelationship(new Uri($"page{i + 1}.xml", UriKind.Relative), TargetMode.Internal, PageRelationshipType, $"rId{i + 1}");
+                    pageParts.Add((currentPage, pagePart, pageRelationship));
+                }
 
                 XmlWriterSettings settings = new() {
                     Encoding = new UTF8Encoding(false),
@@ -711,6 +724,19 @@ namespace OfficeIMO.Visio {
                     writer.WriteEndElement();
                 }
 
+                void WritePageCell(XmlWriter writer, string name, double value, string? unit = null, string? formula = null) {
+                    writer.WriteStartElement("Cell", ns);
+                    writer.WriteAttributeString("N", name);
+                    writer.WriteAttributeString("V", XmlConvert.ToString(value));
+                    if (unit != null) {
+                        writer.WriteAttributeString("U", unit);
+                    }
+                    if (formula != null) {
+                        writer.WriteAttributeString("F", formula);
+                    }
+                    writer.WriteEndElement();
+                }
+
                 void WriteTextElement(XmlWriter writer, string? text) {
                     if (!string.IsNullOrEmpty(text)) {
                         writer.WriteElementString("Text", ns, text);
@@ -737,7 +763,7 @@ namespace OfficeIMO.Visio {
                     }
                 }
 
-                List<VisioMaster> masters = _pages.SelectMany(p => p.Shapes)
+                List<VisioMaster> masters = pagesToSave.SelectMany(p => p.Shapes)
                     .Where(s => s.Master != null)
                     .Select(s => s.Master!)
                     .GroupBy(m => m.Id)
@@ -748,14 +774,16 @@ namespace OfficeIMO.Visio {
                 if (masters.Count > 0) {
                     Uri mastersUri = new("/visio/masters/masters.xml", UriKind.Relative);
                     mastersPart = package.CreatePart(mastersUri, "application/vnd.ms-visio.masters+xml");
-                    documentPart.CreateRelationship(new Uri("masters/masters.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/masters", "rId4");
+                    documentPart.CreateRelationship(new Uri("masters/masters.xml", UriKind.Relative), TargetMode.Internal, MastersRelationshipType, "rId4");
 
                     for (int i = 0; i < masters.Count; i++) {
                         VisioMaster master = masters[i];
                         Uri masterUri = new($"/visio/masters/master{i + 1}.xml", UriKind.Relative);
                         PackagePart masterPart = package.CreatePart(masterUri, "application/vnd.ms-visio.master+xml");
-                        mastersPart.CreateRelationship(new Uri($"master{i + 1}.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/master", $"rId{i + 1}");
-                        page1Part.CreateRelationship(new Uri($"../masters/master{i + 1}.xml", UriKind.Relative), TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/master", $"rId{i + 1}");
+                        mastersPart.CreateRelationship(new Uri($"master{i + 1}.xml", UriKind.Relative), TargetMode.Internal, MasterRelationshipType, $"rId{i + 1}");
+                        foreach ((_, PackagePart part, _) in pageParts) {
+                            part.CreateRelationship(new Uri($"../masters/master{i + 1}.xml", UriKind.Relative), TargetMode.Internal, MasterRelationshipType, $"rId{i + 1}");
+                        }
 
                         using (XmlWriter writer = XmlWriter.Create(masterPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
                             writer.WriteStartDocument();
@@ -856,95 +884,88 @@ namespace OfficeIMO.Visio {
                     writer.WriteEndDocument();
                 }
 
-                VisioPage page = _pages.Count > 0 ? _pages[0] : new VisioPage("Page-1");
-
                 using (XmlWriter writer = XmlWriter.Create(pagesPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
                     writer.WriteStartDocument();
                     writer.WriteStartElement("Pages", ns);
                     writer.WriteAttributeString("xmlns", "r", null, "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
                     writer.WriteAttributeString("xml", "space", null, "preserve");
-                    writer.WriteStartElement("Page", ns);
-                    writer.WriteAttributeString("ID", XmlConvert.ToString(page.Id));
-                    writer.WriteAttributeString("Name", page.Name);
-                    writer.WriteAttributeString("NameU", page.NameU ?? page.Name);
-                    writer.WriteAttributeString("ViewScale", XmlConvert.ToString(page.ViewScale));
-                    writer.WriteAttributeString("ViewCenterX", XmlConvert.ToString(page.ViewCenterX));
-                    writer.WriteAttributeString("ViewCenterY", XmlConvert.ToString(page.ViewCenterY));
-                    writer.WriteStartElement("PageSheet", ns);
-                    writer.WriteAttributeString("LineStyle", "0");
-                    writer.WriteAttributeString("FillStyle", "0");
-                    writer.WriteAttributeString("TextStyle", "0");
-                    void WritePageCell(string name, double value, string? unit = null, string? formula = null) {
-                        writer.WriteStartElement("Cell", ns);
-                        writer.WriteAttributeString("N", name);
-                        writer.WriteAttributeString("V", XmlConvert.ToString(value));
-                        if (unit != null) writer.WriteAttributeString("U", unit);
-                        if (formula != null) writer.WriteAttributeString("F", formula);
+                    foreach ((VisioPage page, _, PackageRelationship pageRelationship) in pageParts) {
+                        writer.WriteStartElement("Page", ns);
+                        writer.WriteAttributeString("ID", XmlConvert.ToString(page.Id));
+                        writer.WriteAttributeString("Name", page.Name);
+                        writer.WriteAttributeString("NameU", page.NameU ?? page.Name);
+                        writer.WriteAttributeString("ViewScale", XmlConvert.ToString(page.ViewScale));
+                        writer.WriteAttributeString("ViewCenterX", XmlConvert.ToString(page.ViewCenterX));
+                        writer.WriteAttributeString("ViewCenterY", XmlConvert.ToString(page.ViewCenterY));
+                        writer.WriteStartElement("PageSheet", ns);
+                        writer.WriteAttributeString("LineStyle", "0");
+                        writer.WriteAttributeString("FillStyle", "0");
+                        writer.WriteAttributeString("TextStyle", "0");
+                        bool useUnits = page.Width != 8.26771653543307 || page.Height != 11.69291338582677;
+                        WritePageCell(writer, "PageWidth", page.Width, useUnits ? "MM" : null);
+                        WritePageCell(writer, "PageHeight", page.Height, useUnits ? "MM" : null);
+                        WritePageCell(writer, "ShdwOffsetX", 0.1181102362204724, useUnits ? "MM" : null);
+                        WritePageCell(writer, "ShdwOffsetY", -0.1181102362204724, useUnits ? "MM" : null);
+                        WritePageCell(writer, "PageScale", 0.03937007874015748, "MM");
+                        WritePageCell(writer, "DrawingScale", 0.03937007874015748, "MM");
+                        WritePageCell(writer, "DrawingSizeType", 0);
+                        WritePageCell(writer, "DrawingScaleType", 0);
+                        WritePageCell(writer, "InhibitSnap", 0);
+                        WritePageCell(writer, "PageLockReplace", 0, "BOOL");
+                        WritePageCell(writer, "PageLockDuplicate", 0, "BOOL");
+                        WritePageCell(writer, "UIVisibility", 0);
+                        WritePageCell(writer, "ShdwType", 0);
+                        WritePageCell(writer, "ShdwObliqueAngle", 0);
+                        WritePageCell(writer, "ShdwScaleFactor", 1);
+                        WritePageCell(writer, "DrawingResizeType", 1);
+                        WritePageCell(writer, "PageShapeSplit", 1);
+                        if (includeTheme) {
+                            WritePageCell(writer, "ColorSchemeIndex", 60);
+                            WritePageCell(writer, "EffectSchemeIndex", 60);
+                            WritePageCell(writer, "ConnectorSchemeIndex", 60);
+                            WritePageCell(writer, "FontSchemeIndex", 60);
+                            WritePageCell(writer, "ThemeIndex", 60);
+                            WritePageCell(writer, "PageLeftMargin", 0.25, "MM");
+                            WritePageCell(writer, "PageRightMargin", 0.25, "MM");
+                            WritePageCell(writer, "PageTopMargin", 0.25, "MM");
+                            WritePageCell(writer, "PageBottomMargin", 0.25, "MM");
+                            WritePageCell(writer, "PrintPageOrientation", 2);
+                            writer.WriteStartElement("Section", ns);
+                            writer.WriteAttributeString("N", "User");
+                            writer.WriteStartElement("Row", ns);
+                            writer.WriteAttributeString("N", "msvThemeOrder");
+                            writer.WriteStartElement("Cell", ns);
+                            writer.WriteAttributeString("N", "Value");
+                            writer.WriteAttributeString("V", "0");
+                            writer.WriteEndElement();
+                            writer.WriteStartElement("Cell", ns);
+                            writer.WriteAttributeString("N", "Prompt");
+                            writer.WriteAttributeString("V", "");
+                            writer.WriteAttributeString("F", "No Formula");
+                            writer.WriteEndElement();
+                            writer.WriteEndElement();
+                            writer.WriteEndElement();
+                        }
+                        writer.WriteEndElement();
+                        writer.WriteStartElement("Rel", ns);
+                        writer.WriteAttributeString("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", pageRelationship.Id);
+                        writer.WriteEndElement();
                         writer.WriteEndElement();
                     }
-                    bool useUnits = page.Width != 8.26771653543307 || page.Height != 11.69291338582677;
-                    WritePageCell("PageWidth", page.Width, useUnits ? "MM" : null);
-                    WritePageCell("PageHeight", page.Height, useUnits ? "MM" : null);
-                    WritePageCell("ShdwOffsetX", 0.1181102362204724, useUnits ? "MM" : null);
-                    WritePageCell("ShdwOffsetY", -0.1181102362204724, useUnits ? "MM" : null);
-                    WritePageCell("PageScale", 0.03937007874015748, "MM");
-                    WritePageCell("DrawingScale", 0.03937007874015748, "MM");
-                    WritePageCell("DrawingSizeType", 0);
-                    WritePageCell("DrawingScaleType", 0);
-                    WritePageCell("InhibitSnap", 0);
-                    WritePageCell("PageLockReplace", 0, "BOOL");
-                    WritePageCell("PageLockDuplicate", 0, "BOOL");
-                    WritePageCell("UIVisibility", 0);
-                    WritePageCell("ShdwType", 0);
-                    WritePageCell("ShdwObliqueAngle", 0);
-                    WritePageCell("ShdwScaleFactor", 1);
-                    WritePageCell("DrawingResizeType", 1);
-                    WritePageCell("PageShapeSplit", 1);
-                    if (includeTheme) {
-                        WritePageCell("ColorSchemeIndex", 60);
-                        WritePageCell("EffectSchemeIndex", 60);
-                        WritePageCell("ConnectorSchemeIndex", 60);
-                        WritePageCell("FontSchemeIndex", 60);
-                        WritePageCell("ThemeIndex", 60);
-                        WritePageCell("PageLeftMargin", 0.25, "MM");
-                        WritePageCell("PageRightMargin", 0.25, "MM");
-                        WritePageCell("PageTopMargin", 0.25, "MM");
-                        WritePageCell("PageBottomMargin", 0.25, "MM");
-                        WritePageCell("PrintPageOrientation", 2);
-                        writer.WriteStartElement("Section", ns);
-                        writer.WriteAttributeString("N", "User");
-                        writer.WriteStartElement("Row", ns);
-                        writer.WriteAttributeString("N", "msvThemeOrder");
-                        writer.WriteStartElement("Cell", ns);
-                        writer.WriteAttributeString("N", "Value");
-                        writer.WriteAttributeString("V", "0");
-                        writer.WriteEndElement();
-                        writer.WriteStartElement("Cell", ns);
-                        writer.WriteAttributeString("N", "Prompt");
-                        writer.WriteAttributeString("V", "");
-                        writer.WriteAttributeString("F", "No Formula");
-                        writer.WriteEndElement();
-                        writer.WriteEndElement();
-                        writer.WriteEndElement();
-                    }
-                    writer.WriteEndElement();
-                    writer.WriteStartElement("Rel", ns);
-                    writer.WriteAttributeString("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", pageRel.Id);
-                    writer.WriteEndElement();
-                    writer.WriteEndElement();
                     writer.WriteEndElement();
                     writer.WriteEndDocument();
                 }
 
-                using (XmlWriter writer = XmlWriter.Create(page1Part.GetStream(FileMode.Create, FileAccess.Write), settings)) {
-                    writer.WriteStartDocument();
-                    writer.WriteStartElement("PageContents", ns);
-                    writer.WriteAttributeString("xmlns", "r", null, "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
-                    writer.WriteAttributeString("xml", "space", null, "preserve");
-                    if (page.Shapes.Count > 0 || page.Connectors.Count > 0) {
-                        writer.WriteStartElement("Shapes", ns);
+                foreach ((VisioPage page, PackagePart pagePart, _) in pageParts) {
+                    using (XmlWriter writer = XmlWriter.Create(pagePart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
+                        writer.WriteStartDocument();
+                        writer.WriteStartElement("PageContents", ns);
+                        writer.WriteAttributeString("xmlns", "r", null, "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+                        writer.WriteAttributeString("xml", "space", null, "preserve");
+                        if (page.Shapes.Count > 0 || page.Connectors.Count > 0) {
+                            writer.WriteStartElement("Shapes", ns);
 
-                        foreach (VisioShape shape in page.Shapes) {
+                            foreach (VisioShape shape in page.Shapes) {
                             writer.WriteStartElement("Shape", ns);
                             writer.WriteAttributeString("ID", shape.Id);
                             string shapeName = shape.Name ?? shape.NameU ?? $"Shape{shape.Id}";
@@ -1128,13 +1149,14 @@ namespace OfficeIMO.Visio {
                     writer.WriteEndElement(); // PageContents
                     writer.WriteEndDocument();
                 }
+                }
                 masterCount = masters.Count;
             }
 
-            FixContentTypes(filePath, masterCount, includeTheme);
+            FixContentTypes(filePath, masterCount, includeTheme, pageCount);
         }
 
-        private static void FixContentTypes(string filePath, int masterCount, bool includeTheme) {
+        private static void FixContentTypes(string filePath, int masterCount, bool includeTheme, int pageCount) {
             using FileStream zipStream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite);
             using ZipArchive archive = new(zipStream, ZipArchiveMode.Update);
             ZipArchiveEntry? entry = archive.GetEntry("[Content_Types].xml");
@@ -1145,14 +1167,17 @@ namespace OfficeIMO.Visio {
                 new XElement(ct + "Default", new XAttribute("Extension", "rels"), new XAttribute("ContentType", "application/vnd.openxmlformats-package.relationships+xml")),
                 new XElement(ct + "Default", new XAttribute("Extension", "xml"), new XAttribute("ContentType", "application/xml")),
                 new XElement(ct + "Default", new XAttribute("Extension", "emf"), new XAttribute("ContentType", "image/x-emf")),
-                new XElement(ct + "Override", new XAttribute("PartName", "/visio/document.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.drawing.main+xml")),
-                new XElement(ct + "Override", new XAttribute("PartName", "/visio/pages/pages.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.pages+xml")),
-                new XElement(ct + "Override", new XAttribute("PartName", "/visio/pages/page1.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.page+xml")),
+                new XElement(ct + "Override", new XAttribute("PartName", "/visio/document.xml"), new XAttribute("ContentType", DocumentContentType)),
+                new XElement(ct + "Override", new XAttribute("PartName", "/visio/pages/pages.xml"), new XAttribute("ContentType", PagesContentType)),
                 new XElement(ct + "Override", new XAttribute("PartName", "/docProps/core.xml"), new XAttribute("ContentType", "application/vnd.openxmlformats-package.core-properties+xml")),
                 new XElement(ct + "Override", new XAttribute("PartName", "/docProps/app.xml"), new XAttribute("ContentType", "application/vnd.openxmlformats-officedocument.extended-properties+xml")),
                 new XElement(ct + "Override", new XAttribute("PartName", "/docProps/custom.xml"), new XAttribute("ContentType", "application/vnd.openxmlformats-officedocument.custom-properties+xml")),
                 new XElement(ct + "Override", new XAttribute("PartName", "/docProps/thumbnail.emf"), new XAttribute("ContentType", "image/x-emf")),
                 new XElement(ct + "Override", new XAttribute("PartName", "/visio/windows.xml"), new XAttribute("ContentType", WindowsContentType)));
+            for (int i = 1; i <= pageCount; i++) {
+                root.Add(new XElement(ct + "Override", new XAttribute("PartName", $"/visio/pages/page{i}.xml"), new XAttribute("ContentType", PageContentType)));
+            }
+
             if (includeTheme) {
                 root.Add(new XElement(ct + "Override", new XAttribute("PartName", "/visio/theme/theme1.xml"), new XAttribute("ContentType", ThemeContentType)));
             }
