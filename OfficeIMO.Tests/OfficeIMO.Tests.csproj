@@ -38,6 +38,7 @@
         <ProjectReference Include="..\\OfficeIMO.Word.Markdown\\OfficeIMO.Word.Markdown.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Visio\\OfficeIMO.Visio.csproj" />
         <ProjectReference Include="..\\OfficeIMO.PowerPoint\\OfficeIMO.PowerPoint.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj" />
     </ItemGroup>
     <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
         <Reference Include="System.IO.Compression" />

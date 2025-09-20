@@ -4,22 +4,22 @@ public sealed partial class PdfDoc {
     /// <summary>Adds a level-1 heading.</summary>
     public PdfDoc H1(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null) {
         Guard.NotNull(text, nameof(text));
-        _blocks.Add(new HeadingBlock(1, text, align, color, linkUri)); return this; }
+        AddBlock(new HeadingBlock(1, text, align, color, linkUri)); return this; }
     /// <summary>Adds a level-2 heading.</summary>
     public PdfDoc H2(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null) {
         Guard.NotNull(text, nameof(text));
-        _blocks.Add(new HeadingBlock(2, text, align, color, linkUri)); return this; }
+        AddBlock(new HeadingBlock(2, text, align, color, linkUri)); return this; }
     /// <summary>Adds a level-3 heading.</summary>
     public PdfDoc H3(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null) {
         Guard.NotNull(text, nameof(text));
-        _blocks.Add(new HeadingBlock(3, text, align, color, linkUri)); return this; }
+        AddBlock(new HeadingBlock(3, text, align, color, linkUri)); return this; }
 
     /// <summary>Inserts a page break.</summary>
-    public PdfDoc PageBreak() { _blocks.Add(new PageBreakBlock()); return this; }
+    public PdfDoc PageBreak() { AddBlock(new PageBreakBlock()); return this; }
 
     /// <summary>Adds a simple bullet list.</summary>
     public PdfDoc Bullets(System.Collections.Generic.IEnumerable<string> items, PdfAlign align = PdfAlign.Left, PdfColor? color = null) {
-        _blocks.Add(new BulletListBlock(items, align, color));
+        AddBlock(new BulletListBlock(items, align, color));
         return this;
     }
 
@@ -31,7 +31,7 @@ public sealed partial class PdfDoc {
         Guard.NotNull(compose, nameof(compose));
         var builder = new PdfParagraphBuilder(align, defaultColor);
         compose(builder);
-        _blocks.Add(builder.Build());
+        AddBlock(builder.Build());
         return this;
     }
 
@@ -48,7 +48,7 @@ public sealed partial class PdfDoc {
 
     /// <summary>Adds a horizontal rule (line) spanning the content width.</summary>
     public PdfDoc HR(double thickness = 0.5, PdfColor? color = null, double spacingBefore = 6, double spacingAfter = 6) {
-        _blocks.Add(new HorizontalRuleBlock(thickness, color ?? PdfColor.Gray, spacingBefore, spacingAfter));
+        AddBlock(new HorizontalRuleBlock(thickness, color ?? PdfColor.Gray, spacingBefore, spacingAfter));
         return this;
     }
 
@@ -58,24 +58,22 @@ public sealed partial class PdfDoc {
         Guard.NotNull(style, nameof(style));
         var builder = new PdfParagraphBuilder(align, defaultColor);
         compose(builder);
-        _blocks.Add(new PanelParagraphBlock(builder.Build().Runs, align, defaultColor, style));
+        AddBlock(new PanelParagraphBlock(builder.Build().Runs, align, defaultColor, style));
         return this;
     }
 
     /// <summary>Adds a JPEG image at the current flow position.</summary>
     public PdfDoc Image(byte[] jpegBytes, double width, double height, PdfAlign align = PdfAlign.Left) {
-        _blocks.Add(new ImageBlock(jpegBytes, width, height, align));
+        AddBlock(new ImageBlock(jpegBytes, width, height, align));
         return this;
     }
 
     // Internal for Compose Row
-    internal void AddRow(RowBlock row) {
-        _blocks.Add(row);
-    }
+    internal void AddRow(RowBlock row) { AddBlock(row); }
 
     /// <summary>Adds a simple table from rows of string arrays.</summary>
     public PdfDoc Table(System.Collections.Generic.IEnumerable<string[]> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {
-        _blocks.Add(new TableBlock(rows, align, style));
+        AddBlock(new TableBlock(rows, align, style));
         return this;
     }
 
@@ -85,7 +83,7 @@ public sealed partial class PdfDoc {
     public PdfDoc TableWithLinks(System.Collections.Generic.IEnumerable<string[]> rows, System.Collections.Generic.Dictionary<(int Row, int Col), string> links, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {
         var tb = new TableBlock(rows, align, style);
         if (links != null) foreach (var kv in links) tb.Links[kv.Key] = kv.Value;
-        _blocks.Add(tb);
+        AddBlock(tb);
         return this;
     }
 }
