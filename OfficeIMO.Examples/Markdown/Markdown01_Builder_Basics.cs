@@ -28,6 +28,7 @@ namespace OfficeIMO.Examples.Markdown {
                     .Item("TLS/SSL tests and cipher hints")
                     .Item("WHOIS, MX, PTR, DNSSEC, BIMI")
                     .Item("Exports: Word, HTML, PDF, Markdown"))
+                .Hr()
                 .H2("Links")
                 .Ul(ul => ul
                     .ItemLink("Docs", "https://evotec.xyz/hub/")
