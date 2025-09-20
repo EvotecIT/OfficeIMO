@@ -43,6 +43,36 @@ public sealed class PdfOptions {
 
     /// <summary>Advanced footer template segments. When set, overrides FooterFormat.</summary>
     public System.Collections.Generic.List<FooterSegment>? FooterSegments { get; set; }
+
+    /// <summary>Creates a deep copy of the options.</summary>
+    public PdfOptions Clone() {
+        var clone = new PdfOptions {
+            PageWidth = PageWidth,
+            PageHeight = PageHeight,
+            MarginLeft = MarginLeft,
+            MarginRight = MarginRight,
+            MarginTop = MarginTop,
+            MarginBottom = MarginBottom,
+            DefaultFont = DefaultFont,
+            DefaultFontSize = DefaultFontSize,
+            ShowPageNumbers = ShowPageNumbers,
+            FooterFormat = FooterFormat,
+            FooterFont = FooterFont,
+            FooterFontSize = FooterFontSize,
+            FooterAlign = FooterAlign,
+            FooterOffsetY = FooterOffsetY,
+            DefaultTextColor = DefaultTextColor,
+            DefaultTableStyle = DefaultTableStyle?.Clone(),
+            Debug = Debug is null ? null : new PdfDebugOptions {
+                ShowContentArea = Debug.ShowContentArea,
+                ShowTableBaselines = Debug.ShowTableBaselines,
+                ShowTableRowBoxes = Debug.ShowTableRowBoxes,
+                ShowTableColumnGuides = Debug.ShowTableColumnGuides
+            },
+            FooterSegments = FooterSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(FooterSegments)
+        };
+        return clone;
+    }
 }
 
  

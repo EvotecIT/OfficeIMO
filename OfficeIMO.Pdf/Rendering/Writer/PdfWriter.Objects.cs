@@ -30,9 +30,13 @@ internal static partial class PdfWriter {
         public bool UsedItalic { get; set; }
         public bool UsedBoldItalic { get; set; }
         public sealed class Page {
+            public PdfOptions Options { get; set; } = null!;
             public string Content { get; set; } = string.Empty;
             public System.Collections.Generic.List<LinkAnnotation> Annotations { get; } = new();
             public System.Collections.Generic.List<PageImage> Images { get; } = new();
+            public bool UsedBold { get; set; }
+            public bool UsedItalic { get; set; }
+            public bool UsedBoldItalic { get; set; }
         }
     }
 
