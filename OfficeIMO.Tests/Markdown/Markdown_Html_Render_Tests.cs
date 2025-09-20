@@ -97,5 +97,20 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("data-asset-id=\"prism-core\"", merged.headLinks);
             Assert.Contains("prefers-color-scheme: dark", merged.headLinks);
         }
+
+        [Fact]
+        public void HorizontalRule_Renders_In_Markdown_And_Html() {
+            var doc = MarkdownDoc.Create()
+                .P("Before the break.")
+                .Hr()
+                .P("After the break.");
+
+            string markdown = doc.ToMarkdown();
+            string normalizedMarkdown = markdown.Replace("\r\n", "\n");
+            Assert.Contains("\n---\n", normalizedMarkdown, StringComparison.Ordinal);
+
+            string html = doc.ToHtmlFragment();
+            Assert.Contains("<hr />", html, StringComparison.Ordinal);
+        }
     }
 }

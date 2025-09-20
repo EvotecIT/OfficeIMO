@@ -61,6 +61,9 @@ public class MarkdownDoc {
         return Add(new ParagraphBlock(builder.Inlines));
     }
 
+    /// <summary>Adds a horizontal rule.</summary>
+    public MarkdownDoc Hr() => Add(new HorizontalRuleBlock());
+
     /// <summary>Adds a callout/admonition block (Docs-style).</summary>
     public MarkdownDoc Callout(string kind, string title, string body) => Add(new CalloutBlock(kind, title, body));
 
