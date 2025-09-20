@@ -4,20 +4,19 @@ using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint;
 using Xunit;
-using ImagePartType = DocumentFormat.OpenXml.Packaging.PartTypeInfo;
 
 namespace OfficeIMO.Tests {
     public class PowerPointPictureUpdate {
         public static IEnumerable<object[]> ImageData => new[] {
-            new object[] { "BackgroundImage.png", DocumentFormat.OpenXml.Packaging.ImagePartType.Png, "image/png" },
-            new object[] { "Kulek.jpg", DocumentFormat.OpenXml.Packaging.ImagePartType.Jpeg, "image/jpeg" },
-            new object[] { "example.gif", DocumentFormat.OpenXml.Packaging.ImagePartType.Gif, "image/gif" },
-            new object[] { "snail.bmp", DocumentFormat.OpenXml.Packaging.ImagePartType.Bmp, "image/bmp" },
+            new object[] { "BackgroundImage.png", ImagePartType.Png, "image/png" },
+            new object[] { "Kulek.jpg", ImagePartType.Jpeg, "image/jpeg" },
+            new object[] { "example.gif", ImagePartType.Gif, "image/gif" },
+            new object[] { "snail.bmp", ImagePartType.Bmp, "image/bmp" },
         };
 
         [Theory]
         [MemberData(nameof(ImageData))]
-        public void CanUpdatePicture(string newImage, ImagePartType type, string expectedContentType) {
+        public void CanUpdatePicture(string newImage, PartTypeInfo type, string expectedContentType) {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string originalImage = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
             string newImagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", newImage);
