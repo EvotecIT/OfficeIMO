@@ -5,6 +5,7 @@ using System.IO.Packaging;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 using OfficeIMO.Excel.Utilities;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -343,8 +344,9 @@ namespace OfficeIMO.Excel {
         /// <param name="filePath">Path to the file.</param>
         /// <param name="readOnly">Open the file in read-only mode.</param>
         /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <param name="log">Optional callback invoked when normalization failures are encountered.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
-        public static ExcelDocument Load(string filePath, bool readOnly = false, bool autoSave = false) {
+        public static ExcelDocument Load(string filePath, bool readOnly = false, bool autoSave = false, Action<string, Exception>? log = null) {
             if (filePath == null) {
                 throw new ArgumentNullException(nameof(filePath));
             }
@@ -356,15 +358,15 @@ namespace OfficeIMO.Excel {
             // Normalize content types up-front to avoid failures on malformed packages
             // where /docProps/app.xml can be incorrectly typed as application/xml.
             // Prefer in-memory normalization to avoid file-share conflicts in parallel runners.
+            var bytes = File.ReadAllBytes(filePath);
+            // Do NOT dispose this stream until the SpreadsheetDocument is disposed.
+            // Returning a document backed by a disposed stream causes ObjectDisposedException
+            // when Open XML attempts to read parts/relationships.
+            var ms = new MemoryStream(bytes.Length + 4096);
+            ms.Write(bytes, 0, bytes.Length);
+            ms.Position = 0;
             try
             {
-                var bytes = File.ReadAllBytes(filePath);
-                // Do NOT dispose this stream until the SpreadsheetDocument is disposed.
-                // Returning a document backed by a disposed stream causes ObjectDisposedException
-                // when Open XML attempts to read parts/relationships.
-                var ms = new MemoryStream(bytes.Length + 4096);
-                ms.Write(bytes, 0, bytes.Length);
-                ms.Position = 0;
                 Utilities.ExcelPackageUtilities.NormalizeContentTypes(ms, leaveOpen: true);
                 ms.Position = 0;
                 // Open from normalized memory stream to avoid touching the original file yet
@@ -378,7 +380,17 @@ namespace OfficeIMO.Excel {
                 documentMem.ApplicationProperties = new ApplicationProperties(documentMem);
                 return documentMem;
             }
-            catch { }
+            catch (Exception ex) when (ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException)
+            {
+                ms.Dispose();
+                var contextMessage = $"Failed to open '{filePath}' after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.";
+                log?.Invoke($"{contextMessage} Inner exception: {ex.Message}", ex);
+                throw new IOException($"{contextMessage} See inner exception for details.", ex);
+            }
+            catch
+            {
+                ms.Dispose();
+            }
             ExcelDocument document = new ExcelDocument();
             document.FilePath = filePath;
 
