@@ -1,7 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
-using ImagePartType = DocumentFormat.OpenXml.Packaging.PartTypeInfo;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -35,15 +34,15 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="newImage">Stream containing the new image data.</param>
         /// <param name="type">Image format of the new image.</param>
-        public void UpdateImage(Stream newImage, ImagePartType type) {
+        public void UpdateImage(Stream newImage, PartTypeInfo type) {
             if (newImage == null) {
                 throw new ArgumentNullException(nameof(newImage));
             }
 
-            if (type != DocumentFormat.OpenXml.Packaging.ImagePartType.Png &&
-                type != DocumentFormat.OpenXml.Packaging.ImagePartType.Jpeg &&
-                type != DocumentFormat.OpenXml.Packaging.ImagePartType.Gif &&
-                type != DocumentFormat.OpenXml.Packaging.ImagePartType.Bmp) {
+            if (type != ImagePartType.Png &&
+                type != ImagePartType.Jpeg &&
+                type != ImagePartType.Gif &&
+                type != ImagePartType.Bmp) {
                 throw new NotSupportedException($"Image type {type} is not supported.");
             }
 
