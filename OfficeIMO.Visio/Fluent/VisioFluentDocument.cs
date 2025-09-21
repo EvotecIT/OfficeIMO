@@ -49,42 +49,7 @@ namespace OfficeIMO.Visio.Fluent {
             return this;
         }
 
-        /// <summary>
-        /// Adds a page and returns the fluent document for chaining.
-        /// </summary>
-        /// <param name="name">Name of the page.</param>
-        /// <param name="width">Page width.</param>
-        /// <param name="height">Page height.</param>
-        /// <param name="unit">Measurement unit for width and height.</param>
-        /// <param name="page">The created page.</param>
-        public VisioFluentDocument AddPage(string name, double width, double height, VisioMeasurementUnit unit, out VisioPage page) {
-            page = _document.AddPage(name, width, height, unit);
-            return this;
-        }
-
-        /// <summary>
-        /// Adds a page with the specified dimensions.
-        /// </summary>
-        /// <param name="name">Name of the page.</param>
-        /// <param name="width">Page width.</param>
-        /// <param name="height">Page height.</param>
-        /// <param name="page">The created page.</param>
-        [System.Obsolete("Use AddPage with width, height and unit parameters")]
-        public VisioFluentDocument AddPage(string name, double width, double height, out VisioPage page) {
-            page = _document.AddPage(name, width, height);
-            return this;
-        }
-
-        /// <summary>
-        /// Adds a page with default dimensions.
-        /// </summary>
-        /// <param name="name">Name of the page.</param>
-        /// <param name="page">The created page.</param>
-        [System.Obsolete("Use AddPage with width, height and unit parameters")]
-        public VisioFluentDocument AddPage(string name, out VisioPage page) {
-            page = _document.AddPage(name);
-            return this;
-        }
+        // Removed obsolete AddPage overloads to keep the fluent API focused and consistent.
 
         /// <summary>
         /// Ends fluent configuration and returns the underlying document.

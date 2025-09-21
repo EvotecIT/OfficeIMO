@@ -394,12 +394,32 @@ namespace OfficeIMO.Visio {
                                 writer.WriteAttributeString("LineStyle", "0");
                                 writer.WriteAttributeString("FillStyle", "0");
                                 writer.WriteAttributeString("TextStyle", "0");
-                                (double startX, double startY) = connector.FromConnectionPoint != null
-                                    ? connector.From.GetAbsolutePoint(connector.FromConnectionPoint.X, connector.FromConnectionPoint.Y)
-                                    : (connector.From.PinX + connector.From.Width / 2.0, connector.From.PinY);
-                                (double endX, double endY) = connector.ToConnectionPoint != null
-                                    ? connector.To.GetAbsolutePoint(connector.ToConnectionPoint.X, connector.ToConnectionPoint.Y)
-                                    : (connector.To.PinX - connector.To.Width / 2.0, connector.To.PinY);
+                                double startX, startY, endX, endY;
+                                if (connector.FromConnectionPoint != null) {
+                                    (startX, startY) = connector.From.GetAbsolutePoint(connector.FromConnectionPoint.X, connector.FromConnectionPoint.Y);
+                                } else {
+                                    var (fL, fB, fR, fT) = connector.From.GetBounds();
+                                    // Choose side based on relative centers to respect rotation/locpin.
+                                    var (tL2, _, tR2, _) = connector.To.GetBounds();
+                                    double fromCx = (fL + fR) / 2.0;
+                                    double toCx = (tL2 + tR2) / 2.0;
+                                    bool toIsRight = toCx >= fromCx;
+                                    startX = toIsRight ? fR : fL;
+                                    startY = (fB + fT) / 2.0;
+                                }
+
+                                if (connector.ToConnectionPoint != null) {
+                                    (endX, endY) = connector.To.GetAbsolutePoint(connector.ToConnectionPoint.X, connector.ToConnectionPoint.Y);
+                                } else {
+                                    var (tL, tB, tR, tT) = connector.To.GetBounds();
+                                    // Choose side based on relative centers
+                                    var (fL2, _, fR2, _) = connector.From.GetBounds();
+                                    double toCx = (tL + tR) / 2.0;
+                                    double fromCx = (fL2 + fR2) / 2.0;
+                                    bool fromIsLeft = fromCx <= toCx;
+                                    endX = fromIsLeft ? tL : tR;
+                                    endY = (tB + tT) / 2.0;
+                                }
                                 WriteXForm1D(writer, ns, startX, startY, endX, endY);
                                 WriteCell(writer, ns, "LineWeight", connector.LineWeight);
                                 WriteCell(writer, ns, "LinePattern", connector.LinePattern);
