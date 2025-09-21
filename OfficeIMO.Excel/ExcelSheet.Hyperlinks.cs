@@ -25,6 +25,7 @@ namespace OfficeIMO.Excel {
                 // Avoid nested locks: write value using core method
                 CellValueCore(row, column, text);
 
+                var reference = GetColumnName(column) + row.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 // Ensure Hyperlinks container exists
                 var ws = _worksheetPart.Worksheet;
                 var hyperlinks = ws.Elements<Hyperlinks>().FirstOrDefault();
@@ -33,11 +34,12 @@ namespace OfficeIMO.Excel {
                     // place near the end but before TableParts per schema order
                     var tableParts = ws.Elements<TableParts>().FirstOrDefault();
                     if (tableParts != null) ws.InsertBefore(hyperlinks, tableParts); else ws.Append(hyperlinks);
+                } else {
+                    RemoveHyperlinksByReference(hyperlinks, reference);
                 }
 
                 // Add external relationship
                 var rel = _worksheetPart.AddHyperlinkRelationship(new Uri(url), true);
-                var reference = GetColumnName(column) + row.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 var hl = new Hyperlink { Reference = reference, Id = rel.Id };
                 hyperlinks.Append(hl);
                 if (style) ApplyHyperlinkStyle(cell);
@@ -76,14 +78,16 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 string text = string.IsNullOrEmpty(display) ? location : display!;
                 CellValueCore(row, column, text);
+                var reference = GetColumnName(column) + row.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 var ws = _worksheetPart.Worksheet;
                 var hyperlinks = ws.Elements<Hyperlinks>().FirstOrDefault();
                 if (hyperlinks == null) {
                     hyperlinks = new Hyperlinks();
                     var tableParts = ws.Elements<TableParts>().FirstOrDefault();
                     if (tableParts != null) ws.InsertBefore(hyperlinks, tableParts); else ws.Append(hyperlinks);
+                } else {
+                    RemoveHyperlinksByReference(hyperlinks, reference);
                 }
-                var reference = GetColumnName(column) + row.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 var hl = new Hyperlink { Reference = reference, Location = location };
                 hyperlinks.Append(hl);
                 // Defer save to caller; final document Save() will persist
@@ -182,6 +186,24 @@ namespace OfficeIMO.Excel {
             }
 
             cell.StyleIndex = (uint)hyperlinkFormatIndex;
+        }
+
+        private void RemoveHyperlinksByReference(Hyperlinks hyperlinks, string reference) {
+            var matches = hyperlinks.Elements<Hyperlink>()
+                .Where(h => string.Equals(h.Reference?.Value, reference, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (matches.Count == 0) return;
+
+            foreach (var existing in matches) {
+                var relId = existing.Id?.Value;
+                if (!string.IsNullOrEmpty(relId)) {
+                    var rel = _worksheetPart.HyperlinkRelationships.FirstOrDefault(r => r.Id == relId);
+                    if (rel != null) {
+                        _worksheetPart.DeleteReferenceRelationship(rel);
+                    }
+                }
+                existing.Remove();
+            }
         }
     }
 }
