@@ -169,6 +169,15 @@ namespace OfficeIMO.Visio {
                             case "EndArrow":
                                 connector.EndArrow = (EndArrow)int.Parse(v ?? "0", CultureInfo.InvariantCulture);
                                 break;
+                            case "LineWeight":
+                                connector.LineWeight = ParseDouble(v);
+                                break;
+                            case "LinePattern":
+                                if (int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out int cpat)) connector.LinePattern = cpat;
+                                break;
+                            case "LineColor":
+                                if (!string.IsNullOrEmpty(v)) connector.LineColor = VisioHelpers.FromVisioColor(v!);
+                                break;
                         }
                     }
 
@@ -248,6 +257,18 @@ namespace OfficeIMO.Visio {
                     case "LineWeight":
                         shape.LineWeight = ParseDouble(v);
                         lineWeightFound = true;
+                        break;
+                    case "LinePattern":
+                        if (int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out int lp)) shape.LinePattern = lp;
+                        break;
+                    case "FillPattern":
+                        if (int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out int fp)) shape.FillPattern = fp;
+                        break;
+                    case "LineColor":
+                        if (!string.IsNullOrEmpty(v)) shape.LineColor = VisioHelpers.FromVisioColor(v!);
+                        break;
+                    case "FillForegnd":
+                        if (!string.IsNullOrEmpty(v)) shape.FillColor = VisioHelpers.FromVisioColor(v!);
                         break;
                 }
             }

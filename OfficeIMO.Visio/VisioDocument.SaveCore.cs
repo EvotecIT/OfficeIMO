@@ -129,9 +129,44 @@ namespace OfficeIMO.Visio {
                     sw.Write(winXml.Declaration + Environment.NewLine + winXml.ToString(SaveOptions.DisableFormatting));
                 }
 
+                // Auto-attach built-in masters for known shapes if requested
+                if (UseMastersByDefault) {
+                    foreach (var p in pagesToSave) {
+                        foreach (var s in p.Shapes) {
+                            if (s.Master == null && !string.IsNullOrEmpty(s.NameU)) {
+                                switch (s.NameU!.Trim()) {
+                                    case "Rectangle":
+                                    case "Square":
+                                    case "Ellipse":
+                                    case "Diamond":
+                                    case "Triangle":
+                                    case "Circle":
+                                        s.Master = EnsureBuiltinMaster(s.NameU!);
+                                        break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Identify extra masters required by connectors (e.g., Dynamic connector)
+                List<VisioMaster> connectorMasters = new();
+                if (UseMastersByDefault) {
+                    foreach (var p in pagesToSave) {
+                        foreach (var c in p.Connectors) {
+                            if (c.Kind == ConnectorKind.Dynamic) {
+                                connectorMasters.Add(EnsureBuiltinMaster("Dynamic connector"));
+                            }
+                        }
+                    }
+                }
+
                 List<VisioMaster> masters = pagesToSave.SelectMany(p => p.Shapes)
                     .Where(s => s.Master != null)
                     .Select(s => s.Master!)
+                    .GroupBy(m => m.Id)
+                    .Select(g => g.First())
+                    .Concat(connectorMasters.GroupBy(m => m.Id).Select(g => g.First()))
                     .GroupBy(m => m.Id)
                     .Select(g => g.First())
                     .ToList();
@@ -151,45 +186,83 @@ namespace OfficeIMO.Visio {
                             part.CreateRelationship(new Uri($"../masters/master{i + 1}.xml", UriKind.Relative), TargetMode.Internal, MasterRelationshipType, $"rId{i + 1}");
                         }
 
-                        using (XmlWriter writer = XmlWriter.Create(masterPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
-                            writer.WriteStartDocument();
-                            writer.WriteStartElement("MasterContents", ns);
-                            writer.WriteStartElement("Shapes", ns);
-                            VisioShape s = master.Shape;
-                            double masterWidth = s.Width > 0 ? s.Width : 1;
-                            double masterHeight = s.Height > 0 ? s.Height : 1;
-                            s.Width = masterWidth;
-                            s.Height = masterHeight;
-                            if (Math.Abs(s.LocPinX) < double.Epsilon) {
-                                s.LocPinX = masterWidth / 2;
+                        // If master has a canonical template XML, write it verbatim for 1:1 fidelity
+                        if (master.TemplateXml != null) {
+                            using var s = masterPart.GetStream(FileMode.Create, FileAccess.Write);
+                            using var sw = new StreamWriter(s, new UTF8Encoding(false));
+                            sw.Write(master.TemplateXml.Declaration + Environment.NewLine + master.TemplateXml.ToString(SaveOptions.DisableFormatting));
+                        } else {
+                            using (XmlWriter writer = XmlWriter.Create(masterPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
+                                writer.WriteStartDocument();
+                                writer.WriteStartElement("MasterContents", ns);
+                                writer.WriteStartElement("Shapes", ns);
+                                VisioShape s = master.Shape;
+                                double masterWidth = s.Width > 0 ? s.Width : 1;
+                                double masterHeight = s.Height > 0 ? s.Height : 1;
+                                s.Width = masterWidth;
+                                s.Height = masterHeight;
+                                if (Math.Abs(s.LocPinX) < double.Epsilon) {
+                                    s.LocPinX = masterWidth / 2;
+                                }
+                                if (Math.Abs(s.LocPinY) < double.Epsilon) {
+                                    s.LocPinY = masterHeight / 2;
+                                }
+                                writer.WriteStartElement("Shape", ns);
+                                writer.WriteAttributeString("ID", "1");
+                                string masterShapeName = s.Name ?? s.NameU ?? "MasterShape";
+                                writer.WriteAttributeString("Name", masterShapeName);
+                                writer.WriteAttributeString("NameU", master.NameU);
+                                writer.WriteAttributeString("Type", "Shape");
+                                writer.WriteAttributeString("LineStyle", "0");
+                                writer.WriteAttributeString("FillStyle", "0");
+                                writer.WriteAttributeString("TextStyle", "0");
+                                if (string.Equals(master.NameU, "Dynamic connector", StringComparison.OrdinalIgnoreCase)) {
+                                    // Minimal connector shape blueprint
+                                    WriteXForm1D(writer, ns, 0, 0, 1, 0);
+                                    WriteCell(writer, ns, "OneD", 1);
+                                    WriteCell(writer, ns, "ObjType", 1);
+                                    WriteCell(writer, ns, "LineWeight", s.LineWeight);
+                                    WriteCell(writer, ns, "LinePattern", s.LinePattern);
+                                    WriteCellValue(writer, ns, "LineColor", s.LineColor.ToVisioHex());
+                                    WriteCell(writer, ns, "FillPattern", 0);
+                                    WriteCellValue(writer, ns, "FillForegnd", Color.Transparent.ToVisioHex());
+                                } else {
+                                    WriteXForm(writer, ns, s, masterWidth, masterHeight);
+                                    // Always specify line weight so that shapes are visible
+                                    WriteCell(writer, ns, "ObjType", 1);
+                                    // Keep aspect for square/circle-like masters
+                                    string? masterKind = master.NameU;
+                                    if (!string.IsNullOrEmpty(masterKind) &&
+                                        (string.Equals(masterKind, "Circle", StringComparison.OrdinalIgnoreCase) ||
+                                         string.Equals(masterKind, "Square", StringComparison.OrdinalIgnoreCase))) {
+                                        WriteCell(writer, ns, "LockAspect", 1);
+                                    }
+                                    WriteCell(writer, ns, "LineWeight", s.LineWeight);
+                                    WriteCell(writer, ns, "LinePattern", s.LinePattern);
+                                    WriteCellValue(writer, ns, "LineColor", s.LineColor.ToVisioHex());
+                                    WriteCell(writer, ns, "FillPattern", s.FillPattern);
+                                    WriteCellValue(writer, ns, "FillForegnd", s.FillColor.ToVisioHex());
+                                    // Geometry based on master name
+                                    string? nU = master.NameU;
+                                    if (!string.IsNullOrEmpty(nU) && (nU.Equals("Ellipse", StringComparison.OrdinalIgnoreCase) || nU.Equals("Circle", StringComparison.OrdinalIgnoreCase))) {
+                                        WriteEllipseGeometry(writer, ns, masterWidth, masterHeight);
+                                    } else if (!string.IsNullOrEmpty(nU) && nU.Equals("Diamond", StringComparison.OrdinalIgnoreCase)) {
+                                        WriteDiamondGeometry(writer, ns, masterWidth, masterHeight);
+                                    } else if (!string.IsNullOrEmpty(nU) && nU.Equals("Triangle", StringComparison.OrdinalIgnoreCase)) {
+                                        WriteTriangleGeometry(writer, ns, masterWidth, masterHeight);
+                                    } else {
+                                        // Rectangle and Square
+                                        WriteRectangleGeometry(writer, ns, masterWidth, masterHeight);
+                                    }
+                                }
+                                WriteConnectionSection(writer, ns, s.ConnectionPoints);
+                                WriteDataSection(writer, ns, s.Data);
+                                WriteTextElement(writer, ns, s.Text);
+                                writer.WriteEndElement();
+                                writer.WriteEndElement(); // Shapes
+                                writer.WriteEndElement(); // MasterContents
+                                writer.WriteEndDocument();
                             }
-                            if (Math.Abs(s.LocPinY) < double.Epsilon) {
-                                s.LocPinY = masterHeight / 2;
-                            }
-                            writer.WriteStartElement("Shape", ns);
-                            writer.WriteAttributeString("ID", "1");
-                            string masterShapeName = s.Name ?? s.NameU ?? "MasterShape";
-                            writer.WriteAttributeString("Name", masterShapeName);
-                            writer.WriteAttributeString("NameU", master.NameU);
-                            writer.WriteAttributeString("Type", "Shape");
-                            writer.WriteAttributeString("LineStyle", "0");
-                            writer.WriteAttributeString("FillStyle", "0");
-                            writer.WriteAttributeString("TextStyle", "0");
-                            WriteXForm(writer, ns, s, masterWidth, masterHeight);
-                            // Always specify line weight so that shapes are visible
-                            WriteCell(writer, ns, "LineWeight", s.LineWeight);
-                            WriteCell(writer, ns, "LinePattern", s.LinePattern);
-                            WriteCellValue(writer, ns, "LineColor", s.LineColor.ToVisioHex());
-                            WriteCell(writer, ns, "FillPattern", s.FillPattern);
-                            WriteCellValue(writer, ns, "FillForegnd", s.FillColor.ToVisioHex());
-                            WriteRectangleGeometry(writer, ns, masterWidth, masterHeight);
-                            WriteConnectionSection(writer, ns, s.ConnectionPoints);
-                            WriteDataSection(writer, ns, s.Data);
-                            WriteTextElement(writer, ns, s.Text);
-                            writer.WriteEndElement();
-                            writer.WriteEndElement(); // Shapes
-                            writer.WriteEndElement(); // MasterContents
-                            writer.WriteEndDocument();
                         }
                     }
 
@@ -200,13 +273,32 @@ namespace OfficeIMO.Visio {
                         writer.WriteAttributeString("xmlns", "r", null, "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
                         for (int i = 0; i < masters.Count; i++) {
                             VisioMaster m = masters[i];
-                            writer.WriteStartElement("Master", ns);
-                            writer.WriteAttributeString("ID", m.Id);
-                            writer.WriteAttributeString("NameU", m.NameU);
-                            writer.WriteStartElement("Rel", ns);
-                            writer.WriteAttributeString("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", $"rId{i + 1}");
-                            writer.WriteEndElement();
-                            writer.WriteEndElement();
+                            if (m.TemplateMasterElement != null) {
+                                // Clone and adjust r:id and ID to our numbering
+                                var clone = new System.Xml.Linq.XElement(m.TemplateMasterElement);
+                                clone.SetAttributeValue("ID", m.Id);
+                                var relElem = clone.Element(System.Xml.Linq.XName.Get("Rel", ns));
+                                if (relElem != null) {
+                                    var ridName = System.Xml.Linq.XName.Get("id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+                                    relElem.SetAttributeValue(ridName, $"rId{i + 1}");
+                                } else {
+                                    // Ensure a Rel element exists
+                                    var rel = new System.Xml.Linq.XElement(System.Xml.Linq.XName.Get("Rel", ns));
+                                    rel.SetAttributeValue(System.Xml.Linq.XName.Get("id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships"), $"rId{i + 1}");
+                                    clone.Add(rel);
+                                }
+                                // Write the adjusted element verbatim
+                                using var reader = clone.CreateReader();
+                                writer.WriteNode(reader, false);
+                            } else {
+                                writer.WriteStartElement("Master", ns);
+                                writer.WriteAttributeString("ID", m.Id);
+                                writer.WriteAttributeString("NameU", m.NameU);
+                                writer.WriteStartElement("Rel", ns);
+                                writer.WriteAttributeString("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", $"rId{i + 1}");
+                                writer.WriteEndElement();
+                                writer.WriteEndElement();
+                            }
                         }
                         writer.WriteEndElement();
                         writer.WriteEndDocument();
@@ -313,43 +405,77 @@ namespace OfficeIMO.Visio {
                                 writer.WriteAttributeString("Name", shapeName);
                                 writer.WriteAttributeString("NameU", shape.NameU ?? shape.Master?.NameU ?? shapeName);
                                 writer.WriteAttributeString("Type", "Shape");
+                                // Always include explicit style attributes to maximize compatibility across Visio versions
                                 writer.WriteAttributeString("LineStyle", "0");
                                 writer.WriteAttributeString("FillStyle", "0");
                                 writer.WriteAttributeString("TextStyle", "0");
                                 if (shape.Master != null) {
                                     writer.WriteAttributeString("Master", shape.Master.Id);
-                                    double width = shape.Width;
-                                    if (width <= 0 && shape.Master.Shape.Width > 0) {
-                                        width = shape.Master.Shape.Width;
+                                    if (WriteMasterDeltasOnly) {
+                                        // Compare instance size to master to decide whether to emit XForm cells
+                                        double mW = shape.Master.Shape.Width > 0 ? shape.Master.Shape.Width : 1;
+                                        double mH = shape.Master.Shape.Height > 0 ? shape.Master.Shape.Height : 1;
+                                        bool hasW = shape.Width > 0;
+                                        bool hasH = shape.Height > 0;
+                                        bool sizeDiffers = (hasW && Math.Abs(shape.Width - mW) > 1e-12) || (hasH && Math.Abs(shape.Height - mH) > 1e-12);
+
+                                        if (sizeDiffers) {
+                                            double w = hasW ? shape.Width : mW;
+                                            double h = hasH ? shape.Height : mH;
+                                            if (Math.Abs(shape.LocPinX) < double.Epsilon) shape.LocPinX = w / 2;
+                                            if (Math.Abs(shape.LocPinY) < double.Epsilon) shape.LocPinY = h / 2;
+                                            WriteXForm(writer, ns, shape, w, h);
+                                        } else {
+                                            // Minimal pins only when identical to master
+                                            WriteCell(writer, ns, "PinX", shape.PinX);
+                                            WriteCell(writer, ns, "PinY", shape.PinY);
+                                        }
+                                        // Deltas for instances: ensure 2D semantics and allow style overrides
+                                        WriteCell(writer, ns, "ObjType", 1);
+                                        // Respect explicit styling if provided (so examples do not look blank)
+                                        WriteCell(writer, ns, "LineWeight", shape.LineWeight);
+                                        WriteCell(writer, ns, "LinePattern", shape.LinePattern);
+                                        WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
+                                        WriteCell(writer, ns, "FillPattern", shape.FillPattern);
+                                        WriteCellValue(writer, ns, "FillForegnd", shape.FillColor.ToVisioHex());
+                                        WriteConnectionSection(writer, ns, shape.ConnectionPoints);
+                                        WriteDataSection(writer, ns, shape.Data);
+                                        WriteTextElement(writer, ns, shape.Text);
+                                    } else {
+                                        double width = shape.Width;
+                                        if (width <= 0 && shape.Master.Shape.Width > 0) {
+                                            width = shape.Master.Shape.Width;
+                                        }
+                                        if (width <= 0) {
+                                            width = 1;
+                                        }
+                                        double height = shape.Height;
+                                        if (height <= 0 && shape.Master.Shape.Height > 0) {
+                                            height = shape.Master.Shape.Height;
+                                        }
+                                        if (height <= 0) {
+                                            height = 1;
+                                        }
+                                        shape.Width = width;
+                                        shape.Height = height;
+                                        if (Math.Abs(shape.LocPinX) < double.Epsilon) {
+                                            shape.LocPinX = width / 2;
+                                        }
+                                        if (Math.Abs(shape.LocPinY) < double.Epsilon) {
+                                            shape.LocPinY = height / 2;
+                                        }
+                                        WriteXForm(writer, ns, shape, width, height);
+                                        // Include styles when not in delta mode
+                                        WriteCell(writer, ns, "LineWeight", shape.LineWeight);
+                                        WriteCell(writer, ns, "LinePattern", shape.LinePattern);
+                                        WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
+                                        WriteCell(writer, ns, "FillPattern", shape.FillPattern);
+                                        WriteCellValue(writer, ns, "FillForegnd", shape.FillColor.ToVisioHex());
+                                        // Do NOT duplicate geometry when a master is present; rely on the master for shape outline.
+                                        WriteConnectionSection(writer, ns, shape.ConnectionPoints);
+                                        WriteDataSection(writer, ns, shape.Data);
+                                        WriteTextElement(writer, ns, shape.Text);
                                     }
-                                    if (width <= 0) {
-                                        width = 1;
-                                    }
-                                    double height = shape.Height;
-                                    if (height <= 0 && shape.Master.Shape.Height > 0) {
-                                        height = shape.Master.Shape.Height;
-                                    }
-                                    if (height <= 0) {
-                                        height = 1;
-                                    }
-                                    shape.Width = width;
-                                    shape.Height = height;
-                                    if (Math.Abs(shape.LocPinX) < double.Epsilon) {
-                                        shape.LocPinX = width / 2;
-                                    }
-                                    if (Math.Abs(shape.LocPinY) < double.Epsilon) {
-                                        shape.LocPinY = height / 2;
-                                    }
-                                    WriteXForm(writer, ns, shape, width, height);
-                                    // Always include line weight to avoid invisible shapes
-                                    WriteCell(writer, ns, "LineWeight", shape.LineWeight);
-                                    WriteCell(writer, ns, "LinePattern", shape.LinePattern);
-                                    WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
-                                    WriteCell(writer, ns, "FillPattern", shape.FillPattern);
-                                    WriteCellValue(writer, ns, "FillForegnd", shape.FillColor.ToVisioHex());
-                                    WriteConnectionSection(writer, ns, shape.ConnectionPoints);
-                                    WriteDataSection(writer, ns, shape.Data);
-                                    WriteTextElement(writer, ns, shape.Text);
                                 } else {
                                     double width = shape.Width > 0 ? shape.Width : 1;
                                     double height = shape.Height > 0 ? shape.Height : 1;
@@ -368,6 +494,8 @@ namespace OfficeIMO.Visio {
                                     WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
                                     WriteCell(writer, ns, "FillPattern", shape.FillPattern);
                                     WriteCellValue(writer, ns, "FillForegnd", shape.FillColor.ToVisioHex());
+                                    // Mark as 2D object for compatibility across Visio versions
+                                    WriteCell(writer, ns, "ObjType", 1);
                                     string? kind = shape.NameU?.Trim();
                                     if (string.Equals(kind, "Ellipse", StringComparison.OrdinalIgnoreCase) || string.Equals(kind, "Circle", StringComparison.OrdinalIgnoreCase)) {
                                         WriteEllipseGeometry(writer, ns, width, height);
@@ -388,12 +516,17 @@ namespace OfficeIMO.Visio {
                             foreach (VisioConnector connector in page.Connectors) {
                                 writer.WriteStartElement("Shape", ns);
                                 writer.WriteAttributeString("ID", connector.Id);
-                                // Mark as connector so the loader can distinguish it.
-                                writer.WriteAttributeString("Name", "Connector");
-                                writer.WriteAttributeString("NameU", "Connector");
+                                bool isDynamic = connector.Kind == ConnectorKind.Dynamic;
+                                string connName = (isDynamic && UseMastersByDefault) ? "Dynamic connector" : "Connector";
+                                writer.WriteAttributeString("Name", connName);
+                                writer.WriteAttributeString("NameU", connName);
                                 writer.WriteAttributeString("LineStyle", "0");
                                 writer.WriteAttributeString("FillStyle", "0");
                                 writer.WriteAttributeString("TextStyle", "0");
+                                if (isDynamic && UseMastersByDefault) {
+                                    var m = EnsureBuiltinMaster("Dynamic connector");
+                                    writer.WriteAttributeString("Master", m.Id);
+                                }
                                 double startX, startY, endX, endY;
                                 if (connector.FromConnectionPoint != null) {
                                     (startX, startY) = connector.From.GetAbsolutePoint(connector.FromConnectionPoint.X, connector.FromConnectionPoint.Y);

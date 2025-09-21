@@ -18,8 +18,11 @@ namespace OfficeIMO.Examples {
             // Visio - Core Examples
             Visio.BasicVisioDocument.Example_BasicVisio(folderPath, false);
             Visio.ConnectRectangles.Example_ConnectRectangles(folderPath, false);
-            Visio.ConnectionPoints.Example_ConnectionPoints(folderPath, true);
-            Visio.ComprehensiveColoredShapes.Example_ComprehensiveColoredShapes(folderPath, true);
+            Visio.ConnectionPoints.Example_ConnectionPoints(folderPath, false);
+            Visio.ComprehensiveColoredShapes.Example_ComprehensiveColoredShapes(folderPath, false);
+            Visio.AllShapes.Example_AllShapes(folderPath, true);
+            Visio.AllShapesTyped.Example_AllShapes_Typed(folderPath, true);
+            Visio.AssetsCatalog.Example_ListAndExtractMasters(folderPath, false);
             Visio.ReadVisioDocument.Example_ReadVisio(folderPath, false);
 
             return;

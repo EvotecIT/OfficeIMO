@@ -139,6 +139,20 @@ namespace OfficeIMO.Visio {
         public Dictionary<string, string> Data { get; } = new();
 
         /// <summary>
+        /// Ensures the shape has four side connection points (Left, Right, Bottom, Top).
+        /// If they already exist (>=4), nothing is added.
+        /// Internal: users should not call this; side points are added automatically
+        /// by the connector API when explicit sides are requested.
+        /// </summary>
+        internal void EnsureSideConnectionPoints() {
+            if (ConnectionPoints.Count >= 4) return;
+            ConnectionPoints.Add(new VisioConnectionPoint(0,       Height / 2,  1, 0));   // Left
+            ConnectionPoints.Add(new VisioConnectionPoint(Width,   Height / 2, -1, 0));   // Right
+            ConnectionPoints.Add(new VisioConnectionPoint(Width/2, 0,           0, 1));   // Bottom
+            ConnectionPoints.Add(new VisioConnectionPoint(Width/2, Height,      0,-1));   // Top
+        }
+
+        /// <summary>
         /// Transforms a point from the shape's local coordinate system to the page coordinate system.
         /// </summary>
         /// <param name="x">X coordinate of the point relative to the shape's local coordinate system.</param>

@@ -25,10 +25,28 @@ namespace OfficeIMO.Visio {
             writer.WriteEndElement();
         }
 
+        private static void WriteCell(XmlWriter writer, string ns, string name, double value, string? unit, string? formula) {
+            writer.WriteStartElement("Cell", ns);
+            writer.WriteAttributeString("N", name);
+            writer.WriteAttributeString("V", ToVisioString(value));
+            if (!string.IsNullOrEmpty(unit)) writer.WriteAttributeString("U", unit);
+            if (!string.IsNullOrEmpty(formula)) writer.WriteAttributeString("F", formula);
+            writer.WriteEndElement();
+        }
+
         private static void WriteCellValue(XmlWriter writer, string ns, string name, string value) {
             writer.WriteStartElement("Cell", ns);
             writer.WriteAttributeString("N", name);
             writer.WriteAttributeString("V", value);
+            writer.WriteEndElement();
+        }
+
+        private static void WriteCellValue(XmlWriter writer, string ns, string name, string value, string? unit, string? formula) {
+            writer.WriteStartElement("Cell", ns);
+            writer.WriteAttributeString("N", name);
+            writer.WriteAttributeString("V", value);
+            if (!string.IsNullOrEmpty(unit)) writer.WriteAttributeString("U", unit);
+            if (!string.IsNullOrEmpty(formula)) writer.WriteAttributeString("F", formula);
             writer.WriteEndElement();
         }
 
@@ -110,6 +128,16 @@ namespace OfficeIMO.Visio {
             writer.WriteAttributeString("N", "Geometry");
             writer.WriteAttributeString("IX", "0");
 
+            // Match rectangle behavior by emitting a Geometry row with default flags
+            writer.WriteStartElement("Row", ns);
+            writer.WriteAttributeString("T", "Geometry");
+            WriteCellValue(writer, ns, "NoFill", "0");
+            WriteCellValue(writer, ns, "NoLine", "0");
+            WriteCellValue(writer, ns, "NoShow", "0");
+            WriteCellValue(writer, ns, "NoSnap", "0");
+            WriteCellValue(writer, ns, "NoQuickDrag", "0");
+            writer.WriteEndElement();
+
             writer.WriteStartElement("Row", ns);
             writer.WriteAttributeString("T", "MoveTo");
             WriteCell(writer, ns, "X", 0);
@@ -126,6 +154,7 @@ namespace OfficeIMO.Visio {
 
             writer.WriteStartElement("Row", ns);
             writer.WriteAttributeString("T", "EllipticalArcTo");
+            // Explicitly close back to the leftmost point to avoid viewer quirks
             WriteCell(writer, ns, "X", 0);
             WriteCell(writer, ns, "Y", ry);
             WriteCell(writer, ns, "A", ry);

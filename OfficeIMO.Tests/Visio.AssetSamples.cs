@@ -27,11 +27,12 @@ namespace OfficeIMO.Tests {
             AssertXmlEqual(expected, actual, "visio/pages/page1.xml");
         }
 
-        [Fact(Skip = "Rectangle writer uses inline geometry; asset uses masters. Align in future work.")]
+        [Fact]
         public void RectangleDocumentMatchesAsset() {
             string target = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(target);
+            document.UseMastersByDefault = true;
             VisioPage page = document.AddPage("Page-1", 29.7, 21, VisioMeasurementUnit.Centimeters);
             page.ViewCenterX = 5.8424184863857;
             page.ViewCenterY = 4.133858091015;

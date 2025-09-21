@@ -39,6 +39,30 @@ See `OfficeIMO.Examples/Visio/*` for more.
 - 📄 Pages: ✅ add/remove pages
 - 🧱 Shapes: ✅ basic shapes from masters (rectangle, etc.), ✅ set text
 - 🔗 Connectors: ✅ basic connectors between shapes
+
+## Authoring units
+
+Pages now remember a `DefaultUnit` (inches by default). When you create a page
+with centimeters or millimeters, shape-adding overloads use that unit implicitly,
+so you don't need helper conversions:
+
+```
+var page = doc.AddPage("A4 landscape", 29.7, 21.0, VisioMeasurementUnit.Centimeters);
+page.AddRectangle(4.0, 15.0, 4.0, 2.5, "Rectangle"); // all values in cm
+page.AddCircle(16.0, 15.0, 3.5, "Circle");           // diameter in cm
+```
+
+If you prefer, you can still pass an explicit unit:
+
+```
+page.AddRectangle(1.5, 1.0, 2.0, 1.0, "Rect", VisioMeasurementUnit.Inches);
+```
+
+## Connection points
+
+You no longer need to add side connection points manually. The connector API
+ensures side glue automatically when you specify `VisioSide.Left/Right/Top/Bottom`.
+The old ensure method has been internalized.
 - 🎨 Themes: ⚠️ minimal/default theme usage
 
 This package is intentionally minimal at this stage and will expand over time.
