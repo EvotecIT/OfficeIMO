@@ -27,6 +27,13 @@ namespace OfficeIMO.Excel {
         public void SetTableTotals(string range, System.Collections.Generic.Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> byHeader)
         {
             if (string.IsNullOrWhiteSpace(range)) throw new System.ArgumentNullException(nameof(range));
+            if (byHeader == null) throw new System.ArgumentNullException(nameof(byHeader));
+
+            var totalsByHeader = new System.Collections.Generic.Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues>(byHeader.Count, System.StringComparer.OrdinalIgnoreCase);
+            foreach (var pair in byHeader)
+            {
+                totalsByHeader[pair.Key] = pair.Value;
+            }
             WriteLock(() =>
             {
                 foreach (var tdp in _worksheetPart.TableDefinitionParts)
@@ -39,7 +46,7 @@ namespace OfficeIMO.Excel {
                     foreach (var tc in table.TableColumns!.Elements<TableColumn>())
                     {
                         var name = headerNames[idx++];
-                        if (byHeader.TryGetValue(name, out var fn))
+                        if (totalsByHeader.TryGetValue(name, out var fn))
                         {
                             tc.TotalsRowFunction = fn;
                         }
