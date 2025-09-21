@@ -5,8 +5,9 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public class PdfPageCompose {
     private readonly PdfDoc _doc;
-    internal PdfOptions Options => _doc.Options;
-    internal PdfPageCompose(PdfDoc doc) { _doc = doc; }
+    private readonly PdfOptions _options;
+    internal PdfOptions Options => _options;
+    internal PdfPageCompose(PdfDoc doc, PdfOptions options) { _doc = doc; _options = options; }
 
     /// <summary>Sets page size using a predefined <see cref="PageSize"/>.</summary>
     public PdfPageCompose Size(PageSize size) { Options.PageWidth = size.Width; Options.PageHeight = size.Height; return this; }

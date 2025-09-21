@@ -5,6 +5,7 @@ using System.IO.Packaging;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 using OfficeIMO.Excel.Utilities;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -343,8 +344,9 @@ namespace OfficeIMO.Excel {
         /// <param name="filePath">Path to the file.</param>
         /// <param name="readOnly">Open the file in read-only mode.</param>
         /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <param name="log">Optional callback invoked when normalization failures are encountered.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
-        public static ExcelDocument Load(string filePath, bool readOnly = false, bool autoSave = false) {
+        public static ExcelDocument Load(string filePath, bool readOnly = false, bool autoSave = false, Action<string, Exception>? log = null) {
             if (filePath == null) {
                 throw new ArgumentNullException(nameof(filePath));
             }
@@ -356,15 +358,15 @@ namespace OfficeIMO.Excel {
             // Normalize content types up-front to avoid failures on malformed packages
             // where /docProps/app.xml can be incorrectly typed as application/xml.
             // Prefer in-memory normalization to avoid file-share conflicts in parallel runners.
+            var bytes = File.ReadAllBytes(filePath);
+            // Do NOT dispose this stream until the SpreadsheetDocument is disposed.
+            // Returning a document backed by a disposed stream causes ObjectDisposedException
+            // when Open XML attempts to read parts/relationships.
+            var ms = new MemoryStream(bytes.Length + 4096);
+            ms.Write(bytes, 0, bytes.Length);
+            ms.Position = 0;
             try
             {
-                var bytes = File.ReadAllBytes(filePath);
-                // Do NOT dispose this stream until the SpreadsheetDocument is disposed.
-                // Returning a document backed by a disposed stream causes ObjectDisposedException
-                // when Open XML attempts to read parts/relationships.
-                var ms = new MemoryStream(bytes.Length + 4096);
-                ms.Write(bytes, 0, bytes.Length);
-                ms.Position = 0;
                 Utilities.ExcelPackageUtilities.NormalizeContentTypes(ms, leaveOpen: true);
                 ms.Position = 0;
                 // Open from normalized memory stream to avoid touching the original file yet
@@ -378,7 +380,17 @@ namespace OfficeIMO.Excel {
                 documentMem.ApplicationProperties = new ApplicationProperties(documentMem);
                 return documentMem;
             }
-            catch { }
+            catch (Exception ex) when (ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException)
+            {
+                ms.Dispose();
+                var contextMessage = $"Failed to open '{filePath}' after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.";
+                log?.Invoke($"{contextMessage} Inner exception: {ex.Message}", ex);
+                throw new IOException($"{contextMessage} See inner exception for details.", ex);
+            }
+            catch
+            {
+                ms.Dispose();
+            }
             ExcelDocument document = new ExcelDocument();
             document.FilePath = filePath;
 
@@ -612,28 +624,6 @@ namespace OfficeIMO.Excel {
         /// <param name="openExcel">When true, opens the saved file in the system's associated app.</param>
         /// <param name="options">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
         public void Save(string filePath, bool openExcel, ExcelSaveOptions? options) {
-            // Ensure all worksheets have up-to-date dimensions and proper element ordering before saving
-            foreach (var sheet in Sheets) {
-                sheet.UpdateSheetDimension();
-                sheet.EnsureWorksheetElementOrder();
-                sheet.Commit();
-            }
-
-            // Always preflight to remove orphaned/empty containers that can trigger Excel repairs
-            try { PreflightWorkbook(); } catch { }
-            if (options?.SafePreflight == true)
-            {
-                // Already performed above; keep branch for compatibility/telemetry semantics
-            }
-
-            if (options?.SafeRepairDefinedNames == true)
-            {
-                try { RepairDefinedNames(save: true); } catch { }
-            }
-            
-            _workBookPart.Workbook.Save();
-            try { _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow; } catch { }
-
             var path = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
 
             // Ensure target directory is writable
@@ -648,52 +638,20 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            // Save using OpenXML SaveAs to ensure package-level properties are persisted
-            // Snapshot current package and properties
-            string? pTitle = null, pCreator = null, pSubject = null, pCategory = null, pDescription = null, pKeywords = null, pLastModifiedBy = null, pVersion = null;
-            DateTime? pCreated = null, pModified = null, pLastPrinted = null;
-            try {
-                var src = _spreadSheetDocument.PackageProperties;
-                pTitle = src.Title; pCreator = src.Creator; pSubject = src.Subject; pCategory = src.Category; pDescription = src.Description;
-                pKeywords = src.Keywords; pLastModifiedBy = src.LastModifiedBy; pVersion = src.Version; pCreated = src.Created; pModified = src.Modified; pLastPrinted = src.LastPrinted;
-            } catch { }
+            var payload = PreparePackageForSave(options);
 
-            using (var fallback = new MemoryStream())
+            using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
             {
-                using (_spreadSheetDocument.Clone(fallback)) { }
-                // Release any file handle on the original file before overwrite
-                try { _spreadSheetDocument.Dispose(); } catch { }
-                fallback.Position = 0;
-                using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
-                {
-                    fallback.CopyTo(fs);
-                    fs.Flush();
-                }
+                fs.Write(payload.PackageBytes, 0, payload.PackageBytes.Length);
+                fs.Flush();
             }
 
-            // Ensure core properties are persisted in the saved package
-            try
-            {
-                using var pkg = Package.Open(path, FileMode.Open, FileAccess.ReadWrite);
-                var dst = pkg.PackageProperties;
-                dst.Title = pTitle; dst.Creator = pCreator; dst.Subject = pSubject; dst.Category = pCategory;
-                dst.Description = pDescription; dst.Keywords = pKeywords; dst.LastModifiedBy = pLastModifiedBy; dst.Version = pVersion;
-                dst.Created = pCreated; dst.Modified = pModified ?? DateTime.UtcNow; dst.LastPrinted = pLastPrinted;
-            }
-            catch { }
-
+            try { payload.Properties.ApplyTo(path); } catch { }
             try { ExcelPackageUtilities.NormalizeContentTypes(path); } catch { }
             FilePath = path;
 
-            // Reopen as in-memory document for further operations on an expandable stream
             var fileBytes = File.ReadAllBytes(path);
-            var mem = new MemoryStream(fileBytes.Length + 8192);
-            mem.Write(fileBytes, 0, fileBytes.Length);
-            mem.Position = 0;
-            var reopenSettings = new OpenSettings { AutoSave = true };
-            _spreadSheetDocument = SpreadsheetDocument.Open(mem, true, reopenSettings);
-            _workBookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
-            _sharedStringTablePart = null;
+            ReloadFromBytes(fileBytes);
 
             if (openExcel) {
                 Helpers.Open(path, true);
@@ -782,86 +740,111 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
         /// <param name="cancellationToken">Cancels the asynchronous save work.</param>
         public async Task SaveAsync(string filePath, bool openExcel, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
-            // Ensure all worksheets have proper element ordering before saving
-            foreach (var sheet in Sheets) {
-                sheet.UpdateSheetDimension();
-                sheet.EnsureWorksheetElementOrder();
-                sheet.Commit();
+            var target = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
+            if (File.Exists(target) && new FileInfo(target).IsReadOnly) {
+                throw new IOException($"Failed to save to '{target}'. The file is read-only.");
+            }
+            var directory = Path.GetDirectoryName(Path.GetFullPath(target));
+            if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
+                var dirInfo = new DirectoryInfo(directory);
+                if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
+                    throw new IOException($"Failed to save to '{target}'. The directory is read-only.");
+                }
             }
 
-            // Always preflight to avoid later repair prompts
-            try { PreflightWorkbook(); } catch { }
-            if (options?.SafePreflight == true)
-            {
-                // Already performed above
+            var payload = PreparePackageForSave(options);
+
+            using (var fs = new FileStream(target, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 8192, FileOptions.Asynchronous)) {
+                await fs.WriteAsync(payload.PackageBytes, 0, payload.PackageBytes.Length, cancellationToken).ConfigureAwait(false);
+                await fs.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
 
-            if (options?.SafeRepairDefinedNames == true)
-            {
-                try { RepairDefinedNames(save: true); } catch { }
-            }
-            
-            _workBookPart.Workbook.Save();
+            try { payload.Properties.ApplyTo(target); } catch { }
+            try { ExcelPackageUtilities.NormalizeContentTypes(target); } catch { }
+            FilePath = target;
 
-            try {
-                // Serialize current document to memory snapshot
-                var snapshot = new MemoryStream();
-                using (_spreadSheetDocument.Clone(snapshot)) { }
-                snapshot.Position = 0;
-
-                var target = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
-                if (File.Exists(target) && new FileInfo(target).IsReadOnly) {
-                    throw new IOException($"Failed to save to '{target}'. The file is read-only.");
-                }
-                var directory = Path.GetDirectoryName(Path.GetFullPath(target));
-                if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
-                    var dirInfo = new DirectoryInfo(directory);
-                    if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
-                        throw new IOException($"Failed to save to '{target}'. The directory is read-only.");
-                    }
-                }
-
-                // Snapshot props
-                string? pTitle = null, pCreator = null, pSubject = null, pCategory = null, pDescription = null, pKeywords = null, pLastModifiedBy = null, pVersion = null;
-                DateTime? pCreated = null, pModified = null, pLastPrinted = null;
-                try { var src = _spreadSheetDocument.PackageProperties; pTitle = src.Title; pCreator = src.Creator; pSubject = src.Subject; pCategory = src.Category; pDescription = src.Description; pKeywords = src.Keywords; pLastModifiedBy = src.LastModifiedBy; pVersion = src.Version; pCreated = src.Created; pModified = src.Modified; pLastPrinted = src.LastPrinted; } catch { }
-
-                // Release any on-disk file handle to avoid sharing violations
-                try { _spreadSheetDocument.Dispose(); } catch { }
-
-                // Write package via snapshot
-                using (var fs = new FileStream(target, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 8192, FileOptions.Asynchronous)) {
-                    snapshot.Position = 0;
-                    await snapshot.CopyToAsync(fs, 81920, cancellationToken).ConfigureAwait(false);
-                    await fs.FlushAsync(cancellationToken).ConfigureAwait(false);
-                }
-                // Ensure core properties persisted
-                try
-                {
-                    using var pkg = Package.Open(target, FileMode.Open, FileAccess.ReadWrite);
-                    var dst = pkg.PackageProperties;
-                    dst.Title = pTitle; dst.Creator = pCreator; dst.Subject = pSubject; dst.Category = pCategory; dst.Description = pDescription; dst.Keywords = pKeywords; dst.LastModifiedBy = pLastModifiedBy; dst.Version = pVersion; dst.Created = pCreated; dst.Modified = pModified ?? DateTime.UtcNow; dst.LastPrinted = pLastPrinted;
-                }
-                catch { }
-                try { ExcelPackageUtilities.NormalizeContentTypes(target); } catch { }
-                FilePath = target;
-
-                // Reopen as in-memory document for continued operations without locking the file
-                var fileBytes = await ReadAllBytesCompatAsync(target, cancellationToken).ConfigureAwait(false);
-                var mem = new MemoryStream(fileBytes.Length + 8192);
-                await mem.WriteAsync(fileBytes, 0, fileBytes.Length, cancellationToken).ConfigureAwait(false);
-                mem.Position = 0;
-                var reopenSettings = new OpenSettings { AutoSave = true };
-                _spreadSheetDocument = SpreadsheetDocument.Open(mem, true, reopenSettings);
-                _workBookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
-                _sharedStringTablePart = null;
-            } catch (Exception) {
-                throw;
-            }
+            var fileBytes = await ReadAllBytesCompatAsync(target, cancellationToken).ConfigureAwait(false);
+            ReloadFromBytes(fileBytes);
 
             if (openExcel) {
                 Open(filePath, true);
             }
+
+            if (options?.ValidateOpenXml == true)
+            {
+                var errors = ValidateOpenXml();
+                if (errors.Count > 0)
+                {
+                    throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Saves the document into a writable stream.
+        /// </summary>
+        /// <param name="destination">Writable stream that receives the Excel package content.</param>
+        public void Save(Stream destination)
+        {
+            Save(destination, options: null);
+        }
+
+        /// <summary>
+        /// Saves the document into a writable stream with optional robustness options.
+        /// </summary>
+        /// <param name="destination">Writable stream that receives the Excel package content.</param>
+        /// <param name="options">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
+        public void Save(Stream destination, ExcelSaveOptions? options)
+        {
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+
+            var payload = PreparePackageForSave(options);
+            var withProperties = payload.Properties.ApplyTo(payload.PackageBytes);
+            var finalizedBytes = NormalizePackageBytes(withProperties);
+            destination.Write(finalizedBytes, 0, finalizedBytes.Length);
+            try { destination.Flush(); } catch (NotSupportedException) { }
+
+            ReloadFromBytes(finalizedBytes);
+
+            if (options?.ValidateOpenXml == true)
+            {
+                var errors = ValidateOpenXml();
+                if (errors.Count > 0)
+                {
+                    throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Asynchronously saves the document into a writable stream.
+        /// </summary>
+        /// <param name="destination">Writable stream that receives the Excel package content.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous save work.</param>
+        public Task SaveAsync(Stream destination, CancellationToken cancellationToken = default)
+        {
+            return SaveAsync(destination, options: null, cancellationToken);
+        }
+
+        /// <summary>
+        /// Asynchronously saves the document into a writable stream with optional robustness options.
+        /// </summary>
+        /// <param name="destination">Writable stream that receives the Excel package content.</param>
+        /// <param name="options">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
+        /// <param name="cancellationToken">Cancels the asynchronous save work.</param>
+        public async Task SaveAsync(Stream destination, ExcelSaveOptions? options, CancellationToken cancellationToken = default)
+        {
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+
+            var payload = PreparePackageForSave(options);
+            var withProperties = payload.Properties.ApplyTo(payload.PackageBytes);
+            var finalizedBytes = NormalizePackageBytes(withProperties);
+            await destination.WriteAsync(finalizedBytes, 0, finalizedBytes.Length, cancellationToken).ConfigureAwait(false);
+            try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
+
+            ReloadFromBytes(finalizedBytes);
 
             if (options?.ValidateOpenXml == true)
             {
@@ -889,6 +872,222 @@ namespace OfficeIMO.Excel {
         /// <param name="cancellationToken">Cancellation token.</param>
         public Task SaveAsync(bool openExcel, CancellationToken cancellationToken = default) {
             return SaveAsync("", openExcel, cancellationToken);
+        }
+
+        private SavePayload PreparePackageForSave(ExcelSaveOptions? options)
+        {
+            // Ensure all worksheets have up-to-date dimensions and proper element ordering before saving
+            foreach (var sheet in Sheets)
+            {
+                sheet.UpdateSheetDimension();
+                sheet.EnsureWorksheetElementOrder();
+                sheet.Commit();
+            }
+
+            // Always preflight to remove orphaned/empty containers that can trigger Excel repairs
+            try { PreflightWorkbook(); } catch { }
+            if (options?.SafePreflight == true)
+            {
+                // Already performed above; branch kept for semantic clarity
+            }
+
+            if (options?.SafeRepairDefinedNames == true)
+            {
+                try { RepairDefinedNames(save: true); } catch { }
+            }
+
+            _workBookPart.Workbook.Save();
+            try { _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow; } catch { }
+
+            PackagePropertiesSnapshot propertiesSnapshot = PackagePropertiesSnapshot.Capture(_spreadSheetDocument);
+
+            var snapshot = new MemoryStream();
+            using (_spreadSheetDocument.Clone(snapshot)) { }
+            snapshot.Position = 0;
+
+            var packageBytes = snapshot.ToArray();
+
+            try { _spreadSheetDocument.Dispose(); } catch { }
+
+            return new SavePayload(packageBytes, propertiesSnapshot);
+        }
+
+        private void ReloadFromBytes(byte[] packageBytes)
+        {
+            var mem = new MemoryStream(packageBytes.Length + 8192);
+            mem.Write(packageBytes, 0, packageBytes.Length);
+            mem.Position = 0;
+            var reopenSettings = new OpenSettings { AutoSave = true };
+            _spreadSheetDocument = SpreadsheetDocument.Open(mem, true, reopenSettings);
+            _workBookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+            _sharedStringTablePart = null;
+        }
+
+        private static byte[] NormalizePackageBytes(byte[] packageBytes)
+        {
+            var working = new MemoryStream(packageBytes.Length + 4096);
+            working.Write(packageBytes, 0, packageBytes.Length);
+            working.Position = 0;
+
+            try
+            {
+                ExcelPackageUtilities.NormalizeContentTypes(working, leaveOpen: true);
+            }
+            catch
+            {
+            }
+
+            if (working.CanSeek)
+            {
+                working.Position = 0;
+            }
+
+            return working.ToArray();
+        }
+
+        private sealed class PackagePropertiesSnapshot
+        {
+            private readonly string? _title;
+            private readonly string? _creator;
+            private readonly string? _subject;
+            private readonly string? _category;
+            private readonly string? _description;
+            private readonly string? _keywords;
+            private readonly string? _lastModifiedBy;
+            private readonly string? _version;
+            private readonly DateTime? _created;
+            private readonly DateTime? _modified;
+            private readonly DateTime? _lastPrinted;
+
+            private PackagePropertiesSnapshot(
+                string? title,
+                string? creator,
+                string? subject,
+                string? category,
+                string? description,
+                string? keywords,
+                string? lastModifiedBy,
+                string? version,
+                DateTime? created,
+                DateTime? modified,
+                DateTime? lastPrinted)
+            {
+                _title = title;
+                _creator = creator;
+                _subject = subject;
+                _category = category;
+                _description = description;
+                _keywords = keywords;
+                _lastModifiedBy = lastModifiedBy;
+                _version = version;
+                _created = created;
+                _modified = modified;
+                _lastPrinted = lastPrinted;
+            }
+
+            public static PackagePropertiesSnapshot Capture(SpreadsheetDocument document)
+            {
+                try
+                {
+                    var props = document.PackageProperties;
+                    return new PackagePropertiesSnapshot(
+                        props.Title,
+                        props.Creator,
+                        props.Subject,
+                        props.Category,
+                        props.Description,
+                        props.Keywords,
+                        props.LastModifiedBy,
+                        props.Version,
+                        props.Created,
+                        props.Modified,
+                        props.LastPrinted);
+                }
+                catch
+                {
+                    return new PackagePropertiesSnapshot(null, null, null, null, null, null, null, null, null, null, null);
+                }
+            }
+
+            public void ApplyTo(string packagePath)
+            {
+                if (string.IsNullOrWhiteSpace(packagePath) || !File.Exists(packagePath))
+                {
+                    return;
+                }
+
+                try
+                {
+                    using var package = Package.Open(packagePath, FileMode.Open, FileAccess.ReadWrite);
+                    var dst = package.PackageProperties;
+                    dst.Title = _title;
+                    dst.Creator = _creator;
+                    dst.Subject = _subject;
+                    dst.Category = _category;
+                    dst.Description = _description;
+                    dst.Keywords = _keywords;
+                    dst.LastModifiedBy = _lastModifiedBy;
+                    dst.Version = _version;
+                    dst.Created = _created;
+                    dst.Modified = _modified ?? DateTime.UtcNow;
+                    dst.LastPrinted = _lastPrinted;
+                }
+                catch
+                {
+                }
+            }
+
+            public byte[] ApplyTo(byte[] packageBytes)
+            {
+                if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
+                if (packageBytes.Length == 0) return packageBytes;
+
+                try
+                {
+                    var working = new MemoryStream(packageBytes.Length + 4096);
+                    working.Write(packageBytes, 0, packageBytes.Length);
+                    working.Position = 0;
+
+                    using (var package = Package.Open(working, FileMode.Open, FileAccess.ReadWrite))
+                    {
+                        var dst = package.PackageProperties;
+                        dst.Title = _title;
+                        dst.Creator = _creator;
+                        dst.Subject = _subject;
+                        dst.Category = _category;
+                        dst.Description = _description;
+                        dst.Keywords = _keywords;
+                        dst.LastModifiedBy = _lastModifiedBy;
+                        dst.Version = _version;
+                        dst.Created = _created;
+                        dst.Modified = _modified ?? DateTime.UtcNow;
+                        dst.LastPrinted = _lastPrinted;
+                    }
+
+                    if (working.CanSeek)
+                    {
+                        working.Position = 0;
+                    }
+
+                    return working.ToArray();
+                }
+                catch
+                {
+                    return packageBytes;
+                }
+            }
+        }
+
+        private sealed class SavePayload
+        {
+            public SavePayload(byte[] packageBytes, PackagePropertiesSnapshot properties)
+            {
+                PackageBytes = packageBytes;
+                Properties = properties;
+            }
+
+            public byte[] PackageBytes { get; }
+            public PackagePropertiesSnapshot Properties { get; }
         }
 
         private bool _disposed;
