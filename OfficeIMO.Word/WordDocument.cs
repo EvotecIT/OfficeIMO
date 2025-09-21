@@ -999,6 +999,25 @@ namespace OfficeIMO.Word {
             return filePath;
         }
 
+        private static OpenSettings CreateOpenSettings(OpenSettings? openSettings, bool autoSave) {
+            bool shouldAutoSave = autoSave || (openSettings?.AutoSave ?? false);
+
+            if (openSettings is null) {
+                return new OpenSettings { AutoSave = shouldAutoSave };
+            }
+
+            if (openSettings.AutoSave == shouldAutoSave) {
+                return openSettings;
+            }
+
+            return new OpenSettings {
+                AutoSave = shouldAutoSave,
+                CompatibilityLevel = openSettings.CompatibilityLevel,
+                MarkupCompatibilityProcessSettings = openSettings.MarkupCompatibilityProcessSettings,
+                MaxCharactersInPart = openSettings.MaxCharactersInPart,
+            };
+        }
+
         /// <summary>
         /// Create a new WordDocument
         /// </summary>
@@ -1235,9 +1254,10 @@ namespace OfficeIMO.Word {
         /// <param name="readOnly"></param>
         /// <param name="autoSave"></param>
         /// <param name="overrideStyles">When <c>true</c>, existing styles are replaced with library versions. Ignored when <paramref name="readOnly"/> is <c>true</c>.</param>
+        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
         /// <returns></returns>
         /// <exception cref="FileNotFoundException"></exception>
-        public static WordDocument Load(string filePath, bool readOnly = false, bool autoSave = false, bool overrideStyles = false) {
+        public static WordDocument Load(string filePath, bool readOnly = false, bool autoSave = false, bool overrideStyles = false, OpenSettings? openSettings = null) {
             if (filePath is null) {
                 throw new ArgumentNullException(nameof(filePath));
             }
@@ -1247,9 +1267,7 @@ namespace OfficeIMO.Word {
 
             var word = new WordDocument();
 
-            var openSettings = new OpenSettings {
-                AutoSave = autoSave
-            };
+            var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
 
                 // Read the source file into memory with a shared read handle to avoid test collisions.
                 using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) {
@@ -1257,7 +1275,7 @@ namespace OfficeIMO.Word {
                 fileStream.CopyTo(memoryStream);
                 memoryStream.Seek(0, SeekOrigin.Begin);
 
-                var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, openSettings);
+                var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, effectiveOpenSettings);
 
                 bool applyOverrideStyles = overrideStyles && !readOnly;
                 InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
@@ -1287,10 +1305,11 @@ namespace OfficeIMO.Word {
         /// <param name="readOnly">Open the document in read-only mode.</param>
         /// <param name="autoSave">Enable auto-save on dispose.</param>
         /// <param name="overrideStyles">When <c>true</c>, existing styles are replaced with library versions. Ignored when <paramref name="readOnly"/> is <c>true</c>.</param>
+        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
         /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
-        public static async Task<WordDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false, bool overrideStyles = false, CancellationToken cancellationToken = default) {
+        public static async Task<WordDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false, bool overrideStyles = false, OpenSettings? openSettings = null, CancellationToken cancellationToken = default) {
             if (filePath is null) {
                 throw new ArgumentNullException(nameof(filePath));
             }
@@ -1303,11 +1322,9 @@ namespace OfficeIMO.Word {
             await fileStream.CopyToAsync(memoryStream, 81920, cancellationToken);
             memoryStream.Seek(0, SeekOrigin.Begin);
 
-            var openSettings = new OpenSettings {
-                AutoSave = autoSave
-            };
+            var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
 
-            var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, openSettings);
+            var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, effectiveOpenSettings);
 
             var word = new WordDocument {
                 FilePath = filePath,
@@ -1335,17 +1352,16 @@ namespace OfficeIMO.Word {
         /// <param name="readOnly"></param>
         /// <param name="autoSave"></param>
         /// <param name="overrideStyles">When <c>true</c>, existing styles are replaced with library versions. Ignored when <paramref name="readOnly"/> is <c>true</c>.</param>
+        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
         /// <returns></returns>
-        public static WordDocument Load(Stream stream, bool readOnly = false, bool autoSave = false, bool overrideStyles = false) {
+        public static WordDocument Load(Stream stream, bool readOnly = false, bool autoSave = false, bool overrideStyles = false, OpenSettings? openSettings = null) {
             var document = new WordDocument() {
                 OriginalStream = stream,
             };
 
-            var openSettings = new OpenSettings {
-                AutoSave = autoSave
-            };
+            var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
 
-            var wordDocument = WordprocessingDocument.Open(stream, !readOnly, openSettings);
+            var wordDocument = WordprocessingDocument.Open(stream, !readOnly, effectiveOpenSettings);
             bool applyOverrideStyles = overrideStyles && !readOnly;
             InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
 

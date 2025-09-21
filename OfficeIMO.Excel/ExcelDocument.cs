@@ -112,6 +112,29 @@ namespace OfficeIMO.Excel {
 #endif
         }
 
+        private static OpenSettings CreateOpenSettings(OpenSettings? openSettings, bool autoSave)
+        {
+            bool shouldAutoSave = autoSave || (openSettings?.AutoSave ?? false);
+
+            if (openSettings is null)
+            {
+                return new OpenSettings { AutoSave = shouldAutoSave };
+            }
+
+            if (openSettings.AutoSave == shouldAutoSave)
+            {
+                return openSettings;
+            }
+
+            return new OpenSettings
+            {
+                AutoSave = shouldAutoSave,
+                CompatibilityLevel = openSettings.CompatibilityLevel,
+                MarkupCompatibilityProcessSettings = openSettings.MarkupCompatibilityProcessSettings,
+                MaxCharactersInPart = openSettings.MaxCharactersInPart,
+            };
+        }
+
         /// <summary>
         /// Path to the file backing this document.
         /// </summary>
@@ -345,8 +368,9 @@ namespace OfficeIMO.Excel {
         /// <param name="readOnly">Open the file in read-only mode.</param>
         /// <param name="autoSave">Enable auto-save on dispose.</param>
         /// <param name="log">Optional callback invoked when normalization failures are encountered.</param>
+        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
-        public static ExcelDocument Load(string filePath, bool readOnly = false, bool autoSave = false, Action<string, Exception>? log = null) {
+        public static ExcelDocument Load(string filePath, bool readOnly = false, bool autoSave = false, Action<string, Exception>? log = null, OpenSettings? openSettings = null) {
             if (filePath == null) {
                 throw new ArgumentNullException(nameof(filePath));
             }
@@ -370,7 +394,7 @@ namespace OfficeIMO.Excel {
                 Utilities.ExcelPackageUtilities.NormalizeContentTypes(ms, leaveOpen: true);
                 ms.Position = 0;
                 // Open from normalized memory stream to avoid touching the original file yet
-                var openSettingsMem = new OpenSettings { AutoSave = autoSave };
+                var openSettingsMem = CreateOpenSettings(openSettings, autoSave);
                 var memDoc = SpreadsheetDocument.Open(ms, !readOnly, openSettingsMem);
                 ExcelDocument documentMem = new ExcelDocument();
                 documentMem.FilePath = filePath;
@@ -394,11 +418,9 @@ namespace OfficeIMO.Excel {
             ExcelDocument document = new ExcelDocument();
             document.FilePath = filePath;
 
-            var openSettings = new OpenSettings {
-                AutoSave = autoSave
-            };
+            var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
 
-            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Open(filePath, !readOnly, openSettings);
+            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Open(filePath, !readOnly, effectiveOpenSettings);
 
             document._spreadSheetDocument = spreadSheetDocument;
 
@@ -443,9 +465,10 @@ namespace OfficeIMO.Excel {
         /// <param name="filePath">Path to the Excel file.</param>
         /// <param name="readOnly">Open the file in read-only mode.</param>
         /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
-        public static async Task<ExcelDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false) {
+        public static async Task<ExcelDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null) {
             if (filePath == null) {
                 throw new ArgumentNullException("path");
             }
@@ -457,11 +480,9 @@ namespace OfficeIMO.Excel {
             await fileStream.CopyToAsync(memoryStream).ConfigureAwait(false);
             memoryStream.Seek(0, SeekOrigin.Begin);
 
-            var openSettings = new OpenSettings {
-                AutoSave = autoSave
-            };
+            var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
 
-            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Open(memoryStream, !readOnly, openSettings);
+            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Open(memoryStream, !readOnly, effectiveOpenSettings);
 
             ExcelDocument document = new ExcelDocument {
                 FilePath = filePath,
