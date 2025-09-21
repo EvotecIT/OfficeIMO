@@ -19,6 +19,7 @@ public sealed partial class PdfDoc {
 
     /// <summary>Adds a simple bullet list.</summary>
     public PdfDoc Bullets(System.Collections.Generic.IEnumerable<string> items, PdfAlign align = PdfAlign.Left, PdfColor? color = null) {
+        Guard.NotNull(items, nameof(items));
         AddBlock(new BulletListBlock(items, align, color));
         return this;
     }

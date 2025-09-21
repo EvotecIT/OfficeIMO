@@ -128,5 +128,57 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var text = md.ToMarkdown().Replace("\r", "");
             Assert.Contains("| :---: | ---: |", text);
         }
+
+        [Fact]
+        public void TableFromAny_ReadOnlyDictionary_Produces_KeyValue_Table() {
+            IReadOnlyDictionary<string, object?> data = new FakeReadOnlyDictionary(new Dictionary<string, object?> {
+                ["Alpha"] = 1,
+                ["Beta"] = "two",
+            });
+
+            var md = MarkdownDoc.Create().Table(t => t.FromAny(data));
+            var lines = md.ToMarkdown().Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+
+            Assert.Contains("| Key | Value |", lines);
+            Assert.Contains("| Alpha | 1 |", lines);
+            Assert.Contains("| Beta | two |", lines);
+        }
+
+        [Fact]
+        public void TableFromAny_KeyValuePairSequence_Projects_To_KeyValue_Table() {
+            IEnumerable<KeyValuePair<string, object?>> rows = new List<KeyValuePair<string, object?>> {
+                new KeyValuePair<string, object?>("One", 1),
+                new KeyValuePair<string, object?>("Two", new [] { "x", "y" }),
+            };
+
+            var md = MarkdownDoc.Create().Table(t => t.FromAny(rows));
+            var lines = md.ToMarkdown().Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+
+            Assert.Contains("| Key | Value |", lines);
+            Assert.Contains("| One | 1 |", lines);
+            Assert.Contains("| Two | x, y |", lines);
+        }
+
+        private sealed class FakeReadOnlyDictionary : IReadOnlyDictionary<string, object?> {
+            private readonly Dictionary<string, object?> _inner;
+
+            public FakeReadOnlyDictionary(Dictionary<string, object?> inner) { _inner = inner; }
+
+            public object? this[string key] => _inner[key];
+
+            public IEnumerable<string> Keys => _inner.Keys;
+
+            public IEnumerable<object?> Values => _inner.Values;
+
+            public int Count => _inner.Count;
+
+            public bool ContainsKey(string key) => _inner.ContainsKey(key);
+
+            public IEnumerator<KeyValuePair<string, object?>> GetEnumerator() => _inner.GetEnumerator();
+
+            public bool TryGetValue(string key, out object? value) => _inner.TryGetValue(key, out value);
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => _inner.GetEnumerator();
+        }
     }
 }

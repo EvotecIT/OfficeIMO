@@ -67,6 +67,10 @@ public sealed class TableBuilder {
             return this;
         }
 
+        if (TryFromReadOnlyDictionary(data)) return this;
+
+        if (TryFromStringObjectKeyValuePairs(data)) return this;
+
         if (data is System.Collections.IEnumerable seq && data is not string) {
             // Determine if scalar or object sequence by peeking first non-null item
             object? first = null;
@@ -165,6 +169,83 @@ public sealed class TableBuilder {
             return string.Join(", ", parts);
         }
         return value.ToString() ?? string.Empty;
+    }
+
+    private bool TryFromReadOnlyDictionary(object data) {
+        if (data is null) return false;
+        var roInterface = FindGenericInterface(data.GetType(), typeof(System.Collections.Generic.IReadOnlyDictionary<,>));
+        if (roInterface is null) return false;
+        var args = roInterface.GetGenericArguments();
+        if (args.Length != 2) return false;
+        var kvpType = typeof(KeyValuePair<,>).MakeGenericType(args);
+        return AddKeyValueRows((System.Collections.IEnumerable)data, kvpType, requireStringKey: false);
+    }
+
+    private bool TryFromStringObjectKeyValuePairs(object data) {
+        if (data is null || data is string) return false;
+        var kvpType = GetKeyValuePairElementType(data.GetType());
+        if (kvpType is null) return false;
+        var args = kvpType.GetGenericArguments();
+        if (args.Length != 2) return false;
+        if (args[0] != typeof(string) || args[1] != typeof(object)) return false;
+        return AddKeyValueRows((System.Collections.IEnumerable)data, kvpType, requireStringKey: true);
+    }
+
+    private bool AddKeyValueRows(System.Collections.IEnumerable source, System.Type kvpType, bool requireStringKey) {
+        if (kvpType is null || !kvpType.IsGenericType || kvpType.GetGenericTypeDefinition() != typeof(KeyValuePair<,>)) return false;
+        var args = kvpType.GetGenericArguments();
+        if (args.Length != 2) return false;
+        if (requireStringKey && args[0] != typeof(string)) return false;
+
+        if (_table.Headers.Count == 0) _table.Headers.AddRange(new[] { "Key", "Value" });
+
+        var keyProp = kvpType.GetProperty("Key");
+        var valueProp = kvpType.GetProperty("Value");
+        if (keyProp is null || valueProp is null) return false;
+
+        foreach (var item in source) {
+            if (_table.Rows.Count >= MaxRows) break;
+            object? keyValue = null;
+            object? valueValue = null;
+            if (item != null) {
+                keyValue = keyProp.GetValue(item, null);
+                valueValue = valueProp.GetValue(item, null);
+            }
+            _table.Rows.Add(new[] { keyValue?.ToString() ?? string.Empty, FormatValue(valueValue) });
+        }
+        return true;
+    }
+
+    private static System.Type? FindGenericInterface(System.Type type, System.Type genericTypeDefinition) {
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == genericTypeDefinition) return type;
+        foreach (var iface in type.GetInterfaces()) {
+            if (iface.IsGenericType && iface.GetGenericTypeDefinition() == genericTypeDefinition) return iface;
+        }
+        return null;
+    }
+
+    private static System.Type? GetKeyValuePairElementType(System.Type type) {
+        if (type.IsArray) {
+            var element = type.GetElementType();
+            if (element != null && IsKeyValuePairType(element)) return element;
+        }
+
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>)) {
+            var arg = type.GetGenericArguments()[0];
+            if (IsKeyValuePairType(arg)) return arg;
+        }
+
+        foreach (var iface in type.GetInterfaces()) {
+            if (!iface.IsGenericType || iface.GetGenericTypeDefinition() != typeof(IEnumerable<>)) continue;
+            var arg = iface.GetGenericArguments()[0];
+            if (IsKeyValuePairType(arg)) return arg;
+        }
+
+        return null;
+    }
+
+    private static bool IsKeyValuePairType(System.Type type) {
+        return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(KeyValuePair<,>);
     }
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Reflection.PropertyInfo[]> _propsCache = new();
