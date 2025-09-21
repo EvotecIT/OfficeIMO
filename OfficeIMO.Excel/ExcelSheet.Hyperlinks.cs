@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Packaging;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace OfficeIMO.Excel {
@@ -194,10 +195,23 @@ namespace OfficeIMO.Excel {
                 .ToList();
             if (matches.Count == 0) return;
 
+            var matchSet = new HashSet<Hyperlink>(matches);
+            var remainingRelationIds = new HashSet<string>(
+                hyperlinks.Elements<Hyperlink>()
+                    .Where(h => !matchSet.Contains(h))
+                    .Select(h => h.Id?.Value)
+                    .Where(id => !string.IsNullOrEmpty(id))
+                    .Select(id => id!),
+                StringComparer.OrdinalIgnoreCase);
+            var deletedRelationIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var existing in matches) {
                 var relId = existing.Id?.Value;
-                if (!string.IsNullOrEmpty(relId)) {
-                    var rel = _worksheetPart.HyperlinkRelationships.FirstOrDefault(r => r.Id == relId);
+                if (!string.IsNullOrEmpty(relId)
+                    && !remainingRelationIds.Contains(relId)
+                    && deletedRelationIds.Add(relId)) {
+                    var rel = _worksheetPart.HyperlinkRelationships
+                        .FirstOrDefault(r => string.Equals(r.Id, relId, StringComparison.OrdinalIgnoreCase));
                     if (rel != null) {
                         _worksheetPart.DeleteReferenceRelationship(rel);
                     }

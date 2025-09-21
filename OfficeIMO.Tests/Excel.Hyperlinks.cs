@@ -66,5 +66,61 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(worksheetPart.HyperlinkRelationships);
             }
         }
+
+        [Fact]
+        [Trait("Category", "ExcelLinks")]
+        public void Excel_SetHyperlink_PreservesSharedRelationshipForOtherCells() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelHyperlinkSharedRelationship.xlsx");
+            if (File.Exists(filePath)) File.Delete(filePath);
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Links");
+                sheet.SetHyperlink(1, 1, "https://shared.example/", display: "Primary");
+                sheet.SetHyperlink(1, 2, "https://shared.example/", display: "Secondary");
+                document.Save(false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(filePath, true)) {
+                var workbookPart = package.WorkbookPart!;
+                var sheetRef = workbookPart.Workbook.Sheets!.Elements<Sheet>().First(s => s.Name!.Value == "Links");
+                var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheetRef.Id!);
+                var hyperlinks = worksheetPart.Worksheet.Elements<Hyperlinks>().First();
+                var items = hyperlinks.Elements<Hyperlink>().ToList();
+                Assert.Equal(2, items.Count);
+                var sharedId = items[0].Id!.Value;
+                var redundantId = items[1].Id!.Value;
+                if (!string.Equals(sharedId, redundantId, StringComparison.OrdinalIgnoreCase)) {
+                    var redundantRelationship = worksheetPart.HyperlinkRelationships.First(r => r.Id == redundantId);
+                    worksheetPart.DeleteReferenceRelationship(redundantRelationship);
+                    items[1].Id = sharedId;
+                    worksheetPart.Worksheet.Save();
+                }
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var sheet = document.Sheets.First(s => s.Name == "Links");
+                sheet.SetHyperlink(1, 1, "https://updated.example/", display: "Updated");
+                document.Save(false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(filePath, false)) {
+                var workbookPart = package.WorkbookPart!;
+                var sheetRef = workbookPart.Workbook.Sheets!.Elements<Sheet>().First(s => s.Name!.Value == "Links");
+                var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheetRef.Id!);
+                var hyperlinks = worksheetPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
+                Assert.NotNull(hyperlinks);
+                var items = hyperlinks!.Elements<Hyperlink>().ToList();
+                Assert.Equal(2, items.Count);
+
+                var a1 = items.First(h => h.Reference!.Value == "A1");
+                Assert.Equal("https://updated.example/", worksheetPart.HyperlinkRelationships.First(r => r.Id == a1.Id!.Value).Uri.ToString());
+
+                var b1 = items.First(h => h.Reference!.Value == "B1");
+                Assert.False(string.IsNullOrEmpty(b1.Id?.Value));
+                var remainingRel = worksheetPart.HyperlinkRelationships.FirstOrDefault(r => r.Id == b1.Id!.Value);
+                Assert.NotNull(remainingRel);
+                Assert.Equal("https://shared.example/", remainingRel!.Uri.ToString());
+            }
+        }
     }
 }
