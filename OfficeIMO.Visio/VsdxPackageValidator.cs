@@ -88,11 +88,11 @@ namespace OfficeIMO.Visio {
             var tempPath = ExtractToTemp(inputPath);
             try {
                 ValidateAndFix(tempPath);
-                
+
                 if (File.Exists(outputPath)) {
                     File.Delete(outputPath);
                 }
-                
+
                 ZipFile.CreateFromDirectory(tempPath, outputPath, CompressionLevel.Optimal, includeBaseDirectory: false);
                 return true;
             } finally {
@@ -122,33 +122,5 @@ namespace OfficeIMO.Visio {
             ValidatePagesStructure(tempPath, fix: true);
             ValidateStyleReferences(tempPath, fix: true);
         }
-
-        // split: ValidateContentTypes in VsdxPackageValidator.ContentTypes.cs
-
-        // split: ValidatePackageRelationships in VsdxPackageValidator.Relationships.cs
-
-        // split: ValidateDocumentRelationships in VsdxPackageValidator.Relationships.cs
-
-        // split: ValidatePagesStructure in VsdxPackageValidator.PagesAndStyles.cs
-
-        // split: ValidateStyleReferences in VsdxPackageValidator.PagesAndStyles.cs
-
-        
-
-        
-
-        
-
-        
-
-        
-
-        
-
-        
-
-        
-
-        // split: Create* helpers moved to partials
     }
 }
