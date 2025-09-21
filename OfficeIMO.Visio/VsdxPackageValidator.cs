@@ -25,6 +25,8 @@ namespace OfficeIMO.Visio {
         private const string CT_Document = "application/vnd.ms-visio.drawing.main+xml";
         private const string CT_Pages = "application/vnd.ms-visio.pages+xml";
         private const string CT_Page = "application/vnd.ms-visio.page+xml";
+        private const string CT_MastersPart = "application/vnd.ms-visio.masters+xml";
+        private const string CT_Master = "application/vnd.ms-visio.master+xml";
 
         private readonly List<string> _errors = new();
         private readonly List<string> _warnings = new();
@@ -199,9 +201,175 @@ namespace OfficeIMO.Visio {
             if (zip.GetEntry("visio/document.xml") == null) _errors.Add("Missing /visio/document.xml");
             var pagesDoc = LoadZipXml(zip, "visio/pages/pages.xml");
             if (pagesDoc?.Root == null) { _errors.Add("Missing or malformed /visio/pages/pages.xml"); return; }
+
             XNamespace vNs = "http://schemas.microsoft.com/office/visio/2012/main";
+            XNamespace rNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
             var pages = pagesDoc.Root.Elements(vNs + "Page").ToList();
-            if (pages.Count == 0) _errors.Add("/visio/pages/pages.xml contains no Page elements");
+            if (pages.Count == 0) {
+                _errors.Add("/visio/pages/pages.xml contains no Page elements");
+                return;
+            }
+
+            // Load pages relationships once
+            var pagesRels = LoadZipXml(zip, "visio/pages/_rels/pages.xml.rels");
+            if (pagesRels?.Root == null) { _errors.Add("Missing /visio/pages/_rels/pages.xml.rels"); return; }
+            var relElems = pagesRels.Root.Elements(nsPkgRel + "Relationship").ToList();
+            // r:id uniqueness in pages.xml.rels
+            var idGroups = relElems.Select(e => (string?)e.Attribute("Id") ?? string.Empty)
+                .GroupBy(id => id, StringComparer.Ordinal)
+                .Where(g => !string.IsNullOrEmpty(g.Key) && g.Count() > 1)
+                .ToList();
+            foreach (var g in idGroups) _errors.Add($"Duplicate relationship Id in pages.xml.rels: '{g.Key}'");
+
+            var relsById = relElems.ToDictionary(e => (string?)e.Attribute("Id") ?? string.Empty, e => e);
+
+            // Page ID uniqueness in pages.xml
+            var idAttrGroups = pages.Select(p => (string?)p.Attribute("ID") ?? string.Empty)
+                .GroupBy(id => id, StringComparer.Ordinal)
+                .Where(g => !string.IsNullOrEmpty(g.Key) && g.Count() > 1)
+                .ToList();
+            foreach (var g in idAttrGroups) _errors.Add($"Duplicate Page @ID in pages.xml: '{g.Key}'");
+
+            foreach (var page in pages) {
+                // Page → Rel r:id resolution
+                var relElem = page.Element(vNs + "Rel");
+                string? rid = relElem?.Attribute(rNs + "id")?.Value;
+                if (string.IsNullOrEmpty(rid)) { _errors.Add("Page element missing Rel/@r:id"); continue; }
+
+                if (!relsById.TryGetValue(rid!, out var rel)) { _errors.Add($"pages.xml.rels missing relationship with Id={rid}"); continue; }
+
+                string? target = (string?)rel.Attribute("Target");
+                if (string.IsNullOrEmpty(target)) { _errors.Add($"Relationship Id={rid} has empty Target"); continue; }
+
+                string pagePath = "visio/pages/" + target!.Replace('\\', '/');
+                var pageEntry = zip.GetEntry(pagePath);
+                if (pageEntry == null) { _errors.Add($"Missing page part: /{pagePath}"); continue; }
+
+                // Minimal parse of pageN.xml: root and optional Shapes/Connects sections
+                var pageXml = LoadZipXml(zip, pagePath);
+                if (pageXml?.Root == null) { _errors.Add($"Malformed /{pagePath}"); continue; }
+                if (!XName.Get(pageXml.Root.Name.LocalName, pageXml.Root.Name.NamespaceName).Equals(vNs + "PageContents")) {
+                    _warnings.Add($"/{pagePath} root is '{pageXml.Root.Name}', expected 'PageContents'");
+                }
+
+                // Verify minimal PageSheet cells
+                var pageSheet = page.Element(vNs + "PageSheet");
+                if (pageSheet == null) {
+                    _warnings.Add("Page missing PageSheet");
+                } else {
+                    bool hasW = pageSheet.Elements(vNs + "Cell").Any(c => (string?)c.Attribute("N") == "PageWidth");
+                    bool hasH = pageSheet.Elements(vNs + "Cell").Any(c => (string?)c.Attribute("N") == "PageHeight");
+                    if (!hasW) _warnings.Add("PageSheet missing PageWidth cell");
+                    if (!hasH) _warnings.Add("PageSheet missing PageHeight cell");
+                }
+
+                var shapes = pageXml.Root.Element(vNs + "Shapes");
+                if (shapes != null) {
+                    // ensure all children are Shape nodes in the right namespace
+                    foreach (var child in shapes.Elements()) {
+                        if (child.Name != vNs + "Shape") {
+                            _warnings.Add($"/{pagePath} contains unexpected element under Shapes: '{child.Name}'");
+                            break;
+                        }
+                    }
+                }
+
+                var connects = pageXml.Root.Element(vNs + "Connects");
+                if (connects != null) {
+                    foreach (var child in connects.Elements()) {
+                        if (child.Name != vNs + "Connect") {
+                            _warnings.Add($"/{pagePath} contains unexpected element under Connects: '{child.Name}'");
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Streaming fix: writes a new VSDX with corrected [Content_Types].xml
+        /// and minimal relationships for document and pages.
+        /// </summary>
+        public bool FixFileStreaming(string inputPath, string outputPath) {
+            _errors.Clear();
+            _warnings.Clear();
+            _fixes.Clear();
+
+            if (!File.Exists(inputPath)) { _errors.Add($"File not found: {inputPath}"); return false; }
+            var outDir = Path.GetDirectoryName(outputPath);
+            if (!string.IsNullOrEmpty(outDir) && !Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
+            if (File.Exists(outputPath)) File.Delete(outputPath);
+
+            using ZipArchive src = ZipFile.OpenRead(inputPath);
+            using ZipArchive dst = ZipFile.Open(outputPath, ZipArchiveMode.Create);
+
+            // Copy all entries except those we will recreate
+            var skip = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+                "[Content_Types].xml",
+                "_rels/.rels",
+                "visio/_rels/document.xml.rels",
+                "visio/pages/_rels/pages.xml.rels",
+            };
+            foreach (var e in src.Entries) {
+                string name = e.FullName.Replace('\\', '/');
+                if (skip.Contains(name)) continue;
+                var ne = dst.CreateEntry(name, CompressionLevel.Optimal);
+                using var s = e.Open();
+                using var t = ne.Open();
+                s.CopyTo(t);
+            }
+
+            // Build and write [Content_Types].xml
+            var ct = BuildOrUpdateContentTypes(src);
+            SaveZipXml(dst, "[Content_Types].xml", ct);
+            _fixes.Add("Updated [Content_Types].xml");
+
+            // _rels/.rels with a single document relationship
+            XNamespace relNs = nsPkgRel;
+            var pkgRels = new XDocument(new XElement(relNs + "Relationships",
+                new XElement(relNs + "Relationship",
+                    new XAttribute("Id", "rIdDoc"),
+                    new XAttribute("Type", RT_Document),
+                    new XAttribute("Target", "visio/document.xml"))));
+            SaveZipXml(dst, "_rels/.rels", pkgRels);
+            _fixes.Add("Rebuilt /_rels/.rels");
+
+            // visio/_rels/document.xml.rels -> pages
+            var docRels = new XDocument(new XElement(relNs + "Relationships",
+                new XElement(relNs + "Relationship",
+                    new XAttribute("Id", "rIdPages"),
+                    new XAttribute("Type", RT_Pages),
+                    new XAttribute("Target", "pages/pages.xml"))));
+            SaveZipXml(dst, "visio/_rels/document.xml.rels", docRels);
+            _fixes.Add("Rebuilt /visio/_rels/document.xml.rels");
+
+            // visio/pages/_rels/pages.xml.rels -> enumerate page parts
+            var pages = new List<string>();
+            foreach (var e in src.Entries) {
+                string n = e.FullName.Replace('\\', '/');
+                if (n.StartsWith("visio/pages/", StringComparison.OrdinalIgnoreCase)
+                    && n.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)
+                    && !n.EndsWith("pages.xml", StringComparison.OrdinalIgnoreCase)
+                    && !n.Contains("/_rels/", StringComparison.Ordinal)) {
+                    pages.Add(n.Substring("visio/pages/".Length));
+                }
+            }
+            pages.Sort(StringComparer.OrdinalIgnoreCase);
+
+            var relsRoot = new XElement(relNs + "Relationships");
+            for (int i = 0; i < pages.Count; i++) {
+                relsRoot.Add(new XElement(relNs + "Relationship",
+                    new XAttribute("Id", $"rId{i + 1}"),
+                    new XAttribute("Type", RT_Page),
+                    new XAttribute("Target", pages[i])));
+            }
+            var pagesRels = new XDocument(relsRoot);
+            SaveZipXml(dst, "visio/pages/_rels/pages.xml.rels", pagesRels);
+            _fixes.Add("Rebuilt /visio/pages/_rels/pages.xml.rels");
+
+            // Run streaming validation on the output
+            return ValidateFileStreaming(outputPath);
         }
     }
 }
