@@ -54,6 +54,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LinkCellsToInternalSheets_EscapesSpacesAndQuotes() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                var main = doc.AddWorkSheet("Main");
+                doc.AddWorkSheet("Summary Sheet");
+                doc.AddWorkSheet("Quote's Sheet");
+
+                main.CellValue(1, 1, "Name");
+                main.CellValue(2, 1, "Summary Sheet");
+                main.CellValue(3, 1, "Quote's Sheet");
+
+                main.LinkCellsToInternalSheets("A2:A3", text => text, targetA1: "B2", display: null, styled: false);
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(main)!;
+                var links = wsPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
+                Assert.NotNull(links);
+                var hyperlinkItems = links!.Elements<Hyperlink>().ToList();
+                Assert.Equal(2, hyperlinkItems.Count);
+                Assert.Equal("'Summary Sheet'!B2", hyperlinkItems[0].Location!.Value);
+                Assert.Equal("'Quote''s Sheet'!B2", hyperlinkItems[1].Location!.Value);
+            }
+            File.Delete(path);
+        }
+
+        [Fact]
         public void Preflight_KeepsValidDrawingAndTable() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {

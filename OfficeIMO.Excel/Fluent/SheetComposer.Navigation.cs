@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel.Fluent
             {
                 try {
                     string topName = SanitizeName($"top_{Sheet.Name}");
-                    Sheet.SetInternalLink(_row, 1, $"'{Sheet.Name}'!A1", backToTopText);
+                    Sheet.SetInternalLink(_row, 1, Sheet, "A1", backToTopText);
                     _row++;
                 } catch { }
             }
