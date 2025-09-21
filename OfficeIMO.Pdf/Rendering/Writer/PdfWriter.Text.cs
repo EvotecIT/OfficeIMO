@@ -78,12 +78,9 @@ internal static partial class PdfWriter {
     }
 
     // Rich paragraph layout
-    private sealed record RichSeg(string Text, bool Bold, bool Italic, bool Underline, bool Strike, PdfColor? Color, string? Uri);
+    private sealed record RichSeg(string Text, bool Bold, bool Italic, bool Underline, bool Strike, PdfColor? Color, string? Uri, PdfStandardFont Font);
 
     private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRuns(System.Collections.Generic.IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont) {
-        double em = GlyphWidthEmFor(baseFont);
-        double spaceW = fontSize * em;
-        int maxChars = Math.Max(1, (int)System.Math.Floor(maxWidthPts / (fontSize * em)));
         var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> { new() };
         var heights = new System.Collections.Generic.List<double>();
         double lineWidth = 0;
@@ -95,6 +92,10 @@ internal static partial class PdfWriter {
             bool italic = run.Italic;
             var color = run.Color;
             string? uri = run.LinkUri;
+            var fontForRun = (bold && italic) ? ChooseBoldItalic(baseFont) : bold ? ChooseBold(baseFont) : italic ? ChooseItalic(baseFont) : baseFont;
+            double em = GlyphWidthEmFor(fontForRun);
+            double spaceW = fontSize * em;
+            int maxChars = System.Math.Max(1, (int)System.Math.Floor(maxWidthPts / (fontSize * em)));
             int idx = 0;
             while (idx < text.Length) {
                 int nextWs = text.IndexOfAny(TokenSplitChars, idx);
@@ -116,7 +117,9 @@ internal static partial class PdfWriter {
                     while (pos < token.Length) {
                         int take = System.Math.Min(maxChars, token.Length - pos);
                         string chunk = token.Substring(pos, take);
-                        lastLine.Add(new RichSeg(chunk, bold, italic, underline, strike, color, uri));
+                        lastLine.Add(new RichSeg(chunk, bold, italic, underline, strike, color, uri, fontForRun));
+                        double chunkW = take * fontSize * em;
+                        lineWidth += chunkW;
                         pos += take;
                         if (pos < token.Length) { heights.Add(fontSize * 1.4); lines.Add(new()); lineWidth = 0; lastLine = lines[lines.Count - 1]; }
                     }
@@ -127,11 +130,12 @@ internal static partial class PdfWriter {
                     heights.Add(fontSize * 1.4);
                     lines.Add(new());
                     lineWidth = 0;
+                    lastLine = lines[lines.Count - 1];
                     needed = tokenW;
                 }
                 if (token.Length > 0) {
                     if (lineWidth > 0) lineWidth += spaceW;
-                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, uri));
+                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, uri, fontForRun));
                     lineWidth += tokenW;
                 }
                 if (hadNewline) {
@@ -149,8 +153,6 @@ internal static partial class PdfWriter {
     private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null) {
         double widthContent = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
         double widthUsed = widthOverride ?? widthContent;
-        double em = GlyphWidthEmFor(ChooseNormal(opts.DefaultFont));
-        double spaceW = fontSize * em;
         var underlines = new System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color)>();
         var strikes = new System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color)>();
 
@@ -162,15 +164,27 @@ internal static partial class PdfWriter {
         for (int li = 0; li < lines.Count; li++) {
             if (li != 0) sb.Append("T*\n");
             var segs = lines[li];
-            double sumSeg = 0;
-            foreach (var s in segs) sumSeg += (s.Text.Length * fontSize * em);
-            double gapsCount = Math.Max(0, segs.Count - 1);
-            double baseLineW = sumSeg + gapsCount * spaceW;
-            double gapW = spaceW;
+            int segCount = segs.Count;
+            double[] segWidths = segCount > 0 ? new double[segCount] : System.Array.Empty<double>();
+            double[] gapWidths = segCount > 1 ? new double[segCount - 1] : System.Array.Empty<double>();
+            double baseLineW = 0;
+            for (int si = 0; si < segCount; si++) {
+                var seg = segs[si];
+                double emSeg = GlyphWidthEmFor(seg.Font);
+                double w = seg.Text.Length * fontSize * emSeg;
+                segWidths[si] = w;
+                baseLineW += w;
+                if (si > 0) {
+                    double gap = fontSize * GlyphWidthEmFor(seg.Font);
+                    gapWidths[si - 1] = gap;
+                    baseLineW += gap;
+                }
+            }
+            int gapsCount = gapWidths.Length;
             bool justify = block.Align == PdfAlign.Justify && li != lines.Count - 1 && gapsCount > 0;
             if (justify && widthUsed > baseLineW) {
                 double extra = (widthUsed - baseLineW) / gapsCount;
-                gapW = spaceW + extra;
+                for (int gi = 0; gi < gapWidths.Length; gi++) gapWidths[gi] += extra;
             }
 
             double lineWForAlign = justify ? widthUsed : baseLineW;
@@ -181,39 +195,43 @@ internal static partial class PdfWriter {
 
             double xCursor = dx;
             for (int si = 0; si < segs.Count; si++) {
+                if (si > 0) {
+                    double gapAdvance = gapWidths[si - 1];
+                    sb.Append(F(gapAdvance)).Append(" 0 Td\n");
+                    xCursor += gapAdvance;
+                }
                 var s = segs[si];
                 string fontRes = (s.Bold && s.Italic) ? "F4" : s.Bold ? "F2" : s.Italic ? "F3" : "F1";
                 sb.Append('/').Append(fontRes).Append(' ').Append(F(fontSize)).Append(" Tf\n");
                 var color = s.Color ?? block.DefaultColor ?? opts.DefaultTextColor;
                 if (color.HasValue) sb.Append(SetFillColor(color.Value));
                 sb.Append('<').Append(EncodeWinAnsiHex(s.Text)).Append("> Tj\n");
-                double wSeg = s.Text.Length * fontSize * em;
+                double wSeg = segWidths[si];
                 sb.Append(F(wSeg)).Append(" 0 Td\n");
+                double segmentStartX = xCursor;
 
                 if (s.Underline) {
                     var ulColor = (s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? PdfColor.Black;
                     double yLine = startY - li * defaultLeading - fontSize * 0.15;
-                    underlines.Add((xOrigin + xCursor, xOrigin + xCursor + wSeg, yLine, ulColor));
+                    underlines.Add((xOrigin + segmentStartX, xOrigin + segmentStartX + wSeg, yLine, ulColor));
                 }
                 if (s.Strike) {
                     var stColor = (s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? PdfColor.Black;
                     double yLine = startY - li * defaultLeading + fontSize * 0.32;
-                    strikes.Add((xOrigin + xCursor, xOrigin + xCursor + wSeg, yLine, stColor));
+                    strikes.Add((xOrigin + segmentStartX, xOrigin + segmentStartX + wSeg, yLine, stColor));
                 }
                 if (!string.IsNullOrEmpty(s.Uri)) {
                     double baseline = startY - li * defaultLeading;
-                    var baseFont = ChooseNormal(opts.DefaultFont);
-                    var fontForMetrics = (s.Bold && s.Italic) ? ChooseBoldItalic(baseFont) : s.Bold ? ChooseBold(baseFont) : s.Italic ? ChooseItalic(baseFont) : baseFont;
+                    var fontForMetrics = s.Font;
                     double asc = GetAscender(fontForMetrics, fontSize);
                     double desc = GetDescender(fontForMetrics, fontSize);
-                    double x1 = xOrigin + xCursor;
+                    double x1 = xOrigin + segmentStartX;
                     double x2 = x1 + wSeg;
                     double y1 = baseline - desc;
                     double y2 = baseline + asc;
                     annots.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = s.Uri! });
                 }
                 xCursor += wSeg;
-                if (si != segs.Count - 1) { xCursor += gapW; sb.Append(F(gapW)).Append(" 0 Td\n"); }
             }
             if (xCursor != 0) sb.Append(F(-xCursor)).Append(" 0 Td\n");
         }
