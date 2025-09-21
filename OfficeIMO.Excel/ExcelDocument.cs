@@ -631,10 +631,14 @@ namespace OfficeIMO.Excel {
                 throw new IOException($"Failed to save to '{path}'. The file is read-only.");
             }
             var directory = Path.GetDirectoryName(Path.GetFullPath(path));
-            if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
-                var dirInfo = new DirectoryInfo(directory);
-                if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
-                    throw new IOException($"Failed to save to '{path}'. The directory is read-only.");
+            if (!string.IsNullOrEmpty(directory)) {
+                if (!Directory.Exists(directory)) {
+                    Directory.CreateDirectory(directory);
+                } else {
+                    var dirInfo = new DirectoryInfo(directory);
+                    if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
+                        throw new IOException($"Failed to save to '{path}'. The directory is read-only.");
+                    }
                 }
             }
 
@@ -745,10 +749,14 @@ namespace OfficeIMO.Excel {
                 throw new IOException($"Failed to save to '{target}'. The file is read-only.");
             }
             var directory = Path.GetDirectoryName(Path.GetFullPath(target));
-            if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
-                var dirInfo = new DirectoryInfo(directory);
-                if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
-                    throw new IOException($"Failed to save to '{target}'. The directory is read-only.");
+            if (!string.IsNullOrEmpty(directory)) {
+                if (!Directory.Exists(directory)) {
+                    Directory.CreateDirectory(directory);
+                } else {
+                    var dirInfo = new DirectoryInfo(directory);
+                    if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
+                        throw new IOException($"Failed to save to '{target}'. The directory is read-only.");
+                    }
                 }
             }
 
