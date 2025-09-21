@@ -61,6 +61,16 @@ public class MarkdownDoc {
         return Add(new ParagraphBlock(builder.Inlines));
     }
 
+    /// <summary>Adds a simple block quote with a single line of text.</summary>
+    public MarkdownDoc Quote(string text) => Add(new QuoteBlock(new[] { text ?? string.Empty }));
+
+    /// <summary>Adds a block quote composed via <see cref="QuoteBuilder"/>.</summary>
+    public MarkdownDoc Quote(Action<QuoteBuilder> build) {
+        QuoteBuilder builder = new QuoteBuilder();
+        build(builder);
+        return Add(builder.Build());
+    }
+
     /// <summary>Adds a horizontal rule.</summary>
     public MarkdownDoc Hr() => Add(new HorizontalRuleBlock());
 
