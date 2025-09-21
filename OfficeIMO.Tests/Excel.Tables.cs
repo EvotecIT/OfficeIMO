@@ -1,9 +1,12 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
 using Xunit;
+using TableColumn = DocumentFormat.OpenXml.Spreadsheet.TableColumn;
+using TotalsRowFunctionValues = DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
@@ -98,6 +101,36 @@ namespace OfficeIMO.Tests {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 Assert.Single(wsPart.TableDefinitionParts);
                   Assert.Equal("A1:B3", wsPart.TableDefinitionParts.First().Table.Reference!.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_SetTableTotalsMatchesHeadersCaseInsensitive() {
+            string filePath = Path.Combine(_directoryWithFiles, "Table.TotalsCaseInsensitive.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Amount");
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 2d);
+                sheet.AddTable("A1:B2", true, "MyTable", TableStyle.TableStyleMedium9);
+                sheet.SetTableTotals("A1:B2", new Dictionary<string, TotalsRowFunctionValues> {
+                    ["name"] = TotalsRowFunctionValues.Count,
+                    ["AMOUNT"] = TotalsRowFunctionValues.Sum,
+                });
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                TableDefinitionPart tablePart = wsPart.TableDefinitionParts.First();
+                var table = tablePart.Table;
+
+                Assert.True(table.TotalsRowShown?.Value);
+
+                var columns = table.TableColumns!.Elements<TableColumn>().ToList();
+                Assert.Equal(TotalsRowFunctionValues.Count, columns[0].TotalsRowFunction?.Value);
+                Assert.Equal(TotalsRowFunctionValues.Sum, columns[1].TotalsRowFunction?.Value);
             }
         }
     }
