@@ -35,6 +35,12 @@ namespace OfficeIMO.Excel {
                 ApplyBuiltInNumberFormat(row, column, 14);  // Built-in format 14 is short date
             }
 
+            if (value is TimeSpan)
+            {
+                // Built-in format 46 renders durations using the invariant [h]:mm:ss pattern
+                ApplyBuiltInNumberFormat(row, column, 46);
+            }
+
             // Enable wrap text when value contains new lines so Excel renders multiple lines correctly
             if (value is string s && (s.Contains("\n") || s.Contains("\r")))
             {
