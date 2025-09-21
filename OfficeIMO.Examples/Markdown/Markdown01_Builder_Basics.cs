@@ -28,6 +28,13 @@ namespace OfficeIMO.Examples.Markdown {
                     .Item("TLS/SSL tests and cipher hints")
                     .Item("WHOIS, MX, PTR, DNSSEC, BIMI")
                     .Item("Exports: Word, HTML, PDF, Markdown"))
+                .H2("Testimonials")
+                .Quote(q => q
+                    .Line("OfficeIMO.Markdown keeps our release notes consistent.")
+                    .Quote(inner => inner
+                        .Line("Nested quotes help us show conversation context.")
+                        .Line("Great for highlighting support threads."))
+                    .P(p => p.Text("— Docs Team")))
                 .Hr()
                 .H2("Links")
                 .Ul(ul => ul
