@@ -208,9 +208,16 @@ internal static class HtmlRenderer {
     }
 
     private static string BuildTocHtml(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, TocPlaceholderBlock tp) {
+        static int ClampHeadingLevel(int level) => level < 1 ? 1 : (level > 6 ? 6 : level);
+
         var opts = tp.Options;
-        int effectiveMin = opts.RequireTopLevel && opts.MinLevel > 1 ? 1 : opts.MinLevel;
-        int effectiveMax = opts.MaxLevel;
+        int minLevel = ClampHeadingLevel(opts.MinLevel);
+        int maxLevel = ClampHeadingLevel(opts.MaxLevel);
+        if (maxLevel < minLevel) maxLevel = minLevel;
+        int titleLevel = ClampHeadingLevel(opts.TitleLevel);
+
+        int effectiveMin = opts.RequireTopLevel && minLevel > 1 ? 1 : minLevel;
+        int effectiveMax = maxLevel;
         // Collect headings with indices
         var headings = blocks
             .Select((b, idx) => (b, idx))
@@ -221,7 +228,7 @@ internal static class HtmlRenderer {
         int placeholderIndex = System.Array.IndexOf(blocks.ToArray(), tp);
         int startIdx = 0; int endIdx = blocks.Count;
         if (opts.Scope == TocScope.PreviousHeading) {
-            var prev = headings.LastOrDefault(h => h.Index < placeholderIndex && h.Level < opts.MinLevel);
+            var prev = headings.LastOrDefault(h => h.Index < placeholderIndex && h.Level < minLevel);
             if (prev.Equals(default((int,int,string)))) prev = headings.LastOrDefault(h => h.Index < placeholderIndex);
             if (!prev.Equals(default((int,int,string)))) {
                 startIdx = prev.Index + 1;
@@ -336,9 +343,9 @@ internal static class HtmlRenderer {
         // Legacy: emit plain heading + list without wrapper
         if (opts.IncludeTitle) {
             var sbo = new StringBuilder();
-            sbo.Append("<h").Append(opts.TitleLevel).Append('>')
+            sbo.Append("<h").Append(titleLevel).Append('>')
                .Append(System.Net.WebUtility.HtmlEncode(opts.Title))
-               .Append("</h").Append(opts.TitleLevel).Append('>')
+               .Append("</h").Append(titleLevel).Append('>')
                .Append(sbNested.ToString());
             return sbo.ToString();
         }
