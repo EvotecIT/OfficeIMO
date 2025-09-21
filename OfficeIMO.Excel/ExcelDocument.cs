@@ -608,6 +608,28 @@ namespace OfficeIMO.Excel {
             this._spreadSheetDocument.Dispose();
         }
 
+        private static void EnsureDirectoryWritable(string path) {
+            if (string.IsNullOrWhiteSpace(path)) {
+                return;
+            }
+
+            var directory = Path.GetDirectoryName(Path.GetFullPath(path));
+            if (string.IsNullOrEmpty(directory)) {
+                return;
+            }
+
+            DirectoryInfo directoryInfo;
+            if (Directory.Exists(directory)) {
+                directoryInfo = new DirectoryInfo(directory);
+            } else {
+                directoryInfo = Directory.CreateDirectory(directory);
+            }
+
+            if (directoryInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
+                throw new IOException($"Failed to save to '{path}'. The directory is read-only.");
+            }
+        }
+
         /// <summary>
         /// Saves the document and optionally opens it.
         /// </summary>
@@ -630,13 +652,7 @@ namespace OfficeIMO.Excel {
             if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
                 throw new IOException($"Failed to save to '{path}'. The file is read-only.");
             }
-            var directory = Path.GetDirectoryName(Path.GetFullPath(path));
-            if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
-                var dirInfo = new DirectoryInfo(directory);
-                if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
-                    throw new IOException($"Failed to save to '{path}'. The directory is read-only.");
-                }
-            }
+            EnsureDirectoryWritable(path);
 
             var payload = PreparePackageForSave(options);
 
@@ -744,13 +760,7 @@ namespace OfficeIMO.Excel {
             if (File.Exists(target) && new FileInfo(target).IsReadOnly) {
                 throw new IOException($"Failed to save to '{target}'. The file is read-only.");
             }
-            var directory = Path.GetDirectoryName(Path.GetFullPath(target));
-            if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
-                var dirInfo = new DirectoryInfo(directory);
-                if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
-                    throw new IOException($"Failed to save to '{target}'. The directory is read-only.");
-                }
-            }
+            EnsureDirectoryWritable(target);
 
             var payload = PreparePackageForSave(options);
 
