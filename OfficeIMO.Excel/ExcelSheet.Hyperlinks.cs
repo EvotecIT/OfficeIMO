@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        private static string EscapeSheetNameForLink(string name) {
+        internal static string EscapeSheetNameForLink(string name) {
             return (name ?? string.Empty).Replace("'", "''");
         }
         /// <summary>

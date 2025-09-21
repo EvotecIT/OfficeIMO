@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel {
                 // Skip the TOC sheet itself; it will be moved to first anyway
                 if (string.Equals(sh.Name, sheetName, StringComparison.OrdinalIgnoreCase)) continue;
 
-                if (withHyperlinks) toc.SetInternalLink(r, 1, $"'{sh.Name}'!A1", sh.Name); else toc.Cell(r, 1, sh.Name);
+                if (withHyperlinks) toc.SetInternalLink(r, 1, sh, "A1", sh.Name); else toc.Cell(r, 1, sh.Name);
 
                 // Details: Used range and size
                 string used = sh.GetUsedRangeA1();
@@ -116,10 +116,14 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void AddBackLinksToToc(string tocSheetName = "TOC", int row = 2, int col = 1, string text = "← TOC")
         {
+            var tocSheet = this.Sheets.FirstOrDefault(s => string.Equals(s.Name, tocSheetName, StringComparison.OrdinalIgnoreCase));
             foreach (var sh in this.Sheets)
             {
                 if (string.Equals(sh.Name, tocSheetName, StringComparison.OrdinalIgnoreCase)) continue;
-                sh.SetInternalLink(row, col, $"'{tocSheetName}'!A1", text);
+                if (tocSheet != null)
+                    sh.SetInternalLink(row, col, tocSheet, "A1", text);
+                else
+                    sh.SetInternalLink(row, col, $"'{ExcelSheet.EscapeSheetNameForLink(tocSheetName)}'!A1", text);
             }
         }
 
