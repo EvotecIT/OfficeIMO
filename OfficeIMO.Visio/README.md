@@ -13,16 +13,23 @@ OfficeIMO.Visio provides helpers for creating and editing .vsdx drawings with Op
 dotnet add package OfficeIMO.Visio
 ```
 
-## Quick sample
+## Quick sample (fluent)
 
 ```csharp
 using OfficeIMO.Visio;
+using OfficeIMO.Visio.Fluent;
 
-using var vsd = new VisioDocument();
-var page = vsd.AddPage("Diagram");
-var rect = page.AddShape("Rect", VisioMaster.Rectangle, x: 1, y: 1, width: 3, height: 2);
-rect.Text = "Hello Visio";
-vsd.SaveAs("diagram.vsdx");
+var vsd = VisioDocument.Create("diagram.vsdx");
+vsd.AsFluent()
+   .Info(i => i.Title("Demo").Author("You"))
+   .Page("Page-1", p => p
+       .Rect("S1", 1, 1, 2, 1, "Start")
+       .Diamond("D1", 4, 1.5, 2, 2, "Decision")
+       .Ellipse("E1", 7, 1.5, 2, 1, "End")
+       .Connect("S1", "D1", c => c.RightAngle().ArrowEnd(EndArrow.Triangle))
+       .Connect("D1", "E1", c => c.RightAngle().ArrowEnd(EndArrow.Triangle).Label("Yes")))
+   .End();
+vsd.Save();
 ```
 
 See `OfficeIMO.Examples/Visio/*` for more.
@@ -40,7 +47,7 @@ This package is intentionally minimal at this stage and will expand over time.
 
 - Create/Load/Save .vsdx (OPC packaging)
 - Add simple pages, shapes, and connectors
-- Fluent wrapper for quick composition
+- Fluent builder: `Page(...)`, `Rect(...)`, `Square(...)`, `Ellipse(...)`, `Circle(...)`, `Diamond(...)`, `Triangle(...)`, `Connect(...)`
 
 ## Why OfficeIMO.Visio (early)
 

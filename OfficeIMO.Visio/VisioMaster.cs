@@ -16,17 +16,17 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
-        /// Master identifier.
+        /// Gets the master identifier.
         /// </summary>
         public string Id { get; }
 
         /// <summary>
-        /// Universal name of the master.
+        /// Gets the universal name of the master.
         /// </summary>
         public string NameU { get; }
 
         /// <summary>
-        /// Shape that defines the master.
+        /// Gets the shape that defines the master.
         /// </summary>
         public VisioShape Shape { get; }
     }

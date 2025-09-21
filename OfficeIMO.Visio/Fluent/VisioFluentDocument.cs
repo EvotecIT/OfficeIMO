@@ -27,6 +27,29 @@ namespace OfficeIMO.Visio.Fluent {
         }
 
         /// <summary>
+        /// Adds a page using a direct fluent style (no Add*/With* names) and configures it.
+        /// Mirrors patterns from Markdown/Excel/PowerPoint fluent APIs.
+        /// </summary>
+        /// <param name="name">Page name.</param>
+        /// <param name="configure">Configuration for shapes/connectors on the page.</param>
+        public VisioFluentDocument Page(string name, Action<VisioFluentPage> configure) {
+            var page = _document.AddPage(name);
+            var builder = new VisioFluentPage(this, page);
+            configure?.Invoke(builder);
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a page with explicit size and configures it.
+        /// </summary>
+        public VisioFluentDocument Page(string name, double width, double height, VisioMeasurementUnit unit, Action<VisioFluentPage> configure) {
+            var page = _document.AddPage(name, width, height, unit);
+            var builder = new VisioFluentPage(this, page);
+            configure?.Invoke(builder);
+            return this;
+        }
+
+        /// <summary>
         /// Adds a page and returns the fluent document for chaining.
         /// </summary>
         /// <param name="name">Name of the page.</param>

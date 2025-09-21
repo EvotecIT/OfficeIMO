@@ -5,30 +5,13 @@ namespace OfficeIMO.Visio {
     /// Supported measurement units for Visio pages.
     /// </summary>
     public enum VisioMeasurementUnit {
-        /// <summary>
-        /// Measurements expressed in inches.
-        /// </summary>
+        /// <summary>Measurements expressed in inches.</summary>
         Inches,
 
-        /// <summary>
-        /// Measurements expressed in centimeters.
-        /// </summary>
-        Centimeters
-    }
+        /// <summary>Measurements expressed in centimeters.</summary>
+        Centimeters,
 
-    internal static class VisioMeasurementUnitExtensions {
-        public static double ToInches(this double value, VisioMeasurementUnit unit) {
-            return unit switch {
-                VisioMeasurementUnit.Centimeters => value / 2.54,
-                _ => value
-            };
-        }
-
-        public static double FromInches(this double value, VisioMeasurementUnit unit) {
-            return unit switch {
-                VisioMeasurementUnit.Centimeters => value * 2.54,
-                _ => value
-            };
-        }
+        /// <summary>Measurements expressed in millimeters.</summary>
+        Millimeters
     }
 }

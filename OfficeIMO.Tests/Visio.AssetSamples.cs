@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
             AssertXmlEqual(expected, actual, "visio/pages/page1.xml");
         }
 
-        [Fact(Skip = "Rectangle output not yet finalized")]
+        [Fact(Skip = "Rectangle writer uses inline geometry; asset uses masters. Align in future work.")]
         public void RectangleDocumentMatchesAsset() {
             string target = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
