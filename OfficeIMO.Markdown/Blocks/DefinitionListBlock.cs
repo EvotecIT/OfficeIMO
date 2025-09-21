@@ -24,7 +24,12 @@ public sealed class DefinitionListBlock : IMarkdownBlock {
         sb.Append("<dl>");
         foreach (var (term, def) in Items) {
             sb.Append("<dt>" + System.Net.WebUtility.HtmlEncode(term) + "</dt>");
-            sb.Append("<dd>" + System.Net.WebUtility.HtmlEncode(def) + "</dd>");
+            sb.Append("<dd>");
+            if (!string.IsNullOrEmpty(def)) {
+                var inlines = MarkdownReader.ParseInlineText(def);
+                sb.Append(inlines.RenderHtml());
+            }
+            sb.Append("</dd>");
         }
         sb.Append("</dl>");
         return sb.ToString();
