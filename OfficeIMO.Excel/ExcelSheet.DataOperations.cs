@@ -405,8 +405,8 @@ namespace OfficeIMO.Excel
 
         /// <summary>
         /// Sorts the sheet's UsedRange rows in-place (excluding header) by the column resolved via header.
-        /// Values-only: rewrites cell values; formulas and styles are not preserved. When the header cannot be resolved the s
-        /// ort is skipped.
+        /// Values-only: rewrites cell values; formulas and styles are not preserved.
+        /// When the header cannot be resolved the sort is skipped.
         /// </summary>
         public void SortUsedRangeByHeader(string header, bool ascending = true)
         {
