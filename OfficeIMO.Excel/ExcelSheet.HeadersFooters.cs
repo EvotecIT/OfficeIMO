@@ -210,8 +210,11 @@ namespace OfficeIMO.Excel {
         public void SetHeaderImageUrl(HeaderFooterPosition position, string url, double? widthPoints = null, double? heightPoints = null)
         {
             if (string.IsNullOrWhiteSpace(url)) return;
-            if (OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var _ ) && bytes != null)
-                SetHeaderImage(position, bytes, "image/png", widthPoints, heightPoints);
+            if (OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var ct) && bytes != null)
+            {
+                var contentType = string.IsNullOrWhiteSpace(ct) ? "image/png" : ct!;
+                SetHeaderImage(position, bytes, contentType, widthPoints, heightPoints);
+            }
         }
 
         /// <summary>
@@ -234,8 +237,11 @@ namespace OfficeIMO.Excel {
         public void SetFooterImageUrl(HeaderFooterPosition position, string url, double? widthPoints = null, double? heightPoints = null)
         {
             if (string.IsNullOrWhiteSpace(url)) return;
-            if (OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var _ ) && bytes != null)
-                SetFooterImage(position, bytes, "image/png", widthPoints, heightPoints);
+            if (OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var ct) && bytes != null)
+            {
+                var contentType = string.IsNullOrWhiteSpace(ct) ? "image/png" : ct!;
+                SetFooterImage(position, bytes, contentType, widthPoints, heightPoints);
+            }
         }
 
         private static string EscapeHeaderFooter(string? text)

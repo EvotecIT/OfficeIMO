@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel.Fluent {
             public HeaderFooterPosition Position { get; set; }
             public byte[]? Bytes { get; set; }
             public string? Url { get; set; }
-            public string ContentType { get; set; } = "image/png";
+            public string? ContentType { get; set; } = "image/png";
             public double? W { get; set; }
             public double? H { get; set; }
         }
@@ -104,12 +104,16 @@ namespace OfficeIMO.Excel.Fluent {
             sheet.SetHeaderFooter(_hl, _hc, _hr, _fl, _fc, _fr, _diffFirst, _diffOddEven, _alignMargins, _scaleWithDoc);
             foreach (var img in _images) {
                 byte[]? bytes = img.Bytes;
-                string contentType = img.ContentType;
+                string? contentType = img.ContentType;
                 if (bytes == null && !string.IsNullOrWhiteSpace(img.Url)) {
-                    if (ImageDownloader.TryFetch(img.Url!, 5, 2_000_000, out var fetched, out var _)) { bytes = fetched; }
+                    if (ImageDownloader.TryFetch(img.Url!, 5, 2_000_000, out var fetched, out var fetchedContentType)) {
+                        bytes = fetched;
+                        if (!string.IsNullOrWhiteSpace(fetchedContentType)) contentType = fetchedContentType;
+                    }
                 }
+                if (string.IsNullOrWhiteSpace(contentType)) contentType = "image/png";
                 // Normalize to PNG to match working path used by local asset case
-                if (bytes != null && contentType != "image/png")
+                if (bytes != null && !string.Equals(contentType, "image/png", StringComparison.OrdinalIgnoreCase))
                 {
                     try
                     {
@@ -122,8 +126,8 @@ namespace OfficeIMO.Excel.Fluent {
                     catch { /* if decode fails, keep original bytes/contentType */ }
                 }
                 if (bytes == null) continue;
-                if (img.Header) sheet.SetHeaderImage(img.Position, bytes, contentType, img.W, img.H);
-                else sheet.SetFooterImage(img.Position, bytes, contentType, img.W, img.H);
+                if (img.Header) sheet.SetHeaderImage(img.Position, bytes, contentType!, img.W, img.H);
+                else sheet.SetFooterImage(img.Position, bytes, contentType!, img.W, img.H);
             }
         }
     }
