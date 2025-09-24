@@ -361,6 +361,104 @@ namespace OfficeIMO.Excel {
 
             return document;
         }
+        private static ExcelDocument CreateDocument(SpreadsheetDocument spreadSheetDocument, string? filePath)
+        {
+            var document = new ExcelDocument
+            {
+                FilePath = filePath ?? string.Empty,
+                _spreadSheetDocument = spreadSheetDocument,
+                _workBookPart = spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null"),
+            };
+
+            document.BuiltinDocumentProperties = new BuiltinDocumentProperties(document);
+            document.ApplicationProperties = new ApplicationProperties(document);
+            return document;
+        }
+
+        private static ExcelDocument LoadFromByteArray(byte[] bytes, bool readOnly, bool autoSave, string? filePath, Action<string, Exception>? log, OpenSettings? openSettings, bool preferFilePathOnFallback)
+        {
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+
+            var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
+            var normalizedStream = new MemoryStream(bytes.Length + 4096);
+            normalizedStream.Write(bytes, 0, bytes.Length);
+            normalizedStream.Position = 0;
+
+            try
+            {
+                Utilities.ExcelPackageUtilities.NormalizeContentTypes(normalizedStream, leaveOpen: true);
+                normalizedStream.Position = 0;
+                var memDoc = SpreadsheetDocument.Open(normalizedStream, !readOnly, effectiveOpenSettings);
+                return CreateDocument(memDoc, filePath);
+            }
+            catch (Exception ex) when (ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException)
+            {
+                normalizedStream.Dispose();
+                var contextMessage = filePath != null
+                    ? $"Failed to open '{filePath}' after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'."
+                    : "Failed to open workbook stream after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.";
+                log?.Invoke($"{contextMessage} Inner exception: {ex.Message}", ex);
+                throw new IOException($"{contextMessage} See inner exception for details.", ex);
+            }
+            catch
+            {
+                normalizedStream.Dispose();
+            }
+
+            SpreadsheetDocument spreadSheetDocument;
+            if (preferFilePathOnFallback && !string.IsNullOrEmpty(filePath))
+            {
+                spreadSheetDocument = SpreadsheetDocument.Open(filePath, !readOnly, effectiveOpenSettings);
+            }
+            else
+            {
+                var fallbackStream = new MemoryStream(bytes.Length + 4096);
+                fallbackStream.Write(bytes, 0, bytes.Length);
+                fallbackStream.Position = 0;
+                spreadSheetDocument = SpreadsheetDocument.Open(fallbackStream, !readOnly, effectiveOpenSettings);
+            }
+
+            return CreateDocument(spreadSheetDocument, filePath);
+        }
+
+        private static byte[] ReadAllBytes(Stream stream)
+        {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+            if (stream.CanSeek)
+            {
+                stream.Seek(0, SeekOrigin.Begin);
+            }
+
+            using var buffer = new MemoryStream();
+#if NETSTANDARD2_0 || NET472 || NET48
+            stream.CopyTo(buffer, 81920);
+#else
+            stream.CopyTo(buffer);
+#endif
+            return buffer.ToArray();
+        }
+
+        private static async Task<byte[]> ReadAllBytesAsync(Stream stream, CancellationToken cancellationToken)
+        {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+            if (stream.CanSeek)
+            {
+                stream.Seek(0, SeekOrigin.Begin);
+            }
+
+            using var buffer = new MemoryStream();
+#if NETSTANDARD2_0 || NET472 || NET48
+            await stream.CopyToAsync(buffer, 81920, cancellationToken).ConfigureAwait(false);
+#else
+            await stream.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
+#endif
+            return buffer.ToArray();
+        }
+
         /// <summary>
         /// Loads an existing Excel document.
         /// </summary>
@@ -379,59 +477,22 @@ namespace OfficeIMO.Excel {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
-            // Normalize content types up-front to avoid failures on malformed packages
-            // where /docProps/app.xml can be incorrectly typed as application/xml.
-            // Prefer in-memory normalization to avoid file-share conflicts in parallel runners.
             var bytes = File.ReadAllBytes(filePath);
-            // Do NOT dispose this stream until the SpreadsheetDocument is disposed.
-            // Returning a document backed by a disposed stream causes ObjectDisposedException
-            // when Open XML attempts to read parts/relationships.
-            var ms = new MemoryStream(bytes.Length + 4096);
-            ms.Write(bytes, 0, bytes.Length);
-            ms.Position = 0;
-            try
-            {
-                Utilities.ExcelPackageUtilities.NormalizeContentTypes(ms, leaveOpen: true);
-                ms.Position = 0;
-                // Open from normalized memory stream to avoid touching the original file yet
-                var openSettingsMem = CreateOpenSettings(openSettings, autoSave);
-                var memDoc = SpreadsheetDocument.Open(ms, !readOnly, openSettingsMem);
-                ExcelDocument documentMem = new ExcelDocument();
-                documentMem.FilePath = filePath;
-                documentMem._spreadSheetDocument = memDoc;
-                documentMem._workBookPart = memDoc.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
-                documentMem.BuiltinDocumentProperties = new BuiltinDocumentProperties(documentMem);
-                documentMem.ApplicationProperties = new ApplicationProperties(documentMem);
-                return documentMem;
-            }
-            catch (Exception ex) when (ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException)
-            {
-                ms.Dispose();
-                var contextMessage = $"Failed to open '{filePath}' after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.";
-                log?.Invoke($"{contextMessage} Inner exception: {ex.Message}", ex);
-                throw new IOException($"{contextMessage} See inner exception for details.", ex);
-            }
-            catch
-            {
-                ms.Dispose();
-            }
-            ExcelDocument document = new ExcelDocument();
-            document.FilePath = filePath;
+            return LoadFromByteArray(bytes, readOnly, autoSave, filePath, log, openSettings, preferFilePathOnFallback: true);
+        }
 
-            var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
-
-            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Open(filePath, !readOnly, effectiveOpenSettings);
-
-            document._spreadSheetDocument = spreadSheetDocument;
-
-            //// Add a WorkbookPart to the document.
-            document._workBookPart = spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
-
-            // Initialize document property helpers
-            document.BuiltinDocumentProperties = new BuiltinDocumentProperties(document);
-            document.ApplicationProperties = new ApplicationProperties(document);
-
-            return document;
+        /// <summary>
+        /// Loads an existing Excel document from the provided stream.
+        /// </summary>
+        /// <param name="stream">Input stream containing the workbook package.</param>
+        /// <param name="readOnly">Open the document in read-only mode.</param>
+        /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
+        public static ExcelDocument Load(Stream stream, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null)
+        {
+            var bytes = ReadAllBytes(stream);
+            return LoadFromByteArray(bytes, readOnly, autoSave, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
         }
 
         /// <summary>
@@ -475,22 +536,24 @@ namespace OfficeIMO.Excel {
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
-            using var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite, readOnly ? FileShare.Read : FileShare.ReadWrite, 4096, FileOptions.Asynchronous);
-            var memoryStream = new MemoryStream();
-            await fileStream.CopyToAsync(memoryStream).ConfigureAwait(false);
-            memoryStream.Seek(0, SeekOrigin.Begin);
 
-            var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
+            var bytes = await ReadAllBytesCompatAsync(filePath, CancellationToken.None).ConfigureAwait(false);
+            return LoadFromByteArray(bytes, readOnly, autoSave, filePath, log: null, openSettings, preferFilePathOnFallback: true);
+        }
 
-            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Open(memoryStream, !readOnly, effectiveOpenSettings);
-
-            ExcelDocument document = new ExcelDocument {
-                FilePath = filePath,
-                _spreadSheetDocument = spreadSheetDocument,
-                _workBookPart = spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null")
-            };
-
-            return document;
+        /// <summary>
+        /// Asynchronously loads an Excel document from the provided stream.
+        /// </summary>
+        /// <param name="stream">Input stream containing the workbook package.</param>
+        /// <param name="readOnly">Open the document in read-only mode.</param>
+        /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
+        public static async Task<ExcelDocument> LoadAsync(Stream stream, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null, CancellationToken cancellationToken = default)
+        {
+            var bytes = await ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+            return LoadFromByteArray(bytes, readOnly, autoSave, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
         }
 
         /// <summary>
