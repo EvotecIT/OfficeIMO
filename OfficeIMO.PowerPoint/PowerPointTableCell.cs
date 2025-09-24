@@ -1,12 +1,17 @@
 using DocumentFormat.OpenXml.Drawing;
 
+using System;
+
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents a cell within a PowerPoint table.
     /// </summary>
     public class PowerPointTableCell {
-        internal PowerPointTableCell(TableCell cell) {
+        private readonly Action? _onChanged;
+
+        internal PowerPointTableCell(TableCell cell, Action? onChanged) {
             Cell = cell;
+            _onChanged = onChanged;
         }
 
         internal TableCell Cell { get; }
@@ -25,6 +30,7 @@ namespace OfficeIMO.PowerPoint {
                 paragraph.RemoveAllChildren<Run>();
                 paragraph.Append(new Run(new Text(value ?? string.Empty)));
                 Cell.TextBody.Append(paragraph);
+                _onChanged?.Invoke();
             }
         }
 
@@ -51,6 +57,7 @@ namespace OfficeIMO.PowerPoint {
                 } else {
                     Cell.GridSpan = value.columns;
                 }
+                _onChanged?.Invoke();
             }
         }
 
@@ -71,6 +78,7 @@ namespace OfficeIMO.PowerPoint {
                 if (value != null) {
                     Cell.TableCellProperties.Append(new SolidFill(new RgbColorModelHex { Val = value }));
                 }
+                _onChanged?.Invoke();
             }
         }
     }

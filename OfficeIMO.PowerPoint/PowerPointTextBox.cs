@@ -1,3 +1,4 @@
+using System;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -6,7 +7,7 @@ namespace OfficeIMO.PowerPoint {
     ///     Represents a textbox shape.
     /// </summary>
     public class PowerPointTextBox : PowerPointShape {
-        internal PowerPointTextBox(Shape shape) : base(shape) {
+        internal PowerPointTextBox(Shape shape, Action onChanged) : base(shape, onChanged) {
         }
 
         private Shape Shape => (Shape)Element;
@@ -26,6 +27,7 @@ namespace OfficeIMO.PowerPoint {
                 A.Run run = Shape.TextBody!.GetFirstChild<A.Paragraph>()!.GetFirstChild<A.Run>()!;
                 A.Text text = run.GetFirstChild<A.Text>()!;
                 text.Text = value;
+                NotifyChanged();
             }
         }
 
@@ -42,6 +44,7 @@ namespace OfficeIMO.PowerPoint {
                     A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
                     runProps.Bold = value ? true : null;
                 }
+                NotifyChanged();
             }
         }
 
@@ -58,6 +61,7 @@ namespace OfficeIMO.PowerPoint {
                     A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
                     runProps.Italic = value ? true : null;
                 }
+                NotifyChanged();
             }
         }
 
@@ -75,6 +79,7 @@ namespace OfficeIMO.PowerPoint {
                     A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
                     runProps.FontSize = value != null ? value * 100 : null;
                 }
+                NotifyChanged();
             }
         }
 
@@ -94,6 +99,7 @@ namespace OfficeIMO.PowerPoint {
                         runProps.Append(new A.LatinFont { Typeface = value });
                     }
                 }
+                NotifyChanged();
             }
         }
 
@@ -113,6 +119,7 @@ namespace OfficeIMO.PowerPoint {
                         runProps.Append(new A.SolidFill(new A.RgbColorModelHex { Val = value }));
                     }
                 }
+                NotifyChanged();
             }
         }
 
@@ -131,6 +138,7 @@ namespace OfficeIMO.PowerPoint {
                 run
             );
             Shape.TextBody!.AppendChild(paragraph);
+            NotifyChanged();
         }
     }
 }

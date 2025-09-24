@@ -1,3 +1,4 @@
+using System;
 using DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint {
@@ -5,7 +6,7 @@ namespace OfficeIMO.PowerPoint {
     ///     Represents a chart on a slide.
     /// </summary>
     public class PowerPointChart : PowerPointShape {
-        internal PowerPointChart(GraphicFrame frame) : base(frame) {
+        internal PowerPointChart(GraphicFrame frame, Action onChanged) : base(frame, onChanged) {
         }
     }
 }

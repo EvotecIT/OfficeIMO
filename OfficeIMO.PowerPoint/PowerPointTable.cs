@@ -1,3 +1,4 @@
+using System;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -6,7 +7,7 @@ namespace OfficeIMO.PowerPoint {
     ///     Represents a table on a slide.
     /// </summary>
     public class PowerPointTable : PowerPointShape {
-        internal PowerPointTable(GraphicFrame frame) : base(frame) {
+        internal PowerPointTable(GraphicFrame frame, Action onChanged) : base(frame, onChanged) {
         }
 
         private GraphicFrame Frame => (GraphicFrame)Element;
@@ -31,7 +32,7 @@ namespace OfficeIMO.PowerPoint {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             A.TableRow tableRow = table.Elements<A.TableRow>().ElementAt(row);
             A.TableCell cell = tableRow.Elements<A.TableCell>().ElementAt(column);
-            return new PowerPointTableCell(cell);
+            return new PowerPointTableCell(cell, ChangeHandler);
         }
 
         /// <summary>
@@ -57,6 +58,7 @@ namespace OfficeIMO.PowerPoint {
             } else {
                 table.Append(row);
             }
+            NotifyChanged();
         }
 
         /// <summary>
@@ -67,6 +69,7 @@ namespace OfficeIMO.PowerPoint {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             A.TableRow row = table.Elements<A.TableRow>().ElementAt(index);
             row.Remove();
+            NotifyChanged();
         }
 
         /// <summary>
@@ -99,6 +102,7 @@ namespace OfficeIMO.PowerPoint {
                     row.Append(cell);
                 }
             }
+            NotifyChanged();
         }
 
         /// <summary>
@@ -112,6 +116,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (A.TableRow row in table.Elements<A.TableRow>()) {
                 row.Elements<A.TableCell>().ElementAt(index).Remove();
             }
+            NotifyChanged();
         }
     }
 }

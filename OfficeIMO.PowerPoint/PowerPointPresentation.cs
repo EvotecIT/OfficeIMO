@@ -19,6 +19,11 @@ namespace OfficeIMO.PowerPoint {
         private readonly PresentationPart _presentationPart;
         private readonly List<PowerPointSlide> _slides = new();
         private bool _initialSlideUntouched = false;
+        private readonly Dictionary<FileFormatVersions, ValidationCacheEntry> _validationCache = new();
+        private readonly object _validationCacheLock = new();
+
+        internal static Func<FileFormatVersions, OpenXmlValidator> ValidatorFactory { get; set; } =
+            version => new OpenXmlValidator(version);
 
         private PowerPointPresentation(PresentationDocument document, bool isNewPresentation) {
             _document = document;
@@ -35,7 +40,7 @@ namespace OfficeIMO.PowerPoint {
                         string? relId = slideId.RelationshipId;
                         if (!string.IsNullOrEmpty(relId)) {
                             SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(relId!);
-                            _slides.Add(new PowerPointSlide(slidePart));
+                            _slides.Add(new PowerPointSlide(slidePart, MarkDocumentChanged));
                         }
                     }
                 }
@@ -68,6 +73,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 themePart.Theme.Name = value;
+                MarkDocumentChanged();
             }
         }
 
@@ -210,8 +216,9 @@ namespace OfficeIMO.PowerPoint {
             _presentationPart.Presentation.SlideIdList.Append(slideId);
             _presentationPart.Presentation.Save();
 
-            PowerPointSlide slide = new(slidePart);
+            PowerPointSlide slide = new(slidePart, MarkDocumentChanged);
             _slides.Add(slide);
+            MarkDocumentChanged();
             return slide;
         }
 
@@ -246,6 +253,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             _presentationPart.Presentation.Save();
+            MarkDocumentChanged();
         }
 
         /// <summary>
@@ -291,6 +299,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             _presentationPart.Presentation.Save();
+            MarkDocumentChanged();
         }
 
         /// <summary>
@@ -311,14 +320,15 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public List<ValidationErrorInfo> DocumentValidationErrors {
             get {
-                return ValidateDocument();
-            }
+            return ValidateDocument();
+        }
         }
 
         /// <summary>
         ///     Validates the presentation using the specified file format version.
         /// </summary>
         /// <param name="fileFormatVersions">File format version to validate against.</param>
+        /// <param name="forceRefresh">When set to <see langword="true"/>, validation is executed even if a cached result is available.</param>
         /// <returns>List of validation errors.</returns>
         /// <example>
         /// <code>
@@ -330,14 +340,34 @@ namespace OfficeIMO.PowerPoint {
         /// }
         /// </code>
         /// </example>
-        public List<ValidationErrorInfo> ValidateDocument(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
+        public List<ValidationErrorInfo> ValidateDocument(
+            FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365,
+            bool forceRefresh = false) {
+            ValidationCacheEntry? cacheEntry = null;
+            if (!forceRefresh) {
+                lock (_validationCacheLock) {
+                    _validationCache.TryGetValue(fileFormatVersions, out cacheEntry);
+                }
+            }
+
+            if (cacheEntry != null) {
+                return new List<ValidationErrorInfo>(cacheEntry.Errors);
+            }
+
             List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
-            OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersions);
+            OpenXmlValidator validator = ValidatorFactory(fileFormatVersions);
             foreach (ValidationErrorInfo error in validator.Validate(_document)) {
                 listErrors.Add(error);
             }
 
-            return listErrors;
+            ValidationErrorInfo[] snapshot = listErrors.ToArray();
+            cacheEntry = new ValidationCacheEntry(DateTime.UtcNow, snapshot);
+
+            lock (_validationCacheLock) {
+                _validationCache[fileFormatVersions] = cacheEntry;
+            }
+
+            return new List<ValidationErrorInfo>(snapshot);
         }
 
         /// <summary>
@@ -373,10 +403,26 @@ namespace OfficeIMO.PowerPoint {
                     string? relId = slideId.RelationshipId;
                     if (!string.IsNullOrEmpty(relId)) {
                         SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(relId!);
-                        _slides.Add(new PowerPointSlide(slidePart));
+                        _slides.Add(new PowerPointSlide(slidePart, MarkDocumentChanged));
                     }
                 }
             }
+        }
+
+        private void MarkDocumentChanged() {
+            lock (_validationCacheLock) {
+                _validationCache.Clear();
+            }
+        }
+
+        private sealed class ValidationCacheEntry {
+            internal ValidationCacheEntry(DateTime timestampUtc, ValidationErrorInfo[] errors) {
+                TimestampUtc = timestampUtc;
+                Errors = errors;
+            }
+
+            internal DateTime TimestampUtc { get; }
+            internal ValidationErrorInfo[] Errors { get; }
         }
     }
 }

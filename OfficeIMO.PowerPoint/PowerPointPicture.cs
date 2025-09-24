@@ -1,3 +1,4 @@
+using System;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -9,7 +10,7 @@ namespace OfficeIMO.PowerPoint {
     public class PowerPointPicture : PowerPointShape {
         private readonly SlidePart _slidePart;
 
-        internal PowerPointPicture(Picture picture, SlidePart slidePart) : base(picture) {
+        internal PowerPointPicture(Picture picture, SlidePart slidePart, Action onChanged) : base(picture, onChanged) {
             _slidePart = slidePart;
         }
 
@@ -61,6 +62,7 @@ namespace OfficeIMO.PowerPoint {
             imagePart.FeedData(newImage);
             string relId = _slidePart.GetIdOfPart(imagePart);
             blip.Embed = relId;
+            NotifyChanged();
         }
     }
 }

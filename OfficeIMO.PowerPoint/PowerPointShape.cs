@@ -1,3 +1,4 @@
+using System;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -6,11 +7,26 @@ namespace OfficeIMO.PowerPoint {
     ///     Base class for shapes used on PowerPoint slides.
     /// </summary>
     public abstract class PowerPointShape {
-        internal PowerPointShape(OpenXmlElement element) {
+        private readonly Action? _onChanged;
+
+        internal PowerPointShape(OpenXmlElement element, Action? onChanged = null) {
             Element = element;
+            _onChanged = onChanged;
         }
 
         internal OpenXmlElement Element { get; }
+
+        /// <summary>
+        ///     Gets the callback invoked when the underlying Open XML element changes.
+        /// </summary>
+        protected Action? ChangeHandler => _onChanged;
+
+        /// <summary>
+        ///     Notifies the owning presentation that the shape's underlying Open XML element has changed.
+        /// </summary>
+        protected void NotifyChanged() {
+            _onChanged?.Invoke();
+        }
 
         /// <summary>
         ///     Name assigned to the shape.
@@ -49,6 +65,7 @@ namespace OfficeIMO.PowerPoint {
                     if (value != null) {
                         shape.ShapeProperties.Append(new A.SolidFill(new A.RgbColorModelHex { Val = value }));
                     }
+                    NotifyChanged();
                 }
             }
         }
@@ -58,7 +75,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public long Left {
             get => GetOffset().X?.Value ?? 0L;
-            set => GetOffset().X = value;
+            set {
+                GetOffset().X = value;
+                NotifyChanged();
+            }
         }
 
         /// <summary>
@@ -66,7 +86,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public long Top {
             get => GetOffset().Y?.Value ?? 0L;
-            set => GetOffset().Y = value;
+            set {
+                GetOffset().Y = value;
+                NotifyChanged();
+            }
         }
 
         /// <summary>
@@ -74,7 +97,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public long Width {
             get => GetExtents().Cx?.Value ?? 0L;
-            set => GetExtents().Cx = value;
+            set {
+                GetExtents().Cx = value;
+                NotifyChanged();
+            }
         }
 
         /// <summary>
@@ -82,7 +108,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public long Height {
             get => GetExtents().Cy?.Value ?? 0L;
-            set => GetExtents().Cy = value;
+            set {
+                GetExtents().Cy = value;
+                NotifyChanged();
+            }
         }
 
         private A.Offset GetOffset() {

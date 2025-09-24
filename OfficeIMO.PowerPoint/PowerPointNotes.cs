@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
@@ -10,9 +11,11 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public class PowerPointNotes {
         private readonly SlidePart _slidePart;
+        private readonly Action _onChanged;
 
-        internal PowerPointNotes(SlidePart slidePart) {
+        internal PowerPointNotes(SlidePart slidePart, Action onChanged) {
             _slidePart = slidePart;
+            _onChanged = onChanged;
         }
 
         private NotesSlide NotesSlide {
@@ -52,6 +55,7 @@ namespace OfficeIMO.PowerPoint {
                             )
                         )),
                         new ColorMapOverride(new A.MasterColorMapping()));
+                    _onChanged();
                 }
 
                 return _slidePart.NotesSlidePart!.NotesSlide;
@@ -91,6 +95,7 @@ namespace OfficeIMO.PowerPoint {
                 A.Run run = paragraph.GetFirstChild<A.Run>() ?? paragraph.AppendChild(new A.Run());
                 A.Text text = run.GetFirstChild<A.Text>() ?? run.AppendChild(new A.Text());
                 text.Text = value;
+                _onChanged();
             }
         }
 
