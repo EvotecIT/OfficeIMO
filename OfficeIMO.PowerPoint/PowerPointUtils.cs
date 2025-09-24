@@ -1,7 +1,9 @@
+using System;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using Ap = DocumentFormat.OpenXml.ExtendedProperties;
 using D = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 
@@ -44,6 +46,12 @@ namespace OfficeIMO.PowerPoint {
             themePart1 = CreateTheme(slideMasterPart1);
 
             slideMasterPart1.AddPart(slideLayoutPart1, "rId1");
+
+            CreatePresentationPropertiesPart(presentationPart);
+            CreateViewPropertiesPart(presentationPart);
+            CreateTableStylesPart(presentationPart);
+            EnsureDocumentProperties(presentationPart);
+
             presentationPart.AddPart(slideMasterPart1, "rId1");
             presentationPart.AddPart(themePart1, "rId5");
         }
@@ -94,6 +102,92 @@ namespace OfficeIMO.PowerPoint {
             return slideMasterPart1;
         }
 
+        private static void CreatePresentationPropertiesPart(PresentationPart presentationPart) {
+            PresentationPropertiesPart part = presentationPart.AddNewPart<PresentationPropertiesPart>("rId3");
+            part.PresentationProperties ??= new PresentationProperties();
+        }
+
+        private static void CreateViewPropertiesPart(PresentationPart presentationPart) {
+            ViewPropertiesPart viewPart = presentationPart.AddNewPart<ViewPropertiesPart>("rId4");
+
+            NormalViewProperties normalViewProperties = new NormalViewProperties(
+                new RestoredLeft() { Size = 15989, AutoAdjust = false },
+                new RestoredTop() { Size = 94660 }
+            );
+
+            SlideViewProperties slideViewProperties = new SlideViewProperties();
+
+            CommonSlideViewProperties commonSlideViewProperties = new CommonSlideViewProperties() { SnapToGrid = false };
+            CommonViewProperties commonViewProperties = new CommonViewProperties() { VariableScale = true };
+
+            ScaleFactor scaleFactor = new ScaleFactor();
+            scaleFactor.Append(new D.ScaleX() { Numerator = 142, Denominator = 100 });
+            scaleFactor.Append(new D.ScaleY() { Numerator = 142, Denominator = 100 });
+            commonViewProperties.Append(scaleFactor);
+            commonViewProperties.Append(new Origin() { X = 0L, Y = 0L });
+
+            commonSlideViewProperties.Append(commonViewProperties);
+            slideViewProperties.Append(commonSlideViewProperties);
+
+            NotesTextViewProperties notesTextViewProperties = new NotesTextViewProperties();
+            CommonViewProperties notesCommonViewProperties = new CommonViewProperties();
+            ScaleFactor notesScaleFactor = new ScaleFactor();
+            notesScaleFactor.Append(new D.ScaleX() { Numerator = 1, Denominator = 1 });
+            notesScaleFactor.Append(new D.ScaleY() { Numerator = 1, Denominator = 1 });
+            notesCommonViewProperties.Append(notesScaleFactor);
+            notesCommonViewProperties.Append(new Origin() { X = 0L, Y = 0L });
+            notesTextViewProperties.Append(notesCommonViewProperties);
+
+            GridSpacing gridSpacing = new GridSpacing() { Cx = 72008L, Cy = 72008L };
+
+            ViewProperties viewProperties = new ViewProperties();
+            viewProperties.Append(normalViewProperties);
+            viewProperties.Append(slideViewProperties);
+            viewProperties.Append(notesTextViewProperties);
+            viewProperties.Append(gridSpacing);
+
+            viewPart.ViewProperties = viewProperties;
+        }
+
+        private static void CreateTableStylesPart(PresentationPart presentationPart) {
+            TableStylesPart tableStylesPart = presentationPart.AddNewPart<TableStylesPart>("rId6");
+
+            D.TableStyleList tableStyleList = new D.TableStyleList() { Default = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" };
+            tableStyleList.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");
+
+            tableStylesPart.TableStyleList = tableStyleList;
+        }
+
+        private static void EnsureDocumentProperties(PresentationPart presentationPart) {
+            if (presentationPart.OpenXmlPackage is not PresentationDocument presentationDocument) {
+                return;
+            }
+
+            ExtendedFilePropertiesPart extendedPart = presentationDocument.ExtendedFilePropertiesPart ?? presentationDocument.AddExtendedFilePropertiesPart();
+            if (extendedPart.Properties == null) {
+                extendedPart.Properties = new Ap.Properties(
+                    new Ap.TotalTime() { Text = "0" },
+                    new Ap.Application() { Text = "Microsoft Office PowerPoint" },
+                    new Ap.PresentationFormat() { Text = "Widescreen" },
+                    new Ap.Slides() { Text = "1" },
+                    new Ap.Notes() { Text = "0" },
+                    new Ap.HiddenSlides() { Text = "0" }
+                );
+            }
+
+            try {
+                var _ = presentationDocument.PackageProperties;
+            } catch {
+            }
+
+            if (presentationDocument.PackageProperties.Created == null) {
+                presentationDocument.PackageProperties.Created = DateTime.UtcNow;
+            }
+
+            if (presentationDocument.PackageProperties.Modified == null) {
+                presentationDocument.PackageProperties.Modified = DateTime.UtcNow;
+            }
+        }
 
         private static ThemePart CreateTheme(SlideMasterPart slideMasterPart1) {
             ThemePart themePart1 = slideMasterPart1.AddNewPart<ThemePart>("rId5");
