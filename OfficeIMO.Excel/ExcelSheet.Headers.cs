@@ -32,14 +32,43 @@ namespace OfficeIMO.Excel
                 var sh = rdr.GetSheet(this.Name);
                 var values = sh.ReadRange(a1Used);
 
+                int rows = values.GetLength(0);
                 int cols = values.GetLength(1);
                 var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                if (rows == 0 || cols == 0)
+                {
+                    _headerMapCache = map;
+                    _headerMapSourceA1 = a1Used;
+                    _headerMapNormalize = opt.NormalizeHeaders;
+                    return new Dictionary<string, int>(_headerMapCache, StringComparer.OrdinalIgnoreCase);
+                }
+
                 var (_, c1, _, _) = A1.ParseRange(a1Used);
+                var headers = new string?[cols];
+                bool anyHeader = false;
                 for (int c = 0; c < cols; c++)
                 {
-                    var hdr = values[0, c]?.ToString() ?? $"Column{c + 1}";
+                    var hdr = values[0, c]?.ToString();
                     if (opt.NormalizeHeaders)
-                        hdr = System.Text.RegularExpressions.Regex.Replace(hdr, "\\s+", " ").Trim();
+                        hdr = System.Text.RegularExpressions.Regex.Replace(hdr ?? string.Empty, "\\s+", " ").Trim();
+                    headers[c] = hdr;
+                    if (!string.IsNullOrEmpty(hdr))
+                        anyHeader = true;
+                }
+
+                if (!anyHeader)
+                {
+                    _headerMapCache = map;
+                    _headerMapSourceA1 = a1Used;
+                    _headerMapNormalize = opt.NormalizeHeaders;
+                    return new Dictionary<string, int>(_headerMapCache, StringComparer.OrdinalIgnoreCase);
+                }
+
+                for (int c = 0; c < cols; c++)
+                {
+                    var hdr = headers[c];
+                    if (string.IsNullOrEmpty(hdr))
+                        hdr = $"Column{c + 1}";
                     map[hdr] = c1 + c;
                 }
                 _headerMapCache = map;
