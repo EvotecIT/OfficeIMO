@@ -23,6 +23,7 @@ namespace OfficeIMO.Excel {
         private void CellValueCore(int row, int column, object value)
         {
             var (cellValue, dataType) = CoerceForCell(value);
+            bool wroteNumber = dataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
 
             var cell = GetCell(row, column);
             cell.CellValue = cellValue;
@@ -30,7 +31,7 @@ namespace OfficeIMO.Excel {
 
             // Automatically apply date format for DateTime values
             // Using Excel's built-in date format code 14 (invariant short date)
-            if (value is DateTime || value is DateTimeOffset)
+            if (wroteNumber && (value is DateTime || value is DateTimeOffset))
             {
                 ApplyBuiltInNumberFormat(row, column, 14);  // Built-in format 14 is short date
             }
@@ -51,13 +52,15 @@ namespace OfficeIMO.Excel {
         // Core coercion logic shared between sequential and parallel operations
         private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCell(object value)
         {
+            var dateTimeOffsetStrategy = _excelDocument.DateTimeOffsetWriteStrategy;
             var (cellValue, cellType) = CoerceValueHelper.Coerce(
                 value,
                 s =>
                 {
                     int idx = _excelDocument.GetSharedStringIndex(s);
                     return new CellValue(idx.ToString(CultureInfo.InvariantCulture));
-                });
+                },
+                dateTimeOffsetStrategy);
             return (cellValue, new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType));
         }
 
@@ -88,7 +91,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, DateTimeOffset value) {
-            CellValue(row, column, value.UtcDateTime);
+            WriteLockConditional(() => CellValueCore(row, column, value));
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />

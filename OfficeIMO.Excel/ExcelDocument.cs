@@ -53,6 +53,22 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExecutionPolicy Execution { get; } = new();
 
+        private Func<DateTimeOffset, DateTime> _dateTimeOffsetWriteStrategy = static dto => dto.LocalDateTime;
+
+        /// <summary>
+        /// Controls how <see cref="DateTimeOffset"/> values are converted to <see cref="DateTime"/>
+        /// before being written to worksheet cells. Defaults to <see cref="DateTimeOffset.LocalDateTime"/>.
+        /// </summary>
+        /// <remarks>
+        /// The delegate influences the numeric serial value stored in the cell but does not automatically
+        /// change number formats. Apply the desired cell formatting separately.
+        /// </remarks>
+        public Func<DateTimeOffset, DateTime> DateTimeOffsetWriteStrategy
+        {
+            get => _dateTimeOffsetWriteStrategy;
+            set => _dateTimeOffsetWriteStrategy = value ?? throw new ArgumentNullException(nameof(value));
+        }
+
         internal ReaderWriterLockSlim EnsureLock()
             => _lock ??= new ReaderWriterLockSlim(); // default: NoRecursion
 

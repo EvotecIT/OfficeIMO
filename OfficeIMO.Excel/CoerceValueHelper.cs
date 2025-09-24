@@ -13,24 +13,37 @@ internal static class CoerceValueHelper
     private static readonly CellValue EmptyStringTemplate = new(string.Empty);
     private static readonly CellValue TrueTemplate = new("1");
     private static readonly CellValue FalseTemplate = new("0");
+    private static readonly Func<DateTimeOffset, DateTime> DefaultDateTimeOffsetStrategy = static dto => dto.LocalDateTime;
+    // Excel cannot represent serial dates earlier than 1900-01-01; 0 = 1899-12-30 and 2 = 1900-01-01.
+    private const double ExcelMinimumSupportedSerial = 2d;
 
     /// <summary>
     /// Converts an arbitrary CLR value into the <see cref="CellValue" /> and <see cref="CellValues" /> tuple used by Excel.
     /// </summary>
     /// <param name="value">The value to be represented in a worksheet cell.</param>
     /// <param name="sharedStringHandler">Delegate that materialises a <see cref="CellValue" /> entry for shared strings.</param>
+    /// <param name="dateTimeOffsetStrategy">
+    /// Optional delegate used to convert <see cref="DateTimeOffset"/> instances into <see cref="DateTime"/> values before
+    /// calculating the Excel serial number. When omitted, <see cref="DateTimeOffset.LocalDateTime"/> is used. The provided
+    /// strategy only influences the numeric serial value that is written; cell formatting must still be applied separately.
+    /// </param>
     /// <returns>The OpenXML representation of the supplied value.</returns>
     /// <remarks>
     /// Integer values with an absolute magnitude above ±9,007,199,254,740,992 are written using their string form to prevent
     /// double precision loss while keeping the cell typed as <see cref="CellValues.Number" />.
     /// </remarks>
     /// <exception cref="ArgumentException">Thrown when the resulting shared-string payload exceeds Excel's 32,767 character limit.</exception>
-    internal static (CellValue cellValue, CellValues type) Coerce(object? value, Func<string, CellValue> sharedStringHandler)
+    internal static (CellValue cellValue, CellValues type) Coerce(
+        object? value,
+        Func<string, CellValue> sharedStringHandler,
+        Func<DateTimeOffset, DateTime>? dateTimeOffsetStrategy = null)
     {
         if (sharedStringHandler is null)
         {
             throw new ArgumentNullException(nameof(sharedStringHandler));
         }
+
+        dateTimeOffsetStrategy ??= DefaultDateTimeOffsetStrategy;
 
         return value switch
         {
@@ -43,7 +56,7 @@ internal static class CoerceValueHelper
             int i => HandleSignedInteger(i),
             long l => HandleSignedInteger(l),
             DateTime dt => HandleNumber(dt.ToOADate()),
-            DateTimeOffset dto => HandleNumber(dto.UtcDateTime.ToOADate()),
+            DateTimeOffset dto => HandleDateTimeOffset(dto, sharedStringHandler, dateTimeOffsetStrategy, nameof(value)),
 #if NET6_0_OR_GREATER
             DateOnly dateOnly => HandleNumber(dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate()),
             TimeOnly timeOnly => HandleNumber(timeOnly.ToTimeSpan().TotalDays),
@@ -79,6 +92,55 @@ internal static class CoerceValueHelper
         integer <= DoublePrecisionSafeIntegerBoundUnsigned
             ? HandleNumber(integer)
             : (CreateTextCellValue(integer.ToString(CultureInfo.InvariantCulture)), CellValues.Number);
+
+    internal static (CellValue, CellValues) HandleDateTimeOffset(
+        DateTimeOffset value,
+        Func<string, CellValue> sharedStringHandler,
+        Func<DateTimeOffset, DateTime> dateTimeOffsetStrategy,
+        string? paramName)
+    {
+        if (sharedStringHandler is null)
+        {
+            throw new ArgumentNullException(nameof(sharedStringHandler));
+        }
+
+        if (dateTimeOffsetStrategy is null)
+        {
+            throw new ArgumentNullException(nameof(dateTimeOffsetStrategy));
+        }
+
+        paramName ??= nameof(value);
+        string fallbackText = value.ToString("o", CultureInfo.InvariantCulture);
+
+        DateTime converted;
+        try
+        {
+            converted = dateTimeOffsetStrategy(value);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException("The configured DateTimeOffset write strategy threw an exception.", ex);
+        }
+
+        try
+        {
+            double serial = converted.ToOADate();
+            if (serial < ExcelMinimumSupportedSerial)
+            {
+                return HandleSharedString(fallbackText, sharedStringHandler, paramName);
+            }
+
+            return HandleNumber(serial);
+        }
+        catch (ArgumentException)
+        {
+            return HandleSharedString(fallbackText, sharedStringHandler, paramName);
+        }
+        catch (OverflowException)
+        {
+            return HandleSharedString(fallbackText, sharedStringHandler, paramName);
+        }
+    }
 
     internal static (CellValue, CellValues) HandleBoolean(bool value) =>
         (CloneCellValue(value ? TrueTemplate : FalseTemplate), CellValues.Boolean);

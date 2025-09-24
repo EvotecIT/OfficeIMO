@@ -185,42 +185,14 @@ namespace OfficeIMO.Excel {
         }
 
         private CellUpdate PrepareCellUpdate(int row, int column, object value) {
-            switch (value) {
-                case string s:
-                    return new CellUpdate(row, column, s, DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString, true);
-                case double d:
-                    return new CellUpdate(row, column, d.ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
-                case float f:
-                    return new CellUpdate(row, column, Convert.ToDouble(f).ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
-                case decimal dec:
-                    return new CellUpdate(row, column, dec.ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
-                case int i:
-                    return new CellUpdate(row, column, ((double)i).ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
-                case long l:
-                    return new CellUpdate(row, column, ((double)l).ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
-                case DateTime dt:
-                    return new CellUpdate(row, column, dt.ToOADate().ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
-                case DateTimeOffset dto:
-                    return new CellUpdate(row, column, dto.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
-                case TimeSpan ts:
-                    return new CellUpdate(row, column, ts.TotalDays.ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
-                case bool b:
-                    return new CellUpdate(row, column, b ? "1" : "0", DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean, false);
-                case uint ui:
-                    return new CellUpdate(row, column, ((double)ui).ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
-                case ulong ul:
-                    return new CellUpdate(row, column, ((double)ul).ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
-                case ushort us:
-                    return new CellUpdate(row, column, ((double)us).ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
-                case byte by:
-                    return new CellUpdate(row, column, ((double)by).ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
-                case sbyte sb:
-                    return new CellUpdate(row, column, ((double)sb).ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
-                case short sh:
-                    return new CellUpdate(row, column, ((double)sh).ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
-                default:
-                    return new CellUpdate(row, column, value?.ToString() ?? string.Empty, DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString, true);
-            }
+            var dateTimeOffsetStrategy = _excelDocument.DateTimeOffsetWriteStrategy;
+            var (cellValue, dataType) = CoerceValueHelper.Coerce(
+                value,
+                s => new CellValue(s),
+                dateTimeOffsetStrategy);
+
+            bool isSharedString = dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString;
+            return new CellUpdate(row, column, cellValue.Text ?? string.Empty, dataType, isSharedString);
         }
 
         private void ApplyCellUpdate(CellUpdate update) {
