@@ -17,15 +17,17 @@ namespace OfficeIMO.Excel
         private readonly ConcurrentDictionary<string, byte> _distinct = new();
         private Dictionary<string, int>? _finalIndex;
 
+        /// <summary>
+        /// Records a string for shared string table inclusion and returns the sanitized version.
+        /// </summary>
+        /// <param name="s">The string to record (null becomes empty string).</param>
+        /// <returns>The sanitized string that will be used for indexing.</returns>
         public string Note(string? s)
         {
-            if (s is null)
-            {
-                return string.Empty;
-            }
+            var normalized = NormalizeText(s);
 
             // Clamp and strip illegal XML control characters defensively
-            var safe = Utilities.ExcelSanitizer.SanitizeString(s);
+            var safe = Utilities.ExcelSanitizer.SanitizeString(normalized);
             _distinct.TryAdd(safe, 0);
             return safe;
         }
@@ -54,14 +56,18 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Fixes a prepared cell tuple in-place, replacing SharedString text with its index.
         /// </summary>
-        public void Fixup(ref (int Row, int Col, CellValue Val, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> Type) prepared)
+        public void Fixup(
+            ref (
+                int Row,
+                int Col,
+                CellValue Val,
+                EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> Type) prepared)
         {
             if (_finalIndex is null) return;
             if (prepared.Type?.Value != DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) return;
 
             // prepared.Val.Text currently holds the raw string; replace with index text
-            var text = prepared.Val?.Text ?? string.Empty;
-            if (text is null) text = string.Empty;
+            var text = NormalizeText(prepared.Val?.Text);
             var sanitized = Utilities.ExcelSanitizer.SanitizeString(text);
             if (_finalIndex.TryGetValue(sanitized, out int idx))
             {
@@ -78,7 +84,13 @@ namespace OfficeIMO.Excel
         /// Applies planner to document and fixes all prepared cells.
         /// Must be called inside serialized apply stage.
         /// </summary>
-        public void ApplyAndFixup((int Row, int Col, CellValue Val, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> Type)[] prepared, ExcelDocument doc)
+        public void ApplyAndFixup(
+            (
+                int Row,
+                int Col,
+                CellValue Val,
+                EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> Type)[] prepared,
+            ExcelDocument doc)
         {
             ApplyTo(doc);
             for (int i = 0; i < prepared.Length; i++)
@@ -86,5 +98,7 @@ namespace OfficeIMO.Excel
                 Fixup(ref prepared[i]);
             }
         }
+
+        private static string NormalizeText(string? text) => text ?? string.Empty;
     }
 }
