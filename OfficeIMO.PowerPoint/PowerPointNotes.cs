@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
@@ -26,6 +27,7 @@ namespace OfficeIMO.PowerPoint {
     public class PowerPointNotes {
         private readonly SlidePart _slidePart;
         private readonly INotesMasterPartFactory _notesMasterPartFactory;
+        private HashSet<string>? _cachedRelationshipIds;
 
         internal PowerPointNotes(SlidePart slidePart, INotesMasterPartFactory? notesMasterPartFactory = null) {
             _slidePart = slidePart;
@@ -36,19 +38,14 @@ namespace OfficeIMO.PowerPoint {
             get {
                 if (_slidePart.NotesSlidePart == null) {
                     // Generate a unique relationship ID for the notes part
-                    var slideRelationships = new HashSet<string>(
-                        _slidePart.Parts.Select(p => p.RelationshipId)
-                        .Union(_slidePart.ExternalRelationships.Select(r => r.Id))
-                        .Union(_slidePart.HyperlinkRelationships.Select(r => r.Id))
-                        .Where(id => !string.IsNullOrEmpty(id))
-                    );
+                    HashSet<string> slideRelationships = GetRelationshipIds();
 
                     int notesIdNum = 1;
                     string notesRelId;
                     do {
                         notesRelId = "rId" + notesIdNum;
                         notesIdNum++;
-                    } while (slideRelationships.Contains(notesRelId));
+                    } while (!slideRelationships.Add(notesRelId));
 
                     NotesSlidePart notesPart = _slidePart.AddNewPart<NotesSlidePart>(notesRelId);
                     PresentationPart? presentationPart = _slidePart.GetParentParts().OfType<PresentationPart>().FirstOrDefault();
@@ -149,6 +146,19 @@ namespace OfficeIMO.PowerPoint {
                 .Max();
 
             return maxId + 1U;
+        }
+
+        private HashSet<string> GetRelationshipIds() {
+            if (_cachedRelationshipIds == null) {
+                _cachedRelationshipIds = new HashSet<string>(
+                    _slidePart.Parts.Select(p => p.RelationshipId)
+                        .Concat(_slidePart.ExternalRelationships.Select(r => r.Id))
+                        .Concat(_slidePart.HyperlinkRelationships.Select(r => r.Id))
+                        .Where(id => !string.IsNullOrEmpty(id)),
+                    StringComparer.Ordinal);
+            }
+
+            return _cachedRelationshipIds;
         }
     }
 }
