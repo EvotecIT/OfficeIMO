@@ -98,8 +98,8 @@ namespace OfficeIMO.Excel
                 value,
                 s =>
                 {
-                    planner.Note(s);
-                    return new CellValue(s);
+                    var sanitized = planner.Note(s);
+                    return new CellValue(sanitized);
                 },
                 dateTimeOffsetStrategy);
             return (cellValue, new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType));
