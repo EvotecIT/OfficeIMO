@@ -39,7 +39,88 @@ namespace OfficeIMO.Tests {
                         Assert.Equal("Arial", rp.GetFirstChild<A.LatinFont>()?.Typeface);
                         Assert.Equal("FF0000", rp.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val);
                     }
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void TextBoxTextReturnsEmptyWhenParagraphsAreMissing() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                slide.AddTextBox("Initial");
+                presentation.Save();
+            }
+
+            using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                SlidePart slidePart = document.PresentationPart!.SlideParts.First();
+                Shape shape = slidePart.Slide.Descendants<Shape>().First();
+                shape.TextBody!.RemoveAllChildren<A.Paragraph>();
+                slidePart.Slide.Save();
+                document.Save();
+            }
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                PowerPointSlide slide = presentation.Slides.First();
+                PowerPointTextBox textBox = slide.TextBoxes.First();
+                Assert.Equal(string.Empty, textBox.Text);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void TextBoxTextHandlesSingleParagraph() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointTextBox textBox = slide.AddTextBox("Initial");
+
+                textBox.Text = "Updated text";
+                Assert.Equal("Updated text", textBox.Text);
+
+                presentation.Save();
+            }
+
+            using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                SlidePart slidePart = document.PresentationPart!.SlideParts.First();
+                Shape shape = slidePart.Slide.Descendants<Shape>().First();
+                var paragraphs = shape.TextBody!.Elements<A.Paragraph>().ToList();
+                Assert.Single(paragraphs);
+                Assert.Equal("Updated text", paragraphs[0].InnerText);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void TextBoxTextHandlesMultipleParagraphs() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string[] lines = { "First line", "Second line", "Third line" };
+            string text = string.Join(Environment.NewLine, lines);
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointTextBox textBox = slide.AddTextBox(string.Empty);
+
+                textBox.Text = text;
+                Assert.Equal(text, textBox.Text);
+
+                presentation.Save();
+            }
+
+            using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                SlidePart slidePart = document.PresentationPart!.SlideParts.First();
+                Shape shape = slidePart.Slide.Descendants<Shape>().First();
+                var paragraphs = shape.TextBody!.Elements<A.Paragraph>().ToList();
+                Assert.Equal(lines.Length, paragraphs.Count);
+                for (int i = 0; i < lines.Length; i++) {
+                    Assert.Equal(lines[i], paragraphs[i].InnerText);
                 }
+            }
 
             File.Delete(filePath);
         }
