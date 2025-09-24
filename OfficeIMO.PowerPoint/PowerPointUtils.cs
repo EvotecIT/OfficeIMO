@@ -49,6 +49,8 @@ namespace OfficeIMO.PowerPoint {
             presentationPart.AddPart(themePart1, "rId5");
         }
 
+        private const string RelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
         internal static NotesMasterPart EnsureNotesMasterPart(PresentationPart presentationPart) {
             NotesMasterPart notesMasterPart = presentationPart.NotesMasterPart ?? presentationPart.AddNewPart<NotesMasterPart>();
 
@@ -60,13 +62,12 @@ namespace OfficeIMO.PowerPoint {
             NotesMasterIdList notesMasterIdList = presentation.NotesMasterIdList ??= new NotesMasterIdList();
 
             string relationshipId = presentationPart.GetIdOfPart(notesMasterPart);
-            bool hasEntry = notesMasterIdList.Elements<NotesMasterId>().Any(existing =>
-                existing.GetAttributes().Any(attribute => attribute.LocalName == "id" &&
-                                                           attribute.NamespaceUri == "http://schemas.openxmlformats.org/officeDocument/2006/relationships" &&
-                                                           attribute.Value == relationshipId));
+            bool hasEntry = notesMasterIdList
+                .Elements<NotesMasterId>()
+                .Any(existing => GetRelationshipId(existing) == relationshipId);
             if (!hasEntry) {
                 NotesMasterId notesMasterId = new NotesMasterId();
-                notesMasterId.SetAttribute(new OpenXmlAttribute("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", relationshipId));
+                SetRelationshipId(notesMasterId, relationshipId);
                 notesMasterIdList.AppendChild(notesMasterId);
             }
 
@@ -77,7 +78,7 @@ namespace OfficeIMO.PowerPoint {
             ShapeTree shapeTree = new ShapeTree();
             shapeTree.Append(
                 new P.NonVisualGroupShapeProperties(
-                    new P.NonVisualDrawingProperties { Id = 1U, Name = string.Empty },
+                    new P.NonVisualDrawingProperties { Id = 1U, Name = "Notes Group Shape" },
                     new P.NonVisualGroupShapeDrawingProperties(),
                     new ApplicationNonVisualDrawingProperties()),
                 new P.GroupShapeProperties(new D.TransformGroup()));
@@ -138,6 +139,15 @@ namespace OfficeIMO.PowerPoint {
 
             shape.TextBody!.Append(paragraph);
             return shape;
+        }
+
+        private static string? GetRelationshipId(NotesMasterId notesMasterId) {
+            OpenXmlAttribute attribute = notesMasterId.GetAttribute("id", RelationshipNamespace);
+            return string.IsNullOrEmpty(attribute.Value) ? null : attribute.Value;
+        }
+
+        private static void SetRelationshipId(NotesMasterId notesMasterId, string relationshipId) {
+            notesMasterId.SetAttribute(new OpenXmlAttribute("r", "id", RelationshipNamespace, relationshipId));
         }
 
         private static SlidePart CreateSlidePart(PresentationPart presentationPart) {
