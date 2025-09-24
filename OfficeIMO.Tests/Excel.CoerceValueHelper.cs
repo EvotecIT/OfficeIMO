@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -100,6 +101,30 @@ public class ExcelCoerceValueHelper
         Assert.Equal(CellValues.SharedString, uriType);
         Assert.Equal("IDX", uriValue.Text);
         Assert.Equal(uri.ToString(), uriCaptured);
+    }
+
+    [Fact]
+    public void Coerce_DateTimeOffset_UsesLocalStrategyByDefault()
+    {
+        var offset = new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.FromHours(5));
+        var expected = offset.LocalDateTime.ToOADate().ToString(CultureInfo.InvariantCulture);
+
+        var (value, type) = CoerceValueHelper.Coerce(offset, s => new CellValue(s));
+
+        Assert.Equal(CellValues.Number, type);
+        Assert.Equal(expected, value.Text);
+    }
+
+    [Fact]
+    public void Coerce_DateTimeOffset_AllowsCustomStrategy()
+    {
+        var offset = new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.FromHours(-3));
+        var expected = offset.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture);
+
+        var (value, type) = CoerceValueHelper.Coerce(offset, s => new CellValue(s), dto => dto.UtcDateTime);
+
+        Assert.Equal(CellValues.Number, type);
+        Assert.Equal(expected, value.Text);
     }
 
 #if NET6_0_OR_GREATER

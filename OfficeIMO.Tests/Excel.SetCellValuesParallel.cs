@@ -113,6 +113,57 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_SetCellValuesParallelSanitizesControlCharacters() {
+            string filePath = Path.Combine(_directoryWithFiles, "SetCellValuesParallelSanitizedControls.xlsx");
+
+            string rawAlpha = "Alpha\u0001Beta";
+            string rawGamma = "Gamma\u0000Delta";
+            string rawAlphaVariant = "Alpha\u0002Beta";
+
+            string sanitizedAlpha = "AlphaBeta";
+            string sanitizedGamma = "GammaDelta";
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                var cells = new (int, int, object)[] {
+                    (1, 1, (object)rawAlpha),
+                    (1, 2, (object)rawGamma),
+                    (2, 1, (object)rawAlphaVariant)
+                };
+                sheet.SetCellValues(cells, ExecutionMode.Parallel);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                ValidateSpreadsheetDocument(filePath, spreadsheet);
+
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                SharedStringTablePart shared = spreadsheet.WorkbookPart!.SharedStringTablePart!;
+
+                OpenXmlValidator validator = new OpenXmlValidator();
+                Assert.Empty(validator.Validate(spreadsheet));
+
+                Cell cellA1 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "A1");
+                Assert.Equal(CellValues.SharedString, cellA1.DataType!.Value);
+                int indexA1 = int.Parse(cellA1.CellValue!.Text);
+                Assert.Equal(sanitizedAlpha, shared.SharedStringTable!.ElementAt(indexA1).InnerText);
+
+                Cell cellB1 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "B1");
+                Assert.Equal(CellValues.SharedString, cellB1.DataType!.Value);
+                int indexB1 = int.Parse(cellB1.CellValue!.Text);
+                Assert.Equal(sanitizedGamma, shared.SharedStringTable!.ElementAt(indexB1).InnerText);
+
+                Cell cellA2 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "A2");
+                Assert.Equal(CellValues.SharedString, cellA2.DataType!.Value);
+                int indexA2 = int.Parse(cellA2.CellValue!.Text);
+                Assert.Equal(sanitizedAlpha, shared.SharedStringTable!.ElementAt(indexA2).InnerText);
+                Assert.Equal(indexA1, indexA2);
+
+                Assert.Equal(2, shared.SharedStringTable!.Count());
+            }
+        }
+
+        [Fact]
         public void Test_CellValueThrowsOnTooLongString() {
             string filePath = Path.Combine(_directoryWithFiles, "TooLongString.xlsx");
 

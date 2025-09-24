@@ -138,7 +138,7 @@ namespace OfficeIMO.Excel
 
         /// <summary>
         /// Links a column identified by <paramref name="header"/> to internal sheets using each cell's text.
-        /// Defaults to linking to a sheet with the same name as the cell text.
+        /// Defaults to linking to a sheet with the same name as the cell text. When the header is missing the operation is skipped.
         /// </summary>
         /// <param name="header">Header text of the column to process.</param>
         /// <param name="rowFrom">First data row (1-based). Defaults to 2 (skip header).</param>
@@ -157,7 +157,7 @@ namespace OfficeIMO.Excel
             bool styled = true)
         {
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            int col = ColumnIndexByHeader(header);
+            if (!TryGetColumnIndexByHeader(header, out var col)) return;
             if (rowTo <= 0)
             {
                 var (r1, _, r2, _) = A1.ParseRange(GetUsedRangeA1());
@@ -213,6 +213,7 @@ namespace OfficeIMO.Excel
 
         /// <summary>
         /// Links a column identified by <paramref name="header"/> to external URLs built from each cell's text.
+        /// When the header is missing the operation is skipped.
         /// </summary>
         /// <param name="header">Header text of the column to process.</param>
         /// <param name="rowFrom">First data row (1-based). Defaults to 2 (skip header).</param>
@@ -230,7 +231,7 @@ namespace OfficeIMO.Excel
         {
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
             if (urlForCellText is null) throw new ArgumentNullException(nameof(urlForCellText));
-            int col = ColumnIndexByHeader(header);
+            if (!TryGetColumnIndexByHeader(header, out var col)) return;
             if (rowTo <= 0)
             {
                 var (r1, _, r2, _) = A1.ParseRange(GetUsedRangeA1());

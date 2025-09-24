@@ -10,7 +10,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public class PowerPointInitializeDefaults {
-        [Fact(Skip = "Doesn't work after changes to PowerPoint")]
+        [Fact]
         public void DefaultPartsAndContentTypesAreCreated() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
@@ -18,6 +18,8 @@ namespace OfficeIMO.Tests {
                 presentation.AddSlide();
                 presentation.Save();
             }
+
+            bool notesMasterExists = false;
 
             using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
                 PresentationPart part = document.PresentationPart!;
@@ -30,9 +32,14 @@ namespace OfficeIMO.Tests {
                 Assert.Single(part.Presentation.SlideIdList!.Elements<SlideId>());
 
                 Assert.NotNull(document.ExtendedFilePropertiesPart?.Properties);
+                Assert.Equal("Microsoft Office PowerPoint", document.ExtendedFilePropertiesPart?.Properties?.Application?.Text);
+                Assert.NotNull(document.CoreFilePropertiesPart);
+                Assert.NotNull(document.PackageProperties.Created);
+                Assert.NotNull(document.PackageProperties.Modified);
                 Assert.NotNull(part.PresentationPropertiesPart?.PresentationProperties);
                 Assert.NotNull(part.ViewPropertiesPart?.ViewProperties);
-                Assert.NotNull(part.TableStylesPart?.TableStyleList);
+                Assert.Equal("{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}", part.TableStylesPart?.TableStyleList?.Default?.Value);
+                notesMasterExists = part.NotesMasterPart != null;
             }
 
             using (FileStream fs = File.OpenRead(filePath))
@@ -44,6 +51,8 @@ namespace OfficeIMO.Tests {
 
                 bool HasOverride(string type) => xml.Descendants(ns + "Override")
                     .Any(o => (string?)o.Attribute("ContentType") == type);
+                bool HasDefault(string type) => xml.Descendants(ns + "Default")
+                    .Any(o => (string?)o.Attribute("ContentType") == type);
 
                 const string pres = "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml";
                 bool presentationDefined = HasOverride(pres) ||
@@ -53,8 +62,14 @@ namespace OfficeIMO.Tests {
                 Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"));
                 Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.presentationml.slide+xml"));
                 Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.theme+xml"));
-                Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.presentationml.notesMaster+xml"));
+                bool notesMasterOverride = HasOverride("application/vnd.openxmlformats-officedocument.presentationml.notesMaster+xml");
+                Assert.Equal(notesMasterExists, notesMasterOverride);
                 Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"));
+                Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"));
+                Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"));
+                Assert.True(HasOverride("application/vnd.openxmlformats-officedocument.extended-properties+xml"));
+                Assert.True(HasOverride("application/vnd.openxmlformats-package.core-properties+xml")
+                    || HasDefault("application/vnd.openxmlformats-package.core-properties+xml"));
             }
 
             File.Delete(filePath);

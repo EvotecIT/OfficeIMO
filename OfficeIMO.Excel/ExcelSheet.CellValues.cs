@@ -93,13 +93,15 @@ namespace OfficeIMO.Excel
         /// </summary>
         private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCellNoDom(object value, SharedStringPlanner planner)
         {
+            var dateTimeOffsetStrategy = _excelDocument.DateTimeOffsetWriteStrategy;
             var (cellValue, cellType) = CoerceValueHelper.Coerce(
                 value,
                 s =>
                 {
-                    planner.Note(s);
-                    return new CellValue(s);
-                });
+                    var sanitized = planner.Note(s);
+                    return new CellValue(sanitized);
+                },
+                dateTimeOffsetStrategy);
             return (cellValue, new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType));
         }
 

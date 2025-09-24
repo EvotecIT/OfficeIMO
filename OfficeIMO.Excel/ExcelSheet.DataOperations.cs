@@ -50,6 +50,7 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Applies an AutoFilter equals filter to a column resolved by header within the current AutoFilter range.
         /// Ensures an AutoFilter exists over the sheet's UsedRange when none is present.
+        /// When the header is missing the operation is skipped.
         /// </summary>
         public void AutoFilterByHeaderEquals(string header, IEnumerable<string> values)
         {
@@ -58,6 +59,8 @@ namespace OfficeIMO.Excel
 
             WriteLock(() =>
             {
+                if (!TryGetColumnIndexByHeader(header, out var colIndex))
+                    return;
                 var ws = _worksheetPart.Worksheet;
                 var af = ws.Elements<AutoFilter>().FirstOrDefault();
                 if (af == null)
@@ -68,7 +71,6 @@ namespace OfficeIMO.Excel
                 }
 
                 var (r1, c1, r2, c2) = A1.ParseRange(af.Reference!);
-                int colIndex = ColumnIndexByHeader(header);
                 if (colIndex < c1 || colIndex > c2)
                     throw new ArgumentOutOfRangeException(nameof(header), $"Header '{header}' is outside the AutoFilter range {af.Reference}.");
 
@@ -94,12 +96,22 @@ namespace OfficeIMO.Excel
 
         /// <summary>
         /// Applies equals filters for multiple headers at once (AND semantics across columns, OR semantics within a column).
+        /// Headers that cannot be resolved are ignored.
         /// </summary>
         public void AutoFilterByHeadersEquals(params (string Header, IEnumerable<string> Values)[] filters)
         {
             if (filters == null || filters.Length == 0) throw new ArgumentException("At least one filter must be provided.", nameof(filters));
             WriteLock(() =>
             {
+                var toApply = new List<(int ColumnIndex, IEnumerable<string> Values)>();
+                foreach (var (header, values) in filters)
+                {
+                    if (string.IsNullOrWhiteSpace(header)) continue;
+                    if (!TryGetColumnIndexByHeader(header, out var colIndex)) continue;
+                    toApply.Add((colIndex, values ?? Array.Empty<string>()));
+                }
+                if (toApply.Count == 0) return;
+
                 var ws = _worksheetPart.Worksheet;
                 var af = ws.Elements<AutoFilter>().FirstOrDefault();
                 if (af == null)
@@ -111,10 +123,8 @@ namespace OfficeIMO.Excel
 
                 var (r1, c1, r2, c2) = A1.ParseRange(af.Reference!);
 
-                foreach (var (header, values) in filters)
+                foreach (var (colIndex, values) in toApply)
                 {
-                    if (string.IsNullOrWhiteSpace(header)) continue;
-                    int colIndex = ColumnIndexByHeader(header);
                     if (colIndex < c1 || colIndex > c2) continue;
                     uint columnId = (uint)(colIndex - c1);
 
@@ -123,7 +133,7 @@ namespace OfficeIMO.Excel
 
                     var fcNew = new FilterColumn { ColumnId = columnId };
                     var filtersNode = new Filters();
-                    foreach (var v in (values ?? Array.Empty<string>()).Distinct(StringComparer.OrdinalIgnoreCase))
+                    foreach (var v in values.Distinct(StringComparer.OrdinalIgnoreCase))
                     {
                         if (v == null) continue;
                         filtersNode.Append(new Filter { Val = v });
@@ -138,6 +148,7 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Applies an AutoFilter text contains filter to a column resolved by header within the current AutoFilter range.
         /// Uses wildcard pattern matching ("*text*") via CustomFilters with Equal operator.
+        /// When the header is missing the operation is skipped.
         /// </summary>
         public void AutoFilterByHeaderContains(string header, string containsText)
         {
@@ -146,6 +157,8 @@ namespace OfficeIMO.Excel
 
             WriteLock(() =>
             {
+                if (!TryGetColumnIndexByHeader(header, out var colIndex))
+                    return;
                 var ws = _worksheetPart.Worksheet;
                 var af = ws.Elements<AutoFilter>().FirstOrDefault();
                 if (af == null)
@@ -156,7 +169,6 @@ namespace OfficeIMO.Excel
                 }
 
                 var (r1, c1, r2, c2) = A1.ParseRange(af.Reference!);
-                int colIndex = ColumnIndexByHeader(header);
                 if (colIndex < c1 || colIndex > c2)
                     throw new ArgumentOutOfRangeException(nameof(header), $"Header '{header}' is outside the AutoFilter range {af.Reference}.");
 
@@ -394,6 +406,7 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Sorts the sheet's UsedRange rows in-place (excluding header) by the column resolved via header.
         /// Values-only: rewrites cell values; formulas and styles are not preserved.
+        /// When the header cannot be resolved the sort is skipped.
         /// </summary>
         public void SortUsedRangeByHeader(string header, bool ascending = true)
         {
@@ -403,7 +416,8 @@ namespace OfficeIMO.Excel
             var (r1, c1, r2, c2) = A1.ParseRange(a1);
             if (r2 - r1 < 1) return; // nothing to sort
 
-            int targetCol = ColumnIndexByHeader(header);
+            if (!TryGetColumnIndexByHeader(header, out var targetCol)) return;
+            if (targetCol < c1 || targetCol > c2) return;
             int targetIndex = targetCol - c1; // zero-based in matrix
 
             // Read values
@@ -460,7 +474,8 @@ namespace OfficeIMO.Excel
 
         /// <summary>
         /// Sorts the sheet's UsedRange rows in-place by multiple headers in the given order (excluding header row).
-        /// Values-only: rewrites cell values; formulas and styles are not preserved.
+        /// Values-only: rewrites cell values; formulas and styles are not preserved. Missing headers are ignored and when no
+        /// valid headers remain the sort is skipped.
         /// </summary>
         public void SortUsedRangeByHeaders(params (string Header, bool Ascending)[] keys)
         {
@@ -474,9 +489,12 @@ namespace OfficeIMO.Excel
             var cols = new List<(int Index, bool Asc)>();
             foreach (var k in keys)
             {
-                int col = ColumnIndexByHeader(k.Header);
+                if (string.IsNullOrWhiteSpace(k.Header)) continue;
+                if (!TryGetColumnIndexByHeader(k.Header, out var col)) continue;
+                if (col < c1 || col > c2) continue;
                 cols.Add((col - c1, k.Ascending));
             }
+            if (cols.Count == 0) return;
 
             using var rdr = _excelDocument.CreateReader();
             var sh = rdr.GetSheet(this.Name);
