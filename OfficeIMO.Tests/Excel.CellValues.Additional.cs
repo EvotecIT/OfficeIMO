@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
                 SharedStringTablePart shared = spreadsheet.WorkbookPart!.SharedStringTablePart!;
 
                 Cell cellDto = cells.First(c => c.CellReference == "A1");
-                Assert.Equal(dateOffset.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), cellDto.CellValue!.Text);
+                Assert.Equal(dateOffset.LocalDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), cellDto.CellValue!.Text);
 
                 Cell cellTs = cells.First(c => c.CellReference == "A2");
                 Assert.Equal(time.TotalDays.ToString(CultureInfo.InvariantCulture), cellTs.CellValue!.Text);
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(string.Empty, shared!.SharedStringTable!.ElementAt(0).InnerText);
 
                 Cell cellNullableDto = cells.First(c => c.CellReference == "A9");
-                Assert.Equal(nullableDto.Value.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), cellNullableDto.CellValue!.Text);
+                Assert.Equal(nullableDto.Value.LocalDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), cellNullableDto.CellValue!.Text);
 
                 Cell cellNullableTs = cells.First(c => c.CellReference == "A10");
                 Assert.Equal(nullableTs.Value.TotalDays.ToString(CultureInfo.InvariantCulture), cellNullableTs.CellValue!.Text);
@@ -112,6 +112,64 @@ namespace OfficeIMO.Tests {
 #if NET6_0_OR_GREATER
                 Assert.Contains(numberingFormats, n => n.FormatCode != null && n.FormatCode.Value == "yyyy-mm-dd");
 #endif
+            }
+        }
+
+        [Fact]
+        public void Test_CellValues_DateTimeOffset_RoundTrip_LocalTimes()
+        {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesDateTimeOffsetRoundTrip.xlsx");
+            var positive = new DateTimeOffset(2024, 5, 1, 10, 30, 0, TimeSpan.FromHours(9));
+            var negative = new DateTimeOffset(2024, 5, 1, 10, 30, 0, TimeSpan.FromHours(-4));
+
+            using (var document = ExcelDocument.Create(filePath))
+            {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, positive);
+                sheet.CellValue(2, 1, negative);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
+                ValidateSpreadsheetDocument(filePath, spreadsheet);
+
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cells = wsPart.Worksheet.Descendants<Cell>().ToList();
+
+                Cell cellPositive = cells.First(c => c.CellReference == "A1");
+                Cell cellNegative = cells.First(c => c.CellReference == "A2");
+
+                double positiveSerial = double.Parse(cellPositive.CellValue!.Text, CultureInfo.InvariantCulture);
+                double negativeSerial = double.Parse(cellNegative.CellValue!.Text, CultureInfo.InvariantCulture);
+
+                Assert.Equal(positive.LocalDateTime, DateTime.FromOADate(positiveSerial));
+                Assert.Equal(negative.LocalDateTime, DateTime.FromOADate(negativeSerial));
+            }
+        }
+
+        [Fact]
+        public void Test_CellValues_DateTimeOffset_CustomStrategy_UsesProvidedDelegate()
+        {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesDateTimeOffsetUtc.xlsx");
+            var value = new DateTimeOffset(2024, 5, 1, 10, 30, 0, TimeSpan.FromHours(2));
+
+            using (var document = ExcelDocument.Create(filePath))
+            {
+                document.DateTimeOffsetWriteStrategy = dto => dto.UtcDateTime;
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, value);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
+                ValidateSpreadsheetDocument(filePath, spreadsheet);
+
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cell = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "A1");
+
+                Assert.Equal(value.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), cell.CellValue!.Text);
             }
         }
 

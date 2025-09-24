@@ -99,7 +99,8 @@ namespace OfficeIMO.Excel
                 {
                     planner.Note(s);
                     return new CellValue(s);
-                });
+                },
+                _excelDocument.DateTimeOffsetWriteStrategy);
             return (cellValue, new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType));
         }
 

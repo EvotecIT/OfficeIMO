@@ -13,6 +13,7 @@ internal static class CoerceValueHelper
     private static readonly CellValue EmptyStringTemplate = new(string.Empty);
     private static readonly CellValue TrueTemplate = new("1");
     private static readonly CellValue FalseTemplate = new("0");
+    private static readonly Func<DateTimeOffset, DateTime> DefaultDateTimeOffsetStrategy = static dto => dto.LocalDateTime;
 
     /// <summary>
     /// Converts an arbitrary CLR value into the <see cref="CellValue" /> and <see cref="CellValues" /> tuple used by Excel.
@@ -25,12 +26,17 @@ internal static class CoerceValueHelper
     /// double precision loss while keeping the cell typed as <see cref="CellValues.Number" />.
     /// </remarks>
     /// <exception cref="ArgumentException">Thrown when the resulting shared-string payload exceeds Excel's 32,767 character limit.</exception>
-    internal static (CellValue cellValue, CellValues type) Coerce(object? value, Func<string, CellValue> sharedStringHandler)
+    internal static (CellValue cellValue, CellValues type) Coerce(
+        object? value,
+        Func<string, CellValue> sharedStringHandler,
+        Func<DateTimeOffset, DateTime>? dateTimeOffsetStrategy = null)
     {
         if (sharedStringHandler is null)
         {
             throw new ArgumentNullException(nameof(sharedStringHandler));
         }
+
+        dateTimeOffsetStrategy ??= DefaultDateTimeOffsetStrategy;
 
         return value switch
         {
@@ -43,7 +49,7 @@ internal static class CoerceValueHelper
             int i => HandleSignedInteger(i),
             long l => HandleSignedInteger(l),
             DateTime dt => HandleNumber(dt.ToOADate()),
-            DateTimeOffset dto => HandleNumber(dto.UtcDateTime.ToOADate()),
+            DateTimeOffset dto => HandleNumber(dateTimeOffsetStrategy(dto).ToOADate()),
 #if NET6_0_OR_GREATER
             DateOnly dateOnly => HandleNumber(dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate()),
             TimeOnly timeOnly => HandleNumber(timeOnly.ToTimeSpan().TotalDays),

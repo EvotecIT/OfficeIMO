@@ -57,7 +57,8 @@ namespace OfficeIMO.Excel {
                 {
                     int idx = _excelDocument.GetSharedStringIndex(s);
                     return new CellValue(idx.ToString(CultureInfo.InvariantCulture));
-                });
+                },
+                _excelDocument.DateTimeOffsetWriteStrategy);
             return (cellValue, new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType));
         }
 
@@ -88,7 +89,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, DateTimeOffset value) {
-            CellValue(row, column, value.UtcDateTime);
+            WriteLockConditional(() => CellValueCore(row, column, value));
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />

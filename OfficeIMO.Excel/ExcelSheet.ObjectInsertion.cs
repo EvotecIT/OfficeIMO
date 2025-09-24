@@ -201,7 +201,8 @@ namespace OfficeIMO.Excel {
                 case DateTime dt:
                     return new CellUpdate(row, column, dt.ToOADate().ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
                 case DateTimeOffset dto:
-                    return new CellUpdate(row, column, dto.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
+                    var local = _excelDocument.DateTimeOffsetWriteStrategy(dto).ToOADate().ToString(CultureInfo.InvariantCulture);
+                    return new CellUpdate(row, column, local, DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
                 case TimeSpan ts:
                     return new CellUpdate(row, column, ts.TotalDays.ToString(CultureInfo.InvariantCulture), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number, false);
                 case bool b:
