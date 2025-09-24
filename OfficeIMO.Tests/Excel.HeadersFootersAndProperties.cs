@@ -1,6 +1,10 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
 using Xunit;
@@ -103,6 +107,77 @@ namespace OfficeIMO.Tests {
                 var imagePart = Assert.Single(vmlPart!.ImageParts);
                 Assert.Equal("image/jpeg", imagePart.ContentType);
             }
+        }
+
+        [Fact]
+        [Trait("Category","ExcelHeaderFooterImages")]
+        public async Task ImageDownloader_Reuses_Cache_For_Repeat_Urls()
+        {
+            OfficeIMO.Excel.ImageDownloader.ClearCache();
+
+            var pngPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+            var pngBytes = File.ReadAllBytes(pngPath);
+
+            using var listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            var url = $"http://127.0.0.1:{port}/logo.png";
+            int requestCount = 0;
+
+            var acceptTask = Task.Run(async () =>
+            {
+                try
+                {
+                    using var client = await listener.AcceptTcpClientAsync();
+                    requestCount++;
+                    using var stream = client.GetStream();
+                    using (var reader = new StreamReader(stream, Encoding.ASCII, false, 1024, leaveOpen: true))
+                    {
+                        string? line;
+                        while (!string.IsNullOrEmpty(line = await reader.ReadLineAsync())) { }
+                    }
+
+                    var header = $"HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: {pngBytes.Length}\r\nConnection: close\r\n\r\n";
+                    var headerBytes = Encoding.ASCII.GetBytes(header);
+                    await stream.WriteAsync(headerBytes, 0, headerBytes.Length);
+                    await stream.WriteAsync(pngBytes, 0, pngBytes.Length);
+                    await stream.FlushAsync();
+                }
+                catch (SocketException)
+                {
+                    // Listener stopped before accepting a connection; ignore for test cleanup.
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Listener disposed before accept completed; ignore for cleanup.
+                }
+            });
+
+            try
+            {
+                Assert.True(OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var firstBytes, out var firstContentType));
+                Assert.NotNull(firstBytes);
+                Assert.Equal("image/png", firstContentType);
+                Assert.Equal(pngBytes, firstBytes);
+            }
+            catch
+            {
+                listener.Stop();
+                await acceptTask;
+                throw;
+            }
+
+            listener.Stop();
+            await acceptTask;
+
+            // Second request should be served from cache even though the listener is stopped.
+            Assert.True(OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var cachedBytes, out var cachedContentType));
+            Assert.NotNull(cachedBytes);
+            Assert.Equal("image/png", cachedContentType);
+            Assert.Equal(pngBytes, cachedBytes);
+            Assert.Equal(1, requestCount);
+
+            OfficeIMO.Excel.ImageDownloader.ClearCache();
         }
     }
 }

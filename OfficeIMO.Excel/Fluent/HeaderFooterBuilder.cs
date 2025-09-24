@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
 using OfficeIMO.Excel;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Png;
-
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Fluent builder for worksheet header and footer with optional images.
@@ -16,7 +13,7 @@ namespace OfficeIMO.Excel.Fluent {
             public HeaderFooterPosition Position { get; set; }
             public byte[]? Bytes { get; set; }
             public string? Url { get; set; }
-            public string? ContentType { get; set; } = "image/png";
+            public string? ContentType { get; set; }
             public double? W { get; set; }
             public double? H { get; set; }
         }
@@ -68,7 +65,8 @@ namespace OfficeIMO.Excel.Fluent {
         /// <summary>Adds header/footer image from raw bytes.</summary>
         private HeaderFooterBuilder Image(bool header, HeaderFooterPosition pos, byte[] bytes, string contentType, double? w, double? h) {
             if (bytes == null || bytes.Length == 0) throw new ArgumentException("Image bytes are required.", nameof(bytes));
-            _images.Add(new ImageRequest { Header = header, Position = pos, Bytes = bytes, ContentType = contentType, W = w, H = h });
+            var normalizedContentType = ExcelSheet.NormalizeImageContentType(contentType, nameof(contentType));
+            _images.Add(new ImageRequest { Header = header, Position = pos, Bytes = bytes, ContentType = normalizedContentType, W = w, H = h });
             return this;
         }
 
@@ -108,26 +106,16 @@ namespace OfficeIMO.Excel.Fluent {
                 if (bytes == null && !string.IsNullOrWhiteSpace(img.Url)) {
                     if (ImageDownloader.TryFetch(img.Url!, 5, 2_000_000, out var fetched, out var fetchedContentType)) {
                         bytes = fetched;
-                        if (!string.IsNullOrWhiteSpace(fetchedContentType)) contentType = fetchedContentType;
+                        if (!string.IsNullOrWhiteSpace(fetchedContentType))
+                        {
+                            contentType = ExcelSheet.NormalizeImageContentType(fetchedContentType, nameof(fetchedContentType));
+                        }
                     }
                 }
-                if (string.IsNullOrWhiteSpace(contentType)) contentType = "image/png";
-                // Normalize to PNG to match working path used by local asset case
-                if (bytes != null && !string.Equals(contentType, "image/png", StringComparison.OrdinalIgnoreCase))
-                {
-                    try
-                    {
-                        using var image = global::SixLabors.ImageSharp.Image.Load(bytes);
-                        using var ms = new System.IO.MemoryStream();
-                        image.Save(ms, new PngEncoder());
-                        bytes = ms.ToArray();
-                        contentType = "image/png";
-                    }
-                    catch { /* if decode fails, keep original bytes/contentType */ }
-                }
+                contentType = ExcelSheet.NormalizeImageContentType(contentType, nameof(contentType));
                 if (bytes == null) continue;
-                if (img.Header) sheet.SetHeaderImage(img.Position, bytes, contentType!, img.W, img.H);
-                else sheet.SetFooterImage(img.Position, bytes, contentType!, img.W, img.H);
+                if (img.Header) sheet.SetHeaderImage(img.Position, bytes, contentType, img.W, img.H);
+                else sheet.SetFooterImage(img.Position, bytes, contentType, img.W, img.H);
             }
         }
     }

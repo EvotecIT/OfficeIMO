@@ -10,7 +10,38 @@ namespace OfficeIMO.Excel
 {
     internal static class ImageDownloader
     {
-        private static readonly ConcurrentDictionary<string, (byte[] Bytes, string? ContentType)> Cache = new(StringComparer.OrdinalIgnoreCase);
+        private sealed class CacheEntry
+        {
+            public CacheEntry(byte[] bytes, string? contentType, DateTimeOffset expiresAt)
+            {
+                Bytes = bytes;
+                ContentType = contentType;
+                ExpiresAt = expiresAt;
+            }
+
+            public byte[] Bytes { get; }
+            public string? ContentType { get; }
+            public DateTimeOffset ExpiresAt { get; }
+        }
+
+        private const int CacheCapacity = 32;
+        private static readonly TimeSpan CacheEntryLifetime = TimeSpan.FromMinutes(10);
+        private static readonly ConcurrentDictionary<string, CacheEntry> Cache = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly ConcurrentQueue<string> CacheOrder = new();
+
+        internal static void ClearCache()
+        {
+            while (CacheOrder.TryDequeue(out _)) { }
+            Cache.Clear();
+        }
+
+        private static void TrimCache()
+        {
+            while (Cache.Count > CacheCapacity && CacheOrder.TryDequeue(out var oldestKey))
+            {
+                Cache.TryRemove(oldestKey, out _);
+            }
+        }
 
         public static bool TryFetch(string url, int timeoutSeconds, long maxBytes, out byte[]? bytes, out string? contentType)
         {
@@ -19,9 +50,14 @@ namespace OfficeIMO.Excel
             {
                 if (Cache.TryGetValue(url, out var cached))
                 {
-                    bytes = cached.Bytes;
-                    contentType = cached.ContentType;
-                    return true;
+                    if (DateTimeOffset.UtcNow <= cached.ExpiresAt)
+                    {
+                        bytes = cached.Bytes;
+                        contentType = cached.ContentType;
+                        return true;
+                    }
+
+                    Cache.TryRemove(url, out _);
                 }
 #if NETFRAMEWORK
                 var request = (HttpWebRequest)WebRequest.Create(url);
@@ -40,7 +76,9 @@ namespace OfficeIMO.Excel
                     using var ms = new MemoryStream(); s.CopyTo(ms);
                     if (ms.Length > maxBytes) return false;
                     var arr = ms.ToArray();
-                    Cache[url] = (arr, ct);
+                    Cache[url] = new CacheEntry(arr, ct, DateTimeOffset.UtcNow.Add(CacheEntryLifetime));
+                    CacheOrder.Enqueue(url);
+                    TrimCache();
                     bytes = arr; contentType = ct;
                     return true;
                 }
@@ -59,7 +97,9 @@ namespace OfficeIMO.Excel
                     using var ms = new MemoryStream(); s.CopyTo(ms);
                     if (ms.Length > maxBytes) return false;
                     var arr = ms.ToArray();
-                    Cache[url] = (arr, ct);
+                    Cache[url] = new CacheEntry(arr, ct, DateTimeOffset.UtcNow.Add(CacheEntryLifetime));
+                    CacheOrder.Enqueue(url);
+                    TrimCache();
                     bytes = arr; contentType = ct;
                     return true;
                 }

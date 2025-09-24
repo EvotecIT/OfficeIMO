@@ -37,6 +37,19 @@ namespace OfficeIMO.Excel {
             public bool FooterHasPicturePlaceholder { get; set; }
         }
 
+        internal static string NormalizeImageContentType(string? contentType, string parameterName)
+        {
+            if (string.IsNullOrWhiteSpace(contentType)) return "image/png";
+
+            var trimmed = contentType.Trim();
+            if (!trimmed.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("Content type must start with 'image/'", parameterName);
+            }
+
+            return trimmed;
+        }
+
         /// <summary>
         /// Returns a snapshot of the current header and footer strings (odd pages) split into left/center/right sections,
         /// including flags and whether a picture placeholder (&amp;G) is present.
@@ -200,7 +213,8 @@ namespace OfficeIMO.Excel {
             if (imageBytes == null || imageBytes.Length == 0) throw new ArgumentException("Image bytes are required.", nameof(imageBytes));
             WriteLock(() =>
             {
-                EnsureHeaderFooterPicture(position, isHeader: true, imageBytes, contentType, widthPoints, heightPoints);
+                var normalizedContentType = NormalizeImageContentType(contentType, nameof(contentType));
+                EnsureHeaderFooterPicture(position, isHeader: true, imageBytes, normalizedContentType, widthPoints, heightPoints);
             });
         }
 
@@ -212,7 +226,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(url)) return;
             if (OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var ct) && bytes != null)
             {
-                var contentType = string.IsNullOrWhiteSpace(ct) ? "image/png" : ct!;
+                var contentType = NormalizeImageContentType(ct, nameof(ct));
                 SetHeaderImage(position, bytes, contentType, widthPoints, heightPoints);
             }
         }
@@ -227,7 +241,8 @@ namespace OfficeIMO.Excel {
             if (imageBytes == null || imageBytes.Length == 0) throw new ArgumentException("Image bytes are required.", nameof(imageBytes));
             WriteLock(() =>
             {
-                EnsureHeaderFooterPicture(position, isHeader: false, imageBytes, contentType, widthPoints, heightPoints);
+                var normalizedContentType = NormalizeImageContentType(contentType, nameof(contentType));
+                EnsureHeaderFooterPicture(position, isHeader: false, imageBytes, normalizedContentType, widthPoints, heightPoints);
             });
         }
 
@@ -239,7 +254,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(url)) return;
             if (OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var ct) && bytes != null)
             {
-                var contentType = string.IsNullOrWhiteSpace(ct) ? "image/png" : ct!;
+                var contentType = NormalizeImageContentType(ct, nameof(ct));
                 SetFooterImage(position, bytes, contentType, widthPoints, heightPoints);
             }
         }
