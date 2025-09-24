@@ -35,14 +35,20 @@ namespace OfficeIMO.PowerPoint {
                     
                     NotesSlidePart notesPart = _slidePart.AddNewPart<NotesSlidePart>(notesRelId);
                     PresentationPart? presentationPart = _slidePart.GetParentParts().OfType<PresentationPart>().FirstOrDefault();
-                    if (presentationPart?.NotesMasterPart != null) {
-                        notesPart.AddPart(presentationPart.NotesMasterPart);
+                    if (presentationPart != null) {
+                        NotesMasterPart notesMasterPart = PowerPointUtils.EnsureNotesMasterPart(presentationPart);
+                        notesPart.AddPart(notesMasterPart);
                     }
                     notesPart.NotesSlide = new NotesSlide(
                         new CommonSlideData(new ShapeTree(
+                            new NonVisualGroupShapeProperties(
+                                new NonVisualDrawingProperties { Id = 1U, Name = string.Empty },
+                                new NonVisualGroupShapeDrawingProperties(),
+                                new ApplicationNonVisualDrawingProperties()),
+                            new GroupShapeProperties(new A.TransformGroup()),
                             new Shape(
                                 new NonVisualShapeProperties(
-                                    new NonVisualDrawingProperties { Id = 1U, Name = "Notes Placeholder" },
+                                    new NonVisualDrawingProperties { Id = 2U, Name = "Notes Placeholder" },
                                     new NonVisualShapeDrawingProperties(),
                                     new ApplicationNonVisualDrawingProperties(new PlaceholderShape())
                                 ),
