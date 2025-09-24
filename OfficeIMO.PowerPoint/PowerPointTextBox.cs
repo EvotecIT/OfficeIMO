@@ -18,14 +18,63 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string Text {
             get {
-                A.Run run = Shape.TextBody!.GetFirstChild<A.Paragraph>()!.GetFirstChild<A.Run>()!;
-                A.Text text = run.GetFirstChild<A.Text>()!;
-                return text.Text ?? string.Empty;
+                TextBody? textBody = Shape.TextBody;
+                if (textBody == null) {
+                    return string.Empty;
+                }
+
+                List<string> paragraphs = new();
+                foreach (A.Paragraph paragraph in textBody.Elements<A.Paragraph>()) {
+                    paragraphs.Add(paragraph.InnerText ?? string.Empty);
+                }
+
+                if (paragraphs.Count == 0) {
+                    return string.Empty;
+                }
+
+                return string.Join(Environment.NewLine, paragraphs);
             }
             set {
-                A.Run run = Shape.TextBody!.GetFirstChild<A.Paragraph>()!.GetFirstChild<A.Run>()!;
-                A.Text text = run.GetFirstChild<A.Text>()!;
-                text.Text = value;
+                string textValue = value ?? string.Empty;
+
+                TextBody? existingTextBody = Shape.TextBody;
+                if (existingTextBody == null) {
+                    existingTextBody = new TextBody(new A.BodyProperties(), new A.ListStyle());
+                    Shape.TextBody = existingTextBody;
+                }
+
+                TextBody textBody = existingTextBody;
+                A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
+                A.ParagraphProperties? templateParagraphProperties = templateParagraph?.GetFirstChild<A.ParagraphProperties>();
+                A.EndParagraphRunProperties? templateEndParagraphRunProperties = templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
+                A.RunProperties? templateRunProperties = templateParagraph?
+                    .Elements<A.Run>()
+                    .Select(r => r.RunProperties)
+                    .FirstOrDefault(rp => rp != null);
+
+                textBody.RemoveAllChildren<A.Paragraph>();
+
+                string[] lines = textValue.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+                foreach (string line in lines) {
+                    A.Paragraph paragraph = new();
+                    if (templateParagraphProperties != null) {
+                        paragraph.Append((A.ParagraphProperties)templateParagraphProperties.CloneNode(true));
+                    }
+
+                    A.Run run = new();
+                    if (templateRunProperties != null) {
+                        run.RunProperties = (A.RunProperties)templateRunProperties.CloneNode(true);
+                    }
+
+                    run.Append(new A.Text(line));
+                    paragraph.Append(run);
+
+                    if (templateEndParagraphRunProperties != null) {
+                        paragraph.Append((A.EndParagraphRunProperties)templateEndParagraphRunProperties.CloneNode(true));
+                    }
+
+                    textBody.Append(paragraph);
+                }
             }
         }
 
