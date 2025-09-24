@@ -15,6 +15,10 @@ namespace OfficeIMO.PowerPoint {
     /// are very specific and must not be changed.
     /// </summary>
     internal static class PowerPointUtils {
+        private const int DefaultRestoredLeftSize = 15989;
+        private const int DefaultRestoredTopSize = 94660;
+        private const string DefaultTableStyleGuid = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}";
+
         public static PresentationDocument CreatePresentation(string filepath) {
             // Create a presentation at a specified file path. The presentation document type is pptx by default.
             PresentationDocument presentationDoc = PresentationDocument.Create(filepath, PresentationDocumentType.Presentation);
@@ -111,8 +115,8 @@ namespace OfficeIMO.PowerPoint {
             ViewPropertiesPart viewPart = presentationPart.AddNewPart<ViewPropertiesPart>("rId4");
 
             NormalViewProperties normalViewProperties = new NormalViewProperties(
-                new RestoredLeft() { Size = 15989, AutoAdjust = false },
-                new RestoredTop() { Size = 94660 }
+                new RestoredLeft() { Size = DefaultRestoredLeftSize, AutoAdjust = false },
+                new RestoredTop() { Size = DefaultRestoredTopSize }
             );
 
             SlideViewProperties slideViewProperties = new SlideViewProperties();
@@ -152,7 +156,7 @@ namespace OfficeIMO.PowerPoint {
         private static void CreateTableStylesPart(PresentationPart presentationPart) {
             TableStylesPart tableStylesPart = presentationPart.AddNewPart<TableStylesPart>("rId6");
 
-            D.TableStyleList tableStyleList = new D.TableStyleList() { Default = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" };
+            D.TableStyleList tableStyleList = new D.TableStyleList() { Default = DefaultTableStyleGuid };
             tableStyleList.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");
 
             tableStylesPart.TableStyleList = tableStyleList;
