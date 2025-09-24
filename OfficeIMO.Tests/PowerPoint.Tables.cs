@@ -1,9 +1,59 @@
-using System;
-using System.IO;
-using System.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using OfficeIMO.PowerPoint;
+        public void CanManipulateTableCellsAndPreserveStyle() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+
+            File.Delete(filePath);
+        }
+
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(2)]
+        public void GetCellThrowsForInvalidRow(int invalidRow) {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                PowerPointTable table = presentation.AddSlide().AddTable(2, 2);
+
+                ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() => table.GetCell(invalidRow, 0));
+
+                Assert.Equal("row", exception.ParamName);
+                Assert.Equal(invalidRow, Assert.IsType<int>(exception.ActualValue));
+                Assert.Contains("Row index", exception.Message);
+                Assert.Contains("Valid range", exception.Message);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(2)]
+        public void GetCellThrowsForInvalidColumn(int invalidColumn) {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                PowerPointTable table = presentation.AddSlide().AddTable(2, 2);
+
+                ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() => table.GetCell(0, invalidColumn));
+
+                Assert.Equal("column", exception.ParamName);
+                Assert.Equal(invalidColumn, Assert.IsType<int>(exception.ActualValue));
+                Assert.Contains("Column index", exception.Message);
+                Assert.Contains("Valid range", exception.Message);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+    }
+}
 using Xunit;
 
 namespace OfficeIMO.Tests {

@@ -1,3 +1,4 @@
+using System;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -29,8 +30,30 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="column">Zero-based column index.</param>
         public PowerPointTableCell GetCell(int row, int column) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
-            A.TableRow tableRow = table.Elements<A.TableRow>().ElementAt(row);
-            A.TableCell cell = tableRow.Elements<A.TableCell>().ElementAt(column);
+            var tableRows = table.Elements<A.TableRow>();
+            int rowCount = tableRows.Count();
+
+            if (row < 0 || row >= rowCount) {
+                string rangeMessage = rowCount == 0
+                    ? "Table contains no rows."
+                    : $"Valid range is 0 to {rowCount - 1}.";
+                throw new ArgumentOutOfRangeException(nameof(row), row,
+                    $"Row index {row} is out of range. {rangeMessage}");
+            }
+
+            A.TableRow tableRow = tableRows.ElementAt(row);
+            var tableCells = tableRow.Elements<A.TableCell>();
+            int columnCount = tableCells.Count();
+
+            if (column < 0 || column >= columnCount) {
+                string rangeMessage = columnCount == 0
+                    ? "Table contains no columns."
+                    : $"Valid range is 0 to {columnCount - 1}.";
+                throw new ArgumentOutOfRangeException(nameof(column), column,
+                    $"Column index {column} is out of range. {rangeMessage}");
+            }
+
+            A.TableCell cell = tableCells.ElementAt(column);
             return new PowerPointTableCell(cell);
         }
 
