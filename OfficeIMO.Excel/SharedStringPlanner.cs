@@ -17,12 +17,17 @@ namespace OfficeIMO.Excel
         private readonly ConcurrentDictionary<string, byte> _distinct = new();
         private Dictionary<string, int>? _finalIndex;
 
-        public void Note(string s)
+        public string Note(string? s)
         {
-            if (s is null) return;
+            if (s is null)
+            {
+                return string.Empty;
+            }
+
             // Clamp and strip illegal XML control characters defensively
             var safe = Utilities.ExcelSanitizer.SanitizeString(s);
             _distinct.TryAdd(safe, 0);
+            return safe;
         }
 
         /// <summary>
@@ -57,7 +62,8 @@ namespace OfficeIMO.Excel
             // prepared.Val.Text currently holds the raw string; replace with index text
             var text = prepared.Val?.Text ?? string.Empty;
             if (text is null) text = string.Empty;
-            if (_finalIndex.TryGetValue(text, out int idx))
+            var sanitized = Utilities.ExcelSanitizer.SanitizeString(text);
+            if (_finalIndex.TryGetValue(sanitized, out int idx))
             {
                 prepared.Val = new CellValue(idx.ToString(CultureInfo.InvariantCulture));
             }

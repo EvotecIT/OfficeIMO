@@ -97,8 +97,8 @@ namespace OfficeIMO.Excel
                 value,
                 s =>
                 {
-                    planner.Note(s);
-                    return new CellValue(s);
+                    var safe = planner.Note(s);
+                    return new CellValue(safe);
                 });
             return (cellValue, new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType));
         }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -109,6 +110,60 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(CellValues.SharedString, e1.DataType!.Value);
                 idx = int.Parse(e1.CellValue!.Text);
                 Assert.Equal("https://example.com/", shared.SharedStringTable!.ElementAt(idx).InnerText);
+            }
+        }
+
+        [Fact]
+        public void Test_SetCellValuesParallelSanitizesIllegalControlCharacters() {
+            string filePath = Path.Combine(_directoryWithFiles, "SetCellValuesParallelSanitizeControls.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                var inputs = new (int Row, int Column, object Value)[] {
+                    (1, 1, (object)"Value\u0001With\u0002Controls"),
+                    (1, 2, (object)"ValueWithControls"),
+                    (1, 3, (object)"Value\u0003With\u0004Controls"),
+                    (2, 1, (object)"\u0005Leading"),
+                    (2, 2, (object)"Trailing\u0006"),
+                    (2, 3, (object)"Tab\tAllowed"),
+                };
+
+                sheet.SetCellValues(inputs, ExecutionMode.Parallel);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                ValidateSpreadsheetDocument(filePath, spreadsheet);
+
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                SharedStringTablePart shared = spreadsheet.WorkbookPart!.SharedStringTablePart!;
+                SharedStringTable sharedTable = shared.SharedStringTable!;
+
+                OpenXmlValidator validator = new OpenXmlValidator();
+                Assert.Empty(validator.Validate(spreadsheet));
+
+                var expected = new Dictionary<string, string> {
+                    ["A1"] = "ValueWithControls",
+                    ["B1"] = "ValueWithControls",
+                    ["C1"] = "ValueWithControls",
+                    ["A2"] = "Leading",
+                    ["B2"] = "Trailing",
+                    ["C2"] = "Tab\tAllowed",
+                };
+
+                var indices = new Dictionary<string, int>();
+
+                foreach (var kvp in expected) {
+                    Cell cell = worksheetPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == kvp.Key);
+                    Assert.Equal(CellValues.SharedString, cell.DataType!.Value);
+                    int index = int.Parse(cell.CellValue!.Text);
+                    Assert.Equal(kvp.Value, sharedTable.ElementAt(index).InnerText);
+                    indices[kvp.Key] = index;
+                }
+
+                Assert.Equal(indices["A1"], indices["B1"]);
+                Assert.Equal(indices["A1"], indices["C1"]);
+                Assert.Equal(4, sharedTable.Count());
             }
         }
 
