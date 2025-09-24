@@ -40,6 +40,14 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="index">Optional zero-based index where the row should be inserted. If omitted, row is appended.</param>
         public void AddRow(int? index = null) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
+            int rowCount = Rows;
+            int insertIndex = index ?? rowCount;
+
+            if (insertIndex < 0 || insertIndex > rowCount) {
+                throw new ArgumentOutOfRangeException(nameof(index), insertIndex,
+                    $"Row index must be between 0 and {rowCount} (inclusive). Actual value was {insertIndex}.");
+            }
+
             int columns = Columns;
             A.TableRow row = new() { Height = 370840L };
             for (int c = 0; c < columns; c++) {
@@ -51,8 +59,8 @@ namespace OfficeIMO.PowerPoint {
                 row.Append(cell);
             }
 
-            if (index.HasValue && index.Value < Rows) {
-                A.TableRow refRow = table.Elements<A.TableRow>().ElementAt(index.Value);
+            if (insertIndex < rowCount) {
+                A.TableRow refRow = table.Elements<A.TableRow>().ElementAt(insertIndex);
                 table.InsertBefore(row, refRow);
             } else {
                 table.Append(row);
@@ -65,6 +73,13 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="index">Zero-based index of the row to remove.</param>
         public void RemoveRow(int index) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
+            int rowCount = Rows;
+
+            if (index < 0 || index >= rowCount) {
+                throw new ArgumentOutOfRangeException(nameof(index), index,
+                    $"Row index must be between 0 and {rowCount - 1} (inclusive). Actual value was {index}.");
+            }
+
             A.TableRow row = table.Elements<A.TableRow>().ElementAt(index);
             row.Remove();
         }
@@ -76,10 +91,18 @@ namespace OfficeIMO.PowerPoint {
         public void AddColumn(int? index = null) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             A.TableGrid grid = table.TableGrid!;
+            int columnCount = Columns;
+            int insertIndex = index ?? columnCount;
+
+            if (insertIndex < 0 || insertIndex > columnCount) {
+                throw new ArgumentOutOfRangeException(nameof(index), insertIndex,
+                    $"Column index must be between 0 and {columnCount} (inclusive). Actual value was {insertIndex}.");
+            }
+
             A.GridColumn gridColumn = new() { Width = 3708400L };
 
-            if (index.HasValue && index.Value < Columns) {
-                A.GridColumn refCol = grid.Elements<A.GridColumn>().ElementAt(index.Value);
+            if (insertIndex < columnCount) {
+                A.GridColumn refCol = grid.Elements<A.GridColumn>().ElementAt(insertIndex);
                 grid.InsertBefore(gridColumn, refCol);
             } else {
                 grid.Append(gridColumn);
@@ -92,8 +115,8 @@ namespace OfficeIMO.PowerPoint {
                     new A.TableCellProperties()
                 );
 
-                if (index.HasValue && index.Value < Columns) {
-                    A.TableCell refCell = row.Elements<A.TableCell>().ElementAt(index.Value);
+                if (insertIndex < columnCount) {
+                    A.TableCell refCell = row.Elements<A.TableCell>().ElementAt(insertIndex);
                     row.InsertBefore(cell, refCell);
                 } else {
                     row.Append(cell);
@@ -107,6 +130,13 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="index">Zero-based index of the column to remove.</param>
         public void RemoveColumn(int index) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
+            int columnCount = Columns;
+
+            if (index < 0 || index >= columnCount) {
+                throw new ArgumentOutOfRangeException(nameof(index), index,
+                    $"Column index must be between 0 and {columnCount - 1} (inclusive). Actual value was {index}.");
+            }
+
             A.TableGrid grid = table.TableGrid!;
             grid.Elements<A.GridColumn>().ElementAt(index).Remove();
             foreach (A.TableRow row in table.Elements<A.TableRow>()) {
