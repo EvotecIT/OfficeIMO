@@ -1,10 +1,87 @@
-using System;
-using System.IO;
-using System.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using OfficeIMO.PowerPoint;
-using Xunit;
+        public void CanManipulateTableCellsAndPreserveStyle() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(3)]
+        public void AddRowThrowsForInvalidIndex(int index) {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                PowerPointTable table = presentation.AddSlide().AddTable(2, 2);
+
+                Assert.Throws<ArgumentOutOfRangeException>(() => table.AddRow(index));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(3)]
+        public void AddColumnThrowsForInvalidIndex(int index) {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                PowerPointTable table = presentation.AddSlide().AddTable(2, 2);
+
+                Assert.Throws<ArgumentOutOfRangeException>(() => table.AddColumn(index));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(2)]
+        public void RemoveRowThrowsForInvalidIndex(int index) {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                PowerPointTable table = presentation.AddSlide().AddTable(2, 2);
+
+                Assert.Throws<ArgumentOutOfRangeException>(() => table.RemoveRow(index));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(2)]
+        public void RemoveColumnThrowsForInvalidIndex(int index) {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                PowerPointTable table = presentation.AddSlide().AddTable(2, 2);
+
+                Assert.Throws<ArgumentOutOfRangeException>(() => table.RemoveColumn(index));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+    }
+}
+
 
 namespace OfficeIMO.Tests {
     public class PowerPointTables {
