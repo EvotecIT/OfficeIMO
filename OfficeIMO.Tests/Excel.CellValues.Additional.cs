@@ -174,6 +174,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CellValues_DateTimeOffset_BeforeExcelEpoch_FallsBackToSharedString()
+        {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesDateTimeOffsetBeforeEpoch.xlsx");
+            var historical = new DateTimeOffset(1899, 12, 31, 23, 59, 0, TimeSpan.Zero);
+
+            using (var document = ExcelDocument.Create(filePath))
+            {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, historical);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
+                ValidateSpreadsheetDocument(filePath, spreadsheet);
+
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cell = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "A1");
+
+                Assert.Equal(CellValues.SharedString, cell.DataType!.Value);
+
+                var sharedTable = spreadsheet.WorkbookPart!.SharedStringTablePart!;
+                int index = int.Parse(cell.CellValue!.Text, CultureInfo.InvariantCulture);
+                var text = sharedTable.SharedStringTable!.ElementAt(index).InnerText;
+
+                Assert.Equal(historical.ToString("o", CultureInfo.InvariantCulture), text);
+            }
+        }
+
+        [Fact]
+        public void Test_CellValues_DateTimeOffset_StrategyExceptionWrapped()
+        {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesDateTimeOffsetStrategyException.xlsx");
+            var value = new DateTimeOffset(2024, 5, 1, 10, 30, 0, TimeSpan.FromHours(1));
+
+            using (var document = ExcelDocument.Create(filePath))
+            {
+                document.DateTimeOffsetWriteStrategy = _ => throw new InvalidOperationException("boom");
+                var sheet = document.AddWorkSheet("Data");
+
+                var ex = Assert.Throws<InvalidOperationException>(() => sheet.CellValue(1, 1, value));
+                Assert.Contains("DateTimeOffset write strategy", ex.Message);
+                Assert.IsType<InvalidOperationException>(ex.InnerException);
+            }
+        }
+
+        [Fact]
         public void Test_CellValues_TimeSpanFormatting() {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesTimeSpanFormat.xlsx");
             var duration = new TimeSpan(1, 2, 3, 4);

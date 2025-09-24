@@ -59,6 +59,10 @@ namespace OfficeIMO.Excel {
         /// Controls how <see cref="DateTimeOffset"/> values are converted to <see cref="DateTime"/>
         /// before being written to worksheet cells. Defaults to <see cref="DateTimeOffset.LocalDateTime"/>.
         /// </summary>
+        /// <remarks>
+        /// The delegate influences the numeric serial value stored in the cell but does not automatically
+        /// change number formats. Apply the desired cell formatting separately.
+        /// </remarks>
         public Func<DateTimeOffset, DateTime> DateTimeOffsetWriteStrategy
         {
             get => _dateTimeOffsetWriteStrategy;
