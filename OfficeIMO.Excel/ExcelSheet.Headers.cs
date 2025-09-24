@@ -91,7 +91,7 @@ namespace OfficeIMO.Excel
         }
 
         /// <summary>
-        /// Tries to resolve a 1-based column index for a given header.
+        /// Tries to resolve a 1-based column index for a given header. Returns false without throwing when the header cannot be found.
         /// </summary>
         public bool TryGetColumnIndexByHeader(string header, out int columnIndex, ExcelReadOptions? options = null)
         {
@@ -106,11 +106,13 @@ namespace OfficeIMO.Excel
 
         /// <summary>
         /// Sets a cell value in the specified row by resolving the column using the header name.
+        /// Does nothing when the header cannot be found.
         /// </summary>
         public void SetByHeader(int rowIndex, string header, object? value, ExcelReadOptions? options = null)
         {
             if (rowIndex <= 0) throw new ArgumentOutOfRangeException(nameof(rowIndex));
-            int col = ColumnIndexByHeader(header, options);
+            if (!TryGetColumnIndexByHeader(header, out var col, options))
+                return;
             if (value is null)
                 CellValue(rowIndex, col, string.Empty);
             else
