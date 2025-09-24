@@ -24,7 +24,10 @@ namespace OfficeIMO.Excel
             var (r1, _, r2, _) = A1.ParseRange(a1);
             int startRow = includeHeader ? r1 : r1 + 1;
             if (!TryGetColumnIndexByHeader(header, out var colIndex, options))
+            {
+                // Use endRow one less than startRow so the builder's range is empty and therefore inert.
                 return new ColumnStyleByHeaderBuilder(this, 0, startRow, startRow - 1);
+            }
             return new ColumnStyleByHeaderBuilder(this, colIndex, startRow, r2);
         }
     }

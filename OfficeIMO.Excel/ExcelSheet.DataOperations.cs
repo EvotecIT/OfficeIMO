@@ -49,8 +49,8 @@ namespace OfficeIMO.Excel
 
         /// <summary>
         /// Applies an AutoFilter equals filter to a column resolved by header within the current AutoFilter range.
-        /// Ensures an AutoFilter exists over the sheet's UsedRange when none is present. When the header is missing the operat
-        /// ion is skipped.
+        /// Ensures an AutoFilter exists over the sheet's UsedRange when none is present.
+        /// When the header is missing the operation is skipped.
         /// </summary>
         public void AutoFilterByHeaderEquals(string header, IEnumerable<string> values)
         {
@@ -147,8 +147,8 @@ namespace OfficeIMO.Excel
 
         /// <summary>
         /// Applies an AutoFilter text contains filter to a column resolved by header within the current AutoFilter range.
-        /// Uses wildcard pattern matching ("*text*") via CustomFilters with Equal operator. When the header is missing the op
-        /// eration is skipped.
+        /// Uses wildcard pattern matching ("*text*") via CustomFilters with Equal operator.
+        /// When the header is missing the operation is skipped.
         /// </summary>
         public void AutoFilterByHeaderContains(string header, string containsText)
         {
