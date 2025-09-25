@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.IO;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -16,6 +19,7 @@ namespace OfficeIMO.PowerPoint {
         private const int DefaultRestoredLeftSize = 15989;
         private const int DefaultRestoredTopSize = 94660;
         private const string DefaultTableStyleGuid = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}";
+        private const string DefaultDocumentAuthor = "OfficeIMO";
 
         public static PresentationDocument CreatePresentation(string filepath) {
             // Create a presentation at a specified file path. The presentation document type is pptx by default.
@@ -206,12 +210,18 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void CreatePresentationPropertiesPart(PresentationPart presentationPart) {
-            PresentationPropertiesPart part = presentationPart.AddNewPart<PresentationPropertiesPart>("rId3");
+            PresentationPropertiesPart part = presentationPart.PresentationPropertiesPart ?? presentationPart.AddNewPart<PresentationPropertiesPart>("rId3");
+
             part.PresentationProperties ??= new PresentationProperties();
+
+            ShowProperties showProperties = part.PresentationProperties.ShowProperties ??= new ShowProperties();
+            showProperties.ShowNarration = false;
+            showProperties.ShowAnimation = true;
+            showProperties.UseTimings = true;
         }
 
         private static void CreateViewPropertiesPart(PresentationPart presentationPart) {
-            ViewPropertiesPart viewPart = presentationPart.AddNewPart<ViewPropertiesPart>("rId4");
+            ViewPropertiesPart viewPart = presentationPart.ViewPropertiesPart ?? presentationPart.AddNewPart<ViewPropertiesPart>("rId4");
 
             NormalViewProperties normalViewProperties = new NormalViewProperties(
                 new RestoredLeft() { Size = DefaultRestoredLeftSize, AutoAdjust = false },
@@ -253,7 +263,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void CreateTableStylesPart(PresentationPart presentationPart) {
-            TableStylesPart tableStylesPart = presentationPart.AddNewPart<TableStylesPart>("rId6");
+            TableStylesPart tableStylesPart = presentationPart.TableStylesPart ?? presentationPart.AddNewPart<TableStylesPart>("rId6");
 
             D.TableStyleList tableStyleList = new D.TableStyleList() { Default = DefaultTableStyleGuid };
             tableStyleList.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");
@@ -268,28 +278,75 @@ namespace OfficeIMO.PowerPoint {
 
             ExtendedFilePropertiesPart extendedPart = presentationDocument.ExtendedFilePropertiesPart ?? presentationDocument.AddExtendedFilePropertiesPart();
             if (extendedPart.Properties == null) {
-                extendedPart.Properties = new Ap.Properties(
-                    new Ap.TotalTime() { Text = "0" },
-                    new Ap.Application() { Text = "Microsoft Office PowerPoint" },
-                    new Ap.PresentationFormat() { Text = "Widescreen" },
-                    new Ap.Slides() { Text = "1" },
-                    new Ap.Notes() { Text = "0" },
-                    new Ap.HiddenSlides() { Text = "0" }
-                );
+                extendedPart.Properties = new Ap.Properties();
             }
 
-            try {
-                var _ = presentationDocument.PackageProperties;
-            } catch {
+            extendedPart.Properties.TotalTime ??= new Ap.TotalTime() { Text = "0" };
+            extendedPart.Properties.Application ??= new Ap.Application() { Text = "Microsoft Office PowerPoint" };
+            extendedPart.Properties.PresentationFormat ??= new Ap.PresentationFormat() { Text = "Widescreen" };
+            extendedPart.Properties.Slides ??= new Ap.Slides() { Text = "1" };
+            extendedPart.Properties.Notes ??= new Ap.Notes() { Text = "0" };
+            extendedPart.Properties.HiddenSlides ??= new Ap.HiddenSlides() { Text = "0" };
+
+            DateTime timestamp = DateTime.UtcNow;
+            CoreFilePropertiesPart corePart = presentationDocument.CoreFilePropertiesPart ?? presentationDocument.AddCoreFilePropertiesPart();
+            bool coreHasContent;
+
+            using (Stream coreStream = corePart.GetStream(FileMode.OpenOrCreate, FileAccess.Read)) {
+                coreHasContent = coreStream.Length > 0;
             }
 
-            if (presentationDocument.PackageProperties.Created == null) {
-                presentationDocument.PackageProperties.Created = DateTime.UtcNow;
+            if (!coreHasContent) {
+                InitializeCoreFilePropertiesPart(corePart, timestamp);
             }
 
-            if (presentationDocument.PackageProperties.Modified == null) {
-                presentationDocument.PackageProperties.Modified = DateTime.UtcNow;
+            var packageProperties = presentationDocument.PackageProperties;
+
+            if (string.IsNullOrEmpty(packageProperties.Creator)) {
+                packageProperties.Creator = DefaultDocumentAuthor;
             }
+
+            if (string.IsNullOrEmpty(packageProperties.LastModifiedBy)) {
+                packageProperties.LastModifiedBy = DefaultDocumentAuthor;
+            }
+
+            if (packageProperties.Created == null) {
+                packageProperties.Created = timestamp;
+            }
+
+            if (packageProperties.Modified == null) {
+                packageProperties.Modified = timestamp;
+            }
+        }
+
+        private static void InitializeCoreFilePropertiesPart(CoreFilePropertiesPart corePart, DateTime timestamp) {
+            XNamespace cp = "http://schemas.openxmlformats.org/package/2006/metadata/core-properties";
+            XNamespace dc = "http://purl.org/dc/elements/1.1/";
+            XNamespace dcterms = "http://purl.org/dc/terms/";
+            XNamespace dcmitype = "http://purl.org/dc/dcmitype/";
+            XNamespace xsi = "http://www.w3.org/2001/XMLSchema-instance";
+
+            string serializedTimestamp = timestamp.ToString("s", CultureInfo.InvariantCulture) + "Z";
+
+            XDocument coreDocument = new XDocument(
+                new XElement(cp + "coreProperties",
+                    new XAttribute(XNamespace.Xmlns + "cp", cp),
+                    new XAttribute(XNamespace.Xmlns + "dc", dc),
+                    new XAttribute(XNamespace.Xmlns + "dcterms", dcterms),
+                    new XAttribute(XNamespace.Xmlns + "dcmitype", dcmitype),
+                    new XAttribute(XNamespace.Xmlns + "xsi", xsi),
+                    new XElement(dc + "creator", DefaultDocumentAuthor),
+                    new XElement(cp + "lastModifiedBy", DefaultDocumentAuthor),
+                    new XElement(dcterms + "created",
+                        new XAttribute(xsi + "type", "dcterms:W3CDTF"),
+                        serializedTimestamp),
+                    new XElement(dcterms + "modified",
+                        new XAttribute(xsi + "type", "dcterms:W3CDTF"),
+                        serializedTimestamp))
+            );
+
+            using Stream stream = corePart.GetStream(FileMode.Create, FileAccess.Write);
+            coreDocument.Save(stream);
         }
 
         private static ThemePart CreateTheme(SlideMasterPart slideMasterPart1) {
