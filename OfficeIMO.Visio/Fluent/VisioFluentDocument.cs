@@ -27,41 +27,29 @@ namespace OfficeIMO.Visio.Fluent {
         }
 
         /// <summary>
-        /// Adds a page and returns the fluent document for chaining.
+        /// Adds a page using a direct fluent style (no Add*/With* names) and configures it.
+        /// Mirrors patterns from Markdown/Excel/PowerPoint fluent APIs.
         /// </summary>
-        /// <param name="name">Name of the page.</param>
-        /// <param name="width">Page width.</param>
-        /// <param name="height">Page height.</param>
-        /// <param name="unit">Measurement unit for width and height.</param>
-        /// <param name="page">The created page.</param>
-        public VisioFluentDocument AddPage(string name, double width, double height, VisioMeasurementUnit unit, out VisioPage page) {
-            page = _document.AddPage(name, width, height, unit);
+        /// <param name="name">Page name.</param>
+        /// <param name="configure">Configuration for shapes/connectors on the page.</param>
+        public VisioFluentDocument Page(string name, Action<VisioFluentPage> configure) {
+            var page = _document.AddPage(name);
+            var builder = new VisioFluentPage(this, page);
+            configure?.Invoke(builder);
             return this;
         }
 
         /// <summary>
-        /// Adds a page with the specified dimensions.
+        /// Adds a page with explicit size and configures it.
         /// </summary>
-        /// <param name="name">Name of the page.</param>
-        /// <param name="width">Page width.</param>
-        /// <param name="height">Page height.</param>
-        /// <param name="page">The created page.</param>
-        [System.Obsolete("Use AddPage with width, height and unit parameters")]
-        public VisioFluentDocument AddPage(string name, double width, double height, out VisioPage page) {
-            page = _document.AddPage(name, width, height);
+        public VisioFluentDocument Page(string name, double width, double height, VisioMeasurementUnit unit, Action<VisioFluentPage> configure) {
+            var page = _document.AddPage(name, width, height, unit);
+            var builder = new VisioFluentPage(this, page);
+            configure?.Invoke(builder);
             return this;
         }
 
-        /// <summary>
-        /// Adds a page with default dimensions.
-        /// </summary>
-        /// <param name="name">Name of the page.</param>
-        /// <param name="page">The created page.</param>
-        [System.Obsolete("Use AddPage with width, height and unit parameters")]
-        public VisioFluentDocument AddPage(string name, out VisioPage page) {
-            page = _document.AddPage(name);
-            return this;
-        }
+        // Removed obsolete AddPage overloads to keep the fluent API focused and consistent.
 
         /// <summary>
         /// Ends fluent configuration and returns the underlying document.

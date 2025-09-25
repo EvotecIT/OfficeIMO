@@ -53,10 +53,9 @@ namespace OfficeIMO.Excel {
                 }
 
                 for (int c = 0; c < cols; c++) {
-                    var hdr = headers[c];
-                    if (string.IsNullOrEmpty(hdr))
-                        hdr = $"Column{c + 1}";
-                    map[hdr] = c1 + c;
+                    var raw = headers[c];
+                    string key = string.IsNullOrEmpty(raw) ? $"Column{c + 1}" : raw!;
+                    map[key] = c1 + c;
                 }
                 _headerMapCache = map;
                 _headerMapSourceA1 = a1Used;

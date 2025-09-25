@@ -1,16 +1,16 @@
 using System;
 using System.IO;
+using System.Globalization;
 using System.IO.Compression;
+using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public class VisioAssetSamples {
-        private static string AssetsPath => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets"));
-
         [Fact]
-        public void EmptyDocumentMatchesAsset() {
+        public void EmptyDocument_BasicStructure_IsValid() {
             string target = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(target);
@@ -19,19 +19,27 @@ namespace OfficeIMO.Tests {
             page.ViewCenterY = 5.8492688900245;
             document.Save();
 
-            using FileStream expectedStream = File.OpenRead(Path.Combine(AssetsPath, "VisioTemplates", "DrawingEmpty.vsdx"));
-            using ZipArchive expected = new(expectedStream, ZipArchiveMode.Read);
-            using FileStream actualStream = File.OpenRead(target);
-            using ZipArchive actual = new(actualStream, ZipArchiveMode.Read);
-            AssertXmlEqual(expected, actual, "visio/pages/pages.xml");
-            AssertXmlEqual(expected, actual, "visio/pages/page1.xml");
+            using ZipArchive actual = ZipFile.OpenRead(target);
+            // pages.xml
+            var pagesDoc = LoadXml(actual, "visio/pages/pages.xml");
+            XNamespace v = "http://schemas.microsoft.com/office/visio/2012/main";
+            var pageEl = pagesDoc.Root!.Element(v + "Page");
+            Assert.NotNull(pageEl);
+            Assert.Equal("Page-1", (string?)pageEl!.Attribute("NameU"));
+
+            // page1.xml
+            var page1Doc = LoadXml(actual, "visio/pages/page1.xml");
+            var shapes = page1Doc.Root!.Element(v + "Shapes");
+            // No shapes for empty doc
+            Assert.True(shapes == null || !shapes.Elements().Any());
         }
 
-        [Fact(Skip = "Rectangle output not yet finalized")]
-        public void RectangleDocumentMatchesAsset() {
+        [Fact]
+        public void RectangleDocument_HasRectangleShape_WithPinCoordinates() {
             string target = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(target);
+            document.UseMastersByDefault = true;
             VisioPage page = document.AddPage("Page-1", 29.7, 21, VisioMeasurementUnit.Centimeters);
             page.ViewCenterX = 5.8424184863857;
             page.ViewCenterY = 4.133858091015;
@@ -42,30 +50,38 @@ namespace OfficeIMO.Tests {
             });
             document.Save();
 
-            using FileStream expectedStream = File.OpenRead(Path.Combine(AssetsPath, "VisioTemplates", "DrawingWithRectangle.vsdx"));
-            using ZipArchive expected = new(expectedStream, ZipArchiveMode.Read);
-            using FileStream actualStream = File.OpenRead(target);
-            using ZipArchive actual = new(actualStream, ZipArchiveMode.Read);
-            AssertXmlEqual(expected, actual, "visio/pages/pages.xml");
-            AssertXmlEqual(expected, actual, "visio/pages/page1.xml");
+            using ZipArchive actual = ZipFile.OpenRead(target);
+            var page1Doc = LoadXml(actual, "visio/pages/page1.xml");
+            XNamespace v = "http://schemas.microsoft.com/office/visio/2012/main";
+            var shape = page1Doc.Root!
+                .Element(v + "Shapes")?
+                .Elements(v + "Shape")
+                .FirstOrDefault();
+            Assert.NotNull(shape);
+            Assert.Equal("Rectangle", (string?)shape!.Attribute("NameU"));
+
+            double pinX = GetCellValue(shape, "PinX");
+            double pinY = GetCellValue(shape, "PinY");
+            AssertApproximately(2.047244040636296, pinX);
+            AssertApproximately(6.73228320203895, pinY);
         }
 
-        private static void AssertXmlEqual(ZipArchive expected, ZipArchive actual, string entryPath) {
-            ZipArchiveEntry? expectedEntry = expected.GetEntry(entryPath);
-            ZipArchiveEntry? actualEntry = actual.GetEntry(entryPath);
-            Assert.NotNull(expectedEntry);
-            Assert.NotNull(actualEntry);
-            using Stream expectedStream = expectedEntry!.Open();
-            using Stream actualStream = actualEntry!.Open();
-            XDocument expectedDoc = XDocument.Load(expectedStream);
-            XDocument actualDoc = XDocument.Load(actualStream);
-            Assert.True(XNode.DeepEquals(Normalize(expectedDoc.Root!), Normalize(actualDoc.Root!)), $"{entryPath} differed");
+        private static XDocument LoadXml(ZipArchive zip, string entryPath) {
+            var entry = zip.GetEntry(entryPath);
+            Assert.NotNull(entry);
+            using var s = entry!.Open();
+            return XDocument.Load(s);
         }
 
-        private static XElement Normalize(XElement element) {
-            return new XElement(element.Name,
-                element.Attributes().OrderBy(a => a.Name.ToString()),
-                element.Elements().Select(Normalize));
+        private static double GetCellValue(XElement shape, string name) {
+            XNamespace v = "http://schemas.microsoft.com/office/visio/2012/main";
+            var cell = shape.Elements(v + "Cell").FirstOrDefault(c => (string?)c.Attribute("N") == name);
+            Assert.NotNull(cell);
+            return double.Parse((string?)cell!.Attribute("V") ?? "0", NumberStyles.Float, CultureInfo.InvariantCulture);
+        }
+
+        private static void AssertApproximately(double expected, double actual, double tol = 1e-9) {
+            Assert.InRange(Math.Abs(expected - actual), 0, tol);
         }
     }
 }

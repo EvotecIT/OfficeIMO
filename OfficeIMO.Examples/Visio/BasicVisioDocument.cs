@@ -14,11 +14,14 @@ namespace OfficeIMO.Examples.Visio {
             string filePath = Path.Combine(folderPath, "Basic Visio.vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page;
             document.AsFluent()
                 .Info(info => info.Title("Basic Visio").Author("OfficeIMO"))
-                .AddPage("Page-1", 8.5, 11, VisioMeasurementUnit.Inches, out VisioPage page)
+                .Page("Page-1", 8.5, 11, VisioMeasurementUnit.Inches, p => { /* capture created page */ })
                 .End();
-            page.Shapes.Add(new VisioShape("1", 2, 2, 2, 1, "Rectangle") {
+            // Add directly via document since fluent Page callback doesn't expose underlying VisioPage instance here
+            page = document.Pages[0] as VisioPage;
+            page!.Shapes.Add(new VisioShape("1", 2, 2, 2, 1, "Rectangle") {
                 NameU = "Rectangle",
                 FillColor = Color.LightBlue,
                 LineColor = Color.DarkBlue,

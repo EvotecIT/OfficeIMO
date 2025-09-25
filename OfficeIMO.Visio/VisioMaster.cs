@@ -16,18 +16,30 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
-        /// Master identifier.
+        /// Gets the master identifier.
         /// </summary>
         public string Id { get; }
 
         /// <summary>
-        /// Universal name of the master.
+        /// Gets the universal name of the master.
         /// </summary>
         public string NameU { get; }
 
         /// <summary>
-        /// Shape that defines the master.
+        /// Gets the shape that defines the master.
         /// </summary>
         public VisioShape Shape { get; }
+
+        /// <summary>
+        /// Optional canonical MasterContents XML to write verbatim (used when importing from a template VSDX).
+        /// When set, the save routine will output this document instead of generating geometry from <see cref="Shape"/>.
+        /// </summary>
+        public System.Xml.Linq.XDocument? TemplateXml { get; set; }
+
+        /// <summary>
+        /// Optional canonical Master element from masters.xml (attributes, PageSheet, Icon, etc.).
+        /// When provided, the save routine will base the masters.xml entry on this element to match Visio assets.
+        /// </summary>
+        public System.Xml.Linq.XElement? TemplateMasterElement { get; set; }
     }
 }

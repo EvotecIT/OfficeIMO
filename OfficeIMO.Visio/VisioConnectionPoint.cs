@@ -18,22 +18,22 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
-        /// X coordinate of the connection point relative to the shape.
+        /// Gets or sets the X coordinate of the connection point relative to the shape.
         /// </summary>
         public double X { get; set; }
 
         /// <summary>
-        /// Y coordinate of the connection point relative to the shape.
+        /// Gets or sets the Y coordinate of the connection point relative to the shape.
         /// </summary>
         public double Y { get; set; }
 
         /// <summary>
-        /// Directional X component of the connection point.
+        /// Gets or sets the directional X component of the connection point.
         /// </summary>
         public double DirX { get; set; }
 
         /// <summary>
-        /// Directional Y component of the connection point.
+        /// Gets or sets the directional Y component of the connection point.
         /// </summary>
         public double DirY { get; set; }
     }
