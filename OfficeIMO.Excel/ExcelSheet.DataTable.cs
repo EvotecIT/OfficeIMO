@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
             if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
 
             // Prepare a flat list of cells and optional number formats
-            var cells = new List<(int Row, int Col, object Val, string? NumFmt)>(
+            var cells = new List<(int Row, int Col, object? Val, string? NumFmt)>(
                 (table.Rows.Count + (includeHeaders ? 1 : 0)) * Math.Max(1, table.Columns.Count));
 
             int row = startRow;
@@ -38,7 +38,7 @@ namespace OfficeIMO.Excel {
             foreach (DataRow dr in table.Rows) {
                 for (int c = 0; c < table.Columns.Count; c++) {
                     var col = table.Columns[c];
-                    object value = dr.IsNull(c) ? string.Empty : dr[c];
+                    object? value = dr.IsNull(c) ? null : dr[c];
                     string? fmt = null;
                     var t = col.DataType;
                     if (t == typeof(DateTime) || t == typeof(DateTimeOffset)) {

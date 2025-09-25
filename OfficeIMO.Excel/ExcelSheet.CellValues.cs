@@ -74,7 +74,7 @@ namespace OfficeIMO.Excel {
         /// Compute-only coercion for parallel scenarios. Does not mutate DOM.
         /// Uses <see cref="SharedStringPlanner"/> for string values.
         /// </summary>
-        private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCellNoDom(object value, SharedStringPlanner planner) {
+        private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCellNoDom(object? value, SharedStringPlanner planner) {
             var dateTimeOffsetStrategy = _excelDocument.DateTimeOffsetWriteStrategy;
             var (cellValue, cellType) = CoerceValueHelper.Coerce(
                 value,
