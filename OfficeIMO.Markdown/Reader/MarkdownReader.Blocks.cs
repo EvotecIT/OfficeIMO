@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Text;
 
 namespace OfficeIMO.Markdown;
 
@@ -50,8 +47,7 @@ public static partial class MarkdownReader {
         string inner = t.Substring(altEnd + 2, parenClose - (altEnd + 2));
         string src; string? title = null;
         int spaceIdx = inner.IndexOf(' ');
-        if (spaceIdx < 0) { src = inner.Trim(); }
-        else { src = inner.Substring(0, spaceIdx).Trim(); string rest = inner.Substring(spaceIdx).Trim(); if (rest.Length >= 2 && rest[0] == '"' && rest[rest.Length - 1] == '"') title = rest.Substring(1, rest.Length - 2); }
+        if (spaceIdx < 0) { src = inner.Trim(); } else { src = inner.Substring(0, spaceIdx).Trim(); string rest = inner.Substring(spaceIdx).Trim(); if (rest.Length >= 2 && rest[0] == '"' && rest[rest.Length - 1] == '"') title = rest.Substring(1, rest.Length - 2); }
         image = new ImageBlock(src, alt, title);
         // Optional attribute list: {width=.. height=..}
         if (parenClose + 1 < t.Length) {
@@ -107,8 +103,7 @@ public static partial class MarkdownReader {
             for (int i = 0; i < t.Length; i++) {
                 char ch = t[i];
                 if (ch == '-') dash++;
-                else if (ch == ':' && (i == 0 || i == t.Length - 1)) { }
-                else return false;
+                else if (ch == ':' && (i == 0 || i == t.Length - 1)) { } else return false;
             }
             if (dash < 3) return false;
         }
@@ -230,11 +225,7 @@ public static partial class MarkdownReader {
                 for (int k = 0; k < inner.Length; k++) { char ch = inner[k]; if (ch == '\"') { inQuotes = !inQuotes; continue; } if (ch == ',' && !inQuotes) { items.Add(token.ToString().Trim()); token.Clear(); continue; } token.Append(ch); }
                 if (token.Length > 0) items.Add(token.ToString().Trim());
                 dict[key] = items;
-            } else if (string.Equals(val, "true", StringComparison.OrdinalIgnoreCase)) { dict[key] = true; }
-            else if (string.Equals(val, "false", StringComparison.OrdinalIgnoreCase)) { dict[key] = false; }
-            else if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out var num)) { dict[key] = num; }
-            else if (val.StartsWith("\"") && val.EndsWith("\"")) { dict[key] = val.Length >= 2 ? val.Substring(1, val.Length - 2) : string.Empty; }
-            else { dict[key] = val; }
+            } else if (string.Equals(val, "true", StringComparison.OrdinalIgnoreCase)) { dict[key] = true; } else if (string.Equals(val, "false", StringComparison.OrdinalIgnoreCase)) { dict[key] = false; } else if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out var num)) { dict[key] = num; } else if (val.StartsWith("\"") && val.EndsWith("\"")) { dict[key] = val.Length >= 2 ? val.Substring(1, val.Length - 2) : string.Empty; } else { dict[key] = val; }
         }
         return dict;
     }

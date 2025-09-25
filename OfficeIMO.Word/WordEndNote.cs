@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -30,45 +26,45 @@ namespace OfficeIMO.Word {
         /// Zero based object should be skipped, as it's EndNoteReference
         /// However for sake of completion and potential ability to modify it we expose it as well
         /// </summary>
-          public List<WordParagraph>? Paragraphs {
-              get {
-                  if (_paragraph != null && _run != null) {
-                      long referenceId = 0;
-                      var endNoteReference = _run.ChildElements.OfType<EndnoteReference>().FirstOrDefault();
-                      if (endNoteReference?.Id != null) {
-                          referenceId = endNoteReference.Id.Value;
-                      }
+        public List<WordParagraph>? Paragraphs {
+            get {
+                if (_paragraph != null && _run != null) {
+                    long referenceId = 0;
+                    var endNoteReference = _run.ChildElements.OfType<EndnoteReference>().FirstOrDefault();
+                    if (endNoteReference?.Id != null) {
+                        referenceId = endNoteReference.Id.Value;
+                    }
 
-                      if (referenceId != 0) {
-                          var endNotesPart = _document._wordprocessingDocument.MainDocumentPart?.EndnotesPart;
-                          var endNotes = endNotesPart?.Endnotes?.ChildElements.OfType<Endnote>().ToList();
-                          if (endNotes != null) {
-                              foreach (var endNote in endNotes) {
-                                  if (endNote != null) {
-                                      if (endNote.Id == referenceId.ToString()) {
-                                          return WordSection.ConvertParagraphsToWordParagraphs(_document, endNote.OfType<Paragraph>());
-                                      }
-                                  }
-                              }
-                          }
-                      }
-                  }
-                  return null;
-              }
-          }
+                    if (referenceId != 0) {
+                        var endNotesPart = _document._wordprocessingDocument.MainDocumentPart?.EndnotesPart;
+                        var endNotes = endNotesPart?.Endnotes?.ChildElements.OfType<Endnote>().ToList();
+                        if (endNotes != null) {
+                            foreach (var endNote in endNotes) {
+                                if (endNote != null) {
+                                    if (endNote.Id == referenceId.ToString()) {
+                                        return WordSection.ConvertParagraphsToWordParagraphs(_document, endNote.OfType<Paragraph>());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+        }
 
         /// <summary>
         /// Parent paragraph containing the endnote reference.
         /// </summary>
-          public WordParagraph? ParentParagraph {
-              get {
-                  var previousRun = _run.PreviousSibling<Run>();
-                  if (previousRun != null) {
-                      return new WordParagraph(_document, _paragraph, previousRun);
-                  }
-                  return null;
-              }
-          }
+        public WordParagraph? ParentParagraph {
+            get {
+                var previousRun = _run.PreviousSibling<Run>();
+                if (previousRun != null) {
+                    return new WordParagraph(_document, _paragraph, previousRun);
+                }
+                return null;
+            }
+        }
 
         /// <summary>
         /// Gets the endnote reference identifier if available.
@@ -94,17 +90,17 @@ namespace OfficeIMO.Word {
             if (endNoteReference?.Id != null) {
                 referenceId = endNoteReference.Id.Value;
             }
-              var endNotesPart = _document._wordprocessingDocument.MainDocumentPart?.EndnotesPart;
-              var footNotes = endNotesPart?.Endnotes?.ChildElements.OfType<Endnote>().ToList();
-              if (footNotes != null) {
-                  foreach (var footNote in footNotes) {
-                      if (footNote != null) {
-                          if (footNote.Id == referenceId.ToString()) {
-                              footNote.Remove();
-                          }
-                      }
-                  }
-              }
+            var endNotesPart = _document._wordprocessingDocument.MainDocumentPart?.EndnotesPart;
+            var footNotes = endNotesPart?.Endnotes?.ChildElements.OfType<Endnote>().ToList();
+            if (footNotes != null) {
+                foreach (var footNote in footNotes) {
+                    if (footNote != null) {
+                        if (footNote.Id == referenceId.ToString()) {
+                            footNote.Remove();
+                        }
+                    }
+                }
+            }
             this._run.Remove();
         }
 

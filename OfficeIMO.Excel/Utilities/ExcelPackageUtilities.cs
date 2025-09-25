@@ -1,8 +1,4 @@
-using System;
-using System.IO;
 using System.IO.Compression;
-using System.Linq;
-using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -25,8 +21,7 @@ namespace OfficeIMO.Excel.Utilities {
             return NormalizeContentTypes(stream, leaveOpen: true);
         }
 
-        internal static bool NormalizeContentTypes(Stream packageStream, bool leaveOpen = false)
-        {
+        internal static bool NormalizeContentTypes(Stream packageStream, bool leaveOpen = false) {
             if (packageStream == null || !packageStream.CanRead || !packageStream.CanSeek) return false;
             using var archive = new ZipArchive(packageStream, ZipArchiveMode.Update, leaveOpen: leaveOpen);
             var entry = archive.GetEntry(ContentTypesEntry);
@@ -80,12 +75,10 @@ namespace OfficeIMO.Excel.Utilities {
                 }
             }
 
-            bool EnsureOverride(string partName, string contentType)
-            {
+            bool EnsureOverride(string partName, string contentType) {
                 var ov = root.Elements(ns + "Override")
                     .FirstOrDefault(e => string.Equals((string?)e.Attribute("PartName"), partName, StringComparison.OrdinalIgnoreCase));
-                if (ov == null)
-                {
+                if (ov == null) {
                     var newOverride = new XElement(ns + "Override",
                         new XAttribute("PartName", partName),
                         new XAttribute("ContentType", contentType));
@@ -93,8 +86,7 @@ namespace OfficeIMO.Excel.Utilities {
                     if (firstOverride != null) firstOverride.AddBeforeSelf(newOverride); else root.Add(newOverride);
                     return true;
                 }
-                if (!string.Equals((string?)ov.Attribute("ContentType"), contentType, StringComparison.OrdinalIgnoreCase))
-                {
+                if (!string.Equals((string?)ov.Attribute("ContentType"), contentType, StringComparison.OrdinalIgnoreCase)) {
                     ov.SetAttributeValue("ContentType", contentType);
                     return true;
                 }
@@ -178,8 +170,7 @@ namespace OfficeIMO.Excel.Utilities {
         }
     }
 
-    internal readonly struct ContentTypesSummary
-    {
+    internal readonly struct ContentTypesSummary {
         public bool HasXmlDefault { get; }
         public string? XmlDefaultContentType { get; }
         public int XmlDefaultCount { get; }
@@ -191,8 +182,7 @@ namespace OfficeIMO.Excel.Utilities {
             string? xmlDefaultContentType,
             int xmlDefaultCount,
             bool hasWorkbookOverride,
-            string? workbookContentType)
-        {
+            string? workbookContentType) {
             HasXmlDefault = hasXmlDefault;
             XmlDefaultContentType = xmlDefaultContentType;
             XmlDefaultCount = xmlDefaultCount;

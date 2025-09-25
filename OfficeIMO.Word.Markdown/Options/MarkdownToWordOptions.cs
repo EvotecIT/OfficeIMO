@@ -1,5 +1,3 @@
-using System;
-using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Markdown {
@@ -16,17 +14,17 @@ namespace OfficeIMO.Word.Markdown {
         /// Emits warnings from the converter (e.g., invalid URIs). Optional.
         /// </summary>
         public Action<string>? OnWarning { get; set; }
-        
+
         /// <summary>
         /// Optional default page size applied when creating new documents.
         /// </summary>
         public WordPageSize? DefaultPageSize { get; set; }
-        
+
         /// <summary>
         /// Optional default page orientation applied when creating new documents.
         /// </summary>
         public PageOrientationValues? DefaultOrientation { get; set; }
-        
+
         /// <summary>
         /// Applies default page settings to the provided document instance.
         /// </summary>
@@ -34,11 +32,11 @@ namespace OfficeIMO.Word.Markdown {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
-            
+
             if (DefaultPageSize.HasValue) {
                 document.PageSettings.PageSize = DefaultPageSize.Value;
             }
-            
+
             if (DefaultOrientation.HasValue) {
                 document.PageOrientation = DefaultOrientation.Value;
             }

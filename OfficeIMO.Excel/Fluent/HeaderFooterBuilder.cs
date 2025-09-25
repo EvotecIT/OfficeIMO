@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using OfficeIMO.Excel;
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Fluent builder for worksheet header and footer with optional images.
@@ -106,8 +103,7 @@ namespace OfficeIMO.Excel.Fluent {
                 if (bytes == null && !string.IsNullOrWhiteSpace(img.Url)) {
                     if (ImageDownloader.TryFetch(img.Url!, 5, 2_000_000, out var fetched, out var fetchedContentType)) {
                         bytes = fetched;
-                        if (!string.IsNullOrWhiteSpace(fetchedContentType))
-                        {
+                        if (!string.IsNullOrWhiteSpace(fetchedContentType)) {
                             contentType = ExcelSheet.NormalizeImageContentType(fetchedContentType, nameof(fetchedContentType));
                         }
                     }

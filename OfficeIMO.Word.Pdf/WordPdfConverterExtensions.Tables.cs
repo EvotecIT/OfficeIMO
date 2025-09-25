@@ -1,8 +1,6 @@
 using DocumentFormat.OpenXml;
-using OfficeIMO.Word;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
-using System;
 using System.Collections.Generic;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 

@@ -1,6 +1,4 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml;
-using System.Linq;
 
 namespace OfficeIMO.Word {
     /// <summary>

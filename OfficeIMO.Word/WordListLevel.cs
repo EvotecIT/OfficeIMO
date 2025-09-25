@@ -1,13 +1,10 @@
-using System;
-using System.Linq;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     /// <summary>
     /// Defines the numbering or bullet style used for a particular list level.
     /// </summary>
-public enum WordListLevelKind {
+    public enum WordListLevelKind {
         /// <summary>
         /// No bullet or numbering.
         /// </summary>

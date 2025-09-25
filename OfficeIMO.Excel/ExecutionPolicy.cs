@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Generic;
-
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Controls how heavy operations in OfficeIMO.Excel run (sequential vs parallel) based on workload size.
     /// Configure global and per‑operation thresholds and optionally observe decisions.
     /// </summary>
-    public sealed class ExecutionPolicy
-    {
+    public sealed class ExecutionPolicy {
         /// <summary>
         /// Global execution mode. When <see cref="ExecutionMode.Automatic"/>, the policy selects sequential or parallel per operation.
         /// </summary>
@@ -52,8 +47,7 @@ namespace OfficeIMO.Excel
         /// </summary>
         /// <param name="operationName">Descriptive operation name (e.g. "ReadRange", "AutoFitColumns").</param>
         /// <param name="itemCount">Approximate number of items to process.</param>
-        internal ExecutionMode Decide(string operationName, int itemCount)
-        {
+        internal ExecutionMode Decide(string operationName, int itemCount) {
             var thr = OperationThresholds.TryGetValue(operationName, out var v) ? v : ParallelThreshold;
             var decided = itemCount > thr ? ExecutionMode.Parallel : ExecutionMode.Sequential;
             OnDecision?.Invoke(operationName, itemCount, decided);
@@ -63,8 +57,7 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Creates a policy with recommended default thresholds for common operations.
         /// </summary>
-        public ExecutionPolicy()
-        {
+        public ExecutionPolicy() {
             // Set recommended defaults
             OperationThresholds["CellValues"] = 10_000;
             OperationThresholds["InsertObjects"] = 1_000;

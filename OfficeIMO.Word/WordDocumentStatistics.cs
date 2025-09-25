@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace OfficeIMO.Word {
     /// <summary>
     /// Provides basic statistics for a <see cref="WordDocument"/> such as page, paragraph,

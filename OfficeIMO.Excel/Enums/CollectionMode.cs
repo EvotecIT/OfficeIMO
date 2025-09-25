@@ -1,10 +1,8 @@
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Controls how collections are handled when flattening objects.
     /// </summary>
-    public enum CollectionMode
-    {
+    public enum CollectionMode {
         /// <summary>
         /// Join collection items into a single cell using a separator.
         /// </summary>

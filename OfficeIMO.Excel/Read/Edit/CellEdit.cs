@@ -1,17 +1,12 @@
-using System;
-
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Editable cell view used by RowEdit to read current snapshot value and write new value back to the sheet.
     /// </summary>
-    public sealed class CellEdit
-    {
+    public sealed class CellEdit {
         private readonly ExcelSheet _sheet;
         private object? _snapshotValue;
 
-        internal CellEdit(ExcelSheet sheet, int rowIndex, int columnIndex, object? snapshotValue)
-        {
+        internal CellEdit(ExcelSheet sheet, int rowIndex, int columnIndex, object? snapshotValue) {
             _sheet = sheet;
             RowIndex = rowIndex;
             ColumnIndex = columnIndex;
@@ -32,18 +27,13 @@ namespace OfficeIMO.Excel
         /// Current value snapshot from read time.
         /// Setting this property writes directly to the worksheet cell via <see cref="ExcelSheet.CellValue(int,int,object)"/>.
         /// </summary>
-        public object? Value
-        {
+        public object? Value {
             get => _snapshotValue;
-            set
-            {
+            set {
                 _snapshotValue = value;
-                if (value is null)
-                {
+                if (value is null) {
                     _sheet.CellValue(RowIndex, ColumnIndex, string.Empty);
-                }
-                else
-                {
+                } else {
                     _sheet.CellValue(RowIndex, ColumnIndex, value);
                 }
             }
@@ -52,29 +42,24 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Helper for typed conversion consistent with common Convert semantics.
         /// </summary>
-        public T ConvertTo<T>()
-        {
+        public T ConvertTo<T>() {
             var v = _snapshotValue;
             if (v is null) return default!;
             var dest = typeof(T);
             if (dest.IsAssignableFrom(v.GetType())) return (T)v;
-            try
-            {
+            try {
                 if (dest == typeof(string)) return (T)(object)(Convert.ToString(v) ?? string.Empty);
                 if (dest == typeof(int)) return (T)(object)Convert.ToInt32(v);
                 if (dest == typeof(long)) return (T)(object)Convert.ToInt64(v);
                 if (dest == typeof(double)) return (T)(object)Convert.ToDouble(v);
                 if (dest == typeof(decimal)) return (T)(object)Convert.ToDecimal(v);
                 if (dest == typeof(bool)) return (T)(object)Convert.ToBoolean(v);
-                if (dest == typeof(DateTime))
-                {
+                if (dest == typeof(DateTime)) {
                     if (v is double oa) return (T)(object)DateTime.FromOADate(oa);
                     return (T)(object)Convert.ToDateTime(v);
                 }
                 return (T)Convert.ChangeType(v, dest);
-            }
-            catch
-            {
+            } catch {
                 return default!;
             }
         }
@@ -83,8 +68,7 @@ namespace OfficeIMO.Excel
         /// Applies an Excel number format to this cell (e.g., "0.00", "yyyy-mm-dd", "[h]:mm:ss").
         /// </summary>
         /// <param name="format">The Excel number format code to apply, matching the codes accepted by the Excel UI (such as "General", "0.00", "#,##0", or date/time masks).</param>
-        public void NumberFormat(string format)
-        {
+        public void NumberFormat(string format) {
             if (string.IsNullOrWhiteSpace(format)) return;
             _sheet.FormatCell(RowIndex, ColumnIndex, format);
         }
@@ -93,8 +77,7 @@ namespace OfficeIMO.Excel
         /// Sets a formula on this cell.
         /// </summary>
         /// <param name="formula">The Excel formula expression using standard worksheet syntax (for example "SUM(A1:A10)" or "A1*0.2") without a leading '=' character.</param>
-        public void Formula(string formula)
-        {
+        public void Formula(string formula) {
             if (string.IsNullOrWhiteSpace(formula)) return;
             _sheet.CellFormula(RowIndex, ColumnIndex, formula);
         }

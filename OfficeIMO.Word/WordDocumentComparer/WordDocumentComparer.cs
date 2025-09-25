@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.Word {
     /// <summary>
     /// Provides simple comparison between two Word documents.

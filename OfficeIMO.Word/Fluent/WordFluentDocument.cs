@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
-using OfficeIMO.Word;
 
 namespace OfficeIMO.Word.Fluent {
     /// <summary>

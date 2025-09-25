@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -88,7 +84,7 @@ namespace OfficeIMO.Word {
         public static bool IsOrdered(Paragraph paragraph, MainDocumentPart mainPart) {
             if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
             if (mainPart == null) throw new ArgumentNullException(nameof(mainPart));
-        
+
             var numProps = paragraph.ParagraphProperties?.NumberingProperties;
             Int32Value? numberingIdValue = numProps?.NumberingId?.Val?.Value;
             int? numberId = numberingIdValue?.Value;

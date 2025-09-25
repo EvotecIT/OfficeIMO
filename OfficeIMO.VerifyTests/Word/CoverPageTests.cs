@@ -1,6 +1,6 @@
-﻿using System.Threading.Tasks;
-using DocumentFormat.OpenXml.Packaging;
+﻿using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
+using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;
 

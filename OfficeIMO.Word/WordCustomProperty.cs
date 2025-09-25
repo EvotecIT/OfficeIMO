@@ -1,14 +1,5 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
 using DocumentFormat.OpenXml.CustomProperties;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.VariantTypes;
-using DocumentFormat.OpenXml.Wordprocessing;
+using System.Diagnostics;
 
 namespace OfficeIMO.Word {
     /// <summary>

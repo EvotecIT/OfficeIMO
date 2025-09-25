@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace OfficeIMO.Markdown;
 
 public static partial class MarkdownReader {

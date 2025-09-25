@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Html {
@@ -22,12 +19,12 @@ namespace OfficeIMO.Word.Html {
         /// Character inserted after inline quoted text. Defaults to right double quotation mark.
         /// </summary>
         public string QuoteSuffix { get; set; } = "\u201D";
-        
+
         /// <summary>
         /// Optional default page size applied when creating new documents.
         /// </summary>
         public WordPageSize? DefaultPageSize { get; set; }
-        
+
         /// <summary>
         /// Optional default page orientation applied when creating new documents.
         /// </summary>

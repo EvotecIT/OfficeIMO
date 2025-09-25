@@ -1,4 +1,3 @@
-using System.Text;
 using System.Globalization;
 
 namespace OfficeIMO.Pdf;

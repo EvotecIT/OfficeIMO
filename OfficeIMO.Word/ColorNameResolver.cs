@@ -1,6 +1,5 @@
-using System.Collections.Generic;
-using System.Reflection;
 using SixLabors.ImageSharp;
+using System.Reflection;
 
 namespace OfficeIMO.Word {
     /// <summary>

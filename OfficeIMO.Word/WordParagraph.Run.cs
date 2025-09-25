@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using DocumentFormat.OpenXml.Wordprocessing;
-
-namespace OfficeIMO.Word {
+﻿namespace OfficeIMO.Word {
     /// <summary>
     /// Exposes run-level helpers for WordParagraph.
     /// </summary>

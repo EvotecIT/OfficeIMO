@@ -2,19 +2,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using SixLabors.Fonts;
-using System;
-using System.Collections;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Xml;
-using SixLaborsColor = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -61,8 +49,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Represents a scope where worksheet operations bypass locking.
         /// </summary>
-        public sealed class NoLockContext : IDisposable
-        {
+        public sealed class NoLockContext : IDisposable {
             private readonly IDisposable _scope;
             internal NoLockContext() => _scope = Locking.EnterNoLockScope();
 
@@ -75,8 +62,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Returns the used range of this worksheet as an A1 string by leveraging the read bridge.
         /// </summary>
-        public string GetUsedRangeA1()
-        {
+        public string GetUsedRangeA1() {
             using var reader = _excelDocument.CreateReader();
             var sh = reader.GetSheet(this.Name);
             return sh.GetUsedRangeA1();
@@ -151,14 +137,14 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(column));
             }
 
-              SheetData? sheetData = _worksheetPart.Worksheet.GetFirstChild<SheetData>();
-              if (sheetData == null) {
-                  sheetData = _worksheetPart.Worksheet.AppendChild(new SheetData());
-              }
+            SheetData? sheetData = _worksheetPart.Worksheet.GetFirstChild<SheetData>();
+            if (sheetData == null) {
+                sheetData = _worksheetPart.Worksheet.AppendChild(new SheetData());
+            }
 
             // Find or create row with proper ordering
-              Row? rowElement = null;
-              Row? insertAfterRow = null;
+            Row? rowElement = null;
+            Row? insertAfterRow = null;
             foreach (Row r in sheetData.Elements<Row>()) {
                 if (r.RowIndex != null) {
                     if (r.RowIndex.Value == (uint)row) {
@@ -269,25 +255,19 @@ namespace OfficeIMO.Excel {
         // a Cell reference. Prefer using public TryGetCellText(row,col, out text) when possible.
         internal string GetCellText(Cell cell) {
             // Shared string lookup
-            if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString)
-            {
+            if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
                 var raw = cell.CellValue?.InnerText;
-                if (!string.IsNullOrEmpty(raw) && int.TryParse(raw, out int id))
-                {
+                if (!string.IsNullOrEmpty(raw) && int.TryParse(raw, out int id)) {
                     var sst = _excelDocument.SharedStringTablePart?.SharedStringTable;
-                    if (sst != null)
-                    {
+                    if (sst != null) {
                         var item = sst.Elements<SharedStringItem>().ElementAtOrDefault(id);
-                        if (item != null)
-                        {
+                        if (item != null) {
                             // Prefer direct Text element when present; otherwise concatenate run texts
-                            if (item.Text != null)
-                            {
+                            if (item.Text != null) {
                                 return item.Text.Text ?? string.Empty;
                             }
                             var sb = new StringBuilder();
-                            foreach (var t in item.Descendants<Text>())
-                            {
+                            foreach (var t in item.Descendants<Text>()) {
                                 sb.Append(t.Text);
                             }
                             return sb.ToString();
@@ -298,18 +278,14 @@ namespace OfficeIMO.Excel {
             }
 
             // Inline string
-            if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString)
-            {
+            if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
                 var inline = cell.InlineString;
-                if (inline != null)
-                {
-                    if (inline.Text != null)
-                    {
+                if (inline != null) {
+                    if (inline.Text != null) {
                         return inline.Text.Text ?? string.Empty;
                     }
                     var sb = new StringBuilder();
-                    foreach (var r in inline.Elements<Run>())
-                    {
+                    foreach (var r in inline.Elements<Run>()) {
                         if (r.Text != null) sb.Append(r.Text.Text);
                     }
                     return sb.ToString();

@@ -1,8 +1,5 @@
-using System;
-using System.Diagnostics;
-using System.IO;
-using DocumentFormat.OpenXml.Packaging;
 using SixLabors.ImageSharp.Formats;
+using System.Diagnostics;
 
 namespace OfficeIMO.Word {
     /// <summary>

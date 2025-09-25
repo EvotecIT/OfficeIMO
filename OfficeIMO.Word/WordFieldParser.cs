@@ -1,7 +1,5 @@
 using System.Runtime.CompilerServices;
-using System;
 using System.Text.RegularExpressions;
-using System.Collections.Generic;
 
 [assembly: InternalsVisibleTo("OfficeIMo.Tests")]
 

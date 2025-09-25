@@ -1,7 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using V = DocumentFormat.OpenXml.Vml;
@@ -108,19 +104,19 @@ namespace OfficeIMO.Word {
                     .Any(p => p.IsListItem && p._listNumberId == _numberId);
 
                 if (!stillReferenced) {
-                      var abstractNum = numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId?.Value == _abstractId);
-                      abstractNum?.Remove();
+                    var abstractNum = numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId?.Value == _abstractId);
+                    abstractNum?.Remove();
 
-                      var numberingInstance = numbering.Elements<NumberingInstance>().FirstOrDefault(n => n.NumberID?.Value == _numberId);
-                      numberingInstance?.Remove();
+                    var numberingInstance = numbering.Elements<NumberingInstance>().FirstOrDefault(n => n.NumberID?.Value == _numberId);
+                    numberingInstance?.Remove();
 
-                      if (!numbering.Elements<AbstractNum>().Any() &&
-                          !numbering.Elements<NumberingInstance>().Any() &&
-                          !numbering.Elements<NumberingPictureBullet>().Any()) {
-                          if (numberingPart != null) {
-                              _document._wordprocessingDocument!.MainDocumentPart!.DeletePart(numberingPart);
-                          }
-                      }
+                    if (!numbering.Elements<AbstractNum>().Any() &&
+                        !numbering.Elements<NumberingInstance>().Any() &&
+                        !numbering.Elements<NumberingPictureBullet>().Any()) {
+                        if (numberingPart != null) {
+                            _document._wordprocessingDocument!.MainDocumentPart!.DeletePart(numberingPart);
+                        }
+                    }
                 }
             }
         }

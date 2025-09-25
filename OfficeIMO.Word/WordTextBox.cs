@@ -1,10 +1,10 @@
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using DocumentFormat.OpenXml.Wordprocessing;
-using Graphic = DocumentFormat.OpenXml.Drawing.Graphic;
-using V = DocumentFormat.OpenXml.Vml;
 using DrawingHorizontalAlignment = DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignment;
 using DrawingVerticalAlignment = DocumentFormat.OpenXml.Drawing.Wordprocessing.VerticalAlignment;
+using Graphic = DocumentFormat.OpenXml.Drawing.Graphic;
+using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
     /// <summary>

@@ -1,16 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.IO.Packaging;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Xml;
-using OfficeIMO.Excel.Utilities;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.Excel.Utilities;
+using System.IO.Packaging;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Xml;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -34,14 +30,11 @@ namespace OfficeIMO.Excel {
         /// Defaults to <see cref="StringComparer.OrdinalIgnoreCase"/>. Changing this will reset the
         /// internal cache and rebuild it on next use. Set it once before adding tables for predictable behavior.
         /// </summary>
-        public System.Collections.Generic.IEqualityComparer<string> TableNameComparer
-        {
+        public System.Collections.Generic.IEqualityComparer<string> TableNameComparer {
             get => _tableNameComparer;
-            set
-            {
+            set {
                 if (value == null) throw new System.ArgumentNullException(nameof(value));
-                if (!object.ReferenceEquals(_tableNameComparer, value))
-                {
+                if (!object.ReferenceEquals(_tableNameComparer, value)) {
                     _tableNameComparer = value;
                     _tableNameCache = null; // rebuild lazily on next use with the new comparer
                 }
@@ -63,8 +56,7 @@ namespace OfficeIMO.Excel {
         /// The delegate influences the numeric serial value stored in the cell but does not automatically
         /// change number formats. Apply the desired cell formatting separately.
         /// </remarks>
-        public Func<DateTimeOffset, DateTime> DateTimeOffsetWriteStrategy
-        {
+        public Func<DateTimeOffset, DateTime> DateTimeOffsetWriteStrategy {
             get => _dateTimeOffsetWriteStrategy;
             set => _dateTimeOffsetWriteStrategy = value ?? throw new ArgumentNullException(nameof(value));
         }
@@ -120,8 +112,7 @@ namespace OfficeIMO.Excel {
 
         private const int StreamCopyBufferSize = 81920;
 
-        private static async Task<byte[]> ReadAllBytesCompatAsync(string path, CancellationToken ct)
-        {
+        private static async Task<byte[]> ReadAllBytesCompatAsync(string path, CancellationToken ct) {
 #if NETSTANDARD2_0 || NET472 || NET48
             using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.Asynchronous))
             {
@@ -134,22 +125,18 @@ namespace OfficeIMO.Excel {
 #endif
         }
 
-        private static OpenSettings CreateOpenSettings(OpenSettings? openSettings, bool autoSave)
-        {
+        private static OpenSettings CreateOpenSettings(OpenSettings? openSettings, bool autoSave) {
             bool shouldAutoSave = autoSave || (openSettings?.AutoSave ?? false);
 
-            if (openSettings is null)
-            {
+            if (openSettings is null) {
                 return new OpenSettings { AutoSave = shouldAutoSave };
             }
 
-            if (openSettings.AutoSave == shouldAutoSave)
-            {
+            if (openSettings.AutoSave == shouldAutoSave) {
                 return openSettings;
             }
 
-            return new OpenSettings
-            {
+            return new OpenSettings {
                 AutoSave = shouldAutoSave,
                 CompatibilityLevel = openSettings.CompatibilityLevel,
                 MarkupCompatibilityProcessSettings = openSettings.MarkupCompatibilityProcessSettings,
@@ -203,24 +190,18 @@ namespace OfficeIMO.Excel {
         /// Returns the workbook-level cache of table names, initializing it from the current
         /// document if needed. Case-insensitive comparison.
         /// </summary>
-        internal HashSet<string> GetOrInitTableNameCache()
-        {
+        internal HashSet<string> GetOrInitTableNameCache() {
             // Fast path without locking
             if (_tableNameCache != null) return _tableNameCache;
 
             // Initialize without taking a new lock if we're already in a write scope
-            if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld))
-            {
-                if (_tableNameCache == null)
-                {
+            if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld)) {
+                if (_tableNameCache == null) {
                     var set = new HashSet<string>(_tableNameComparer);
                     var wb = _spreadSheetDocument.WorkbookPart;
-                    if (wb != null)
-                    {
-                        foreach (var ws in wb.WorksheetParts)
-                        {
-                            foreach (var tdp in ws.TableDefinitionParts)
-                            {
+                    if (wb != null) {
+                        foreach (var ws in wb.WorksheetParts) {
+                            foreach (var tdp in ws.TableDefinitionParts) {
                                 var n = tdp.Table?.Name?.Value;
                                 if (!string.IsNullOrEmpty(n)) set.Add(n!);
                             }
@@ -232,17 +213,13 @@ namespace OfficeIMO.Excel {
             }
 
             // Otherwise, use write lock for thread safety
-            return Locking.ExecuteWrite(EnsureLock(), () =>
-            {
+            return Locking.ExecuteWrite(EnsureLock(), () => {
                 if (_tableNameCache != null) return _tableNameCache;
                 var set = new HashSet<string>(_tableNameComparer);
                 var wb = _spreadSheetDocument.WorkbookPart;
-                if (wb != null)
-                {
-                    foreach (var ws in wb.WorksheetParts)
-                    {
-                        foreach (var tdp in ws.TableDefinitionParts)
-                        {
+                if (wb != null) {
+                    foreach (var ws in wb.WorksheetParts) {
+                        foreach (var tdp in ws.TableDefinitionParts) {
                             var n = tdp.Table?.Name?.Value;
                             if (!string.IsNullOrEmpty(n)) set.Add(n!);
                         }
@@ -256,8 +233,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Adds the given table name to the cache. Should be called once the name is finalized.
         /// </summary>
-        internal void ReserveTableName(string name)
-        {
+        internal void ReserveTableName(string name) {
             if (string.IsNullOrWhiteSpace(name)) return;
             var cache = GetOrInitTableNameCache();
             cache.Add(name);
@@ -267,8 +243,7 @@ namespace OfficeIMO.Excel {
         /// Removes the given table name from the cache. Intended for future table deletion APIs.
         /// Safe to call even if the cache hasn't been initialized.
         /// </summary>
-        internal void RemoveReservedTableName(string name)
-        {
+        internal void RemoveReservedTableName(string name) {
             if (string.IsNullOrWhiteSpace(name)) return;
             if (_tableNameCache == null) return;
             _tableNameCache.Remove(name);
@@ -332,7 +307,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 var sharedStringTable = SharedStringTablePart.SharedStringTable;
-                
+
                 // If cache is empty, rebuild it
                 if (_sharedStringCache.Count == 0) {
                     int idx = 0;
@@ -340,7 +315,7 @@ namespace OfficeIMO.Excel {
                         _sharedStringCache[item.InnerText] = idx;
                         idx++;
                     }
-                    
+
                     // Check again after rebuilding cache
                     if (_sharedStringCache.TryGetValue(text, out int foundIndex)) {
                         return foundIndex;
@@ -352,7 +327,7 @@ namespace OfficeIMO.Excel {
                 sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
                 sharedStringTable.Save();
                 _sharedStringCache[text] = newIndex;
-                
+
                 return newIndex;
             }
         }
@@ -389,10 +364,8 @@ namespace OfficeIMO.Excel {
             Stream? packageStream = null,
             Stream? sourceStream = null,
             bool copyPackageToSourceOnDispose = false,
-            bool leaveSourceStreamOpen = true)
-        {
-            var document = new ExcelDocument
-            {
+            bool leaveSourceStreamOpen = true) {
+            var document = new ExcelDocument {
                 FilePath = filePath ?? string.Empty,
                 _spreadSheetDocument = spreadSheetDocument,
                 _workBookPart = GetWorkbookPartOrThrow(spreadSheetDocument),
@@ -407,19 +380,16 @@ namespace OfficeIMO.Excel {
             return document;
         }
 
-        private static WorkbookPart GetWorkbookPartOrThrow(SpreadsheetDocument document)
-        {
+        private static WorkbookPart GetWorkbookPartOrThrow(SpreadsheetDocument document) {
             if (document == null) throw new ArgumentNullException(nameof(document));
 
             var workbookPart = document.WorkbookPart;
-            if (workbookPart != null)
-            {
+            if (workbookPart != null) {
                 return workbookPart;
             }
 
             workbookPart = document.GetPartsOfType<WorkbookPart>().FirstOrDefault();
-            if (workbookPart != null)
-            {
+            if (workbookPart != null) {
                 return workbookPart;
             }
 
@@ -436,8 +406,7 @@ namespace OfficeIMO.Excel {
             bool preferFilePathOnFallback,
             Stream? originalStream = null,
             bool copyBackToSource = false,
-            bool leaveOriginalStreamOpen = true)
-        {
+            bool leaveOriginalStreamOpen = true) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
 
             var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
@@ -445,8 +414,7 @@ namespace OfficeIMO.Excel {
 
             MemoryStream? normalizedStream = null;
 
-            try
-            {
+            try {
                 normalizedStream = shouldCopyBack
                     ? new NonDisposingMemoryStream(bytes.Length + 4096)
                     : new MemoryStream(bytes.Length + 4096);
@@ -464,28 +432,21 @@ namespace OfficeIMO.Excel {
                     shouldCopyBack ? originalStream : null,
                     shouldCopyBack,
                     leaveOriginalStreamOpen);
-            }
-            catch (Exception ex) when (ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException)
-            {
+            } catch (Exception ex) when (ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException) {
                 normalizedStream?.Dispose();
                 var contextMessage = filePath != null
                     ? $"Failed to open '{filePath}' after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'."
                     : "Failed to open workbook stream after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.";
                 log?.Invoke($"{contextMessage} Inner exception: {ex.Message}", ex);
                 throw new IOException($"{contextMessage} See inner exception for details.", ex);
-            }
-            catch
-            {
+            } catch {
                 DisposeStream(normalizedStream);
             }
 
-            if (preferFilePathOnFallback && !string.IsNullOrEmpty(filePath))
-            {
+            if (preferFilePathOnFallback && !string.IsNullOrEmpty(filePath)) {
                 var spreadSheetDocument = SpreadsheetDocument.Open(filePath, !readOnly, effectiveOpenSettings);
                 return CreateDocument(spreadSheetDocument, filePath);
-            }
-            else
-            {
+            } else {
                 var fallbackStream = shouldCopyBack
                     ? new NonDisposingMemoryStream(bytes.Length + 4096)
                     : new MemoryStream(bytes.Length + 4096);
@@ -502,13 +463,11 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static byte[] ReadAllBytes(Stream stream)
-        {
+        private static byte[] ReadAllBytes(Stream stream) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
-            if (stream.CanSeek)
-            {
+            if (stream.CanSeek) {
                 stream.Seek(0, SeekOrigin.Begin);
             }
 
@@ -517,13 +476,11 @@ namespace OfficeIMO.Excel {
             return buffer.ToArray();
         }
 
-        private static async Task<byte[]> ReadAllBytesAsync(Stream stream, CancellationToken cancellationToken)
-        {
+        private static async Task<byte[]> ReadAllBytesAsync(Stream stream, CancellationToken cancellationToken) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
-            if (stream.CanSeek)
-            {
+            if (stream.CanSeek) {
                 stream.Seek(0, SeekOrigin.Begin);
             }
 
@@ -532,32 +489,24 @@ namespace OfficeIMO.Excel {
             return buffer.ToArray();
         }
 
-        private static void DisposeStream(Stream? stream)
-        {
-            if (stream == null)
-            {
+        private static void DisposeStream(Stream? stream) {
+            if (stream == null) {
                 return;
             }
 
-            if (stream is NonDisposingMemoryStream ndms)
-            {
+            if (stream is NonDisposingMemoryStream ndms) {
                 ndms.DisposeUnderlying();
-            }
-            else
-            {
+            } else {
                 stream.Dispose();
             }
         }
 
-        private static bool ShouldCopyBackToSource(bool readOnly, bool autoSave, OpenSettings? openSettings)
-        {
-            if (readOnly)
-            {
+        private static bool ShouldCopyBackToSource(bool readOnly, bool autoSave, OpenSettings? openSettings) {
+            if (readOnly) {
                 return false;
             }
 
-            if (autoSave)
-            {
+            if (autoSave) {
                 return true;
             }
 
@@ -594,20 +543,16 @@ namespace OfficeIMO.Excel {
         /// <param name="autoSave">Enable auto-save on dispose.</param>
         /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
-        public static ExcelDocument Load(Stream stream, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null)
-        {
+        public static ExcelDocument Load(Stream stream, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
             bool shouldCopyBack = ShouldCopyBackToSource(readOnly, autoSave, openSettings);
-            if (shouldCopyBack)
-            {
-                if (!stream.CanWrite)
-                {
+            if (shouldCopyBack) {
+                if (!stream.CanWrite) {
                     throw new ArgumentException("Stream must be writable when autoSave is enabled for editable documents.", nameof(stream));
                 }
-                if (!stream.CanSeek)
-                {
+                if (!stream.CanSeek) {
                     throw new ArgumentException("Stream must support seeking when autoSave is enabled for editable documents.", nameof(stream));
                 }
             }
@@ -630,22 +575,17 @@ namespace OfficeIMO.Excel {
         /// Validates the current spreadsheet with Open XML validator and returns error messages (if any).
         /// Useful for troubleshooting "Repaired Records" issues in Excel.
         /// </summary>
-        public System.Collections.Generic.IReadOnlyList<string> ValidateOpenXml()
-        {
+        public System.Collections.Generic.IReadOnlyList<string> ValidateOpenXml() {
             var list = new System.Collections.Generic.List<string>();
             if (_spreadSheetDocument == null) return list;
             // Ensure worksheet element order prior to validation so schema checks reflect final layout
-            try
-            {
-                foreach (var sheet in Sheets)
-                {
+            try {
+                foreach (var sheet in Sheets) {
                     sheet.EnsureWorksheetElementOrder();
                 }
-            }
-            catch { }
+            } catch { }
             var validator = new OpenXmlValidator();
-            foreach (var error in validator.Validate(_spreadSheetDocument))
-            {
+            foreach (var error in validator.Validate(_spreadSheetDocument)) {
                 list.Add($"{error.ErrorType}: {error.Description} at {error.Path}");
             }
             return list;
@@ -681,20 +621,16 @@ namespace OfficeIMO.Excel {
         /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
-        public static async Task<ExcelDocument> LoadAsync(Stream stream, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null, CancellationToken cancellationToken = default)
-        {
+        public static async Task<ExcelDocument> LoadAsync(Stream stream, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null, CancellationToken cancellationToken = default) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
             bool shouldCopyBack = ShouldCopyBackToSource(readOnly, autoSave, openSettings);
-            if (shouldCopyBack)
-            {
-                if (!stream.CanWrite)
-                {
+            if (shouldCopyBack) {
+                if (!stream.CanWrite) {
                     throw new ArgumentException("Stream must be writable when autoSave is enabled for editable documents.", nameof(stream));
                 }
-                if (!stream.CanSeek)
-                {
+                if (!stream.CanSeek) {
                     throw new ArgumentException("Stream must support seeking when autoSave is enabled for editable documents.", nameof(stream));
                 }
             }
@@ -749,28 +685,23 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private string ValidateOrSanitizeSheetName(string name, SheetNameValidationMode mode)
-        {
+        private string ValidateOrSanitizeSheetName(string name, SheetNameValidationMode mode) {
             // Collect existing names (case-insensitive)
             var existing = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
-            foreach (var s in _workBookPart.Workbook.Sheets?.OfType<DocumentFormat.OpenXml.Spreadsheet.Sheet>() ?? System.Linq.Enumerable.Empty<DocumentFormat.OpenXml.Spreadsheet.Sheet>())
-            {
+            foreach (var s in _workBookPart.Workbook.Sheets?.OfType<DocumentFormat.OpenXml.Spreadsheet.Sheet>() ?? System.Linq.Enumerable.Empty<DocumentFormat.OpenXml.Spreadsheet.Sheet>()) {
                 var existingName = s.Name?.Value;
                 if (!string.IsNullOrEmpty(existingName)) existing.Add(existingName!);
             }
 
-            if (mode == SheetNameValidationMode.None)
-            {
+            if (mode == SheetNameValidationMode.None) {
                 // Preserve historical behavior: default to "Sheet1" when empty
                 if (string.IsNullOrEmpty(name)) name = "Sheet1";
                 return name;
             }
 
             // Rules common to Sanitize/Strict
-            static bool ContainsInvalidChars(string s)
-            {
-                foreach (char c in s)
-                {
+            static bool ContainsInvalidChars(string s) {
+                foreach (char c in s) {
                     if (c == ':' || c == '\\' || c == '/' || c == '?' || c == '*' || c == '[' || c == ']') return true;
                 }
                 return false;
@@ -780,8 +711,7 @@ namespace OfficeIMO.Excel {
             baseName = baseName.Trim();
             baseName = baseName.Trim('\'', ' ');
 
-            if (mode == SheetNameValidationMode.Strict)
-            {
+            if (mode == SheetNameValidationMode.Strict) {
                 if (string.IsNullOrEmpty(baseName)) throw new System.ArgumentException("Worksheet name cannot be empty.", nameof(name));
                 if (baseName.Length > 31) throw new System.ArgumentException("Worksheet name cannot exceed 31 characters.", nameof(name));
                 if (ContainsInvalidChars(baseName)) throw new System.ArgumentException("Worksheet name contains invalid characters (: \\ / ? * [ ]).", nameof(name));
@@ -791,8 +721,7 @@ namespace OfficeIMO.Excel {
 
             // Sanitize
             var sb = new System.Text.StringBuilder(baseName.Length > 0 ? baseName.Length : 5);
-            foreach (char c in baseName)
-            {
+            foreach (char c in baseName) {
                 if (c == ':' || c == '\\' || c == '/' || c == '?' || c == '*' || c == '[' || c == ']') sb.Append('_');
                 else sb.Append(c);
             }
@@ -806,8 +735,7 @@ namespace OfficeIMO.Excel {
             // Ensure uniqueness by appending (2), (3), ...
             string candidate = cleaned;
             int n = 2;
-            while (existing.Contains(candidate))
-            {
+            while (existing.Contains(candidate)) {
                 string suffix = " (" + n.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
                 int maxBase = 31 - suffix.Length;
                 string basePart = cleaned.Length > maxBase ? cleaned.Substring(0, maxBase) : cleaned;
@@ -834,10 +762,8 @@ namespace OfficeIMO.Excel {
         /// for repairs on open. It removes empty containers (Hyperlinks/MergeCells), drops orphaned drawing
         /// and header/footer references, and cleans up invalid table references.
         /// </summary>
-        public void PreflightWorkbook()
-        {
-            foreach (var sheet in Sheets)
-            {
+        public void PreflightWorkbook() {
+            foreach (var sheet in Sheets) {
                 sheet.Preflight();
             }
         }
@@ -897,8 +823,7 @@ namespace OfficeIMO.Excel {
 
             var payload = PreparePackageForSave(options);
 
-            using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
-            {
+            using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None)) {
                 fs.Write(payload.PackageBytes, 0, payload.PackageBytes.Length);
                 fs.Flush();
             }
@@ -914,11 +839,9 @@ namespace OfficeIMO.Excel {
                 Helpers.Open(path, true);
             }
 
-            if (options?.ValidateOpenXml == true)
-            {
+            if (options?.ValidateOpenXml == true) {
                 var errors = ValidateOpenXml();
-                if (errors.Count > 0)
-                {
+                if (errors.Count > 0) {
                     throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
                 }
             }
@@ -932,25 +855,20 @@ namespace OfficeIMO.Excel {
         /// <param name="filePath">Destination path. Empty uses <see cref="FilePath"/>.</param>
         /// <param name="openExcel">When true, launches the saved file.</param>
         /// <param name="writeReportOnIssues">When true (default), writes <c>.xlsx.validation.txt</c> on issues.</param>
-        public void SafeSave(string filePath = "", bool openExcel = false, bool writeReportOnIssues = true)
-        {
+        public void SafeSave(string filePath = "", bool openExcel = false, bool writeReportOnIssues = true) {
             Save(filePath, openExcel);
-            try
-            {
+            try {
                 var errs = ValidateDocument();
-                if (errs.Count > 0 && writeReportOnIssues)
-                {
+                if (errs.Count > 0 && writeReportOnIssues) {
                     var target = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
                     var reportPath = System.IO.Path.ChangeExtension(target, ".xlsx.validation.txt");
                     var lines = new System.Collections.Generic.List<string>(errs.Count);
-                    foreach (var e in errs)
-                    {
+                    foreach (var e in errs) {
                         lines.Add($"{e.ErrorType}: {e.Description} at {e.Path?.XPath}");
                     }
                     System.IO.File.WriteAllLines(reportPath, lines);
                 }
-            }
-            catch { }
+            } catch { }
         }
 
         /// <summary>
@@ -971,8 +889,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Fluent sugar: compose a worksheet using <see cref="Fluent.SheetComposer"/> without exposing the builder type to callers.
         /// </summary>
-        public void Compose(string sheetName, System.Action<OfficeIMO.Excel.Fluent.SheetComposer> compose, OfficeIMO.Excel.Fluent.SheetTheme? theme = null)
-        {
+        public void Compose(string sheetName, System.Action<OfficeIMO.Excel.Fluent.SheetComposer> compose, OfficeIMO.Excel.Fluent.SheetTheme? theme = null) {
             if (compose == null) throw new System.ArgumentNullException(nameof(compose));
             var c = new OfficeIMO.Excel.Fluent.SheetComposer(this, sheetName, theme);
             compose(c);
@@ -1021,11 +938,9 @@ namespace OfficeIMO.Excel {
                 Open(filePath, true);
             }
 
-            if (options?.ValidateOpenXml == true)
-            {
+            if (options?.ValidateOpenXml == true) {
                 var errors = ValidateOpenXml();
-                if (errors.Count > 0)
-                {
+                if (errors.Count > 0) {
                     throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
                 }
             }
@@ -1035,8 +950,7 @@ namespace OfficeIMO.Excel {
         /// Saves the document into a writable stream.
         /// </summary>
         /// <param name="destination">Writable stream that receives the Excel package content.</param>
-        public void Save(Stream destination)
-        {
+        public void Save(Stream destination) {
             Save(destination, options: null);
         }
 
@@ -1045,8 +959,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="destination">Writable stream that receives the Excel package content.</param>
         /// <param name="options">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
-        public void Save(Stream destination, ExcelSaveOptions? options)
-        {
+        public void Save(Stream destination, ExcelSaveOptions? options) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
@@ -1058,11 +971,9 @@ namespace OfficeIMO.Excel {
 
             ReloadFromBytes(finalizedBytes);
 
-            if (options?.ValidateOpenXml == true)
-            {
+            if (options?.ValidateOpenXml == true) {
                 var errors = ValidateOpenXml();
-                if (errors.Count > 0)
-                {
+                if (errors.Count > 0) {
                     throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
                 }
             }
@@ -1073,8 +984,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="destination">Writable stream that receives the Excel package content.</param>
         /// <param name="cancellationToken">Cancels the asynchronous save work.</param>
-        public Task SaveAsync(Stream destination, CancellationToken cancellationToken = default)
-        {
+        public Task SaveAsync(Stream destination, CancellationToken cancellationToken = default) {
             return SaveAsync(destination, options: null, cancellationToken);
         }
 
@@ -1084,8 +994,7 @@ namespace OfficeIMO.Excel {
         /// <param name="destination">Writable stream that receives the Excel package content.</param>
         /// <param name="options">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
         /// <param name="cancellationToken">Cancels the asynchronous save work.</param>
-        public async Task SaveAsync(Stream destination, ExcelSaveOptions? options, CancellationToken cancellationToken = default)
-        {
+        public async Task SaveAsync(Stream destination, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
@@ -1097,11 +1006,9 @@ namespace OfficeIMO.Excel {
 
             ReloadFromBytes(finalizedBytes);
 
-            if (options?.ValidateOpenXml == true)
-            {
+            if (options?.ValidateOpenXml == true) {
                 var errors = ValidateOpenXml();
-                if (errors.Count > 0)
-                {
+                if (errors.Count > 0) {
                     throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
                 }
             }
@@ -1125,11 +1032,9 @@ namespace OfficeIMO.Excel {
             return SaveAsync("", openExcel, cancellationToken);
         }
 
-        private SavePayload PreparePackageForSave(ExcelSaveOptions? options)
-        {
+        private SavePayload PreparePackageForSave(ExcelSaveOptions? options) {
             // Ensure all worksheets have up-to-date dimensions and proper element ordering before saving
-            foreach (var sheet in Sheets)
-            {
+            foreach (var sheet in Sheets) {
                 sheet.UpdateSheetDimension();
                 sheet.EnsureWorksheetElementOrder();
                 sheet.Commit();
@@ -1137,13 +1042,11 @@ namespace OfficeIMO.Excel {
 
             // Always preflight to remove orphaned/empty containers that can trigger Excel repairs
             try { PreflightWorkbook(); } catch { }
-            if (options?.SafePreflight == true)
-            {
+            if (options?.SafePreflight == true) {
                 // Already performed above; branch kept for semantic clarity
             }
 
-            if (options?.SafeRepairDefinedNames == true)
-            {
+            if (options?.SafeRepairDefinedNames == true) {
                 try { RepairDefinedNames(save: true); } catch { }
             }
 
@@ -1163,8 +1066,7 @@ namespace OfficeIMO.Excel {
             return new SavePayload(packageBytes, propertiesSnapshot);
         }
 
-        private void ReloadFromBytes(byte[] packageBytes)
-        {
+        private void ReloadFromBytes(byte[] packageBytes) {
             var mem = new MemoryStream(packageBytes.Length + 8192);
             mem.Write(packageBytes, 0, packageBytes.Length);
             mem.Position = 0;
@@ -1174,30 +1076,24 @@ namespace OfficeIMO.Excel {
             _sharedStringTablePart = null;
         }
 
-        private static byte[] NormalizePackageBytes(byte[] packageBytes)
-        {
+        private static byte[] NormalizePackageBytes(byte[] packageBytes) {
             var working = new MemoryStream(packageBytes.Length + 4096);
             working.Write(packageBytes, 0, packageBytes.Length);
             working.Position = 0;
 
-            try
-            {
+            try {
                 ExcelPackageUtilities.NormalizeContentTypes(working, leaveOpen: true);
-            }
-            catch
-            {
+            } catch {
             }
 
-            if (working.CanSeek)
-            {
+            if (working.CanSeek) {
                 working.Position = 0;
             }
 
             return working.ToArray();
         }
 
-        private sealed class PackagePropertiesSnapshot
-        {
+        private sealed class PackagePropertiesSnapshot {
             private readonly string? _title;
             private readonly string? _creator;
             private readonly string? _subject;
@@ -1221,8 +1117,7 @@ namespace OfficeIMO.Excel {
                 string? version,
                 DateTime? created,
                 DateTime? modified,
-                DateTime? lastPrinted)
-            {
+                DateTime? lastPrinted) {
                 _title = title;
                 _creator = creator;
                 _subject = subject;
@@ -1236,10 +1131,8 @@ namespace OfficeIMO.Excel {
                 _lastPrinted = lastPrinted;
             }
 
-            public static PackagePropertiesSnapshot Capture(SpreadsheetDocument document)
-            {
-                try
-                {
+            public static PackagePropertiesSnapshot Capture(SpreadsheetDocument document) {
+                try {
                     var props = document.PackageProperties;
                     return new PackagePropertiesSnapshot(
                         props.Title,
@@ -1253,22 +1146,17 @@ namespace OfficeIMO.Excel {
                         props.Created,
                         props.Modified,
                         props.LastPrinted);
-                }
-                catch
-                {
+                } catch {
                     return new PackagePropertiesSnapshot(null, null, null, null, null, null, null, null, null, null, null);
                 }
             }
 
-            public void ApplyTo(string packagePath)
-            {
-                if (string.IsNullOrWhiteSpace(packagePath) || !File.Exists(packagePath))
-                {
+            public void ApplyTo(string packagePath) {
+                if (string.IsNullOrWhiteSpace(packagePath) || !File.Exists(packagePath)) {
                     return;
                 }
 
-                try
-                {
+                try {
                     using var package = Package.Open(packagePath, FileMode.Open, FileAccess.ReadWrite);
                     var dst = package.PackageProperties;
                     dst.Title = _title;
@@ -1282,25 +1170,20 @@ namespace OfficeIMO.Excel {
                     dst.Created = _created;
                     dst.Modified = _modified ?? DateTime.UtcNow;
                     dst.LastPrinted = _lastPrinted;
-                }
-                catch
-                {
+                } catch {
                 }
             }
 
-            public byte[] ApplyTo(byte[] packageBytes)
-            {
+            public byte[] ApplyTo(byte[] packageBytes) {
                 if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
                 if (packageBytes.Length == 0) return packageBytes;
 
-                try
-                {
+                try {
                     var working = new MemoryStream(packageBytes.Length + 4096);
                     working.Write(packageBytes, 0, packageBytes.Length);
                     working.Position = 0;
 
-                    using (var package = Package.Open(working, FileMode.Open, FileAccess.ReadWrite))
-                    {
+                    using (var package = Package.Open(working, FileMode.Open, FileAccess.ReadWrite)) {
                         var dst = package.PackageProperties;
                         dst.Title = _title;
                         dst.Creator = _creator;
@@ -1315,46 +1198,36 @@ namespace OfficeIMO.Excel {
                         dst.LastPrinted = _lastPrinted;
                     }
 
-                    if (working.CanSeek)
-                    {
+                    if (working.CanSeek) {
                         working.Position = 0;
                     }
 
                     return working.ToArray();
-                }
-                catch
-                {
+                } catch {
                     return packageBytes;
                 }
             }
         }
 
-        private sealed class NonDisposingMemoryStream : MemoryStream
-        {
-            public NonDisposingMemoryStream(int capacity) : base(capacity)
-            {
+        private sealed class NonDisposingMemoryStream : MemoryStream {
+            public NonDisposingMemoryStream(int capacity) : base(capacity) {
             }
 
-            public NonDisposingMemoryStream(byte[] buffer) : base(buffer)
-            {
+            public NonDisposingMemoryStream(byte[] buffer) : base(buffer) {
             }
 
-            protected override void Dispose(bool disposing)
-            {
+            protected override void Dispose(bool disposing) {
                 // Suppress disposal so the buffer remains accessible after SpreadsheetDocument closes the stream.
             }
 
-            public void DisposeUnderlying()
-            {
+            public void DisposeUnderlying() {
                 base.Dispose(true);
                 GC.SuppressFinalize(this);
             }
         }
 
-        private sealed class SavePayload
-        {
-            public SavePayload(byte[] packageBytes, PackagePropertiesSnapshot properties)
-            {
+        private sealed class SavePayload {
+            public SavePayload(byte[] packageBytes, PackagePropertiesSnapshot properties) {
                 PackageBytes = packageBytes;
                 Properties = properties;
             }
@@ -1400,49 +1273,31 @@ namespace OfficeIMO.Excel {
             GC.SuppressFinalize(this);
         }
 
-        private void PersistPackageToSourceIfNeeded()
-        {
-            if (_packageStream == null)
-            {
+        private void PersistPackageToSourceIfNeeded() {
+            if (_packageStream == null) {
                 return;
             }
 
-            try
-            {
-                if (_copyPackageToSourceOnDispose && _sourceStream != null)
-                {
+            try {
+                if (_copyPackageToSourceOnDispose && _sourceStream != null) {
                     PersistPackageToSource();
                 }
-            }
-            catch
-            {
+            } catch {
                 // ignored
-            }
-            finally
-            {
+            } finally {
                 DisposeStream(_packageStream);
 
-                if (_copyPackageToSourceOnDispose && _sourceStream != null)
-                {
-                    if (!_leaveSourceStreamOpen)
-                    {
-                        try
-                        {
+                if (_copyPackageToSourceOnDispose && _sourceStream != null) {
+                    if (!_leaveSourceStreamOpen) {
+                        try {
                             _sourceStream.Dispose();
-                        }
-                        catch
-                        {
+                        } catch {
                             // ignored
                         }
-                    }
-                    else if (_sourceStream.CanSeek)
-                    {
-                        try
-                        {
+                    } else if (_sourceStream.CanSeek) {
+                        try {
                             _sourceStream.Seek(0, SeekOrigin.Begin);
-                        }
-                        catch
-                        {
+                        } catch {
                             // ignored
                         }
                     }
@@ -1455,18 +1310,15 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void PersistPackageToSource()
-        {
+        private void PersistPackageToSource() {
             var packageStream = _packageStream ?? throw new InvalidOperationException("Package stream is not available.");
             var targetStream = _sourceStream ?? throw new InvalidOperationException("Source stream is not available.");
 
-            if (!targetStream.CanSeek)
-            {
+            if (!targetStream.CanSeek) {
                 throw new InvalidOperationException("The provided stream must support seeking when autoSave is enabled.");
             }
 
-            if (packageStream.CanSeek)
-            {
+            if (packageStream.CanSeek) {
                 packageStream.Seek(0, SeekOrigin.Begin);
             }
 

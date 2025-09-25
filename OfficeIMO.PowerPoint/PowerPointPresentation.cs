@@ -1,14 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint.Fluent;
 using A = DocumentFormat.OpenXml.Drawing;
-using Ap = DocumentFormat.OpenXml.ExtendedProperties;
-using D = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -27,7 +21,7 @@ namespace OfficeIMO.PowerPoint {
                 // New presentation - create with required initial structure
                 _presentationPart.Presentation = new Presentation();
                 InitializeDefaultParts();
-                
+
                 // After initialization, we have one slide created by PowerPointUtils
                 // Track it and mark it as untouched
                 if (_presentationPart.Presentation.SlideIdList != null) {
@@ -108,7 +102,7 @@ namespace OfficeIMO.PowerPoint {
                 _initialSlideUntouched = false;
                 return _slides[0];
             }
-            
+
             // Generate a unique relationship ID for the slide
             var existingRelationships = new HashSet<string>(
                 _presentationPart.Parts
@@ -118,7 +112,7 @@ namespace OfficeIMO.PowerPoint {
                     .Where(id => !string.IsNullOrEmpty(id))
                     .Select(id => id!)
             );
-            
+
             // Also check the slide IDs
             if (_presentationPart.Presentation.SlideIdList != null) {
                 foreach (SlideId existingSlideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
@@ -127,7 +121,7 @@ namespace OfficeIMO.PowerPoint {
                     }
                 }
             }
-            
+
             // Find the next available rId number
             int nextId = 1;
             string slideRelId;
@@ -135,7 +129,7 @@ namespace OfficeIMO.PowerPoint {
                 slideRelId = "rId" + nextId;
                 nextId++;
             } while (existingRelationships.Contains(slideRelId));
-            
+
             SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>(slideRelId);
             // Create slide exactly like the working example
             slidePart.Slide = new Slide(
@@ -161,7 +155,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             SlideLayoutPart layoutPart = layouts[layoutIndex];
-            
+
             // Check if this slide part already has a reference to this layout part
             string? existingRelId = null;
             foreach (var partPair in slidePart.Parts) {
@@ -170,7 +164,7 @@ namespace OfficeIMO.PowerPoint {
                     break;
                 }
             }
-            
+
             if (existingRelId == null) {
                 // Layout part not yet referenced, add it with a unique relationship ID
                 // Check if rId1 is already in use by this slide part
@@ -180,7 +174,7 @@ namespace OfficeIMO.PowerPoint {
                     .Union(slidePart.HyperlinkRelationships.Select(r => r.Id))
                     .Where(id => !string.IsNullOrEmpty(id))
                 );
-                
+
                 // Find a unique relationship ID for the layout
                 string layoutRelId = "rId1";
                 if (slideRelationships.Contains(layoutRelId)) {
@@ -190,7 +184,7 @@ namespace OfficeIMO.PowerPoint {
                         layoutIdNum++;
                     } while (slideRelationships.Contains(layoutRelId));
                 }
-                
+
                 slidePart.AddPart(layoutPart, layoutRelId);
             }
             // If the layout is already referenced, we don't need to add it again
@@ -224,7 +218,7 @@ namespace OfficeIMO.PowerPoint {
             if (_initialSlideUntouched) {
                 throw new ArgumentOutOfRangeException(nameof(index), "No slides to remove.");
             }
-            
+
             if (index < 0 || index >= _slides.Count) {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
@@ -258,7 +252,7 @@ namespace OfficeIMO.PowerPoint {
             if (_initialSlideUntouched) {
                 throw new ArgumentOutOfRangeException(nameof(fromIndex), "No slides to move.");
             }
-            
+
             if (fromIndex < 0 || fromIndex >= _slides.Count) {
                 throw new ArgumentOutOfRangeException(nameof(fromIndex));
             }
@@ -366,7 +360,7 @@ namespace OfficeIMO.PowerPoint {
             // DO NOT modify this initialization pattern or PowerPoint will show a repair dialog!
             PowerPointUtils.CreatePresentationParts(_presentationPart);
         }
-        
+
         private void LoadExistingSlides() {
             if (_presentationPart.Presentation.SlideIdList != null) {
                 foreach (SlideId slideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {

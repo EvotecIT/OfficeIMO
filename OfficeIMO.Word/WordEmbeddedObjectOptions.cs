@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Word {
     /// <summary>
     /// Options controlling how an embedded object is displayed.

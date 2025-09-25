@@ -1,11 +1,9 @@
-using System;
-using System.Globalization;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.Globalization;
 
 namespace OfficeIMO.Excel;
 
-internal static class CoerceValueHelper
-{
+internal static class CoerceValueHelper {
     private const long DoublePrecisionSafeIntegerBound = 9_007_199_254_740_992L;
     private const ulong DoublePrecisionSafeIntegerBoundUnsigned = 9_007_199_254_740_992UL;
     private const int SharedStringCharacterLimit = 32_767;
@@ -36,17 +34,14 @@ internal static class CoerceValueHelper
     internal static (CellValue cellValue, CellValues type) Coerce(
         object? value,
         Func<string, CellValue> sharedStringHandler,
-        Func<DateTimeOffset, DateTime>? dateTimeOffsetStrategy = null)
-    {
-        if (sharedStringHandler is null)
-        {
+        Func<DateTimeOffset, DateTime>? dateTimeOffsetStrategy = null) {
+        if (sharedStringHandler is null) {
             throw new ArgumentNullException(nameof(sharedStringHandler));
         }
 
         dateTimeOffsetStrategy ??= DefaultDateTimeOffsetStrategy;
 
-        return value switch
-        {
+        return value switch {
             null => HandleEmptyString(),
             System.DBNull => HandleEmptyString(),
             string s => HandleSharedString(s, sharedStringHandler, nameof(value)),
@@ -97,15 +92,12 @@ internal static class CoerceValueHelper
         DateTimeOffset value,
         Func<string, CellValue> sharedStringHandler,
         Func<DateTimeOffset, DateTime> dateTimeOffsetStrategy,
-        string? paramName)
-    {
-        if (sharedStringHandler is null)
-        {
+        string? paramName) {
+        if (sharedStringHandler is null) {
             throw new ArgumentNullException(nameof(sharedStringHandler));
         }
 
-        if (dateTimeOffsetStrategy is null)
-        {
+        if (dateTimeOffsetStrategy is null) {
             throw new ArgumentNullException(nameof(dateTimeOffsetStrategy));
         }
 
@@ -113,31 +105,22 @@ internal static class CoerceValueHelper
         string fallbackText = value.ToString("o", CultureInfo.InvariantCulture);
 
         DateTime converted;
-        try
-        {
+        try {
             converted = dateTimeOffsetStrategy(value);
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             throw new InvalidOperationException("The configured DateTimeOffset write strategy threw an exception.", ex);
         }
 
-        try
-        {
+        try {
             double serial = converted.ToOADate();
-            if (serial < ExcelMinimumSupportedSerial)
-            {
+            if (serial < ExcelMinimumSupportedSerial) {
                 return HandleSharedString(fallbackText, sharedStringHandler, paramName);
             }
 
             return HandleNumber(serial);
-        }
-        catch (ArgumentException)
-        {
+        } catch (ArgumentException) {
             return HandleSharedString(fallbackText, sharedStringHandler, paramName);
-        }
-        catch (OverflowException)
-        {
+        } catch (OverflowException) {
             return HandleSharedString(fallbackText, sharedStringHandler, paramName);
         }
     }
@@ -148,10 +131,8 @@ internal static class CoerceValueHelper
     internal static (CellValue, CellValues) HandleEmptyString() =>
         (CloneCellValue(EmptyStringTemplate), CellValues.String);
 
-    internal static (CellValue, CellValues) HandleSharedString(string text, Func<string, CellValue> sharedStringHandler, string? paramName = null)
-    {
-        if (sharedStringHandler is null)
-        {
+    internal static (CellValue, CellValues) HandleSharedString(string text, Func<string, CellValue> sharedStringHandler, string? paramName = null) {
+        if (sharedStringHandler is null) {
             throw new ArgumentNullException(nameof(sharedStringHandler));
         }
 
@@ -159,10 +140,8 @@ internal static class CoerceValueHelper
         return (sharedStringHandler(text), CellValues.SharedString);
     }
 
-    internal static void ValidateSharedStringLength(string text, string paramName)
-    {
-        if (text.Length > SharedStringCharacterLimit)
-        {
+    internal static void ValidateSharedStringLength(string text, string paramName) {
+        if (text.Length > SharedStringCharacterLimit) {
             throw new ArgumentException("String exceeds Excel's limit of 32,767 characters.", paramName);
         }
     }

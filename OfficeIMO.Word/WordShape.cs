@@ -1,8 +1,5 @@
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System;
 using System.Globalization;
-using System.Linq;
 using System.Threading;
 using A = DocumentFormat.OpenXml.Drawing;
 using Drawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
@@ -44,7 +41,7 @@ namespace OfficeIMO.Word {
         /// <summary>DrawingML shape element if present.</summary>
         internal Drawing? _drawing;
         internal Wps.WordprocessingShape? _wpsShape;
-        
+
         // Cached templates to avoid rebuilding geometry adjust lists; cloned per use.
         private static readonly A.AdjustValueList _roundRectAdjustTemplate = new A.AdjustValueList(
             new A.ShapeGuide() { Name = "adj", Formula = "val 16667" });
@@ -52,31 +49,30 @@ namespace OfficeIMO.Word {
         private static (A.ShapeTypeValues preset, A.AdjustValueList adjustList) MapPresetGeometry(ShapeType shapeType) {
             // Clone the template for shapes that require adjust lists; otherwise return an empty instance.
             switch (shapeType) {
-                case ShapeType.Line:              return (A.ShapeTypeValues.Line, new A.AdjustValueList());
-                case ShapeType.Ellipse:           return (A.ShapeTypeValues.Ellipse, new A.AdjustValueList());
-                case ShapeType.Rectangle:         return (A.ShapeTypeValues.Rectangle, new A.AdjustValueList());
-                case ShapeType.RoundedRectangle:  return (A.ShapeTypeValues.RoundRectangle, (A.AdjustValueList)_roundRectAdjustTemplate.CloneNode(true));
-                case ShapeType.Triangle:          return (A.ShapeTypeValues.Triangle, new A.AdjustValueList());
-                case ShapeType.Diamond:           return (A.ShapeTypeValues.Diamond, new A.AdjustValueList());
-                case ShapeType.Pentagon:          return (A.ShapeTypeValues.Pentagon, new A.AdjustValueList());
-                case ShapeType.Hexagon:           return (A.ShapeTypeValues.Hexagon, new A.AdjustValueList());
-                case ShapeType.RightArrow:        return (A.ShapeTypeValues.RightArrow, new A.AdjustValueList());
-                case ShapeType.LeftArrow:         return (A.ShapeTypeValues.LeftArrow, new A.AdjustValueList());
-                case ShapeType.UpArrow:           return (A.ShapeTypeValues.UpArrow, new A.AdjustValueList());
-                case ShapeType.DownArrow:         return (A.ShapeTypeValues.DownArrow, new A.AdjustValueList());
-                case ShapeType.Star5:             return (A.ShapeTypeValues.Star5, new A.AdjustValueList());
-                case ShapeType.Heart:             return (A.ShapeTypeValues.Heart, new A.AdjustValueList());
-                case ShapeType.Cloud:             return (A.ShapeTypeValues.Cloud, new A.AdjustValueList());
-                case ShapeType.Donut:             return (A.ShapeTypeValues.Donut, new A.AdjustValueList());
-                case ShapeType.Can:               return (A.ShapeTypeValues.Can, new A.AdjustValueList());
-                case ShapeType.Cube:              return (A.ShapeTypeValues.Cube, new A.AdjustValueList());
+                case ShapeType.Line: return (A.ShapeTypeValues.Line, new A.AdjustValueList());
+                case ShapeType.Ellipse: return (A.ShapeTypeValues.Ellipse, new A.AdjustValueList());
+                case ShapeType.Rectangle: return (A.ShapeTypeValues.Rectangle, new A.AdjustValueList());
+                case ShapeType.RoundedRectangle: return (A.ShapeTypeValues.RoundRectangle, (A.AdjustValueList)_roundRectAdjustTemplate.CloneNode(true));
+                case ShapeType.Triangle: return (A.ShapeTypeValues.Triangle, new A.AdjustValueList());
+                case ShapeType.Diamond: return (A.ShapeTypeValues.Diamond, new A.AdjustValueList());
+                case ShapeType.Pentagon: return (A.ShapeTypeValues.Pentagon, new A.AdjustValueList());
+                case ShapeType.Hexagon: return (A.ShapeTypeValues.Hexagon, new A.AdjustValueList());
+                case ShapeType.RightArrow: return (A.ShapeTypeValues.RightArrow, new A.AdjustValueList());
+                case ShapeType.LeftArrow: return (A.ShapeTypeValues.LeftArrow, new A.AdjustValueList());
+                case ShapeType.UpArrow: return (A.ShapeTypeValues.UpArrow, new A.AdjustValueList());
+                case ShapeType.DownArrow: return (A.ShapeTypeValues.DownArrow, new A.AdjustValueList());
+                case ShapeType.Star5: return (A.ShapeTypeValues.Star5, new A.AdjustValueList());
+                case ShapeType.Heart: return (A.ShapeTypeValues.Heart, new A.AdjustValueList());
+                case ShapeType.Cloud: return (A.ShapeTypeValues.Cloud, new A.AdjustValueList());
+                case ShapeType.Donut: return (A.ShapeTypeValues.Donut, new A.AdjustValueList());
+                case ShapeType.Can: return (A.ShapeTypeValues.Can, new A.AdjustValueList());
+                case ShapeType.Cube: return (A.ShapeTypeValues.Cube, new A.AdjustValueList());
                 default:
                     throw new ArgumentOutOfRangeException(nameof(shapeType), shapeType, null);
             }
         }
 
-        private static long ToEmuChecked(double points, string paramName)
-        {
+        private static long ToEmuChecked(double points, string paramName) {
             // reject NaN/Infinity and absurd negatives early
             if (double.IsNaN(points) || double.IsInfinity(points))
                 throw new ArgumentOutOfRangeException(paramName, "Value must be a finite number.");
@@ -87,26 +83,22 @@ namespace OfficeIMO.Word {
             return (long)Math.Round(emu);
         }
 
-        private static void ValidateDimensions(double widthPt, double heightPt)
-        {
+        private static void ValidateDimensions(double widthPt, double heightPt) {
             if (widthPt <= 0) throw new ArgumentOutOfRangeException(nameof(widthPt), "Width must be positive.");
             if (heightPt <= 0) throw new ArgumentOutOfRangeException(nameof(heightPt), "Height must be positive.");
         }
 
-        private static void ValidatePosition(double leftPt, double topPt)
-        {
+        private static void ValidatePosition(double leftPt, double topPt) {
             if (leftPt < 0) throw new ArgumentOutOfRangeException(nameof(leftPt), "Left offset cannot be negative.");
             if (topPt < 0) throw new ArgumentOutOfRangeException(nameof(topPt), "Top offset cannot be negative.");
         }
 
-        private static string? EnsureHashPrefix(string? color)
-        {
+        private static string? EnsureHashPrefix(string? color) {
             if (string.IsNullOrEmpty(color)) return color;
             return color!.StartsWith("#", StringComparison.Ordinal) ? color : "#" + color;
         }
 
-        private static Wps.WordprocessingShape BuildWpsShape(long cx, long cy, ShapeType shapeType)
-        {
+        private static Wps.WordprocessingShape BuildWpsShape(long cx, long cy, ShapeType shapeType) {
             var wsp = new Wps.WordprocessingShape();
             wsp.Append(new Wps.NonVisualDrawingShapeProperties(new A.ShapeLocks() { NoChangeArrowheads = true }));
 
@@ -141,8 +133,7 @@ namespace OfficeIMO.Word {
             return wsp;
         }
 
-        private static DW.Anchor BuildAnchor(long cx, long cy, long offX, long offY, A.Graphic graphic)
-        {
+        private static DW.Anchor BuildAnchor(long cx, long cy, long offX, long offY, A.Graphic graphic) {
             var anchor = new DW.Anchor() {
                 DistanceFromTop = 0U,
                 DistanceFromBottom = 0U,

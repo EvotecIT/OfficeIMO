@@ -1,7 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
-using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 using A = DocumentFormat.OpenXml.Drawing;
-using DocumentFormat.OpenXml;
+using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 using Dsp = DocumentFormat.OpenXml.Office.Drawing;
 
 namespace OfficeIMO.Word.SmartArt.Templates {

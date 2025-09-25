@@ -1,15 +1,4 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using DocumentFormat.OpenXml;
-using Wp = DocumentFormat.OpenXml.Drawing.Wordprocessing;
-using Wp14 = DocumentFormat.OpenXml.Office2010.Word.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using V = DocumentFormat.OpenXml.Vml;
-using Ovml = DocumentFormat.OpenXml.Vml.Office;
-using Wvml = DocumentFormat.OpenXml.Vml.Wordprocessing;
-using Wpg = DocumentFormat.OpenXml.Office2010.Word.DrawingGroup;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
-using Pic = DocumentFormat.OpenXml.Drawing.Pictures;
-using A14 = DocumentFormat.OpenXml.Office2010.Drawing;
 
 namespace OfficeIMO.Word {
     /// <summary>

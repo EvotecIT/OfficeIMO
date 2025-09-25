@@ -1,41 +1,31 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.Collections.Concurrent;
 
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Minimal planner for number formats/styles.
     /// Collects distinct number format strings during compute, then creates
     /// NumberingFormats and CellFormats once in the apply stage.
     /// </summary>
-    internal sealed class StylePlanner
-    {
+    internal sealed class StylePlanner {
         private readonly ConcurrentDictionary<string, byte> _formats = new(StringComparer.Ordinal);
         private Dictionary<string, uint>? _cellFormatIndexByFormat;
 
-        public void NoteNumberFormat(string? format)
-        {
+        public void NoteNumberFormat(string? format) {
             if (string.IsNullOrWhiteSpace(format)) return;
             _formats.TryAdd(format!, 0);
         }
 
-        public void ApplyTo(ExcelDocument doc)
-        {
-            if (_formats.IsEmpty)
-            {
+        public void ApplyTo(ExcelDocument doc) {
+            if (_formats.IsEmpty) {
                 _cellFormatIndexByFormat = new Dictionary<string, uint>(0, StringComparer.Ordinal);
                 return;
             }
 
             var workbookPart = doc._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
             WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
-            if (stylesPart == null)
-            {
+            if (stylesPart == null) {
                 stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
             }
 
@@ -55,8 +45,7 @@ namespace OfficeIMO.Excel
             if (stylesheet.CellStyleFormats.Count == null) stylesheet.CellStyleFormats.Count = (uint)stylesheet.CellStyleFormats.Count();
 
             stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-            if (stylesheet.CellFormats.Count == null || stylesheet.CellFormats.Count.Value == 0)
-            {
+            if (stylesheet.CellFormats.Count == null || stylesheet.CellFormats.Count.Value == 0) {
                 stylesheet.CellFormats.Count = 1; // default format at index 0
             }
 
@@ -67,20 +56,15 @@ namespace OfficeIMO.Excel
             uint nextId = numberFormats.Any() ? numberFormats.Max(n => n.NumberFormatId!.Value) + 1U : 164U;
             var numFmtIdByFormat = new Dictionary<string, uint>(StringComparer.Ordinal);
 
-            foreach (var fmt in _formats.Keys)
-            {
+            foreach (var fmt in _formats.Keys) {
                 var existing = stylesheet.NumberingFormats.Elements<NumberingFormat>()
                     .FirstOrDefault(n => n.FormatCode != null && string.Equals(n.FormatCode.Value, fmt, StringComparison.Ordinal));
                 uint id;
-                if (existing != null)
-                {
+                if (existing != null) {
                     id = existing.NumberFormatId!.Value;
-                }
-                else
-                {
+                } else {
                     id = nextId++;
-                    var numberingFormat = new NumberingFormat
-                    {
+                    var numberingFormat = new NumberingFormat {
                         NumberFormatId = id,
                         FormatCode = fmt
                     };
@@ -93,16 +77,13 @@ namespace OfficeIMO.Excel
             // Create (or reuse) CellFormats that apply the numbering format
             var cellFormats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
             var cellFormatIndexByFormat = new Dictionary<string, uint>(StringComparer.Ordinal);
-            foreach (var kvp in numFmtIdByFormat)
-            {
+            foreach (var kvp in numFmtIdByFormat) {
                 string fmt = kvp.Key;
                 uint id = kvp.Value;
 
                 int idx = cellFormats.FindIndex(cf => cf.NumberFormatId != null && cf.NumberFormatId.Value == id && cf.ApplyNumberFormat != null && cf.ApplyNumberFormat.Value);
-                if (idx == -1)
-                {
-                    var cf = new CellFormat
-                    {
+                if (idx == -1) {
+                    var cf = new CellFormat {
                         NumberFormatId = id,
                         FontId = 0U,
                         FillId = 0U,
@@ -122,8 +103,7 @@ namespace OfficeIMO.Excel
             _cellFormatIndexByFormat = cellFormatIndexByFormat;
         }
 
-        public bool TryGetCellFormatIndex(string? format, out uint index)
-        {
+        public bool TryGetCellFormatIndex(string? format, out uint index) {
             index = 0;
             if (string.IsNullOrWhiteSpace(format) || _cellFormatIndexByFormat == null)
                 return false;

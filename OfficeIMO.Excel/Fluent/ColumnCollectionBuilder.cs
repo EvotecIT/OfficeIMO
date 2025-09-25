@@ -1,5 +1,3 @@
-using System;
-using OfficeIMO.Excel;
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Fluent helper for configuring one or more columns (widths, styles) by index.

@@ -1,25 +1,19 @@
-using System;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Page setup helpers for orientation and margins.
     /// </summary>
-    public partial class ExcelSheet
-    {
+    public partial class ExcelSheet {
         /// <summary>
         /// Sets page orientation (Portrait or Landscape) on the sheet's PageSetup.
         /// </summary>
-        public void SetOrientation(ExcelPageOrientation orientation)
-        {
-            WriteLock(() =>
-            {
+        public void SetOrientation(ExcelPageOrientation orientation) {
+            WriteLock(() => {
                 var ws = _worksheetPart.Worksheet;
                 var pageSetup = ws.GetFirstChild<PageSetup>();
-                if (pageSetup == null)
-                {
+                if (pageSetup == null) {
                     pageSetup = new PageSetup();
                     var margins = ws.GetFirstChild<PageMargins>();
                     if (margins != null) ws.InsertAfter(pageSetup, margins); else ws.Append(pageSetup);
@@ -33,14 +27,11 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Sets page margins in inches.
         /// </summary>
-        public void SetMargins(double left, double right, double top, double bottom, double header = 0.3, double footer = 0.3)
-        {
-            WriteLock(() =>
-            {
+        public void SetMargins(double left, double right, double top, double bottom, double header = 0.3, double footer = 0.3) {
+            WriteLock(() => {
                 var ws = _worksheetPart.Worksheet;
                 var margins = ws.GetFirstChild<PageMargins>();
-                if (margins == null)
-                {
+                if (margins == null) {
                     margins = new PageMargins();
                     ws.InsertAt(margins, 0);
                 }
@@ -52,11 +43,9 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Applies a preset set of margins.
         /// </summary>
-        public void SetMarginsPreset(ExcelMarginPreset preset)
-        {
+        public void SetMarginsPreset(ExcelMarginPreset preset) {
             // Values approximate Excel's presets in inches
-            switch (preset)
-            {
+            switch (preset) {
                 case ExcelMarginPreset.Narrow:
                     SetMargins(left: 0.25, right: 0.25, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3);
                     break;
@@ -74,8 +63,7 @@ namespace OfficeIMO.Excel
     }
 
     /// <summary>Common presets for page margins.</summary>
-    public enum ExcelMarginPreset
-    {
+    public enum ExcelMarginPreset {
         /// <summary>Standard margins: left/right 0.7 inch, top/bottom 0.75 inch, header/footer 0.3 inch.</summary>
         Normal,
         /// <summary>Narrow margins: left/right 0.25 inch, top/bottom 0.5 inch, header/footer 0.3 inch.</summary>
@@ -87,8 +75,7 @@ namespace OfficeIMO.Excel
     }
 
     /// <summary>Sheet page orientation.</summary>
-    public enum ExcelPageOrientation
-    {
+    public enum ExcelPageOrientation {
         /// <summary>Portrait orientation (vertical).</summary>
         Portrait,
         /// <summary>Landscape orientation (horizontal).</summary>

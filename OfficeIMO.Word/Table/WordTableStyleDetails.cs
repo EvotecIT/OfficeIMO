@@ -1,6 +1,5 @@
-using System;
-using System.Globalization;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Globalization;
 
 namespace OfficeIMO.Word;
 /// <summary>

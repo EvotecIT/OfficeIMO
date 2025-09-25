@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Word {
     /// <summary>
     /// Represents errors that occur during document conversion processes.

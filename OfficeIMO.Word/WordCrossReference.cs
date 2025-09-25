@@ -1,6 +1,3 @@
-using System;
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word {
     /// <summary>
     /// Specifies reference types for cross references.

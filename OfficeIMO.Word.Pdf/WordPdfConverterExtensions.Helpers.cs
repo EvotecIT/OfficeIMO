@@ -1,4 +1,3 @@
-using OfficeIMO.Word;
 using QuestPDF.Helpers;
 
 namespace OfficeIMO.Word.Pdf {

@@ -1,15 +1,10 @@
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Vml;
-using OfficeIMO.Word;
 using QuestPDF.Drawing;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using SkiaSharp;
-using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {

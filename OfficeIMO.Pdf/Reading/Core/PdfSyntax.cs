@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Pdf;
@@ -29,8 +28,7 @@ internal static class PdfSyntax {
                 var data = PdfEncoding.Latin1GetBytes(m.Groups[2].Value);
                 // Handle FlateDecode (best-effort, zero-dep)
                 if (HasFlateDecode(dict)) {
-                    try { data = Filters.FlateDecoder.Decode(data); }
-                    catch (Exception ex) {
+                    try { data = Filters.FlateDecoder.Decode(data); } catch (Exception ex) {
                         // Provide failure feedback while keeping original bytes
                         System.Diagnostics.Trace.WriteLine($"OfficeIMO.Pdf: FlateDecode failed for object {id} {gen} R: {ex.Message}");
                         map[id] = new PdfIndirectObject(id, gen, new PdfStream(dict, data, decodingFailed: true, error: ex.Message));
@@ -119,11 +117,8 @@ internal static class PdfSyntax {
                 var sb = new StringBuilder();
                 while (i < s.Length && depth > 0) {
                     char ch = s[i++];
-                    if (esc) { sb.Append(ch); esc = false; }
-                    else if (ch == '\\') esc = true;
-                    else if (ch == '(') { depth++; sb.Append(ch); }
-                    else if (ch == ')') { depth--; if (depth > 0) sb.Append(ch); }
-                    else sb.Append(ch);
+                    if (esc) { sb.Append(ch); esc = false; } else if (ch == '\\') esc = true;
+                    else if (ch == '(') { depth++; sb.Append(ch); } else if (ch == ')') { depth--; if (depth > 0) sb.Append(ch); } else sb.Append(ch);
                 }
                 tokens.Add("(" + sb.ToString() + ")");
                 continue;

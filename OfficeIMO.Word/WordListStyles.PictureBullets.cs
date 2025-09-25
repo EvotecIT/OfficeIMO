@@ -1,6 +1,4 @@
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
-using DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word;
 

@@ -1,5 +1,3 @@
-using OfficeIMO.Word;
-
 namespace OfficeIMO.Word.Fluent {
     /// <summary>
     /// Builder for runs.

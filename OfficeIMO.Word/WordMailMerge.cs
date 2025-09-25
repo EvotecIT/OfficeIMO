@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace OfficeIMO.Word {
     /// <summary>
     /// Provides basic mail merge capabilities by replacing <c>MERGEFIELD</c> fields with supplied values.

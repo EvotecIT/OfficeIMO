@@ -2,14 +2,7 @@ using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -295,7 +288,7 @@ namespace OfficeIMO.Word.Html {
                         handledHtmlStyle = true;
                     } else if (string.Equals(run.CharacterStyleId, "HtmlTime", StringComparison.OrdinalIgnoreCase)) {
                         var time = htmlDoc.CreateElement("time");
-                          string dt = run.Text ?? string.Empty;
+                        string dt = run.Text ?? string.Empty;
                         if (DateTime.TryParse(run.Text, out var parsed)) {
                             dt = parsed.ToString("o");
                         }
@@ -362,8 +355,8 @@ namespace OfficeIMO.Word.Html {
 
             void AppendParagraph(IElement parent, WordParagraph para) {
                 if (para.IsBookmark && para.Bookmark != null) {
-                      var name = para.Bookmark.Name ?? string.Empty;
-                      var parts = name.Split(new[] { ':' }, 2);
+                    var name = para.Bookmark.Name ?? string.Empty;
+                    var parts = name.Split(new[] { ':' }, 2);
                     if (parts.Length == 2 && IsStructuralTag(parts[0])) {
                         var structEl = htmlDoc.CreateElement(parts[0]);
                         structEl.SetAttribute("id", parts[1]);
@@ -662,19 +655,19 @@ namespace OfficeIMO.Word.Html {
 
             foreach (var section in DocumentTraversal.EnumerateSections(document)) {
                 cancellationToken.ThrowIfCancellationRequested();
-            var elements = section.Elements;
-            if (elements == null || elements.Count == 0) {
-                // Fallback: compose elements from paragraphs and tables when section enumeration yields none
-                var composed = new List<WordElement>(section.Paragraphs.Count + section.Tables.Count);
-                composed.AddRange(section.Paragraphs);
-                composed.AddRange(section.Tables);
-                elements = composed;
-            }
-            if (elements == null) {
-                continue;
-            }
-            for (int idx = 0; idx < elements.Count; idx++) {
-                var element = elements[idx];
+                var elements = section.Elements;
+                if (elements == null || elements.Count == 0) {
+                    // Fallback: compose elements from paragraphs and tables when section enumeration yields none
+                    var composed = new List<WordElement>(section.Paragraphs.Count + section.Tables.Count);
+                    composed.AddRange(section.Paragraphs);
+                    composed.AddRange(section.Tables);
+                    elements = composed;
+                }
+                if (elements == null) {
+                    continue;
+                }
+                for (int idx = 0; idx < elements.Count; idx++) {
+                    var element = elements[idx];
                     if (element is WordParagraph paragraph) {
                         var listInfo = DocumentTraversal.GetListInfo(paragraph);
                         if (listInfo != null) {
@@ -747,8 +740,8 @@ namespace OfficeIMO.Word.Html {
                     } else if (element is WordTable table) {
                         CloseLists();
                         AppendTable(body, table);
+                    }
                 }
-            }
             }
 
             CloseLists();
@@ -759,9 +752,9 @@ namespace OfficeIMO.Word.Html {
                 var hr = htmlDoc.CreateElement("hr");
                 footSection.AppendChild(hr);
                 var ol = htmlDoc.CreateElement("ol");
-            foreach (var (number, note) in footnotes) {
-                cancellationToken.ThrowIfCancellationRequested();
-                var li = htmlDoc.CreateElement("li");
+                foreach (var (number, note) in footnotes) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var li = htmlDoc.CreateElement("li");
                     li.SetAttribute("id", $"fn{number}");
                     var p = htmlDoc.CreateElement("p");
                     string text = string.Join(string.Empty, note.Paragraphs?.Skip(1).Select(r => r.Text) ?? Enumerable.Empty<string>());

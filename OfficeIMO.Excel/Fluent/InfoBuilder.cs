@@ -1,12 +1,8 @@
-using System;
-
-namespace OfficeIMO.Excel.Fluent
-{
+namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Fluent builder for workbook properties (core + extended).
     /// </summary>
-    public sealed class InfoBuilder
-    {
+    public sealed class InfoBuilder {
         private readonly ExcelDocument _doc;
         internal InfoBuilder(ExcelDocument doc) { _doc = doc; }
 

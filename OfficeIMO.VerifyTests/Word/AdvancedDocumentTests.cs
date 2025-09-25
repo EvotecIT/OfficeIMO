@@ -1,12 +1,11 @@
-﻿using System;
-using System.Threading.Tasks;
-using DocumentFormat.OpenXml.Packaging;
+﻿using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
+using System;
+using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;
 using Assert = OfficeIMO.VerifyTests.TestAssert;
-
 using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.VerifyTests.Word;
@@ -109,7 +108,7 @@ public class AdvancedDocumentTests : VerifyTestBase {
 
         wordListToc.AddItem("Adding custom properties and page numbers to document");
 
-        document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty {Value = DateTime.Today});
+        document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
         document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
         document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 

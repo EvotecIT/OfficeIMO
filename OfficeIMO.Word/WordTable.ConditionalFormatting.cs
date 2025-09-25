@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Word {

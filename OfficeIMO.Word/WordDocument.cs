@@ -1,16 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.IO.Packaging;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.Fluent;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -991,8 +985,8 @@ namespace OfficeIMO.Word {
 
                 do {
                     number++;
-                      string newFileName = $"{fileName} ({number}){fileExtension}";
-                      filePath = Path.Combine(folderPath, newFileName);
+                    string newFileName = $"{fileName} ({number}){fileExtension}";
+                    filePath = Path.Combine(folderPath, newFileName);
                 } while (File.Exists(filePath));
             }
 
@@ -1269,8 +1263,8 @@ namespace OfficeIMO.Word {
 
             var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
 
-                // Read the source file into memory with a shared read handle to avoid test collisions.
-                using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) {
+            // Read the source file into memory with a shared read handle to avoid test collisions.
+            using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) {
                 var memoryStream = new MemoryStream();
                 fileStream.CopyTo(memoryStream);
                 memoryStream.Seek(0, SeekOrigin.Begin);
@@ -1282,7 +1276,7 @@ namespace OfficeIMO.Word {
 
                 word.FilePath = filePath;
                 word._wordprocessingDocument = wordDocument;
-                    word._document = wordDocument.MainDocumentPart!.Document;
+                word._document = wordDocument.MainDocumentPart!.Document;
                 word.LoadDocument();
                 if (applyOverrideStyles) {
                     // Ensure overrides are applied after any document initialization that may touch styles
@@ -1373,7 +1367,7 @@ namespace OfficeIMO.Word {
                 EnsureCustomStyleNames(wordDocument);
             }
 
-        
+
             WordChart.InitializeAxisIdSeed(wordDocument);
             WordChart.InitializeDocPrIdSeed(wordDocument);
 
@@ -1410,7 +1404,7 @@ namespace OfficeIMO.Word {
         /// <param name="dest"></param>
         // IPackageProperties is currently marked as experimental (OOXML0001).
         // There is no non-experimental alternative available yet.
-        #pragma warning disable OOXML0001
+#pragma warning disable OOXML0001
         private static void CopyPackageProperties(IPackageProperties src, IPackageProperties dest) {
             dest.Category = src.Category;
             dest.ContentStatus = src.ContentStatus;
@@ -1429,7 +1423,7 @@ namespace OfficeIMO.Word {
             dest.Title = src.Title;
             dest.Version = src.Version;
         }
-        #pragma warning restore OOXML0001
+#pragma warning restore OOXML0001
 
         /// <summary>
         /// Save WordDocument to filePath (SaveAs), and open the file in Microsoft Word
@@ -1501,11 +1495,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="openWord"></param>
         public void Save(bool openWord) {
-            if (string.IsNullOrEmpty(this.FilePath) && this.OriginalStream != null)
-            {
+            if (string.IsNullOrEmpty(this.FilePath) && this.OriginalStream != null) {
                 this.Save(this.OriginalStream);
-            } else
-            {
+            } else {
                 this.Save("", openWord);
             }
         }
@@ -1714,7 +1706,7 @@ namespace OfficeIMO.Word {
             }
 
             OriginalStream = outputStream;
-            
+
             if (outputStream.CanSeek) {
                 outputStream.Seek(0, SeekOrigin.Begin);
             }

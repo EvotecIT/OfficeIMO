@@ -1,7 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
-using A = DocumentFormat.OpenXml.Drawing;
-using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Word.SmartArt.Templates {
     /// Minimal strongly-typed Layout for Basic Process (list) SmartArt.

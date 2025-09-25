@@ -1,5 +1,3 @@
-using OfficeIMO.Word;
-
 namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Event arguments for missing CSS class mapping during HTML-to-Word conversion.

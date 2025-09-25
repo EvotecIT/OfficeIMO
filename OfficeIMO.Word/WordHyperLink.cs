@@ -1,8 +1,5 @@
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System;
-using System.Linq;
 
 namespace OfficeIMO.Word {
 

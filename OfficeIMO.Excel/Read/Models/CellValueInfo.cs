@@ -1,10 +1,8 @@
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// A typed cell value with row/column coordinates.
     /// </summary>
-    public readonly struct CellValueInfo
-    {
+    public readonly struct CellValueInfo {
         /// <summary>One-based row index.</summary>
         public int Row { get; }
         /// <summary>One-based column index.</summary>
@@ -15,8 +13,7 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Creates a typed cell value with coordinates.
         /// </summary>
-        public CellValueInfo(int row, int column, object? value)
-        {
+        public CellValueInfo(int row, int column, object? value) {
             Row = row;
             Column = column;
             Value = value;

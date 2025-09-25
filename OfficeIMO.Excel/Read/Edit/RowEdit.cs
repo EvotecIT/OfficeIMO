@@ -1,19 +1,13 @@
-using System;
-using System.Collections.Generic;
-
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Editable row view over a worksheet range row. Provides header-aware access and setters.
     /// </summary>
-    public sealed class RowEdit
-    {
+    public sealed class RowEdit {
         private readonly ExcelSheet _sheet;
         private readonly string[] _headers;
         private readonly Dictionary<string, int> _headerMap;
 
-        internal RowEdit(ExcelSheet sheet, int rowIndex, string[] headers, Dictionary<string, int> headerMap, CellEdit[] cells)
-        {
+        internal RowEdit(ExcelSheet sheet, int rowIndex, string[] headers, Dictionary<string, int> headerMap, CellEdit[] cells) {
             _sheet = sheet;
             RowIndex = rowIndex;
             _headers = headers;
@@ -34,10 +28,8 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// 1-based numeric indexer for cells within the materialized range.
         /// </summary>
-        public CellEdit this[int colIndex]
-        {
-            get
-            {
+        public CellEdit this[int colIndex] {
+            get {
                 if (colIndex <= 0 || colIndex > Cells.Count) throw new ArgumentOutOfRangeException(nameof(colIndex));
                 return Cells[colIndex - 1];
             }
@@ -46,10 +38,8 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Header-aware indexer for cells.
         /// </summary>
-        public CellEdit this[string header]
-        {
-            get
-            {
+        public CellEdit this[string header] {
+            get {
                 if (!_headerMap.TryGetValue(header, out var idx))
                     throw new KeyNotFoundException($"Header '{header}' not found.");
                 return Cells[idx];
@@ -59,8 +49,7 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Gets the typed value by header.
         /// </summary>
-        public T Get<T>(string header)
-        {
+        public T Get<T>(string header) {
             var cell = this[header];
             if (cell.Value is null) return default!;
             return cell.ConvertTo<T>();
@@ -69,8 +58,7 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Gets the typed value by header or returns a default.
         /// </summary>
-        public T GetOrDefault<T>(string header, T @default = default!)
-        {
+        public T GetOrDefault<T>(string header, T @default = default!) {
             var cell = this[header];
             if (cell.Value is null) return @default;
             try { return cell.ConvertTo<T>(); } catch { return @default; }
@@ -79,8 +67,7 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Sets a value by header (writes directly to the worksheet cell).
         /// </summary>
-        public void Set(string header, object? value)
-        {
+        public void Set(string header, object? value) {
             if (!_headerMap.TryGetValue(header, out var idx))
                 throw new KeyNotFoundException($"Header '{header}' not found.");
             Cells[idx].Value = value;
@@ -94,16 +81,14 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Applies a number format to the cell resolved by header.
         /// </summary>
-        public void NumberFormat(string header, string format)
-        {
+        public void NumberFormat(string header, string format) {
             CellByHeader(header).NumberFormat(format);
         }
 
         /// <summary>
         /// Sets a formula on the cell resolved by header.
         /// </summary>
-        public void SetFormula(string header, string formula)
-        {
+        public void SetFormula(string header, string formula) {
             CellByHeader(header).Formula(formula);
         }
     }

@@ -1,13 +1,8 @@
-using System;
-using System.IO;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-using System.Linq;
-using OfficeIMO;
-using OfficeIMO.Word;
 
 namespace OfficeIMO.Word.Fluent {
     /// <summary>

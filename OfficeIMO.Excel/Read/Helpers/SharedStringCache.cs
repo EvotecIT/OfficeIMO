@@ -1,24 +1,18 @@
-using System.Collections.Generic;
-using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace OfficeIMO.Excel
-{
-    internal sealed class SharedStringCache
-    {
+namespace OfficeIMO.Excel {
+    internal sealed class SharedStringCache {
         private readonly List<string> _items;
 
         private SharedStringCache(List<string> items) => _items = items;
 
-        public static SharedStringCache Build(SpreadsheetDocument doc)
-        {
+        public static SharedStringCache Build(SpreadsheetDocument doc) {
             var part = doc.WorkbookPart!.SharedStringTablePart;
             if (part?.SharedStringTable == null) return new SharedStringCache(new List<string>());
 
             var list = new List<string>(Math.Max(1024, (int)(part.SharedStringTable.Count?.Value ?? 0)));
-            foreach (var item in part.SharedStringTable.Elements<SharedStringItem>())
-            {
+            foreach (var item in part.SharedStringTable.Elements<SharedStringItem>()) {
                 if (item.Text?.Text != null)
                     list.Add(item.Text.Text);
                 else if (item.HasChildren)
@@ -29,8 +23,7 @@ namespace OfficeIMO.Excel
             return new SharedStringCache(list);
         }
 
-        public string? Get(int index)
-        {
+        public string? Get(int index) {
             if ((uint)index < (uint)_items.Count) return _items[index];
             return null;
         }

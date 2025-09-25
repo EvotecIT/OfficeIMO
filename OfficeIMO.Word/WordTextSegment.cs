@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-
 namespace OfficeIMO.Word {
     /// <summary>
     /// Represents a continuous text fragment within a document and exposes
@@ -79,7 +75,7 @@ namespace OfficeIMO.Word {
                 beginPos.Paragraph = value;
             }
         }
-      
+
         /// <summary>
         /// The index of the start text character
         /// </summary>
@@ -103,7 +99,7 @@ namespace OfficeIMO.Word {
                 endPos.Paragraph = value;
             }
         }
-       
+
         /// <summary>
         /// the index of the end text character
         /// </summary>

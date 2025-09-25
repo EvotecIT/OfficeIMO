@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Markdown;
 
 /// <summary>
@@ -79,7 +76,7 @@ public sealed class TableBuilder {
 
             if (IsScalar(first)) {
                 if (_table.Headers.Count == 0) _table.Headers.Add("Value");
-            foreach (var item in seq) { if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(new[] { FormatValue(item) }); }
+                foreach (var item in seq) { if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(new[] { FormatValue(item) }); }
                 return this;
             }
 
@@ -314,8 +311,7 @@ public sealed class TableBuilder {
         int count = _table.Headers.Count > 0 ? _table.Headers.Count : (_table.Rows.Count > 0 ? _table.Rows[0].Count : 0);
         if (count <= 0) return this;
         if (_table.Alignments.Count < count) { for (int i = _table.Alignments.Count; i < count; i++) _table.Alignments.Add(ColumnAlignment.None); }
-        if (cols == null || cols.Length == 0) { for (int i = 0; i < count; i++) _table.Alignments[i] = alignment; }
-        else { foreach (var c in cols) if (c >= 0 && c < count) _table.Alignments[c] = alignment; }
+        if (cols == null || cols.Length == 0) { for (int i = 0; i < count; i++) _table.Alignments[i] = alignment; } else { foreach (var c in cols) if (c >= 0 && c < count) _table.Alignments[c] = alignment; }
         return this;
     }
 
@@ -367,7 +363,7 @@ public sealed class TableBuilder {
         if (DateTimeOffset.TryParse(s2, System.Globalization.CultureInfo.CurrentCulture, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out _)) return true;
         if (DateTime.TryParse(s2, System.Globalization.CultureInfo.CurrentCulture, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out _)) return true;
         // Common explicit formats
-        string[] formats = new [] { "yyyy-MM-dd", "MM/dd/yyyy", "dd.MM.yyyy", "yyyyMMdd", "dd/MM/yyyy" };
+        string[] formats = new[] { "yyyy-MM-dd", "MM/dd/yyyy", "dd.MM.yyyy", "yyyyMMdd", "dd/MM/yyyy" };
         foreach (var fmt in formats) if (DateTime.TryParseExact(s2, fmt, null, System.Globalization.DateTimeStyles.None, out _)) return true;
         return false;
     }
