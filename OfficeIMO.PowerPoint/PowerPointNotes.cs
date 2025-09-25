@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -33,7 +35,8 @@ namespace OfficeIMO.PowerPoint {
 
         private NotesSlide NotesSlide {
             get {
-                if (_slidePart.NotesSlidePart == null) {
+                NotesSlidePart? notesPart = _slidePart.NotesSlidePart;
+                if (notesPart == null) {
                     // Generate a unique relationship ID for the notes part
                     HashSet<string> slideRelationships = GetRelationshipIds();
 
@@ -44,12 +47,7 @@ namespace OfficeIMO.PowerPoint {
                         notesIdNum++;
                     } while (!slideRelationships.Add(notesRelId));
 
-                    NotesSlidePart notesPart = _slidePart.AddNewPart<NotesSlidePart>(notesRelId);
-                    PresentationPart? presentationPart = _slidePart.GetParentParts().OfType<PresentationPart>().FirstOrDefault();
-                    if (presentationPart != null) {
-                        NotesMasterPart notesMasterPart = _notesMasterPartFactory.EnsureNotesMasterPart(presentationPart);
-                        notesPart.AddPart(notesMasterPart);
-                    }
+                    notesPart = _slidePart.AddNewPart<NotesSlidePart>(notesRelId);
 
                     ShapeTree shapeTree = CreateEmptyShapeTree();
                     uint placeholderId = GetNextShapeId(shapeTree);
@@ -60,7 +58,39 @@ namespace OfficeIMO.PowerPoint {
                         new ColorMapOverride(new A.MasterColorMapping()));
                 }
 
-                return _slidePart.NotesSlidePart!.NotesSlide;
+                EnsureNotesMasterRelationship(notesPart);
+
+                if (notesPart.NotesSlide == null) {
+                    ShapeTree shapeTree = CreateEmptyShapeTree();
+                    uint placeholderId = GetNextShapeId(shapeTree);
+                    shapeTree.Append(CreateNotesPlaceholderShape(placeholderId));
+
+                    notesPart.NotesSlide = new NotesSlide(
+                        new CommonSlideData(shapeTree),
+                        new ColorMapOverride(new A.MasterColorMapping()));
+                }
+
+                return notesPart.NotesSlide!;
+            }
+        }
+
+        private void EnsureNotesMasterRelationship(NotesSlidePart notesPart) {
+            PresentationPart? presentationPart = _slidePart
+                .GetParentParts()
+                .OfType<PresentationPart>()
+                .FirstOrDefault();
+
+            if (presentationPart == null) {
+                return;
+            }
+
+            NotesMasterPart notesMasterPart = _notesMasterPartFactory.EnsureNotesMasterPart(presentationPart);
+
+            bool hasNotesMasterRelationship = notesPart.Parts
+                .Any(pair => ReferenceEquals(pair.OpenXmlPart, notesMasterPart));
+
+            if (!hasNotesMasterRelationship) {
+                notesPart.AddPart(notesMasterPart);
             }
         }
 
