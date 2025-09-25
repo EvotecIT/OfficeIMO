@@ -324,7 +324,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new FileNotFoundException("Image file not found.", imagePath);
             }
 
-            ImagePart imagePart = _slidePart.AddImagePart(ImagePartType.Png);
+            ImagePart imagePart = _slidePart.AddImagePart(ImagePartType.Png.ToPartTypeInfo());
             using FileStream stream = new(imagePath, FileMode.Open, FileAccess.Read);
             imagePart.FeedData(stream);
             string relationshipId = _slidePart.GetIdOfPart(imagePart);

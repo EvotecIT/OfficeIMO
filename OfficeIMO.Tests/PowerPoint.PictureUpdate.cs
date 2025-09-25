@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -16,7 +15,7 @@ namespace OfficeIMO.Tests {
 
         [Theory]
         [MemberData(nameof(ImageData))]
-        public void CanUpdatePicture(string newImage, PartTypeInfo type, string expectedContentType) {
+        public void CanUpdatePicture(string newImage, ImagePartType type, string expectedContentType) {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string originalImage = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
             string newImagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", newImage);

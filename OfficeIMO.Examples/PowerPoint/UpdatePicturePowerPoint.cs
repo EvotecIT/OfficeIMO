@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.Examples.PowerPoint {
