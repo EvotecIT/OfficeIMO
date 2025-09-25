@@ -34,6 +34,16 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static string? NormalizeContentType(string? raw) {
+            if (string.IsNullOrWhiteSpace(raw)) return null;
+
+            var trimmed = raw!.Trim();
+            var separatorIndex = trimmed.IndexOf(';');
+            if (separatorIndex >= 0) trimmed = trimmed.Substring(0, separatorIndex);
+
+            return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+        }
+
         public static bool TryFetch(string url, int timeoutSeconds, long maxBytes, out byte[]? bytes, out string? contentType) {
             bytes = null; contentType = null;
             try {
@@ -53,8 +63,7 @@ namespace OfficeIMO.Excel {
                 using (var response = (HttpWebResponse)request.GetResponse())
                 {
                     if (response.StatusCode != HttpStatusCode.OK) return false;
-                    var ctRaw = response.ContentType;
-                    var ct = string.IsNullOrWhiteSpace(ctRaw) ? null : ctRaw;
+                    var ct = NormalizeContentType(response.ContentType);
                     if (ct == null || !ct.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) return false;
                     var len = response.ContentLength;
                     if (len > 0 && len > maxBytes) return false;
@@ -74,8 +83,7 @@ namespace OfficeIMO.Excel {
                 using (var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(Math.Max(1, timeoutSeconds)) })
                 using (var resp = http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult()) {
                     if (!resp.IsSuccessStatusCode) return false;
-                    var ctRaw = resp.Content.Headers.ContentType?.MediaType;
-                    var ct = string.IsNullOrWhiteSpace(ctRaw) ? null : ctRaw;
+                    var ct = NormalizeContentType(resp.Content.Headers.ContentType?.MediaType);
                     if (ct == null || !ct.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) return false;
                     var len = resp.Content.Headers.ContentLength;
                     if (len.HasValue && len.Value > maxBytes) return false;
