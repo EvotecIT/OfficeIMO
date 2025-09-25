@@ -1,17 +1,11 @@
-using System;
-using System.IO;
-using DocumentFormat.OpenXml.Wordprocessing;
-using DocumentFormat.OpenXml;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
 using DocumentFormat.OpenXml.Packaging;
-using System.Linq;
-using System.Collections.Generic;
+using DocumentFormat.OpenXml.Wordprocessing;
 using System.Reflection;
 using System.Xml.Linq;
 using MathParagraph = DocumentFormat.OpenXml.Math.Paragraph;
 using OfficeMath = DocumentFormat.OpenXml.Math.OfficeMath;
 using V = DocumentFormat.OpenXml.Vml;
+using W14 = DocumentFormat.OpenXml.Office2010.Word;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -1146,5 +1140,5 @@ namespace OfficeIMO.Word {
 
             return new WordRepeatingSection(this._document, this._paragraph, newSdt);
         }
-}
+    }
 }

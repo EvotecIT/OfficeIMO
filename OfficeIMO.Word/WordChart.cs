@@ -1,13 +1,11 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.Threading;
 using AxisId = DocumentFormat.OpenXml.Drawing.Charts.AxisId;
 using Chart = DocumentFormat.OpenXml.Drawing.Charts.Chart;
 using ChartSpace = DocumentFormat.OpenXml.Drawing.Charts.ChartSpace;
 using DataLabels = DocumentFormat.OpenXml.Drawing.Charts.DataLabels;
 using Formula = DocumentFormat.OpenXml.Drawing.Charts.Formula;
-using Legend = DocumentFormat.OpenXml.Drawing.Charts.Legend;
 using NumericValue = DocumentFormat.OpenXml.Drawing.Charts.NumericValue;
 using PlotArea = DocumentFormat.OpenXml.Drawing.Charts.PlotArea;
 
@@ -400,8 +398,8 @@ namespace OfficeIMO.Word {
                         var existing = valAxis.GetFirstChild<Title>();
                         existing?.Remove();
                         if (!string.IsNullOrEmpty(_yAxisTitle)) {
-            OpenXmlElement? refNode = valAxis.GetFirstChild<MajorGridlines>() as OpenXmlElement
-                ?? valAxis.GetFirstChild<AxisPosition>();
+                            OpenXmlElement? refNode = valAxis.GetFirstChild<MajorGridlines>() as OpenXmlElement
+                                ?? valAxis.GetFirstChild<AxisPosition>();
                             var title = AddAxisTitle(_yAxisTitle ?? string.Empty);
                             if (refNode != null) {
                                 valAxis.InsertAfter(title, refNode);

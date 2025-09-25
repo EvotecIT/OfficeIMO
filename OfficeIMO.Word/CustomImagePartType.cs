@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
-
 namespace OfficeIMO.Word;
 
 /// <summary>

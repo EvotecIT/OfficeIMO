@@ -6,19 +6,12 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Io;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word;
-using OfficeIMO.Word.Html;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Net;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Html {
     /// <summary>
@@ -671,11 +664,11 @@ namespace OfficeIMO.Word.Html {
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
-                        var close = currentParagraph.AddFormattedText(options.QuoteSuffix, fmt.Bold, fmt.Italic, fmt.Underline ? UnderlineValues.Single : null);
-                        ApplyFormatting(close, fmt, options);
-                        close.SetCharacterStyleId("HtmlQuote");
-                        break;
-                    }
+                            var close = currentParagraph.AddFormattedText(options.QuoteSuffix, fmt.Bold, fmt.Italic, fmt.Underline ? UnderlineValues.Single : null);
+                            ApplyFormatting(close, fmt, options);
+                            close.SetCharacterStyleId("HtmlQuote");
+                            break;
+                        }
                     case "cite": {
                             currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
                             var fmt = formatting;
@@ -774,13 +767,13 @@ namespace OfficeIMO.Word.Html {
                             var target = element.GetAttribute("target");
                             var idAttr = element.GetAttribute("id");
                             if (!string.IsNullOrEmpty(idAttr)) {
-                                  currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
-                                  AddBookmarkIfPresent(element, currentParagraph);
-                              }
-                              if (href is { Length: > 0 } h1 && h1.StartsWith("#") && _footnoteMap.TryGetValue(h1.TrimStart('#'), out var fnText)) {
-                                  currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
-                                  currentParagraph!.AddFootNote(fnText ?? string.Empty);
-                              } else if (!string.IsNullOrEmpty(href)) {
+                                currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                                AddBookmarkIfPresent(element, currentParagraph);
+                            }
+                            if (href is { Length: > 0 } h1 && h1.StartsWith("#") && _footnoteMap.TryGetValue(h1.TrimStart('#'), out var fnText)) {
+                                currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                                currentParagraph!.AddFootNote(fnText ?? string.Empty);
+                            } else if (!string.IsNullOrEmpty(href)) {
                                 currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
                                 var h = href!;
                                 if (h.StartsWith("#")) {
@@ -853,7 +846,7 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                     case "img": {
-                        ProcessImage((IHtmlImageElement)element, doc, options, currentParagraph, headerFooter);
+                            ProcessImage((IHtmlImageElement)element, doc, options, currentParagraph, headerFooter);
                             break;
                         }
                     case "style": {

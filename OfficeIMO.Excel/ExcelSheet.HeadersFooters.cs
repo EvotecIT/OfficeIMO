@@ -1,20 +1,14 @@
-using System;
-using System.Globalization;
-using System.IO;
-using System.Text;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using OfficeIMO.Excel;
 using SixLabors.ImageSharp;
+using System.Globalization;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>
         /// Snapshot of header and footer text and related flags for this worksheet.
         /// </summary>
-        public sealed class HeaderFooterSnapshot
-        {
+        public sealed class HeaderFooterSnapshot {
             /// <summary>Left section text of the header (odd pages).</summary>
             public string HeaderLeft { get; set; } = string.Empty;
             /// <summary>Center section text of the header (odd pages).</summary>
@@ -37,35 +31,39 @@ namespace OfficeIMO.Excel {
             public bool FooterHasPicturePlaceholder { get; set; }
         }
 
+        internal static string NormalizeImageContentType(string? contentType, string parameterName) {
+            if (string.IsNullOrWhiteSpace(contentType)) return "image/png";
+
+            var trimmed = contentType.Trim();
+            if (!trimmed.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) {
+                throw new ArgumentException("Content type must start with 'image/'", parameterName);
+            }
+
+            return trimmed;
+        }
+
         /// <summary>
         /// Returns a snapshot of the current header and footer strings (odd pages) split into left/center/right sections,
         /// including flags and whether a picture placeholder (&amp;G) is present.
         /// </summary>
-        public HeaderFooterSnapshot GetHeaderFooter()
-        {
+        public HeaderFooterSnapshot GetHeaderFooter() {
             var ws = _worksheetPart.Worksheet;
             var hf = ws.GetFirstChild<HeaderFooter>();
             string oddHeader = hf?.OddHeader?.Text ?? string.Empty;
             string oddFooter = hf?.OddFooter?.Text ?? string.Empty;
 
-            (string L, string C, string R) Parse(string text)
-            {
+            (string L, string C, string R) Parse(string text) {
                 string l = string.Empty, c = string.Empty, r = string.Empty;
                 if (string.IsNullOrEmpty(text)) return (l, c, r);
                 int i = 0;
-                while (i < text.Length)
-                {
+                while (i < text.Length) {
                     char ch = text[i++];
-                    if (ch == '&' && i < text.Length)
-                    {
+                    if (ch == '&' && i < text.Length) {
                         char sec = text[i++];
-                        if (sec == 'L' || sec == 'C' || sec == 'R')
-                        {
+                        if (sec == 'L' || sec == 'C' || sec == 'R') {
                             var sb = new StringBuilder();
-                            while (i < text.Length)
-                            {
-                                if (text[i] == '&' && i + 1 < text.Length)
-                                {
+                            while (i < text.Length) {
+                                if (text[i] == '&' && i + 1 < text.Length) {
                                     char nxt = text[i + 1];
                                     if (nxt == 'L' || nxt == 'C' || nxt == 'R') break;
                                 }
@@ -94,8 +92,7 @@ namespace OfficeIMO.Excel {
                 }
             } catch { /* ignore */ }
 
-            return new HeaderFooterSnapshot
-            {
+            return new HeaderFooterSnapshot {
                 HeaderLeft = hl,
                 HeaderCenter = hc,
                 HeaderRight = hr,
@@ -131,20 +128,16 @@ namespace OfficeIMO.Excel {
             bool differentFirstPage = false,
             bool differentOddEven = false,
             bool alignWithMargins = true,
-            bool scaleWithDoc = true)
-        {
-            WriteLock(() =>
-            {
+            bool scaleWithDoc = true) {
+            WriteLock(() => {
                 var ws = _worksheetPart.Worksheet;
                 var hf = ws.GetFirstChild<HeaderFooter>();
-                if (hf == null)
-                {
+                if (hf == null) {
                     hf = new HeaderFooter();
                     // Per Excel behavior, place HeaderFooter before any Drawing when possible
                     var drawing = ws.GetFirstChild<Drawing>();
                     if (drawing != null) ws.InsertBefore(hf, drawing);
-                    else
-                    {
+                    else {
                         var after = ws.GetFirstChild<PageSetup>();
                         if (after != null) ws.InsertAfter(hf, after); else ws.Append(hf);
                     }
@@ -155,8 +148,7 @@ namespace OfficeIMO.Excel {
                 hf.AlignWithMargins = alignWithMargins ? true : (bool?)null;
                 hf.ScaleWithDoc = scaleWithDoc ? true : (bool?)null;
 
-                string? Build(string? left, string? center, string? right)
-                {
+                string? Build(string? left, string? center, string? right) {
                     var sb = new StringBuilder();
                     if (!string.IsNullOrEmpty(left)) sb.Append("&L").Append(EscapeHeaderFooter(left));
                     if (!string.IsNullOrEmpty(center)) sb.Append("&C").Append(EscapeHeaderFooter(center));
@@ -170,13 +162,11 @@ namespace OfficeIMO.Excel {
                 if (oddHeader != null) hf.OddHeader = new OddHeader(oddHeader); else hf.OddHeader = null;
                 if (oddFooter != null) hf.OddFooter = new OddFooter(oddFooter); else hf.OddFooter = null;
 
-                if (differentOddEven)
-                {
+                if (differentOddEven) {
                     if (oddHeader != null) hf.EvenHeader = new EvenHeader(oddHeader);
                     if (oddFooter != null) hf.EvenFooter = new EvenFooter(oddFooter);
                 }
-                if (differentFirstPage)
-                {
+                if (differentFirstPage) {
                     if (oddHeader != null) hf.FirstHeader = new FirstHeader(oddHeader);
                     if (oddFooter != null) hf.FirstFooter = new FirstFooter(oddFooter);
                 }
@@ -195,23 +185,23 @@ namespace OfficeIMO.Excel {
         /// <param name="contentType">e.g. image/png, image/jpeg. Defaults to image/png.</param>
         /// <param name="widthPoints">Optional width in points. If omitted, inferred from image size at 96 DPI.</param>
         /// <param name="heightPoints">Optional height in points. If omitted, inferred proportionally.</param>
-        public void SetHeaderImage(HeaderFooterPosition position, byte[] imageBytes, string contentType = "image/png", double? widthPoints = null, double? heightPoints = null)
-        {
+        public void SetHeaderImage(HeaderFooterPosition position, byte[] imageBytes, string contentType = "image/png", double? widthPoints = null, double? heightPoints = null) {
             if (imageBytes == null || imageBytes.Length == 0) throw new ArgumentException("Image bytes are required.", nameof(imageBytes));
-            WriteLock(() =>
-            {
-                EnsureHeaderFooterPicture(position, isHeader: true, imageBytes, contentType, widthPoints, heightPoints);
+            WriteLock(() => {
+                var normalizedContentType = NormalizeImageContentType(contentType, nameof(contentType));
+                EnsureHeaderFooterPicture(position, isHeader: true, imageBytes, normalizedContentType, widthPoints, heightPoints);
             });
         }
 
         /// <summary>
         /// Downloads an image from URL and sets it in the header at the given position (convenience wrapper).
         /// </summary>
-        public void SetHeaderImageUrl(HeaderFooterPosition position, string url, double? widthPoints = null, double? heightPoints = null)
-        {
+        public void SetHeaderImageUrl(HeaderFooterPosition position, string url, double? widthPoints = null, double? heightPoints = null) {
             if (string.IsNullOrWhiteSpace(url)) return;
-            if (OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var _ ) && bytes != null)
-                SetHeaderImage(position, bytes, "image/png", widthPoints, heightPoints);
+            if (OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var ct) && bytes != null) {
+                var contentType = NormalizeImageContentType(ct, nameof(ct));
+                SetHeaderImage(position, bytes, contentType, widthPoints, heightPoints);
+            }
         }
 
         /// <summary>
@@ -219,38 +209,45 @@ namespace OfficeIMO.Excel {
         /// contains the picture placeholder (&amp;G) in the corresponding section. Subsequent calls replace any
         /// previously set header/footer images for this sheet.
         /// </summary>
-        public void SetFooterImage(HeaderFooterPosition position, byte[] imageBytes, string contentType = "image/png", double? widthPoints = null, double? heightPoints = null)
-        {
+        public void SetFooterImage(HeaderFooterPosition position, byte[] imageBytes, string contentType = "image/png", double? widthPoints = null, double? heightPoints = null) {
             if (imageBytes == null || imageBytes.Length == 0) throw new ArgumentException("Image bytes are required.", nameof(imageBytes));
-            WriteLock(() =>
-            {
-                EnsureHeaderFooterPicture(position, isHeader: false, imageBytes, contentType, widthPoints, heightPoints);
+            WriteLock(() => {
+                var normalizedContentType = NormalizeImageContentType(contentType, nameof(contentType));
+                EnsureHeaderFooterPicture(position, isHeader: false, imageBytes, normalizedContentType, widthPoints, heightPoints);
             });
         }
 
         /// <summary>
         /// Downloads an image from URL and sets it in the footer at the given position (convenience wrapper).
         /// </summary>
-        public void SetFooterImageUrl(HeaderFooterPosition position, string url, double? widthPoints = null, double? heightPoints = null)
-        {
+        public void SetFooterImageUrl(HeaderFooterPosition position, string url, double? widthPoints = null, double? heightPoints = null) {
             if (string.IsNullOrWhiteSpace(url)) return;
-            if (OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var _ ) && bytes != null)
-                SetFooterImage(position, bytes, "image/png", widthPoints, heightPoints);
+            if (OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var ct) && bytes != null) {
+                var contentType = NormalizeImageContentType(ct, nameof(ct));
+                SetFooterImage(position, bytes, contentType, widthPoints, heightPoints);
+            }
         }
 
-        private static string EscapeHeaderFooter(string? text)
-        {
+        private static string EscapeHeaderFooter(string? text) {
             if (string.IsNullOrEmpty(text)) return string.Empty;
-            bool IsTokenStarter(char c)
-            {
+            bool IsTokenStarter(char c) {
                 // Recognize common Excel header/footer tokens following '&' to avoid escaping them
-                switch (c)
-                {
-                    case 'L': case 'C': case 'R': // section markers
-                    case 'P': case 'N': case 'D': case 'T': case 'A': case 'F': // page, pages, date, time, sheet, file
+                switch (c) {
+                    case 'L':
+                    case 'C':
+                    case 'R': // section markers
+                    case 'P':
+                    case 'N':
+                    case 'D':
+                    case 'T':
+                    case 'A':
+                    case 'F': // page, pages, date, time, sheet, file
                     case 'G': // picture placeholder
                     case 'K': // color: &Krrggbb
-                    case 'B': case 'I': case 'U': case 'S': // bold, italic, underline, strike
+                    case 'B':
+                    case 'I':
+                    case 'U':
+                    case 'S': // bold, italic, underline, strike
                         return true;
                 }
                 return false;
@@ -258,13 +255,10 @@ namespace OfficeIMO.Excel {
 
             var t = text!;
             var sb = new StringBuilder(t.Length + 8);
-            for (int i = 0; i < t.Length; i++)
-            {
+            for (int i = 0; i < t.Length; i++) {
                 char ch = t[i];
-                if (ch == '&')
-                {
-                    if (i + 1 < t.Length)
-                    {
+                if (ch == '&') {
+                    if (i + 1 < t.Length) {
                         char n = t[i + 1];
                         if (n == '&') { sb.Append("&&"); i++; continue; }
                         if (n == '"') { sb.Append('&'); continue; } // font name spec: &"Name,Style"
@@ -272,20 +266,17 @@ namespace OfficeIMO.Excel {
                     }
                     // literal &
                     sb.Append("&&");
-                }
-                else sb.Append(ch);
+                } else sb.Append(ch);
             }
             return sb.ToString();
         }
 
-        private void EnsureHeaderFooterPicture(HeaderFooterPosition position, bool isHeader, byte[] imageBytes, string contentType, double? widthPoints, double? heightPoints)
-        {
+        private void EnsureHeaderFooterPicture(HeaderFooterPosition position, bool isHeader, byte[] imageBytes, string contentType, double? widthPoints, double? heightPoints) {
             var ws = _worksheetPart.Worksheet;
 
             // 1) Ensure HeaderFooter element exists and contains &G in correct section
             var hf = ws.GetFirstChild<HeaderFooter>();
-            if (hf == null)
-            {
+            if (hf == null) {
                 hf = new HeaderFooter();
                 var drawingBefore = ws.GetFirstChild<Drawing>();
                 if (drawingBefore != null) ws.InsertBefore(hf, drawingBefore);
@@ -293,8 +284,7 @@ namespace OfficeIMO.Excel {
             }
 
             // Build/update section string to include &G placeholder
-            void UpsertSection(bool header, HeaderFooterPosition pos)
-            {
+            void UpsertSection(bool header, HeaderFooterPosition pos) {
                 string? current = null;
                 if (header)
                     current = hf.OddHeader?.Text;
@@ -302,21 +292,17 @@ namespace OfficeIMO.Excel {
                     current = hf.OddFooter?.Text;
 
                 string l = string.Empty, c = string.Empty, r = string.Empty;
-                if (!string.IsNullOrEmpty(current))
-                {
+                if (!string.IsNullOrEmpty(current)) {
                     // Attempt to parse existing sections to preserve other content
                     // The header/footer schema uses &L, &C, &R markers.
                     int i = 0;
                     var curr = current!;
-                    while (i < curr.Length)
-                    {
+                    while (i < curr.Length) {
                         char ch = curr[i++];
-                        if (ch == '&' && i < curr.Length)
-                        {
+                        if (ch == '&' && i < curr.Length) {
                             char sec = curr[i++];
                             var sb = new StringBuilder();
-                            while (i < curr.Length)
-                            {
+                            while (i < curr.Length) {
                                 if (curr[i] == '&' && i + 1 < curr.Length && (curr[i + 1] == 'L' || curr[i + 1] == 'C' || curr[i + 1] == 'R')) break;
                                 sb.Append(curr[i++]);
                             }
@@ -327,14 +313,12 @@ namespace OfficeIMO.Excel {
                 }
 
                 // Ensure picture placeholder &G is present for the selected section
-                string EnsureG(string s)
-                {
+                string EnsureG(string s) {
                     // Use IndexOf for .NET Standard 2.0 compatibility
                     return (s.IndexOf("&G", StringComparison.Ordinal) >= 0) ? s : ("&G" + s);
                 }
 
-                switch (pos)
-                {
+                switch (pos) {
                     case HeaderFooterPosition.Left: l = EnsureG(l); break;
                     case HeaderFooterPosition.Center: c = EnsureG(c); break;
                     case HeaderFooterPosition.Right: r = EnsureG(r); break;
@@ -358,13 +342,10 @@ namespace OfficeIMO.Excel {
             VmlDrawingPart vmlPart;
             string relId;
             var legacy = ws.GetFirstChild<LegacyDrawingHeaderFooter>();
-            if (legacy != null && legacy.Id != null)
-            {
+            if (legacy != null && legacy.Id != null) {
                 vmlPart = (VmlDrawingPart)_worksheetPart.GetPartById(legacy.Id!);
                 relId = _worksheetPart.GetIdOfPart(vmlPart);
-            }
-            else
-            {
+            } else {
                 vmlPart = _worksheetPart.AddNewPart<VmlDrawingPart>();
                 relId = _worksheetPart.GetIdOfPart(vmlPart);
                 legacy = new LegacyDrawingHeaderFooter { Id = relId };
@@ -385,8 +366,7 @@ namespace OfficeIMO.Excel {
             else
                 imgPart = vmlPart.AddImagePart(ImagePartType.Png);
 
-            using (var ms = new MemoryStream(imageBytes))
-            {
+            using (var ms = new MemoryStream(imageBytes)) {
                 imgPart.FeedData(ms);
             }
             string imgRelId = vmlPart.GetIdOfPart(imgPart);
@@ -394,10 +374,8 @@ namespace OfficeIMO.Excel {
             // Infer width/height if not provided
             double wPt = widthPoints ?? 0;
             double hPt = heightPoints ?? 0;
-            if (wPt <= 0 || hPt <= 0)
-            {
-                try
-                {
+            if (wPt <= 0 || hPt <= 0) {
+                try {
                     using var img = Image.Load(imageBytes);
                     double dpiX = 96.0, dpiY = 96.0; // ImageSharp stores resolution separately; defaults vary
                     var md = img.Metadata.ResolutionUnits;
@@ -405,8 +383,7 @@ namespace OfficeIMO.Excel {
                     if (img.Metadata.VerticalResolution > 0) dpiY = img.Metadata.VerticalResolution;
                     if (wPt <= 0) wPt = img.Width * 72.0 / dpiX;
                     if (hPt <= 0) hPt = img.Height * 72.0 / dpiY;
-                }
-                catch { wPt = wPt <= 0 ? 144.0 : wPt; hPt = hPt <= 0 ? 48.0 : hPt; }
+                } catch { wPt = wPt <= 0 ? 144.0 : wPt; hPt = hPt <= 0 ? 48.0 : hPt; }
             }
 
             // 4) Write minimal VML markup with a shape for the selected section
@@ -441,8 +418,7 @@ namespace OfficeIMO.Excel {
     </v:shape>
 </xml>";
 
-            using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(vml)))
-            {
+            using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(vml))) {
                 vmlPart.FeedData(ms);
             }
 

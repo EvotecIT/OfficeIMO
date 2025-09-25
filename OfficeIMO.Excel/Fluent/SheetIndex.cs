@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Convenience helpers for creating a navigable index (Table of Contents) sheet
@@ -15,8 +13,7 @@ namespace OfficeIMO.Excel.Fluent {
         /// <param name="includeNamedRanges">Whether to add a column listing named ranges per sheet.</param>
         /// <param name="includeHiddenNamedRanges">Include hidden named ranges in the listing.</param>
         public static void Add(ExcelDocument workbook, string sheetName = "TOC", bool placeFirst = true,
-            bool includeNamedRanges = false, bool includeHiddenNamedRanges = false)
-        {
+            bool includeNamedRanges = false, bool includeHiddenNamedRanges = false) {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
             workbook.AddTableOfContents(sheetName: sheetName, placeFirst: placeFirst, withHyperlinks: true,
                 includeNamedRanges: includeNamedRanges, includeHiddenNamedRanges: includeHiddenNamedRanges,
@@ -26,8 +23,7 @@ namespace OfficeIMO.Excel.Fluent {
         /// <summary>
         /// Adds a small back-link (e.g., "← TOC") at the given cell on every non-TOC sheet.
         /// </summary>
-        public static void AddBackLinks(ExcelDocument workbook, string tocSheetName = "TOC", int row = 2, int col = 1, string text = "\u2190 TOC")
-        {
+        public static void AddBackLinks(ExcelDocument workbook, string tocSheetName = "TOC", int row = 2, int col = 1, string text = "\u2190 TOC") {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
             workbook.AddBackLinksToToc(tocSheetName, row, col, text);
         }

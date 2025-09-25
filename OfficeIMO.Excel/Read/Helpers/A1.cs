@@ -1,15 +1,12 @@
-using System;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Utility helpers for parsing and converting Excel A1 references. Public so examples and
     /// consumers can reuse consistent logic without re-implementing regexes or math.
     /// </summary>
-    public static class A1
-    {
+    public static class A1 {
         private static readonly Regex RangeRx = new("^\\s*([A-Za-z]+)(\\d+)\\s*:\\s*([A-Za-z]+)(\\d+)\\s*$", RegexOptions.Compiled);
         private static readonly Regex CellRx = new("^\\s*([A-Za-z]+)(\\d+)\\s*$", RegexOptions.Compiled);
 
@@ -19,8 +16,7 @@ namespace OfficeIMO.Excel
         /// </summary>
         /// <param name="cellRef">A1 cell reference, without sheet prefix.</param>
         /// <returns>Tuple of row and column (1-based). Returns (0,0) if invalid.</returns>
-        public static (int Row, int Col) ParseCellRef(string cellRef)
-        {
+        public static (int Row, int Col) ParseCellRef(string cellRef) {
             if (string.IsNullOrWhiteSpace(cellRef)) return (0, 0);
             var m = CellRx.Match(cellRef);
             if (!m.Success) return (0, 0);
@@ -33,8 +29,7 @@ namespace OfficeIMO.Excel
         /// Tries to parse an A1 range (e.g., "A1:B10") into 1-based, normalized bounds.
         /// Returns false when the input is not a valid A1 range.
         /// </summary>
-        public static bool TryParseRange(string a1Range, out int r1, out int c1, out int r2, out int c2)
-        {
+        public static bool TryParseRange(string a1Range, out int r1, out int c1, out int r2, out int c2) {
             r1 = c1 = r2 = c2 = 0;
             if (string.IsNullOrWhiteSpace(a1Range)) return false;
             var m = RangeRx.Match(a1Range);
@@ -59,8 +54,7 @@ namespace OfficeIMO.Excel
         /// var (r1, c1, r2, c2) = A1.ParseRange("B2:D10");
         /// // r1=2, c1=2, r2=10, c2=4
         /// </example>
-        public static (int r1, int c1, int r2, int c2) ParseRange(string a1Range)
-        {
+        public static (int r1, int c1, int r2, int c2) ParseRange(string a1Range) {
             var m = RangeRx.Match(a1Range);
             if (!m.Success) throw new ArgumentException($"Invalid A1 range '{a1Range}'.");
             var c1 = ColumnLettersToIndex(m.Groups[1].Value);
@@ -78,11 +72,9 @@ namespace OfficeIMO.Excel
         /// </summary>
         /// <param name="letters">Excel column letters.</param>
         /// <returns>1-based column index, or 0 when input yields no letters.</returns>
-        public static int ColumnLettersToIndex(string letters)
-        {
+        public static int ColumnLettersToIndex(string letters) {
             int res = 0;
-            foreach (char ch in letters.ToUpperInvariant())
-            {
+            foreach (char ch in letters.ToUpperInvariant()) {
                 if (ch < 'A' || ch > 'Z') continue;
                 res = res * 26 + (ch - 'A' + 1);
             }
@@ -98,13 +90,11 @@ namespace OfficeIMO.Excel
         /// string col = A1.ColumnIndexToLetters(28); // "AB"
         /// int idx = A1.ColumnLettersToIndex("AB"); // 28
         /// </example>
-        public static string ColumnIndexToLetters(int index)
-        {
+        public static string ColumnIndexToLetters(int index) {
             if (index <= 0) return "A";
             string letters = string.Empty;
             int n = index;
-            while (n > 0)
-            {
+            while (n > 0) {
                 int rem = (n - 1) % 26;
                 letters = (char)('A' + rem) + letters;
                 n = (n - 1) / 26;

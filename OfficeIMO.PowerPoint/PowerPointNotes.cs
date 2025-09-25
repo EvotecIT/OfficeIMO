@@ -1,56 +1,62 @@
-using System.Collections.Generic;
-using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
+    internal interface INotesMasterPartFactory {
+        NotesMasterPart EnsureNotesMasterPart(PresentationPart presentationPart);
+    }
+
+    internal sealed class DefaultNotesMasterPartFactory : INotesMasterPartFactory {
+        internal static DefaultNotesMasterPartFactory Instance { get; } = new();
+
+        private DefaultNotesMasterPartFactory() {
+        }
+
+        public NotesMasterPart EnsureNotesMasterPart(PresentationPart presentationPart) {
+            return PowerPointUtils.EnsureNotesMasterPart(presentationPart);
+        }
+    }
+
     /// <summary>
     ///     Represents notes for a slide.
     /// </summary>
     public class PowerPointNotes {
         private readonly SlidePart _slidePart;
+        private readonly INotesMasterPartFactory _notesMasterPartFactory;
+        private HashSet<string>? _cachedRelationshipIds;
 
-        internal PowerPointNotes(SlidePart slidePart) {
+        internal PowerPointNotes(SlidePart slidePart, INotesMasterPartFactory? notesMasterPartFactory = null) {
             _slidePart = slidePart;
+            _notesMasterPartFactory = notesMasterPartFactory ?? DefaultNotesMasterPartFactory.Instance;
         }
 
         private NotesSlide NotesSlide {
             get {
                 if (_slidePart.NotesSlidePart == null) {
                     // Generate a unique relationship ID for the notes part
-                    var slideRelationships = new HashSet<string>(
-                        _slidePart.Parts.Select(p => p.RelationshipId)
-                        .Union(_slidePart.ExternalRelationships.Select(r => r.Id))
-                        .Union(_slidePart.HyperlinkRelationships.Select(r => r.Id))
-                        .Where(id => !string.IsNullOrEmpty(id))
-                    );
-                    
+                    HashSet<string> slideRelationships = GetRelationshipIds();
+
                     int notesIdNum = 1;
                     string notesRelId;
                     do {
                         notesRelId = "rId" + notesIdNum;
                         notesIdNum++;
-                    } while (slideRelationships.Contains(notesRelId));
-                    
+                    } while (!slideRelationships.Add(notesRelId));
+
                     NotesSlidePart notesPart = _slidePart.AddNewPart<NotesSlidePart>(notesRelId);
                     PresentationPart? presentationPart = _slidePart.GetParentParts().OfType<PresentationPart>().FirstOrDefault();
-                    if (presentationPart?.NotesMasterPart != null) {
-                        notesPart.AddPart(presentationPart.NotesMasterPart);
+                    if (presentationPart != null) {
+                        NotesMasterPart notesMasterPart = _notesMasterPartFactory.EnsureNotesMasterPart(presentationPart);
+                        notesPart.AddPart(notesMasterPart);
                     }
+
+                    ShapeTree shapeTree = CreateEmptyShapeTree();
+                    uint placeholderId = GetNextShapeId(shapeTree);
+                    shapeTree.Append(CreateNotesPlaceholderShape(placeholderId));
+
                     notesPart.NotesSlide = new NotesSlide(
-                        new CommonSlideData(new ShapeTree(
-                            new Shape(
-                                new NonVisualShapeProperties(
-                                    new NonVisualDrawingProperties { Id = 1U, Name = "Notes Placeholder" },
-                                    new NonVisualShapeDrawingProperties(),
-                                    new ApplicationNonVisualDrawingProperties(new PlaceholderShape())
-                                ),
-                                new ShapeProperties(),
-                                new TextBody(new A.BodyProperties(), new A.ListStyle(),
-                                    new A.Paragraph(new A.Run(new A.Text())))
-                            )
-                        )),
+                        new CommonSlideData(shapeTree),
                         new ColorMapOverride(new A.MasterColorMapping()));
                 }
 
@@ -71,19 +77,12 @@ namespace OfficeIMO.PowerPoint {
             }
             set {
                 NotesSlide notesSlide = NotesSlide;
-                CommonSlideData common = notesSlide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-                ShapeTree tree = common.ShapeTree ??= new ShapeTree();
+                CommonSlideData common = notesSlide.CommonSlideData ??= new CommonSlideData(CreateEmptyShapeTree());
+                ShapeTree tree = EnsureShapeTree(common);
                 Shape? shape = tree.GetFirstChild<Shape>();
                 if (shape is null) {
-                    shape = new Shape(
-                        new NonVisualShapeProperties(
-                            new NonVisualDrawingProperties { Id = 1U, Name = "Notes Placeholder" },
-                            new NonVisualShapeDrawingProperties(),
-                            new ApplicationNonVisualDrawingProperties(new PlaceholderShape())
-                        ),
-                        new ShapeProperties(),
-                        new TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph())
-                    );
+                    uint placeholderId = GetNextShapeId(tree);
+                    shape = CreateNotesPlaceholderShape(placeholderId);
                     tree.AppendChild(shape);
                 }
 
@@ -96,6 +95,67 @@ namespace OfficeIMO.PowerPoint {
 
         internal void Save() {
             _slidePart.NotesSlidePart?.NotesSlide?.Save();
+        }
+
+        private static ShapeTree CreateEmptyShapeTree() {
+            return new ShapeTree(
+                new NonVisualGroupShapeProperties(
+                    new NonVisualDrawingProperties { Id = 1U, Name = "Notes Group Shape" },
+                    new NonVisualGroupShapeDrawingProperties(),
+                    new ApplicationNonVisualDrawingProperties()),
+                new GroupShapeProperties(new A.TransformGroup()));
+        }
+
+        private static ShapeTree EnsureShapeTree(CommonSlideData commonSlideData) {
+            ShapeTree tree = commonSlideData.ShapeTree ??= new ShapeTree();
+
+            if (tree.GetFirstChild<NonVisualGroupShapeProperties>() == null) {
+                tree.PrependChild(new NonVisualGroupShapeProperties(
+                    new NonVisualDrawingProperties { Id = 1U, Name = "Notes Group Shape" },
+                    new NonVisualGroupShapeDrawingProperties(),
+                    new ApplicationNonVisualDrawingProperties()));
+            }
+
+            if (tree.GetFirstChild<GroupShapeProperties>() == null) {
+                tree.AppendChild(new GroupShapeProperties(new A.TransformGroup()));
+            }
+
+            return tree;
+        }
+
+        private static Shape CreateNotesPlaceholderShape(uint id) {
+            return new Shape(
+                new NonVisualShapeProperties(
+                    new NonVisualDrawingProperties { Id = id, Name = "Notes Placeholder" },
+                    new NonVisualShapeDrawingProperties(),
+                    new ApplicationNonVisualDrawingProperties(new PlaceholderShape())
+                ),
+                new ShapeProperties(),
+                new TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.Run(new A.Text())))
+            );
+        }
+
+        private static uint GetNextShapeId(ShapeTree shapeTree) {
+            uint maxId = shapeTree
+                .Descendants<NonVisualDrawingProperties>()
+                .Select(properties => properties.Id?.Value ?? 0U)
+                .DefaultIfEmpty(0U)
+                .Max();
+
+            return maxId + 1U;
+        }
+
+        private HashSet<string> GetRelationshipIds() {
+            if (_cachedRelationshipIds == null) {
+                _cachedRelationshipIds = new HashSet<string>(
+                    _slidePart.Parts.Select(p => p.RelationshipId)
+                        .Concat(_slidePart.ExternalRelationships.Select(r => r.Id))
+                        .Concat(_slidePart.HyperlinkRelationships.Select(r => r.Id))
+                        .Where(id => !string.IsNullOrEmpty(id)),
+                    StringComparer.Ordinal);
+            }
+
+            return _cachedRelationshipIds;
         }
     }
 }

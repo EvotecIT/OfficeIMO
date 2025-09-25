@@ -1,5 +1,3 @@
-using OfficeIMO.Markdown;
-
 namespace OfficeIMO.Markdown;
 
 /// <summary>Parts of HTML output for advanced embedding.</summary>

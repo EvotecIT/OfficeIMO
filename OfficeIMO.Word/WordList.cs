@@ -1,8 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using DocumentFormat.OpenXml;
-using System.Linq;
-using System.Collections.Generic;
 
 namespace OfficeIMO.Word;
 
@@ -47,26 +44,26 @@ public partial class WordList : WordElement {
         }
     }
 
-            //if (_wordParagraph != null) {
-            //    var list = new List<Paragraph>();
-            //    var parent = _wordParagraph._paragraph.Parent;
-            //    var elementsAfter = parent.ChildElements.OfType<Paragraph>();
-            //    foreach (var element in elementsAfter) {
-            //        if (element.ParagraphProperties != null && element.ParagraphProperties.NumberingProperties != null) {
-            //            if (element.ParagraphProperties.NumberingProperties.NumberingId.Val == _numberId) {
-            //                list.Add(element);
-            //            }
-            //        }
-            //    }
-            //    var listWord = WordSection.ConvertParagraphsToWordParagraphs(_document, list);
-            //    return listWord;
-            //} else {
-            //    return new List<WordParagraph>();
-            //}
-            //elementsAfter.Where(paragraph => paragraph.IsListItem && paragraph._listNumberId == _numberId).ToList();
-            //return _document.Paragraphs
-            //    .Where(paragraph => paragraph.IsListItem && paragraph._listNumberId == _numberId)
-            //    .ToList();
+    //if (_wordParagraph != null) {
+    //    var list = new List<Paragraph>();
+    //    var parent = _wordParagraph._paragraph.Parent;
+    //    var elementsAfter = parent.ChildElements.OfType<Paragraph>();
+    //    foreach (var element in elementsAfter) {
+    //        if (element.ParagraphProperties != null && element.ParagraphProperties.NumberingProperties != null) {
+    //            if (element.ParagraphProperties.NumberingProperties.NumberingId.Val == _numberId) {
+    //                list.Add(element);
+    //            }
+    //        }
+    //    }
+    //    var listWord = WordSection.ConvertParagraphsToWordParagraphs(_document, list);
+    //    return listWord;
+    //} else {
+    //    return new List<WordParagraph>();
+    //}
+    //elementsAfter.Where(paragraph => paragraph.IsListItem && paragraph._listNumberId == _numberId).ToList();
+    //return _document.Paragraphs
+    //    .Where(paragraph => paragraph.IsListItem && paragraph._listNumberId == _numberId)
+    //    .ToList();
 
     /// <summary>
     /// Restarts numbering of a list after a break. Requires a list to be set to RestartNumbering overall.

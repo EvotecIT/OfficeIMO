@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Indexer helpers for convenient sheet access (name or 0-based index).

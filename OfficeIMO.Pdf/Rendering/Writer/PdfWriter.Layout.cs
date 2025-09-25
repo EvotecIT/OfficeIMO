@@ -1,6 +1,4 @@
-using System.Text;
 using System.Globalization;
-using System.Linq;
 
 namespace OfficeIMO.Pdf;
 
@@ -165,8 +163,7 @@ internal static partial class PdfWriter {
                     currentPage!.UsedBold = true;
                     usedBold = true;
                     y -= needed;
-                }
-                else if (block is RichParagraphBlock rpb) {
+                } else if (block is RichParagraphBlock rpb) {
                     double size = currentOpts.DefaultFontSize;
                     double leading = size * 1.4;
                     var (lines, lineHeights) = WrapRichRuns(rpb.Runs, width, size, ChooseNormal(currentOpts.DefaultFont));
@@ -178,8 +175,7 @@ internal static partial class PdfWriter {
                     if (rpb.Runs.Any(r => r.Italic)) { currentPage!.UsedItalic = true; usedItalic = true; }
                     if (rpb.Runs.Any(r => r.Bold && r.Italic)) { currentPage!.UsedBoldItalic = true; usedBoldItalic = true; }
                     y -= needed;
-                }
-                else if (block is BulletListBlock bl) {
+                } else if (block is BulletListBlock bl) {
                     double size = currentOpts.DefaultFontSize;
                     double leading = size * 1.4;
                     var glyphWidthEm = GlyphWidthEmFor(ChooseNormal(currentOpts.DefaultFont));
@@ -190,8 +186,7 @@ internal static partial class PdfWriter {
                         WriteLines("F1", size, leading, currentOpts.MarginLeft, y, lines, bl.Align, bl.Color, applyBaselineTweak: true);
                         y -= needed;
                     }
-                }
-                else if (block is TableBlock tb) {
+                } else if (block is TableBlock tb) {
                     var style = tb.Style ?? currentOpts.DefaultTableStyle ?? TableStyles.Light();
                     int cols = tb.Rows.Count > 0 ? tb.Rows.Max(r => r.Length) : 0;
                     if (cols == 0) continue;
@@ -233,8 +228,7 @@ internal static partial class PdfWriter {
                         double rowTop = y;
                         double rowBottom = y - rowHeight;
                         if (currentOpts.Debug?.ShowTableRowBoxes == true) { pageDirty = true; DrawRowRect(sb, new PdfColor(1, 0, 1), 0.6, xOrigin, rowBottom, tableWidth, rowHeight); }
-                        if (style?.HeaderFill is not null && rowIndex == 0) { pageDirty = true; DrawRowFill(sb, style.HeaderFill.Value, xOrigin, rowBottom, tableWidth, rowHeight); }
-                        else if (style?.RowStripeFill is not null && rowIndex % 2 == 1) { pageDirty = true; DrawRowFill(sb, style.RowStripeFill.Value, xOrigin, rowBottom, tableWidth, rowHeight); }
+                        if (style?.HeaderFill is not null && rowIndex == 0) { pageDirty = true; DrawRowFill(sb, style.HeaderFill.Value, xOrigin, rowBottom, tableWidth, rowHeight); } else if (style?.RowStripeFill is not null && rowIndex % 2 == 1) { pageDirty = true; DrawRowFill(sb, style.RowStripeFill.Value, xOrigin, rowBottom, tableWidth, rowHeight); }
                         if (currentOpts.Debug?.ShowTableBaselines == true) {
                             double x1 = xOrigin;
                             double x2 = xOrigin + tableWidth;
@@ -293,8 +287,7 @@ internal static partial class PdfWriter {
                         }
                         y -= rowHeight;
                     }
-                }
-                else if (block is RowBlock rb) {
+                } else if (block is RowBlock rb) {
                     double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
                     int ncols = rb.Columns.Count;
                     double[] colXs = new double[ncols];
@@ -412,8 +405,7 @@ internal static partial class PdfWriter {
                         if (maxConsumed <= 0.01) { NewPage(); continue; }
                         y -= maxConsumed;
                     }
-                }
-                else if (block is ImageBlock ib) {
+                } else if (block is ImageBlock ib) {
                     double xImg = currentOpts.MarginLeft;
                     double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
                     if (ib.Align == PdfAlign.Center) xImg = currentOpts.MarginLeft + Math.Max(0, (contentWidth - ib.Width) / 2);
@@ -423,8 +415,7 @@ internal static partial class PdfWriter {
                     currentPage!.Images.Add(new PageImage { Data = ib.Data, X = xImg, Y = y - ib.Height, W = ib.Width, H = ib.Height });
                     pageDirty = true;
                     y -= ib.Height;
-                }
-                else if (block is PanelParagraphBlock ppb) {
+                } else if (block is PanelParagraphBlock ppb) {
                     double size = currentOpts.DefaultFontSize;
                     double leading = size * 1.4;
                     double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;

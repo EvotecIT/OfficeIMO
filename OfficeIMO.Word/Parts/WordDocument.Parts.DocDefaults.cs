@@ -1,24 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.ExtendedProperties;
-using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using Ap = DocumentFormat.OpenXml.ExtendedProperties;
-using Vt = DocumentFormat.OpenXml.VariantTypes;
-using M = DocumentFormat.OpenXml.Math;
-using Ovml = DocumentFormat.OpenXml.Vml.Office;
-using V = DocumentFormat.OpenXml.Vml;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
-using A = DocumentFormat.OpenXml.Drawing;
-using Thm15 = DocumentFormat.OpenXml.Office2013.Theme;
-using DocumentFormat.OpenXml.Drawing.Diagrams;
-using Style = DocumentFormat.OpenXml.Wordprocessing.Style;
 
 namespace OfficeIMO.Word {
     /// <summary>

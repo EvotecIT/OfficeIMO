@@ -1,7 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using Ovml = DocumentFormat.OpenXml.Vml.Office;
 
 namespace OfficeIMO.Word {

@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace OfficeIMO.Markdown;
 
 /// <summary>
@@ -11,9 +9,7 @@ internal static class MarkdownSlug {
         var sb = new StringBuilder(text.Length);
         bool prevHyphen = false;
         foreach (char ch in text.ToLowerInvariant()) {
-            if ((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9')) { sb.Append(ch); prevHyphen = false; }
-            else if (ch == ' ' || ch == '-' || ch == '_' ) { if (!prevHyphen) { sb.Append('-'); prevHyphen = true; } }
-            else {
+            if ((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9')) { sb.Append(ch); prevHyphen = false; } else if (ch == ' ' || ch == '-' || ch == '_') { if (!prevHyphen) { sb.Append('-'); prevHyphen = true; } } else {
                 // skip punctuation
             }
         }

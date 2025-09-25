@@ -1,13 +1,11 @@
-using System.Globalization;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.Globalization;
 
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Describes a cell's raw OpenXML data for custom conversion hooks.
     /// </summary>
-    public readonly struct ExcelCellContext
-    {
+    public readonly struct ExcelCellContext {
         /// <summary>OpenXML cell type hint, if present.</summary>
         public CellValues? TypeHint { get; }
         /// <summary>Cell style index as defined in the workbook, if present.</summary>
@@ -22,8 +20,7 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Creates a description of the original OpenXML cell and culture for conversion.
         /// </summary>
-        public ExcelCellContext(CellValues? typeHint, uint? styleIndex, string? rawText, string? inlineText, CultureInfo culture)
-        {
+        public ExcelCellContext(CellValues? typeHint, uint? styleIndex, string? rawText, string? inlineText, CultureInfo culture) {
             TypeHint = typeHint;
             StyleIndex = styleIndex;
             RawText = rawText;
@@ -36,8 +33,7 @@ namespace OfficeIMO.Excel
     /// Represents a custom-converted cell value. When Handled is true, Value should be used.
     /// When Handled is false, the built-in conversion pipeline should be used.
     /// </summary>
-    public readonly struct ExcelCellValue
-    {
+    public readonly struct ExcelCellValue {
         /// <summary>True when a custom converter produced a value and default conversion should be skipped.</summary>
         public bool Handled { get; }
         /// <summary>The converted value to use when <see cref="Handled"/> is true.</summary>
@@ -46,14 +42,12 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Creates a handled result carrying a custom <paramref name="value"/>.
         /// </summary>
-        public ExcelCellValue(object? value)
-        {
+        public ExcelCellValue(object? value) {
             Handled = true;
             Value = value;
         }
 
-        private ExcelCellValue(bool handled, object? value)
-        {
+        private ExcelCellValue(bool handled, object? value) {
             Handled = handled;
             Value = value;
         }

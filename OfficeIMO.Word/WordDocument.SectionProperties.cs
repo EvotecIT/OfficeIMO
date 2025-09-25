@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using DocumentFormat.OpenXml.Wordprocessing;
 using System.Diagnostics;
-using System.Text;
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     /// <summary>

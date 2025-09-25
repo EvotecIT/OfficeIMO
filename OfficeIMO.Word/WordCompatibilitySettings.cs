@@ -1,10 +1,6 @@
-using System;
-using DocumentFormat.OpenXml;
-using System.Globalization;
-using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Globalization;
 
 namespace OfficeIMO.Word {
 

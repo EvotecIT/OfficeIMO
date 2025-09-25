@@ -1,6 +1,5 @@
-using System.Linq;
-using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word {
     /// <summary>

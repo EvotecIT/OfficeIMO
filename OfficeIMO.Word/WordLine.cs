@@ -1,8 +1,6 @@
-using System;
-using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
-using V = DocumentFormat.OpenXml.Vml;
 using Color = SixLabors.ImageSharp.Color;
+using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
     /// <summary>

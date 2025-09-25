@@ -1,6 +1,4 @@
-using System;
 using DocumentFormat.OpenXml.Wordprocessing;
-using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Word {
     /// <summary>

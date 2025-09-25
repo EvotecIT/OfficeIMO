@@ -1,23 +1,18 @@
-using System;
+using DocumentFormat.OpenXml.Spreadsheet;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Streaming APIs for large ranges.
     /// </summary>
-    public sealed partial class ExcelSheetReader
-    {
+    public sealed partial class ExcelSheetReader {
         /// <summary>
         /// Lazily reads a rectangular A1 range as ordered row chunks. DOM traversal is single-threaded;
         /// per-chunk value conversion is offloaded in parallel based on Execution policy.
         /// </summary>
-        public IEnumerable<RangeChunk> ReadRangeStream(string a1Range, int chunkRows = 1024, OfficeIMO.Excel.ExecutionMode? mode = null, CancellationToken ct = default)
-        {
+        public IEnumerable<RangeChunk> ReadRangeStream(string a1Range, int chunkRows = 1024, OfficeIMO.Excel.ExecutionMode? mode = null, CancellationToken ct = default) {
             (int r1, int c1, int r2, int c2) = A1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) yield break;
 
@@ -43,8 +38,7 @@ namespace OfficeIMO.Excel
 
             List<Row> bufferRows = new(chunkRows);
 
-            foreach (var row in sheetData.Elements<Row>())
-            {
+            foreach (var row in sheetData.Elements<Row>()) {
                 if (ct.IsCancellationRequested) yield break;
 
                 int rIdx = checked((int)row.RowIndex!.Value);
@@ -52,8 +46,7 @@ namespace OfficeIMO.Excel
                 if (rIdx > r2) break;
 
                 bufferRows.Add(row);
-                if (bufferRows.Count >= chunkRows)
-                {
+                if (bufferRows.Count >= chunkRows) {
                     ScheduleChunk(bufferRows, chunkIndex++, r1, c1, r2, c2);
                     bufferRows = new List<Row>(chunkRows);
                 }
@@ -62,11 +55,9 @@ namespace OfficeIMO.Excel
             if (bufferRows.Count > 0)
                 ScheduleChunk(bufferRows, chunkIndex++, r1, c1, r2, c2);
 
-            for (int i = 0; i < chunkIndex; i++)
-            {
+            for (int i = 0; i < chunkIndex; i++) {
                 RangeChunk? readyChunk;
-                while (!results.TryRemove(nextToYield, out readyChunk))
-                {
+                while (!results.TryRemove(nextToYield, out readyChunk)) {
                     Thread.SpinWait(200);
                     Thread.Yield();
                 }
@@ -74,26 +65,20 @@ namespace OfficeIMO.Excel
                 nextToYield++;
             }
 
-            void ScheduleChunk(List<Row> rows, int index, int rr1, int cc1, int rr2, int cc2)
-            {
+            void ScheduleChunk(List<Row> rows, int index, int rr1, int cc1, int rr2, int cc2) {
                 var snapshot = rows.ToArray();
-                tasks.Add(Task.Run(async () =>
-                {
+                tasks.Add(Task.Run(async () => {
                     await semaphore.WaitAsync(ct).ConfigureAwait(false);
-                    try
-                    {
+                    try {
                         var chunk = ConvertChunk(snapshot, index, rr1, cc1, rr2, cc2, ct);
                         results[index] = chunk;
-                    }
-                    finally
-                    {
+                    } finally {
                         semaphore.Release();
                     }
                 }, ct));
             }
 
-            RangeChunk ConvertChunk(Row[] rows, int index, int rr1, int cc1, int rr2, int cc2, CancellationToken token)
-            {
+            RangeChunk ConvertChunk(Row[] rows, int index, int rr1, int cc1, int rr2, int cc2, CancellationToken token) {
                 token.ThrowIfCancellationRequested();
 
                 int startRow = rows.Length > 0 ? (int)rows[0].RowIndex!.Value : rr1;
@@ -108,8 +93,7 @@ namespace OfficeIMO.Excel
                     return new RangeChunk(startRow, 0, cc1, width, Array.Empty<object?[]>());
 
                 var rowMap = new Dictionary<int, Row>(rows.Length);
-                foreach (var r in rows)
-                {
+                foreach (var r in rows) {
                     int ridx = (int)r.RowIndex!.Value;
                     if (ridx >= rr1 && ridx <= rr2) rowMap[ridx] = r;
                 }
@@ -117,14 +101,12 @@ namespace OfficeIMO.Excel
                 var outRows = new object?[height][];
                 for (int i = 0; i < height; i++) outRows[i] = new object?[width];
 
-                for (int i = 0; i < height; i++)
-                {
+                for (int i = 0; i < height; i++) {
                     token.ThrowIfCancellationRequested();
                     int absoluteRow = startRow + i;
                     if (!rowMap.TryGetValue(absoluteRow, out var rowEl)) continue;
 
-                    foreach (var cell in rowEl.Elements<Cell>())
-                    {
+                    foreach (var cell in rowEl.Elements<Cell>()) {
                         if (cell.CellReference?.Value is null) continue;
                         var (r, c) = A1.ParseCellRef(cell.CellReference.Value);
                         if (c < cc1 || c > cc2) continue;
@@ -140,8 +122,7 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Represents a rectangular block of rows produced during streaming.
         /// </summary>
-        public sealed class RangeChunk
-        {
+        public sealed class RangeChunk {
             /// <summary>First row index (1-based) covered by this chunk.</summary>
             public int StartRow { get; }
             /// <summary>Number of rows in this chunk.</summary>
@@ -153,8 +134,7 @@ namespace OfficeIMO.Excel
             /// <summary>Row-major values array. Size is <see cref="RowCount"/> x <see cref="ColCount"/>.</summary>
             public object?[][] Rows { get; }
 
-            internal RangeChunk(int startRow, int rowCount, int startCol, int colCount, object?[][] rows)
-            {
+            internal RangeChunk(int startRow, int rowCount, int startCol, int colCount, object?[][] rows) {
                 StartRow = startRow; RowCount = rowCount; StartCol = startCol; ColCount = colCount; Rows = rows;
             }
         }

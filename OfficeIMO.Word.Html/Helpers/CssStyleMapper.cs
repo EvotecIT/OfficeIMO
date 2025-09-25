@@ -1,11 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word;
-using Color = SixLabors.ImageSharp.Color;
 using SixLabors.ImageSharp.PixelFormats;
+using System.Globalization;
+using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Word.Html {
     internal enum WhiteSpaceMode {

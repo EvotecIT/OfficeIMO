@@ -1,6 +1,4 @@
-using System;
 using System.IO.Packaging;
-using System.IO;
 
 namespace OfficeIMO.Word {
     /// <summary>

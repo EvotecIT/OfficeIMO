@@ -1,8 +1,6 @@
-using OfficeIMO.Word;
-using Omd = OfficeIMO.Markdown;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System;
 using System.Collections.Generic;
+using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {

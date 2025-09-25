@@ -1,10 +1,8 @@
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Describes how null values are represented when flattening objects.
     /// </summary>
-    public enum NullPolicy
-    {
+    public enum NullPolicy {
         /// <summary>
         /// Replace nulls with an empty string.
         /// </summary>

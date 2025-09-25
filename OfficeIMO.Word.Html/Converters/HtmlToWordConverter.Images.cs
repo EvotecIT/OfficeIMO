@@ -1,12 +1,6 @@
 using AngleSharp.Html.Dom;
-using AngleSharp.Dom;
-using Wp = DocumentFormat.OpenXml.Drawing.Wordprocessing;
-using OfficeIMO.Word;
-using OfficeIMO.Word.Html;
-using System;
-using System.IO;
 using System.Net.Http;
-using System.Text;
+using Wp = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {

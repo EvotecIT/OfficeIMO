@@ -1,4 +1,3 @@
-using System;
 using DocumentFormat.OpenXml.Bibliography;
 
 namespace OfficeIMO.Word {

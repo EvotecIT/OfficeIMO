@@ -1,4 +1,3 @@
-using OfficeIMO.Excel;
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Fluent styling helpers for individual cells.

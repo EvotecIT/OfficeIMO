@@ -1,12 +1,10 @@
 using System.Globalization;
 
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Reading options controlling conversion behavior and execution policy.
     /// </summary>
-    public sealed class ExcelReadOptions
-    {
+    public sealed class ExcelReadOptions {
         /// <summary>
         /// Execution policy used to decide Sequential vs Parallel conversion.
         /// Reuses the writer-side policy for symmetry.
@@ -58,8 +56,7 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Initializes reading defaults and per-operation thresholds.
         /// </summary>
-        public ExcelReadOptions()
-        {
+        public ExcelReadOptions() {
             Execution.OperationThresholds["ReadRange"] = 10_000;
             Execution.OperationThresholds["ReadObjects"] = 2_000;
             Execution.OperationThresholds["ReadRows"] = 20_000;

@@ -1,13 +1,7 @@
-using System;
-using System.IO;
-using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.Linq;
-using DocumentFormat.OpenXml.Vml;
-using DocumentFormat.OpenXml;
-using V = DocumentFormat.OpenXml.Vml;
 using Ovml = DocumentFormat.OpenXml.Vml.Office;
+using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -101,16 +95,16 @@ namespace OfficeIMO.Word {
             string extension = System.IO.Path.GetExtension(fileName).ToLower();
             return extension switch {
                 ".xlsx" => ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Excel.Sheet.12"),
-                ".xls"  => ("application/vnd.ms-excel", "Excel.Sheet.8"),
+                ".xls" => ("application/vnd.ms-excel", "Excel.Sheet.8"),
                 ".docx" => ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "Word.Document.12"),
-                ".doc"  => ("application/msword", "Word.Document.8"),
+                ".doc" => ("application/msword", "Word.Document.8"),
                 ".pptx" => ("application/vnd.openxmlformats-officedocument.presentationml.presentation", "PowerPoint.Show.12"),
-                ".ppt"  => ("application/vnd.ms-powerpoint", "PowerPoint.Show.8"),
-                ".pdf"  => ("application/pdf", "AcroExch.Document.DC"),
+                ".ppt" => ("application/vnd.ms-powerpoint", "PowerPoint.Show.8"),
+                ".pdf" => ("application/pdf", "AcroExch.Document.DC"),
                 ".html" => ("text/html", "htmlfile"),
-                ".htm"  => ("text/html", "htmlfile"),
-                ".rtf"  => ("application/rtf", "Word.RTF.8"),
-                _       => ("application/octet-stream", "Package")
+                ".htm" => ("text/html", "htmlfile"),
+                ".rtf" => ("application/rtf", "Word.RTF.8"),
+                _ => ("application/octet-stream", "Package")
             };
         }
 

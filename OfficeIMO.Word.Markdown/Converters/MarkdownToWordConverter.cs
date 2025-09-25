@@ -1,12 +1,9 @@
-using Omd = OfficeIMO.Markdown;
-using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.Html;
-using System;
-using System.Linq;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
     /// <summary>
@@ -83,8 +80,7 @@ namespace OfficeIMO.Word.Markdown {
                         ProcessInlinesOmd(p.Inlines, li, options, document, _currentFootnotes);
                     }
                     break;
-                case Omd.ImageBlock img:
-                    {
+                case Omd.ImageBlock img: {
                         var par = document.AddParagraph(string.Empty);
                         var pathOrUrl = img.Path ?? string.Empty;
                         double? w = img.Width;
@@ -151,8 +147,7 @@ namespace OfficeIMO.Word.Markdown {
                         r++;
                     }
                     break;
-                case Omd.UnorderedListBlock ul:
-                    {
+                case Omd.UnorderedListBlock ul: {
                         var list = document.AddList(WordListStyle.Bulleted);
                         foreach (var item in ul.Items) {
                             var li = list.AddItem(string.Empty, item.Level);
@@ -162,8 +157,7 @@ namespace OfficeIMO.Word.Markdown {
                         }
                         break;
                     }
-                case Omd.OrderedListBlock ol:
-                    {
+                case Omd.OrderedListBlock ol: {
                         var list = document.AddList(WordListStyle.Numbered);
                         if (ol.Start != 1) list.Numbering.Levels[0].SetStartNumberingValue(ol.Start);
                         foreach (var item in ol.Items) {

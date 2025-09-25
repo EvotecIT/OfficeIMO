@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using OfficeIMO.Word;
 
 namespace OfficeIMO.Word.Pdf {
     internal sealed class TableLayout {

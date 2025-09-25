@@ -1,8 +1,4 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO;
-using OfficeIMO.Word;
-using System;
-using System.Linq;
 
 namespace OfficeIMO.Word.Fluent {
     /// <summary>

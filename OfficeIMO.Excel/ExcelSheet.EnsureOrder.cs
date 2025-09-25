@@ -1,20 +1,15 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
-using System.Collections.Generic;
-using System.Linq;
 
-namespace OfficeIMO.Excel
-{
-    public partial class ExcelSheet
-    {
+namespace OfficeIMO.Excel {
+    public partial class ExcelSheet {
         /// <summary>
         /// Ensures all worksheet elements are in the correct order according to OpenXML schema.
         /// This must be called before saving to prevent validation errors.
         /// </summary>
-        internal void EnsureWorksheetElementOrder()
-        {
+        internal void EnsureWorksheetElementOrder() {
             var worksheet = _worksheetPart.Worksheet;
-            
+
             // Define the correct order of elements according to OpenXML schema
             var elementOrder = new List<System.Type>
             {
@@ -62,11 +57,9 @@ namespace OfficeIMO.Excel
             // Snapshot children once and bucket by type for O(n)
             var children = worksheet.ChildElements.ToList();
             var buckets = new Dictionary<System.Type, List<OpenXmlElement>>();
-            foreach (var child in children)
-            {
+            foreach (var child in children) {
                 var t = child.GetType();
-                if (!buckets.TryGetValue(t, out var list))
-                {
+                if (!buckets.TryGetValue(t, out var list)) {
                     list = new List<OpenXmlElement>();
                     buckets[t] = list;
                 }
@@ -82,12 +75,10 @@ namespace OfficeIMO.Excel
             bool needsReorder = false;
             int last = -1;
             int unknownIndexBase = elementOrder.Count; // unknowns come after knowns
-            foreach (var child in children)
-            {
+            foreach (var child in children) {
                 var t = child.GetType();
                 int idx = orderIndex.TryGetValue(t, out var val) ? val : unknownIndexBase;
-                if (idx < last)
-                {
+                if (idx < last) {
                     needsReorder = true;
                     break;
                 }
@@ -105,26 +96,21 @@ namespace OfficeIMO.Excel
             var knownTypes = new HashSet<System.Type>(elementOrder);
 
             // Known types in schema order
-            foreach (var elementType in elementOrder)
-            {
-                if (buckets.TryGetValue(elementType, out var list))
-                {
+            foreach (var elementType in elementOrder) {
+                if (buckets.TryGetValue(elementType, out var list)) {
                     ordered.AddRange(list);
                 }
             }
 
             // Unknown types in original order
-            foreach (var child in children)
-            {
-                if (!knownTypes.Contains(child.GetType()))
-                {
+            foreach (var child in children) {
+                if (!knownTypes.Contains(child.GetType())) {
                     ordered.Add(child);
                 }
             }
 
             // Single append is measurably faster than per-item appends on large sets
-            if (ordered.Count > 0)
-            {
+            if (ordered.Count > 0) {
                 worksheet.Append(ordered.ToArray());
             }
 

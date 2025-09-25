@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Options for clamping column widths and enabling wrapping by header.

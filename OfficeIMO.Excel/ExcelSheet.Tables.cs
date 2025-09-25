@@ -1,20 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using SixLabors.Fonts;
-using System;
-using System.Collections;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Xml;
-using SixLaborsColor = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -24,30 +10,24 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="range">Address of the table range (for example, "A1:D10") whose totals row should be displayed.</param>
         /// <param name="byHeader">Mapping of table header names to the totals function that should be applied for each column.</param>
-        public void SetTableTotals(string range, System.Collections.Generic.Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> byHeader)
-        {
+        public void SetTableTotals(string range, System.Collections.Generic.Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> byHeader) {
             if (string.IsNullOrWhiteSpace(range)) throw new System.ArgumentNullException(nameof(range));
             if (byHeader == null) throw new System.ArgumentNullException(nameof(byHeader));
 
             var totalsByHeader = new System.Collections.Generic.Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues>(byHeader.Count, System.StringComparer.OrdinalIgnoreCase);
-            foreach (var pair in byHeader)
-            {
+            foreach (var pair in byHeader) {
                 totalsByHeader[pair.Key] = pair.Value;
             }
-            WriteLock(() =>
-            {
-                foreach (var tdp in _worksheetPart.TableDefinitionParts)
-                {
+            WriteLock(() => {
+                foreach (var tdp in _worksheetPart.TableDefinitionParts) {
                     var table = tdp.Table;
                     if (table?.Reference?.Value != range) continue;
                     table.TotalsRowShown = true;
                     var headerNames = table.TableColumns?.Elements<TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList() ?? new System.Collections.Generic.List<string>();
                     int idx = 0;
-                    foreach (var tc in table.TableColumns!.Elements<TableColumn>())
-                    {
+                    foreach (var tc in table.TableColumns!.Elements<TableColumn>()) {
                         var name = headerNames[idx++];
-                        if (totalsByHeader.TryGetValue(name, out var fn))
-                        {
+                        if (totalsByHeader.TryGetValue(name, out var fn)) {
                             tc.TotalsRowFunction = fn;
                         }
                     }
@@ -82,23 +62,23 @@ namespace OfficeIMO.Excel {
                     var table = tableDefinitionPart.Table;
                     if (table?.Reference?.Value == range) {
                         // Found a table on the same range - add/update its AutoFilter
-                        
+
                         // First, remove any worksheet-level AutoFilter to avoid conflicts
                         var worksheetAutoFilter = _worksheetPart.Worksheet.Elements<AutoFilter>().FirstOrDefault();
                         if (worksheetAutoFilter != null && worksheetAutoFilter.Reference?.Value == range) {
                             _worksheetPart.Worksheet.RemoveChild(worksheetAutoFilter);
                         }
-                        
+
                         // Now handle the table's AutoFilter
                         var tableAutoFilter = table.Elements<AutoFilter>().FirstOrDefault();
                         if (tableAutoFilter != null) {
                             // Remove existing to replace with new one
                             table.RemoveChild(tableAutoFilter);
                         }
-                        
+
                         // Create new AutoFilter
                         var newAutoFilter = new AutoFilter { Reference = range };
-                        
+
                         // Apply filter criteria if provided
                         if (filterCriteria != null) {
                             foreach (KeyValuePair<uint, IEnumerable<string>> criteria in filterCriteria) {
@@ -111,7 +91,7 @@ namespace OfficeIMO.Excel {
                                 newAutoFilter.Append(filterColumn);
                             }
                         }
-                        
+
                         // Add AutoFilter to the table (must be before tableColumns)
                         var tableColumns = table.Elements<TableColumns>().FirstOrDefault();
                         if (tableColumns != null) {
@@ -119,7 +99,7 @@ namespace OfficeIMO.Excel {
                         } else {
                             table.InsertAt(newAutoFilter, 0);
                         }
-                        
+
                         tableDefinitionPart.Table.Save();
                         return; // Exit early - we've handled the AutoFilter via the table
                     }
@@ -163,7 +143,7 @@ namespace OfficeIMO.Excel {
                 } else {
                     worksheet.Append(autoFilter);
                 }
-                
+
                 worksheet.Save();
             });
         }
@@ -281,8 +261,7 @@ namespace OfficeIMO.Excel {
                 EffectiveExecution.ReportTiming("AddTable.ScanExistingIds", swScan.Elapsed);
 
                 // Create the table part with a conventional relationship id (rIdN) to avoid Excel rewriting
-                string MakeRelId()
-                {
+                string MakeRelId() {
                     // Find an unused rId# for this worksheet
                     int n = 1;
                     var existing = new System.Collections.Generic.HashSet<string>(
@@ -330,13 +309,12 @@ namespace OfficeIMO.Excel {
                     }
                     string candidate = baseName;
                     int suffix = 2;
-                    while (!usedHeaders.Add(candidate))
-                    {
+                    while (!usedHeaders.Add(candidate)) {
                         candidate = $"{baseName} ({suffix++})";
                     }
                     tableColumns.Append(new TableColumn { Id = i + 1, Name = candidate });
                 }
-                
+
                 // SMART AUTOFILTER HANDLING
                 // Check if there's already a worksheet-level AutoFilter on this range
                 AutoFilter? existingWorksheetAutoFilter = _worksheetPart.Worksheet.Elements<AutoFilter>().FirstOrDefault();
@@ -367,7 +345,7 @@ namespace OfficeIMO.Excel {
                     }
                     // Don't add AutoFilter to the table
                 }
-                
+
                 table.Append(tableColumns);
 
                 table.Append(new TableStyleInfo {
@@ -410,8 +388,7 @@ namespace OfficeIMO.Excel {
         /// - "123Report" ⇒ "_123Report"
         /// - If "Table" already exists, next becomes "Table2" ("Table3", ...)
         /// </summary>
-        private string EnsureValidUniqueTableName(string name, TableNameValidationMode mode)
-        {
+        private string EnsureValidUniqueTableName(string name, TableNameValidationMode mode) {
             const int MaxLen = 255; // Excel UI limit; conservative
 
             if (string.IsNullOrWhiteSpace(name)) {
@@ -423,8 +400,7 @@ namespace OfficeIMO.Excel {
             // Sanitize characters
             bool changed = false;
             var sanitized = new System.Text.StringBuilder(name.Length);
-            foreach (char ch in name)
-            {
+            foreach (char ch in name) {
                 if (char.IsLetterOrDigit(ch) || ch == '_') {
                     sanitized.Append(ch);
                 } else if (char.IsWhiteSpace(ch)) {
@@ -468,8 +444,7 @@ namespace OfficeIMO.Excel {
 
             // Add numeric suffix until unique; trim if needed to fit
             int i = 2;
-            while (true)
-            {
+            while (true) {
                 string suffix = i.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 int maxBase = Math.Max(1, MaxLen - suffix.Length);
                 string trimmedBase = baseName.Length > maxBase ? baseName.Substring(0, maxBase) : baseName;

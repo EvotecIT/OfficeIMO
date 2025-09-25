@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -234,8 +230,8 @@ namespace OfficeIMO.Word {
         }
         private static Style StyleNormal {
             get {
-                Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Normal", Default = true};
-                StyleName styleName1 = new StyleName() {Val = "Normal"};
+                Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Normal", Default = true };
+                StyleName styleName1 = new StyleName() { Val = "Normal" };
                 PrimaryStyle primaryStyle1 = new PrimaryStyle();
 
                 style1.Append(styleName1);
@@ -245,20 +241,20 @@ namespace OfficeIMO.Word {
         }
         private static Style StyleHeading1 {
             get {
-                Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Heading1"};
-                StyleName styleName1 = new StyleName() {Val = "heading 1"};
-                BasedOn basedOn1 = new BasedOn() {Val = "Normal"};
-                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() {Val = "Normal"};
-                LinkedStyle linkedStyle1 = new LinkedStyle() {Val = "Heading1Char"};
-                UIPriority uIPriority1 = new UIPriority() {Val = 9};
+                Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Heading1" };
+                StyleName styleName1 = new StyleName() { Val = "heading 1" };
+                BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
+                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
+                LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Heading1Char" };
+                UIPriority uIPriority1 = new UIPriority() { Val = 9 };
                 PrimaryStyle primaryStyle1 = new PrimaryStyle();
-                Rsid rsid1 = new Rsid() {Val = "00973C6F"};
+                Rsid rsid1 = new Rsid() { Val = "00973C6F" };
 
                 StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
                 KeepNext keepNext1 = new KeepNext();
                 KeepLines keepLines1 = new KeepLines();
-                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() {Before = "240", After = "0"};
-                OutlineLevel outlineLevel1 = new OutlineLevel() {Val = 0};
+                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { Before = "240", After = "0" };
+                OutlineLevel outlineLevel1 = new OutlineLevel() { Val = 0 };
 
                 styleParagraphProperties1.Append(keepNext1);
                 styleParagraphProperties1.Append(keepLines1);
@@ -266,10 +262,10 @@ namespace OfficeIMO.Word {
                 styleParagraphProperties1.Append(outlineLevel1);
 
                 StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-                RunFonts runFonts1 = new RunFonts() {AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi};
-                Color color1 = new Color() {Val = "2F5496", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "BF"};
-                FontSize fontSize1 = new FontSize() {Val = "32"};
-                FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() {Val = "32"};
+                RunFonts runFonts1 = new RunFonts() { AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi };
+                Color color1 = new Color() { Val = "2F5496", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "BF" };
+                FontSize fontSize1 = new FontSize() { Val = "32" };
+                FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() { Val = "32" };
 
                 styleRunProperties1.Append(runFonts1);
                 styleRunProperties1.Append(color1);
@@ -290,21 +286,21 @@ namespace OfficeIMO.Word {
         }
         private static Style StyleHeading2 {
             get {
-                Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Heading2"};
-                StyleName styleName1 = new StyleName() {Val = "heading 2"};
-                BasedOn basedOn1 = new BasedOn() {Val = "Normal"};
-                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() {Val = "Normal"};
-                LinkedStyle linkedStyle1 = new LinkedStyle() {Val = "Heading2Char"};
-                UIPriority uIPriority1 = new UIPriority() {Val = 9};
+                Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Heading2" };
+                StyleName styleName1 = new StyleName() { Val = "heading 2" };
+                BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
+                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
+                LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Heading2Char" };
+                UIPriority uIPriority1 = new UIPriority() { Val = 9 };
                 UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
                 PrimaryStyle primaryStyle1 = new PrimaryStyle();
-                Rsid rsid1 = new Rsid() {Val = "00973C6F"};
+                Rsid rsid1 = new Rsid() { Val = "00973C6F" };
 
                 StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
                 KeepNext keepNext1 = new KeepNext();
                 KeepLines keepLines1 = new KeepLines();
-                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() {Before = "40", After = "0"};
-                OutlineLevel outlineLevel1 = new OutlineLevel() {Val = 1};
+                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { Before = "40", After = "0" };
+                OutlineLevel outlineLevel1 = new OutlineLevel() { Val = 1 };
 
                 styleParagraphProperties1.Append(keepNext1);
                 styleParagraphProperties1.Append(keepLines1);
@@ -312,10 +308,10 @@ namespace OfficeIMO.Word {
                 styleParagraphProperties1.Append(outlineLevel1);
 
                 StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-                RunFonts runFonts1 = new RunFonts() {AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi};
-                Color color1 = new Color() {Val = "2F5496", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "BF"};
-                FontSize fontSize1 = new FontSize() {Val = "26"};
-                FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() {Val = "26"};
+                RunFonts runFonts1 = new RunFonts() { AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi };
+                Color color1 = new Color() { Val = "2F5496", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "BF" };
+                FontSize fontSize1 = new FontSize() { Val = "26" };
+                FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() { Val = "26" };
 
                 styleRunProperties1.Append(runFonts1);
                 styleRunProperties1.Append(color1);
@@ -337,16 +333,16 @@ namespace OfficeIMO.Word {
         }
         private static Style StyleHeading3 {
             get {
-                Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Heading3"};
-                StyleName styleName1 = new StyleName() {Val = "heading 3"};
-                BasedOn basedOn1 = new BasedOn() {Val = "Normal"};
-                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() {Val = "Normal"};
-                LinkedStyle linkedStyle1 = new LinkedStyle() {Val = "Heading3Char"};
-                UIPriority uIPriority1 = new UIPriority() {Val = 9};
+                Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Heading3" };
+                StyleName styleName1 = new StyleName() { Val = "heading 3" };
+                BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
+                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
+                LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Heading3Char" };
+                UIPriority uIPriority1 = new UIPriority() { Val = 9 };
                 SemiHidden semiHidden1 = new SemiHidden();
                 UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
                 PrimaryStyle primaryStyle1 = new PrimaryStyle();
-                Rsid rsid1 = new Rsid() {Val = "00700ED2"};
+                Rsid rsid1 = new Rsid() { Val = "00700ED2" };
 
                 StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
                 KeepNext keepNext1 = new KeepNext();
@@ -358,8 +354,8 @@ namespace OfficeIMO.Word {
 
                 //numberingProperties1.Append(numberingLevelReference1);
                 //numberingProperties1.Append(numberingId1);
-                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() {Before = "40", After = "0"};
-                OutlineLevel outlineLevel1 = new OutlineLevel() {Val = 2};
+                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { Before = "40", After = "0" };
+                OutlineLevel outlineLevel1 = new OutlineLevel() { Val = 2 };
 
                 styleParagraphProperties1.Append(keepNext1);
                 styleParagraphProperties1.Append(keepLines1);
@@ -368,10 +364,10 @@ namespace OfficeIMO.Word {
                 styleParagraphProperties1.Append(outlineLevel1);
 
                 StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-                RunFonts runFonts1 = new RunFonts() {AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi};
-                Color color1 = new Color() {Val = "1F3763", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "7F"};
-                FontSize fontSize1 = new FontSize() {Val = "24"};
-                FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() {Val = "24"};
+                RunFonts runFonts1 = new RunFonts() { AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi };
+                Color color1 = new Color() { Val = "1F3763", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "7F" };
+                FontSize fontSize1 = new FontSize() { Val = "24" };
+                FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() { Val = "24" };
 
                 styleRunProperties1.Append(runFonts1);
                 styleRunProperties1.Append(color1);
@@ -394,16 +390,16 @@ namespace OfficeIMO.Word {
         }
         private static Style StyleHeading4 {
             get {
-                Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Heading4"};
-                StyleName styleName1 = new StyleName() {Val = "heading 4"};
-                BasedOn basedOn1 = new BasedOn() {Val = "Normal"};
-                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() {Val = "Normal"};
-                LinkedStyle linkedStyle1 = new LinkedStyle() {Val = "Heading4Char"};
-                UIPriority uIPriority1 = new UIPriority() {Val = 9};
+                Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Heading4" };
+                StyleName styleName1 = new StyleName() { Val = "heading 4" };
+                BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
+                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
+                LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Heading4Char" };
+                UIPriority uIPriority1 = new UIPriority() { Val = 9 };
                 SemiHidden semiHidden1 = new SemiHidden();
                 UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
                 PrimaryStyle primaryStyle1 = new PrimaryStyle();
-                Rsid rsid1 = new Rsid() {Val = "00700ED2"};
+                Rsid rsid1 = new Rsid() { Val = "00700ED2" };
 
                 StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
                 KeepNext keepNext1 = new KeepNext();
@@ -415,8 +411,8 @@ namespace OfficeIMO.Word {
 
                 //numberingProperties1.Append(numberingLevelReference1);
                 //numberingProperties1.Append(numberingId1);
-                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() {Before = "40", After = "0"};
-                OutlineLevel outlineLevel1 = new OutlineLevel() {Val = 3};
+                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { Before = "40", After = "0" };
+                OutlineLevel outlineLevel1 = new OutlineLevel() { Val = 3 };
 
                 styleParagraphProperties1.Append(keepNext1);
                 styleParagraphProperties1.Append(keepLines1);
@@ -425,10 +421,10 @@ namespace OfficeIMO.Word {
                 styleParagraphProperties1.Append(outlineLevel1);
 
                 StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-                RunFonts runFonts1 = new RunFonts() {AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi};
+                RunFonts runFonts1 = new RunFonts() { AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi };
                 Italic italic1 = new Italic();
                 ItalicComplexScript italicComplexScript1 = new ItalicComplexScript();
-                Color color1 = new Color() {Val = "2F5496", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "BF"};
+                Color color1 = new Color() { Val = "2F5496", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "BF" };
 
                 styleRunProperties1.Append(runFonts1);
                 styleRunProperties1.Append(italic1);
@@ -451,16 +447,16 @@ namespace OfficeIMO.Word {
         }
         private static Style StyleHeading5 {
             get {
-                Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Heading5"};
-                StyleName styleName1 = new StyleName() {Val = "heading 5"};
-                BasedOn basedOn1 = new BasedOn() {Val = "Normal"};
-                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() {Val = "Normal"};
-                LinkedStyle linkedStyle1 = new LinkedStyle() {Val = "Heading5Char"};
-                UIPriority uIPriority1 = new UIPriority() {Val = 9};
+                Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Heading5" };
+                StyleName styleName1 = new StyleName() { Val = "heading 5" };
+                BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
+                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
+                LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Heading5Char" };
+                UIPriority uIPriority1 = new UIPriority() { Val = 9 };
                 SemiHidden semiHidden1 = new SemiHidden();
                 UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
                 PrimaryStyle primaryStyle1 = new PrimaryStyle();
-                Rsid rsid1 = new Rsid() {Val = "00700ED2"};
+                Rsid rsid1 = new Rsid() { Val = "00700ED2" };
 
                 StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
                 KeepNext keepNext1 = new KeepNext();
@@ -472,8 +468,8 @@ namespace OfficeIMO.Word {
 
                 //numberingProperties1.Append(numberingLevelReference1);
                 //numberingProperties1.Append(numberingId1);
-                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() {Before = "40", After = "0"};
-                OutlineLevel outlineLevel1 = new OutlineLevel() {Val = 4};
+                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { Before = "40", After = "0" };
+                OutlineLevel outlineLevel1 = new OutlineLevel() { Val = 4 };
 
                 styleParagraphProperties1.Append(keepNext1);
                 styleParagraphProperties1.Append(keepLines1);
@@ -482,8 +478,8 @@ namespace OfficeIMO.Word {
                 styleParagraphProperties1.Append(outlineLevel1);
 
                 StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-                RunFonts runFonts1 = new RunFonts() {AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi};
-                Color color1 = new Color() {Val = "2F5496", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "BF"};
+                RunFonts runFonts1 = new RunFonts() { AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi };
+                Color color1 = new Color() { Val = "2F5496", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "BF" };
 
                 styleRunProperties1.Append(runFonts1);
                 styleRunProperties1.Append(color1);
@@ -504,16 +500,16 @@ namespace OfficeIMO.Word {
         }
         private static Style StyleHeading6 {
             get {
-                Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Heading6"};
-                StyleName styleName1 = new StyleName() {Val = "heading 6"};
-                BasedOn basedOn1 = new BasedOn() {Val = "Normal"};
-                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() {Val = "Normal"};
-                LinkedStyle linkedStyle1 = new LinkedStyle() {Val = "Heading6Char"};
-                UIPriority uIPriority1 = new UIPriority() {Val = 9};
+                Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Heading6" };
+                StyleName styleName1 = new StyleName() { Val = "heading 6" };
+                BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
+                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
+                LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Heading6Char" };
+                UIPriority uIPriority1 = new UIPriority() { Val = 9 };
                 SemiHidden semiHidden1 = new SemiHidden();
                 UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
                 PrimaryStyle primaryStyle1 = new PrimaryStyle();
-                Rsid rsid1 = new Rsid() {Val = "00700ED2"};
+                Rsid rsid1 = new Rsid() { Val = "00700ED2" };
 
                 StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
                 KeepNext keepNext1 = new KeepNext();
@@ -525,8 +521,8 @@ namespace OfficeIMO.Word {
 
                 //numberingProperties1.Append(numberingLevelReference1);
                 //numberingProperties1.Append(numberingId1);
-                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() {Before = "40", After = "0"};
-                OutlineLevel outlineLevel1 = new OutlineLevel() {Val = 5};
+                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { Before = "40", After = "0" };
+                OutlineLevel outlineLevel1 = new OutlineLevel() { Val = 5 };
 
                 styleParagraphProperties1.Append(keepNext1);
                 styleParagraphProperties1.Append(keepLines1);
@@ -535,8 +531,8 @@ namespace OfficeIMO.Word {
                 styleParagraphProperties1.Append(outlineLevel1);
 
                 StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-                RunFonts runFonts1 = new RunFonts() {AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi};
-                Color color1 = new Color() {Val = "1F3763", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "7F"};
+                RunFonts runFonts1 = new RunFonts() { AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi };
+                Color color1 = new Color() { Val = "1F3763", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "7F" };
 
                 styleRunProperties1.Append(runFonts1);
                 styleRunProperties1.Append(color1);
@@ -557,16 +553,16 @@ namespace OfficeIMO.Word {
         }
         private static Style StyleHeading7 {
             get {
-                Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Heading7"};
-                StyleName styleName1 = new StyleName() {Val = "heading 7"};
-                BasedOn basedOn1 = new BasedOn() {Val = "Normal"};
-                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() {Val = "Normal"};
-                LinkedStyle linkedStyle1 = new LinkedStyle() {Val = "Heading7Char"};
-                UIPriority uIPriority1 = new UIPriority() {Val = 9};
+                Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Heading7" };
+                StyleName styleName1 = new StyleName() { Val = "heading 7" };
+                BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
+                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
+                LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Heading7Char" };
+                UIPriority uIPriority1 = new UIPriority() { Val = 9 };
                 SemiHidden semiHidden1 = new SemiHidden();
                 UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
                 PrimaryStyle primaryStyle1 = new PrimaryStyle();
-                Rsid rsid1 = new Rsid() {Val = "00700ED2"};
+                Rsid rsid1 = new Rsid() { Val = "00700ED2" };
 
                 StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
                 KeepNext keepNext1 = new KeepNext();
@@ -578,8 +574,8 @@ namespace OfficeIMO.Word {
 
                 //numberingProperties1.Append(numberingLevelReference1);
                 //numberingProperties1.Append(numberingId1);
-                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() {Before = "40", After = "0"};
-                OutlineLevel outlineLevel1 = new OutlineLevel() {Val = 6};
+                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { Before = "40", After = "0" };
+                OutlineLevel outlineLevel1 = new OutlineLevel() { Val = 6 };
 
                 styleParagraphProperties1.Append(keepNext1);
                 styleParagraphProperties1.Append(keepLines1);
@@ -588,10 +584,10 @@ namespace OfficeIMO.Word {
                 styleParagraphProperties1.Append(outlineLevel1);
 
                 StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-                RunFonts runFonts1 = new RunFonts() {AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi};
+                RunFonts runFonts1 = new RunFonts() { AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi };
                 Italic italic1 = new Italic();
                 ItalicComplexScript italicComplexScript1 = new ItalicComplexScript();
-                Color color1 = new Color() {Val = "1F3763", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "7F"};
+                Color color1 = new Color() { Val = "1F3763", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "7F" };
 
                 styleRunProperties1.Append(runFonts1);
                 styleRunProperties1.Append(italic1);
@@ -614,16 +610,16 @@ namespace OfficeIMO.Word {
         }
         private static Style StyleHeading8 {
             get {
-                Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Heading8"};
-                StyleName styleName1 = new StyleName() {Val = "heading 8"};
-                BasedOn basedOn1 = new BasedOn() {Val = "Normal"};
-                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() {Val = "Normal"};
-                LinkedStyle linkedStyle1 = new LinkedStyle() {Val = "Heading8Char"};
-                UIPriority uIPriority1 = new UIPriority() {Val = 9};
+                Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Heading8" };
+                StyleName styleName1 = new StyleName() { Val = "heading 8" };
+                BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
+                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
+                LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Heading8Char" };
+                UIPriority uIPriority1 = new UIPriority() { Val = 9 };
                 SemiHidden semiHidden1 = new SemiHidden();
                 UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
                 PrimaryStyle primaryStyle1 = new PrimaryStyle();
-                Rsid rsid1 = new Rsid() {Val = "00700ED2"};
+                Rsid rsid1 = new Rsid() { Val = "00700ED2" };
 
                 StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
                 KeepNext keepNext1 = new KeepNext();
@@ -635,8 +631,8 @@ namespace OfficeIMO.Word {
 
                 //numberingProperties1.Append(numberingLevelReference1);
                 //numberingProperties1.Append(numberingId1);
-                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() {Before = "40", After = "0"};
-                OutlineLevel outlineLevel1 = new OutlineLevel() {Val = 7};
+                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { Before = "40", After = "0" };
+                OutlineLevel outlineLevel1 = new OutlineLevel() { Val = 7 };
 
                 styleParagraphProperties1.Append(keepNext1);
                 styleParagraphProperties1.Append(keepLines1);
@@ -645,10 +641,10 @@ namespace OfficeIMO.Word {
                 styleParagraphProperties1.Append(outlineLevel1);
 
                 StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-                RunFonts runFonts1 = new RunFonts() {AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi};
-                Color color1 = new Color() {Val = "272727", ThemeColor = ThemeColorValues.Text1, ThemeTint = "D8"};
-                FontSize fontSize1 = new FontSize() {Val = "21"};
-                FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() {Val = "21"};
+                RunFonts runFonts1 = new RunFonts() { AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi };
+                Color color1 = new Color() { Val = "272727", ThemeColor = ThemeColorValues.Text1, ThemeTint = "D8" };
+                FontSize fontSize1 = new FontSize() { Val = "21" };
+                FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() { Val = "21" };
 
                 styleRunProperties1.Append(runFonts1);
                 styleRunProperties1.Append(color1);
@@ -671,16 +667,16 @@ namespace OfficeIMO.Word {
         }
         private static Style StyleHeading9 {
             get {
-                Style style1 = new Style() {Type = StyleValues.Paragraph, StyleId = "Heading9"};
-                StyleName styleName1 = new StyleName() {Val = "heading 9"};
-                BasedOn basedOn1 = new BasedOn() {Val = "Normal"};
-                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() {Val = "Normal"};
-                LinkedStyle linkedStyle1 = new LinkedStyle() {Val = "Heading9Char"};
-                UIPriority uIPriority1 = new UIPriority() {Val = 9};
+                Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Heading9" };
+                StyleName styleName1 = new StyleName() { Val = "heading 9" };
+                BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
+                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
+                LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Heading9Char" };
+                UIPriority uIPriority1 = new UIPriority() { Val = 9 };
                 SemiHidden semiHidden1 = new SemiHidden();
                 UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
                 PrimaryStyle primaryStyle1 = new PrimaryStyle();
-                Rsid rsid1 = new Rsid() {Val = "00700ED2"};
+                Rsid rsid1 = new Rsid() { Val = "00700ED2" };
 
                 StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
                 KeepNext keepNext1 = new KeepNext();
@@ -692,8 +688,8 @@ namespace OfficeIMO.Word {
 
                 //numberingProperties1.Append(numberingLevelReference1);
                 //numberingProperties1.Append(numberingId1);
-                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() {Before = "40", After = "0"};
-                OutlineLevel outlineLevel1 = new OutlineLevel() {Val = 8};
+                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { Before = "40", After = "0" };
+                OutlineLevel outlineLevel1 = new OutlineLevel() { Val = 8 };
 
                 styleParagraphProperties1.Append(keepNext1);
                 styleParagraphProperties1.Append(keepLines1);
@@ -702,12 +698,12 @@ namespace OfficeIMO.Word {
                 styleParagraphProperties1.Append(outlineLevel1);
 
                 StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-                RunFonts runFonts1 = new RunFonts() {AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi};
+                RunFonts runFonts1 = new RunFonts() { AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi };
                 Italic italic1 = new Italic();
                 ItalicComplexScript italicComplexScript1 = new ItalicComplexScript();
-                Color color1 = new Color() {Val = "272727", ThemeColor = ThemeColorValues.Text1, ThemeTint = "D8"};
-                FontSize fontSize1 = new FontSize() {Val = "21"};
-                FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() {Val = "21"};
+                Color color1 = new Color() { Val = "272727", ThemeColor = ThemeColorValues.Text1, ThemeTint = "D8" };
+                FontSize fontSize1 = new FontSize() { Val = "21" };
+                FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() { Val = "21" };
 
                 styleRunProperties1.Append(runFonts1);
                 styleRunProperties1.Append(italic1);

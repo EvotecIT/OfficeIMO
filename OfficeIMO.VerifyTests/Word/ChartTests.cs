@@ -1,15 +1,10 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
-
 using OfficeIMO.Word;
-
 using SixLabors.ImageSharp;
-
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using VerifyXunit;
-
 using Xunit;
 
 namespace OfficeIMO.VerifyTests.Word;

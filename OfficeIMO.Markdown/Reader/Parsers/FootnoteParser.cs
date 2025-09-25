@@ -17,8 +17,7 @@ public static partial class MarkdownReader {
                 var ln = lines[j];
                 if (string.IsNullOrEmpty(ln)) break;
                 int leading = 0; while (leading < ln.Length && ln[leading] == ' ') leading++;
-                if (leading >= 2 || (leading < ln.Length && ln[leading] == '\t')) { content += "\n" + ln.TrimStart(); j++; }
-                else break;
+                if (leading >= 2 || (leading < ln.Length && ln[leading] == '\t')) { content += "\n" + ln.TrimStart(); j++; } else break;
             }
             doc.Add(new FootnoteDefinitionBlock(label, content));
             i = j; return true;

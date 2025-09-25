@@ -1,8 +1,6 @@
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using OfficeIMO.Word;
 using System.Collections.Generic;
-using System.IO;
 
 namespace OfficeIMO.Word.Pdf {
     /// <summary>
@@ -86,7 +84,7 @@ namespace OfficeIMO.Word.Pdf {
         /// Optional default page size applied when creating new documents.
         /// </summary>
         public WordPageSize? DefaultPageSize { get; set; }
-        
+
         /// <summary>
         /// Optional default page orientation applied when creating new documents.
         /// </summary>

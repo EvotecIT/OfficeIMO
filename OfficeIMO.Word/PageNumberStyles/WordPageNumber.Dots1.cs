@@ -1,17 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
-using Wp = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using A = DocumentFormat.OpenXml.Drawing;
+using A14 = DocumentFormat.OpenXml.Office2010.Drawing;
+using Ovml = DocumentFormat.OpenXml.Vml.Office;
+using V = DocumentFormat.OpenXml.Vml;
+using Wp = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using Wpg = DocumentFormat.OpenXml.Office2010.Word.DrawingGroup;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
-using A14 = DocumentFormat.OpenXml.Office2010.Drawing;
-using Wp14 = DocumentFormat.OpenXml.Office2010.Word.Drawing;
-using V = DocumentFormat.OpenXml.Vml;
-using Ovml = DocumentFormat.OpenXml.Vml.Office;
 using Wvml = DocumentFormat.OpenXml.Vml.Wordprocessing;
 
 namespace OfficeIMO.Word;

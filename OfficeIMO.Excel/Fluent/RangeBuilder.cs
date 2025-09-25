@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using OfficeIMO.Excel;
-
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Fluent helper for operating over a rectangular A1 range (formatting, setting, clearing, per‑cell writes).

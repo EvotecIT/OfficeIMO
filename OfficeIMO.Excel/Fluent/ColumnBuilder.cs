@@ -1,5 +1,3 @@
-using System;
-using OfficeIMO.Excel;
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Fluent builder for adjusting a single column (width, visibility) and writing cells in that column.

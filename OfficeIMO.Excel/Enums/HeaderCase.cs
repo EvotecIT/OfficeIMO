@@ -1,10 +1,8 @@
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Specifies the casing applied to generated headers.
     /// </summary>
-    public enum HeaderCase
-    {
+    public enum HeaderCase {
         /// <summary>
         /// Use the original casing of the property names.
         /// </summary>

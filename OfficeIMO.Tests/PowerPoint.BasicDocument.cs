@@ -4,6 +4,7 @@ using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -61,6 +62,31 @@ namespace OfficeIMO.Tests {
             }
 
             File.Delete(filePath);
+        }
+
+        [Fact]
+        public void NotesSlidesValidateWithOpenXmlValidator() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    slide.Notes.Text = "Notes created for validation";
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    OpenXmlValidator validator = new();
+                    var errors = validator.Validate(document).ToList();
+                    Assert.True(errors.Count == 0,
+                        string.Join(Environment.NewLine,
+                            errors.Select(error => $"{error.Description} (Path: {error.Path?.XPath})")));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
         }
     }
 }

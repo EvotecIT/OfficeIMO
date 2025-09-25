@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using DocumentFormat.OpenXml.Bibliography;
-
 namespace OfficeIMO.Word {
     /// <summary>
     /// Represents the CITATION field code.

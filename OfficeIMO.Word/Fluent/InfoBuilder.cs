@@ -1,4 +1,3 @@
-using System;
 using DocumentFormat.OpenXml.ExtendedProperties;
 
 namespace OfficeIMO.Word.Fluent {

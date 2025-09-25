@@ -1,19 +1,5 @@
 using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using SixLabors.Fonts;
-using System;
-using System.Collections;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Xml;
 using SixLaborsColor = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Excel {
@@ -55,11 +41,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 conditionalFormatting.Append(rule);
-                
+
                 // Insert ConditionalFormatting after AutoFilter but before TableParts
                 var autoFilter = worksheet.Elements<AutoFilter>().FirstOrDefault();
                 var tableParts = worksheet.Elements<TableParts>().FirstOrDefault();
-                
+
                 if (tableParts != null) {
                     worksheet.InsertBefore(conditionalFormatting, tableParts);
                 } else if (autoFilter != null) {
@@ -72,7 +58,7 @@ namespace OfficeIMO.Excel {
                         worksheet.Append(conditionalFormatting);
                     }
                 }
-                
+
                 worksheet.Save();
             });
         }
@@ -128,11 +114,11 @@ namespace OfficeIMO.Excel {
                 rule.Append(colorScale);
 
                 conditionalFormatting.Append(rule);
-                
+
                 // Insert ConditionalFormatting after AutoFilter but before TableParts
                 var autoFilter = worksheet.Elements<AutoFilter>().FirstOrDefault();
                 var tableParts = worksheet.Elements<TableParts>().FirstOrDefault();
-                
+
                 if (tableParts != null) {
                     worksheet.InsertBefore(conditionalFormatting, tableParts);
                 } else if (autoFilter != null) {
@@ -145,7 +131,7 @@ namespace OfficeIMO.Excel {
                         worksheet.Append(conditionalFormatting);
                     }
                 }
-                
+
                 worksheet.Save();
             });
         }
@@ -194,11 +180,11 @@ namespace OfficeIMO.Excel {
                 rule.Append(dataBar);
 
                 conditionalFormatting.Append(rule);
-                
+
                 // Insert ConditionalFormatting after AutoFilter but before TableParts
                 var autoFilter = worksheet.Elements<AutoFilter>().FirstOrDefault();
                 var tableParts = worksheet.Elements<TableParts>().FirstOrDefault();
-                
+
                 if (tableParts != null) {
                     worksheet.InsertBefore(conditionalFormatting, tableParts);
                 } else if (autoFilter != null) {
@@ -211,7 +197,7 @@ namespace OfficeIMO.Excel {
                         worksheet.Append(conditionalFormatting);
                     }
                 }
-                
+
                 worksheet.Save();
             });
         }
@@ -223,8 +209,7 @@ namespace OfficeIMO.Excel {
         /// <param name="iconSet">Icon set type (e.g., ThreeTrafficLights1, ThreeSymbols, FourArrows, FiveRatings).</param>
         /// <param name="showValue">Whether to display the underlying cell values.</param>
         /// <param name="reverseIconOrder">Reverse icon order.</param>
-        public void AddConditionalIconSet(string range, IconSetValues iconSet, bool showValue, bool reverseIconOrder)
-        {
+        public void AddConditionalIconSet(string range, IconSetValues iconSet, bool showValue, bool reverseIconOrder) {
             AddConditionalIconSet(range, iconSet, showValue, reverseIconOrder, percentThresholds: null, numberThresholds: null);
         }
 
@@ -233,12 +218,10 @@ namespace OfficeIMO.Excel {
         /// Provide either <paramref name="percentThresholds"/> (0..100) or <paramref name="numberThresholds"/> as absolute values.
         /// The number of thresholds must match the icon count for the selected icon set (3/4/5).
         /// </summary>
-        public void AddConditionalIconSet(string range, IconSetValues iconSet, bool showValue, bool reverseIconOrder, double[]? percentThresholds, double[]? numberThresholds)
-        {
+        public void AddConditionalIconSet(string range, IconSetValues iconSet, bool showValue, bool reverseIconOrder, double[]? percentThresholds, double[]? numberThresholds) {
             if (string.IsNullOrEmpty(range)) throw new ArgumentNullException(nameof(range));
 
-            WriteLock(() =>
-            {
+            WriteLock(() => {
                 Worksheet worksheet = _worksheetPart.Worksheet;
 
                 int priority = 1;
@@ -264,30 +247,22 @@ namespace OfficeIMO.Excel {
                 else if (setName.StartsWith("Four", System.StringComparison.Ordinal)) count = 4;
                 else count = 5;
 
-                if (numberThresholds != null && numberThresholds.Length == count)
-                {
-                    for (int i = 0; i < count; i++)
-                    {
+                if (numberThresholds != null && numberThresholds.Length == count) {
+                    for (int i = 0; i < count; i++) {
                         var cfvo = new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Number };
                         cfvo.Val = numberThresholds[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
                         icon.Append(cfvo);
                     }
-                }
-                else if (percentThresholds != null && percentThresholds.Length == count)
-                {
-                    for (int i = 0; i < count; i++)
-                    {
+                } else if (percentThresholds != null && percentThresholds.Length == count) {
+                    for (int i = 0; i < count; i++) {
                         var cfvo = new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Percent };
                         cfvo.Val = percentThresholds[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
                         icon.Append(cfvo);
                     }
-                }
-                else
-                {
+                } else {
                     // Defaults: spread evenly across percent bands
                     int[] perc = count == 3 ? new[] { 0, 33, 67 } : count == 4 ? new[] { 0, 25, 50, 75 } : new[] { 0, 20, 40, 60, 80 };
-                    for (int i = 0; i < perc.Length; i++)
-                    {
+                    for (int i = 0; i < perc.Length; i++) {
                         var cfvo = new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Percent };
                         cfvo.Val = perc[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
                         icon.Append(cfvo);
