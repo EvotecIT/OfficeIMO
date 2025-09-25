@@ -31,11 +31,13 @@ namespace OfficeIMO.Tests
                 Assert.Empty(headers);
 
                 Assert.Throws<KeyNotFoundException>(() => sheet.ColumnIndexByHeader("Missing"));
+                Assert.Throws<KeyNotFoundException>(() => sheet.ColumnIndexByHeader("Column1"));
 
                 Assert.False(sheet.TryGetColumnIndexByHeader("Missing", out var columnIndex));
                 Assert.Equal(0, columnIndex);
 
-                Assert.False(sheet.TryGetColumnIndexByHeader("Column1", out _));
+                Assert.False(sheet.TryGetColumnIndexByHeader("Column1", out var column1Index));
+                Assert.Equal(0, column1Index);
             }
             finally
             {

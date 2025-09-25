@@ -23,16 +23,16 @@ namespace OfficeIMO.Excel {
                 var sh = rdr.GetSheet(this.Name);
                 var values = sh.ReadRange(a1Used);
 
-                int rows = values.GetLength(0);
-                int cols = values.GetLength(1);
-                var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                if (rows == 0 || cols == 0) {
-                    _headerMapCache = map;
+                if (values.GetLength(0) == 0 || values.GetLength(1) == 0) {
+                    var empty = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                    _headerMapCache = empty;
                     _headerMapSourceA1 = a1Used;
                     _headerMapNormalize = opt.NormalizeHeaders;
                     return new Dictionary<string, int>(_headerMapCache, StringComparer.OrdinalIgnoreCase);
                 }
 
+                int cols = values.GetLength(1);
+                var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
                 var (_, c1, _, _) = A1.ParseRange(a1Used);
                 var headers = new string?[cols];
                 bool anyHeader = false;
