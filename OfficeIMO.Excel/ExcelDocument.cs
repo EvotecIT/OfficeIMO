@@ -786,13 +786,12 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            DirectoryInfo directoryInfo;
-            if (Directory.Exists(directory)) {
-                directoryInfo = new DirectoryInfo(directory);
-            } else {
-                directoryInfo = Directory.CreateDirectory(directory);
+            if (!Directory.Exists(directory)) {
+                Directory.CreateDirectory(directory);
+                return;
             }
 
+            var directoryInfo = new DirectoryInfo(directory);
             if (directoryInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
                 throw new IOException($"Failed to save to '{path}'. The directory is read-only.");
             }
