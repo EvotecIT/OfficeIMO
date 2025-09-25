@@ -33,11 +33,24 @@ namespace OfficeIMO.Tests {
 
                 Assert.NotNull(document.ExtendedFilePropertiesPart?.Properties);
                 Assert.Equal("Microsoft Office PowerPoint", document.ExtendedFilePropertiesPart?.Properties?.Application?.Text);
+                Assert.Equal("1", document.ExtendedFilePropertiesPart?.Properties?.Slides?.Text);
+                Assert.Equal("0", document.ExtendedFilePropertiesPart?.Properties?.Notes?.Text);
+                Assert.Equal("0", document.ExtendedFilePropertiesPart?.Properties?.HiddenSlides?.Text);
                 Assert.NotNull(document.CoreFilePropertiesPart);
+                Assert.Equal("OfficeIMO", document.PackageProperties.Creator);
+                Assert.Equal("OfficeIMO", document.PackageProperties.LastModifiedBy);
                 Assert.NotNull(document.PackageProperties.Created);
                 Assert.NotNull(document.PackageProperties.Modified);
                 Assert.NotNull(part.PresentationPropertiesPart?.PresentationProperties);
+                Assert.True(part.PresentationPropertiesPart!.PresentationProperties!.ShowProperties!.ShowAnimation!.Value);
+                Assert.True(part.PresentationPropertiesPart!.PresentationProperties!.ShowProperties!.UseTimings!.Value);
+                Assert.False(part.PresentationPropertiesPart!.PresentationProperties!.ShowProperties!.ShowNarration!.Value);
                 Assert.NotNull(part.ViewPropertiesPart?.ViewProperties);
+                Assert.Equal(15989, part.ViewPropertiesPart!.ViewProperties!.NormalViewProperties!.RestoredLeft!.Size!.Value);
+                Assert.False(part.ViewPropertiesPart!.ViewProperties!.NormalViewProperties!.RestoredLeft!.AutoAdjust!.Value);
+                Assert.Equal(94660, part.ViewPropertiesPart!.ViewProperties!.NormalViewProperties!.RestoredTop!.Size!.Value);
+                Assert.Equal(72008L, part.ViewPropertiesPart!.ViewProperties!.GridSpacing!.Cx!.Value);
+                Assert.Equal(72008L, part.ViewPropertiesPart!.ViewProperties!.GridSpacing!.Cy!.Value);
                 Assert.Equal("{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}", part.TableStylesPart?.TableStyleList?.Default?.Value);
                 notesMasterExists = part.NotesMasterPart != null;
             }
