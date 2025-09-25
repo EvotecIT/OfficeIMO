@@ -16,12 +16,21 @@ namespace OfficeIMO.Tests {
             if (Directory.Exists(destinationDirectory)) Directory.Delete(destinationDirectory, recursive: true);
 
             using (var document = ExcelDocument.Create(sourcePath)) {
-                document.AddWorkSheet("Sheet1");
+                const string expectedSheetName = "Sheet1";
+                const string expectedCellValue = "Directory save";
+                var sheet = document.AddWorkSheet(expectedSheetName);
+                sheet.CellValue(1, 1, expectedCellValue);
 
                 document.Save(destinationPath, openExcel: false);
 
                 Assert.True(Directory.Exists(destinationDirectory));
                 Assert.True(File.Exists(destinationPath));
+
+                using (var reloaded = ExcelDocument.Load(destinationPath, readOnly: true)) {
+                    Assert.Equal(expectedSheetName, reloaded.Sheets[0].Name);
+                    Assert.True(reloaded.Sheets[0].TryGetCellText(1, 1, out var actualValue));
+                    Assert.Equal(expectedCellValue, actualValue);
+                }
             }
 
             if (File.Exists(sourcePath)) File.Delete(sourcePath);
@@ -39,12 +48,21 @@ namespace OfficeIMO.Tests {
             if (Directory.Exists(destinationDirectory)) Directory.Delete(destinationDirectory, recursive: true);
 
             await using (var document = ExcelDocument.Create(sourcePath)) {
-                document.AddWorkSheet("Sheet1");
+                const string expectedSheetName = "AsyncSheet";
+                const string expectedCellValue = "Async directory save";
+                var sheet = document.AddWorkSheet(expectedSheetName);
+                sheet.CellValue(1, 1, expectedCellValue);
 
                 await document.SaveAsync(destinationPath, openExcel: false);
 
                 Assert.True(Directory.Exists(destinationDirectory));
                 Assert.True(File.Exists(destinationPath));
+
+                using (var reloaded = ExcelDocument.Load(destinationPath, readOnly: true)) {
+                    Assert.Equal(expectedSheetName, reloaded.Sheets[0].Name);
+                    Assert.True(reloaded.Sheets[0].TryGetCellText(1, 1, out var actualValue));
+                    Assert.Equal(expectedCellValue, actualValue);
+                }
             }
 
             if (File.Exists(sourcePath)) File.Delete(sourcePath);
