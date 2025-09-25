@@ -9,7 +9,7 @@ namespace OfficeIMO.Visio.Fluent {
     public class VisioFluentPage {
         private readonly VisioFluentDocument _fluent;
         private readonly VisioPage _page;
-        private readonly Dictionary<string, VisioShape> _byId = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, VisioShape> _byId;
 
         /// <summary>Initializes a new fluent page wrapper.</summary>
         /// <param name="fluent">Parent fluent document.</param>
@@ -17,6 +17,8 @@ namespace OfficeIMO.Visio.Fluent {
         internal VisioFluentPage(VisioFluentDocument fluent, VisioPage page) {
             _fluent = fluent;
             _page = page;
+            // Build once up-front; shapes added through this fluent API keep it in sync.
+            _byId = new Dictionary<string, VisioShape>(Math.Max(4, page.Shapes.Count), StringComparer.Ordinal);
             foreach (var s in page.Shapes) _byId[s.Id] = s;
         }
 
