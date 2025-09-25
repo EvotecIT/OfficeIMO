@@ -97,6 +97,12 @@ namespace OfficeIMO.Excel {
         public SpreadsheetDocument _spreadSheetDocument = null!;
         private WorkbookPart _workBookPart = null!;
         private SharedStringTablePart? _sharedStringTablePart;
+        private Stream? _packageStream;
+        private Stream? _sourceStream;
+        private bool _copyPackageToSourceOnDispose;
+        private bool _leaveSourceStreamOpen = true;
+
+        private const int StreamCopyBufferSize = 81920;
 
         private static async Task<byte[]> ReadAllBytesCompatAsync(string path, CancellationToken ct)
         {
@@ -361,13 +367,23 @@ namespace OfficeIMO.Excel {
 
             return document;
         }
-        private static ExcelDocument CreateDocument(SpreadsheetDocument spreadSheetDocument, string? filePath)
+        private static ExcelDocument CreateDocument(
+            SpreadsheetDocument spreadSheetDocument,
+            string? filePath,
+            Stream? packageStream = null,
+            Stream? sourceStream = null,
+            bool copyPackageToSourceOnDispose = false,
+            bool leaveSourceStreamOpen = true)
         {
             var document = new ExcelDocument
             {
                 FilePath = filePath ?? string.Empty,
                 _spreadSheetDocument = spreadSheetDocument,
-                _workBookPart = spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null"),
+                _workBookPart = GetWorkbookPartOrThrow(spreadSheetDocument),
+                _packageStream = copyPackageToSourceOnDispose ? packageStream : null,
+                _sourceStream = copyPackageToSourceOnDispose ? sourceStream : null,
+                _copyPackageToSourceOnDispose = copyPackageToSourceOnDispose && sourceStream != null,
+                _leaveSourceStreamOpen = leaveSourceStreamOpen,
             };
 
             document.BuiltinDocumentProperties = new BuiltinDocumentProperties(document);
@@ -375,25 +391,67 @@ namespace OfficeIMO.Excel {
             return document;
         }
 
-        private static ExcelDocument LoadFromByteArray(byte[] bytes, bool readOnly, bool autoSave, string? filePath, Action<string, Exception>? log, OpenSettings? openSettings, bool preferFilePathOnFallback)
+        private static WorkbookPart GetWorkbookPartOrThrow(SpreadsheetDocument document)
+        {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+
+            var workbookPart = document.WorkbookPart;
+            if (workbookPart != null)
+            {
+                return workbookPart;
+            }
+
+            workbookPart = document.GetPartsOfType<WorkbookPart>().FirstOrDefault();
+            if (workbookPart != null)
+            {
+                return workbookPart;
+            }
+
+            throw new InvalidOperationException("WorkbookPart is null");
+        }
+
+        private static ExcelDocument LoadFromByteArray(
+            byte[] bytes,
+            bool readOnly,
+            bool autoSave,
+            string? filePath,
+            Action<string, Exception>? log,
+            OpenSettings? openSettings,
+            bool preferFilePathOnFallback,
+            Stream? originalStream = null,
+            bool copyBackToSource = false,
+            bool leaveOriginalStreamOpen = true)
         {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
 
             var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
-            var normalizedStream = new MemoryStream(bytes.Length + 4096);
-            normalizedStream.Write(bytes, 0, bytes.Length);
-            normalizedStream.Position = 0;
+            bool shouldCopyBack = copyBackToSource && originalStream != null;
+
+            MemoryStream? normalizedStream = null;
 
             try
             {
+                normalizedStream = shouldCopyBack
+                    ? new NonDisposingMemoryStream(bytes.Length + 4096)
+                    : new MemoryStream(bytes.Length + 4096);
+                normalizedStream.Write(bytes, 0, bytes.Length);
+                normalizedStream.Position = 0;
+
                 Utilities.ExcelPackageUtilities.NormalizeContentTypes(normalizedStream, leaveOpen: true);
                 normalizedStream.Position = 0;
+
                 var memDoc = SpreadsheetDocument.Open(normalizedStream, !readOnly, effectiveOpenSettings);
-                return CreateDocument(memDoc, filePath);
+                return CreateDocument(
+                    memDoc,
+                    filePath,
+                    shouldCopyBack ? normalizedStream : null,
+                    shouldCopyBack ? originalStream : null,
+                    shouldCopyBack,
+                    leaveOriginalStreamOpen);
             }
             catch (Exception ex) when (ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException)
             {
-                normalizedStream.Dispose();
+                normalizedStream?.Dispose();
                 var contextMessage = filePath != null
                     ? $"Failed to open '{filePath}' after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'."
                     : "Failed to open workbook stream after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.";
@@ -402,23 +460,30 @@ namespace OfficeIMO.Excel {
             }
             catch
             {
-                normalizedStream.Dispose();
+                DisposeStream(normalizedStream);
             }
 
-            SpreadsheetDocument spreadSheetDocument;
             if (preferFilePathOnFallback && !string.IsNullOrEmpty(filePath))
             {
-                spreadSheetDocument = SpreadsheetDocument.Open(filePath, !readOnly, effectiveOpenSettings);
+                var spreadSheetDocument = SpreadsheetDocument.Open(filePath, !readOnly, effectiveOpenSettings);
+                return CreateDocument(spreadSheetDocument, filePath);
             }
             else
             {
-                var fallbackStream = new MemoryStream(bytes.Length + 4096);
+                var fallbackStream = shouldCopyBack
+                    ? new NonDisposingMemoryStream(bytes.Length + 4096)
+                    : new MemoryStream(bytes.Length + 4096);
                 fallbackStream.Write(bytes, 0, bytes.Length);
                 fallbackStream.Position = 0;
-                spreadSheetDocument = SpreadsheetDocument.Open(fallbackStream, !readOnly, effectiveOpenSettings);
+                var spreadSheetDocument = SpreadsheetDocument.Open(fallbackStream, !readOnly, effectiveOpenSettings);
+                return CreateDocument(
+                    spreadSheetDocument,
+                    filePath,
+                    shouldCopyBack ? fallbackStream : null,
+                    shouldCopyBack ? originalStream : null,
+                    shouldCopyBack,
+                    leaveOriginalStreamOpen);
             }
-
-            return CreateDocument(spreadSheetDocument, filePath);
         }
 
         private static byte[] ReadAllBytes(Stream stream)
@@ -432,11 +497,7 @@ namespace OfficeIMO.Excel {
             }
 
             using var buffer = new MemoryStream();
-#if NETSTANDARD2_0 || NET472 || NET48
-            stream.CopyTo(buffer, 81920);
-#else
-            stream.CopyTo(buffer);
-#endif
+            stream.CopyTo(buffer, StreamCopyBufferSize);
             return buffer.ToArray();
         }
 
@@ -451,12 +512,25 @@ namespace OfficeIMO.Excel {
             }
 
             using var buffer = new MemoryStream();
-#if NETSTANDARD2_0 || NET472 || NET48
-            await stream.CopyToAsync(buffer, 81920, cancellationToken).ConfigureAwait(false);
-#else
-            await stream.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
-#endif
+            await stream.CopyToAsync(buffer, StreamCopyBufferSize, cancellationToken).ConfigureAwait(false);
             return buffer.ToArray();
+        }
+
+        private static void DisposeStream(Stream? stream)
+        {
+            if (stream == null)
+            {
+                return;
+            }
+
+            if (stream is NonDisposingMemoryStream ndms)
+            {
+                ndms.DisposeUnderlying();
+            }
+            else
+            {
+                stream.Dispose();
+            }
         }
 
         /// <summary>
@@ -491,8 +565,34 @@ namespace OfficeIMO.Excel {
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         public static ExcelDocument Load(Stream stream, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null)
         {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+            bool shouldCopyBack = autoSave && !readOnly;
+            if (shouldCopyBack)
+            {
+                if (!stream.CanWrite)
+                {
+                    throw new ArgumentException("Stream must be writable when autoSave is enabled for editable documents.", nameof(stream));
+                }
+                if (!stream.CanSeek)
+                {
+                    throw new ArgumentException("Stream must support seeking when autoSave is enabled for editable documents.", nameof(stream));
+                }
+            }
+
             var bytes = ReadAllBytes(stream);
-            return LoadFromByteArray(bytes, readOnly, autoSave, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
+            return LoadFromByteArray(
+                bytes,
+                readOnly,
+                autoSave,
+                filePath: null,
+                log: null,
+                openSettings,
+                preferFilePathOnFallback: false,
+                originalStream: shouldCopyBack ? stream : null,
+                copyBackToSource: shouldCopyBack,
+                leaveOriginalStreamOpen: true);
         }
 
         /// <summary>
@@ -531,7 +631,7 @@ namespace OfficeIMO.Excel {
         /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
         public static async Task<ExcelDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null) {
             if (filePath == null) {
-                throw new ArgumentNullException("path");
+                throw new ArgumentNullException(nameof(filePath));
             }
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
@@ -552,8 +652,34 @@ namespace OfficeIMO.Excel {
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         public static async Task<ExcelDocument> LoadAsync(Stream stream, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null, CancellationToken cancellationToken = default)
         {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+            bool shouldCopyBack = autoSave && !readOnly;
+            if (shouldCopyBack)
+            {
+                if (!stream.CanWrite)
+                {
+                    throw new ArgumentException("Stream must be writable when autoSave is enabled for editable documents.", nameof(stream));
+                }
+                if (!stream.CanSeek)
+                {
+                    throw new ArgumentException("Stream must support seeking when autoSave is enabled for editable documents.", nameof(stream));
+                }
+            }
+
             var bytes = await ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
-            return LoadFromByteArray(bytes, readOnly, autoSave, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
+            return LoadFromByteArray(
+                bytes,
+                readOnly,
+                autoSave,
+                filePath: null,
+                log: null,
+                openSettings,
+                preferFilePathOnFallback: false,
+                originalStream: shouldCopyBack ? stream : null,
+                copyBackToSource: shouldCopyBack,
+                leaveOriginalStreamOpen: true);
         }
 
         /// <summary>
@@ -1172,6 +1298,28 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private sealed class NonDisposingMemoryStream : MemoryStream
+        {
+            public NonDisposingMemoryStream(int capacity) : base(capacity)
+            {
+            }
+
+            public NonDisposingMemoryStream(byte[] buffer) : base(buffer)
+            {
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                // Suppress disposal so the buffer remains accessible after SpreadsheetDocument closes the stream.
+            }
+
+            public void DisposeUnderlying()
+            {
+                base.Dispose(true);
+                GC.SuppressFinalize(this);
+            }
+        }
+
         private sealed class SavePayload
         {
             public SavePayload(byte[] packageBytes, PackagePropertiesSnapshot properties)
@@ -1214,9 +1362,88 @@ namespace OfficeIMO.Excel {
                 this._spreadSheetDocument = null!;
             }
 
+            PersistPackageToSourceIfNeeded();
+
             _lock?.Dispose();
             _disposed = true;
             GC.SuppressFinalize(this);
+        }
+
+        private void PersistPackageToSourceIfNeeded()
+        {
+            if (_packageStream == null)
+            {
+                return;
+            }
+
+            try
+            {
+                if (_copyPackageToSourceOnDispose && _sourceStream != null)
+                {
+                    PersistPackageToSource();
+                }
+            }
+            catch
+            {
+                // ignored
+            }
+            finally
+            {
+                DisposeStream(_packageStream);
+
+                if (_copyPackageToSourceOnDispose && _sourceStream != null)
+                {
+                    if (!_leaveSourceStreamOpen)
+                    {
+                        try
+                        {
+                            _sourceStream.Dispose();
+                        }
+                        catch
+                        {
+                            // ignored
+                        }
+                    }
+                    else if (_sourceStream.CanSeek)
+                    {
+                        try
+                        {
+                            _sourceStream.Seek(0, SeekOrigin.Begin);
+                        }
+                        catch
+                        {
+                            // ignored
+                        }
+                    }
+                }
+
+                _packageStream = null;
+                _sourceStream = null;
+                _copyPackageToSourceOnDispose = false;
+                _leaveSourceStreamOpen = true;
+            }
+        }
+
+        private void PersistPackageToSource()
+        {
+            var packageStream = _packageStream ?? throw new InvalidOperationException("Package stream is not available.");
+            var targetStream = _sourceStream ?? throw new InvalidOperationException("Source stream is not available.");
+
+            if (!targetStream.CanSeek)
+            {
+                throw new InvalidOperationException("The provided stream must support seeking when autoSave is enabled.");
+            }
+
+            if (packageStream.CanSeek)
+            {
+                packageStream.Seek(0, SeekOrigin.Begin);
+            }
+
+            targetStream.Seek(0, SeekOrigin.Begin);
+            targetStream.SetLength(0);
+            packageStream.CopyTo(targetStream, StreamCopyBufferSize);
+            targetStream.Flush();
+            targetStream.Seek(0, SeekOrigin.Begin);
         }
     }
 }

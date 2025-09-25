@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_LoadAsyncNullPath_ThrowsArgumentNullException() {
             var ex = await Assert.ThrowsAsync<ArgumentNullException>(() => ExcelDocument.LoadAsync((string)null!));
-            Assert.Equal("path", ex.ParamName);
+            Assert.Equal("filePath", ex.ParamName);
         }
 
         [Fact]
