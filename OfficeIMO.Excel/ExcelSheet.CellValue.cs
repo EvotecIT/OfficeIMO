@@ -82,27 +82,27 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, uint value) {
-            CellValue(row, column, (double)value);
+            WriteLockConditional(() => CellValueCore(row, column, value));
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, ulong value) {
-            CellValue(row, column, (double)value);
+            WriteLockConditional(() => CellValueCore(row, column, value));
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, ushort value) {
-            CellValue(row, column, (double)value);
+            WriteLockConditional(() => CellValueCore(row, column, value));
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, byte value) {
-            CellValue(row, column, (double)value);
+            WriteLockConditional(() => CellValueCore(row, column, value));
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, sbyte value) {
-            CellValue(row, column, (double)value);
+            WriteLockConditional(() => CellValueCore(row, column, value));
         }
 
         /// <inheritdoc cref="CellValue(int,int,object)" />

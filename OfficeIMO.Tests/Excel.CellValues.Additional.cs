@@ -116,6 +116,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CellValues_LargeIntegers_AreSerializedExactly() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesLargeIntegers.xlsx");
+            ulong largeUnsigned = ulong.MaxValue;
+            long largeSigned = long.MinValue;
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, largeUnsigned);
+                sheet.CellValue(2, 1, (object)largeSigned);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                ValidateSpreadsheetDocument(filePath, spreadsheet);
+
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cells = wsPart.Worksheet.Descendants<Cell>().ToList();
+
+                Cell cellLargeUnsigned = cells.First(c => c.CellReference == "A1");
+                Assert.Equal(CellValues.Number, cellLargeUnsigned.DataType!.Value);
+                Assert.Equal(largeUnsigned.ToString(CultureInfo.InvariantCulture), cellLargeUnsigned.CellValue!.Text);
+
+                Cell cellLargeSigned = cells.First(c => c.CellReference == "A2");
+                Assert.Equal(CellValues.Number, cellLargeSigned.DataType!.Value);
+                Assert.Equal(largeSigned.ToString(CultureInfo.InvariantCulture), cellLargeSigned.CellValue!.Text);
+            }
+        }
+
+        [Fact]
         public void Test_CellValues_DateTimeOffset_RoundTrip_LocalTimes()
         {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesDateTimeOffsetRoundTrip.xlsx");
