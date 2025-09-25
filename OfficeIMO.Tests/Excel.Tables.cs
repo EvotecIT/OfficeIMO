@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -101,6 +102,21 @@ namespace OfficeIMO.Tests {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 Assert.Single(wsPart.TableDefinitionParts);
                   Assert.Equal("A1:B3", wsPart.TableDefinitionParts.First().Table.Reference!.Value);
+            }
+        }
+
+        [Theory]
+        [InlineData("B1:A2")]
+        [InlineData("A3:A1")]
+        [InlineData("B3:A1")]
+        public void Test_AddTableInvertedRangeThrows(string range) {
+            string safeRange = range.Replace(':', '_');
+            string filePath = Path.Combine(_directoryWithFiles, $"Table.Inverted.{safeRange}.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+
+                Assert.Throws<ArgumentException>(() =>
+                    sheet.AddTable(range, true, "MyTable", TableStyle.TableStyleMedium9));
             }
         }
 
