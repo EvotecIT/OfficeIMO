@@ -166,7 +166,16 @@ namespace OfficeIMO.Visio {
             x = x.ToInches(unit); y = y.ToInches(unit); w = w.ToInches(unit); h = h.ToInches(unit);
         }
 
-        // Normal, typed API — consistent with OfficeIMO style
+        /// <summary>
+        /// Adds a rectangle shape.
+        /// </summary>
+        /// <param name="x">X coordinate of the shape origin.</param>
+        /// <param name="y">Y coordinate of the shape origin.</param>
+        /// <param name="width">Width of the rectangle.</param>
+        /// <param name="height">Height of the rectangle.</param>
+        /// <param name="text">Optional text placed on the shape.</param>
+        /// <param name="unit">Measurement unit for the provided values.</param>
+        /// <returns>The created rectangle shape.</returns>
         public VisioShape AddRectangle(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
             var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Rectangle" };
@@ -174,19 +183,53 @@ namespace OfficeIMO.Visio {
             return s;
         }
 
-        // Overloads that respect page DefaultUnit to avoid manual conversions.
+        /// <summary>
+        /// Adds a rectangle shape using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the rectangle.</param>
+        /// <param name="height">Height of the rectangle.</param>
+        /// <param name="text">Optional text.</param>
+        /// <returns>The created rectangle shape.</returns>
         public VisioShape AddRectangle(double x, double y, double width, double height, string? text = null) =>
             AddRectangle(x, y, width, height, text, DefaultUnit);
 
+        /// <summary>
+        /// Adds a square shape.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="size">Width and height of the square.</param>
+        /// <param name="text">Optional text.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created square shape.</returns>
         public VisioShape AddSquare(double x, double y, double size, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             var s = AddRectangle(x, y, size, size, text, unit);
             s.NameU = "Square";
             return s;
         }
 
+        /// <summary>
+        /// Adds a square using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="size">Width and height of the square.</param>
+        /// <param name="text">Optional text.</param>
+        /// <returns>The created square shape.</returns>
         public VisioShape AddSquare(double x, double y, double size, string? text = null) =>
             AddSquare(x, y, size, text, DefaultUnit);
 
+        /// <summary>
+        /// Adds a circle shape.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="diameter">Diameter of the circle.</param>
+        /// <param name="text">Optional text.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created circle shape.</returns>
         public VisioShape AddCircle(double x, double y, double diameter, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             // Avoid double-converting when passing the same variable for width/height
             double w = diameter, h = diameter;
@@ -196,9 +239,27 @@ namespace OfficeIMO.Visio {
             return s;
         }
 
+        /// <summary>
+        /// Adds a circle using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="diameter">Diameter of the circle.</param>
+        /// <param name="text">Optional text.</param>
+        /// <returns>The created circle shape.</returns>
         public VisioShape AddCircle(double x, double y, double diameter, string? text = null) =>
             AddCircle(x, y, diameter, text, DefaultUnit);
 
+        /// <summary>
+        /// Adds an ellipse shape.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the ellipse.</param>
+        /// <param name="height">Height of the ellipse.</param>
+        /// <param name="text">Optional text.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created ellipse shape.</returns>
         public VisioShape AddEllipse(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
             var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Ellipse" };
@@ -206,9 +267,28 @@ namespace OfficeIMO.Visio {
             return s;
         }
 
+        /// <summary>
+        /// Adds an ellipse using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the ellipse.</param>
+        /// <param name="height">Height of the ellipse.</param>
+        /// <param name="text">Optional text.</param>
+        /// <returns>The created ellipse shape.</returns>
         public VisioShape AddEllipse(double x, double y, double width, double height, string? text = null) =>
             AddEllipse(x, y, width, height, text, DefaultUnit);
 
+        /// <summary>
+        /// Adds a diamond shape.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the diamond.</param>
+        /// <param name="height">Height of the diamond.</param>
+        /// <param name="text">Optional text.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created diamond shape.</returns>
         public VisioShape AddDiamond(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
             var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Diamond" };
@@ -216,9 +296,28 @@ namespace OfficeIMO.Visio {
             return s;
         }
 
+        /// <summary>
+        /// Adds a diamond using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the diamond.</param>
+        /// <param name="height">Height of the diamond.</param>
+        /// <param name="text">Optional text.</param>
+        /// <returns>The created diamond shape.</returns>
         public VisioShape AddDiamond(double x, double y, double width, double height, string? text = null) =>
             AddDiamond(x, y, width, height, text, DefaultUnit);
 
+        /// <summary>
+        /// Adds a triangle shape.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the triangle's bounding box.</param>
+        /// <param name="height">Height of the triangle's bounding box.</param>
+        /// <param name="text">Optional text.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created triangle shape.</returns>
         public VisioShape AddTriangle(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
             var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Triangle" };
@@ -226,6 +325,15 @@ namespace OfficeIMO.Visio {
             return s;
         }
 
+        /// <summary>
+        /// Adds a triangle using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the triangle's bounding box.</param>
+        /// <param name="height">Height of the triangle's bounding box.</param>
+        /// <param name="text">Optional text.</param>
+        /// <returns>The created triangle shape.</returns>
         public VisioShape AddTriangle(double x, double y, double width, double height, string? text = null) =>
             AddTriangle(x, y, width, height, text, DefaultUnit);
 
@@ -237,6 +345,15 @@ namespace OfficeIMO.Visio {
             _ => -1
         };
 
+        /// <summary>
+        /// Adds a connector between two shapes, optionally specifying side connection points.
+        /// </summary>
+        /// <param name="from">Source shape.</param>
+        /// <param name="to">Target shape.</param>
+        /// <param name="kind">Connector kind (straight, curved, etc.).</param>
+        /// <param name="fromSide">Preferred side on the source shape.</param>
+        /// <param name="toSide">Preferred side on the target shape.</param>
+        /// <returns>The created connector.</returns>
         public VisioConnector AddConnector(VisioShape from, VisioShape to, ConnectorKind kind = ConnectorKind.Straight, VisioSide fromSide = VisioSide.Auto, VisioSide toSide = VisioSide.Auto) {
             var conn = new VisioConnector(NextId(), from, to) { Kind = kind };
             // ensure side CPs when sides requested

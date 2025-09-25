@@ -18,10 +18,15 @@ namespace OfficeIMO.Visio {
         /// Lightweight info about a master available inside a VSDX file.
         /// </summary>
         public sealed class MasterInfo {
+            /// <summary>Master identifier from masters.xml.</summary>
             public string Id { get; set; } = string.Empty;
+            /// <summary>Universal (language-independent) master name.</summary>
             public string NameU { get; set; } = string.Empty;
+            /// <summary>Localized master name, when present.</summary>
             public string? Name { get; set; }
+            /// <summary>Relationship Id from masters.xml linking to the master part.</summary>
             public string RelationshipId { get; set; } = string.Empty;
+            /// <summary>Returns a readable representation for diagnostics.</summary>
             public override string ToString() => $"{Id}:{NameU} ({Name})";
         }
 
@@ -29,9 +34,13 @@ namespace OfficeIMO.Visio {
         /// Full master payload (MasterContents plus the masters.xml element) for importing.
         /// </summary>
         public sealed class MasterContent {
+            /// <summary>Master identifier.</summary>
             public string Id { get; set; } = string.Empty;
+            /// <summary>Universal (language-independent) master name.</summary>
             public string NameU { get; set; } = string.Empty;
+            /// <summary>The full XML of the master part (masterNNNN.xml).</summary>
             public XDocument MasterXml { get; set; } = new XDocument();
+            /// <summary>The corresponding <c>Master</c> element from masters.xml.</summary>
             public XElement MasterElement { get; set; } = new XElement(XName.Get("Master", V));
         }
 
@@ -85,7 +94,8 @@ namespace OfficeIMO.Visio {
                 if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(nameU)) continue;
                 if (filter != null && !filter.Contains(nameU)) continue;
                 string relId = (string?)m.Element(v + "Rel")?.Attribute(r + "id") ?? string.Empty;
-                if (string.IsNullOrEmpty(relId) || !relMap.TryGetValue(relId, out string target)) continue;
+                if (string.IsNullOrEmpty(relId) || !relMap.TryGetValue(relId, out var targetTmp)) continue;
+                string target = targetTmp;
                 string partPath = "visio/masters/" + target.Replace("\\", "/");
                 var part = zip.GetEntry(partPath);
                 if (part == null) continue;

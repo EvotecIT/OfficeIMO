@@ -444,7 +444,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (preferFilePathOnFallback && !string.IsNullOrEmpty(filePath)) {
-                var spreadSheetDocument = SpreadsheetDocument.Open(filePath, !readOnly, effectiveOpenSettings);
+                var safePath = filePath!; // guarded by IsNullOrEmpty above
+                var spreadSheetDocument = SpreadsheetDocument.Open(safePath, !readOnly, effectiveOpenSettings);
                 return CreateDocument(spreadSheetDocument, filePath);
             } else {
                 var fallbackStream = shouldCopyBack

@@ -65,7 +65,7 @@ namespace OfficeIMO.Visio {
                 if (n.StartsWith("visio/pages/", StringComparison.OrdinalIgnoreCase)
                     && n.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)
                     && !n.EndsWith("pages.xml", StringComparison.OrdinalIgnoreCase)
-                    && !n.Contains("/_rels/", StringComparison.Ordinal)) {
+                    && n.IndexOf("/_rels/", StringComparison.Ordinal) < 0) {
                     yield return n;
                 }
             }
@@ -113,7 +113,7 @@ namespace OfficeIMO.Visio {
                 if (n.StartsWith("visio/masters/", StringComparison.OrdinalIgnoreCase)
                     && n.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)
                     && n != "visio/masters/masters.xml"
-                    && !n.Contains("/_rels/", StringComparison.Ordinal)) {
+                    && n.IndexOf("/_rels/", StringComparison.Ordinal) < 0) {
                     AddOverride(ct, "/" + n, "application/vnd.ms-visio.master+xml");
                 }
             }

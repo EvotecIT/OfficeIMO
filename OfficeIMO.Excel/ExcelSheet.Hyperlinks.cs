@@ -204,13 +204,14 @@ namespace OfficeIMO.Excel {
 
             foreach (var existing in matches) {
                 var relId = existing.Id?.Value;
-                if (!string.IsNullOrEmpty(relId)
-                    && !remainingRelationIds.Contains(relId)
-                    && deletedRelationIds.Add(relId)) {
-                    var rel = _worksheetPart.HyperlinkRelationships
-                        .FirstOrDefault(r => string.Equals(r.Id, relId, StringComparison.OrdinalIgnoreCase));
-                    if (rel != null) {
-                        _worksheetPart.DeleteReferenceRelationship(rel);
+                if (!string.IsNullOrEmpty(relId)) {
+                    var rid = relId!;
+                    if (!remainingRelationIds.Contains(rid) && deletedRelationIds.Add(rid)) {
+                        var rel = _worksheetPart.HyperlinkRelationships
+                            .FirstOrDefault(r => string.Equals(r.Id, rid, StringComparison.OrdinalIgnoreCase));
+                        if (rel != null) {
+                            _worksheetPart.DeleteReferenceRelationship(rel);
+                        }
                     }
                 }
                 existing.Remove();
