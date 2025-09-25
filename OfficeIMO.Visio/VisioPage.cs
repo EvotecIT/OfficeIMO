@@ -12,6 +12,7 @@ namespace OfficeIMO.Visio {
         private bool _gridVisible;
         private bool _snap = true;
         private VisioMeasurementUnit _defaultUnit = VisioMeasurementUnit.Inches;
+        private double _viewScale = 1;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VisioPage"/> class with default A4 size.
@@ -31,7 +32,6 @@ namespace OfficeIMO.Visio {
             NameU = name;
             _width = widthInches;
             _height = heightInches;
-            ViewScale = -1;
             ViewCenterX = widthInches / 2;
             ViewCenterY = heightInches / 2;
         }
@@ -54,7 +54,16 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Gets or sets the view scale of the page.
         /// </summary>
-        public double ViewScale { get; set; }
+        public double ViewScale {
+            get => _viewScale;
+            set {
+                if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0) {
+                    _viewScale = 1;
+                } else {
+                    _viewScale = value;
+                }
+            }
+        }
 
         /// <summary>
         /// Gets or sets the horizontal center of the view.

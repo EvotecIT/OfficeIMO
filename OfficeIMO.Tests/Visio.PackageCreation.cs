@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.IO.Packaging;
 using System.Linq;
+using System.Xml;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
 using Xunit;
@@ -123,6 +124,37 @@ namespace OfficeIMO.Tests {
 
             var issues = VisioValidator.Validate(filePath);
             Assert.Empty(issues);
+        }
+
+        [Fact]
+        public void SavesDefaultViewMetadataWithScaleOne() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Page-1");
+            document.Save();
+
+            using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);
+            PackagePart pagesPart = package.GetPart(new Uri("/visio/pages/pages.xml", UriKind.Relative));
+            XDocument pagesDoc = XDocument.Load(pagesPart.GetStream());
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XElement? pageElement = pagesDoc.Root?.Element(ns + "Page");
+            Assert.NotNull(pageElement);
+
+            string? viewScaleAttr = pageElement!.Attribute("ViewScale")?.Value;
+            string? viewCenterXAttr = pageElement.Attribute("ViewCenterX")?.Value;
+            string? viewCenterYAttr = pageElement.Attribute("ViewCenterY")?.Value;
+            Assert.NotNull(viewScaleAttr);
+            Assert.NotNull(viewCenterXAttr);
+            Assert.NotNull(viewCenterYAttr);
+
+            double viewScale = XmlConvert.ToDouble(viewScaleAttr);
+            double viewCenterX = XmlConvert.ToDouble(viewCenterXAttr);
+            double viewCenterY = XmlConvert.ToDouble(viewCenterYAttr);
+
+            Assert.Equal(1, viewScale);
+            Assert.Equal(page.Width / 2, viewCenterX, 10);
+            Assert.Equal(page.Height / 2, viewCenterY, 10);
         }
     }
 }

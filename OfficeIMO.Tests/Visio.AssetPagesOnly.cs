@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Xml;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
 using Xunit;
@@ -36,7 +37,14 @@ namespace OfficeIMO.Tests {
             XNamespace v = "http://schemas.microsoft.com/office/visio/2012/main";
             var ePage = exp.Root!.Element(v + "Page")!;
             var aPage = act.Root!.Element(v + "Page")!;
-            Assert.Equal((string?)ePage.Attribute("ViewScale"), (string?)aPage.Attribute("ViewScale"));
+            string? expectedViewScaleAttr = ePage.Attribute("ViewScale")?.Value;
+            string? actualViewScaleAttr = aPage.Attribute("ViewScale")?.Value;
+            double expectedViewScale = expectedViewScaleAttr != null ? XmlConvert.ToDouble(expectedViewScaleAttr) : 1;
+            double actualViewScale = actualViewScaleAttr != null ? XmlConvert.ToDouble(actualViewScaleAttr) : 1;
+            if (double.IsNaN(expectedViewScale) || double.IsInfinity(expectedViewScale) || expectedViewScale <= 0) {
+                expectedViewScale = 1;
+            }
+            Assert.Equal(expectedViewScale, actualViewScale);
             Assert.Equal((string?)ePage.Attribute("ViewCenterX"), (string?)aPage.Attribute("ViewCenterX"));
             Assert.Equal((string?)ePage.Attribute("ViewCenterY"), (string?)aPage.Attribute("ViewCenterY"));
             var eCells = ePage.Element(v + "PageSheet")!.Elements(v + "Cell").ToDictionary(c => (string)c.Attribute("N")!, c => (val: (string?)c.Attribute("V"), unit: (string?)c.Attribute("U")));
@@ -71,7 +79,11 @@ namespace OfficeIMO.Tests {
             XNamespace v = "http://schemas.microsoft.com/office/visio/2012/main";
             var ePage = exp.Root!.Element(v + "Page")!;
             var aPage = act.Root!.Element(v + "Page")!;
-            Assert.Equal((string?)ePage.Attribute("ViewScale"), (string?)aPage.Attribute("ViewScale"));
+            string? expectedViewScaleAttr = ePage.Attribute("ViewScale")?.Value;
+            string? actualViewScaleAttr = aPage.Attribute("ViewScale")?.Value;
+            Assert.NotNull(expectedViewScaleAttr);
+            Assert.NotNull(actualViewScaleAttr);
+            Assert.Equal(XmlConvert.ToDouble(expectedViewScaleAttr), XmlConvert.ToDouble(actualViewScaleAttr));
             Assert.Equal((string?)ePage.Attribute("ViewCenterX"), (string?)aPage.Attribute("ViewCenterX"));
             Assert.Equal((string?)ePage.Attribute("ViewCenterY"), (string?)aPage.Attribute("ViewCenterY"));
             var eCells = ePage.Element(v + "PageSheet")!.Elements(v + "Cell").ToDictionary(c => (string)c.Attribute("N")!, c => (val: (string?)c.Attribute("V"), unit: (string?)c.Attribute("U")));

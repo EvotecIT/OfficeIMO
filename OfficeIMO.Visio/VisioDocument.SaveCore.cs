@@ -316,7 +316,11 @@ namespace OfficeIMO.Visio {
                         writer.WriteAttributeString("ID", XmlConvert.ToString(page.Id));
                         writer.WriteAttributeString("Name", page.Name);
                         writer.WriteAttributeString("NameU", page.Name);
-                        writer.WriteAttributeString("ViewScale", XmlConvert.ToString(page.ViewScale));
+                        double viewScale = page.ViewScale;
+                        if (double.IsNaN(viewScale) || double.IsInfinity(viewScale) || viewScale <= 0) {
+                            viewScale = 1;
+                        }
+                        writer.WriteAttributeString("ViewScale", XmlConvert.ToString(viewScale));
                         writer.WriteAttributeString("ViewCenterX", XmlConvert.ToString(page.ViewCenterX));
                         writer.WriteAttributeString("ViewCenterY", XmlConvert.ToString(page.ViewCenterY));
 
