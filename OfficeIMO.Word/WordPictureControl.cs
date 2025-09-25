@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Office2010.Word;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {

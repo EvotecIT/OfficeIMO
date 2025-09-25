@@ -33,8 +33,7 @@ public static partial class MarkdownReader {
                 var inner = t.Substring(4, t.Length - 5).Trim(); // after [TOC and before ]
                 var opts = new TocOptions();
                 if (!string.IsNullOrWhiteSpace(inner)) {
-                    try { ApplyAttributes(inner, opts); }
-                    catch { /* ignore malformed attributes; fall back to defaults */ }
+                    try { ApplyAttributes(inner, opts); } catch { /* ignore malformed attributes; fall back to defaults */ }
                 }
                 // Clamp levels and sanitize options
                 if (opts.MinLevel < 1) opts.MinLevel = TocOptions.DefaultMinLevel;

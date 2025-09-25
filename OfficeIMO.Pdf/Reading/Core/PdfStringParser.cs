@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace OfficeIMO.Pdf;
 
 internal static class PdfStringParser {

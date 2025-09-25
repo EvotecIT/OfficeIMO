@@ -1,5 +1,3 @@
-using OfficeIMO.Word;
-
 namespace OfficeIMO.Word.Markdown {
     /// <summary>
     /// Provides settings that control how a Word document is converted to Markdown.

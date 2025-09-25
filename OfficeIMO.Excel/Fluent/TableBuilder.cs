@@ -1,4 +1,3 @@
-using OfficeIMO.Excel;
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Fluent helpers for adding Excel tables over a range.

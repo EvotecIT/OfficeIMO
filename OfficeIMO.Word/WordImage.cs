@@ -1,11 +1,7 @@
-using System;
-using System.IO;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.Linq;
 using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 using V = DocumentFormat.OpenXml.Vml;
@@ -233,10 +229,10 @@ namespace OfficeIMO.Word {
                 }
 
                 var anchor = _Image.Anchor;
-                    if (anchor != null) {
-                        var anchoDocPropertiesr = anchor.OfType<DocProperties>().FirstOrDefault();
-                        return anchoDocPropertiesr?.Description;
-                    }
+                if (anchor != null) {
+                    var anchoDocPropertiesr = anchor.OfType<DocProperties>().FirstOrDefault();
+                    return anchoDocPropertiesr?.Description;
+                }
 
                 return null;
             }
@@ -1795,8 +1791,7 @@ namespace OfficeIMO.Word {
             var graphic = new Graphic();
             var graphicData = new GraphicData() { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" };
 
-            var nvDrawingProps = new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties()
-            {
+            var nvDrawingProps = new DocumentFormat.OpenXml.Drawing.Pictures.NonVisualDrawingProperties() {
                 Id = (UInt32Value)0U,
                 Name = fileName,
                 Description = description

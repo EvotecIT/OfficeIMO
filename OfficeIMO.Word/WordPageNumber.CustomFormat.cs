@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Word {
     public partial class WordPageNumber {
         /// <summary>

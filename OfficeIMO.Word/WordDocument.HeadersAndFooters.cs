@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Diagnostics;
 
 namespace OfficeIMO.Word {
     /// <summary>

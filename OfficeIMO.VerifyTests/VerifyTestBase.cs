@@ -1,3 +1,7 @@
+using DocumentFormat.OpenXml.CustomProperties;
+using DocumentFormat.OpenXml.Drawing.Charts;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.Globalization;
 using System.IO;
@@ -6,12 +10,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Xml;
-using DocumentFormat.OpenXml.CustomProperties;
-using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using VerifyTests;
-using VerifyXunit;
 using Formatting = System.Xml.Formatting;
 using Hyperlink = DocumentFormat.OpenXml.Wordprocessing.Hyperlink;
 

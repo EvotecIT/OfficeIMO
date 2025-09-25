@@ -1,13 +1,7 @@
-using AngleSharp.Html.Dom;
-using AngleSharp.Dom;
 using AngleSharp.Css.Parser;
-using DocumentFormat.OpenXml;
+using AngleSharp.Html.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word;
-using SixLabors.ImageSharp;
 using SixColor = SixLabors.ImageSharp.Color;
-using System;
-using System.Collections.Generic;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {

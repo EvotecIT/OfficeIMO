@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Markdown;
@@ -28,15 +27,14 @@ public static class HeaderTransforms {
         name = name.Trim();
         // Uppercase provided acronyms
         foreach (var ac in acronyms) {
-            name = Regex.Replace(name, $"\\b{ac.Substring(0,1)}{ac.Substring(1).ToLower()}\\b|\\b{ac.ToLower()}\\b|\\b{ac}\\b", ac, RegexOptions.IgnoreCase);
+            name = Regex.Replace(name, $"\\b{ac.Substring(0, 1)}{ac.Substring(1).ToLower()}\\b|\\b{ac.ToLower()}\\b|\\b{ac}\\b", ac, RegexOptions.IgnoreCase);
         }
         // Title case words that are not fully uppercase
         var parts = name.Split(' ');
         var sb = new StringBuilder();
         for (int i = 0; i < parts.Length; i++) {
             var w = parts[i];
-            if (IsAllUpper(w)) { sb.Append(w); }
-            else { sb.Append(char.ToUpperInvariant(w[0])); if (w.Length > 1) sb.Append(w.Substring(1).ToLowerInvariant()); }
+            if (IsAllUpper(w)) { sb.Append(w); } else { sb.Append(char.ToUpperInvariant(w[0])); if (w.Length > 1) sb.Append(w.Substring(1).ToLowerInvariant()); }
             if (i < parts.Length - 1) sb.Append(' ');
         }
         return sb.ToString();

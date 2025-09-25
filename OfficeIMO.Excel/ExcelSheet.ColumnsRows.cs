@@ -1,20 +1,10 @@
 using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using SixLabors.Fonts;
-using System;
-using System.Collections;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml;
-using SixLaborsColor = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -23,8 +13,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="mode">Overrides how the auto-fit work is scheduled across columns.</param>
         /// <param name="ct">Cancels the auto-fit pass while widths are being measured or applied.</param>
-        public void AutoFitColumns(ExecutionMode? mode = null, CancellationToken ct = default)
-        {
+        public void AutoFitColumns(ExecutionMode? mode = null, CancellationToken ct = default) {
             var columns = GetAllColumnIndices();
             if (columns.Count == 0) return;
             AutoFitColumnsInternal(columns.OrderBy(i => i).ToList(), mode, ct);
@@ -36,8 +25,7 @@ namespace OfficeIMO.Excel {
         /// <param name="columnIndexes">1-based column indexes that should be resized to fit their content.</param>
         /// <param name="mode">Overrides how the auto-fit work is scheduled across the selected columns.</param>
         /// <param name="ct">Cancels the auto-fit pass for the selected columns.</param>
-        public void AutoFitColumnsFor(IEnumerable<int> columnIndexes, ExecutionMode? mode = null, CancellationToken ct = default)
-        {
+        public void AutoFitColumnsFor(IEnumerable<int> columnIndexes, ExecutionMode? mode = null, CancellationToken ct = default) {
             if (columnIndexes == null) return;
             var list = columnIndexes.Where(i => i > 0).Distinct().OrderBy(i => i).ToList();
             if (list.Count == 0) return;
@@ -50,16 +38,14 @@ namespace OfficeIMO.Excel {
         /// <param name="columnsToSkip">1-based column indexes that should not be resized.</param>
         /// <param name="mode">Overrides how the auto-fit work is scheduled for the remaining columns.</param>
         /// <param name="ct">Cancels the auto-fit pass before it completes.</param>
-        public void AutoFitColumnsExcept(IEnumerable<int> columnsToSkip, ExecutionMode? mode = null, CancellationToken ct = default)
-        {
+        public void AutoFitColumnsExcept(IEnumerable<int> columnsToSkip, ExecutionMode? mode = null, CancellationToken ct = default) {
             var skip = new HashSet<int>(columnsToSkip ?? Array.Empty<int>());
             var remaining = GetAllColumnIndices().Where(i => i > 0 && !skip.Contains(i)).OrderBy(i => i).ToList();
             if (remaining.Count == 0) return;
             AutoFitColumnsInternal(remaining, mode, ct);
         }
 
-        private void AutoFitColumnsInternal(IReadOnlyList<int> columnsList, ExecutionMode? mode, CancellationToken ct)
-        {
+        private void AutoFitColumnsInternal(IReadOnlyList<int> columnsList, ExecutionMode? mode, CancellationToken ct) {
             if (columnsList.Count == 0) return;
             double[] computed = new double[columnsList.Count];
 
@@ -67,56 +53,42 @@ namespace OfficeIMO.Excel {
                 opName: "AutoFitColumns",
                 itemCount: columnsList.Count,
                 overrideMode: mode,
-                sequentialCore: () =>
-                {
+                sequentialCore: () => {
                     var worksheet = _worksheetPart.Worksheet;
                     var sheetData = worksheet.GetFirstChild<SheetData>();
                     if (sheetData == null) return;
 
-                    for (int i = 0; i < columnsList.Count; i++)
-                    {
+                    for (int i = 0; i < columnsList.Count; i++) {
                         computed[i] = CalculateColumnWidth(columnsList[i]);
                     }
 
-                    for (int i = 0; i < columnsList.Count; i++)
-                    {
+                    for (int i = 0; i < columnsList.Count; i++) {
                         SetColumnWidthCore(columnsList[i], computed[i]);
                     }
 
                     worksheet.Save();
                 },
-                computeParallel: () =>
-                {
+                computeParallel: () => {
                     var failures = new ConcurrentBag<int>();
-                    Parallel.For(0, columnsList.Count, new ParallelOptions
-                    {
+                    Parallel.For(0, columnsList.Count, new ParallelOptions {
                         CancellationToken = ct,
                         MaxDegreeOfParallelism = EffectiveExecution.MaxDegreeOfParallelism ?? -1
-                    }, i =>
-                    {
-                        try
-                        {
+                    }, i => {
+                        try {
                             computed[i] = CalculateColumnWidth(columnsList[i]);
-                        }
-                        catch
-                        {
+                        } catch {
                             failures.Add(i);
                         }
                     });
-                    if (!failures.IsEmpty)
-                    {
-                        foreach (var idx in failures)
-                        {
-                            try { computed[idx] = CalculateColumnWidth(columnsList[idx]); }
-                            catch { computed[idx] = 0; }
+                    if (!failures.IsEmpty) {
+                        foreach (var idx in failures) {
+                            try { computed[idx] = CalculateColumnWidth(columnsList[idx]); } catch { computed[idx] = 0; }
                         }
                     }
                 },
-                applySequential: () =>
-                {
+                applySequential: () => {
                     var worksheet = _worksheetPart.Worksheet;
-                    for (int i = 0; i < columnsList.Count; i++)
-                    {
+                    for (int i = 0; i < columnsList.Count; i++) {
                         SetColumnWidthCore(columnsList[i], computed[i]);
                     }
                     worksheet.Save();
@@ -125,33 +97,27 @@ namespace OfficeIMO.Excel {
             );
         }
 
-        private HashSet<int> GetAllColumnIndices()
-        {
+        private HashSet<int> GetAllColumnIndices() {
             var worksheet = _worksheetPart.Worksheet;
-              SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
-              if (sheetData == null) return new HashSet<int>();
+            SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
+            if (sheetData == null) return new HashSet<int>();
 
             var columns = worksheet.GetFirstChild<Columns>();
             HashSet<int> columnIndexes = new HashSet<int>();
 
-              foreach (var row in sheetData.Elements<Row>())
-              {
-                  foreach (var cell in row.Elements<Cell>())
-                  {
-                      var cellRef = cell.CellReference?.Value;
-                      if (string.IsNullOrEmpty(cellRef)) continue;
-                      columnIndexes.Add(GetColumnIndex(cellRef!));
-                  }
-              }
+            foreach (var row in sheetData.Elements<Row>()) {
+                foreach (var cell in row.Elements<Cell>()) {
+                    var cellRef = cell.CellReference?.Value;
+                    if (string.IsNullOrEmpty(cellRef)) continue;
+                    columnIndexes.Add(GetColumnIndex(cellRef!));
+                }
+            }
 
-            if (columns != null)
-            {
-                foreach (var column in columns.Elements<Column>())
-                {
+            if (columns != null) {
+                foreach (var column in columns.Elements<Column>()) {
                     uint min = column.Min?.Value ?? 0;
                     uint max = column.Max?.Value ?? 0;
-                    for (uint i = min; i <= max; i++)
-                    {
+                    for (uint i = min; i <= max; i++) {
                         columnIndexes.Add((int)i);
                     }
                 }
@@ -160,72 +126,63 @@ namespace OfficeIMO.Excel {
             return columnIndexes;
         }
 
-        private double CalculateColumnWidth(int columnIndex)
-        {
+        private double CalculateColumnWidth(int columnIndex) {
             var worksheet = _worksheetPart.Worksheet;
-              SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
-              if (sheetData == null) return 0;
+            SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
+            if (sheetData == null) return 0;
 
             double maxWidth = 0;
-            
+
             // Get the default font for MDW calculation
             var defaultFont = GetDefaultFont();
             var defaultOptions = new TextOptions(defaultFont) { Dpi = 96 };
             float mdw = TextMeasurer.MeasureSize("0", defaultOptions).Width;
             if (mdw <= 0.0001f) return 0;
-            
+
             // Pixel Padding (PP) - extra pixels at left and right border (ClosedXML uses 2)
             const double pixelPadding = 2.0;
 
-            foreach (var row in sheetData.Elements<Row>())
-            {
-                  var cell = row.Elements<Cell>()
-                      .FirstOrDefault(c =>
-                      {
-                          string? reference = c.CellReference?.Value;
-                          return reference != null && GetColumnIndex(reference) == columnIndex;
-                      });
+            foreach (var row in sheetData.Elements<Row>()) {
+                var cell = row.Elements<Cell>()
+                    .FirstOrDefault(c => {
+                        string? reference = c.CellReference?.Value;
+                        return reference != null && GetColumnIndex(reference) == columnIndex;
+                    });
                 if (cell == null) continue;
-                
+
                 string text = GetCellText(cell);
                 if (string.IsNullOrWhiteSpace(text)) continue;
-                
+
                 // Check if cell has wrap text enabled
                 bool hasWrapText = HasWrapText(cell);
-                
+
                 var font = GetCellFont(cell);
                 var options = new TextOptions(font) { Dpi = 96 };
 
                 float textWidthPx;
-                if (text.Contains('\n') || text.Contains('\r'))
-                {
+                if (text.Contains('\n') || text.Contains('\r')) {
                     // For text with newlines, measure the longest line (regardless of wrap setting)
                     string[] lines = text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
                     textWidthPx = 0;
-                    foreach (var line in lines)
-                    {
-                        if (!string.IsNullOrEmpty(line))
-                        {
+                    foreach (var line in lines) {
+                        if (!string.IsNullOrEmpty(line)) {
                             float lineWidth = TextMeasurer.MeasureSize(line, options).Width;
                             if (lineWidth > textWidthPx) textWidthPx = lineWidth;
                         }
                     }
-                }
-                else
-                {
+                } else {
                     // Measure full text as single line
                     textWidthPx = TextMeasurer.MeasureSize(text, options).Width;
                 }
-                
+
                 // ClosedXML formula: Add 2 * padding + 1 pixel for cell border
                 double cellWidthPx = textWidthPx + (2 * pixelPadding) + 1;
-                
+
                 // Convert pixels to Excel column width using ClosedXML's formula
                 // width = Truncate(pixels / MDW * 256) / 256
                 double columnWidth = Math.Truncate(cellWidthPx / mdw * 256.0) / 256.0;
-                
-                if (columnWidth > maxWidth)
-                {
+
+                if (columnWidth > maxWidth) {
                     maxWidth = columnWidth;
                 }
             }
@@ -235,97 +192,83 @@ namespace OfficeIMO.Excel {
 
         private const double MaxExcelColumnWidth = 255.0;
 
-        private static double NormalizeColumnWidth(double width)
-        {
-            if (double.IsNaN(width) || double.IsInfinity(width))
-            {
+        private static double NormalizeColumnWidth(double width) {
+            if (double.IsNaN(width) || double.IsInfinity(width)) {
                 return 0;
             }
 
-            if (width <= 0)
-            {
+            if (width <= 0) {
                 return 0;
             }
 
             return Math.Min(width, MaxExcelColumnWidth);
         }
 
-        private void SetColumnWidthCore(int columnIndex, double width)
-        {
+        private void SetColumnWidthCore(int columnIndex, double width) {
             var worksheet = _worksheetPart.Worksheet;
             var columns = worksheet.GetFirstChild<Columns>();
-            if (columns == null)
-            {
+            if (columns == null) {
                 columns = worksheet.InsertAt(new Columns(), 0);
             }
 
-              Column? column = columns.Elements<Column>()
-                  .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
+            Column? column = columns.Elements<Column>()
+                .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
 
-            if (column != null)
-            {
+            if (column != null) {
                 column = SplitColumn(columns, column, (uint)columnIndex);
             }
 
             width = NormalizeColumnWidth(width);
 
-            if (width > 0)
-            {
-                if (column == null)
-                {
+            if (width > 0) {
+                if (column == null) {
                     column = new Column { Min = (uint)columnIndex, Max = (uint)columnIndex };
                     columns.Append(column);
                 }
                 column.Width = width;
                 column.CustomWidth = true;
                 column.BestFit = true;
-            }
-            else if (column != null)
-            {
+            } else if (column != null) {
                 column.Remove();
             }
 
             ReorderColumns(columns);
         }
 
-        private double GetDefaultRowHeightPoints()
-        {
+        private double GetDefaultRowHeightPoints() {
             var sheetFormat = _worksheetPart.Worksheet.GetFirstChild<SheetFormatProperties>();
-            if (sheetFormat?.DefaultRowHeight != null && sheetFormat.DefaultRowHeight.Value > 0)
-            {
+            if (sheetFormat?.DefaultRowHeight != null && sheetFormat.DefaultRowHeight.Value > 0) {
                 return sheetFormat.DefaultRowHeight.Value;
             }
             return 15.0; // Excel default for Calibri 11pt
         }
 
-        private bool HasWrapText(Cell cell)
-        {
+        private bool HasWrapText(Cell cell) {
             if (cell.StyleIndex == null) return false;
-            
+
             var stylesPart = _excelDocument._spreadSheetDocument.WorkbookPart?.WorkbookStylesPart;
             var stylesheet = stylesPart?.Stylesheet;
             var cellFormats = stylesheet?.CellFormats;
-            
+
             if (cellFormats == null) return false;
-            
+
             var cellFormat = cellFormats.Elements<CellFormat>().ElementAtOrDefault((int)cell.StyleIndex.Value);
             if (cellFormat?.Alignment == null) return false;
-            
+
             return cellFormat.Alignment.WrapText?.Value == true;
         }
 
-        private double CalculateRowHeight(int rowIndex)
-        {
+        private double CalculateRowHeight(int rowIndex) {
             var worksheet = _worksheetPart.Worksheet;
-              SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
-              if (sheetData == null) return 0;
+            SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
+            if (sheetData == null) return 0;
 
-              Row? row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)rowIndex);
-              if (row == null) return 0;
+            Row? row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)rowIndex);
+            if (row == null) return 0;
 
             double defaultHeight = GetDefaultRowHeightPoints();
             double maxHeight = defaultHeight; // Start with default as minimum
-            
+
             // Pre-calc default font metrics and MDW for pixel conversions
             var defaultFont = GetDefaultFont();
             var defaultOptions = new TextOptions(defaultFont) { Dpi = 96 };
@@ -333,15 +276,13 @@ namespace OfficeIMO.Excel {
             if (mdw <= 0.0001f) return defaultHeight;
 
             // Helper to get available content width in pixels for a given cell's column span
-            double GetAvailableWidthPx(Cell c)
-            {
+            double GetAvailableWidthPx(Cell c) {
                 const double pixelPadding = 2.0; // both sides added by Excel grid
-                // Determine merged span width
-                  string reference = c.CellReference?.Value ?? throw new InvalidOperationException("CellReference is null");
-                  (int fromCol, int toCol) = GetCellMergeSpan(c) ?? (GetColumnIndex(reference), GetColumnIndex(reference));
+                                                 // Determine merged span width
+                string reference = c.CellReference?.Value ?? throw new InvalidOperationException("CellReference is null");
+                (int fromCol, int toCol) = GetCellMergeSpan(c) ?? (GetColumnIndex(reference), GetColumnIndex(reference));
                 double totalPx = 0;
-                for (int col = fromCol; col <= toCol; col++)
-                {
+                for (int col = fromCol; col <= toCol; col++) {
                     totalPx += GetColumnWidthPixels(col, mdw);
                 }
                 // subtract small inner padding for content
@@ -349,14 +290,13 @@ namespace OfficeIMO.Excel {
                 return contentPx;
             }
 
-            foreach (var cell in row.Elements<Cell>())
-            {
+            foreach (var cell in row.Elements<Cell>()) {
                 string text = GetCellText(cell);
                 if (string.IsNullOrEmpty(text)) continue;
-                
+
                 var font = GetCellFont(cell);
                 var options = new TextOptions(font) { Dpi = 96 };
-                
+
                 // Measure a consistent line height using representative glyphs, but never below default row height
                 // ClosedXML effectively uses a line box that’s slightly taller than raw metrics; add a small pixel fudge
                 float measuredPx = TextMeasurer.MeasureSize("Xg", options).Height; // representative ascender/descender
@@ -373,15 +313,12 @@ namespace OfficeIMO.Excel {
                 // Ensure WrapText for visual parity when explicit breaks exist
                 if (hasExplicitBreaks && !HasWrapText(cell)) ApplyWrapText(cell);
 
-                if (wrap)
-                {
+                if (wrap) {
                     // Available width in pixels for this cell (span-aware)
                     double availPx = GetAvailableWidthPx(cell);
-                    if (availPx > 0)
-                    {
+                    if (availPx > 0) {
                         int linesCount = 0;
-                        foreach (var hard in hardLines)
-                        {
+                        foreach (var hard in hardLines) {
                             // At minimum, each hard segment is one line, even if empty
                             linesCount += CountWrappedLines(hard, availPx, options);
                         }
@@ -396,13 +333,11 @@ namespace OfficeIMO.Excel {
                 double cellHeight = baseLineHeightPt * totalLines + paddingPt;
 
                 // Ensure Excel wraps when our calculation indicates multiple lines
-                if (totalLines > 1 && !HasWrapText(cell))
-                {
+                if (totalLines > 1 && !HasWrapText(cell)) {
                     ApplyWrapText(cell);
                 }
 
-                if (cellHeight > maxHeight)
-                {
+                if (cellHeight > maxHeight) {
                     maxHeight = cellHeight;
                 }
             }
@@ -411,8 +346,7 @@ namespace OfficeIMO.Excel {
             return Math.Round(maxHeight, 2);
         }
 
-        private int CountWrappedLines(string text, double maxWidthPx, TextOptions options)
-        {
+        private int CountWrappedLines(string text, double maxWidthPx, TextOptions options) {
             // Empty line still occupies one visual line
             if (string.IsNullOrEmpty(text)) return 1;
 
@@ -424,12 +358,10 @@ namespace OfficeIMO.Excel {
             var words = SplitIntoWords(text);
             int lines = 1;
             double current = 0;
-            for (int i = 0; i < words.Count; i++)
-            {
+            for (int i = 0; i < words.Count; i++) {
                 string token = words[i];
                 bool isSpace = token == " ";
-                if (isSpace)
-                {
+                if (isSpace) {
                     // Defer space addition until next word to avoid trailing space width issues
                     continue;
                 }
@@ -437,23 +369,19 @@ namespace OfficeIMO.Excel {
                 string segment = token;
                 float w = TextMeasurer.MeasureSize(segment, options).Width;
                 // If we had a previous nonempty segment on the line, consider a space before this word
-                if (current > 0)
-                {
+                if (current > 0) {
                     float spaceW = TextMeasurer.MeasureSize(" ", options).Width;
                     w += spaceW;
                 }
 
-                if (w > maxWidthPx)
-                {
+                if (w > maxWidthPx) {
                     // Word itself too long: split by characters
                     var chars = token.ToCharArray();
                     var sb = new StringBuilder();
-                    for (int c = 0; c < chars.Length; c++)
-                    {
+                    for (int c = 0; c < chars.Length; c++) {
                         string candidate = (current > 0 ? " " : string.Empty) + sb.ToString() + chars[c];
                         float cw = TextMeasurer.MeasureSize(candidate, options).Width;
-                        if (cw > maxWidthPx)
-                        {
+                        if (cw > maxWidthPx) {
                             // break before this char
                             lines++;
                             sb.Clear();
@@ -467,14 +395,11 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (current + w > maxWidthPx + 0.1)
-                {
+                if (current + w > maxWidthPx + 0.1) {
                     // Move word to next line
                     lines++;
                     current = TextMeasurer.MeasureSize(token, options).Width; // start with word only on new line
-                }
-                else
-                {
+                } else {
                     current += w;
                 }
             }
@@ -482,20 +407,15 @@ namespace OfficeIMO.Excel {
             return Math.Max(1, lines);
         }
 
-        private List<string> SplitIntoWords(string text)
-        {
+        private List<string> SplitIntoWords(string text) {
             var list = new List<string>();
             int i = 0;
-            while (i < text.Length)
-            {
-                if (char.IsWhiteSpace(text[i]))
-                {
+            while (i < text.Length) {
+                if (char.IsWhiteSpace(text[i])) {
                     // normalize all whitespace to single space for width measuring consistency
                     list.Add(" ");
                     while (i < text.Length && char.IsWhiteSpace(text[i])) i++;
-                }
-                else
-                {
+                } else {
                     int start = i;
                     while (i < text.Length && !char.IsWhiteSpace(text[i])) i++;
                     list.Add(text.Substring(start, i - start));
@@ -504,8 +424,7 @@ namespace OfficeIMO.Excel {
             return list;
         }
 
-        private (int fromCol, int toCol)? GetCellMergeSpan(Cell cell)
-        {
+        private (int fromCol, int toCol)? GetCellMergeSpan(Cell cell) {
             var ws = _worksheetPart.Worksheet;
             var merges = ws.Elements<MergeCells>().FirstOrDefault();
             if (merges == null) return null;
@@ -513,8 +432,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrEmpty(r)) return null;
             int selfCol = GetColumnIndex(r!);
             int selfRow = GetRowIndex(r!);
-            foreach (var mc in merges.Elements<MergeCell>())
-            {
+            foreach (var mc in merges.Elements<MergeCell>()) {
                 var refAttr = mc.Reference?.Value; // e.g. "A1:C1"
                 if (string.IsNullOrEmpty(refAttr)) continue;
                 var parts = refAttr!.Split(':');
@@ -530,8 +448,7 @@ namespace OfficeIMO.Excel {
             return null;
         }
 
-        private double GetColumnWidthPixels(int columnIndex, float mdw)
-        {
+        private double GetColumnWidthPixels(int columnIndex, float mdw) {
             // Find explicit column width if present; else use default width
             double width = GetColumnWidthUnits(columnIndex);
             // Convert Excel width to pixels using MDW
@@ -539,14 +456,12 @@ namespace OfficeIMO.Excel {
             return pixels;
         }
 
-        private double GetColumnWidthUnits(int columnIndex)
-        {
+        private double GetColumnWidthUnits(int columnIndex) {
             var ws = _worksheetPart.Worksheet;
             var columns = ws.GetFirstChild<Columns>();
             var col = columns?.Elements<Column>()
                 .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
-            if (col?.Width != null && col.CustomWidth != null && col.CustomWidth.Value)
-            {
+            if (col?.Width != null && col.CustomWidth != null && col.CustomWidth.Value) {
                 return col.Width.Value;
             }
             // Fallback to sheet default or Excel default 8.43
@@ -556,44 +471,36 @@ namespace OfficeIMO.Excel {
             return 8.43; // Excel's default width for Calibri 11
         }
 
-        private void SetRowHeightCore(int rowIndex, double height)
-        {
+        private void SetRowHeightCore(int rowIndex, double height) {
             var worksheet = _worksheetPart.Worksheet;
-              SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
-              if (sheetData == null) return;
-              Row? row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)rowIndex);
-              if (row == null) return;
+            SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
+            if (sheetData == null) return;
+            Row? row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)rowIndex);
+            if (row == null) return;
 
             double defaultHeight = GetDefaultRowHeightPoints();
-            if (height > defaultHeight)
-            {
+            if (height > defaultHeight) {
                 row.Height = height;
                 row.CustomHeight = true;
-            }
-            else
-            {
+            } else {
                 row.Height = null;
                 row.CustomHeight = null;
             }
         }
 
-        private void UpdateSheetFormat()
-        {
+        private void UpdateSheetFormat() {
             var worksheet = _worksheetPart.Worksheet;
-              SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
+            SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
 
             bool anyCustom = sheetData?.Elements<Row>()
                 .Any(r => r.CustomHeight != null && r.CustomHeight.Value) == true;
 
-            if (anyCustom)
-            {
-                if (sheetFormat == null)
-                {
+            if (anyCustom) {
+                if (sheetFormat == null) {
                     sheetFormat = worksheet.InsertAt(new SheetFormatProperties(), 0);
                 }
-                if (sheetFormat.DefaultRowHeight == null || sheetFormat.DefaultRowHeight.Value <= 0)
-                {
+                if (sheetFormat.DefaultRowHeight == null || sheetFormat.DefaultRowHeight.Value <= 0) {
                     sheetFormat.DefaultRowHeight = 15D;
                 }
                 // Do not set CustomHeight here; it's for default height semantics, not per-row
@@ -607,7 +514,7 @@ namespace OfficeIMO.Excel {
         /// <param name="ct">Cancels the row auto-fit pass while heights are being calculated or applied.</param>
         public void AutoFitRows(ExecutionMode? mode = null, CancellationToken ct = default) {
             var worksheet = _worksheetPart.Worksheet;
-              SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
+            SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) return;
 
             var rowIndexes = sheetData.Elements<Row>()
@@ -622,55 +529,41 @@ namespace OfficeIMO.Excel {
                 opName: "AutoFitRows",
                 itemCount: rowIndexes.Count,
                 overrideMode: mode,
-                sequentialCore: () =>
-                {
+                sequentialCore: () => {
                     // Sequential path with NoLock
-                    for (int i = 0; i < rowIndexes.Count; i++)
-                    {
+                    for (int i = 0; i < rowIndexes.Count; i++) {
                         computed[i] = CalculateRowHeight(rowIndexes[i]);
                     }
-                    
-                    for (int i = 0; i < rowIndexes.Count; i++)
-                    {
+
+                    for (int i = 0; i < rowIndexes.Count; i++) {
                         SetRowHeightCore(rowIndexes[i], computed[i]);
                     }
-                    
+
                     UpdateSheetFormat();
                     worksheet.Save();
                 },
-                computeParallel: () =>
-                {
+                computeParallel: () => {
                     // Parallel compute phase - calculate heights without DOM mutation
                     var failures = new System.Collections.Concurrent.ConcurrentBag<int>();
-                    Parallel.For(0, rowIndexes.Count, new ParallelOptions
-                    {
+                    Parallel.For(0, rowIndexes.Count, new ParallelOptions {
                         CancellationToken = ct,
                         MaxDegreeOfParallelism = EffectiveExecution.MaxDegreeOfParallelism ?? -1
-                    }, i =>
-                    {
-                        try
-                        {
+                    }, i => {
+                        try {
                             computed[i] = CalculateRowHeight(rowIndexes[i]);
-                        }
-                        catch
-                        {
+                        } catch {
                             failures.Add(i);
                         }
                     });
-                    if (!failures.IsEmpty)
-                    {
-                        foreach (var idx in failures)
-                        {
-                            try { computed[idx] = CalculateRowHeight(rowIndexes[idx]); }
-                            catch { computed[idx] = 0; }
+                    if (!failures.IsEmpty) {
+                        foreach (var idx in failures) {
+                            try { computed[idx] = CalculateRowHeight(rowIndexes[idx]); } catch { computed[idx] = 0; }
                         }
                     }
                 },
-                applySequential: () =>
-                {
+                applySequential: () => {
                     // Apply phase - write all row heights to DOM
-                    for (int i = 0; i < rowIndexes.Count; i++)
-                    {
+                    for (int i = 0; i < rowIndexes.Count; i++) {
                         SetRowHeightCore(rowIndexes[i], computed[i]);
                     }
                     UpdateSheetFormat();
@@ -680,7 +573,7 @@ namespace OfficeIMO.Excel {
             );
         }
 
-        
+
 
         /// <summary>
         /// Auto-fits the width of the specified column based on its contents.
@@ -699,8 +592,8 @@ namespace OfficeIMO.Excel {
                 return column;
             }
 
-              uint min = column.Min!.Value;
-              uint max = column.Max!.Value;
+            uint min = column.Min!.Value;
+            uint max = column.Max!.Value;
             var template = (Column)column.CloneNode(true);
             column.Remove();
 
@@ -762,13 +655,10 @@ namespace OfficeIMO.Excel {
                     column = new Column { Min = (uint)columnIndex, Max = (uint)columnIndex };
                     columns.Append(column);
                 }
-                if (width > 0)
-                {
+                if (width > 0) {
                     column.Width = width;
                     column.CustomWidth = true;
-                }
-                else
-                {
+                } else {
                     column.Width = null;
                     column.CustomWidth = false;
                     column.BestFit = null;
@@ -821,7 +711,7 @@ namespace OfficeIMO.Excel {
         public void Freeze(int topRows = 0, int leftCols = 0) {
             WriteLock(() => {
                 Worksheet worksheet = _worksheetPart.Worksheet;
-              SheetViews? sheetViews = worksheet.GetFirstChild<SheetViews>();
+                SheetViews? sheetViews = worksheet.GetFirstChild<SheetViews>();
 
                 if (topRows == 0 && leftCols == 0) {
                     if (sheetViews != null) {
@@ -833,7 +723,7 @@ namespace OfficeIMO.Excel {
 
                 if (sheetViews == null) {
                     sheetViews = new SheetViews();
-                    
+
                     // Remove SheetData temporarily if it exists
                     var sheetData = worksheet.GetFirstChild<SheetData>();
                     if (sheetData != null) {
@@ -841,19 +731,19 @@ namespace OfficeIMO.Excel {
                     } else {
                         sheetData = new SheetData();
                     }
-                    
+
                     // Add sheetViews first
                     worksheet.AppendChild(sheetViews);
-                    
+
                     // Then add SheetData after sheetViews
                     worksheet.AppendChild(sheetData);
                 }
 
-                  SheetView? sheetView = sheetViews.GetFirstChild<SheetView>();
-                  if (sheetView == null) {
-                      sheetView = new SheetView { WorkbookViewId = 0U };
-                      sheetViews.Append(sheetView);
-                  }
+                SheetView? sheetView = sheetViews.GetFirstChild<SheetView>();
+                if (sheetView == null) {
+                    sheetView = new SheetView { WorkbookViewId = 0U };
+                    sheetViews.Append(sheetView);
+                }
 
                 sheetView.RemoveAllChildren<Pane>();
                 sheetView.RemoveAllChildren<Selection>();
@@ -916,20 +806,16 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Shows or hides gridlines on the current sheet (view-level setting).
         /// </summary>
-        public void SetGridlinesVisible(bool visible)
-        {
-            WriteLock(() =>
-            {
+        public void SetGridlinesVisible(bool visible) {
+            WriteLock(() => {
                 var worksheet = _worksheetPart.Worksheet;
                 var sheetViews = worksheet.GetFirstChild<SheetViews>();
-                if (sheetViews == null)
-                {
+                if (sheetViews == null) {
                     sheetViews = new SheetViews();
                     worksheet.InsertAt(sheetViews, 0);
                 }
                 var view = sheetViews.GetFirstChild<SheetView>();
-                if (view == null)
-                {
+                if (view == null) {
                     view = new SheetView { WorkbookViewId = 0U };
                     sheetViews.Append(view);
                 }
@@ -944,14 +830,11 @@ namespace OfficeIMO.Excel {
         /// <param name="fitToWidth">Number of pages to fit horizontally (1 = fit to one page).</param>
         /// <param name="fitToHeight">Number of pages to fit vertically (0 = unlimited).</param>
         /// <param name="scale">Manual scale (10-400). Ignored if FitToWidth/Height are specified.</param>
-        public void SetPageSetup(uint? fitToWidth = null, uint? fitToHeight = null, uint? scale = null)
-        {
-            WriteLock(() =>
-            {
+        public void SetPageSetup(uint? fitToWidth = null, uint? fitToHeight = null, uint? scale = null) {
+            WriteLock(() => {
                 var ws = _worksheetPart.Worksheet;
                 var pageSetup = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.PageSetup>();
-                if (pageSetup == null)
-                {
+                if (pageSetup == null) {
                     pageSetup = new DocumentFormat.OpenXml.Spreadsheet.PageSetup();
                     // Insert after PageMargins when present, else at end
                     var margins = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.PageMargins>();

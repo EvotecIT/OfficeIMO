@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.PowerPoint.Fluent {
     /// <summary>
     ///     Provides a fluent API wrapper around <see cref="PowerPointPresentation" />.

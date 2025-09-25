@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
 namespace OfficeIMO.Word {

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {

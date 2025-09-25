@@ -1,7 +1,5 @@
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using System.Linq;
 
 namespace OfficeIMO.Word {
     /// <summary>

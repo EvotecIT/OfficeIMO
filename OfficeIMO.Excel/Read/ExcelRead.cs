@@ -1,18 +1,12 @@
-using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Linq;
-using OfficeIMO.Excel;
 
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Static helpers for quick one‑liner read operations.
     /// These helpers open the workbook read‑only, materialize the requested result, and then dispose it.
     /// Use these when you prefer brevity over streaming/iterator patterns.
     /// </summary>
-    public static class ExcelRead
-    {
+    public static class ExcelRead {
         // -------- Instance-friendly overloads (avoid reopening files) --------
 
         /// <summary>
@@ -23,8 +17,7 @@ namespace OfficeIMO.Excel
         /// <param name="sheetName">Worksheet name containing the data.</param>
         /// <param name="options">Optional read options controlling type conversion and trimming.</param>
         /// <returns>List of dictionaries representing each row in the sheet's used range.</returns>
-        public static List<Dictionary<string, object?>> ReadUsedRangeObjects(ExcelDocument doc, string sheetName, ExcelReadOptions? options = null)
-        {
+        public static List<Dictionary<string, object?>> ReadUsedRangeObjects(ExcelDocument doc, string sheetName, ExcelReadOptions? options = null) {
             using var rdr = ExcelDocumentReader.Wrap(doc._spreadSheetDocument, options ?? new ExcelReadOptions());
             var sh = rdr.GetSheet(sheetName);
             var a1 = sh.GetUsedRangeA1();
@@ -39,8 +32,7 @@ namespace OfficeIMO.Excel
         /// <param name="a1Range">Inclusive A1 range to read.</param>
         /// <param name="options">Optional read options (presets are available in <see cref="ExcelReadPresets"/>).</param>
         /// <returns>Typed matrix with nulls for blank cells.</returns>
-        public static object?[,] ReadRange(string path, string sheetName, string a1Range, ExcelReadOptions? options = null)
-        {
+        public static object?[,] ReadRange(string path, string sheetName, string a1Range, ExcelReadOptions? options = null) {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
             return rdr.GetSheet(sheetName).ReadRange(a1Range);
         }
@@ -54,8 +46,7 @@ namespace OfficeIMO.Excel
         /// <param name="headersInFirstRow">Whether to treat the first row as column headers.</param>
         /// <param name="options">Optional read options.</param>
         /// <returns>DataTable containing values from the range.</returns>
-        public static DataTable ReadRangeAsDataTable(string path, string sheetName, string a1Range, bool headersInFirstRow = true, ExcelReadOptions? options = null)
-        {
+        public static DataTable ReadRangeAsDataTable(string path, string sheetName, string a1Range, bool headersInFirstRow = true, ExcelReadOptions? options = null) {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
             return rdr.GetSheet(sheetName).ReadRangeAsDataTable(a1Range, headersInFirstRow);
         }
@@ -69,8 +60,7 @@ namespace OfficeIMO.Excel
         /// <param name="a1Range">Inclusive A1 range to read.</param>
         /// <param name="options">Optional read options.</param>
         /// <returns>Typed matrix populated from the requested range.</returns>
-        public static T[,] ReadRangeAs<T>(string path, string sheetName, string a1Range, ExcelReadOptions? options = null)
-        {
+        public static T[,] ReadRangeAs<T>(string path, string sheetName, string a1Range, ExcelReadOptions? options = null) {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
             return rdr.GetSheet(sheetName).ReadRangeAs<T>(a1Range);
         }
@@ -84,8 +74,7 @@ namespace OfficeIMO.Excel
         /// <param name="a1Range">Single‑column A1 range (e.g., "B2:B100").</param>
         /// <param name="options">Optional read options.</param>
         /// <returns>List of typed values.</returns>
-        public static List<T> ReadColumnAs<T>(string path, string sheetName, string a1Range, ExcelReadOptions? options = null)
-        {
+        public static List<T> ReadColumnAs<T>(string path, string sheetName, string a1Range, ExcelReadOptions? options = null) {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
             return rdr.GetSheet(sheetName).ReadColumnAs<T>(a1Range).ToList();
         }
@@ -98,8 +87,7 @@ namespace OfficeIMO.Excel
         /// <param name="a1Range">Inclusive A1 range to read.</param>
         /// <param name="options">Optional read options.</param>
         /// <returns>Typed matrix with nulls for blank cells.</returns>
-        public static object?[,] ReadRange(string path, int sheetIndex, string a1Range, ExcelReadOptions? options = null)
-        {
+        public static object?[,] ReadRange(string path, int sheetIndex, string a1Range, ExcelReadOptions? options = null) {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
             return rdr.GetSheet(sheetIndex).ReadRange(a1Range);
         }
@@ -113,8 +101,7 @@ namespace OfficeIMO.Excel
         /// <param name="headersInFirstRow">Whether to treat the first row as column headers.</param>
         /// <param name="options">Optional read options.</param>
         /// <returns>DataTable containing values from the range.</returns>
-        public static DataTable ReadRangeAsDataTable(string path, int sheetIndex, string a1Range, bool headersInFirstRow = true, ExcelReadOptions? options = null)
-        {
+        public static DataTable ReadRangeAsDataTable(string path, int sheetIndex, string a1Range, bool headersInFirstRow = true, ExcelReadOptions? options = null) {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
             return rdr.GetSheet(sheetIndex).ReadRangeAsDataTable(a1Range, headersInFirstRow);
         }
@@ -128,8 +115,7 @@ namespace OfficeIMO.Excel
         /// <param name="a1Range">Inclusive A1 range to read.</param>
         /// <param name="options">Optional read options.</param>
         /// <returns>Typed matrix populated from the requested range.</returns>
-        public static T[,] ReadRangeAs<T>(string path, int sheetIndex, string a1Range, ExcelReadOptions? options = null)
-        {
+        public static T[,] ReadRangeAs<T>(string path, int sheetIndex, string a1Range, ExcelReadOptions? options = null) {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
             return rdr.GetSheet(sheetIndex).ReadRangeAs<T>(a1Range);
         }
@@ -143,8 +129,7 @@ namespace OfficeIMO.Excel
         /// <param name="a1Range">Single‑column A1 range (e.g., "B2:B100").</param>
         /// <param name="options">Optional read options.</param>
         /// <returns>List of typed values.</returns>
-        public static List<T> ReadColumnAs<T>(string path, int sheetIndex, string a1Range, ExcelReadOptions? options = null)
-        {
+        public static List<T> ReadColumnAs<T>(string path, int sheetIndex, string a1Range, ExcelReadOptions? options = null) {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
             return rdr.GetSheet(sheetIndex).ReadColumnAs<T>(a1Range).ToList();
         }
@@ -156,8 +141,7 @@ namespace OfficeIMO.Excel
         /// <param name="sheetName">Worksheet name containing the data.</param>
         /// <param name="options">Optional read options controlling type conversion and trimming.</param>
         /// <returns>List of dictionaries representing each row in the sheet's used range.</returns>
-        public static List<Dictionary<string, object?>> ReadUsedRangeObjects(string path, string sheetName, ExcelReadOptions? options = null)
-        {
+        public static List<Dictionary<string, object?>> ReadUsedRangeObjects(string path, string sheetName, ExcelReadOptions? options = null) {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
             var sh = rdr.GetSheet(sheetName);
             var a1 = sh.GetUsedRangeA1();
@@ -173,8 +157,7 @@ namespace OfficeIMO.Excel
         /// <param name="a1Range">Inclusive A1 range (first row must contain headers).</param>
         /// <param name="options">Optional read options.</param>
         /// <returns>Materialized list of row dictionaries.</returns>
-        public static List<Dictionary<string, object?>> ReadRangeObjects(string path, string sheetName, string a1Range, ExcelReadOptions? options = null)
-        {
+        public static List<Dictionary<string, object?>> ReadRangeObjects(string path, string sheetName, string a1Range, ExcelReadOptions? options = null) {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
             return rdr.GetSheet(sheetName).ReadObjects(a1Range).ToList();
         }
@@ -188,12 +171,10 @@ namespace OfficeIMO.Excel
         /// <param name="a1Range">Inclusive A1 range (first row must contain headers).</param>
         /// <param name="options">Optional read options.</param>
         /// <returns>Dictionary mapping each sheet name to the list of row dictionaries read from that sheet.</returns>
-        public static Dictionary<string, List<Dictionary<string, object?>>> ReadRangeObjectsFromSheets(string path, IEnumerable<string> sheetNames, string a1Range, ExcelReadOptions? options = null)
-        {
+        public static Dictionary<string, List<Dictionary<string, object?>>> ReadRangeObjectsFromSheets(string path, IEnumerable<string> sheetNames, string a1Range, ExcelReadOptions? options = null) {
             var result = new Dictionary<string, List<Dictionary<string, object?>>>(StringComparer.OrdinalIgnoreCase);
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
-            foreach (var name in sheetNames)
-            {
+            foreach (var name in sheetNames) {
                 var rows = rdr.GetSheet(name).ReadObjects(a1Range).ToList();
                 result[name] = rows;
             }
@@ -207,12 +188,10 @@ namespace OfficeIMO.Excel
         /// <param name="a1Range">Inclusive A1 range (first row must contain headers).</param>
         /// <param name="options">Optional read options.</param>
         /// <returns>Dictionary mapping each sheet name to the list of row dictionaries read from that sheet.</returns>
-        public static Dictionary<string, List<Dictionary<string, object?>>> ReadRangeObjectsFromAllSheets(string path, string a1Range, ExcelReadOptions? options = null)
-        {
+        public static Dictionary<string, List<Dictionary<string, object?>>> ReadRangeObjectsFromAllSheets(string path, string a1Range, ExcelReadOptions? options = null) {
             var result = new Dictionary<string, List<Dictionary<string, object?>>>(StringComparer.OrdinalIgnoreCase);
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
-            foreach (var name in rdr.GetSheetNames())
-            {
+            foreach (var name in rdr.GetSheetNames()) {
                 var rows = rdr.GetSheet(name).ReadObjects(a1Range).ToList();
                 result[name] = rows;
             }
@@ -226,8 +205,7 @@ namespace OfficeIMO.Excel
         /// <param name="sheetName">Worksheet name containing the data.</param>
         /// <param name="options">Optional read options.</param>
         /// <returns>Typed matrix populated from the used range.</returns>
-        public static object?[,] ReadUsedRange(string path, string sheetName, ExcelReadOptions? options = null)
-        {
+        public static object?[,] ReadUsedRange(string path, string sheetName, ExcelReadOptions? options = null) {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
             var sh = rdr.GetSheet(sheetName);
             var a1 = sh.GetUsedRangeA1();
@@ -242,8 +220,7 @@ namespace OfficeIMO.Excel
         /// <param name="headersInFirstRow">Whether to treat the first row as column headers.</param>
         /// <param name="options">Optional read options.</param>
         /// <returns>DataTable containing the values from the sheet's used range.</returns>
-        public static DataTable ReadUsedRangeAsDataTable(string path, string sheetName, bool headersInFirstRow = true, ExcelReadOptions? options = null)
-        {
+        public static DataTable ReadUsedRangeAsDataTable(string path, string sheetName, bool headersInFirstRow = true, ExcelReadOptions? options = null) {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
             var sh = rdr.GetSheet(sheetName);
             var a1 = sh.GetUsedRangeA1();
@@ -260,8 +237,7 @@ namespace OfficeIMO.Excel
         /// <param name="a1Range">Inclusive A1 range (first row must contain headers).</param>
         /// <param name="options">Optional read options.</param>
         /// <returns>List of <typeparamref name="T"/> populated from each data row.</returns>
-        public static System.Collections.Generic.List<T> ReadRangeObjectsAs<T>(string path, string sheetName, string a1Range, ExcelReadOptions? options = null) where T : new()
-        {
+        public static System.Collections.Generic.List<T> ReadRangeObjectsAs<T>(string path, string sheetName, string a1Range, ExcelReadOptions? options = null) where T : new() {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
             return rdr.GetSheet(sheetName).ReadObjects<T>(a1Range).ToList();
         }

@@ -1,11 +1,8 @@
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OfficeIMO.Excel
-{
-    public partial class ExcelSheet
-    {
+namespace OfficeIMO.Excel {
+    public partial class ExcelSheet {
         /// <summary>
         /// Core execution helper that handles a compute/apply split with optional parallelization.
         /// Compute runs without locks; only the apply stage is serialized under a document-level lock.
@@ -39,15 +36,13 @@ namespace OfficeIMO.Excel
             Action sequentialCore,                // single-threaded path (no locks)
             Action? computeParallel = null,       // parallelizable compute (no DOM)
             Action? applySequential = null,       // serialized DOM apply
-            CancellationToken ct = default)
-        {
+            CancellationToken ct = default) {
             var policy = EffectiveExecution;
             var mode = overrideMode ?? policy.Mode;
             if (mode == ExecutionMode.Automatic)
                 mode = policy.Decide(opName, itemCount);
 
-            if (mode == ExecutionMode.Sequential || computeParallel is null || applySequential is null)
-            {
+            if (mode == ExecutionMode.Sequential || computeParallel is null || applySequential is null) {
                 using (Locking.EnterNoLockScope())
                     sequentialCore();
                 return;
@@ -63,8 +58,7 @@ namespace OfficeIMO.Excel
             // Apply once, serialized
             // Use existing lock if available; avoid allocating a new lock during disposal edge cases
             System.Threading.ReaderWriterLockSlim? lck = _excelDocument._lock;
-            if (lck == null)
-            {
+            if (lck == null) {
                 try { lck = _excelDocument.EnsureLock(); } catch { lck = null; }
             }
             Locking.ExecuteWrite(lck, applySequential);

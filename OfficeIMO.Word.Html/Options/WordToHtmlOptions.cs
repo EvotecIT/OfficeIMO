@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using OfficeIMO.Word;
-
 namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Options controlling Word to HTML conversion.
@@ -11,7 +7,7 @@ namespace OfficeIMO.Word.Html {
         /// Optional font family applied to created runs during conversion.
         /// </summary>
         public string? FontFamily { get; set; }
-        
+
         /// <summary>
         /// When true, includes run font information as inline styles.
         /// </summary>

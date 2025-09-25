@@ -1,25 +1,18 @@
-using System;
-using System.Linq;
 using DocumentFormat.OpenXml.Spreadsheet;
-using OfficeIMO.Excel;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        private static string EscapeSheetName(string name)
-        {
+        private static string EscapeSheetName(string name) {
             return (name ?? string.Empty).Replace("'", "''");
         }
-        private static string StripSheetPrefixIfMatches(string text, ExcelSheet scope)
-        {
+        private static string StripSheetPrefixIfMatches(string text, ExcelSheet scope) {
             if (string.IsNullOrEmpty(text)) return text;
             string quoted = "'" + EscapeSheetName(scope.Name) + "'!";
-            if (text.StartsWith(quoted, System.StringComparison.Ordinal))
-            {
+            if (text.StartsWith(quoted, System.StringComparison.Ordinal)) {
                 return text.Substring(quoted.Length);
             }
             string unquoted = scope.Name + "!";
-            if (text.StartsWith(unquoted, System.StringComparison.Ordinal))
-            {
+            if (text.StartsWith(unquoted, System.StringComparison.Ordinal)) {
                 return text.Substring(unquoted.Length);
             }
             return text;
@@ -53,17 +46,14 @@ namespace OfficeIMO.Excel {
             // Validate or sanitize the defined name
             name = EnsureValidDefinedName(name, validationMode);
 
-            if (scope == null)
-            {
+            if (scope == null) {
                 // Workbook-global name: remove any existing global with same name
                 foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == name && d.LocalSheetId == null).ToList())
                     dn.Remove();
                 string reference = NormalizeRange(range, validationMode); // may already contain a sheet prefix
                 var dnNew = new DefinedName { Name = name, Text = reference, Hidden = hidden ? true : (bool?)null };
                 definedNames.Append(dnNew);
-            }
-            else
-            {
+            } else {
                 // Sheet-local name: remove existing with same name for this sheet
                 ushort sheetPos = GetSheetPositionIndex(scope);
                 foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == name && d.LocalSheetId != null && d.LocalSheetId.Value == sheetPos).ToList())
@@ -81,8 +71,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the print area for a given sheet by creating a sheet-local defined name _xlnm.Print_Area.
         /// </summary>
-        public void SetPrintArea(ExcelSheet sheet, string range, bool save = true)
-        {
+        public void SetPrintArea(ExcelSheet sheet, string range, bool save = true) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentException("Range cannot be null or whitespace.", nameof(range));
 
@@ -91,8 +80,7 @@ namespace OfficeIMO.Excel {
 
             // Remove existing sheet-local Print_Area for this sheet
             ushort sheetPos = GetSheetPositionIndex(sheet);
-            foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == "_xlnm.Print_Area").ToList())
-            {
+            foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == "_xlnm.Print_Area").ToList()) {
                 if (dn.LocalSheetId != null && dn.LocalSheetId.Value == sheetPos)
                     dn.Remove();
             }
@@ -120,16 +108,13 @@ namespace OfficeIMO.Excel {
             var definedNames = _workBookPart.Workbook.DefinedNames;
             if (definedNames == null) return null;
 
-            if (scope != null)
-            {
+            if (scope != null) {
                 ushort pos = GetSheetPositionIndex(scope);
                 var dnLocal = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId != null && d.LocalSheetId.Value == pos);
                 var text = dnLocal?.Text;
                 if (string.IsNullOrEmpty(text)) return text;
                 return StripSheetPrefixIfMatches(text!, scope);
-            }
-            else
-            {
+            } else {
                 var dnGlobal = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId == null);
                 return dnGlobal?.Text;
             }
@@ -143,22 +128,16 @@ namespace OfficeIMO.Excel {
             var result = new System.Collections.Generic.Dictionary<string, string>();
             if (definedNames == null) return result;
 
-            if (scope != null)
-            {
+            if (scope != null) {
                 ushort pos = GetSheetPositionIndex(scope);
-                foreach (var dn in definedNames.Elements<DefinedName>())
-                {
-                    if (dn.LocalSheetId != null && dn.LocalSheetId.Value == pos)
-                    {
+                foreach (var dn in definedNames.Elements<DefinedName>()) {
+                    if (dn.LocalSheetId != null && dn.LocalSheetId.Value == pos) {
                         var text = dn.Text ?? string.Empty;
                         result[dn.Name!] = StripSheetPrefixIfMatches(text, scope);
                     }
                 }
-            }
-            else
-            {
-                foreach (var dn in definedNames.Elements<DefinedName>())
-                {
+            } else {
+                foreach (var dn in definedNames.Elements<DefinedName>()) {
                     if (dn.LocalSheetId == null)
                         result[dn.Name!] = dn.Text ?? string.Empty;
                 }
@@ -185,13 +164,10 @@ namespace OfficeIMO.Excel {
             if (definedNames == null) return false;
 
             DefinedName? target = null;
-            if (scope != null)
-            {
+            if (scope != null) {
                 ushort pos = GetSheetPositionIndex(scope);
                 target = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId != null && d.LocalSheetId.Value == pos);
-            }
-            else
-            {
+            } else {
                 target = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId == null);
             }
             if (target == null) return false;
@@ -219,11 +195,9 @@ namespace OfficeIMO.Excel {
             throw new ArgumentException("Worksheet not found in workbook.", nameof(sheet));
         }
 
-        private ushort GetSheetPositionIndex(ExcelSheet sheet)
-        {
+        private ushort GetSheetPositionIndex(ExcelSheet sheet) {
             var sheets = _workBookPart.Workbook.Sheets?.OfType<Sheet>().ToList() ?? new();
-            for (ushort i = 0; i < sheets.Count; i++)
-            {
+            for (ushort i = 0; i < sheets.Count; i++) {
                 if (sheets[i].Name == sheet.Name) return i; // 0-based position
             }
             throw new ArgumentException("Worksheet not found in workbook.", nameof(sheet));
@@ -239,8 +213,7 @@ namespace OfficeIMO.Excel {
         /// <param name="firstCol">First column to repeat (1-based), or null.</param>
         /// <param name="lastCol">Last column to repeat (1-based), or null.</param>
         /// <param name="save">Whether to save the workbook after the change.</param>
-        public void SetPrintTitles(ExcelSheet sheet, int? firstRow, int? lastRow, int? firstCol, int? lastCol, bool save = true)
-        {
+        public void SetPrintTitles(ExcelSheet sheet, int? firstRow, int? lastRow, int? firstCol, int? lastCol, bool save = true) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
 
             var workbook = _workBookPart.Workbook;
@@ -248,8 +221,7 @@ namespace OfficeIMO.Excel {
 
             // Remove existing sheet-local Print_Titles for this sheet
             ushort sheetPos = GetSheetPositionIndex(sheet);
-            foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == "_xlnm.Print_Titles").ToList())
-            {
+            foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == "_xlnm.Print_Titles").ToList()) {
                 if (dn.LocalSheetId != null && dn.LocalSheetId.Value == sheetPos)
                     dn.Remove();
             }
@@ -257,19 +229,16 @@ namespace OfficeIMO.Excel {
             // Nothing to set? stop here (clears existing titles)
             bool hasRows = firstRow.HasValue && lastRow.HasValue && firstRow.Value > 0 && lastRow.Value >= firstRow.Value;
             bool hasCols = firstCol.HasValue && lastCol.HasValue && firstCol.Value > 0 && lastCol.Value >= firstCol.Value;
-            if (!hasRows && !hasCols)
-            {
+            if (!hasRows && !hasCols) {
                 if (save) workbook.Save();
                 return;
             }
 
             string? rowsPart = null, colsPart = null;
-            if (hasRows)
-            {
+            if (hasRows) {
                 rowsPart = $"'{EscapeSheetName(sheet.Name)}'!${firstRow.GetValueOrDefault()}:${lastRow.GetValueOrDefault()}";
             }
-            if (hasCols)
-            {
+            if (hasCols) {
                 string c1 = A1.ColumnIndexToLetters(firstCol.GetValueOrDefault());
                 string c2 = A1.ColumnIndexToLetters(lastCol.GetValueOrDefault());
                 colsPart = $"'{EscapeSheetName(sheet.Name)}'!${c1}:${c2}";
@@ -286,8 +255,7 @@ namespace OfficeIMO.Excel {
         /// duplicates within the same scope, invalid LocalSheetId after sheet reordering/removal,
         /// or references containing #REF!.
         /// </summary>
-        internal void RepairDefinedNames(bool save = true)
-        {
+        internal void RepairDefinedNames(bool save = true) {
             var wb = _workBookPart.Workbook;
             var definedNames = wb.DefinedNames;
             if (definedNames == null) return;
@@ -298,8 +266,7 @@ namespace OfficeIMO.Excel {
             var toRemove = new System.Collections.Generic.HashSet<DocumentFormat.OpenXml.Spreadsheet.DefinedName>();
             var seen = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var dn in definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>())
-            {
+            foreach (var dn in definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>()) {
                 string? name = dn.Name;
                 if (string.IsNullOrWhiteSpace(name)) { toRemove.Add(dn); continue; }
 
@@ -313,11 +280,9 @@ namespace OfficeIMO.Excel {
                 if (text.IndexOf("#REF!", StringComparison.OrdinalIgnoreCase) >= 0) { toRemove.Add(dn); continue; }
             }
 
-            if (toRemove.Count > 0)
-            {
+            if (toRemove.Count > 0) {
                 foreach (var dn in toRemove) dn.Remove();
-                if (!definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>().Any())
-                {
+                if (!definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>().Any()) {
                     wb.DefinedNames = null;
                 }
                 if (save) wb.Save();
@@ -393,19 +358,16 @@ namespace OfficeIMO.Excel {
         /// - Cannot look like a cell reference (e.g., A1, AA10) or an R1C1 reference
         /// - Cannot be TRUE or FALSE (case-insensitive)
         /// </summary>
-        private static string EnsureValidDefinedName(string name, NameValidationMode mode)
-        {
+        private static string EnsureValidDefinedName(string name, NameValidationMode mode) {
             const int MaxLen = 255;
-            if (string.IsNullOrWhiteSpace(name))
-            {
+            if (string.IsNullOrWhiteSpace(name)) {
                 if (mode == NameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' cannot be null or whitespace.", nameof(name));
                 name = "_";
             }
 
             // Trim spaces and replace invalid chars
             var sb = new System.Text.StringBuilder(name.Length);
-            foreach (char ch in name.Trim())
-            {
+            foreach (char ch in name.Trim()) {
                 if (char.IsLetterOrDigit(ch) || ch == '_' || ch == '.') sb.Append(ch);
                 else { sb.Append('_'); }
             }
@@ -414,20 +376,17 @@ namespace OfficeIMO.Excel {
 
             // Disallow TRUE/FALSE exactly (case-insensitive)
             var normalized = sb.ToString();
-            if (string.Equals(normalized, "TRUE", System.StringComparison.OrdinalIgnoreCase) || string.Equals(normalized, "FALSE", System.StringComparison.OrdinalIgnoreCase))
-            {
+            if (string.Equals(normalized, "TRUE", System.StringComparison.OrdinalIgnoreCase) || string.Equals(normalized, "FALSE", System.StringComparison.OrdinalIgnoreCase)) {
                 if (mode == NameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' cannot be TRUE or FALSE.", nameof(name));
                 normalized = "_" + normalized;
             }
 
             // Avoid names that look like A1 cell references or R1C1 format
-            bool LooksLikeA1(string s)
-            {
+            bool LooksLikeA1(string s) {
                 var t = OfficeIMO.Excel.A1.ParseCellRef(s);
                 return t.Row > 0 && t.Col > 0;
             }
-            bool LooksLikeR1C1(string s)
-            {
+            bool LooksLikeR1C1(string s) {
                 // Very lenient check: R<digits>C<digits>
                 if (s.Length < 3) return false;
                 if (s[0] != 'R' && s[0] != 'r') return false;
@@ -438,14 +397,12 @@ namespace OfficeIMO.Excel {
                 return j > i && j == s.Length;
             }
 
-            if (LooksLikeA1(normalized) || LooksLikeR1C1(normalized))
-            {
+            if (LooksLikeA1(normalized) || LooksLikeR1C1(normalized)) {
                 if (mode == NameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' cannot be a cell address or R1C1 reference.", nameof(name));
                 normalized = "_" + normalized;
             }
 
-            if (normalized.Length > MaxLen)
-            {
+            if (normalized.Length > MaxLen) {
                 if (mode == NameValidationMode.Strict) throw new System.ArgumentException($"Defined name '{name}' exceeds maximum length of {MaxLen} characters (actual {normalized.Length}).", nameof(name));
                 normalized = normalized.Substring(0, MaxLen);
             }

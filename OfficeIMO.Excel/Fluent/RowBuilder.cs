@@ -1,6 +1,3 @@
-using OfficeIMO.Excel;
-using System;
-
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Fluent helper for writing a single row.

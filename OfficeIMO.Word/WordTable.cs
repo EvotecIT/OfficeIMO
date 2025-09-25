@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -216,10 +212,10 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-                    if (_tableProperties != null && _tableProperties.TableLook != null && value != null) {
-                        _tableProperties.TableLook.FirstRow = value;
-                    }
+                if (_tableProperties != null && _tableProperties.TableLook != null && value != null) {
+                    _tableProperties.TableLook.FirstRow = value;
                 }
+            }
         }
         /// <summary>
         /// Specifies that the last row conditional formatting shall be applied to the table.
@@ -494,7 +490,7 @@ namespace OfficeIMO.Word {
 
             if (insert) {
                 // Append the table to the document.
-                    document._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Append(_table);
+                document._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Append(_table);
             }
         }
 

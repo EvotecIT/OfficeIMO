@@ -1,8 +1,6 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word;
-using System.Collections.Generic;
 using System.Reflection;
 
 namespace OfficeIMO.Word.Html {
@@ -53,8 +51,10 @@ namespace OfficeIMO.Word.Html {
                             break;
                         case "square":
                             level._level!.LevelText!.Val = "■";
-                            break;
-                        // disc is the default, nothing to change
+                            break;
+
+                            // disc is the default, nothing to change
+
                     }
                 }
             }

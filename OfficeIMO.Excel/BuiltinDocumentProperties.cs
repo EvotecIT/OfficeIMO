@@ -1,4 +1,3 @@
-using System;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Excel {
@@ -19,8 +18,7 @@ namespace OfficeIMO.Excel {
             EnsureCorePropertiesPart();
         }
 
-        private void EnsureCorePropertiesPart()
-        {
+        private void EnsureCorePropertiesPart() {
             // Touch the package properties to ensure the backing object is initialized.
             try { var _ = _spreadsheetDocument.PackageProperties; } catch { }
         }

@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDoc {
@@ -19,8 +16,7 @@ public sealed partial class PdfDoc {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Path cannot be empty or whitespace.", nameof(path));
 
         string fullPath;
-        try { fullPath = Path.GetFullPath(path); }
-        catch (Exception ex) { throw new ArgumentException("Path is invalid.", nameof(path), ex); }
+        try { fullPath = Path.GetFullPath(path); } catch (Exception ex) { throw new ArgumentException("Path is invalid.", nameof(path), ex); }
 
         // Reject if points to an existing directory or a root without filename
         if (Directory.Exists(fullPath) && (File.GetAttributes(fullPath) & FileAttributes.Directory) == FileAttributes.Directory)
@@ -49,8 +45,7 @@ public sealed partial class PdfDoc {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Path cannot be empty or whitespace.", nameof(path));
 
         string fullPath;
-        try { fullPath = Path.GetFullPath(path); }
-        catch (Exception ex) { throw new ArgumentException("Path is invalid.", nameof(path), ex); }
+        try { fullPath = Path.GetFullPath(path); } catch (Exception ex) { throw new ArgumentException("Path is invalid.", nameof(path), ex); }
 
         if (Directory.Exists(fullPath) && (File.GetAttributes(fullPath) & FileAttributes.Directory) == FileAttributes.Directory)
             throw new ArgumentException("Path refers to a directory; a file path is required.", nameof(path));

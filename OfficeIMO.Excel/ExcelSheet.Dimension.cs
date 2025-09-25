@@ -1,27 +1,20 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace OfficeIMO.Excel
-{
-    public partial class ExcelSheet
-    {
+namespace OfficeIMO.Excel {
+    public partial class ExcelSheet {
         /// <summary>
         /// Updates the SheetDimension element to reflect the current used range.
         /// Helps avoid rare "dimension" repair messages in Excel when generating sheets programmatically.
         /// </summary>
-        internal void UpdateSheetDimension()
-        {
+        internal void UpdateSheetDimension() {
             var ws = _worksheetPart.Worksheet;
             var sheetData = ws.GetFirstChild<SheetData>();
-            if (sheetData == null)
-            {
+            if (sheetData == null) {
                 // Ensure a minimal dimension
                 var dim = ws.GetFirstChild<SheetDimension>();
-                if (dim == null)
-                {
+                if (dim == null) {
                     ws.InsertAt(new SheetDimension { Reference = "A1" }, 0);
-                }
-                else
-                {
+                } else {
                     dim.Reference = "A1";
                 }
                 return;
@@ -30,11 +23,9 @@ namespace OfficeIMO.Excel
             int minRow = int.MaxValue, maxRow = 0;
             int minCol = int.MaxValue, maxCol = 0;
 
-            foreach (var row in sheetData.Elements<Row>())
-            {
+            foreach (var row in sheetData.Elements<Row>()) {
                 if (!row.HasChildren) continue;
-                foreach (var cell in row.Elements<Cell>())
-                {
+                foreach (var cell in row.Elements<Cell>()) {
                     var cref = cell.CellReference?.Value;
                     if (string.IsNullOrEmpty(cref)) continue;
                     var (r, c) = A1.ParseCellRef(cref!);
@@ -47,24 +38,18 @@ namespace OfficeIMO.Excel
             }
 
             string reference;
-            if (maxRow == 0 || maxCol == 0)
-            {
+            if (maxRow == 0 || maxCol == 0) {
                 reference = "A1";
-            }
-            else
-            {
+            } else {
                 string start = A1.ColumnIndexToLetters(minCol) + minRow.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 string end = A1.ColumnIndexToLetters(maxCol) + maxRow.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 reference = start + ":" + end;
             }
 
             var dimEl = ws.GetFirstChild<SheetDimension>();
-            if (dimEl == null)
-            {
+            if (dimEl == null) {
                 ws.InsertAt(new SheetDimension { Reference = reference }, 0);
-            }
-            else
-            {
+            } else {
                 dimEl.Reference = reference;
             }
         }

@@ -1,10 +1,8 @@
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Controls how AddTable validates the provided table name.
     /// </summary>
-    public enum TableNameValidationMode
-    {
+    public enum TableNameValidationMode {
         /// <summary>
         /// Replace invalid characters, normalize, and ensure uniqueness.
         /// </summary>

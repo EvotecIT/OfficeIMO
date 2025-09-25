@@ -1,13 +1,10 @@
-using System.Collections.Generic;
 using SixColor = SixLabors.ImageSharp.Color;
 
-namespace OfficeIMO.Excel.Fluent
-{
+namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Options for conditional-formatting icon sets applied to a column.
     /// </summary>
-    public sealed class IconSetOptions
-    {
+    public sealed class IconSetOptions {
         /// <summary>Icon set type (e.g., ThreeTrafficLights1).</summary>
         public DocumentFormat.OpenXml.Spreadsheet.IconSetValues IconSet { get; set; } = DocumentFormat.OpenXml.Spreadsheet.IconSetValues.ThreeTrafficLights1;
         /// <summary>Whether to show the cell’s value alongside icons.</summary>
@@ -23,8 +20,7 @@ namespace OfficeIMO.Excel.Fluent
     /// Declarative visual options for tables produced by ReportSheetBuilder.TableFrom.
     /// Keeps the API generic so callers can style by header names without project-specific code.
     /// </summary>
-    public sealed class TableVisualOptions
-    {
+    public sealed class TableVisualOptions {
         /// <summary>Freeze through the header row for easier scrolling.</summary>
         public bool FreezeHeaderRow { get; set; } = true;
 

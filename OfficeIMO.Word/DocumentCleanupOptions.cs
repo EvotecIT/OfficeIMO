@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Word {
     /// <summary>
     /// Specifies document cleanup operations.

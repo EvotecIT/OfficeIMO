@@ -1,9 +1,4 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word;
-using OfficeIMO.Word.Html;
-using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 

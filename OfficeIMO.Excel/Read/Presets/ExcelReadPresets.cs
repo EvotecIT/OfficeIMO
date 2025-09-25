@@ -1,19 +1,15 @@
-using System;
 using System.Globalization;
 
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Convenience presets for common read conversions to keep user code minimal.
     /// Provides several choices from minimal to more aggressive conversions.
     /// </summary>
-    public static class ExcelReadPresets
-    {
+    public static class ExcelReadPresets {
         /// <summary>
         /// No extra converters. Equivalent to default ExcelReadOptions with only built-in behavior.
         /// </summary>
-        public static ExcelReadOptions None()
-        {
+        public static ExcelReadOptions None() {
             return new ExcelReadOptions();
         }
 
@@ -22,8 +18,7 @@ namespace OfficeIMO.Excel
         /// - Y/Yes/N/No to bool
         /// - Currency-like strings to decimal (tries CurrentCulture, InvariantCulture, a few common locales)
         /// </summary>
-        public static ExcelReadOptions Simple()
-        {
+        public static ExcelReadOptions Simple() {
             var opt = new ExcelReadOptions();
             ApplyBasicConverters(opt);
             return opt;
@@ -32,8 +27,7 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Like Simple() but prefers decimal for numeric cells when possible.
         /// </summary>
-        public static ExcelReadOptions DecimalFirst()
-        {
+        public static ExcelReadOptions DecimalFirst() {
             var opt = new ExcelReadOptions { NumericAsDecimal = true };
             ApplyBasicConverters(opt);
             return opt;
@@ -42,15 +36,12 @@ namespace OfficeIMO.Excel
         /// <summary>
         /// Applies the same converters as returned by <see cref="Simple"/> to an existing options instance.
         /// </summary>
-        public static void ApplyBasicConverters(ExcelReadOptions options)
-        {
+        public static void ApplyBasicConverters(ExcelReadOptions options) {
             if (options == null) throw new ArgumentNullException(nameof(options));
 
-            options.CellValueConverter = ctx =>
-            {
+            options.CellValueConverter = ctx => {
                 var s = ctx.RawText?.Trim();
-                if (!string.IsNullOrEmpty(s))
-                {
+                if (!string.IsNullOrEmpty(s)) {
                     if (string.Equals(s, "Y", StringComparison.OrdinalIgnoreCase) || string.Equals(s, "Yes", StringComparison.OrdinalIgnoreCase))
                         return new ExcelCellValue(true);
                     if (string.Equals(s, "N", StringComparison.OrdinalIgnoreCase) || string.Equals(s, "No", StringComparison.OrdinalIgnoreCase))
@@ -59,13 +50,10 @@ namespace OfficeIMO.Excel
                 return ExcelCellValue.NotHandled;
             };
 
-            options.TypeConverter = (raw, target, culture) =>
-            {
-                if (target == typeof(decimal) && raw != null)
-                {
+            options.TypeConverter = (raw, target, culture) => {
+                if (target == typeof(decimal) && raw != null) {
                     var s = Convert.ToString(raw, culture);
-                    if (!string.IsNullOrEmpty(s))
-                    {
+                    if (!string.IsNullOrEmpty(s)) {
                         decimal dec;
                         // Try a few likely currency formats/locales
                         var cultures = new[]
@@ -77,16 +65,14 @@ namespace OfficeIMO.Excel
                             CultureInfo.GetCultureInfo("de-DE"),
                         };
 
-                        foreach (var ci in cultures)
-                        {
+                        foreach (var ci in cultures) {
                             if (decimal.TryParse(s, NumberStyles.Currency, ci, out dec))
                                 return (true, dec);
                         }
 
                         // Fall back: strip symbols and re-parse
                         var cleaned = s.Replace("$", string.Empty).Replace("€", string.Empty).Replace("PLN", string.Empty).Replace(" ", string.Empty);
-                        foreach (var ci in cultures)
-                        {
+                        foreach (var ci in cultures) {
                             if (decimal.TryParse(cleaned, NumberStyles.Number | NumberStyles.AllowThousands | NumberStyles.AllowDecimalPoint, ci, out dec))
                                 return (true, dec);
                         }
@@ -103,15 +89,12 @@ namespace OfficeIMO.Excel
         /// - Currency and plain numeric strings to decimal/double/int where appropriate
         /// - ISO date strings to DateTime
         /// </summary>
-        public static ExcelReadOptions Aggressive()
-        {
+        public static ExcelReadOptions Aggressive() {
             var opt = new ExcelReadOptions();
 
-            opt.CellValueConverter = ctx =>
-            {
+            opt.CellValueConverter = ctx => {
                 var s = ctx.RawText?.Trim();
-                if (!string.IsNullOrEmpty(s))
-                {
+                if (!string.IsNullOrEmpty(s)) {
                     // Bool aliases
                     if (string.Equals(s, "true", StringComparison.OrdinalIgnoreCase) || s == "1" || string.Equals(s, "on", StringComparison.OrdinalIgnoreCase) || string.Equals(s, "yes", StringComparison.OrdinalIgnoreCase) || string.Equals(s, "y", StringComparison.OrdinalIgnoreCase))
                         return new ExcelCellValue(true);
@@ -120,8 +103,7 @@ namespace OfficeIMO.Excel
 
                     // Percent → decimal
                     var sLocal = s!;
-                    if (sLocal.EndsWith("%", StringComparison.Ordinal))
-                    {
+                    if (sLocal.EndsWith("%", StringComparison.Ordinal)) {
                         var val = sLocal.Substring(0, sLocal.Length - 1);
                         if (double.TryParse(val, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var pInv))
                             return new ExcelCellValue((decimal)(pInv / 100.0));
@@ -136,14 +118,11 @@ namespace OfficeIMO.Excel
                 return ExcelCellValue.NotHandled;
             };
 
-            opt.TypeConverter = (raw, target, culture) =>
-            {
+            opt.TypeConverter = (raw, target, culture) => {
                 var s = raw is string str ? str.Trim() : null;
                 // decimals and doubles
-                if ((target == typeof(decimal) || target == typeof(double)) && s != null)
-                {
-                    foreach (var ci in new[] { CultureInfo.CurrentCulture, CultureInfo.InvariantCulture, CultureInfo.GetCultureInfo("en-US"), CultureInfo.GetCultureInfo("pl-PL"), CultureInfo.GetCultureInfo("de-DE") })
-                    {
+                if ((target == typeof(decimal) || target == typeof(double)) && s != null) {
+                    foreach (var ci in new[] { CultureInfo.CurrentCulture, CultureInfo.InvariantCulture, CultureInfo.GetCultureInfo("en-US"), CultureInfo.GetCultureInfo("pl-PL"), CultureInfo.GetCultureInfo("de-DE") }) {
                         if (target == typeof(decimal) && decimal.TryParse(s, NumberStyles.Any, ci, out var dec))
                             return (true, dec);
                         if (target == typeof(double) && double.TryParse(s, NumberStyles.Any, ci, out var dbl))
@@ -151,10 +130,8 @@ namespace OfficeIMO.Excel
                     }
                 }
                 // ints
-                if ((target == typeof(int) || target == typeof(long)) && s != null)
-                {
-                    foreach (var ci in new[] { CultureInfo.CurrentCulture, CultureInfo.InvariantCulture })
-                    {
+                if ((target == typeof(int) || target == typeof(long)) && s != null) {
+                    foreach (var ci in new[] { CultureInfo.CurrentCulture, CultureInfo.InvariantCulture }) {
                         if (target == typeof(int) && int.TryParse(s, NumberStyles.Integer, ci, out var i32))
                             return (true, i32);
                         if (target == typeof(long) && long.TryParse(s, NumberStyles.Integer, ci, out var i64))
@@ -162,8 +139,7 @@ namespace OfficeIMO.Excel
                     }
                 }
                 // ISO date
-                if (target == typeof(DateTime) && s != null)
-                {
+                if (target == typeof(DateTime) && s != null) {
                     if (DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var dt))
                         return (true, dt);
                 }

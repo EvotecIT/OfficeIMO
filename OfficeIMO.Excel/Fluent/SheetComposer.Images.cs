@@ -1,10 +1,8 @@
-namespace OfficeIMO.Excel.Fluent
-{
+namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Image helpers for SheetComposer that forward to the underlying sheet and keep chaining.
     /// </summary>
-    public sealed partial class SheetComposer
-    {
+    public sealed partial class SheetComposer {
         /// <summary>
         /// Inserts an image anchored to a specific cell.
         /// </summary>
@@ -16,8 +14,7 @@ namespace OfficeIMO.Excel.Fluent
         /// <param name="heightPixels">Height in pixels.</param>
         /// <param name="offsetXPixels">Optional X offset in pixels.</param>
         /// <param name="offsetYPixels">Optional Y offset in pixels.</param>
-        public SheetComposer ImageAt(int row, int column, byte[] bytes, string contentType = "image/png", int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0)
-        {
+        public SheetComposer ImageAt(int row, int column, byte[] bytes, string contentType = "image/png", int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0) {
             Sheet.AddImageAt(row, column, bytes, contentType, widthPixels, heightPixels, offsetXPixels, offsetYPixels);
             return this;
         }
@@ -32,8 +29,7 @@ namespace OfficeIMO.Excel.Fluent
         /// <param name="heightPixels">Height in pixels.</param>
         /// <param name="offsetXPixels">Optional X offset in pixels.</param>
         /// <param name="offsetYPixels">Optional Y offset in pixels.</param>
-        public SheetComposer ImageFromUrlAt(int row, int column, string url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0)
-        {
+        public SheetComposer ImageFromUrlAt(int row, int column, string url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0) {
             Sheet.AddImageFromUrlAt(row, column, url, widthPixels, heightPixels, offsetXPixels, offsetYPixels);
             return this;
         }

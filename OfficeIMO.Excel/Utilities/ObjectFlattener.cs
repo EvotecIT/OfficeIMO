@@ -1,8 +1,4 @@
-using System;
-using System.Collections;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 
 namespace OfficeIMO.Excel {
@@ -70,8 +66,7 @@ namespace OfficeIMO.Excel {
 
         // Convenience fluent helpers ------------------------------------------------------------
         /// <summary>Adds or appends to <see cref="PinnedFirst"/> while preserving order and uniqueness.</summary>
-        public ObjectFlattenerOptions PinFirst(params string[] paths)
-        {
+        public ObjectFlattenerOptions PinFirst(params string[] paths) {
             if (paths == null || paths.Length == 0) return this;
             var list = new List<string>(PinnedFirst ?? Array.Empty<string>());
             foreach (var p in paths)
@@ -81,8 +76,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Adds or appends to <see cref="PinnedLast"/> while preserving order and uniqueness.</summary>
-        public ObjectFlattenerOptions PinLast(params string[] paths)
-        {
+        public ObjectFlattenerOptions PinLast(params string[] paths) {
             if (paths == null || paths.Length == 0) return this;
             var list = new List<string>(PinnedLast ?? Array.Empty<string>());
             foreach (var p in paths)
@@ -92,11 +86,9 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Sets priority order 1..N for the provided paths (full path or property name).</summary>
-        public ObjectFlattenerOptions PriorityOrder(params string[] paths)
-        {
+        public ObjectFlattenerOptions PriorityOrder(params string[] paths) {
             if (paths == null || paths.Length == 0) return this;
-            for (int i = 0; i < paths.Length; i++)
-            {
+            for (int i = 0; i < paths.Length; i++) {
                 var key = paths[i]; if (string.IsNullOrWhiteSpace(key)) continue;
                 PropertyPriority[key] = i + 1;
             }
@@ -104,8 +96,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Appends to <see cref="IncludeProperties"/> while preserving uniqueness.</summary>
-        public ObjectFlattenerOptions Include(params string[] properties)
-        {
+        public ObjectFlattenerOptions Include(params string[] properties) {
             if (properties == null || properties.Length == 0) return this;
             var list = new List<string>(IncludeProperties ?? Array.Empty<string>());
             foreach (var p in properties)
@@ -115,8 +106,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Appends to <see cref="ExcludeProperties"/> while preserving uniqueness.</summary>
-        public ObjectFlattenerOptions Exclude(params string[] properties)
-        {
+        public ObjectFlattenerOptions Exclude(params string[] properties) {
             if (properties == null || properties.Length == 0) return this;
             var list = new List<string>(ExcludeProperties ?? Array.Empty<string>());
             foreach (var p in properties)
@@ -129,8 +119,7 @@ namespace OfficeIMO.Excel {
         /// One-call convenience: set pin-first, priority order, and pin-last.
         /// Any argument may be null; order is applied as PinFirst → PriorityOrder → PinLast.
         /// </summary>
-        public ObjectFlattenerOptions Order(string[]? pinFirst = null, string[]? priority = null, string[]? pinLast = null)
-        {
+        public ObjectFlattenerOptions Order(string[]? pinFirst = null, string[]? priority = null, string[]? pinLast = null) {
             if (pinFirst != null && pinFirst.Length > 0) PinFirst(pinFirst);
             if (priority != null && priority.Length > 0) PriorityOrder(priority);
             if (pinLast != null && pinLast.Length > 0) PinLast(pinLast);
@@ -166,15 +155,13 @@ namespace OfficeIMO.Excel {
                 .ToList();
 
             // Apply property-name based excludes
-            if (opts.ExcludeProperties.Length > 0)
-            {
+            if (opts.ExcludeProperties.Length > 0) {
                 var ex = new HashSet<string>(opts.ExcludeProperties, StringComparer.OrdinalIgnoreCase);
                 filtered = filtered.Where(p => !ex.Contains(p) && !ex.Contains(LastSegment(p))).ToList();
             }
 
             // Apply property-name based includes (acts as a filter if provided)
-            if (opts.IncludeProperties.Length > 0)
-            {
+            if (opts.IncludeProperties.Length > 0) {
                 var inc = new HashSet<string>(opts.IncludeProperties, StringComparer.OrdinalIgnoreCase);
                 filtered = filtered.Where(p => inc.Contains(p) || inc.Contains(LastSegment(p))).ToList();
             }
@@ -190,8 +177,7 @@ namespace OfficeIMO.Excel {
             var type = obj.GetType();
 
             // Special-case: ValueTuple (struct tuples) expose public fields (Item1..ItemN) not properties.
-            if (IsValueTuple(type))
-            {
+            if (IsValueTuple(type)) {
                 FlattenValueTuple(obj, dict, prefix, depth, opts);
                 return;
             }
@@ -235,8 +221,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static bool IsValueTuple(Type t)
-        {
+        private static bool IsValueTuple(Type t) {
             if (!t.IsValueType) return false;
             var n = t.Name;
             if (n.StartsWith("ValueTuple`", StringComparison.Ordinal)) return true;
@@ -244,31 +229,22 @@ namespace OfficeIMO.Excel {
             return string.Equals(t.FullName, "System.ValueTuple", StringComparison.Ordinal);
         }
 
-        private static void FlattenValueTuple(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts)
-        {
+        private static void FlattenValueTuple(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts) {
             // Try ITuple via reflection (available on newer frameworks). Avoids compile-time dependency for netstandard2.0
             var iTupleType = Type.GetType("System.Runtime.CompilerServices.ITuple");
-            if (iTupleType != null && iTupleType.IsAssignableFrom(obj.GetType()))
-            {
+            if (iTupleType != null && iTupleType.IsAssignableFrom(obj.GetType())) {
                 var lenProp = iTupleType.GetProperty("Length");
                 var itemProp = iTupleType.GetProperty("Item"); // indexer
-                if (lenProp != null && itemProp != null)
-                {
+                if (lenProp != null && itemProp != null) {
                     int length = Convert.ToInt32(lenProp.GetValue(obj, null));
-                    for (int i = 0; i < length; i++)
-                    {
+                    for (int i = 0; i < length; i++) {
                         var path = string.IsNullOrEmpty(prefix) ? $"Item{i + 1}" : $"{prefix}.Item{i + 1}";
                         var val = itemProp.GetValue(obj, new object[] { i });
-                        if (val == null)
-                        {
+                        if (val == null) {
                             dict[path] = ApplyNullPolicy(path, null, opts);
-                        }
-                        else if (IsSimple(val.GetType()))
-                        {
+                        } else if (IsSimple(val.GetType())) {
                             dict[path] = ApplyFormatting(path, val, opts);
-                        }
-                        else
-                        {
+                        } else {
                             FlattenInternal(val, dict, path, depth + 1, opts);
                         }
                     }
@@ -282,30 +258,22 @@ namespace OfficeIMO.Excel {
                 .OrderBy(f => f.Name, StringComparer.Ordinal)
                 .ToArray();
             int idx = 1;
-            foreach (var f in fields)
-            {
+            foreach (var f in fields) {
                 var path = string.IsNullOrEmpty(prefix) ? $"Item{idx}" : $"{prefix}.Item{idx}";
                 var val = f.GetValue(obj);
-                if (val == null)
-                {
+                if (val == null) {
                     dict[path] = ApplyNullPolicy(path, null, opts);
-                }
-                else if (IsSimple(val.GetType()))
-                {
+                } else if (IsSimple(val.GetType())) {
                     dict[path] = ApplyFormatting(path, val, opts);
-                }
-                else
-                {
+                } else {
                     FlattenInternal(val, dict, path, depth + 1, opts);
                 }
                 idx++;
             }
         }
 
-        private static void MapCollectionToColumns(string basePath, IEnumerable enumerable, CollectionColumnMapping map, Dictionary<string, object?> dict, ObjectFlattenerOptions opts)
-        {
-            foreach (var item in enumerable)
-            {
+        private static void MapCollectionToColumns(string basePath, IEnumerable enumerable, CollectionColumnMapping map, Dictionary<string, object?> dict, ObjectFlattenerOptions opts) {
+            foreach (var item in enumerable) {
                 if (item == null) continue;
                 var t = item.GetType();
                 var keyProp = t.GetProperty(map.KeyProperty);
@@ -326,16 +294,14 @@ namespace OfficeIMO.Excel {
 
         private static void BuildPaths(Type type, string prefix, int depth, ObjectFlattenerOptions opts, List<string> paths) {
             if (depth >= opts.MaxDepth) return;
-            if (IsValueTuple(type))
-            {
+            if (IsValueTuple(type)) {
                 // Prefer counting actual Item* fields for precision (covers non-generic System.ValueTuple)
                 int itemCount = objFieldCount(type);
                 // If field count is 0 but the type is generic, fall back to generic arity (covers ITuple-backed cases)
                 if (itemCount == 0 && type.IsGenericType)
                     itemCount = type.GetGenericArguments().Length;
 
-                for (int i = 1; i <= itemCount; i++)
-                {
+                for (int i = 1; i <= itemCount; i++) {
                     var path = string.IsNullOrEmpty(prefix) ? $"Item{i}" : $"{prefix}.Item{i}";
                     if (!opts.Ignore.Any(x => path.StartsWith(x, StringComparison.OrdinalIgnoreCase)))
                         paths.Add(path);
@@ -362,15 +328,12 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static int objFieldCount(Type valueTupleType)
-        {
-            try
-            {
+        private static int objFieldCount(Type valueTupleType) {
+            try {
                 return valueTupleType
                     .GetFields(BindingFlags.Public | BindingFlags.Instance)
                     .Count(f => f.Name.StartsWith("Item", StringComparison.Ordinal));
-            }
-            catch { return 0; }
+            } catch { return 0; }
         }
 
         private static object? HandleCollection(string path, IEnumerable enumerable, ObjectFlattenerOptions opts) {
@@ -403,31 +366,27 @@ namespace OfficeIMO.Excel {
             return type.IsPrimitive || type.IsEnum || type == typeof(string) || type == typeof(decimal) || type == typeof(DateTime) || type == typeof(DateTimeOffset) || type == typeof(TimeSpan) || type == typeof(Guid);
         }
 
-        private static string LastSegment(string path)
-        {
+        private static string LastSegment(string path) {
             if (string.IsNullOrEmpty(path)) return path;
             int i = path.LastIndexOf('.');
             return i >= 0 ? path.Substring(i + 1) : path;
         }
 
-        internal static List<string> ApplyOrdering(List<string> input, ObjectFlattenerOptions opts)
-        {
+        internal static List<string> ApplyOrdering(List<string> input, ObjectFlattenerOptions opts) {
             if (input == null || input.Count == 0) return new List<string>();
 
             var result = new List<string>(input.Count);
             var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             // 1) PinnedFirst in the given order
-            foreach (var pin in opts.PinnedFirst)
-            {
+            foreach (var pin in opts.PinnedFirst) {
                 var match = input.FirstOrDefault(p => string.Equals(p, pin, StringComparison.OrdinalIgnoreCase) ||
                                                        string.Equals(LastSegment(p), pin, StringComparison.OrdinalIgnoreCase));
                 if (!string.IsNullOrEmpty(match) && set.Add(match)) result.Add(match);
             }
 
             // 2) Remaining, grouped by priority ascending
-            int GetPriority(string path)
-            {
+            int GetPriority(string path) {
                 var key = opts.PropertyPriority
                     .FirstOrDefault(kv => string.Equals(kv.Key, path, StringComparison.OrdinalIgnoreCase) ||
                                           string.Equals(LastSegment(path), kv.Key, StringComparison.OrdinalIgnoreCase)).Key;
@@ -441,8 +400,7 @@ namespace OfficeIMO.Excel {
             // 3) PinnedLast moved to the end in the given order
             var pinnedLastMatches = new List<string>();
             var pinLastSet = new HashSet<string>(opts.PinnedLast ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
-            foreach (var pin in opts.PinnedLast ?? Array.Empty<string>())
-            {
+            foreach (var pin in opts.PinnedLast ?? Array.Empty<string>()) {
                 var match = prioritized.FirstOrDefault(p => string.Equals(p, pin, StringComparison.OrdinalIgnoreCase) ||
                                                             string.Equals(LastSegment(p), pin, StringComparison.OrdinalIgnoreCase));
                 if (!string.IsNullOrEmpty(match)) pinnedLastMatches.Add(match);
@@ -457,22 +415,19 @@ namespace OfficeIMO.Excel {
             return result;
         }
 
-        internal static List<string> ApplySelection(List<string> input, ObjectFlattenerOptions opts)
-        {
+        internal static List<string> ApplySelection(List<string> input, ObjectFlattenerOptions opts) {
             if (input == null || input.Count == 0) return new List<string>();
 
             var filtered = input
                 .Where(p => !opts.Ignore.Any(i => p.StartsWith(i, StringComparison.OrdinalIgnoreCase)))
                 .ToList();
 
-            if (opts.ExcludeProperties.Length > 0)
-            {
+            if (opts.ExcludeProperties.Length > 0) {
                 var ex = new HashSet<string>(opts.ExcludeProperties, StringComparer.OrdinalIgnoreCase);
                 filtered = filtered.Where(p => !ex.Contains(p) && !ex.Contains(LastSegment(p))).ToList();
             }
 
-            if (opts.IncludeProperties.Length > 0)
-            {
+            if (opts.IncludeProperties.Length > 0) {
                 var inc = new HashSet<string>(opts.IncludeProperties, StringComparer.OrdinalIgnoreCase);
                 filtered = filtered.Where(p => inc.Contains(p) || inc.Contains(LastSegment(p))).ToList();
             }
@@ -481,15 +436,14 @@ namespace OfficeIMO.Excel {
         }
     }
 }
-    /// <summary>
-    /// Configuration for mapping a collection of objects into dynamic columns.
-    /// </summary>
-public sealed class CollectionColumnMapping
-{
-        /// <summary>Property name on the item to use as the header suffix (key).</summary>
-        public string KeyProperty { get; set; } = "Name";
-        /// <summary>Property name on the item to use as the cell value.</summary>
-        public string ValueProperty { get; set; } = "Value";
-        /// <summary>Optional prefix for generated column headers.</summary>
-        public string? HeaderPrefix { get; set; }
+/// <summary>
+/// Configuration for mapping a collection of objects into dynamic columns.
+/// </summary>
+public sealed class CollectionColumnMapping {
+    /// <summary>Property name on the item to use as the header suffix (key).</summary>
+    public string KeyProperty { get; set; } = "Name";
+    /// <summary>Property name on the item to use as the cell value.</summary>
+    public string ValueProperty { get; set; } = "Value";
+    /// <summary>Optional prefix for generated column headers.</summary>
+    public string? HeaderPrefix { get; set; }
 }

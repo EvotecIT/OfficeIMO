@@ -1,21 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Additional sheet helpers for <see cref="ExcelDocumentReader"/>.
     /// </summary>
-    public sealed partial class ExcelDocumentReader
-    {
+    public sealed partial class ExcelDocumentReader {
         /// <summary>
         /// Gets a reader by sheet index (1-based, Excel display order).
         /// </summary>
-        public ExcelSheetReader GetSheet(int index)
-        {
+        public ExcelSheetReader GetSheet(int index) {
             if (index < 1) throw new ArgumentOutOfRangeException(nameof(index));
             var list = GetSheetNames();
             if (index > list.Count) throw new ArgumentOutOfRangeException(nameof(index));

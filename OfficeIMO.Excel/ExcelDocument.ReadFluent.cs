@@ -1,10 +1,7 @@
-using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
 
-namespace OfficeIMO.Excel
-{
-    public partial class ExcelDocument
-    {
+namespace OfficeIMO.Excel {
+    public partial class ExcelDocument {
         /// <summary>
         /// Starts a fluent read pipeline over this open document.
         /// </summary>

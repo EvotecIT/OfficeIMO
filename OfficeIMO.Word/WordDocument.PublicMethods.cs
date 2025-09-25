@@ -1,14 +1,6 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using SixLabors.ImageSharp;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
 
 namespace OfficeIMO.Word {
     /// <summary>

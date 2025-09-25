@@ -1,5 +1,4 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word;
 
 namespace OfficeIMO.Word.Fluent {
     /// <summary>
@@ -106,7 +105,7 @@ namespace OfficeIMO.Word.Fluent {
                 var p = _list.AddItem(string.Empty, _level);
                 p.AddCheckBox(done);
                 if (!string.IsNullOrEmpty(text)) {
-                    p.AddText(" "+ text);
+                    p.AddText(" " + text);
                 }
             }
             return this;

@@ -1,19 +1,14 @@
-using System;
 using System.Text.RegularExpressions;
-using OfficeIMO.Excel;
 
-namespace OfficeIMO.Excel
-{
-    public partial class ExcelSheet
-    {
+namespace OfficeIMO.Excel {
+    public partial class ExcelSheet {
         /// <summary>
         /// Parses an A1 range and returns 1-based bounds (r1, c1, r2, c2).
         /// </summary>
         /// <param name="a1">A1 range without a sheet prefix (e.g., "A2:D20").</param>
         /// <returns>Tuple of (r1, c1, r2, c2) with normalized bounds.</returns>
         /// <exception cref="ArgumentException">Thrown when the input is not a valid A1 range.</exception>
-        public (int r1, int c1, int r2, int c2) GetRangeBounds(string a1)
-        {
+        public (int r1, int c1, int r2, int c2) GetRangeBounds(string a1) {
             return A1.ParseRange(a1);
         }
         /// <example>
@@ -26,8 +21,7 @@ namespace OfficeIMO.Excel
         /// </summary>
         /// <param name="a1">A1 range without a sheet prefix.</param>
         /// <param name="action">Callback receiving a 1-based row index.</param>
-        public void ForEachRow(string a1, Action<int> action)
-        {
+        public void ForEachRow(string a1, Action<int> action) {
             var (r1, _, r2, _) = A1.ParseRange(a1);
             for (int r = r1; r <= r2; r++) action(r);
         }
@@ -40,8 +34,7 @@ namespace OfficeIMO.Excel
         /// </summary>
         /// <param name="a1">A1 range without a sheet prefix.</param>
         /// <param name="action">Callback receiving a 1-based column index.</param>
-        public void ForEachColumn(string a1, Action<int> action)
-        {
+        public void ForEachColumn(string a1, Action<int> action) {
             var (_, c1, _, c2) = A1.ParseRange(a1);
             for (int c = c1; c <= c2; c++) action(c);
         }
@@ -58,14 +51,11 @@ namespace OfficeIMO.Excel
         /// <param name="targetA1">Destination cell on the target sheet (default "A1").</param>
         /// <param name="display">Optional display text selector. Defaults to the cell text.</param>
         /// <param name="styled">When true, applies hyperlink styling (blue + underline).</param>
-        public void LinkCellsToInternalSheets(string a1, Func<string, string> destinationSheetForCellText, string targetA1 = "A1", Func<string, string>? display = null, bool styled = true)
-        {
+        public void LinkCellsToInternalSheets(string a1, Func<string, string> destinationSheetForCellText, string targetA1 = "A1", Func<string, string>? display = null, bool styled = true) {
             if (destinationSheetForCellText == null) throw new ArgumentNullException(nameof(destinationSheetForCellText));
             var (r1, c1, r2, c2) = A1.ParseRange(a1);
-            for (int r = r1; r <= r2; r++)
-            {
-                for (int c = c1; c <= c2; c++)
-                {
+            for (int r = r1; r <= r2; r++) {
+                for (int c = c1; c <= c2; c++) {
                     if (!TryGetCellText(r, c, out var text) || string.IsNullOrWhiteSpace(text)) continue;
                     string sheetName = destinationSheetForCellText(text);
                     if (string.IsNullOrWhiteSpace(sheetName)) continue;
@@ -89,8 +79,7 @@ namespace OfficeIMO.Excel
         /// <param name="url">Target URL.</param>
         /// <param name="title">Optional preferred display text.</param>
         /// <param name="style">When true, applies hyperlink styling (blue + underline).</param>
-        public void SetHyperlinkSmart(int row, int column, string url, string? title = null, bool style = true)
-        {
+        public void SetHyperlinkSmart(int row, int column, string url, string? title = null, bool style = true) {
             string display = !string.IsNullOrWhiteSpace(title) ? title! : GuessLinkDisplay(url);
             SetHyperlink(row, column, url, display, style);
         }
@@ -106,8 +95,7 @@ namespace OfficeIMO.Excel
         /// <param name="column">1-based column index.</param>
         /// <param name="url">Target URL.</param>
         /// <param name="style">When true, applies hyperlink styling (blue + underline).</param>
-        public void SetHyperlinkHost(int row, int column, string url, bool style = true)
-        {
+        public void SetHyperlinkHost(int row, int column, string url, bool style = true) {
             string display = TryGetHost(url, out var host) ? host! : url;
             SetHyperlink(row, column, url, display, style);
         }
@@ -115,8 +103,7 @@ namespace OfficeIMO.Excel
         /// sheet.SetHyperlinkHost(7, 1, "https://learn.microsoft.com/office/open-xml/"); // displays "learn.microsoft.com"
         /// </example>
 
-        private static string GuessLinkDisplay(string url)
-        {
+        private static string GuessLinkDisplay(string url) {
             // RFC pattern: https://datatracker.ietf.org/doc/html/rfc7208
             var r = Regex.Match(url ?? string.Empty, @"rfc(\d{3,5})", RegexOptions.IgnoreCase);
             if (r.Success) return "RFC " + r.Groups[1].Value;
@@ -124,12 +111,10 @@ namespace OfficeIMO.Excel
             return url ?? string.Empty;
         }
 
-        private static bool TryGetHost(string? url, out string? host)
-        {
+        private static bool TryGetHost(string? url, out string? host) {
             host = null;
             if (string.IsNullOrWhiteSpace(url)) return false;
-            if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
-            {
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri)) {
                 host = uri.Host;
                 return !string.IsNullOrEmpty(host);
             }
@@ -154,19 +139,16 @@ namespace OfficeIMO.Excel
             Func<string, string>? destinationSheetForCellText = null,
             string targetA1 = "A1",
             Func<string, string>? display = null,
-            bool styled = true)
-        {
+            bool styled = true) {
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
             if (!TryGetColumnIndexByHeader(header, out var col)) return;
-            if (rowTo <= 0)
-            {
+            if (rowTo <= 0) {
                 var (r1, _, r2, _) = A1.ParseRange(GetUsedRangeA1());
                 rowTo = r2;
                 if (rowFrom < r1) rowFrom = r1 + 1; // move below header
             }
             var toSheet = destinationSheetForCellText ?? (text => text);
-            for (int r = rowFrom; r <= rowTo; r++)
-            {
+            for (int r = rowFrom; r <= rowTo; r++) {
                 if (!TryGetCellText(r, col, out var text) || string.IsNullOrWhiteSpace(text)) continue;
                 string sheetName = toSheet(text);
                 if (string.IsNullOrWhiteSpace(sheetName)) continue;
@@ -187,20 +169,17 @@ namespace OfficeIMO.Excel
             Func<string, string>? destinationSheetForCellText = null,
             string targetA1 = "A1",
             Func<string, string>? display = null,
-            bool styled = true)
-        {
+            bool styled = true) {
             if (string.IsNullOrWhiteSpace(header)) return false;
             if (!TryGetColumnIndexByHeader(header, out var col)) return false;
-            if (rowTo <= 0)
-            {
+            if (rowTo <= 0) {
                 var ok = A1.TryParseRange(GetUsedRangeA1(), out var r1, out _, out var r2, out _);
                 if (!ok) return false;
                 rowTo = r2;
                 if (rowFrom < r1) rowFrom = r1 + 1;
             }
             var toSheet = destinationSheetForCellText ?? (text => text);
-            for (int r = rowFrom; r <= rowTo; r++)
-            {
+            for (int r = rowFrom; r <= rowTo; r++) {
                 if (!TryGetCellText(r, col, out var text) || string.IsNullOrWhiteSpace(text)) continue;
                 string sheetName = toSheet(text);
                 if (string.IsNullOrWhiteSpace(sheetName)) continue;
@@ -227,19 +206,16 @@ namespace OfficeIMO.Excel
             int rowTo = -1,
             Func<string, string> urlForCellText = null!,
             Func<string, string>? titleForCellText = null,
-            bool styled = true)
-        {
+            bool styled = true) {
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
             if (urlForCellText is null) throw new ArgumentNullException(nameof(urlForCellText));
             if (!TryGetColumnIndexByHeader(header, out var col)) return;
-            if (rowTo <= 0)
-            {
+            if (rowTo <= 0) {
                 var (r1, _, r2, _) = A1.ParseRange(GetUsedRangeA1());
                 rowTo = r2;
                 if (rowFrom < r1) rowFrom = r1 + 1;
             }
-            for (int r = rowFrom; r <= rowTo; r++)
-            {
+            for (int r = rowFrom; r <= rowTo; r++) {
                 if (!TryGetCellText(r, col, out var text) || string.IsNullOrWhiteSpace(text)) continue;
                 string url = urlForCellText(text);
                 if (string.IsNullOrWhiteSpace(url)) continue;
@@ -260,20 +236,17 @@ namespace OfficeIMO.Excel
             int rowTo = -1,
             Func<string, string>? urlForCellText = null,
             Func<string, string>? titleForCellText = null,
-            bool styled = true)
-        {
+            bool styled = true) {
             if (string.IsNullOrWhiteSpace(header)) return false;
             if (urlForCellText is null) return false;
             if (!TryGetColumnIndexByHeader(header, out var col)) return false;
-            if (rowTo <= 0)
-            {
+            if (rowTo <= 0) {
                 var ok = A1.TryParseRange(GetUsedRangeA1(), out var r1, out _, out var r2, out _);
                 if (!ok) return false;
                 rowTo = r2;
                 if (rowFrom < r1) rowFrom = r1 + 1;
             }
-            for (int r = rowFrom; r <= rowTo; r++)
-            {
+            for (int r = rowFrom; r <= rowTo; r++) {
                 if (!TryGetCellText(r, col, out var text) || string.IsNullOrWhiteSpace(text)) continue;
                 string url = urlForCellText(text);
                 if (string.IsNullOrWhiteSpace(url)) continue;
@@ -307,8 +280,7 @@ namespace OfficeIMO.Excel
             Func<string, string>? destinationSheetForCellText = null,
             string targetA1 = "A1",
             Func<string, string>? display = null,
-            bool styled = true)
-        {
+            bool styled = true) {
             if (string.IsNullOrWhiteSpace(tableName)) throw new ArgumentNullException(nameof(tableName));
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
             var tdp = _worksheetPart.TableDefinitionParts.FirstOrDefault(p => string.Equals(p.Table?.Name?.Value, tableName, StringComparison.OrdinalIgnoreCase));
@@ -329,8 +301,7 @@ namespace OfficeIMO.Excel
             int endRow = r2 - totalsRows;
             int column = c1 + colOffset;
             var toSheet = destinationSheetForCellText ?? (text => text);
-            for (int r = startRow; r <= endRow; r++)
-            {
+            for (int r = startRow; r <= endRow; r++) {
                 if (!TryGetCellText(r, column, out var text) || string.IsNullOrWhiteSpace(text)) continue;
                 string sheetName = toSheet(text);
                 if (string.IsNullOrWhiteSpace(sheetName)) continue;
@@ -350,8 +321,7 @@ namespace OfficeIMO.Excel
             Func<string, string>? destinationSheetForCellText = null,
             string targetA1 = "A1",
             Func<string, string>? display = null,
-            bool styled = true)
-        {
+            bool styled = true) {
             if (string.IsNullOrWhiteSpace(tableName) || string.IsNullOrWhiteSpace(header)) return false;
             var tdp = _worksheetPart.TableDefinitionParts.FirstOrDefault(p => string.Equals(p.Table?.Name?.Value, tableName, StringComparison.OrdinalIgnoreCase));
             var table = tdp?.Table; if (table == null) return false;
@@ -367,8 +337,7 @@ namespace OfficeIMO.Excel
             int endRow = r2 - totalsRows;
             int column = c1 + colOffset;
             var toSheet = destinationSheetForCellText ?? (text => text);
-            for (int r = startRow; r <= endRow; r++)
-            {
+            for (int r = startRow; r <= endRow; r++) {
                 if (!TryGetCellText(r, column, out var text) || string.IsNullOrWhiteSpace(text)) continue;
                 string sheetName = toSheet(text);
                 if (string.IsNullOrWhiteSpace(sheetName)) continue;
@@ -392,8 +361,7 @@ namespace OfficeIMO.Excel
             string header,
             Func<string, string> urlForCellText,
             Func<string, string>? titleForCellText = null,
-            bool styled = true)
-        {
+            bool styled = true) {
             if (string.IsNullOrWhiteSpace(tableName)) throw new ArgumentNullException(nameof(tableName));
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
             if (urlForCellText is null) throw new ArgumentNullException(nameof(urlForCellText));
@@ -412,8 +380,7 @@ namespace OfficeIMO.Excel
             int startRow = r1 + headerRows;
             int endRow = r2 - totalsRows;
             int column = c1 + colOffset;
-            for (int r = startRow; r <= endRow; r++)
-            {
+            for (int r = startRow; r <= endRow; r++) {
                 if (!TryGetCellText(r, column, out var text) || string.IsNullOrWhiteSpace(text)) continue;
                 string url = urlForCellText(text);
                 if (string.IsNullOrWhiteSpace(url)) continue;
@@ -433,8 +400,7 @@ namespace OfficeIMO.Excel
             string header,
             Func<string, string>? urlForCellText,
             Func<string, string>? titleForCellText = null,
-            bool styled = true)
-        {
+            bool styled = true) {
             if (string.IsNullOrWhiteSpace(tableName) || string.IsNullOrWhiteSpace(header)) return false;
             if (urlForCellText is null) return false;
             var tdp = _worksheetPart.TableDefinitionParts.FirstOrDefault(p => string.Equals(p.Table?.Name?.Value, tableName, StringComparison.OrdinalIgnoreCase));
@@ -450,8 +416,7 @@ namespace OfficeIMO.Excel
             int startRow = r1 + headerRows;
             int endRow = r2 - totalsRows;
             int column = c1 + colOffset;
-            for (int r = startRow; r <= endRow; r++)
-            {
+            for (int r = startRow; r <= endRow; r++) {
                 if (!TryGetCellText(r, column, out var text) || string.IsNullOrWhiteSpace(text)) continue;
                 string url = urlForCellText(text);
                 if (string.IsNullOrWhiteSpace(url)) continue;
@@ -479,24 +444,20 @@ namespace OfficeIMO.Excel
             Func<string, string>? destinationSheetForCellText = null,
             string targetA1 = "A1",
             Func<string, string>? display = null,
-            bool styled = true)
-        {
+            bool styled = true) {
             if (string.IsNullOrWhiteSpace(rangeA1)) throw new ArgumentNullException(nameof(rangeA1));
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
             var (r1, c1, r2, c2) = A1.ParseRange(rangeA1);
             // Find header column within first row of range
             int headerCol = -1;
-            for (int c = c1; c <= c2; c++)
-            {
-                if (TryGetCellText(r1, c, out var text) && !string.IsNullOrWhiteSpace(text) && string.Equals(text, header, StringComparison.OrdinalIgnoreCase))
-                {
+            for (int c = c1; c <= c2; c++) {
+                if (TryGetCellText(r1, c, out var text) && !string.IsNullOrWhiteSpace(text) && string.Equals(text, header, StringComparison.OrdinalIgnoreCase)) {
                     headerCol = c; break;
                 }
             }
             if (headerCol < 0) throw new InvalidOperationException($"Header '{header}' not found in range '{rangeA1}'.");
             var toSheet = destinationSheetForCellText ?? (t => t);
-            for (int r = r1 + 1; r <= r2; r++)
-            {
+            for (int r = r1 + 1; r <= r2; r++) {
                 if (!TryGetCellText(r, headerCol, out var value) || string.IsNullOrWhiteSpace(value)) continue;
                 string sheetName = toSheet(value);
                 if (string.IsNullOrWhiteSpace(sheetName)) continue;
@@ -520,21 +481,17 @@ namespace OfficeIMO.Excel
             string header,
             Func<string, string> urlForCellText,
             Func<string, string>? titleForCellText = null,
-            bool styled = true)
-        {
+            bool styled = true) {
             if (string.IsNullOrWhiteSpace(rangeA1)) throw new ArgumentNullException(nameof(rangeA1));
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
             if (urlForCellText is null) throw new ArgumentNullException(nameof(urlForCellText));
             var (r1, c1, r2, c2) = A1.ParseRange(rangeA1);
             int headerCol = -1;
-            for (int c = c1; c <= c2; c++)
-            {
-                if (TryGetCellText(r1, c, out var text) && !string.IsNullOrWhiteSpace(text) && string.Equals(text, header, StringComparison.OrdinalIgnoreCase))
-                { headerCol = c; break; }
+            for (int c = c1; c <= c2; c++) {
+                if (TryGetCellText(r1, c, out var text) && !string.IsNullOrWhiteSpace(text) && string.Equals(text, header, StringComparison.OrdinalIgnoreCase)) { headerCol = c; break; }
             }
             if (headerCol < 0) throw new InvalidOperationException($"Header '{header}' not found in range '{rangeA1}'.");
-            for (int r = r1 + 1; r <= r2; r++)
-            {
+            for (int r = r1 + 1; r <= r2; r++) {
                 if (!TryGetCellText(r, headerCol, out var value) || string.IsNullOrWhiteSpace(value)) continue;
                 string url = urlForCellText(value);
                 if (string.IsNullOrWhiteSpace(url)) continue;
@@ -555,20 +512,16 @@ namespace OfficeIMO.Excel
             string targetA1 = "A1",
             Func<string, string>? destinationSheetForCellText = null,
             Func<string, string>? display = null,
-            bool styled = true)
-        {
+            bool styled = true) {
             if (string.IsNullOrWhiteSpace(rangeA1) || string.IsNullOrWhiteSpace(header)) return false;
             if (!A1.TryParseRange(rangeA1, out var r1, out var c1, out var r2, out var c2)) return false;
             int headerCol = -1;
-            for (int c = c1; c <= c2; c++)
-            {
-                if (TryGetCellText(r1, c, out var text) && !string.IsNullOrWhiteSpace(text) && string.Equals(text, header, StringComparison.OrdinalIgnoreCase))
-                { headerCol = c; break; }
+            for (int c = c1; c <= c2; c++) {
+                if (TryGetCellText(r1, c, out var text) && !string.IsNullOrWhiteSpace(text) && string.Equals(text, header, StringComparison.OrdinalIgnoreCase)) { headerCol = c; break; }
             }
             if (headerCol < 0) return false;
             var toSheet = destinationSheetForCellText ?? (t => t);
-            for (int r = r1 + 1; r <= r2; r++)
-            {
+            for (int r = r1 + 1; r <= r2; r++) {
                 if (!TryGetCellText(r, headerCol, out var value) || string.IsNullOrWhiteSpace(value)) continue;
                 string sheetName = toSheet(value);
                 if (string.IsNullOrWhiteSpace(sheetName)) continue;
@@ -588,20 +541,16 @@ namespace OfficeIMO.Excel
             string header,
             Func<string, string>? urlForCellText,
             Func<string, string>? titleForCellText = null,
-            bool styled = true)
-        {
+            bool styled = true) {
             if (string.IsNullOrWhiteSpace(rangeA1) || string.IsNullOrWhiteSpace(header)) return false;
             if (urlForCellText is null) return false;
             if (!A1.TryParseRange(rangeA1, out var r1, out var c1, out var r2, out var c2)) return false;
             int headerCol = -1;
-            for (int c = c1; c <= c2; c++)
-            {
-                if (TryGetCellText(r1, c, out var text) && !string.IsNullOrWhiteSpace(text) && string.Equals(text, header, StringComparison.OrdinalIgnoreCase))
-                { headerCol = c; break; }
+            for (int c = c1; c <= c2; c++) {
+                if (TryGetCellText(r1, c, out var text) && !string.IsNullOrWhiteSpace(text) && string.Equals(text, header, StringComparison.OrdinalIgnoreCase)) { headerCol = c; break; }
             }
             if (headerCol < 0) return false;
-            for (int r = r1 + 1; r <= r2; r++)
-            {
+            for (int r = r1 + 1; r <= r2; r++) {
                 if (!TryGetCellText(r, headerCol, out var value) || string.IsNullOrWhiteSpace(value)) continue;
                 string url = urlForCellText(value);
                 if (string.IsNullOrWhiteSpace(url)) continue;

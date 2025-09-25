@@ -1,5 +1,3 @@
-using System.Linq;
-
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
         private static void CompareImages(WordDocument source, WordDocument target, WordDocument result) {

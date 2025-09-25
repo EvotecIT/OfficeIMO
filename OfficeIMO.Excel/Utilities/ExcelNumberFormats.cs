@@ -1,13 +1,10 @@
-using System;
 using System.Globalization;
 
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Maps number format presets to Excel format codes.
     /// </summary>
-    public static class ExcelNumberFormats
-    {
+    public static class ExcelNumberFormats {
         /// <summary>
         /// Returns an Excel number format code for the given <paramref name="preset"/>,
         /// optionally controlling decimal places and currency culture.
@@ -15,11 +12,9 @@ namespace OfficeIMO.Excel
         /// <param name="preset">Predefined number format.</param>
         /// <param name="decimals">Number of decimal places where applicable.</param>
         /// <param name="culture">Culture used for currency symbol; defaults to current culture.</param>
-        public static string Get(ExcelNumberPreset preset, int decimals = 2, CultureInfo? culture = null)
-        {
+        public static string Get(ExcelNumberPreset preset, int decimals = 2, CultureInfo? culture = null) {
             culture ??= CultureInfo.CurrentCulture;
-            switch (preset)
-            {
+            switch (preset) {
                 case ExcelNumberPreset.General:
                     return "General";
                 case ExcelNumberPreset.Integer:
@@ -28,8 +23,7 @@ namespace OfficeIMO.Excel
                     return "#,##0" + (decimals > 0 ? "." + new string('0', decimals) : string.Empty);
                 case ExcelNumberPreset.Percent:
                     return "0" + (decimals > 0 ? "." + new string('0', decimals) : string.Empty) + "%";
-                case ExcelNumberPreset.Currency:
-                    {
+                case ExcelNumberPreset.Currency: {
                         var sym = culture.NumberFormat.CurrencySymbol;
                         // Literal currency symbol, basic grouping with configurable decimals
                         return "\"" + sym + "\"#,##0" + (decimals > 0 ? "." + new string('0', decimals) : string.Empty);

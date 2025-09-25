@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace OfficeIMO.Word {
     /// <summary>
     /// Represents the SET field code.

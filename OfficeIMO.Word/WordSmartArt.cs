@@ -1,15 +1,10 @@
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Collections.Generic;
-using System.Xml.Linq;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Diagrams;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Threading;
+using System.Xml.Linq;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -74,11 +69,11 @@ namespace OfficeIMO.Word {
                 new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties(
                     new GraphicFrameLocks { NoChangeAspect = true }),
                 graphic) {
-                    DistanceFromTop = 0U,
-                    DistanceFromBottom = 0U,
-                    DistanceFromLeft = 0U,
-                    DistanceFromRight = 0U
-                };
+                DistanceFromTop = 0U,
+                DistanceFromBottom = 0U,
+                DistanceFromLeft = 0U,
+                DistanceFromRight = 0U
+            };
 
             _drawing = new Drawing(inline);
             _paragraph.VerifyRun();

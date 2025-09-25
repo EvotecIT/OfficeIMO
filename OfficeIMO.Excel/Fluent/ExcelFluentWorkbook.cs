@@ -1,5 +1,3 @@
-using System;
-using OfficeIMO.Excel;
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Fluent API wrapper over <see cref="ExcelDocument"/> for quick workbook generation.
@@ -18,8 +16,7 @@ namespace OfficeIMO.Excel.Fluent {
         /// <summary>
         /// Sets workbook properties in a fluent style.
         /// </summary>
-        public ExcelFluentWorkbook Info(Action<InfoBuilder> action)
-        {
+        public ExcelFluentWorkbook Info(Action<InfoBuilder> action) {
             if (action == null) return this;
             var b = new InfoBuilder(Workbook);
             action(b);

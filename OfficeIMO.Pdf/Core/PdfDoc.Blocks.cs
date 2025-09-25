@@ -4,15 +4,18 @@ public sealed partial class PdfDoc {
     /// <summary>Adds a level-1 heading.</summary>
     public PdfDoc H1(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null) {
         Guard.NotNull(text, nameof(text));
-        AddBlock(new HeadingBlock(1, text, align, color, linkUri)); return this; }
+        AddBlock(new HeadingBlock(1, text, align, color, linkUri)); return this;
+    }
     /// <summary>Adds a level-2 heading.</summary>
     public PdfDoc H2(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null) {
         Guard.NotNull(text, nameof(text));
-        AddBlock(new HeadingBlock(2, text, align, color, linkUri)); return this; }
+        AddBlock(new HeadingBlock(2, text, align, color, linkUri)); return this;
+    }
     /// <summary>Adds a level-3 heading.</summary>
     public PdfDoc H3(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null) {
         Guard.NotNull(text, nameof(text));
-        AddBlock(new HeadingBlock(3, text, align, color, linkUri)); return this; }
+        AddBlock(new HeadingBlock(3, text, align, color, linkUri)); return this;
+    }
 
     /// <summary>Inserts a page break.</summary>
     public PdfDoc PageBreak() { AddBlock(new PageBreakBlock()); return this; }

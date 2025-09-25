@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace OfficeIMO.Word {
     /// <summary>
     /// Base class for all field code representations. Derived types expose

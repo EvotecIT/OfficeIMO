@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Pdf;
@@ -67,8 +66,7 @@ internal static class TextContentParser {
                         int start = i + 1; bool esc = false; var sbb = new StringBuilder();
                         while (++i < arr.Length) {
                             char ch = arr[i];
-                            if (esc) { sbb.Append(ch); esc = false; }
-                            else if (ch == '\\') esc = true;
+                            if (esc) { sbb.Append(ch); esc = false; } else if (ch == '\\') esc = true;
                             else if (ch == ')') break; else sbb.Append(ch);
                         }
                         var bytes = PdfStringParser.ParseLiteralToBytes(sbb.ToString());

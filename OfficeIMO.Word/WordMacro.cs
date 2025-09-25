@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using System.IO.Packaging;
 using System.Reflection;
-using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word {
     /// <summary>

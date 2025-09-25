@@ -425,14 +425,14 @@ namespace OfficeIMO.PowerPoint {
                 .Union(_slidePart.HyperlinkRelationships.Select(r => r.Id))
                 .Where(id => !string.IsNullOrEmpty(id))
             );
-            
+
             int chartIdNum = 1;
             string chartRelId;
             do {
                 chartRelId = "rId" + chartIdNum;
                 chartIdNum++;
             } while (slideRelationships.Contains(chartRelId));
-            
+
             ChartPart chartPart = _slidePart.AddNewPart<ChartPart>(chartRelId);
             GenerateDefaultChart(chartPart);
 
@@ -507,14 +507,14 @@ namespace OfficeIMO.PowerPoint {
                 .Union(chartPart.HyperlinkRelationships.Select(r => r.Id))
                 .Where(id => !string.IsNullOrEmpty(id))
             );
-            
+
             int excelIdNum = 1;
             string excelRelId;
             do {
                 excelRelId = "rId" + excelIdNum;
                 excelIdNum++;
             } while (chartRelationships.Contains(excelRelId));
-            
+
             EmbeddedPackagePart excelPart =
                 chartPart.AddNewPart<EmbeddedPackagePart>(
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -540,7 +540,9 @@ namespace OfficeIMO.PowerPoint {
                     );
                     wsPart.Worksheet = new S.Worksheet(sheetData);
                     wbPart.Workbook.Append(new S.Sheets(new S.Sheet {
-                        Id = wbPart.GetIdOfPart(wsPart), SheetId = 1U, Name = "Sheet1"
+                        Id = wbPart.GetIdOfPart(wsPart),
+                        SheetId = 1U,
+                        Name = "Sheet1"
                     }));
                     wbPart.Workbook.Save();
                 }

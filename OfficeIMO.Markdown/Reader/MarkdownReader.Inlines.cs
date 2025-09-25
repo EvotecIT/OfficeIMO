@@ -1,6 +1,3 @@
-using System;
-using System.Text;
-
 namespace OfficeIMO.Markdown;
 
 /// <summary>
@@ -95,7 +92,8 @@ public static partial class MarkdownReader {
                 if (end >= 0) {
                     var inner = text.Substring(pos + 3, end - (pos + 3));
                     seq.BoldItalic(inner);
-                    pos = end + 3; continue; }
+                    pos = end + 3; continue;
+                }
             }
 
             // Bold **text** or __text__
@@ -170,7 +168,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    
+
 
     private static bool IsPotentialInlineStart(char c) => c == '[' || c == '!' || c == '`' || c == '*' || c == '_' || c == '~' || c == '<';
 
@@ -213,8 +211,7 @@ public static partial class MarkdownReader {
         alt = text.Substring(start + 3, altEnd - (start + 3));
         string inner = text.Substring(altEnd + 2, imgClose - (altEnd + 2)).Trim();
         int space = inner.IndexOf(' ');
-        if (space < 0) { img = inner; }
-        else {
+        if (space < 0) { img = inner; } else {
             img = inner.Substring(0, space).Trim();
             string rest = inner.Substring(space).Trim();
             if (rest.Length >= 2 && rest[0] == '"' && rest[rest.Length - 1] == '"') imgTitle = rest.Substring(1, rest.Length - 2);
@@ -241,8 +238,7 @@ public static partial class MarkdownReader {
         alt = text.Substring(start + 2, altEnd - (start + 2));
         string inner = text.Substring(altEnd + 2, parenClose - (altEnd + 2)).Trim();
         int q = inner.IndexOf('"');
-        if (q >= 0) { src = inner.Substring(0, q).Trim(); int q2 = inner.LastIndexOf('"'); if (q2 > q) title = inner.Substring(q + 1, q2 - q - 1); }
-        else { src = inner.Trim(); }
+        if (q >= 0) { src = inner.Substring(0, q).Trim(); int q2 = inner.LastIndexOf('"'); if (q2 > q) title = inner.Substring(q + 1, q2 - q - 1); } else { src = inner.Trim(); }
         consumed = parenClose - start + 1;
         return true;
     }
@@ -272,7 +268,7 @@ public static partial class MarkdownReader {
             i++;
         }
         // Trim trailing punctuation commonly outside URLs
-        while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' )) i--;
+        while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':')) i--;
         end = i; return end > start + 7;
     }
 

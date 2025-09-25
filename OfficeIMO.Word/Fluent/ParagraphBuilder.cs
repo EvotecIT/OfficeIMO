@@ -1,7 +1,4 @@
-using System;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO;
-using OfficeIMO.Word;
 using Color = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Word.Fluent {

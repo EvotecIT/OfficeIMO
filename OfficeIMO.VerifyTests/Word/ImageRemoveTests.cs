@@ -1,10 +1,9 @@
-using System.IO;
-using System.Threading.Tasks;
-using System.Linq;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
+using SixLabors.ImageSharp;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;
 using Assert = OfficeIMO.VerifyTests.TestAssert;

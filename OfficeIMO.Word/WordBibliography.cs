@@ -1,7 +1,5 @@
-using System.IO;
-using System.Linq;
-using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Bibliography;
+using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word {
     /// <summary>

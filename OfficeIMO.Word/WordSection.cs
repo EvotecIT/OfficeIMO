@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Diagnostics;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -806,10 +803,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool DifferentOddAndEvenPages {
             get {
-            var headerReference = WordHeadersAndFooters.GetHeaderReference(this._document, this, HeaderFooterValues.Even);
-            var footerReference = WordHeadersAndFooters.GetFooterReference(this._document, this, HeaderFooterValues.Even);
+                var headerReference = WordHeadersAndFooters.GetHeaderReference(this._document, this, HeaderFooterValues.Even);
+                var footerReference = WordHeadersAndFooters.GetFooterReference(this._document, this, HeaderFooterValues.Even);
 
-            var settings = _wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
+                var settings = _wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
                 if (headerReference == true && footerReference == true && settings != null) {
                     return true;
                 }
@@ -818,11 +815,11 @@ namespace OfficeIMO.Word {
 
             }
             set {
-            var sectionProperties = _sectionProperties;
-            WordHeadersAndFooters.AddHeaderReference(this._document, this, HeaderFooterValues.Even);
-            WordHeadersAndFooters.AddFooterReference(this._document, this, HeaderFooterValues.Even);
+                var sectionProperties = _sectionProperties;
+                WordHeadersAndFooters.AddHeaderReference(this._document, this, HeaderFooterValues.Even);
+                WordHeadersAndFooters.AddFooterReference(this._document, this, HeaderFooterValues.Even);
 
-            var settings = _wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
+                var settings = _wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
                 if (value != false) {
                     if (settings == null) {
                         _wordprocessingDocument.MainDocumentPart.DocumentSettingsPart.Settings.Append(new EvenAndOddHeaders());
@@ -836,14 +833,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool RtlGutter {
             get {
-            var sectionProperties = _sectionProperties;
-            if (sectionProperties != null) {
-                var rtlGutter = sectionProperties.GetFirstChild<GutterOnRight>();
-                if (rtlGutter?.Val != null) {
-                    return rtlGutter.Val;
+                var sectionProperties = _sectionProperties;
+                if (sectionProperties != null) {
+                    var rtlGutter = sectionProperties.GetFirstChild<GutterOnRight>();
+                    if (rtlGutter?.Val != null) {
+                        return rtlGutter.Val;
+                    }
                 }
-            }
-            return false;
+                return false;
             }
             set {
                 var sectionProperties = _sectionProperties;

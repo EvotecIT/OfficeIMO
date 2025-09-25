@@ -1,10 +1,8 @@
-namespace OfficeIMO.Excel
-{
+namespace OfficeIMO.Excel {
     /// <summary>
     /// Built-in table styles available in Excel.
     /// </summary>
-    public enum TableStyle
-    {
+    public enum TableStyle {
         // Light styles
         /// <summary>Light style 1.</summary>
         TableStyleLight1,

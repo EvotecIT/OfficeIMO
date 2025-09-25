@@ -1,4 +1,3 @@
-using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -40,7 +39,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (_paragraphProperties == null) {
-                _paragraph.ParagraphProperties = new ParagraphProperties();
+                    _paragraph.ParagraphProperties = new ParagraphProperties();
                 }
                 _paragraph.ParagraphProperties!.Justification = new Justification {
                     Val = value
@@ -340,7 +339,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int? LineSpacingBefore {
             get {
-                if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {                    if (!string.IsNullOrEmpty(_paragraphProperties.SpacingBetweenLines.Before)) {
+                if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
+                    if (!string.IsNullOrEmpty(_paragraphProperties.SpacingBetweenLines.Before)) {
                         if (int.TryParse(_paragraphProperties.SpacingBetweenLines.Before, out var before)) {
                             return before;
                         }

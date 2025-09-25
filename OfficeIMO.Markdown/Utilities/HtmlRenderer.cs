@@ -1,7 +1,4 @@
-using System;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading;
 
 namespace OfficeIMO.Markdown;
@@ -92,8 +89,7 @@ internal static class HtmlRenderer {
                         if (!string.IsNullOrEmpty(a.Href)) {
                             var media = string.IsNullOrEmpty(a.Media) ? string.Empty : $" media=\"{System.Net.WebUtility.HtmlEncode(a.Media)}\"";
                             head.Append($"<link rel=\"stylesheet\" data-asset-id=\"{System.Net.WebUtility.HtmlEncode(a.Id)}\" href=\"{System.Net.WebUtility.HtmlEncode(a.Href)}\"{media}>\n");
-                        }
-                        else if (!string.IsNullOrEmpty(a.Inline)) parts.Css += (parts.Css.Length > 0 ? "\n" : "") + a.Inline;
+                        } else if (!string.IsNullOrEmpty(a.Inline)) parts.Css += (parts.Css.Length > 0 ? "\n" : "") + a.Inline;
                     } else {
                         if (!string.IsNullOrEmpty(a.Href)) head.Append($"<script data-asset-id=\"{System.Net.WebUtility.HtmlEncode(a.Id)}\" src=\"{System.Net.WebUtility.HtmlEncode(a.Href)}\"></script>\n");
                         else if (!string.IsNullOrEmpty(a.Inline)) parts.Scripts += (parts.Scripts.Length > 0 ? "\n" : "") + a.Inline;
@@ -229,18 +225,18 @@ internal static class HtmlRenderer {
         int startIdx = 0; int endIdx = blocks.Count;
         if (opts.Scope == TocScope.PreviousHeading) {
             var prev = headings.LastOrDefault(h => h.Index < placeholderIndex && h.Level < minLevel);
-            if (prev.Equals(default((int,int,string)))) prev = headings.LastOrDefault(h => h.Index < placeholderIndex);
-            if (!prev.Equals(default((int,int,string)))) {
+            if (prev.Equals(default((int, int, string)))) prev = headings.LastOrDefault(h => h.Index < placeholderIndex);
+            if (!prev.Equals(default((int, int, string)))) {
                 startIdx = prev.Index + 1;
                 var nextAtOrAbove = headings.FirstOrDefault(h => h.Index > prev.Index && h.Level <= prev.Level);
-                if (!nextAtOrAbove.Equals(default((int,int,string)))) endIdx = nextAtOrAbove.Index;
+                if (!nextAtOrAbove.Equals(default((int, int, string)))) endIdx = nextAtOrAbove.Index;
             }
         } else if (opts.Scope == TocScope.HeadingTitle && !string.IsNullOrWhiteSpace(opts.ScopeHeadingTitle)) {
             var root = headings.FirstOrDefault(h => string.Equals(h.Text, opts.ScopeHeadingTitle, StringComparison.OrdinalIgnoreCase));
-            if (!root.Equals(default((int,int,string)))) {
+            if (!root.Equals(default((int, int, string)))) {
                 startIdx = root.Index + 1;
                 var nextAtOrAbove = headings.FirstOrDefault(h => h.Index > root.Index && h.Level <= root.Level);
-                if (!nextAtOrAbove.Equals(default((int,int,string)))) endIdx = nextAtOrAbove.Index;
+                if (!nextAtOrAbove.Equals(default((int, int, string)))) endIdx = nextAtOrAbove.Index;
             }
         }
 
@@ -317,17 +313,17 @@ internal static class HtmlRenderer {
         bool enhanced = opts.Layout != TocLayout.List || opts.ScrollSpy || opts.Sticky;
         if (enhanced) {
             var classes = new StringBuilder("md-toc");
-                if (opts.Layout == TocLayout.Panel) classes.Append(" panel");
-                if (opts.Layout == TocLayout.SidebarRight) classes.Append(" sidebar right");
-                if (opts.Layout == TocLayout.SidebarLeft) classes.Append(" sidebar left");
-                if (opts.Sticky) classes.Append(" sticky");
-                if (opts.ScrollSpy) classes.Append(" md-scrollspy autoscroll");
-                if (opts.Chrome == TocChrome.None) classes.Append(" no-chrome");
-                if (opts.Chrome == TocChrome.Outline) classes.Append(" outline");
-                if (opts.Chrome == TocChrome.Panel) classes.Append(" panel");
-                if (opts.HideOnNarrow) classes.Append(" hide-narrow");
-                string aria = System.Net.WebUtility.HtmlEncode(opts.AriaLabel ?? "Table of Contents");
-                var sb = new StringBuilder();
+            if (opts.Layout == TocLayout.Panel) classes.Append(" panel");
+            if (opts.Layout == TocLayout.SidebarRight) classes.Append(" sidebar right");
+            if (opts.Layout == TocLayout.SidebarLeft) classes.Append(" sidebar left");
+            if (opts.Sticky) classes.Append(" sticky");
+            if (opts.ScrollSpy) classes.Append(" md-scrollspy autoscroll");
+            if (opts.Chrome == TocChrome.None) classes.Append(" no-chrome");
+            if (opts.Chrome == TocChrome.Outline) classes.Append(" outline");
+            if (opts.Chrome == TocChrome.Panel) classes.Append(" panel");
+            if (opts.HideOnNarrow) classes.Append(" hide-narrow");
+            string aria = System.Net.WebUtility.HtmlEncode(opts.AriaLabel ?? "Table of Contents");
+            var sb = new StringBuilder();
             sb.Append("<nav role=\"navigation\" aria-label=\"").Append(aria).Append("\" class=\"").Append(classes).Append("\"");
             if (opts.ScrollSpy) sb.Append(" data-md-scrollspy=\"1\"");
             if (opts.Sticky) sb.Append(" data-autoscroll=\"1\"");
@@ -498,8 +494,7 @@ internal static class HtmlRenderer {
             }
             var charset = resp.Content.Headers.ContentType?.CharSet;
             Encoding enc;
-            try { enc = !string.IsNullOrWhiteSpace(charset) ? Encoding.GetEncoding(charset!) : new UTF8Encoding(false); }
-            catch { enc = new UTF8Encoding(false); }
+            try { enc = !string.IsNullOrWhiteSpace(charset) ? Encoding.GetEncoding(charset!) : new UTF8Encoding(false); } catch { enc = new UTF8Encoding(false); }
             return enc.GetString(mem.ToArray());
         } catch { return string.Empty; }
     }

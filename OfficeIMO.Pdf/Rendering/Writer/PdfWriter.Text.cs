@@ -1,4 +1,3 @@
-using System.Text;
 using System.Globalization;
 
 namespace OfficeIMO.Pdf;
@@ -101,8 +100,7 @@ internal static partial class PdfWriter {
                 int nextWs = text.IndexOfAny(TokenSplitChars, idx);
                 bool hadNewline = false;
                 string token;
-                if (nextWs == -1) { token = text.Substring(idx); idx = text.Length; }
-                else {
+                if (nextWs == -1) { token = text.Substring(idx); idx = text.Length; } else {
                     token = text.Substring(idx, nextWs - idx);
                     hadNewline = text[nextWs] == '\n';
                     idx = nextWs + 1;

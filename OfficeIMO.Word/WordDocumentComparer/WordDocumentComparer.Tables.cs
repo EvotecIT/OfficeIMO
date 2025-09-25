@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
         private static void CompareTables(WordDocument source, WordDocument target, WordDocument result) {

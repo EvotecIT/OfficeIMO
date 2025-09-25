@@ -71,8 +71,7 @@ internal sealed class ToUnicodeCMap {
                 string key = ByteSliceToHex(bytes, i, len);
                 if (_map.TryGetValue(key, out var s)) { mapped = s; used = len; break; }
             }
-            if (mapped is null) { sb.Append((char)bytes[i]); i++; }
-            else { sb.Append(mapped); i += used; }
+            if (mapped is null) { sb.Append((char)bytes[i]); i++; } else { sb.Append(mapped); i += used; }
         }
         return sb.ToString();
     }

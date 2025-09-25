@@ -1,17 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Globalization;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.Data;
+using System.Globalization;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace OfficeIMO.Excel
-{
-    public partial class ExcelSheet
-    {
+namespace OfficeIMO.Excel {
+    public partial class ExcelSheet {
         /// <summary>
         /// Inserts a DataTable into the worksheet starting at the specified cell.
         /// Uses the batch CellValues compute/apply model with SharedString and Style planners.
@@ -23,8 +18,7 @@ namespace OfficeIMO.Excel
         /// <param name="mode">Optional execution mode override.</param>
         /// <param name="ct">Cancellation token.</param>
         public void InsertDataTable(DataTable table, int startRow = 1, int startColumn = 1, bool includeHeaders = true,
-            ExecutionMode? mode = null, CancellationToken ct = default)
-        {
+            ExecutionMode? mode = null, CancellationToken ct = default) {
             if (table == null) throw new ArgumentNullException(nameof(table));
             if (startRow < 1) throw new ArgumentOutOfRangeException(nameof(startRow));
             if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
@@ -34,25 +28,20 @@ namespace OfficeIMO.Excel
                 (table.Rows.Count + (includeHeaders ? 1 : 0)) * Math.Max(1, table.Columns.Count));
 
             int row = startRow;
-            if (includeHeaders)
-            {
-                for (int c = 0; c < table.Columns.Count; c++)
-                {
+            if (includeHeaders) {
+                for (int c = 0; c < table.Columns.Count; c++) {
                     cells.Add((row, startColumn + c, table.Columns[c].ColumnName, null));
                 }
                 row++;
             }
 
-            foreach (DataRow dr in table.Rows)
-            {
-                for (int c = 0; c < table.Columns.Count; c++)
-                {
+            foreach (DataRow dr in table.Rows) {
+                for (int c = 0; c < table.Columns.Count; c++) {
                     var col = table.Columns[c];
                     object value = dr.IsNull(c) ? string.Empty : dr[c];
                     string? fmt = null;
                     var t = col.DataType;
-                    if (t == typeof(DateTime) || t == typeof(DateTimeOffset))
-                    {
+                    if (t == typeof(DateTime) || t == typeof(DateTimeOffset)) {
                         // General purpose date-time format; users can restyle later
                         fmt = "yyyy-mm-dd hh:mm";
                     }
@@ -73,34 +62,27 @@ namespace OfficeIMO.Excel
                 opName: "InsertDataTable",
                 itemCount: cells.Count,
                 overrideMode: mode,
-                sequentialCore: () =>
-                {
-                    for (int i = 0; i < cells.Count; i++)
-                    {
+                sequentialCore: () => {
+                    for (int i = 0; i < cells.Count; i++) {
                         var (r, c, v, fmt) = cells[i];
                         // Direct cell write path
                         CellValueCore(r, c, v);
-                        if (!string.IsNullOrWhiteSpace(fmt))
-                        {
+                        if (!string.IsNullOrWhiteSpace(fmt)) {
                             // Apply number format using existing API
                             FormatCell(r, c, fmt!);
                         }
                     }
                 },
-                computeParallel: () =>
-                {
-                    Parallel.For(0, cells.Count, new ParallelOptions
-                    {
+                computeParallel: () => {
+                    Parallel.For(0, cells.Count, new ParallelOptions {
                         CancellationToken = ct,
                         MaxDegreeOfParallelism = EffectiveExecution.MaxDegreeOfParallelism ?? -1
-                    }, i =>
-                    {
+                    }, i => {
                         var (r, c, obj, fmt) = cells[i];
                         var (val, type) = CoerceForCellNoDom(obj, ssPlanner);
                         val ??= new CellValue(string.Empty);
                         type ??= new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.String);
-                        if (type.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString && val.Text is string raw)
-                        {
+                        if (type.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString && val.Text is string raw) {
                             if (raw.Contains("\n") || raw.Contains("\r"))
                                 wrapFlags[i] = true;
                         }
@@ -109,14 +91,12 @@ namespace OfficeIMO.Excel
                         prepared[i] = (r, c, val, type);
                     });
                 },
-                applySequential: () =>
-                {
+                applySequential: () => {
                     // Apply planners
                     ssPlanner.ApplyAndFixup(prepared, _excelDocument);
                     stylePlanner.ApplyTo(_excelDocument);
 
-                    for (int i = 0; i < prepared.Length; i++)
-                    {
+                    for (int i = 0; i < prepared.Length; i++) {
                         var p = prepared[i];
                         var cell = GetCell(p.Row, p.Col);
                         cell.CellValue = p.Val;
@@ -125,8 +105,7 @@ namespace OfficeIMO.Excel
                             ApplyWrapText(cell);
 
                         var fmt = cells[i].NumFmt;
-                        if (!string.IsNullOrWhiteSpace(fmt) && stylePlanner.TryGetCellFormatIndex(fmt, out uint idx))
-                        {
+                        if (!string.IsNullOrWhiteSpace(fmt) && stylePlanner.TryGetCellFormatIndex(fmt, out uint idx)) {
                             cell.StyleIndex = idx;
                         }
                     }
@@ -148,8 +127,7 @@ namespace OfficeIMO.Excel
             TableStyle style = TableStyle.TableStyleMedium2,
             bool includeAutoFilter = true,
             ExecutionMode? mode = null,
-            CancellationToken ct = default)
-        {
+            CancellationToken ct = default) {
             InsertDataTable(table, startRow, startColumn, includeHeaders, mode, ct);
 
             int rowsCount = table.Rows.Count + (includeHeaders ? 1 : 0);

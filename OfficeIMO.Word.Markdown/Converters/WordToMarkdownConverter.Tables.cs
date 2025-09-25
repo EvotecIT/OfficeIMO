@@ -1,7 +1,4 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Word;
-using System.Linq;
-using System.Text;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class WordToMarkdownConverter {

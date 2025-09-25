@@ -1,9 +1,4 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Globalization;
-using OfficeIMO.Excel;
 using SixLaborsColor = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Excel.Fluent {
@@ -204,11 +199,11 @@ namespace OfficeIMO.Excel.Fluent {
         /// <summary>Applies AutoFilter to a range with optional per‑column criteria.</summary>
         public SheetBuilder AutoFilter(string range, Dictionary<uint, IEnumerable<string>>? criteria = null) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
-            
+
             // Store the pending AutoFilter for conflict detection
             _pendingAutoFilterRange = range;
             _pendingAutoFilterCriteria = criteria;
-            
+
             // Apply the AutoFilter
             Sheet.AddAutoFilter(range, criteria);
             return this;

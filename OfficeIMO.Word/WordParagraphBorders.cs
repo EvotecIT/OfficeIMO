@@ -1,5 +1,3 @@
-using System;
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Color = SixLabors.ImageSharp.Color;
 

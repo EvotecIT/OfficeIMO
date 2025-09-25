@@ -1,20 +1,18 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Drawing;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Break = DocumentFormat.OpenXml.Wordprocessing.Break;
 using Hyperlink = DocumentFormat.OpenXml.Wordprocessing.Hyperlink;
 using OfficeMath = DocumentFormat.OpenXml.Math.OfficeMath;
+using Ovml = DocumentFormat.OpenXml.Vml.Office;
 using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
 using ParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
-using Picture = DocumentFormat.OpenXml.Wordprocessing.Picture;
-using SdtContentPicture = DocumentFormat.OpenXml.Wordprocessing.SdtContentPicture;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
 using Run = DocumentFormat.OpenXml.Wordprocessing.Run;
 using RunProperties = DocumentFormat.OpenXml.Wordprocessing.RunProperties;
+using SdtContentPicture = DocumentFormat.OpenXml.Wordprocessing.SdtContentPicture;
 using TabStop = DocumentFormat.OpenXml.Wordprocessing.TabStop;
 using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
-using System.Linq;
-using Ovml = DocumentFormat.OpenXml.Vml.Office;
 using V = DocumentFormat.OpenXml.Vml;
+using W15 = DocumentFormat.OpenXml.Office2013.Word;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 
 namespace OfficeIMO.Word {
@@ -749,8 +747,8 @@ namespace OfficeIMO.Word {
         public List<WordTabStop> TabStops {
             get {
                 List<WordTabStop> list = new List<WordTabStop>();
-            if (_paragraph is not null && _paragraphProperties is not null) {
-                if (_paragraphProperties.Tabs is not null) {
+                if (_paragraph is not null && _paragraphProperties is not null) {
+                    if (_paragraphProperties.Tabs is not null) {
                         foreach (TabStop tab in _paragraphProperties.Tabs) {
                             list.Add(new WordTabStop(this, tab));
                         }
@@ -775,34 +773,34 @@ namespace OfficeIMO.Word {
                     }
 
                     // Legacy text boxes wrapped in AlternateContent (Word 2007)
-                      bool choiceHasOnlyShape = false;
-                      foreach (var ac in _run.ChildElements.OfType<AlternateContent>()) {
-                          var choice = ac.ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
-                          if (choice is not null) {
-                              bool choiceHasTextBox = choice.Descendants<Wps.TextBoxInfo2>().Any() || choice.Descendants<V.TextBox>().Any();
-                              if (choiceHasTextBox) {
-                                  return new WordTextBox(_document, _paragraph, _run);
-                              }
-                              bool hasShape = choice.Descendants<Wps.WordprocessingShape>().Any() ||
-                                  choice.Descendants<V.Shape>().Any(s => !s.Descendants<V.ImageData>().Any() && !s.Descendants<V.TextBox>().Any());
-                              if (hasShape) {
-                                  choiceHasOnlyShape = true;
-                                  continue;
-                              }
-                          }
-                          var fallback = ac.ChildElements.OfType<AlternateContentFallback>().FirstOrDefault();
-                          if (fallback is not null) {
-                              if (fallback.Descendants<Wps.TextBoxInfo2>().Any() || fallback.Descendants<V.TextBox>().Any()) {
-                                  return new WordTextBox(_document, _paragraph, _run);
-                              }
-                          }
-                      }
+                    bool choiceHasOnlyShape = false;
+                    foreach (var ac in _run.ChildElements.OfType<AlternateContent>()) {
+                        var choice = ac.ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
+                        if (choice is not null) {
+                            bool choiceHasTextBox = choice.Descendants<Wps.TextBoxInfo2>().Any() || choice.Descendants<V.TextBox>().Any();
+                            if (choiceHasTextBox) {
+                                return new WordTextBox(_document, _paragraph, _run);
+                            }
+                            bool hasShape = choice.Descendants<Wps.WordprocessingShape>().Any() ||
+                                choice.Descendants<V.Shape>().Any(s => !s.Descendants<V.ImageData>().Any() && !s.Descendants<V.TextBox>().Any());
+                            if (hasShape) {
+                                choiceHasOnlyShape = true;
+                                continue;
+                            }
+                        }
+                        var fallback = ac.ChildElements.OfType<AlternateContentFallback>().FirstOrDefault();
+                        if (fallback is not null) {
+                            if (fallback.Descendants<Wps.TextBoxInfo2>().Any() || fallback.Descendants<V.TextBox>().Any()) {
+                                return new WordTextBox(_document, _paragraph, _run);
+                            }
+                        }
+                    }
                     if (choiceHasOnlyShape) {
                         return null;
                     }
 
                     // VML text boxes
-                      if (_run.Descendants<V.TextBox>().Any()) {
+                    if (_run.Descendants<V.TextBox>().Any()) {
                         return new WordTextBox(_document, _paragraph, _run);
                     }
                 }

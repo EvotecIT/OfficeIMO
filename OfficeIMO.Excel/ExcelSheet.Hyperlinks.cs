@@ -1,8 +1,5 @@
-using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Packaging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
