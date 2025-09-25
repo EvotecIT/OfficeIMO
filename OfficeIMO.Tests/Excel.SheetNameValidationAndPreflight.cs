@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -86,6 +87,48 @@ namespace OfficeIMO.Tests {
                 Assert.Null(partsAfter); // all invalid/duplicate removed → container dropped
             }
             File.Delete(path);
+        }
+
+        [Fact]
+        public void Preflight_RemovesEmptyValidationContainersBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Preflight");
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var ws = wsPart.Worksheet;
+
+                var dataValidations = new DataValidations();
+                dataValidations.SetAttribute(new OpenXmlAttribute("count", string.Empty, "5"));
+                ws.AppendChild(dataValidations);
+
+                var ignoredErrors = new IgnoredErrors();
+                ignoredErrors.SetAttribute(new OpenXmlAttribute("count", string.Empty, "3"));
+                ws.AppendChild(ignoredErrors);
+                ws.AppendChild(new CustomSheetViews());
+                ws.AppendChild(new ConditionalFormatting());
+
+                ws.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                var ws = wsPart.Worksheet;
+
+                Assert.Null(ws.Elements<DataValidations>().FirstOrDefault());
+                Assert.Null(ws.Elements<IgnoredErrors>().FirstOrDefault());
+                Assert.Empty(ws.Elements<CustomSheetViews>());
+                Assert.Empty(ws.Elements<ConditionalFormatting>());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
         }
     }
 }

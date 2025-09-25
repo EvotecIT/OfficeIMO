@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
@@ -19,6 +20,41 @@ namespace OfficeIMO.Excel {
                 var merges = ws.Elements<MergeCells>().FirstOrDefault();
                 if (merges != null && !merges.Elements<MergeCell>().Any()) {
                     ws.RemoveChild(merges);
+                }
+
+                // Remove empty DataValidations containers
+                var dataValidations = ws.Elements<DataValidations>().FirstOrDefault();
+                if (dataValidations != null) {
+                    var validationCount = dataValidations.Elements<DataValidation>().Count();
+                    if (validationCount == 0) {
+                        ws.RemoveChild(dataValidations);
+                    } else {
+                        dataValidations.SetAttribute(new OpenXmlAttribute("count", string.Empty, validationCount.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+                    }
+                }
+
+                // Remove empty IgnoredErrors containers
+                var ignoredErrors = ws.Elements<IgnoredErrors>().FirstOrDefault();
+                if (ignoredErrors != null) {
+                    var errorCount = ignoredErrors.Elements<IgnoredError>().Count();
+                    if (errorCount == 0) {
+                        ws.RemoveChild(ignoredErrors);
+                    } else {
+                        ignoredErrors.SetAttribute(new OpenXmlAttribute("count", string.Empty, errorCount.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+                    }
+                }
+
+                // Remove empty CustomSheetViews containers
+                var customSheetViews = ws.Elements<CustomSheetViews>().FirstOrDefault();
+                if (customSheetViews != null && !customSheetViews.Elements<CustomSheetView>().Any()) {
+                    ws.RemoveChild(customSheetViews);
+                }
+
+                // Remove empty ConditionalFormatting entries
+                foreach (var conditional in ws.Elements<ConditionalFormatting>().ToList()) {
+                    if (!conditional.Elements<ConditionalFormattingRule>().Any()) {
+                        conditional.Remove();
+                    }
                 }
 
                 // Drop orphaned Drawing reference
