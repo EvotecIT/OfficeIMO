@@ -76,6 +76,13 @@ namespace OfficeIMO.Tests {
                 }
 
                 using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    PresentationPart presentationPart = document.PresentationPart!;
+                    NotesMasterPart notesMasterPart = presentationPart.NotesMasterPart!;
+                    NotesSlidePart notesSlidePart = presentationPart.SlideParts.First().NotesSlidePart!;
+
+                    Assert.Contains(notesSlidePart.Parts,
+                        pair => ReferenceEquals(pair.OpenXmlPart, notesMasterPart));
+
                     OpenXmlValidator validator = new();
                     var errors = validator.Validate(document).ToList();
                     Assert.True(errors.Count == 0,
