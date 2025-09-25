@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_LoadNullPath_ThrowsArgumentNullException() {
-            var ex = Assert.Throws<ArgumentNullException>(() => ExcelDocument.Load(null!));
+            var ex = Assert.Throws<ArgumentNullException>(() => ExcelDocument.Load((string)null!));
             Assert.Equal("filePath", ex.ParamName);
         }
 
@@ -31,8 +31,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public async Task Test_LoadAsyncNullPath_ThrowsArgumentNullException() {
-            var ex = await Assert.ThrowsAsync<ArgumentNullException>(() => ExcelDocument.LoadAsync(null!));
-            Assert.Equal("path", ex.ParamName);
+            var ex = await Assert.ThrowsAsync<ArgumentNullException>(() => ExcelDocument.LoadAsync((string)null!));
+            Assert.Equal("filePath", ex.ParamName);
         }
 
         [Fact]
