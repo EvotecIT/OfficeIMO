@@ -1,9 +1,101 @@
-using System;
-using System.IO;
-using System.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using OfficeIMO.PowerPoint;
+        public void CanManipulateTableCellsAndPreserveStyle() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointTable table = slide.AddTable(2, 2);
+            File.Delete(filePath);
+        }
+
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(2)]
+        public void GetCellInvalidRowThrowsArgumentOutOfRangeException(int row) {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointTable table = slide.AddTable(2, 2);
+
+                    ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() => table.GetCell(row, 0));
+                    Assert.StartsWith($"Row index {row} is out of range.", exception.Message);
+                    Assert.EndsWith("(Parameter 'row')", exception.Message);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(2)]
+        public void GetCellInvalidColumnThrowsArgumentOutOfRangeException(int column) {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointTable table = slide.AddTable(2, 2);
+
+                    ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() => table.GetCell(0, column));
+                    Assert.StartsWith($"Column index {column} is out of range.", exception.Message);
+                    Assert.EndsWith("(Parameter 'column')", exception.Message);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(2)]
+        public void RemoveRowInvalidIndexThrowsArgumentOutOfRangeException(int rowIndex) {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointTable table = slide.AddTable(2, 2);
+
+                    ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() => table.RemoveRow(rowIndex));
+                    Assert.StartsWith($"Row index {rowIndex} is out of range.", exception.Message);
+                    Assert.EndsWith("(Parameter 'index')", exception.Message);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(2)]
+        public void RemoveColumnInvalidIndexThrowsArgumentOutOfRangeException(int columnIndex) {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointTable table = slide.AddTable(2, 2);
+
+                    ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() => table.RemoveColumn(columnIndex));
+                    Assert.StartsWith($"Column index {columnIndex} is out of range.", exception.Message);
+                    Assert.EndsWith("(Parameter 'index')", exception.Message);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+    }
+}
 using Xunit;
 
 namespace OfficeIMO.Tests {

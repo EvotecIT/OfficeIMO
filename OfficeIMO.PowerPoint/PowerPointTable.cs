@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -29,8 +31,24 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="column">Zero-based column index.</param>
         public PowerPointTableCell GetCell(int row, int column) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
-            A.TableRow tableRow = table.Elements<A.TableRow>().ElementAt(row);
-            A.TableCell cell = tableRow.Elements<A.TableCell>().ElementAt(column);
+            List<A.TableRow> tableRows = table.Elements<A.TableRow>().ToList();
+            int rowCount = tableRows.Count;
+
+            if (row < 0 || row >= rowCount) {
+                throw new ArgumentOutOfRangeException(nameof(row),
+                    $"Row index {row} is out of range. The table contains {rowCount} row{(rowCount == 1 ? string.Empty : "s")}.");
+            }
+
+            A.TableRow tableRow = tableRows[row];
+            List<A.TableCell> tableCells = tableRow.Elements<A.TableCell>().ToList();
+            int columnCount = tableCells.Count;
+
+            if (column < 0 || column >= columnCount) {
+                throw new ArgumentOutOfRangeException(nameof(column),
+                    $"Column index {column} is out of range. The table contains {columnCount} column{(columnCount == 1 ? string.Empty : "s")}.");
+            }
+
+            A.TableCell cell = tableCells[column];
             return new PowerPointTableCell(cell);
         }
 
@@ -65,8 +83,14 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="index">Zero-based index of the row to remove.</param>
         public void RemoveRow(int index) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
-            A.TableRow row = table.Elements<A.TableRow>().ElementAt(index);
-            row.Remove();
+            List<A.TableRow> rows = table.Elements<A.TableRow>().ToList();
+
+            if (index < 0 || index >= rows.Count) {
+                throw new ArgumentOutOfRangeException(nameof(index),
+                    $"Row index {index} is out of range. The table contains {rows.Count} row{(rows.Count == 1 ? string.Empty : "s")}.");
+            }
+
+            rows[index].Remove();
         }
 
         /// <summary>
@@ -108,9 +132,17 @@ namespace OfficeIMO.PowerPoint {
         public void RemoveColumn(int index) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             A.TableGrid grid = table.TableGrid!;
-            grid.Elements<A.GridColumn>().ElementAt(index).Remove();
+            List<A.GridColumn> columns = grid.Elements<A.GridColumn>().ToList();
+
+            if (index < 0 || index >= columns.Count) {
+                throw new ArgumentOutOfRangeException(nameof(index),
+                    $"Column index {index} is out of range. The table contains {columns.Count} column{(columns.Count == 1 ? string.Empty : "s")}.");
+            }
+
+            columns[index].Remove();
             foreach (A.TableRow row in table.Elements<A.TableRow>()) {
-                row.Elements<A.TableCell>().ElementAt(index).Remove();
+                List<A.TableCell> cells = row.Elements<A.TableCell>().ToList();
+                cells[index].Remove();
             }
         }
     }
