@@ -12,7 +12,7 @@ namespace OfficeIMO.Visio {
     /// Validates and optionally fixes Visio VSDX packages for common structural issues.
     /// </summary>
     public partial class VsdxPackageValidator {
-        private static readonly XNamespace nsCore = "http://schemas.microsoft.com/office/visio/2011/1/core";
+        private static readonly XNamespace nsCore = "http://schemas.microsoft.com/office/visio/2012/main";
         private static readonly XNamespace nsPkgRel = "http://schemas.openxmlformats.org/package/2006/relationships";
         private static readonly XNamespace nsDocRel = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
         private static readonly XNamespace nsCT = "http://schemas.openxmlformats.org/package/2006/content-types";
@@ -202,8 +202,8 @@ namespace OfficeIMO.Visio {
             var pagesDoc = LoadZipXml(zip, "visio/pages/pages.xml");
             if (pagesDoc?.Root == null) { _errors.Add("Missing or malformed /visio/pages/pages.xml"); return; }
 
-            XNamespace vNs = "http://schemas.microsoft.com/office/visio/2012/main";
-            XNamespace rNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+            XNamespace vNs = nsCore;
+            XNamespace rNs = nsDocRel;
 
             var pages = pagesDoc.Root.Elements(vNs + "Page").ToList();
             if (pages.Count == 0) {
