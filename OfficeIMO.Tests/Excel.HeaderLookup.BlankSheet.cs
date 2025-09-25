@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -30,12 +29,17 @@ namespace OfficeIMO.Tests
                 var headers = sheet.GetHeaderMap();
                 Assert.Empty(headers);
 
-                Assert.Throws<KeyNotFoundException>(() => sheet.ColumnIndexByHeader("Missing"));
-
                 Assert.False(sheet.TryGetColumnIndexByHeader("Missing", out var columnIndex));
                 Assert.Equal(0, columnIndex);
 
                 Assert.False(sheet.TryGetColumnIndexByHeader("Column1", out _));
+
+                Assert.Null(Record.Exception(() => sheet.SetByHeader(2, "Missing", "Value")));
+                Assert.Null(Record.Exception(() => sheet.LinkByHeaderToInternalSheets("Missing")));
+                Assert.False(sheet.TryLinkByHeaderToInternalSheets("Missing"));
+                Assert.Null(Record.Exception(() => sheet.AutoFilterByHeaderEquals("Missing", new[] { "v" })));
+                Assert.Null(Record.Exception(() => sheet.AutoFilterByHeaderContains("Missing", "v")));
+                Assert.Null(Record.Exception(() => sheet.AutoFilterByHeadersEquals(("Missing", new[] { "v" }))));
             }
             finally
             {
