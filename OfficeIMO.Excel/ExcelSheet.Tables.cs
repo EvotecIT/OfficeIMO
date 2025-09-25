@@ -14,10 +14,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(range)) throw new System.ArgumentNullException(nameof(range));
             if (byHeader == null) throw new System.ArgumentNullException(nameof(byHeader));
 
-            var totalsByHeader = new System.Collections.Generic.Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues>(byHeader.Count, System.StringComparer.OrdinalIgnoreCase);
-            foreach (var pair in byHeader) {
-                totalsByHeader[pair.Key] = pair.Value;
-            }
+            var totalsByHeader = new System.Collections.Generic.Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues>(byHeader, System.StringComparer.OrdinalIgnoreCase);
             WriteLock(() => {
                 foreach (var tdp in _worksheetPart.TableDefinitionParts) {
                     var table = tdp.Table;

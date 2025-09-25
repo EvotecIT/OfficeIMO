@@ -133,5 +133,39 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(TotalsRowFunctionValues.Sum, columns[1].TotalsRowFunction?.Value);
             }
         }
+
+        [Fact]
+        public void Test_SetTableTotalsMatchesHeadersWithMixedCasing() {
+            string filePath = Path.Combine(_directoryWithFiles, "Table.TotalsMixedCase.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "nAmE");
+                sheet.CellValue(1, 2, "AMOUNT");
+                sheet.CellValue(1, 3, "balance");
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 2d);
+                sheet.CellValue(2, 3, 3d);
+                sheet.AddTable("A1:C2", true, "MyTable", TableStyle.TableStyleMedium9);
+                sheet.SetTableTotals("A1:C2", new Dictionary<string, TotalsRowFunctionValues> {
+                    ["NAME"] = TotalsRowFunctionValues.Count,
+                    ["amount"] = TotalsRowFunctionValues.Sum,
+                    ["BaLaNcE"] = TotalsRowFunctionValues.Sum,
+                });
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                TableDefinitionPart tablePart = wsPart.TableDefinitionParts.First();
+                var table = tablePart.Table;
+
+                Assert.True(table.TotalsRowShown?.Value);
+
+                var columns = table.TableColumns!.Elements<TableColumn>().ToList();
+                Assert.Equal(TotalsRowFunctionValues.Count, columns[0].TotalsRowFunction?.Value);
+                Assert.Equal(TotalsRowFunctionValues.Sum, columns[1].TotalsRowFunction?.Value);
+                Assert.Equal(TotalsRowFunctionValues.Sum, columns[2].TotalsRowFunction?.Value);
+            }
+        }
     }
 }
