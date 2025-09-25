@@ -80,7 +80,13 @@ namespace OfficeIMO.Visio {
                 int pageId = int.TryParse(pageRef.Attribute("ID")?.Value, out int tmp) ? tmp : document.Pages.Count;
                 VisioPage page = document.AddPage(name, id: pageId);
                 page.NameU = pageRef.Attribute("NameU")?.Value ?? name;
-                page.ViewScale = ParseDouble(pageRef.Attribute("ViewScale")?.Value);
+                string? viewScaleValue = pageRef.Attribute("ViewScale")?.Value;
+                double parsedViewScale = ParseDouble(viewScaleValue);
+                if (double.IsNaN(parsedViewScale) || double.IsInfinity(parsedViewScale) || parsedViewScale <= 0) {
+                    page.ViewScale = 1;
+                } else {
+                    page.ViewScale = parsedViewScale;
+                }
                 page.ViewCenterX = ParseDouble(pageRef.Attribute("ViewCenterX")?.Value);
                 page.ViewCenterY = ParseDouble(pageRef.Attribute("ViewCenterY")?.Value);
 
