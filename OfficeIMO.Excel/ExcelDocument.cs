@@ -533,6 +533,21 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static bool ShouldCopyBackToSource(bool readOnly, bool autoSave, OpenSettings? openSettings)
+        {
+            if (readOnly)
+            {
+                return false;
+            }
+
+            if (autoSave)
+            {
+                return true;
+            }
+
+            return openSettings?.AutoSave == true;
+        }
+
         /// <summary>
         /// Loads an existing Excel document.
         /// </summary>
@@ -568,7 +583,7 @@ namespace OfficeIMO.Excel {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
-            bool shouldCopyBack = autoSave && !readOnly;
+            bool shouldCopyBack = ShouldCopyBackToSource(readOnly, autoSave, openSettings);
             if (shouldCopyBack)
             {
                 if (!stream.CanWrite)
@@ -655,7 +670,7 @@ namespace OfficeIMO.Excel {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
-            bool shouldCopyBack = autoSave && !readOnly;
+            bool shouldCopyBack = ShouldCopyBackToSource(readOnly, autoSave, openSettings);
             if (shouldCopyBack)
             {
                 if (!stream.CanWrite)
