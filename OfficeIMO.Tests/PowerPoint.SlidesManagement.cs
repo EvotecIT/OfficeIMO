@@ -34,6 +34,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void RemovingSlidesDownToOneKeepsPresentationValid() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                presentation.AddSlide().AddTextBox("Slide 1");
+                presentation.AddSlide().AddTextBox("Slide 2");
+                presentation.AddSlide().AddTextBox("Slide 3");
+
+                presentation.RemoveSlide(2);
+                presentation.RemoveSlide(1);
+
+                Assert.Single(presentation.Slides);
+                Assert.True(presentation.DocumentIsValid);
+
+                presentation.Save();
+            }
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                Assert.Single(presentation.Slides);
+                Assert.True(presentation.DocumentIsValid);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void CanMoveSlide() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
@@ -65,6 +91,14 @@ namespace OfficeIMO.Tests {
         public void RemovingInvalidSlideThrows() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(Path.GetTempFileName());
             Assert.Throws<ArgumentOutOfRangeException>(() => presentation.RemoveSlide(0));
+        }
+
+        [Fact]
+        public void RemovingLastSlideThrows() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(Path.GetTempFileName());
+            presentation.AddSlide();
+
+            Assert.Throws<InvalidOperationException>(() => presentation.RemoveSlide(0));
         }
 
         [Fact]

@@ -223,6 +223,10 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
 
+            if (_slides.Count == 1) {
+                throw new InvalidOperationException("Cannot remove the last slide from the presentation.");
+            }
+
             SlideIdList? slideIdList = _presentationPart.Presentation.SlideIdList;
             if (slideIdList == null) {
                 throw new InvalidOperationException("Presentation has no slides.");
