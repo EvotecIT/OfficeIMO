@@ -203,6 +203,10 @@ namespace OfficeIMO.Excel {
                 int startRowIndex = GetRowIndex(startRef);
                 int endRowIndex = GetRowIndex(endRef);
 
+                if (startColumnIndex > endColumnIndex || startRowIndex > endRowIndex) {
+                    throw new ArgumentException($"Invalid range '{range}'. The start cell must be the top-left cell and the end cell must be the bottom-right cell.", nameof(range));
+                }
+
                 uint columnsCount = (uint)(endColumnIndex - startColumnIndex + 1);
 
                 foreach (var existingPart in _worksheetPart.TableDefinitionParts) {
