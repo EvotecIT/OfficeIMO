@@ -90,6 +90,35 @@ namespace OfficeIMO.Visio {
                 page.ViewCenterX = ParseDouble(pageRef.Attribute("ViewCenterX")?.Value);
                 page.ViewCenterY = ParseDouble(pageRef.Attribute("ViewCenterY")?.Value);
 
+                XElement? pageSheet = pageRef.Element(vNs + "PageSheet");
+                VisioScaleSetting? loadedPageScale = null;
+                VisioScaleSetting? loadedDrawingScale = null;
+                if (pageSheet != null) {
+                    foreach (XElement cell in pageSheet.Elements(vNs + "Cell")) {
+                        string? cellName = cell.Attribute("N")?.Value;
+                        string? valueAttr = cell.Attribute("V")?.Value;
+                        string? unitAttr = cell.Attribute("U")?.Value;
+                        switch (cellName) {
+                            case "PageScale":
+                                double pageScaleInches = ParseDouble(valueAttr);
+                                loadedPageScale = VisioScaleSetting.FromInches(pageScaleInches, unitAttr, page.ScaleMeasurementUnit);
+                                break;
+                            case "DrawingScale":
+                                double drawingScaleInches = ParseDouble(valueAttr);
+                                loadedDrawingScale = VisioScaleSetting.FromInches(drawingScaleInches, unitAttr, page.ScaleMeasurementUnit);
+                                break;
+                        }
+                    }
+                }
+
+                if (loadedPageScale.HasValue) {
+                    page.ApplyLoadedPageScale(loadedPageScale.Value);
+                }
+
+                if (loadedDrawingScale.HasValue) {
+                    page.ApplyLoadedDrawingScale(loadedDrawingScale.Value);
+                }
+
                 string? relIdValue = pageRef.Element(vNs + "Rel")?.Attribute(relNs + "id")?.Value;
                 if (string.IsNullOrEmpty(relIdValue)) {
                     continue;
