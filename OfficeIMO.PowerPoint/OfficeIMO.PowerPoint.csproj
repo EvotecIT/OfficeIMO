@@ -7,11 +7,9 @@
         <AssemblyTitle>OfficeIMO.PowerPoint</AssemblyTitle>
 
         <VersionPrefix>1.0.7</VersionPrefix>
+        <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
-            netstandard2.0;net472;net8.0;net9.0
-        </TargetFrameworks>
-        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))'  Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">
-            net8.0
+            $(TargetFrameworks);net472
         </TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
         <Company>Evotec</Company>
@@ -19,7 +17,7 @@
 
         <PackageId>OfficeIMO.PowerPoint</PackageId>
         <PackageTags>
-            pptx;powerpoint;office;openxml;net472;net48;net50;netstandard;netstandard2.0,netstandard2.1;net70
+            pptx;powerpoint;office;openxml;net472;net50;netstandard;netstandard2.0,netstandard2.1;net70
         </PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
