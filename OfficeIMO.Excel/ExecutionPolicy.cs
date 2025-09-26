@@ -1,5 +1,26 @@
 namespace OfficeIMO.Excel {
     /// <summary>
+    /// Controls when worksheet mutations perform structural validation.
+    /// </summary>
+    public enum WorksheetValidationMode {
+        /// <summary>No validation is performed after write operations.</summary>
+        Disabled,
+
+        /// <summary>
+        /// Run validation only when diagnostics are requested via callbacks or explicit opt-in.
+        /// </summary>
+        DiagnosticsOnly,
+
+        /// <summary>
+        /// Run lightweight validation in all builds and enable full Open XML validation in Debug builds only.
+        /// </summary>
+        DebugOnly,
+
+        /// <summary>Always run structural validation regardless of diagnostics configuration.</summary>
+        Always,
+    }
+
+    /// <summary>
     /// Controls how heavy operations in OfficeIMO.Excel run (sequential vs parallel) based on workload size.
     /// Configure global and per‑operation thresholds and optionally observe decisions.
     /// </summary>
@@ -34,6 +55,24 @@ namespace OfficeIMO.Excel {
         public Action<string>? OnInfo { get; set; }
 
         /// <summary>
+        /// Indicates whether consumers explicitly requested diagnostics. When true, operations configured with
+        /// <see cref="WorksheetValidationMode.DiagnosticsOnly"/> will run validation even if no callbacks are wired.
+        /// </summary>
+        public bool DiagnosticsRequested { get; set; }
+
+        /// <summary>
+        /// Controls when worksheet mutation validation is executed. Defaults to running only when diagnostics
+        /// are requested to avoid penalizing hot paths.
+        /// </summary>
+        public WorksheetValidationMode WorksheetValidation { get; set; } = WorksheetValidationMode.DiagnosticsOnly;
+
+        /// <summary>
+        /// Enables invoking <see cref="DocumentFormat.OpenXml.Validation.OpenXmlValidator"/> while debugging. This
+        /// incurs a significant cost and is ignored when not compiling in <c>DEBUG</c> mode.
+        /// </summary>
+        public bool UseOpenXmlValidatorInDebug { get; set; } = true;
+
+        /// <summary>
         /// Helper to invoke the timing callback if configured.
         /// </summary>
         internal void ReportTiming(string operation, TimeSpan elapsed)
@@ -41,6 +80,9 @@ namespace OfficeIMO.Excel {
 
         internal void ReportInfo(string message)
             => OnInfo?.Invoke(message);
+
+        internal bool AreDiagnosticsRequested
+            => DiagnosticsRequested || OnInfo != null || OnTiming != null || OnDecision != null;
 
         /// <summary>
         /// Decide execution mode for a given operation and workload size.
