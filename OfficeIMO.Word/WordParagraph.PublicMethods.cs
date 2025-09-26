@@ -930,9 +930,30 @@ namespace OfficeIMO.Word {
 
             var checkBox = new W14.SdtContentCheckBox();
             checkBox.Append(new W14.Checked() { Val = isChecked ? W14.OnOffValues.One : W14.OnOffValues.Zero });
+            checkBox.Append(new W14.CheckedState() {
+                Font = WordCheckBox.SymbolFont,
+                Val = WordCheckBox.CheckedStateValue
+            });
+            checkBox.Append(new W14.UncheckedState() {
+                Font = WordCheckBox.SymbolFont,
+                Val = WordCheckBox.UncheckedStateValue
+            });
             props.Append(checkBox);
 
-            var content = new SdtContentRun(new Run());
+            var runProperties = new RunProperties();
+            runProperties.Append(new RunFonts() {
+                Ascii = WordCheckBox.SymbolFont,
+                HighAnsi = WordCheckBox.SymbolFont,
+                EastAsia = WordCheckBox.SymbolFont,
+                ComplexScript = WordCheckBox.SymbolFont
+            });
+
+            var symbol = isChecked ? WordCheckBox.CheckedSymbol : WordCheckBox.UncheckedSymbol;
+            var run = new Run(runProperties, new Text(symbol) {
+                Space = SpaceProcessingModeValues.Preserve
+            });
+
+            var content = new SdtContentRun(run);
 
             sdtRun.Append(props);
             sdtRun.Append(content);
@@ -1037,8 +1058,9 @@ namespace OfficeIMO.Word {
         /// <param name="items">Items to include in the combo box.</param>
         /// <param name="alias">Optional alias for the control.</param>
         /// <param name="tag">Optional tag for the control.</param>
+        /// <param name="defaultValue">Optional default value to display; must match one of the provided items.</param>
         /// <returns>The created <see cref="WordComboBox"/> instance.</returns>
-        public WordComboBox AddComboBox(System.Collections.Generic.IEnumerable<string> items, string? alias = null, string? tag = null) {
+        public WordComboBox AddComboBox(System.Collections.Generic.IEnumerable<string> items, string? alias = null, string? tag = null, string? defaultValue = null) {
             var sdtRun = new SdtRun();
 
             var props = new SdtProperties();
@@ -1051,14 +1073,27 @@ namespace OfficeIMO.Word {
             props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(new System.Random().Next(1, int.MaxValue)) });
 
             var combo = new SdtContentComboBox();
-            if (items != null) {
-                foreach (var item in items) {
-                    combo.Append(new ListItem() { DisplayText = item, Value = item });
-                }
+            var itemList = items?.ToList() ?? new List<string>();
+            if (defaultValue != null && itemList.All(item => item != defaultValue)) {
+                throw new ArgumentException("The default combo box value must match one of the provided items.", nameof(defaultValue));
+            }
+
+            foreach (var item in itemList) {
+                combo.Append(new ListItem() { DisplayText = item, Value = item });
             }
             props.Append(combo);
 
-            var content = new SdtContentRun(new Run());
+            string? selectedValue = defaultValue;
+            if (string.IsNullOrEmpty(selectedValue) && itemList.Count > 0) {
+                selectedValue = itemList[0];
+            }
+
+            var run = new Run();
+            if (!string.IsNullOrEmpty(selectedValue)) {
+                run.Append(new Text(selectedValue!) { Space = SpaceProcessingModeValues.Preserve });
+            }
+
+            var content = new SdtContentRun(run);
 
             sdtRun.Append(props);
             sdtRun.Append(content);

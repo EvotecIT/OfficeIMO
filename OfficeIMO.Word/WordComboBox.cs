@@ -31,6 +31,38 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets or sets the currently selected value displayed by the combo box.
+        /// </summary>
+        public string? SelectedValue {
+            get {
+                var text = _sdtRun.SdtContentRun?.Descendants<Text>().FirstOrDefault();
+                return text?.Text;
+            }
+            set {
+                var content = _sdtRun.SdtContentRun;
+                if (content == null) {
+                    content = new SdtContentRun();
+                    _sdtRun.Append(content);
+                }
+
+                var run = content.Elements<Run>().FirstOrDefault();
+                if (run == null) {
+                    run = new Run();
+                    content.Append(run);
+                }
+
+                var text = run.Elements<Text>().FirstOrDefault();
+                if (text == null) {
+                    text = new Text();
+                    run.Append(text);
+                }
+
+                text.Text = value ?? string.Empty;
+                text.Space = SpaceProcessingModeValues.Preserve;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the tag value for this combo box control.
         /// </summary>
         public string? Tag {
