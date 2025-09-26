@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Xml.Linq;
 using OfficeIMO.Visio;
 using Xunit;
 
@@ -66,6 +69,64 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2.5, reloadedSecondPage.ViewCenterY, 5);
                 Assert.Equal(new[] { "3", "4" }, reloadedSecondPage.Shapes.Select(s => s.Id));
                 Assert.Empty(reloadedSecondPage.Connectors);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void ContentTypesIncludesAllPageOverrides() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            try {
+                VisioDocument document = VisioDocument.Create(filePath);
+                document.AddPage("Alpha");
+                document.AddPage("Beta");
+                document.AddPage("Gamma");
+
+                document.Save();
+
+                using FileStream stream = File.OpenRead(filePath);
+                using ZipArchive archive = new(stream, ZipArchiveMode.Read);
+                ZipArchiveEntry? contentTypesEntry = archive.GetEntry("[Content_Types].xml");
+                Assert.NotNull(contentTypesEntry);
+
+                List<string> pagePartNames = archive.Entries
+                    .Where(entry => entry.FullName.StartsWith("visio/pages/", StringComparison.OrdinalIgnoreCase)
+                        && entry.FullName.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)
+                        && !string.Equals(entry.FullName, "visio/pages/pages.xml", StringComparison.OrdinalIgnoreCase))
+                    .Select(entry => "/" + entry.FullName.TrimStart('/'))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                Assert.Equal(3, pagePartNames.Count);
+
+                using Stream contentStream = contentTypesEntry!.Open();
+                XDocument documentXml = XDocument.Load(contentStream);
+                XNamespace ct = "http://schemas.openxmlformats.org/package/2006/content-types";
+                List<XElement> overrideElements = documentXml.Root?
+                    .Elements(ct + "Override")
+                    .ToList() ?? new List<XElement>();
+
+                foreach (string partName in pagePartNames) {
+                    List<XElement> matches = overrideElements
+                        .Where(element => string.Equals((string?)element.Attribute("PartName"), partName, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
+                    Assert.Single(matches);
+                    Assert.Equal("application/vnd.ms-visio.page+xml", (string?)matches[0].Attribute("ContentType"));
+                }
+
+                int uniquePageOverrideCount = overrideElements
+                    .Where(element => string.Equals((string?)element.Attribute("ContentType"), "application/vnd.ms-visio.page+xml", StringComparison.OrdinalIgnoreCase))
+                    .Select(element => (string?)element.Attribute("PartName"))
+                    .Where(name => !string.IsNullOrEmpty(name))
+                    .Select(name => name!)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Count();
+
+                Assert.Equal(pagePartNames.Count, uniquePageOverrideCount);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

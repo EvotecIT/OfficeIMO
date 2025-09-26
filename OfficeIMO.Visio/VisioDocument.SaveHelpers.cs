@@ -349,7 +349,7 @@ namespace OfficeIMO.Visio {
                     styleSheets));
         }
 
-        private static void FixContentTypes(string filePath, int masterCount, bool includeTheme, int pageCount) {
+        private static void FixContentTypes(string filePath, int masterCount, bool includeTheme, IEnumerable<string> pagePartNames) {
             using FileStream zipStream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite);
             using ZipArchive archive = new(zipStream, ZipArchiveMode.Update);
             ZipArchiveEntry? entry = archive.GetEntry("[Content_Types].xml");
@@ -359,24 +359,41 @@ namespace OfficeIMO.Visio {
             XElement root = new(ct + "Types",
                 new XElement(ct + "Default", new XAttribute("Extension", "rels"), new XAttribute("ContentType", "application/vnd.openxmlformats-package.relationships+xml")),
                 new XElement(ct + "Default", new XAttribute("Extension", "xml"), new XAttribute("ContentType", "application/xml")),
-                new XElement(ct + "Default", new XAttribute("Extension", "emf"), new XAttribute("ContentType", "image/x-emf")),
-                new XElement(ct + "Override", new XAttribute("PartName", "/visio/document.xml"), new XAttribute("ContentType", DocumentContentType)),
-                new XElement(ct + "Override", new XAttribute("PartName", "/visio/pages/pages.xml"), new XAttribute("ContentType", PagesContentType)),
-                new XElement(ct + "Override", new XAttribute("PartName", "/docProps/core.xml"), new XAttribute("ContentType", "application/vnd.openxmlformats-package.core-properties+xml")),
-                new XElement(ct + "Override", new XAttribute("PartName", "/docProps/app.xml"), new XAttribute("ContentType", "application/vnd.openxmlformats-officedocument.extended-properties+xml")),
-                new XElement(ct + "Override", new XAttribute("PartName", "/docProps/custom.xml"), new XAttribute("ContentType", "application/vnd.openxmlformats-officedocument.custom-properties+xml")),
-                new XElement(ct + "Override", new XAttribute("PartName", "/docProps/thumbnail.emf"), new XAttribute("ContentType", "image/x-emf")),
-                new XElement(ct + "Override", new XAttribute("PartName", "/visio/windows.xml"), new XAttribute("ContentType", WindowsContentType)));
-            for (int i = 1; i <= pageCount; i++) {
-                root.Add(new XElement(ct + "Override", new XAttribute("PartName", $"/visio/pages/page{i}.xml"), new XAttribute("ContentType", PageContentType)));
+                new XElement(ct + "Default", new XAttribute("Extension", "emf"), new XAttribute("ContentType", "image/x-emf")));
+
+            HashSet<string> overridePartNames = new(StringComparer.OrdinalIgnoreCase);
+            void AddOverride(string partName, string contentType) {
+                if (string.IsNullOrWhiteSpace(partName)) {
+                    return;
+                }
+
+                string normalizedPartName = "/" + partName.TrimStart('/');
+
+                if (overridePartNames.Add(normalizedPartName)) {
+                    root.Add(new XElement(ct + "Override",
+                        new XAttribute("PartName", normalizedPartName),
+                        new XAttribute("ContentType", contentType)));
+                }
+            }
+
+            AddOverride("/visio/document.xml", DocumentContentType);
+            AddOverride("/visio/pages/pages.xml", PagesContentType);
+            AddOverride("/docProps/core.xml", "application/vnd.openxmlformats-package.core-properties+xml");
+            AddOverride("/docProps/app.xml", "application/vnd.openxmlformats-officedocument.extended-properties+xml");
+            AddOverride("/docProps/custom.xml", "application/vnd.openxmlformats-officedocument.custom-properties+xml");
+            AddOverride("/docProps/thumbnail.emf", "image/x-emf");
+            AddOverride("/visio/windows.xml", WindowsContentType);
+
+            foreach (string partName in pagePartNames) {
+                AddOverride(partName, PageContentType);
             }
             if (includeTheme) {
-                root.Add(new XElement(ct + "Override", new XAttribute("PartName", "/visio/theme/theme1.xml"), new XAttribute("ContentType", ThemeContentType)));
+                AddOverride("/visio/theme/theme1.xml", ThemeContentType);
             }
             if (masterCount > 0) {
-                root.Add(new XElement(ct + "Override", new XAttribute("PartName", "/visio/masters/masters.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.masters+xml")));
+                AddOverride("/visio/masters/masters.xml", "application/vnd.ms-visio.masters+xml");
                 for (int i = 1; i <= masterCount; i++) {
-                    root.Add(new XElement(ct + "Override", new XAttribute("PartName", $"/visio/masters/master{i}.xml"), new XAttribute("ContentType", "application/vnd.ms-visio.master+xml")));
+                    AddOverride($"/visio/masters/master{i}.xml", "application/vnd.ms-visio.master+xml");
                 }
             }
             XDocument doc = new(root);
