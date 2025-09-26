@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel {
         /// <param name="mode">Optional execution mode override.</param>
         /// <param name="ct">Cancellation token.</param>
         public void SetCellValues(IEnumerable<(int Row, int Column, object Value)> cells, ExecutionMode? mode = null, CancellationToken ct = default) {
+            ArgumentNullException.ThrowIfNull(cells);
             var list = cells as IList<(int Row, int Column, object Value)> ?? cells.ToList();
             if (list.Count == 0) return;
 
