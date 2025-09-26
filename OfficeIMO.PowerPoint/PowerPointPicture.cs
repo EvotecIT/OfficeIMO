@@ -34,17 +34,12 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="newImage">Stream containing the new image data.</param>
         /// <param name="type">Image format of the new image.</param>
-        public void UpdateImage(Stream newImage, PartTypeInfo type) {
+        public void UpdateImage(Stream newImage, ImagePartType type) {
             if (newImage == null) {
                 throw new ArgumentNullException(nameof(newImage));
             }
 
-            if (type != ImagePartType.Png &&
-                type != ImagePartType.Jpeg &&
-                type != ImagePartType.Gif &&
-                type != ImagePartType.Bmp) {
-                throw new NotSupportedException($"Image type {type} is not supported.");
-            }
+            PartTypeInfo partTypeInfo = type.ToPartTypeInfo();
 
             Picture picture = (Picture)Element;
             A.Blip blip = picture.BlipFill?.Blip ?? throw new InvalidOperationException("Picture has no image");
@@ -56,7 +51,7 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            ImagePart imagePart = _slidePart.AddImagePart(type);
+            ImagePart imagePart = _slidePart.AddImagePart(partTypeInfo);
             newImage.Position = 0;
             imagePart.FeedData(newImage);
             string relId = _slidePart.GetIdOfPart(imagePart);
