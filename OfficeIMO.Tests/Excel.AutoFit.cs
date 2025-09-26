@@ -1,5 +1,7 @@
+using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -352,6 +354,25 @@ namespace OfficeIMO.Tests {
                 var row = wsPart.Worksheet.Descendants<Row>().First(r => r.RowIndex != null && r.RowIndex.Value == 2);
                 Assert.True(row.CustomHeight?.Value ?? false);
                 Assert.True(row.Height != null && row.Height.Value > 0);
+            }
+        }
+
+        [Fact]
+        public async Task Test_AutoFitColumns_CancellationPropagates() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoFit.Cancellation.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                for (int row = 1; row <= 50; row++) {
+                    for (int column = 1; column <= 50; column++) {
+                        sheet.CellValue(row, column, $"Row {row} Column {column} {new string('X', 50)}");
+                    }
+                }
+
+                using CancellationTokenSource cts = new();
+                cts.CancelAfter(TimeSpan.FromMilliseconds(20));
+                var autoFitTask = Task.Run(() => sheet.AutoFitColumns(ExecutionMode.Parallel, cts.Token));
+
+                await Assert.ThrowsAsync<OperationCanceledException>(async () => await autoFitTask);
             }
         }
     }
