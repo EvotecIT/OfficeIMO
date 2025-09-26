@@ -75,13 +75,12 @@ namespace OfficeIMO.Tests {
                         Chart? chart = chartPart.ChartSpace?.GetFirstChild<Chart>();
                         Assert.NotNull(chart);
 
-                        IEnumerable<uint> axisValues = chart!.PlotArea?
-                            .Elements<OpenXmlCompositeElement>()
+                        IEnumerable<uint> axisValues = (chart!.PlotArea?.Elements<OpenXmlCompositeElement>()
+                            ?? Enumerable.Empty<OpenXmlCompositeElement>())
                             .Where(element => element is CategoryAxis || element is ValueAxis || element is SeriesAxis || element is DateAxis)
                             .SelectMany(element => element.Elements<AxisId>())
                             .Select(axis => axis.Val?.Value)
-                            .OfType<uint>()
-                            ?? Enumerable.Empty<uint>();
+                            .OfType<uint>();
 
                         foreach (uint axisId in axisValues) {
                             Assert.True(axisIds.Add(axisId), $"Duplicate axis id {axisId} found.");
