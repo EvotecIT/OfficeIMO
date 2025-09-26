@@ -44,7 +44,12 @@ namespace OfficeIMO.Excel {
                     if (t == typeof(DateTime) || t == typeof(DateTimeOffset)) {
                         // General purpose date-time format; users can restyle later
                         fmt = "yyyy-mm-dd hh:mm";
+                    } else if (t == typeof(TimeSpan)) {
+                        fmt = "[h]:mm:ss";
                     }
+
+                    if (fmt is null && value is TimeSpan)
+                        fmt = "[h]:mm:ss";
                     cells.Add((row, startColumn + c, value, fmt));
                 }
                 row++;

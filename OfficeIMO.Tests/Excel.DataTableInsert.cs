@@ -78,5 +78,63 @@ namespace OfficeIMO.Tests {
 
             File.Delete(filePath);
         }
+
+        [Fact]
+        public void Test_InsertDataTable_TimeSpanColumnGetsDurationFormat() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableDurations.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Durations");
+
+                var table = new DataTable();
+                table.Columns.Add("Task", typeof(string));
+                table.Columns.Add("Elapsed", typeof(TimeSpan));
+
+                table.Rows.Add("Build", TimeSpan.FromMinutes(90));
+                table.Rows.Add("QA", new TimeSpan(2, 15, 30));
+
+                sheet.InsertDataTable(table, includeHeaders: true);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var workbookPart = spreadsheet.WorkbookPart!;
+                var worksheetPart = workbookPart.WorksheetParts.First();
+
+                Cell GetCell(string reference) => worksheetPart.Worksheet.Descendants<Cell>()
+                    .First(c => c.CellReference == reference);
+
+                var durationCell = GetCell("B2");
+                Assert.True(durationCell.DataType == null || durationCell.DataType.Value == CellValues.Number);
+                Assert.Equal(TimeSpan.FromMinutes(90).TotalDays.ToString(CultureInfo.InvariantCulture), durationCell.CellValue!.Text);
+
+                var stylesPart = workbookPart.WorkbookStylesPart;
+                Assert.NotNull(stylesPart);
+
+                var numberingFormats = stylesPart!.Stylesheet?.NumberingFormats?.Elements<NumberingFormat>()
+                    .Where(n => n.FormatCode != null)
+                    .ToList();
+                Assert.NotNull(numberingFormats);
+
+                var durationFormat = numberingFormats!.FirstOrDefault(n => string.Equals(n.FormatCode!.Value, "[h]:mm:ss", StringComparison.Ordinal));
+                Assert.NotNull(durationFormat);
+
+                uint numFmtId = durationFormat!.NumberFormatId!.Value;
+
+                var cellFormats = stylesPart.Stylesheet!.CellFormats!.Elements<CellFormat>().ToList();
+                int formatIndex = cellFormats.FindIndex(cf => cf.NumberFormatId != null && cf.NumberFormatId.Value == numFmtId && cf.ApplyNumberFormat?.Value == true);
+                Assert.True(formatIndex >= 0, "Duration cell format should be registered.");
+
+                Assert.NotNull(durationCell.StyleIndex);
+                Assert.Equal((uint)formatIndex, durationCell.StyleIndex!.Value);
+
+                var secondDuration = GetCell("B3");
+                Assert.True(secondDuration.DataType == null || secondDuration.DataType.Value == CellValues.Number);
+                Assert.Equal(new TimeSpan(2, 15, 30).TotalDays.ToString(CultureInfo.InvariantCulture), secondDuration.CellValue!.Text);
+                Assert.Equal(durationCell.StyleIndex!.Value, secondDuration.StyleIndex!.Value);
+            }
+
+            File.Delete(filePath);
+        }
     }
 }
