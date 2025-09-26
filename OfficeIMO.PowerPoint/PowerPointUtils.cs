@@ -310,7 +310,17 @@ namespace OfficeIMO.PowerPoint {
                     new D.Paragraph(new D.EndParagraphRunProperties { Language = "en-US" }))); 
         }
 
-        private readonly record struct SlideLayoutDefinition(string RelationshipId, uint LayoutId, Func<SlideLayout> CreateLayout);
+        private readonly struct SlideLayoutDefinition {
+            public SlideLayoutDefinition(string relationshipId, uint layoutId, Func<SlideLayout> createLayout) {
+                RelationshipId = relationshipId;
+                LayoutId = layoutId;
+                CreateLayout = createLayout;
+            }
+
+            public string RelationshipId { get; }
+            public uint LayoutId { get; }
+            public Func<SlideLayout> CreateLayout { get; }
+        }
 
         private static void CreatePresentationPropertiesPart(PresentationPart presentationPart) {
             PresentationPropertiesPart part = presentationPart.PresentationPropertiesPart ?? presentationPart.AddNewPart<PresentationPropertiesPart>("rId3");
