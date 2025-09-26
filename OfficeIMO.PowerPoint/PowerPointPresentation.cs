@@ -39,6 +39,8 @@ namespace OfficeIMO.PowerPoint {
                 LoadExistingSlides();
                 _initialSlideUntouched = false; // Existing files don't have untouched initial slide
             }
+
+            PowerPointChartAxisIdGenerator.Initialize(_presentationPart);
         }
 
         /// <summary>
