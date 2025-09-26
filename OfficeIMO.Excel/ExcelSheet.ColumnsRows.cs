@@ -76,6 +76,8 @@ namespace OfficeIMO.Excel {
                     }, i => {
                         try {
                             computed[i] = CalculateColumnWidth(columnsList[i]);
+                        } catch (OperationCanceledException) {
+                            throw;
                         } catch {
                             failures.Add(i);
                         }
