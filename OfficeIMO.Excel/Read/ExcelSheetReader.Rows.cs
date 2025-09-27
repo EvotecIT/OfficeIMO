@@ -12,8 +12,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="a1Range">Inclusive A1 range (e.g., "A1:C100").</param>
         /// <param name="ct">Cancellation token.</param>
-        /// <returns>Sequence of rows as object?[] with fixed width equal to the range width.</returns>
-        public IEnumerable<object?[]> ReadRows(string a1Range, CancellationToken ct = default) {
+        /// <returns>Sequence of rows as object?[] with fixed width equal to the range width. Rows without any cells yield null.</returns>
+        public IEnumerable<object?[]?> ReadRows(string a1Range, CancellationToken ct = default) {
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) yield break;
 
@@ -33,8 +33,10 @@ namespace OfficeIMO.Excel {
             for (int r = r1; r <= r2; r++) {
                 if (ct.IsCancellationRequested) yield break;
 
+                if (!map.TryGetValue(r, out var row)) { yield return null; continue; }
+
                 var arr = new object?[width];
-                if (!map.TryGetValue(r, out var row)) { yield return arr; continue; }
+                bool hasCells = false;
 
                 foreach (var cell in row.Elements<Cell>()) {
                     if (cell.CellReference?.Value is null) continue;
@@ -42,9 +44,10 @@ namespace OfficeIMO.Excel {
                     if (cc < c1 || cc > c2) continue;
                     var val = ConvertCell(cell);
                     arr[cc - c1] = val ?? arr[cc - c1];
+                    hasCells = true;
                 }
 
-                yield return arr;
+                yield return hasCells ? arr : null;
             }
         }
     }
