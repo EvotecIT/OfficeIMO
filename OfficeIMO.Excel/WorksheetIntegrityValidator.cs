@@ -1,5 +1,5 @@
+using System;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Xml;
@@ -132,7 +132,22 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException($"Cell reference '{cellReference}' is missing a row component.");
             }
 
-            if (!uint.TryParse(cellReference.AsSpan(start), NumberStyles.None, CultureInfo.InvariantCulture, out var rowIndex)) {
+            uint rowIndex = 0;
+            for (int i = start; i < cellReference.Length; i++) {
+                char ch = cellReference[i];
+                if (ch < '0' || ch > '9') {
+                    throw new InvalidOperationException($"Cell reference '{cellReference}' has an invalid row component.");
+                }
+
+                uint digit = (uint)(ch - '0');
+                if (rowIndex > (uint.MaxValue - digit) / 10) {
+                    throw new InvalidOperationException($"Cell reference '{cellReference}' has an invalid row component.");
+                }
+
+                rowIndex = (rowIndex * 10) + digit;
+            }
+
+            if (rowIndex == 0) {
                 throw new InvalidOperationException($"Cell reference '{cellReference}' has an invalid row component.");
             }
 
