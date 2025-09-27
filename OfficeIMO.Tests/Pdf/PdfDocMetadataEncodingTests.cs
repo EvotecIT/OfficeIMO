@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text;
 using OfficeIMO.Pdf;
 using UglyToad.PdfPig;
 using Xunit;
@@ -37,9 +38,56 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal(keywords, info.Keywords);
         }
 
+        [Fact]
+        public void PdfDoc_Metadata_With_Emoji_Uses_Utf16_Hex() {
+            const string title = "Emoji 😀 Title";
+            const string author = "漢字カタカナ";
+            const string subject = "Lock 🔒 Subject";
+            const string keywords = "mix 😀 漢字";
+
+            var doc = PdfDoc.Create();
+            doc.Meta(title: title, author: author, subject: subject, keywords: keywords);
+            doc.Compose(c =>
+                c.Page(page =>
+                    page.Content(content =>
+                        content.Column(col =>
+                            col.Item().Paragraph(p => p.Text("Unicode metadata"))))));
+
+            byte[] pdfBytes = doc.ToBytes();
+            Assert.NotEmpty(pdfBytes);
+
+            AssertContains(pdfBytes, "/Title <" + Utf16Hex(title) + ">", "Title should be encoded as UTF-16BE hex when non-Latin1 characters are present.");
+            AssertContains(pdfBytes, "/Author <" + Utf16Hex(author) + ">", "Author should be encoded as UTF-16BE hex when non-Latin1 characters are present.");
+            AssertContains(pdfBytes, "/Subject <" + Utf16Hex(subject) + ">", "Subject should be encoded as UTF-16BE hex when non-Latin1 characters are present.");
+            AssertContains(pdfBytes, "/Keywords <" + Utf16Hex(keywords) + ">", "Keywords should be encoded as UTF-16BE hex when non-Latin1 characters are present.");
+
+            using var pdf = PdfDocument.Open(new MemoryStream(pdfBytes));
+            var info = pdf.Information;
+            Assert.Equal(title, info.Title);
+            Assert.Equal(author, info.Author);
+            Assert.Equal(subject, info.Subject);
+            Assert.Equal(keywords, info.Keywords);
+        }
+
+        [Fact]
+        public void Latin1GetBytes_Throws_For_NonLatin1_Input() {
+            Assert.Throws<ArgumentException>(() => PdfEncoding.Latin1GetBytes("😀"));
+            Assert.Throws<ArgumentException>(() => PdfEncoding.Latin1GetBytes("漢"));
+        }
+
         private static void AssertContains(byte[] haystack, string text, string message) {
             var pattern = PdfEncoding.Latin1GetBytes(text);
             Assert.True(ContainsSequence(haystack, pattern), message);
+        }
+
+        private static string Utf16Hex(string text) {
+            var bytes = Encoding.BigEndianUnicode.GetBytes(text);
+            var sb = new StringBuilder((bytes.Length + 2) * 2);
+            sb.Append("FEFF");
+            for (int i = 0; i < bytes.Length; i++) {
+                sb.Append(bytes[i].ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
+            }
+            return sb.ToString();
         }
 
         private static bool ContainsSequence(byte[] haystack, byte[] needle) {

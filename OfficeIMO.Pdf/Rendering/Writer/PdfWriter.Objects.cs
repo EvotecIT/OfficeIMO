@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace OfficeIMO.Pdf;
 
@@ -19,8 +20,29 @@ internal static partial class PdfWriter {
     }
 
     private static string PdfString(string s) {
+        if (RequiresUnicodeLiteral(s)) {
+            return "<" + EncodeUtf16Hex(s) + ">";
+        }
         // Literal string in parentheses with robust escaping (incl. control chars via octal)
         return "(" + EscapeLiteral(s) + ")";
+    }
+
+    private static bool RequiresUnicodeLiteral(string s) {
+        for (int i = 0; i < s.Length; i++) {
+            if (s[i] > 0xFF) return true;
+        }
+        return false;
+    }
+
+    private static string EncodeUtf16Hex(string s) {
+        if (s.Length == 0) return string.Empty;
+        var bytes = Encoding.BigEndianUnicode.GetBytes(s);
+        var sb = new StringBuilder((bytes.Length + 2) * 2);
+        sb.Append("FEFF");
+        for (int i = 0; i < bytes.Length; i++) {
+            sb.Append(bytes[i].ToString("X2", CultureInfo.InvariantCulture));
+        }
+        return sb.ToString();
     }
 
     private sealed class LayoutResult {
