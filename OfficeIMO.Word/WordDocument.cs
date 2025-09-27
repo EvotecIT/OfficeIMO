@@ -1617,6 +1617,7 @@ namespace OfficeIMO.Word {
             if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
+            cancellationToken.ThrowIfCancellationRequested();
             PreSaving();
 
             if (this._wordprocessingDocument != null) {
@@ -1643,10 +1644,13 @@ namespace OfficeIMO.Word {
                         }
                     }
 
+                    cancellationToken.ThrowIfCancellationRequested();
                     using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.Asynchronous)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         using (var clone = this._wordprocessingDocument.Clone(fs)) {
                             CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                         }
+                        cancellationToken.ThrowIfCancellationRequested();
                         Helpers.MakeOpenOfficeCompatible(fs);
                         await fs.FlushAsync(cancellationToken);
                     }

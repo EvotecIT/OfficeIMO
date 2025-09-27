@@ -1,4 +1,6 @@
+using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Excel;
 using Xunit;
@@ -48,6 +50,30 @@ namespace OfficeIMO.Tests {
             Assert.True(document2.Sheets.Count > 0);
 
             File.Delete(filePath);
+        }
+
+        [Fact]
+        public async Task Test_ExcelSaveAsync_CanBeCancelled() {
+            var sourcePath = Path.Combine(_directoryWithFiles, "AsyncExcelCancelSource.xlsx");
+            if (File.Exists(sourcePath)) File.Delete(sourcePath);
+
+            var destinationPath = Path.Combine(_directoryWithFiles, "AsyncExcelCancelDestination.xlsx");
+            if (File.Exists(destinationPath)) File.Delete(destinationPath);
+
+            await using (var document = ExcelDocument.Create(sourcePath)) {
+                document.AddWorkSheet("Sheet1");
+
+                using var cts = new CancellationTokenSource();
+                cts.Cancel();
+
+                await Assert.ThrowsAsync<OperationCanceledException>(() => document.SaveAsync(destinationPath, openExcel: false, cancellationToken: cts.Token));
+            }
+
+            Assert.False(File.Exists(destinationPath));
+
+            if (File.Exists(sourcePath)) {
+                File.Delete(sourcePath);
+            }
         }
     }
 }

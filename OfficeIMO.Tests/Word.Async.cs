@@ -71,5 +71,29 @@ namespace OfficeIMO.Tests {
 
             File.Delete(filePath);
         }
+
+        [Fact]
+        public async Task Test_WordSaveAsync_CanBeCancelled() {
+            var sourcePath = Path.Combine(_directoryWithFiles, "AsyncWordCancelSource.docx");
+            if (File.Exists(sourcePath)) File.Delete(sourcePath);
+
+            var destinationPath = Path.Combine(_directoryWithFiles, "AsyncWordCancelDestination.docx");
+            if (File.Exists(destinationPath)) File.Delete(destinationPath);
+
+            await using (var document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Cancelled");
+
+                using var cts = new CancellationTokenSource();
+                cts.Cancel();
+
+                await Assert.ThrowsAsync<OperationCanceledException>(() => document.SaveAsync(destinationPath, openWord: false, cancellationToken: cts.Token));
+            }
+
+            Assert.False(File.Exists(destinationPath));
+
+            if (File.Exists(sourcePath)) {
+                File.Delete(sourcePath);
+            }
+        }
     }
 }
