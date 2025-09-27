@@ -30,6 +30,7 @@ public sealed partial class PdfDoc {
 
     /// <summary>
     /// Sets PDF metadata. Only values provided are updated; missing parameters keep previous values.
+    /// Pass an empty string to clear a previously assigned value.
     /// </summary>
     /// <param name="title">Document title metadata.</param>
     /// <param name="author">Document author metadata.</param>
@@ -37,10 +38,21 @@ public sealed partial class PdfDoc {
     /// <param name="keywords">Document keywords metadata.</param>
     /// <returns>This <see cref="PdfDoc"/> for chaining.</returns>
     public PdfDoc Meta(string? title = null, string? author = null, string? subject = null, string? keywords = null) {
-        _title = title ?? _title;
-        _author = author ?? _author;
-        _subject = subject ?? _subject;
-        _keywords = keywords ?? _keywords;
+        if (title != null) {
+            _title = title.Length == 0 ? null : title;
+        }
+
+        if (author != null) {
+            _author = author.Length == 0 ? null : author;
+        }
+
+        if (subject != null) {
+            _subject = subject.Length == 0 ? null : subject;
+        }
+
+        if (keywords != null) {
+            _keywords = keywords.Length == 0 ? null : keywords;
+        }
         return this;
     }
 
