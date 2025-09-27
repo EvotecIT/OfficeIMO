@@ -75,38 +75,91 @@ namespace OfficeIMO.Visio {
             }
 
             XDocument pagesXml = LoadXml(pkg, "/visio/pages/pages.xml");
-            XElement? page = pagesXml.Root!.Element(v + "Page");
-            if (page == null) {
-                issues.Add("pages.xml must contain a Page element.");
-            } else {
-                if (!int.TryParse((string?)page.Attribute("ID"), out int pageId) || pageId < 0) {
-                    issues.Add("Page/@ID must be numeric and zero-based (e.g., 0).");
-                }
+            IReadOnlyList<XElement> pageElements = pagesXml.Root!
+                .Elements(v + "Page")
+                .ToList();
 
-                XElement? relChild = page.Element(v + "Rel");
-                string? rid = relChild?.Attribute(rel + "id")?.Value;
-                if (relChild == null) {
-                    issues.Add("Page must contain <Rel r:id=\"rId#\"> child (not an attribute).");
-                } else if (rid == null || string.IsNullOrWhiteSpace(rid)) {
-                    issues.Add("Page must contain <Rel r:id=\"rId#\"> child (not an attribute).");
-                } else if (!rid.StartsWith("rId", StringComparison.Ordinal)) {
-                    issues.Add("Page must contain <Rel r:id=\"rId#\"> child (not an attribute).");
-                }
+            if (pageElements.Count == 0) {
+                issues.Add("pages.xml must contain a Page element.");
             }
 
             XDocument pagesRels = GetRels(pkg, "/visio/pages/_rels/pages.xml.rels");
-            XElement? pageRel = pagesRels.Root!.Elements(pr + "Relationship").FirstOrDefault(r => (string?)r.Attribute("Type") == RT_Page);
-            if (pageRel == null) {
-                issues.Add("pages.xml.rels must have a relationship of type visio/2010/relationships/page.");
+            Dictionary<string, XElement> relationshipsById = new(StringComparer.Ordinal);
+            foreach (XElement relElem in pagesRels.Root!.Elements(pr + "Relationship")) {
+                string? relIdAttr = (string?)relElem.Attribute("Id");
+                if (!string.IsNullOrEmpty(relIdAttr)) {
+                    relationshipsById[relIdAttr] = relElem;
+                }
             }
 
-            XDocument page1Xml = LoadXml(pkg, "/visio/pages/page1.xml");
-            string? badId = page1Xml.Descendants(v + "Shape").Select(x => (string?)x.Attribute("ID")).FirstOrDefault(id => !int.TryParse(id, out _));
-            if (badId != null) {
-                issues.Add($"Shape/@ID must be numeric. Found non-numeric ID: '{badId}'.");
+            HashSet<string> processedPageParts = new(StringComparer.OrdinalIgnoreCase);
+
+            foreach (XElement pageElement in pageElements) {
+                string pageLabel = DescribePage(pageElement);
+                string? idAttr = (string?)pageElement.Attribute("ID");
+                if (!int.TryParse(idAttr, out int pageId) || pageId < 0) {
+                    issues.Add($"Page {pageLabel}: ID must be numeric and zero-based (e.g., 0).");
+                }
+
+                List<XElement> relChildren = pageElement.Elements(v + "Rel").ToList();
+                if (relChildren.Count == 0) {
+                    issues.Add($"Page {pageLabel}: Must contain <Rel r:id=\"rId#\"> child (not an attribute).");
+                    continue;
+                }
+
+                foreach (XElement relChild in relChildren) {
+                    string? rid = relChild.Attribute(rel + "id")?.Value;
+                    if (string.IsNullOrWhiteSpace(rid) || !rid.StartsWith("rId", StringComparison.Ordinal)) {
+                        issues.Add($"Page {pageLabel}: Must contain <Rel r:id=\"rId#\"> child (not an attribute).");
+                        continue;
+                    }
+
+                    if (!relationshipsById.TryGetValue(rid, out XElement? relationship)) {
+                        issues.Add($"Page {pageLabel}: Relationship '{rid}' not found in pages.xml.rels.");
+                        continue;
+                    }
+
+                    string? type = (string?)relationship.Attribute("Type");
+                    if (!string.Equals(type, RT_Page, StringComparison.Ordinal)) {
+                        issues.Add($"Page {pageLabel}: Relationship '{rid}' must be of type {RT_Page}.");
+                    }
+
+                    string? target = (string?)relationship.Attribute("Target");
+                    if (string.IsNullOrWhiteSpace(target)) {
+                        issues.Add($"Page {pageLabel}: Relationship '{rid}' must target a page part.");
+                        continue;
+                    }
+
+                    Uri partUri = PackUriHelper.ResolvePartUri(new Uri("/visio/pages/pages.xml", UriKind.Relative), new Uri(target, UriKind.Relative));
+                    string partName = partUri.ToString();
+
+                    if (!pkg.PartExists(partUri)) {
+                        issues.Add($"Page {pageLabel}: Target part '{partName}' referenced by relationship '{rid}' is missing.");
+                    } else if (processedPageParts.Add(partName)) {
+                        XDocument pageXml = LoadXml(pkg, partName);
+                        string? badId = pageXml
+                            .Descendants(v + "Shape")
+                            .Select(x => (string?)x.Attribute("ID"))
+                            .FirstOrDefault(shapeId => !int.TryParse(shapeId, out _));
+                        if (badId != null) {
+                            issues.Add($"Page {pageLabel}: Shape/@ID must be numeric. Found non-numeric ID: '{badId}'.");
+                        }
+                    }
+
+                    if (!HasOverride(partName, CT_Page)) {
+                        issues.Add($"Page {pageLabel}: Missing Override for {partName} -> {CT_Page}.");
+                    }
+                }
             }
 
             return issues;
+
+            static string DescribePage(XElement pageElement) {
+                string id = pageElement.Attribute("ID")?.Value ?? "?";
+                string? name = pageElement.Attribute("NameU")?.Value;
+                name ??= pageElement.Attribute("Name")?.Value;
+                return name != null ? $"ID {id} ({name})" : $"ID {id}";
+            }
         }
 
         private static XDocument LoadXml(Package pkg, string partName) {
