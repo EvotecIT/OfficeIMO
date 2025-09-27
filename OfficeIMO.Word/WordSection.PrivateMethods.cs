@@ -275,6 +275,10 @@ namespace OfficeIMO.Word {
                             } else {
                                 dataSections[count].Add(paragraph);
                             }
+                        } else if (element is SectionProperties sectionPropertiesElement) {
+                            if (AreSectionPropertiesEqual(sectionPropertiesElement, _sectionProperties)) {
+                                foundCount = count;
+                            }
                         }
                     }
 
@@ -287,7 +291,19 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            return ConvertParagraphsToWordParagraphs(_document, dataSections[foundCount]);
+            if (foundCount < 0) {
+                if (dataSections.Count == 1 && dataSections.TryGetValue(0, out var singleSectionParagraphs)) {
+                    return ConvertParagraphsToWordParagraphs(_document, singleSectionParagraphs);
+                }
+
+                return new List<WordParagraph>();
+            }
+
+            if (!dataSections.TryGetValue(foundCount, out var paragraphsForSection)) {
+                return new List<WordParagraph>();
+            }
+
+            return ConvertParagraphsToWordParagraphs(_document, paragraphsForSection);
         }
 
         /// <summary>
