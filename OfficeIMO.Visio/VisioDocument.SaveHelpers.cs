@@ -350,6 +350,14 @@ namespace OfficeIMO.Visio {
         }
 
         private static void FixContentTypes(string filePath, int masterCount, bool includeTheme, IEnumerable<string> pagePartNames) {
+            if (string.IsNullOrWhiteSpace(filePath)) {
+                throw new ArgumentException("File path cannot be null or whitespace.", nameof(filePath));
+            }
+
+            if (pagePartNames is null) {
+                throw new ArgumentNullException(nameof(pagePartNames));
+            }
+
             using FileStream zipStream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite);
             using ZipArchive archive = new(zipStream, ZipArchiveMode.Update);
             ZipArchiveEntry? entry = archive.GetEntry("[Content_Types].xml");
@@ -367,7 +375,7 @@ namespace OfficeIMO.Visio {
                     return;
                 }
 
-                string normalizedPartName = "/" + partName.TrimStart('/');
+                string normalizedPartName = NormalizePartName(partName);
 
                 if (overridePartNames.Add(normalizedPartName)) {
                     root.Add(new XElement(ct + "Override",
@@ -399,6 +407,14 @@ namespace OfficeIMO.Visio {
             XDocument doc = new(root);
             using StreamWriter writer = new(newEntry.Open());
             writer.Write(doc.Declaration + Environment.NewLine + doc.ToString(SaveOptions.DisableFormatting));
+        }
+
+        private static string NormalizePartName(string partName) {
+            if (partName is null) {
+                throw new ArgumentNullException(nameof(partName));
+            }
+
+            return "/" + partName.TrimStart('/');
         }
     }
 }
