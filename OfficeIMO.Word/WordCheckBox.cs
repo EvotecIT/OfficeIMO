@@ -7,8 +7,8 @@ namespace OfficeIMO.Word {
     /// </summary>
     public class WordCheckBox : WordElement {
         internal const string SymbolFont = "MS Gothic";
-        internal const string CheckedSymbol = "\u2611";
-        internal const string UncheckedSymbol = "\u2610";
+        internal const string CheckedSymbol = "☑";
+        internal const string UncheckedSymbol = "☐";
         internal const string CheckedStateValue = "2611";
         internal const string UncheckedStateValue = "2610";
 
