@@ -143,15 +143,20 @@ using OfficeIMO.Excel; // A1 helpers are available under OfficeIMO.Excel.A1
 
 var s = doc["Summary"]; // table with a header row
 
-// Find the column index of the "Domain" header
-int domainCol = s.ColumnIndexByHeader("Domain");
+// Find the column index of the "Domain" header (returns false when header is missing)
+if (s.TryGetColumnIndexByHeader("Domain", out int domainCol))
+{
+    // Build an A1 for just that column (rows 2..N)
+    string colLetter = A1.ColumnIndexToLetters(domainCol);
+    string a1 = $"{colLetter}2:{colLetter}51"; // adjust end row as needed
 
-// Build an A1 for just that column (rows 2..N)
-string colLetter = A1.ColumnIndexToLetters(domainCol);
-string a1 = $"{colLetter}2:{colLetter}51"; // adjust end row as needed
-
-// Turn each cell into an internal link to a same-named sheet
-s.LinkCellsToInternalSheets(a1, text => text, targetA1: "A1", styled: true);
+    // Turn each cell into an internal link to a same-named sheet
+    s.LinkCellsToInternalSheets(a1, text => text, targetA1: "A1", styled: true);
+}
+else
+{
+    // Handle the missing header scenario (log, skip, etc.)
+}
 ```
 
 ## Fluent Read
@@ -259,7 +264,7 @@ Notes:
 - `Rows()` materializes dictionaries using the first row of the range as headers.
 - `RowsObjects()` returns editable row handles; setting `cell.Value` or calling `row.Set(header, value)` writes to the sheet.
 - All helpers share a single open file handle; no extra opens.
-- Header sugar on sheet: `sheet.SetByHeader(row, "Status", "Processed")`, `sheet.ColumnIndexByHeader("Value")`.
+- Header sugar on sheet: `sheet.SetByHeader(row, "Status", "Processed")`, `sheet.TryGetColumnIndexByHeader("Value", out var columnIndex)`.
 - Prefer decimals? Use `ExcelReadPresets.DecimalFirst()` or set `new ExcelReadOptions { NumericAsDecimal = true }`.
 
 ### Column formatting by header

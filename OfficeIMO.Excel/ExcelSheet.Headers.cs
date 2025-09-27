@@ -65,18 +65,8 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Returns a 1-based column index for a given header; throws when not found.
-        /// </summary>
-        public int ColumnIndexByHeader(string header, ExcelReadOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            var map = GetHeaderMap(options);
-            if (!map.TryGetValue(header, out var idx))
-                throw new KeyNotFoundException($"Header '{header}' not found.");
-            return idx;
-        }
-
-        /// <summary>
-        /// Tries to resolve a 1-based column index for a given header. Returns false without throwing when the header cannot be found.
+        /// Tries to resolve a 1-based column index for a given header.
+        /// Returns <c>false</c> without throwing when the header cannot be found.
         /// </summary>
         public bool TryGetColumnIndexByHeader(string header, out int columnIndex, ExcelReadOptions? options = null) {
             if (string.IsNullOrWhiteSpace(header)) {
