@@ -42,5 +42,12 @@ public class PdfItemCompose {
     /// <param name="width">Target width in points.</param>
     /// <param name="height">Target height in points.</param>
     /// <param name="align">Image alignment inside content width.</param>
-    public PdfItemCompose Image(byte[] jpegBytes, double width, double height, PdfAlign align = PdfAlign.Left) { _doc.Image(jpegBytes, width, height, align); return this; }
+    public PdfItemCompose Image(byte[] jpegBytes, double width, double height, PdfAlign align = PdfAlign.Left) {
+        Guard.NotNullOrEmpty(jpegBytes, nameof(jpegBytes));
+        Guard.Positive(width, nameof(width));
+        Guard.Positive(height, nameof(height));
+
+        _doc.Image(jpegBytes, width, height, align);
+        return this;
+    }
 }

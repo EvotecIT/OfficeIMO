@@ -68,6 +68,12 @@ public sealed partial class PdfDoc {
 
     /// <summary>Adds a JPEG image at the current flow position.</summary>
     public PdfDoc Image(byte[] jpegBytes, double width, double height, PdfAlign align = PdfAlign.Left) {
+        Guard.NotNullOrEmpty(jpegBytes, nameof(jpegBytes));
+        Guard.Positive(width, nameof(width));
+        Guard.Positive(height, nameof(height));
+
+        WarnIfBytesNotJpeg(jpegBytes);
+
         AddBlock(new ImageBlock(jpegBytes, width, height, align));
         return this;
     }
@@ -89,6 +95,20 @@ public sealed partial class PdfDoc {
         if (links != null) foreach (var kv in links) tb.Links[kv.Key] = kv.Value;
         AddBlock(tb);
         return this;
+    }
+}
+
+public sealed partial class PdfDoc {
+    internal static void WarnIfBytesNotJpeg(byte[] data) {
+        if (!LooksLikeJpeg(data))
+            System.Diagnostics.Trace.TraceWarning("PdfDoc.Image: Provided bytes do not appear to be JPEG encoded.");
+    }
+
+    private static bool LooksLikeJpeg(byte[] data) {
+        if (data.Length < 4)
+            return false;
+
+        return data[0] == 0xFF && data[1] == 0xD8 && data[data.Length - 2] == 0xFF && data[data.Length - 1] == 0xD9;
     }
 }
 

@@ -23,5 +23,14 @@ public class PdfRowColumnCompose {
     /// <summary>Adds a horizontal rule in the column.</summary>
     public PdfRowColumnCompose HR(double thickness = 0.5, PdfColor? color = null, double spacingBefore = 6, double spacingAfter = 6) { _col.Blocks.Add(new HorizontalRuleBlock(thickness, color ?? PdfColor.Gray, spacingBefore, spacingAfter)); return this; }
     /// <summary>Adds a JPEG image in the column.</summary>
-    public PdfRowColumnCompose Image(byte[] jpegBytes, double width, double height, PdfAlign align = PdfAlign.Left) { _col.Blocks.Add(new ImageBlock(jpegBytes, width, height, align)); return this; }
+    public PdfRowColumnCompose Image(byte[] jpegBytes, double width, double height, PdfAlign align = PdfAlign.Left) {
+        Guard.NotNullOrEmpty(jpegBytes, nameof(jpegBytes));
+        Guard.Positive(width, nameof(width));
+        Guard.Positive(height, nameof(height));
+
+        PdfDoc.WarnIfBytesNotJpeg(jpegBytes);
+
+        _col.Blocks.Add(new ImageBlock(jpegBytes, width, height, align));
+        return this;
+    }
 }
