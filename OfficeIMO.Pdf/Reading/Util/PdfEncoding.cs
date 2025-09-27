@@ -10,7 +10,13 @@ internal static class PdfEncoding {
 
     public static byte[] Latin1GetBytes(string s) {
         var bytes = new byte[s.Length];
-        for (int i = 0; i < s.Length; i++) bytes[i] = (byte)(s[i] & 0xFF);
+        for (int i = 0; i < s.Length; i++) {
+            char ch = s[i];
+            if (ch > 0xFF) {
+                throw new System.ArgumentException($"Character '{ch}' (U+{(int)ch:X4}) is not valid in Latin-1 encoding", nameof(s));
+            }
+            bytes[i] = (byte)ch;
+        }
         return bytes;
     }
 }
