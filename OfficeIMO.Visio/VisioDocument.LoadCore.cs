@@ -171,28 +171,10 @@ namespace OfficeIMO.Visio {
                     }
 
                     VisioShape shape = ParseShape(shapeElement, vNs);
-                    string? masterIdAttr = shapeElement.Attribute("Master")?.Value;
-                    if (masterIdAttr != null && masters.TryGetValue(masterIdAttr, out VisioMaster? master)) {
-                        shape.Master = master;
-                        if (shape.Width == 0 || shape.Height == 0) {
-                            VisioShape masterShape = master!.Shape;
-                            if (shape.Width == 0) {
-                                shape.Width = masterShape.Width;
-                            }
-                            if (shape.Height == 0) {
-                                shape.Height = masterShape.Height;
-                            }
-                            if (shape.LocPinX == 0) {
-                                shape.LocPinX = masterShape.LocPinX;
-                            }
-                            if (shape.LocPinY == 0) {
-                                shape.LocPinY = masterShape.LocPinY;
-                            }
-                        }
-                    }
+                    ApplyMasterReferences(shape, shapeElement, vNs, masters);
 
                     page.Shapes.Add(shape);
-                    shapeMap[shape.Id] = shape;
+                    RegisterShapeHierarchy(shape, shapeMap);
                 }
 
                 Dictionary<string, (string? fromId, string? toId)> connectionMap = new();
@@ -270,13 +252,17 @@ namespace OfficeIMO.Visio {
             return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0;
         }
 
-        private static VisioShape ParseShape(XElement shapeElement, XNamespace ns) {
+        private static VisioShape ParseShape(XElement shapeElement, XNamespace ns, VisioShape? parent = null) {
             string id = shapeElement.Attribute("ID")?.Value ?? string.Empty;
             VisioShape shape = new(id) {
                 Name = shapeElement.Attribute("Name")?.Value,
                 NameU = shapeElement.Attribute("NameU")?.Value,
                 Text = shapeElement.Element(ns + "Text")?.Value
             };
+
+            shape.Type = shapeElement.Attribute("Type")?.Value;
+            shape.MasterShapeId = shapeElement.Attribute("MasterShape")?.Value;
+            shape.Parent = parent;
 
             List<XElement> cellElements = shapeElement.Elements(ns + "Cell").ToList();
             bool pinXFound = false;
@@ -446,7 +432,70 @@ namespace OfficeIMO.Visio {
                 }
             }
 
+            XElement? childShapes = shapeElement.Element(ns + "Shapes");
+            if (childShapes != null) {
+                foreach (XElement childElement in childShapes.Elements(ns + "Shape")) {
+                    VisioShape childShape = ParseShape(childElement, ns, shape);
+                    shape.Children.Add(childShape);
+                }
+            }
+
             return shape;
+        }
+
+        private static void ApplyMasterReferences(VisioShape shape, XElement shapeElement, XNamespace ns, Dictionary<string, VisioMaster> masters, VisioMaster? inheritedMaster = null, VisioShape? inheritedMasterShape = null) {
+            VisioMaster? effectiveMaster = inheritedMaster;
+            VisioShape? effectiveMasterShape = inheritedMasterShape;
+
+            string? masterIdAttr = shapeElement.Attribute("Master")?.Value;
+            if (!string.IsNullOrEmpty(masterIdAttr) && masters.TryGetValue(masterIdAttr!, out VisioMaster? resolvedMaster)) {
+                effectiveMaster = resolvedMaster;
+                effectiveMasterShape = resolvedMaster.Shape;
+            }
+
+            if (effectiveMaster != null) {
+                shape.Master = effectiveMaster;
+            }
+
+            if (!string.IsNullOrEmpty(shape.MasterShapeId) && effectiveMaster != null) {
+                VisioShape? referencedMasterShape = effectiveMaster.Shape.FindDescendantById(shape.MasterShapeId!);
+                if (referencedMasterShape != null) {
+                    shape.MasterShape = referencedMasterShape;
+                    effectiveMasterShape = referencedMasterShape;
+                }
+            }
+
+            VisioShape? fallbackMasterShape = shape.MasterShape ?? effectiveMasterShape ?? effectiveMaster?.Shape;
+            if (fallbackMasterShape != null) {
+                if (shape.Width == 0) {
+                    shape.Width = fallbackMasterShape.Width;
+                }
+                if (shape.Height == 0) {
+                    shape.Height = fallbackMasterShape.Height;
+                }
+                if (shape.LocPinX == 0) {
+                    shape.LocPinX = fallbackMasterShape.LocPinX;
+                }
+                if (shape.LocPinY == 0) {
+                    shape.LocPinY = fallbackMasterShape.LocPinY;
+                }
+            }
+
+            XElement? childShapes = shapeElement.Element(ns + "Shapes");
+            if (childShapes != null && shape.Children.Count > 0) {
+                List<XElement> childElements = childShapes.Elements(ns + "Shape").ToList();
+                int count = Math.Min(childElements.Count, shape.Children.Count);
+                for (int i = 0; i < count; i++) {
+                    ApplyMasterReferences(shape.Children[i], childElements[i], ns, masters, effectiveMaster, fallbackMasterShape);
+                }
+            }
+        }
+
+        private static void RegisterShapeHierarchy(VisioShape shape, Dictionary<string, VisioShape> shapeMap) {
+            shapeMap[shape.Id] = shape;
+            foreach (VisioShape child in shape.Children) {
+                RegisterShapeHierarchy(child, shapeMap);
+            }
         }
     }
 }
