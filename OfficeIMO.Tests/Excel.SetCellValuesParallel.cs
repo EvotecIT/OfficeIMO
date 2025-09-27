@@ -113,6 +113,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_SetCellValuesThrowsOnNullCells() {
+            string filePath = Path.Combine(_directoryWithFiles, "SetCellValuesNull.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+
+                Assert.Throws<ArgumentNullException>(() => sheet.SetCellValues(null!));
+            }
+        }
+
+        [Fact]
         public void Test_SetCellValuesParallelSanitizesControlCharacters() {
             string filePath = Path.Combine(_directoryWithFiles, "SetCellValuesParallelSanitizedControls.xlsx");
 
