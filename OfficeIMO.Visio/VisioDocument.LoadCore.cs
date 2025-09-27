@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Packaging;
 using System.Linq;
 using System.Xml.Linq;
+using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -222,11 +223,11 @@ namespace OfficeIMO.Visio {
                     if (!shapeMap.TryGetValue(fromId, out VisioShape? fromShape) || !shapeMap.TryGetValue(toId, out VisioShape? toShape)) {
                         continue;
                     }
-                    VisioConnector connector = new VisioConnector(id, fromShape!, toShape!);
+                    VisioConnector connector = new VisioConnector(id, fromShape!, toShape!, initializeDefaults: false);
 
                     foreach (XElement cell in connectorElement.Elements(vNs + "Cell")) {
                         string? n = cell.Attribute("N")?.Value;
-                        string? v = cell.Attribute("V")?.Value;
+                        string? v = GetCellValue(cell);
                         switch (n) {
                             case "BeginArrow":
                                 connector.BeginArrow = (EndArrow)int.Parse(v ?? "0", CultureInfo.InvariantCulture);
@@ -235,13 +236,19 @@ namespace OfficeIMO.Visio {
                                 connector.EndArrow = (EndArrow)int.Parse(v ?? "0", CultureInfo.InvariantCulture);
                                 break;
                             case "LineWeight":
-                                connector.LineWeight = ParseDouble(v);
+                                if (double.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out double lw)) {
+                                    connector.SetLineWeight(lw, true);
+                                }
                                 break;
                             case "LinePattern":
-                                if (int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out int cpat)) connector.LinePattern = cpat;
+                                if (int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out int cpat)) {
+                                    connector.SetLinePattern(cpat, true);
+                                }
                                 break;
                             case "LineColor":
-                                if (!string.IsNullOrEmpty(v)) connector.LineColor = VisioHelpers.FromVisioColor(v!);
+                                if (!string.IsNullOrEmpty(v) && VisioHelpers.TryParseVisioColor(v!, out Color parsedColor)) {
+                                    connector.SetLineColor(parsedColor, true);
+                                }
                                 break;
                         }
                     }
@@ -268,6 +275,10 @@ namespace OfficeIMO.Visio {
 
         private static double ParseDouble(string? value) {
             return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0;
+        }
+
+        private static string? GetCellValue(XElement cell) {
+            return cell.Attribute("Result")?.Value ?? cell.Attribute("V")?.Value ?? cell.Value;
         }
 
         private static VisioShape ParseShape(XElement shapeElement, XNamespace ns) {
