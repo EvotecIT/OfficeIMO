@@ -373,14 +373,16 @@ namespace OfficeIMO.PowerPoint {
             table.Append(props);
 
             A.TableGrid grid = new();
+            long[] columnWidths = DistributeEvenly(width, columns);
             for (int c = 0; c < columns; c++) {
-                grid.Append(new A.GridColumn { Width = 3708400L });
+                grid.Append(new A.GridColumn { Width = columnWidths[c] });
             }
 
             table.Append(grid);
 
+            long[] rowHeights = DistributeEvenly(height, rows);
             for (int r = 0; r < rows; r++) {
-                A.TableRow row = new() { Height = 370840L };
+                A.TableRow row = new() { Height = rowHeights[r] };
                 for (int c = 0; c < columns; c++) {
                     A.TableCell cell = new(
                         new A.TextBody(new A.BodyProperties(), new A.ListStyle(),
@@ -412,6 +414,31 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTable tbl = new(frame);
             _shapes.Add(tbl);
             return tbl;
+        }
+
+        private static long[] DistributeEvenly(long total, int parts) {
+            if (parts <= 0) {
+                return Array.Empty<long>();
+            }
+
+            long[] result = new long[parts];
+            long baseValue = total / parts;
+            long remainder = total % parts;
+
+            for (int i = 0; i < parts; i++) {
+                long adjustment = 0;
+                if (remainder > 0) {
+                    adjustment = 1;
+                    remainder--;
+                } else if (remainder < 0) {
+                    adjustment = -1;
+                    remainder++;
+                }
+
+                result[i] = baseValue + adjustment;
+            }
+
+            return result;
         }
 
         /// <summary>
