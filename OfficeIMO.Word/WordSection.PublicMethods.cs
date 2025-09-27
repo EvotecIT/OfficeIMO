@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -56,6 +57,79 @@ namespace OfficeIMO.Word {
 
                 return paragraph;
             }
+        }
+
+        /// <summary>
+        /// Appends the provided paragraph to the end of this section in the document body.
+        /// </summary>
+        /// <param name="wordParagraph">Paragraph to append.</param>
+        internal void AppendParagraphToSection(WordParagraph wordParagraph) {
+            if (wordParagraph == null) {
+                throw new ArgumentNullException(nameof(wordParagraph));
+            }
+
+            if (wordParagraph._paragraph == null) {
+                throw new InvalidOperationException("Paragraph does not contain an OpenXml representation.");
+            }
+
+            if (wordParagraph._paragraph.Parent != null) {
+                wordParagraph._paragraph.Remove();
+            }
+            wordParagraph._document = _document;
+            AppendElementToSection(wordParagraph._paragraph);
+        }
+
+        private void AppendElementToSection(OpenXmlElement element) {
+            var body = _document._wordprocessingDocument?.MainDocumentPart?.Document?.Body
+                ?? throw new InvalidOperationException("Document body is missing.");
+
+            var insertBefore = GetNextSectionBoundaryElement();
+            if (insertBefore != null && insertBefore.Parent == body) {
+                body.InsertBefore(element, insertBefore);
+                return;
+            }
+
+            if (_sectionProperties.Parent == body) {
+                body.InsertBefore(element, _sectionProperties);
+                return;
+            }
+
+            body.Append(element);
+        }
+
+        private OpenXmlElement? GetNextSectionBoundaryElement() {
+            var sections = _document.Sections;
+            var currentIndex = sections.IndexOf(this);
+            if (currentIndex < 0) {
+                return null;
+            }
+
+            for (int i = currentIndex + 1; i < sections.Count; i++) {
+                var boundary = sections[i].GetSectionBoundaryElement();
+                if (boundary != null) {
+                    return boundary;
+                }
+            }
+
+            return null;
+        }
+
+        private OpenXmlElement? GetSectionBoundaryElement() {
+            if (_paragraph != null && _paragraph.Parent is Body) {
+                return _paragraph;
+            }
+
+            if (_sectionProperties.Parent is Body) {
+                return _sectionProperties;
+            }
+
+            if (_sectionProperties.Parent is ParagraphProperties paragraphProperties
+                && paragraphProperties.Parent is Paragraph paragraph
+                && paragraph.Parent is Body) {
+                return paragraph;
+            }
+
+            return null;
         }
 
         /// <summary>

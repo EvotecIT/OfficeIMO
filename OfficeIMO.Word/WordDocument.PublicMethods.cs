@@ -70,10 +70,13 @@ namespace OfficeIMO.Word {
             };
             newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
 
-            var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
-            body.Append(newWordParagraph._paragraph);
             var currentSection = this.Sections.LastOrDefault();
-            currentSection?.Paragraphs.Add(newWordParagraph);
+            if (currentSection != null) {
+                currentSection.AppendParagraphToSection(newWordParagraph);
+            } else {
+                var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
+                body.Append(newWordParagraph._paragraph);
+            }
             return newWordParagraph;
         }
 
