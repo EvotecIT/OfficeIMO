@@ -42,6 +42,20 @@ namespace OfficeIMO.Visio {
         internal double ToInches() => Value.ToInches(Unit);
 
         /// <summary>
+        /// Returns an equivalent scale expressed in a different measurement unit.
+        /// </summary>
+        /// <param name="targetUnit">Target measurement unit.</param>
+        internal VisioScaleSetting ConvertTo(VisioMeasurementUnit targetUnit) {
+            if (Unit == targetUnit) {
+                return this;
+            }
+
+            double inches = Value.ToInches(Unit);
+            double converted = inches.FromInches(targetUnit);
+            return new VisioScaleSetting(converted, targetUnit).Normalized();
+        }
+
+        /// <summary>
         /// Creates a scale value from an inch-based magnitude captured in the XML.
         /// </summary>
         internal static VisioScaleSetting FromInches(double valueInInches, string? unitCode, VisioMeasurementUnit fallbackUnit) {

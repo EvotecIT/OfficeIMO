@@ -132,7 +132,19 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public VisioMeasurementUnit ScaleMeasurementUnit {
             get => _scaleMeasurementUnit;
-            set => _scaleMeasurementUnit = value;
+            set {
+                if (!Enum.IsDefined(typeof(VisioMeasurementUnit), value)) {
+                    throw new ArgumentOutOfRangeException(nameof(value));
+                }
+
+                if (_scaleMeasurementUnit == value) {
+                    return;
+                }
+
+                VisioMeasurementUnit previous = _scaleMeasurementUnit;
+                _scaleMeasurementUnit = value;
+                NormalizeScaleOverrides(previous, value);
+            }
         }
 
         /// <summary>
@@ -140,8 +152,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public VisioScaleSetting PageScale {
             get {
-                VisioScaleSetting scale = _pageScaleOverride ?? VisioScaleSetting.FromUnit(ScaleMeasurementUnit);
-                return scale.Normalized();
+                return _pageScaleOverride ?? VisioScaleSetting.FromUnit(ScaleMeasurementUnit);
             }
             set => _pageScaleOverride = value.Normalized();
         }
@@ -151,8 +162,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public VisioScaleSetting DrawingScale {
             get {
-                VisioScaleSetting scale = _drawingScaleOverride ?? VisioScaleSetting.FromUnit(ScaleMeasurementUnit);
-                return scale.Normalized();
+                return _drawingScaleOverride ?? VisioScaleSetting.FromUnit(ScaleMeasurementUnit);
             }
             set => _drawingScaleOverride = value.Normalized();
         }
@@ -167,15 +177,9 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public void ResetDrawingScale() => _drawingScaleOverride = null;
 
-        internal VisioScaleSetting GetEffectivePageScale() {
-            VisioScaleSetting scale = _pageScaleOverride ?? VisioScaleSetting.FromUnit(ScaleMeasurementUnit);
-            return scale.Normalized();
-        }
+        internal VisioScaleSetting GetEffectivePageScale() => _pageScaleOverride ?? VisioScaleSetting.FromUnit(ScaleMeasurementUnit);
 
-        internal VisioScaleSetting GetEffectiveDrawingScale() {
-            VisioScaleSetting scale = _drawingScaleOverride ?? VisioScaleSetting.FromUnit(ScaleMeasurementUnit);
-            return scale.Normalized();
-        }
+        internal VisioScaleSetting GetEffectiveDrawingScale() => _drawingScaleOverride ?? VisioScaleSetting.FromUnit(ScaleMeasurementUnit);
 
         internal void ApplyLoadedPageScale(VisioScaleSetting scale) {
             ScaleMeasurementUnit = scale.Unit;
@@ -191,6 +195,16 @@ namespace OfficeIMO.Visio {
                 _drawingScaleOverride = null;
             } else {
                 _drawingScaleOverride = scale.Normalized();
+            }
+        }
+
+        private void NormalizeScaleOverrides(VisioMeasurementUnit previousUnit, VisioMeasurementUnit newUnit) {
+            if (_pageScaleOverride.HasValue && _pageScaleOverride.Value.Unit == previousUnit) {
+                _pageScaleOverride = _pageScaleOverride.Value.ConvertTo(newUnit);
+            }
+
+            if (_drawingScaleOverride.HasValue && _drawingScaleOverride.Value.Unit == previousUnit) {
+                _drawingScaleOverride = _drawingScaleOverride.Value.ConvertTo(newUnit);
             }
         }
 

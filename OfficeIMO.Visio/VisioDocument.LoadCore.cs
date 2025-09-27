@@ -91,32 +91,62 @@ namespace OfficeIMO.Visio {
                 page.ViewCenterY = ParseDouble(pageRef.Attribute("ViewCenterY")?.Value);
 
                 XElement? pageSheet = pageRef.Element(vNs + "PageSheet");
-                VisioScaleSetting? loadedPageScale = null;
-                VisioScaleSetting? loadedDrawingScale = null;
+                VisioMeasurementUnit? detectedScaleUnit = null;
+                VisioScaleSetting? pendingDrawingScale = null;
+                bool pageScaleApplied = false;
                 if (pageSheet != null) {
                     foreach (XElement cell in pageSheet.Elements(vNs + "Cell")) {
                         string? cellName = cell.Attribute("N")?.Value;
                         string? valueAttr = cell.Attribute("V")?.Value;
                         string? unitAttr = cell.Attribute("U")?.Value;
                         switch (cellName) {
+                            case "PageWidth":
+                                if (!detectedScaleUnit.HasValue) {
+                                    detectedScaleUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, page.ScaleMeasurementUnit);
+                                }
+                                break;
+                            case "PageHeight":
+                                if (!detectedScaleUnit.HasValue) {
+                                    detectedScaleUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, page.ScaleMeasurementUnit);
+                                }
+                                break;
                             case "PageScale":
                                 double pageScaleInches = ParseDouble(valueAttr);
-                                loadedPageScale = VisioScaleSetting.FromInches(pageScaleInches, unitAttr, page.ScaleMeasurementUnit);
+                                if (!double.IsNaN(pageScaleInches) && !double.IsInfinity(pageScaleInches) && pageScaleInches > 0) {
+                                    VisioMeasurementUnit fallbackUnit = detectedScaleUnit ?? page.ScaleMeasurementUnit;
+                                    VisioScaleSetting loadedPageScale = VisioScaleSetting.FromInches(pageScaleInches, unitAttr, fallbackUnit);
+                                    if (detectedScaleUnit.HasValue) {
+                                        page.DefaultUnit = detectedScaleUnit.Value;
+                                    }
+                                    page.ApplyLoadedPageScale(loadedPageScale);
+                                    pageScaleApplied = true;
+                                }
                                 break;
                             case "DrawingScale":
                                 double drawingScaleInches = ParseDouble(valueAttr);
-                                loadedDrawingScale = VisioScaleSetting.FromInches(drawingScaleInches, unitAttr, page.ScaleMeasurementUnit);
+                                if (!double.IsNaN(drawingScaleInches) && !double.IsInfinity(drawingScaleInches) && drawingScaleInches > 0) {
+                                    VisioMeasurementUnit drawingFallback = detectedScaleUnit ?? page.ScaleMeasurementUnit;
+                                    VisioScaleSetting loadedDrawingScale = VisioScaleSetting.FromInches(drawingScaleInches, unitAttr, drawingFallback);
+                                    if (pageScaleApplied) {
+                                        page.ApplyLoadedDrawingScale(loadedDrawingScale);
+                                    } else {
+                                        pendingDrawingScale = loadedDrawingScale;
+                                    }
+                                }
                                 break;
                         }
                     }
                 }
 
-                if (loadedPageScale.HasValue) {
-                    page.ApplyLoadedPageScale(loadedPageScale.Value);
+                if (!pageScaleApplied && detectedScaleUnit.HasValue) {
+                    page.DefaultUnit = detectedScaleUnit.Value;
+                    page.ScaleMeasurementUnit = detectedScaleUnit.Value;
+                } else if (detectedScaleUnit.HasValue) {
+                    page.DefaultUnit = detectedScaleUnit.Value;
                 }
 
-                if (loadedDrawingScale.HasValue) {
-                    page.ApplyLoadedDrawingScale(loadedDrawingScale.Value);
+                if (pendingDrawingScale.HasValue) {
+                    page.ApplyLoadedDrawingScale(pendingDrawingScale.Value);
                 }
 
                 string? relIdValue = pageRef.Element(vNs + "Rel")?.Attribute(relNs + "id")?.Value;
