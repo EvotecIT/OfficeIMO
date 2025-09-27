@@ -1,6 +1,8 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Reflection;
+using System.Linq;
 using System.Xml.Linq;
 using MathParagraph = DocumentFormat.OpenXml.Math.Paragraph;
 using OfficeMath = DocumentFormat.OpenXml.Math.OfficeMath;
@@ -270,7 +272,11 @@ namespace OfficeIMO.Word {
             if (wordParagraph is null) {
                 // we create paragraph (and within that add it to document)
                 wordParagraph = new WordParagraph(this._document, newParagraph: true, newRun: false);
+            } else {
+                EnsureParagraphCanBeInserted(this._document, this._paragraph, wordParagraph,
+                    "insert a paragraph after the current paragraph", this);
             }
+
             this._paragraph.InsertAfterSelf(wordParagraph._paragraph);
             return wordParagraph;
         }
@@ -306,11 +312,161 @@ namespace OfficeIMO.Word {
         /// <param name="paragraph">The optional paragraph to add the paragraph to.</param>
         /// <returns>The new WordParagraph</returns>
         public WordParagraph AddParagraphAfterSelf(WordSection section, WordParagraph? paragraph = null) {
+            if (!ReferenceEquals(section._document, this._document)) {
+                throw new InvalidOperationException("Cannot add a paragraph using a section from a different document.");
+            }
+
+            var currentSection = GetSectionPropertiesForElement(this._paragraph);
+            if (currentSection != null && !AreSectionsEquivalent(currentSection, section._sectionProperties)) {
+                throw new InvalidOperationException("The provided section does not match the section of the current paragraph.");
+            }
+
             if (paragraph is null) {
                 paragraph = new WordParagraph(section._document, true, false);
+            } else {
+                EnsureParagraphCanBeInserted(this._document, this._paragraph, paragraph,
+                    "insert a paragraph after the current paragraph", this);
             }
+
             this._paragraph.InsertAfterSelf(paragraph._paragraph);
             return paragraph;
+        }
+
+        internal static void EnsureParagraphCanBeInserted(WordDocument document, OpenXmlElement anchorElement, WordParagraph candidate, string operationDescription, WordParagraph? anchorParagraph = null) {
+            if (candidate is null) {
+                throw new ArgumentNullException(nameof(candidate));
+            }
+
+            if (candidate._document != null && !ReferenceEquals(candidate._document, document)) {
+                throw new InvalidOperationException($"Cannot {operationDescription} because the supplied paragraph belongs to a different document. Clone the paragraph or create it within the target document instead.");
+            }
+
+            if (candidate._document == null) {
+                candidate._document = document;
+            }
+
+            if (candidate._paragraph.Parent == null) {
+                return;
+            }
+
+            var anchorContainer = GetTopLevelContainer(anchorElement);
+            var candidateContainer = GetTopLevelContainer(candidate._paragraph);
+
+            if (!ReferenceEquals(anchorContainer, candidateContainer)) {
+                throw new InvalidOperationException($"Cannot {operationDescription} because the supplied paragraph resides in '{DescribeContainer(candidateContainer)}' while the target is in '{DescribeContainer(anchorContainer)}'. Provide a paragraph from the same section or clone it first.");
+            }
+
+            if (anchorContainer is Body) {
+                WordSection? anchorSection = anchorParagraph != null
+                    ? GetSectionForParagraph(document, anchorParagraph)
+                    : document.Sections.LastOrDefault();
+                WordSection? candidateSection = GetSectionForParagraph(document, candidate);
+
+                if (anchorSection != null && candidateSection != null) {
+                    if (!ReferenceEquals(anchorSection, candidateSection)) {
+                        throw new InvalidOperationException($"Cannot {operationDescription} because the supplied paragraph originates from a different section. Provide a paragraph from the same section or clone it first.");
+                    }
+                    return;
+                }
+
+                var anchorSectionProps = GetSectionPropertiesForElement(anchorElement);
+                var candidateSectionProps = GetSectionPropertiesForElement(candidate._paragraph);
+                if (!AreSectionsEquivalent(anchorSectionProps, candidateSectionProps)) {
+                    throw new InvalidOperationException($"Cannot {operationDescription} because the supplied paragraph originates from a different section. Provide a paragraph from the same section or clone it first.");
+                }
+            }
+        }
+
+        private static SectionProperties? GetSectionPropertiesForElement(OpenXmlElement element) {
+            var topLevel = GetTopLevelContainer(element);
+            if (topLevel is null) {
+                return null;
+            }
+
+            if (topLevel is Body bodyElement) {
+                return GetLastSectionProperties(bodyElement);
+            }
+
+            if (topLevel.Parent is Body body) {
+                var currentSection = GetLastSectionProperties(body);
+                foreach (var child in body.ChildElements) {
+                    if (ReferenceEquals(child, topLevel)) {
+                        return currentSection;
+                    }
+
+                    SectionProperties? discovered = child switch {
+                        Paragraph para => para.ParagraphProperties?.SectionProperties,
+                        SectionProperties sp => sp,
+                        _ => null
+                    };
+
+                    if (discovered != null) {
+                        currentSection = discovered;
+                    }
+                }
+
+                return currentSection;
+            }
+
+            return null;
+        }
+
+        private static SectionProperties? GetLastSectionProperties(Body body) {
+            SectionProperties? last = null;
+            foreach (var child in body.ChildElements) {
+                switch (child) {
+                    case Paragraph paragraph:
+                        var sp = paragraph.ParagraphProperties?.SectionProperties;
+                        if (sp != null) {
+                            last = sp;
+                        }
+                        break;
+                    case SectionProperties sectionProperties:
+                        last = sectionProperties;
+                        break;
+                }
+            }
+
+            return last ?? body.Elements<SectionProperties>().LastOrDefault();
+        }
+
+        private static OpenXmlElement? GetTopLevelContainer(OpenXmlElement element) {
+            OpenXmlElement? current = element;
+            while (current.Parent != null && current is not Body && current is not Header && current is not Footer) {
+                current = current.Parent;
+            }
+            return current;
+        }
+
+        private static bool AreSectionsEquivalent(SectionProperties? left, SectionProperties? right) {
+            if (left == null || right == null) {
+                return left == right;
+            }
+
+            return ReferenceEquals(left, right);
+        }
+
+        private static string DescribeContainer(OpenXmlElement? container) {
+            if (container is null) {
+                return "an unknown container";
+            }
+
+            return container switch {
+                Body => "the document body",
+                Header => "a document header",
+                Footer => "a document footer",
+                _ => container.GetType().Name
+            };
+        }
+
+        private static WordSection? GetSectionForParagraph(WordDocument document, WordParagraph paragraph) {
+            foreach (var section in document.Sections) {
+                if (section.Paragraphs.Any(p => ReferenceEquals(p._paragraph, paragraph._paragraph))) {
+                    return section;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
