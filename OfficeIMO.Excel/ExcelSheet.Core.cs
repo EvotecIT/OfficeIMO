@@ -24,6 +24,7 @@ namespace OfficeIMO.Excel {
         }
         private readonly UInt32Value _id;
         private readonly WorksheetPart _worksheetPart;
+        internal WorksheetPart WorksheetPart => _worksheetPart;
         private readonly SpreadsheetDocument _spreadSheetDocument;
         private readonly ExcelDocument _excelDocument;
         private bool _isBatchOperation = false;

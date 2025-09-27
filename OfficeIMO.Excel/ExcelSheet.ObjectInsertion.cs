@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Threading.Tasks;
-using System.Xml;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -196,15 +195,8 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void ValidateWorksheetXml() {
-            try {
-                using StringReader sr = new StringReader(_worksheetPart.Worksheet.OuterXml);
-                using XmlReader reader = XmlReader.Create(sr);
-                while (reader.Read()) { }
-            } catch (XmlException ex) {
-                throw new InvalidOperationException($"Worksheet XML is not well-formed after parallel write operation. {ex.Message}", ex);
-            }
-        }
+        private void ValidateWorksheetXml()
+            => WorksheetIntegrityValidator.Validate(_worksheetPart, EffectiveExecution, Name);
     }
 }
 
