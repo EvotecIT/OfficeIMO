@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -21,6 +23,18 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public int Columns => Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!.TableGrid!.Elements<A.GridColumn>()
             .Count();
+
+        /// <summary>
+        ///     Gets the width of each column in the table.
+        /// </summary>
+        public IReadOnlyList<long> ColumnWidths => Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!.TableGrid!
+            .Elements<A.GridColumn>().Select(column => column.Width?.Value ?? 0L).ToArray();
+
+        /// <summary>
+        ///     Gets the height of each row in the table.
+        /// </summary>
+        public IReadOnlyList<long> RowHeights => Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!
+            .Elements<A.TableRow>().Select(row => row.Height?.Value ?? 0L).ToArray();
 
         /// <summary>
         ///     Retrieves a cell at the specified row and column index.

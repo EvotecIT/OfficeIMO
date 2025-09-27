@@ -29,8 +29,34 @@
 
             File.Delete(filePath);
         }
-    }
 
+        [Fact]
+        public void AddTable_WithSingleRowAndColumn_UsesProvidedDimensions() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            const long tableWidth = 1_234_567L;
+            const long tableHeight = 765_432L;
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                slide.AddTable(1, 1, width: tableWidth, height: tableHeight);
+                presentation.Save();
+            }
+
+            using (PresentationDocument doc = PresentationDocument.Open(filePath, false)) {
+                A.Table table = doc.PresentationPart!.SlideParts.First().Slide.Descendants<A.Table>().First();
+
+                long[] columnWidths = table.TableGrid!.Elements<A.GridColumn>().Select(column => column.Width?.Value ?? 0L)
+                    .ToArray();
+                Assert.Single(columnWidths, tableWidth);
+
+                long[] rowHeights = table.Elements<A.TableRow>().Select(row => row.Height?.Value ?? 0L).ToArray();
+                Assert.Single(rowHeights, tableHeight);
+            }
+
+            File.Delete(filePath);
+        }
+    }
+}
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {

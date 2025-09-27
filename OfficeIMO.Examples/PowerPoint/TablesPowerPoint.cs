@@ -13,7 +13,9 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTable table = slide.AddTable(2, 2);
+            const long width = 5_000_000L;
+            const long height = 2_500_000L;
+            PowerPointTable table = slide.AddTable(2, 2, width: width, height: height);
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Hello";
             cell.FillColor = "FFFF00";
@@ -23,6 +25,9 @@ namespace OfficeIMO.Examples.PowerPoint {
             table.RemoveRow(2);
             table.RemoveColumn(2);
             presentation.Save();
+
+            Console.WriteLine($"    -> Table width distributed across columns: {string.Join(", ", table.ColumnWidths)}");
+            Console.WriteLine($"    -> Table height distributed across rows: {string.Join(", ", table.RowHeights)}");
         }
     }
 }
