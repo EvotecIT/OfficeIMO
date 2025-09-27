@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Pdf;
@@ -6,10 +7,8 @@ internal static class PdfSyntax {
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(2);
 #if NET8_0_OR_GREATER
     private static readonly Regex ObjRegex = new Regex(@"(\d+)\s+(\d+)\s+obj", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
-    private static readonly Regex StreamRegex = new Regex(@"<<(.*?)>>\s*stream\r?\n([\s\S]*?)\r?\nendstream", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.NonBacktracking, RegexTimeout);
 #else
     private static readonly Regex ObjRegex = new Regex(@"(\d+)\s+(\d+)\s+obj", RegexOptions.Compiled, RegexTimeout);
-    private static readonly Regex StreamRegex = new Regex(@"<<(.*?)>>\s*stream\r?\n([\s\S]*?)\r?\nendstream", RegexOptions.Compiled | RegexOptions.Singleline, RegexTimeout);
 #endif
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf) {
@@ -22,29 +21,43 @@ internal static class PdfSyntax {
             int start = matches[i].Index;
             int end = (i + 1 < matches.Count) ? matches[i + 1].Index : text.Length;
             string body = text.Substring(start, end - start);
-            var m = StreamRegex.Match(body);
-            if (m.Success) {
-                var dict = ParseDictionary(m.Groups[1].Value);
-                var data = PdfEncoding.Latin1GetBytes(m.Groups[2].Value);
-                // Handle FlateDecode (best-effort, zero-dep)
-                if (HasFlateDecode(dict)) {
-                    try { data = Filters.FlateDecoder.Decode(data); } catch (Exception ex) {
-                        // Provide failure feedback while keeping original bytes
-                        System.Diagnostics.Trace.WriteLine($"OfficeIMO.Pdf: FlateDecode failed for object {id} {gen} R: {ex.Message}");
-                        map[id] = new PdfIndirectObject(id, gen, new PdfStream(dict, data, decodingFailed: true, error: ex.Message));
+            if (TryExtractDictionary(body, out var dictText, out _, out int dictEnd)) {
+                var dict = ParseDictionary(dictText);
+                int streamIdx = IndexOfKeyword(body, "stream", dictEnd);
+                if (streamIdx >= 0) {
+                    int dataStart = streamIdx + "stream".Length;
+                    // Skip optional whitespace before the newline separating the stream keyword and data
+                    while (dataStart < body.Length && (body[dataStart] == ' ' || body[dataStart] == '\t')) dataStart++;
+                    if (dataStart < body.Length && body[dataStart] == '\r') {
+                        dataStart++;
+                        if (dataStart < body.Length && body[dataStart] == '\n') dataStart++;
+                    } else if (dataStart < body.Length && body[dataStart] == '\n') {
+                        dataStart++;
+                    }
+
+                    int endStreamIdx = IndexOfKeyword(body, "endstream", dataStart);
+                    if (endStreamIdx >= 0) {
+                        int dataEnd = endStreamIdx;
+                        // Trim trailing newline characters before endstream to mirror previous regex behaviour
+                        while (dataEnd > dataStart && (body[dataEnd - 1] == '\r' || body[dataEnd - 1] == '\n')) dataEnd--;
+
+                        string streamText = dataEnd > dataStart ? body.Substring(dataStart, dataEnd - dataStart) : string.Empty;
+                        var data = PdfEncoding.Latin1GetBytes(streamText);
+                        // Handle FlateDecode (best-effort, zero-dep)
+                        if (HasFlateDecode(dict)) {
+                            try { data = Filters.FlateDecoder.Decode(data); } catch (Exception ex) {
+                                // Provide failure feedback while keeping original bytes
+                                System.Diagnostics.Trace.WriteLine($"OfficeIMO.Pdf: FlateDecode failed for object {id} {gen} R: {ex.Message}");
+                                map[id] = new PdfIndirectObject(id, gen, new PdfStream(dict, data, decodingFailed: true, error: ex.Message));
+                                continue;
+                            }
+                        }
+                        map[id] = new PdfIndirectObject(id, gen, new PdfStream(dict, data));
                         continue;
                     }
                 }
-                map[id] = new PdfIndirectObject(id, gen, new PdfStream(dict, data));
-            } else {
-                // Try dictionary only
-                int dictStart = body.IndexOf("<<", StringComparison.Ordinal);
-                int dictEnd = body.IndexOf(">>", dictStart + 2, StringComparison.Ordinal);
-                if (dictStart >= 0 && dictEnd > dictStart) {
-                    string dictText = body.Substring(dictStart + 2, dictEnd - (dictStart + 2));
-                    var dict = ParseDictionary(dictText);
-                    map[id] = new PdfIndirectObject(id, gen, dict);
-                }
+
+                map[id] = new PdfIndirectObject(id, gen, dict);
             }
         }
         int trailerIdx = text.LastIndexOf("trailer", StringComparison.OrdinalIgnoreCase);
@@ -87,6 +100,10 @@ internal static class PdfSyntax {
                 j += used + 1;
             }
             return (arr, j - i);
+        }
+        if (tok == "<<") {
+            var (dict, consumed) = ParseDictionaryTokens(tokens, i);
+            return (dict, consumed);
         }
         if (tok.Length > 0 && tok[0] == '/') return (new PdfName(tok.Substring(1)), 0);
         if (tok.Length > 0 && tok[0] == '(') return (new PdfStringObj(Unescape(tok.Substring(1, tok.Length - 2))), 0);
@@ -138,4 +155,121 @@ internal static class PdfSyntax {
     }
 
     private static string Unescape(string s) => PdfTextExtractor.UnescapePdfLiteral(s);
+
+    private static (PdfDictionary Dict, int Consumed) ParseDictionaryTokens(List<string> tokens, int start) {
+        var dict = new PdfDictionary();
+        int depth = 1;
+        int i = start + 1;
+        while (i < tokens.Count) {
+            string token = tokens[i];
+            if (token == ">>") {
+                depth--;
+                if (depth == 0) return (dict, i - start);
+                i++;
+                continue;
+            }
+            if (token == "<<") {
+                depth++;
+                i++;
+                continue;
+            }
+            if (token.Length > 0 && token[0] == '/') {
+                string key = token.Substring(1);
+                if (i + 1 < tokens.Count) {
+                    if (tokens[i + 1] == "<<") depth++;
+                    var (value, used) = ParseObject(tokens, i + 1);
+                    dict.Items[key] = value;
+                    i += used + 1;
+                    continue;
+                }
+            }
+            i++;
+        }
+        return (dict, Math.Max(0, tokens.Count - start - 1));
+    }
+
+    private static bool TryExtractDictionary(string text, out string dictText, out int dictStart, out int dictEnd) {
+        dictText = string.Empty;
+        dictStart = -1;
+        dictEnd = -1;
+
+        int candidate = text.IndexOf("<<", StringComparison.Ordinal);
+        if (candidate < 0) return false;
+
+        int depth = 0;
+        bool inString = false;
+        int stringDepth = 0;
+        bool inHexString = false;
+        bool inComment = false;
+
+        for (int i = candidate; i < text.Length; i++) {
+            char c = text[i];
+            char next = i + 1 < text.Length ? text[i + 1] : '\0';
+
+            if (inComment) {
+                if (c == '\r' || c == '\n') inComment = false;
+                continue;
+            }
+
+            if (inString) {
+                if (c == '\\') { i++; continue; }
+                if (c == '(') { stringDepth++; continue; }
+                if (c == ')') {
+                    stringDepth--;
+                    if (stringDepth <= 0) { inString = false; stringDepth = 0; }
+                }
+                continue;
+            }
+
+            if (inHexString) {
+                if (c == '>') inHexString = false;
+                continue;
+            }
+
+            if (c == '%') { inComment = true; continue; }
+
+            if (c == '(') { inString = true; stringDepth = 1; continue; }
+
+            if (c == '<') {
+                if (next == '<') {
+                    if (depth == 0) dictStart = i;
+                    depth++;
+                    i++; // Skip next '<'
+                    continue;
+                }
+                inHexString = true;
+                continue;
+            }
+
+            if (c == '>' && next == '>') {
+                depth--;
+                if (depth == 0) {
+                    int contentStart = dictStart + 2;
+                    int contentLength = i - contentStart;
+                    if (contentLength < 0) contentLength = 0;
+                    dictText = contentLength > 0 ? text.Substring(contentStart, contentLength) : string.Empty;
+                    dictEnd = i + 2;
+                    return true;
+                }
+                i++;
+                continue;
+            }
+        }
+
+        return false;
+    }
+
+    private static int IndexOfKeyword(string text, string keyword, int startIndex) {
+        int idx = startIndex < 0 ? -1 : startIndex;
+        while (idx >= 0 && idx < text.Length) {
+            idx = text.IndexOf(keyword, idx, StringComparison.Ordinal);
+            if (idx < 0) break;
+            bool beforeOk = idx == 0 || char.IsWhiteSpace(text[idx - 1]) || text[idx - 1] == '>';
+            int afterIndex = idx + keyword.Length;
+            bool afterOk = afterIndex >= text.Length || char.IsWhiteSpace(text[afterIndex]) || text[afterIndex] == '\r' || text[afterIndex] == '\n';
+            if (beforeOk && afterOk) return idx;
+            idx = afterIndex;
+        }
+        return -1;
+    }
 }
