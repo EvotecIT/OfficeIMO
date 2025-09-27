@@ -62,7 +62,10 @@ namespace OfficeIMO.Tests {
             }
 
             var issues = VisioValidator.Validate(filePath);
-            Assert.Contains(issues, issue => issue.Contains("Page ID 1 (Page-2)") && issue.Contains("page2.xml") && issue.Contains("missing", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(issues, issue =>
+                issue.Contains("Page ID 1 (Page-2)") &&
+                issue.Contains("page2.xml") &&
+                issue.IndexOf("missing", StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
         [Fact]
@@ -98,7 +101,9 @@ namespace OfficeIMO.Tests {
             }
 
             var issues = VisioValidator.Validate(filePath);
-            Assert.Contains(issues, issue => issue.Contains("Page ID 1 (Page-2)") && issue.Contains("Missing Override", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(issues, issue =>
+                issue.Contains("Page ID 1 (Page-2)") &&
+                issue.IndexOf("Missing Override", StringComparison.OrdinalIgnoreCase) >= 0);
             Assert.DoesNotContain(issues, issue => issue.Contains("Page ID 0 (Page-1)"));
         }
     }
