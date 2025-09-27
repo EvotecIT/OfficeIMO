@@ -59,9 +59,9 @@ internal static partial class PdfWriter {
                     int imgLen = img.Data.Length;
                     int imgId = AddObject(objects, "<< /Type /XObject /Subtype /Image /Width " + F0(img.W) + " /Height " + F0(img.H) + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + imgLen.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
                     objects[imgId - 1] = Merge(
-                        Encoding.ASCII.GetBytes(imgId.ToString(CultureInfo.InvariantCulture) + " 0 obj\n<< /Type /XObject /Subtype /Image /Width " + F0(img.W) + " /Height " + F0(img.H) + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + imgLen.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n"),
+                        PdfEncoding.Latin1GetBytes(imgId.ToString(CultureInfo.InvariantCulture) + " 0 obj\n<< /Type /XObject /Subtype /Image /Width " + F0(img.W) + " /Height " + F0(img.H) + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + imgLen.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n"),
                         img.Data,
-                        Encoding.ASCII.GetBytes("\nendstream\nendobj\n")
+                        PdfEncoding.Latin1GetBytes("\nendstream\nendobj\n")
                     );
                     img.ObjectId = imgId;
                     img.Name = name;
@@ -81,15 +81,15 @@ internal static partial class PdfWriter {
                 string footer = BuildFooter(pageOpts, pageIndex + 1, totalPages);
                 contentStr += footer;
             }
-            byte[] content = Encoding.ASCII.GetBytes(contentStr);
+            byte[] content = PdfEncoding.Latin1GetBytes(contentStr);
             int contentId = AddObject(objects, "<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
             // Append raw content bytes + endstream/endobj
             // We'll append extra to the last object content after we compute indices; here we simply merge bytes.
             // For simplicity, rebuild the last object with full content now.
             objects[contentId - 1] = Merge(
-                Encoding.ASCII.GetBytes(contentId.ToString(CultureInfo.InvariantCulture) + " 0 obj\n<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n"),
+                PdfEncoding.Latin1GetBytes(contentId.ToString(CultureInfo.InvariantCulture) + " 0 obj\n<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n"),
                 content,
-                Encoding.ASCII.GetBytes("\nendstream\nendobj\n")
+                PdfEncoding.Latin1GetBytes("\nendstream\nendobj\n")
             );
             contentIds.Add(contentId);
 
@@ -121,9 +121,9 @@ internal static partial class PdfWriter {
         // Fix Parent references in each page now that we know pagesId.
         for (int i = 0; i < pageIds.Count; i++) {
             int pageId = pageIds[i];
-            string original = Encoding.ASCII.GetString(objects[pageId - 1]);
+            string original = PdfEncoding.Latin1GetString(objects[pageId - 1]);
             string fixedObj = original.Replace("/Parent 0 0 R", "/Parent " + pagesId.ToString(CultureInfo.InvariantCulture) + " 0 R");
-            objects[pageId - 1] = Encoding.ASCII.GetBytes(fixedObj);
+            objects[pageId - 1] = PdfEncoding.Latin1GetBytes(fixedObj);
         }
 
         // Catalog
@@ -140,7 +140,7 @@ internal static partial class PdfWriter {
 
         // Assemble final PDF
         using var ms = new MemoryStream();
-        var header = Encoding.ASCII.GetBytes("%PDF-1.4\n%\u00e2\u00e3\u00cf\u00d3\n"); // binary line ensures binary file
+        var header = PdfEncoding.Latin1GetBytes("%PDF-1.4\n%\u00e2\u00e3\u00cf\u00d3\n"); // binary line ensures binary file
         ms.Write(header, 0, header.Length);
 
         // Write objects and record offsets
@@ -152,19 +152,25 @@ internal static partial class PdfWriter {
         }
 
         long xrefPos = ms.Position;
-        var sw = new StreamWriter(ms, Encoding.ASCII, 1024, leaveOpen: true) { NewLine = "\n" };
-        sw.WriteLine("xref");
-        sw.WriteLine("0 " + (objects.Count + 1).ToString(CultureInfo.InvariantCulture));
-        sw.WriteLine("0000000000 65535 f ");
-        for (int i = 1; i <= objects.Count; i++) {
-            sw.WriteLine(offsets[i].ToString("0000000000", CultureInfo.InvariantCulture) + " 00000 n ");
+        void WriteLatin1(string text) {
+            var bytes = PdfEncoding.Latin1GetBytes(text);
+            ms.Write(bytes, 0, bytes.Length);
         }
-        sw.WriteLine("trailer");
-        sw.WriteLine("<< /Size " + (objects.Count + 1).ToString(CultureInfo.InvariantCulture) + " /Root " + catalogId.ToString(CultureInfo.InvariantCulture) + " 0 R /Info " + infoId.ToString(CultureInfo.InvariantCulture) + " 0 R >>");
-        sw.WriteLine("startxref");
-        sw.WriteLine(xrefPos.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        sw.WriteLine("%%EOF");
-        sw.Flush();
+        void WriteLatin1Line(string text) {
+            WriteLatin1(text);
+            ms.WriteByte((byte)'\n');
+        }
+        WriteLatin1Line("xref");
+        WriteLatin1Line("0 " + (objects.Count + 1).ToString(CultureInfo.InvariantCulture));
+        WriteLatin1Line("0000000000 65535 f ");
+        for (int i = 1; i <= objects.Count; i++) {
+            WriteLatin1Line(offsets[i].ToString("0000000000", CultureInfo.InvariantCulture) + " 00000 n ");
+        }
+        WriteLatin1Line("trailer");
+        WriteLatin1Line("<< /Size " + (objects.Count + 1).ToString(CultureInfo.InvariantCulture) + " /Root " + catalogId.ToString(CultureInfo.InvariantCulture) + " 0 R /Info " + infoId.ToString(CultureInfo.InvariantCulture) + " 0 R >>");
+        WriteLatin1Line("startxref");
+        WriteLatin1Line(xrefPos.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        WriteLatin1Line("%%EOF");
 
         return ms.ToArray();
     }

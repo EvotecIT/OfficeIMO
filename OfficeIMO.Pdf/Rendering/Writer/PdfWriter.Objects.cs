@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private static int AddObject(System.Collections.Generic.List<byte[]> list, string body) {
         int id = list.Count + 1;
-        var bytes = Encoding.ASCII.GetBytes(id.ToString(CultureInfo.InvariantCulture) + " 0 obj\n" + body + "endobj\n");
+        var bytes = PdfEncoding.Latin1GetBytes(id.ToString(CultureInfo.InvariantCulture) + " 0 obj\n" + body + "endobj\n");
         list.Add(bytes);
         return id;
     }
