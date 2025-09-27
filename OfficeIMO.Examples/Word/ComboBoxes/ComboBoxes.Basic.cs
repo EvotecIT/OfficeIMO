@@ -9,7 +9,8 @@ namespace OfficeIMO.Examples.Word {
             string filePath = Path.Combine(folderPath, "DocumentWithComboBox.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var items = new[] { "One", "Two", "Three" };
-                document.AddParagraph("Choose:").AddComboBox(items, "Combo", "ComboTag");
+                var comboBox = document.AddParagraph("Choose:").AddComboBox(items, "Combo", "ComboTag", defaultValue: "Two");
+                Console.WriteLine($"Default selection: {comboBox.SelectedValue}");
                 document.Save(openWord);
             }
         }

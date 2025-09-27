@@ -6,6 +6,12 @@ namespace OfficeIMO.Word {
     /// Represents a checkbox content control within a paragraph.
     /// </summary>
     public class WordCheckBox : WordElement {
+        internal const string SymbolFont = "MS Gothic";
+        internal const string CheckedSymbol = "☑";
+        internal const string UncheckedSymbol = "☐";
+        internal const string CheckedStateValue = "2611";
+        internal const string UncheckedStateValue = "2610";
+
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
         internal readonly SdtRun _sdtRun;
@@ -35,6 +41,8 @@ namespace OfficeIMO.Word {
                     }
                     ch.Val = value ? W14.OnOffValues.One : W14.OnOffValues.Zero;
                 }
+
+                UpdateSymbol(value);
             }
         }
 
@@ -73,6 +81,41 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void Remove() {
             _sdtRun.Remove();
+        }
+
+        private void UpdateSymbol(bool isChecked) {
+            var content = _sdtRun.SdtContentRun;
+            if (content == null) {
+                content = new SdtContentRun();
+                _sdtRun.Append(content);
+            }
+
+            var run = content.Elements<Run>().FirstOrDefault();
+            if (run == null) {
+                run = new Run();
+                content.Append(run);
+            }
+
+            var runProperties = run.RunProperties ?? (run.RunProperties = new RunProperties());
+            var fonts = runProperties.Elements<RunFonts>().FirstOrDefault();
+            if (fonts == null) {
+                fonts = new RunFonts();
+                runProperties.Append(fonts);
+            }
+
+            fonts.Ascii = SymbolFont;
+            fonts.HighAnsi = SymbolFont;
+            fonts.EastAsia = SymbolFont;
+            fonts.ComplexScript = SymbolFont;
+
+            var text = run.Elements<Text>().FirstOrDefault();
+            if (text == null) {
+                text = new Text();
+                run.Append(text);
+            }
+
+            text.Text = isChecked ? CheckedSymbol : UncheckedSymbol;
+            text.Space = SpaceProcessingModeValues.Preserve;
         }
     }
 }

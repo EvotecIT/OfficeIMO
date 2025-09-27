@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -27,6 +30,59 @@ namespace OfficeIMO.Word {
                         .ToList();
                 }
                 return new List<string>();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the currently selected value displayed by the combo box.
+        /// </summary>
+        public string? SelectedValue {
+            get {
+                var combo = _sdtRun.SdtProperties?.Elements<SdtContentComboBox>()?.FirstOrDefault();
+                var lastValue = combo?.LastValue?.Value;
+                if (!string.IsNullOrEmpty(lastValue)) {
+                    return lastValue;
+                }
+
+                var text = _sdtRun.SdtContentRun?.Descendants<Text>().FirstOrDefault();
+                return text?.Text;
+            }
+            set {
+                var combo = _sdtRun.SdtProperties?.Elements<SdtContentComboBox>()?.FirstOrDefault();
+                if (combo == null) {
+                    throw new InvalidOperationException("Combo box properties are missing from the structured document tag.");
+                }
+
+                if (!string.IsNullOrEmpty(value)) {
+                    var allowedValues = combo.Elements<ListItem>()
+                        .Select(li => li.Value?.Value ?? li.DisplayText?.Value ?? string.Empty)
+                        .ToList();
+
+                    if (!allowedValues.Contains(value!)) {
+                        throw new ArgumentException("The selected combo box value must match one of the provided items.", nameof(value));
+                    }
+
+                    combo.LastValue = value;
+                } else {
+                    combo.LastValue = null;
+                }
+
+                var content = _sdtRun.SdtContentRun ?? (_sdtRun.SdtContentRun = new SdtContentRun());
+
+                var run = content.Elements<Run>().FirstOrDefault();
+                if (run == null) {
+                    run = new Run();
+                    content.Append(run);
+                }
+
+                var text = run.Elements<Text>().FirstOrDefault();
+                if (text == null) {
+                    text = new Text();
+                    run.Append(text);
+                }
+
+                text.Text = value ?? string.Empty;
+                text.Space = SpaceProcessingModeValues.Preserve;
             }
         }
 
