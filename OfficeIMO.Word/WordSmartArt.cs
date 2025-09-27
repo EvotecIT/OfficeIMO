@@ -499,6 +499,9 @@ namespace OfficeIMO.Word {
                 var uid = part.LayoutDefinition.UniqueId?.Value ?? string.Empty;
                 if (uid.EndsWith("/layout/cycle2")) return SmartArtType.Cycle;
                 if (uid.EndsWith("/layout/default")) return SmartArtType.BasicProcess;
+                if (uid.EndsWith("/layout/hierarchy1")) return SmartArtType.Hierarchy;
+                if (uid.EndsWith("/layout/pictureorgchart")) return SmartArtType.PictureOrgChart;
+                if (uid.EndsWith("/layout/process6") || uid.EndsWith("/layout/continuousblockprocess")) return SmartArtType.ContinuousBlockProcess;
                 return null;
             } catch { return null; }
         }

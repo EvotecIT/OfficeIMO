@@ -1,0 +1,45 @@
+using DocumentFormat.OpenXml.Packaging;
+using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
+
+namespace OfficeIMO.Word.SmartArt.Templates {
+    /// Minimal strongly-typed Layout for Continuous Block Process SmartArt.
+    internal static class SmartArtContinuousBlockProcessLayout {
+        internal static void PopulateLayout(DiagramLayoutDefinitionPart part) {
+            var layout = new Dgm.LayoutDefinition { UniqueId = "urn:microsoft.com/office/officeart/2005/8/layout/process6" };
+            layout.AddNamespaceDeclaration("dgm", "http://schemas.openxmlformats.org/drawingml/2006/diagram");
+            layout.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");
+
+            layout.Append(new Dgm.Title { Val = "" });
+            layout.Append(new Dgm.Description { Val = "" });
+
+            var cats = new Dgm.CategoryList();
+            cats.Append(new Dgm.Category { Type = "process", Priority = (UInt32Value)800U });
+            layout.Append(cats);
+
+            var layoutNode = new Dgm.LayoutNode { Name = "continuousBlockProcess" };
+
+            var shape = new Dgm.Shape { Blip = "" };
+            shape.AddNamespaceDeclaration("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+            shape.Append(new Dgm.AdjustList());
+            layoutNode.Append(shape);
+
+            var forEach = new Dgm.ForEach {
+                Name = "nodes",
+                Axis = new ListValue<EnumValue<Dgm.AxisValues>> { InnerText = "ch" },
+                PointType = new ListValue<EnumValue<Dgm.ElementValues>> { InnerText = "node" }
+            };
+
+            var node = new Dgm.LayoutNode { Name = "node" };
+            var nodeShape = new Dgm.Shape { Type = "roundRect", Blip = "" };
+            nodeShape.AddNamespaceDeclaration("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+            nodeShape.Append(new Dgm.AdjustList());
+            node.Append(nodeShape);
+
+            forEach.Append(node);
+            layoutNode.Append(forEach);
+
+            layout.Append(layoutNode);
+            part.LayoutDefinition = layout;
+        }
+    }
+}
