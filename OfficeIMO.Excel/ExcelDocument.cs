@@ -923,29 +923,35 @@ namespace OfficeIMO.Excel {
             cancellationToken.ThrowIfCancellationRequested();
 
             var payload = PreparePackageForSave(options, cancellationToken);
+            var originalFilePath = FilePath;
 
-            using (var fs = new FileStream(target, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 8192, FileOptions.Asynchronous)) {
-                await fs.WriteAsync(payload.PackageBytes, 0, payload.PackageBytes.Length, cancellationToken).ConfigureAwait(false);
-                await fs.FlushAsync(cancellationToken).ConfigureAwait(false);
-            }
-
-            try { payload.Properties.ApplyTo(target); } catch { }
-            cancellationToken.ThrowIfCancellationRequested();
-            try { ExcelPackageUtilities.NormalizeContentTypes(target); } catch { }
-            FilePath = target;
-
-            var fileBytes = await ReadAllBytesCompatAsync(target, cancellationToken).ConfigureAwait(false);
-            ReloadFromBytes(fileBytes);
-
-            if (openExcel) {
-                Open(filePath, true);
-            }
-
-            if (options?.ValidateOpenXml == true) {
-                var errors = ValidateOpenXml();
-                if (errors.Count > 0) {
-                    throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+            try {
+                using (var fs = new FileStream(target, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 8192, FileOptions.Asynchronous)) {
+                    await fs.WriteAsync(payload.PackageBytes, 0, payload.PackageBytes.Length, cancellationToken).ConfigureAwait(false);
+                    await fs.FlushAsync(cancellationToken).ConfigureAwait(false);
                 }
+
+                try { payload.Properties.ApplyTo(target); } catch { }
+                cancellationToken.ThrowIfCancellationRequested();
+                try { ExcelPackageUtilities.NormalizeContentTypes(target); } catch { }
+                FilePath = target;
+
+                var fileBytes = await ReadAllBytesCompatAsync(target, cancellationToken).ConfigureAwait(false);
+                ReloadFromBytes(fileBytes);
+
+                if (openExcel) {
+                    Open(filePath, true);
+                }
+
+                if (options?.ValidateOpenXml == true) {
+                    var errors = ValidateOpenXml();
+                    if (errors.Count > 0) {
+                        throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+                    }
+                }
+            } catch (OperationCanceledException) {
+                RestoreWorkbookAfterCancelledSave(payload, originalFilePath);
+                throw;
             }
         }
 
@@ -1004,18 +1010,25 @@ namespace OfficeIMO.Excel {
             cancellationToken.ThrowIfCancellationRequested();
 
             var payload = PreparePackageForSave(options, cancellationToken);
+            var originalFilePath = FilePath;
             var withProperties = payload.Properties.ApplyTo(payload.PackageBytes);
             var finalizedBytes = NormalizePackageBytes(withProperties);
-            await destination.WriteAsync(finalizedBytes, 0, finalizedBytes.Length, cancellationToken).ConfigureAwait(false);
-            try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
 
-            ReloadFromBytes(finalizedBytes);
+            try {
+                await destination.WriteAsync(finalizedBytes, 0, finalizedBytes.Length, cancellationToken).ConfigureAwait(false);
+                try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
 
-            if (options?.ValidateOpenXml == true) {
-                var errors = ValidateOpenXml();
-                if (errors.Count > 0) {
-                    throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+                ReloadFromBytes(finalizedBytes);
+
+                if (options?.ValidateOpenXml == true) {
+                    var errors = ValidateOpenXml();
+                    if (errors.Count > 0) {
+                        throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+                    }
                 }
+            } catch (OperationCanceledException) {
+                RestoreWorkbookAfterCancelledSave(payload, originalFilePath);
+                throw;
             }
         }
 
@@ -1035,6 +1048,18 @@ namespace OfficeIMO.Excel {
         /// <param name="cancellationToken">Cancellation token.</param>
         public Task SaveAsync(bool openExcel, CancellationToken cancellationToken = default) {
             return SaveAsync("", openExcel, cancellationToken);
+        }
+
+        private void RestoreWorkbookAfterCancelledSave(SavePayload payload, string originalFilePath) {
+            try {
+                var withProperties = payload.Properties.ApplyTo(payload.PackageBytes);
+                var finalizedBytes = NormalizePackageBytes(withProperties);
+                ReloadFromBytes(finalizedBytes);
+            } catch {
+                // best effort - if restoration fails we still propagate the cancellation
+            }
+
+            FilePath = originalFilePath;
         }
 
         private SavePayload PreparePackageForSave(ExcelSaveOptions? options, CancellationToken cancellationToken) {

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Excel;
@@ -70,6 +71,53 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.False(File.Exists(destinationPath));
+
+            if (File.Exists(sourcePath)) {
+                File.Delete(sourcePath);
+            }
+        }
+
+        [Fact]
+        public async Task Test_ExcelSaveAsync_CancellationRestoresWorkbookState() {
+            var sourcePath = Path.Combine(_directoryWithFiles, "AsyncExcelCancelRestoreSource.xlsx");
+            if (File.Exists(sourcePath)) File.Delete(sourcePath);
+
+            var destinationPath = Path.Combine(_directoryWithFiles, "AsyncExcelCancelRestoreDestination.xlsx");
+            if (File.Exists(destinationPath)) File.Delete(destinationPath);
+
+            await using (var document = ExcelDocument.Create(sourcePath)) {
+                document.AddWorkSheet("Sheet1");
+                var sheet = document.Sheets[0];
+                var seedData = Enumerable.Range(0, 200)
+                    .Select(i => (Row: i + 1, Column: 1, Value: (object)$"Value {i + 1}"));
+                sheet.SetCellValues(seedData);
+
+                using var cts = new CancellationTokenSource();
+                var saveTask = document.SaveAsync(destinationPath, openExcel: false, cancellationToken: cts.Token);
+
+                for (int i = 0; i < 200 && !File.Exists(destinationPath); i++) {
+                    await Task.Delay(10);
+                }
+
+                Assert.True(File.Exists(destinationPath));
+
+                cts.Cancel();
+
+                await Assert.ThrowsAsync<OperationCanceledException>(() => saveTask);
+
+                Assert.NotEmpty(document.Sheets);
+
+                var refreshedSheet = document.Sheets[0];
+                refreshedSheet.SetCellValues(new[] { (Row: 1, Column: 2, Value: (object)"Still editable") });
+
+                using var verificationStream = new MemoryStream();
+                await document.SaveAsync(verificationStream);
+                Assert.True(verificationStream.Length > 0);
+            }
+
+            if (File.Exists(destinationPath)) {
+                File.Delete(destinationPath);
+            }
 
             if (File.Exists(sourcePath)) {
                 File.Delete(sourcePath);
