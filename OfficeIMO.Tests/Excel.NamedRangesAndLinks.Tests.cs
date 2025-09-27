@@ -10,6 +10,19 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class ExcelNamedRangesAndLinksTests {
         [Fact]
+        public void NamedRange_SingleCellReferenceDoesNotThrow() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                doc.AddWorkSheet("Data");
+                var exception = Record.Exception(() =>
+                    doc.SetNamedRange("Single", "A1", save: false, hidden: false, validationMode: NameValidationMode.Sanitize));
+                Assert.Null(exception);
+                Assert.Equal("$A$1", doc.GetNamedRange("Single"));
+            }
+            File.Delete(path);
+        }
+
+        [Fact]
         public void NamedRange_SanitizeClampsOutOfBounds() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {

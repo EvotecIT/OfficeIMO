@@ -308,22 +308,17 @@ namespace OfficeIMO.Excel {
             }
 
             int r1, c1, r2, c2;
-            try {
-                (r1, c1, r2, c2) = A1.ParseRange(a1);
-            } catch (ArgumentException ex) {
-                if (a1.Contains(':')) {
-                    throw new ArgumentException("Range must be a valid A1 reference such as 'A1:B2'.", nameof(range), ex);
+            if (!A1.TryParseRange(a1, out r1, out c1, out r2, out c2)) {
+                bool containsColon = a1.IndexOf(':') >= 0;
+                var cell = A1.ParseCellRef(a1);
+                if (cell.Row <= 0 || cell.Col <= 0) {
+                    string message = containsColon
+                        ? "Range must be a valid A1 reference such as 'A1:B2'."
+                        : "Range must be a valid A1 reference such as 'A1' or 'A1:B2'.";
+                    throw new ArgumentException(message, nameof(range));
                 }
-                try {
-                    var cell = A1.ParseCellRef(a1);
-                    if (cell.Row <= 0 || cell.Col <= 0) {
-                        throw new ArgumentException("Range must be a valid A1 reference such as 'A1'.", nameof(range), ex);
-                    }
-                    r1 = r2 = cell.Row;
-                    c1 = c2 = cell.Col;
-                } catch (ArgumentException) {
-                    throw new ArgumentException("Range must be a valid A1 reference such as 'A1' or 'A1:B2'.", nameof(range), ex);
-                }
+                r1 = r2 = cell.Row;
+                c1 = c2 = cell.Col;
             }
 
             // Bounds check: Excel supports 1..1,048,576 rows and 1..16,384 columns (XFD)
