@@ -272,8 +272,18 @@ namespace OfficeIMO.Visio {
         private static void WritePageCell(XmlWriter writer, string ns, string name, double value, string? unit = null, string? formula = null) {
             writer.WriteStartElement("Cell", ns);
             writer.WriteAttributeString("N", name);
-            writer.WriteAttributeString("V", XmlConvert.ToString(value));
-            if (unit != null) writer.WriteAttributeString("U", unit);
+
+            bool isMillimeters = string.Equals(unit, "MM", StringComparison.OrdinalIgnoreCase);
+            double serializedValue = isMillimeters
+                ? Math.Round(value * 25.4, 8, MidpointRounding.AwayFromZero)
+                : value;
+
+            writer.WriteAttributeString("V", ToVisioString(serializedValue));
+
+            if (!string.IsNullOrEmpty(unit)) {
+                writer.WriteAttributeString("U", isMillimeters ? "MM" : unit);
+            }
+
             if (formula != null) writer.WriteAttributeString("F", formula);
             writer.WriteEndElement();
         }
