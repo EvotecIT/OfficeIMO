@@ -1,7 +1,10 @@
 using System.IO;
+using System.IO.Packaging;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using Xunit;
+using System.Linq;
+using System.Xml.Linq;
 
 namespace OfficeIMO.Tests {
     /// <summary>
@@ -255,6 +258,61 @@ namespace OfficeIMO.Tests {
             Assert.Throws<InvalidOperationException>(() => readOnlyDocument.Save());
             using var outputStream = new MemoryStream();
             Assert.Throws<InvalidOperationException>(() => readOnlyDocument.Save(outputStream));
+        }
+
+        [Fact]
+        public void Test_Save_RunsCompatibilityFixerAndReloads() {
+            var filePath = Path.Combine(_directoryWithFiles, "CompatibilityFixerFile.docx");
+            File.Delete(filePath);
+
+            using (var document = WordDocument.Create()) {
+                document.AddParagraph("Compatibility");
+                document.Save(filePath);
+            }
+
+            Assert.True(File.Exists(filePath));
+
+            using (var package = Package.Open(filePath, FileMode.Open, FileAccess.Read)) {
+                var relsUri = new Uri("/word/_rels/document.xml.rels", UriKind.Relative);
+                Assert.True(package.PartExists(relsUri));
+                var part = package.GetPart(relsUri);
+                using var relStream = part.GetStream(FileMode.Open, FileAccess.Read);
+                var rels = XDocument.Load(relStream);
+                var targets = rels.Root?.Elements().Select(e => e.Attribute("Target")?.Value).Where(v => !string.IsNullOrEmpty(v)) ?? Enumerable.Empty<string>();
+                Assert.All(targets, target => Assert.False(target!.StartsWith("/word/", StringComparison.Ordinal), $"Relationship target '{target}' should not start with '/word/'."));
+            }
+
+            using var reloaded = WordDocument.Load(filePath);
+            var paragraph = Assert.Single(reloaded.Paragraphs);
+            Assert.Equal("Compatibility", paragraph.Text);
+        }
+
+        [Fact]
+        public void Test_SaveAsByteArray_RunsCompatibilityFixerAndStreamReadable() {
+            using var document = WordDocument.Create();
+            document.AddParagraph("Byte array compatibility");
+
+            byte[] data = document.SaveAsByteArray();
+
+            using var inspectionStream = new MemoryStream(data);
+            using (var package = Package.Open(inspectionStream, FileMode.Open, FileAccess.Read)) {
+                var relsUri = new Uri("/word/_rels/document.xml.rels", UriKind.Relative);
+                Assert.True(package.PartExists(relsUri));
+                var part = package.GetPart(relsUri);
+                using var relStream = part.GetStream(FileMode.Open, FileAccess.Read);
+                var rels = XDocument.Load(relStream);
+                var targets = rels.Root?.Elements().Select(e => e.Attribute("Target")?.Value).Where(v => !string.IsNullOrEmpty(v)) ?? Enumerable.Empty<string>();
+                Assert.All(targets, target => Assert.False(target!.StartsWith("/word/", StringComparison.Ordinal), $"Relationship target '{target}' should not start with '/word/'."));
+            }
+
+            inspectionStream.Position = 0;
+            using var openXml = WordprocessingDocument.Open(inspectionStream, false);
+            Assert.NotNull(openXml.MainDocumentPart);
+
+            inspectionStream.Position = 0;
+            using var reloaded = WordDocument.Load(inspectionStream);
+            var paragraph = Assert.Single(reloaded.Paragraphs);
+            Assert.Equal("Byte array compatibility", paragraph.Text);
         }
 
     }

@@ -1460,6 +1460,7 @@ namespace OfficeIMO.Word {
                     using (var clone = this._wordprocessingDocument.Clone(fs)) {
                         CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                     }
+                    fs.Seek(0, SeekOrigin.Begin);
                     Helpers.MakeOpenOfficeCompatible(fs);
                     fs.Flush();
                     FilePath = filePath;
@@ -1533,6 +1534,7 @@ namespace OfficeIMO.Word {
                 using (var clone = _wordprocessingDocument.Clone(fs)) {
                     CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                 }
+                fs.Seek(0, SeekOrigin.Begin);
                 Helpers.MakeOpenOfficeCompatible(fs);
                 fs.Flush();
             } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) {
@@ -1569,6 +1571,7 @@ namespace OfficeIMO.Word {
                     CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                 }
 
+                memoryStream.Seek(0, SeekOrigin.Begin);
                 Helpers.MakeOpenOfficeCompatible(memoryStream);
                 memoryStream.Flush();
 
@@ -1647,6 +1650,7 @@ namespace OfficeIMO.Word {
                         using (var clone = this._wordprocessingDocument.Clone(fs)) {
                             CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                         }
+                        fs.Seek(0, SeekOrigin.Begin);
                         Helpers.MakeOpenOfficeCompatible(fs);
                         await fs.FlushAsync(cancellationToken);
                     }
