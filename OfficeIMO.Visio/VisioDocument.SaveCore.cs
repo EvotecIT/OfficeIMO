@@ -343,8 +343,10 @@ namespace OfficeIMO.Visio {
                             WritePageCell(writer, ns, "ShdwOffsetX", 0.1181102362204724);
                             WritePageCell(writer, ns, "ShdwOffsetY", -0.1181102362204724);
                         }
-                        WritePageCell(writer, ns, "PageScale", 0.03937007874015748, "MM");
-                        WritePageCell(writer, ns, "DrawingScale", 0.03937007874015748, "MM");
+                        VisioScaleSetting pageScale = page.GetEffectivePageScale();
+                        WritePageCell(writer, ns, "PageScale", pageScale.ToInches(), pageScale.Unit.ToVisioUnitCode());
+                        VisioScaleSetting drawingScale = page.GetEffectiveDrawingScale();
+                        WritePageCell(writer, ns, "DrawingScale", drawingScale.ToInches(), drawingScale.Unit.ToVisioUnitCode());
                         WritePageCell(writer, ns, "DrawingSizeType", 0);
                         WritePageCell(writer, ns, "DrawingScaleType", 0);
                         WritePageCell(writer, ns, "InhibitSnap", 0);

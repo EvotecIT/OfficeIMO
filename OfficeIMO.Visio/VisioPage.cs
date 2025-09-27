@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace OfficeIMO.Visio {
@@ -12,7 +13,10 @@ namespace OfficeIMO.Visio {
         private bool _gridVisible;
         private bool _snap = true;
         private VisioMeasurementUnit _defaultUnit = VisioMeasurementUnit.Inches;
+        private VisioMeasurementUnit _scaleMeasurementUnit = VisioMeasurementUnit.Inches;
         private double _viewScale = 1;
+        private VisioScaleSetting? _pageScaleOverride;
+        private VisioScaleSetting? _drawingScaleOverride;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VisioPage"/> class with default A4 size.
@@ -120,6 +124,88 @@ namespace OfficeIMO.Visio {
         public VisioMeasurementUnit DefaultUnit {
             get => _defaultUnit;
             set => _defaultUnit = value;
+        }
+
+        /// <summary>
+        /// Measurement unit used to compute page and drawing scales when explicit overrides are not supplied.
+        /// Defaults to inches and typically mirrors <see cref="DefaultUnit"/>.
+        /// </summary>
+        public VisioMeasurementUnit ScaleMeasurementUnit {
+            get => _scaleMeasurementUnit;
+            set {
+                if (!Enum.IsDefined(typeof(VisioMeasurementUnit), value)) {
+                    throw new ArgumentOutOfRangeException(nameof(value));
+                }
+
+                if (_scaleMeasurementUnit == value) {
+                    return;
+                }
+
+                VisioMeasurementUnit previous = _scaleMeasurementUnit;
+                _scaleMeasurementUnit = value;
+                NormalizeScaleOverrides(previous, value);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the page scale (the ratio between page units and real-world units).
+        /// </summary>
+        public VisioScaleSetting PageScale {
+            get {
+                return _pageScaleOverride ?? VisioScaleSetting.FromUnit(ScaleMeasurementUnit);
+            }
+            set => _pageScaleOverride = value.Normalized();
+        }
+
+        /// <summary>
+        /// Gets or sets the drawing scale (the ratio between drawing units and real-world units).
+        /// </summary>
+        public VisioScaleSetting DrawingScale {
+            get {
+                return _drawingScaleOverride ?? VisioScaleSetting.FromUnit(ScaleMeasurementUnit);
+            }
+            set => _drawingScaleOverride = value.Normalized();
+        }
+
+        /// <summary>
+        /// Removes any custom page scale override and reverts to <see cref="ScaleMeasurementUnit"/>.
+        /// </summary>
+        public void ResetPageScale() => _pageScaleOverride = null;
+
+        /// <summary>
+        /// Removes any custom drawing scale override and reverts to <see cref="ScaleMeasurementUnit"/>.
+        /// </summary>
+        public void ResetDrawingScale() => _drawingScaleOverride = null;
+
+        internal VisioScaleSetting GetEffectivePageScale() => _pageScaleOverride ?? VisioScaleSetting.FromUnit(ScaleMeasurementUnit);
+
+        internal VisioScaleSetting GetEffectiveDrawingScale() => _drawingScaleOverride ?? VisioScaleSetting.FromUnit(ScaleMeasurementUnit);
+
+        internal void ApplyLoadedPageScale(VisioScaleSetting scale) {
+            ScaleMeasurementUnit = scale.Unit;
+            if (scale.IsDefault) {
+                _pageScaleOverride = null;
+            } else {
+                _pageScaleOverride = scale.Normalized();
+            }
+        }
+
+        internal void ApplyLoadedDrawingScale(VisioScaleSetting scale) {
+            if (scale.IsDefault && scale.Unit == ScaleMeasurementUnit) {
+                _drawingScaleOverride = null;
+            } else {
+                _drawingScaleOverride = scale.Normalized();
+            }
+        }
+
+        private void NormalizeScaleOverrides(VisioMeasurementUnit previousUnit, VisioMeasurementUnit newUnit) {
+            if (_pageScaleOverride.HasValue && _pageScaleOverride.Value.Unit == previousUnit) {
+                _pageScaleOverride = _pageScaleOverride.Value.ConvertTo(newUnit);
+            }
+
+            if (_drawingScaleOverride.HasValue && _drawingScaleOverride.Value.Unit == previousUnit) {
+                _drawingScaleOverride = _drawingScaleOverride.Value.ConvertTo(newUnit);
+            }
         }
 
         /// <summary>

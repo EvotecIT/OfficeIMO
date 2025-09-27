@@ -98,6 +98,7 @@ namespace OfficeIMO.Visio {
             double heightInches = height.ToInches(unit);
             VisioPage page = new(name, widthInches, heightInches) { Id = id ?? _pages.Count };
             page.DefaultUnit = unit; // remember authoring unit for this page
+            page.ScaleMeasurementUnit = unit;
             _pages.Add(page);
             return page;
         }
