@@ -561,9 +561,15 @@ namespace OfficeIMO.Visio {
                                     endY = (tB + tT) / 2.0;
                                 }
                                 WriteXForm1D(writer, ns, startX, startY, endX, endY);
-                                WriteCell(writer, ns, "LineWeight", connector.LineWeight);
-                                WriteCell(writer, ns, "LinePattern", connector.LinePattern);
-                                WriteCellValue(writer, ns, "LineColor", connector.LineColor.ToVisioHex());
+                                if (connector.HasExplicitLineWeight) {
+                                    WriteCell(writer, ns, "LineWeight", connector.LineWeight);
+                                }
+                                if (connector.HasExplicitLinePattern) {
+                                    WriteCell(writer, ns, "LinePattern", connector.LinePattern);
+                                }
+                                if (connector.HasExplicitLineColor) {
+                                    WriteCellValue(writer, ns, "LineColor", connector.LineColor.ToVisioHex());
+                                }
                                 WriteCell(writer, ns, "FillPattern", 0);
                                 WriteCellValue(writer, ns, "FillForegnd", Color.Transparent.ToVisioHex());
                                 WriteCell(writer, ns, "OneD", 1);

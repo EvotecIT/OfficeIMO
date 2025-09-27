@@ -23,13 +23,14 @@ namespace OfficeIMO.Visio {
         /// <param name="id">Identifier of the connector.</param>
         /// <param name="from">Shape from which the connector starts.</param>
         /// <param name="to">Shape at which the connector ends.</param>
-        public VisioConnector(string id, VisioShape from, VisioShape to) {
+        /// <param name="initializeDefaults">When true, applies default line styling to the connector.</param>
+        public VisioConnector(string id, VisioShape from, VisioShape to, bool initializeDefaults = true) {
             Id = id;
             From = from;
             To = to;
-            LineColor = Color.Black;
-            LineWeight = 0.0138889;
-            LinePattern = 1; // Solid line
+            SetLineColor(Color.Black, initializeDefaults);
+            SetLineWeight(0.0138889, initializeDefaults);
+            SetLinePattern(1, initializeDefaults); // Solid line
         }
 
         /// <summary>
@@ -80,17 +81,45 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Line color of the connector.
         /// </summary>
-        public Color LineColor { get; set; }
-        
+        public Color LineColor {
+            get => _lineColor;
+            set => SetLineColor(value, true);
+        }
+
         /// <summary>
         /// Line weight (thickness) of the connector.
         /// </summary>
-        public double LineWeight { get; set; }
-        
+        public double LineWeight {
+            get => _lineWeight;
+            set => SetLineWeight(value, true);
+        }
+
         /// <summary>
         /// Line pattern (0=None, 1=Solid, 2=Dashed, etc.).
         /// </summary>
-        public int LinePattern { get; set; }
+        public int LinePattern {
+            get => _linePattern;
+            set => SetLinePattern(value, true);
+        }
+
+        internal bool HasExplicitLineColor => _lineColorExplicit;
+        internal bool HasExplicitLineWeight => _lineWeightExplicit;
+        internal bool HasExplicitLinePattern => _linePatternExplicit;
+
+        internal void SetLineColor(Color color, bool explicitValue) {
+            _lineColor = color;
+            _lineColorExplicit = explicitValue;
+        }
+
+        internal void SetLineWeight(double weight, bool explicitValue) {
+            _lineWeight = weight;
+            _lineWeightExplicit = explicitValue;
+        }
+
+        internal void SetLinePattern(int pattern, bool explicitValue) {
+            _linePattern = pattern;
+            _linePatternExplicit = explicitValue;
+        }
 
         private static string GetNextId(VisioShape from, VisioShape to) {
             int fromId = int.TryParse(from.Id, out int fi) ? fi : 0;
@@ -99,6 +128,13 @@ namespace OfficeIMO.Visio {
             _idCounter = newId;
             return newId.ToString(CultureInfo.InvariantCulture);
         }
+
+        private Color _lineColor;
+        private double _lineWeight;
+        private int _linePattern;
+        private bool _lineColorExplicit;
+        private bool _lineWeightExplicit;
+        private bool _linePatternExplicit;
     }
 }
 
