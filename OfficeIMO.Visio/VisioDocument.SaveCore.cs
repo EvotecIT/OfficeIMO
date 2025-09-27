@@ -22,6 +22,7 @@ namespace OfficeIMO.Visio {
             List<VisioPage> pagesToSave = _pages.Count > 0 ? _pages : new List<VisioPage> { new VisioPage("Page-1") { Id = 0 } };
             int pageCount = pagesToSave.Count;
             int masterCount;
+            List<string> pagePartNames = new();
             using (Package package = Package.Open(filePath, FileMode.Create)) {
                 Uri documentUri = new("/visio/document.xml", UriKind.Relative);
                 PackagePart documentPart = package.CreatePart(documentUri, DocumentContentType);
@@ -641,9 +642,13 @@ namespace OfficeIMO.Visio {
                     }
                 }
                 masterCount = masters.Count;
+                pagePartNames = pageParts
+                    .Select(part => part.Part.Uri.OriginalString)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
             }
 
-            FixContentTypes(filePath, masterCount, includeTheme, pageCount);
+            FixContentTypes(filePath, masterCount, includeTheme, pagePartNames);
         }
     }
 }
