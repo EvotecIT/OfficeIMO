@@ -55,6 +55,59 @@
 
             File.Delete(filePath);
         }
+
+        [Fact]
+        public void AddTable_ExposesDistributedDimensionsViaProperties() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            const long tableWidth = 4_000_003L;
+            const long tableHeight = 1_500_002L;
+            const int columns = 4;
+            const int rows = 3;
+
+            long[] expectedColumnWidths = DistributeEvenly(tableWidth, columns);
+            long[] expectedRowHeights = DistributeEvenly(tableHeight, rows);
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointTable table = presentation.AddSlide().AddTable(rows, columns, width: tableWidth, height: tableHeight);
+
+                Assert.Equal(expectedColumnWidths, table.ColumnWidths);
+                Assert.Equal(tableWidth, table.ColumnWidths.Sum());
+                Assert.Equal(expectedRowHeights, table.RowHeights);
+                Assert.Equal(tableHeight, table.RowHeights.Sum());
+
+                presentation.Save();
+            }
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                PowerPointTable table = presentation.Slides[0].Tables.First();
+
+                Assert.Equal(expectedColumnWidths, table.ColumnWidths);
+                Assert.Equal(expectedRowHeights, table.RowHeights);
+            }
+
+            File.Delete(filePath);
+        }
+
+        private static long[] DistributeEvenly(long total, int parts) {
+            long[] result = new long[parts];
+            long baseValue = total / parts;
+            long remainder = total % parts;
+
+            for (int i = 0; i < parts; i++) {
+                long adjustment = 0;
+                if (remainder > 0) {
+                    adjustment = 1;
+                    remainder--;
+                } else if (remainder < 0) {
+                    adjustment = -1;
+                    remainder++;
+                }
+
+                result[i] = baseValue + adjustment;
+            }
+
+            return result;
+        }
     }
 }
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
