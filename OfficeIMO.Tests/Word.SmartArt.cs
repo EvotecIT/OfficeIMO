@@ -1,11 +1,23 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Drawing.Diagrams;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+        public static IEnumerable<object[]> SmartArtTypesWithLayouts() {
+            yield return new object[] { SmartArtType.BasicProcess, "urn:microsoft.com/office/officeart/2005/8/layout/default" };
+            yield return new object[] { SmartArtType.Hierarchy, "urn:microsoft.com/office/officeart/2005/8/layout/hierarchy1" };
+            yield return new object[] { SmartArtType.Cycle, "urn:microsoft.com/office/officeart/2005/8/layout/cycle2" };
+            yield return new object[] { SmartArtType.PictureOrgChart, "urn:microsoft.com/office/officeart/2005/8/layout/pictureorgchart" };
+            yield return new object[] { SmartArtType.ContinuousBlockProcess, "urn:microsoft.com/office/officeart/2005/8/layout/process6" };
+            yield return new object[] { SmartArtType.CustomSmartArt1, "urn:microsoft.com/office/officeart/2005/8/layout/default" };
+            yield return new object[] { SmartArtType.CustomSmartArt2, "urn:microsoft.com/office/officeart/2005/8/layout/cycle2" };
+        }
+
         [Fact]
         public void Test_AddSmartArt() {
             string filePath = Path.Combine(_directoryWithFiles, "SmartArtDocument.docx");
@@ -77,6 +89,46 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var sa = document.SmartArts.Single();
                 Assert.Equal("Hello", sa.GetNodeText(0));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(SmartArtTypesWithLayouts))]
+        public void Test_SmartArt_Relationships_For_Each_Type(SmartArtType type, string expectedLayoutUid) {
+            string filePath = Path.Combine(_directoryWithFiles, $"SmartArt_{type}.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var smartArt = document.AddSmartArt(type);
+                var mainPart = document._wordprocessingDocument.MainDocumentPart!;
+                var rel = smartArt._drawing.Descendants<RelationshipIds>().First();
+
+                Assert.False(string.IsNullOrEmpty(rel.LayoutPart));
+                Assert.False(string.IsNullOrEmpty(rel.ColorPart));
+                Assert.False(string.IsNullOrEmpty(rel.StylePart));
+                Assert.False(string.IsNullOrEmpty(rel.DataPart));
+
+                var layoutPart = (DiagramLayoutDefinitionPart)mainPart.GetPartById(rel.LayoutPart!);
+                var colorsPart = (DiagramColorsPart)mainPart.GetPartById(rel.ColorPart!);
+                var stylePart = (DiagramStylePart)mainPart.GetPartById(rel.StylePart!);
+                var dataPart = (DiagramDataPart)mainPart.GetPartById(rel.DataPart!);
+
+                Assert.Equal(expectedLayoutUid, layoutPart.LayoutDefinition?.UniqueId?.Value);
+                Assert.NotNull(colorsPart.ColorsDefinition);
+                Assert.NotNull(stylePart.StyleDefinition);
+                using (var dataStream = dataPart.GetStream()) {
+                    Assert.True(dataStream.Length > 0);
+                }
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var smartArt = document.SmartArts.Single();
+                var mainPart = document._wordprocessingDocument.MainDocumentPart!;
+                var rel = smartArt._drawing.Descendants<RelationshipIds>().First();
+                var layoutPart = (DiagramLayoutDefinitionPart)mainPart.GetPartById(rel.LayoutPart!);
+
+                Assert.Equal(expectedLayoutUid, layoutPart.LayoutDefinition?.UniqueId?.Value);
             }
         }
     }

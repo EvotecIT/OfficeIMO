@@ -14,11 +14,12 @@ namespace OfficeIMO.Word {
                 case SmartArtType.CustomSmartArt2:
                     return AddCustom2(mainPart);
                 case SmartArtType.Hierarchy:
+                    return AddHierarchy(mainPart);
                 case SmartArtType.PictureOrgChart:
+                    return AddPictureOrgChart(mainPart);
                 case SmartArtType.ContinuousBlockProcess:
+                    return AddContinuousBlockProcess(mainPart);
                 default:
-                    // TODO: Provide dedicated layouts for these types.
-                    // For now, reuse BasicProcess so docs open and render.
                     return AddBasicProcess(mainPart);
             }
         }
@@ -50,6 +51,60 @@ namespace OfficeIMO.Word {
             SmartArtCommonStyle.PopulateStyle(stylePart);
             var dataPart = mainPart.AddNewPart<DiagramDataPart>();
             SmartArtCycleData.PopulateData(dataPart);
+
+            return (
+                mainPart.GetIdOfPart(layoutPart)!,
+                mainPart.GetIdOfPart(colorsPart)!,
+                mainPart.GetIdOfPart(stylePart)!,
+                mainPart.GetIdOfPart(dataPart)!
+            );
+        }
+
+        private static (string relLayout, string relColors, string relStyle, string relData) AddHierarchy(MainDocumentPart mainPart) {
+            var layoutPart = mainPart.AddNewPart<DiagramLayoutDefinitionPart>();
+            SmartArtHierarchyLayout.PopulateLayout(layoutPart);
+            var colorsPart = mainPart.AddNewPart<DiagramColorsPart>();
+            SmartArtCommonColors.PopulateColors(colorsPart);
+            var stylePart = mainPart.AddNewPart<DiagramStylePart>();
+            SmartArtCommonStyle.PopulateStyle(stylePart);
+            var dataPart = mainPart.AddNewPart<DiagramDataPart>();
+            SmartArtHierarchyData.PopulateData(dataPart);
+
+            return (
+                mainPart.GetIdOfPart(layoutPart)!,
+                mainPart.GetIdOfPart(colorsPart)!,
+                mainPart.GetIdOfPart(stylePart)!,
+                mainPart.GetIdOfPart(dataPart)!
+            );
+        }
+
+        private static (string relLayout, string relColors, string relStyle, string relData) AddPictureOrgChart(MainDocumentPart mainPart) {
+            var layoutPart = mainPart.AddNewPart<DiagramLayoutDefinitionPart>();
+            SmartArtPictureOrgChartLayout.PopulateLayout(layoutPart);
+            var colorsPart = mainPart.AddNewPart<DiagramColorsPart>();
+            SmartArtCommonColors.PopulateColors(colorsPart);
+            var stylePart = mainPart.AddNewPart<DiagramStylePart>();
+            SmartArtCommonStyle.PopulateStyle(stylePart);
+            var dataPart = mainPart.AddNewPart<DiagramDataPart>();
+            SmartArtPictureOrgChartData.PopulateData(dataPart);
+
+            return (
+                mainPart.GetIdOfPart(layoutPart)!,
+                mainPart.GetIdOfPart(colorsPart)!,
+                mainPart.GetIdOfPart(stylePart)!,
+                mainPart.GetIdOfPart(dataPart)!
+            );
+        }
+
+        private static (string relLayout, string relColors, string relStyle, string relData) AddContinuousBlockProcess(MainDocumentPart mainPart) {
+            var layoutPart = mainPart.AddNewPart<DiagramLayoutDefinitionPart>();
+            SmartArtContinuousBlockProcessLayout.PopulateLayout(layoutPart);
+            var colorsPart = mainPart.AddNewPart<DiagramColorsPart>();
+            SmartArtCommonColors.PopulateColors(colorsPart);
+            var stylePart = mainPart.AddNewPart<DiagramStylePart>();
+            SmartArtCommonStyle.PopulateStyle(stylePart);
+            var dataPart = mainPart.AddNewPart<DiagramDataPart>();
+            SmartArtContinuousBlockProcessData.PopulateData(dataPart);
 
             return (
                 mainPart.GetIdOfPart(layoutPart)!,
