@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using OfficeIMO.Pdf;
@@ -73,6 +74,28 @@ namespace OfficeIMO.Tests.Pdf {
         public void Latin1GetBytes_Throws_For_NonLatin1_Input() {
             Assert.Throws<ArgumentException>(() => PdfEncoding.Latin1GetBytes("😀"));
             Assert.Throws<ArgumentException>(() => PdfEncoding.Latin1GetBytes("漢"));
+        }
+
+        [Fact]
+        public void Footer_Text_With_NonLatin1_Characters_Falls_Back_To_WinAnsi() {
+            var options = new PdfOptions {
+                ShowPageNumbers = true,
+                FooterSegments = new List<FooterSegment> {
+                    new FooterSegment(FooterSegmentKind.Text, "😀 footer")
+                }
+            };
+
+            var doc = PdfDoc.Create(options);
+            doc.Compose(c =>
+                c.Page(page =>
+                    page.Content(content =>
+                        content.Column(col =>
+                            col.Item().Paragraph(p => p.Text("Body"))))));
+
+            byte[] pdfBytes = doc.ToBytes();
+            Assert.NotEmpty(pdfBytes);
+
+            AssertContains(pdfBytes, "<3F3F20666F6F746572> Tj", "Footer text should be encoded with WinAnsi hex, replacing surrogate pairs with '?' bytes to keep a valid stream.");
         }
 
         private static void AssertContains(byte[] haystack, string text, string message) {

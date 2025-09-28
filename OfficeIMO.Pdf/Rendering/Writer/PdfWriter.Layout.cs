@@ -35,7 +35,7 @@ internal static partial class PdfWriter {
         sb.Append("BT\n");
         sb.Append("/F1 ").Append(F(opts.FooterFontSize)).Append(" Tf\n");
         sb.Append("1 0 0 1 ").Append(F(x)).Append(' ').Append(F(y)).Append(" Tm\n");
-        sb.Append('(').Append(EscapeText(text)).Append(") Tj\n");
+        sb.Append('<').Append(EncodeWinAnsiHex(text)).Append("> Tj\n");
         sb.Append("ET\n");
         return sb.ToString();
     }
