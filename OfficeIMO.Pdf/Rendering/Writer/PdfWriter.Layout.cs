@@ -186,7 +186,7 @@ internal static partial class PdfWriter {
                     double indent = bulletWidth + spaceAdvance;
                     double rawTextWidth = width - indent;
                     double availableWidth = Math.Max(rawTextWidth, size * glyphWidthEm * 2);
-                    double alignmentWidth = rawTextWidth > 0 ? rawTextWidth : availableWidth;
+                    double alignmentWidth = Math.Max(0, rawTextWidth);
                     foreach (var text in bl.Items) {
                         var lines = WrapMonospace(text, availableWidth, size, glyphWidthEm);
                         double needed = lines.Count * leading + leading * 0.15;

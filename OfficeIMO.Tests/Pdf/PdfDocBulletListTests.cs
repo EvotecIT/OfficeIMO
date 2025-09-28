@@ -126,4 +126,35 @@ public class PdfDocBulletListTests {
         var pdfContent = Encoding.ASCII.GetString(bytes);
         Assert.Contains("0.2 0.4 0.6 rg", pdfContent);
     }
+
+    [Fact]
+    public void Bullets_WithIndentWiderThanContent_DoesNotShiftBulletPastMargin() {
+        var options = new PdfOptions {
+            PageWidth = 110,
+            MarginLeft = 50,
+            MarginRight = 50,
+            DefaultFontSize = 11
+        };
+
+        var doc = PdfDoc.Create(options);
+        doc.Bullets(new[] { "A" }, PdfAlign.Right);
+
+        var bytes = doc.ToBytes();
+        Assert.NotEmpty(bytes);
+
+        using var pdf = PdfDocument.Open(new MemoryStream(bytes));
+        var page = pdf.GetPage(1);
+        var bulletLine = page.Letters
+            .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+            .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1))
+            .OrderByDescending(group => group.Key)
+            .Select(group => group.OrderBy(letter => letter.StartBaseLine.X).ToList())
+            .First(line => line.Any(letter => letter.Value == "•"));
+
+        double bulletX = bulletLine.First(letter => letter.Value == "•").StartBaseLine.X;
+        double textX = bulletLine.First(letter => letter.Value != "•").StartBaseLine.X;
+
+        Assert.InRange(bulletX, options.MarginLeft - 0.5, options.MarginLeft + 0.5);
+        Assert.True(textX > bulletX);
+    }
 }
