@@ -184,7 +184,9 @@ internal static partial class PdfWriter {
                     double bulletWidth = bulletGlyph.Length * size * glyphWidthEm;
                     double spaceAdvance = size * glyphWidthEm;
                     double indent = bulletWidth + spaceAdvance;
-                    double availableWidth = Math.Max(width - indent, size * glyphWidthEm * 2);
+                    double rawTextWidth = width - indent;
+                    double availableWidth = Math.Max(rawTextWidth, size * glyphWidthEm * 2);
+                    double alignmentWidth = rawTextWidth > 0 ? rawTextWidth : availableWidth;
                     foreach (var text in bl.Items) {
                         var lines = WrapMonospace(text, availableWidth, size, glyphWidthEm);
                         double needed = lines.Count * leading + leading * 0.15;
@@ -192,12 +194,12 @@ internal static partial class PdfWriter {
 
                         double firstLineWidth = lines.Count > 0 ? lines[0].Length * size * glyphWidthEm : 0;
                         double firstLineDx = 0;
-                        if (bl.Align == PdfAlign.Center) firstLineDx = Math.Max(0, (width - firstLineWidth) / 2);
-                        else if (bl.Align == PdfAlign.Right) firstLineDx = Math.Max(0, width - firstLineWidth);
+                        if (bl.Align == PdfAlign.Center) firstLineDx = Math.Max(0, (alignmentWidth - firstLineWidth) / 2);
+                        else if (bl.Align == PdfAlign.Right) firstLineDx = Math.Max(0, alignmentWidth - firstLineWidth);
 
                         var bulletLines = new System.Collections.Generic.List<string>(1) { bulletGlyph };
                         WriteLinesInternal("F1", size, leading, currentOpts.MarginLeft + firstLineDx, indent, y, bulletLines, PdfAlign.Left, bl.Color, applyBaselineTweak: true);
-                        WriteLinesInternal("F1", size, leading, currentOpts.MarginLeft + indent, width, y, lines, bl.Align, bl.Color, applyBaselineTweak: true);
+                        WriteLinesInternal("F1", size, leading, currentOpts.MarginLeft + indent, alignmentWidth, y, lines, bl.Align, bl.Color, applyBaselineTweak: true);
                         y -= needed;
                     }
                 } else if (block is TableBlock tb) {

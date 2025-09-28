@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using OfficeIMO.Pdf;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
@@ -68,9 +69,11 @@ public class PdfDocBulletListTests {
 
     [Fact]
     public void Bullets_RespectAlignmentOptions() {
-        var doc = PdfDoc.Create();
+        var options = new PdfOptions();
+        var doc = PdfDoc.Create(options);
         doc.Bullets(new[] { "Left aligned" }, PdfAlign.Left);
         doc.Bullets(new[] { "Centered bullet" }, PdfAlign.Center);
+        doc.Bullets(new[] { "Right aligned bullet" }, PdfAlign.Right);
 
         var bytes = doc.ToBytes();
         Assert.NotEmpty(bytes);
@@ -85,19 +88,42 @@ public class PdfDocBulletListTests {
             .Where(line => line.Any(letter => letter.Value == "•"))
             .ToList();
 
-        Assert.Equal(2, bulletLines.Count);
+        Assert.Equal(3, bulletLines.Count);
 
         var leftLine = bulletLines[0];
         var centerLine = bulletLines[1];
+        var rightLine = bulletLines[2];
 
         double leftBulletX = leftLine.First(letter => letter.Value == "•").StartBaseLine.X;
         double leftTextX = leftLine.First(letter => letter.Value != "•").StartBaseLine.X;
         double centerBulletX = centerLine.First(letter => letter.Value == "•").StartBaseLine.X;
         double centerTextX = centerLine.First(letter => letter.Value != "•").StartBaseLine.X;
+        double rightBulletX = rightLine.First(letter => letter.Value == "•").StartBaseLine.X;
+        double rightTextX = rightLine.First(letter => letter.Value != "•").StartBaseLine.X;
 
         Assert.True(centerBulletX > leftBulletX + 10);
+        Assert.True(rightBulletX > centerBulletX + 10);
         double leftGap = leftTextX - leftBulletX;
         double centerGap = centerTextX - centerBulletX;
+        double rightGap = rightTextX - rightBulletX;
         Assert.InRange(centerGap, leftGap - 1, leftGap + 1);
+        Assert.InRange(rightGap, leftGap - 1, leftGap + 1);
+
+        double contentRight = options.PageWidth - options.MarginRight;
+        double rightmostTextX = rightLine.Where(letter => letter.Value != "•").Max(letter => letter.EndBaseLine.X);
+        Assert.InRange(rightmostTextX, contentRight - 1.5, contentRight + 0.5);
+    }
+
+    [Fact]
+    public void Bullets_ApplyCustomColorToGlyphs() {
+        var doc = PdfDoc.Create();
+        var color = new PdfColor(0.2, 0.4, 0.6);
+        doc.Bullets(new[] { "Colored bullet" }, PdfAlign.Left, color);
+
+        var bytes = doc.ToBytes();
+        Assert.NotEmpty(bytes);
+
+        var pdfContent = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.2 0.4 0.6 rg", pdfContent);
     }
 }
