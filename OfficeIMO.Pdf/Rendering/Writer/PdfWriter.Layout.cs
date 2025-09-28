@@ -178,12 +178,28 @@ internal static partial class PdfWriter {
                 } else if (block is BulletListBlock bl) {
                     double size = currentOpts.DefaultFontSize;
                     double leading = size * 1.4;
-                    var glyphWidthEm = GlyphWidthEmFor(ChooseNormal(currentOpts.DefaultFont));
+                    var baseFont = ChooseNormal(currentOpts.DefaultFont);
+                    double glyphWidthEm = GlyphWidthEmFor(baseFont);
+                    const string bulletGlyph = "•";
+                    double bulletWidth = bulletGlyph.Length * size * glyphWidthEm;
+                    double spaceAdvance = size * glyphWidthEm;
+                    double indent = bulletWidth + spaceAdvance;
+                    double rawTextWidth = width - indent;
+                    double availableWidth = Math.Max(rawTextWidth, size * glyphWidthEm * 2);
+                    double alignmentWidth = Math.Max(0, rawTextWidth);
                     foreach (var text in bl.Items) {
-                        var lines = WrapMonospace(text, width, size, glyphWidthEm);
+                        var lines = WrapMonospace(text, availableWidth, size, glyphWidthEm);
                         double needed = lines.Count * leading + leading * 0.15;
                         if (y - needed < currentOpts.MarginBottom) { NewPage(); }
-                        WriteLines("F1", size, leading, currentOpts.MarginLeft, y, lines, bl.Align, bl.Color, applyBaselineTweak: true);
+
+                        double firstLineWidth = lines.Count > 0 ? lines[0].Length * size * glyphWidthEm : 0;
+                        double firstLineDx = 0;
+                        if (bl.Align == PdfAlign.Center) firstLineDx = Math.Max(0, (alignmentWidth - firstLineWidth) / 2);
+                        else if (bl.Align == PdfAlign.Right) firstLineDx = Math.Max(0, alignmentWidth - firstLineWidth);
+
+                        var bulletLines = new System.Collections.Generic.List<string>(1) { bulletGlyph };
+                        WriteLinesInternal("F1", size, leading, currentOpts.MarginLeft + firstLineDx, indent, y, bulletLines, PdfAlign.Left, bl.Color, applyBaselineTweak: true);
+                        WriteLinesInternal("F1", size, leading, currentOpts.MarginLeft + indent, alignmentWidth, y, lines, bl.Align, bl.Color, applyBaselineTweak: true);
                         y -= needed;
                     }
                 } else if (block is TableBlock tb) {
