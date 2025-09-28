@@ -13,6 +13,12 @@ namespace OfficeIMO.Excel {
         /// <param name="a1Range">Inclusive A1 range (e.g., "A1:C100").</param>
         /// <param name="ct">Cancellation token.</param>
         /// <returns>Sequence of rows as object?[] with fixed width equal to the range width. Rows without any cells yield null.</returns>
+        /// <remarks>
+        /// A <c>null</c> row is emitted when the worksheet row is missing from the requested range or when it
+        /// contains no cells within the specified bounds. Consumers that require dense data can call
+        /// <see cref="ReadRowsAs{T}(string, Func{object, T}?, CancellationToken)"/> which throws an
+        /// <see cref="InvalidOperationException"/> when an empty worksheet row is encountered.
+        /// </remarks>
         public IEnumerable<object?[]?> ReadRows(string a1Range, CancellationToken ct = default) {
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) yield break;

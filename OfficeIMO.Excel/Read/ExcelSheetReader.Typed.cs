@@ -37,11 +37,13 @@ namespace OfficeIMO.Excel {
         /// <param name="ct">Cancellation token.</param>
         public IEnumerable<T[]> ReadRowsAs<T>(string a1Range, Func<object, T>? convert = null, CancellationToken ct = default) {
             var (r1, _, _, _) = A1.ParseRange(a1Range);
-            int currentRow = r1;
+            int offset = 0;
             foreach (var row in ReadRows(a1Range, ct)) {
                 if (ct.IsCancellationRequested) yield break;
+                int rowIndex = r1 + offset;
+                offset++;
                 if (row is null) {
-                    throw new InvalidOperationException($"Row {currentRow} in range '{a1Range}' on sheet '{Name}' contains no cells.");
+                    throw new InvalidOperationException($"Row {rowIndex} in range '{a1Range}' on sheet '{Name}' contains no cells.");
                 }
                 var result = new T[row.Length];
                 for (int i = 0; i < row.Length; i++) {
@@ -58,7 +60,6 @@ namespace OfficeIMO.Excel {
                     }
                 }
                 yield return result;
-                currentRow++;
             }
         }
 
