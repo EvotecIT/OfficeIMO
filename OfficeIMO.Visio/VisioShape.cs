@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Visio {
@@ -6,12 +7,17 @@ namespace OfficeIMO.Visio {
     /// </summary>
     public class VisioShape {
         /// <summary>
+        /// Default line weight used when Visio does not specify a value.
+        /// </summary>
+        internal const double DefaultLineWeight = 0.0138889;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="VisioShape"/> class with the specified identifier.
         /// </summary>
         /// <param name="id">Identifier of the shape.</param>
         public VisioShape(string id) {
             Id = id;
-            LineWeight = 0.0138889;
+            LineWeight = DefaultLineWeight;
             Angle = 0;
             LineColor = Color.Black;
             FillColor = Color.White;
@@ -54,9 +60,24 @@ namespace OfficeIMO.Visio {
         public string? NameU { get; set; }
 
         /// <summary>
+        /// Gets or sets the Visio type of the shape (for example "Group").
+        /// </summary>
+        public string? Type { get; internal set; }
+
+        /// <summary>
         /// Gets or sets the master associated with the shape.
         /// </summary>
         public VisioMaster? Master { get; set; }
+
+        /// <summary>
+        /// Gets the identifier of the referenced master shape when <see cref="Master"/> is defined.
+        /// </summary>
+        public string? MasterShapeId { get; internal set; }
+
+        /// <summary>
+        /// Gets the master shape instance referenced by <see cref="MasterShapeId"/>, if any.
+        /// </summary>
+        public VisioShape? MasterShape { get; internal set; }
 
         /// <summary>
         /// Gets the universal name of the master.
@@ -129,6 +150,16 @@ namespace OfficeIMO.Visio {
         public int FillPattern { get; set; }
 
         /// <summary>
+        /// Parent shape when part of a group hierarchy.
+        /// </summary>
+        public VisioShape? Parent { get; internal set; }
+
+        /// <summary>
+        /// Child shapes when this shape represents a group.
+        /// </summary>
+        public IList<VisioShape> Children { get; } = new List<VisioShape>();
+
+        /// <summary>
         /// Connection points associated with the shape.
         /// </summary>
         public IList<VisioConnectionPoint> ConnectionPoints { get; } = new List<VisioConnectionPoint>();
@@ -137,6 +168,26 @@ namespace OfficeIMO.Visio {
         /// Arbitrary data associated with the shape.
         /// </summary>
         public Dictionary<string, string> Data { get; } = new();
+
+        /// <summary>
+        /// Recursively searches the shape hierarchy for a shape with the provided identifier.
+        /// </summary>
+        /// <param name="id">Identifier to locate.</param>
+        /// <returns>The matching shape when found; otherwise <c>null</c>.</returns>
+        public VisioShape? FindDescendantById(string id) {
+            if (Id == id) {
+                return this;
+            }
+
+            foreach (VisioShape child in Children) {
+                VisioShape? result = child.FindDescendantById(id);
+                if (result != null) {
+                    return result;
+                }
+            }
+
+            return null;
+        }
 
         /// <summary>
         /// Ensures the shape has four side connection points (Left, Right, Bottom, Top).
