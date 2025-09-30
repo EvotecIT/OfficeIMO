@@ -248,11 +248,29 @@ namespace OfficeIMO.Visio {
             return document;
         }
 
+        private const int MaxShapeNestingDepth = 100;
+        private static readonly double DefaultLineWeight = VisioShape.DefaultLineWeight;
+
         private static double ParseDouble(string? value) {
             return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0;
         }
 
-        private static VisioShape ParseShape(XElement shapeElement, XNamespace ns, VisioShape? parent = null) {
+        private static VisioShape ParseShape(XElement shapeElement, XNamespace ns, VisioShape? parent = null, int depth = 0) {
+            if (depth > MaxShapeNestingDepth) {
+                throw new InvalidOperationException("Maximum nesting depth exceeded");
+            }
+
+            VisioShape shape = ParseShapeBasics(shapeElement, ns);
+            shape.Parent = parent;
+
+            ParseShapeTransform(shape, shapeElement, ns);
+            ParseShapeProperties(shape, shapeElement, ns);
+            ParseChildShapes(shape, shapeElement, ns, depth);
+
+            return shape;
+        }
+
+        private static VisioShape ParseShapeBasics(XElement shapeElement, XNamespace ns) {
             string id = shapeElement.Attribute("ID")?.Value ?? string.Empty;
             VisioShape shape = new(id) {
                 Name = shapeElement.Attribute("Name")?.Value,
@@ -262,8 +280,11 @@ namespace OfficeIMO.Visio {
 
             shape.Type = shapeElement.Attribute("Type")?.Value;
             shape.MasterShapeId = shapeElement.Attribute("MasterShape")?.Value;
-            shape.Parent = parent;
 
+            return shape;
+        }
+
+        private static void ParseShapeTransform(VisioShape shape, XElement shapeElement, XNamespace ns) {
             List<XElement> cellElements = shapeElement.Elements(ns + "Cell").ToList();
             bool pinXFound = false;
             bool pinYFound = false;
@@ -273,6 +294,7 @@ namespace OfficeIMO.Visio {
             bool locPinYFound = false;
             bool angleFound = false;
             bool lineWeightFound = false;
+
             foreach (XElement cell in cellElements) {
                 string? n = cell.Attribute("N")?.Value;
                 string? v = cell.Attribute("V")?.Value;
@@ -310,16 +332,24 @@ namespace OfficeIMO.Visio {
                         lineWeightFound = true;
                         break;
                     case "LinePattern":
-                        if (int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out int lp)) shape.LinePattern = lp;
+                        if (int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out int lp)) {
+                            shape.LinePattern = lp;
+                        }
                         break;
                     case "FillPattern":
-                        if (int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out int fp)) shape.FillPattern = fp;
+                        if (int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out int fp)) {
+                            shape.FillPattern = fp;
+                        }
                         break;
                     case "LineColor":
-                        if (!string.IsNullOrEmpty(v)) shape.LineColor = VisioHelpers.FromVisioColor(v!);
+                        if (!string.IsNullOrEmpty(v)) {
+                            shape.LineColor = VisioHelpers.FromVisioColor(v!);
+                        }
                         break;
                     case "FillForegnd":
-                        if (!string.IsNullOrEmpty(v)) shape.FillColor = VisioHelpers.FromVisioColor(v!);
+                        if (!string.IsNullOrEmpty(v)) {
+                            shape.FillColor = VisioHelpers.FromVisioColor(v!);
+                        }
                         break;
                 }
             }
@@ -387,10 +417,14 @@ namespace OfficeIMO.Visio {
                 shape.Angle = 0;
             }
             if (!lineWeightFound) {
-                shape.LineWeight = 0.0138889;
+                shape.LineWeight = DefaultLineWeight;
             }
+        }
 
-            XElement? connectionSection = shapeElement.Elements(ns + "Section").FirstOrDefault(e => e.Attribute("N")?.Value == "Connection");
+        private static void ParseShapeProperties(VisioShape shape, XElement shapeElement, XNamespace ns) {
+            List<XElement> sectionElements = shapeElement.Elements(ns + "Section").ToList();
+
+            XElement? connectionSection = sectionElements.FirstOrDefault(e => e.Attribute("N")?.Value == "Connection");
             if (connectionSection != null) {
                 foreach (XElement row in connectionSection.Elements(ns + "Row")) {
                     double x = 0;
@@ -419,7 +453,7 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            XElement? propSection = shapeElement.Elements(ns + "Section").FirstOrDefault(e => e.Attribute("N")?.Value == "Prop");
+            XElement? propSection = sectionElements.FirstOrDefault(e => e.Attribute("N")?.Value == "Prop");
             if (propSection != null) {
                 foreach (XElement row in propSection.Elements(ns + "Row")) {
                     string? key = row.Attribute("N")?.Value;
@@ -431,16 +465,19 @@ namespace OfficeIMO.Visio {
                     }
                 }
             }
+        }
 
+        private static void ParseChildShapes(VisioShape shape, XElement shapeElement, XNamespace ns, int depth) {
             XElement? childShapes = shapeElement.Element(ns + "Shapes");
-            if (childShapes != null) {
-                foreach (XElement childElement in childShapes.Elements(ns + "Shape")) {
-                    VisioShape childShape = ParseShape(childElement, ns, shape);
-                    shape.Children.Add(childShape);
-                }
+            if (childShapes == null) {
+                return;
             }
 
-            return shape;
+            List<XElement> childElements = childShapes.Elements(ns + "Shape").ToList();
+            foreach (XElement childElement in childElements) {
+                VisioShape childShape = ParseShape(childElement, ns, shape, depth + 1);
+                shape.Children.Add(childShape);
+            }
         }
 
         private static void ApplyMasterReferences(VisioShape shape, XElement shapeElement, XNamespace ns, Dictionary<string, VisioMaster> masters, VisioMaster? inheritedMaster = null, VisioShape? inheritedMasterShape = null) {

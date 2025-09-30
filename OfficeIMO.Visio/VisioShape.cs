@@ -7,12 +7,17 @@ namespace OfficeIMO.Visio {
     /// </summary>
     public class VisioShape {
         /// <summary>
+        /// Default line weight used when Visio does not specify a value.
+        /// </summary>
+        internal const double DefaultLineWeight = 0.0138889;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="VisioShape"/> class with the specified identifier.
         /// </summary>
         /// <param name="id">Identifier of the shape.</param>
         public VisioShape(string id) {
             Id = id;
-            LineWeight = 0.0138889;
+            LineWeight = DefaultLineWeight;
             Angle = 0;
             LineColor = Color.Black;
             FillColor = Color.White;
