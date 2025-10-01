@@ -3,9 +3,6 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <TargetFramework>net8.0</TargetFramework>
-        <LangVersion>Latest</LangVersion>
-        <Nullable>enable</Nullable>
-        <VersionPrefix>1.0.7</VersionPrefix>
     </PropertyGroup>
 
     <ItemGroup>
