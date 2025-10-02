@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using OfficeIMO.Word;
 using Xunit;
@@ -116,6 +117,35 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(2, result.Found);
                 Assert.Equal(2, result.Paragraphs.Count);
+            }
+        }
+
+        [Fact]
+        public void Test_FindAndReplace_WithNewLines() {
+            string filePath = Path.Combine(_directoryWithFiles, "FindAndReplaceNewLines.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph("Before KEY After");
+                paragraph.SetBold();
+
+                var replaced = document.FindAndReplace("KEY", "Line1\nLine2");
+
+                Assert.Equal(1, replaced);
+                Assert.Equal($"Before Line1{Environment.NewLine}Line2 After", paragraph.Text);
+
+                var run = paragraph.GetRuns().First();
+                Assert.NotNull(run.Break);
+                Assert.True(paragraph.Bold);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var paragraph = document.Paragraphs[0];
+                Assert.Equal($"Before Line1{Environment.NewLine}Line2 After", paragraph.Text);
+
+                var run = paragraph.GetRuns().First();
+                Assert.NotNull(run.Break);
+                Assert.True(paragraph.Bold);
             }
         }
     }

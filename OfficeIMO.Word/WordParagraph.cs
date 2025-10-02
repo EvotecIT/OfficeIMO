@@ -1,5 +1,7 @@
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Linq;
+using System.Text;
 using Break = DocumentFormat.OpenXml.Wordprocessing.Break;
 using Hyperlink = DocumentFormat.OpenXml.Wordprocessing.Hyperlink;
 using OfficeMath = DocumentFormat.OpenXml.Math.OfficeMath;
@@ -291,15 +293,63 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string Text {
             get {
-                if (_text == null) {
-                    return "";
+                if (_run == null) {
+                    return string.Empty;
                 }
 
-                return _text.Text;
+                var builder = new StringBuilder();
+                var children = _run.ChildElements.ToList();
+                for (int i = 0; i < children.Count; i++) {
+                    var child = children[i];
+                    switch (child) {
+                        case Text text:
+                            builder.Append(text.Text);
+                            break;
+                        case DocumentFormat.OpenXml.Wordprocessing.Break:
+                            if (i < children.Count - 1) {
+                                builder.Append(Environment.NewLine);
+                            }
+                            break;
+                    }
+                }
+
+                if (builder.Length > 0) {
+                    return builder.ToString();
+                }
+
+                return string.Empty;
             }
             set {
-                var text = VerifyText();
-                text.Text = value;
+                var run = VerifyRun();
+
+                foreach (var textNode in run.Elements<Text>().ToList()) {
+                    textNode.Remove();
+                }
+
+                foreach (var breakNode in run.Elements<DocumentFormat.OpenXml.Wordprocessing.Break>().ToList()) {
+                    breakNode.Remove();
+                }
+
+                var normalized = (value ?? string.Empty)
+                    .Replace("\r\n", "\n")
+                    .Replace("\r", "\n");
+
+                var segments = normalized.Split('\n');
+
+                for (int i = 0; i < segments.Length; i++) {
+                    var segment = segments[i];
+                    bool isLast = i == segments.Length - 1;
+                    bool shouldAddText = segment.Length > 0 || segments.Length == 1 || (isLast && segment.Length == 0);
+
+                    if (shouldAddText) {
+                        var textNode = new Text(segment) { Space = SpaceProcessingModeValues.Preserve };
+                        run.Append(textNode);
+                    }
+
+                    if (!isLast) {
+                        run.Append(new DocumentFormat.OpenXml.Wordprocessing.Break());
+                    }
+                }
             }
         }
 
