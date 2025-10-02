@@ -130,7 +130,7 @@ namespace OfficeIMO.Tests {
                 var replaced = document.FindAndReplace("KEY", "Line1\nLine2");
 
                 Assert.Equal(1, replaced);
-                Assert.Equal($"Before Line1{Environment.NewLine}Line2 After", paragraph.Text);
+                Assert.Equal("Before Line1\nLine2 After", paragraph.Text);
 
                 var run = paragraph.GetRuns().First();
                 Assert.NotNull(run.Break);
@@ -141,7 +141,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var paragraph = document.Paragraphs[0];
-                Assert.Equal($"Before Line1{Environment.NewLine}Line2 After", paragraph.Text);
+                Assert.Equal("Before Line1\nLine2 After", paragraph.Text);
 
                 var run = paragraph.GetRuns().First();
                 Assert.NotNull(run.Break);
