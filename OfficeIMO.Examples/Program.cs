@@ -257,6 +257,7 @@ namespace OfficeIMO.Examples {
             // Word/FindAndReplace
             Word.FindAndReplace.Example_FindAndReplace01(folderPath, false);
             Word.FindAndReplace.Example_FindAndReplace02(folderPath, false);
+            Word.FindAndReplace.Example_FindAndReplace03(folderPath, false);
             Word.FindAndReplace.Example_ReplaceTextWithHtmlFragment(folderPath, false);
             // Word/Fluent
             Word.FluentDocument.Example_FluentDocument(folderPath, false);
