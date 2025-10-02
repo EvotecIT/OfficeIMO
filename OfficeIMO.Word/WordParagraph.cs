@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Break = DocumentFormat.OpenXml.Wordprocessing.Break;
@@ -322,19 +323,44 @@ namespace OfficeIMO.Word {
             set {
                 var run = VerifyRun();
 
-                foreach (var textNode in run.Elements<Text>().ToList()) {
-                    textNode.Remove();
+                var preservedBreaks = new List<(int TextIndex, DocumentFormat.OpenXml.Wordprocessing.Break Break)>();
+                int textNodesEncountered = 0;
+
+                foreach (var child in run.ChildElements.ToList()) {
+                    switch (child) {
+                        case Text textNode:
+                            textNode.Remove();
+                            textNodesEncountered++;
+                            break;
+                        case DocumentFormat.OpenXml.Wordprocessing.Break breakNode:
+                            if (breakNode.Type == null || breakNode.Type.Value == BreakValues.TextWrapping) {
+                                breakNode.Remove();
+                            } else {
+                                preservedBreaks.Add((textNodesEncountered, breakNode));
+                                breakNode.Remove();
+                            }
+                            break;
+                    }
                 }
 
-                foreach (var breakNode in run.Elements<DocumentFormat.OpenXml.Wordprocessing.Break>().ToList()) {
-                    breakNode.Remove();
-                }
+                preservedBreaks.Sort((left, right) => left.TextIndex.CompareTo(right.TextIndex));
 
                 var normalized = (value ?? string.Empty)
                     .Replace("\r\n", "\n")
                     .Replace("\r", "\n");
 
                 var segments = normalized.Split('\n');
+                int emittedTextCount = 0;
+                int preservedIndex = 0;
+
+                void AppendPreservedBreaksForTextIndex(int textIndex) {
+                    while (preservedIndex < preservedBreaks.Count && preservedBreaks[preservedIndex].TextIndex == textIndex) {
+                        run.Append(preservedBreaks[preservedIndex].Break);
+                        preservedIndex++;
+                    }
+                }
+
+                AppendPreservedBreaksForTextIndex(0);
 
                 for (int i = 0; i < segments.Length; i++) {
                     var segment = segments[i];
@@ -344,11 +370,18 @@ namespace OfficeIMO.Word {
                     if (shouldAddText) {
                         var textNode = new Text(segment) { Space = SpaceProcessingModeValues.Preserve };
                         run.Append(textNode);
+                        emittedTextCount++;
+                        AppendPreservedBreaksForTextIndex(emittedTextCount);
                     }
 
                     if (!isLast) {
                         run.Append(new DocumentFormat.OpenXml.Wordprocessing.Break());
                     }
+                }
+
+                while (preservedIndex < preservedBreaks.Count) {
+                    run.Append(preservedBreaks[preservedIndex].Break);
+                    preservedIndex++;
                 }
             }
         }
