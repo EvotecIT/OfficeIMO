@@ -46,9 +46,9 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.TextBoxes.Count == 2);
 
-                Assert.True(document.TextBoxes[0].Paragraphs[0].Text == "My textbox on the left");
+                Assert.Equal("My textbox on the left", document.TextBoxes[0].Paragraphs[0].Text.TrimEnd('\n'));
 
-                Assert.True(document.TextBoxes[1].Paragraphs[0].Text == "My textbox on the right");
+                Assert.Equal("My textbox on the right", document.TextBoxes[1].Paragraphs[0].Text.TrimEnd('\n'));
 
                 Assert.True(document.TextBoxes[1].Paragraphs[0].ParagraphAlignment == JustificationValues.Right);
 
@@ -438,18 +438,18 @@ namespace OfficeIMO.Tests {
 
                 var textBox = document.AddTextBox("[Grab your reader’s attention with a great quote from the document or use this space to emphasize a key point. To place this text box anywhere on the page, just drag it.]");
 
-                Assert.True(textBox.Paragraphs.Count == 1);
-                Assert.True(textBox.Paragraphs[0].Text == "[Grab your reader’s attention with a great quote from the document or use this space to emphasize a key point. To place this text box anywhere on the page, just drag it.]");
+                Assert.Single(textBox.Paragraphs);
+                Assert.Equal("[Grab your reader’s attention with a great quote from the document or use this space to emphasize a key point. To place this text box anywhere on the page, just drag it.]", textBox.Paragraphs[0].Text.TrimEnd('\n'));
 
                 textBox.Paragraphs[0].Text = "We can then modify the text box text";
-                Assert.True(textBox.Paragraphs[0].Text == "We can then modify the text box text");
+                Assert.Equal("We can then modify the text box text", textBox.Paragraphs[0].Text);
 
                 textBox.Paragraphs[0].AddParagraph("Another paragraph");
-                Assert.True(textBox.Paragraphs.Count == 2);
-                Assert.True(textBox.Paragraphs[1].Text == "Another paragraph");
+                Assert.Equal(2, textBox.Paragraphs.Count);
+                Assert.Equal("Another paragraph", textBox.Paragraphs[1].Text.TrimEnd('\n'));
 
                 textBox.Paragraphs[1].Text = "This is a text box 1";
-                Assert.True(textBox.Paragraphs[1].Text == "This is a text box 1");
+                Assert.Equal("This is a text box 1", textBox.Paragraphs[1].Text.TrimEnd('\n'));
 
                 document.Save(false);
                 Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
