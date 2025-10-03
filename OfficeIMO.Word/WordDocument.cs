@@ -1733,7 +1733,30 @@ namespace OfficeIMO.Word {
         /// Releases resources associated with this <see cref="WordDocument"/> instance.
         /// </summary>
         public void Dispose() {
-            DisposeAsync().GetAwaiter().GetResult();
+            if (this._disposed) {
+                return;
+            }
+
+            var wordProcessingDocument = this._wordprocessingDocument;
+            if (wordProcessingDocument != null) {
+                try {
+                    if (wordProcessingDocument.AutoSave && wordProcessingDocument.FileOpenAccess != FileAccess.Read) {
+                        Save();
+                    }
+                } catch {
+                    // ignored
+                }
+
+                wordProcessingDocument.Dispose();
+                this._wordprocessingDocument = null!;
+            }
+
+            if (this.OriginalStream != null) {
+                // Original stream is owned by the caller and should remain open.
+            }
+
+            this._disposed = true;
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
@@ -1744,16 +1767,18 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            if (this._wordprocessingDocument != null) {
+            var wordProcessingDocument = this._wordprocessingDocument;
+            if (wordProcessingDocument != null) {
                 try {
-                    if (this._wordprocessingDocument.AutoSave && FileOpenAccess != FileAccess.Read) {
-                        await SaveAsync();
+                    if (wordProcessingDocument.AutoSave && wordProcessingDocument.FileOpenAccess != FileAccess.Read) {
+                        await SaveAsync().ConfigureAwait(false);
                     }
 
-                    await Task.Run(() => this._wordprocessingDocument.Dispose());
+                    await Task.Run(() => wordProcessingDocument.Dispose()).ConfigureAwait(false);
                 } catch {
                     // ignored
                 }
+
                 this._wordprocessingDocument = null!;
             }
 
