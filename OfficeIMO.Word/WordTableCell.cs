@@ -124,6 +124,8 @@ namespace OfficeIMO.Word {
             if (paragraph == null) {
                 paragraph = new WordParagraph(this._document);
             }
+            WordParagraph.EnsureParagraphCanBeInserted(this._document, _tableCell, paragraph,
+                "append a paragraph to the table cell");
             _tableCell.Append(paragraph._paragraph);
             return paragraph;
         }

@@ -20,6 +20,9 @@ namespace OfficeIMO.Word {
 
             var body = _wordprocessingDocument?.MainDocumentPart?.Document?.Body
                 ?? throw new InvalidOperationException("Document body is missing.");
+
+            WordParagraph.EnsureParagraphCanBeInserted(this, body, wordParagraph,
+                "append a paragraph to the document body");
             body.AppendChild(wordParagraph._paragraph);
             return wordParagraph;
         }
