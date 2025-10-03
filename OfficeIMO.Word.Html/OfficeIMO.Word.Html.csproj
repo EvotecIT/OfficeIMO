@@ -4,15 +4,11 @@
         <Description>HTML converter for OfficeIMO.Word - Convert Word documents to/from HTML using AngleSharp</Description>
         <AssemblyName>OfficeIMO.Word.Html</AssemblyName>
         <AssemblyTitle>OfficeIMO.Word.Html</AssemblyTitle>
-
-        <VersionPrefix>1.0.7</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472
         </TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-        <Company>Evotec</Company>
-        <Authors>Przemyslaw Klys</Authors>
 
         <PackageId>OfficeIMO.Word.Html</PackageId>
         <PackageTags>html;openxml;office;docx;net472;net8.0;net9.0</PackageTags>
@@ -26,8 +22,6 @@
         <DebugType>portable</DebugType>
         <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
-        <LangVersion>Latest</LangVersion>
-        <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <ItemGroup>

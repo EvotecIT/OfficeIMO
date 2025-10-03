@@ -11,10 +11,6 @@
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472</TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-
-        <Company>Evotec</Company>
-        <Authors>Przemyslaw Klys</Authors>
-
         <PackageId>OfficeIMO.Excel</PackageId>
         <PackageTags>
             docx;net60;excel;office;openxml;net472;net50;netstandard;netstandard2.0,netstandard2.1;net70</PackageTags>
@@ -27,8 +23,6 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
         <DebugType>portable</DebugType>
-        <LangVersion>Latest</LangVersion>
-        <Nullable>enable</Nullable>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     </PropertyGroup>

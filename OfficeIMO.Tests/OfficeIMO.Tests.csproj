@@ -6,8 +6,6 @@
             $(TargetFrameworks);net472
         </TargetFrameworks>
         <IsPackable>false</IsPackable>
-        <Nullable>enable</Nullable>
-        <LangVersion>Latest</LangVersion>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="AutoFixture" Version="4.18.1" />
