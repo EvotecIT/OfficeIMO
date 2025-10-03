@@ -1743,11 +1743,12 @@ namespace OfficeIMO.Word {
                     if (wordProcessingDocument.AutoSave && wordProcessingDocument.FileOpenAccess != FileAccess.Read) {
                         Save();
                     }
+
+                    wordProcessingDocument.Dispose();
                 } catch {
                     // ignored
                 }
 
-                wordProcessingDocument.Dispose();
                 this._wordprocessingDocument = null!;
             }
 
