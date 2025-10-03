@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using System;
 using System.Diagnostics;
 
 namespace OfficeIMO.Word {
@@ -21,16 +22,25 @@ namespace OfficeIMO.Word {
             }
         }
 
+        private WordSection GetFirstSectionOrThrow(string propertyName, bool createIfMissing) {
+            if (this.Sections.Count > 0) {
+                return this.Sections[0];
+            }
+
+            if (!createIfMissing) {
+                throw new InvalidOperationException($"Cannot access '{propertyName}' because the document does not contain any sections. Call AddSection() before using this property.");
+            }
+
+            return new WordSection(this, sectionProperties: null, paragraph: null);
+        }
+
         /// <summary>
         /// Gets the headers of the first section.
         /// </summary>
         public WordHeaders? Header {
             get {
-                if (this.Sections.Count == 0) {
-                    return null;
-                }
                 WarnIfMultipleSections(nameof(Header));
-                return this.Sections[0].Header;
+                return GetFirstSectionOrThrow(nameof(Header), false).Header;
             }
         }
         /// <summary>
@@ -38,11 +48,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordFooters? Footer {
             get {
-                if (this.Sections.Count == 0) {
-                    return null;
-                }
                 WarnIfMultipleSections(nameof(Footer));
-                return this.Sections[0].Footer;
+                return GetFirstSectionOrThrow(nameof(Footer), false).Footer;
             }
         }
 
@@ -53,7 +60,7 @@ namespace OfficeIMO.Word {
         public WordHeader HeaderDefaultOrCreate {
             get {
                 WarnIfMultipleSections(nameof(HeaderDefaultOrCreate));
-                return this.Sections[0].GetOrCreateHeader(HeaderFooterValues.Default);
+                return GetFirstSectionOrThrow(nameof(HeaderDefaultOrCreate), true).GetOrCreateHeader(HeaderFooterValues.Default);
             }
         }
 
@@ -64,7 +71,7 @@ namespace OfficeIMO.Word {
         public WordHeader HeaderFirstOrCreate {
             get {
                 WarnIfMultipleSections(nameof(HeaderFirstOrCreate));
-                return this.Sections[0].GetOrCreateHeader(HeaderFooterValues.First);
+                return GetFirstSectionOrThrow(nameof(HeaderFirstOrCreate), true).GetOrCreateHeader(HeaderFooterValues.First);
             }
         }
 
@@ -75,7 +82,7 @@ namespace OfficeIMO.Word {
         public WordHeader HeaderEvenOrCreate {
             get {
                 WarnIfMultipleSections(nameof(HeaderEvenOrCreate));
-                return this.Sections[0].GetOrCreateHeader(HeaderFooterValues.Even);
+                return GetFirstSectionOrThrow(nameof(HeaderEvenOrCreate), true).GetOrCreateHeader(HeaderFooterValues.Even);
             }
         }
 
@@ -86,7 +93,7 @@ namespace OfficeIMO.Word {
         public WordFooter FooterDefaultOrCreate {
             get {
                 WarnIfMultipleSections(nameof(FooterDefaultOrCreate));
-                return this.Sections[0].GetOrCreateFooter(HeaderFooterValues.Default);
+                return GetFirstSectionOrThrow(nameof(FooterDefaultOrCreate), true).GetOrCreateFooter(HeaderFooterValues.Default);
             }
         }
 
@@ -97,7 +104,7 @@ namespace OfficeIMO.Word {
         public WordFooter FooterFirstOrCreate {
             get {
                 WarnIfMultipleSections(nameof(FooterFirstOrCreate));
-                return this.Sections[0].GetOrCreateFooter(HeaderFooterValues.First);
+                return GetFirstSectionOrThrow(nameof(FooterFirstOrCreate), true).GetOrCreateFooter(HeaderFooterValues.First);
             }
         }
 
@@ -108,7 +115,7 @@ namespace OfficeIMO.Word {
         public WordFooter FooterEvenOrCreate {
             get {
                 WarnIfMultipleSections(nameof(FooterEvenOrCreate));
-                return this.Sections[0].GetOrCreateFooter(HeaderFooterValues.Even);
+                return GetFirstSectionOrThrow(nameof(FooterEvenOrCreate), true).GetOrCreateFooter(HeaderFooterValues.Even);
             }
         }
 
@@ -118,10 +125,10 @@ namespace OfficeIMO.Word {
         public bool DifferentFirstPage {
             get {
                 WarnIfMultipleSections(nameof(DifferentFirstPage));
-                return this.Sections[0].DifferentFirstPage;
+                return GetFirstSectionOrThrow(nameof(DifferentFirstPage), true).DifferentFirstPage;
             }
             set {
-                this.Sections[0].DifferentFirstPage = value;
+                GetFirstSectionOrThrow(nameof(DifferentFirstPage), true).DifferentFirstPage = value;
             }
 
         }
@@ -131,10 +138,10 @@ namespace OfficeIMO.Word {
         public bool DifferentOddAndEvenPages {
             get {
                 WarnIfMultipleSections(nameof(DifferentOddAndEvenPages));
-                return this.Sections[0].DifferentOddAndEvenPages;
+                return GetFirstSectionOrThrow(nameof(DifferentOddAndEvenPages), true).DifferentOddAndEvenPages;
             }
             set {
-                this.Sections[0].DifferentOddAndEvenPages = value;
+                GetFirstSectionOrThrow(nameof(DifferentOddAndEvenPages), true).DifferentOddAndEvenPages = value;
             }
         }
 
