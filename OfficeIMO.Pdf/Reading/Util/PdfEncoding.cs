@@ -8,9 +8,17 @@ internal static class PdfEncoding {
         return new string(chars);
     }
 
-    public static byte[] Latin1GetBytes(string s) {
-        var bytes = new byte[s.Length];
-        for (int i = 0; i < s.Length; i++) bytes[i] = (byte)(s[i] & 0xFF);
+    public static byte[] Latin1GetBytes(string text) {
+        System.ArgumentNullException.ThrowIfNull(text);
+
+        var bytes = new byte[text.Length];
+        for (int i = 0; i < text.Length; i++) {
+            char ch = text[i];
+            if (ch > 0xFF) {
+                throw new System.ArgumentException($"Character '{ch}' (U+{(int)ch:X4}) is not valid in Latin-1 encoding", nameof(text));
+            }
+            bytes[i] = (byte)ch;
+        }
         return bytes;
     }
 }
