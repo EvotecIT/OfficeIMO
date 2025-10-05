@@ -16,17 +16,32 @@ namespace OfficeIMO.Word {
             string resultPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".docx");
             File.Copy(sourcePath, resultPath, true);
 
-            using (WordDocument source = WordDocument.Load(sourcePath))
-            using (WordDocument target = WordDocument.Load(targetPath))
-            using (WordDocument result = WordDocument.Load(resultPath)) {
-                CompareParagraphs(source, target, result);
-                CompareTables(source, target, result);
-                CompareImages(source, target, result);
+            WordDocument finalResult;
+            try {
+                using (WordDocument source = WordDocument.Load(sourcePath))
+                using (WordDocument target = WordDocument.Load(targetPath))
+                using (WordDocument result = WordDocument.Load(resultPath)) {
+                    CompareParagraphs(source, target, result);
+                    CompareTables(source, target, result);
+                    CompareImages(source, target, result);
 
-                result.Save(false);
+                    result.Save(false);
+                }
+
+                finalResult = WordDocument.Load(resultPath);
+            } finally {
+                if (File.Exists(resultPath)) {
+                    try {
+                        File.Delete(resultPath);
+                    } catch (IOException) {
+                        // Ignore cleanup failures.
+                    } catch (UnauthorizedAccessException) {
+                        // Ignore cleanup failures.
+                    }
+                }
             }
 
-            return WordDocument.Load(resultPath);
+            return finalResult;
         }
     }
 }

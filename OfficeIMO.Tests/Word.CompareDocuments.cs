@@ -1,6 +1,5 @@
 using System.IO;
 using System.Linq;
-using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -21,15 +20,12 @@ namespace OfficeIMO.Tests {
                 doc.Save(false);
             }
 
-            string resultPath;
-            using (WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath)) {
-                resultPath = result.FilePath;
-            }
-
-            using WordprocessingDocument word = WordprocessingDocument.Open(resultPath, false);
-              InsertedRun? ins = word.MainDocumentPart!.Document!.Body!.Descendants<InsertedRun>().FirstOrDefault();
-              Assert.NotNull(ins);
-              Assert.Equal(" World", ins!.InnerText);
+            using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
+            Body body = result._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
+            InsertedRun? ins = body.Descendants<InsertedRun>().FirstOrDefault();
+            Assert.NotNull(ins);
+            Assert.Equal(" World", ins!.InnerText);
+            AssertNoTempArtifact(result);
         }
 
         [Fact]
@@ -46,15 +42,12 @@ namespace OfficeIMO.Tests {
                 doc.Save(false);
             }
 
-            string resultPath;
-            using (WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath)) {
-                resultPath = result.FilePath;
-            }
-
-            using WordprocessingDocument word = WordprocessingDocument.Open(resultPath, false);
-              DeletedRun? del = word.MainDocumentPart!.Document!.Body!.Descendants<DeletedRun>().FirstOrDefault();
-              Assert.NotNull(del);
-              Assert.Equal(" World", del!.InnerText);
+            using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
+            Body body = result._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
+            DeletedRun? del = body.Descendants<DeletedRun>().FirstOrDefault();
+            Assert.NotNull(del);
+            Assert.Equal(" World", del!.InnerText);
+            AssertNoTempArtifact(result);
         }
 
         [Fact]
@@ -72,15 +65,12 @@ namespace OfficeIMO.Tests {
                 doc.Save(false);
             }
 
-            string resultPath;
-            using (WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath)) {
-                resultPath = result.FilePath;
-            }
-
-            using WordprocessingDocument word = WordprocessingDocument.Open(resultPath, false);
-              Run run = word.MainDocumentPart!.Document!.Body!.Descendants<Run>().First();
-              Assert.NotNull(run.RunProperties);
-              Assert.NotNull(run.RunProperties!.RunPropertiesChange);
+            using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
+            Body body = result._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
+            Run run = body.Descendants<Run>().First();
+            Assert.NotNull(run.RunProperties);
+            Assert.NotNull(run.RunProperties!.RunPropertiesChange);
+            AssertNoTempArtifact(result);
         }
 
         [Fact]
@@ -100,14 +90,11 @@ namespace OfficeIMO.Tests {
                 doc.Save(false);
             }
 
-            string resultPath;
-            using (WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath)) {
-                resultPath = result.FilePath;
-            }
-
-            using WordprocessingDocument word = WordprocessingDocument.Open(resultPath, false);
-              InsertedRun? ins = word.MainDocumentPart!.Document!.Body!.Descendants<InsertedRun>().FirstOrDefault(r => r.InnerText == "Row2");
-              Assert.NotNull(ins);
+            using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
+            Body body = result._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
+            InsertedRun? ins = body.Descendants<InsertedRun>().FirstOrDefault(r => r.InnerText == "Row2");
+            Assert.NotNull(ins);
+            AssertNoTempArtifact(result);
         }
 
         [Fact]
@@ -127,14 +114,11 @@ namespace OfficeIMO.Tests {
                 doc.Save(false);
             }
 
-            string resultPath;
-            using (WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath)) {
-                resultPath = result.FilePath;
-            }
-
-            using WordprocessingDocument word = WordprocessingDocument.Open(resultPath, false);
-              DeletedRun? del = word.MainDocumentPart!.Document!.Body!.Descendants<DeletedRun>().FirstOrDefault(r => r.InnerText == "Row2");
-              Assert.NotNull(del);
+            using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
+            Body body = result._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
+            DeletedRun? del = body.Descendants<DeletedRun>().FirstOrDefault(r => r.InnerText == "Row2");
+            Assert.NotNull(del);
+            AssertNoTempArtifact(result);
         }
 
         [Fact]
@@ -151,17 +135,20 @@ namespace OfficeIMO.Tests {
                 doc.Save(false);
             }
 
-            string resultPath;
-            using (WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath)) {
-                resultPath = result.FilePath;
-            }
-
-            using WordprocessingDocument word = WordprocessingDocument.Open(resultPath, false);
-              InsertedRun? ins = word.MainDocumentPart!.Document!.Body!.Descendants<InsertedRun>().FirstOrDefault(r => r.InnerText == "[Image]");
-              DeletedRun? del = word.MainDocumentPart!.Document!.Body!.Descendants<DeletedRun>().FirstOrDefault(r => r.InnerText == "[Image]");
-              Assert.NotNull(ins);
-              Assert.NotNull(del);
+            using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
+            Body body = result._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
+            InsertedRun? ins = body.Descendants<InsertedRun>().FirstOrDefault(r => r.InnerText == "[Image]");
+            DeletedRun? del = body.Descendants<DeletedRun>().FirstOrDefault(r => r.InnerText == "[Image]");
+            Assert.NotNull(ins);
+            Assert.NotNull(del);
+            AssertNoTempArtifact(result);
         }
 
+        private static void AssertNoTempArtifact(WordDocument document) {
+            string artifactPath = document.FilePath;
+            Assert.False(File.Exists(artifactPath));
+            string fileName = Path.GetFileName(artifactPath);
+            Assert.Empty(Directory.GetFiles(Path.GetTempPath(), fileName));
+        }
     }
 }
