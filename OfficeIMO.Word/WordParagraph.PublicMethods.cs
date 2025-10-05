@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System;
 using System.Reflection;
 using System.Linq;
 using System.Xml.Linq;
@@ -316,9 +317,16 @@ namespace OfficeIMO.Word {
                 throw new InvalidOperationException("Cannot add a paragraph using a section from a different document.");
             }
 
-            var currentSection = GetSectionPropertiesForElement(this._paragraph);
-            if (currentSection != null && !AreSectionsEquivalent(currentSection, section._sectionProperties)) {
-                throw new InvalidOperationException("The provided section does not match the section of the current paragraph.");
+            var owningSection = GetSectionForParagraph(this._document, this);
+            if (owningSection != null) {
+                if (!ReferenceEquals(owningSection, section)) {
+                    throw new InvalidOperationException("The provided section does not match the section of the current paragraph.");
+                }
+            } else {
+                var currentSection = GetSectionPropertiesForElement(this._paragraph);
+                if (currentSection != null && !AreSectionsEquivalent(currentSection, section._sectionProperties)) {
+                    throw new InvalidOperationException("The provided section does not match the section of the current paragraph.");
+                }
             }
 
             if (paragraph is null) {
@@ -443,7 +451,11 @@ namespace OfficeIMO.Word {
                 return left == right;
             }
 
-            return ReferenceEquals(left, right);
+            if (ReferenceEquals(left, right)) {
+                return true;
+            }
+
+            return string.Equals(left.OuterXml, right.OuterXml, StringComparison.Ordinal);
         }
 
         private static string DescribeContainer(OpenXmlElement? container) {
