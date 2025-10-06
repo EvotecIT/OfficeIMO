@@ -180,6 +180,10 @@ namespace OfficeIMO.Examples.Pdf {
             var o = new PdfTextLayoutOptions();
             o.IgnoreHeaderHeight = TryDouble("RUN_CIS_IGNORE_TOP", 0);
             o.IgnoreFooterHeight = TryDouble("RUN_CIS_IGNORE_BOTTOM", 0);
+            o.LineMergeToleranceEm = TryDouble("RUN_CIS_LINE_EM", 1.8); // more tolerant grouping by default for CIS
+            o.GapSpaceThresholdEm = TryDouble("RUN_CIS_GAP_EM", 0.25);
+            string? forceSingle = Environment.GetEnvironmentVariable("RUN_CIS_FORCE_SINGLE");
+            if (!string.IsNullOrEmpty(forceSingle)) o.ForceSingleColumn = (forceSingle == "1" || forceSingle.Equals("true", StringComparison.OrdinalIgnoreCase));
             return o;
         }
     }

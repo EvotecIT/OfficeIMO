@@ -22,6 +22,8 @@ public sealed class PdfTextLayoutOptions {
     public double IgnoreHeaderHeight { get; set; } = 0;
     /// <summary>Height from bottom of page (points) to ignore as footer when emitting text. Default: 0.</summary>
     public double IgnoreFooterHeight { get; set; } = 0;
+    /// <summary>Threshold in em units to insert a space between adjacent spans on the same line. Default: 0.3.</summary>
+    public double GapSpaceThresholdEm { get; set; } = 0.3;
 
     internal TextLayoutEngine.Options ToEngineOptions() => new TextLayoutEngine.Options {
         MarginLeft = this.MarginLeft,
@@ -29,6 +31,7 @@ public sealed class PdfTextLayoutOptions {
         BinWidth = this.BinWidth,
         MinGutterWidth = this.MinGutterWidth,
         LineMergeToleranceEm = this.LineMergeToleranceEm,
-        ForceSingleColumn = this.ForceSingleColumn
+        ForceSingleColumn = this.ForceSingleColumn,
+        GapSpaceThresholdEm = this.GapSpaceThresholdEm
     };
 }

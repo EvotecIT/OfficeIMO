@@ -61,8 +61,16 @@ public sealed class PdfReadDocument {
         if (result.Count > 0) return result;
 
         // Fallback: scan all objects and sort by object number
-        foreach (var kv in _objects) if (kv.Value.Value is PdfDictionary dict && dict.Get<PdfName>("Type")?.Name == "Page") result.Add(new PdfReadPage(kv.Key, dict, _objects));
+        foreach (var kv in _objects) {
+            if (kv.Value.Value is PdfDictionary dict) {
+                var type = dict.Get<PdfName>("Type")?.Name;
+                if (type == "Page" || IsLikelyPage(dict)) {
+                    result.Add(new PdfReadPage(kv.Key, dict, _objects));
+                }
+            }
+        }
         result.Sort((a, b) => a.ObjectNumber.CompareTo(b.ObjectNumber));
+        System.Console.WriteLine($"CollectPages: Fallback scan found {result.Count} pages");
         return result;
     }
 
@@ -75,14 +83,14 @@ public sealed class PdfReadDocument {
 
     private void TraversePagesNode(PdfDictionary node, List<PdfReadPage> outList) {
         var type = node.Get<PdfName>("Type")?.Name;
-        if (type == "Page") {
+        if (type == "Page" || (type is null && IsLikelyPage(node))) {
             // Find this node's object number
             int objNum = FindObjectNumberFor(node);
             System.Console.WriteLine($"Traverse: Found Page obj {objNum}");
             outList.Add(new PdfReadPage(objNum, node, _objects));
             return;
         }
-        if (type == "Pages") {
+        if (type == "Pages" || (type is null && node.Get<PdfArray>("Kids") is not null)) {
             var kids = node.Get<PdfArray>("Kids");
             if (kids is null) return;
             System.Console.WriteLine($"Traverse: /Pages with {kids.Items.Count} kids");
@@ -92,6 +100,15 @@ public sealed class PdfReadDocument {
                 if (d is not null) TraversePagesNode(d, outList);
             }
         }
+    }
+
+    private static bool IsLikelyPage(PdfDictionary d) {
+        // Heuristics when /Type is missing or obscured (common with object streams and some producers)
+        bool hasContents = d.Items.ContainsKey("Contents");
+        bool hasMedia = d.Items.ContainsKey("MediaBox") || d.Items.ContainsKey("CropBox");
+        bool hasRes = d.Items.ContainsKey("Resources");
+        bool hasKids = d.Items.ContainsKey("Kids");
+        return !hasKids && hasContents && (hasMedia || hasRes);
     }
 
     private int FindObjectNumberFor(PdfDictionary dict) {

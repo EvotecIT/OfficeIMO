@@ -22,6 +22,8 @@ internal static class TextLayoutEngine {
         public double LineMergeToleranceEm { get; set; } = 0.6;
         /// <summary>Force single column when true; skip gutter detection.</summary>
         public bool ForceSingleColumn { get; set; } = false;
+        /// <summary>Threshold in em units to insert a space between adjacent spans on the same line. Default: 0.3.</summary>
+        public double GapSpaceThresholdEm { get; set; } = 0.3;
     }
 
     public sealed class TextLine {
@@ -59,13 +61,13 @@ internal static class TextLayoutEngine {
             if (Math.Abs(s.Y - currentY) <= tol) {
                 current.Add(s);
             } else {
-                lines.Add(BuildLine(current));
+                lines.Add(BuildLine(current, options));
                 current.Clear();
                 current.Add(s);
                 currentY = s.Y;
             }
         }
-        if (current.Count > 0) lines.Add(BuildLine(current));
+        if (current.Count > 0) lines.Add(BuildLine(current, options));
         return lines;
     }
 
@@ -153,7 +155,7 @@ internal static class TextLayoutEngine {
         return System.Text.RegularExpressions.Regex.Replace(text, "(?<=[A-Za-z])(?:-|\u00AD)\n(?=[a-z])", "");
     }
 
-    private static TextLine BuildLine(List<PdfTextSpan> spans) {
+    private static TextLine BuildLine(List<PdfTextSpan> spans, Options? options) {
         // X sort within the line
         spans.Sort((a, b) => a.X.CompareTo(b.X));
         double xs = spans[0].X;
@@ -165,7 +167,8 @@ internal static class TextLayoutEngine {
             if (i > 0) {
                 // Add a space heuristically if large X gap between spans
                 double prevEnd = spans[i - 1].X + ApproxWidth(spans[i - 1]);
-                if (s.X - prevEnd > s.FontSize * 0.3) text.Append(' ');
+                double gapEm = options?.GapSpaceThresholdEm ?? 0.3;
+                if (s.X - prevEnd > s.FontSize * gapEm) text.Append(' ');
             }
             text.Append(s.Text);
         }
