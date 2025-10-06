@@ -10,6 +10,8 @@ internal static class TextContentParser {
     private static readonly Regex TLRe = new Regex(@"(?<lead>-?\d+(?:\.\d+)?)\s+TL", RegexOptions.Compiled);
     private static readonly Regex TjRe = new Regex(@"\((?<txt>(?:\\.|[^\\\)])*)\)\s*Tj", RegexOptions.Compiled);
     private static readonly Regex TJRe = new Regex(@"\[(?<arr>[\s\S]*?)\]\s*TJ", RegexOptions.Compiled);
+    private static readonly Regex QuoteShowRe = new Regex(@"\((?<txt>(?:\\.|[^\\\)])*)\)\s*'", RegexOptions.Compiled);
+    private static readonly Regex DoubleQuoteShowRe = new Regex(@"(?<aw>-?\d+(?:\.\d+)?)\s+(?<ac>-?\d+(?:\.\d+)?)\s+\((?<txt>(?:\\.|[^\\\)])*)\)\s*""", RegexOptions.Compiled);
 
     public static List<PdfTextSpan> Parse(
         string content,
@@ -44,6 +46,35 @@ internal static class TextContentParser {
             if (t == "T*") { y -= leading; continue; }
             var mTd = TdRe.Match(line);
             if (mTd.Success) { x += double.Parse(mTd.Groups["tx"].Value, CultureInfo.InvariantCulture); y += double.Parse(mTd.Groups["ty"].Value, CultureInfo.InvariantCulture); continue; }
+
+            // ' operator: move to next line (T*) then show text
+            var mQs = QuoteShowRe.Match(line);
+            if (mQs.Success) {
+                y -= leading;
+                var raw = mQs.Groups["txt"].Value;
+                var bytes = PdfStringParser.ParseLiteralToBytes(raw);
+                var text = decodeWithFont(font, bytes);
+                if (!string.IsNullOrEmpty(text)) {
+                    spans.Add(new PdfTextSpan(text, font, size, x, y));
+                    double em = widthEmForFont(font);
+                    x += text.Length * size * em;
+                }
+                continue;
+            }
+
+            // " operator: set word/char spacing (ignored for now) then show text
+            var mDq = DoubleQuoteShowRe.Match(line);
+            if (mDq.Success) {
+                var raw = mDq.Groups["txt"].Value;
+                var bytes = PdfStringParser.ParseLiteralToBytes(raw);
+                var text = decodeWithFont(font, bytes);
+                if (!string.IsNullOrEmpty(text)) {
+                    spans.Add(new PdfTextSpan(text, font, size, x, y));
+                    double em = widthEmForFont(font);
+                    x += text.Length * size * em;
+                }
+                continue;
+            }
 
             foreach (Match m in TjRe.Matches(line)) {
                 var raw = m.Groups["txt"].Value;

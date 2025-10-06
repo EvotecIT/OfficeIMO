@@ -15,15 +15,12 @@ public sealed class PdfReadPage {
     /// <summary>Underlying object number for the page.</summary>
     public int ObjectNumber { get; }
 
-    /// <summary>Extracts plain text from this page by parsing content operators.</summary>
+    /// <summary>Extracts plain text from this page without column reordering.</summary>
     public string ExtractText() {
         var spans = GetTextSpans();
-        var sb = new StringBuilder();
-        for (int i = 0; i < spans.Count; i++) {
-            if (i > 0) sb.Append('\n');
-            sb.Append(spans[i].Text);
-        }
-        return sb.ToString();
+        var opts = new TextLayoutEngine.Options { ForceSingleColumn = true };
+        var lines = TextLayoutEngine.BuildLines(spans, opts);
+        return TextLayoutEngine.EmitText(lines, TextLayoutEngine.DetectColumns(lines, GetPageSize().Width, opts), null);
     }
 
     /// <summary>

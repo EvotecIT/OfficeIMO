@@ -18,12 +18,12 @@ internal static class TextLayoutEngine {
         public double BinWidth { get; set; } = 5;
         /// <summary>Minimum gutter width to consider split into two columns. Default: 24 pt.</summary>
         public double MinGutterWidth { get; set; } = 24;
-        /// <summary>Maximum Y delta (as fraction of average font size) to group spans into the same line. Default: 0.6.</summary>
-        public double LineMergeToleranceEm { get; set; } = 0.6;
+        /// <summary>Maximum Y delta (as fraction of font size) to group spans into the same line. Default: 1.8.</summary>
+        public double LineMergeToleranceEm { get; set; } = 1.8;
         /// <summary>Force single column when true; skip gutter detection.</summary>
         public bool ForceSingleColumn { get; set; } = false;
         /// <summary>Threshold in em units to insert a space between adjacent spans on the same line. Default: 0.3.</summary>
-        public double GapSpaceThresholdEm { get; set; } = 0.3;
+        public double GapSpaceThresholdEm { get; set; } = 0.25;
     }
 
     public sealed class TextLine {
@@ -52,14 +52,16 @@ internal static class TextLayoutEngine {
         var ordered = spans.OrderByDescending(s => s.Y).ThenBy(s => s.X).ToList();
         // Estimate avg font size (robust median)
         double medianSize = Median(ordered.Select(s => s.FontSize));
-        double tol = Math.Max(1.0, medianSize * options.LineMergeToleranceEm);
         var lines = new List<TextLine>();
         var current = new List<PdfTextSpan>();
         double currentY = ordered[0].Y;
         foreach (var s in ordered) {
             if (current.Count == 0) { current.Add(s); currentY = s.Y; continue; }
-            if (Math.Abs(s.Y - currentY) <= tol) {
+            double tolAbs = Math.Max(1.0, Math.Max(medianSize, s.FontSize) * options.LineMergeToleranceEm);
+            if (Math.Abs(s.Y - currentY) <= tolAbs) {
                 current.Add(s);
+                // adapt running baseline to mitigate tiny per-glyph Y drift
+                currentY = (currentY * (current.Count - 1) + s.Y) / current.Count;
             } else {
                 lines.Add(BuildLine(current, options));
                 current.Clear();
