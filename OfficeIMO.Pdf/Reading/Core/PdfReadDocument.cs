@@ -48,8 +48,15 @@ public sealed class PdfReadDocument {
             if (kv.Value.Value is PdfDictionary d && d.Get<PdfName>("Type")?.Name == "Catalog") { catalogId = kv.Key; break; }
         }
         if (catalogId is int cat && _objects.TryGetValue(cat, out var catObj) && catObj.Value is PdfDictionary catalog) {
+            System.Console.WriteLine($"CollectPages: Catalog {cat}");
             var pagesNode = ResolveDict(catalog.Items.TryGetValue("Pages", out var v) ? v : null);
-            if (pagesNode is not null) TraversePagesNode(pagesNode, result);
+            if (pagesNode is not null) {
+                var kids = pagesNode.Get<PdfArray>("Kids");
+                int kidCount = kids?.Items.Count ?? 0;
+                System.Console.WriteLine($"CollectPages: Root /Pages has Kids={kidCount}");
+                TraversePagesNode(pagesNode, result);
+                System.Console.WriteLine($"CollectPages: Traversal found {result.Count} pages");
+            }
         }
         if (result.Count > 0) return result;
 
@@ -71,14 +78,17 @@ public sealed class PdfReadDocument {
         if (type == "Page") {
             // Find this node's object number
             int objNum = FindObjectNumberFor(node);
+            System.Console.WriteLine($"Traverse: Found Page obj {objNum}");
             outList.Add(new PdfReadPage(objNum, node, _objects));
             return;
         }
         if (type == "Pages") {
             var kids = node.Get<PdfArray>("Kids");
             if (kids is null) return;
+            System.Console.WriteLine($"Traverse: /Pages with {kids.Items.Count} kids");
             foreach (var kid in kids.Items) {
                 var d = ResolveDict(kid);
+                if (d is null) { System.Console.WriteLine("Traverse: Kid unresolved"); continue; }
                 if (d is not null) TraversePagesNode(d, outList);
             }
         }
