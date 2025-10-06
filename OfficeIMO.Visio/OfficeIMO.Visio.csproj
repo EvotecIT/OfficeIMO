@@ -5,15 +5,10 @@
             Microsoft Visio documents.</Description>
         <AssemblyName>OfficeIMO.Visio</AssemblyName>
         <AssemblyTitle>OfficeIMO.Visio</AssemblyTitle>
-
-        <VersionPrefix>1.0.7</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472</TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-        <Company>Evotec</Company>
-        <Authors>Przemyslaw Klys</Authors>
-
         <PackageId>OfficeIMO.Visio</PackageId>
         <PackageTags>
             vsdx;visio;office;openxml;net472;net50;netstandard;netstandard2.0,netstandard2.1;net70</PackageTags>
@@ -30,8 +25,6 @@
         <RepositoryType>git</RepositoryType>
         <SignAssembly>False</SignAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
-        <LangVersion>Latest</LangVersion>
-        <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">

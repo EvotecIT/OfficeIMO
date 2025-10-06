@@ -8,8 +8,6 @@
     <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-    <Company>Evotec</Company>
-    <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Markdown</PackageId>
     <PackageTags>markdown;gfm;builder;fluent;readme;docs;reporting</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
@@ -23,8 +21,6 @@
     <IsPublishable>True</IsPublishable>
     <SignAssembly>False</SignAssembly>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <LangVersion>Latest</LangVersion>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>

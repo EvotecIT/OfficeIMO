@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <PropertyGroup>
+    <VersionPrefix>1.0.7</VersionPrefix>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+  </PropertyGroup>
+</Project>
