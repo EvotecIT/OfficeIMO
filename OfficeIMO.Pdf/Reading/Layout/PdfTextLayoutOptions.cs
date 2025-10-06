@@ -4,13 +4,24 @@ namespace OfficeIMO.Pdf;
 /// Public options for column-aware text extraction.
 /// </summary>
 public sealed class PdfTextLayoutOptions {
+    /// <summary>Left page margin in points used when inferring column bounds. Default: 36.</summary>
     public double MarginLeft { get; set; } = 36;
+    /// <summary>Right page margin in points used when inferring column bounds. Default: 36.</summary>
     public double MarginRight { get; set; } = 36;
+    /// <summary>Histogram bin width (points) used for gutter detection. Default: 5.</summary>
     public double BinWidth { get; set; } = 5;
+    /// <summary>Minimum detected gutter width (points) to consider a two-column layout. Default: 24.</summary>
     public double MinGutterWidth { get; set; } = 24;
+    /// <summary>Maximum Y delta, expressed in font-size em units, to merge spans into the same text line. Default: 0.6.</summary>
     public double LineMergeToleranceEm { get; set; } = 0.6;
+    /// <summary>When true, forces single-column reading order and disables gutter detection. Default: false.</summary>
     public bool ForceSingleColumn { get; set; } = false;
+    /// <summary>When true, joins hyphenated words broken across line ends. Default: true.</summary>
     public bool JoinHyphenationAcrossLines { get; set; } = true;
+    /// <summary>Height from top of page (points) to ignore as header when emitting text. Default: 0.</summary>
+    public double IgnoreHeaderHeight { get; set; } = 0;
+    /// <summary>Height from bottom of page (points) to ignore as footer when emitting text. Default: 0.</summary>
+    public double IgnoreFooterHeight { get; set; } = 0;
 
     internal TextLayoutEngine.Options ToEngineOptions() => new TextLayoutEngine.Options {
         MarginLeft = this.MarginLeft,

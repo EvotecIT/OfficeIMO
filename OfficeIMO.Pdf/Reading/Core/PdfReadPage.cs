@@ -62,7 +62,35 @@ public sealed class PdfReadPage {
             var content = PdfEncoding.Latin1GetString(s);
             spans.AddRange(TextContentParser.Parse(content, DecodeWithFont, WidthEmForFont));
         }
+        // Additionally parse Form XObjects referenced via /Resources/XObject
+        var formStreams = ResourceResolver.GetFormXObjectStreams(_pageDict, _objects);
+        foreach (var kv in formStreams) {
+            var formName = kv.Key;
+            var bytes = kv.Value;
+            var content = PdfEncoding.Latin1GetString(bytes);
+            // Build decoders using the form's own resources if present
+            var formDecoders = ResourceResolver.GetFontDecodersForForm(GetFormDict(formName), _objects);
+            string DecodeWithFormFont(string fontRes, byte[] input) =>
+                formDecoders.TryGetValue(fontRes, out var dec) ? dec(input) : DecodeWithFont(fontRes, input);
+            spans.AddRange(TextContentParser.Parse(content, DecodeWithFormFont, WidthEmForFont));
+        }
         return spans;
+    }
+
+    private PdfDictionary GetFormDict(string name) {
+        if (_pageDict.Items.TryGetValue("Resources", out var resObj) && resObj is PdfReference rr && _objects.TryGetValue(rr.ObjectNumber, out var indr) && indr.Value is PdfDictionary res) {
+            if (res.Items.TryGetValue("XObject", out var xoObj)) {
+                PdfDictionary? xoDict = null;
+                if (xoObj is PdfReference xref && _objects.TryGetValue(xref.ObjectNumber, out var indxo) && indxo.Value is PdfDictionary xod) xoDict = xod;
+                if (xoObj is PdfDictionary d) xoDict = d;
+                if (xoDict is not null && xoDict.Items.TryGetValue(name, out var formObj)) {
+                    if (formObj is PdfReference fr && _objects.TryGetValue(fr.ObjectNumber, out var indForm) && indForm.Value is PdfStream s && s.Dictionary is not null) {
+                        return s.Dictionary;
+                    }
+                }
+            }
+        }
+        return _pageDict;
     }
 
     private static double GlyphWidthEmForBase(string baseFont) {

@@ -196,11 +196,21 @@ public static class PdfReadPageExtensions {
     /// <summary>
     /// Extracts text from a page with simple two-column detection when present.
     /// </summary>
+    /// <param name="options">Optional layout options controlling column detection, margins and trimming.</param>
+    /// <returns>Plain text for this page in inferred reading order.</returns>
     public static string ExtractTextWithColumns(this PdfReadPage page, PdfTextLayoutOptions? options = null) {
         var spans = page.GetTextSpans();
         var engineOpts = options?.ToEngineOptions();
         var lines = TextLayoutEngine.BuildLines(spans, engineOpts);
         var (w, _) = page.GetPageSize();
+        // Optional header/footer filtering
+        if (options is not null && (options.IgnoreHeaderHeight > 0 || options.IgnoreFooterHeight > 0)) {
+            var (_, h) = page.GetPageSize();
+            double topCut = h - options.IgnoreHeaderHeight;
+            double bottomCut = options.IgnoreFooterHeight;
+            lines = lines.Where(l => (options.IgnoreHeaderHeight <= 0 || l.Y < topCut)
+                                  && (options.IgnoreFooterHeight <= 0 || l.Y > bottomCut)).ToList();
+        }
         var layout = TextLayoutEngine.DetectColumns(lines, w, engineOpts);
         return TextLayoutEngine.EmitText(lines, layout, options);
     }

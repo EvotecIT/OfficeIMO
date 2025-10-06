@@ -36,6 +36,53 @@ internal static class ResourceResolver {
         return map;
     }
 
+    public static Dictionary<string, System.Func<byte[], string>> GetFontDecodersForForm(PdfDictionary formDict, Dictionary<int, PdfIndirectObject> objects) {
+        var map = new Dictionary<string, System.Func<byte[], string>>(System.StringComparer.Ordinal);
+        if (!formDict.Items.TryGetValue("Resources", out var resObj)) return map;
+        var res = ResolveDict(resObj, objects);
+        if (res is null) return map;
+        if (!res.Items.TryGetValue("Font", out var fontObj)) return map;
+        var fontDict = ResolveDict(fontObj, objects);
+        if (fontDict is null) return map;
+        foreach (var kv in fontDict.Items) {
+            var fontVal = ResolveDict(kv.Value, objects);
+            if (fontVal is null) continue;
+            string baseFont = (fontVal.Get<PdfName>("BaseFont")?.Name) ?? "";
+            string encoding = (fontVal.Get<PdfName>("Encoding")?.Name) ?? "WinAnsiEncoding";
+            bool hasToUnicode = fontVal.Items.ContainsKey("ToUnicode");
+            ToUnicodeCMap? cmap = null;
+            if (hasToUnicode) {
+                if (fontVal.Items.TryGetValue("ToUnicode", out var tu) && tu is PdfReference r && objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfStream s) {
+                    var data = PdfSyntax.HasFlateDecode(s.Dictionary) ? Filters.FlateDecoder.Decode(s.Data) : s.Data;
+                    if (!ToUnicodeCMap.TryParse(data, out cmap)) cmap = null;
+                }
+            }
+            var resName = kv.Key;
+            var dec = BuildDecoderForFont(new PdfFontResource(resName, baseFont, encoding, hasToUnicode, cmap));
+            map[resName] = dec;
+        }
+        return map;
+    }
+
+    public static Dictionary<string, byte[]> GetFormXObjectStreams(PdfDictionary page, Dictionary<int, PdfIndirectObject> objects) {
+        var result = new Dictionary<string, byte[]>(System.StringComparer.Ordinal);
+        var res = GetInheritedDictionary(page, "Resources", objects);
+        if (res is null) return result;
+        if (!res.Items.TryGetValue("XObject", out var xoObj)) return result;
+        var xo = ResolveDict(xoObj, objects);
+        if (xo is null) return result;
+        foreach (var kv in xo.Items) {
+            if (kv.Value is PdfReference r && objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfStream s) {
+                var subtype = s.Dictionary.Get<PdfName>("Subtype")?.Name;
+                if (string.Equals(subtype, "Form", System.StringComparison.Ordinal)) {
+                    var data = PdfSyntax.HasFlateDecode(s.Dictionary) ? Filters.FlateDecoder.Decode(s.Data) : s.Data;
+                    result[kv.Key] = data;
+                }
+            }
+        }
+        return result;
+    }
+
     private static System.Func<byte[], string> BuildDecoderForFont(PdfFontResource font) {
         // Prefer font-specific ToUnicode map when present
         if (font.HasToUnicode && font.CMap is not null) return font.CMap.MapBytes;

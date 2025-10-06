@@ -10,20 +10,19 @@ namespace OfficeIMO.Examples {
         }
 
         static void Main(string[] args) {
-            // Optional shortcut to run CIS PDF extraction without touching normal examples.
-            var runCis = Environment.GetEnvironmentVariable("RUN_CIS_PDF");
-            if (!string.IsNullOrEmpty(runCis)) {
-                bool columns = string.Equals(runCis, "columns", StringComparison.OrdinalIgnoreCase) || runCis == "1";
-                Pdf.ReadCisBenchmark.Run_CIS_2016(columns);
-                // Also dump diagnostics for the first pages to inspect ordering and ToUnicode usage.
-                Pdf.ReadCisBenchmarkDiagnostics.Run(columns);
-                return;
-            }
             string baseFolder = Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory);
             Directory.SetCurrentDirectory(baseFolder);
             string templatesPath = Path.Combine(baseFolder, "Templates");
             string folderPath = Path.Combine(baseFolder, "Documents");
             Setup(folderPath);
+            // PDF/Read Benchmarks
+            // PDF/Read Benchmarks (examples with page count parameters)
+            Pdf.ReadCisBenchmark.Example_Pdf_ReadCIS2016_Columns(folderPath, open: false, startPage: 1, pageCount: 3);
+            Pdf.ReadCisBenchmark.Example_Pdf_ReadCIS2016_Raw(folderPath, open: false, startPage: 1, pageCount: 5);
+
+            Console.WriteLine("Examples finished. Press any key to exit.");
+            return;
+
             // Visio - Core Examples
             Visio.BasicVisioDocument.Example_BasicVisio(folderPath, false);
             Visio.ConnectRectangles.Example_ConnectRectangles(folderPath, false);
