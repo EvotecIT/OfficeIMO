@@ -14,7 +14,14 @@ internal static class ResourceResolver {
             string baseFont = (fontVal.Get<PdfName>("BaseFont")?.Name) ?? "";
             string encoding = (fontVal.Get<PdfName>("Encoding")?.Name) ?? "WinAnsiEncoding"; // default heuristic
             bool hasToUnicode = fontVal.Items.ContainsKey("ToUnicode");
-            fonts[kv.Key] = new PdfFontResource(kv.Key, baseFont, encoding, hasToUnicode);
+            ToUnicodeCMap? cmap = null;
+            if (hasToUnicode) {
+                if (fontVal.Items.TryGetValue("ToUnicode", out var tu) && tu is PdfReference r && objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfStream s) {
+                    var data = PdfSyntax.HasFlateDecode(s.Dictionary) ? Filters.FlateDecoder.Decode(s.Data) : s.Data;
+                    if (!ToUnicodeCMap.TryParse(data, out cmap)) cmap = null;
+                }
+            }
+            fonts[kv.Key] = new PdfFontResource(kv.Key, baseFont, encoding, hasToUnicode, cmap);
         }
         return fonts;
     }
@@ -23,35 +30,17 @@ internal static class ResourceResolver {
         var map = new Dictionary<string, System.Func<byte[], string>>(System.StringComparer.Ordinal);
         var fonts = GetFontsForPage(page, objects);
         foreach (var kv in fonts) {
-            var decoder = BuildDecoderForFont(kv.Value, objects);
-            map[kv.Key] = decoder;
+            var dec = BuildDecoderForFont(kv.Value);
+            map[kv.Key] = dec;
         }
         return map;
     }
 
-    private static System.Func<byte[], string> BuildDecoderForFont(PdfFontResource font, Dictionary<int, PdfIndirectObject> objects) {
-        // ToUnicode takes precedence
-        if (font.HasToUnicode && TryGetToUnicodeCMap(font.ResourceName, objects, out var cmap)) {
-            return bytes => cmap!.MapBytes(bytes);
-        }
+    private static System.Func<byte[], string> BuildDecoderForFont(PdfFontResource font) {
+        // Prefer font-specific ToUnicode map when present
+        if (font.HasToUnicode && font.CMap is not null) return font.CMap.MapBytes;
         // Fall back to WinAnsi
         return PdfWinAnsiEncoding.Decode;
-    }
-
-    private static bool TryGetToUnicodeCMap(string resourceName, Dictionary<int, PdfIndirectObject> objects, out ToUnicodeCMap? cmap) {
-        // Search any font object with this resource name (best-effort for now)
-        foreach (var obj in objects.Values) {
-            if (obj.Value is PdfDictionary d) {
-                if (d.Get<PdfName>("Type")?.Name == "Font") {
-                    if (d.Items.TryGetValue("ToUnicode", out var tu)) {
-                        if (tu is PdfReference r && objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfStream s) {
-                            if (ToUnicodeCMap.TryParse(s.Data, out cmap)) return true;
-                        }
-                    }
-                }
-            }
-        }
-        cmap = null; return false;
     }
 
     private static PdfDictionary? GetInheritedDictionary(PdfDictionary page, string key, Dictionary<int, PdfIndirectObject> objects) {

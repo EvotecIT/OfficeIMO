@@ -41,18 +41,54 @@ public sealed class PdfReadDocument {
     }
 
     private List<PdfReadPage> CollectPages() {
-        var pages = new List<PdfReadPage>();
-        // Heuristic: find all objects with /Type /Page
+        // Prefer true page tree traversal when possible (Catalog -> Pages -> Kids ...)
+        var result = new List<PdfReadPage>();
+        int? catalogId = null;
         foreach (var kv in _objects) {
-            if (kv.Value.Value is PdfDictionary dict) {
-                if (dict.Get<PdfName>("Type")?.Name == "Page") {
-                    pages.Add(new PdfReadPage(kv.Key, dict, _objects));
-                }
+            if (kv.Value.Value is PdfDictionary d && d.Get<PdfName>("Type")?.Name == "Catalog") { catalogId = kv.Key; break; }
+        }
+        if (catalogId is int cat && _objects.TryGetValue(cat, out var catObj) && catObj.Value is PdfDictionary catalog) {
+            var pagesNode = ResolveDict(catalog.Items.TryGetValue("Pages", out var v) ? v : null);
+            if (pagesNode is not null) TraversePagesNode(pagesNode, result);
+        }
+        if (result.Count > 0) return result;
+
+        // Fallback: scan all objects and sort by object number
+        foreach (var kv in _objects) if (kv.Value.Value is PdfDictionary dict && dict.Get<PdfName>("Type")?.Name == "Page") result.Add(new PdfReadPage(kv.Key, dict, _objects));
+        result.Sort((a, b) => a.ObjectNumber.CompareTo(b.ObjectNumber));
+        return result;
+    }
+
+    private PdfDictionary? ResolveDict(PdfObject? obj) {
+        if (obj is null) return null;
+        if (obj is PdfDictionary d) return d;
+        if (obj is PdfReference r && _objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfDictionary dd) return dd;
+        return null;
+    }
+
+    private void TraversePagesNode(PdfDictionary node, List<PdfReadPage> outList) {
+        var type = node.Get<PdfName>("Type")?.Name;
+        if (type == "Page") {
+            // Find this node's object number
+            int objNum = FindObjectNumberFor(node);
+            outList.Add(new PdfReadPage(objNum, node, _objects));
+            return;
+        }
+        if (type == "Pages") {
+            var kids = node.Get<PdfArray>("Kids");
+            if (kids is null) return;
+            foreach (var kid in kids.Items) {
+                var d = ResolveDict(kid);
+                if (d is not null) TraversePagesNode(d, outList);
             }
         }
-        // Sort by object number as a crude document order approximation
-        pages.Sort((a, b) => a.ObjectNumber.CompareTo(b.ObjectNumber));
-        return pages;
+    }
+
+    private int FindObjectNumberFor(PdfDictionary dict) {
+        foreach (var kv in _objects) if (ReferenceEquals(kv.Value.Value, dict)) return kv.Key;
+        // As a fallback when dictionary was re-parsed separately, match by identity via a simple scan of Page objects
+        foreach (var kv in _objects) if (kv.Value.Value is PdfDictionary d && d.Get<PdfName>("Type")?.Name == "Page") return kv.Key;
+        return 0;
     }
 
     private string ToRaw() {

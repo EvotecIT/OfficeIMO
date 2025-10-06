@@ -26,6 +26,26 @@ public sealed class PdfReadPage {
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Attempts to read page size from MediaBox (or CropBox) and returns width/height in points.
+    /// Falls back to 612x792 (US Letter) when not present or malformed.
+    /// </summary>
+    public (double Width, double Height) GetPageSize() {
+        static (double, double) ParseBox(PdfObject? box) {
+            if (box is PdfArray arr && arr.Items.Count >= 4 &&
+                arr.Items[0] is PdfNumber llx && arr.Items[1] is PdfNumber lly &&
+                arr.Items[2] is PdfNumber urx && arr.Items[3] is PdfNumber ury) {
+                double w = urx.Value - llx.Value;
+                double h = ury.Value - lly.Value;
+                if (w > 0 && h > 0) return (w, h);
+            }
+            return (612, 792); // default Letter
+        }
+        if (_pageDict.Items.TryGetValue("MediaBox", out var media)) return ParseBox(media);
+        if (_pageDict.Items.TryGetValue("CropBox", out var crop)) return ParseBox(crop);
+        return (612, 792);
+    }
+
     /// <summary>Gets text spans (text with position and font info) from this page.</summary>
     public IReadOnlyList<PdfTextSpan> GetTextSpans() {
         var spans = new List<PdfTextSpan>();
@@ -68,14 +88,21 @@ public sealed class PdfReadPage {
         var result = new List<byte[]>();
         var contents = _pageDict.Items.TryGetValue("Contents", out var obj) ? obj : null;
         if (contents is PdfReference r) {
-            if (_objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfStream s) result.Add(s.Data);
+            if (_objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfStream s) result.Add(DecodeIfNeeded(s));
         } else if (contents is PdfArray arr) {
             foreach (var item in arr.Items) {
                 if (item is PdfReference rr) {
-                    if (_objects.TryGetValue(rr.ObjectNumber, out var ind2) && ind2.Value is PdfStream s2) result.Add(s2.Data);
+                    if (_objects.TryGetValue(rr.ObjectNumber, out var ind2) && ind2.Value is PdfStream s2) result.Add(DecodeIfNeeded(s2));
                 }
             }
         }
         return result;
+    }
+
+    private static byte[] DecodeIfNeeded(PdfStream s) {
+        if (PdfSyntax.HasFlateDecode(s.Dictionary)) {
+            try { return Filters.FlateDecoder.Decode(s.Data); } catch { return s.Data; }
+        }
+        return s.Data;
     }
 }

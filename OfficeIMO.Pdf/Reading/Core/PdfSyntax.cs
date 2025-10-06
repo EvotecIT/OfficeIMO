@@ -26,15 +26,7 @@ internal static class PdfSyntax {
             if (m.Success) {
                 var dict = ParseDictionary(m.Groups[1].Value);
                 var data = PdfEncoding.Latin1GetBytes(m.Groups[2].Value);
-                // Handle FlateDecode (best-effort, zero-dep)
-                if (HasFlateDecode(dict)) {
-                    try { data = Filters.FlateDecoder.Decode(data); } catch (Exception ex) {
-                        // Provide failure feedback while keeping original bytes
-                        System.Diagnostics.Trace.WriteLine($"OfficeIMO.Pdf: FlateDecode failed for object {id} {gen} R: {ex.Message}");
-                        map[id] = new PdfIndirectObject(id, gen, new PdfStream(dict, data, decodingFailed: true, error: ex.Message));
-                        continue;
-                    }
-                }
+                // Do not decode here to avoid inflating images into memory; decode on demand at use sites.
                 map[id] = new PdfIndirectObject(id, gen, new PdfStream(dict, data));
             } else {
                 // Try dictionary only
@@ -52,7 +44,7 @@ internal static class PdfSyntax {
         return (map, trailerRaw);
     }
 
-    private static bool HasFlateDecode(PdfDictionary dict) {
+    internal static bool HasFlateDecode(PdfDictionary dict) {
         if (!dict.Items.TryGetValue("Filter", out var f)) return false;
         if (f is PdfName n) return string.Equals(n.Name, "FlateDecode", System.StringComparison.Ordinal);
         if (f is PdfArray arr) {

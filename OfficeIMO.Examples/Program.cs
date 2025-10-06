@@ -10,6 +10,15 @@ namespace OfficeIMO.Examples {
         }
 
         static void Main(string[] args) {
+            // Optional shortcut to run CIS PDF extraction without touching normal examples.
+            var runCis = Environment.GetEnvironmentVariable("RUN_CIS_PDF");
+            if (!string.IsNullOrEmpty(runCis)) {
+                bool columns = string.Equals(runCis, "columns", StringComparison.OrdinalIgnoreCase) || runCis == "1";
+                Pdf.ReadCisBenchmark.Run_CIS_2016(columns);
+                // Also dump diagnostics for the first pages to inspect ordering and ToUnicode usage.
+                Pdf.ReadCisBenchmarkDiagnostics.Run(columns);
+                return;
+            }
             string baseFolder = Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory);
             Directory.SetCurrentDirectory(baseFolder);
             string templatesPath = Path.Combine(baseFolder, "Templates");
