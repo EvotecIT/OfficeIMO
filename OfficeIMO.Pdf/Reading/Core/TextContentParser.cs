@@ -1,124 +1,169 @@
 using System.Globalization;
-using System.Text.RegularExpressions;
+using System.Text;
 
 namespace OfficeIMO.Pdf;
 
 internal static class TextContentParser {
-    private static readonly Regex TfRe = new Regex(@"/(?<f>\w+)\s+(?<s>-?\d+(?:\.\d+)?)\s+Tf", RegexOptions.Compiled);
-    private static readonly Regex TmRe = new Regex(@"(?<a>-?\d+(?:\.\d+)?)\s+(?<b>-?\d+(?:\.\d+)?)\s+(?<c>-?\d+(?:\.\d+)?)\s+(?<d>-?\d+(?:\.\d+)?)\s+(?<e>-?\d+(?:\.\d+)?)\s+(?<f>-?\d+(?:\.\d+)?)\s+Tm", RegexOptions.Compiled);
-    private static readonly Regex TdRe = new Regex(@"(?<tx>-?\d+(?:\.\d+)?)\s+(?<ty>-?\d+(?:\.\d+)?)\s+Td", RegexOptions.Compiled);
-    private static readonly Regex TLRe = new Regex(@"(?<lead>-?\d+(?:\.\d+)?)\s+TL", RegexOptions.Compiled);
-    private static readonly Regex TjRe = new Regex(@"\((?<txt>(?:\\.|[^\\\)])*)\)\s*Tj", RegexOptions.Compiled);
-    private static readonly Regex TJRe = new Regex(@"\[(?<arr>[\s\S]*?)\]\s*TJ", RegexOptions.Compiled);
-    private static readonly Regex QuoteShowRe = new Regex(@"\((?<txt>(?:\\.|[^\\\)])*)\)\s*'", RegexOptions.Compiled);
-    private static readonly Regex DoubleQuoteShowRe = new Regex(@"(?<aw>-?\d+(?:\.\d+)?)\s+(?<ac>-?\d+(?:\.\d+)?)\s+\((?<txt>(?:\\.|[^\\\)])*)\)\s*""", RegexOptions.Compiled);
-
     public static List<PdfTextSpan> Parse(
         string content,
         System.Func<string, byte[], string> decodeWithFont,
-        System.Func<string, double> widthEmForFont,
+        System.Func<string, byte[], double> sumWidth1000ForFont,
         bool adjustKerningFromTJ = true) {
         var spans = new List<PdfTextSpan>();
+        // Text state
         bool inText = false;
-        string font = "F1"; double size = 12; double x = 0, y = 0; double leading = size * 1.2;
-        using var sr = new StringReader(content);
-        string? line;
-        while ((line = sr.ReadLine()) is not null) {
-            var t = line.Trim();
-            if (t.EndsWith(" BT", StringComparison.Ordinal) || t == "BT") { inText = true; continue; }
-            if (t.EndsWith(" ET", StringComparison.Ordinal) || t == "ET") { inText = false; continue; }
-            if (!inText) continue;
-
-            var mTf = TfRe.Match(line);
-            if (mTf.Success) {
-                font = mTf.Groups["f"].Value;
-                size = double.Parse(mTf.Groups["s"].Value, CultureInfo.InvariantCulture);
+        string font = "F1"; double size = 12; double x = 0, y = 0; double leading = size * 1.2; double charSpacing = 0, wordSpacing = 0; double hScale = 1.0;
+        // Operand buffer (tokens collected since last operator)
+        var args = new List<object>(8);
+        int i = 0; int n = content.Length;
+        while (i < n) {
+            SkipWs(); if (i >= n) break;
+            char c = content[i];
+            if (c == '%') { // comment till end of line
+                while (i < n && content[i] != '\n' && content[i] != '\r') i++;
                 continue;
             }
-            var mTm = TmRe.Match(line);
-            if (mTm.Success) {
-                x = double.Parse(mTm.Groups["e"].Value, CultureInfo.InvariantCulture);
-                y = double.Parse(mTm.Groups["f"].Value, CultureInfo.InvariantCulture);
-                continue;
+            if (c == '/') { args.Add(ReadName()); continue; }
+            if (c == '(') { args.Add(ReadLiteralStringBytes()); continue; }
+            if (c == '<') {
+                if (i + 1 < n && content[i + 1] == '<') { i += 2; continue; } // ignore dictionaries in content streams
+                args.Add(ReadHexStringBytes()); continue;
             }
-            var mTL = TLRe.Match(line);
-            if (mTL.Success) { leading = double.Parse(mTL.Groups["lead"].Value, CultureInfo.InvariantCulture); continue; }
-            if (t == "T*") { y -= leading; continue; }
-            var mTd = TdRe.Match(line);
-            if (mTd.Success) { x += double.Parse(mTd.Groups["tx"].Value, CultureInfo.InvariantCulture); y += double.Parse(mTd.Groups["ty"].Value, CultureInfo.InvariantCulture); continue; }
+            if (c == '[') { args.Add(ReadArray()); continue; }
+            if (c == ']' || c == '>') { i++; continue; }
+            if (IsNumberStart(c)) { args.Add(ReadNumber()); continue; }
+            // operator (BT, ET, Tf, Tm, Td, TD, T*, TL, Tc, Tw, Tz, Tj, TJ, ', ")
+            string op = ReadOperator();
+            if (op.Length == 0) { i++; continue; }
 
-            // ' operator: move to next line (T*) then show text
-            var mQs = QuoteShowRe.Match(line);
-            if (mQs.Success) {
-                y -= leading;
-                var raw = mQs.Groups["txt"].Value;
-                var bytes = PdfStringParser.ParseLiteralToBytes(raw);
-                var text = decodeWithFont(font, bytes);
-                if (!string.IsNullOrEmpty(text)) {
-                    spans.Add(new PdfTextSpan(text, font, size, x, y));
-                    double em = widthEmForFont(font);
-                    x += text.Length * size * em;
-                }
-                continue;
-            }
-
-            // " operator: set word/char spacing (ignored for now) then show text
-            var mDq = DoubleQuoteShowRe.Match(line);
-            if (mDq.Success) {
-                var raw = mDq.Groups["txt"].Value;
-                var bytes = PdfStringParser.ParseLiteralToBytes(raw);
-                var text = decodeWithFont(font, bytes);
-                if (!string.IsNullOrEmpty(text)) {
-                    spans.Add(new PdfTextSpan(text, font, size, x, y));
-                    double em = widthEmForFont(font);
-                    x += text.Length * size * em;
-                }
-                continue;
-            }
-
-            foreach (Match m in TjRe.Matches(line)) {
-                var raw = m.Groups["txt"].Value;
-                var bytes = PdfStringParser.ParseLiteralToBytes(raw);
-                var text = decodeWithFont(font, bytes);
-                if (!string.IsNullOrEmpty(text)) {
-                    spans.Add(new PdfTextSpan(text, font, size, x, y));
-                    // advance x by approximate width of the text
-                    double em = widthEmForFont(font);
-                    x += text.Length * size * em;
-                }
-            }
-
-            var mTJ = TJRe.Match(line);
-            if (mTJ.Success) {
-                string arr = mTJ.Groups["arr"].Value;
-                for (int i = 0; i < arr.Length; i++) {
-                    char c = arr[i];
-                    if (c == '(') {
-                        int start = i + 1; bool esc = false; var sbb = new StringBuilder();
-                        while (++i < arr.Length) {
-                            char ch = arr[i];
-                            if (esc) { sbb.Append(ch); esc = false; } else if (ch == '\\') esc = true;
-                            else if (ch == ')') break; else sbb.Append(ch);
-                        }
-                        var bytes = PdfStringParser.ParseLiteralToBytes(sbb.ToString());
-                        var text = decodeWithFont(font, bytes);
-                        if (!string.IsNullOrEmpty(text)) {
-                            spans.Add(new PdfTextSpan(text, font, size, x, y));
-                            double em = widthEmForFont(font);
-                            x += text.Length * size * em;
-                        }
-                    } else if (adjustKerningFromTJ && (c == '-' || char.IsDigit(c))) {
-                        int j = i;
-                        while (j < arr.Length && (char.IsDigit(arr[j]) || arr[j] == '-' || arr[j] == '+' || arr[j] == '.')) j++;
-                        string num = arr.Substring(i, j - i);
-                        if (double.TryParse(num, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double adj)) {
-                            x += -adj / 1000.0 * size;
-                        }
-                        i = j - 1;
-                    }
-                }
+            switch (op) {
+                case "BT": inText = true; args.Clear(); break;
+                case "ET": inText = false; args.Clear(); break;
+                case "Tf": if (args.Count >= 2) { size = ToDouble(args[args.Count - 1]); font = ToName(args[args.Count - 2]); args.Clear(); } break;
+                case "Tm": if (args.Count >= 6) { x = ToDouble(args[args.Count - 2]); y = ToDouble(args[args.Count - 1]); args.Clear(); } break;
+                case "Td": if (args.Count >= 2) { x += ToDouble(args[args.Count - 2]); y += ToDouble(args[args.Count - 1]); args.Clear(); } break;
+                case "TD": if (args.Count >= 2) { double tx = ToDouble(args[args.Count - 2]); double ty = ToDouble(args[args.Count - 1]); x += tx; y += ty; leading = -ty; args.Clear(); } break;
+                case "TL": if (args.Count >= 1) { leading = ToDouble(args[args.Count - 1]); args.Clear(); } break;
+                case "T*": y -= leading; args.Clear(); break;
+                case "Tc": if (args.Count >= 1) { charSpacing = ToDouble(args[args.Count - 1]); args.Clear(); } break;
+                case "Tw": if (args.Count >= 1) { wordSpacing = ToDouble(args[args.Count - 1]); args.Clear(); } break;
+                case "Tz": if (args.Count >= 1) { hScale = ToDouble(args[args.Count - 1]) / 100.0; args.Clear(); } break;
+                case "'": // move to next line and show text
+                    if (args.Count >= 1) { y -= leading; ShowText(ToBytes(args[args.Count - 1])); }
+                    args.Clear();
+                    break;
+                case "\"": // set spacing and show text
+                    if (args.Count >= 3) { wordSpacing = ToDouble(args[args.Count - 3]); charSpacing = ToDouble(args[args.Count - 2]); ShowText(ToBytes(args[args.Count - 1])); }
+                    args.Clear();
+                    break;
+                case "Tj": if (args.Count >= 1) { ShowText(ToBytes(args[args.Count - 1])); args.Clear(); } break;
+                case "TJ": if (args.Count >= 1) { ShowTextArray(args[args.Count - 1]); args.Clear(); } break;
+                default: args.Clear(); break;
             }
         }
         return spans;
+
+        // Helpers
+        void ShowText(byte[] bytes) {
+            if (!inText || bytes == null) return;
+            var text = decodeWithFont(font, bytes);
+            if (string.IsNullOrEmpty(text)) return;
+            // Compute advance in user space (points)
+            double sum1000 = sumWidth1000ForFont(font, bytes);
+            int glyphs = bytes.Length;
+            int spaces = CountSpaces(text);
+            double adv = ((sum1000 / 1000.0) * size + glyphs * charSpacing + spaces * wordSpacing) * hScale;
+            spans.Add(new PdfTextSpan(text, font, size, x, y, adv));
+            x += adv;
+        }
+
+        void ShowTextArray(object arrObj) {
+            if (!inText || arrObj == null) return;
+            var list = arrObj as List<object>;
+            if (list == null) return;
+            for (int j = 0; j < list.Count; j++) {
+                var it = list[j];
+                if (it is byte[] b) { ShowText(b); }
+                else if (adjustKerningFromTJ && it is double num) { x += -num / 1000.0 * size * hScale; }
+            }
+        }
+
+        void SkipWs() { while (i < n && char.IsWhiteSpace(content[i])) i++; }
+        static bool IsDigit(char ch) => ch >= '0' && ch <= '9';
+        bool IsNumberStart(char ch) => ch == '-' || ch == '+' || ch == '.' || IsDigit(ch);
+
+        double ReadNumber() {
+            int start = i; i++;
+            while (i < n) { char ch = content[i]; if (!(IsDigit(ch) || ch == '.' || ch == 'E' || ch == 'e' || ch == '-' || ch == '+')) break; i++; }
+            var s = content.Substring(start, i - start);
+            if (!double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v)) v = 0;
+            return v;
+        }
+
+        string ReadName() {
+            i++; int start = i;
+            while (i < n) { char ch = content[i]; if (char.IsWhiteSpace(ch) || ch == '/' || ch == '[' || ch == ']' || ch == '(' || ch == ')' || ch == '<' || ch == '>') break; i++; }
+            return content.Substring(start, i - start);
+        }
+
+        byte[] ReadLiteralStringBytes() {
+            int start = ++i; int depth = 1; bool esc = false; var sb = new StringBuilder();
+            while (i < n && depth > 0) {
+                char ch = content[i++];
+                if (esc) { sb.Append(ch); esc = false; }
+                else if (ch == '\\') esc = true;
+                else if (ch == '(') { depth++; sb.Append(ch); }
+                else if (ch == ')') { depth--; if (depth > 0) sb.Append(ch); }
+                else sb.Append(ch);
+            }
+            return PdfStringParser.ParseLiteralToBytes(sb.ToString());
+        }
+
+        byte[] ReadHexStringBytes() {
+            i++; int start = i; while (i < n && content[i] != '>') i++; int end = i; if (i < n && content[i] == '>') i++;
+            string hex = content.Substring(start, end - start);
+            var sb = new StringBuilder(hex.Length);
+            for (int k = 0; k < hex.Length; k++) { char ch = hex[k]; if (!char.IsWhiteSpace(ch)) sb.Append(ch); }
+            hex = sb.ToString();
+            if (hex.Length % 2 == 1) hex += "0";
+            var bytes = new byte[hex.Length / 2];
+            for (int k = 0; k < bytes.Length; k++) bytes[k] = byte.Parse(hex.Substring(k * 2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+            return bytes;
+        }
+
+        List<object> ReadArray() {
+            var list = new List<object>();
+            i++; // skip [
+            while (i < n) {
+                SkipWs(); if (i >= n) break; char ch = content[i]; if (ch == ']') { i++; break; }
+                if (ch == '(') { list.Add(ReadLiteralStringBytes()); continue; }
+                if (ch == '<') { if (i + 1 < n && content[i + 1] == '<') { i += 2; continue; } list.Add(ReadHexStringBytes()); continue; }
+                if (IsNumberStart(ch)) { list.Add(ReadNumber()); continue; }
+                if (ch == '/') { list.Add(ReadName()); continue; }
+                if (ch == '[') { i++; continue; } // ignore nested
+                // unknown token inside array -> treat as operator and skip
+                ReadOperator();
+            }
+            return list;
+        }
+
+        string ReadOperator() {
+            int start = i; char ch = content[i++];
+            if (ch == '\'' || ch == '"') return ch.ToString();
+            while (i < n) {
+                char c2 = content[i];
+                if (char.IsWhiteSpace(c2) || c2 == '(' || c2 == '[' || c2 == '/' || c2 == '<' || c2 == '>') break;
+                i++;
+            }
+            return content.Substring(start, i - start);
+        }
+
+        static double ToDouble(object o) { return o is double d ? d : 0.0; }
+        static string ToName(object o) { return o as string ?? string.Empty; }
+        static byte[] ToBytes(object o) { return o as byte[] ?? new byte[0]; }
+
+        // Helpers to reconcile decoded text with glyph count and width lookup
+        static int CountSpaces(string s) { int c = 0; for (int i2 = 0; i2 < s.Length; i2++) if (s[i2] == ' ') c++; return c; }
+        static int CountGlyphs(string s) { return s.Length; }
     }
 }

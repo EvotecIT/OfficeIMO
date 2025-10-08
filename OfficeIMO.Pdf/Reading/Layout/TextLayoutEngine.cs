@@ -18,8 +18,10 @@ internal static class TextLayoutEngine {
         public double BinWidth { get; set; } = 5;
         /// <summary>Minimum gutter width to consider split into two columns. Default: 24 pt.</summary>
         public double MinGutterWidth { get; set; } = 24;
-        /// <summary>Maximum Y delta (as fraction of font size) to group spans into the same line. Default: 1.8.</summary>
-        public double LineMergeToleranceEm { get; set; } = 1.8;
+        /// <summary>Maximum Y delta (as fraction of font size) to group spans into the same line. Default: 0.6.</summary>
+        public double LineMergeToleranceEm { get; set; } = 0.6;
+        /// <summary>Maximum absolute Y delta (points) to merge spans into the same line. Default: 2.5.</summary>
+        public double LineMergeMaxPoints { get; set; } = 2.5;
         /// <summary>Force single column when true; skip gutter detection.</summary>
         public bool ForceSingleColumn { get; set; } = false;
         /// <summary>Threshold in em units to insert a space between adjacent spans on the same line. Default: 0.3.</summary>
@@ -55,18 +57,19 @@ internal static class TextLayoutEngine {
         var lines = new List<TextLine>();
         var current = new List<PdfTextSpan>();
         double currentY = ordered[0].Y;
+        double currentFont = ordered[0].FontSize;
         foreach (var s in ordered) {
             if (current.Count == 0) { current.Add(s); currentY = s.Y; continue; }
-            double tolAbs = Math.Max(1.0, Math.Max(medianSize, s.FontSize) * options.LineMergeToleranceEm);
+            double tolAbs = Math.Min(options.LineMergeMaxPoints, Math.Min(currentFont, s.FontSize) * options.LineMergeToleranceEm);
+            if (tolAbs < 0.5) tolAbs = 0.5;
             if (Math.Abs(s.Y - currentY) <= tolAbs) {
                 current.Add(s);
-                // adapt running baseline to mitigate tiny per-glyph Y drift
-                currentY = (currentY * (current.Count - 1) + s.Y) / current.Count;
+                currentFont = (currentFont * (current.Count - 1) + s.FontSize) / current.Count;
             } else {
                 lines.Add(BuildLine(current, options));
                 current.Clear();
                 current.Add(s);
-                currentY = s.Y;
+                currentY = s.Y; currentFont = s.FontSize;
             }
         }
         if (current.Count > 0) lines.Add(BuildLine(current, options));
@@ -162,25 +165,19 @@ internal static class TextLayoutEngine {
         spans.Sort((a, b) => a.X.CompareTo(b.X));
         double xs = spans[0].X;
         var last = spans[spans.Count - 1];
-        double xe = last.X + ApproxWidth(last);
+        double xe = last.X + Math.Max(0, last.Advance);
         var text = new StringBuilder();
         for (int i = 0; i < spans.Count; i++) {
             var s = spans[i];
             if (i > 0) {
                 // Add a space heuristically if large X gap between spans
-                double prevEnd = spans[i - 1].X + ApproxWidth(spans[i - 1]);
+                double prevEnd = spans[i - 1].X + Math.Max(0, spans[i - 1].Advance);
                 double gapEm = options?.GapSpaceThresholdEm ?? 0.3;
                 if (s.X - prevEnd > s.FontSize * gapEm) text.Append(' ');
             }
             text.Append(s.Text);
         }
         return new TextLine(spans[0].Y, xs, xe, text.ToString(), new List<PdfTextSpan>(spans));
-    }
-
-    private static double ApproxWidth(PdfTextSpan s) {
-        // A crude approximation: average width ~ 0.5–0.6 em per glyph
-        double em = 0.55;
-        return Math.Max(0, s.Text?.Length ?? 0) * s.FontSize * em;
     }
 
     private static double Median(IEnumerable<double> seq) {

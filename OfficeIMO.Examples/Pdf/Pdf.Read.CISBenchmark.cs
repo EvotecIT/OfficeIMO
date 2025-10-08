@@ -28,10 +28,8 @@ namespace OfficeIMO.Examples.Pdf {
             var doc = PdfReadDocument.Load(pdfPath);
             Console.WriteLine($"Pages: {doc.Pages.Count}");
             var options = ReadLayoutOptionsFromEnv();
-            // Tuned defaults for CIS benchmark so users don't need to tweak env.
+            // Use single-column by default for CIS; keep standard line merging
             options.ForceSingleColumn = true;
-            if (options.LineMergeToleranceEm < 1.5) options.LineMergeToleranceEm = 2.2;
-            if (options.GapSpaceThresholdEm > 0.22) options.GapSpaceThresholdEm = 0.2;
             int total = doc.Pages.Count;
             int from = Math.Max(1, startPage);
             int to = pageCount <= 0 ? total : Math.Min(total, from + pageCount - 1);

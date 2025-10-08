@@ -48,16 +48,13 @@ public sealed class PdfReadPage {
         var spans = new List<PdfTextSpan>();
         var streams = GetContentStreams();
         var decoders = ResourceResolver.GetFontDecoders(_pageDict, _objects);
-        var fonts = ResourceResolver.GetFontsForPage(_pageDict, _objects);
+        var widthProviders = ResourceResolver.GetFontWidthProviders(_pageDict, _objects);
         string DecodeWithFont(string fontRes, byte[] bytes) =>
             decoders.TryGetValue(fontRes, out var dec) ? dec(bytes) : PdfWinAnsiEncoding.Decode(bytes);
-        double WidthEmForFont(string fontRes) {
-            if (fonts.TryGetValue(fontRes, out var f)) return GlyphWidthEmForBase(f.BaseFont);
-            return 0.55; // default
-        }
+        double SumWidth1000(string fontRes, byte[] bytes) => widthProviders.TryGetValue(fontRes, out var wp) ? wp(bytes) : (bytes?.Length ?? 0) * 500.0;
         foreach (var s in streams) {
             var content = PdfEncoding.Latin1GetString(s);
-            spans.AddRange(TextContentParser.Parse(content, DecodeWithFont, WidthEmForFont));
+            spans.AddRange(TextContentParser.Parse(content, DecodeWithFont, SumWidth1000));
         }
         // Additionally parse Form XObjects referenced via /Resources/XObject
         var formStreams = ResourceResolver.GetFormXObjectStreams(_pageDict, _objects);
@@ -66,10 +63,12 @@ public sealed class PdfReadPage {
             var bytes = kv.Value;
             var content = PdfEncoding.Latin1GetString(bytes);
             // Build decoders using the form's own resources if present
-            var formDecoders = ResourceResolver.GetFontDecodersForForm(GetFormDict(formName), _objects);
-            string DecodeWithFormFont(string fontRes, byte[] input) =>
-                formDecoders.TryGetValue(fontRes, out var dec) ? dec(input) : DecodeWithFont(fontRes, input);
-            spans.AddRange(TextContentParser.Parse(content, DecodeWithFormFont, WidthEmForFont));
+            var formDict = GetFormDict(formName);
+            var formDecoders = ResourceResolver.GetFontDecodersForForm(formDict, _objects);
+            var formWidths = ResourceResolver.GetFontWidthProviders(formDict, _objects);
+            string DecodeWithFormFont(string fontRes, byte[] input) => formDecoders.TryGetValue(fontRes, out var dec) ? dec(input) : DecodeWithFont(fontRes, input);
+            double SumWidth1000Form(string fontRes, byte[] input) => formWidths.TryGetValue(fontRes, out var wp) ? wp(input) : SumWidth1000(fontRes, input);
+            spans.AddRange(TextContentParser.Parse(content, DecodeWithFormFont, SumWidth1000Form));
         }
         return spans;
     }

@@ -14,6 +14,8 @@ public sealed class PdfTextLayoutOptions {
     public double MinGutterWidth { get; set; } = 24;
     /// <summary>Maximum Y delta, expressed in font-size em units, to merge spans into the same text line. Default: 0.6.</summary>
     public double LineMergeToleranceEm { get; set; } = 0.6;
+    /// <summary>Maximum absolute Y delta (points) to merge spans into the same line. Default: 2.5.</summary>
+    public double LineMergeMaxPoints { get; set; } = 2.5;
     /// <summary>When true, forces single-column reading order and disables gutter detection. Default: false.</summary>
     public bool ForceSingleColumn { get; set; } = false;
     /// <summary>When true, joins hyphenated words broken across line ends. Default: true.</summary>
@@ -31,6 +33,7 @@ public sealed class PdfTextLayoutOptions {
         BinWidth = this.BinWidth,
         MinGutterWidth = this.MinGutterWidth,
         LineMergeToleranceEm = this.LineMergeToleranceEm,
+        LineMergeMaxPoints = this.LineMergeMaxPoints,
         ForceSingleColumn = this.ForceSingleColumn,
         GapSpaceThresholdEm = this.GapSpaceThresholdEm
     };
