@@ -103,12 +103,12 @@ public sealed class PdfReadDocument {
     }
 
     private static bool IsLikelyPage(PdfDictionary d) {
-        // Heuristics when /Type is missing or obscured (common with object streams and some producers)
+        // Heuristic when /Type is missing: leaf node has Contents, and either its own Resources or MediaBox.
         bool hasContents = d.Items.ContainsKey("Contents");
-        bool hasMedia = d.Items.ContainsKey("MediaBox") || d.Items.ContainsKey("CropBox");
         bool hasRes = d.Items.ContainsKey("Resources");
+        bool hasMedia = d.Items.ContainsKey("MediaBox") || d.Items.ContainsKey("CropBox");
         bool hasKids = d.Items.ContainsKey("Kids");
-        return !hasKids && hasContents && (hasMedia || hasRes);
+        return !hasKids && hasContents && (hasRes || hasMedia);
     }
 
     private int FindObjectNumberFor(PdfDictionary dict) {

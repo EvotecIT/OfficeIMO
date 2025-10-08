@@ -17,13 +17,13 @@ public sealed class PdfTextLayoutOptions {
     /// <summary>Maximum absolute Y delta (points) to merge spans into the same line. Default: 2.5.</summary>
     public double LineMergeMaxPoints { get; set; } = 2.5;
     /// <summary>When true, forces single-column reading order and disables gutter detection. Default: false.</summary>
-    public bool ForceSingleColumn { get; set; } = false;
+    public bool ForceSingleColumn { get; set; }
     /// <summary>When true, joins hyphenated words broken across line ends. Default: true.</summary>
     public bool JoinHyphenationAcrossLines { get; set; } = true;
     /// <summary>Height from top of page (points) to ignore as header when emitting text. Default: 0.</summary>
-    public double IgnoreHeaderHeight { get; set; } = 0;
+    public double IgnoreHeaderHeight { get; set; }
     /// <summary>Height from bottom of page (points) to ignore as footer when emitting text. Default: 0.</summary>
-    public double IgnoreFooterHeight { get; set; } = 0;
+    public double IgnoreFooterHeight { get; set; }
     /// <summary>Threshold in em units to insert a space between adjacent spans on the same line. Default: 0.3.</summary>
     public double GapSpaceThresholdEm { get; set; } = 0.3;
 

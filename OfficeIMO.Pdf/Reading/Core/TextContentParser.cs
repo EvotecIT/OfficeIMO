@@ -12,7 +12,9 @@ internal static class TextContentParser {
         var spans = new List<PdfTextSpan>();
         // Text state
         bool inText = false;
-        string font = "F1"; double size = 12; double x = 0, y = 0; double leading = size * 1.2; double charSpacing = 0, wordSpacing = 0; double hScale = 1.0;
+        string font = "F1"; double size = 12; double x = 0, y = 0; double leading = size * 1.2; double charSpacing = 0, wordSpacing = 0; double hScale = 1.0; double textRise = 0;
+        // Graphics state (CTM) and stack
+        Matrix2D ctm = Matrix2D.Identity; var gstack = new System.Collections.Generic.Stack<Matrix2D>();
         // Operand buffer (tokens collected since last operator)
         var args = new List<object>(8);
         int i = 0; int n = content.Length;
@@ -32,7 +34,7 @@ internal static class TextContentParser {
             if (c == '[') { args.Add(ReadArray()); continue; }
             if (c == ']' || c == '>') { i++; continue; }
             if (IsNumberStart(c)) { args.Add(ReadNumber()); continue; }
-            // operator (BT, ET, Tf, Tm, Td, TD, T*, TL, Tc, Tw, Tz, Tj, TJ, ', ")
+            // operator (BT, ET, Tf, Tm, Td, TD, T*, TL, Tc, Tw, Tz, Ts, cm, q, Q, Tj, TJ, ', ")
             string op = ReadOperator();
             if (op.Length == 0) { i++; continue; }
 
@@ -48,6 +50,10 @@ internal static class TextContentParser {
                 case "Tc": if (args.Count >= 1) { charSpacing = ToDouble(args[args.Count - 1]); args.Clear(); } break;
                 case "Tw": if (args.Count >= 1) { wordSpacing = ToDouble(args[args.Count - 1]); args.Clear(); } break;
                 case "Tz": if (args.Count >= 1) { hScale = ToDouble(args[args.Count - 1]) / 100.0; args.Clear(); } break;
+                case "Ts": if (args.Count >= 1) { textRise = ToDouble(args[args.Count - 1]); args.Clear(); } break;
+                case "q": gstack.Push(ctm); args.Clear(); break;
+                case "Q": ctm = gstack.Count > 0 ? gstack.Pop() : Matrix2D.Identity; args.Clear(); break;
+                case "cm": if (args.Count >= 6) { var m2 = new Matrix2D(ToDouble(args[args.Count - 6]), ToDouble(args[args.Count - 5]), ToDouble(args[args.Count - 4]), ToDouble(args[args.Count - 3]), ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1])); ctm = Matrix2D.Multiply(ctm, m2); args.Clear(); } break;
                 case "'": // move to next line and show text
                     if (args.Count >= 1) { y -= leading; ShowText(ToBytes(args[args.Count - 1])); }
                     args.Clear();
@@ -65,16 +71,39 @@ internal static class TextContentParser {
 
         // Helpers
         void ShowText(byte[] bytes) {
-            if (!inText || bytes == null) return;
-            var text = decodeWithFont(font, bytes);
-            if (string.IsNullOrEmpty(text)) return;
-            // Compute advance in user space (points)
-            double sum1000 = sumWidth1000ForFont(font, bytes);
-            int glyphs = bytes.Length;
-            int spaces = CountSpaces(text);
-            double adv = ((sum1000 / 1000.0) * size + glyphs * charSpacing + spaces * wordSpacing) * hScale;
-            spans.Add(new PdfTextSpan(text, font, size, x, y, adv));
-            x += adv;
+            if (!inText || bytes == null || bytes.Length == 0) return;
+            // Detect 2-byte CIDs (Identity-H) vs single-byte
+            bool twoByte = false;
+            if (bytes.Length >= 2) {
+                string one = decodeWithFont(font, new byte[] { bytes[0] });
+                string two = decodeWithFont(font, new byte[] { bytes[0], bytes[1] });
+                twoByte = string.IsNullOrEmpty(one) && !string.IsNullOrEmpty(two);
+            }
+            var sbOut = new StringBuilder(bytes.Length);
+            double advTotal = 0;
+            char prevChar = '\0';
+            for (int idx = 0; idx < bytes.Length;) {
+                int step = twoByte ? (idx + 1 < bytes.Length ? 2 : 1) : 1;
+                byte[] g = step == 1 ? new byte[] { bytes[idx] } : new byte[] { bytes[idx], bytes[idx + 1] };
+                string t = decodeWithFont(font, g);
+                char ch = (t != null && t.Length > 0) ? t[0] : '\0';
+                double w1000 = sumWidth1000ForFont(font, g);
+                double advGlyph = ((w1000 / 1000.0) * size + charSpacing + (ch == ' ' ? wordSpacing : 0)) * hScale;
+                // Drop thin spaces between letters/digits (visual join) but still advance
+                bool dropSpace = (ch == ' ' && advGlyph <= 1.5 && prevChar != '\0');
+                if (dropSpace) {
+                    // do not append, but keep advance
+                } else if (ch != '\0') {
+                    sbOut.Append(ch);
+                    prevChar = ch;
+                }
+                advTotal += advGlyph;
+                idx += step;
+            }
+            if (sbOut.Length == 0) return;
+            var (dx, dy) = ctm.Transform(x, y + textRise);
+            spans.Add(new PdfTextSpan(sbOut.ToString(), font, size, dx, dy, advTotal));
+            x += advTotal;
         }
 
         void ShowTextArray(object arrObj) {
@@ -160,10 +189,9 @@ internal static class TextContentParser {
 
         static double ToDouble(object o) { return o is double d ? d : 0.0; }
         static string ToName(object o) { return o as string ?? string.Empty; }
-        static byte[] ToBytes(object o) { return o as byte[] ?? new byte[0]; }
+        static byte[] ToBytes(object o) { return o as byte[] ?? Array.Empty<byte>(); }
 
-        // Helpers to reconcile decoded text with glyph count and width lookup
-        static int CountSpaces(string s) { int c = 0; for (int i2 = 0; i2 < s.Length; i2++) if (s[i2] == ' ') c++; return c; }
-        static int CountGlyphs(string s) { return s.Length; }
+        // Helpers (left empty for future metrics)
+        // NormalizeThinSpaces removed in favor of per-glyph join logic
     }
 }

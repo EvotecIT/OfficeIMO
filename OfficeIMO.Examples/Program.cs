@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples {
             string folderPath = Path.Combine(baseFolder, "Documents");
             Setup(folderPath);
             // PDF/Read Benchmarks
-            // PDF/Read Benchmarks (examples with page count parameters)
+            // PDF/Read Benchmarks (native)
             Pdf.ReadCisBenchmark.Example_Pdf_ReadCIS2016_Columns(folderPath, open: false, startPage: 1, pageCount: 3);
             Pdf.ReadCisBenchmark.Example_Pdf_ReadCIS2016_Raw(folderPath, open: false, startPage: 1, pageCount: 5);
 

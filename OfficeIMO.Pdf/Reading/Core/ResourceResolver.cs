@@ -49,7 +49,8 @@ internal static class ResourceResolver {
             var subtype = fontVal.Get<PdfName>("Subtype")?.Name ?? string.Empty;
             if (string.Equals(subtype, "Type0", System.StringComparison.Ordinal)) {
                 if (TryBuildCidWidthMap(fontVal, objects, out var cidMap)) {
-                    map[kv.Key] = bytes => SumWidthsCid(bytes, cidMap);
+                    var localMap = cidMap!;
+                    map[kv.Key] = bytes => SumWidthsCid(bytes, localMap);
                 } else {
                     map[kv.Key] = bytes => bytes != null ? (bytes.Length / 2) * 1000.0 : 0.0; // conservative default
                 }

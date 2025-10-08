@@ -8,7 +8,7 @@
         <VersionPrefix>1.0.7</VersionPrefix>
     </PropertyGroup>
 
-    <ItemGroup>
+  <ItemGroup>
         <ProjectReference Include="..\\OfficeIMO.Excel\\OfficeIMO.Excel.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Markdown\\OfficeIMO.Markdown.csproj" />
@@ -18,7 +18,8 @@
         <ProjectReference Include="..\\OfficeIMO.Word.Markdown\\OfficeIMO.Word.Markdown.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Visio\\OfficeIMO.Visio.csproj" />
         <ProjectReference Include="..\\OfficeIMO.PowerPoint\\OfficeIMO.PowerPoint.csproj" />
-    </ItemGroup>
+  </ItemGroup>
+  
 
     <ItemGroup>
         <None Include="..\\Assets\\**">

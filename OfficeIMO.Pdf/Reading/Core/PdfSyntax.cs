@@ -24,7 +24,7 @@ internal static class PdfSyntax {
             if (end < 0) end = (i + 1 < matches.Count) ? matches[i + 1].Index : text.Length;
 
             // Extract dictionary (balanced << >>) within object bounds
-            int dictStart = text.IndexOf("<<", start, end - start);
+            int dictStart = text.IndexOf("<<", start, end - start, System.StringComparison.Ordinal);
             if (dictStart >= 0) {
                 int dictEnd = FindDictEnd(text, dictStart, end);
                 if (dictEnd > dictStart) {
@@ -150,7 +150,7 @@ internal static class PdfSyntax {
     private static PdfObject? ParseTopLevelObject(string body) {
         if (string.IsNullOrWhiteSpace(body)) return null;
         var s = body.TrimStart();
-        if (s.StartsWith("<<")) {
+        if (s.StartsWith("<<", System.StringComparison.Ordinal)) {
             // Find matching >> and parse inside
             int dictStart = body.IndexOf("<<", StringComparison.Ordinal);
             if (dictStart >= 0) {
@@ -162,12 +162,12 @@ internal static class PdfSyntax {
             }
             return new PdfDictionary();
         }
-        if (s.StartsWith("[")) {
+        if (s.StartsWith("[", System.StringComparison.Ordinal)) {
             var toks = Tokenize(s);
             var (obj, _) = ParseObject(toks, 0);
             return obj;
         }
-        if (s.StartsWith("(")) {
+        if (s.StartsWith("(", System.StringComparison.Ordinal)) {
             // literal string
             int end = s.LastIndexOf(')');
             string inner = end > 1 ? s.Substring(1, end - 1) : s.Substring(1);

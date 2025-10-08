@@ -23,9 +23,11 @@ internal static class TextLayoutEngine {
         /// <summary>Maximum absolute Y delta (points) to merge spans into the same line. Default: 2.5.</summary>
         public double LineMergeMaxPoints { get; set; } = 2.5;
         /// <summary>Force single column when true; skip gutter detection.</summary>
-        public bool ForceSingleColumn { get; set; } = false;
+        public bool ForceSingleColumn { get; set; }
         /// <summary>Threshold in em units to insert a space between adjacent spans on the same line. Default: 0.3.</summary>
         public double GapSpaceThresholdEm { get; set; } = 0.25;
+        /// <summary>Threshold as a fraction of previous span's average glyph advance to insert a space. Default: 0.6.</summary>
+        public double GapGlyphFactor { get; set; } = 0.6;
     }
 
     public sealed class TextLine {
@@ -171,11 +173,41 @@ internal static class TextLayoutEngine {
             var s = spans[i];
             if (i > 0) {
                 // Add a space heuristically if large X gap between spans
-                double prevEnd = spans[i - 1].X + Math.Max(0, spans[i - 1].Advance);
-                double gapEm = options?.GapSpaceThresholdEm ?? 0.3;
-                if (s.X - prevEnd > s.FontSize * gapEm) text.Append(' ');
+                var prev = spans[i - 1];
+                double prevEnd = prev.X + Math.Max(0, prev.Advance);
+                double gap = s.X - prevEnd;
+                // dynamic threshold based on previous span's average glyph advance
+                double prevAvg = SafeAvgAdvance(prev);
+                double glyphFactor = options?.GapGlyphFactor ?? 0.6;
+                double glyphThreshold = prevAvg * glyphFactor;
+                // fallback to em threshold when prevAvg unavailable
+                double emThreshold = (options?.GapSpaceThresholdEm ?? 0.25) * s.FontSize;
+                double threshold = Math.Max(emThreshold, glyphThreshold);
+                bool isLeader = IsDotLeader(s.Text);
+                bool prevLeader = IsDotLeader(prev.Text);
+                // Tight word-join rule: letters adjacent use stricter threshold
+                if (IsWordJoin(prev.Text, s.Text)) {
+                    double tight = System.Math.Min(2.0, prevAvg * 0.9);
+                    if (gap > tight) text.Append(' ');
+                } else if (!isLeader) {
+                    if (gap > threshold) text.Append(' ');
+                } else {
+                    if (gap > 0 && text.Length > 0 && text[text.Length - 1] != ' ') text.Append(' '); // one space before leader
+                }
+            }
+            // drop duplicate shadows: if same text repeats with almost no gap
+            if (text.Length > 0 && IsSameAsTail(text, s.Text) && i > 0) {
+                var prev = spans[i - 1];
+                double prevEnd = prev.X + Math.Max(0, prev.Advance);
+                if (s.X - prevEnd < 0.8) {
+                    continue;
+                }
             }
             text.Append(s.Text);
+            // if leader followed by number, ensure a single space
+            if (IsDotLeader(s.Text) && i + 1 < spans.Count && IsAllDigits(spans[i + 1].Text)) {
+                if (text.Length > 0 && text[text.Length - 1] != ' ') text.Append(' ');
+            }
         }
         return new TextLine(spans[0].Y, xs, xe, text.ToString(), new List<PdfTextSpan>(spans));
     }
@@ -189,6 +221,31 @@ internal static class TextLayoutEngine {
     }
 
     private static int Clamp(int v, int min, int max) => v < min ? min : (v > max ? max : v);
+
+    private static bool IsDotLeader(string s) {
+        if (string.IsNullOrEmpty(s)) return false;
+        for (int i = 0; i < s.Length; i++) if (s[i] != '.') return false; return true;
+    }
+    private static bool IsWordJoin(string left, string right) {
+        if (string.IsNullOrEmpty(left) || string.IsNullOrEmpty(right)) return false;
+        char a = left[left.Length - 1]; char b = right[0];
+        bool aWord = char.IsLetterOrDigit(a) || a == ')' || a == '"' || a == '\'';
+        bool bWord = char.IsLetterOrDigit(b) || b == '(' || b == '"' || b == '\'';
+        return aWord && bWord;
+    }
+    private static bool IsSameAsTail(StringBuilder sb, string s) {
+        if (string.IsNullOrEmpty(s)) return false; int len = s.Length; if (sb.Length < len) return false;
+        for (int i = 0; i < len; i++) if (sb[sb.Length - len + i] != s[i]) return false; return true;
+    }
+    private static bool IsAllDigits(string s) {
+        if (string.IsNullOrEmpty(s)) return false;
+        for (int i = 0; i < s.Length; i++) if (!char.IsDigit(s[i])) return false; return true;
+    }
+    private static double SafeAvgAdvance(PdfTextSpan span) {
+        if (span.Advance <= 0) return span.FontSize * 0.5;
+        int len = span.Text?.Length ?? 0; if (len <= 0) return span.FontSize * 0.5;
+        return span.Advance / len;
+    }
 }
 
 /// <summary>
