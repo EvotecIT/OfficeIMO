@@ -162,12 +162,12 @@ internal static class PdfSyntax {
             }
             return new PdfDictionary();
         }
-        if (s.StartsWith("[", System.StringComparison.Ordinal)) {
+        if (s.Length > 0 && s[0] == '[') {
             var toks = Tokenize(s);
             var (obj, _) = ParseObject(toks, 0);
             return obj;
         }
-        if (s.StartsWith("(", System.StringComparison.Ordinal)) {
+        if (s.Length > 0 && s[0] == '(') {
             // literal string
             int end = s.LastIndexOf(')');
             string inner = end > 1 ? s.Substring(1, end - 1) : s.Substring(1);

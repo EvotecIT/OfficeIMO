@@ -26,6 +26,8 @@ public sealed class PdfTextLayoutOptions {
     public double IgnoreFooterHeight { get; set; }
     /// <summary>Threshold in em units to insert a space between adjacent spans on the same line. Default: 0.3.</summary>
     public double GapSpaceThresholdEm { get; set; } = 0.3;
+    /// <summary>Threshold as a fraction of previous span's average glyph advance to insert a space. Default: 0.45.</summary>
+    public double GapGlyphFactor { get; set; } = 0.45;
 
     internal TextLayoutEngine.Options ToEngineOptions() => new TextLayoutEngine.Options {
         MarginLeft = this.MarginLeft,
@@ -35,6 +37,7 @@ public sealed class PdfTextLayoutOptions {
         LineMergeToleranceEm = this.LineMergeToleranceEm,
         LineMergeMaxPoints = this.LineMergeMaxPoints,
         ForceSingleColumn = this.ForceSingleColumn,
-        GapSpaceThresholdEm = this.GapSpaceThresholdEm
+        GapSpaceThresholdEm = this.GapSpaceThresholdEm,
+        GapGlyphFactor = this.GapGlyphFactor
     };
 }

@@ -21,7 +21,10 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Example_Pdf_ReadCIS2016_Columns(string folderPath, bool open = false, int startPage = 1, int pageCount = 0) {
             string baseDir = AppContext.BaseDirectory;
             string repo = FindRepoRoot(baseDir);
-            string pdfPath = Path.Combine(repo, "Assets", "PdfBenchmarks", "CIS_Microsoft_Windows_Server_2016_Benchmark_v4.0.0.pdf");
+            string pdfEnv = Environment.GetEnvironmentVariable("RUN_PDF") ?? string.Empty;
+            string pdfPath = string.IsNullOrWhiteSpace(pdfEnv)
+                ? Path.Combine(repo, "Assets", "PdfBenchmarks", "CIS_Microsoft_Windows_Server_2016_Benchmark_v4.0.0.pdf")
+                : (Path.IsPathRooted(pdfEnv) ? pdfEnv : Path.Combine(repo, pdfEnv));
             if (!File.Exists(pdfPath)) throw new FileNotFoundException("CIS benchmark PDF not found", pdfPath);
 
             Console.WriteLine($"Loading: {pdfPath}");
@@ -67,7 +70,10 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Example_Pdf_ReadCIS2016_Raw(string folderPath, bool open = false, int startPage = 1, int pageCount = 0) {
             string baseDir = AppContext.BaseDirectory;
             string repo = FindRepoRoot(baseDir);
-            string pdfPath = Path.Combine(repo, "Assets", "PdfBenchmarks", "CIS_Microsoft_Windows_Server_2016_Benchmark_v4.0.0.pdf");
+            string pdfEnv2 = Environment.GetEnvironmentVariable("RUN_PDF") ?? string.Empty;
+            string pdfPath = string.IsNullOrWhiteSpace(pdfEnv2)
+                ? Path.Combine(repo, "Assets", "PdfBenchmarks", "CIS_Microsoft_Windows_Server_2016_Benchmark_v4.0.0.pdf")
+                : (Path.IsPathRooted(pdfEnv2) ? pdfEnv2 : Path.Combine(repo, pdfEnv2));
             if (!File.Exists(pdfPath)) throw new FileNotFoundException("CIS benchmark PDF not found", pdfPath);
 
             Console.WriteLine($"Loading: {pdfPath}");
@@ -135,7 +141,10 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Run_CIS_2016(bool useColumns) {
             string baseDir = AppContext.BaseDirectory;
             string repo = FindRepoRoot(baseDir);
-            string pdfPath = Path.Combine(repo, "Assets", "PdfBenchmarks", "CIS_Microsoft_Windows_Server_2016_Benchmark_v4.0.0.pdf");
+            string pdfEnv3 = Environment.GetEnvironmentVariable("RUN_PDF") ?? string.Empty;
+            string pdfPath = string.IsNullOrWhiteSpace(pdfEnv3)
+                ? Path.Combine(repo, "Assets", "PdfBenchmarks", "CIS_Microsoft_Windows_Server_2016_Benchmark_v4.0.0.pdf")
+                : (Path.IsPathRooted(pdfEnv3) ? pdfEnv3 : Path.Combine(repo, pdfEnv3));
             if (!File.Exists(pdfPath)) throw new FileNotFoundException("CIS benchmark PDF not found", pdfPath);
 
             var doc = PdfReadDocument.Load(pdfPath);

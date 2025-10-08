@@ -1,0 +1,1143 @@
+{
+  "Source": "/mnt/c/Support/GitHub/OfficeIMO/Assets/PdfBenchmarks/CIS_Microsoft_Windows_Server_2016_STIG_Benchmark_v4.0.0.pdf",
+  "Pages": 643,
+  "Range": {
+    "From": 1,
+    "To": 3
+  },
+  "PagesData": [
+    {
+      "Page": 1,
+      "Lines": [
+        "CIS Microsoft Windows",
+        "Server 2016 STIG",
+        "Benchmark",
+        "v4.0.0 - 08-22-2025"
+      ],
+      "Toc": [],
+      "Lists": [],
+      "LeaderRows": [],
+      "LinesDetailed": [
+        {
+          "Y": 521.59,
+          "XStart": 72.024,
+          "XEnd": 511.90368000000007,
+          "Text": "CIS Microsoft Windows ",
+          "SpanCount": 4
+        },
+        {
+          "Y": 473.59,
+          "XStart": 72.024,
+          "XEnd": 411.92376,
+          "Text": "Server 2016 STIG ",
+          "SpanCount": 3
+        },
+        {
+          "Y": 425.59,
+          "XStart": 72.024,
+          "XEnd": 294.35,
+          "Text": "Benchmark  ",
+          "SpanCount": 3
+        },
+        {
+          "Y": 379.87,
+          "XStart": 54,
+          "XEnd": 201.71624,
+          "Text": "v4.0.0 - 08-22-2025 ",
+          "SpanCount": 12
+        },
+        {
+          "Y": 344.69,
+          "XStart": 72.024,
+          "XEnd": 222.05624,
+          "Text": "   ",
+          "SpanCount": 2
+        },
+        {
+          "Y": 45.984,
+          "XStart": 540.1,
+          "XEnd": 545.08,
+          "Text": " ",
+          "SpanCount": 1
+        }
+      ],
+      "Tables": [],
+      "Bands": [
+        {
+          "YTop": 521.59,
+          "YBottom": 521.59,
+          "Lines": [
+            "CIS Microsoft Windows "
+          ]
+        },
+        {
+          "YTop": 473.59,
+          "YBottom": 473.59,
+          "Lines": [
+            "Server 2016 STIG "
+          ]
+        },
+        {
+          "YTop": 425.59,
+          "YBottom": 425.59,
+          "Lines": [
+            "Benchmark  "
+          ]
+        },
+        {
+          "YTop": 379.87,
+          "YBottom": 379.87,
+          "Lines": [
+            "v4.0.0 - 08-22-2025 "
+          ]
+        },
+        {
+          "YTop": 344.69,
+          "YBottom": 344.69,
+          "Lines": [
+            "   "
+          ]
+        },
+        {
+          "YTop": 45.984,
+          "YBottom": 45.984,
+          "Lines": [
+            " "
+          ]
+        }
+      ]
+    },
+    {
+      "Page": 2,
+      "Lines": [
+        "Terms of Use",
+        "Please se the below link for our current terms o f use:",
+        "https://www.cisecurity.org/cis-securesuite/cis-securesuite-membership -terms-of-use/",
+        "rd",
+        "For information on referencing and/or citing CIS Benchmarks in party d 3 ocumentation",
+        "(including using portions of Benchmark Recomendations) please contact CIS Legal",
+        "(legalnotices@cisecurity.o) arg nd request guidance on copyright usag e .",
+        "NOTE : It is NEVER  acceptable to host a CIS Benchmark iANYn   format (PDF, etc.)",
+        "rd",
+        "on a 3  party (non-CIS owned) site .",
+        "Page 1"
+      ],
+      "Toc": [],
+      "Lists": [],
+      "LeaderRows": [],
+      "LinesDetailed": [
+        {
+          "Y": 693.7,
+          "XStart": 72.024,
+          "XEnd": 263.39,
+          "Text": "Terms of Use  ",
+          "SpanCount": 5
+        },
+        {
+          "Y": 660.46,
+          "XStart": 72.024,
+          "XEnd": 401.88,
+          "Text": "Please se the below link for our current terms o f use:",
+          "SpanCount": 34
+        },
+        {
+          "Y": 638.74,
+          "XStart": 72.024,
+          "XEnd": 525.628,
+          "Text": "https://www.cisecurity.org/cis-securesuite/cis-securesuite-membership -terms-of-use/ ",
+          "SpanCount": 44
+        },
+        {
+          "Y": 616.9,
+          "XStart": 72.024,
+          "XEnd": 78.072,
+          "Text": " ",
+          "SpanCount": 1
+        },
+        {
+          "Y": 599.02,
+          "XStart": 417.79,
+          "XEnd": 425.7554,
+          "Text": "rd",
+          "SpanCount": 1
+        },
+        {
+          "Y": 595.06,
+          "XStart": 72.024,
+          "XEnd": 547.3879999999998,
+          "Text": "For information on referencing and/or citing CIS Benchmarks in party d 3 ocumentation ",
+          "SpanCount": 46
+        },
+        {
+          "Y": 581.26,
+          "XStart": 72.024,
+          "XEnd": 554.8826999999999,
+          "Text": "(including using portions of Benchmark Recomendations) please contact CIS Legal ",
+          "SpanCount": 50
+        },
+        {
+          "Y": 567.46,
+          "XStart": 72.024,
+          "XEnd": 478.5540999999998,
+          "Text": "(legalnotices@cisecurity.o) arg nd request guidance on copyright usag e . ",
+          "SpanCount": 44
+        },
+        {
+          "Y": 541.75,
+          "XStart": 81.024,
+          "XEnd": 545.8659999999999,
+          "Text": "NOTE : It is NEVER  acceptable to host a CIS Benchmark iANYn   format (PDF, etc.) ",
+          "SpanCount": 46
+        },
+        {
+          "Y": 531.79,
+          "XStart": 159.5,
+          "XEnd": 167.4654,
+          "Text": "rd",
+          "SpanCount": 1
+        },
+        {
+          "Y": 527.83,
+          "XStart": 126.02,
+          "XEnd": 323.32120000000003,
+          "Text": "on a 3  party (non-CIS owned) site .",
+          "SpanCount": 18
+        },
+        {
+          "Y": 45.984,
+          "XStart": 508.42,
+          "XEnd": 545.08,
+          "Text": "Page 1 ",
+          "SpanCount": 5
+        }
+      ],
+      "Tables": [],
+      "Bands": [
+        {
+          "YTop": 693.7,
+          "YBottom": 693.7,
+          "Lines": [
+            "Terms of Use  "
+          ]
+        },
+        {
+          "YTop": 660.46,
+          "YBottom": 660.46,
+          "Lines": [
+            "Please se the below link for our current terms o f use:"
+          ]
+        },
+        {
+          "YTop": 638.74,
+          "YBottom": 638.74,
+          "Lines": [
+            "https://www.cisecurity.org/cis-securesuite/cis-securesuite-membership -terms-of-use/ "
+          ]
+        },
+        {
+          "YTop": 616.9,
+          "YBottom": 616.9,
+          "Lines": [
+            " "
+          ]
+        },
+        {
+          "YTop": 599.02,
+          "YBottom": 599.02,
+          "Lines": [
+            "rd"
+          ]
+        },
+        {
+          "YTop": 595.06,
+          "YBottom": 595.06,
+          "Lines": [
+            "For information on referencing and/or citing CIS Benchmarks in party d 3 ocumentation "
+          ]
+        },
+        {
+          "YTop": 581.26,
+          "YBottom": 581.26,
+          "Lines": [
+            "(including using portions of Benchmark Recomendations) please contact CIS Legal "
+          ]
+        },
+        {
+          "YTop": 567.46,
+          "YBottom": 567.46,
+          "Lines": [
+            "(legalnotices@cisecurity.o) arg nd request guidance on copyright usag e . "
+          ]
+        },
+        {
+          "YTop": 541.75,
+          "YBottom": 541.75,
+          "Lines": [
+            "NOTE : It is NEVER  acceptable to host a CIS Benchmark iANYn   format (PDF, etc.) "
+          ]
+        },
+        {
+          "YTop": 531.79,
+          "YBottom": 531.79,
+          "Lines": [
+            "rd"
+          ]
+        },
+        {
+          "YTop": 527.83,
+          "YBottom": 527.83,
+          "Lines": [
+            "on a 3  party (non-CIS owned) site ."
+          ]
+        },
+        {
+          "YTop": 45.984,
+          "YBottom": 45.984,
+          "Lines": [
+            "Page 1 "
+          ]
+        }
+      ]
+    },
+    {
+      "Page": 3,
+      "Lines": [
+        "Table of Contents",
+        "Terms of Use  ................................ 1",
+        "Table of Contents ................................ 2",
+        "Overview  ................................ 8",
+        "Target Technology Details ................................ 8",
+        "Intended Audience  ................................ 8",
+        "Recommendation Definitions  ................................ 9",
+        "Title ................................ 9",
+        "Assessment Status  ................................ 9",
+        "Automated  ................................ 9",
+        "Manual  ................................ 9",
+        "Profile ................................ 9",
+        "Description ................................ 9",
+        "Rationale Statement ................................ 9",
+        "Audit Procedure ................................ 9",
+        "Remediation Procedure  ................................10",
+        "Additional Information................................10",
+        "Profile Definition ................................s ................................11",
+        "Acknowledgements  ................................13",
+        "Recommendations  ................................ 14",
+        "1 STIG RULES  ................................14",
+        "1.1 WN16 -00-0010 (Manual) ................................ 15",
+        "1.2 WN16 -00-0030 (Manual) ................................ 16",
+        "1.3 WN16 -00-0040 (Manual) ................................ 18",
+        "1.4 WN16 -00-0050 (Manual) ................................ 20",
+        "1.5 WN16 -00-0060 (Manual) ................................ 21",
+        "1.6 WN16 -00-0070 (Manual) ................................ 22",
+        "1.7 WN16 -00-0080 (Manual) ................................ 25",
+        "1.8 WN16 -00-0090 (Manual) ................................ 26",
+        "1.9 WN16 -00-000100 (Manual) ................................ 29",
+        "1.10 WN16 -00-000110 (Manual) ................................ 31",
+        "1.11 WN16 -00-000120 (Manual) ................................ 32",
+        "1.12 WN16 -00-000140 (Manual) ................................ 34",
+        "1.13 WN16 -00-000150 (Manual) ................................ 35",
+        "1.14 WN16 -00-000160 (Manual) ................................ 36",
+        "1.15 WN16 -00-000170 (Manual) ................................ 39",
+        "1.16 WN16 -00-000180 (Manual) ................................ 43",
+        "1.17 WN16 -00-000190 (Manual) ................................ 46",
+        "1.18 WN16 -00-000200 (Manual) ................................ 50",
+        "1.19 WN16 -00-000210 (Manual) ................................ 52",
+        "1.20 WN16 -00-000220 (Manual) ................................ 55",
+        "Page 2"
+      ],
+      "Toc": [
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {}
+      ],
+      "Lists": [],
+      "LeaderRows": [
+        [
+          "Terms of Use",
+          "1"
+        ],
+        [
+          "Table of Contents",
+          "2"
+        ],
+        [
+          "Overview",
+          "8"
+        ],
+        [
+          "Target Technology Details",
+          "8"
+        ],
+        [
+          "Intended Audience",
+          "8"
+        ],
+        [
+          "Recommendation Definitions",
+          "9"
+        ],
+        [
+          "Title",
+          "9"
+        ],
+        [
+          "Assessment Status",
+          "9"
+        ],
+        [
+          "Automated",
+          "9"
+        ],
+        [
+          "Manual",
+          "9"
+        ],
+        [
+          "Profile",
+          "9"
+        ],
+        [
+          "Description",
+          "9"
+        ],
+        [
+          "Rationale Statement",
+          "9"
+        ],
+        [
+          "Audit Procedure",
+          "9"
+        ],
+        [
+          "Remediation Procedure",
+          "10"
+        ],
+        [
+          "Additional Information",
+          "10"
+        ],
+        [
+          "Profile Definition ................................s",
+          "11"
+        ],
+        [
+          "Acknowledgements",
+          "13"
+        ],
+        [
+          "Recommendations",
+          "14"
+        ],
+        [
+          "1 STIG RULES",
+          "14"
+        ],
+        [
+          "1.1 WN16 -00-0010 (Manual)",
+          "15"
+        ],
+        [
+          "1.2 WN16 -00-0030 (Manual)",
+          "16"
+        ],
+        [
+          "1.3 WN16 -00-0040 (Manual)",
+          "18"
+        ],
+        [
+          "1.4 WN16 -00-0050 (Manual)",
+          "20"
+        ],
+        [
+          "1.5 WN16 -00-0060 (Manual)",
+          "21"
+        ],
+        [
+          "1.6 WN16 -00-0070 (Manual)",
+          "22"
+        ],
+        [
+          "1.7 WN16 -00-0080 (Manual)",
+          "25"
+        ],
+        [
+          "1.8 WN16 -00-0090 (Manual)",
+          "26"
+        ],
+        [
+          "1.9 WN16 -00-000100 (Manual)",
+          "29"
+        ],
+        [
+          "1.10 WN16 -00-000110 (Manual)",
+          "31"
+        ],
+        [
+          "1.11 WN16 -00-000120 (Manual)",
+          "32"
+        ],
+        [
+          "1.12 WN16 -00-000140 (Manual)",
+          "34"
+        ],
+        [
+          "1.13 WN16 -00-000150 (Manual)",
+          "35"
+        ],
+        [
+          "1.14 WN16 -00-000160 (Manual)",
+          "36"
+        ],
+        [
+          "1.15 WN16 -00-000170 (Manual)",
+          "39"
+        ],
+        [
+          "1.16 WN16 -00-000180 (Manual)",
+          "43"
+        ],
+        [
+          "1.17 WN16 -00-000190 (Manual)",
+          "46"
+        ],
+        [
+          "1.18 WN16 -00-000200 (Manual)",
+          "50"
+        ],
+        [
+          "1.19 WN16 -00-000210 (Manual)",
+          "52"
+        ],
+        [
+          "1.20 WN16 -00-000220 (Manual)",
+          "55"
+        ]
+      ],
+      "LinesDetailed": [
+        {
+          "Y": 693.7,
+          "XStart": 72.024,
+          "XEnd": 322.43,
+          "Text": "Table of Contents ",
+          "SpanCount": 4
+        },
+        {
+          "Y": 660.46,
+          "XStart": 72.024,
+          "XEnd": 545.644,
+          "Text": "Terms of Use  ................................ 1 ",
+          "SpanCount": 11
+        },
+        {
+          "Y": 640.66,
+          "XStart": 72.024,
+          "XEnd": 545.644,
+          "Text": "Table of Contents ................................ 2 ",
+          "SpanCount": 15
+        },
+        {
+          "Y": 620.86,
+          "XStart": 72.024,
+          "XEnd": 545.644,
+          "Text": "Overview  ................................ 8 ",
+          "SpanCount": 13
+        },
+        {
+          "Y": 602.02,
+          "XStart": 79.224,
+          "XEnd": 545.6709,
+          "Text": "Target Technology Details ................................ 8 ",
+          "SpanCount": 22
+        },
+        {
+          "Y": 583.42,
+          "XStart": 79.224,
+          "XEnd": 545.6709,
+          "Text": "Intended Audience  ................................ 8 ",
+          "SpanCount": 17
+        },
+        {
+          "Y": 563.86,
+          "XStart": 72.024,
+          "XEnd": 545.644,
+          "Text": "Recommendation Definitions  ................................ 9 ",
+          "SpanCount": 11
+        },
+        {
+          "Y": 544.99,
+          "XStart": 79.224,
+          "XEnd": 545.6709,
+          "Text": "Title ................................ 9 ",
+          "SpanCount": 12
+        },
+        {
+          "Y": 526.27,
+          "XStart": 79.224,
+          "XEnd": 545.6709,
+          "Text": "Assessment Status  ................................ 9 ",
+          "SpanCount": 17
+        },
+        {
+          "Y": 514.63,
+          "XStart": 86.424,
+          "XEnd": 545.61112,
+          "Text": "Automated  ................................ 9 ",
+          "SpanCount": 14
+        },
+        {
+          "Y": 503.11,
+          "XStart": 86.424,
+          "XEnd": 545.61112,
+          "Text": "Manual  ................................ 9 ",
+          "SpanCount": 13
+        },
+        {
+          "Y": 484.63,
+          "XStart": 79.224,
+          "XEnd": 545.6709,
+          "Text": "Profile ................................ 9 ",
+          "SpanCount": 14
+        },
+        {
+          "Y": 466.03,
+          "XStart": 79.224,
+          "XEnd": 545.6709,
+          "Text": "Description ................................ 9 ",
+          "SpanCount": 14
+        },
+        {
+          "Y": 447.31,
+          "XStart": 79.224,
+          "XEnd": 545.6709,
+          "Text": "Rationale Statement ................................ 9 ",
+          "SpanCount": 19
+        },
+        {
+          "Y": 428.71,
+          "XStart": 79.224,
+          "XEnd": 545.6709,
+          "Text": "Audit Procedure ................................ 9 ",
+          "SpanCount": 17
+        },
+        {
+          "Y": 409.99,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Remediation Procedure  ................................10 ",
+          "SpanCount": 19
+        },
+        {
+          "Y": 391.39,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Additional Information................................10 ",
+          "SpanCount": 22
+        },
+        {
+          "Y": 372.77,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Profile Definition ................................s ................................11 ",
+          "SpanCount": 20
+        },
+        {
+          "Y": 354.05,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Acknowledgements  ................................13 ",
+          "SpanCount": 15
+        },
+        {
+          "Y": 334.49,
+          "XStart": 72.024,
+          "XEnd": 545.668,
+          "Text": "Recommendations  ................................ 14 ",
+          "SpanCount": 11
+        },
+        {
+          "Y": 315.65,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "1 STIG RULES  ................................14 ",
+          "SpanCount": 15
+        },
+        {
+          "Y": 304.01,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.1 WN16 -00-0010 (Manual) ................................ 15 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 292.49,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.2 WN16 -00-0030 (Manual) ................................ 16 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 280.97,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.3 WN16 -00-0040 (Manual) ................................ 18 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 269.45,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.4 WN16 -00-0050 (Manual) ................................ 20 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 257.93,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.5 WN16 -00-0060 (Manual) ................................ 21 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 246.53,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.6 WN16 -00-0070 (Manual) ................................ 22 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 235.01,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.7 WN16 -00-0080 (Manual) ................................ 25 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 223.49,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.8 WN16 -00-0090 (Manual) ................................ 26 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 211.97,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.9 WN16 -00-000100 (Manual) ................................ 29 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 200.42,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.10 WN16 -00-000110 (Manual) ................................ 31 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 188.9,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.11 WN16 -00-000120 (Manual) ................................ 32 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 177.5,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.12 WN16 -00-000140 (Manual) ................................ 34 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 165.98,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.13 WN16 -00-000150 (Manual) ................................ 35 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 154.46,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.14 WN16 -00-000160 (Manual) ................................ 36 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 142.94,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.15 WN16 -00-000170 (Manual) ................................ 39 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 131.42,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.16 WN16 -00-000180 (Manual) ................................ 43 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 119.9,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.17 WN16 -00-000190 (Manual) ................................ 46 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 108.5,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.18 WN16 -00-000200 (Manual) ................................ 50 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 96.984,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.19 WN16 -00-000210 (Manual) ................................ 52 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 85.464,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.20 WN16 -00-000220 (Manual) ................................ 55 ",
+          "SpanCount": 24
+        },
+        {
+          "Y": 45.984,
+          "XStart": 508.42,
+          "XEnd": 545.08,
+          "Text": "Page 2 ",
+          "SpanCount": 5
+        }
+      ],
+      "Tables": [],
+      "Bands": [
+        {
+          "YTop": 693.7,
+          "YBottom": 693.7,
+          "Lines": [
+            "Table of Contents "
+          ]
+        },
+        {
+          "YTop": 660.46,
+          "YBottom": 660.46,
+          "Lines": [
+            "Terms of Use  ................................ 1 "
+          ]
+        },
+        {
+          "YTop": 640.66,
+          "YBottom": 640.66,
+          "Lines": [
+            "Table of Contents ................................ 2 "
+          ]
+        },
+        {
+          "YTop": 620.86,
+          "YBottom": 620.86,
+          "Lines": [
+            "Overview  ................................ 8 "
+          ]
+        },
+        {
+          "YTop": 602.02,
+          "YBottom": 602.02,
+          "Lines": [
+            "Target Technology Details ................................ 8 "
+          ]
+        },
+        {
+          "YTop": 583.42,
+          "YBottom": 583.42,
+          "Lines": [
+            "Intended Audience  ................................ 8 "
+          ]
+        },
+        {
+          "YTop": 563.86,
+          "YBottom": 563.86,
+          "Lines": [
+            "Recommendation Definitions  ................................ 9 "
+          ]
+        },
+        {
+          "YTop": 544.99,
+          "YBottom": 544.99,
+          "Lines": [
+            "Title ................................ 9 "
+          ]
+        },
+        {
+          "YTop": 526.27,
+          "YBottom": 526.27,
+          "Lines": [
+            "Assessment Status  ................................ 9 "
+          ]
+        },
+        {
+          "YTop": 514.63,
+          "YBottom": 514.63,
+          "Lines": [
+            "Automated  ................................ 9 "
+          ]
+        },
+        {
+          "YTop": 503.11,
+          "YBottom": 503.11,
+          "Lines": [
+            "Manual  ................................ 9 "
+          ]
+        },
+        {
+          "YTop": 484.63,
+          "YBottom": 484.63,
+          "Lines": [
+            "Profile ................................ 9 "
+          ]
+        },
+        {
+          "YTop": 466.03,
+          "YBottom": 466.03,
+          "Lines": [
+            "Description ................................ 9 "
+          ]
+        },
+        {
+          "YTop": 447.31,
+          "YBottom": 447.31,
+          "Lines": [
+            "Rationale Statement ................................ 9 "
+          ]
+        },
+        {
+          "YTop": 428.71,
+          "YBottom": 428.71,
+          "Lines": [
+            "Audit Procedure ................................ 9 "
+          ]
+        },
+        {
+          "YTop": 409.99,
+          "YBottom": 409.99,
+          "Lines": [
+            "Remediation Procedure  ................................10 "
+          ]
+        },
+        {
+          "YTop": 391.39,
+          "YBottom": 391.39,
+          "Lines": [
+            "Additional Information................................10 "
+          ]
+        },
+        {
+          "YTop": 372.77,
+          "YBottom": 372.77,
+          "Lines": [
+            "Profile Definition ................................s ................................11 "
+          ]
+        },
+        {
+          "YTop": 354.05,
+          "YBottom": 354.05,
+          "Lines": [
+            "Acknowledgements  ................................13 "
+          ]
+        },
+        {
+          "YTop": 334.49,
+          "YBottom": 334.49,
+          "Lines": [
+            "Recommendations  ................................ 14 "
+          ]
+        },
+        {
+          "YTop": 315.65,
+          "YBottom": 315.65,
+          "Lines": [
+            "1 STIG RULES  ................................14 "
+          ]
+        },
+        {
+          "YTop": 304.01,
+          "YBottom": 304.01,
+          "Lines": [
+            "1.1 WN16 -00-0010 (Manual) ................................ 15 "
+          ]
+        },
+        {
+          "YTop": 292.49,
+          "YBottom": 292.49,
+          "Lines": [
+            "1.2 WN16 -00-0030 (Manual) ................................ 16 "
+          ]
+        },
+        {
+          "YTop": 280.97,
+          "YBottom": 280.97,
+          "Lines": [
+            "1.3 WN16 -00-0040 (Manual) ................................ 18 "
+          ]
+        },
+        {
+          "YTop": 269.45,
+          "YBottom": 269.45,
+          "Lines": [
+            "1.4 WN16 -00-0050 (Manual) ................................ 20 "
+          ]
+        },
+        {
+          "YTop": 257.93,
+          "YBottom": 257.93,
+          "Lines": [
+            "1.5 WN16 -00-0060 (Manual) ................................ 21 "
+          ]
+        },
+        {
+          "YTop": 246.53,
+          "YBottom": 246.53,
+          "Lines": [
+            "1.6 WN16 -00-0070 (Manual) ................................ 22 "
+          ]
+        },
+        {
+          "YTop": 235.01,
+          "YBottom": 235.01,
+          "Lines": [
+            "1.7 WN16 -00-0080 (Manual) ................................ 25 "
+          ]
+        },
+        {
+          "YTop": 223.49,
+          "YBottom": 223.49,
+          "Lines": [
+            "1.8 WN16 -00-0090 (Manual) ................................ 26 "
+          ]
+        },
+        {
+          "YTop": 211.97,
+          "YBottom": 211.97,
+          "Lines": [
+            "1.9 WN16 -00-000100 (Manual) ................................ 29 "
+          ]
+        },
+        {
+          "YTop": 200.42,
+          "YBottom": 200.42,
+          "Lines": [
+            "1.10 WN16 -00-000110 (Manual) ................................ 31 "
+          ]
+        },
+        {
+          "YTop": 188.9,
+          "YBottom": 188.9,
+          "Lines": [
+            "1.11 WN16 -00-000120 (Manual) ................................ 32 "
+          ]
+        },
+        {
+          "YTop": 177.5,
+          "YBottom": 177.5,
+          "Lines": [
+            "1.12 WN16 -00-000140 (Manual) ................................ 34 "
+          ]
+        },
+        {
+          "YTop": 165.98,
+          "YBottom": 165.98,
+          "Lines": [
+            "1.13 WN16 -00-000150 (Manual) ................................ 35 "
+          ]
+        },
+        {
+          "YTop": 154.46,
+          "YBottom": 154.46,
+          "Lines": [
+            "1.14 WN16 -00-000160 (Manual) ................................ 36 "
+          ]
+        },
+        {
+          "YTop": 142.94,
+          "YBottom": 142.94,
+          "Lines": [
+            "1.15 WN16 -00-000170 (Manual) ................................ 39 "
+          ]
+        },
+        {
+          "YTop": 131.42,
+          "YBottom": 131.42,
+          "Lines": [
+            "1.16 WN16 -00-000180 (Manual) ................................ 43 "
+          ]
+        },
+        {
+          "YTop": 119.9,
+          "YBottom": 119.9,
+          "Lines": [
+            "1.17 WN16 -00-000190 (Manual) ................................ 46 "
+          ]
+        },
+        {
+          "YTop": 108.5,
+          "YBottom": 108.5,
+          "Lines": [
+            "1.18 WN16 -00-000200 (Manual) ................................ 50 "
+          ]
+        },
+        {
+          "YTop": 96.984,
+          "YBottom": 96.984,
+          "Lines": [
+            "1.19 WN16 -00-000210 (Manual) ................................ 52 "
+          ]
+        },
+        {
+          "YTop": 85.464,
+          "YBottom": 85.464,
+          "Lines": [
+            "1.20 WN16 -00-000220 (Manual) ................................ 55 "
+          ]
+        },
+        {
+          "YTop": 45.984,
+          "YBottom": 45.984,
+          "Lines": [
+            "Page 2 "
+          ]
+        }
+      ]
+    }
+  ]
+}

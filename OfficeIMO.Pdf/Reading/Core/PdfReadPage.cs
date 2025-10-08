@@ -68,6 +68,17 @@ public sealed class PdfReadPage {
             var formWidths = ResourceResolver.GetFontWidthProviders(formDict, _objects);
             string DecodeWithFormFont(string fontRes, byte[] input) => formDecoders.TryGetValue(fontRes, out var dec) ? dec(input) : DecodeWithFont(fontRes, input);
             double SumWidth1000Form(string fontRes, byte[] input) => formWidths.TryGetValue(fontRes, out var wp) ? wp(input) : SumWidth1000(fontRes, input);
+            // If the form has a /Matrix, inject it as a cm operator to apply CTM correctly
+            if (formDict is not null && formDict.Items.TryGetValue("Matrix", out var mObj) && mObj is PdfArray arr && arr.Items.Count >= 6) {
+                double A() => (arr.Items[0] as PdfNumber)?.Value ?? 1;
+                double B() => (arr.Items[1] as PdfNumber)?.Value ?? 0;
+                double C() => (arr.Items[2] as PdfNumber)?.Value ?? 0;
+                double D() => (arr.Items[3] as PdfNumber)?.Value ?? 1;
+                double E() => (arr.Items[4] as PdfNumber)?.Value ?? 0;
+                double F() => (arr.Items[5] as PdfNumber)?.Value ?? 0;
+                string prefix = $"q {A().ToString(System.Globalization.CultureInfo.InvariantCulture)} {B().ToString(System.Globalization.CultureInfo.InvariantCulture)} {C().ToString(System.Globalization.CultureInfo.InvariantCulture)} {D().ToString(System.Globalization.CultureInfo.InvariantCulture)} {E().ToString(System.Globalization.CultureInfo.InvariantCulture)} {F().ToString(System.Globalization.CultureInfo.InvariantCulture)} cm ";
+                content = prefix + content + " Q";
+            }
             spans.AddRange(TextContentParser.Parse(content, DecodeWithFormFont, SumWidth1000Form));
         }
         return spans;

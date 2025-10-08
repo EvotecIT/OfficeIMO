@@ -19,6 +19,7 @@ namespace OfficeIMO.Examples {
             // PDF/Read Benchmarks (native)
             Pdf.ReadCisBenchmark.Example_Pdf_ReadCIS2016_Columns(folderPath, open: false, startPage: 1, pageCount: 3);
             Pdf.ReadCisBenchmark.Example_Pdf_ReadCIS2016_Raw(folderPath, open: false, startPage: 1, pageCount: 5);
+            Pdf.ReadCisBenchmarkStructured.Example_Pdf_ReadCIS2016_Structured(folderPath, open: false, startPage: 1, pageCount: 3);
 
             Console.WriteLine("Examples finished. Press any key to exit.");
             return;

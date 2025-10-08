@@ -1,0 +1,661 @@
+{
+  "Source": "/mnt/c/Support/GitHub/OfficeIMO/Assets/PdfBenchmarks/CIS_Microsoft_Windows_Server_2016_Benchmark_v4.0.0.pdf",
+  "Pages": 1144,
+  "Range": {
+    "From": 1,
+    "To": 3
+  },
+  "PagesData": [
+    {
+      "Page": 1,
+      "Lines": [
+        "CIS Microsoft Windows",
+        "Server 2016 Benchmark",
+        "v4.0.0 - 09-25-2025"
+      ],
+      "Toc": [],
+      "Lists": [],
+      "LeaderRows": [],
+      "LinesDetailed": [
+        {
+          "Y": 776.76,
+          "XStart": 72.024,
+          "XEnd": 78.024,
+          "Text": " ",
+          "SpanCount": 1
+        },
+        {
+          "Y": 521.59,
+          "XStart": 72.024,
+          "XEnd": 511.90368000000007,
+          "Text": "CIS Microsoft Windows ",
+          "SpanCount": 4
+        },
+        {
+          "Y": 473.59,
+          "XStart": 72.024,
+          "XEnd": 523.48,
+          "Text": "Server 2016 Benchmark ",
+          "SpanCount": 5
+        },
+        {
+          "Y": 427.87,
+          "XStart": 54,
+          "XEnd": 201.71624,
+          "Text": "v4.0.0 - 09-25-2025 ",
+          "SpanCount": 12
+        },
+        {
+          "Y": 392.71,
+          "XStart": 72.024,
+          "XEnd": 222.05624,
+          "Text": "   ",
+          "SpanCount": 2
+        },
+        {
+          "Y": 45.984,
+          "XStart": 540.1,
+          "XEnd": 545.08,
+          "Text": " ",
+          "SpanCount": 1
+        }
+      ],
+      "Tables": []
+    },
+    {
+      "Page": 2,
+      "Lines": [
+        "Terms of Use",
+        "Please se the below link for our current terms o f use:",
+        "https://www.cisecurity.org/cis-securesuite/cis-securesuite-membership -terms-of-use/",
+        "rd",
+        "For information on referencing and/or citing CIS Benchmarks in party d 3 ocumentation",
+        "(including using portions of Benchmark Recomendations) please contact CIS Legal",
+        "(legalnotices@cisecurity.o) arg nd request guidance on copyright usag e .",
+        "NOTE : It is NEVER  acceptable to host a CIS Benchmark iANYn   format (PDF, etc.)",
+        "rd",
+        "on a 3  party (non-CIS owned) site .",
+        "Page 1"
+      ],
+      "Toc": [],
+      "Lists": [],
+      "LeaderRows": [],
+      "LinesDetailed": [
+        {
+          "Y": 776.76,
+          "XStart": 72.024,
+          "XEnd": 78.024,
+          "Text": " ",
+          "SpanCount": 1
+        },
+        {
+          "Y": 693.7,
+          "XStart": 72.024,
+          "XEnd": 263.39,
+          "Text": "Terms of Use  ",
+          "SpanCount": 5
+        },
+        {
+          "Y": 660.46,
+          "XStart": 72.024,
+          "XEnd": 401.88,
+          "Text": "Please se the below link for our current terms o f use:",
+          "SpanCount": 34
+        },
+        {
+          "Y": 638.74,
+          "XStart": 72.024,
+          "XEnd": 525.628,
+          "Text": "https://www.cisecurity.org/cis-securesuite/cis-securesuite-membership -terms-of-use/ ",
+          "SpanCount": 44
+        },
+        {
+          "Y": 616.9,
+          "XStart": 72.024,
+          "XEnd": 78.072,
+          "Text": " ",
+          "SpanCount": 1
+        },
+        {
+          "Y": 599.02,
+          "XStart": 417.79,
+          "XEnd": 425.7554,
+          "Text": "rd",
+          "SpanCount": 1
+        },
+        {
+          "Y": 595.06,
+          "XStart": 72.024,
+          "XEnd": 547.3879999999998,
+          "Text": "For information on referencing and/or citing CIS Benchmarks in party d 3 ocumentation ",
+          "SpanCount": 46
+        },
+        {
+          "Y": 581.26,
+          "XStart": 72.024,
+          "XEnd": 554.8826999999999,
+          "Text": "(including using portions of Benchmark Recomendations) please contact CIS Legal ",
+          "SpanCount": 50
+        },
+        {
+          "Y": 567.46,
+          "XStart": 72.024,
+          "XEnd": 478.5540999999998,
+          "Text": "(legalnotices@cisecurity.o) arg nd request guidance on copyright usag e . ",
+          "SpanCount": 44
+        },
+        {
+          "Y": 541.75,
+          "XStart": 81.024,
+          "XEnd": 545.8659999999999,
+          "Text": "NOTE : It is NEVER  acceptable to host a CIS Benchmark iANYn   format (PDF, etc.) ",
+          "SpanCount": 46
+        },
+        {
+          "Y": 531.79,
+          "XStart": 159.5,
+          "XEnd": 167.4654,
+          "Text": "rd",
+          "SpanCount": 1
+        },
+        {
+          "Y": 527.83,
+          "XStart": 126.02,
+          "XEnd": 323.32120000000003,
+          "Text": "on a 3  party (non-CIS owned) site .",
+          "SpanCount": 18
+        },
+        {
+          "Y": 45.984,
+          "XStart": 508.42,
+          "XEnd": 545.08,
+          "Text": "Page 1 ",
+          "SpanCount": 5
+        }
+      ],
+      "Tables": []
+    },
+    {
+      "Page": 3,
+      "Lines": [
+        "Table of Contents",
+        "Terms of Use  ................................ 1",
+        "Table of Contents ................................ 2",
+        "Overview  ................................ 24",
+        "Important Usage Information ................................24",
+        "Key Stakeholders  ................................ 24",
+        "Aply the Corect Version of a Benchmark ................................ 25",
+        "Exceptions  ................................ 25",
+        "Remediation  ................................ 26",
+        "Summary  ................................ 26",
+        "Target Technology Details ................................27",
+        "Intended Audience  ................................27",
+        "Consensus Guidance  ................................28",
+        "Typographical Conventions  ................................29",
+        "Recommendation Definitions  ................................ 30",
+        "Title ................................30",
+        "Assessment Status  ................................30",
+        "Automated  ................................ 30",
+        "Manual  ................................ 30",
+        "Profile ................................30",
+        "Description ................................30",
+        "Rationale Statement ................................30",
+        "Impact Statement  ................................31",
+        "Audit Procedure ................................31",
+        "Remediation Procedure  ................................31",
+        "Default Value ................................31",
+        "References  ................................31",
+        "\u00AE \u00AE",
+        "CIS Critical Security Control s(CIS Controls ) ................................31",
+        "Additional Information................................31",
+        "Profile Definition ................................s ................................32",
+        "Acknowledgements  ................................34",
+        "Recommendations  ................................ 35",
+        "1 Account Policies ................................35",
+        "1.1 Password Policy ................................ 35",
+        "1.1 (L1) Ensure \u0027Enforce pasword history\u0027 is set to \u002724 or more pasword(s)\u0027 (A 36uto mated)",
+        "1.1.2 (L1) Ensure \u0027Maximum pasword age\u0027 is set to \u0027365 or fewer days, but not 0\u0027",
+        "(Automated) ................................ 39",
+        "Page 2"
+      ],
+      "Toc": [
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {}
+      ],
+      "Lists": [],
+      "LeaderRows": [
+        [
+          "Terms of Use",
+          "1"
+        ],
+        [
+          "Table of Contents",
+          "2"
+        ],
+        [
+          "Overview",
+          "24"
+        ],
+        [
+          "Important Usage Information",
+          "24"
+        ],
+        [
+          "Key Stakeholders",
+          "24"
+        ],
+        [
+          "Aply the Corect Version of a Benchmark",
+          "25"
+        ],
+        [
+          "Exceptions",
+          "25"
+        ],
+        [
+          "Remediation",
+          "26"
+        ],
+        [
+          "Summary",
+          "26"
+        ],
+        [
+          "Target Technology Details",
+          "27"
+        ],
+        [
+          "Intended Audience",
+          "27"
+        ],
+        [
+          "Consensus Guidance",
+          "28"
+        ],
+        [
+          "Typographical Conventions",
+          "29"
+        ],
+        [
+          "Recommendation Definitions",
+          "30"
+        ],
+        [
+          "Title",
+          "30"
+        ],
+        [
+          "Assessment Status",
+          "30"
+        ],
+        [
+          "Automated",
+          "30"
+        ],
+        [
+          "Manual",
+          "30"
+        ],
+        [
+          "Profile",
+          "30"
+        ],
+        [
+          "Description",
+          "30"
+        ],
+        [
+          "Rationale Statement",
+          "30"
+        ],
+        [
+          "Impact Statement",
+          "31"
+        ],
+        [
+          "Audit Procedure",
+          "31"
+        ],
+        [
+          "Remediation Procedure",
+          "31"
+        ],
+        [
+          "Default Value",
+          "31"
+        ],
+        [
+          "References",
+          "31"
+        ],
+        [
+          "CIS Critical Security Control s(CIS Controls )",
+          "31"
+        ],
+        [
+          "Additional Information",
+          "31"
+        ],
+        [
+          "Profile Definition ................................s",
+          "32"
+        ],
+        [
+          "Acknowledgements",
+          "34"
+        ],
+        [
+          "Recommendations",
+          "35"
+        ],
+        [
+          "1 Account Policies",
+          "35"
+        ],
+        [
+          "1.1 Password Policy",
+          "35"
+        ],
+        [
+          "(Automated)",
+          "39"
+        ]
+      ],
+      "LinesDetailed": [
+        {
+          "Y": 776.76,
+          "XStart": 72.024,
+          "XEnd": 78.024,
+          "Text": " ",
+          "SpanCount": 1
+        },
+        {
+          "Y": 693.7,
+          "XStart": 72.024,
+          "XEnd": 322.43,
+          "Text": "Table of Contents ",
+          "SpanCount": 4
+        },
+        {
+          "Y": 660.46,
+          "XStart": 72.024,
+          "XEnd": 545.644,
+          "Text": "Terms of Use  ................................ 1 ",
+          "SpanCount": 11
+        },
+        {
+          "Y": 640.66,
+          "XStart": 72.024,
+          "XEnd": 545.644,
+          "Text": "Table of Contents ................................ 2 ",
+          "SpanCount": 15
+        },
+        {
+          "Y": 620.86,
+          "XStart": 72.024,
+          "XEnd": 545.668,
+          "Text": "Overview  ................................ 24 ",
+          "SpanCount": 13
+        },
+        {
+          "Y": 602.02,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Important Usage Information ................................24 ",
+          "SpanCount": 22
+        },
+        {
+          "Y": 590.38,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "Key Stakeholders  ................................ 24 ",
+          "SpanCount": 17
+        },
+        {
+          "Y": 578.86,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "Aply the Corect Version of a Benchmark ................................ 25 ",
+          "SpanCount": 28
+        },
+        {
+          "Y": 567.46,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "Exceptions  ................................ 25 ",
+          "SpanCount": 14
+        },
+        {
+          "Y": 555.94,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "Remediation  ................................ 26 ",
+          "SpanCount": 12
+        },
+        {
+          "Y": 544.39,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "Summary  ................................ 26 ",
+          "SpanCount": 14
+        },
+        {
+          "Y": 525.91,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Target Technology Details ................................27 ",
+          "SpanCount": 21
+        },
+        {
+          "Y": 507.19,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Intended Audience  ................................27 ",
+          "SpanCount": 16
+        },
+        {
+          "Y": 488.59,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Consensus Guidance  ................................28 ",
+          "SpanCount": 19
+        },
+        {
+          "Y": 469.99,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Typographical Conventions  ................................29 ",
+          "SpanCount": 22
+        },
+        {
+          "Y": 450.31,
+          "XStart": 72.024,
+          "XEnd": 545.668,
+          "Text": "Recommendation Definitions  ................................ 30 ",
+          "SpanCount": 11
+        },
+        {
+          "Y": 431.47,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Title ................................30 ",
+          "SpanCount": 11
+        },
+        {
+          "Y": 412.87,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Assessment Status  ................................30 ",
+          "SpanCount": 16
+        },
+        {
+          "Y": 401.23,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "Automated  ................................ 30 ",
+          "SpanCount": 14
+        },
+        {
+          "Y": 389.71,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "Manual  ................................ 30 ",
+          "SpanCount": 13
+        },
+        {
+          "Y": 371.21,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Profile ................................30 ",
+          "SpanCount": 13
+        },
+        {
+          "Y": 352.49,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Description ................................30 ",
+          "SpanCount": 13
+        },
+        {
+          "Y": 333.89,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Rationale Statement ................................30 ",
+          "SpanCount": 18
+        },
+        {
+          "Y": 315.29,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Impact Statement  ................................31 ",
+          "SpanCount": 17
+        },
+        {
+          "Y": 296.57,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Audit Procedure ................................31 ",
+          "SpanCount": 16
+        },
+        {
+          "Y": 277.97,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Remediation Procedure  ................................31 ",
+          "SpanCount": 19
+        },
+        {
+          "Y": 259.25,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Default Value ................................31 ",
+          "SpanCount": 12
+        },
+        {
+          "Y": 240.65,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "References  ................................31 ",
+          "SpanCount": 10
+        },
+        {
+          "Y": 226.01,
+          "XStart": 232.85,
+          "XEnd": 314.79179999999997,
+          "Text": "\u00AE \u00AE",
+          "SpanCount": 2
+        },
+        {
+          "Y": 222.05,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "CIS Critical Security Control s(CIS Controls ) ................................31 ",
+          "SpanCount": 39
+        },
+        {
+          "Y": 203.3,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Additional Information................................31 ",
+          "SpanCount": 22
+        },
+        {
+          "Y": 184.7,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Profile Definition ................................s ................................32 ",
+          "SpanCount": 20
+        },
+        {
+          "Y": 165.98,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Acknowledgements  ................................34 ",
+          "SpanCount": 15
+        },
+        {
+          "Y": 146.42,
+          "XStart": 72.024,
+          "XEnd": 545.668,
+          "Text": "Recommendations  ................................ 35 ",
+          "SpanCount": 11
+        },
+        {
+          "Y": 127.58,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "1 Account Policies ................................35 ",
+          "SpanCount": 20
+        },
+        {
+          "Y": 115.94,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "1.1 Password Policy ................................ 35 ",
+          "SpanCount": 20
+        },
+        {
+          "Y": 104.42,
+          "XStart": 122.42,
+          "XEnd": 575.1256,
+          "Text": "1.1 (L1) Ensure \u0027Enforce pasword history\u0027 is set to \u002724 or more pasword(s)\u0027 (A 36uto mated)",
+          "SpanCount": 46
+        },
+        {
+          "Y": 92.904,
+          "XStart": 122.42,
+          "XEnd": 530.5454799999997,
+          "Text": "1.1.2 (L1) Ensure \u0027Maximum pasword age\u0027 is set to \u0027365 or fewer days, but not 0\u0027 ",
+          "SpanCount": 36
+        },
+        {
+          "Y": 81.384,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "(Automated) ................................ 39 ",
+          "SpanCount": 14
+        },
+        {
+          "Y": 45.984,
+          "XStart": 508.42,
+          "XEnd": 545.08,
+          "Text": "Page 2 ",
+          "SpanCount": 5
+        }
+      ],
+      "Tables": []
+    }
+  ]
+}

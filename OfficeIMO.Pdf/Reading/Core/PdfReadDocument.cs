@@ -54,19 +54,36 @@ public sealed class PdfReadDocument {
                 var kids = pagesNode.Get<PdfArray>("Kids");
                 int kidCount = kids?.Items.Count ?? 0;
                 System.Console.WriteLine($"CollectPages: Root /Pages has Kids={kidCount}");
-                TraversePagesNode(pagesNode, result);
+                var visited = new HashSet<int>();
+                var contentKeys = new HashSet<string>(StringComparer.Ordinal);
+                int? target = null;
+                var cnt = pagesNode.Get<PdfNumber>("Count");
+                if (cnt is not null) {
+                    int cc = (int)cnt.Value; if (cc > 0) target = cc;
+                    System.Console.WriteLine($"CollectPages: Root /Pages Count={cc}");
+                }
+                TraversePagesNodeDeepLimited(pagesNode, visited, contentKeys, result, target);
                 System.Console.WriteLine($"CollectPages: Traversal found {result.Count} pages");
+                if (result.Count == 0 && kidCount > 0) {
+                    // Build a reachable candidate set from Kids only
+                    var reachable = CollectReachableLeafCandidates(pagesNode);
+                    System.Console.WriteLine($"CollectPages: Reachable leaf candidates = {reachable.Count}");
+                    foreach (var id in reachable) {
+                        if (_objects.TryGetValue(id, out var ind) && ind.Value is PdfDictionary dict) {
+                            result.Add(new PdfReadPage(id, dict, _objects));
+                            if (target.HasValue && result.Count >= target.Value) break;
+                        }
+                        if (target.HasValue && result.Count >= target.Value) break;
+                    }
+                }
             }
         }
         if (result.Count > 0) return result;
 
-        // Fallback: scan all objects and sort by object number
+        // Fallback: scan all dictionaries; accept leaf candidates whose Parent chain leads to a /Pages node
         foreach (var kv in _objects) {
             if (kv.Value.Value is PdfDictionary dict) {
-                var type = dict.Get<PdfName>("Type")?.Name;
-                if (type == "Page" || IsLikelyPage(dict)) {
-                    result.Add(new PdfReadPage(kv.Key, dict, _objects));
-                }
+                if (IsLeafPageByParent(dict)) result.Add(new PdfReadPage(kv.Key, dict, _objects));
             }
         }
         result.Sort((a, b) => a.ObjectNumber.CompareTo(b.ObjectNumber));
@@ -109,6 +126,93 @@ public sealed class PdfReadDocument {
         bool hasMedia = d.Items.ContainsKey("MediaBox") || d.Items.ContainsKey("CropBox");
         bool hasKids = d.Items.ContainsKey("Kids");
         return !hasKids && hasContents && (hasRes || hasMedia);
+    }
+
+    private void TraversePagesNodeDeepLimited(PdfDictionary node, HashSet<int> visited, HashSet<string> contentKeys, List<PdfReadPage> outList, int? limit) {
+        var type = node.Get<PdfName>("Type")?.Name;
+        if (type == "Page" || (type is null && IsLikelyPage(node))) {
+            int objNum = FindObjectNumberFor(node);
+            if (objNum > 0 && visited.Add(objNum)) {
+                if (HasMedia(node)) {
+                    var key = ContentsKey(node);
+                    if (key is null || contentKeys.Add(key)) {
+                        outList.Add(new PdfReadPage(objNum, node, _objects));
+                    }
+                }
+            }
+            return;
+        }
+        var kids = node.Get<PdfArray>("Kids");
+        if (kids is null) return;
+        System.Console.WriteLine($"Traverse: /Pages with {kids.Items.Count} kids");
+        foreach (var kid in kids.Items) {
+            if (limit.HasValue && outList.Count >= limit.Value) return;
+            var d = ResolveDict(kid);
+            if (d is null) { System.Console.WriteLine("Traverse: Kid unresolved"); continue; }
+            var t = d.Get<PdfName>("Type")?.Name;
+            if (t == "Pages" || (t is null && d.Get<PdfArray>("Kids") is not null)) TraversePagesNodeDeepLimited(d, visited, contentKeys, outList, limit);
+            else if ((t == "Page" || IsLikelyPage(d) || IsLeafPageByParent(d)) && HasMedia(d)) {
+                int on = FindObjectNumberFor(d);
+                if (on > 0 && visited.Add(on)) {
+                    var key = ContentsKey(d);
+                    if (key is null || contentKeys.Add(key)) {
+                        outList.Add(new PdfReadPage(on, d, _objects));
+                        if (limit.HasValue && outList.Count >= limit.Value) return;
+                    }
+                }
+            }
+        }
+    }
+
+    private HashSet<int> CollectReachableLeafCandidates(PdfDictionary pagesRoot) {
+        var set = new HashSet<int>();
+        var stack = new Stack<PdfDictionary>();
+        stack.Push(pagesRoot);
+        int guard = 0;
+        while (stack.Count > 0 && guard++ < 10000) {
+            var cur = stack.Pop();
+            var kids = cur.Get<PdfArray>("Kids");
+            if (kids is null) continue;
+            foreach (var k in kids.Items) {
+                var d = ResolveDict(k);
+                if (d is null) continue;
+                var t = d.Get<PdfName>("Type")?.Name;
+                if (t == "Pages" || (t is null && d.Get<PdfArray>("Kids") is not null)) stack.Push(d);
+                else if (IsLikelyPage(d) || IsLeafPageByParent(d)) {
+                    int on = FindObjectNumberFor(d);
+                    if (on > 0) set.Add(on);
+                }
+            }
+        }
+        return set;
+    }
+    private bool IsLeafPageByParent(PdfDictionary d) {
+        if (!IsLikelyPage(d)) return false;
+        // Follow Parent chain up until /Pages or no parent
+        PdfDictionary? current = d;
+        int guard = 0;
+        while (current is not null && guard++ < 100) {
+            if (!current.Items.TryGetValue("Parent", out var p)) break;
+            var parent = ResolveDict(p);
+            if (parent is null) break;
+            var type = parent.Get<PdfName>("Type")?.Name;
+            if (type == "Pages") return true;
+            current = parent;
+        }
+        return false;
+    }
+
+    private static bool HasMedia(PdfDictionary d) => d.Items.ContainsKey("MediaBox") || d.Items.ContainsKey("CropBox");
+    private static string? ContentsKey(PdfDictionary d) {
+        if (!d.Items.TryGetValue("Contents", out var c)) return null;
+        if (c is PdfReference r) return $"ref:{r.ObjectNumber}";
+        if (c is PdfArray arr) {
+            var sb = new System.Text.StringBuilder();
+            sb.Append("arr:");
+            foreach (var it in arr.Items) if (it is PdfReference rr) sb.Append(rr.ObjectNumber).Append(',');
+            return sb.ToString();
+        }
+        return null;
     }
 
     private int FindObjectNumberFor(PdfDictionary dict) {

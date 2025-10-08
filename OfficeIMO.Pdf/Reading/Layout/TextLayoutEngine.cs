@@ -24,10 +24,10 @@ internal static class TextLayoutEngine {
         public double LineMergeMaxPoints { get; set; } = 2.5;
         /// <summary>Force single column when true; skip gutter detection.</summary>
         public bool ForceSingleColumn { get; set; }
-        /// <summary>Threshold in em units to insert a space between adjacent spans on the same line. Default: 0.3.</summary>
-        public double GapSpaceThresholdEm { get; set; } = 0.25;
-        /// <summary>Threshold as a fraction of previous span's average glyph advance to insert a space. Default: 0.6.</summary>
-        public double GapGlyphFactor { get; set; } = 0.6;
+        /// <summary>Threshold in em units to insert a space between adjacent spans on the same line. Default: 0.30.</summary>
+        public double GapSpaceThresholdEm { get; set; } = 0.30;
+        /// <summary>Threshold as a fraction of previous span's average glyph advance to insert a space. Default: 0.45.</summary>
+        public double GapGlyphFactor { get; set; } = 0.45;
     }
 
     public sealed class TextLine {
@@ -46,6 +46,34 @@ internal static class TextLayoutEngine {
         public (double From, double To) Right { get; }
         public bool IsTwoColumns { get; }
         public ColumnLayout((double, double) left, (double, double) right, bool two) { Left = left; Right = right; IsTwoColumns = two; }
+    }
+
+    /// <summary>
+    /// Split lines into horizontal bands (blocks) based on Y gaps.
+    /// Useful for de-duplicating and for column/table detection within local neighborhoods.
+    /// </summary>
+    public static List<List<TextLine>> BandLines(List<TextLine> lines, Options? options = null) {
+        options ??= new Options();
+        var result = new List<List<TextLine>>();
+        if (lines.Count == 0) return result;
+        // Work on lines sorted by Y desc
+        var ordered = lines.OrderByDescending(l => l.Y).ToList();
+        // Band gap: larger than intra-line tolerance to group adjacent lines sensibly
+        double baseGap = Math.Max(8.0, options.LineMergeMaxPoints * 3.0);
+        var current = new List<TextLine>();
+        double currentY = ordered[0].Y;
+        foreach (var ln in ordered) {
+            if (current.Count == 0) { current.Add(ln); currentY = ln.Y; continue; }
+            if (Math.Abs(ln.Y - currentY) <= baseGap) {
+                current.Add(ln);
+            } else {
+                result.Add(current);
+                current = new List<TextLine> { ln };
+                currentY = ln.Y;
+            }
+        }
+        if (current.Count > 0) result.Add(current);
+        return result;
     }
 
     /// <summary>Builds text lines from spans using Y-clustering and X-sorting.</summary>
@@ -75,6 +103,8 @@ internal static class TextLayoutEngine {
             }
         }
         if (current.Count > 0) lines.Add(BuildLine(current, options));
+        // Drop obvious duplicate lines drawn twice at the same Y (e.g., shadow/overprint)
+        lines = DeduplicateLines(lines);
         return lines;
     }
 
@@ -185,9 +215,9 @@ internal static class TextLayoutEngine {
                 double threshold = Math.Max(emThreshold, glyphThreshold);
                 bool isLeader = IsDotLeader(s.Text);
                 bool prevLeader = IsDotLeader(prev.Text);
-                // Tight word-join rule: letters adjacent use stricter threshold
+                // Tight word-join rule: letters adjacent use stricter threshold (slightly more permissive)
                 if (IsWordJoin(prev.Text, s.Text)) {
-                    double tight = System.Math.Min(2.0, prevAvg * 0.9);
+                    double tight = System.Math.Max(0.8, System.Math.Min(2.8, System.Math.Min(prevAvg * 0.55, s.FontSize * 0.28)));
                     if (gap > tight) text.Append(' ');
                 } else if (!isLeader) {
                     if (gap > threshold) text.Append(' ');
@@ -209,7 +239,9 @@ internal static class TextLayoutEngine {
                 if (text.Length > 0 && text[text.Length - 1] != ' ') text.Append(' ');
             }
         }
-        return new TextLine(spans[0].Y, xs, xe, text.ToString(), new List<PdfTextSpan>(spans));
+        string outText = text.ToString();
+        if (!IsDotLeader(outText)) outText = NormalizeLineText(outText);
+        return new TextLine(spans[0].Y, xs, xe, outText, new List<PdfTextSpan>(spans));
     }
 
     private static double Median(IEnumerable<double> seq) {
@@ -221,6 +253,32 @@ internal static class TextLayoutEngine {
     }
 
     private static int Clamp(int v, int min, int max) => v < min ? min : (v > max ? max : v);
+
+    private static List<TextLine> DeduplicateLines(List<TextLine> lines) {
+        if (lines.Count <= 1) return lines;
+        var result = new List<TextLine>(lines.Count);
+        var used = new bool[lines.Count];
+        for (int i = 0; i < lines.Count; i++) {
+            if (used[i]) continue;
+            var a = lines[i];
+            result.Add(a);
+            for (int j = i + 1; j < lines.Count; j++) {
+                if (used[j]) continue;
+                var b = lines[j];
+                // Near-identical baseline
+                if (Math.Abs(a.Y - b.Y) <= 0.75) {
+                    // Exact text match and significant X overlap => drop b
+                    if (string.Equals(a.Text, b.Text, StringComparison.Ordinal)) {
+                        double overlap = Math.Min(a.XEnd, b.XEnd) - Math.Max(a.XStart, b.XStart);
+                        double len = Math.Max(1.0, Math.Min(a.XEnd - a.XStart, b.XEnd - b.XStart));
+                        if (overlap / len > 0.6) { used[j] = true; continue; }
+                        if (Math.Abs(a.XStart - b.XStart) <= 1.0) { used[j] = true; continue; }
+                    }
+                }
+            }
+        }
+        return result;
+    }
 
     private static bool IsDotLeader(string s) {
         if (string.IsNullOrEmpty(s)) return false;
@@ -241,6 +299,50 @@ internal static class TextLayoutEngine {
         if (string.IsNullOrEmpty(s)) return false;
         for (int i = 0; i < s.Length; i++) if (!char.IsDigit(s[i])) return false; return true;
     }
+    private static bool IsWordish(char c) => char.IsLetter(c) || c == '\'' || c == '-' || c == '/';
+    private static bool AllWordish(string s) { if (string.IsNullOrEmpty(s)) return false; for (int i = 0; i < s.Length; i++) if (!IsWordish(s[i])) return false; return true; }
+    private static bool IsShortAbbrev(string s) { if (string.IsNullOrEmpty(s) || s.Length > 3) return false; for (int i = 0; i < s.Length; i++) if (!char.IsUpper(s[i])) return false; return true; }
+    private static string NormalizeLineText(string s) {
+        if (string.IsNullOrEmpty(s)) return s;
+        s = System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ").Trim();
+        var parts = s.Split(' ');
+        if (parts.Length <= 2) {
+            if (parts.Length == 2 && AllWordish(parts[0]) && AllWordish(parts[1])) {
+                // join two fragments when they are clearly word parts
+                if (parts[0].Length == 1 && parts[1].Length >= 3) return parts[0] + parts[1];
+                if (parts[1].Length <= 2 || parts[0].Length <= 2) return parts[0] + parts[1];
+            }
+            return s;
+        }
+        int shortCount = parts.Count(p => p.Length <= 2 && AllWordish(p));
+        if (!(shortCount >= 2 || shortCount * 4 >= parts.Length)) return s;
+        var sb = new System.Text.StringBuilder(s.Length);
+        sb.Append(parts[0]);
+        for (int i = 1; i < parts.Length; i++) {
+            string prev = parts[i - 1]; string cur = parts[i];
+            bool upperSinglesJoin = prev.Length == 1 && cur.Length == 1 && char.IsUpper(prev[0]) && char.IsUpper(cur[0]);
+            bool leadingLetterJoin = AllWordish(prev) && AllWordish(cur) && prev.Length == 1 && cur.Length >= 3;
+            bool joinSmall = AllWordish(prev) && AllWordish(cur) && ((prev.Length <= 2 || cur.Length <= 2) || leadingLetterJoin || upperSinglesJoin) && !(IsShortAbbrev(prev) && IsShortAbbrev(cur) && !upperSinglesJoin);
+            bool nextShort = (i + 1 < parts.Length) && parts[i + 1].Length <= 2 && AllWordish(parts[i + 1]) && !IsShortAbbrev(parts[i + 1]);
+            if (joinSmall || (AllWordish(cur) && cur.Length <= 2 && nextShort)) sb.Append(cur);
+            else sb.Append(' ').Append(cur);
+        }
+        string joined = sb.ToString().Replace("  ", " ");
+        // Secondary pass: join common suffix fragments
+        var suffixes = new System.Collections.Generic.HashSet<string>(new [] { "ion","ions","ing","ment","tion","sion","iation","ization","ability","ality","able","ible","ance","ence","al","ally","er","ers","ed","ly","ology","ologies" });
+        var toks = joined.Split(' ');
+        if (toks.Length > 1) {
+            var sb2 = new System.Text.StringBuilder(joined.Length);
+            sb2.Append(toks[0]);
+            for (int i = 1; i < toks.Length; i++) {
+                string prev = toks[i - 1]; string cur = toks[i];
+                if (AllWordish(prev) && AllWordish(cur) && suffixes.Contains(cur.ToLowerInvariant())) sb2.Append(cur);
+                else sb2.Append(' ').Append(cur);
+            }
+            joined = sb2.ToString();
+        }
+        return joined;
+    }
     private static double SafeAvgAdvance(PdfTextSpan span) {
         if (span.Advance <= 0) return span.FontSize * 0.5;
         int len = span.Text?.Length ?? 0; if (len <= 0) return span.FontSize * 0.5;
@@ -255,6 +357,7 @@ public static class PdfReadPageExtensions {
     /// <summary>
     /// Extracts text from a page with simple two-column detection when present.
     /// </summary>
+    /// <param name="page">Source page.</param>
     /// <param name="options">Optional layout options controlling column detection, margins and trimming.</param>
     /// <returns>Plain text for this page in inferred reading order.</returns>
     public static string ExtractTextWithColumns(this PdfReadPage page, PdfTextLayoutOptions? options = null) {
@@ -272,5 +375,16 @@ public static class PdfReadPageExtensions {
         }
         var layout = TextLayoutEngine.DetectColumns(lines, w, engineOpts);
         return TextLayoutEngine.EmitText(lines, layout, options);
+    }
+
+    /// <summary>
+    /// Extracts a simple structured model (lines, TOC entries, list items) for this page.
+    /// </summary>
+    /// <param name="page">Source page.</param>
+    /// <param name="options">Optional layout options.</param>
+    public static StructuredPage ExtractStructured(this PdfReadPage page, PdfTextLayoutOptions? options = null) {
+        var spans = page.GetTextSpans();
+        var engineOpts = options?.ToEngineOptions();
+        return ContentStructureExtractor.Extract(spans, engineOpts ?? new TextLayoutEngine.Options());
     }
 }

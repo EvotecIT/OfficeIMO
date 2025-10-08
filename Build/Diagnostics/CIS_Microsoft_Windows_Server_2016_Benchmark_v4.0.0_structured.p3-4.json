@@ -1,0 +1,2148 @@
+{
+  "Source": "/mnt/c/Support/GitHub/OfficeIMO/Assets/PdfBenchmarks/CIS_Microsoft_Windows_Server_2016_Benchmark_v4.0.0.pdf",
+  "Pages": 1144,
+  "Range": {
+    "From": 3,
+    "To": 4
+  },
+  "Schemas": {},
+  "PagesData": [
+    {
+      "Page": 3,
+      "Lines": [
+        "TableofContents",
+        "TermsofUse ................................1",
+        "TableofContents................................2",
+        "Overview ................................24",
+        "ImportantUsageInformation................................24",
+        "KeyStakeholders ................................24",
+        "AplytheCorectVersionofaBenchmark................................25",
+        "Exceptions ................................25",
+        "Remediation ................................26",
+        "Summary ................................26",
+        "TargetTechnologyDetails................................27",
+        "IntendedAudience ................................27",
+        "ConsensusGuidance ................................28",
+        "TypographicalConventions ................................29",
+        "RecommendationDefinitions ................................30",
+        "Title................................30",
+        "AssessmentStatus ................................30",
+        "Automated ................................30",
+        "Manual ................................30",
+        "Profile................................30",
+        "Description................................30",
+        "RationaleStatement................................30",
+        "ImpactStatement ................................31",
+        "AuditProcedure................................31",
+        "RemediationProcedure ................................31",
+        "DefaultValue................................31",
+        "References ................................31",
+        "\u00AE \u00AE",
+        "CISCriticalSecurityControls(CISControls )................................31",
+        "AdditionalInformation................................31",
+        "ProfileDefinition................................s ................................32",
+        "Acknowledgements ................................34",
+        "Recommendations ................................35",
+        "1AccountPolicies................................35",
+        "1.1PasswordPolicy................................35",
+        "1.1(L1)Ensure\u0027Enforcepaswordhistory\u0027iseto\u002724ormorepasword(s)\u0027 (A36utomated)",
+        "1.1.2(L1)Ensure\u0027Maximumpaswordage\u0027iseto\u0027365orfewerdays, butnot0\u0027",
+        "(Automated)................................39",
+        "Page2"
+      ],
+      "Toc": [],
+      "Lists": [],
+      "LeaderRows": [
+        [
+          "TermsofUse",
+          "1"
+        ],
+        [
+          "TableofContents",
+          "2"
+        ],
+        [
+          "Overview",
+          "24"
+        ],
+        [
+          "ImportantUsageInformation",
+          "24"
+        ],
+        [
+          "KeyStakeholders",
+          "24"
+        ],
+        [
+          "AplytheCorectVersionofaBenchmark",
+          "25"
+        ],
+        [
+          "Exceptions",
+          "25"
+        ],
+        [
+          "Remediation",
+          "26"
+        ],
+        [
+          "Summary",
+          "26"
+        ],
+        [
+          "TargetTechnologyDetails",
+          "27"
+        ],
+        [
+          "IntendedAudience",
+          "27"
+        ],
+        [
+          "ConsensusGuidance",
+          "28"
+        ],
+        [
+          "TypographicalConventions",
+          "29"
+        ],
+        [
+          "RecommendationDefinitions",
+          "30"
+        ],
+        [
+          "Title",
+          "30"
+        ],
+        [
+          "AssessmentStatus",
+          "30"
+        ],
+        [
+          "Automated",
+          "30"
+        ],
+        [
+          "Manual",
+          "30"
+        ],
+        [
+          "Profile",
+          "30"
+        ],
+        [
+          "Description",
+          "30"
+        ],
+        [
+          "RationaleStatement",
+          "30"
+        ],
+        [
+          "ImpactStatement",
+          "31"
+        ],
+        [
+          "AuditProcedure",
+          "31"
+        ],
+        [
+          "RemediationProcedure",
+          "31"
+        ],
+        [
+          "DefaultValue",
+          "31"
+        ],
+        [
+          "References",
+          "31"
+        ],
+        [
+          "CISCriticalSecurityControls(CISControls )",
+          "31"
+        ],
+        [
+          "AdditionalInformation",
+          "31"
+        ],
+        [
+          "ProfileDefinition................................s",
+          "32"
+        ],
+        [
+          "Acknowledgements",
+          "34"
+        ],
+        [
+          "Recommendations",
+          "35"
+        ],
+        [
+          "1AccountPolicies",
+          "35"
+        ],
+        [
+          "1.1PasswordPolicy",
+          "35"
+        ],
+        [
+          "(Automated)",
+          "39"
+        ]
+      ],
+      "ListNodes": [],
+      "LinesDetailed": [
+        {
+          "Y": 776.76,
+          "XStart": 72.024,
+          "XEnd": 78.024,
+          "Text": "",
+          "SpanCount": 1
+        },
+        {
+          "Y": 693.7,
+          "XStart": 72.024,
+          "XEnd": 322.43,
+          "Text": "TableofContents",
+          "SpanCount": 4
+        },
+        {
+          "Y": 660.46,
+          "XStart": 72.024,
+          "XEnd": 545.644,
+          "Text": "TermsofUse ................................1",
+          "SpanCount": 11
+        },
+        {
+          "Y": 640.66,
+          "XStart": 72.024,
+          "XEnd": 545.644,
+          "Text": "TableofContents................................2",
+          "SpanCount": 15
+        },
+        {
+          "Y": 620.86,
+          "XStart": 72.024,
+          "XEnd": 545.668,
+          "Text": "Overview ................................24",
+          "SpanCount": 13
+        },
+        {
+          "Y": 602.02,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "ImportantUsageInformation................................24",
+          "SpanCount": 22
+        },
+        {
+          "Y": 590.38,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "KeyStakeholders ................................24",
+          "SpanCount": 17
+        },
+        {
+          "Y": 578.86,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "AplytheCorectVersionofaBenchmark................................25",
+          "SpanCount": 28
+        },
+        {
+          "Y": 567.46,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "Exceptions ................................25",
+          "SpanCount": 14
+        },
+        {
+          "Y": 555.94,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "Remediation ................................26",
+          "SpanCount": 12
+        },
+        {
+          "Y": 544.39,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "Summary ................................26",
+          "SpanCount": 14
+        },
+        {
+          "Y": 525.91,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "TargetTechnologyDetails................................27",
+          "SpanCount": 21
+        },
+        {
+          "Y": 507.19,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "IntendedAudience ................................27",
+          "SpanCount": 16
+        },
+        {
+          "Y": 488.59,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "ConsensusGuidance ................................28",
+          "SpanCount": 19
+        },
+        {
+          "Y": 469.99,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "TypographicalConventions ................................29",
+          "SpanCount": 22
+        },
+        {
+          "Y": 450.31,
+          "XStart": 72.024,
+          "XEnd": 545.668,
+          "Text": "RecommendationDefinitions ................................30",
+          "SpanCount": 11
+        },
+        {
+          "Y": 431.47,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Title................................30",
+          "SpanCount": 11
+        },
+        {
+          "Y": 412.87,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "AssessmentStatus ................................30",
+          "SpanCount": 16
+        },
+        {
+          "Y": 401.23,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "Automated ................................30",
+          "SpanCount": 14
+        },
+        {
+          "Y": 389.71,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "Manual ................................30",
+          "SpanCount": 13
+        },
+        {
+          "Y": 371.21,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Profile................................30",
+          "SpanCount": 13
+        },
+        {
+          "Y": 352.49,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Description................................30",
+          "SpanCount": 13
+        },
+        {
+          "Y": 333.89,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "RationaleStatement................................30",
+          "SpanCount": 18
+        },
+        {
+          "Y": 315.29,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "ImpactStatement ................................31",
+          "SpanCount": 17
+        },
+        {
+          "Y": 296.57,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "AuditProcedure................................31",
+          "SpanCount": 16
+        },
+        {
+          "Y": 277.97,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "RemediationProcedure ................................31",
+          "SpanCount": 19
+        },
+        {
+          "Y": 259.25,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "DefaultValue................................31",
+          "SpanCount": 12
+        },
+        {
+          "Y": 240.65,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "References ................................31",
+          "SpanCount": 10
+        },
+        {
+          "Y": 226.01,
+          "XStart": 232.85,
+          "XEnd": 314.79179999999997,
+          "Text": "\u00AE \u00AE",
+          "SpanCount": 2
+        },
+        {
+          "Y": 222.05,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "CISCriticalSecurityControls(CISControls )................................31",
+          "SpanCount": 39
+        },
+        {
+          "Y": 203.3,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "AdditionalInformation................................31",
+          "SpanCount": 22
+        },
+        {
+          "Y": 184.7,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "ProfileDefinition................................s ................................32",
+          "SpanCount": 20
+        },
+        {
+          "Y": 165.98,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "Acknowledgements ................................34",
+          "SpanCount": 15
+        },
+        {
+          "Y": 146.42,
+          "XStart": 72.024,
+          "XEnd": 545.668,
+          "Text": "Recommendations ................................35",
+          "SpanCount": 11
+        },
+        {
+          "Y": 127.58,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "1AccountPolicies................................35",
+          "SpanCount": 20
+        },
+        {
+          "Y": 115.94,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "1.1PasswordPolicy................................35",
+          "SpanCount": 20
+        },
+        {
+          "Y": 104.42,
+          "XStart": 122.42,
+          "XEnd": 575.1256,
+          "Text": "1.1(L1)Ensure\u0027Enforcepaswordhistory\u0027iseto\u002724ormorepasword(s)\u0027 (A36utomated)",
+          "SpanCount": 46
+        },
+        {
+          "Y": 92.904,
+          "XStart": 122.42,
+          "XEnd": 530.5454799999997,
+          "Text": "1.1.2(L1)Ensure\u0027Maximumpaswordage\u0027iseto\u0027365orfewerdays, butnot0\u0027",
+          "SpanCount": 36
+        },
+        {
+          "Y": 81.384,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "(Automated)................................39",
+          "SpanCount": 14
+        },
+        {
+          "Y": 45.984,
+          "XStart": 508.42,
+          "XEnd": 545.08,
+          "Text": "Page2",
+          "SpanCount": 5
+        }
+      ],
+      "Tables": [
+        [
+          "E xceptions",
+          "25"
+        ],
+        [
+          "Remed iation",
+          "26"
+        ],
+        [
+          "Summary",
+          "26"
+        ],
+        [
+          "\u00AE",
+          "\u00AE"
+        ],
+        [
+          "C I SCriticalSecurityControls ( C I SC on",
+          "trols )31"
+        ],
+        [
+          "Additional I nformation",
+          "31"
+        ],
+        [
+          "Acknowledgements",
+          "34"
+        ],
+        [
+          "Rec omme ndations",
+          "35"
+        ],
+        [
+          "1AccountPolicies",
+          "35"
+        ],
+        [
+          "11PasswordP olicy",
+          "35"
+        ]
+      ],
+      "Bands": [
+        {
+          "YTop": 693.7,
+          "YBottom": 693.7,
+          "Lines": [
+            "TableofContents"
+          ]
+        },
+        {
+          "YTop": 660.46,
+          "YBottom": 660.46,
+          "Lines": [
+            "TermsofUse ................................1"
+          ]
+        },
+        {
+          "YTop": 640.66,
+          "YBottom": 640.66,
+          "Lines": [
+            "TableofContents................................2"
+          ]
+        },
+        {
+          "YTop": 620.86,
+          "YBottom": 620.86,
+          "Lines": [
+            "Overview ................................24"
+          ]
+        },
+        {
+          "YTop": 602.02,
+          "YBottom": 602.02,
+          "Lines": [
+            "ImportantUsageInformation................................24"
+          ]
+        },
+        {
+          "YTop": 590.38,
+          "YBottom": 590.38,
+          "Lines": [
+            "KeyStakeholders ................................24"
+          ]
+        },
+        {
+          "YTop": 578.86,
+          "YBottom": 578.86,
+          "Lines": [
+            "AplytheCorectVersionofaBenchmark................................25"
+          ]
+        },
+        {
+          "YTop": 567.46,
+          "YBottom": 567.46,
+          "Lines": [
+            "Exceptions ................................25"
+          ]
+        },
+        {
+          "YTop": 555.94,
+          "YBottom": 555.94,
+          "Lines": [
+            "Remediation ................................26"
+          ]
+        },
+        {
+          "YTop": 544.39,
+          "YBottom": 544.39,
+          "Lines": [
+            "Summary ................................26"
+          ]
+        },
+        {
+          "YTop": 525.91,
+          "YBottom": 525.91,
+          "Lines": [
+            "TargetTechnologyDetails................................27"
+          ]
+        },
+        {
+          "YTop": 507.19,
+          "YBottom": 507.19,
+          "Lines": [
+            "IntendedAudience ................................27"
+          ]
+        },
+        {
+          "YTop": 488.59,
+          "YBottom": 488.59,
+          "Lines": [
+            "ConsensusGuidance ................................28"
+          ]
+        },
+        {
+          "YTop": 469.99,
+          "YBottom": 469.99,
+          "Lines": [
+            "TypographicalConventions ................................29"
+          ]
+        },
+        {
+          "YTop": 450.31,
+          "YBottom": 450.31,
+          "Lines": [
+            "RecommendationDefinitions ................................30"
+          ]
+        },
+        {
+          "YTop": 431.47,
+          "YBottom": 431.47,
+          "Lines": [
+            "Title................................30"
+          ]
+        },
+        {
+          "YTop": 412.87,
+          "YBottom": 412.87,
+          "Lines": [
+            "AssessmentStatus ................................30"
+          ]
+        },
+        {
+          "YTop": 401.23,
+          "YBottom": 401.23,
+          "Lines": [
+            "Automated ................................30"
+          ]
+        },
+        {
+          "YTop": 389.71,
+          "YBottom": 389.71,
+          "Lines": [
+            "Manual ................................30"
+          ]
+        },
+        {
+          "YTop": 371.21,
+          "YBottom": 371.21,
+          "Lines": [
+            "Profile................................30"
+          ]
+        },
+        {
+          "YTop": 352.49,
+          "YBottom": 352.49,
+          "Lines": [
+            "Description................................30"
+          ]
+        },
+        {
+          "YTop": 333.89,
+          "YBottom": 333.89,
+          "Lines": [
+            "RationaleStatement................................30"
+          ]
+        },
+        {
+          "YTop": 315.29,
+          "YBottom": 315.29,
+          "Lines": [
+            "ImpactStatement ................................31"
+          ]
+        },
+        {
+          "YTop": 296.57,
+          "YBottom": 296.57,
+          "Lines": [
+            "AuditProcedure................................31"
+          ]
+        },
+        {
+          "YTop": 277.97,
+          "YBottom": 277.97,
+          "Lines": [
+            "RemediationProcedure ................................31"
+          ]
+        },
+        {
+          "YTop": 259.25,
+          "YBottom": 259.25,
+          "Lines": [
+            "DefaultValue................................31"
+          ]
+        },
+        {
+          "YTop": 240.65,
+          "YBottom": 240.65,
+          "Lines": [
+            "References ................................31"
+          ]
+        },
+        {
+          "YTop": 226.01,
+          "YBottom": 222.05,
+          "Lines": [
+            "\u00AE \u00AE",
+            "CISCriticalSecurityControls(CISControls )................................31"
+          ]
+        },
+        {
+          "YTop": 203.3,
+          "YBottom": 203.3,
+          "Lines": [
+            "AdditionalInformation................................31"
+          ]
+        },
+        {
+          "YTop": 184.7,
+          "YBottom": 184.7,
+          "Lines": [
+            "ProfileDefinition................................s ................................32"
+          ]
+        },
+        {
+          "YTop": 165.98,
+          "YBottom": 165.98,
+          "Lines": [
+            "Acknowledgements ................................34"
+          ]
+        },
+        {
+          "YTop": 146.42,
+          "YBottom": 146.42,
+          "Lines": [
+            "Recommendations ................................35"
+          ]
+        },
+        {
+          "YTop": 127.58,
+          "YBottom": 127.58,
+          "Lines": [
+            "1AccountPolicies................................35"
+          ]
+        },
+        {
+          "YTop": 115.94,
+          "YBottom": 115.94,
+          "Lines": [
+            "1.1PasswordPolicy................................35"
+          ]
+        },
+        {
+          "YTop": 104.42,
+          "YBottom": 104.42,
+          "Lines": [
+            "1.1(L1)Ensure\u0027Enforcepaswordhistory\u0027iseto\u002724ormorepasword(s)\u0027 (A36utomated)"
+          ]
+        },
+        {
+          "YTop": 92.904,
+          "YBottom": 92.904,
+          "Lines": [
+            "1.1.2(L1)Ensure\u0027Maximumpaswordage\u0027iseto\u0027365orfewerdays, butnot0\u0027"
+          ]
+        },
+        {
+          "YTop": 81.384,
+          "YBottom": 81.384,
+          "Lines": [
+            "(Automated)................................39"
+          ]
+        },
+        {
+          "YTop": 45.984,
+          "YBottom": 45.984,
+          "Lines": [
+            "Page2"
+          ]
+        }
+      ],
+      "TablesDetailed": [
+        {
+          "YTop": 567.46,
+          "YBottom": 544.39,
+          "Kind": "band-group",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 222.31792000000004
+            },
+            {
+              "From": 222.31792000000004,
+              "To": 545.6022
+            }
+          ],
+          "Rows": [
+            [
+              "E xceptions",
+              "25"
+            ],
+            [
+              "Remed iation",
+              "26"
+            ],
+            [
+              "Summary",
+              "26"
+            ]
+          ]
+        },
+        {
+          "YTop": 226.01,
+          "YBottom": 203.3,
+          "Kind": "band-group",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 275.8209
+            },
+            {
+              "From": 275.8209,
+              "To": 545.6018
+            }
+          ],
+          "Rows": [
+            [
+              "\u00AE",
+              "\u00AE"
+            ],
+            [
+              "C I SCriticalSecurityControls ( C I SC on",
+              "trols )31"
+            ],
+            [
+              "Additional I nformation",
+              "31"
+            ]
+          ]
+        },
+        {
+          "YTop": 165.98,
+          "YBottom": 115.94,
+          "Kind": "band-group",
+          "Columns": [
+            {
+              "From": 72.024,
+              "To": 275.23439999999994
+            },
+            {
+              "From": 275.23439999999994,
+              "To": 545.668
+            }
+          ],
+          "Rows": [
+            [
+              "Acknowledgements",
+              "34"
+            ],
+            [
+              "Rec omme ndations",
+              "35"
+            ],
+            [
+              "1AccountPolicies",
+              "35"
+            ],
+            [
+              "11PasswordP olicy",
+              "35"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "Page": 4,
+      "Lines": [
+        "1.1.3(L1)Ensure\u0027Minimumpaswordage\u0027isetto\u00271ormoreday(s)\u0027 (Auto..............mated)41",
+        "1.1.4(L1)Ensure\u0027Minimumpaswordlength\u0027isetto\u002714ormorecharacter(s)\u0027 (A43utomated)",
+        "1.1.5(L1)Ensure\u0027Paswordmustmetcomplexityrequirements\u0027isetto\u0027Enabled\u0027",
+        "(Automated)................................46",
+        "1.1.6(L1)Ensure\u0027Storepaswordsusingreversiblencryption\u0027isetto\u0027Disabled\u0027",
+        "(Automated)................................49",
+        "1.2AccountLockoutPolicy................................51",
+        "1.2.1(L1)Ensure\u0027Acountlockoutduration\u0027iseto\u002715ormoreminute(s)\u0027 (......Auto52mated)",
+        "1.2(L1)Ensure\u0027Acountlockoutthreshold\u0027isetto\u00275orfewerinvalidlogonattempt(s), but",
+        "not0\u0027 (Automated)................................54",
+        "1.2.3(L1)Ensure\u0027AlowAdministratoracountlockout\u0027isetto\u0027Enabled\u0027 (MSonly)(Manual)",
+        "................................56",
+        "1.2.4(L1)Ensure\u0027Resetacountlockoutcounterafter\u0027isetto\u002715ormoreminute(s)\u0027",
+        "(Automated)................................58",
+        "2LocalPolicies................................61",
+        "2.1AuditPolicy................................61",
+        "2.2UserRightsAssignment ................................61",
+        "2.2.1(L1)Ensure\u0027AcesCredentialManagerasatrustedcaler\u0027isetto\u0027NoOne\u0027",
+        "(Automated)................................62",
+        "2.2(L1)Ensure\u0027Acesthiscomputerfromthenetwork\u0027isetto\u0027Administrators,",
+        "AuthenticatedUsers, ENTERPRISEDOMAINCONTROLLERS\u0027 (DConly)(Automated) .......64",
+        "2.2.3(L1)Ensure\u0027Acesthiscomputerfromthenetwork\u0027isetto\u0027Administrators,",
+        "AuthenticatedUsers\u0027 (MSonly)(Automated................................) ................................66",
+        "2.2.4(L1)Ensure\u0027Actaspartoftheoperatingsystem\u0027isetto\u0027NoOne\u0027 (..........Automat68ed)",
+        "2.2.5(L1)Ensure\u0027Addworkstationstodomain\u0027iseto\u0027Administrators\u0027 (DConly)(Automated)",
+        "................................70",
+        "2.2.6(L1)Ensure\u0027Adjustmemoryquotasforaproces\u0027isetto\u0027Administrators,LOCAL",
+        "SERVICE, NETWORKSERVICE\u0027 (Automated) ................................72",
+        "2.2.7(L1)Ensure\u0027Alowlogonlocaly\u0027iseto\u0027Administrators, ENTERPRISEDOMAIN",
+        "CONTROLLERS\u0027 (DConly)(Automated) ................................74",
+        "2.2.8(L1)Ensure\u0027Alowlogonlocaly\u0027iseto\u0027Administrators\u0027 (MSonly).........(Aut76omated)",
+        "2.2.9(L1)Ensure\u0027AlowlogonthroughRemoteDesktopServices\u0027isetto\u0027Administrators\u0027",
+        "(DConly)(Automated)................................78",
+        "2.2.10 (L1)Ensure\u0027AlowlogonthroughRemoteDesktopServices\u0027iseto\u0027Administrators,",
+        "RemoteDesktopUsers\u0027 (MSonly)(Automated................................) ................................80",
+        "2.2.11 (L1)Ensure\u0027Backupfilesandirectories\u0027isetto\u0027Administrators\u0027 (........Aut82omated)",
+        "2.2.12 (L1)Ensure\u0027Changethesystemtime\u0027isetto\u0027Administrators, LOCALSERVICE\u0027",
+        "(Automated)................................84",
+        "2.2.13 (L1)Ensure\u0027Changethetimezone\u0027iseto\u0027Administrators, LOCALSERVICE\u0027",
+        "(Automated)................................87",
+        "2.2.14 (L1)Ensure\u0027Createapagefile\u0027iseto\u0027Administrators\u0027 (..........................Automated) 89",
+        "2.2.15 (L1)Ensure\u0027Createatokenobject\u0027isetto\u0027NoOne\u0027 (Aut..............................omated) 91",
+        "2.2.16 (L1)Ensure\u0027Createglobalobjects\u0027isetto\u0027Administrators, LOCALSERVICE,",
+        "NETWORKSERVICE,SERVICE\u0027 (Automated) ................................93",
+        "2.2.17 (L1)Ensure\u0027Createpermanentsharedobjects\u0027isetto\u0027NoOne\u0027 (Auto...........mated)95",
+        "2.2.18 (L1)Ensure\u0027Createsymboliclinks\u0027isetto\u0027Administrators\u0027 (DConly)(...A97utomated)",
+        "2.2.19 (L1)Ensure\u0027Createsymboliclinks\u0027isetto\u0027Administrators, NTVIRTUAL",
+        "MACHINE VirtualMachines\u0027 (MSonly)(Automated................................) ................................99",
+        "2.20 (L1)Ensure\u0027Debugprograms\u0027isetto\u0027Administrators\u0027 (Auto.........................mated) 101",
+        "2.21 (L1)Ensure\u0027Denyacestothiscomputerfromthenetwork\u0027toinclude\u0027Guests\u0027 (DC",
+        "only)(Automated)................................103",
+        "2.22 (L1)Ensure\u0027Denyacestothiscomputerfromthenetwork\u0027toinclude\u0027Guests, Local",
+        "acountandmemberofAdministratorsgroup\u0027 (MSonly)(Automate................................d) ..105",
+        "2.23 (L1)Ensure\u0027Denylogonasabatchjob\u0027toinclude\u0027Guests\u0027 (Auto..................mated) 107",
+        "2.24 (L1)Ensure\u0027Denylogonasaservice\u0027toinclude\u0027Guests\u0027 (Aut.....................omated) 109",
+        "Page3"
+      ],
+      "Toc": [],
+      "Lists": [],
+      "LeaderRows": [
+        [
+          "1.1.3(L1)Ensure\u0027Minimumpaswordage\u0027isetto\u00271ormoreday(s)\u0027 (Auto..............mated)",
+          "41"
+        ],
+        [
+          "(Automated)",
+          "46"
+        ],
+        [
+          "(Automated)",
+          "49"
+        ],
+        [
+          "1.2AccountLockoutPolicy",
+          "51"
+        ],
+        [
+          "not0\u0027 (Automated)",
+          "54"
+        ],
+        [
+          "",
+          "56"
+        ],
+        [
+          "(Automated)",
+          "58"
+        ],
+        [
+          "2LocalPolicies",
+          "61"
+        ],
+        [
+          "2.1AuditPolicy",
+          "61"
+        ],
+        [
+          "2.2UserRightsAssignment",
+          "61"
+        ],
+        [
+          "(Automated)",
+          "62"
+        ],
+        [
+          "AuthenticatedUsers, ENTERPRISEDOMAINCONTROLLERS\u0027 (DConly)(Automated)",
+          "64"
+        ],
+        [
+          "AuthenticatedUsers\u0027 (MSonly)(Automated................................)",
+          "66"
+        ],
+        [
+          "",
+          "70"
+        ],
+        [
+          "SERVICE, NETWORKSERVICE\u0027 (Automated)",
+          "72"
+        ],
+        [
+          "CONTROLLERS\u0027 (DConly)(Automated)",
+          "74"
+        ],
+        [
+          "(DConly)(Automated)",
+          "78"
+        ],
+        [
+          "RemoteDesktopUsers\u0027 (MSonly)(Automated................................)",
+          "80"
+        ],
+        [
+          "(Automated)",
+          "84"
+        ],
+        [
+          "(Automated)",
+          "87"
+        ],
+        [
+          "2.2.14 (L1)Ensure\u0027Createapagefile\u0027iseto\u0027Administrators\u0027 (..........................Automated)",
+          "89"
+        ],
+        [
+          "2.2.15 (L1)Ensure\u0027Createatokenobject\u0027isetto\u0027NoOne\u0027 (Aut..............................omated)",
+          "91"
+        ],
+        [
+          "NETWORKSERVICE,SERVICE\u0027 (Automated)",
+          "93"
+        ],
+        [
+          "2.2.17 (L1)Ensure\u0027Createpermanentsharedobjects\u0027isetto\u0027NoOne\u0027 (Auto...........mated)",
+          "95"
+        ],
+        [
+          "MACHINE VirtualMachines\u0027 (MSonly)(Automated................................)",
+          "99"
+        ],
+        [
+          "2.20 (L1)Ensure\u0027Debugprograms\u0027isetto\u0027Administrators\u0027 (Auto.........................mated)",
+          "101"
+        ],
+        [
+          "only)(Automated)",
+          "103"
+        ],
+        [
+          "acountandmemberofAdministratorsgroup\u0027 (MSonly)(Automate................................d)",
+          "105"
+        ],
+        [
+          "2.23 (L1)Ensure\u0027Denylogonasabatchjob\u0027toinclude\u0027Guests\u0027 (Auto..................mated)",
+          "107"
+        ],
+        [
+          "2.24 (L1)Ensure\u0027Denylogonasaservice\u0027toinclude\u0027Guests\u0027 (Aut.....................omated)",
+          "109"
+        ]
+      ],
+      "ListNodes": [],
+      "LinesDetailed": [
+        {
+          "Y": 776.76,
+          "XStart": 72.024,
+          "XEnd": 78.024,
+          "Text": "",
+          "SpanCount": 1
+        },
+        {
+          "Y": 710.62,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "1.1.3(L1)Ensure\u0027Minimumpaswordage\u0027isetto\u00271ormoreday(s)\u0027 (Auto..............mated)41",
+          "SpanCount": 46
+        },
+        {
+          "Y": 699.1,
+          "XStart": 122.42,
+          "XEnd": 575.1255999999998,
+          "Text": "1.1.4(L1)Ensure\u0027Minimumpaswordlength\u0027isetto\u002714ormorecharacter(s)\u0027 (A43utomated)",
+          "SpanCount": 46
+        },
+        {
+          "Y": 687.7,
+          "XStart": 122.42,
+          "XEnd": 535.5574799999997,
+          "Text": "1.1.5(L1)Ensure\u0027Paswordmustmetcomplexityrequirements\u0027isetto\u0027Enabled\u0027",
+          "SpanCount": 43
+        },
+        {
+          "Y": 676.18,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "(Automated)................................46",
+          "SpanCount": 14
+        },
+        {
+          "Y": 664.66,
+          "XStart": 122.42,
+          "XEnd": 545.2926399999999,
+          "Text": "1.1.6(L1)Ensure\u0027Storepaswordsusingreversiblencryption\u0027isetto\u0027Disabled\u0027",
+          "SpanCount": 42
+        },
+        {
+          "Y": 653.14,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "(Automated)................................49",
+          "SpanCount": 14
+        },
+        {
+          "Y": 641.62,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "1.2AccountLockoutPolicy................................51",
+          "SpanCount": 25
+        },
+        {
+          "Y": 630.1,
+          "XStart": 122.42,
+          "XEnd": 565.1713199999997,
+          "Text": "1.2.1(L1)Ensure\u0027Acountlockoutduration\u0027iseto\u002715ormoreminute(s)\u0027 (......Auto52mated)",
+          "SpanCount": 49
+        },
+        {
+          "Y": 618.7,
+          "XStart": 122.42,
+          "XEnd": 609.8211599999998,
+          "Text": "1.2(L1)Ensure\u0027Acountlockoutthreshold\u0027isetto\u00275orfewerinvalidlogonattempt(s), but",
+          "SpanCount": 49
+        },
+        {
+          "Y": 607.18,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "not0\u0027 (Automated)................................54",
+          "SpanCount": 17
+        },
+        {
+          "Y": 595.66,
+          "XStart": 122.42,
+          "XEnd": 589.9922799999997,
+          "Text": "1.2.3(L1)Ensure\u0027AlowAdministratoracountlockout\u0027isetto\u0027Enabled\u0027 (MSonly)(Manual)",
+          "SpanCount": 56
+        },
+        {
+          "Y": 584.14,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "................................56",
+          "SpanCount": 9
+        },
+        {
+          "Y": 572.62,
+          "XStart": 122.42,
+          "XEnd": 565.38048,
+          "Text": "1.2.4(L1)Ensure\u0027Resetacountlockoutcounterafter\u0027isetto\u002715ormoreminute(s)\u0027",
+          "SpanCount": 44
+        },
+        {
+          "Y": 561.1,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "(Automated)................................58",
+          "SpanCount": 14
+        },
+        {
+          "Y": 542.59,
+          "XStart": 79.224,
+          "XEnd": 545.6018,
+          "Text": "2LocalPolicies................................61",
+          "SpanCount": 14
+        },
+        {
+          "Y": 530.95,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "2.1AuditPolicy................................61",
+          "SpanCount": 18
+        },
+        {
+          "Y": 519.43,
+          "XStart": 86.424,
+          "XEnd": 545.6022,
+          "Text": "2.2UserRightsAssignment ................................61",
+          "SpanCount": 20
+        },
+        {
+          "Y": 508.03,
+          "XStart": 122.42,
+          "XEnd": 545.3424399999996,
+          "Text": "2.2.1(L1)Ensure\u0027AcesCredentialManagerasatrustedcaler\u0027isetto\u0027NoOne\u0027",
+          "SpanCount": 45
+        },
+        {
+          "Y": 496.51,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "(Automated)................................62",
+          "SpanCount": 14
+        },
+        {
+          "Y": 484.99,
+          "XStart": 122.42,
+          "XEnd": 545.4320799999997,
+          "Text": "2.2(L1)Ensure\u0027Acesthiscomputerfromthenetwork\u0027isetto\u0027Administrators,",
+          "SpanCount": 44
+        },
+        {
+          "Y": 473.47,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "AuthenticatedUsers, ENTERPRISEDOMAINCONTROLLERS\u0027 (DConly)(Automated) .......64",
+          "SpanCount": 44
+        },
+        {
+          "Y": 461.95,
+          "XStart": 122.42,
+          "XEnd": 545.4320799999997,
+          "Text": "2.2.3(L1)Ensure\u0027Acesthiscomputerfromthenetwork\u0027isetto\u0027Administrators,",
+          "SpanCount": 44
+        },
+        {
+          "Y": 450.43,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "AuthenticatedUsers\u0027 (MSonly)(Automated................................) ................................66",
+          "SpanCount": 30
+        },
+        {
+          "Y": 439.03,
+          "XStart": 122.42,
+          "XEnd": 550.3345199999998,
+          "Text": "2.2.4(L1)Ensure\u0027Actaspartoftheoperatingsystem\u0027isetto\u0027NoOne\u0027 (..........Automat68ed)",
+          "SpanCount": 46
+        },
+        {
+          "Y": 427.51,
+          "XStart": 122.42,
+          "XEnd": 595.1238,
+          "Text": "2.2.5(L1)Ensure\u0027Addworkstationstodomain\u0027iseto\u0027Administrators\u0027 (DConly)(Automated)",
+          "SpanCount": 49
+        },
+        {
+          "Y": 415.99,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "................................70",
+          "SpanCount": 9
+        },
+        {
+          "Y": 404.47,
+          "XStart": 122.42,
+          "XEnd": 560.3585199999999,
+          "Text": "2.2.6(L1)Ensure\u0027Adjustmemoryquotasforaproces\u0027isetto\u0027Administrators,LOCAL",
+          "SpanCount": 41
+        },
+        {
+          "Y": 392.95,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "SERVICE, NETWORKSERVICE\u0027 (Automated) ................................72",
+          "SpanCount": 31
+        },
+        {
+          "Y": 381.43,
+          "XStart": 122.42,
+          "XEnd": 550.5237599999997,
+          "Text": "2.2.7(L1)Ensure\u0027Alowlogonlocaly\u0027iseto\u0027Administrators, ENTERPRISEDOMAIN",
+          "SpanCount": 48
+        },
+        {
+          "Y": 370.01,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "CONTROLLERS\u0027 (DConly)(Automated) ................................74",
+          "SpanCount": 26
+        },
+        {
+          "Y": 358.49,
+          "XStart": 122.42,
+          "XEnd": 565.3107599999998,
+          "Text": "2.2.8(L1)Ensure\u0027Alowlogonlocaly\u0027iseto\u0027Administrators\u0027 (MSonly).........(Aut76omated)",
+          "SpanCount": 55
+        },
+        {
+          "Y": 346.97,
+          "XStart": 122.42,
+          "XEnd": 580.2969599999998,
+          "Text": "2.2.9(L1)Ensure\u0027AlowlogonthroughRemoteDesktopServices\u0027isetto\u0027Administrators\u0027",
+          "SpanCount": 47
+        },
+        {
+          "Y": 335.45,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "(DConly)(Automated)................................78",
+          "SpanCount": 19
+        },
+        {
+          "Y": 323.93,
+          "XStart": 122.42,
+          "XEnd": 585.2989999999999,
+          "Text": "2.2.10 (L1)Ensure\u0027AlowlogonthroughRemoteDesktopServices\u0027iseto\u0027Administrators,",
+          "SpanCount": 44
+        },
+        {
+          "Y": 312.53,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "RemoteDesktopUsers\u0027 (MSonly)(Automated................................) ................................80",
+          "SpanCount": 29
+        },
+        {
+          "Y": 301.01,
+          "XStart": 122.42,
+          "XEnd": 565.1613599999998,
+          "Text": "2.2.11 (L1)Ensure\u0027Backupfilesandirectories\u0027isetto\u0027Administrators\u0027 (........Aut82omated)",
+          "SpanCount": 47
+        },
+        {
+          "Y": 289.49,
+          "XStart": 122.42,
+          "XEnd": 550.4241599999996,
+          "Text": "2.2.12 (L1)Ensure\u0027Changethesystemtime\u0027isetto\u0027Administrators, LOCALSERVICE\u0027",
+          "SpanCount": 44
+        },
+        {
+          "Y": 277.97,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "(Automated)................................84",
+          "SpanCount": 14
+        },
+        {
+          "Y": 266.45,
+          "XStart": 122.42,
+          "XEnd": 540.3702799999996,
+          "Text": "2.2.13 (L1)Ensure\u0027Changethetimezone\u0027iseto\u0027Administrators, LOCALSERVICE\u0027",
+          "SpanCount": 41
+        },
+        {
+          "Y": 254.93,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "(Automated)................................87",
+          "SpanCount": 14
+        },
+        {
+          "Y": 243.53,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "2.2.14 (L1)Ensure\u0027Createapagefile\u0027iseto\u0027Administrators\u0027 (..........................Automated) 89",
+          "SpanCount": 43
+        },
+        {
+          "Y": 232.01,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "2.2.15 (L1)Ensure\u0027Createatokenobject\u0027isetto\u0027NoOne\u0027 (Aut..............................omated) 91",
+          "SpanCount": 37
+        },
+        {
+          "Y": 220.49,
+          "XStart": 122.42,
+          "XEnd": 545.3723199999996,
+          "Text": "2.2.16 (L1)Ensure\u0027Createglobalobjects\u0027isetto\u0027Administrators, LOCALSERVICE,",
+          "SpanCount": 44
+        },
+        {
+          "Y": 208.94,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "NETWORKSERVICE,SERVICE\u0027 (Automated) ................................93",
+          "SpanCount": 32
+        },
+        {
+          "Y": 197.42,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "2.2.17 (L1)Ensure\u0027Createpermanentsharedobjects\u0027isetto\u0027NoOne\u0027 (Auto...........mated)95",
+          "SpanCount": 41
+        },
+        {
+          "Y": 185.9,
+          "XStart": 122.42,
+          "XEnd": 575.1953199999998,
+          "Text": "2.2.18 (L1)Ensure\u0027Createsymboliclinks\u0027isetto\u0027Administrators\u0027 (DConly)(...A97utomated)",
+          "SpanCount": 55
+        },
+        {
+          "Y": 174.5,
+          "XStart": 122.42,
+          "XEnd": 525.4338799999996,
+          "Text": "2.2.19 (L1)Ensure\u0027Createsymboliclinks\u0027isetto\u0027Administrators, NTVIRTUAL",
+          "SpanCount": 43
+        },
+        {
+          "Y": 162.98,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "MACHINE VirtualMachines\u0027 (MSonly)(Automated................................) ................................99",
+          "SpanCount": 32
+        },
+        {
+          "Y": 151.46,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "2.20 (L1)Ensure\u0027Debugprograms\u0027isetto\u0027Administrators\u0027 (Auto.........................mated) 101",
+          "SpanCount": 40
+        },
+        {
+          "Y": 139.94,
+          "XStart": 122.42,
+          "XEnd": 575.26504,
+          "Text": "2.21 (L1)Ensure\u0027Denyacestothiscomputerfromthenetwork\u0027toinclude\u0027Guests\u0027 (DC",
+          "SpanCount": 38
+        },
+        {
+          "Y": 128.42,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "only)(Automated)................................103",
+          "SpanCount": 18
+        },
+        {
+          "Y": 117.02,
+          "XStart": 122.42,
+          "XEnd": 585.17948,
+          "Text": "2.22 (L1)Ensure\u0027Denyacestothiscomputerfromthenetwork\u0027toinclude\u0027Guests, Local",
+          "SpanCount": 40
+        },
+        {
+          "Y": 105.5,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "acountandmemberofAdministratorsgroup\u0027 (MSonly)(Automate................................d) ..105",
+          "SpanCount": 42
+        },
+        {
+          "Y": 93.984,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "2.23 (L1)Ensure\u0027Denylogonasabatchjob\u0027toinclude\u0027Guests\u0027 (Auto..................mated) 107",
+          "SpanCount": 40
+        },
+        {
+          "Y": 82.464,
+          "XStart": 122.42,
+          "XEnd": 545.6022,
+          "Text": "2.24 (L1)Ensure\u0027Denylogonasaservice\u0027toinclude\u0027Guests\u0027 (Aut.....................omated) 109",
+          "SpanCount": 39
+        },
+        {
+          "Y": 45.984,
+          "XStart": 508.42,
+          "XEnd": 545.08,
+          "Text": "Page3",
+          "SpanCount": 5
+        }
+      ],
+      "Tables": [
+        [
+          "1.1 .3 (L1)E nsure\u0027Minimumpasswordage\u0027issetto\u00271ormoreday (s) \u0027(A uto",
+          "41"
+        ],
+        [
+          "(A utomate d)",
+          "46"
+        ],
+        [
+          "(A utomate d)",
+          "49"
+        ],
+        [
+          "1.2AccountLockoutPolicy",
+          "51"
+        ],
+        [
+          "1.2 .1 (L1)E nsure\u0027Accountlockoutduration\u0027issetto\u002715ormoreminu te(s) \u0027(",
+          "52"
+        ],
+        [
+          "not0 \u0027(Automa ted)",
+          "54"
+        ],
+        [
+          "(A utomate d)",
+          "58"
+        ],
+        [
+          "2LocalPolicies",
+          "61"
+        ],
+        [
+          "2.1AuditP olicy",
+          "61"
+        ],
+        [
+          "2.2UserRightsAs signment",
+          "61"
+        ],
+        [
+          "(A utomate d)",
+          "62"
+        ],
+        [
+          "A uthenticate dUsers , E NT E RP RI S E DO MA INCO NT R O LL E R S \u0027(DConl y) (A utomate d)",
+          "64"
+        ],
+        [
+          "A uthenticate dUs ers \u0027(MSonl y) (Automated",
+          "66"
+        ],
+        [
+          "2.2 .4 (L1)E nsure\u0027Actaspartoftheoperatingsystem\u0027issetto\u0027NoOne\u0027 (",
+          "68"
+        ],
+        [
+          "S E R V IC E , N E T W O RK S E RV IC E \u0027(A utom ate d)",
+          "72"
+        ],
+        [
+          "CO NT RO LL E RS \u0027(DConl y) (A utomat ed)",
+          "74"
+        ],
+        [
+          "2.2 .8 (L1)E nsure\u0027Allowlogonlocally\u0027issetto\u0027Administrators \u0027(MSonl y)",
+          "76"
+        ],
+        [
+          "(DConl y) (A utomat ed)",
+          "78"
+        ],
+        [
+          "RemoteDesktopUsers \u0027(MSonl y) (Automated",
+          "80"
+        ],
+        [
+          "2.2 .1 1 (L1)E nsure\u0027Backupfilesanddirectories\u0027issetto\u0027Administrators \u0027(",
+          "82"
+        ],
+        [
+          "(A utomate d)",
+          "84"
+        ],
+        [
+          "(A utomate d)",
+          "87"
+        ],
+        [
+          "2.2 .1 4 (L1)E nsure\u0027Createapagefile\u0027issetto\u0027Administrators \u0027(",
+          "89"
+        ],
+        [
+          "2.2 .1 5 (L1)E nsure\u0027Createatokenobject\u0027issetto\u0027NoOne \u0027(A ut",
+          "91"
+        ],
+        [
+          "NE T W O R K S E R V IC E , S E RV IC E \u0027(A utom ate d)",
+          "93"
+        ],
+        [
+          "2.2 .1 7 (L1)E nsure\u0027Createpermanentsharedobjects\u0027issetto\u0027NoOne \u0027(A uto",
+          "95"
+        ],
+        [
+          "2.2 .1 8 (L1)E nsure\u0027Createsymboliclinks\u0027issetto\u0027Administrators \u0027(DCo nl y) (",
+          "97"
+        ],
+        [
+          "MA CH INEVirtualMachines \u0027(MSonl y) (Automated",
+          "99"
+        ],
+        [
+          "2.2 .2 0 (L1)E nsure\u0027 Debugprograms\u0027issetto\u0027Administrators \u0027(A uto",
+          "101"
+        ],
+        [
+          "onl y) (A utom ate d)",
+          "103"
+        ],
+        [
+          "accountandmemberofAdministratorsgroup \u0027(MSonl y) (A utomate",
+          "105"
+        ],
+        [
+          "2.2 .2 3 (L1)E nsure\u0027 Denylogonasabatchjob\u0027toinclude\u0027Guests \u0027(A uto",
+          "107"
+        ],
+        [
+          "2.2 .2 4 (L1)E nsure\u0027 Denylogonasaservice\u0027toinclude\u0027Guests \u0027(A ut",
+          "109"
+        ]
+      ],
+      "Bands": [
+        {
+          "YTop": 710.62,
+          "YBottom": 710.62,
+          "Lines": [
+            "1.1.3(L1)Ensure\u0027Minimumpaswordage\u0027isetto\u00271ormoreday(s)\u0027 (Auto..............mated)41"
+          ]
+        },
+        {
+          "YTop": 699.1,
+          "YBottom": 699.1,
+          "Lines": [
+            "1.1.4(L1)Ensure\u0027Minimumpaswordlength\u0027isetto\u002714ormorecharacter(s)\u0027 (A43utomated)"
+          ]
+        },
+        {
+          "YTop": 687.7,
+          "YBottom": 687.7,
+          "Lines": [
+            "1.1.5(L1)Ensure\u0027Paswordmustmetcomplexityrequirements\u0027isetto\u0027Enabled\u0027"
+          ]
+        },
+        {
+          "YTop": 676.18,
+          "YBottom": 676.18,
+          "Lines": [
+            "(Automated)................................46"
+          ]
+        },
+        {
+          "YTop": 664.66,
+          "YBottom": 664.66,
+          "Lines": [
+            "1.1.6(L1)Ensure\u0027Storepaswordsusingreversiblencryption\u0027isetto\u0027Disabled\u0027"
+          ]
+        },
+        {
+          "YTop": 653.14,
+          "YBottom": 653.14,
+          "Lines": [
+            "(Automated)................................49"
+          ]
+        },
+        {
+          "YTop": 641.62,
+          "YBottom": 641.62,
+          "Lines": [
+            "1.2AccountLockoutPolicy................................51"
+          ]
+        },
+        {
+          "YTop": 630.1,
+          "YBottom": 630.1,
+          "Lines": [
+            "1.2.1(L1)Ensure\u0027Acountlockoutduration\u0027iseto\u002715ormoreminute(s)\u0027 (......Auto52mated)"
+          ]
+        },
+        {
+          "YTop": 618.7,
+          "YBottom": 618.7,
+          "Lines": [
+            "1.2(L1)Ensure\u0027Acountlockoutthreshold\u0027isetto\u00275orfewerinvalidlogonattempt(s), but"
+          ]
+        },
+        {
+          "YTop": 607.18,
+          "YBottom": 607.18,
+          "Lines": [
+            "not0\u0027 (Automated)................................54"
+          ]
+        },
+        {
+          "YTop": 595.66,
+          "YBottom": 595.66,
+          "Lines": [
+            "1.2.3(L1)Ensure\u0027AlowAdministratoracountlockout\u0027isetto\u0027Enabled\u0027 (MSonly)(Manual)"
+          ]
+        },
+        {
+          "YTop": 584.14,
+          "YBottom": 584.14,
+          "Lines": [
+            "................................56"
+          ]
+        },
+        {
+          "YTop": 572.62,
+          "YBottom": 572.62,
+          "Lines": [
+            "1.2.4(L1)Ensure\u0027Resetacountlockoutcounterafter\u0027isetto\u002715ormoreminute(s)\u0027"
+          ]
+        },
+        {
+          "YTop": 561.1,
+          "YBottom": 561.1,
+          "Lines": [
+            "(Automated)................................58"
+          ]
+        },
+        {
+          "YTop": 542.59,
+          "YBottom": 542.59,
+          "Lines": [
+            "2LocalPolicies................................61"
+          ]
+        },
+        {
+          "YTop": 530.95,
+          "YBottom": 530.95,
+          "Lines": [
+            "2.1AuditPolicy................................61"
+          ]
+        },
+        {
+          "YTop": 519.43,
+          "YBottom": 519.43,
+          "Lines": [
+            "2.2UserRightsAssignment ................................61"
+          ]
+        },
+        {
+          "YTop": 508.03,
+          "YBottom": 508.03,
+          "Lines": [
+            "2.2.1(L1)Ensure\u0027AcesCredentialManagerasatrustedcaler\u0027isetto\u0027NoOne\u0027"
+          ]
+        },
+        {
+          "YTop": 496.51,
+          "YBottom": 496.51,
+          "Lines": [
+            "(Automated)................................62"
+          ]
+        },
+        {
+          "YTop": 484.99,
+          "YBottom": 484.99,
+          "Lines": [
+            "2.2(L1)Ensure\u0027Acesthiscomputerfromthenetwork\u0027isetto\u0027Administrators,"
+          ]
+        },
+        {
+          "YTop": 473.47,
+          "YBottom": 473.47,
+          "Lines": [
+            "AuthenticatedUsers, ENTERPRISEDOMAINCONTROLLERS\u0027 (DConly)(Automated) .......64"
+          ]
+        },
+        {
+          "YTop": 461.95,
+          "YBottom": 461.95,
+          "Lines": [
+            "2.2.3(L1)Ensure\u0027Acesthiscomputerfromthenetwork\u0027isetto\u0027Administrators,"
+          ]
+        },
+        {
+          "YTop": 450.43,
+          "YBottom": 450.43,
+          "Lines": [
+            "AuthenticatedUsers\u0027 (MSonly)(Automated................................) ................................66"
+          ]
+        },
+        {
+          "YTop": 439.03,
+          "YBottom": 439.03,
+          "Lines": [
+            "2.2.4(L1)Ensure\u0027Actaspartoftheoperatingsystem\u0027isetto\u0027NoOne\u0027 (..........Automat68ed)"
+          ]
+        },
+        {
+          "YTop": 427.51,
+          "YBottom": 427.51,
+          "Lines": [
+            "2.2.5(L1)Ensure\u0027Addworkstationstodomain\u0027iseto\u0027Administrators\u0027 (DConly)(Automated)"
+          ]
+        },
+        {
+          "YTop": 415.99,
+          "YBottom": 415.99,
+          "Lines": [
+            "................................70"
+          ]
+        },
+        {
+          "YTop": 404.47,
+          "YBottom": 404.47,
+          "Lines": [
+            "2.2.6(L1)Ensure\u0027Adjustmemoryquotasforaproces\u0027isetto\u0027Administrators,LOCAL"
+          ]
+        },
+        {
+          "YTop": 392.95,
+          "YBottom": 392.95,
+          "Lines": [
+            "SERVICE, NETWORKSERVICE\u0027 (Automated) ................................72"
+          ]
+        },
+        {
+          "YTop": 381.43,
+          "YBottom": 381.43,
+          "Lines": [
+            "2.2.7(L1)Ensure\u0027Alowlogonlocaly\u0027iseto\u0027Administrators, ENTERPRISEDOMAIN"
+          ]
+        },
+        {
+          "YTop": 370.01,
+          "YBottom": 370.01,
+          "Lines": [
+            "CONTROLLERS\u0027 (DConly)(Automated) ................................74"
+          ]
+        },
+        {
+          "YTop": 358.49,
+          "YBottom": 358.49,
+          "Lines": [
+            "2.2.8(L1)Ensure\u0027Alowlogonlocaly\u0027iseto\u0027Administrators\u0027 (MSonly).........(Aut76omated)"
+          ]
+        },
+        {
+          "YTop": 346.97,
+          "YBottom": 346.97,
+          "Lines": [
+            "2.2.9(L1)Ensure\u0027AlowlogonthroughRemoteDesktopServices\u0027isetto\u0027Administrators\u0027"
+          ]
+        },
+        {
+          "YTop": 335.45,
+          "YBottom": 335.45,
+          "Lines": [
+            "(DConly)(Automated)................................78"
+          ]
+        },
+        {
+          "YTop": 323.93,
+          "YBottom": 323.93,
+          "Lines": [
+            "2.2.10 (L1)Ensure\u0027AlowlogonthroughRemoteDesktopServices\u0027iseto\u0027Administrators,"
+          ]
+        },
+        {
+          "YTop": 312.53,
+          "YBottom": 312.53,
+          "Lines": [
+            "RemoteDesktopUsers\u0027 (MSonly)(Automated................................) ................................80"
+          ]
+        },
+        {
+          "YTop": 301.01,
+          "YBottom": 301.01,
+          "Lines": [
+            "2.2.11 (L1)Ensure\u0027Backupfilesandirectories\u0027isetto\u0027Administrators\u0027 (........Aut82omated)"
+          ]
+        },
+        {
+          "YTop": 289.49,
+          "YBottom": 289.49,
+          "Lines": [
+            "2.2.12 (L1)Ensure\u0027Changethesystemtime\u0027isetto\u0027Administrators, LOCALSERVICE\u0027"
+          ]
+        },
+        {
+          "YTop": 277.97,
+          "YBottom": 277.97,
+          "Lines": [
+            "(Automated)................................84"
+          ]
+        },
+        {
+          "YTop": 266.45,
+          "YBottom": 266.45,
+          "Lines": [
+            "2.2.13 (L1)Ensure\u0027Changethetimezone\u0027iseto\u0027Administrators, LOCALSERVICE\u0027"
+          ]
+        },
+        {
+          "YTop": 254.93,
+          "YBottom": 254.93,
+          "Lines": [
+            "(Automated)................................87"
+          ]
+        },
+        {
+          "YTop": 243.53,
+          "YBottom": 243.53,
+          "Lines": [
+            "2.2.14 (L1)Ensure\u0027Createapagefile\u0027iseto\u0027Administrators\u0027 (..........................Automated) 89"
+          ]
+        },
+        {
+          "YTop": 232.01,
+          "YBottom": 232.01,
+          "Lines": [
+            "2.2.15 (L1)Ensure\u0027Createatokenobject\u0027isetto\u0027NoOne\u0027 (Aut..............................omated) 91"
+          ]
+        },
+        {
+          "YTop": 220.49,
+          "YBottom": 220.49,
+          "Lines": [
+            "2.2.16 (L1)Ensure\u0027Createglobalobjects\u0027isetto\u0027Administrators, LOCALSERVICE,"
+          ]
+        },
+        {
+          "YTop": 208.94,
+          "YBottom": 208.94,
+          "Lines": [
+            "NETWORKSERVICE,SERVICE\u0027 (Automated) ................................93"
+          ]
+        },
+        {
+          "YTop": 197.42,
+          "YBottom": 197.42,
+          "Lines": [
+            "2.2.17 (L1)Ensure\u0027Createpermanentsharedobjects\u0027isetto\u0027NoOne\u0027 (Auto...........mated)95"
+          ]
+        },
+        {
+          "YTop": 185.9,
+          "YBottom": 185.9,
+          "Lines": [
+            "2.2.18 (L1)Ensure\u0027Createsymboliclinks\u0027isetto\u0027Administrators\u0027 (DConly)(...A97utomated)"
+          ]
+        },
+        {
+          "YTop": 174.5,
+          "YBottom": 174.5,
+          "Lines": [
+            "2.2.19 (L1)Ensure\u0027Createsymboliclinks\u0027isetto\u0027Administrators, NTVIRTUAL"
+          ]
+        },
+        {
+          "YTop": 162.98,
+          "YBottom": 162.98,
+          "Lines": [
+            "MACHINE VirtualMachines\u0027 (MSonly)(Automated................................) ................................99"
+          ]
+        },
+        {
+          "YTop": 151.46,
+          "YBottom": 151.46,
+          "Lines": [
+            "2.20 (L1)Ensure\u0027Debugprograms\u0027isetto\u0027Administrators\u0027 (Auto.........................mated) 101"
+          ]
+        },
+        {
+          "YTop": 139.94,
+          "YBottom": 139.94,
+          "Lines": [
+            "2.21 (L1)Ensure\u0027Denyacestothiscomputerfromthenetwork\u0027toinclude\u0027Guests\u0027 (DC"
+          ]
+        },
+        {
+          "YTop": 128.42,
+          "YBottom": 128.42,
+          "Lines": [
+            "only)(Automated)................................103"
+          ]
+        },
+        {
+          "YTop": 117.02,
+          "YBottom": 117.02,
+          "Lines": [
+            "2.22 (L1)Ensure\u0027Denyacestothiscomputerfromthenetwork\u0027toinclude\u0027Guests, Local"
+          ]
+        },
+        {
+          "YTop": 105.5,
+          "YBottom": 105.5,
+          "Lines": [
+            "acountandmemberofAdministratorsgroup\u0027 (MSonly)(Automate................................d) ..105"
+          ]
+        },
+        {
+          "YTop": 93.984,
+          "YBottom": 93.984,
+          "Lines": [
+            "2.23 (L1)Ensure\u0027Denylogonasabatchjob\u0027toinclude\u0027Guests\u0027 (Auto..................mated) 107"
+          ]
+        },
+        {
+          "YTop": 82.464,
+          "YBottom": 82.464,
+          "Lines": [
+            "2.24 (L1)Ensure\u0027Denylogonasaservice\u0027toinclude\u0027Guests\u0027 (Aut.....................omated) 109"
+          ]
+        },
+        {
+          "YTop": 45.984,
+          "YBottom": 45.984,
+          "Lines": [
+            "Page3"
+          ]
+        }
+      ],
+      "TablesDetailed": [
+        {
+          "YTop": 710.62,
+          "YBottom": 45.984,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 525.3940399999997
+            },
+            {
+              "From": 522.94,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
+            [
+              "1.1 .3 (L1)E nsure\u0027Minimumpasswordage\u0027issetto\u00271ormoreday (s) \u0027(A uto",
+              "41"
+            ],
+            [
+              "(A utomate d)",
+              "46"
+            ],
+            [
+              "(A utomate d)",
+              "49"
+            ],
+            [
+              "1.2AccountLockoutPolicy",
+              "51"
+            ],
+            [
+              "1.2 .1 (L1)E nsure\u0027Accountlockoutduration\u0027issetto\u002715ormoreminu te(s) \u0027(",
+              "52"
+            ],
+            [
+              "not0 \u0027(Automa ted)",
+              "54"
+            ],
+            [
+              "(A utomate d)",
+              "58"
+            ],
+            [
+              "2LocalPolicies",
+              "61"
+            ],
+            [
+              "2.1AuditP olicy",
+              "61"
+            ],
+            [
+              "2.2UserRightsAs signment",
+              "61"
+            ],
+            [
+              "(A utomate d)",
+              "62"
+            ],
+            [
+              "A uthenticate dUsers , E NT E RP RI S E DO MA INCO NT R O LL E R S \u0027(DConl y) (A utomate d)",
+              "64"
+            ],
+            [
+              "A uthenticate dUs ers \u0027(MSonl y) (Automated",
+              "66"
+            ],
+            [
+              "2.2 .4 (L1)E nsure\u0027Actaspartoftheoperatingsystem\u0027issetto\u0027NoOne\u0027 (",
+              "68"
+            ],
+            [
+              "S E R V IC E , N E T W O RK S E RV IC E \u0027(A utom ate d)",
+              "72"
+            ],
+            [
+              "CO NT RO LL E RS \u0027(DConl y) (A utomat ed)",
+              "74"
+            ],
+            [
+              "2.2 .8 (L1)E nsure\u0027Allowlogonlocally\u0027issetto\u0027Administrators \u0027(MSonl y)",
+              "76"
+            ],
+            [
+              "(DConl y) (A utomat ed)",
+              "78"
+            ],
+            [
+              "RemoteDesktopUsers \u0027(MSonl y) (Automated",
+              "80"
+            ],
+            [
+              "2.2 .1 1 (L1)E nsure\u0027Backupfilesanddirectories\u0027issetto\u0027Administrators \u0027(",
+              "82"
+            ],
+            [
+              "(A utomate d)",
+              "84"
+            ],
+            [
+              "(A utomate d)",
+              "87"
+            ],
+            [
+              "2.2 .1 4 (L1)E nsure\u0027Createapagefile\u0027issetto\u0027Administrators \u0027(",
+              "89"
+            ],
+            [
+              "2.2 .1 5 (L1)E nsure\u0027Createatokenobject\u0027issetto\u0027NoOne \u0027(A ut",
+              "91"
+            ],
+            [
+              "NE T W O R K S E R V IC E , S E RV IC E \u0027(A utom ate d)",
+              "93"
+            ],
+            [
+              "2.2 .1 7 (L1)E nsure\u0027Createpermanentsharedobjects\u0027issetto\u0027NoOne \u0027(A uto",
+              "95"
+            ],
+            [
+              "2.2 .1 8 (L1)E nsure\u0027Createsymboliclinks\u0027issetto\u0027Administrators \u0027(DCo nl y) (",
+              "97"
+            ],
+            [
+              "MA CH INEVirtualMachines \u0027(MSonl y) (Automated",
+              "99"
+            ],
+            [
+              "2.2 .2 0 (L1)E nsure\u0027 Debugprograms\u0027issetto\u0027Administrators \u0027(A uto",
+              "101"
+            ],
+            [
+              "onl y) (A utom ate d)",
+              "103"
+            ],
+            [
+              "accountandmemberofAdministratorsgroup \u0027(MSonl y) (A utomate",
+              "105"
+            ],
+            [
+              "2.2 .2 3 (L1)E nsure\u0027 Denylogonasabatchjob\u0027toinclude\u0027Guests \u0027(A uto",
+              "107"
+            ],
+            [
+              "2.2 .2 4 (L1)E nsure\u0027 Denylogonasaservice\u0027toinclude\u0027Guests \u0027(A ut",
+              "109"
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}
