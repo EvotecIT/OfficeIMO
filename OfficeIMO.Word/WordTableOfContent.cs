@@ -149,6 +149,17 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void Update() {
             this._document.Settings.UpdateFieldsOnOpen = true;
+            if (_sdtBlock == null) {
+                return;
+            }
+
+            foreach (var simpleField in _sdtBlock.Descendants<SimpleField>()) {
+                simpleField.Dirty = true;
+            }
+
+            foreach (var fieldChar in _sdtBlock.Descendants<FieldChar>()) {
+                fieldChar.Dirty = true;
+            }
         }
 
         /// <summary>

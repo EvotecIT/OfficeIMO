@@ -1,4 +1,5 @@
 using System.IO;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -227,6 +228,35 @@ namespace OfficeIMO.Tests {
 
             using (var document = WordDocument.Load(filePath)) {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
+            }
+        }
+
+        [Fact]
+        public void Test_AutoUpdateToc_SaveAsByteArrayMarksTocDirty() {
+            using var document = WordDocument.Create();
+            document.AddTableOfContent();
+            document.AutoUpdateToc = true;
+
+            document.AddParagraph("Heading 1").Style = WordParagraphStyles.Heading1;
+            document.AddParagraph("Heading 2").Style = WordParagraphStyles.Heading2;
+
+            byte[] data = document.SaveAsByteArray();
+
+            using var stream = new MemoryStream(data);
+            using var reloaded = WordDocument.Load(stream);
+
+            Assert.True(reloaded.Settings.UpdateFieldsOnOpen);
+
+            var tableOfContent = reloaded.TableOfContent;
+            Assert.NotNull(tableOfContent);
+
+            var simpleFields = tableOfContent!.SdtBlock.Descendants<SimpleField>().ToList();
+            Assert.NotEmpty(simpleFields);
+            Assert.All(simpleFields, field => Assert.True(field.Dirty != null && field.Dirty));
+
+            var fieldChars = tableOfContent.SdtBlock.Descendants<FieldChar>().ToList();
+            if (fieldChars.Count > 0) {
+                Assert.All(fieldChars, fieldChar => Assert.True(fieldChar.Dirty != null && fieldChar.Dirty));
             }
         }
 
