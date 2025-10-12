@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -118,19 +119,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordDocument">Parent document where the table of contents will be created.</param>
         /// <param name="tableOfContentStyle">Template style used to generate the table of contents.</param>
-        public WordTableOfContent(WordDocument wordDocument, TableOfContentStyle tableOfContentStyle) {
-            this._document = wordDocument ?? throw new ArgumentNullException(nameof(wordDocument));
-            this.Style = tableOfContentStyle;
-            this._sdtBlock = GetStyle(tableOfContentStyle);
-            var body = this._document._wordprocessingDocument?.MainDocumentPart?.Document?.Body;
-            body?.Append(_sdtBlock);
-
-            //var currentStdBlock = this._document._wordprocessingDocument.MainDocumentPart.Document.Body.OfType<SdtBlock>();
-            //if (currentStdBlock.ToList().Count > 0) {
-            //    this._document._wordprocessingDocument.MainDocumentPart.Document.Body.InsertAt(_sdtBlock, 1);
-            //} else {
-            //    this._document._wordprocessingDocument.MainDocumentPart.Document.Body.InsertAt(_sdtBlock, 0);
-            //}
+        public WordTableOfContent(WordDocument wordDocument, TableOfContentStyle tableOfContentStyle)
+            : this(wordDocument, GetStyle(tableOfContentStyle), tableOfContentStyle, appendToBody: true, queueUpdateOnOpen: true) {
         }
 
         /// <summary>
@@ -138,17 +128,79 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordDocument">Parent document that owns the table of contents.</param>
         /// <param name="sdtBlock">Structured document tag representing the table of contents.</param>
-        public WordTableOfContent(WordDocument wordDocument, SdtBlock sdtBlock) {
+        public WordTableOfContent(WordDocument wordDocument, SdtBlock sdtBlock)
+            : this(wordDocument, sdtBlock, TableOfContentStyle.Template1, appendToBody: false, queueUpdateOnOpen: true) {
+        }
+
+        internal WordTableOfContent(WordDocument wordDocument, SdtBlock sdtBlock, bool queueUpdateOnOpen)
+            : this(wordDocument, sdtBlock, TableOfContentStyle.Template1, appendToBody: false, queueUpdateOnOpen: queueUpdateOnOpen) {
+        }
+
+        private WordTableOfContent(WordDocument wordDocument, SdtBlock sdtBlock, TableOfContentStyle style, bool appendToBody, bool queueUpdateOnOpen) {
             this._document = wordDocument ?? throw new ArgumentNullException(nameof(wordDocument));
             this._sdtBlock = sdtBlock ?? throw new ArgumentNullException(nameof(sdtBlock));
-            this.Style = TableOfContentStyle.Template1;
+            this.Style = style;
+
+            if (appendToBody) {
+                var body = this._document._wordprocessingDocument?.MainDocumentPart?.Document?.Body;
+                body?.Append(_sdtBlock);
+            }
+
+            if (queueUpdateOnOpen) {
+                QueueUpdateOnOpen();
+            }
         }
 
         /// <summary>
         /// Flags the document to update this table of contents when the file is opened.
         /// </summary>
         public void Update() {
+            QueueUpdateOnOpen(force: true);
+        }
+
+        internal void QueueUpdateOnOpen(bool force = false) {
+            if (force) {
+                _ = MarkFieldsAsDirty();
+            } else if (!MarkFieldsAsDirty()) {
+                return;
+            }
+
             this._document.Settings.UpdateFieldsOnOpen = true;
+            this._document.NotifyTableOfContentUpdateQueued();
+        }
+
+        /// <summary>
+        /// Marks all fields that participate in the table of contents as dirty so Word refreshes them on open.
+        /// </summary>
+        /// <returns>
+        /// <c>true</c> when an update should be queued. This includes corrupted tables of contents that no longer expose
+        /// any fields so the caller can still request a refresh without throwing.
+        /// </returns>
+        private bool MarkFieldsAsDirty() {
+            if (_sdtBlock?.SdtContentBlock == null) {
+                return false;
+            }
+
+            var fieldsFound = false;
+            var marked = false;
+
+            foreach (var simpleField in _sdtBlock.Descendants<SimpleField>()) {
+                fieldsFound = true;
+                if (simpleField.Dirty?.Value != true) {
+                    simpleField.Dirty = true;
+                    marked = true;
+                }
+            }
+
+            foreach (var fieldChar in _sdtBlock.Descendants<FieldChar>()) {
+                fieldsFound = true;
+                if (fieldChar.Dirty?.Value != true) {
+                    fieldChar.Dirty = true;
+                    marked = true;
+                }
+            }
+
+            return fieldsFound ? marked : true;
         }
 
         /// <summary>

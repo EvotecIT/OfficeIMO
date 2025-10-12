@@ -23,8 +23,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine(wordTableContent.Text);
                 Console.WriteLine(wordTableContent.TextNoContent);
 
-                //// i am not sure if this is even working properly, seems so, but seems bad idea
-                //wordTableContent.Update();
+                wordTableContent.Update();
 
                 document.Save();
             }
