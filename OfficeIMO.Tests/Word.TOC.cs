@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 wordTableContent.Text = "This is Table of Contents";
                 wordTableContent.TextNoContent = "Ooopsi, no content";
 
-                Assert.True(document.Settings.UpdateFieldsOnOpen == false);
+                Assert.True(document.Settings.UpdateFieldsOnOpen, "UpdateFieldsOnOpen should be enabled once TOC is added");
 
                 wordTableContent.Update();
 
