@@ -169,14 +169,23 @@ namespace OfficeIMO.Word {
             this._document.NotifyTableOfContentUpdateQueued();
         }
 
+        /// <summary>
+        /// Marks all fields that participate in the table of contents as dirty so Word refreshes them on open.
+        /// </summary>
+        /// <returns>
+        /// <c>true</c> when an update should be queued. This includes corrupted tables of contents that no longer expose
+        /// any fields so the caller can still request a refresh without throwing.
+        /// </returns>
         private bool MarkFieldsAsDirty() {
-            if (_sdtBlock == null) {
+            if (_sdtBlock?.SdtContentBlock == null) {
                 return false;
             }
 
+            var fieldsFound = false;
             var marked = false;
 
             foreach (var simpleField in _sdtBlock.Descendants<SimpleField>()) {
+                fieldsFound = true;
                 if (simpleField.Dirty?.Value != true) {
                     simpleField.Dirty = true;
                     marked = true;
@@ -184,13 +193,14 @@ namespace OfficeIMO.Word {
             }
 
             foreach (var fieldChar in _sdtBlock.Descendants<FieldChar>()) {
+                fieldsFound = true;
                 if (fieldChar.Dirty?.Value != true) {
                     fieldChar.Dirty = true;
                     marked = true;
                 }
             }
 
-            return marked;
+            return fieldsFound ? marked : true;
         }
 
         /// <summary>

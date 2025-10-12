@@ -1906,24 +1906,35 @@ namespace OfficeIMO.Word {
             _tableOfContentUpdateQueued = false;
         }
 
+        /// <summary>
+        /// Ensures heading edits keep the table-of-contents refresh state aligned with the document settings.
+        /// </summary>
         internal void HeadingModified() {
-            if (_tableOfContentUpdateQueued && Settings.UpdateFieldsOnOpen) {
-                return;
-            }
+            var updateOnOpen = Settings.UpdateFieldsOnOpen;
 
-            if (_tableOfContentUpdateQueued && !Settings.UpdateFieldsOnOpen) {
+            if (_tableOfContentUpdateQueued) {
+                if (updateOnOpen) {
+                    // Updates are already queued and Word will refresh them on open.
+                    return;
+                }
+
+                // Word will not refresh fields anymore, so drop the stale queued state before requeueing.
                 ResetTableOfContentUpdateQueue();
             }
 
-            if (Settings.UpdateFieldsOnOpen) {
+            if (updateOnOpen) {
+                // Keep the queue flag in sync with Word's behaviour when UpdateFieldsOnOpen is set by the user.
                 _tableOfContentUpdateQueued = true;
                 return;
             }
 
             var tableOfContent = TableOfContent;
-            if (tableOfContent != null) {
-                tableOfContent.QueueUpdateOnOpen(force: !Settings.UpdateFieldsOnOpen);
+            if (tableOfContent == null) {
+                return;
             }
+
+            // Re-enable the automatic refresh by marking the table-of-contents fields dirty again.
+            tableOfContent.QueueUpdateOnOpen(force: true);
         }
 
         private void PreSaving() {

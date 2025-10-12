@@ -261,6 +261,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_TocQueueUpdateHandlesMissingFields() {
+            string filePath = Path.Combine(_directoryWithFiles, "TocMissingFields.docx");
+
+            using (var document = WordDocument.Create(filePath)) {
+                var toc = document.AddTableOfContent();
+                Assert.NotNull(toc);
+                Assert.True(document.Settings.UpdateFieldsOnOpen);
+
+                document.Settings.UpdateFieldsOnOpen = false;
+                Assert.False(document.Settings.UpdateFieldsOnOpen);
+
+                foreach (var simpleField in toc!.SdtBlock.Descendants<SimpleField>().ToList()) {
+                    simpleField.Remove();
+                }
+
+                foreach (var fieldChar in toc.SdtBlock.Descendants<FieldChar>().ToList()) {
+                    fieldChar.Remove();
+                }
+
+                toc.QueueUpdateOnOpen();
+
+                Assert.True(document.Settings.UpdateFieldsOnOpen);
+            }
+        }
+
+        [Fact]
         public void Test_TocAccessDoesNotAutoQueueUpdates() {
             string filePath = Path.Combine(_directoryWithFiles, "TocAccessDoesNotQueue.docx");
             using (var document = WordDocument.Create(filePath)) {
