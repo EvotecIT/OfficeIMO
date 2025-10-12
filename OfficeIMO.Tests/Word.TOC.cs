@@ -260,5 +260,44 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_TocAccessDoesNotAutoQueueUpdates() {
+            string filePath = Path.Combine(_directoryWithFiles, "TocAccessDoesNotQueue.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var toc = document.AddTableOfContent();
+                Assert.True(document.Settings.UpdateFieldsOnOpen);
+
+                document.Settings.UpdateFieldsOnOpen = false;
+                Assert.False(document.Settings.UpdateFieldsOnOpen);
+
+                var existingToc = document.TableOfContent;
+                Assert.NotNull(existingToc);
+                Assert.False(document.Settings.UpdateFieldsOnOpen);
+
+                toc.Update();
+                Assert.True(document.Settings.UpdateFieldsOnOpen);
+            }
+        }
+
+        [Fact]
+        public void Test_HeadingChangesReEnableTocUpdatesAfterDisable() {
+            string filePath = Path.Combine(_directoryWithFiles, "TocHeadingChanges.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                document.AddTableOfContent();
+
+                document.AddParagraph("Heading 1").Style = WordParagraphStyles.Heading1;
+                Assert.True(document.Settings.UpdateFieldsOnOpen);
+
+                document.Settings.UpdateFieldsOnOpen = false;
+                Assert.False(document.Settings.UpdateFieldsOnOpen);
+
+                document.AddParagraph("Heading 2").Style = WordParagraphStyles.Heading2;
+                Assert.True(document.Settings.UpdateFieldsOnOpen);
+
+                document.AddParagraph("Heading 3").Style = WordParagraphStyles.Heading3;
+                Assert.True(document.Settings.UpdateFieldsOnOpen);
+            }
+        }
+
     }
 }

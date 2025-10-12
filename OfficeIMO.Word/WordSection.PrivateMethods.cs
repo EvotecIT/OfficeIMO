@@ -107,7 +107,7 @@ namespace OfficeIMO.Word {
                 var docPartGallery = docPartObject?.ChildElements.OfType<DocPartGallery>().FirstOrDefault();
 
                 if (docPartGallery != null && docPartGallery.Val == "Table of Contents") {
-                    return new WordTableOfContent(document, sdtBlock!);
+                    return new WordTableOfContent(document, sdtBlock!, queueUpdateOnOpen: false);
                 }
             }
             return null;

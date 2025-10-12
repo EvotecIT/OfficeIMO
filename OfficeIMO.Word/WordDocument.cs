@@ -14,6 +14,7 @@ namespace OfficeIMO.Word {
         internal List<int> _listNumbersUsed = new List<int>();
         internal int? _tableOfContentIndex;
         internal TableOfContentStyle? _tableOfContentStyle;
+        private bool _tableOfContentUpdateQueued;
         private bool _disposed;
 
         internal int BookmarkId {
@@ -1897,8 +1898,32 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordCompatibilitySettings CompatibilitySettings { get; set; } = null!;
 
+        internal void NotifyTableOfContentUpdateQueued() {
+            _tableOfContentUpdateQueued = true;
+        }
+
+        internal void ResetTableOfContentUpdateQueue() {
+            _tableOfContentUpdateQueued = false;
+        }
+
         internal void HeadingModified() {
-            TableOfContent?.Update();
+            if (_tableOfContentUpdateQueued && Settings.UpdateFieldsOnOpen) {
+                return;
+            }
+
+            if (_tableOfContentUpdateQueued && !Settings.UpdateFieldsOnOpen) {
+                ResetTableOfContentUpdateQueue();
+            }
+
+            if (Settings.UpdateFieldsOnOpen) {
+                _tableOfContentUpdateQueued = true;
+                return;
+            }
+
+            var tableOfContent = TableOfContent;
+            if (tableOfContent != null) {
+                tableOfContent.QueueUpdateOnOpen(force: !Settings.UpdateFieldsOnOpen);
+            }
         }
 
         private void PreSaving() {
