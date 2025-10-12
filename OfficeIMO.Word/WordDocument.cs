@@ -1898,9 +1898,7 @@ namespace OfficeIMO.Word {
         public WordCompatibilitySettings CompatibilitySettings { get; set; } = null!;
 
         internal void HeadingModified() {
-            if (TableOfContent != null) {
-                Settings.UpdateFieldsOnOpen = true;
-            }
+            TableOfContent?.Update();
         }
 
         private void PreSaving() {

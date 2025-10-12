@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -124,6 +125,7 @@ namespace OfficeIMO.Word {
             this._sdtBlock = GetStyle(tableOfContentStyle);
             var body = this._document._wordprocessingDocument?.MainDocumentPart?.Document?.Body;
             body?.Append(_sdtBlock);
+            MarkFieldsAsDirty();
 
             //var currentStdBlock = this._document._wordprocessingDocument.MainDocumentPart.Document.Body.OfType<SdtBlock>();
             //if (currentStdBlock.ToList().Count > 0) {
@@ -142,13 +144,25 @@ namespace OfficeIMO.Word {
             this._document = wordDocument ?? throw new ArgumentNullException(nameof(wordDocument));
             this._sdtBlock = sdtBlock ?? throw new ArgumentNullException(nameof(sdtBlock));
             this.Style = TableOfContentStyle.Template1;
+            MarkFieldsAsDirty();
         }
 
         /// <summary>
         /// Flags the document to update this table of contents when the file is opened.
         /// </summary>
         public void Update() {
+            MarkFieldsAsDirty();
             this._document.Settings.UpdateFieldsOnOpen = true;
+        }
+
+        private void MarkFieldsAsDirty() {
+            foreach (var simpleField in _sdtBlock.Descendants<SimpleField>()) {
+                simpleField.Dirty = true;
+            }
+
+            foreach (var fieldChar in _sdtBlock.Descendants<FieldChar>()) {
+                fieldChar.Dirty = true;
+            }
         }
 
         /// <summary>

@@ -1,4 +1,6 @@
 using System.IO;
+using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -226,6 +228,34 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = WordDocument.Load(filePath)) {
+                Assert.True(document.Settings.UpdateFieldsOnOpen);
+            }
+        }
+
+        [Fact]
+        public void Test_TableOfContent_UpdateMarksFieldsDirty() {
+            string filePath = Path.Combine(_directoryWithFiles, "TocMarkedDirty.docx");
+
+            using (var document = WordDocument.Create(filePath)) {
+                var toc = document.AddTableOfContent();
+                var heading = document.AddParagraph("Heading 1");
+                heading.Style = WordParagraphStyles.Heading1;
+
+                toc.Update();
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                var toc = document.TableOfContent;
+                Assert.NotNull(toc);
+
+                var simpleFields = toc!.SdtBlock.Descendants<SimpleField>().ToList();
+                Assert.NotEmpty(simpleFields);
+                Assert.All(simpleFields, field => Assert.True(field.Dirty is not null && field.Dirty.Value));
+
+                var fieldChars = toc.SdtBlock.Descendants<FieldChar>().ToList();
+                Assert.All(fieldChars, fieldChar => Assert.True(fieldChar.Dirty is not null && fieldChar.Dirty.Value));
+
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
             }
         }
