@@ -1,0 +1,33 @@
+﻿1.1 .3 (L1)E nsure'Minimumpasswordage'issetto'1ormoreday (s) '(A uto,41
+(A utomate d),46
+(A utomate d),49
+1.2AccountLockoutPolicy,51
+1.2 .1 (L1)E nsure'Accountlockoutduration'issetto'15ormoreminu te(s) '(,52
+not0 '(Automa ted),54
+(A utomate d),58
+2LocalPolicies,61
+2.1AuditP olicy,61
+2.2UserRightsAs signment,61
+(A utomate d),62
+"Authenticate dUsers , E NT E RP RI SE DO MAINCONT RO LLERS '(DConl y) (A utomate d)",64
+A uthenticate dUs ers '(MSonl y) (Automated,66
+2.2 .4 (L1)E nsure'Actaspartoftheoperatingsystem'issetto'NoOne' (,68
+"SERV IC E , NETWO RK SE RV IC E '(A utom ate d)",72
+CO NT RO LL E RS '(DConl y) (A utomat ed),74
+2.2 .8 (L1)E nsure'Allowlogonlocally'issetto'Administrators '(MSonl y),76
+(DConl y) (A utomat ed),78
+RemoteDesktopUsers '(MSonl y) (Automated,80
+2.2 .1 1 (L1)E nsure'Backupfilesanddirectories'issetto'Administrators '(,82
+(A utomate d),84
+(A utomate d),87
+2.2 .1 4 (L1)E nsure'Createapagefile'issetto'Administrators '(,89
+2.2 .1 5 (L1)E nsure'Createatokenobject'issetto'NoOne '(A ut,91
+"NE TWORKSERV IC E , SE RV IC E '(A utom ate d)",93
+2.2 .1 7 (L1)E nsure'Createpermanentsharedobjects'issetto'NoOne '(A uto,95
+2.2 .1 8 (L1)E nsure'Createsymboliclinks'issetto'Administrators '(DCo nl y) (,97
+MA CHINEVirtualMachines '(MSonl y) (Automated,99
+2.2 .2 0 (L1)E nsure' Debugprograms'issetto'Administrators '(A uto,101
+onl y) (A utom ate d),103
+accountandmemberofAdministratorsgroup '(MSonl y) (A utomate,105
+2.2 .2 3 (L1)E nsure' Denylogonasabatchjob'toinclude'Guests '(A uto,107
+2.2 .2 4 (L1)E nsure' Denylogonasaservice'toinclude'Guests '(A ut,109
