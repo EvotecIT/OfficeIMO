@@ -24,9 +24,6 @@ namespace OfficeIMO.Examples {
             Visio.AllShapesTyped.Example_AllShapes_Typed(folderPath, true);
             Visio.AssetsCatalog.Example_ListAndExtractMasters(folderPath, false);
             Visio.ReadVisioDocument.Example_ReadVisio(folderPath, false);
-
-            return;
-
             // Excel/BasicExcelFunctionality
             Excel.BasicExcelFunctionality.BasicExcel_Example1(folderPath, false);
             Excel.BasicExcelFunctionality.BasicExcel_Example2(folderPath, false);
