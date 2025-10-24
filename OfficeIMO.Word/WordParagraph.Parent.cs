@@ -31,9 +31,9 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            var wordTable = new WordTable(document, table);
-            var wordRow = new WordTableRow(wordTable, row, document);
-            return new WordTableCell(document, wordTable, wordRow, tableCell);
+            var wordTable = new WordTable(document, table, initializeChildren: false);
+            var wordRow = new WordTableRow(wordTable, row, document, initializeCells: false);
+            return new WordTableCell(document, wordTable, wordRow, tableCell, ensureCellProperties: false);
         }
 
         private static WordSection? FindSection(WordDocument document, Paragraph paragraph) {
@@ -43,10 +43,18 @@ namespace OfficeIMO.Word {
                     if (ReferenceEquals(section._sectionProperties, sectionProps)) {
                         return section;
                     }
+
+                    if (AreSectionsEquivalent(section._sectionProperties, sectionProps)) {
+                        return section;
+                    }
                 }
             }
 
-            return document.Sections.LastOrDefault();
+            if (document.Sections.Count == 1) {
+                return document.Sections[0];
+            }
+
+            return null;
         }
 
         private static WordHeader? FindHeader(WordDocument document, Header header) {

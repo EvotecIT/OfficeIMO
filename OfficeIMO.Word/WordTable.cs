@@ -433,12 +433,17 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document"></param>
         /// <param name="table"></param>
-        internal WordTable(WordDocument document, Table table) {
+        internal WordTable(WordDocument document, Table table) : this(document, table, initializeChildren: true) {
+        }
+
+        internal WordTable(WordDocument document, Table table, bool initializeChildren) {
             _table = table;
             _document = document;
 
-            foreach (TableRow row in table.ChildElements.OfType<TableRow>().ToList()) {
-                WordTableRow tableRow = new WordTableRow(this, row, document);
+            if (initializeChildren) {
+                foreach (TableRow row in table.ChildElements.OfType<TableRow>().ToList()) {
+                    _ = new WordTableRow(this, row, document);
+                }
             }
 
             // Establish Position property

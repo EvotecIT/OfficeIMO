@@ -6,10 +6,12 @@ namespace OfficeIMO.Word {
     /// Represents a single cell within a <see cref="WordTable"/>.
     /// </summary>
     public class WordTableCell {
+        private WordTableCellBorder? _borders;
+
         /// <summary>
         /// Provides access to the border configuration of the cell.
         /// </summary>
-        public WordTableCellBorder Borders;
+        public WordTableCellBorder Borders => _borders ??= new WordTableCellBorder(_document, _wordTable, _wordTableRow, this);
 
         internal TableCell _tableCell;
         internal TableCellProperties? _tableCellProperties;
@@ -538,8 +540,6 @@ namespace OfficeIMO.Word {
 
             wordTableRow._tableRow.Append(tableCell);
 
-            this.Borders = new WordTableCellBorder(document, wordTable, wordTableRow, this);
-
             _tableCellProperties = tableCellProperties;
             _tableCell = tableCell;
             _wordTable = wordTable;
@@ -555,17 +555,18 @@ namespace OfficeIMO.Word {
         /// <param name="wordTable"></param>
         /// <param name="wordTableRow"></param>
         /// <param name="tableCell"></param>
-        internal WordTableCell(WordDocument document, WordTable wordTable, WordTableRow wordTableRow, TableCell tableCell) {
+        /// <param name="ensureCellProperties">When true, provisions missing table cell properties to support editing.</param>
+        internal WordTableCell(WordDocument document, WordTable wordTable, WordTableRow wordTableRow, TableCell tableCell, bool ensureCellProperties = true) {
             _tableCell = tableCell;
-            if (tableCell.TableCellProperties == null) {
+            if (ensureCellProperties && tableCell.TableCellProperties == null) {
                 tableCell.TableCellProperties = new TableCellProperties();
             }
+
             _tableCellProperties = tableCell.TableCellProperties;
             _wordTable = wordTable;
             _wordTableRow = wordTableRow;
             _document = document;
 
-            this.Borders = new WordTableCellBorder(document, wordTable, wordTableRow, this);
         }
 
         /// <summary>

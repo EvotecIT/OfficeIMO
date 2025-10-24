@@ -107,5 +107,40 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
         }
+
+        /// <summary>
+        /// Ensures that evaluating paragraph parent does not inject missing table cell properties.
+        /// </summary>
+        [Fact]
+        public void Test_ParagraphParentDoesNotCreateTableCellProperties() {
+            string filePath = Path.Combine(_directoryWithFiles, "ParagraphParentNoCellProps.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTable table = document.AddTable(1, 1);
+                var cell = table.Rows[0].Cells[0];
+                cell.RemoveTableCellProperties();
+
+                Assert.Null(cell._tableCell.TableCellProperties);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var table = document.Tables[0];
+                var cell = table.Rows[0].Cells[0];
+
+                cell.RemoveTableCellProperties();
+                Assert.Null(cell._tableCell.TableCellProperties);
+
+                var paragraph = cell.Paragraphs.First();
+                var parentCell = Assert.IsType<WordTableCell>(paragraph.Parent);
+
+                Assert.Same(cell._tableCell, parentCell._tableCell);
+                Assert.Null(cell._tableCell.TableCellProperties);
+                Assert.Null(parentCell._tableCell.TableCellProperties);
+
+                document.Save();
+            }
+        }
     }
 }

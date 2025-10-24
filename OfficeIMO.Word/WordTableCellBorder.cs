@@ -19,7 +19,11 @@ namespace OfficeIMO.Word {
             _wordTable = wordTable;
             _wordTableRow = wordTableRow;
             _wordTableCell = wordTableCell;
-            _tableCellProperties = wordTableCell._tableCellProperties ??= new TableCellProperties();
+            if (wordTableCell._tableCellProperties == null) {
+                wordTableCell.AddTableCellProperties();
+            }
+
+            _tableCellProperties = wordTableCell._tableCellProperties!;
         }
 
         /// <summary>

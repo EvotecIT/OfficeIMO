@@ -163,13 +163,18 @@ namespace OfficeIMO.Word {
         /// <param name="wordTable">The parent <see cref="WordTable"/>.</param>
         /// <param name="row">The underlying Open XML table row.</param>
         /// <param name="document">The parent <see cref="WordDocument"/>.</param>
-        public WordTableRow(WordTable wordTable, TableRow row, WordDocument document) {
+        public WordTableRow(WordTable wordTable, TableRow row, WordDocument document) : this(wordTable, row, document, initializeCells: true) {
+        }
+
+        internal WordTableRow(WordTable wordTable, TableRow row, WordDocument document, bool initializeCells) {
             _document = document;
             _tableRow = row;
             _wordTable = wordTable;
 
-            foreach (TableCell cell in row.ChildElements.OfType<TableCell>()) {
-                WordTableCell wordCell = new WordTableCell(document, wordTable, this, cell);
+            if (initializeCells) {
+                foreach (TableCell cell in row.ChildElements.OfType<TableCell>()) {
+                    _ = new WordTableCell(document, wordTable, this, cell);
+                }
             }
         }
 
