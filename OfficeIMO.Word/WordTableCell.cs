@@ -23,6 +23,16 @@ namespace OfficeIMO.Word {
         private readonly WordDocument _document;
 
         /// <summary>
+        /// Gets the row that owns this cell.
+        /// </summary>
+        public WordTableRow Parent => _wordTableRow;
+
+        /// <summary>
+        /// Gets the table that owns this cell.
+        /// </summary>
+        public WordTable ParentTable => _wordTable;
+
+        /// <summary>
         /// Gets or Sets Horizontal Merge for a Table Cell
         /// </summary>
         public MergedCellValues? HorizontalMerge {

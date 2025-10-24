@@ -140,6 +140,11 @@ namespace OfficeIMO.Word {
         private readonly WordDocument _document;
 
         /// <summary>
+        /// Gets the table that owns this row.
+        /// </summary>
+        public WordTable Parent => _wordTable;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="WordTableRow"/> class and creates an empty row.
         /// </summary>
         /// <param name="document">The parent <see cref="WordDocument"/>.</param>
