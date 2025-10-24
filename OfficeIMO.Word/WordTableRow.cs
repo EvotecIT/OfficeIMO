@@ -267,11 +267,17 @@ namespace OfficeIMO.Word {
         /// <inheritdoc/>
         public override int GetHashCode() => _tableRow?.GetHashCode() ?? 0;
 
+        /// <summary>
+        /// Compares two rows for equality based on the underlying OpenXML row reference.
+        /// </summary>
         public static bool operator ==(WordTableRow? left, WordTableRow? right) {
             if (left is null) return right is null;
             return left.Equals(right);
         }
 
+        /// <summary>
+        /// Determines whether two rows are not equal.
+        /// </summary>
         public static bool operator !=(WordTableRow? left, WordTableRow? right) => !(left == right);
     }
 }
