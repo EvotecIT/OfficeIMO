@@ -5,7 +5,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Represents a single cell within a <see cref="WordTable"/>.
     /// </summary>
-    public class WordTableCell {
+    public class WordTableCell : System.IEquatable<WordTableCell> {
         private WordTableCellBorder? _borders;
 
         /// <summary>
@@ -783,5 +783,27 @@ namespace OfficeIMO.Word {
                 return listReturn;
             }
         }
+
+        /// <summary>
+        /// Determines whether this instance and another cell reference the same underlying OpenXML cell.
+        /// </summary>
+        public bool Equals(WordTableCell? other) {
+            if (other is null) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return ReferenceEquals(_tableCell, other._tableCell);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object? obj) => obj is WordTableCell other && Equals(other);
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => _tableCell?.GetHashCode() ?? 0;
+
+        public static bool operator ==(WordTableCell? left, WordTableCell? right) {
+            if (left is null) return right is null;
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(WordTableCell? left, WordTableCell? right) => !(left == right);
     }
 }
