@@ -134,6 +134,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_TableRowAndCellParentAccessors() {
+            string filePath = Path.Combine(_directoryWithFiles, "TableParentAccessors.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTable table = document.AddTable(1, 1);
+                table.Rows[0].Height = 400;
+
+                var row = table.Rows[0];
+                Assert.Same(table, row.Parent);
+
+                var cell = row.Cells[0];
+                Assert.Same(row, cell.Parent);
+                Assert.Same(table, cell.ParentTable);
+                Assert.Equal(row.Height, cell.Parent.Height);
+
+                document.Save(false);
+            }
+        }
+
+        [Fact]
         public void Test_CreatingWordDocumentWithTablesAddRows() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTables.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
