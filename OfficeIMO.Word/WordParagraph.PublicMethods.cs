@@ -279,6 +279,7 @@ namespace OfficeIMO.Word {
             }
 
             this._paragraph.InsertAfterSelf(wordParagraph._paragraph);
+            wordParagraph.RefreshParent();
             return wordParagraph;
         }
 
@@ -293,6 +294,7 @@ namespace OfficeIMO.Word {
                 Text = text
             };
             this._paragraph.InsertAfterSelf(wordParagraph._paragraph);
+            wordParagraph.RefreshParent();
             return wordParagraph;
         }
 
@@ -303,6 +305,7 @@ namespace OfficeIMO.Word {
         public WordParagraph AddParagraphAfterSelf() {
             WordParagraph paragraph = new WordParagraph(this._document, true, false);
             this._paragraph.InsertAfterSelf(paragraph._paragraph);
+            paragraph.RefreshParent();
             return paragraph;
         }
 
@@ -337,6 +340,7 @@ namespace OfficeIMO.Word {
             }
 
             this._paragraph.InsertAfterSelf(paragraph._paragraph);
+            paragraph.RefreshParent();
             return paragraph;
         }
 
@@ -351,6 +355,7 @@ namespace OfficeIMO.Word {
 
             if (candidate._document == null) {
                 candidate._document = document;
+                candidate.InvalidateParent();
             }
 
             if (candidate._paragraph.Parent == null) {
@@ -383,6 +388,8 @@ namespace OfficeIMO.Word {
                     throw new InvalidOperationException($"Cannot {operationDescription} because the supplied paragraph originates from a different section. Provide a paragraph from the same section or clone it first.");
                 }
             }
+
+            candidate.InvalidateParent();
         }
 
         private static SectionProperties? GetSectionPropertiesForElement(OpenXmlElement element) {
@@ -489,6 +496,7 @@ namespace OfficeIMO.Word {
             WordParagraph paragraph = new WordParagraph(this._document, true, false);
             this._paragraph.InsertBeforeSelf(paragraph._paragraph);
             //document.Paragraphs.Add(paragraph);
+            paragraph.RefreshParent();
             return paragraph;
         }
 
