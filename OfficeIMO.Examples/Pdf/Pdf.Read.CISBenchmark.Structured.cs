@@ -145,6 +145,15 @@ namespace OfficeIMO.Examples.Pdf {
                         if (num.Length > 0) { right = num; left = left.Substring(0, numStart); }
                     }
                     left = FixShattered(left.Trim().Trim('.')).Replace("  ", " ");
+                    // Re-insert spaces around glued prepositions if camel-cased
+                    left = System.Text.RegularExpressions.Regex.Replace(left, "([A-Za-z])of([A-Z])", "$1 of $2");
+                    left = System.Text.RegularExpressions.Regex.Replace(left, "([a-z]{2,})of([A-Z])", "$1 of $2");
+                    left = System.Text.RegularExpressions.Regex.Replace(left, "([A-Za-z])in([A-Z])", "$1 in $2");
+                    left = System.Text.RegularExpressions.Regex.Replace(left, "([a-z]{2,})in([A-Z])", "$1 in $2");
+                    left = System.Text.RegularExpressions.Regex.Replace(left, "([A-Za-z])and([A-Z])", "$1 and $2");
+                    left = System.Text.RegularExpressions.Regex.Replace(left, "([a-z]{2,})and([A-Z])", "$1 and $2");
+                    // generic lower→Upper split (camel-case → spaced)
+                    left = System.Text.RegularExpressions.Regex.Replace(left, "([a-z])([A-Z])", "$1 $2");
                     // Keep only digits in the right cell and collapse any spaces between them
                     var digits = new System.Text.StringBuilder(right.Length);
                     for (int i = 0; i < right.Length; i++) if (char.IsDigit(right[i])) digits.Append(right[i]);

@@ -24,10 +24,10 @@ internal static class TextLayoutEngine {
         public double LineMergeMaxPoints { get; set; } = 2.5;
         /// <summary>Force single column when true; skip gutter detection.</summary>
         public bool ForceSingleColumn { get; set; }
-        /// <summary>Threshold in em units to insert a space between adjacent spans on the same line. Default: 0.30.</summary>
-        public double GapSpaceThresholdEm { get; set; } = 0.30;
-        /// <summary>Threshold as a fraction of previous span's average glyph advance to insert a space. Default: 0.45.</summary>
-        public double GapGlyphFactor { get; set; } = 0.45;
+        /// <summary>Threshold in em units to insert a space between adjacent spans on the same line. Default: 0.35.</summary>
+        public double GapSpaceThresholdEm { get; set; } = 0.35;
+        /// <summary>Threshold as a fraction of previous span's average glyph advance to insert a space. Default: 0.60.</summary>
+        public double GapGlyphFactor { get; set; } = 0.60;
     }
 
     public sealed class TextLine {
@@ -217,9 +217,20 @@ internal static class TextLayoutEngine {
                 bool prevLeader = IsDotLeader(prev.Text);
                 // Tight word-join rule: letters adjacent use stricter threshold (slightly more permissive)
                 if (IsWordJoin(prev.Text, s.Text)) {
-                    double tight = System.Math.Max(0.8, System.Math.Min(2.8, System.Math.Min(prevAvg * 0.55, s.FontSize * 0.28)));
+                    // be less aggressive: add space whenever gap exceeds ~0.65x glyph-advance or 0.30em
+                    double tight = System.Math.Max(1.0, System.Math.Min(3.0, System.Math.Min(prevAvg * 0.65, s.FontSize * 0.30)));
                     if (gap > tight) text.Append(' ');
+                    else {
+                        // Fallback: if both look like full words and there is a visible gap, insert a space
+                        bool bothAlphaLong = AllWordish(prev.Text) && AllWordish(s.Text) && prev.Text.Length >= 2 && s.Text.Length >= 2;
+                        if (bothAlphaLong && gap > 0.8 && (text.Length > 0 && text[text.Length - 1] != ' ')) text.Append(' ');
+                    }
                 } else if (!isLeader) {
+                    // Guard: if both chunks look like full words (>=2 letters) and there is any visible gap, emit a space
+                    bool bothAlphaLong = AllWordish(prev.Text) && AllWordish(s.Text) && prev.Text.Length >= 2 && s.Text.Length >= 2;
+                    if (bothAlphaLong && gap > 0.8 && (text.Length > 0 && text[text.Length - 1] != ' ')) {
+                        text.Append(' ');
+                    }
                     if (gap > threshold) text.Append(' ');
                 } else {
                     if (gap > 0 && text.Length > 0 && text[text.Length - 1] != ' ') text.Append(' '); // one space before leader
@@ -315,12 +326,13 @@ internal static class TextLayoutEngine {
             return s;
         }
         int shortCount = parts.Count(p => p.Length <= 2 && AllWordish(p));
-        if (!(shortCount >= 2 || shortCount * 4 >= parts.Length)) return s;
+        if (shortCount < 2) return s;
         var sb = new System.Text.StringBuilder(s.Length);
         sb.Append(parts[0]);
         for (int i = 1; i < parts.Length; i++) {
             string prev = parts[i - 1]; string cur = parts[i];
-            bool upperSinglesJoin = prev.Length == 1 && cur.Length == 1 && char.IsUpper(prev[0]) && char.IsUpper(cur[0]);
+            bool upperSinglesJoin = prev.Length == 1 && cur.Length == 1 && char.IsUpper(prev[0]) && char.IsUpper(cur[0])
+                                    && (i + 1 < parts.Length && parts[i + 1].Length == 1 && char.IsUpper(parts[i + 1][0]));
             bool leadingLetterJoin = AllWordish(prev) && AllWordish(cur) && prev.Length == 1 && cur.Length >= 3;
             bool joinSmall = AllWordish(prev) && AllWordish(cur) && ((prev.Length <= 2 || cur.Length <= 2) || leadingLetterJoin || upperSinglesJoin) && !(IsShortAbbrev(prev) && IsShortAbbrev(cur) && !upperSinglesJoin);
             bool nextShort = (i + 1 < parts.Length) && parts[i + 1].Length <= 2 && AllWordish(parts[i + 1]) && !IsShortAbbrev(parts[i + 1]);

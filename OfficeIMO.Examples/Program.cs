@@ -22,6 +22,8 @@ namespace OfficeIMO.Examples {
             Pdf.ReadCisBenchmarkStructured.Example_Pdf_ReadCIS2016_Structured(folderPath, open: false, startPage: 1, pageCount: 3);
 
             Console.WriteLine("Examples finished. Press any key to exit.");
+
+            Word.AdvancedDocument.Example_AdvancedWord(folderPath, true);
             return;
 
             // Visio - Core Examples

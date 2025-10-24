@@ -24,10 +24,10 @@ public sealed class PdfTextLayoutOptions {
     public double IgnoreHeaderHeight { get; set; }
     /// <summary>Height from bottom of page (points) to ignore as footer when emitting text. Default: 0.</summary>
     public double IgnoreFooterHeight { get; set; }
-    /// <summary>Threshold in em units to insert a space between adjacent spans on the same line. Default: 0.3.</summary>
-    public double GapSpaceThresholdEm { get; set; } = 0.3;
-    /// <summary>Threshold as a fraction of previous span's average glyph advance to insert a space. Default: 0.45.</summary>
-    public double GapGlyphFactor { get; set; } = 0.45;
+    /// <summary>Threshold in em units to insert a space between adjacent spans on the same line. Default: 0.35.</summary>
+    public double GapSpaceThresholdEm { get; set; } = 0.35;
+    /// <summary>Threshold as a fraction of previous span's average glyph advance to insert a space. Default: 0.60.</summary>
+    public double GapGlyphFactor { get; set; } = 0.60;
 
     internal TextLayoutEngine.Options ToEngineOptions() => new TextLayoutEngine.Options {
         MarginLeft = this.MarginLeft,

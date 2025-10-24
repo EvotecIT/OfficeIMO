@@ -10,8 +10,8 @@
     {
       "Page": 3,
       "Lines": [
-        "TableofContents",
-        "TermsofUse ................................1",
+        "Table of Contents",
+        "TermsofUse................................1",
         "TableofContents................................2",
         "Overview ................................24",
         "ImportantUsageInformation................................24",
@@ -188,6 +188,142 @@
         [
           "(Automated)",
           "39"
+        ],
+        [
+          "TermsofUse",
+          "1"
+        ],
+        [
+          "TableofContents",
+          "2"
+        ],
+        [
+          "Overview",
+          "24"
+        ],
+        [
+          "ImportantUsageInformation",
+          "24"
+        ],
+        [
+          "KeyStakeholders",
+          "24"
+        ],
+        [
+          "ApplytheCorrectVersionofaBenchmark",
+          "25"
+        ],
+        [
+          "E xcept ions",
+          "25"
+        ],
+        [
+          "Remed iation",
+          "26"
+        ],
+        [
+          "Summary",
+          "26"
+        ],
+        [
+          "TargetTechnologyDetails",
+          "27"
+        ],
+        [
+          "IntendedAudience",
+          "27"
+        ],
+        [
+          "ConsensusGuidance",
+          "28"
+        ],
+        [
+          "TypographicalConventions",
+          "29"
+        ],
+        [
+          "Rec omme ndation De finitions",
+          "30"
+        ],
+        [
+          "Title",
+          "30"
+        ],
+        [
+          "AssessmentS tatus",
+          "30"
+        ],
+        [
+          "Automated",
+          "30"
+        ],
+        [
+          "Manual",
+          "30"
+        ],
+        [
+          "Profile",
+          "30"
+        ],
+        [
+          "Description",
+          "30"
+        ],
+        [
+          "RationaleStatement",
+          "30"
+        ],
+        [
+          "ImpactStatement",
+          "31"
+        ],
+        [
+          "Audit P rocedure",
+          "31"
+        ],
+        [
+          "RemediationProcedure",
+          "31"
+        ],
+        [
+          "DefaultValue",
+          "31"
+        ],
+        [
+          "References",
+          "31"
+        ],
+        [
+          "C ISCriticalSecurityControls (C ISControl s)",
+          "31"
+        ],
+        [
+          "Additional I nformation",
+          "31"
+        ],
+        [
+          "ProfileDefinition",
+          "32"
+        ],
+        [
+          "Acknowledgements",
+          "34"
+        ],
+        [
+          "Rec omme ndations",
+          "35"
+        ],
+        [
+          "1AccountPolicies",
+          "35"
+        ],
+        [
+          "1.1PasswordP olicy",
+          "35"
+        ],
+        [
+          "(A utomate d)",
+          "39"
         ]
       ],
       "ListNodes": [],
@@ -203,14 +339,14 @@
           "Y": 693.7,
           "XStart": 72.024,
           "XEnd": 322.43,
-          "Text": "TableofContents",
+          "Text": "Table of Contents",
           "SpanCount": 4
         },
         {
           "Y": 660.46,
           "XStart": 72.024,
           "XEnd": 545.644,
-          "Text": "TermsofUse ................................1",
+          "Text": "TermsofUse................................1",
           "SpanCount": 11
         },
         {
@@ -473,61 +609,20 @@
           "SpanCount": 5
         }
       ],
-      "Tables": [
-        [
-          "Exceptions",
-          "25"
-        ],
-        [
-          "Remediation",
-          "26"
-        ],
-        [
-          "Summary",
-          "26"
-        ],
-        [
-          "\u00AE",
-          "\u00AE"
-        ],
-        [
-          "CISCriticalSecurityControls ( CISCon",
-          "trols )31"
-        ],
-        [
-          "AdditionalInformation",
-          "31"
-        ],
-        [
-          "Acknowledgements",
-          "34"
-        ],
-        [
-          "Rec omme ndations",
-          "35"
-        ],
-        [
-          "1AccountPolicies",
-          "35"
-        ],
-        [
-          "11PasswordPolicy",
-          "35"
-        ]
-      ],
+      "Tables": [],
       "Bands": [
         {
           "YTop": 693.7,
           "YBottom": 693.7,
           "Lines": [
-            "TableofContents"
+            "Table of Contents"
           ]
         },
         {
           "YTop": 660.46,
           "YBottom": 660.46,
           "Lines": [
-            "TermsofUse ................................1"
+            "TermsofUse................................1"
           ]
         },
         {
@@ -786,28 +881,188 @@
       ],
       "TablesDetailed": [
         {
-          "YTop": 567.46,
-          "YBottom": 544.39,
-          "Kind": "band-group",
+          "YTop": 660.46,
+          "YBottom": 660.46,
+          "Kind": "leaders",
           "Columns": [
             {
-              "From": 86.424,
-              "To": 222.31792000000004
+              "From": 72.024,
+              "To": 154.1
             },
             {
-              "From": 222.31792000000004,
-              "To": 545.6022
+              "From": 532.9,
+              "To": 538.924
             }
           ],
           "Rows": [
             [
-              "Exceptions",
-              "25"
-            ],
+              "TermsofUse",
+              "1"
+            ]
+          ]
+        },
+        {
+          "YTop": 640.66,
+          "YBottom": 640.66,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 72.024,
+              "To": 179.324
+            },
+            {
+              "From": 532.9,
+              "To": 538.924
+            }
+          ],
+          "Rows": [
             [
-              "Remediation",
+              "TableofContents",
+              "2"
+            ]
+          ]
+        },
+        {
+          "YTop": 620.86,
+          "YBottom": 620.86,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 72.024,
+              "To": 131.444
+            },
+            {
+              "From": 526.3,
+              "To": 538.396
+            }
+          ],
+          "Rows": [
+            [
+              "Overview",
+              "24"
+            ]
+          ]
+        },
+        {
+          "YTop": 602.02,
+          "YBottom": 602.02,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 235.05800000000002
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "ImportantUsageInformation",
+              "24"
+            ]
+          ]
+        },
+        {
+          "YTop": 590.38,
+          "YBottom": 590.38,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 175.26180000000002
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
+            [
+              "KeyStakeholders",
+              "24"
+            ]
+          ]
+        },
+        {
+          "YTop": 578.86,
+          "YBottom": 578.86,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 292.5322
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
+            [
+              "ApplytheCorrectVersionofaBenchmark",
+              "25"
+            ]
+          ]
+        },
+        {
+          "YTop": 567.46,
+          "YBottom": 567.46,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 144.7822
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
+            [
+              "E xcept ions",
+              "25"
+            ]
+          ]
+        },
+        {
+          "YTop": 555.94,
+          "YBottom": 555.94,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 151.38219999999998
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
+            [
+              "Remed iation",
               "26"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 544.39,
+          "YBottom": 544.39,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 136.9822
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "Summary",
               "26"
@@ -815,64 +1070,527 @@
           ]
         },
         {
-          "YTop": 226.01,
-          "YBottom": 203.3,
-          "Kind": "band-group",
+          "YTop": 525.91,
+          "YBottom": 525.91,
+          "Kind": "leaders",
           "Columns": [
             {
               "From": 79.224,
-              "To": 275.8209
+              "To": 222.2722
             },
             {
-              "From": 275.8209,
-              "To": 545.6018
+              "From": 527.38,
+              "To": 538.3836
             }
           ],
           "Rows": [
             [
-              "\u00AE",
-              "\u00AE"
-            ],
+              "TargetTechnologyDetails",
+              "27"
+            ]
+          ]
+        },
+        {
+          "YTop": 507.19,
+          "YBottom": 507.19,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 183.1218
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
             [
-              "CISCriticalSecurityControls ( CISCon",
-              "trols )31"
-            ],
+              "IntendedAudience",
+              "27"
+            ]
+          ]
+        },
+        {
+          "YTop": 488.59,
+          "YBottom": 488.59,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 197.1918
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
             [
-              "AdditionalInformation",
+              "ConsensusGuidance",
+              "28"
+            ]
+          ]
+        },
+        {
+          "YTop": 469.99,
+          "YBottom": 469.99,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 229.5918
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "TypographicalConventions",
+              "29"
+            ]
+          ]
+        },
+        {
+          "YTop": 450.31,
+          "YBottom": 450.31,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 72.024,
+              "To": 244.1118
+            },
+            {
+              "From": 526.3,
+              "To": 538.396
+            }
+          ],
+          "Rows": [
+            [
+              "Rec omme ndation De finitions",
+              "30"
+            ]
+          ]
+        },
+        {
+          "YTop": 431.47,
+          "YBottom": 431.47,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 107.348
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "Title",
+              "30"
+            ]
+          ]
+        },
+        {
+          "YTop": 412.87,
+          "YBottom": 412.87,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 186.2418
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "AssessmentS tatus",
+              "30"
+            ]
+          ]
+        },
+        {
+          "YTop": 401.23,
+          "YBottom": 401.23,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 143.58180000000002
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
+            [
+              "Automated",
+              "30"
+            ]
+          ]
+        },
+        {
+          "YTop": 389.71,
+          "YBottom": 389.71,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 125.8222
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
+            [
+              "Manual",
+              "30"
+            ]
+          ]
+        },
+        {
+          "YTop": 371.21,
+          "YBottom": 371.21,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 118.9222
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "Profile",
+              "30"
+            ]
+          ]
+        },
+        {
+          "YTop": 352.49,
+          "YBottom": 352.49,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 145.2018
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "Description",
+              "30"
+            ]
+          ]
+        },
+        {
+          "YTop": 333.89,
+          "YBottom": 333.89,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 190.4418
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "RationaleStatement",
+              "30"
+            ]
+          ]
+        },
+        {
+          "YTop": 315.29,
+          "YBottom": 315.29,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 176.4018
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "ImpactStatement",
               "31"
             ]
           ]
         },
         {
-          "YTop": 165.98,
-          "YBottom": 115.94,
-          "Kind": "band-group",
+          "YTop": 296.57,
+          "YBottom": 296.57,
+          "Kind": "leaders",
           "Columns": [
             {
-              "From": 72.024,
-              "To": 275.23439999999994
+              "From": 79.224,
+              "To": 170.2818
             },
             {
-              "From": 275.23439999999994,
-              "To": 545.668
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "Audit P rocedure",
+              "31"
+            ]
+          ]
+        },
+        {
+          "YTop": 277.97,
+          "YBottom": 277.97,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 208.2318
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "RemediationProcedure",
+              "31"
+            ]
+          ]
+        },
+        {
+          "YTop": 259.25,
+          "YBottom": 259.25,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 154.4418
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "DefaultValue",
+              "31"
+            ]
+          ]
+        },
+        {
+          "YTop": 240.65,
+          "YBottom": 240.65,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 144.0018
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "References",
+              "31"
+            ]
+          ]
+        },
+        {
+          "YTop": 226.01,
+          "YBottom": 222.05,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 325.6118
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "C ISCriticalSecurityControls (C ISControl s)",
+              "31"
+            ]
+          ]
+        },
+        {
+          "YTop": 203.3,
+          "YBottom": 203.3,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 199.9434400000001
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "Additional I nformation",
+              "31"
+            ]
+          ]
+        },
+        {
+          "YTop": 184.7,
+          "YBottom": 184.7,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 178.80180000000001
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "ProfileDefinition",
+              "32"
+            ]
+          ]
+        },
+        {
+          "YTop": 165.98,
+          "YBottom": 165.98,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 188.0418
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
             }
           ],
           "Rows": [
             [
               "Acknowledgements",
               "34"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 146.42,
+          "YBottom": 146.42,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 72.024,
+              "To": 185.40179999999998
+            },
+            {
+              "From": 526.3,
+              "To": 538.396
+            }
+          ],
+          "Rows": [
             [
               "Rec omme ndations",
               "35"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 127.58,
+          "YBottom": 127.58,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 182.58800000000002
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
             [
               "1AccountPolicies",
               "35"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 115.94,
+          "YBottom": 115.94,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 187.5018
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
-              "11PasswordPolicy",
+              "1.1PasswordP olicy",
               "35"
+            ]
+          ]
+        },
+        {
+          "YTop": 81.384,
+          "YBottom": 81.384,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 182.4622
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
+            [
+              "(A utomate d)",
+              "39"
             ]
           ]
         }
@@ -897,7 +1615,7 @@
         "(Automated)................................58",
         "2LocalPolicies................................61",
         "2.1AuditPolicy................................61",
-        "2.2UserRightsAssignment ................................61",
+        "2.2UserRightsAssignment................................61",
         "2.2.1(L1)Ensure\u0027AcesCredentialManagerasatrustedcaler\u0027isetto\u0027NoOne\u0027",
         "(Automated)................................62",
         "2.2(L1)Ensure\u0027Acesthiscomputerfromthenetwork\u0027isetto\u0027Administrators,",
@@ -1060,6 +1778,138 @@
         [
           "2.24 (L1)Ensure\u0027Denylogonasaservice\u0027toinclude\u0027Guests\u0027 (Aut.....................omated)",
           "109"
+        ],
+        [
+          "1.1 .3 (L1)E nsure\u0027Minimumpasswordage\u0027issetto\u00271ormoreday (s) \u0027(A uto",
+          "41"
+        ],
+        [
+          "(A utomate d)",
+          "46"
+        ],
+        [
+          "(A utomate d)",
+          "49"
+        ],
+        [
+          "1.2AccountLockoutPolicy",
+          "51"
+        ],
+        [
+          "1.2 .1 (L1)E nsure\u0027Accountlockoutduration\u0027issetto\u002715ormoreminu te(s) \u0027(",
+          "52"
+        ],
+        [
+          "not0 \u0027(Automa ted)",
+          "54"
+        ],
+        [
+          "(A utomate d)",
+          "58"
+        ],
+        [
+          "2LocalPolicies",
+          "61"
+        ],
+        [
+          "2.1AuditP olicy",
+          "61"
+        ],
+        [
+          "2.2UserRightsAssignment",
+          "61"
+        ],
+        [
+          "(A utomate d)",
+          "62"
+        ],
+        [
+          "AuthenticatedUsers , E NT E RP RI S E DO MAINCONT R O LLER S \u0027(DConl y) (A utomate d)",
+          "64"
+        ],
+        [
+          "A uthenticatedUsers \u0027(MSonl y) (Automated",
+          "66"
+        ],
+        [
+          "2.2 .4 (L1)E nsure\u0027Actaspartoftheoperatingsystem\u0027issetto\u0027NoOne\u0027 (",
+          "68"
+        ],
+        [
+          "SER V IC E , NETW O RK S E RV IC E \u0027(A utom ate d)",
+          "72"
+        ],
+        [
+          "CO NT RO LL E RS \u0027(DConl y) (A utomat ed)",
+          "74"
+        ],
+        [
+          "2.2 .8 (L1)E nsure\u0027Allowlogonlocally\u0027issetto\u0027Administrators \u0027(MSonl y)",
+          "76"
+        ],
+        [
+          "(DConl y) (A utomat ed)",
+          "78"
+        ],
+        [
+          "RemoteDesktopUsers \u0027(MSonl y) (Automated",
+          "80"
+        ],
+        [
+          "2.2 .1 1 (L1)E nsure\u0027Backupfilesanddirectories\u0027issetto\u0027Administrators \u0027(",
+          "82"
+        ],
+        [
+          "(A utomate d)",
+          "84"
+        ],
+        [
+          "(A utomate d)",
+          "87"
+        ],
+        [
+          "2.2 .1 4 (L1)E nsure\u0027Createapagefile\u0027issetto\u0027Administrators \u0027(",
+          "89"
+        ],
+        [
+          "2.2 .1 5 (L1)E nsure\u0027Createatokenobject\u0027issetto\u0027NoOne \u0027(A ut",
+          "91"
+        ],
+        [
+          "NE TWORKSER V IC E , S E RV IC E \u0027(A utom ate d)",
+          "93"
+        ],
+        [
+          "2.2 .1 7 (L1)E nsure\u0027Createpermanentsharedobjects\u0027issetto\u0027NoO ne \u0027(A uto",
+          "95"
+        ],
+        [
+          "2.2 .1 8 (L1)E nsure\u0027Createsymboliclinks\u0027issetto\u0027Administrators \u0027(DCo nl y) (",
+          "97"
+        ],
+        [
+          "MA CHINEVirtualMachines \u0027(MSonl y) (Automated",
+          "99"
+        ],
+        [
+          "2.2 .2 0 (L1)E nsure\u0027 Debugprograms\u0027issetto\u0027Administrators \u0027(A uto",
+          "101"
+        ],
+        [
+          "onl y) (A utom ate d)",
+          "103"
+        ],
+        [
+          "accountandmemberofAdministratorsgroup \u0027(MSonl y) (A utomate",
+          "105"
+        ],
+        [
+          "2.2 .2 3 (L1)E nsure\u0027 Denylogonasabatchjob\u0027toinclude\u0027Guests \u0027(A uto",
+          "107"
+        ],
+        [
+          "2.2 .2 4 (L1)E nsure\u0027 Denylogonasaservice\u0027toinclude\u0027Guests \u0027(A ut",
+          "109"
         ]
       ],
       "ListNodes": [],
@@ -1187,7 +2037,7 @@
           "Y": 519.43,
           "XStart": 86.424,
           "XEnd": 545.6022,
-          "Text": "2.2UserRightsAssignment ................................61",
+          "Text": "2.2UserRightsAssignment................................61",
           "SpanCount": 20
         },
         {
@@ -1464,140 +2314,7 @@
           "SpanCount": 5
         }
       ],
-      "Tables": [
-        [
-          "1.1 .3 (L1)E nsure\u0027Minimumpasswordage\u0027issetto\u00271ormoreday (s) \u0027(A uto",
-          "41"
-        ],
-        [
-          "(A utomate d)",
-          "46"
-        ],
-        [
-          "(A utomate d)",
-          "49"
-        ],
-        [
-          "1.2AccountLockoutPolicy",
-          "51"
-        ],
-        [
-          "1.2 .1 (L1)E nsure\u0027Accountlockoutduration\u0027issetto\u002715ormoreminu te(s) \u0027(",
-          "52"
-        ],
-        [
-          "not0 \u0027(Automa ted)",
-          "54"
-        ],
-        [
-          "(A utomate d)",
-          "58"
-        ],
-        [
-          "2LocalPolicies",
-          "61"
-        ],
-        [
-          "2.1AuditP olicy",
-          "61"
-        ],
-        [
-          "2.2UserRightsAs signment",
-          "61"
-        ],
-        [
-          "(A utomate d)",
-          "62"
-        ],
-        [
-          "Authenticate dUsers , E NT E RP RI SE DO MAINCONT RO LLERS \u0027(DConl y) (A utomate d)",
-          "64"
-        ],
-        [
-          "A uthenticate dUs ers \u0027(MSonl y) (Automated",
-          "66"
-        ],
-        [
-          "2.2 .4 (L1)E nsure\u0027Actaspartoftheoperatingsystem\u0027issetto\u0027NoOne\u0027 (",
-          "68"
-        ],
-        [
-          "SERV IC E , NETWO RK SE RV IC E \u0027(A utom ate d)",
-          "72"
-        ],
-        [
-          "CO NT RO LL E RS \u0027(DConl y) (A utomat ed)",
-          "74"
-        ],
-        [
-          "2.2 .8 (L1)E nsure\u0027Allowlogonlocally\u0027issetto\u0027Administrators \u0027(MSonl y)",
-          "76"
-        ],
-        [
-          "(DConl y) (A utomat ed)",
-          "78"
-        ],
-        [
-          "RemoteDesktopUsers \u0027(MSonl y) (Automated",
-          "80"
-        ],
-        [
-          "2.2 .1 1 (L1)E nsure\u0027Backupfilesanddirectories\u0027issetto\u0027Administrators \u0027(",
-          "82"
-        ],
-        [
-          "(A utomate d)",
-          "84"
-        ],
-        [
-          "(A utomate d)",
-          "87"
-        ],
-        [
-          "2.2 .1 4 (L1)E nsure\u0027Createapagefile\u0027issetto\u0027Administrators \u0027(",
-          "89"
-        ],
-        [
-          "2.2 .1 5 (L1)E nsure\u0027Createatokenobject\u0027issetto\u0027NoOne \u0027(A ut",
-          "91"
-        ],
-        [
-          "NE TWORKSERV IC E , SE RV IC E \u0027(A utom ate d)",
-          "93"
-        ],
-        [
-          "2.2 .1 7 (L1)E nsure\u0027Createpermanentsharedobjects\u0027issetto\u0027NoOne \u0027(A uto",
-          "95"
-        ],
-        [
-          "2.2 .1 8 (L1)E nsure\u0027Createsymboliclinks\u0027issetto\u0027Administrators \u0027(DCo nl y) (",
-          "97"
-        ],
-        [
-          "MA CHINEVirtualMachines \u0027(MSonl y) (Automated",
-          "99"
-        ],
-        [
-          "2.2 .2 0 (L1)E nsure\u0027 Debugprograms\u0027issetto\u0027Administrators \u0027(A uto",
-          "101"
-        ],
-        [
-          "onl y) (A utom ate d)",
-          "103"
-        ],
-        [
-          "accountandmemberofAdministratorsgroup \u0027(MSonl y) (A utomate",
-          "105"
-        ],
-        [
-          "2.2 .2 3 (L1)E nsure\u0027 Denylogonasabatchjob\u0027toinclude\u0027Guests \u0027(A uto",
-          "107"
-        ],
-        [
-          "2.2 .2 4 (L1)E nsure\u0027 Denylogonasaservice\u0027toinclude\u0027Guests \u0027(A ut",
-          "109"
-        ]
-      ],
+      "Tables": [],
       "Bands": [
         {
           "YTop": 710.62,
@@ -1715,7 +2432,7 @@
           "YTop": 519.43,
           "YBottom": 519.43,
           "Lines": [
-            "2.2UserRightsAssignment ................................61"
+            "2.2UserRightsAssignment................................61"
           ]
         },
         {
@@ -1995,15 +2712,15 @@
       "TablesDetailed": [
         {
           "YTop": 710.62,
-          "YBottom": 45.984,
+          "YBottom": 710.62,
           "Kind": "leaders",
           "Columns": [
             {
-              "From": 79.224,
-              "To": 525.3940399999997
+              "From": 122.42,
+              "To": 496.94588000000005
             },
             {
-              "From": 522.94,
+              "From": 528.46,
               "To": 538.3844
             }
           ],
@@ -2011,131 +2728,675 @@
             [
               "1.1 .3 (L1)E nsure\u0027Minimumpasswordage\u0027issetto\u00271ormoreday (s) \u0027(A uto",
               "41"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 676.18,
+          "YBottom": 676.18,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 182.4622
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "(A utomate d)",
               "46"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 653.14,
+          "YBottom": 653.14,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 182.4622
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "(A utomate d)",
               "49"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 641.62,
+          "YBottom": 641.62,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 222.0922
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "1.2AccountLockoutPolicy",
               "51"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 630.1,
+          "YBottom": 630.1,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 515.4297999999997
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "1.2 .1 (L1)E nsure\u0027Accountlockoutduration\u0027issetto\u002715ormoreminu te(s) \u0027(",
               "52"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 607.18,
+          "YBottom": 607.18,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 211.87904
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "not0 \u0027(Automa ted)",
               "54"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 561.1,
+          "YBottom": 561.1,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 182.4622
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "(A utomate d)",
               "58"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 542.59,
+          "YBottom": 542.59,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 167.2822
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
             [
               "2LocalPolicies",
               "61"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 530.95,
+          "YBottom": 530.95,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 165.9821200000001
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "2.1AuditP olicy",
               "61"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 519.43,
+          "YBottom": 519.43,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 224.2522
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
-              "2.2UserRightsAs signment",
+              "2.2UserRightsAssignment",
               "61"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 496.51,
+          "YBottom": 496.51,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 182.4622
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "(A utomate d)",
               "62"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 473.47,
+          "YBottom": 473.47,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 512.3022
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
-              "Authenticate dUsers , E NT E RP RI SE DO MAINCONT RO LLERS \u0027(DConl y) (A utomate d)",
+              "AuthenticatedUsers , E NT E RP RI S E DO MAINCONT R O LLER S \u0027(DConl y) (A utomate d)",
               "64"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 450.43,
+          "YBottom": 450.43,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 326.43791999999985
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
-              "A uthenticate dUs ers \u0027(MSonl y) (Automated",
+              "A uthenticatedUsers \u0027(MSonl y) (Automated",
               "66"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 439.03,
+          "YBottom": 439.03,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 501.9822
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "2.2 .4 (L1)E nsure\u0027Actaspartoftheoperatingsystem\u0027issetto\u0027NoOne\u0027 (",
               "68"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 392.95,
+          "YBottom": 392.95,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 334.3122
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
-              "SERV IC E , NETWO RK SE RV IC E \u0027(A utom ate d)",
+              "SER V IC E , NETW O RK S E RV IC E \u0027(A utom ate d)",
               "72"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 370.01,
+          "YBottom": 370.01,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 307.1722
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "CO NT RO LL E RS \u0027(DConl y) (A utomat ed)",
               "74"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 358.49,
+          "YBottom": 358.49,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 507.1422
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "2.2 .8 (L1)E nsure\u0027Allowlogonlocally\u0027issetto\u0027Administrators \u0027(MSonl y)",
               "76"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 335.45,
+          "YBottom": 335.45,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 227.4922
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "(DConl y) (A utomat ed)",
               "78"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 312.53,
+          "YBottom": 312.53,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 336.1122
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "RemoteDesktopUsers \u0027(MSonl y) (Automated",
               "80"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 301.01,
+          "YBottom": 301.01,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 515.4397599999996
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "2.2 .1 1 (L1)E nsure\u0027Backupfilesanddirectories\u0027issetto\u0027Administrators \u0027(",
               "82"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 277.97,
+          "YBottom": 277.97,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 182.4622
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "(A utomate d)",
               "84"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 254.93,
+          "YBottom": 254.93,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 182.4622
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "(A utomate d)",
               "87"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 243.53,
+          "YBottom": 243.53,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 458.6622
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "2.2 .1 4 (L1)E nsure\u0027Createapagefile\u0027issetto\u0027Administrators \u0027(",
               "89"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 232.01,
+          "YBottom": 232.01,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 450.79171999999966
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "2.2 .1 5 (L1)E nsure\u0027Createatokenobject\u0027issetto\u0027NoOne \u0027(A ut",
               "91"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 208.94,
+          "YBottom": 208.94,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 334.3122
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
-              "NE TWORKSERV IC E , SE RV IC E \u0027(A utom ate d)",
+              "NE TWORKSER V IC E , S E RV IC E \u0027(A utom ate d)",
               "93"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 197.42,
+          "YBottom": 197.42,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 505.58507999999966
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
-              "2.2 .1 7 (L1)E nsure\u0027Createpermanentsharedobjects\u0027issetto\u0027NoOne \u0027(A uto",
+              "2.2 .1 7 (L1)E nsure\u0027Createpermanentsharedobjects\u0027issetto\u0027NoO ne \u0027(A uto",
               "95"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 185.9,
+          "YBottom": 185.9,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 525.3940399999997
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "2.2 .1 8 (L1)E nsure\u0027Createsymboliclinks\u0027issetto\u0027Administrators \u0027(DCo nl y) (",
               "97"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 162.98,
+          "YBottom": 162.98,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 360.36143999999985
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
               "MA CHINEVirtualMachines \u0027(MSonl y) (Automated",
               "99"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 151.46,
+          "YBottom": 151.46,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 460.7758799999998
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
             [
               "2.2 .2 0 (L1)E nsure\u0027 Debugprograms\u0027issetto\u0027Administrators \u0027(A uto",
               "101"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 128.42,
+          "YBottom": 128.42,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 206.9766
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
             [
               "onl y) (A utom ate d)",
               "103"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 105.5,
+          "YBottom": 105.5,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 435.9250399999997
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
             [
               "accountandmemberofAdministratorsgroup \u0027(MSonl y) (A utomate",
               "105"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 93.984,
+          "YBottom": 93.984,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 485.61675999999966
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
             [
               "2.2 .2 3 (L1)E nsure\u0027 Denylogonasabatchjob\u0027toinclude\u0027Guests \u0027(A uto",
               "107"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 82.464,
+          "YBottom": 82.464,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 470.6305599999997
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
             [
               "2.2 .2 4 (L1)E nsure\u0027 Denylogonasaservice\u0027toinclude\u0027Guests \u0027(A ut",
               "109"
@@ -2197,8 +3458,8 @@
         "(Automated)................................164",
         "2.3.1.3(L1)Ensure\u0027Acounts: Limitlocalacountuseofblankpaswordstoconsolelogon",
         "only\u0027isetto\u0027Enabled\u0027 (Automat................................ed) ................................166",
-        "2.3.1.4(L1)Configure\u0027Acounts: Renameadministratoracount\u0027 (Automa...................ted) 168",
-        "2.3.1.5(L1)Configure\u0027Acounts: Renameguestacount\u0027 (Automate...............................d) 170",
+        "2.3.1.4(L1)Configure \u0027Acounts: Renameadministratoracount\u0027 (Automa...................ted) 168",
+        "2.3.1.5(L1)Configure \u0027Acounts: Renameguestacount\u0027 (Automate...............................d) 170",
         "2.3.2Audit................................172",
         "2.3.2.1(L1)Ensure\u0027Audit:Forceauditpolicysubcategorysettings(WindowsVistaorlater)to",
         "overrideauditpolicycategorysettings\u0027isetto\u0027Enabled\u0027 (................................Automated) .173",
@@ -2312,11 +3573,11 @@
           "166"
         ],
         [
-          "2.3.1.4(L1)Configure\u0027Acounts: Renameadministratoracount\u0027 (Automa...................ted)",
+          "2.3.1.4(L1)Configure \u0027Acounts: Renameadministratoracount\u0027 (Automa...................ted)",
           "168"
         ],
         [
-          "2.3.1.5(L1)Configure\u0027Acounts: Renameguestacount\u0027 (Automate...............................d)",
+          "2.3.1.5(L1)Configure \u0027Acounts: Renameguestacount\u0027 (Automate...............................d)",
           "170"
         ],
         [
@@ -2325,6 +3586,126 @@
         ],
         [
           "overrideauditpolicycategorysettings\u0027isetto\u0027Enabled\u0027 (................................Automated)",
+          "173"
+        ],
+        [
+          "2.2 .2 5 (L1)E nsure\u0027 Denylogonlocally\u0027toinclude\u0027Guests \u0027(A uto",
+          "111"
+        ],
+        [
+          "onl y) (A utom ate d)",
+          "113"
+        ],
+        [
+          "account\u0027 (MSonl y) (A utom ate d)",
+          "115"
+        ],
+        [
+          "\u0027Administrators \u0027(DCo nl y) (A utomat",
+          "117"
+        ],
+        [
+          "\u0027NoO ne \u0027(MSonl y) (A utomate d)",
+          "119"
+        ],
+        [
+          "(A utomate d)",
+          "121"
+        ],
+        [
+          "SER V IC E \u0027(A utomate d)",
+          "123"
+        ],
+        [
+          "SER V IC E , NETW O RK S E RV IC E , SER V IC E \u0027(DConl y) (A utomate d)",
+          "125"
+        ],
+        [
+          "ServicesRoleServiceisinstall ed) \u0027IIS _IU SR S \u0027(MSonl y) (A uto",
+          "127"
+        ],
+        [
+          "2.2 .3 4 (L1)E nsure\u0027 Increaseschedulingpriority\u0027issetto\u0027Administrators \u0027(",
+          "129"
+        ],
+        [
+          "2.2 .3 6 (L1)E nsure\u0027Lockpagesinmemory\u0027issetto\u0027NoO ne \u0027(A utom",
+          "133"
+        ],
+        [
+          "(A utomate d)",
+          "137"
+        ],
+        [
+          "(A utomate d)",
+          "139"
+        ],
+        [
+          "2.2 .4 0 (L1)E nsure\u0027Modifyanobjectlabel\u0027issetto\u0027NoOne \u0027(A u",
+          "141"
+        ],
+        [
+          "2.2 .4 3 (L1)E nsure\u0027Profilesingleprocess\u0027issetto\u0027Administrators \u0027(",
+          "147"
+        ],
+        [
+          "SER V ICEWdiServiceHost\u0027 (A utomate d)",
+          "149"
+        ],
+        [
+          "SER V IC E \u0027(A utomate d)",
+          "151"
+        ],
+        [
+          "2.2 .4 6 (L1)E nsure\u0027 Res torefilesanddirectories\u0027issetto\u0027Administrators \u0027(",
+          "153"
+        ],
+        [
+          "2.2 .4 7 (L1)E nsure\u0027Shutdownthesystem\u0027issetto\u0027Administrators \u0027(A u",
+          "155"
+        ],
+        [
+          "(A utomate d)",
+          "157"
+        ],
+        [
+          "(A utomate d)",
+          "159"
+        ],
+        [
+          "2.3SecurityOptions",
+          "161"
+        ],
+        [
+          "2.3 .1 Accounts",
+          "161"
+        ],
+        [
+          "withMicrosoftaccounts \u0027(A utomate",
+          "162"
+        ],
+        [
+          "(A utomate d)",
+          "164"
+        ],
+        [
+          "only\u0027issetto\u0027Enabled \u0027(Automat",
+          "166"
+        ],
+        [
+          "2.3 .1 .4 (L1) Configure \u0027Accounts :Renameadministratoraccount\u0027 (A utoma",
+          "168"
+        ],
+        [
+          "2.3 .1 .5 (L1) Configure \u0027Accounts :Renameguestaccount\u0027 (A utomate",
+          "170"
+        ],
+        [
+          "2.3 .2Audit",
+          "172"
+        ],
+        [
+          "overrideauditpolicycategorysettings\u0027issetto\u0027Enabled\u0027 (",
           "173"
         ]
       ],
@@ -2691,14 +4072,14 @@
           "Y": 135.62,
           "XStart": 122.42,
           "XEnd": 545.6022,
-          "Text": "2.3.1.4(L1)Configure\u0027Acounts: Renameadministratoracount\u0027 (Automa...................ted) 168",
+          "Text": "2.3.1.4(L1)Configure \u0027Acounts: Renameadministratoracount\u0027 (Automa...................ted) 168",
           "SpanCount": 42
         },
         {
           "Y": 124.1,
           "XStart": 122.42,
           "XEnd": 545.6022,
-          "Text": "2.3.1.5(L1)Configure\u0027Acounts: Renameguestacount\u0027 (Automate...............................d) 170",
+          "Text": "2.3.1.5(L1)Configure \u0027Acounts: Renameguestacount\u0027 (Automate...............................d) 170",
           "SpanCount": 35
         },
         {
@@ -2730,20 +4111,7 @@
           "SpanCount": 5
         }
       ],
-      "Tables": [
-        [
-          "( Automate d)",
-          "159"
-        ],
-        [
-          "23SecurityOptions",
-          "161"
-        ],
-        [
-          "231 Accounts",
-          "161"
-        ]
-      ],
+      "Tables": [],
       "Bands": [
         {
           "YTop": 710.62,
@@ -3099,14 +4467,14 @@
           "YTop": 135.62,
           "YBottom": 135.62,
           "Lines": [
-            "2.3.1.4(L1)Configure\u0027Acounts: Renameadministratoracount\u0027 (Automa...................ted) 168"
+            "2.3.1.4(L1)Configure \u0027Acounts: Renameadministratoracount\u0027 (Automa...................ted) 168"
           ]
         },
         {
           "YTop": 124.1,
           "YBottom": 124.1,
           "Lines": [
-            "2.3.1.5(L1)Configure\u0027Acounts: Renameguestacount\u0027 (Automate...............................d) 170"
+            "2.3.1.5(L1)Configure \u0027Acounts: Renameguestacount\u0027 (Automate...............................d) 170"
           ]
         },
         {
@@ -3140,31 +4508,632 @@
       ],
       "TablesDetailed": [
         {
-          "YTop": 239.09,
-          "YBottom": 216.17,
-          "Kind": "band-group",
+          "YTop": 710.62,
+          "YBottom": 710.62,
+          "Kind": "leaders",
           "Columns": [
             {
-              "From": 86.424,
-              "To": 260.95792000000006
+              "From": 122.42,
+              "To": 451.98644
             },
             {
-              "From": 260.95792000000006,
-              "To": 545.6022
+              "From": 522.94,
+              "To": 537.8266000000001
             }
           ],
           "Rows": [
             [
-              "( Automate d)",
+              "2.2 .2 5 (L1)E nsure\u0027 Denylogonlocally\u0027toinclude\u0027Guests \u0027(A uto",
+              "111"
+            ]
+          ]
+        },
+        {
+          "YTop": 687.7,
+          "YBottom": 687.7,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 206.9766
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "onl y) (A utom ate d)",
+              "113"
+            ]
+          ]
+        },
+        {
+          "YTop": 664.66,
+          "YBottom": 664.66,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 271.59475999999995
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "account\u0027 (MSonl y) (A utom ate d)",
+              "115"
+            ]
+          ]
+        },
+        {
+          "YTop": 641.62,
+          "YBottom": 641.62,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 297.9322
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "\u0027Administrators \u0027(DCo nl y) (A utomat",
+              "117"
+            ]
+          ]
+        },
+        {
+          "YTop": 618.7,
+          "YBottom": 618.7,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 271.6744399999999
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "\u0027NoO ne \u0027(MSonl y) (A utomate d)",
+              "119"
+            ]
+          ]
+        },
+        {
+          "YTop": 595.66,
+          "YBottom": 595.66,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 182.4622
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "(A utomate d)",
+              "121"
+            ]
+          ]
+        },
+        {
+          "YTop": 572.62,
+          "YBottom": 572.62,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 231.0922
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "SER V IC E \u0027(A utomate d)",
+              "123"
+            ]
+          ]
+        },
+        {
+          "YTop": 549.7,
+          "YBottom": 549.7,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 428.7522
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "SER V IC E , NETW O RK S E RV IC E , SER V IC E \u0027(DConl y) (A utomate d)",
+              "125"
+            ]
+          ]
+        },
+        {
+          "YTop": 515.11,
+          "YBottom": 515.11,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 436.4322
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "ServicesRoleServiceisinstall ed) \u0027IIS _IU SR S \u0027(MSonl y) (A uto",
+              "127"
+            ]
+          ]
+        },
+        {
+          "YTop": 503.59,
+          "YBottom": 503.59,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 510.55723999999975
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "2.2 .3 4 (L1)E nsure\u0027 Increaseschedulingpriority\u0027issetto\u0027Administrators \u0027(",
+              "129"
+            ]
+          ]
+        },
+        {
+          "YTop": 480.67,
+          "YBottom": 480.67,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 455.74395999999973
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "2.2 .3 6 (L1)E nsure\u0027Lockpagesinmemory\u0027issetto\u0027NoO ne \u0027(A utom",
+              "133"
+            ]
+          ]
+        },
+        {
+          "YTop": 446.11,
+          "YBottom": 446.11,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 182.4622
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "(A utomate d)",
+              "137"
+            ]
+          ]
+        },
+        {
+          "YTop": 423.19,
+          "YBottom": 423.19,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 182.4622
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "(A utomate d)",
+              "139"
+            ]
+          ]
+        },
+        {
+          "YTop": 411.67,
+          "YBottom": 411.67,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 450.7020799999997
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "2.2 .4 0 (L1)E nsure\u0027Modifyanobjectlabel\u0027issetto\u0027NoOne \u0027(A u",
+              "141"
+            ]
+          ]
+        },
+        {
+          "YTop": 354.17,
+          "YBottom": 354.17,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 480.60475999999954
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "2.2 .4 3 (L1)E nsure\u0027Profilesingleprocess\u0027issetto\u0027Administrators \u0027(",
+              "147"
+            ]
+          ]
+        },
+        {
+          "YTop": 331.13,
+          "YBottom": 331.13,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 305.0122
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "SER V ICEWdiServiceHost\u0027 (A utomate d)",
+              "149"
+            ]
+          ]
+        },
+        {
+          "YTop": 308.09,
+          "YBottom": 308.09,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 231.0922
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "SER V IC E \u0027(A utomate d)",
+              "151"
+            ]
+          ]
+        },
+        {
+          "YTop": 296.57,
+          "YBottom": 296.57,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 515.4995199999997
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "2.2 .4 6 (L1)E nsure\u0027 Res torefilesanddirectories\u0027issetto\u0027Administrators \u0027(",
+              "153"
+            ]
+          ]
+        },
+        {
+          "YTop": 285.17,
+          "YBottom": 285.17,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 480.8622
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "2.2 .4 7 (L1)E nsure\u0027Shutdownthesystem\u0027issetto\u0027Administrators \u0027(A u",
+              "155"
+            ]
+          ]
+        },
+        {
+          "YTop": 262.13,
+          "YBottom": 262.13,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 182.4622
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "(A utomate d)",
+              "157"
+            ]
+          ]
+        },
+        {
+          "YTop": 239.09,
+          "YBottom": 239.09,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 182.4622
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "(A utomate d)",
               "159"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 227.69,
+          "YBottom": 227.69,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 188.10219999999998
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
             [
-              "23SecurityOptions",
+              "2.3SecurityOptions",
               "161"
-            ],
+            ]
+          ]
+        },
+        {
+          "YTop": 216.17,
+          "YBottom": 216.17,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 93.624,
+              "To": 169.1422
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
             [
-              "231 Accounts",
+              "2.3 .1 Accounts",
               "161"
+            ]
+          ]
+        },
+        {
+          "YTop": 193.1,
+          "YBottom": 193.1,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 291.6029199999999
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "withMicrosoftaccounts \u0027(A utomate",
+              "162"
+            ]
+          ]
+        },
+        {
+          "YTop": 170.06,
+          "YBottom": 170.06,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 182.4622
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "(A utomate d)",
+              "164"
+            ]
+          ]
+        },
+        {
+          "YTop": 147.14,
+          "YBottom": 147.14,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 291.49335999999994
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "only\u0027issetto\u0027Enabled \u0027(Automat",
+              "166"
+            ]
+          ]
+        },
+        {
+          "YTop": 135.62,
+          "YBottom": 135.62,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 475.77203999999966
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "2.3 .1 .4 (L1) Configure \u0027Accounts :Renameadministratoraccount\u0027 (A utoma",
+              "168"
+            ]
+          ]
+        },
+        {
+          "YTop": 124.1,
+          "YBottom": 124.1,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 445.8295199999997
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "2.3 .1 .5 (L1) Configure \u0027Accounts :Renameguestaccount\u0027 (A utomate",
+              "170"
+            ]
+          ]
+        },
+        {
+          "YTop": 112.58,
+          "YBottom": 112.58,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 93.624,
+              "To": 149.10219999999998
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "2.3 .2Audit",
+              "172"
+            ]
+          ]
+        },
+        {
+          "YTop": 89.664,
+          "YBottom": 89.664,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 435.1122
+            },
+            {
+              "From": 522.94,
+              "To": 537.8266000000001
+            }
+          ],
+          "Rows": [
+            [
+              "overrideauditpolicycategorysettings\u0027issetto\u0027Enabled\u0027 (",
+              "173"
             ]
           ]
         }

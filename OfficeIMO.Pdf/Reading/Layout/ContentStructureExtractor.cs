@@ -172,21 +172,24 @@ internal static class ContentStructureExtractor {
                         t.Rows[r][0] = NormalizeShattered(t.Rows[r][0]);
                         t.Rows[r][1] = t.Rows[r][1].Trim('.');
                     }
-                } else {
-                    // Clean generic band/group tables to remove micro-token shattering and dot runs
-                    for (int r = 0; r < t.Rows.Count; r++) {
-                        var row = t.Rows[r];
-                        for (int c = 0; c < row.Length; c++) {
-                            string cell = NormalizeShattered(row[c]);
-                            // Normalize spacing around dots and collapse leader dot runs
-                            cell = System.Text.RegularExpressions.Regex.Replace(cell, "\\s*\\.\\s*", ".");
-                            int dotCount = 0; for (int k = 0; k < cell.Length; k++) if (cell[k] == '.') dotCount++;
-                            if (dotCount >= 3) {
-                                // Likely a leader run in this cell, drop the dots entirely
-                                cell = cell.Replace(".", string.Empty).Trim();
-                            }
-                            t.Rows[r][c] = cell;
+                    // add only to detailed + LeaderRows; do NOT mix into generic Tables
+                    page.TablesDetailed.Add(t);
+                    foreach (var r in t.Rows) page.LeaderRows.Add(new[] { r[0], r[1] });
+                    continue;
+                }
+                // Clean generic band/group tables to remove micro-token shattering and dot runs
+                for (int r = 0; r < t.Rows.Count; r++) {
+                    var row = t.Rows[r];
+                    for (int c = 0; c < row.Length; c++) {
+                        string cell = NormalizeShattered(row[c]);
+                        // Normalize spacing around dots and collapse leader dot runs
+                        cell = System.Text.RegularExpressions.Regex.Replace(cell, "\\s*\\.\\s*", ".");
+                        int dotCount = 0; for (int k = 0; k < cell.Length; k++) if (cell[k] == '.') dotCount++;
+                        if (dotCount >= 3) {
+                            // Likely a leader run in this cell, drop the dots entirely
+                            cell = cell.Replace(".", string.Empty).Trim();
                         }
+                        t.Rows[r][c] = cell;
                     }
                 }
                 page.TablesDetailed.Add(t);
@@ -203,7 +206,7 @@ internal static class ContentStructureExtractor {
                     }
                 }
                 page.TablesDetailed.Add(leaderTbl);
-                page.Tables.AddRange(leaderTbl.Rows);
+                foreach (var r in leaderTbl.Rows) page.LeaderRows.Add(new [] { r[0], r[1] });
             } else {
                 var rows = TableDetector.Detect(lines);
                 if (rows.Count > 0) {
@@ -234,13 +237,14 @@ internal static class ContentStructureExtractor {
             return s;
         }
         int shortCount = parts.Count(p => p.Length <= 2 && IsAllLetters(p));
-        // Heuristic: join when enough micro tokens exist (>=2) or ratio is high
-        if (!(shortCount >= 2 || shortCount * 4 >= parts.Length)) return s; // mostly healthy
+        // Heuristic: only join when there are multiple micro tokens
+        if (shortCount < 2) return s; // mostly healthy
         var sb = new System.Text.StringBuilder(s.Length);
         sb.Append(parts[0]);
         for (int i = 1; i < parts.Length; i++) {
             string prev = parts[i - 1]; string cur = parts[i];
-            bool upperSinglesJoin = prev.Length == 1 && cur.Length == 1 && char.IsUpper(prev[0]) && char.IsUpper(cur[0]);
+            bool upperSinglesJoin = prev.Length == 1 && cur.Length == 1 && char.IsUpper(prev[0]) && char.IsUpper(cur[0])
+                                    && (i + 1 < parts.Length && parts[i + 1].Length == 1 && char.IsUpper(parts[i + 1][0]));
             bool leadingLetterJoin = IsAllLetters(prev) && IsAllLetters(cur) && prev.Length == 1 && cur.Length >= 3;
             bool lettersJoin = IsAllLetters(prev) && IsAllLetters(cur) && ((prev.Length <= 2 || cur.Length <= 2) || leadingLetterJoin || upperSinglesJoin) && !(IsShortAbbrev(prev) && IsShortAbbrev(cur) && !upperSinglesJoin);
             // lookahead to aggressively join runs of short tokens

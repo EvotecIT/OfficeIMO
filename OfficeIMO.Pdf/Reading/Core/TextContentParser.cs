@@ -119,22 +119,10 @@ internal static class TextContentParser {
                 double thinSpacePt = Math.Max(1.0, size * 0.12);
                 bool dropSpace = false;
                 if (ch == ' ') {
-                    // Within-word space? Look ahead and behind
-                    char nextChar = '\0';
-                    int stepNext = twoByte ? (idx + step + 1 < bytes.Length ? 2 : 1) : 1;
-                    if (idx + step < bytes.Length) {
-                        byte[] gn = stepNext == 1 ? new byte[] { bytes[idx + step] } : new byte[] { bytes[idx + step], bytes[idx + step + 1] };
-                        string tn = decodeWithFont(font, gn) ?? string.Empty;
-                        if (tn.Length > 0) nextChar = tn[0];
-                    }
-                    bool prevWord = char.IsLetterOrDigit(prevChar) || prevChar=='\'' || prevChar=='-' || prevChar=='/';
-                    bool nextWord = char.IsLetterOrDigit(nextChar) || nextChar=='\'' || nextChar=='-' || nextChar=='/';
-                    if (prevWord && nextWord) {
-                        double withinWordThreshold = Math.Max(size * 0.60, 1.6); // ~0.60em or >=1.6pt
-                        if (advGlyph <= withinWordThreshold) dropSpace = true;
-                    } else if (advGlyph <= thinSpacePt && prevChar != '\0') {
-                        dropSpace = true;
-                    }
+                    // Keep explicit space glyphs; rely on higher-level normalization to fix accidental splits
+                } else if (advGlyph <= thinSpacePt && prevChar != '\0') {
+                    // Drop non-space thin separators
+                    dropSpace = true;
                 }
                 if (dropSpace) {
                     // do not append, but keep advance
@@ -262,12 +250,13 @@ internal static class TextContentParser {
                 return s;
             }
             int shortCount = parts.Count(p => p.Length <= 2 && AllLetters(p));
-            if (!(shortCount >= 2 || shortCount * 4 >= parts.Length)) return s; // mostly healthy span
+            if (shortCount < 2) return s; // only repair when we see multiple micro tokens
             var sb = new StringBuilder(s.Length);
             sb.Append(parts[0]);
             for (int ii = 1; ii < parts.Length; ii++) {
                 string prev = parts[ii - 1]; string cur = parts[ii];
-                bool upperSinglesJoin = prev.Length == 1 && cur.Length == 1 && char.IsUpper(prev[0]) && char.IsUpper(cur[0]);
+                bool upperSinglesJoin = prev.Length == 1 && cur.Length == 1 && char.IsUpper(prev[0]) && char.IsUpper(cur[0])
+                                        && (ii + 1 < parts.Length && parts[ii + 1].Length == 1 && char.IsUpper(parts[ii + 1][0]));
                 bool leadingLetterJoin = AllLetters(prev) && AllLetters(cur) && prev.Length == 1 && cur.Length >= 3;
                 bool joinSmall = AllLetters(prev) && AllLetters(cur) && ((prev.Length <= 2 || cur.Length <= 2) || leadingLetterJoin || upperSinglesJoin) && !(ShortAbbrev(prev) && ShortAbbrev(cur) && !upperSinglesJoin);
                 bool nextShort = (ii + 1 < parts.Length) && parts[ii + 1].Length <= 2 && AllLetters(parts[ii + 1]) && !ShortAbbrev(parts[ii + 1]);

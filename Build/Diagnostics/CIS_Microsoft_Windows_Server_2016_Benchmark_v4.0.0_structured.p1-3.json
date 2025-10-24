@@ -10,7 +10,7 @@
     {
       "Page": 1,
       "Lines": [
-        "CIS Microsoft Windows",
+        "CISMicrosoftWindows",
         "Server2016Benchmark",
         "v4.0.0-09-25-2025"
       ],
@@ -30,7 +30,7 @@
           "Y": 521.59,
           "XStart": 72.024,
           "XEnd": 511.90368000000007,
-          "Text": "CIS Microsoft Windows",
+          "Text": "CISMicrosoftWindows",
           "SpanCount": 4
         },
         {
@@ -68,7 +68,7 @@
           "YTop": 521.59,
           "YBottom": 521.59,
           "Lines": [
-            "CIS Microsoft Windows"
+            "CISMicrosoftWindows"
           ]
         },
         {
@@ -92,21 +92,29 @@
       "Page": 2,
       "Lines": [
         "TermsofUse",
-        "Pleasesethebelow link for our currentterms ofuse:",
+        "Pleasesethebelowlinkforourcurrenttermsofuse:",
         "https://www.cisecurity.org/cis-securesuite/cis-securesuite-membership -terms-of-use/",
         "rd",
-        "For informationonreferencingand/or citingCISBenchmarks inparty d3 ocumentation",
-        "(includingusingportions ofBenchmark Recomendations) pleasecontactCISLegal",
+        "Forinformationonreferencingand/orcitingCISBenchmarksinpartyd3 ocumentation",
+        "(includingusingportionsofBenchmarkRecomendations) pleasecontactCISLegal",
         "(legalnotices@cisecurity.o) arg ndrequestguidanceoncopyrightusage .",
-        "NOTE :ItisNEVER acceptabletohostaCISBenchmark iANYn format(PDF,etc.)",
+        "NOTE :ItisNEVER acceptabletohostaCISBenchmarkiANYn format(PDF,etc.)",
         "rd",
         "ona3party (non-CISowned) site.",
         "Page1"
       ],
       "Toc": [],
-      "Lists": [],
+      "Lists": [
+        "(includingusingportionsofBenchmarkRecomendations) pleasecontactCISLegal"
+      ],
       "LeaderRows": [],
-      "ListNodes": [],
+      "ListNodes": [
+        {
+          "Level": 1,
+          "Marker": "(includingusingportionsofBenchmarkRecomendations)",
+          "Text": "pleasecontactCISLegal"
+        }
+      ],
       "LinesDetailed": [
         {
           "Y": 776.76,
@@ -126,7 +134,7 @@
           "Y": 660.46,
           "XStart": 72.024,
           "XEnd": 401.88,
-          "Text": "Pleasesethebelow link for our currentterms ofuse:",
+          "Text": "Pleasesethebelowlinkforourcurrenttermsofuse:",
           "SpanCount": 34
         },
         {
@@ -154,14 +162,14 @@
           "Y": 595.06,
           "XStart": 72.024,
           "XEnd": 547.3879999999998,
-          "Text": "For informationonreferencingand/or citingCISBenchmarks inparty d3 ocumentation",
+          "Text": "Forinformationonreferencingand/orcitingCISBenchmarksinpartyd3 ocumentation",
           "SpanCount": 46
         },
         {
           "Y": 581.26,
           "XStart": 72.024,
           "XEnd": 554.8826999999999,
-          "Text": "(includingusingportions ofBenchmark Recomendations) pleasecontactCISLegal",
+          "Text": "(includingusingportionsofBenchmarkRecomendations) pleasecontactCISLegal",
           "SpanCount": 50
         },
         {
@@ -175,7 +183,7 @@
           "Y": 541.75,
           "XStart": 81.024,
           "XEnd": 545.8659999999999,
-          "Text": "NOTE :ItisNEVER acceptabletohostaCISBenchmark iANYn format(PDF,etc.)",
+          "Text": "NOTE :ItisNEVER acceptabletohostaCISBenchmarkiANYn format(PDF,etc.)",
           "SpanCount": 46
         },
         {
@@ -206,7 +214,7 @@
           ""
         ],
         [
-          "o n a 3 p a rty (no n - CIS o wne d ) si te .",
+          "ona 3party (non-CISowned )site.",
           ""
         ]
       ],
@@ -222,7 +230,7 @@
           "YTop": 660.46,
           "YBottom": 660.46,
           "Lines": [
-            "Pleasesethebelow link for our currentterms ofuse:"
+            "Pleasesethebelowlinkforourcurrenttermsofuse:"
           ]
         },
         {
@@ -237,14 +245,14 @@
           "YBottom": 595.06,
           "Lines": [
             "rd",
-            "For informationonreferencingand/or citingCISBenchmarks inparty d3 ocumentation"
+            "Forinformationonreferencingand/orcitingCISBenchmarksinpartyd3 ocumentation"
           ]
         },
         {
           "YTop": 581.26,
           "YBottom": 581.26,
           "Lines": [
-            "(includingusingportions ofBenchmark Recomendations) pleasecontactCISLegal"
+            "(includingusingportionsofBenchmarkRecomendations) pleasecontactCISLegal"
           ]
         },
         {
@@ -258,7 +266,7 @@
           "YTop": 541.75,
           "YBottom": 541.75,
           "Lines": [
-            "NOTE :ItisNEVER acceptabletohostaCISBenchmark iANYn format(PDF,etc.)"
+            "NOTE :ItisNEVER acceptabletohostaCISBenchmarkiANYn format(PDF,etc.)"
           ]
         },
         {
@@ -298,7 +306,7 @@
               ""
             ],
             [
-              "o n a 3 p a rty (no n - CIS o wne d ) si te .",
+              "ona 3party (non-CISowned )site.",
               ""
             ]
           ]
@@ -308,21 +316,21 @@
     {
       "Page": 3,
       "Lines": [
-        "TableofContents",
-        "Termsof Use................................1",
-        "Tableof Contents................................2",
+        "Table of Contents",
+        "TermsofUse................................1",
+        "TableofContents................................2",
         "Overview ................................24",
         "ImportantUsageInformation................................24",
         "KeyStakeholders ................................24",
-        "Aplythe CorectVersionofaBenchmark................................25",
+        "AplytheCorectVersionofaBenchmark................................25",
         "Exceptions ................................25",
         "Remediation ................................26",
         "Summary ................................26",
-        "TargetTechnology Details................................27",
+        "TargetTechnologyDetails................................27",
         "IntendedAudience ................................27",
         "ConsensusGuidance ................................28",
         "TypographicalConventions ................................29",
-        "Recommendation Definitions ................................30",
+        "RecommendationDefinitions ................................30",
         "Title................................30",
         "AssessmentStatus ................................30",
         "Automated ................................30",
@@ -336,15 +344,15 @@
         "DefaultValue................................31",
         "References ................................31",
         "\u00AE \u00AE",
-        "CISCriticalSecurity Controls(CISControls )................................31",
+        "CISCriticalSecurityControls(CISControls )................................31",
         "AdditionalInformation................................31",
-        "Profile Definition................................s ................................32",
+        "ProfileDefinition................................s ................................32",
         "Acknowledgements ................................34",
         "Recommendations ................................35",
-        "1 AccountPolicies................................35",
+        "1AccountPolicies................................35",
         "1.1PasswordPolicy................................35",
-        "1.1(L1)Ensure \u0027Enforcepasword history\u0027 iseto \u002724ormore pasword(s)\u0027 (A36utomated)",
-        "1.1.2(L1)Ensure \u0027Maximum paswordage\u0027iseto \u0027365or fewer days, butnot0\u0027",
+        "1.1(L1)Ensure\u0027Enforcepaswordhistory\u0027iseto\u002724ormorepasword(s)\u0027 (A36utomated)",
+        "1.1.2(L1)Ensure\u0027Maximumpaswordage\u0027iseto\u0027365orfewerdays, butnot0\u0027",
         "(Automated)................................39",
         "Page2"
       ],
@@ -352,11 +360,11 @@
       "Lists": [],
       "LeaderRows": [
         [
-          "Termsof Use",
+          "TermsofUse",
           "1"
         ],
         [
-          "Tableof Contents",
+          "TableofContents",
           "2"
         ],
         [
@@ -372,7 +380,7 @@
           "24"
         ],
         [
-          "Aplythe CorectVersionofaBenchmark",
+          "AplytheCorectVersionofaBenchmark",
           "25"
         ],
         [
@@ -388,7 +396,7 @@
           "26"
         ],
         [
-          "TargetTechnology Details",
+          "TargetTechnologyDetails",
           "27"
         ],
         [
@@ -404,7 +412,7 @@
           "29"
         ],
         [
-          "Recommendation Definitions",
+          "RecommendationDefinitions",
           "30"
         ],
         [
@@ -456,7 +464,7 @@
           "31"
         ],
         [
-          "CISCriticalSecurity Controls(CISControls )",
+          "CISCriticalSecurityControls(CISControls )",
           "31"
         ],
         [
@@ -464,7 +472,7 @@
           "31"
         ],
         [
-          "Profile Definition................................s",
+          "ProfileDefinition................................s",
           "32"
         ],
         [
@@ -476,7 +484,7 @@
           "35"
         ],
         [
-          "1 AccountPolicies",
+          "1AccountPolicies",
           "35"
         ],
         [
@@ -485,6 +493,142 @@
         ],
         [
           "(Automated)",
+          "39"
+        ],
+        [
+          "TermsofUse",
+          "1"
+        ],
+        [
+          "TableofContents",
+          "2"
+        ],
+        [
+          "Overview",
+          "24"
+        ],
+        [
+          "ImportantUsageInformation",
+          "24"
+        ],
+        [
+          "KeyStakeholders",
+          "24"
+        ],
+        [
+          "ApplytheCorrectVersionofaBenchmark",
+          "25"
+        ],
+        [
+          "E xcept ions",
+          "25"
+        ],
+        [
+          "Remed iation",
+          "26"
+        ],
+        [
+          "Summary",
+          "26"
+        ],
+        [
+          "TargetTechnologyDetails",
+          "27"
+        ],
+        [
+          "IntendedAudience",
+          "27"
+        ],
+        [
+          "ConsensusGuidance",
+          "28"
+        ],
+        [
+          "TypographicalConventions",
+          "29"
+        ],
+        [
+          "Rec omme ndation De finitions",
+          "30"
+        ],
+        [
+          "Title",
+          "30"
+        ],
+        [
+          "AssessmentS tatus",
+          "30"
+        ],
+        [
+          "Automated",
+          "30"
+        ],
+        [
+          "Manual",
+          "30"
+        ],
+        [
+          "Profile",
+          "30"
+        ],
+        [
+          "Description",
+          "30"
+        ],
+        [
+          "RationaleStatement",
+          "30"
+        ],
+        [
+          "ImpactStatement",
+          "31"
+        ],
+        [
+          "Audit P rocedure",
+          "31"
+        ],
+        [
+          "RemediationProcedure",
+          "31"
+        ],
+        [
+          "DefaultValue",
+          "31"
+        ],
+        [
+          "References",
+          "31"
+        ],
+        [
+          "C ISCriticalSecurityControls (C ISControl s)",
+          "31"
+        ],
+        [
+          "Additional I nformation",
+          "31"
+        ],
+        [
+          "ProfileDefinition",
+          "32"
+        ],
+        [
+          "Acknowledgements",
+          "34"
+        ],
+        [
+          "Rec omme ndations",
+          "35"
+        ],
+        [
+          "1AccountPolicies",
+          "35"
+        ],
+        [
+          "1.1PasswordP olicy",
+          "35"
+        ],
+        [
+          "(A utomate d)",
           "39"
         ]
       ],
@@ -501,21 +645,21 @@
           "Y": 693.7,
           "XStart": 72.024,
           "XEnd": 322.43,
-          "Text": "TableofContents",
+          "Text": "Table of Contents",
           "SpanCount": 4
         },
         {
           "Y": 660.46,
           "XStart": 72.024,
           "XEnd": 545.644,
-          "Text": "Termsof Use................................1",
+          "Text": "TermsofUse................................1",
           "SpanCount": 11
         },
         {
           "Y": 640.66,
           "XStart": 72.024,
           "XEnd": 545.644,
-          "Text": "Tableof Contents................................2",
+          "Text": "TableofContents................................2",
           "SpanCount": 15
         },
         {
@@ -543,7 +687,7 @@
           "Y": 578.86,
           "XStart": 86.424,
           "XEnd": 545.6022,
-          "Text": "Aplythe CorectVersionofaBenchmark................................25",
+          "Text": "AplytheCorectVersionofaBenchmark................................25",
           "SpanCount": 28
         },
         {
@@ -571,7 +715,7 @@
           "Y": 525.91,
           "XStart": 79.224,
           "XEnd": 545.6018,
-          "Text": "TargetTechnology Details................................27",
+          "Text": "TargetTechnologyDetails................................27",
           "SpanCount": 21
         },
         {
@@ -599,7 +743,7 @@
           "Y": 450.31,
           "XStart": 72.024,
           "XEnd": 545.668,
-          "Text": "Recommendation Definitions ................................30",
+          "Text": "RecommendationDefinitions ................................30",
           "SpanCount": 11
         },
         {
@@ -697,7 +841,7 @@
           "Y": 222.05,
           "XStart": 79.224,
           "XEnd": 545.6018,
-          "Text": "CISCriticalSecurity Controls(CISControls )................................31",
+          "Text": "CISCriticalSecurityControls(CISControls )................................31",
           "SpanCount": 39
         },
         {
@@ -711,7 +855,7 @@
           "Y": 184.7,
           "XStart": 79.224,
           "XEnd": 545.6018,
-          "Text": "Profile Definition................................s ................................32",
+          "Text": "ProfileDefinition................................s ................................32",
           "SpanCount": 20
         },
         {
@@ -732,7 +876,7 @@
           "Y": 127.58,
           "XStart": 79.224,
           "XEnd": 545.6018,
-          "Text": "1 AccountPolicies................................35",
+          "Text": "1AccountPolicies................................35",
           "SpanCount": 20
         },
         {
@@ -746,14 +890,14 @@
           "Y": 104.42,
           "XStart": 122.42,
           "XEnd": 575.1256,
-          "Text": "1.1(L1)Ensure \u0027Enforcepasword history\u0027 iseto \u002724ormore pasword(s)\u0027 (A36utomated)",
+          "Text": "1.1(L1)Ensure\u0027Enforcepaswordhistory\u0027iseto\u002724ormorepasword(s)\u0027 (A36utomated)",
           "SpanCount": 46
         },
         {
           "Y": 92.904,
           "XStart": 122.42,
           "XEnd": 530.5454799999997,
-          "Text": "1.1.2(L1)Ensure \u0027Maximum paswordage\u0027iseto \u0027365or fewer days, butnot0\u0027",
+          "Text": "1.1.2(L1)Ensure\u0027Maximumpaswordage\u0027iseto\u0027365orfewerdays, butnot0\u0027",
           "SpanCount": 36
         },
         {
@@ -771,68 +915,27 @@
           "SpanCount": 5
         }
       ],
-      "Tables": [
-        [
-          "E xc ept ion s ................................",
-          "................................ ................................ ................................ ............ 25"
-        ],
-        [
-          "Remed iatio n ................................",
-          "................................ ................................ ................................ ......... 26"
-        ],
-        [
-          "S u mm ar y ................................ ................................",
-          "................................ ................................ ............... 26"
-        ],
-        [
-          "\u00AE",
-          "\u00AE"
-        ],
-        [
-          "C I S C ri t i ca l S ec u ri t y C on t rol s ( C I S C on",
-          "t rol s ) ................................ ................................ .. 31"
-        ],
-        [
-          "A dd i t i on a l I nfo rm a t i on ................................",
-          "................................ ................................ .......... 31"
-        ],
-        [
-          "A ck no w l ed ge ments ................................",
-          "................................ ................................ .............. 34"
-        ],
-        [
-          "Rec omme ndations ................................",
-          "................................ ................................ ...... 35"
-        ],
-        [
-          "1 A cc ou n t P o l i c i es ................................",
-          "................................ ................................ ................ 35"
-        ],
-        [
-          "1.1 P as sw o r d P o lic y ................................ ................................",
-          "................................ ............................ 35"
-        ]
-      ],
+      "Tables": [],
       "Bands": [
         {
           "YTop": 693.7,
           "YBottom": 693.7,
           "Lines": [
-            "TableofContents"
+            "Table of Contents"
           ]
         },
         {
           "YTop": 660.46,
           "YBottom": 660.46,
           "Lines": [
-            "Termsof Use................................1"
+            "TermsofUse................................1"
           ]
         },
         {
           "YTop": 640.66,
           "YBottom": 640.66,
           "Lines": [
-            "Tableof Contents................................2"
+            "TableofContents................................2"
           ]
         },
         {
@@ -860,7 +963,7 @@
           "YTop": 578.86,
           "YBottom": 578.86,
           "Lines": [
-            "Aplythe CorectVersionofaBenchmark................................25"
+            "AplytheCorectVersionofaBenchmark................................25"
           ]
         },
         {
@@ -888,7 +991,7 @@
           "YTop": 525.91,
           "YBottom": 525.91,
           "Lines": [
-            "TargetTechnology Details................................27"
+            "TargetTechnologyDetails................................27"
           ]
         },
         {
@@ -916,7 +1019,7 @@
           "YTop": 450.31,
           "YBottom": 450.31,
           "Lines": [
-            "Recommendation Definitions ................................30"
+            "RecommendationDefinitions ................................30"
           ]
         },
         {
@@ -1008,7 +1111,7 @@
           "YBottom": 222.05,
           "Lines": [
             "\u00AE \u00AE",
-            "CISCriticalSecurity Controls(CISControls )................................31"
+            "CISCriticalSecurityControls(CISControls )................................31"
           ]
         },
         {
@@ -1022,7 +1125,7 @@
           "YTop": 184.7,
           "YBottom": 184.7,
           "Lines": [
-            "Profile Definition................................s ................................32"
+            "ProfileDefinition................................s ................................32"
           ]
         },
         {
@@ -1043,7 +1146,7 @@
           "YTop": 127.58,
           "YBottom": 127.58,
           "Lines": [
-            "1 AccountPolicies................................35"
+            "1AccountPolicies................................35"
           ]
         },
         {
@@ -1057,14 +1160,14 @@
           "YTop": 104.42,
           "YBottom": 104.42,
           "Lines": [
-            "1.1(L1)Ensure \u0027Enforcepasword history\u0027 iseto \u002724ormore pasword(s)\u0027 (A36utomated)"
+            "1.1(L1)Ensure\u0027Enforcepaswordhistory\u0027iseto\u002724ormorepasword(s)\u0027 (A36utomated)"
           ]
         },
         {
           "YTop": 92.904,
           "YBottom": 92.904,
           "Lines": [
-            "1.1.2(L1)Ensure \u0027Maximum paswordage\u0027iseto \u0027365or fewer days, butnot0\u0027"
+            "1.1.2(L1)Ensure\u0027Maximumpaswordage\u0027iseto\u0027365orfewerdays, butnot0\u0027"
           ]
         },
         {
@@ -1084,93 +1187,716 @@
       ],
       "TablesDetailed": [
         {
-          "YTop": 567.46,
-          "YBottom": 544.39,
-          "Kind": "band-group",
+          "YTop": 660.46,
+          "YBottom": 660.46,
+          "Kind": "leaders",
           "Columns": [
             {
-              "From": 86.424,
-              "To": 222.31792000000004
+              "From": 72.024,
+              "To": 154.1
             },
             {
-              "From": 222.31792000000004,
-              "To": 545.6022
+              "From": 532.9,
+              "To": 538.924
             }
           ],
           "Rows": [
             [
-              "E xc ept ion s ................................",
-              "................................ ................................ ................................ ............ 25"
-            ],
+              "TermsofUse",
+              "1"
+            ]
+          ]
+        },
+        {
+          "YTop": 640.66,
+          "YBottom": 640.66,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 72.024,
+              "To": 179.324
+            },
+            {
+              "From": 532.9,
+              "To": 538.924
+            }
+          ],
+          "Rows": [
             [
-              "Remed iatio n ................................",
-              "................................ ................................ ................................ ......... 26"
-            ],
+              "TableofContents",
+              "2"
+            ]
+          ]
+        },
+        {
+          "YTop": 620.86,
+          "YBottom": 620.86,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 72.024,
+              "To": 131.444
+            },
+            {
+              "From": 526.3,
+              "To": 538.396
+            }
+          ],
+          "Rows": [
             [
-              "S u mm ar y ................................ ................................",
-              "................................ ................................ ............... 26"
+              "Overview",
+              "24"
+            ]
+          ]
+        },
+        {
+          "YTop": 602.02,
+          "YBottom": 602.02,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 235.05800000000002
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "ImportantUsageInformation",
+              "24"
+            ]
+          ]
+        },
+        {
+          "YTop": 590.38,
+          "YBottom": 590.38,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 175.26180000000002
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
+            [
+              "KeyStakeholders",
+              "24"
+            ]
+          ]
+        },
+        {
+          "YTop": 578.86,
+          "YBottom": 578.86,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 292.5322
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
+            [
+              "ApplytheCorrectVersionofaBenchmark",
+              "25"
+            ]
+          ]
+        },
+        {
+          "YTop": 567.46,
+          "YBottom": 567.46,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 144.7822
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
+            [
+              "E xcept ions",
+              "25"
+            ]
+          ]
+        },
+        {
+          "YTop": 555.94,
+          "YBottom": 555.94,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 151.38219999999998
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
+            [
+              "Remed iation",
+              "26"
+            ]
+          ]
+        },
+        {
+          "YTop": 544.39,
+          "YBottom": 544.39,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 136.9822
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
+            [
+              "Summary",
+              "26"
+            ]
+          ]
+        },
+        {
+          "YTop": 525.91,
+          "YBottom": 525.91,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 222.2722
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "TargetTechnologyDetails",
+              "27"
+            ]
+          ]
+        },
+        {
+          "YTop": 507.19,
+          "YBottom": 507.19,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 183.1218
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "IntendedAudience",
+              "27"
+            ]
+          ]
+        },
+        {
+          "YTop": 488.59,
+          "YBottom": 488.59,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 197.1918
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "ConsensusGuidance",
+              "28"
+            ]
+          ]
+        },
+        {
+          "YTop": 469.99,
+          "YBottom": 469.99,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 229.5918
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "TypographicalConventions",
+              "29"
+            ]
+          ]
+        },
+        {
+          "YTop": 450.31,
+          "YBottom": 450.31,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 72.024,
+              "To": 244.1118
+            },
+            {
+              "From": 526.3,
+              "To": 538.396
+            }
+          ],
+          "Rows": [
+            [
+              "Rec omme ndation De finitions",
+              "30"
+            ]
+          ]
+        },
+        {
+          "YTop": 431.47,
+          "YBottom": 431.47,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 107.348
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "Title",
+              "30"
+            ]
+          ]
+        },
+        {
+          "YTop": 412.87,
+          "YBottom": 412.87,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 186.2418
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "AssessmentS tatus",
+              "30"
+            ]
+          ]
+        },
+        {
+          "YTop": 401.23,
+          "YBottom": 401.23,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 143.58180000000002
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
+            [
+              "Automated",
+              "30"
+            ]
+          ]
+        },
+        {
+          "YTop": 389.71,
+          "YBottom": 389.71,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 125.8222
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
+            [
+              "Manual",
+              "30"
+            ]
+          ]
+        },
+        {
+          "YTop": 371.21,
+          "YBottom": 371.21,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 118.9222
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "Profile",
+              "30"
+            ]
+          ]
+        },
+        {
+          "YTop": 352.49,
+          "YBottom": 352.49,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 145.2018
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "Description",
+              "30"
+            ]
+          ]
+        },
+        {
+          "YTop": 333.89,
+          "YBottom": 333.89,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 190.4418
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "RationaleStatement",
+              "30"
+            ]
+          ]
+        },
+        {
+          "YTop": 315.29,
+          "YBottom": 315.29,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 176.4018
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "ImpactStatement",
+              "31"
+            ]
+          ]
+        },
+        {
+          "YTop": 296.57,
+          "YBottom": 296.57,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 170.2818
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "Audit P rocedure",
+              "31"
+            ]
+          ]
+        },
+        {
+          "YTop": 277.97,
+          "YBottom": 277.97,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 208.2318
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "RemediationProcedure",
+              "31"
+            ]
+          ]
+        },
+        {
+          "YTop": 259.25,
+          "YBottom": 259.25,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 154.4418
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "DefaultValue",
+              "31"
+            ]
+          ]
+        },
+        {
+          "YTop": 240.65,
+          "YBottom": 240.65,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 144.0018
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
+            [
+              "References",
+              "31"
             ]
           ]
         },
         {
           "YTop": 226.01,
-          "YBottom": 203.3,
-          "Kind": "band-group",
+          "YBottom": 222.05,
+          "Kind": "leaders",
           "Columns": [
             {
               "From": 79.224,
-              "To": 275.8209
+              "To": 325.6118
             },
             {
-              "From": 275.8209,
-              "To": 545.6018
+              "From": 527.38,
+              "To": 538.3836
             }
           ],
           "Rows": [
             [
-              "\u00AE",
-              "\u00AE"
-            ],
+              "C ISCriticalSecurityControls (C ISControl s)",
+              "31"
+            ]
+          ]
+        },
+        {
+          "YTop": 203.3,
+          "YBottom": 203.3,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 199.9434400000001
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
             [
-              "C I S C ri t i ca l S ec u ri t y C on t rol s ( C I S C on",
-              "t rol s ) ................................ ................................ .. 31"
-            ],
+              "Additional I nformation",
+              "31"
+            ]
+          ]
+        },
+        {
+          "YTop": 184.7,
+          "YBottom": 184.7,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 178.80180000000001
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
             [
-              "A dd i t i on a l I nfo rm a t i on ................................",
-              "................................ ................................ .......... 31"
+              "ProfileDefinition",
+              "32"
             ]
           ]
         },
         {
           "YTop": 165.98,
-          "YBottom": 115.94,
-          "Kind": "band-group",
+          "YBottom": 165.98,
+          "Kind": "leaders",
           "Columns": [
             {
-              "From": 72.024,
-              "To": 275.23439999999994
+              "From": 79.224,
+              "To": 188.0418
             },
             {
-              "From": 275.23439999999994,
-              "To": 545.668
+              "From": 527.38,
+              "To": 538.3836
             }
           ],
           "Rows": [
             [
-              "A ck no w l ed ge ments ................................",
-              "................................ ................................ .............. 34"
-            ],
+              "Acknowledgements",
+              "34"
+            ]
+          ]
+        },
+        {
+          "YTop": 146.42,
+          "YBottom": 146.42,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 72.024,
+              "To": 185.40179999999998
+            },
+            {
+              "From": 526.3,
+              "To": 538.396
+            }
+          ],
+          "Rows": [
             [
-              "Rec omme ndations ................................",
-              "................................ ................................ ...... 35"
-            ],
+              "Rec omme ndations",
+              "35"
+            ]
+          ]
+        },
+        {
+          "YTop": 127.58,
+          "YBottom": 127.58,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 79.224,
+              "To": 182.58800000000002
+            },
+            {
+              "From": 527.38,
+              "To": 538.3836
+            }
+          ],
+          "Rows": [
             [
-              "1 A cc ou n t P o l i c i es ................................",
-              "................................ ................................ ................ 35"
-            ],
+              "1AccountPolicies",
+              "35"
+            ]
+          ]
+        },
+        {
+          "YTop": 115.94,
+          "YBottom": 115.94,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 86.424,
+              "To": 187.5018
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
             [
-              "1.1 P as sw o r d P o lic y ................................ ................................",
-              "................................ ............................ 35"
+              "1.1PasswordP olicy",
+              "35"
+            ]
+          ]
+        },
+        {
+          "YTop": 81.384,
+          "YBottom": 81.384,
+          "Kind": "leaders",
+          "Columns": [
+            {
+              "From": 122.42,
+              "To": 182.4622
+            },
+            {
+              "From": 528.46,
+              "To": 538.3844
+            }
+          ],
+          "Rows": [
+            [
+              "(A utomate d)",
+              "39"
             ]
           ]
         }

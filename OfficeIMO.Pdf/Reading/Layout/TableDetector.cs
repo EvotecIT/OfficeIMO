@@ -24,19 +24,66 @@ internal static class TableDetector {
     }
 
     public static List<StructuredTable> DetectTablesFromBands(List<List<TextLayoutEngine.TextLine>> bands) {
-        // First, attempt to form multi-band table groups with similar split positions
-        var tables = DetectTablesAcrossBandGroups(bands);
-        if (tables.Count > 0) return tables;
-
-        // Fallback: treat each band independently
+        var tables = new List<StructuredTable>();
+        // Leader-dominated bands should become leader tables, not generic band tables
         foreach (var band in bands) {
             if (band.Count == 0) continue;
-            var splits = InferSplits(band);
-            if (splits.Count == 0) continue;
-            var table = BuildTableFromLinesAndSplits(band, splits, "band-splits");
-            if (table != null && table.Rows.Count >= 2) tables.Add(table);
+            if (IsLeaderBand(band)) {
+                var leader = BuildLeaderTableForBand(band);
+                if (leader != null && leader.Rows.Count > 0) tables.Add(leader);
+            }
+        }
+        // Then, attempt to form multi-band table groups with similar split positions (non-leader bands only)
+        var nonLeaderBands = bands.Where(b => b.Count > 0 && !IsLeaderBand(b)).ToList();
+        var grouped = DetectTablesAcrossBandGroups(nonLeaderBands);
+        tables.AddRange(grouped);
+
+        // Fallback per-band splits for remaining non-leader bands
+        if (tables.Count == 0) {
+            foreach (var band in nonLeaderBands) {
+                var splits = InferSplits(band);
+                if (splits.Count == 0) continue;
+                var table = BuildTableFromLinesAndSplits(band, splits, "band-splits");
+                if (table != null && table.Rows.Count >= 2) tables.Add(table);
+            }
         }
         return tables;
+    }
+
+    private static bool IsLeaderBand(List<TextLayoutEngine.TextLine> band) {
+        if (band.Count == 0) return false;
+        int leaderLines = 0; int nonEmpty = 0;
+        foreach (var ln in band) {
+            if (string.IsNullOrWhiteSpace(ln.Text)) continue; nonEmpty++;
+            if (TryLeaderRowFromLine(ln, out _, out _, out _)) { leaderLines++; continue; }
+            bool hasDotSpan = ln.Spans.Any(s => IsDotLeader(s.Text) && s.Text.Length >= 3);
+            bool looksLeader = LooksLeaderText(ln.Text);
+            if (hasDotSpan || looksLeader) leaderLines++;
+        }
+        if (nonEmpty == 0) return false;
+        // Consider leader band if we have at least 3 leader-like rows, or >=30% of lines
+        return leaderLines >= 3 || (leaderLines * 10 >= nonEmpty * 3);
+    }
+
+    private static StructuredTable? BuildLeaderTableForBand(List<TextLayoutEngine.TextLine> band) {
+        var rows = new List<string[]>();
+        double leftMin = double.MaxValue, leftMax = double.MinValue;
+        double rightMin = double.MaxValue, rightMax = double.MinValue;
+        foreach (var ln in band) {
+            if (TryLeaderRowFromLine(ln, out var row, out var left, out var right)) {
+                rows.Add(row);
+                leftMin = Math.Min(leftMin, left.From);
+                leftMax = Math.Max(leftMax, left.To);
+                rightMin = Math.Min(rightMin, right.From);
+                rightMax = Math.Max(rightMax, right.To);
+            }
+        }
+        if (rows.Count == 0) return null;
+        var t = new StructuredTable { YTop = band[0].Y, YBottom = band[band.Count - 1].Y, Kind = "leaders" };
+        t.Columns.Add(new StructuredTableColumn { From = leftMin, To = leftMax });
+        t.Columns.Add(new StructuredTableColumn { From = rightMin, To = rightMax });
+        t.Rows.AddRange(rows);
+        return t;
     }
 
     private static List<StructuredTable> DetectTablesAcrossBandGroups(List<List<TextLayoutEngine.TextLine>> bands) {
@@ -334,18 +381,27 @@ internal static class TableDetector {
 
     private static bool ContainsDigit(string s) { for (int i = 0; i < s.Length; i++) if (char.IsDigit(s[i])) return true; return false; }
 
-    private static string CleanLeftLabel(string s) {
-        if (string.IsNullOrEmpty(s)) return s;
-        // Normalize spaces
-        s = System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ").Trim();
-        // Remove trailing dots on label (leaders)
-        s = s.Trim('.');
-        // Remove repeated dot groups inside label
-        s = System.Text.RegularExpressions.Regex.Replace(s, "[.]{2,}", ".");
-        // Tidy quotes and parentheses spacing
-        s = s.Replace(" ' ", " '").Replace("( ", "(").Replace(" )", ")");
-        // Collapse micro-token shattering (aggressive but safe-ish for leaders)
-        var parts = s.Split(' ');
+        private static string CleanLeftLabel(string s) {
+            if (string.IsNullOrEmpty(s)) return s;
+            // Normalize spaces
+            s = System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ").Trim();
+            // Remove trailing dots on label (leaders)
+            s = s.Trim('.');
+            // Remove repeated dot groups inside label
+            s = System.Text.RegularExpressions.Regex.Replace(s, "[.]{2,}", ".");
+            // Tidy quotes and parentheses spacing
+            s = s.Replace(" ' ", " '").Replace("( ", "(").Replace(" )", ")");
+            // Re-insert spaces around common glued prepositions if camel-cased inside
+            s = System.Text.RegularExpressions.Regex.Replace(s, "([A-Za-z])of([A-Z])", "$1 of $2");
+            s = System.Text.RegularExpressions.Regex.Replace(s, "([a-z]{2,})of([A-Z])", "$1 of $2");
+            s = System.Text.RegularExpressions.Regex.Replace(s, "([A-Za-z])in([A-Z])", "$1 in $2");
+            s = System.Text.RegularExpressions.Regex.Replace(s, "([a-z]{2,})in([A-Z])", "$1 in $2");
+            s = System.Text.RegularExpressions.Regex.Replace(s, "([A-Za-z])and([A-Z])", "$1 and $2");
+            s = System.Text.RegularExpressions.Regex.Replace(s, "([a-z]{2,})and([A-Z])", "$1 and $2");
+            // generic lower→Upper split (camel-case → spaced)
+            s = System.Text.RegularExpressions.Regex.Replace(s, "([a-z])([A-Z])", "$1 $2");
+            // Collapse micro-token shattering (aggressive but safe-ish for leaders)
+            var parts = s.Split(' ');
         if (parts.Length <= 2) return s;
         bool Wordish(string t) { for (int i = 0; i < t.Length; i++) { char c = t[i]; if (!(char.IsLetterOrDigit(c) || c=='\''||c=='-'||c=='/')) return false; } return t.Length>0; }
         bool ShortAbbrev(string t) { if (t.Length==0 || t.Length>3) return false; for (int i=0;i<t.Length;i++) if(!char.IsUpper(t[i])) return false; return true; }
