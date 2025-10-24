@@ -112,7 +112,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                var newId = EnsureRelationship(attribute.Value, sourceContainer, destinationContainer, relationshipIdMap, partMap);
+                var newId = EnsureRelationship(attribute.Value!, sourceContainer, destinationContainer, relationshipIdMap, partMap);
                 if (!string.Equals(newId, attribute.Value, StringComparison.Ordinal)) {
                     element.SetAttribute(new OpenXmlAttribute(attribute.Prefix, attribute.LocalName, attribute.NamespaceUri, newId));
                 }

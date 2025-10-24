@@ -4,22 +4,27 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Represents a row within a <see cref="WordTable"/> and exposes row level operations.
     /// </summary>
-    public class WordTableRow {
+    public class WordTableRow : System.IEquatable<WordTableRow> {
         internal readonly TableRow _tableRow;
 
         /// <summary>
         /// Return all cells for given row
         /// </summary>
         public List<WordTableCell> Cells {
-            get {
-                var list = new List<WordTableCell>();
-                foreach (TableCell cell in _tableRow.ChildElements.OfType<TableCell>().ToList()) {
-                    WordTableCell wordCell = new WordTableCell(_document, _wordTable, this, cell);
-                    list.Add(wordCell);
-                }
+            get { return GetCells(readOnly: false); }
+        }
 
-                return list;
+        /// <summary>
+        /// Returns cells for this row. When <paramref name="readOnly"/> is true,
+        /// wrappers are created without ensuring tcPr, avoiding DOM mutations on read.
+        /// </summary>
+        public List<WordTableCell> GetCells(bool readOnly = false) {
+            var list = new List<WordTableCell>();
+            foreach (TableCell cell in _tableRow.ChildElements.OfType<TableCell>().ToList()) {
+                var wordCell = new WordTableCell(_document, _wordTable, this, cell, ensureCellProperties: !readOnly);
+                list.Add(wordCell);
             }
+            return list;
         }
         /// <summary>
         /// Return first cell for given row
@@ -163,13 +168,18 @@ namespace OfficeIMO.Word {
         /// <param name="wordTable">The parent <see cref="WordTable"/>.</param>
         /// <param name="row">The underlying Open XML table row.</param>
         /// <param name="document">The parent <see cref="WordDocument"/>.</param>
-        public WordTableRow(WordTable wordTable, TableRow row, WordDocument document) {
+        public WordTableRow(WordTable wordTable, TableRow row, WordDocument document) : this(wordTable, row, document, initializeCells: true) {
+        }
+
+        internal WordTableRow(WordTable wordTable, TableRow row, WordDocument document, bool initializeCells) {
             _document = document;
             _tableRow = row;
             _wordTable = wordTable;
 
-            foreach (TableCell cell in row.ChildElements.OfType<TableCell>()) {
-                WordTableCell wordCell = new WordTableCell(document, wordTable, this, cell);
+            if (initializeCells) {
+                foreach (TableCell cell in row.ChildElements.OfType<TableCell>()) {
+                    _ = new WordTableCell(document, wordTable, this, cell);
+                }
             }
         }
 
@@ -241,5 +251,33 @@ namespace OfficeIMO.Word {
                 cell.VerticalMerge = MergedCellValues.Continue;
             }
         }
+
+        /// <summary>
+        /// Determines whether this instance and another row reference the same underlying OpenXML row.
+        /// </summary>
+        public bool Equals(WordTableRow? other) {
+            if (other is null) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return ReferenceEquals(_tableRow, other._tableRow);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object? obj) => obj is WordTableRow other && Equals(other);
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => _tableRow?.GetHashCode() ?? 0;
+
+        /// <summary>
+        /// Compares two rows for equality based on the underlying OpenXML row reference.
+        /// </summary>
+        public static bool operator ==(WordTableRow? left, WordTableRow? right) {
+            if (left is null) return right is null;
+            return left.Equals(right);
+        }
+
+        /// <summary>
+        /// Determines whether two rows are not equal.
+        /// </summary>
+        public static bool operator !=(WordTableRow? left, WordTableRow? right) => !(left == right);
     }
 }

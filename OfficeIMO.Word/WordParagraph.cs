@@ -25,6 +25,40 @@ namespace OfficeIMO.Word {
     public partial class WordParagraph : WordElement {
         internal WordDocument _document = null!;
         internal Paragraph _paragraph = null!;
+        private object? _parentElement;
+        private bool _parentEvaluated;
+
+        /// <summary>
+        /// Gets the parent object that owns this paragraph (for example a table cell, header, footer or section).
+        /// </summary>
+        public object? Parent {
+            get {
+                if (!_parentEvaluated) {
+                    RefreshParent();
+                }
+
+                return _parentElement;
+            }
+            internal set {
+                _parentElement = value;
+                _parentEvaluated = true;
+            }
+        }
+
+        internal void RefreshParent() {
+            if (_document != null && _paragraph != null) {
+                _parentElement = ResolveParent(_document, _paragraph);
+            } else {
+                _parentElement = null;
+            }
+
+            _parentEvaluated = true;
+        }
+
+        internal void InvalidateParent() {
+            _parentElement = null;
+            _parentEvaluated = false;
+        }
 
         /// <summary>
         /// This allows to know where the paragraph is located. Useful for hyperlinks or other stuff.
@@ -500,6 +534,8 @@ namespace OfficeIMO.Word {
                     this._paragraph.AppendChild(_run);
                 }
             }
+
+            RefreshParent();
         }
 
         internal WordParagraph(WordDocument document, Paragraph paragraph, bool newRun = true) {
@@ -510,6 +546,8 @@ namespace OfficeIMO.Word {
                 this._run = new Run();
                 this._paragraph.AppendChild(_run);
             }
+
+            RefreshParent();
         }
 
         /// <summary>
@@ -520,6 +558,7 @@ namespace OfficeIMO.Word {
         public WordParagraph(WordDocument document, Paragraph paragraph) {
             this._document = document;
             this._paragraph = paragraph;
+            RefreshParent();
         }
 
         /// <summary>
@@ -532,6 +571,7 @@ namespace OfficeIMO.Word {
             _document = document;
             _paragraph = paragraph;
             _run = run;
+            RefreshParent();
         }
 
         internal WordParagraph(WordDocument document, Paragraph paragraph, Hyperlink hyperlink) {
@@ -540,6 +580,7 @@ namespace OfficeIMO.Word {
             _hyperlink = hyperlink;
 
             //this.Hyperlink = new WordHyperLink(document, paragraph, hyperlink);
+            RefreshParent();
         }
 
         internal WordParagraph(WordDocument document, Paragraph paragraph, List<Run> runs) {
@@ -547,6 +588,7 @@ namespace OfficeIMO.Word {
             _paragraph = paragraph;
             _runs = runs;
             //this.Field = new WordField(document, paragraph, runs);
+            RefreshParent();
         }
 
         internal WordParagraph(WordDocument document, Paragraph paragraph, SimpleField simpleField) {
@@ -556,6 +598,7 @@ namespace OfficeIMO.Word {
             _simpleField = simpleField;
 
             //  this.Field = new WordField(document, paragraph, simpleField);
+            RefreshParent();
         }
 
         internal WordParagraph(WordDocument document, Paragraph paragraph, BookmarkStart bookmarkStart) {
@@ -565,6 +608,7 @@ namespace OfficeIMO.Word {
             _bookmarkStart = bookmarkStart;
 
             // this.Bookmark = new WordBookmark(document, paragraph, bookmarkStart);
+            RefreshParent();
         }
 
         internal WordParagraph(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.OfficeMath officeMath) {
@@ -574,6 +618,7 @@ namespace OfficeIMO.Word {
             _officeMath = officeMath;
 
             //this.Equation = new WordEquation(document, paragraph, officeMath);
+            RefreshParent();
         }
 
         internal WordParagraph(WordDocument document, Paragraph paragraph, SdtRun stdRun) {
@@ -581,6 +626,7 @@ namespace OfficeIMO.Word {
             _paragraph = paragraph;
             _stdRun = stdRun;
             //this.StructuredDocumentTag = new WordStructuredDocumentTag(document, paragraph, stdRun);
+            RefreshParent();
         }
 
         internal WordParagraph(WordDocument document, Paragraph paragraph, DocumentFormat.OpenXml.Math.Paragraph mathParagraph) {
@@ -588,6 +634,7 @@ namespace OfficeIMO.Word {
             _paragraph = paragraph;
             _mathParagraph = mathParagraph;
             //  this.Equation = new WordEquation(document, paragraph, mathParagraph);
+            RefreshParent();
         }
 
         internal WordStructuredDocumentTag? StructuredDocumentTag {

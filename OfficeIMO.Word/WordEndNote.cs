@@ -189,6 +189,7 @@ namespace OfficeIMO.Word {
             }
 
             endNote.Append(wordParagraph._paragraph);
+            wordParagraph.RefreshParent();
 
             return endNote;
         }

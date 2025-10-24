@@ -77,6 +77,7 @@ namespace OfficeIMO.Word {
             }
             wordParagraph._document = _document;
             AppendElementToSection(wordParagraph._paragraph);
+            wordParagraph.RefreshParent();
         }
 
         private void AppendElementToSection(OpenXmlElement element) {

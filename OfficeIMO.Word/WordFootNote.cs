@@ -160,6 +160,7 @@ namespace OfficeIMO.Word {
             run?.InsertBeforeSelf(run1);
 
             footnote1.Append(wordParagraph._paragraph);
+            wordParagraph.RefreshParent();
             return footnote1;
         }
     }

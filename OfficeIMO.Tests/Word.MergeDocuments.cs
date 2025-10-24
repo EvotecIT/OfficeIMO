@@ -201,19 +201,19 @@ namespace OfficeIMO.Tests {
             var blip = mainPart.Document!.Body!.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().FirstOrDefault();
             Assert.NotNull(blip);
             Assert.False(string.IsNullOrEmpty(blip!.Embed?.Value));
-            Assert.NotNull(mainPart.GetPartById(blip.Embed!.Value));
+            Assert.NotNull(mainPart.GetPartById(blip.Embed!.Value!));
 
             var hyperlink = mainPart.Document.Body.Descendants<Hyperlink>().FirstOrDefault();
             Assert.NotNull(hyperlink);
             Assert.False(string.IsNullOrEmpty(hyperlink!.Id));
-            var hyperlinkRel = mainPart.HyperlinkRelationships.FirstOrDefault(h => h.Id == hyperlink.Id);
+            var hyperlinkRel = mainPart.HyperlinkRelationships.FirstOrDefault(h => h.Id == hyperlink.Id!);
             Assert.NotNull(hyperlinkRel);
             Assert.Equal(hyperlinkUri, hyperlinkRel!.Uri);
 
             var oleObject = mainPart.Document.Body.Descendants<OleObject>().FirstOrDefault();
             Assert.NotNull(oleObject);
             Assert.False(string.IsNullOrEmpty(oleObject!.Id?.Value));
-            Assert.NotNull(mainPart.GetPartById(oleObject.Id!.Value));
+            Assert.NotNull(mainPart.GetPartById(oleObject.Id!.Value!));
 
             Assert.True(mainPart.ImageParts.Any());
             Assert.True(mainPart.EmbeddedPackageParts.Any());

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using OfficeIMO.Word;
+using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -69,6 +70,74 @@ namespace OfficeIMO.Tests {
 
                 Assert.False(cell1.WrapText);
                 Assert.True(cell2.FitText);
+
+                document.Save();
+            }
+        }
+
+        /// <summary>
+        /// Ensures that the paragraph parent navigation returns the owning table cell instance.
+        /// </summary>
+        [Fact]
+        public void Test_ParagraphParentWithinCell() {
+            string filePath = Path.Combine(_directoryWithFiles, "ParagraphParentInCell.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTable table = document.AddTable(1, 1);
+                var cell = table.Rows[0].Cells[0];
+                var paragraph = cell.Paragraphs.First();
+                paragraph.Text = "Cell paragraph";
+
+                var parentCell = Assert.IsType<WordTableCell>(paragraph.Parent);
+                Assert.Equal("Cell paragraph", parentCell.Paragraphs.First().Text);
+                Assert.Equal(table.RowsCount, parentCell.ParentTable.RowsCount);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var table = document.Tables[0];
+                var cell = table.Rows[0].Cells[0];
+                var paragraph = cell.Paragraphs.First();
+
+                var parentCell = Assert.IsType<WordTableCell>(paragraph.Parent);
+                Assert.Equal(paragraph.Text, parentCell.Paragraphs.First().Text);
+                Assert.Equal(table.RowsCount, parentCell.ParentTable.RowsCount);
+
+                document.Save();
+            }
+        }
+
+        /// <summary>
+        /// Ensures that evaluating paragraph parent does not inject missing table cell properties.
+        /// </summary>
+        [Fact]
+        public void Test_ParagraphParentDoesNotCreateTableCellProperties() {
+            string filePath = Path.Combine(_directoryWithFiles, "ParagraphParentNoCellProps.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTable table = document.AddTable(1, 1);
+                var cell = table.Rows[0].Cells[0];
+                cell.RemoveTableCellProperties();
+
+                Assert.Null(cell._tableCell.TableCellProperties);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var table = document.Tables[0];
+                var cell = table.Rows[0].Cells[0];
+
+                cell.RemoveTableCellProperties();
+                Assert.Null(cell._tableCell.TableCellProperties);
+
+                var paragraph = cell.Paragraphs.First();
+                var parentCell = Assert.IsType<WordTableCell>(paragraph.Parent);
+
+                Assert.Same(cell._tableCell, parentCell._tableCell);
+                Assert.Null(cell._tableCell.TableCellProperties);
+                Assert.Null(parentCell._tableCell.TableCellProperties);
 
                 document.Save();
             }

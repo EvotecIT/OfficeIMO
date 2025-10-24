@@ -29,6 +29,7 @@ namespace OfficeIMO.Word {
             } else if (_header != null) {
                 _header.Append(wordParagraph._paragraph);
             }
+            wordParagraph.RefreshParent();
             return wordParagraph;
         }
 
