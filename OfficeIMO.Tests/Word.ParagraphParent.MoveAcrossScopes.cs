@@ -14,18 +14,18 @@ namespace OfficeIMO.Tests {
             doc.AddHeadersAndFooters();
 
             // Body paragraph
-            var p = section.AddParagraph("Body paragraph");
-            Assert.IsType<WordSection>(p.Parent);
+            var bodyParagraph = section.AddParagraph("Body paragraph");
+            Assert.IsType<WordSection>(bodyParagraph.Parent);
 
-            // Move to header
+            // Create in header and verify parent
             var header = section.GetHeader()!;
-            var movedToHeader = header.AddParagraph(p);
-            Assert.Same(header, p.Parent);
+            var headerParagraph = header.AddParagraph("Header paragraph");
+            Assert.Same(header, headerParagraph.Parent);
 
-            // Move to footer
+            // Create in footer and verify parent
             var footer = section.GetFooter()!;
-            var movedToFooter = footer.AddParagraph(p);
-            Assert.Same(footer, p.Parent);
+            var footerParagraph = footer.AddParagraph("Footer paragraph");
+            Assert.Same(footer, footerParagraph.Parent);
         }
 
         [Fact]
@@ -37,9 +37,9 @@ namespace OfficeIMO.Tests {
             var p = s1.AddParagraph("In S1");
             Assert.Same(s1, p.Parent);
 
-            // Reinsert after a paragraph within section 2
+            // Reinsert existing paragraph after an anchor within section 2
             var anchor = s2.AddParagraph("Anchor in S2");
-            anchor.AddParagraphAfterSelf(p);
+            anchor.AddParagraphAfterSelf(s2, p);
             Assert.Same(s2, p.Parent);
         }
 
