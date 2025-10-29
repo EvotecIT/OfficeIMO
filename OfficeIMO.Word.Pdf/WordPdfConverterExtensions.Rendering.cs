@@ -130,6 +130,8 @@ namespace OfficeIMO.Word.Pdf {
                                         if (run.IsImage) continue; // images handled separately above
                                         if (string.IsNullOrEmpty(run.Text)) continue;
                                         var span = text.Span(run.Text!);
+                                        // apply paragraph defaults first, then run overrides
+                                        ApplyFormatting(span);
                                         ApplyRunFormatting(ref span, run, options);
                                     }
                                 } else {
@@ -147,6 +149,8 @@ namespace OfficeIMO.Word.Pdf {
                                     if (run.IsImage) continue; // images handled above
                                     if (string.IsNullOrEmpty(run.Text)) continue;
                                     var span = text.Span(run.Text!);
+                                    // apply paragraph defaults first, then run overrides
+                                    ApplyFormatting(span);
                                     ApplyRunFormatting(ref span, run, options);
                                 }
                             } else {
@@ -162,14 +166,37 @@ namespace OfficeIMO.Word.Pdf {
 
             return container;
 
+            string? ResolveRegisteredFamily(string name) {
+                try {
+                    if (!string.IsNullOrWhiteSpace(name)) {
+                        if (options?.FontFilePaths != null && options.FontFilePaths.TryGetValue(name, out var path) && File.Exists(path)) {
+                            using var tf = SKTypeface.FromFile(path);
+                            return tf?.FamilyName ?? name;
+                        }
+                        if (options?.FontStreams != null && options.FontStreams.TryGetValue(name, out var s) && s != null) {
+                            Stream src = s;
+                            if (src.CanSeek) src.Position = 0;
+                            using MemoryStream ms = new();
+                            src.CopyTo(ms);
+                            ms.Position = 0;
+                            using var tf = SKTypeface.FromStream(new SKManagedStream(ms));
+                            if (src.CanSeek) src.Position = 0;
+                            return tf?.FamilyName ?? name;
+                        }
+                    }
+                } catch { }
+                return name;
+            }
+
             void ApplyFormatting(TextSpanDescriptor span) {
                 if (!string.IsNullOrEmpty(paragraph.FontFamily)) {
-                    EmbedFont(paragraph.FontFamily);
-                    span = span.FontFamily(paragraph.FontFamily!);
+                    var fam = ResolveRegisteredFamily(paragraph.FontFamily!);
+                    EmbedFont(fam);
+                    span = span.FontFamily(fam!);
                 } else if (!string.IsNullOrEmpty(options?.FontFamily)) {
-                    var defFont = options!.FontFamily!;
+                    var defFont = ResolveRegisteredFamily(options!.FontFamily!);
                     EmbedFont(defFont);
-                    span = span.FontFamily(defFont);
+                    span = span.FontFamily(defFont!);
                 }
                 if (paragraph.Bold) {
                     span = span.Bold();
@@ -244,7 +271,11 @@ namespace OfficeIMO.Word.Pdf {
                 string? mono = null;
                 if (!string.IsNullOrEmpty(run.FontFamily)) mono = run.FontFamily;
                 mono ??= FontResolver.Resolve("monospace") ?? opt?.FontFamily;
-                if (!string.IsNullOrEmpty(mono)) { EmbedFont(mono); /* apply only if this run was tagged as code in word? best-effort skip */ }
+                if (!string.IsNullOrEmpty(mono)) {
+                    var fam = ResolveRegisteredFamily(mono)!;
+                    EmbedFont(fam);
+                    span = span.FontFamily(fam);
+                }
                 if (!string.IsNullOrEmpty(run.ColorHex)) span = span.FontColor("#" + run.ColorHex);
                 var hl = MapHighlight(run.Highlight);
                 if (!string.IsNullOrEmpty(hl)) span = span.BackgroundColor(hl!);

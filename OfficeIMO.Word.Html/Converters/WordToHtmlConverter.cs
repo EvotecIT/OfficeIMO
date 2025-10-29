@@ -326,18 +326,7 @@ namespace OfficeIMO.Word.Html {
                         node = span;
                     }
 
-                    // Apply run-level color and highlight as inline styles
-                    string? colorHex = run.ColorHex;
-                    string? highlightHex = GetHighlightHex(run.Highlight);
-                    if (!string.IsNullOrEmpty(colorHex) || !string.IsNullOrEmpty(highlightHex)) {
-                        var span = htmlDoc.CreateElement("span");
-                        List<string> styles = new();
-                        if (!string.IsNullOrEmpty(colorHex)) styles.Add($"color:#{colorHex}");
-                        if (!string.IsNullOrEmpty(highlightHex)) styles.Add($"background-color:{highlightHex}");
-                        span.SetAttribute("style", string.Join(";", styles));
-                        span.AppendChild(node);
-                        node = span;
-                    }
+                    // Avoid injecting extra spans for color/highlight to keep round-trip HTML minimal.
 
                     if (options.IncludeRunClasses && !string.IsNullOrEmpty(run.CharacterStyleId) && !handledHtmlStyle) {
                         var spanClass = htmlDoc.CreateElement("span");
@@ -364,28 +353,7 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            static string? GetHighlightHex(HighlightColorValues? highlight) {
-                if (highlight == null) return null;
-                var v = highlight.Value;
-                if (v == HighlightColorValues.None) return null;
-                if (v == HighlightColorValues.Black) return "#000000";
-                if (v == HighlightColorValues.Blue) return "#0000ff";
-                if (v == HighlightColorValues.Cyan) return "#00ffff";
-                if (v == HighlightColorValues.Green) return "#00ff00";
-                if (v == HighlightColorValues.Magenta) return "#ff00ff";
-                if (v == HighlightColorValues.Red) return "#ff0000";
-                if (v == HighlightColorValues.Yellow) return "#ffff00";
-                if (v == HighlightColorValues.White) return "#ffffff";
-                if (v == HighlightColorValues.DarkBlue) return "#00008b";
-                if (v == HighlightColorValues.DarkCyan) return "#008b8b";
-                if (v == HighlightColorValues.DarkGreen) return "#006400";
-                if (v == HighlightColorValues.DarkMagenta) return "#8b008b";
-                if (v == HighlightColorValues.DarkRed) return "#8b0000";
-                if (v == HighlightColorValues.DarkYellow) return "#b8860b";
-                if (v == HighlightColorValues.LightGray) return "#d3d3d3";
-                if (v == HighlightColorValues.DarkGray) return "#a9a9a9";
-                return null;
-            }
+            // No highlight-to-hex mapping needed in HTML output path right now.
 
             bool IsCodeParagraph(WordParagraph para) {
                 if (string.Equals(para.StyleId, "Code", StringComparison.OrdinalIgnoreCase) ||
@@ -625,12 +593,9 @@ namespace OfficeIMO.Word.Html {
                 if (!string.IsNullOrEmpty(tableWidth)) {
                     tableStyles.Add($"width:{tableWidth}");
                 }
-                // Always collapse borders; if no explicit borders exist, still show light borders
-                tableStyles.Add("border-collapse:collapse");
                 if (TableHasBorder(table)) {
                     tableStyles.Add("border:1px solid black");
-                } else {
-                    tableStyles.Add("border:1px solid #d6d6d6");
+                    tableStyles.Add("border-collapse:collapse");
                 }
                 if (tableStyles.Count > 0) {
                     tableEl.SetAttribute("style", string.Join(";", tableStyles));
@@ -697,9 +662,6 @@ namespace OfficeIMO.Word.Html {
                         var borderCss = GetBorderCss(cell);
                         if (borderCss.Count > 0) {
                             cellStyles.AddRange(borderCss);
-                        } else {
-                            // Provide a subtle border when the document defines none
-                            cellStyles.Add("border:1px solid #d6d6d6");
                         }
                         if (cellStyles.Count > 0) {
                             td.SetAttribute("style", string.Join(";", cellStyles));
@@ -779,6 +741,7 @@ namespace OfficeIMO.Word.Html {
 
             var listIndices = DocumentTraversal.BuildListIndices(document);
 
+            var processedParagraphs = new HashSet<WordParagraph>();
             foreach (var section in DocumentTraversal.EnumerateSections(document)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var elements = section.Elements;
@@ -795,15 +758,22 @@ namespace OfficeIMO.Word.Html {
                 for (int idx = 0; idx < elements.Count; idx++) {
                     var element = elements[idx];
                     if (element is WordParagraph paragraph) {
-                        // Elements may include multiple WordParagraph wrappers for a single underlying
-                        // OpenXml paragraph (one per run/hyperlink). Rendering each duplicates content.
-                        // Only render once per paragraph by processing the first run wrapper (IsFirstRun),
-                        // or paragraphs that have no runs at all.
-                        bool hasRuns = false;
-                        try { hasRuns = paragraph.GetRuns().Any(); } catch { /* best-effort */ }
-                        if (hasRuns && !paragraph.IsFirstRun) {
+                        // Render each underlying OpenXml paragraph exactly once.
+                        // Prefer the bookmark-bearing wrapper when multiple wrappers exist for the same paragraph.
+                        if (processedParagraphs.Contains(paragraph)) {
                             continue;
                         }
+                        if (!paragraph.IsBookmark) {
+                            // Look ahead for a sibling wrapper (same underlying paragraph) that carries a bookmark
+                            for (int j = idx + 1; j < elements.Count; j++) {
+                                if (elements[j] is WordParagraph sibling && sibling.Equals(paragraph)) {
+                                    if (sibling.IsBookmark) { paragraph = sibling; }
+                                    continue;
+                                }
+                                break;
+                            }
+                        }
+                        processedParagraphs.Add(paragraph);
                         var listInfo = DocumentTraversal.GetListInfo(paragraph);
                         if (listInfo != null) {
                             int level = listInfo.Value.Level;
