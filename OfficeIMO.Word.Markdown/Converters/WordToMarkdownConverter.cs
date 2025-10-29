@@ -66,6 +66,11 @@ namespace OfficeIMO.Word.Markdown {
                         var text = ConvertParagraph(p, options, paraHasCheckbox, paraCheckboxChecked);
                         if (!string.IsNullOrEmpty(text)) {
                             _output.AppendLine(text);
+                            // Ensure a blank line separator between standalone paragraphs so
+                            // Markdown renderers don’t merge them into a single paragraph.
+                            if (!p.IsListItem) {
+                                _output.AppendLine();
+                            }
                         }
                     } else if (el is WordTable t) {
                         var tableText = ConvertTable(t, options);

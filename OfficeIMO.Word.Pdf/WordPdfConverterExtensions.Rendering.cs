@@ -86,6 +86,12 @@ namespace OfficeIMO.Word.Pdf {
                 container = container.AlignLeft();
             }
 
+            // Paragraph background and borders
+            if (!string.IsNullOrEmpty(paragraph.ShadingFillColorHex)) {
+                container = container.Background("#" + paragraph.ShadingFillColorHex);
+            }
+            container = ApplyParagraphBorders(container, paragraph);
+
             int? currentFootnoteNumber = null;
             if (footnoteMap.TryGetValue(paragraph, out int num)) {
                 currentFootnoteNumber = num;
@@ -106,8 +112,11 @@ namespace OfficeIMO.Word.Pdf {
                     });
                 }
 
+                var runObjs = paragraph.GetRuns().ToList();
+                // Prefer run-accurate rendering when available; otherwise fall back to paragraph text
                 string content = paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
-                if (!string.IsNullOrEmpty(content) || marker != null) {
+                bool hasRenderableRuns = runObjs.Count > 0 && runObjs.Any(r => r.IsImage || !string.IsNullOrEmpty(r.Text));
+                if (hasRenderableRuns || !string.IsNullOrEmpty(content) || marker != null) {
                     if (marker != null) {
                         const float indentSize = 15f;
                         col.Item().Row(row => {
@@ -116,7 +125,16 @@ namespace OfficeIMO.Word.Pdf {
                             }
                             row.AutoItem().Text(marker.Value.Marker + " ");
                             row.RelativeItem().Text(text => {
-                                ApplyFormatting(text.Span(content));
+                                if (hasRenderableRuns) {
+                                    foreach (var run in runObjs) {
+                                        if (run.IsImage) continue; // images handled separately above
+                                        if (string.IsNullOrEmpty(run.Text)) continue;
+                                        var span = text.Span(run.Text!);
+                                        ApplyRunFormatting(ref span, run, options);
+                                    }
+                                } else {
+                                    ApplyFormatting(text.Span(content));
+                                }
                                 if (currentFootnoteNumber != null) {
                                     text.Span(currentFootnoteNumber.Value.ToString()).FontSize(8).Superscript();
                                 }
@@ -124,7 +142,16 @@ namespace OfficeIMO.Word.Pdf {
                         });
                     } else {
                         col.Item().Text(text => {
-                            ApplyFormatting(text.Span(content));
+                            if (hasRenderableRuns) {
+                                foreach (var run in runObjs) {
+                                    if (run.IsImage) continue; // images handled above
+                                    if (string.IsNullOrEmpty(run.Text)) continue;
+                                    var span = text.Span(run.Text!);
+                                    ApplyRunFormatting(ref span, run, options);
+                                }
+                            } else {
+                                ApplyFormatting(text.Span(content));
+                            }
                             if (currentFootnoteNumber != null) {
                                 text.Span(currentFootnoteNumber.Value.ToString()).FontSize(8).Superscript();
                             }
@@ -178,6 +205,68 @@ namespace OfficeIMO.Word.Pdf {
                             break;
                     }
                 }
+            }
+
+            static string? MapHighlight(W.HighlightColorValues? highlight) {
+                if (!highlight.HasValue) return null;
+                var v = highlight.Value;
+                if (v == W.HighlightColorValues.None) return null;
+                if (v == W.HighlightColorValues.Black) return "#000000";
+                if (v == W.HighlightColorValues.Blue) return "#0000ff";
+                if (v == W.HighlightColorValues.Cyan) return "#00ffff";
+                if (v == W.HighlightColorValues.Green) return "#00ff00";
+                if (v == W.HighlightColorValues.Magenta) return "#ff00ff";
+                if (v == W.HighlightColorValues.Red) return "#ff0000";
+                if (v == W.HighlightColorValues.Yellow) return "#ffff00";
+                if (v == W.HighlightColorValues.White) return "#ffffff";
+                if (v == W.HighlightColorValues.DarkBlue) return "#00008b";
+                if (v == W.HighlightColorValues.DarkCyan) return "#008b8b";
+                if (v == W.HighlightColorValues.DarkGreen) return "#006400";
+                if (v == W.HighlightColorValues.DarkMagenta) return "#8b008b";
+                if (v == W.HighlightColorValues.DarkRed) return "#8b0000";
+                if (v == W.HighlightColorValues.DarkYellow) return "#b8860b";
+                if (v == W.HighlightColorValues.LightGray) return "#d3d3d3";
+                if (v == W.HighlightColorValues.DarkGray) return "#a9a9a9";
+                return null;
+            }
+
+            void ApplyRunFormatting(ref TextSpanDescriptor span, WordParagraph run, PdfSaveOptions? opt) {
+                if (string.IsNullOrEmpty(run.Text)) return;
+                if (run.Bold) span = span.Bold();
+                if (run.Italic) span = span.Italic();
+                if (run.Underline != null) span = span.Underline();
+                if (run.Strike || run.DoubleStrike) span = span.Strikethrough();
+                if (run.VerticalTextAlignment == W.VerticalPositionValues.Superscript) span = span.Superscript();
+                if (run.VerticalTextAlignment == W.VerticalPositionValues.Subscript) span = span.Subscript();
+                // Inline hyperlink on text spans is not supported by QuestPDF directly.
+                // Paragraph-level hyperlinks are applied earlier; skip span-level link here.
+                // Monospace/code detection via run font or provided default
+                string? mono = null;
+                if (!string.IsNullOrEmpty(run.FontFamily)) mono = run.FontFamily;
+                mono ??= FontResolver.Resolve("monospace") ?? opt?.FontFamily;
+                if (!string.IsNullOrEmpty(mono)) { EmbedFont(mono); /* apply only if this run was tagged as code in word? best-effort skip */ }
+                if (!string.IsNullOrEmpty(run.ColorHex)) span = span.FontColor("#" + run.ColorHex);
+                var hl = MapHighlight(run.Highlight);
+                if (!string.IsNullOrEmpty(hl)) span = span.BackgroundColor(hl!);
+            }
+
+            static IContainer ApplyParagraphBorders(IContainer cont, WordParagraph p) {
+                var b = p.Borders;
+                if (b == null) return cont;
+
+                // Determine a uniform color if possible
+                var colors = new List<string?> { b.TopColorHex, b.BottomColorHex, b.LeftColorHex, b.RightColorHex };
+                colors.RemoveAll(string.IsNullOrEmpty);
+                if (colors.Count > 0 && colors.Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1) {
+                    cont = cont.BorderColor("#" + colors[0]!);
+                }
+
+                float BorderWidth(uint? size) => size.HasValue ? size.Value / 8f : 0f;
+                if (b.TopStyle != null && b.TopStyle != W.BorderValues.Nil && b.TopStyle != W.BorderValues.None) cont = cont.BorderTop(BorderWidth(b.TopSize?.Value));
+                if (b.BottomStyle != null && b.BottomStyle != W.BorderValues.Nil && b.BottomStyle != W.BorderValues.None) cont = cont.BorderBottom(BorderWidth(b.BottomSize?.Value));
+                if (b.LeftStyle != null && b.LeftStyle != W.BorderValues.Nil && b.LeftStyle != W.BorderValues.None) cont = cont.BorderLeft(BorderWidth(b.LeftSize?.Value));
+                if (b.RightStyle != null && b.RightStyle != W.BorderValues.Nil && b.RightStyle != W.BorderValues.None) cont = cont.BorderRight(BorderWidth(b.RightSize?.Value));
+                return cont;
             }
         }
 

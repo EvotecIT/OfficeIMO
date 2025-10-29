@@ -309,6 +309,19 @@ namespace OfficeIMO.Word.Html {
                         }
                     }
 
+                    // Apply run-level color and highlight as inline styles
+                    string? colorHex = run.ColorHex;
+                    string? highlightHex = GetHighlightHex(run.Highlight);
+                    if (!string.IsNullOrEmpty(colorHex) || !string.IsNullOrEmpty(highlightHex)) {
+                        var span = htmlDoc.CreateElement("span");
+                        List<string> styles = new();
+                        if (!string.IsNullOrEmpty(colorHex)) styles.Add($"color:#{colorHex}");
+                        if (!string.IsNullOrEmpty(highlightHex)) styles.Add($"background-color:{highlightHex}");
+                        span.SetAttribute("style", string.Join(";", styles));
+                        span.AppendChild(node);
+                        node = span;
+                    }
+
                     if (options.IncludeRunClasses && !string.IsNullOrEmpty(run.CharacterStyleId) && !handledHtmlStyle) {
                         var spanClass = htmlDoc.CreateElement("span");
                         spanClass.SetAttribute("class", run.CharacterStyleId);
@@ -327,6 +340,29 @@ namespace OfficeIMO.Word.Html {
                     cancellationToken.ThrowIfCancellationRequested();
                     parent.AppendChild(node);
                 }
+            }
+
+            static string? GetHighlightHex(HighlightColorValues? highlight) {
+                if (highlight == null) return null;
+                var v = highlight.Value;
+                if (v == HighlightColorValues.None) return null;
+                if (v == HighlightColorValues.Black) return "#000000";
+                if (v == HighlightColorValues.Blue) return "#0000ff";
+                if (v == HighlightColorValues.Cyan) return "#00ffff";
+                if (v == HighlightColorValues.Green) return "#00ff00";
+                if (v == HighlightColorValues.Magenta) return "#ff00ff";
+                if (v == HighlightColorValues.Red) return "#ff0000";
+                if (v == HighlightColorValues.Yellow) return "#ffff00";
+                if (v == HighlightColorValues.White) return "#ffffff";
+                if (v == HighlightColorValues.DarkBlue) return "#00008b";
+                if (v == HighlightColorValues.DarkCyan) return "#008b8b";
+                if (v == HighlightColorValues.DarkGreen) return "#006400";
+                if (v == HighlightColorValues.DarkMagenta) return "#8b008b";
+                if (v == HighlightColorValues.DarkRed) return "#8b0000";
+                if (v == HighlightColorValues.DarkYellow) return "#b8860b";
+                if (v == HighlightColorValues.LightGray) return "#d3d3d3";
+                if (v == HighlightColorValues.DarkGray) return "#a9a9a9";
+                return null;
             }
 
             bool IsCodeParagraph(WordParagraph para) {
@@ -388,6 +424,23 @@ namespace OfficeIMO.Word.Html {
                 if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(para.StyleId)) {
                     element.SetAttribute("class", para.StyleId);
                     paragraphStyles.Add(para.StyleId!);
+                }
+                // Inline paragraph styles: alignment, shading background, and paragraph borders
+                List<string> pStyles = new();
+                var alignCss = GetTextAlignCss(para.ParagraphAlignment);
+                if (!string.IsNullOrEmpty(alignCss)) {
+                    pStyles.Add($"text-align:{alignCss}");
+                }
+                var pBg = para.ShadingFillColorHex;
+                if (!string.IsNullOrEmpty(pBg)) {
+                    pStyles.Add($"background-color:#{pBg}");
+                }
+                var pBorderCss = GetParagraphBorderCss(para);
+                if (pBorderCss.Count > 0) {
+                    pStyles.AddRange(pBorderCss);
+                }
+                if (pStyles.Count > 0) {
+                    element.SetAttribute("style", string.Join(";", pStyles));
                 }
                 AppendRuns(element, para);
                 parent.AppendChild(element);
@@ -507,6 +560,30 @@ namespace OfficeIMO.Word.Html {
                 return styles;
             }
 
+            List<string> GetParagraphBorderCss(WordParagraph p) {
+                List<string> styles = new();
+                var b = p.Borders;
+                if (b == null) return styles;
+
+                var left = BuildBorderCss(b.LeftStyle, b.LeftColorHex, b.LeftSize);
+                var right = BuildBorderCss(b.RightStyle, b.RightColorHex, b.RightSize);
+                var top = BuildBorderCss(b.TopStyle, b.TopColorHex, b.TopSize);
+                var bottom = BuildBorderCss(b.BottomStyle, b.BottomColorHex, b.BottomSize);
+
+                if (left == null && right == null && top == null && bottom == null) {
+                    return styles;
+                }
+                if (left == top && top == right && right == bottom && left != null) {
+                    styles.Add($"border:{left}");
+                } else {
+                    if (left != null) styles.Add($"border-left:{left}");
+                    if (right != null) styles.Add($"border-right:{right}");
+                    if (top != null) styles.Add($"border-top:{top}");
+                    if (bottom != null) styles.Add($"border-bottom:{bottom}");
+                }
+                return styles;
+            }
+
             bool CellHasBorder(WordTableCell cell) {
                 var b = cell.Borders;
                 return b != null && (b.LeftStyle != null || b.RightStyle != null || b.TopStyle != null || b.BottomStyle != null);
@@ -523,8 +600,12 @@ namespace OfficeIMO.Word.Html {
                 if (!string.IsNullOrEmpty(tableWidth)) {
                     tableStyles.Add($"width:{tableWidth}");
                 }
+                // Always collapse borders; if no explicit borders exist, still show light borders
+                tableStyles.Add("border-collapse:collapse");
                 if (TableHasBorder(table)) {
-                    tableStyles.Add("border:1px solid black;border-collapse:collapse");
+                    tableStyles.Add("border:1px solid black");
+                } else {
+                    tableStyles.Add("border:1px solid #d6d6d6");
                 }
                 if (tableStyles.Count > 0) {
                     tableEl.SetAttribute("style", string.Join(";", tableStyles));
@@ -576,7 +657,13 @@ namespace OfficeIMO.Word.Html {
                         if (!string.IsNullOrEmpty(bg)) {
                             cellStyles.Add($"background-color:#{bg}");
                         }
-                        cellStyles.AddRange(GetBorderCss(cell));
+                        var borderCss = GetBorderCss(cell);
+                        if (borderCss.Count > 0) {
+                            cellStyles.AddRange(borderCss);
+                        } else {
+                            // Provide a subtle border when the document defines none
+                            cellStyles.Add("border:1px solid #d6d6d6");
+                        }
                         if (cellStyles.Count > 0) {
                             td.SetAttribute("style", string.Join(";", cellStyles));
                         }
@@ -669,6 +756,15 @@ namespace OfficeIMO.Word.Html {
                 for (int idx = 0; idx < elements.Count; idx++) {
                     var element = elements[idx];
                     if (element is WordParagraph paragraph) {
+                        // Elements may include multiple WordParagraph wrappers for a single underlying
+                        // OpenXml paragraph (one per run/hyperlink). Rendering each duplicates content.
+                        // Only render once per paragraph by processing the first run wrapper (IsFirstRun),
+                        // or paragraphs that have no runs at all.
+                        bool hasRuns = false;
+                        try { hasRuns = paragraph.GetRuns().Any(); } catch { /* best-effort */ }
+                        if (hasRuns && !paragraph.IsFirstRun) {
+                            continue;
+                        }
                         var listInfo = DocumentTraversal.GetListInfo(paragraph);
                         if (listInfo != null) {
                             int level = listInfo.Value.Level;
