@@ -22,7 +22,7 @@ namespace OfficeIMO.Word.Pdf {
                 foreach (IReadOnlyList<WordTableCell> row in layout.Rows) {
                     foreach (WordTableCell cell in row) {
                         tableContainer.Cell().Element(cellContainer => {
-                            cellContainer = ApplyCellStyle(cellContainer, cell);
+                            cellContainer = ApplyCellStyle(cellContainer, cell, options);
 
                             cellContainer.Column(cellColumn => {
                                 foreach (WordParagraph paragraph in cell.Paragraphs) {
@@ -45,7 +45,7 @@ namespace OfficeIMO.Word.Pdf {
             return container;
         }
 
-        private static IContainer ApplyCellStyle(IContainer container, WordTableCell cell) {
+        private static IContainer ApplyCellStyle(IContainer container, WordTableCell cell, PdfSaveOptions? options) {
             if (!string.IsNullOrEmpty(cell.ShadingFillColorHex)) {
                 container = container.Background("#" + cell.ShadingFillColorHex);
             }
@@ -64,17 +64,26 @@ namespace OfficeIMO.Word.Pdf {
                 container = container.BorderColor("#" + colors[0]!);
             }
 
+            bool anyBorder = false;
             if (HasBorder(borders.TopStyle)) {
                 container = container.BorderTop(GetBorderWidth(borders.TopSize));
+                anyBorder = true;
             }
             if (HasBorder(borders.BottomStyle)) {
                 container = container.BorderBottom(GetBorderWidth(borders.BottomSize));
+                anyBorder = true;
             }
             if (HasBorder(borders.LeftStyle)) {
                 container = container.BorderLeft(GetBorderWidth(borders.LeftSize));
+                anyBorder = true;
             }
             if (HasBorder(borders.RightStyle)) {
                 container = container.BorderRight(GetBorderWidth(borders.RightSize));
+                anyBorder = true;
+            }
+
+            if (!anyBorder && options?.DefaultTableBorders == true) {
+                container = container.Border(0.75f).BorderColor("#d6d6d6");
             }
 
             return container;

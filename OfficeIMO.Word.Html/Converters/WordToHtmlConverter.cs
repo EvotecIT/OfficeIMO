@@ -211,6 +211,10 @@ namespace OfficeIMO.Word.Html {
                     }
 
                     if (string.IsNullOrEmpty(run.Text)) {
+                        // Still honor explicit line breaks even when the run carries no text
+                        if (run.Break != null && run.PageBreak == null) {
+                            nodes.Add(htmlDoc.CreateElement("br"));
+                        }
                         continue;
                     }
 
@@ -309,6 +313,19 @@ namespace OfficeIMO.Word.Html {
                         }
                     }
 
+                    // Caps / SmallCaps
+                    if (run.CapsStyle == CapsStyle.SmallCaps) {
+                        var span = htmlDoc.CreateElement("span");
+                        span.SetAttribute("style", "font-variant:small-caps");
+                        span.AppendChild(node);
+                        node = span;
+                    } else if (run.CapsStyle == CapsStyle.Caps) {
+                        var span = htmlDoc.CreateElement("span");
+                        span.SetAttribute("style", "text-transform:uppercase");
+                        span.AppendChild(node);
+                        node = span;
+                    }
+
                     // Apply run-level color and highlight as inline styles
                     string? colorHex = run.ColorHex;
                     string? highlightHex = GetHighlightHex(run.Highlight);
@@ -334,6 +351,11 @@ namespace OfficeIMO.Word.Html {
                         quote.AppendChild(node);
                     } else {
                         nodes.Add(node);
+                    }
+
+                    // Preserve hard line breaks
+                    if (run.Break != null && run.PageBreak == null) {
+                        nodes.Add(htmlDoc.CreateElement("br"));
                     }
                 }
                 foreach (var node in nodes) {
@@ -424,6 +446,9 @@ namespace OfficeIMO.Word.Html {
                 if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(para.StyleId)) {
                     element.SetAttribute("class", para.StyleId);
                     paragraphStyles.Add(para.StyleId!);
+                }
+                if (para.BiDi) {
+                    element.SetAttribute("dir", "rtl");
                 }
                 // Inline paragraph styles: alignment, shading background, and paragraph borders
                 List<string> pStyles = new();
@@ -653,6 +678,18 @@ namespace OfficeIMO.Word.Html {
                         if (!string.IsNullOrEmpty(align)) {
                             cellStyles.Add($"text-align:{align}");
                         }
+                        // Vertical alignment within table cells
+                        if (cell.VerticalAlignment != null) {
+                            // Avoid enum switch expressions for broad TFM support
+                            var s = cell.VerticalAlignment.Value.ToString();
+                            string vAlign = "top";
+                            if (string.Equals(s, nameof(TableVerticalAlignmentValues.Center), StringComparison.Ordinal)) {
+                                vAlign = "middle";
+                            } else if (string.Equals(s, nameof(TableVerticalAlignmentValues.Bottom), StringComparison.Ordinal)) {
+                                vAlign = "bottom";
+                            }
+                            cellStyles.Add($"vertical-align:{vAlign}");
+                        }
                         var bg = cell.ShadingFillColorHex;
                         if (!string.IsNullOrEmpty(bg)) {
                             cellStyles.Add($"background-color:#{bg}");
@@ -740,6 +777,8 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
 
+            var listIndices = DocumentTraversal.BuildListIndices(document);
+
             foreach (var section in DocumentTraversal.EnumerateSections(document)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var elements = section.Elements;
@@ -777,7 +816,12 @@ namespace OfficeIMO.Word.Html {
                                 var listTag = ordered ? "ol" : "ul";
                                 var listEl = htmlDoc.CreateElement(listTag);
                                 if (ordered) {
-                                    listEl.SetAttribute("start", listInfo.Value.Start.ToString());
+                                    // Continue numbering across gaps by using the numeric index of the current item when available
+                                    if (listIndices.TryGetValue(paragraph, out var indexInfo)) {
+                                        listEl.SetAttribute("start", indexInfo.Index.ToString());
+                                    } else {
+                                        listEl.SetAttribute("start", listInfo.Value.Start.ToString());
+                                    }
                                 }
                                 var typeAttr = GetListType(listInfo.Value);
                                 if (!string.IsNullOrEmpty(typeAttr)) {
