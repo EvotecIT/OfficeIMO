@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace OfficeIMO.Markdown;
 
 public static partial class MarkdownReader {
@@ -70,20 +72,20 @@ public static partial class MarkdownReader {
             if (!TryGetHtmlBlockState(trimmed, out var blockState)) return false;
 
             int j = i;
-            var sb = new System.Text.StringBuilder();
+            var segments = new List<string>();
 
             while (j < lines.Length) {
                 string current = lines[j];
-                sb.Append(current);
-                sb.Append('\n');
-                bool completed = blockState.IsSatisfiedBy(current);
+                string normalized = current.EndsWith('\r') ? current.TrimEnd('\r') : current;
+                segments.Add(normalized);
+                bool completed = blockState.IsSatisfiedBy(normalized);
                 j++;
 
                 if (completed) break;
                 if (blockState.EndsOnBlankLine && j < lines.Length && string.IsNullOrWhiteSpace(lines[j])) break;
             }
 
-            doc.Add(new HtmlRawBlock(sb.ToString().TrimEnd('\r', '\n')));
+            doc.Add(new HtmlRawBlock(string.Join('\n', segments)));
             i = j;
             return true;
         }
@@ -129,9 +131,19 @@ public static partial class MarkdownReader {
         }
 
         private static bool IsType1Start(string trimmedLine, out string? endToken) {
+            if (!TryParseTag(trimmedLine, out var tagName, out var isClosing, out _)) {
+                endToken = null;
+                return false;
+            }
+
+            if (isClosing) {
+                endToken = null;
+                return false;
+            }
+
             string[] tags = { "script", "pre", "style" };
             foreach (var tag in tags) {
-                if (StartsWithTag(trimmedLine, tag)) {
+                if (string.Equals(tagName, tag, StringComparison.OrdinalIgnoreCase)) {
                     endToken = $"</{tag}>";
                     return true;
                 }
@@ -141,23 +153,6 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        private static bool StartsWithTag(string line, string tag) {
-            if (!line.StartsWith("<", StringComparison.Ordinal)) return false;
-
-            int idx = 1;
-            int len = line.Length;
-
-            while (idx < len && char.IsWhiteSpace(line[idx])) idx++;
-
-            if (idx + tag.Length > len) return false;
-            if (string.Compare(line, idx, tag, 0, tag.Length, StringComparison.OrdinalIgnoreCase) != 0) return false;
-            idx += tag.Length;
-
-            if (idx >= len) return true;
-            char c = line[idx];
-            return char.IsWhiteSpace(c) || c == '>' || c == '/';
-        }
-
         private static bool IsType4Start(string trimmedLine) {
             if (!trimmedLine.StartsWith("<!", StringComparison.Ordinal) || trimmedLine.Length < 3) return false;
             char next = trimmedLine[2];
@@ -165,29 +160,61 @@ public static partial class MarkdownReader {
         }
 
         private static bool IsType6Start(string trimmedLine) {
-            if (trimmedLine.Length < 2 || trimmedLine[0] != '<') return false;
+            if (!TryParseTag(trimmedLine, out var tagName, out _, out _)) return false;
+            return s_BlockTags.Contains(tagName);
+        }
+
+        private static bool IsType7Start(string trimmedLine) {
+            if (!TryParseTag(trimmedLine, out var tagName, out var isClosing, out _)) return false;
+            if (s_BlockTags.Contains(tagName)) return false;
+            if (!isClosing && string.Equals(tagName, "script", StringComparison.OrdinalIgnoreCase)) return false;
+            if (!isClosing && string.Equals(tagName, "style", StringComparison.OrdinalIgnoreCase)) return false;
+            if (!isClosing && string.Equals(tagName, "pre", StringComparison.OrdinalIgnoreCase)) return false;
+            return true;
+        }
+
+        private static int CountLeadingSpaces(string line) {
+            int count = 0;
+            while (count < line.Length && line[count] == ' ') {
+                count++;
+            }
+
+            return count;
+        }
+
+        private static bool TryParseTag(string line, out string tagName, out bool isClosing, out int endIndex) {
+            tagName = string.Empty;
+            isClosing = false;
+            endIndex = -1;
+
+            if (line.Length < 2 || line[0] != '<') return false;
 
             int idx = 1;
-            if (idx < trimmedLine.Length && trimmedLine[idx] == '/') idx++;
+            if (idx < line.Length && line[idx] == '/') {
+                isClosing = true;
+                idx++;
+            }
 
+            if (idx >= line.Length || !char.IsLetter(line[idx])) return false;
             int nameStart = idx;
-            if (idx >= trimmedLine.Length || !char.IsLetter(trimmedLine[idx])) return false;
             idx++;
-            while (idx < trimmedLine.Length && (char.IsLetterOrDigit(trimmedLine[idx]) || trimmedLine[idx] == '-')) idx++;
-            string tagName = trimmedLine.Substring(nameStart, idx - nameStart);
-            if (!s_BlockTags.Contains(tagName)) return false;
-
-            if (idx >= trimmedLine.Length) return false;
+            while (idx < line.Length && (char.IsLetterOrDigit(line[idx]) || line[idx] == '-' || line[idx] == ':')) idx++;
+            tagName = line.Substring(nameStart, idx - nameStart);
+            if (tagName.Length == 0) return false;
 
             bool insideQuotes = false;
             char quoteChar = '\0';
-            int end = -1;
+            bool escaped = false;
 
-            while (idx < trimmedLine.Length) {
-                char current = trimmedLine[idx];
+            while (idx < line.Length) {
+                char current = line[idx];
 
                 if (insideQuotes) {
-                    if (current == quoteChar) {
+                    if (escaped) {
+                        escaped = false;
+                    } else if (current == '\\') {
+                        escaped = true;
+                    } else if (current == quoteChar) {
                         insideQuotes = false;
                         quoteChar = '\0';
                     }
@@ -196,7 +223,7 @@ public static partial class MarkdownReader {
                         insideQuotes = true;
                         quoteChar = current;
                     } else if (current == '>') {
-                        end = idx;
+                        endIndex = idx;
                         idx++;
                         break;
                     } else if (current == '<') {
@@ -207,46 +234,13 @@ public static partial class MarkdownReader {
                 idx++;
             }
 
-            if (insideQuotes || end < 0) return false;
+            if (insideQuotes || endIndex < 0) return false;
+
+            for (int j = idx; j < line.Length; j++) {
+                if (!char.IsWhiteSpace(line[j])) return false;
+            }
+
             return true;
-        }
-
-        private static bool IsType7Start(string trimmedLine) {
-            if (trimmedLine.Length < 3 || trimmedLine[0] != '<') return false;
-
-            bool isClosing = trimmedLine[1] == '/';
-            int idx = isClosing ? 2 : 1;
-            if (idx >= trimmedLine.Length) return false;
-
-            int nameStart = idx;
-            if (!char.IsLetter(trimmedLine[idx])) return false;
-            idx++;
-            while (idx < trimmedLine.Length && (char.IsLetterOrDigit(trimmedLine[idx]) || trimmedLine[idx] == '-')) idx++;
-            string tagName = trimmedLine.Substring(nameStart, idx - nameStart);
-            if (!isClosing && string.Equals(tagName, "script", StringComparison.OrdinalIgnoreCase)) return false;
-            if (!isClosing && string.Equals(tagName, "style", StringComparison.OrdinalIgnoreCase)) return false;
-            if (!isClosing && string.Equals(tagName, "pre", StringComparison.OrdinalIgnoreCase)) return false;
-
-            int end = trimmedLine.IndexOf('>');
-            if (end < 0) return false;
-
-            if (trimmedLine[end] == '>') {
-                for (int j = end + 1; j < trimmedLine.Length; j++) {
-                    if (!char.IsWhiteSpace(trimmedLine[j])) return false;
-                }
-                return true;
-            }
-
-            return false;
-        }
-
-        private static int CountLeadingSpaces(string line) {
-            int count = 0;
-            while (count < line.Length && line[count] == ' ') {
-                count++;
-            }
-
-            return count;
         }
     }
 }
