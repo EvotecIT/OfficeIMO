@@ -3,6 +3,7 @@ using QuestPDF.Drawing;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using SkiaSharp;
+using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Globalization;
 using W = DocumentFormat.OpenXml.Wordprocessing;
@@ -51,33 +52,33 @@ namespace OfficeIMO.Word.Pdf {
 
         static string? TryResolveSystemFontFile(string family) {
             try {
-                if (OperatingSystem.IsWindows()) {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                     var fontsDir = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
                     if (!string.IsNullOrEmpty(fontsDir) && Directory.Exists(fontsDir)) {
                         // Common Arial files
                         string[] candidates = new[] { "arial.ttf", "arial.ttf", "ARIAL.TTF", "Arial.ttf", "arialmt.ttf", "ARIALMT.TTF" };
                         foreach (var c in candidates) {
-                            var p = Path.Combine(fontsDir, c);
+                            var p = System.IO.Path.Combine(fontsDir, c);
                             if (File.Exists(p)) return p;
                         }
                         // Last resort: search for files containing family name
-                        var file = Directory.EnumerateFiles(fontsDir, "*.ttf").Concat(Directory.EnumerateFiles(fontsDir, "*.otf")).FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).Contains(family, StringComparison.OrdinalIgnoreCase));
+                        var file = Directory.EnumerateFiles(fontsDir, "*.ttf").Concat(Directory.EnumerateFiles(fontsDir, "*.otf")).FirstOrDefault(f => System.IO.Path.GetFileNameWithoutExtension(f).Contains(family, StringComparison.OrdinalIgnoreCase));
                         if (file != null) return file;
                     }
-                } else if (OperatingSystem.IsMacOS()) {
+                } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
                     string[] paths = new[] {
                         "/System/Library/Fonts/Supplemental/Arial.ttf",
                         "/Library/Fonts/Arial.ttf",
                         "/System/Library/Fonts/Arial.ttf"
                     };
                     foreach (var p in paths) if (File.Exists(p)) return p;
-                } else if (OperatingSystem.IsLinux()) {
+                } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
                     // DejaVu Sans is most common
-                    string[] roots = new[] { "/usr/share/fonts", "/usr/local/share/fonts", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".fonts") };
+                    string[] roots = new[] { "/usr/share/fonts", "/usr/local/share/fonts", System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".fonts") };
                     foreach (var r in roots) {
                         if (!Directory.Exists(r)) continue;
                         var file = Directory.EnumerateFiles(r, "*", SearchOption.AllDirectories)
-                            .FirstOrDefault(f => Path.GetFileName(f).EndsWith(".ttf", StringComparison.OrdinalIgnoreCase) && Path.GetFileNameWithoutExtension(f).Contains(family.Replace(" ", string.Empty), StringComparison.OrdinalIgnoreCase));
+                            .FirstOrDefault(f => System.IO.Path.GetFileName(f).EndsWith(".ttf", StringComparison.OrdinalIgnoreCase) && System.IO.Path.GetFileNameWithoutExtension(f).Contains(family.Replace(" ", string.Empty), StringComparison.OrdinalIgnoreCase));
                         if (file != null) return file;
                         // Specific fallback for DejaVu Sans
                         var dv = Directory.EnumerateFiles(r, "DejaVuSans.ttf", SearchOption.AllDirectories).FirstOrDefault();
