@@ -239,10 +239,6 @@ public static partial class MarkdownReader {
 
             if (insideQuotes || endIndex < 0) return false;
 
-            for (int j = idx; j < line.Length; j++) {
-                if (!char.IsWhiteSpace(line[j])) return false;
-            }
-
             return true;
         }
     }
