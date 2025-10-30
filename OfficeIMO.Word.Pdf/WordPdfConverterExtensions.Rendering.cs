@@ -314,7 +314,7 @@ namespace OfficeIMO.Word.Pdf {
                 if (run.VerticalTextAlignment == W.VerticalPositionValues.Subscript) span = span.Subscript();
                 // Inline hyperlink on text spans is not supported by QuestPDF directly.
                 // Paragraph-level hyperlinks are applied earlier; skip span-level link here.
-                // Monospace/code detection via run font or provided default
+                // Choose run font: explicit run font, otherwise platform monospace, otherwise PdfSaveOptions.FontFamily
                 string? mono = null;
                 if (!string.IsNullOrEmpty(run.FontFamily)) mono = run.FontFamily;
                 mono ??= FontResolver.Resolve("monospace") ?? opt?.FontFamily;

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -50,7 +51,15 @@ namespace OfficeIMO.Word.Markdown {
                         // would duplicate content. Only render once per paragraph by processing
                         // the first run wrapper (IsFirstRun), or paragraphs that have no runs at all.
                         bool hasRuns = false;
-                        try { hasRuns = p.GetRuns().Any(); } catch { /* best-effort */ }
+                        try {
+                            hasRuns = p.GetRuns().Any();
+                        } catch (InvalidOperationException ex) {
+                            Debug.WriteLine($"GetRuns() failed for paragraph during Markdown conversion: {ex.Message}");
+                            hasRuns = false;
+                        } catch (NullReferenceException ex) {
+                            Debug.WriteLine($"GetRuns() null reference for paragraph during Markdown conversion: {ex.Message}");
+                            hasRuns = false;
+                        }
                         // Detect checkbox state across sibling wrappers for the same underlying paragraph
                         bool paraHasCheckbox = p.IsCheckBox;
                         bool paraCheckboxChecked = p.CheckBox?.IsChecked == true;
