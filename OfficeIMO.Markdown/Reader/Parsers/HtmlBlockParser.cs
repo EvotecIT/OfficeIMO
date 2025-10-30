@@ -74,7 +74,8 @@ public static partial class MarkdownReader {
 
             while (j < lines.Length) {
                 string current = lines[j];
-                sb.AppendLine(current);
+                sb.Append(current);
+                sb.Append('\n');
                 bool completed = blockState.IsSatisfiedBy(current);
                 j++;
 
