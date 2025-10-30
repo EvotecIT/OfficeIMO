@@ -119,6 +119,27 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
             Assert.DoesNotContain(doc.Blocks, block => block is HtmlRawBlock);
         }
+
+        [Fact]
+        public void Type6_Details_Block_Preserves_Blank_Line_Content() {
+            string md = "<details>\n<summary>Summary</summary>\n\n<div>Body</div>\n</details>\n\nParagraph";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
+            Assert.Equal("<details>\n<summary>Summary</summary>\n\n<div>Body</div>\n</details>", html.Html);
+            Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
+        }
+
+        [Fact]
+        public void Type6_Table_Block_Preserves_Blank_Line_Separated_Sections() {
+            string md = "<table>\n<thead>\n<tr><th>H</th></tr>\n</thead>\n\n<tbody>\n<tr><td>R1</td></tr>\n</tbody>\n</table>";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
+            Assert.Equal("<table>\n<thead>\n<tr><th>H</th></tr>\n</thead>\n\n<tbody>\n<tr><td>R1</td></tr>\n</tbody>\n</table>", html.Html);
+        }
     }
 }
 

@@ -16,15 +16,21 @@ public static partial class MarkdownReader {
         }
 
         private readonly struct HtmlBlockState {
-            public HtmlBlockState(HtmlBlockKind kind, string? primaryEndToken) {
+            public HtmlBlockState(HtmlBlockKind kind, string? primaryEndToken, string? primaryTagName, bool allowsBlankLineContinuation) {
                 Kind = kind;
                 PrimaryEndToken = primaryEndToken;
+                PrimaryTagName = primaryTagName;
+                AllowsBlankLineContinuation = allowsBlankLineContinuation;
             }
 
             public HtmlBlockKind Kind { get; }
             public string? PrimaryEndToken { get; }
+            public string? PrimaryTagName { get; }
+            public bool AllowsBlankLineContinuation { get; }
 
             public bool EndsOnBlankLine => Kind is HtmlBlockKind.Type6 or HtmlBlockKind.Type7;
+
+            public bool TracksStack => !string.IsNullOrEmpty(PrimaryTagName);
 
             public bool IsSatisfiedBy(string line) {
                 switch (Kind) {
@@ -73,6 +79,7 @@ public static partial class MarkdownReader {
 
             int j = i;
             var segments = new List<string>();
+            int stackDepth = 0;
 
             while (j < lines.Length) {
                 string current = lines[j];
@@ -80,11 +87,23 @@ public static partial class MarkdownReader {
                     ? current.TrimEnd('\r')
                     : current;
                 segments.Add(normalized);
+                if (blockState.TracksStack) {
+                    stackDepth = UpdateStackDepth(blockState, normalized, stackDepth);
+                }
                 bool completed = blockState.IsSatisfiedBy(normalized);
                 j++;
 
                 if (completed) break;
-                if (blockState.EndsOnBlankLine && j < lines.Length && string.IsNullOrWhiteSpace(lines[j])) break;
+                if (blockState.TracksStack && stackDepth <= 0 && blockState.Kind is HtmlBlockKind.Type6 or HtmlBlockKind.Type7) break;
+                if (blockState.EndsOnBlankLine && j < lines.Length && string.IsNullOrWhiteSpace(lines[j])) {
+                    if (!blockState.TracksStack) {
+                        break;
+                    }
+
+                    if (!blockState.AllowsBlankLineContinuation || stackDepth <= 0) {
+                        break;
+                    }
+                }
             }
 
             doc.Add(new HtmlRawBlock(string.Join("\n", segments)));
@@ -94,37 +113,37 @@ public static partial class MarkdownReader {
 
         private static bool TryGetHtmlBlockState(string trimmedLine, out HtmlBlockState state) {
             if (IsType1Start(trimmedLine, out var token)) {
-                state = new HtmlBlockState(HtmlBlockKind.Type1, token);
+                state = new HtmlBlockState(HtmlBlockKind.Type1, token, null, allowsBlankLineContinuation: false);
                 return true;
             }
 
             if (trimmedLine.StartsWith("<!--", StringComparison.Ordinal)) {
-                state = new HtmlBlockState(HtmlBlockKind.Type2, null);
+                state = new HtmlBlockState(HtmlBlockKind.Type2, null, null, allowsBlankLineContinuation: false);
                 return true;
             }
 
             if (trimmedLine.StartsWith("<?", StringComparison.Ordinal)) {
-                state = new HtmlBlockState(HtmlBlockKind.Type3, null);
+                state = new HtmlBlockState(HtmlBlockKind.Type3, null, null, allowsBlankLineContinuation: false);
                 return true;
             }
 
             if (IsType4Start(trimmedLine)) {
-                state = new HtmlBlockState(HtmlBlockKind.Type4, null);
+                state = new HtmlBlockState(HtmlBlockKind.Type4, null, null, allowsBlankLineContinuation: false);
                 return true;
             }
 
             if (trimmedLine.StartsWith("<![CDATA[", StringComparison.Ordinal)) {
-                state = new HtmlBlockState(HtmlBlockKind.Type5, null);
+                state = new HtmlBlockState(HtmlBlockKind.Type5, null, null, allowsBlankLineContinuation: false);
                 return true;
             }
 
-            if (IsType6Start(trimmedLine)) {
-                state = new HtmlBlockState(HtmlBlockKind.Type6, null);
+            if (IsType6Start(trimmedLine, out var tagName, out var allowsBlankLines)) {
+                state = new HtmlBlockState(HtmlBlockKind.Type6, null, tagName, allowsBlankLines);
                 return true;
             }
 
-            if (IsType7Start(trimmedLine)) {
-                state = new HtmlBlockState(HtmlBlockKind.Type7, null);
+            if (IsType7Start(trimmedLine, out var type7Tag, out var allowsBlankLinesType7)) {
+                state = new HtmlBlockState(HtmlBlockKind.Type7, null, type7Tag, allowsBlankLinesType7);
                 return true;
             }
 
@@ -161,20 +180,35 @@ public static partial class MarkdownReader {
             return next is >= 'A' and <= 'Z';
         }
 
-        private static bool IsType6Start(string trimmedLine) {
-            if (!TryParseTag(trimmedLine, out var tagName, out _, out var endIndex)) return false;
+        private static bool IsType6Start(string trimmedLine, out string? tagName, out bool allowsBlankLines) {
+            allowsBlankLines = false;
+            if (!TryParseTag(trimmedLine, out tagName, out var isClosing, out var endIndex)) return false;
+            if (isClosing) return false;
             if (endIndex < 0) return false;
-            return s_BlockTags.Contains(tagName);
+            allowsBlankLines = AllowsBlankLineContinuation(tagName!);
+            return s_BlockTags.Contains(tagName!);
         }
 
-        private static bool IsType7Start(string trimmedLine) {
-            if (!TryParseTag(trimmedLine, out var tagName, out var isClosing, out _)) return false;
-            if (s_BlockTags.Contains(tagName)) return false;
+        private static bool IsType7Start(string trimmedLine, out string? tagName, out bool allowsBlankLines) {
+            allowsBlankLines = false;
+            if (!TryParseTag(trimmedLine, out tagName, out var isClosing, out var endIndex)) return false;
+            if (endIndex < 0) return false;
+            if (s_BlockTags.Contains(tagName!)) return false;
             if (!isClosing && string.Equals(tagName, "script", StringComparison.OrdinalIgnoreCase)) return false;
             if (!isClosing && string.Equals(tagName, "style", StringComparison.OrdinalIgnoreCase)) return false;
             if (!isClosing && string.Equals(tagName, "pre", StringComparison.OrdinalIgnoreCase)) return false;
+            allowsBlankLines = AllowsBlankLineContinuation(tagName!);
             return true;
         }
+
+        private static bool AllowsBlankLineContinuation(string tagName) {
+            return s_BlankLineFriendlyTags.Contains(tagName);
+        }
+
+        private static readonly HashSet<string> s_BlankLineFriendlyTags = new(StringComparer.OrdinalIgnoreCase) {
+            "details",
+            "table",
+        };
 
         private static int CountLeadingSpaces(string line) {
             int count = 0;
@@ -240,6 +274,60 @@ public static partial class MarkdownReader {
             if (insideQuotes || endIndex < 0) return false;
 
             return true;
+        }
+
+        private static int UpdateStackDepth(HtmlBlockState state, string line, int currentDepth) {
+            if (string.IsNullOrEmpty(state.PrimaryTagName)) return currentDepth;
+
+            string tagName = state.PrimaryTagName!;
+            int index = 0;
+
+            while (index < line.Length) {
+                int tagStart = line.IndexOf('<', index);
+                if (tagStart < 0) break;
+
+                if (!TryParseTagAt(line, tagStart, out var foundTag, out var isClosing, out var nextIndex, out var endIndex)) {
+                    index = tagStart + 1;
+                    continue;
+                }
+
+                bool isTarget = string.Equals(foundTag, tagName, StringComparison.OrdinalIgnoreCase);
+                bool selfClosing = IsSelfClosing(line, tagStart, endIndex);
+
+                if (isTarget && !selfClosing) {
+                    currentDepth += isClosing ? -1 : 1;
+                }
+
+                index = nextIndex;
+            }
+
+            return currentDepth;
+        }
+
+        private static bool TryParseTagAt(string line, int startIndex, out string tagName, out bool isClosing, out int nextIndex, out int endIndex) {
+            tagName = string.Empty;
+            isClosing = false;
+            nextIndex = startIndex + 1;
+            endIndex = -1;
+
+            if (startIndex < 0 || startIndex >= line.Length || line[startIndex] != '<') return false;
+
+            string segment = line.Substring(startIndex);
+            if (!TryParseTag(segment, out tagName, out isClosing, out var localEndIndex)) {
+                return false;
+            }
+
+            endIndex = startIndex + localEndIndex;
+            nextIndex = endIndex + 1;
+            return true;
+        }
+
+        private static bool IsSelfClosing(string line, int startIndex, int endIndex) {
+            if (endIndex <= startIndex) return false;
+
+            int idx = endIndex - 1;
+            while (idx > startIndex && char.IsWhiteSpace(line[idx])) idx--;
+            return idx > startIndex && line[idx] == '/';
         }
     }
 }
