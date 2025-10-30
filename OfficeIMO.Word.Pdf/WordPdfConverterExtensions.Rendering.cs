@@ -62,7 +62,7 @@ namespace OfficeIMO.Word.Pdf {
                             if (File.Exists(p)) return p;
                         }
                         // Last resort: search for files containing family name
-                        var file = Directory.EnumerateFiles(fontsDir, "*.ttf").Concat(Directory.EnumerateFiles(fontsDir, "*.otf")).FirstOrDefault(f => System.IO.Path.GetFileNameWithoutExtension(f).Contains(family, StringComparison.OrdinalIgnoreCase));
+                        var file = Directory.EnumerateFiles(fontsDir, "*.ttf").Concat(Directory.EnumerateFiles(fontsDir, "*.otf")).FirstOrDefault(f => System.IO.Path.GetFileNameWithoutExtension(f).IndexOf(family, StringComparison.OrdinalIgnoreCase) >= 0);
                         if (file != null) return file;
                     }
                 } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
@@ -78,11 +78,11 @@ namespace OfficeIMO.Word.Pdf {
                     foreach (var r in roots) {
                         if (!Directory.Exists(r)) continue;
                         var file = Directory.EnumerateFiles(r, "*", SearchOption.AllDirectories)
-                            .FirstOrDefault(f => System.IO.Path.GetFileName(f).EndsWith(".ttf", StringComparison.OrdinalIgnoreCase) && System.IO.Path.GetFileNameWithoutExtension(f).Contains(family.Replace(" ", string.Empty), StringComparison.OrdinalIgnoreCase));
+                            .FirstOrDefault(f => System.IO.Path.GetFileName(f).EndsWith(".ttf", StringComparison.OrdinalIgnoreCase) && System.IO.Path.GetFileNameWithoutExtension(f).IndexOf(family.Replace(" ", string.Empty), StringComparison.OrdinalIgnoreCase) >= 0);
                         if (file != null) return file;
                         // Specific fallback for DejaVu Sans
                         var dv = Directory.EnumerateFiles(r, "DejaVuSans.ttf", SearchOption.AllDirectories).FirstOrDefault();
-                        if (dv != null && family.Contains("DejaVu", StringComparison.OrdinalIgnoreCase)) return dv;
+                        if (dv != null && family.IndexOf("DejaVu", StringComparison.OrdinalIgnoreCase) >= 0) return dv;
                     }
                 }
             } catch { }
