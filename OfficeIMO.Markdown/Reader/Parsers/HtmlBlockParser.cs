@@ -64,7 +64,7 @@ public static partial class MarkdownReader {
             int indent = CountLeadingSpaces(line);
             if (indent < 0 || indent > 3) return false;
 
-            var trimmed = line.Substring(indent);
+            string trimmed = indent == 0 ? line : line.Substring(indent);
             if (trimmed.Length == 0 || trimmed[0] != '<') return false;
 
             if (!TryGetHtmlBlockState(trimmed, out var blockState)) return false;
@@ -127,7 +127,7 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        private static bool IsType1Start(string trimmedLine, out string endToken) {
+        private static bool IsType1Start(string trimmedLine, out string? endToken) {
             string[] tags = { "script", "pre", "style" };
             foreach (var tag in tags) {
                 if (StartsWithTag(trimmedLine, tag)) {
@@ -136,7 +136,7 @@ public static partial class MarkdownReader {
                 }
             }
 
-            endToken = string.Empty;
+            endToken = null;
             return false;
         }
 
@@ -149,7 +149,7 @@ public static partial class MarkdownReader {
             while (idx < len && char.IsWhiteSpace(line[idx])) idx++;
 
             if (idx + tag.Length > len) return false;
-            if (!line.Substring(idx, tag.Length).Equals(tag, StringComparison.OrdinalIgnoreCase)) return false;
+            if (string.Compare(line, idx, tag, 0, tag.Length, StringComparison.OrdinalIgnoreCase) != 0) return false;
             idx += tag.Length;
 
             if (idx >= len) return true;
@@ -167,11 +167,7 @@ public static partial class MarkdownReader {
             if (trimmedLine.Length < 2 || trimmedLine[0] != '<') return false;
 
             int idx = 1;
-            bool isClosing = false;
-            if (idx < trimmedLine.Length && trimmedLine[idx] == '/') {
-                isClosing = true;
-                idx++;
-            }
+            if (idx < trimmedLine.Length && trimmedLine[idx] == '/') idx++;
 
             int nameStart = idx;
             if (idx >= trimmedLine.Length || !char.IsLetter(trimmedLine[idx])) return false;
@@ -180,13 +176,38 @@ public static partial class MarkdownReader {
             string tagName = trimmedLine.Substring(nameStart, idx - nameStart);
             if (!s_BlockTags.Contains(tagName)) return false;
 
-            if (idx >= trimmedLine.Length) return true;
-            char next = trimmedLine[idx];
-            if (isClosing) {
-                return next == '>' || char.IsWhiteSpace(next);
+            if (idx >= trimmedLine.Length) return false;
+
+            bool insideQuotes = false;
+            char quoteChar = '\0';
+            int end = -1;
+
+            while (idx < trimmedLine.Length) {
+                char current = trimmedLine[idx];
+
+                if (insideQuotes) {
+                    if (current == quoteChar) {
+                        insideQuotes = false;
+                        quoteChar = '\0';
+                    }
+                } else {
+                    if (current == '\'' || current == '"') {
+                        insideQuotes = true;
+                        quoteChar = current;
+                    } else if (current == '>') {
+                        end = idx;
+                        idx++;
+                        break;
+                    } else if (current == '<') {
+                        return false;
+                    }
+                }
+
+                idx++;
             }
 
-            return char.IsWhiteSpace(next) || next == '>' || next == '/';
+            if (insideQuotes || end < 0) return false;
+            return true;
         }
 
         private static bool IsType7Start(string trimmedLine) {

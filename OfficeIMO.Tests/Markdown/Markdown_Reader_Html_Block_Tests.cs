@@ -36,6 +36,16 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Equal("<div>\n<p>inline</p>", html.Html);
             Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
         }
+
+        [Fact]
+        public void Incomplete_Block_Tag_Remains_Text() {
+            string md = "<div\nParagraph";
+
+            var doc = MarkdownReader.Parse(md);
+
+            Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+            Assert.DoesNotContain(doc.Blocks, block => block is HtmlRawBlock);
+        }
     }
 }
 
