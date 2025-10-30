@@ -124,5 +124,11 @@ namespace OfficeIMO.Word.Pdf {
         /// Optional format for page numbers. Use "{current}" for the current page and "{total}" for total pages.
         /// </summary>
         public string? PageNumberFormat { get; set; }
+
+        /// <summary>
+        /// When true, draws subtle borders for table cells that do not define borders in the Word document.
+        /// Defaults to false to preserve strict fidelity.
+        /// </summary>
+        public bool DefaultTableBorders { get; set; } = false;
     }
 }

@@ -3,6 +3,7 @@ using QuestPDF.Drawing;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using SkiaSharp;
+using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Globalization;
 using W = DocumentFormat.OpenXml.Wordprocessing;
@@ -21,25 +22,71 @@ namespace OfficeIMO.Word.Pdf {
             try {
                 using SKTypeface? typeface = SKTypeface.FromFamilyName(fontFamily);
                 using SKStreamAsset? skStream = typeface?.OpenStream();
-                if (skStream == null) {
+                if (skStream != null) {
+                    using MemoryStream ms = new();
+                    if (skStream.HasLength) {
+                        byte[] buffer = new byte[skStream.Length];
+                        skStream.Read(buffer, buffer.Length);
+                        ms.Write(buffer, 0, buffer.Length);
+                    } else {
+                        byte[] buffer = new byte[4096];
+                        int read;
+                        while ((read = skStream.Read(buffer, buffer.Length)) > 0) {
+                            ms.Write(buffer, 0, read);
+                        }
+                    }
+                    ms.Position = 0;
+                    FontManager.RegisterFontWithCustomName(fontFamily!, ms);
                     return;
                 }
-                using MemoryStream ms = new();
-                if (skStream.HasLength) {
-                    byte[] buffer = new byte[skStream.Length];
-                    skStream.Read(buffer, buffer.Length);
-                    ms.Write(buffer, 0, buffer.Length);
-                } else {
-                    byte[] buffer = new byte[4096];
-                    int read;
-                    while ((read = skStream.Read(buffer, buffer.Length)) > 0) {
-                        ms.Write(buffer, 0, read);
-                    }
+
+                // Fallback: try to locate system font files cross-platform
+                string? path = TryResolveSystemFontFile(fontFamily!);
+                if (!string.IsNullOrEmpty(path) && File.Exists(path)) {
+                    using var fs = File.OpenRead(path);
+                    FontManager.RegisterFontWithCustomName(fontFamily!, fs);
                 }
-                ms.Position = 0;
-                FontManager.RegisterFontWithCustomName(fontFamily!, ms);
             } catch {
             }
+        }
+
+        static string? TryResolveSystemFontFile(string family) {
+            try {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                    var fontsDir = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
+                    if (!string.IsNullOrEmpty(fontsDir) && Directory.Exists(fontsDir)) {
+                        // Common Arial files
+                        string[] candidates = new[] { "arial.ttf", "arial.ttf", "ARIAL.TTF", "Arial.ttf", "arialmt.ttf", "ARIALMT.TTF" };
+                        foreach (var c in candidates) {
+                            var p = System.IO.Path.Combine(fontsDir, c);
+                            if (File.Exists(p)) return p;
+                        }
+                        // Last resort: search for files containing family name
+                        var file = Directory.EnumerateFiles(fontsDir, "*.ttf").Concat(Directory.EnumerateFiles(fontsDir, "*.otf")).FirstOrDefault(f => System.IO.Path.GetFileNameWithoutExtension(f).IndexOf(family, StringComparison.OrdinalIgnoreCase) >= 0);
+                        if (file != null) return file;
+                    }
+                } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                    string[] paths = new[] {
+                        "/System/Library/Fonts/Supplemental/Arial.ttf",
+                        "/Library/Fonts/Arial.ttf",
+                        "/System/Library/Fonts/Arial.ttf"
+                    };
+                    foreach (var p in paths) if (File.Exists(p)) return p;
+                } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+                    // DejaVu Sans is most common
+                    string[] roots = new[] { "/usr/share/fonts", "/usr/local/share/fonts", System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".fonts") };
+                    foreach (var r in roots) {
+                        if (!Directory.Exists(r)) continue;
+                        var file = Directory.EnumerateFiles(r, "*", SearchOption.AllDirectories)
+                            .FirstOrDefault(f => System.IO.Path.GetFileName(f).EndsWith(".ttf", StringComparison.OrdinalIgnoreCase) && System.IO.Path.GetFileNameWithoutExtension(f).IndexOf(family.Replace(" ", string.Empty), StringComparison.OrdinalIgnoreCase) >= 0);
+                        if (file != null) return file;
+                        // Specific fallback for DejaVu Sans
+                        var dv = Directory.EnumerateFiles(r, "DejaVuSans.ttf", SearchOption.AllDirectories).FirstOrDefault();
+                        if (dv != null && family.IndexOf("DejaVu", StringComparison.OrdinalIgnoreCase) >= 0) return dv;
+                    }
+                }
+            } catch { }
+            return null;
         }
         static void RenderElement(ColumnDescriptor column, WordElement element, Func<WordParagraph, (int Level, string Marker)?> getMarker, PdfSaveOptions? options, Dictionary<WordParagraph, int> footnoteMap) {
             switch (element) {
@@ -86,6 +133,12 @@ namespace OfficeIMO.Word.Pdf {
                 container = container.AlignLeft();
             }
 
+            // Paragraph background and borders
+            if (!string.IsNullOrEmpty(paragraph.ShadingFillColorHex)) {
+                container = container.Background("#" + paragraph.ShadingFillColorHex);
+            }
+            container = ApplyParagraphBorders(container, paragraph);
+
             int? currentFootnoteNumber = null;
             if (footnoteMap.TryGetValue(paragraph, out int num)) {
                 currentFootnoteNumber = num;
@@ -106,8 +159,11 @@ namespace OfficeIMO.Word.Pdf {
                     });
                 }
 
+                var runObjs = paragraph.GetRuns().ToList();
+                // Prefer run-accurate rendering when available; otherwise fall back to paragraph text
                 string content = paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
-                if (!string.IsNullOrEmpty(content) || marker != null) {
+                bool hasRenderableRuns = runObjs.Count > 0 && runObjs.Any(r => r.IsImage || !string.IsNullOrEmpty(r.Text));
+                if (hasRenderableRuns || !string.IsNullOrEmpty(content) || marker != null) {
                     if (marker != null) {
                         const float indentSize = 15f;
                         col.Item().Row(row => {
@@ -116,7 +172,18 @@ namespace OfficeIMO.Word.Pdf {
                             }
                             row.AutoItem().Text(marker.Value.Marker + " ");
                             row.RelativeItem().Text(text => {
-                                ApplyFormatting(text.Span(content));
+                                if (hasRenderableRuns) {
+                                    foreach (var run in runObjs) {
+                                        if (run.IsImage) continue; // images handled separately above
+                                        if (string.IsNullOrEmpty(run.Text)) continue;
+                                        var span = text.Span(run.Text!);
+                                        // apply paragraph defaults first, then run overrides
+                                        ApplyFormatting(span);
+                                        ApplyRunFormatting(ref span, run, options);
+                                    }
+                                } else {
+                                    ApplyFormatting(text.Span(content));
+                                }
                                 if (currentFootnoteNumber != null) {
                                     text.Span(currentFootnoteNumber.Value.ToString()).FontSize(8).Superscript();
                                 }
@@ -124,7 +191,18 @@ namespace OfficeIMO.Word.Pdf {
                         });
                     } else {
                         col.Item().Text(text => {
-                            ApplyFormatting(text.Span(content));
+                            if (hasRenderableRuns) {
+                                foreach (var run in runObjs) {
+                                    if (run.IsImage) continue; // images handled above
+                                    if (string.IsNullOrEmpty(run.Text)) continue;
+                                    var span = text.Span(run.Text!);
+                                    // apply paragraph defaults first, then run overrides
+                                    ApplyFormatting(span);
+                                    ApplyRunFormatting(ref span, run, options);
+                                }
+                            } else {
+                                ApplyFormatting(text.Span(content));
+                            }
                             if (currentFootnoteNumber != null) {
                                 text.Span(currentFootnoteNumber.Value.ToString()).FontSize(8).Superscript();
                             }
@@ -135,14 +213,37 @@ namespace OfficeIMO.Word.Pdf {
 
             return container;
 
+            string? ResolveRegisteredFamily(string? name) {
+                try {
+                    if (!string.IsNullOrWhiteSpace(name)) {
+                        if (options?.FontFilePaths != null && options.FontFilePaths.TryGetValue(name!, out var path) && File.Exists(path)) {
+                            using var tf = SKTypeface.FromFile(path);
+                            return tf?.FamilyName ?? name;
+                        }
+                        if (options?.FontStreams != null && options.FontStreams.TryGetValue(name!, out var s) && s != null) {
+                            Stream src = s;
+                            if (src.CanSeek) src.Position = 0;
+                            using MemoryStream ms = new();
+                            src.CopyTo(ms);
+                            ms.Position = 0;
+                            using var tf = SKTypeface.FromStream(new SKManagedStream(ms));
+                            if (src.CanSeek) src.Position = 0;
+                            return tf?.FamilyName ?? name;
+                        }
+                    }
+                } catch { }
+                return name;
+            }
+
             void ApplyFormatting(TextSpanDescriptor span) {
                 if (!string.IsNullOrEmpty(paragraph.FontFamily)) {
-                    EmbedFont(paragraph.FontFamily);
-                    span = span.FontFamily(paragraph.FontFamily!);
+                    var fam = ResolveRegisteredFamily(paragraph.FontFamily!);
+                    EmbedFont(fam);
+                    span = span.FontFamily(fam!);
                 } else if (!string.IsNullOrEmpty(options?.FontFamily)) {
-                    var defFont = options!.FontFamily!;
+                    var defFont = ResolveRegisteredFamily(options!.FontFamily!);
                     EmbedFont(defFont);
-                    span = span.FontFamily(defFont);
+                    span = span.FontFamily(defFont!);
                 }
                 if (paragraph.Bold) {
                     span = span.Bold();
@@ -178,6 +279,72 @@ namespace OfficeIMO.Word.Pdf {
                             break;
                     }
                 }
+            }
+
+            static string? MapHighlight(W.HighlightColorValues? highlight) {
+                if (!highlight.HasValue) return null;
+                var v = highlight.Value;
+                if (v == W.HighlightColorValues.None) return null;
+                if (v == W.HighlightColorValues.Black) return "#000000";
+                if (v == W.HighlightColorValues.Blue) return "#0000ff";
+                if (v == W.HighlightColorValues.Cyan) return "#00ffff";
+                if (v == W.HighlightColorValues.Green) return "#00ff00";
+                if (v == W.HighlightColorValues.Magenta) return "#ff00ff";
+                if (v == W.HighlightColorValues.Red) return "#ff0000";
+                if (v == W.HighlightColorValues.Yellow) return "#ffff00";
+                if (v == W.HighlightColorValues.White) return "#ffffff";
+                if (v == W.HighlightColorValues.DarkBlue) return "#00008b";
+                if (v == W.HighlightColorValues.DarkCyan) return "#008b8b";
+                if (v == W.HighlightColorValues.DarkGreen) return "#006400";
+                if (v == W.HighlightColorValues.DarkMagenta) return "#8b008b";
+                if (v == W.HighlightColorValues.DarkRed) return "#8b0000";
+                if (v == W.HighlightColorValues.DarkYellow) return "#b8860b";
+                if (v == W.HighlightColorValues.LightGray) return "#d3d3d3";
+                if (v == W.HighlightColorValues.DarkGray) return "#a9a9a9";
+                return null;
+            }
+
+            void ApplyRunFormatting(ref TextSpanDescriptor span, WordParagraph run, PdfSaveOptions? opt) {
+                if (string.IsNullOrEmpty(run.Text)) return;
+                if (run.Bold) span = span.Bold();
+                if (run.Italic) span = span.Italic();
+                if (run.Underline != null) span = span.Underline();
+                if (run.Strike || run.DoubleStrike) span = span.Strikethrough();
+                if (run.VerticalTextAlignment == W.VerticalPositionValues.Superscript) span = span.Superscript();
+                if (run.VerticalTextAlignment == W.VerticalPositionValues.Subscript) span = span.Subscript();
+                // Inline hyperlink on text spans is not supported by QuestPDF directly.
+                // Paragraph-level hyperlinks are applied earlier; skip span-level link here.
+                // Choose run font: explicit run font, otherwise platform monospace, otherwise PdfSaveOptions.FontFamily
+                string? mono = null;
+                if (!string.IsNullOrEmpty(run.FontFamily)) mono = run.FontFamily;
+                mono ??= FontResolver.Resolve("monospace") ?? opt?.FontFamily;
+                if (!string.IsNullOrEmpty(mono)) {
+                    var fam = ResolveRegisteredFamily(mono)!;
+                    EmbedFont(fam);
+                    span = span.FontFamily(fam);
+                }
+                if (!string.IsNullOrEmpty(run.ColorHex)) span = span.FontColor("#" + run.ColorHex);
+                var hl = MapHighlight(run.Highlight);
+                if (!string.IsNullOrEmpty(hl)) span = span.BackgroundColor(hl!);
+            }
+
+            static IContainer ApplyParagraphBorders(IContainer cont, WordParagraph p) {
+                var b = p.Borders;
+                if (b == null) return cont;
+
+                // Determine a uniform color if possible
+                var colors = new List<string?> { b.TopColorHex, b.BottomColorHex, b.LeftColorHex, b.RightColorHex };
+                colors.RemoveAll(string.IsNullOrEmpty);
+                if (colors.Count > 0 && colors.Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1) {
+                    cont = cont.BorderColor("#" + colors[0]!);
+                }
+
+                float BorderWidth(uint? size) => size.HasValue ? size.Value / 8f : 0f;
+                if (b.TopStyle != null && b.TopStyle != W.BorderValues.Nil && b.TopStyle != W.BorderValues.None) cont = cont.BorderTop(BorderWidth(b.TopSize?.Value));
+                if (b.BottomStyle != null && b.BottomStyle != W.BorderValues.Nil && b.BottomStyle != W.BorderValues.None) cont = cont.BorderBottom(BorderWidth(b.BottomSize?.Value));
+                if (b.LeftStyle != null && b.LeftStyle != W.BorderValues.Nil && b.LeftStyle != W.BorderValues.None) cont = cont.BorderLeft(BorderWidth(b.LeftSize?.Value));
+                if (b.RightStyle != null && b.RightStyle != W.BorderValues.Nil && b.RightStyle != W.BorderValues.None) cont = cont.BorderRight(BorderWidth(b.RightSize?.Value));
+                return cont;
             }
         }
 
