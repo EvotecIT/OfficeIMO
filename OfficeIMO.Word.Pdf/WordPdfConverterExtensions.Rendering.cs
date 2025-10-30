@@ -21,25 +21,71 @@ namespace OfficeIMO.Word.Pdf {
             try {
                 using SKTypeface? typeface = SKTypeface.FromFamilyName(fontFamily);
                 using SKStreamAsset? skStream = typeface?.OpenStream();
-                if (skStream == null) {
+                if (skStream != null) {
+                    using MemoryStream ms = new();
+                    if (skStream.HasLength) {
+                        byte[] buffer = new byte[skStream.Length];
+                        skStream.Read(buffer, buffer.Length);
+                        ms.Write(buffer, 0, buffer.Length);
+                    } else {
+                        byte[] buffer = new byte[4096];
+                        int read;
+                        while ((read = skStream.Read(buffer, buffer.Length)) > 0) {
+                            ms.Write(buffer, 0, read);
+                        }
+                    }
+                    ms.Position = 0;
+                    FontManager.RegisterFontWithCustomName(fontFamily!, ms);
                     return;
                 }
-                using MemoryStream ms = new();
-                if (skStream.HasLength) {
-                    byte[] buffer = new byte[skStream.Length];
-                    skStream.Read(buffer, buffer.Length);
-                    ms.Write(buffer, 0, buffer.Length);
-                } else {
-                    byte[] buffer = new byte[4096];
-                    int read;
-                    while ((read = skStream.Read(buffer, buffer.Length)) > 0) {
-                        ms.Write(buffer, 0, read);
-                    }
+
+                // Fallback: try to locate system font files cross-platform
+                string? path = TryResolveSystemFontFile(fontFamily!);
+                if (!string.IsNullOrEmpty(path) && File.Exists(path)) {
+                    using var fs = File.OpenRead(path);
+                    FontManager.RegisterFontWithCustomName(fontFamily!, fs);
                 }
-                ms.Position = 0;
-                FontManager.RegisterFontWithCustomName(fontFamily!, ms);
             } catch {
             }
+        }
+
+        static string? TryResolveSystemFontFile(string family) {
+            try {
+                if (OperatingSystem.IsWindows()) {
+                    var fontsDir = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
+                    if (!string.IsNullOrEmpty(fontsDir) && Directory.Exists(fontsDir)) {
+                        // Common Arial files
+                        string[] candidates = new[] { "arial.ttf", "arial.ttf", "ARIAL.TTF", "Arial.ttf", "arialmt.ttf", "ARIALMT.TTF" };
+                        foreach (var c in candidates) {
+                            var p = Path.Combine(fontsDir, c);
+                            if (File.Exists(p)) return p;
+                        }
+                        // Last resort: search for files containing family name
+                        var file = Directory.EnumerateFiles(fontsDir, "*.ttf").Concat(Directory.EnumerateFiles(fontsDir, "*.otf")).FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).Contains(family, StringComparison.OrdinalIgnoreCase));
+                        if (file != null) return file;
+                    }
+                } else if (OperatingSystem.IsMacOS()) {
+                    string[] paths = new[] {
+                        "/System/Library/Fonts/Supplemental/Arial.ttf",
+                        "/Library/Fonts/Arial.ttf",
+                        "/System/Library/Fonts/Arial.ttf"
+                    };
+                    foreach (var p in paths) if (File.Exists(p)) return p;
+                } else if (OperatingSystem.IsLinux()) {
+                    // DejaVu Sans is most common
+                    string[] roots = new[] { "/usr/share/fonts", "/usr/local/share/fonts", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".fonts") };
+                    foreach (var r in roots) {
+                        if (!Directory.Exists(r)) continue;
+                        var file = Directory.EnumerateFiles(r, "*", SearchOption.AllDirectories)
+                            .FirstOrDefault(f => Path.GetFileName(f).EndsWith(".ttf", StringComparison.OrdinalIgnoreCase) && Path.GetFileNameWithoutExtension(f).Contains(family.Replace(" ", string.Empty), StringComparison.OrdinalIgnoreCase));
+                        if (file != null) return file;
+                        // Specific fallback for DejaVu Sans
+                        var dv = Directory.EnumerateFiles(r, "DejaVuSans.ttf", SearchOption.AllDirectories).FirstOrDefault();
+                        if (dv != null && family.Contains("DejaVu", StringComparison.OrdinalIgnoreCase)) return dv;
+                    }
+                }
+            } catch { }
+            return null;
         }
         static void RenderElement(ColumnDescriptor column, WordElement element, Func<WordParagraph, (int Level, string Marker)?> getMarker, PdfSaveOptions? options, Dictionary<WordParagraph, int> footnoteMap) {
             switch (element) {
