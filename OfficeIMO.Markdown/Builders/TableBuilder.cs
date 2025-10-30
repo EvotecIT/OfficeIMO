@@ -69,21 +69,24 @@ public sealed class TableBuilder {
         if (TryFromStringObjectKeyValuePairs(data)) return this;
 
         if (data is System.Collections.IEnumerable seq && data is not string) {
-            // Determine if scalar or object sequence by peeking first non-null item
+            var items = new List<object?>(MaxRows);
+            foreach (var item in seq) { items.Add(item); if (items.Count >= MaxRows) break; }
             object? first = null;
-            foreach (var item in seq) { first = item; if (first != null) break; }
+            foreach (var item in items) { if (item != null) { first = item; break; } }
             if (first is null) return this; // empty sequence
 
             if (IsScalar(first)) {
                 if (_table.Headers.Count == 0) _table.Headers.Add("Value");
-                foreach (var item in seq) { if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(new[] { FormatValue(item) }); }
+                foreach (var item in items) { if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(new[] { FormatValue(item) }); }
                 return this;
             }
+
+            if (TryFromDictionarySequence(items, first, options)) return this;
 
             // Object sequence → headers from public readable properties
             var props = SelectProperties(first.GetType(), options);
             if (_table.Headers.Count == 0) _table.Headers.AddRange(props.Select(p => Rename(p.Name, options)));
-            foreach (var item in seq) {
+            foreach (var item in items) {
                 if (item == null) { _table.Rows.Add(props.Select(_ => string.Empty).ToArray()); continue; }
                 var row = props.Select(p => FormatValue(p.GetValue(item, null), p.Name, options)).ToArray();
                 if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(row);
@@ -168,6 +171,118 @@ public sealed class TableBuilder {
         return value.ToString() ?? string.Empty;
     }
 
+    private bool TryFromDictionarySequence(List<object?> items, object firstNonNull, TableFromOptions? options) {
+        if (!IsDictionaryLike(firstNonNull)) return false;
+
+        var discovered = new List<string>();
+        var seen = new HashSet<string>(System.StringComparer.Ordinal);
+        foreach (var item in items) {
+            foreach (var entry in EnumerateDictionaryEntries(item)) {
+                var key = entry.Key ?? string.Empty;
+                if (!seen.Contains(key)) {
+                    seen.Add(key);
+                    discovered.Add(key);
+                    if (discovered.Count >= MaxColumns) break;
+                }
+            }
+            if (discovered.Count >= MaxColumns) break;
+        }
+
+        var headerKeys = ApplyDictionaryOptions(discovered, options);
+
+        if (_table.Headers.Count == 0) {
+            foreach (var key in headerKeys) {
+                if (_table.Headers.Count >= MaxColumns) break;
+                _table.Headers.Add(Rename(key, options));
+            }
+        }
+
+        foreach (var item in items) {
+            if (_table.Rows.Count >= MaxRows) break;
+            var values = new Dictionary<string, object?>(System.StringComparer.Ordinal);
+            foreach (var entry in EnumerateDictionaryEntries(item)) {
+                if (!values.ContainsKey(entry.Key)) values[entry.Key] = entry.Value;
+            }
+            var row = new List<string>(headerKeys.Count);
+            foreach (var key in headerKeys) {
+                values.TryGetValue(key, out var value);
+                row.Add(FormatValue(value, key, options));
+            }
+            _table.Rows.Add(row);
+        }
+
+        if (options?.Alignments != null && options.Alignments.Count > 0) { _table.Alignments.Clear(); _table.Alignments.AddRange(options.Alignments); }
+        return true;
+    }
+
+    private static List<string> ApplyDictionaryOptions(List<string> keys, TableFromOptions? options) {
+        var headerKeys = new List<string>(keys);
+        if (options != null) {
+            if (options.Include != null && options.Include.Count > 0) {
+                headerKeys = headerKeys.Where(k => options.Include.Contains(k)).ToList();
+            }
+            if (options.Exclude != null && options.Exclude.Count > 0) {
+                headerKeys = headerKeys.Where(k => !options.Exclude.Contains(k)).ToList();
+            }
+            if (options.Order != null && options.Order.Count > 0) {
+                var orderMap = options.Order.Select((name, idx) => new { name, idx }).ToDictionary(x => x.name, x => x.idx);
+                headerKeys = headerKeys.OrderBy(k => orderMap.ContainsKey(k) ? orderMap[k] : int.MaxValue).ToList();
+            }
+        }
+        if (headerKeys.Count > MaxColumns) headerKeys = headerKeys.Take(MaxColumns).ToList();
+        return headerKeys;
+    }
+
+    private static bool IsDictionaryLike(object item) {
+        if (item is System.Collections.IDictionary) return true;
+        var type = item.GetType();
+        if (FindGenericInterface(type, typeof(System.Collections.Generic.IReadOnlyDictionary<,>)) != null) return true;
+        if (FindGenericInterface(type, typeof(System.Collections.Generic.IDictionary<,>)) != null) return true;
+        return false;
+    }
+
+    private static List<System.Collections.Generic.KeyValuePair<string, object?>> EnumerateDictionaryEntries(object? item) {
+        var entries = new List<System.Collections.Generic.KeyValuePair<string, object?>>();
+        if (item is null) return entries;
+
+        if (item is System.Collections.IDictionary dict) {
+            foreach (System.Collections.DictionaryEntry de in dict) {
+                entries.Add(new System.Collections.Generic.KeyValuePair<string, object?>(de.Key?.ToString() ?? string.Empty, de.Value));
+            }
+            return entries;
+        }
+
+        if (item is System.Collections.IEnumerable enumerable) {
+            foreach (var entry in enumerable) {
+                if (entry is null) continue;
+                if (!TryExtractKeyValue(entry, out var keyObj, out var valueObj)) continue;
+                entries.Add(new System.Collections.Generic.KeyValuePair<string, object?>(keyObj?.ToString() ?? string.Empty, valueObj));
+            }
+        }
+
+        return entries;
+    }
+
+    private static bool TryExtractKeyValue(object entry, out object? key, out object? value) {
+        if (entry is System.Collections.DictionaryEntry de) {
+            key = de.Key;
+            value = de.Value;
+            return true;
+        }
+
+        var type = entry.GetType();
+        var accessors = _kvpAccessors.GetOrAdd(type, static t => (t.GetProperty("Key"), t.GetProperty("Value")));
+        if (accessors.Item1 == null || accessors.Item2 == null) {
+            key = null;
+            value = null;
+            return false;
+        }
+
+        key = accessors.Item1.GetValue(entry, null);
+        value = accessors.Item2.GetValue(entry, null);
+        return true;
+    }
+
     private bool TryFromReadOnlyDictionary(object data) {
         if (data is null) return false;
         var roInterface = FindGenericInterface(data.GetType(), typeof(System.Collections.Generic.IReadOnlyDictionary<,>));
@@ -245,6 +360,7 @@ public sealed class TableBuilder {
         return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(KeyValuePair<,>);
     }
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, (System.Reflection.PropertyInfo? Key, System.Reflection.PropertyInfo? Value)> _kvpAccessors = new();
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Reflection.PropertyInfo[]> _propsCache = new();
     private static System.Reflection.PropertyInfo[] GetReadableProperties(System.Type t) {
         return _propsCache.GetOrAdd(t, static tArg =>
