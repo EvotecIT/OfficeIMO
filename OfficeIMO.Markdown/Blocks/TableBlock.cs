@@ -1,3 +1,6 @@
+using System.Linq;
+using System.Text;
+
 namespace OfficeIMO.Markdown;
 
 /// <summary>
@@ -13,22 +16,34 @@ public sealed class TableBlock : IMarkdownBlock {
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() {
+        static string JoinRow(IEnumerable<string> cells) => "| " + string.Join(" | ", cells) + " |";
+
         if (Headers.Count > 0) {
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine("| " + string.Join(" | ", Headers) + " |");
+            var sb = new StringBuilder();
+            var escapedHeaders = Headers.Select(EscapeMarkdownCell).ToList();
+            sb.AppendLine(JoinRow(escapedHeaders));
+
             var alignRow = new List<string>();
             for (int i = 0; i < Headers.Count; i++) {
                 var a = (i < Alignments.Count) ? Alignments[i] : ColumnAlignment.None;
                 alignRow.Add(a switch { ColumnAlignment.Left => ":---", ColumnAlignment.Center => ":---:", ColumnAlignment.Right => "---:", _ => "---" });
             }
-            sb.AppendLine("| " + string.Join(" | ", alignRow) + " |");
-            foreach (IReadOnlyList<string> row in Rows) sb.AppendLine("| " + string.Join(" | ", row) + " |");
-            return sb.ToString().TrimEnd();
-        } else {
-            StringBuilder sb = new StringBuilder();
-            foreach (IReadOnlyList<string> row in Rows) sb.AppendLine("| " + string.Join(" | ", row) + " |");
+            sb.AppendLine(JoinRow(alignRow));
+
+            foreach (IReadOnlyList<string> row in Rows) {
+                var escapedRow = (row ?? Array.Empty<string>()).Select(EscapeMarkdownCell);
+                sb.AppendLine(JoinRow(escapedRow));
+            }
+
             return sb.ToString().TrimEnd();
         }
+
+        var sbNoHeaders = new StringBuilder();
+        foreach (IReadOnlyList<string> row in Rows) {
+            var escapedRow = (row ?? Array.Empty<string>()).Select(EscapeMarkdownCell);
+            sbNoHeaders.AppendLine(JoinRow(escapedRow));
+        }
+        return sbNoHeaders.ToString().TrimEnd();
     }
 
     /// <inheritdoc />
@@ -47,9 +62,10 @@ public sealed class TableBlock : IMarkdownBlock {
         }
         sb.Append("<tbody>");
         foreach (IReadOnlyList<string> row in Rows) {
+            var cells = row ?? Array.Empty<string>();
             sb.Append("<tr>");
-            for (int i = 0; i < row.Count; i++) {
-                var cell = row[i];
+            for (int i = 0; i < cells.Count; i++) {
+                var cell = cells[i] ?? string.Empty;
                 var style = (i < Alignments.Count) ? Alignments[i] : ColumnAlignment.None;
                 var styleAttr = style switch { ColumnAlignment.Left => " style=\"text-align:left\"", ColumnAlignment.Center => " style=\"text-align:center\"", ColumnAlignment.Right => " style=\"text-align:right\"", _ => string.Empty };
                 sb.Append($"<td{styleAttr}>");
@@ -68,6 +84,19 @@ public sealed class TableBlock : IMarkdownBlock {
         // We avoid allowing arbitrary HTML by translating only <br> tags to hard breaks and then using the inline parser.
         var normalized = cell.Replace("<br>", "\n").Replace("<br/>", "\n").Replace("<br />", "\n");
         var inlines = MarkdownReader.ParseInlineText(normalized);
-        return inlines.RenderHtml();
+        var rendered = inlines.RenderHtml();
+        return rendered.Contains('\n') ? rendered.Replace("\n", "<br/>") : rendered;
+    }
+
+    private static string EscapeMarkdownCell(string? cell) {
+        if (string.IsNullOrEmpty(cell)) return string.Empty;
+
+        string value = cell!;
+        string normalized = value.Replace("\r\n", "\n").Replace("\r", "\n");
+        normalized = normalized.Trim('\n');
+        normalized = normalized.Replace("\n", "<br>");
+
+        var escapedBackslashes = normalized.Replace("\\", "\\\\");
+        return escapedBackslashes.Replace("|", "\\|");
     }
 }
