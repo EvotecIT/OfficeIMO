@@ -112,8 +112,9 @@ public class MarkdownDoc {
         return this;
     }
 
-    /// <summary>Adds an image block with optional alt text and title.</summary>
-    public MarkdownDoc Image(string path, string? alt = null, string? title = null) => Add(new ImageBlock(path, alt, title));
+    /// <summary>Adds an image block with optional alt text, title, and size hints.</summary>
+    public MarkdownDoc Image(string path, string? alt = null, string? title = null, double? width = null, double? height = null)
+        => Add(new ImageBlock(path, alt, title, width, height));
 
     /// <summary>Adds a table built with <see cref="TableBuilder"/>.</summary>
     public MarkdownDoc Table(Action<TableBuilder> build) {
