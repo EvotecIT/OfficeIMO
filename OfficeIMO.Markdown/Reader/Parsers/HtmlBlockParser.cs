@@ -76,7 +76,9 @@ public static partial class MarkdownReader {
 
             while (j < lines.Length) {
                 string current = lines[j];
-                string normalized = current.EndsWith('\r') ? current.TrimEnd('\r') : current;
+                string normalized = current.Length > 0 && current[current.Length - 1] == '\r'
+                    ? current.TrimEnd('\r')
+                    : current;
                 segments.Add(normalized);
                 bool completed = blockState.IsSatisfiedBy(normalized);
                 j++;
@@ -85,7 +87,7 @@ public static partial class MarkdownReader {
                 if (blockState.EndsOnBlankLine && j < lines.Length && string.IsNullOrWhiteSpace(lines[j])) break;
             }
 
-            doc.Add(new HtmlRawBlock(string.Join('\n', segments)));
+            doc.Add(new HtmlRawBlock(string.Join("\n", segments)));
             i = j;
             return true;
         }
@@ -160,7 +162,8 @@ public static partial class MarkdownReader {
         }
 
         private static bool IsType6Start(string trimmedLine) {
-            if (!TryParseTag(trimmedLine, out var tagName, out _, out _)) return false;
+            if (!TryParseTag(trimmedLine, out var tagName, out _, out var endIndex)) return false;
+            if (endIndex < 0) return false;
             return s_BlockTags.Contains(tagName);
         }
 
