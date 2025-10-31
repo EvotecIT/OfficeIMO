@@ -38,6 +38,17 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Type6_Closing_Tag_Starts_Block() {
+            string md = "</div>\n\nParagraph";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
+            Assert.Equal("</div>", html.Html);
+            Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
+        }
+
+        [Fact]
         public void Parses_Gfm_Type3_Processing_Instruction_Block() {
             string md = "<?xml version=\"1.0\"?>\n\nParagraph";
 
@@ -111,6 +122,17 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Type6_Block_Ends_When_Stack_Unwinds() {
+            string md = "<div>\n<section>\n<p>Value</p>\n</section>\n</div>\nParagraph";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
+            Assert.Equal("<div>\n<section>\n<p>Value</p>\n</section>\n</div>", html.Html);
+            Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
+        }
+
+        [Fact]
         public void Type7_Tag_Requiring_Closing_Bracket_Remains_Text_When_Incomplete() {
             string md = "<span class=\"note\"\nParagraph";
 
@@ -118,6 +140,83 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
             Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
             Assert.DoesNotContain(doc.Blocks, block => block is HtmlRawBlock);
+        }
+
+        [Fact]
+        public void Type6_Details_Block_Preserves_Blank_Line_Content() {
+            string md = "<details>\n<summary>Summary</summary>\n\n<div>Body</div>\n</details>\n\nParagraph";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
+            Assert.Equal("<details>\n<summary>Summary</summary>\n\n<div>Body</div>\n</details>", html.Html);
+            Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
+        }
+
+        [Fact]
+        public void Type6_Table_Block_Preserves_Blank_Line_Separated_Sections() {
+            string md = "<table>\n<thead>\n<tr><th>H</th></tr>\n</thead>\n\n<tbody>\n<tr><td>R1</td></tr>\n</tbody>\n</table>";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
+            Assert.Equal("<table>\n<thead>\n<tr><th>H</th></tr>\n</thead>\n\n<tbody>\n<tr><td>R1</td></tr>\n</tbody>\n</table>", html.Html);
+        }
+
+        [Fact]
+        public void Type6_Closing_Tag_Does_Not_Consume_Following_Html() {
+            string md = "</div>\n\n<div>\n<p>Next</p>\n</div>";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var closingBlock = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
+            Assert.Equal("</div>", closingBlock.Html);
+
+            var nextBlock = Assert.IsType<HtmlRawBlock>(doc.Blocks[1]);
+            Assert.Equal("<div>\n<p>Next</p>\n</div>", nextBlock.Html);
+        }
+
+        [Fact]
+        public void Type6_Details_Block_Allows_Blank_Line_Before_Closing_Tag() {
+            string md = "<details>\n<summary>One</summary>\n\n<section>\n<p>Inner</p>\n</section>\n\n</details>\nParagraph";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
+            Assert.Equal("<details>\n<summary>One</summary>\n\n<section>\n<p>Inner</p>\n</section>\n\n</details>", html.Html);
+            Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
+        }
+
+        [Fact]
+        public void Type6_Details_Block_With_Nested_Table_And_Blank_Lines_Remains_Intact() {
+            string md = "<details>\n<summary>Summary</summary>\n\n<table>\n<thead>\n<tr><th>H</th></tr>\n</thead>\n\n<tbody>\n<tr><td>R1</td></tr>\n</tbody>\n</table>\n\n<div>Tail</div>\n</details>";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
+            Assert.Equal("<details>\n<summary>Summary</summary>\n\n<table>\n<thead>\n<tr><th>H</th></tr>\n</thead>\n\n<tbody>\n<tr><td>R1</td></tr>\n</tbody>\n</table>\n\n<div>Tail</div>\n</details>", html.Html);
+        }
+
+        [Fact]
+        public void Type6_Details_Block_Allows_SelfClosing_Child_Elements() {
+            string md = "<details>\n<summary>Summary</summary>\n<component />\n\n<div>Body</div>\n</details>\nParagraph";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
+            Assert.Equal("<details>\n<summary>Summary</summary>\n<component />\n\n<div>Body</div>\n</details>", html.Html);
+            Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
+        }
+
+        [Fact]
+        public void Type6_Details_Block_Closes_With_Unmatched_Inner_Tags() {
+            string md = "<details>\n<div>\n<p>Loose</p>\n</details>\nParagraph";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
+            Assert.Equal("<details>\n<div>\n<p>Loose</p>\n</details>", html.Html);
+            Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
         }
     }
 }
