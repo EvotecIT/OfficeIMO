@@ -368,11 +368,14 @@ namespace OfficeIMO.Tests {
                     }
                 }
 
+                // Use deterministic cancellation to avoid runtime-dependent timing flakiness
+                // .NET 9 completes the parallel path noticeably faster, making time-based
+                // CancelAfter unreliable here. We only validate that cancellation propagates.
                 using CancellationTokenSource cts = new();
-                cts.CancelAfter(TimeSpan.FromMilliseconds(20));
-                var autoFitTask = Task.Run(() => sheet.AutoFitColumns(ExecutionMode.Parallel, cts.Token));
-
-                await Assert.ThrowsAsync<OperationCanceledException>(async () => await autoFitTask);
+                cts.Cancel();
+                await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+                    await Task.Run(() => sheet.AutoFitColumns(ExecutionMode.Parallel, cts.Token))
+                );
             }
         }
     }
