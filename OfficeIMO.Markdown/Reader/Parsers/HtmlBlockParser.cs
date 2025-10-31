@@ -106,7 +106,12 @@ public static partial class MarkdownReader {
                 }
             }
 
-            doc.Add(new HtmlRawBlock(string.Join("\n", segments)));
+            string htmlContent = string.Join("\n", segments);
+            if (blockState.Kind == HtmlBlockKind.Type2) {
+                doc.Add(new HtmlCommentBlock(htmlContent));
+            } else {
+                doc.Add(new HtmlRawBlock(htmlContent));
+            }
             i = j;
             return true;
         }
