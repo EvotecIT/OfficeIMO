@@ -79,13 +79,24 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Table_WithOuterPipes_Parses_WithAlignment() {
-            string md = "| X | Y |\n|:---|---:|\n| 1 | 2 |\n";
+            string md = "| X | Y |\n|:---|---:|\n| 1 | 2 |\n"; 
             var model = MarkdownReader.Parse(md);
             var table = Assert.IsType<TableBlock>(model.Blocks[0]);
             Assert.Equal(new[] { "X", "Y" }, table.Headers);
             Assert.Equal(new[] { ColumnAlignment.Left, ColumnAlignment.Right }, table.Alignments);
             Assert.Single(table.Rows);
             Assert.Equal(new[] { "1", "2" }, table.Rows[0]);
+        }
+
+        [Fact]
+        public void Table_WithSingleColumn_StillParses() {
+            string md = "| Header |\n| --- |\n| Row |\n";
+            var model = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(model.Blocks[0]);
+            Assert.Equal(new[] { "Header" }, table.Headers);
+            Assert.Equal(new[] { ColumnAlignment.None }, table.Alignments);
+            Assert.Single(table.Rows);
+            Assert.Equal(new[] { "Row" }, table.Rows[0]);
         }
 
         [Fact]

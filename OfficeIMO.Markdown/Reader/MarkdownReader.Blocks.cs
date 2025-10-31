@@ -79,7 +79,12 @@ public static partial class MarkdownReader {
         if (trimmed.Length < 3 || !trimmed.Contains('|')) return false;
 
         var cells = SplitTableRow(trimmed);
-        return cells.Count >= 2;
+        if (cells.Count == 0) return false;
+
+        bool hasOuterPipes = trimmed[0] == '|' || trimmed[trimmed.Length - 1] == '|';
+        if (!hasOuterPipes && cells.Count < 2) return false;
+
+        return true;
     }
 
     private static TableBlock ParseTable(string[] lines, int start, int end) {
