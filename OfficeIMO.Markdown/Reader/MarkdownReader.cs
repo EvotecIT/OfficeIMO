@@ -37,7 +37,7 @@ public static partial class MarkdownReader {
             }
         }
 
-        var pipeline = MarkdownReaderPipeline.Default();
+        var pipeline = MarkdownReaderPipeline.Default(options);
         var state = new MarkdownReaderState();
         // Pre-scan for reference-style link definitions so inline refs in earlier paragraphs can resolve
         PreScanReferenceLinkDefinitions(lines, state);

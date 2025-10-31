@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Inline parsing helpers for <see cref="MarkdownReader"/>.
 /// </summary>
 public static partial class MarkdownReader {
-    private static InlineSequence ParseInlines(string text, MarkdownReaderState? state = null) {
+    private static InlineSequence ParseInlines(string text, MarkdownReaderOptions options, MarkdownReaderState? state = null) {
         var seq = new InlineSequence();
         if (string.IsNullOrEmpty(text)) return seq;
 
@@ -13,7 +13,7 @@ public static partial class MarkdownReader {
             // Hard break signal encoded by paragraph joiner as a bare '\n'
             if (text[pos] == '\n') { seq.HardBreak(); pos++; continue; }
             // HTML-style line breaks in source (commonly used inside table cells): <br>, <br/>, <br />
-            if (text[pos] == '<') {
+            if (options.InlineHtml && text[pos] == '<') {
                 // case-insensitive compare for small tokens only; keep compatible with .NET Framework
                 int rem = text.Length - pos;
                 bool br1 = rem >= 4 && (text[pos + 1] == 'b' || text[pos + 1] == 'B') && (text[pos + 2] == 'r' || text[pos + 2] == 'R') && text[pos + 3] == '>';
@@ -115,7 +115,7 @@ public static partial class MarkdownReader {
                 if (end > pos + 1) { seq.Italic(text.Substring(pos + 1, end - pos - 1)); pos = end + 1; continue; }
             }
 
-            if (text[pos] == '<') {
+            if (options.InlineHtml && text[pos] == '<') {
                 const string uOpen = "<u>"; const string uClose = "</u>";
                 if (text.Substring(pos).StartsWith(uOpen, StringComparison.OrdinalIgnoreCase)) {
                     int end = text.IndexOf(uClose, pos + uOpen.Length, StringComparison.OrdinalIgnoreCase);
@@ -130,7 +130,7 @@ public static partial class MarkdownReader {
             }
 
             int start = pos; pos++;
-            while (pos < text.Length && !IsPotentialInlineStart(text[pos])) pos++;
+            while (pos < text.Length && !IsPotentialInlineStart(text[pos], options.InlineHtml)) pos++;
             seq.Text(text.Substring(start, pos - start));
         }
 
@@ -170,7 +170,7 @@ public static partial class MarkdownReader {
 
 
 
-    private static bool IsPotentialInlineStart(char c) => c == '[' || c == '!' || c == '`' || c == '*' || c == '_' || c == '~' || c == '<';
+    private static bool IsPotentialInlineStart(char c, bool allowInlineHtml) => c == '[' || c == '!' || c == '`' || c == '*' || c == '_' || c == '~' || (allowInlineHtml && c == '<');
 
     private static bool TryParseLink(string text, int start, out int consumed, out string label, out string href, out string? title) {
         consumed = 0; label = href = string.Empty; title = null;
@@ -278,6 +278,7 @@ public static partial class MarkdownReader {
     /// inline markup in contexts like table cells where we currently store raw strings.
     /// </summary>
     /// <param name="text">Inline Markdown text.</param>
+    /// <param name="options">Reader options controlling inline interpretation.</param>
     /// <returns>Parsed sequence of inline nodes.</returns>
-    public static InlineSequence ParseInlineText(string? text) => ParseInlines(text ?? string.Empty, null);
+    public static InlineSequence ParseInlineText(string? text, MarkdownReaderOptions? options = null) => ParseInlines(text ?? string.Empty, options ?? new MarkdownReaderOptions(), null);
 }

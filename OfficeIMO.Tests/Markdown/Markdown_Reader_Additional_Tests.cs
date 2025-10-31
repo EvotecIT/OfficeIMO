@@ -19,6 +19,32 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
             Assert.IsType<HtmlRawBlock>(doc.Blocks[1]);
         }
+
+        [Fact]
+        public void Inline_Html_Br_Can_Be_Disabled() {
+            string md = "First<br>Second";
+
+            var options = new MarkdownReaderOptions { InlineHtml = false, HtmlBlocks = false };
+            var doc = MarkdownReader.Parse(md, options);
+
+            var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+            Assert.Single(paragraph.Inlines.Items);
+            var text = Assert.IsType<TextRun>(paragraph.Inlines.Items[0]);
+            Assert.Equal("First<br>Second", text.Text);
+        }
+
+        [Fact]
+        public void Inline_Html_Underline_Can_Be_Disabled() {
+            string md = "<u>Decorated</u>";
+
+            var options = new MarkdownReaderOptions { InlineHtml = false, HtmlBlocks = false };
+            var doc = MarkdownReader.Parse(md, options);
+
+            var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+            Assert.Single(paragraph.Inlines.Items);
+            var text = Assert.IsType<TextRun>(paragraph.Inlines.Items[0]);
+            Assert.Equal("<u>Decorated</u>", text.Text);
+        }
     }
 }
 
