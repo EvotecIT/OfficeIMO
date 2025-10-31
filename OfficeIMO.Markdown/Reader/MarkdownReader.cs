@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text;
 // Intentionally avoid heavy regex use; simple scanning is used for resilience and speed.
 
 namespace OfficeIMO.Markdown;
@@ -19,7 +20,7 @@ public static partial class MarkdownReader {
         if (string.IsNullOrEmpty(markdown)) return doc;
 
         // Normalize BOM (U+FEFF) at the very beginning to avoid blocking heading/html detection
-        if (!string.IsNullOrEmpty(markdown) && markdown[0] == '\uFEFF') {
+        if (markdown[0] == '\uFEFF') {
             markdown = markdown.Substring(1);
         }
         // Normalize line endings and split. Keep empty lines significant for block boundaries.

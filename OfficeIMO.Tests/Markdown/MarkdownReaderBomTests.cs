@@ -2,7 +2,7 @@ using System.Linq;
 using OfficeIMO.Markdown;
 using Xunit;
 
-namespace OfficeIMO.Tests.Markdown;
+namespace OfficeIMO.Tests;
 
 public class MarkdownReaderBomTests {
     [Fact]
@@ -52,4 +52,3 @@ public class MarkdownReaderBomTests {
         Assert.Empty(doc.Blocks);
     }
 }
-
