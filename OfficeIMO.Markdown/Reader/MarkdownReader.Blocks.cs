@@ -75,9 +75,11 @@ public static partial class MarkdownReader {
 
     private static bool LooksLikeTableRow(string line) {
         if (string.IsNullOrWhiteSpace(line)) return false;
-        line = line.Trim();
-        if (line.Length < 3) return false;
-        return line[0] == '|' && line[line.Length - 1] == '|' && line.IndexOf('|', 1) > 0;
+        var trimmed = line.Trim();
+        if (trimmed.Length < 3 || !trimmed.Contains('|')) return false;
+
+        var cells = SplitTableRow(trimmed);
+        return cells.Count >= 2;
     }
 
     private static TableBlock ParseTable(string[] lines, int start, int end) {
@@ -118,6 +120,7 @@ public static partial class MarkdownReader {
     }
 
     private static List<string> SplitTableRow(string line) {
+        if (line is null) return new List<string>();
         var t = line.Trim();
         if (t.StartsWith("|")) t = t.Substring(1);
         if (t.EndsWith("|")) t = t.Substring(0, t.Length - 1);

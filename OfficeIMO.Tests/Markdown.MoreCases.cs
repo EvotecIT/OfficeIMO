@@ -67,6 +67,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Table_WithoutOuterPipes_Parses_WithAlignment() {
+            string md = "Alpha | Beta\n:--- | ---:\nleft | right\n";
+            var model = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(model.Blocks[0]);
+            Assert.Equal(new[] { "Alpha", "Beta" }, table.Headers);
+            Assert.Equal(new[] { ColumnAlignment.Left, ColumnAlignment.Right }, table.Alignments);
+            Assert.Single(table.Rows);
+            Assert.Equal(new[] { "left", "right" }, table.Rows[0]);
+        }
+
+        [Fact]
+        public void Table_WithOuterPipes_Parses_WithAlignment() {
+            string md = "| X | Y |\n|:---|---:|\n| 1 | 2 |\n";
+            var model = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(model.Blocks[0]);
+            Assert.Equal(new[] { "X", "Y" }, table.Headers);
+            Assert.Equal(new[] { ColumnAlignment.Left, ColumnAlignment.Right }, table.Alignments);
+            Assert.Single(table.Rows);
+            Assert.Equal(new[] { "1", "2" }, table.Rows[0]);
+        }
+
+        [Fact]
         public void Setext_Headings_Are_Read_As_Headings() {
             string md = "Title\n=====\n\nSub\n-----\n";
             var model = MarkdownReader.Parse(md);
