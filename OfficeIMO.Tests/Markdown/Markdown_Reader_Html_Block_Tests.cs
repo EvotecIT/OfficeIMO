@@ -38,6 +38,17 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Type6_Closing_Tag_Starts_Block() {
+            string md = "</div>\n\nParagraph";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
+            Assert.Equal("</div>", html.Html);
+            Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
+        }
+
+        [Fact]
         public void Parses_Gfm_Type3_Processing_Instruction_Block() {
             string md = "<?xml version=\"1.0\"?>\n\nParagraph";
 
@@ -108,6 +119,17 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
             var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
             Assert.Equal("<div data-json=\"{\\\"key\\\":\\\"value\\\"}\">\ncontent", html.Html);
+        }
+
+        [Fact]
+        public void Type6_Block_Ends_When_Stack_Unwinds() {
+            string md = "<div>\n<section>\n<p>Value</p>\n</section>\n</div>\nParagraph";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
+            Assert.Equal("<div>\n<section>\n<p>Value</p>\n</section>\n</div>", html.Html);
+            Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
         }
 
         [Fact]

@@ -182,11 +182,18 @@ public static partial class MarkdownReader {
 
         private static bool IsType6Start(string trimmedLine, out string? tagName, out bool allowsBlankLines) {
             allowsBlankLines = false;
-            if (!TryParseTag(trimmedLine, out tagName, out var isClosing, out var endIndex)) return false;
-            if (isClosing) return false;
+            tagName = null;
+
+            if (!TryParseTag(trimmedLine, out var parsedName, out var isClosing, out var endIndex)) return false;
             if (endIndex < 0) return false;
-            allowsBlankLines = AllowsBlankLineContinuation(tagName!);
-            return s_BlockTags.Contains(tagName!);
+            if (!s_BlockTags.Contains(parsedName!)) return false;
+
+            if (!isClosing) {
+                allowsBlankLines = AllowsBlankLineContinuation(parsedName!);
+            }
+
+            tagName = parsedName;
+            return true;
         }
 
         private static bool IsType7Start(string trimmedLine, out string? tagName, out bool allowsBlankLines) {
@@ -327,7 +334,12 @@ public static partial class MarkdownReader {
 
             int idx = endIndex - 1;
             while (idx > startIndex && char.IsWhiteSpace(line[idx])) idx--;
-            return idx > startIndex && line[idx] == '/';
+            if (idx <= startIndex || line[idx] != '/') return false;
+
+            int previous = idx - 1;
+            while (previous > startIndex && char.IsWhiteSpace(line[previous])) previous--;
+
+            return previous >= startIndex && line[previous] != '/';
         }
     }
 }
