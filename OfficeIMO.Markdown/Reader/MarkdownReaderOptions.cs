@@ -24,13 +24,24 @@ public sealed class MarkdownReaderOptions {
     /// <summary>Enable definition lists (Term: Definition lines).</summary>
     public bool DefinitionLists { get; set; } = true;
     /// <summary>
-    /// Enable raw HTML blocks. When set to <c>false</c>, block-level HTML is preserved as plain text.
+    /// Enable raw HTML blocks. When set to <c>false</c>, block-level HTML is preserved as plain text so that readers can postprocess
+    /// or render it verbatim.
     /// </summary>
     public bool HtmlBlocks { get; set; } = true;
     /// <summary>Enable paragraph parsing and basic inlines.</summary>
     public bool Paragraphs { get; set; } = true;
     /// <summary>
-    /// Enable inline HTML interpretations (e.g. &lt;br&gt;, &lt;u&gt;...&lt;/u&gt;). When disabled, HTML tags remain literal text.
+    /// Enable inline HTML interpretations (e.g. &lt;br&gt;, &lt;u&gt;...&lt;/u&gt;). When disabled, HTML tags remain literal text and no HTML
+    /// decoding is performed.
     /// </summary>
+    /// <example>
+    /// <code>
+    /// var options = new MarkdownReaderOptions {
+    ///     HtmlBlocks = false,
+    ///     InlineHtml = false,
+    /// };
+    /// // MarkdownReader.Read("<div>hello<br/></div>", options) keeps the HTML tokens inside text runs.
+    /// </code>
+    /// </example>
     public bool InlineHtml { get; set; } = true;
 }

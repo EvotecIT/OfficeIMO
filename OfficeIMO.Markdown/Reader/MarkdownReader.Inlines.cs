@@ -14,12 +14,18 @@ public static partial class MarkdownReader {
             if (text[pos] == '\n') { seq.HardBreak(); pos++; continue; }
             // HTML-style line breaks in source (commonly used inside table cells): <br>, <br/>, <br />
             if (options.InlineHtml && text[pos] == '<') {
-                // case-insensitive compare for small tokens only; keep compatible with .NET Framework
-                int rem = text.Length - pos;
-                bool br1 = rem >= 4 && (text[pos + 1] == 'b' || text[pos + 1] == 'B') && (text[pos + 2] == 'r' || text[pos + 2] == 'R') && text[pos + 3] == '>';
-                bool br2 = rem >= 5 && (text[pos + 1] == 'b' || text[pos + 1] == 'B') && (text[pos + 2] == 'r' || text[pos + 2] == 'R') && text[pos + 3] == '/' && text[pos + 4] == '>';
-                bool br3 = rem >= 6 && (text[pos + 1] == 'b' || text[pos + 1] == 'B') && (text[pos + 2] == 'r' || text[pos + 2] == 'R') && text[pos + 3] == ' ' && text[pos + 4] == '/' && text[pos + 5] == '>';
-                if (br1 || br2 || br3) { seq.HardBreak(); pos += br1 ? 4 : (br2 ? 5 : 6); continue; }
+                const string br = "<br>";
+                const string brSelf = "<br/>";
+                const string brSelfSpaced = "<br />";
+                if (text.Length - pos >= br.Length && string.Compare(text, pos, br, 0, br.Length, StringComparison.OrdinalIgnoreCase) == 0) {
+                    seq.HardBreak(); pos += br.Length; continue;
+                }
+                if (text.Length - pos >= brSelf.Length && string.Compare(text, pos, brSelf, 0, brSelf.Length, StringComparison.OrdinalIgnoreCase) == 0) {
+                    seq.HardBreak(); pos += brSelf.Length; continue;
+                }
+                if (text.Length - pos >= brSelfSpaced.Length && string.Compare(text, pos, brSelfSpaced, 0, brSelfSpaced.Length, StringComparison.OrdinalIgnoreCase) == 0) {
+                    seq.HardBreak(); pos += brSelfSpaced.Length; continue;
+                }
             }
             // Backslash escape: consume next char literally
             if (text[pos] == '\\' && pos + 1 < text.Length) {
@@ -170,7 +176,23 @@ public static partial class MarkdownReader {
 
 
 
-    private static bool IsPotentialInlineStart(char c, bool allowInlineHtml) => c == '[' || c == '!' || c == '`' || c == '*' || c == '_' || c == '~' || (allowInlineHtml && c == '<');
+    private static readonly bool[] PotentialInlineStartLookup = CreatePotentialInlineStartLookup();
+
+    private static bool[] CreatePotentialInlineStartLookup() {
+        var lookup = new bool[128];
+        lookup['['] = true;
+        lookup['!'] = true;
+        lookup['`'] = true;
+        lookup['*'] = true;
+        lookup['_'] = true;
+        lookup['~'] = true;
+        return lookup;
+    }
+
+    private static bool IsPotentialInlineStart(char c, bool allowInlineHtml) {
+        if (c < PotentialInlineStartLookup.Length && PotentialInlineStartLookup[c]) return true;
+        return allowInlineHtml && c == '<';
+    }
 
     private static bool TryParseLink(string text, int start, out int consumed, out string label, out string href, out string? title) {
         consumed = 0; label = href = string.Empty; title = null;
