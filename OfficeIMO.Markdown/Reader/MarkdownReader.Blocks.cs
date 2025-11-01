@@ -73,6 +73,12 @@ public static partial class MarkdownReader {
         return true;
     }
 
+    /// <summary>
+    /// Determines whether a line is likely to be part of a markdown table. The logic follows
+    /// CommonMark’s relaxed table rules: when both outer pipes are present a single column is
+    /// permitted, otherwise at least two pipe-separated cells are required so that plain
+    /// paragraphs containing a single <c>|</c> are not mis-classified as tables.
+    /// </summary>
     private static bool LooksLikeTableRow(string line) {
         if (string.IsNullOrWhiteSpace(line)) return false;
         var trimmed = line.Trim();
@@ -81,9 +87,43 @@ public static partial class MarkdownReader {
         var cells = SplitTableRow(trimmed);
         if (cells.Count == 0) return false;
 
-        bool hasOuterPipes = trimmed[0] == '|' || trimmed[trimmed.Length - 1] == '|';
+        bool hasLeadingPipe = trimmed[0] == '|';
+        bool hasTrailingPipe = trimmed[trimmed.Length - 1] == '|';
+        bool hasOuterPipes = hasLeadingPipe && hasTrailingPipe;
+
         if (!hasOuterPipes && cells.Count < 2) return false;
 
+        return true;
+    }
+
+    private static bool StartsTable(string[] lines, int index) => TryGetTableExtent(lines, index, out _, out _);
+
+    private static bool TryGetTableExtent(string[] lines, int start, out int end, out bool hasOuterPipes) {
+        end = start;
+        hasOuterPipes = false;
+        if (lines is null || start < 0 || start >= lines.Length) return false;
+        if (!LooksLikeTableRow(lines[start])) return false;
+        if (IsAlignmentRow(lines[start])) return false;
+
+        var firstTrimmed = lines[start].Trim();
+        if (firstTrimmed.Length == 0) return false;
+
+        bool hasLeadingPipe = firstTrimmed[0] == '|';
+        bool hasTrailingPipe = firstTrimmed[firstTrimmed.Length - 1] == '|';
+        hasOuterPipes = hasLeadingPipe && hasTrailingPipe;
+
+        int j = start + 1;
+        bool sawAlignmentRow = false;
+        if (j < lines.Length && IsAlignmentRow(lines[j])) {
+            sawAlignmentRow = true;
+            j++;
+        }
+
+        while (j < lines.Length && LooksLikeTableRow(lines[j])) j++;
+
+        if (!hasOuterPipes && !sawAlignmentRow && j == start + 1) return false;
+
+        end = j - 1;
         return true;
     }
 
