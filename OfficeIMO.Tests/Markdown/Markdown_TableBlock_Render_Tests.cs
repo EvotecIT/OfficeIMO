@@ -72,5 +72,55 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
             Assert.Equal(expected, html);
         }
+
+        [Fact]
+        public void TableBlock_RenderMarkdown_PadsRowsToHeaderCount() {
+            var table = new TableBlock();
+            table.Headers.Add("Col1");
+            table.Headers.Add("Col2");
+
+            table.Rows.Add(new[] { "Value" });
+
+            var markdown = ((IMarkdownBlock)table).RenderMarkdown();
+
+            const string expected = "| Col1 | Col2 |\n" +
+                                    "| --- | --- |\n" +
+                                    "| Value |  |";
+
+            Assert.Equal(expected, markdown);
+        }
+
+        [Fact]
+        public void TableBlock_RenderHtml_PadsRowsToHeaderCount() {
+            var table = new TableBlock();
+            table.Headers.Add("Col1");
+            table.Headers.Add("Col2");
+
+            table.Rows.Add(new[] { "Value" });
+
+            var html = ((IMarkdownBlock)table).RenderHtml();
+
+            const string expected = "<table><thead><tr><th>Col1</th><th>Col2</th></tr></thead><tbody>" +
+                                    "<tr><td>Value</td><td></td></tr>" +
+                                    "</tbody></table>";
+
+            Assert.Equal(expected, html);
+        }
+
+        [Fact]
+        public void TableBlock_RenderHtml_SanitizesDisallowedTags() {
+            var table = new TableBlock();
+            table.Headers.Add("Header");
+
+            table.Rows.Add(new[] { "<script>alert(1)</script>" });
+
+            var html = ((IMarkdownBlock)table).RenderHtml();
+
+            const string expected = "<table><thead><tr><th>Header</th></tr></thead><tbody>" +
+                                    "<tr><td>&lt;script&gt;alert(1)&lt;/script&gt;</td></tr>" +
+                                    "</tbody></table>";
+
+            Assert.Equal(expected, html);
+        }
     }
 }
