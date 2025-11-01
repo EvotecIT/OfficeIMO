@@ -112,5 +112,25 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             string html = doc.ToHtmlFragment();
             Assert.Contains("<hr />", html, StringComparison.Ordinal);
         }
+
+        [Fact]
+        public void Image_With_Dimensions_Renders_Size_And_Caption() {
+            var doc = MarkdownDoc.Create()
+                .Image("images/photo.png", alt: "Alt text", title: "Title text", width: 640, height: 480)
+                .Caption("Photo caption");
+
+            var block = Assert.IsType<ImageBlock>(Assert.Single(doc.Blocks));
+            Assert.Equal(640d, block.Width.GetValueOrDefault());
+            Assert.Equal(480d, block.Height.GetValueOrDefault());
+            Assert.Equal("Photo caption", block.Caption);
+
+            string markdown = doc.ToMarkdown().Replace("\r\n", "\n");
+            Assert.Contains("![Alt text](images/photo.png \"Title text\"){width=640 height=480}", markdown, StringComparison.Ordinal);
+            Assert.Contains("_Photo caption_", markdown, StringComparison.Ordinal);
+
+            string html = doc.ToHtmlFragment();
+            Assert.Contains("<img src=\"images/photo.png\" alt=\"Alt text\" title=\"Title text\" width=\"640\" height=\"480\" />", html, StringComparison.Ordinal);
+            Assert.Contains("<div class=\"caption\">Photo caption</div>", html, StringComparison.Ordinal);
+        }
     }
 }
