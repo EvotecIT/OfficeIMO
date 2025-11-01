@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             table.Headers.Add("Path \\ Server");
 
             table.Rows.Add(new[] { "Cell | one", "C: \\ Share" });
-            table.Rows.Add(new[] { "Multi\nLine", "Pipe|And\\Back" });
+            table.Rows.Add(new[] { "Multi\r\nLine", "Pipe|And\\Back" });
 
             var markdown = ((IMarkdownBlock)table).RenderMarkdown();
 
@@ -29,13 +29,45 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             table.Headers.Add("Path \\ Server");
 
             table.Rows.Add(new[] { "Cell | one", "C: \\ Share" });
-            table.Rows.Add(new[] { "Multi\nLine", "Pipe|And\\Back" });
+            table.Rows.Add(new[] { "Multi\r\nLine", "Pipe|And\\Back" });
 
             var html = ((IMarkdownBlock)table).RenderHtml();
 
             const string expected = "<table><thead><tr><th>Name|Title</th><th>Path \\ Server</th></tr></thead><tbody>" +
                                     "<tr><td>Cell | one</td><td>C: \\ Share</td></tr>" +
                                     "<tr><td>Multi<br/>Line</td><td>Pipe|And\\Back</td></tr>" +
+                                    "</tbody></table>";
+
+            Assert.Equal(expected, html);
+        }
+
+        [Fact]
+        public void TableBlock_RenderMarkdown_PreservesExistingBreakTags() {
+            var table = new TableBlock();
+            table.Headers.Add("Header");
+
+            table.Rows.Add(new[] { "Line1<br/>Line2" });
+
+            var markdown = ((IMarkdownBlock)table).RenderMarkdown();
+
+            const string expected = "| Header |\n" +
+                                    "| --- |\n" +
+                                    "| Line1<br/>Line2 |";
+
+            Assert.Equal(expected, markdown);
+        }
+
+        [Fact]
+        public void TableBlock_RenderHtml_PreservesExistingBreakTags() {
+            var table = new TableBlock();
+            table.Headers.Add("Header");
+
+            table.Rows.Add(new[] { "Line1<br/>Line2" });
+
+            var html = ((IMarkdownBlock)table).RenderHtml();
+
+            const string expected = "<table><thead><tr><th>Header</th></tr></thead><tbody>" +
+                                    "<tr><td>Line1<br/>Line2</td></tr>" +
                                     "</tbody></table>";
 
             Assert.Equal(expected, html);

@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Text;
 
@@ -86,7 +87,7 @@ public sealed class TableBlock : IMarkdownBlock {
         if (string.IsNullOrEmpty(cell)) return string.Empty;
         // Allow simple <br> markers inside table cells and support inline markdown (code, links, emphasis).
         // We avoid allowing arbitrary HTML by translating only <br> tags to hard breaks and then using the inline parser.
-        var normalized = cell.Replace("<br>", "\n").Replace("<br/>", "\n").Replace("<br />", "\n");
+        var normalized = NormalizeBreakMarkers(cell);
         var inlines = MarkdownReader.ParseInlineText(normalized);
         var rendered = inlines.RenderHtml();
         return rendered.Contains('\n') ? rendered.Replace("\n", "<br/>") : rendered;
@@ -95,11 +96,101 @@ public sealed class TableBlock : IMarkdownBlock {
     private static string EscapeMarkdownCell(string? cell) {
         if (string.IsNullOrEmpty(cell)) return string.Empty;
 
-        string value = cell!;
-        string normalized = value.Replace("\r\n", "\n").Replace("\r", "\n");
-        normalized = normalized.Replace("\n", "<br>");
+        var value = cell!;
+        var builder = new StringBuilder(value.Length);
 
-        var escapedBackslashes = normalized.Replace("\\", "\\\\");
-        return escapedBackslashes.Replace("|", "\\|");
+        for (int i = 0; i < value.Length; i++) {
+            char ch = value[i];
+            switch (ch) {
+                case '\r':
+                    if (i + 1 < value.Length && value[i + 1] == '\n') {
+                        i++;
+                    }
+                    builder.Append("<br>");
+                    break;
+                case '\n':
+                    builder.Append("<br>");
+                    break;
+                case '\\':
+                    builder.Append("\\\\");
+                    break;
+                case '|':
+                    builder.Append("\\|");
+                    break;
+                default:
+                    builder.Append(ch);
+                    break;
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    private static string NormalizeBreakMarkers(string cell) {
+        var builder = new StringBuilder(cell.Length);
+
+        for (int i = 0; i < cell.Length; i++) {
+            char ch = cell[i];
+            switch (ch) {
+                case '\r':
+                    if (i + 1 < cell.Length && cell[i + 1] == '\n') {
+                        i++;
+                    }
+                    builder.Append('\n');
+                    break;
+                case '\n':
+                    builder.Append('\n');
+                    break;
+                case '<':
+                    if (TryConsumeBreakTag(cell, i, out int consumed)) {
+                        builder.Append('\n');
+                        i += consumed - 1;
+                    } else {
+                        builder.Append(ch);
+                    }
+                    break;
+                default:
+                    builder.Append(ch);
+                    break;
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    private static bool TryConsumeBreakTag(string value, int index, out int consumed) {
+        consumed = 0;
+        int length = value.Length;
+        if (index + 3 >= length) {
+            return false;
+        }
+
+        if (value[index] != '<') return false;
+        if (!IsSpecificLetter(value[index + 1], 'b')) return false;
+        if (!IsSpecificLetter(value[index + 2], 'r')) return false;
+
+        int position = index + 3;
+
+        while (position < length && char.IsWhiteSpace(value[position])) {
+            position++;
+        }
+
+        if (position < length && value[position] == '/') {
+            position++;
+            while (position < length && char.IsWhiteSpace(value[position])) {
+                position++;
+            }
+        }
+
+        if (position < length && value[position] == '>') {
+            consumed = position - index + 1;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsSpecificLetter(char value, char expected) {
+        return char.ToLowerInvariant(value) == expected;
     }
 }
