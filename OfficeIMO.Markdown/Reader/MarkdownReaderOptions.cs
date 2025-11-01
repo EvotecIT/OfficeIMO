@@ -23,10 +23,14 @@ public sealed class MarkdownReaderOptions {
     public bool Tables { get; set; } = true;
     /// <summary>Enable definition lists (Term: Definition lines).</summary>
     public bool DefinitionLists { get; set; } = true;
-    /// <summary>Enable raw HTML blocks.</summary>
+    /// <summary>
+    /// Enable raw HTML blocks. When set to <c>false</c>, block-level HTML is preserved as plain text.
+    /// </summary>
     public bool HtmlBlocks { get; set; } = true;
     /// <summary>Enable paragraph parsing and basic inlines.</summary>
     public bool Paragraphs { get; set; } = true;
-    /// <summary>Enable inline HTML interpretations (e.g. &lt;br&gt;, &lt;u&gt;...&lt;/u&gt;).</summary>
+    /// <summary>
+    /// Enable inline HTML interpretations (e.g. &lt;br&gt;, &lt;u&gt;...&lt;/u&gt;). When disabled, HTML tags remain literal text.
+    /// </summary>
     public bool InlineHtml { get; set; } = true;
 }

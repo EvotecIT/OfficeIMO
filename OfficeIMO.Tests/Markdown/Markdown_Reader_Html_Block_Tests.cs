@@ -230,11 +230,11 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.DoesNotContain(doc.Blocks, block => block is HtmlRawBlock);
             var firstParagraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
             var firstText = Assert.IsType<TextRun>(firstParagraph.Inlines.Items[0]);
-            Assert.Contains("<div>Inline", firstText.Text, StringComparison.Ordinal);
+            Assert.Contains("<div>Inline", firstText.Text);
 
             bool hasClosingTag = false;
             foreach (var inline in firstParagraph.Inlines.Items) {
-                if (inline is TextRun run && run.Text.Contains("</div>", StringComparison.Ordinal)) { hasClosingTag = true; break; }
+                if (inline is TextRun run && run.Text.IndexOf("</div>", StringComparison.Ordinal) >= 0) { hasClosingTag = true; break; }
             }
             Assert.True(hasClosingTag, "Closing tag should remain in the paragraph text.");
 
