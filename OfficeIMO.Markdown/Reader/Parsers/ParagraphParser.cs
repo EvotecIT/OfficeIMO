@@ -34,7 +34,7 @@ public static partial class MarkdownReader {
             }
             if (sb.Length == 0) return false;
             var text = ExpandReferenceLinks(sb.ToString(), state);
-            doc.Add(new ParagraphBlock(ParseInlines(text, state)));
+            doc.Add(new ParagraphBlock(ParseInlines(text, options, state)));
             i = j; return true;
         }
 
