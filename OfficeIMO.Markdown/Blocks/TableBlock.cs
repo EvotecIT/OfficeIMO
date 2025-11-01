@@ -16,34 +16,38 @@ public sealed class TableBlock : IMarkdownBlock {
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() {
-        static string JoinRow(IEnumerable<string> cells) => "| " + string.Join(" | ", cells) + " |";
+        static void AppendRow(StringBuilder builder, IEnumerable<string> cells) {
+            builder.Append("| ");
+            builder.Append(string.Join(" | ", cells));
+            builder.Append(" |\n");
+        }
 
         if (Headers.Count > 0) {
             var sb = new StringBuilder();
             var escapedHeaders = Headers.Select(EscapeMarkdownCell).ToList();
-            sb.AppendLine(JoinRow(escapedHeaders));
+            AppendRow(sb, escapedHeaders);
 
             var alignRow = new List<string>();
             for (int i = 0; i < Headers.Count; i++) {
                 var a = (i < Alignments.Count) ? Alignments[i] : ColumnAlignment.None;
                 alignRow.Add(a switch { ColumnAlignment.Left => ":---", ColumnAlignment.Center => ":---:", ColumnAlignment.Right => "---:", _ => "---" });
             }
-            sb.AppendLine(JoinRow(alignRow));
+            AppendRow(sb, alignRow);
 
             foreach (IReadOnlyList<string> row in Rows) {
                 var escapedRow = (row ?? Array.Empty<string>()).Select(EscapeMarkdownCell);
-                sb.AppendLine(JoinRow(escapedRow));
+                AppendRow(sb, escapedRow);
             }
 
-            return sb.ToString().TrimEnd();
+            return sb.ToString().TrimEnd('\n');
         }
 
         var sbNoHeaders = new StringBuilder();
         foreach (IReadOnlyList<string> row in Rows) {
             var escapedRow = (row ?? Array.Empty<string>()).Select(EscapeMarkdownCell);
-            sbNoHeaders.AppendLine(JoinRow(escapedRow));
+            AppendRow(sbNoHeaders, escapedRow);
         }
-        return sbNoHeaders.ToString().TrimEnd();
+        return sbNoHeaders.ToString().TrimEnd('\n');
     }
 
     /// <inheritdoc />
@@ -93,7 +97,6 @@ public sealed class TableBlock : IMarkdownBlock {
 
         string value = cell!;
         string normalized = value.Replace("\r\n", "\n").Replace("\r", "\n");
-        normalized = normalized.Trim('\n');
         normalized = normalized.Replace("\n", "<br>");
 
         var escapedBackslashes = normalized.Replace("\\", "\\\\");
