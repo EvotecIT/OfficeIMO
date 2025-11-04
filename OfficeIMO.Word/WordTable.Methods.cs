@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -454,6 +456,87 @@ namespace OfficeIMO.Word {
                         tcPr.TableCellWidth.Type = TableWidthUnitValues.Pct;
                         tcPr.TableCellWidth.Width = columnWidth.ToString();
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sets column widths using percentages. Values are scaled proportionally when they don't sum to 100.
+        /// </summary>
+        /// <param name="percentages">Column percentages in any positive ratio.</param>
+        public void SetColumnWidthsPercentage(params int[] percentages) {
+            if (percentages == null) {
+                throw new ArgumentNullException(nameof(percentages));
+            }
+
+            if (Rows.Count == 0 || Rows[0].Cells.Count == 0) {
+                throw new InvalidOperationException("Cannot set column widths on an empty table.");
+            }
+
+            int columnCount = Rows[0].Cells.Count;
+            if (percentages.Length != columnCount) {
+                throw new ArgumentException($"Expected {columnCount} percentage values but received {percentages.Length}.", nameof(percentages));
+            }
+
+            if (percentages.Any(value => value < 0)) {
+                throw new ArgumentOutOfRangeException(nameof(percentages), "Percentages must be non-negative.");
+            }
+
+            int total = percentages.Sum();
+            if (total == 0) {
+                throw new ArgumentException("At least one percentage must be greater than zero.", nameof(percentages));
+            }
+
+            CheckTableProperties();
+            if (_tableProperties!.TableLayout == null) {
+                _tableProperties.TableLayout = new TableLayout();
+            }
+            _tableProperties.TableLayout.Type = TableLayoutValues.Fixed;
+
+            if (_tableProperties.TableWidth == null) {
+                _tableProperties.TableWidth = new TableWidth();
+            }
+            _tableProperties.TableWidth.Type = TableWidthUnitValues.Pct;
+            _tableProperties.TableWidth.Width = "5000"; // 100%
+
+            var widths = new int[columnCount];
+            var remainders = new int[columnCount];
+            int assigned = 0;
+
+            for (int i = 0; i < columnCount; i++) {
+                long scaled = (long)percentages[i] * 5000;
+                int width = (int)(scaled / total);
+                widths[i] = width;
+                remainders[i] = (int)(scaled % total);
+                assigned += width;
+            }
+
+            int diff = 5000 - assigned;
+            if (diff > 0) {
+                var indices = Enumerable.Range(0, columnCount)
+                    .OrderByDescending(i => remainders[i])
+                    .ThenBy(i => i)
+                    .ToArray();
+                for (int i = 0; i < diff; i++) {
+                    widths[indices[i % indices.Length]]++;
+                }
+            }
+
+            foreach (var row in Rows) {
+                for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+                    var cell = row.Cells[columnIndex];
+                    var tcPr = cell._tableCellProperties;
+                    if (tcPr == null) {
+                        tcPr = new TableCellProperties();
+                        cell._tableCellProperties = tcPr;
+                    }
+
+                    if (tcPr.TableCellWidth == null) {
+                        tcPr.TableCellWidth = new TableCellWidth();
+                    }
+
+                    tcPr.TableCellWidth.Type = TableWidthUnitValues.Pct;
+                    tcPr.TableCellWidth.Width = widths[columnIndex].ToString();
                 }
             }
         }
