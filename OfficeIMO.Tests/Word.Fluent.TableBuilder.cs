@@ -153,6 +153,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FluentTableBuilderSupportsPercentageColumnWidths() {
+            string filePath = Path.Combine(_directoryWithFiles, "FluentTableBuilderColumnPercentages.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                document.AsFluent()
+                    .Table(t => t
+                        .Create(1, 2)
+                        .ColumnWidthsPercentage(25, 75))
+                    .End()
+                    .Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                var table = document.Tables[0];
+                Assert.Equal(1250, table.Rows[0].Cells[0].Width);
+                Assert.Equal(3750, table.Rows[0].Cells[1].Width);
+                Assert.Equal(TableWidthUnitValues.Pct, table.Rows[0].Cells[0].WidthType);
+                Assert.Equal(TableWidthUnitValues.Pct, table.Rows[0].Cells[1].WidthType);
+            }
+        }
+
+        [Fact]
         public void TableBuilderCellEnforces1BasedIndexing() {
             string filePath = Path.Combine(_directoryWithFiles, "FluentTableBuilderInvalidCell.docx");
             using (var document = WordDocument.Create(filePath)) {

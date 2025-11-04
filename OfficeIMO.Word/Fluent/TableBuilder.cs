@@ -376,6 +376,14 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         /// <summary>
+        /// Sets column widths using percentage values.
+        /// </summary>
+        public TableBuilder ColumnWidthsPercentage(params int[] percentages) {
+            _table?.SetColumnWidthsPercentage(percentages);
+            return this;
+        }
+
+        /// <summary>
         /// Sets the height for the specified row in points.
         /// </summary>
         public TableBuilder RowHeight(int rowIndex, double heightPoints) {
