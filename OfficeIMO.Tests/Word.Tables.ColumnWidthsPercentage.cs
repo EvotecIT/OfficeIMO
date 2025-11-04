@@ -58,5 +58,28 @@ namespace OfficeIMO.Tests {
                 Assert.Throws<ArgumentException>(() => table.SetColumnWidthsPercentage(10, 20, 70));
             }
         }
+
+        [Fact]
+        public void TableColumnWidthsPercentageSkipsRowsWithFewerCells() {
+            string filePath = Path.Combine(_directoryWithFiles, "TableColumnWidthsPercentageMissingCells.docx");
+
+            using (var document = WordDocument.Create(filePath)) {
+                var table = document.AddTable(2, 3, WordTableStyle.PlainTable1);
+                table.Rows[1].Cells[2].Remove();
+
+                table.SetColumnWidthsPercentage(20, 30, 50);
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                var table = document.Tables[0];
+
+                Assert.Equal(1000, table.Rows[0].Cells[0].Width);
+                Assert.Equal(1500, table.Rows[0].Cells[1].Width);
+                Assert.Equal(2500, table.Rows[0].Cells[2].Width);
+
+                Assert.Equal(2, table.Rows[1].Cells.Count);
+            }
+        }
     }
 }

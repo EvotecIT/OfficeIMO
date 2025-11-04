@@ -523,11 +523,16 @@ namespace OfficeIMO.Word {
             }
 
             foreach (var row in Rows) {
+                if (row.Cells.Count != columnCount) {
+                    continue;
+                }
+
                 for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
                     var cell = row.Cells[columnIndex];
                     var tcPr = cell._tableCellProperties;
                     if (tcPr == null) {
                         tcPr = new TableCellProperties();
+                        cell._tableCell.InsertAt(tcPr, 0);
                         cell._tableCellProperties = tcPr;
                     }
 
