@@ -19,6 +19,64 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
             Assert.IsType<HtmlRawBlock>(doc.Blocks[1]);
         }
+
+        [Fact]
+        public void Inline_Html_Br_Can_Be_Disabled() {
+            string md = "First<br>Second";
+
+            var options = new MarkdownReaderOptions { InlineHtml = false, HtmlBlocks = false };
+            var doc = MarkdownReader.Parse(md, options);
+
+            var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+            Assert.Single(paragraph.Inlines.Items);
+            var text = Assert.IsType<TextRun>(paragraph.Inlines.Items[0]);
+            Assert.Equal("First<br>Second", text.Text);
+        }
+
+        [Fact]
+        public void Inline_Html_Underline_Can_Be_Disabled() {
+            string md = "<u>Decorated</u>";
+
+            var options = new MarkdownReaderOptions { InlineHtml = false, HtmlBlocks = false };
+            var doc = MarkdownReader.Parse(md, options);
+
+            var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+            Assert.Single(paragraph.Inlines.Items);
+            var text = Assert.IsType<TextRun>(paragraph.Inlines.Items[0]);
+            Assert.Equal("<u>Decorated</u>", text.Text);
+        }
+
+        [Fact]
+        public void Inline_Html_Remains_When_Html_Blocks_Disabled() {
+            string md = "<div>First<br>Second</div>";
+
+            var options = new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = true };
+            var doc = MarkdownReader.Parse(md, options);
+
+            var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+            Assert.Equal(4, paragraph.Inlines.Items.Count);
+            var firstText = Assert.IsType<TextRun>(paragraph.Inlines.Items[0]);
+            Assert.Equal("<div>First", firstText.Text);
+            Assert.IsType<HardBreakInline>(paragraph.Inlines.Items[1]);
+            var secondText = Assert.IsType<TextRun>(paragraph.Inlines.Items[2]);
+            Assert.Equal("Second", secondText.Text);
+            var closingTag = Assert.IsType<TextRun>(paragraph.Inlines.Items[3]);
+            Assert.Equal("</div>", closingTag.Text);
+        }
+
+        [Fact]
+        public void Html_Blocks_Remain_When_Inline_Html_Disabled() {
+            string md = "<div>Inline <br/> html</div>\n\nParagraph";
+
+            var options = new MarkdownReaderOptions { HtmlBlocks = true, InlineHtml = false };
+            var doc = MarkdownReader.Parse(md, options);
+
+            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
+            Assert.Equal("<div>Inline <br/> html</div>", html.Html);
+            var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
+            var text = Assert.IsType<TextRun>(paragraph.Inlines.Items[0]);
+            Assert.Equal("Paragraph", text.Text);
+        }
     }
 }
 
