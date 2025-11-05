@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -98,11 +99,8 @@ namespace OfficeIMO.Word {
             IEnumerable<SdtId> query;
             try {
                 query = root.Descendants<SdtId>();
-            } catch (InvalidOperationException) {
-                yield break;
-            } catch (NullReferenceException) {
-                yield break;
-            } catch (FormatException) {
+            } catch (InvalidOperationException ex) {
+                Debug.WriteLine($"Failed to enumerate SDT identifiers: {ex}");
                 yield break;
             }
 
