@@ -11,7 +11,7 @@ namespace OfficeIMO.Word {
                 SdtBlock sdtBlock1 = new SdtBlock();
 
                 SdtProperties sdtProperties1 = new SdtProperties();
-                SdtId sdtId1 = new SdtId() { Val = -1153752882 };
+                SdtId sdtId1 = new SdtId();
 
                 SdtContentDocPartObject sdtContentDocPartObject1 = new SdtContentDocPartObject();
                 DocPartGallery docPartGallery1 = new DocPartGallery() { Val = "Cover Pages" };
@@ -71,7 +71,7 @@ namespace OfficeIMO.Word {
                 runProperties1.Append(fontSize1);
                 runProperties1.Append(fontSizeComplexScript1);
                 SdtAlias sdtAlias1 = new SdtAlias() { Val = "Company" };
-                SdtId sdtId2 = new SdtId() { Val = 13406915 };
+                SdtId sdtId2 = new SdtId();
 
                 SdtPlaceholder sdtPlaceholder1 = new SdtPlaceholder();
                 DocPartReference docPartReference1 = new DocPartReference() { Val = "6104919ED59E4975BF9F41C4B89124BB" };
@@ -178,7 +178,7 @@ namespace OfficeIMO.Word {
                 runProperties3.Append(fontSize4);
                 runProperties3.Append(fontSizeComplexScript3);
                 SdtAlias sdtAlias2 = new SdtAlias() { Val = "Title" };
-                SdtId sdtId3 = new SdtId() { Val = 13406919 };
+                SdtId sdtId3 = new SdtId();
 
                 SdtPlaceholder sdtPlaceholder2 = new SdtPlaceholder();
                 DocPartReference docPartReference2 = new DocPartReference() { Val = "51BABD9EF9164A1B940254E8ACAC92FD" };
@@ -265,7 +265,7 @@ namespace OfficeIMO.Word {
                 runProperties5.Append(fontSize7);
                 runProperties5.Append(fontSizeComplexScript6);
                 SdtAlias sdtAlias3 = new SdtAlias() { Val = "Subtitle" };
-                SdtId sdtId4 = new SdtId() { Val = 13406923 };
+                SdtId sdtId4 = new SdtId();
 
                 SdtPlaceholder sdtPlaceholder3 = new SdtPlaceholder();
                 DocPartReference docPartReference3 = new DocPartReference() { Val = "C8965A10F1FB45A584134C6BE40D8476" };
@@ -404,7 +404,7 @@ namespace OfficeIMO.Word {
                 runProperties7.Append(fontSize10);
                 runProperties7.Append(fontSizeComplexScript8);
                 SdtAlias sdtAlias4 = new SdtAlias() { Val = "Author" };
-                SdtId sdtId5 = new SdtId() { Val = 13406928 };
+                SdtId sdtId5 = new SdtId();
 
                 SdtPlaceholder sdtPlaceholder4 = new SdtPlaceholder();
                 DocPartReference docPartReference4 = new DocPartReference() { Val = "07D56EEB93E5458EB4FF8045BB57C03E" };
@@ -477,7 +477,7 @@ namespace OfficeIMO.Word {
                 runProperties9.Append(fontSizeComplexScript11);
                 SdtAlias sdtAlias5 = new SdtAlias() { Val = "Date" };
                 Tag tag1 = new Tag() { Val = "Date" };
-                SdtId sdtId6 = new SdtId() { Val = 13406932 };
+                SdtId sdtId6 = new SdtId();
 
                 SdtPlaceholder sdtPlaceholder5 = new SdtPlaceholder();
                 DocPartReference docPartReference5 = new DocPartReference() { Val = "33E01DFD9623417BB5536301C15288E7" };

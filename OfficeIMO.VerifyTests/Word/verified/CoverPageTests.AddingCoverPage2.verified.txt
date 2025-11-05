@@ -25,7 +25,7 @@
   <w:body>
     <w:sdt>
       <w:sdtPr>
-        <w:id w:val="1961918155" />
+        <w:id w:val="1" />
         <w:docPartObj>
           <w:docPartGallery w:val="Cover Pages" />
           <w:docPartUnique />
@@ -60,7 +60,7 @@
                             <w:color w:val="44546A" w:themeColor="text2" />
                           </w:rPr>
                           <w:alias w:val="Author" />
-                          <w:id w:val="15524260" />
+                          <w:id w:val="2" />
                           <w:showingPlcHdr />
                           <w:dataBinding w:prefixMappings="xmlns:ns0='http://schemas.openxmlformats.org/package/2006/metadata/core-properties' xmlns:ns1='http://purl.org/dc/elements/1.1/'" w:xpath="/ns0:coreProperties[1]/ns1:creator[1]" w:storeItemID="{6C3C8BC8-F283-45AE-878A-BAB7291924A1}" />
                           <w:text />
@@ -123,7 +123,7 @@
                             <w:color w:val="FFFFFF" w:themeColor="background1" />
                           </w:rPr>
                           <w:alias w:val="Abstract" />
-                          <w:id w:val="8276291" />
+                          <w:id w:val="3" />
                           <w:showingPlcHdr />
                           <w:dataBinding w:prefixMappings="xmlns:ns0='http://schemas.microsoft.com/office/2006/coverPageProps'" w:xpath="/ns0:CoverPageProperties[1]/ns0:Abstract[1]" w:storeItemID="{55AF091B-3C7A-41E3-B477-F2FDAA23CFDA}" />
                           <w:text />
@@ -183,7 +183,7 @@
                           <w:szCs w:val="72" />
                         </w:rPr>
                         <w:alias w:val="Title" />
-                        <w:id w:val="-958338334" />
+                        <w:id w:val="4" />
                         <w:showingPlcHdr />
                         <w:dataBinding w:prefixMappings="xmlns:ns0='http://schemas.openxmlformats.org/package/2006/metadata/core-properties' xmlns:ns1='http://purl.org/dc/elements/1.1/'" w:xpath="/ns0:coreProperties[1]/ns1:title[1]" w:storeItemID="{6C3C8BC8-F283-45AE-878A-BAB7291924A1}" />
                         <w:text />
@@ -224,7 +224,7 @@
                           <w:szCs w:val="32" />
                         </w:rPr>
                         <w:alias w:val="Subtitle" />
-                        <w:id w:val="15524255" />
+                        <w:id w:val="5" />
                         <w:showingPlcHdr />
                         <w:dataBinding w:prefixMappings="xmlns:ns0='http://schemas.openxmlformats.org/package/2006/metadata/core-properties' xmlns:ns1='http://purl.org/dc/elements/1.1/'" w:xpath="/ns0:coreProperties[1]/ns1:subject[1]" w:storeItemID="{6C3C8BC8-F283-45AE-878A-BAB7291924A1}" />
                         <w:text />
@@ -270,7 +270,7 @@
     </w:sdt>
     <w:sdt>
       <w:sdtPr>
-        <w:id w:val="-619995952" />
+        <w:id w:val="6" />
         <w:docPartObj>
           <w:docPartGallery w:val="Table of Contents" />
           <w:docPartUnique />

@@ -120,7 +120,7 @@ namespace OfficeIMO.Word {
         /// <param name="wordDocument">Parent document where the table of contents will be created.</param>
         /// <param name="tableOfContentStyle">Template style used to generate the table of contents.</param>
         public WordTableOfContent(WordDocument wordDocument, TableOfContentStyle tableOfContentStyle)
-            : this(wordDocument, GetStyle(tableOfContentStyle), tableOfContentStyle, appendToBody: true, queueUpdateOnOpen: true) {
+            : this(wordDocument, PrepareTemplate(wordDocument, tableOfContentStyle), tableOfContentStyle, appendToBody: true, queueUpdateOnOpen: true) {
         }
 
         /// <summary>
@@ -221,7 +221,14 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Returns a predefined structured document tag matching the chosen style.
         /// </summary>
+        /// <param name="document">Document that will own the structured document tag.</param>
         /// <param name="style">Template identifier to retrieve.</param>
+        private static SdtBlock PrepareTemplate(WordDocument document, TableOfContentStyle style) {
+            var block = GetStyle(style);
+            document.AssignNewSdtIds(block);
+            return block;
+        }
+
         private static SdtBlock GetStyle(TableOfContentStyle style) {
             switch (style) {
                 case TableOfContentStyle.Template1: return Template1;
@@ -237,7 +244,7 @@ namespace OfficeIMO.Word {
                 SdtBlock sdtBlock1 = new SdtBlock();
 
                 SdtProperties sdtProperties1 = new SdtProperties();
-                SdtId sdtId1 = new SdtId() { Val = -619995952 };
+                SdtId sdtId1 = new SdtId();
 
                 SdtContentDocPartObject sdtContentDocPartObject1 = new SdtContentDocPartObject();
                 DocPartGallery docPartGallery1 = new DocPartGallery() { Val = "Table of Contents" };
@@ -331,7 +338,7 @@ namespace OfficeIMO.Word {
                 SdtBlock sdtBlock1 = new SdtBlock();
 
                 SdtProperties sdtProperties1 = new SdtProperties();
-                SdtId sdtId1 = new SdtId() { Val = -909075344 };
+                SdtId sdtId1 = new SdtId();
 
                 SdtContentDocPartObject sdtContentDocPartObject1 = new SdtContentDocPartObject();
                 DocPartGallery docPartGallery1 = new DocPartGallery() { Val = "Table of Contents" };

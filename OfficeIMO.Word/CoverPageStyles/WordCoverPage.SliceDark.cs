@@ -14,7 +14,7 @@ namespace OfficeIMO.Word {
                 SdtBlock sdtBlock1 = new SdtBlock();
 
                 SdtProperties sdtProperties1 = new SdtProperties();
-                SdtId sdtId1 = new SdtId() { Val = 1412589593 };
+                SdtId sdtId1 = new SdtId();
 
                 SdtContentDocPartObject sdtContentDocPartObject1 = new SdtContentDocPartObject();
                 DocPartGallery docPartGallery1 = new DocPartGallery() { Val = "Cover Pages" };
@@ -146,7 +146,7 @@ namespace OfficeIMO.Word {
                 runProperties2.Append(fontSizeComplexScript2);
                 SdtAlias sdtAlias1 = new SdtAlias() { Val = "Title" };
                 Tag tag1 = new Tag() { Val = "" };
-                SdtId sdtId2 = new SdtId() { Val = 1841046763 };
+                SdtId sdtId2 = new SdtId();
                 ShowingPlaceholder showingPlaceholder1 = new ShowingPlaceholder();
                 DataBinding dataBinding1 = new DataBinding() { PrefixMappings = "xmlns:ns0=\'http://purl.org/dc/elements/1.1/\' xmlns:ns1=\'http://schemas.openxmlformats.org/package/2006/metadata/core-properties\' ", XPath = "/ns1:coreProperties[1]/ns0:title[1]", StoreItemId = "{6C3C8BC8-F283-45AE-878A-BAB7291924A1}" };
                 SdtContentText sdtContentText1 = new SdtContentText();
@@ -224,7 +224,7 @@ namespace OfficeIMO.Word {
                 runProperties4.Append(fontSizeComplexScript5);
                 SdtAlias sdtAlias2 = new SdtAlias() { Val = "Subtitle" };
                 Tag tag2 = new Tag() { Val = "" };
-                SdtId sdtId3 = new SdtId() { Val = -1686441493 };
+                SdtId sdtId3 = new SdtId();
                 ShowingPlaceholder showingPlaceholder2 = new ShowingPlaceholder();
                 DataBinding dataBinding2 = new DataBinding() { PrefixMappings = "xmlns:ns0=\'http://purl.org/dc/elements/1.1/\' xmlns:ns1=\'http://schemas.openxmlformats.org/package/2006/metadata/core-properties\' ", XPath = "/ns1:coreProperties[1]/ns0:subject[1]", StoreItemId = "{6C3C8BC8-F283-45AE-878A-BAB7291924A1}" };
                 SdtContentText sdtContentText2 = new SdtContentText();

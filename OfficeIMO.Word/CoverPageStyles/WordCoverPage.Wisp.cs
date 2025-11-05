@@ -14,7 +14,7 @@ namespace OfficeIMO.Word {
                 SdtBlock sdtBlock1 = new SdtBlock();
 
                 SdtProperties sdtProperties1 = new SdtProperties();
-                SdtId sdtId1 = new SdtId() { Val = -740713628 };
+                SdtId sdtId1 = new SdtId();
 
                 SdtContentDocPartObject sdtContentDocPartObject1 = new SdtContentDocPartObject();
                 DocPartGallery docPartGallery1 = new DocPartGallery() { Val = "Cover Pages" };
@@ -87,7 +87,7 @@ namespace OfficeIMO.Word {
                 runProperties2.Append(fontSizeComplexScript1);
                 SdtAlias sdtAlias1 = new SdtAlias() { Val = "Date" };
                 Tag tag1 = new Tag() { Val = "" };
-                SdtId sdtId2 = new SdtId() { Val = -650599894 };
+                SdtId sdtId2 = new SdtId();
                 ShowingPlaceholder showingPlaceholder1 = new ShowingPlaceholder();
                 DataBinding dataBinding1 = new DataBinding() { PrefixMappings = "xmlns:ns0=\'http://schemas.microsoft.com/office/2006/coverPageProps\' ", XPath = "/ns0:CoverPageProperties[1]/ns0:PublishDate[1]", StoreItemId = "{55AF091B-3C7A-41E3-B477-F2FDAA23CFDA}" };
 
@@ -424,7 +424,7 @@ namespace OfficeIMO.Word {
                 runProperties5.Append(fontSizeComplexScript5);
                 SdtAlias sdtAlias2 = new SdtAlias() { Val = "Author" };
                 Tag tag2 = new Tag() { Val = "" };
-                SdtId sdtId3 = new SdtId() { Val = -2041584766 };
+                SdtId sdtId3 = new SdtId();
                 ShowingPlaceholder showingPlaceholder2 = new ShowingPlaceholder();
                 DataBinding dataBinding2 = new DataBinding() { PrefixMappings = "xmlns:ns0=\'http://purl.org/dc/elements/1.1/\' xmlns:ns1=\'http://schemas.openxmlformats.org/package/2006/metadata/core-properties\' ", XPath = "/ns1:coreProperties[1]/ns0:creator[1]", StoreItemId = "{6C3C8BC8-F283-45AE-878A-BAB7291924A1}" };
                 SdtContentText sdtContentText1 = new SdtContentText();
@@ -496,7 +496,7 @@ namespace OfficeIMO.Word {
                 runProperties7.Append(fontSizeComplexScript8);
                 SdtAlias sdtAlias3 = new SdtAlias() { Val = "Company" };
                 Tag tag3 = new Tag() { Val = "" };
-                SdtId sdtId4 = new SdtId() { Val = 1558814826 };
+                SdtId sdtId4 = new SdtId();
                 ShowingPlaceholder showingPlaceholder3 = new ShowingPlaceholder();
                 DataBinding dataBinding3 = new DataBinding() { PrefixMappings = "xmlns:ns0=\'http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\' ", XPath = "/ns0:Properties[1]/ns0:Company[1]", StoreItemId = "{6668398D-A668-4E3E-A5EB-62B293D839F1}" };
                 SdtContentText sdtContentText2 = new SdtContentText();
@@ -600,7 +600,7 @@ namespace OfficeIMO.Word {
                 runProperties10.Append(fontSizeComplexScript10);
                 SdtAlias sdtAlias4 = new SdtAlias() { Val = "Title" };
                 Tag tag4 = new Tag() { Val = "" };
-                SdtId sdtId5 = new SdtId() { Val = -705018352 };
+                SdtId sdtId5 = new SdtId();
                 ShowingPlaceholder showingPlaceholder4 = new ShowingPlaceholder();
                 DataBinding dataBinding4 = new DataBinding() { PrefixMappings = "xmlns:ns0=\'http://purl.org/dc/elements/1.1/\' xmlns:ns1=\'http://schemas.openxmlformats.org/package/2006/metadata/core-properties\' ", XPath = "/ns1:coreProperties[1]/ns0:title[1]", StoreItemId = "{6C3C8BC8-F283-45AE-878A-BAB7291924A1}" };
                 SdtContentText sdtContentText3 = new SdtContentText();
@@ -674,7 +674,7 @@ namespace OfficeIMO.Word {
                 runProperties12.Append(fontSizeComplexScript13);
                 SdtAlias sdtAlias5 = new SdtAlias() { Val = "Subtitle" };
                 Tag tag5 = new Tag() { Val = "" };
-                SdtId sdtId6 = new SdtId() { Val = -1148361611 };
+                SdtId sdtId6 = new SdtId();
                 ShowingPlaceholder showingPlaceholder5 = new ShowingPlaceholder();
                 DataBinding dataBinding5 = new DataBinding() { PrefixMappings = "xmlns:ns0=\'http://purl.org/dc/elements/1.1/\' xmlns:ns1=\'http://schemas.openxmlformats.org/package/2006/metadata/core-properties\' ", XPath = "/ns1:coreProperties[1]/ns0:subject[1]", StoreItemId = "{6C3C8BC8-F283-45AE-878A-BAB7291924A1}" };
                 SdtContentText sdtContentText4 = new SdtContentText();

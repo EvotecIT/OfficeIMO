@@ -1096,6 +1096,7 @@ namespace OfficeIMO.Word {
             word.FilePath = filePath ?? string.Empty;
             word._wordprocessingDocument = wordDocument;
             word._document = mainPart.Document;
+            word.InitializeSdtIdState();
 
             StyleDefinitionsPart styleDefinitionsPart1 = mainPart.AddNewPart<StyleDefinitionsPart>("rId1");
             GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
@@ -1170,6 +1171,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         private void LoadDocument() {
             Sections.Clear();
+            InitializeSdtIdState();
             // add settings if not existing
             var wordSettings = new WordSettings(this);
             var applicationProperties = new ApplicationProperties(this);
