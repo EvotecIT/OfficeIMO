@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml;
@@ -6,23 +7,26 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
+        private const int MaxSdtId = int.MaxValue - 1;
+
         private readonly HashSet<int> _usedSdtIds = new();
         private int _nextSdtId = 1;
         private readonly object _sdtIdLock = new();
 
         internal int GenerateSdtId() {
             lock (_sdtIdLock) {
-                var candidate = _nextSdtId;
-                if (candidate <= 0) {
-                    candidate = 1;
+                if (_usedSdtIds.Count >= MaxSdtId) {
+                    throw new InvalidOperationException("All available SDT identifiers are exhausted.");
                 }
 
+                var candidate = NormalizeCandidate(_nextSdtId);
+
                 while (_usedSdtIds.Contains(candidate)) {
-                    candidate++;
+                    candidate = candidate >= MaxSdtId ? 1 : candidate + 1;
                 }
 
                 _usedSdtIds.Add(candidate);
-                _nextSdtId = candidate + 1;
+                _nextSdtId = candidate >= MaxSdtId ? 1 : candidate + 1;
                 return candidate;
             }
         }
@@ -49,36 +53,62 @@ namespace OfficeIMO.Word {
 
                     _usedSdtIds.Add(id);
                     if (id >= _nextSdtId) {
-                        _nextSdtId = id + 1;
+                        _nextSdtId = id >= MaxSdtId ? 1 : id + 1;
                     }
                 }
             }
         }
 
         private IEnumerable<int> EnumerateExistingSdtIds() {
-            if (_wordprocessingDocument?.MainDocumentPart == null) {
+            var mainPart = _wordprocessingDocument?.MainDocumentPart;
+            if (mainPart == null) {
                 yield break;
             }
 
-            foreach (var sdtId in _wordprocessingDocument.MainDocumentPart.Document.Descendants<SdtId>()) {
-                if (sdtId.Val?.HasValue == true) {
+            foreach (var id in EnumerateSdtIdsSafe(mainPart.Document)) {
+                yield return id;
+            }
+
+            foreach (var headerPart in mainPart.HeaderParts ?? Enumerable.Empty<HeaderPart>()) {
+                foreach (var id in EnumerateSdtIdsSafe(headerPart?.RootElement)) {
+                    yield return id;
+                }
+            }
+
+            foreach (var footerPart in mainPart.FooterParts ?? Enumerable.Empty<FooterPart>()) {
+                foreach (var id in EnumerateSdtIdsSafe(footerPart?.RootElement)) {
+                    yield return id;
+                }
+            }
+        }
+
+        private static int NormalizeCandidate(int candidate) {
+            if (candidate <= 0 || candidate > MaxSdtId) {
+                return 1;
+            }
+
+            return candidate;
+        }
+
+        private static IEnumerable<int> EnumerateSdtIdsSafe(OpenXmlElement? root) {
+            if (root == null) {
+                yield break;
+            }
+
+            IEnumerable<SdtId> query;
+            try {
+                query = root.Descendants<SdtId>();
+            } catch (InvalidOperationException) {
+                yield break;
+            } catch (NullReferenceException) {
+                yield break;
+            } catch (FormatException) {
+                yield break;
+            }
+
+            foreach (var sdtId in query) {
+                if (sdtId?.Val?.HasValue == true) {
                     yield return sdtId.Val.Value;
-                }
-            }
-
-            foreach (var headerPart in _wordprocessingDocument.MainDocumentPart.HeaderParts) {
-                foreach (var sdtId in headerPart.RootElement?.Descendants<SdtId>() ?? Enumerable.Empty<SdtId>()) {
-                    if (sdtId.Val?.HasValue == true) {
-                        yield return sdtId.Val.Value;
-                    }
-                }
-            }
-
-            foreach (var footerPart in _wordprocessingDocument.MainDocumentPart.FooterParts) {
-                foreach (var sdtId in footerPart.RootElement?.Descendants<SdtId>() ?? Enumerable.Empty<SdtId>()) {
-                    if (sdtId.Val?.HasValue == true) {
-                        yield return sdtId.Val.Value;
-                    }
                 }
             }
         }
