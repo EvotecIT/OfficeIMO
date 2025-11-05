@@ -1342,13 +1342,21 @@ namespace OfficeIMO.Word {
             xml += "<w:sdtPr>";
             if (!string.IsNullOrEmpty(alias)) xml += $"<w:alias w:val='{alias}'/>";
             if (!string.IsNullOrEmpty(tag)) xml += $"<w:tag w:val='{tag}'/>";
-            xml += $"<w:id w:val='{sdtIdValue}'/>";
             xml += "<w15:repeatingSection" + (string.IsNullOrEmpty(sectionTitle) ? string.Empty : $" w15:sectionTitle='{sectionTitle}'") + "/>";
             xml += "</w:sdtPr>";
             xml += "<w:sdtContent><w15:repeatingSectionItem><w:sdt><w:sdtContent><w:r/></w:sdtContent></w:sdt></w15:repeatingSectionItem></w:sdtContent>";
             xml += "</w:sdt>";
 
             var newSdt = new SdtRun(xml);
+
+            // Repeating sections are still composed from raw XML because the Open XML SDK does not
+            // expose strongly typed wrappers for the w15 repeating section vocabulary. Inject the
+            // generated identifier through the object model to stay consistent with other helpers.
+            var properties = newSdt.SdtProperties ?? new SdtProperties();
+            properties.RemoveAllChildren<SdtId>();
+            properties.Append(new SdtId { Val = new DocumentFormat.OpenXml.Int32Value(sdtIdValue) });
+            newSdt.SdtProperties = properties;
+
             this._paragraph.Append(newSdt);
 
             return new WordRepeatingSection(this._document, this._paragraph, newSdt);

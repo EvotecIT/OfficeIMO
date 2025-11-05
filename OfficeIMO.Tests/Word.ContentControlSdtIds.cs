@@ -26,6 +26,8 @@ namespace OfficeIMO.Tests {
             var repeatingParagraph = document.AddParagraph();
             repeatingParagraph.AddRepeatingSection(sectionTitle: "Items");
 
+            const int ExpectedControlCount = 7; // 1 SDT + checkbox + date picker + dropdown + combo + picture + repeating section
+
             var ids = document._document
                 .Descendants<SdtId>()
                 .Select(id => id.Val?.Value)
@@ -33,50 +35,56 @@ namespace OfficeIMO.Tests {
                 .Select(val => val!.Value)
                 .ToArray();
 
-            Assert.Equal(7, ids.Length);
+            Assert.Equal(ExpectedControlCount, ids.Length);
             Assert.Equal(ids.Length, ids.Distinct().Count());
             Assert.All(ids, id => Assert.InRange(id, 1, int.MaxValue));
         }
 
         [Fact]
         public void ContentControls_PreserveUniquenessAcrossReload() {
-            string filePath = Path.Combine(_directoryWithFiles, "UniqueSdtIds.docx");
+            string filePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.docx");
 
-            int initialMaxId;
-            using (var document = WordDocument.Create(filePath)) {
-                var paragraph = document.AddParagraph("Initial");
-                paragraph.AddStructuredDocumentTag("First");
-                paragraph.AddCheckBox();
+            try {
+                int initialMaxId;
+                using (var document = WordDocument.Create(filePath)) {
+                    var paragraph = document.AddParagraph("Initial");
+                    paragraph.AddStructuredDocumentTag("First");
+                    paragraph.AddCheckBox();
 
-                document.Save(false);
+                    document.Save(false);
 
-                initialMaxId = document._document
-                    .Descendants<SdtId>()
-                    .Select(id => id.Val?.Value ?? 0)
-                    .DefaultIfEmpty(0)
-                    .Max();
-            }
+                    initialMaxId = document._document
+                        .Descendants<SdtId>()
+                        .Select(id => id.Val?.Value ?? 0)
+                        .DefaultIfEmpty(0)
+                        .Max();
+                }
 
-            using (var document = WordDocument.Load(filePath)) {
-                var paragraph = document.AddParagraph("Next");
-                paragraph.AddDatePicker();
-                paragraph.AddDropDownList(new[] { "A", "B" });
-                paragraph.AddComboBox(new[] { "Red", "Blue" }, defaultValue: "Blue");
+                using (var document = WordDocument.Load(filePath)) {
+                    var paragraph = document.AddParagraph("Next");
+                    paragraph.AddDatePicker();
+                    paragraph.AddDropDownList(new[] { "A", "B" });
+                    paragraph.AddComboBox(new[] { "Red", "Blue" }, defaultValue: "Blue");
 
-                document.Save(false);
+                    document.Save(false);
 
-                var allIds = document._document
-                    .Descendants<SdtId>()
-                    .Select(id => id.Val?.Value ?? 0)
-                    .Where(id => id > 0)
-                    .ToArray();
+                    var allIds = document._document
+                        .Descendants<SdtId>()
+                        .Select(id => id.Val?.Value ?? 0)
+                        .Where(id => id > 0)
+                        .ToArray();
 
-                Assert.Equal(allIds.Length, allIds.Distinct().Count());
-                Assert.All(allIds, id => Assert.InRange(id, 1, int.MaxValue));
+                    Assert.Equal(allIds.Length, allIds.Distinct().Count());
+                    Assert.All(allIds, id => Assert.InRange(id, 1, int.MaxValue));
 
-                var newlyAllocated = allIds.Where(id => id > initialMaxId).ToArray();
-                Assert.True(newlyAllocated.Length >= 3, "Expected the reloaded document to allocate new identifiers.");
-                Assert.All(newlyAllocated, id => Assert.True(id > initialMaxId));
+                    var newlyAllocated = allIds.Where(id => id > initialMaxId).ToArray();
+                    Assert.True(newlyAllocated.Length >= 3, "Expected the reloaded document to allocate new identifiers.");
+                    Assert.All(newlyAllocated, id => Assert.True(id > initialMaxId));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
             }
         }
     }
