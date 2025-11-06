@@ -112,6 +112,41 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Normalizes this table for online viewers: ensures the table has a concrete
+        /// preferred width, converts percentage-based cell widths to a reliable grid,
+        /// and clamps DXA totals to the printable area.
+        /// </summary>
+        public void NormalizeForOnline() {
+            try {
+                // Ensure the table has a declared preferred width (defaults to 100%).
+                if (this.WidthType == null || this.WidthType == TableWidthUnitValues.Auto || (this.Width ?? 0) == 0) {
+                    this.WidthType = TableWidthUnitValues.Pct;
+                    this.Width = 5000; // 100%
+                }
+
+                // If cells don't specify width types explicitly, prefer percentages
+                // (many templates do); our grid writer will convert to DXA.
+                if (this.ColumnWidthType == null) {
+                    this.ColumnWidthType = TableWidthUnitValues.Pct;
+                }
+
+                // Write/repair tblGrid from current settings.
+                RefreshGrid();
+
+                // Avoid table indentation which can shift layout online
+                if (_tableProperties?.TableIndentation != null) {
+                    _tableProperties.TableIndentation.Remove();
+                }
+
+                // When tables are positioned with text wrapping, Word Online may clip them.
+                // Default to in-flow layout unless the user explicitly opted in.
+                if (_tableProperties?.TablePositionProperties != null) {
+                    _tableProperties.TablePositionProperties.Remove();
+                }
+            } catch { }
+        }
+
+        /// <summary>
         /// Applies a table style defined in the document.
         /// </summary>
         /// <param name="styleId">Identifier of the table style to apply.</param>

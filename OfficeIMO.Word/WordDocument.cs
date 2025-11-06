@@ -1941,6 +1941,8 @@ namespace OfficeIMO.Word {
 
         private void PreSaving() {
             MoveSectionProperties();
+            // Normalize tables for Word Online/Google Docs compatibility
+            try { NormalizeTablesForOnline(); } catch { }
             SaveNumbering();
             if (AutoUpdateToc && TableOfContent != null) {
                 TableOfContent.Update();

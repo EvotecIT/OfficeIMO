@@ -316,6 +316,8 @@ namespace OfficeIMO.Word.Fluent {
             }
 
             _columns++;
+            // Keep the grid in sync after structure change
+            try { _table.RefreshGrid(); } catch { }
             return this;
         }
 
