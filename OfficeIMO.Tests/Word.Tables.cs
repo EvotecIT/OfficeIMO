@@ -3,6 +3,7 @@ using OfficeIMO.Word;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Xunit;
 using Color = SixLabors.ImageSharp.Color;
 
@@ -1450,6 +1451,44 @@ namespace OfficeIMO.Tests {
                 WordTable table = document.Tables[0];
                 Assert.Equal(WordTableLayoutType.AutoFitToWindow, table.AutoFit);
             }
+        }
+
+        [Fact]
+        public void TableCopyAndClone_AssignNewSdtIds() {
+            using var document = WordDocument.Create();
+
+            document.AddParagraph("Intro");
+            var table = document.AddTable(1, 1);
+
+            var primaryParagraph = table.Rows[0].Cells[0].Paragraphs[0];
+            primaryParagraph.AddStructuredDocumentTag("Control", "Alias", "Tag");
+
+            var copiedRow = table.CopyRow(table.Rows[0]);
+            Assert.NotSame(table.Rows[0], copiedRow);
+
+            var anchorParagraph = document.AddParagraph("Anchor");
+
+            var cloneAfterSelf = table.CloneAfterSelf();
+            Assert.NotNull(cloneAfterSelf);
+
+            var cloneBeforeSelf = table.CloneBeforeSelf();
+            Assert.NotNull(cloneBeforeSelf);
+
+            var cloneRelativeToParagraph = table.Clone(anchorParagraph, after: true);
+            Assert.NotNull(cloneRelativeToParagraph);
+
+            var cloneRelativeToTable = table.Clone(cloneAfterSelf, after: true);
+            Assert.NotNull(cloneRelativeToTable);
+
+            var ids = document._document
+                .Descendants<SdtId>()
+                .Select(id => id.Val?.Value ?? 0)
+                .Where(id => id > 0)
+                .ToArray();
+
+            Assert.True(ids.Length >= 10, "Expected multiple content controls after copying and cloning the table.");
+            Assert.Equal(ids.Length, ids.Distinct().Count());
+            Assert.All(ids, id => Assert.InRange(id, 1, int.MaxValue));
         }
 
     }

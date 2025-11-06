@@ -183,6 +183,7 @@ namespace OfficeIMO.Word {
 
             // Clone the row to avoid the "part of a tree" error
             var clonedRow = (TableRow)row._tableRow.CloneNode(true);
+            _document.AssignNewSdtIds(clonedRow);
 
             // Insert the new row after the last row
             var insertedRow = lastRow.InsertAfterSelf(clonedRow);
@@ -672,6 +673,7 @@ namespace OfficeIMO.Word {
         /// </example>
         public WordTable CloneAfterSelf() {
             var clonedTable = (Table)_table.CloneNode(true);
+            _document.AssignNewSdtIds(clonedTable);
             _table.InsertAfterSelf(clonedTable);
             return new WordTable(_document, clonedTable);
         }
@@ -687,6 +689,7 @@ namespace OfficeIMO.Word {
         /// </example>
         public WordTable CloneBeforeSelf() {
             var clonedTable = (Table)_table.CloneNode(true);
+            _document.AssignNewSdtIds(clonedTable);
             _table.InsertBeforeSelf(clonedTable);
             return new WordTable(_document, clonedTable);
         }
@@ -704,6 +707,7 @@ namespace OfficeIMO.Word {
         /// </example>
         public WordTable Clone(WordParagraph paragraph, bool after = true) {
             var clonedTable = (Table)_table.CloneNode(true);
+            _document.AssignNewSdtIds(clonedTable);
             if (after) {
                 paragraph._paragraph.InsertAfterSelf(clonedTable);
             } else {
@@ -725,6 +729,7 @@ namespace OfficeIMO.Word {
         /// </example>
         public WordTable Clone(WordTable table, bool after = true) {
             var clonedTable = (Table)_table.CloneNode(true);
+            _document.AssignNewSdtIds(clonedTable);
             if (after) {
                 table._table.InsertAfterSelf(clonedTable);
             } else {
