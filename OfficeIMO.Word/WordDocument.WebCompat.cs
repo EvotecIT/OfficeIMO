@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -41,6 +42,7 @@ namespace OfficeIMO.Word {
                         } catch { }
                     }
                 }
+
             } catch { }
         }
     }

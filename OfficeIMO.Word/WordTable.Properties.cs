@@ -19,10 +19,12 @@ namespace OfficeIMO.Word {
             try {
                 // We need both the number of columns and the configured column widths
                 if (Rows.Count == 0) return;
-                int columnCount = Rows[0].CellsCount;
+                int columnCount = _table.GetFirstChild<TableGrid>()?.OfType<GridColumn>().Count()
+                                   ?? Rows.Max(r => r.Cells.Count);
+                if (columnCount <= 0) columnCount = Rows[0].CellsCount;
 
                 // If nothing to base on, do nothing
-                var colWidths = GetBestAvailableColumnWidths(out var detectedType);
+                var colWidths = GetBestAvailableColumnWidths(out var detectedType, columnCount);
                 if (colWidths == null || colWidths.Count == 0) return;
                 // If we managed to detect a concrete type for widths, prefer it when ColumnWidthType is missing
                 if (ColumnWidthType == null && detectedType != null) {
@@ -114,11 +116,11 @@ namespace OfficeIMO.Word {
         /// Attempts to derive a complete set of column widths and their unit by scanning rows.
         /// Prefer any row that has widths for all columns; fall back to the first row with any widths.
         /// </summary>
-        private List<int> GetBestAvailableColumnWidths(out TableWidthUnitValues? detectedType) {
+        private List<int> GetBestAvailableColumnWidths(out TableWidthUnitValues? detectedType, int expectedColumns) {
             detectedType = ColumnWidthType; // start with the table-level hint
 
             if (Rows.Count == 0) return new List<int>();
-            int cols = Rows[0].CellsCount;
+            int cols = expectedColumns > 0 ? expectedColumns : Rows.Max(r => r.Cells.Count);
             List<int>? candidate = null;
             TableWidthUnitValues? candidateType = null;
 
@@ -126,7 +128,7 @@ namespace OfficeIMO.Word {
                 var w = new List<int>();
                 TableWidthUnitValues? typeForRow = null;
                 bool allPresent = true;
-                for (int i = 0; i < cols; i++) {
+                for (int i = 0; i < System.Math.Min(cols, row.Cells.Count); i++) {
                     var cell = row.Cells[i];
                     var wv = cell.Width;
                     if (wv == null) { allPresent = false; w.Add(0); continue; }
@@ -134,6 +136,7 @@ namespace OfficeIMO.Word {
                     // Remember the first non-null type encountered
                     typeForRow ??= cell.WidthType;
                 }
+                while (w.Count < cols) { w.Add(0); allPresent = false; }
                 if (w.Any(x => x != 0)) {
                     if (allPresent) {
                         detectedType = typeForRow ?? detectedType;
