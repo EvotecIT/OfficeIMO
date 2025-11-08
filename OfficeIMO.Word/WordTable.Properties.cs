@@ -86,15 +86,6 @@ namespace OfficeIMO.Word {
                 }
 
                 // Write/replace tblGrid with computed DXA widths
-                // Ensure the table preferred width is set if it was Auto
-                if ((this.WidthType == null || this.WidthType == TableWidthUnitValues.Auto) || (this.Width ?? 0) == 0) {
-                    // Set preferred width directly to avoid re-entrancy
-                    CheckTableProperties();
-                    if (_tableProperties!.TableWidth == null) _tableProperties.TableWidth = new TableWidth();
-                    _tableProperties.TableWidth.Type = TableWidthUnitValues.Pct;
-                    _tableProperties.TableWidth.Width = "5000"; // 100%
-                }
-
                 TableGrid? tableGrid = _table.GetFirstChild<TableGrid>();
                 if (tableGrid == null) {
                     _table.InsertAfter(new TableGrid(), _tableProperties);

@@ -1506,6 +1506,10 @@ namespace OfficeIMO.Word {
             }
         }
 
+        // Note: Save() already normalizes table grids for consistent viewing across
+        // Word Online/Google Docs without changing authoring semantics. No extra
+        // save variants are needed.
+
         /// <summary>
         /// Save the document to a new file without modifying <see cref="FilePath"/> on this instance.
         /// </summary>
@@ -1941,7 +1945,7 @@ namespace OfficeIMO.Word {
 
         private void PreSaving() {
             MoveSectionProperties();
-            // Normalize tables for Word Online/Google Docs compatibility
+            // Keep tblGrid consistent for online viewers without changing authoring semantics.
             try { NormalizeTablesForOnline(); } catch { }
             SaveNumbering();
             if (AutoUpdateToc && TableOfContent != null) {

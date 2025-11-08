@@ -138,6 +138,10 @@ namespace OfficeIMO.Examples {
             // Word/AdvancedDocument
             Word.AdvancedDocument.Example_AdvancedWord(folderPath, false);
             Word.AdvancedDocument.Example_AdvancedWord2(folderPath, false);
+            // Word/WebCompat quick galleries
+            Word.WebCompat.Example_TablesGallery(folderPath, false);
+            Word.WebCompat.Example_CoverTemplates_Basic(folderPath, false);
+            Word.WebCompat.Example_CoverWithConfidentialWatermark(folderPath, false);
             // Word/Background
             Word.Background.Example_BackgroundImageAdvanced(folderPath, false);
             Word.Background.Example_BackgroundImageSimple(folderPath, false);
@@ -182,6 +186,7 @@ namespace OfficeIMO.Examples {
             Word.Charts.Example_PieChart(folderPath, false);
             Word.Charts.Example_RadarChart(folderPath, false);
             Word.Charts.Example_ScatterChart(folderPath, false);
+            Word.Charts.Example_Charts_PaletteAndSizing(folderPath, false);
             // Word/CheckBoxes
             Word.CheckBoxes.Example_BasicCheckBox(folderPath, false);
             // Word/CitationsExamples
