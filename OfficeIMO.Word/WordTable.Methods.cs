@@ -114,22 +114,117 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Normalizes this table for online viewers by updating tblGrid only.
         /// Does not change authoring semantics (tblW, width type, positioning).
-        /// Skips tables with no explicit cell widths (keeps Word's native behavior).
+        /// Skips pure-Auto tables (keeps Word's native behavior):
+        ///   - no table preferred width (or Auto),
+        ///   - no column width type set,
+        ///   - and all cells carry only the library's default tcW (DXA 2400).
         /// </summary>
         public void NormalizeForOnline() {
             try {
-                // Skip if there are no explicit widths in any cell (pure Auto tables)
-                bool anyWidths = false;
+                // Provide a small vertical breathing room for nested tables so
+                // their content doesn't visually touch the container borders in
+                // desktop Word or Online. Only applies when host cell margins
+                // are missing or set to 0.
+                if (IsNestedTable) EnsureParentCellVerticalPadding(minTwips: 72);
+
+                bool explicitTableWidth = (this.WidthType == TableWidthUnitValues.Dxa && (this.Width ?? 0) > 0)
+                                       || (this.WidthType == TableWidthUnitValues.Pct && (this.Width ?? 0) > 0);
+                bool columnWidthTypeSet = this.ColumnWidthType != null;
+
+                // Treat the library's constructor default (DXA 2400) as non-explicit.
+                bool anyExplicitCellWidths = false;
                 foreach (var r in Rows) {
                     foreach (var c in r.Cells) {
-                        if (c.Width.HasValue) { anyWidths = true; break; }
+                        if (c.Width.HasValue) {
+                            if (c.WidthType != TableWidthUnitValues.Dxa || c.Width!.Value != 2400) {
+                                anyExplicitCellWidths = true; break;
+                            }
+                        }
                     }
-                    if (anyWidths) break;
+                    if (anyExplicitCellWidths) break;
                 }
-                if (!anyWidths) return;
+
+                bool pureAuto = !explicitTableWidth && !columnWidthTypeSet && !anyExplicitCellWidths;
+                if (pureAuto) {
+                    // Still convert merges so Online viewers display merged headers properly
+                    ConvertHorizontalMergesToGridSpan();
+                    return;
+                }
 
                 // Only update tblGrid using current widths/types
+                ConvertHorizontalMergesToGridSpan();
                 RefreshGrid();
+            } catch { }
+        }
+
+        /// <summary>
+        /// Ensures the parent cell of a nested table has at least the provided top/bottom
+        /// padding (cell margins) so the inner table does not touch the borders vertically.
+        /// No effect for non-nested tables. Applied conservatively (only when current value is null or 0).
+        /// </summary>
+        private void EnsureParentCellVerticalPadding(int minTwips) {
+            try {
+                if (!IsNestedTable) return;
+                if (_table.Parent is not TableCell parentCell) return;
+                parentCell.TableCellProperties ??= new TableCellProperties();
+                var tcPr = parentCell.TableCellProperties!;
+                tcPr.TableCellMargin ??= new TableCellMargin();
+                var mar = tcPr.TableCellMargin!;
+
+                // Top
+                if (mar.TopMargin == null || string.IsNullOrEmpty(mar.TopMargin.Width) || mar.TopMargin.Width == "0") {
+                    mar.TopMargin ??= new TopMargin();
+                    mar.TopMargin.Width = minTwips.ToString();
+                    mar.TopMargin.Type = TableWidthUnitValues.Dxa;
+                }
+                // Bottom
+                if (mar.BottomMargin == null || string.IsNullOrEmpty(mar.BottomMargin.Width) || mar.BottomMargin.Width == "0") {
+                    mar.BottomMargin ??= new BottomMargin();
+                    mar.BottomMargin.Width = minTwips.ToString();
+                    mar.BottomMargin.Type = TableWidthUnitValues.Dxa;
+                }
+            } catch { }
+        }
+
+        /// <summary>
+        /// Converts w:hMerge (restart/continue) patterns to w:gridSpan and removes
+        /// the continued cells. Many online viewers ignore hMerge but support gridSpan.
+        /// </summary>
+        private void ConvertHorizontalMergesToGridSpan() {
+            try {
+                foreach (var row in Rows) {
+                    // Work on raw OpenXml cells list to allow removals during iteration
+                    var cells = row._tableRow.ChildElements.OfType<TableCell>().ToList();
+                    for (int i = 0; i < cells.Count; i++) {
+                        var tc = cells[i];
+                        var tcPr = tc.TableCellProperties;
+                        if (tcPr?.HorizontalMerge?.Val?.Value == MergedCellValues.Restart) {
+                            int span = 1;
+                            int j = i + 1;
+                            while (j < cells.Count) {
+                                var nextPr = cells[j].TableCellProperties;
+                                if (nextPr?.HorizontalMerge?.Val?.Value == MergedCellValues.Continue) {
+                                    // remove continued cell from row
+                                    cells[j].Remove();
+                                    cells.RemoveAt(j);
+                                    span++;
+                                    continue; // do not advance j; we removed current position
+                                }
+                                break;
+                            }
+                            // Set gridSpan on the restart cell
+                            if (tc.TableCellProperties == null) tc.TableCellProperties = new TableCellProperties();
+                            var gridSpan = tc.TableCellProperties.GetFirstChild<GridSpan>();
+                            if (gridSpan == null) {
+                                tc.TableCellProperties.InsertAt(new GridSpan() { Val = span }, 0);
+                            } else {
+                                gridSpan.Val = span;
+                            }
+                            // Remove hMerge properties from the restart cell for clarity
+                            tc.TableCellProperties.HorizontalMerge?.Remove();
+                        }
+                    }
+                }
             } catch { }
         }
 
