@@ -47,7 +47,10 @@ namespace OfficeIMO.Word.Pdf {
 
         private static IContainer ApplyCellStyle(IContainer container, WordTableCell cell, PdfSaveOptions? options) {
             if (!string.IsNullOrEmpty(cell.ShadingFillColorHex)) {
-                container = container.Background("#" + cell.ShadingFillColorHex);
+                // Ignore automatic color to let QuestPDF use its own defaults.
+                if (!cell.ShadingFillColorHex.Equals("auto", StringComparison.OrdinalIgnoreCase)) {
+                    container = container.Background("#" + cell.ShadingFillColorHex);
+                }
             }
 
             WordTableCellBorder borders = cell.Borders;
@@ -59,7 +62,8 @@ namespace OfficeIMO.Word.Pdf {
                 borders.LeftColorHex,
                 borders.RightColorHex
             };
-            colors.RemoveAll(string.IsNullOrEmpty);
+            // Filter out empty and automatic colors – QuestPDF expects real hex values.
+            colors.RemoveAll(c => string.IsNullOrEmpty(c) || c.Equals("auto", StringComparison.OrdinalIgnoreCase));
             if (colors.Count > 0 && colors.Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1) {
                 container = container.BorderColor("#" + colors[0]!);
             }

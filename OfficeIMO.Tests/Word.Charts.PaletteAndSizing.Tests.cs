@@ -81,8 +81,12 @@ namespace OfficeIMO.Tests {
                          .GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()!
                          .GetFirstChild<DocumentFormat.OpenXml.Drawing.RgbColorModelHex>()!.Val!;
 
-                // First three Okabe–Ito colors
-                var expected = new[] { "#0072B2", "#E69F00", "#009E73" };
+                // First three Okabe–Ito colors, normalized to hex without '#'
+                var expected = new[] {
+                    Color.ParseHex("#0072B2").ToHexColor(),
+                    Color.ParseHex("#E69F00").ToHexColor(),
+                    Color.ParseHex("#009E73").ToHexColor()
+                };
                 Assert.Equal(expected[0], ColorOf(series[0]));
                 Assert.Equal(expected[1], ColorOf(series[1]));
                 Assert.Equal(expected[2], ColorOf(series[2]));

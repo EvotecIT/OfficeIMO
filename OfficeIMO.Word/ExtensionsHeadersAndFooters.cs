@@ -201,12 +201,28 @@ namespace OfficeIMO.Word {
         internal static SectionProperties CreateSectionProperties() {
             SectionProperties sectionProperties = new SectionProperties() { RsidR = GenerateRsid() };
 
-            // Set the page size and margins
-            //PageSize pageSize = new PageSize() { Width = 12240, Height = 15840 }; // A4 size
-            //PageMargin pageMargin = new PageMargin() { Top = 1440, Right = 1440, Bottom = 1440, Left = 1440 }; // 1 inch margins
+            // Align new documents with Word defaults: Letter page size with 1" margins.
+            var pageSize = WordPageSizes.Letter;
+            // Clone to avoid sharing instances between sections.
+            PageSize pageSizeClone = new PageSize() {
+                Width = pageSize.Width,
+                Height = pageSize.Height,
+                Code = pageSize.Code,
+                Orient = pageSize.Orient
+            };
 
-            //sectionProperties.Append(pageSize);
-            //sectionProperties.Append(pageMargin);
+            PageMargin pageMargin = new PageMargin() {
+                Top = 1440,    // 1 inch
+                Right = 1440,  // 1 inch
+                Bottom = 1440, // 1 inch
+                Left = 1440,   // 1 inch
+                Header = 708,  // Word default
+                Footer = 708,
+                Gutter = 0
+            };
+
+            sectionProperties.Append(pageSizeClone);
+            sectionProperties.Append(pageMargin);
 
             return sectionProperties;
         }

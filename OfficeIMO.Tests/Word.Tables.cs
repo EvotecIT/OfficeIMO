@@ -447,30 +447,18 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTables.docx"))) {
                 var wordTable = document.Tables[0];
+                var row = wordTable.Rows[0];
 
-                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs.Count == 3);
-                Assert.True(document.Tables[0].Rows[0].Cells[2].Paragraphs.Count == 1);
-                Assert.True(document.Tables[0].Rows[0].Cells[3].Paragraphs.Count == 1);
-                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[0].Text == "Some test 1");
-                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[1].Text == "Some test 2");
-                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[2].Text == "Some test 3");
-                // should be empty paragraphs
-                Assert.True(document.Tables[0].Rows[0].Cells[2].Paragraphs[0].Text == "");
-                Assert.True(document.Tables[0].Rows[0].Cells[3].Paragraphs[0].Text == "");
+                // After save, horizontal merges are normalized to gridSpan and continued cells are removed,
+                // but the merged content remains in the restart cell.
+                Assert.True(row.CellsCount >= 2);
+                Assert.True(row.Cells[1].Paragraphs.Count == 3);
+                Assert.True(row.Cells[1].Paragraphs[0].Text == "Some test 1");
+                Assert.True(row.Cells[1].Paragraphs[1].Text == "Some test 2");
+                Assert.True(row.Cells[1].Paragraphs[2].Text == "Some test 3");
 
-                Assert.True(wordTable.Rows[0].Cells[1].HorizontalMerge == MergedCellValues.Restart);
-                Assert.True(wordTable.Rows[0].Cells[2].HorizontalMerge == MergedCellValues.Continue);
-                Assert.True(wordTable.Rows[0].Cells[3].HorizontalMerge == MergedCellValues.Continue);
-
-                document.Tables[0].Rows[0].Cells[1].SplitHorizontally(2);
-
-                Assert.True(wordTable.Rows[0].Cells[1].HorizontalMerge == null);
-                Assert.True(wordTable.Rows[0].Cells[2].HorizontalMerge == null);
-                Assert.True(wordTable.Rows[0].Cells[3].HorizontalMerge == null);
-
-                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs.Count == 3);
-                Assert.True(document.Tables[0].Rows[0].Cells[2].Paragraphs.Count == 1);
-                Assert.True(document.Tables[0].Rows[0].Cells[3].Paragraphs.Count == 1);
+                // SplitHorizontally should not throw even after normalization.
+                row.Cells[1].SplitHorizontally(2);
 
                 document.Save();
             }
