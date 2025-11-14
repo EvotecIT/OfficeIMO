@@ -121,12 +121,6 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void NormalizeForOnline() {
             try {
-                // Provide a small vertical breathing room for nested tables so
-                // their content doesn't visually touch the container borders in
-                // desktop Word or Online. Only applies when host cell margins
-                // are missing or set to 0.
-                if (IsNestedTable) EnsureParentCellVerticalPadding(minTwips: 72);
-
                 bool explicitTableWidth = (this.WidthType == TableWidthUnitValues.Dxa && (this.Width ?? 0) > 0)
                                        || (this.WidthType == TableWidthUnitValues.Pct && (this.Width ?? 0) > 0);
                 bool columnWidthTypeSet = this.ColumnWidthType != null;
@@ -154,6 +148,14 @@ namespace OfficeIMO.Word {
                 // Only update tblGrid using current widths/types
                 ConvertHorizontalMergesToGridSpan();
                 RefreshGrid();
+
+                // Normalize host cell vertical margins to 0 for consistency (Word Online tends
+                // to honor default bottom margin more aggressively than desktop).
+                if (IsNestedTable) EnsureHostCellVerticalMargins(72);
+
+                // Desktop Word may suppress top border when style-only; make sure
+                // the first row has a top border if absent (nested tables only).
+                if (IsNestedTable) EnsureFirstRowTopBorder();
             } catch { }
         }
 
@@ -162,28 +164,32 @@ namespace OfficeIMO.Word {
         /// padding (cell margins) so the inner table does not touch the borders vertically.
         /// No effect for non-nested tables. Applied conservatively (only when current value is null or 0).
         /// </summary>
-        private void EnsureParentCellVerticalPadding(int minTwips) {
-            try {
-                if (!IsNestedTable) return;
-                if (_table.Parent is not TableCell parentCell) return;
-                parentCell.TableCellProperties ??= new TableCellProperties();
-                var tcPr = parentCell.TableCellProperties!;
-                tcPr.TableCellMargin ??= new TableCellMargin();
-                var mar = tcPr.TableCellMargin!;
+        private void EnsureFirstRowTopBorder() {
+            if (Rows.Count == 0) return;
+            var first = Rows[0];
+            foreach (var cell in first.Cells) {
+                // Do not overwrite if user already set something
+                if (cell.Borders.TopStyle == null) {
+                    cell.Borders.TopStyle = BorderValues.Single;
+                    cell.Borders.TopSize = 4;
+                    cell.Borders.TopColorHex = "auto";
+                }
+            }
+        }
 
-                // Top
-                if (mar.TopMargin == null || string.IsNullOrEmpty(mar.TopMargin.Width) || mar.TopMargin.Width == "0") {
-                    mar.TopMargin ??= new TopMargin();
-                    mar.TopMargin.Width = minTwips.ToString();
-                    mar.TopMargin.Type = TableWidthUnitValues.Dxa;
-                }
-                // Bottom
-                if (mar.BottomMargin == null || string.IsNullOrEmpty(mar.BottomMargin.Width) || mar.BottomMargin.Width == "0") {
-                    mar.BottomMargin ??= new BottomMargin();
-                    mar.BottomMargin.Width = minTwips.ToString();
-                    mar.BottomMargin.Type = TableWidthUnitValues.Dxa;
-                }
-            } catch { }
+        private void EnsureHostCellVerticalMargins(int twips) {
+            if (!IsNestedTable) return;
+            if (_table.Parent is not TableCell parentCell) return;
+            parentCell.TableCellProperties ??= new TableCellProperties();
+            var tcPr = parentCell.TableCellProperties!;
+            tcPr.TableCellMargin ??= new TableCellMargin();
+            var mar = tcPr.TableCellMargin!;
+            mar.TopMargin ??= new TopMargin();
+            mar.TopMargin.Width = twips.ToString();
+            mar.TopMargin.Type = TableWidthUnitValues.Dxa;
+            mar.BottomMargin ??= new BottomMargin();
+            mar.BottomMargin.Width = twips.ToString();
+            mar.BottomMargin.Type = TableWidthUnitValues.Dxa;
         }
 
         /// <summary>
