@@ -67,16 +67,33 @@ namespace OfficeIMO.Word {
                         gridDxa.Add(Math.Max(1, dxa));
                     }
                 } else if (ColumnWidthType == TableWidthUnitValues.Dxa) {
-                    // Normalize DXA widths so the sum matches the table container width.
-                    // This ensures online viewers neither clip nor shrink the table.
-                    int sum = Math.Max(1, colWidths.Sum());
-                    int target = Math.Max(1, tableWidthDxa);
-                    int allocated = 0;
-                    for (int i = 0; i < columnCount; i++) {
-                        int dxa = (int)Math.Round((double)target * colWidths[i] / sum);
-                        if (i == columnCount - 1) dxa = Math.Max(0, target - allocated);
-                        allocated += dxa;
-                        gridDxa.Add(Math.Max(1, dxa));
+                    // DXA widths behave differently depending on whether the table itself
+                    // has an explicit preferred width:
+                    //   - For tables with explicit tblW (Pct or Dxa), Word normalizes the DXA
+                    //     column widths so that their sum matches the table width.
+                    //   - For Auto-width tables (tblW type="auto" or missing/zero), Word leaves
+                    //     tblGrid columns equal to the raw DXA cell widths.
+                    bool hasExplicitTableWidth =
+                        (this.WidthType == TableWidthUnitValues.Dxa && (this.Width ?? 0) > 0)
+                        || (this.WidthType == TableWidthUnitValues.Pct && (this.Width ?? 0) > 0);
+
+                    if (!hasExplicitTableWidth) {
+                        // Match Word's behaviour for pure auto tables: carry DXA widths directly.
+                        foreach (var w in colWidths) {
+                            gridDxa.Add(Math.Max(1, w));
+                        }
+                    } else {
+                        // Normalize DXA widths so the sum matches the table container width.
+                        // This keeps explicit-width tables consistent in Online/Google Docs.
+                        int sum = Math.Max(1, colWidths.Sum());
+                        int target = Math.Max(1, tableWidthDxa);
+                        int allocated = 0;
+                        for (int i = 0; i < columnCount; i++) {
+                            int dxa = (int)Math.Round((double)target * colWidths[i] / sum);
+                            if (i == columnCount - 1) dxa = Math.Max(0, target - allocated);
+                            allocated += dxa;
+                            gridDxa.Add(Math.Max(1, dxa));
+                        }
                     }
                 } else {
                     // Auto/other: distribute evenly within the estimated table width
