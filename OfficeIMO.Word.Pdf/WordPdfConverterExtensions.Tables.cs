@@ -62,8 +62,9 @@ namespace OfficeIMO.Word.Pdf {
                 borders.LeftColorHex,
                 borders.RightColorHex
             };
-            // Filter out empty and automatic colors – QuestPDF expects real hex values.
-            colors.RemoveAll(c => string.IsNullOrEmpty(c) || c.Equals("auto", StringComparison.OrdinalIgnoreCase));
+	            // Filter out empty and automatic colors – QuestPDF expects real hex values.
+	            colors.RemoveAll(c =>
+	                string.IsNullOrEmpty(c) || string.Equals(c, "auto", StringComparison.OrdinalIgnoreCase));
             if (colors.Count > 0 && colors.Distinct(StringComparer.OrdinalIgnoreCase).Count() == 1) {
                 container = container.BorderColor("#" + colors[0]!);
             }
