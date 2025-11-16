@@ -1,10 +1,46 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Word {
     /// <summary>
     /// Partial class containing public methods for building chart content.
     /// </summary>
     public partial class WordChart {
+        /// <summary>
+        /// Sets the chart frame size. Values are in pixels.
+        /// </summary>
+        public WordChart SetSize(int widthPx, int? heightPx = null) {
+            var inline = _drawing?.Inline;
+            if (inline?.Extent != null) {
+                inline.Extent.Cx = (long)widthPx * EnglishMetricUnitsPerInch / PixelsPerInch;
+                if (heightPx.HasValue) {
+                    inline.Extent.Cy = (long)heightPx.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
+                }
+            }
+            return this;
+        }
+
+
+        /// <summary>
+        /// Sets chart width to the page content width (page width minus left/right margins).
+        /// Optionally scales by <paramref name="fraction"/> and adjusts height in pixels.
+        /// </summary>
+        public WordChart SetWidthToPageContent(double fraction = 1.0, int? heightPx = null) {
+            try {
+                var sect = _document.Sections.FirstOrDefault();
+                var widthTwips = (double)(sect?.PageSettings.Width?.Value ?? WordPageSizes.Letter.Width!.Value);
+                var leftTwips = (double)(sect?.Margins.Left?.Value ?? 1440U);
+                var rightTwips = (double)(sect?.Margins.Right?.Value ?? 1440U);
+                var contentTwips = System.Math.Max(0, widthTwips - leftTwips - rightTwips);
+                var inches = contentTwips / 1440.0 * System.Math.Max(0.05, System.Math.Min(1.0, fraction));
+                var px = (int)System.Math.Round(inches * PixelsPerInch);
+                return SetSize(px, heightPx);
+            } catch { return this; }
+        }
+
+        
+
         /// <summary>
         /// Sets the category labels used by subsequent chart series.
         /// </summary>
@@ -331,6 +367,192 @@ namespace OfficeIMO.Word {
             _axisTitleFontSize = fontSize;
             _axisTitleColor = color;
             UpdateAxisTitles();
+            return this;
+        }
+
+        
+
+        /// <summary>
+        /// Sets the color of a specific pie slice by zero-based index.
+        /// </summary>
+        public WordChart SetPieSliceColor(uint index, SixLabors.ImageSharp.Color color) {
+            var series = InitializePieChartSeries();
+            if (series == null) return this;
+            var before = series.GetFirstChild<CategoryAxisData>();
+            var dpt = series.Elements<DataPoint>().FirstOrDefault(d => d.Index?.Val?.Value == index);
+            if (dpt == null) {
+                dpt = new DataPoint();
+                dpt.Index = new DocumentFormat.OpenXml.Drawing.Charts.Index() { Val = index };
+                if (before != null) series.InsertBefore(dpt, before); else series.Append(dpt);
+            }
+            var spPr = dpt.GetFirstChild<ChartShapeProperties>();
+            if (spPr == null) {
+                spPr = AddShapeProperties(color);
+                dpt.Append(spPr);
+            } else {
+                spPr.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.SolidFill>();
+                spPr.Append(new DocumentFormat.OpenXml.Drawing.SolidFill(
+                    new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = color.ToHexColor() }));
+            }
+            return this;
+        }
+
+        
+
+        /// <summary>
+        /// Sets the color of a specific series by its zero-based index across supported chart types.
+        /// </summary>
+        public WordChart SetSeriesColor(uint index, SixLabors.ImageSharp.Color color) {
+            if (_chart == null) return this;
+            var plot = _chart.PlotArea; if (plot == null) return this;
+
+            IEnumerable<OpenXmlCompositeElement> allSeries =
+                plot.Elements<BarChart>().SelectMany(ch => ch.Elements<BarChartSeries>()).Cast<OpenXmlCompositeElement>()
+                .Concat(plot.Elements<Bar3DChart>().SelectMany(ch => ch.Elements<BarChartSeries>()))
+                .Concat(plot.Elements<LineChart>().SelectMany(ch => ch.Elements<LineChartSeries>()))
+                .Concat(plot.Elements<Line3DChart>().SelectMany(ch => ch.Elements<LineChartSeries>()))
+                .Concat(plot.Elements<AreaChart>().SelectMany(ch => ch.Elements<AreaChartSeries>()))
+                .Concat(plot.Elements<Area3DChart>().SelectMany(ch => ch.Elements<AreaChartSeries>()))
+                .Concat(plot.Elements<RadarChart>().SelectMany(ch => ch.Elements<RadarChartSeries>()))
+                .Concat(plot.Elements<ScatterChart>().SelectMany(ch => ch.Elements<ScatterChartSeries>()));
+
+            foreach (var s in allSeries) {
+                var idx = s.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Index>()?.Val?.Value ?? 999999U;
+                if (idx != index) continue;
+                var spPr = s.GetFirstChild<ChartShapeProperties>();
+                if (spPr == null) { spPr = AddShapeProperties(color); s.Append(spPr); }
+                else {
+                    spPr.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.SolidFill>();
+                    spPr.Append(new DocumentFormat.OpenXml.Drawing.SolidFill(
+                        new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = color.ToHexColor() }));
+                }
+                break;
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Applies a built-in palette across the chart. Optionally honors semantic outcome
+        /// names (Passed/Failed/Skipped/Error). Use applyToPies/applyToSeries to target types.
+        /// </summary>
+        public WordChart ApplyPalette(WordChartPalette palette, bool semanticOutcomes = true, bool applyToPies = true, bool applyToSeries = true, Dictionary<string, SixLabors.ImageSharp.Color>? overrides = null) {
+            var pal = GetPaletteColors(palette);
+            if (applyToPies) ApplyPaletteToPie(pal, semanticOutcomes, overrides);
+            if (applyToSeries) ApplyPaletteToSeries(pal, semanticOutcomes, overrides);
+            return this;
+        }
+
+        private SixLabors.ImageSharp.Color[] GetPaletteColors(WordChartPalette palette) {
+            switch (palette) {
+                case WordChartPalette.ColorBlindSafe:
+                    return new[] {
+                        SixLabors.ImageSharp.Color.ParseHex("#0072B2"),
+                        SixLabors.ImageSharp.Color.ParseHex("#E69F00"),
+                        SixLabors.ImageSharp.Color.ParseHex("#009E73"),
+                        SixLabors.ImageSharp.Color.ParseHex("#D55E00"),
+                        SixLabors.ImageSharp.Color.ParseHex("#CC79A7"),
+                        SixLabors.ImageSharp.Color.ParseHex("#F0E442"),
+                        SixLabors.ImageSharp.Color.ParseHex("#56B4E9"),
+                        SixLabors.ImageSharp.Color.ParseHex("#000000"),
+                    };
+                case WordChartPalette.MonochromeGray:
+                    return new[] {
+                        SixLabors.ImageSharp.Color.ParseHex("#212529"),
+                        SixLabors.ImageSharp.Color.ParseHex("#495057"),
+                        SixLabors.ImageSharp.Color.ParseHex("#868e96"),
+                        SixLabors.ImageSharp.Color.ParseHex("#adb5bd"),
+                        SixLabors.ImageSharp.Color.ParseHex("#ced4da"),
+                    };
+                case WordChartPalette.Soft:
+                    return new[] {
+                        SixLabors.ImageSharp.Color.ParseHex("#74c0fc"),
+                        SixLabors.ImageSharp.Color.ParseHex("#8ce99a"),
+                        SixLabors.ImageSharp.Color.ParseHex("#ffd8a8"),
+                        SixLabors.ImageSharp.Color.ParseHex("#e599f7"),
+                        SixLabors.ImageSharp.Color.ParseHex("#63e6be"),
+                        SixLabors.ImageSharp.Color.ParseHex("#ffa94d"),
+                        SixLabors.ImageSharp.Color.ParseHex("#dee2e6"),
+                    };
+                case WordChartPalette.Professional:
+                default:
+                    return new[] {
+                        SixLabors.ImageSharp.Color.ParseHex("#206bc4"),
+                        SixLabors.ImageSharp.Color.ParseHex("#2fb344"),
+                        SixLabors.ImageSharp.Color.ParseHex("#f76707"),
+                        SixLabors.ImageSharp.Color.ParseHex("#ae3ec9"),
+                        SixLabors.ImageSharp.Color.ParseHex("#12b886"),
+                        SixLabors.ImageSharp.Color.ParseHex("#e8590c"),
+                        SixLabors.ImageSharp.Color.ParseHex("#868e96"),
+                    };
+            }
+        }
+
+        private WordChart ApplyPaletteToPie(SixLabors.ImageSharp.Color[] palette, bool semanticOutcomes, Dictionary<string, SixLabors.ImageSharp.Color>? overrides) {
+            EnsureChartExistsPie();
+            var series = InitializePieChartSeries();
+            var catAxis = series?.GetFirstChild<CategoryAxisData>()?.GetFirstChild<StringLiteral>();
+            if (series == null || catAxis == null) return this;
+
+            var map = new Dictionary<string, SixLabors.ImageSharp.Color>(System.StringComparer.OrdinalIgnoreCase) {
+                ["Passed"]  = SixLabors.ImageSharp.Color.ParseHex("#2fb344"),
+                ["Failed"]  = SixLabors.ImageSharp.Color.ParseHex("#f76707"),
+                ["Error"]   = SixLabors.ImageSharp.Color.ParseHex("#d63939"),
+                ["Skipped"] = SixLabors.ImageSharp.Color.ParseHex("#868e96"),
+            };
+            if (overrides != null) foreach (var kv in overrides) map[kv.Key] = kv.Value;
+
+            int idxPal = 0;
+            var points = catAxis.Descendants<StringPoint>().OrderBy(p => p.Index?.Value ?? 0U).ToList();
+            foreach (var sp in points) {
+                var name = sp?.NumericValue?.Text ?? string.Empty;
+                var c = (semanticOutcomes && !string.IsNullOrWhiteSpace(name) && map.TryGetValue(name!, out var sem))
+                    ? sem
+                    : palette[idxPal++ % palette.Length];
+                SetPieSliceColor((uint)(sp?.Index?.Value ?? 0U), c);
+            }
+            return this;
+        }
+
+        private WordChart ApplyPaletteToSeries(SixLabors.ImageSharp.Color[] palette, bool semanticOutcomes, Dictionary<string, SixLabors.ImageSharp.Color>? overrides) {
+            if (_chart == null) return this;
+            var plot = _chart.PlotArea; if (plot == null) return this;
+            var map = new Dictionary<string, SixLabors.ImageSharp.Color>(System.StringComparer.OrdinalIgnoreCase) {
+                ["Passed"]  = SixLabors.ImageSharp.Color.ParseHex("#2fb344"),
+                ["Failed"]  = SixLabors.ImageSharp.Color.ParseHex("#f76707"),
+                ["Error"]   = SixLabors.ImageSharp.Color.ParseHex("#d63939"),
+                ["Skipped"] = SixLabors.ImageSharp.Color.ParseHex("#868e96"),
+            };
+            if (overrides != null) foreach (var kv in overrides) map[kv.Key] = kv.Value;
+
+            int idxPal = 0;
+            void colorSeries<TSeries>(IEnumerable<TSeries> seriesNodes) where TSeries : OpenXmlCompositeElement {
+                foreach (var s in seriesNodes) {
+                    string? name = s.GetFirstChild<SeriesText>()
+                        ?.Descendants<DocumentFormat.OpenXml.Drawing.Charts.NumericValue>()
+                        ?.FirstOrDefault()?.Text;
+
+                    var c = (semanticOutcomes && !string.IsNullOrWhiteSpace(name) && map.TryGetValue(name!, out var sem))
+                        ? sem
+                        : palette[idxPal++ % palette.Length];
+
+                    var spPr = s.GetFirstChild<ChartShapeProperties>();
+                    if (spPr == null) { spPr = AddShapeProperties(c); s.Append(spPr); }
+                    else {
+                        spPr.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.SolidFill>();
+                        spPr.Append(new DocumentFormat.OpenXml.Drawing.SolidFill(
+                            new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = c.ToHexColor() }));
+                    }
+                }
+            }
+
+            colorSeries(plot.Elements<BarChart>().SelectMany(ch => ch.Elements<BarChartSeries>()));
+            colorSeries(plot.Elements<Bar3DChart>().SelectMany(ch => ch.Elements<BarChartSeries>()));
+            colorSeries(plot.Elements<LineChart>().SelectMany(ch => ch.Elements<LineChartSeries>()));
+            colorSeries(plot.Elements<Line3DChart>().SelectMany(ch => ch.Elements<LineChartSeries>()));
+            colorSeries(plot.Elements<AreaChart>().SelectMany(ch => ch.Elements<AreaChartSeries>()));
+            colorSeries(plot.Elements<Area3DChart>().SelectMany(ch => ch.Elements<AreaChartSeries>()));
+            colorSeries(plot.Elements<RadarChart>().SelectMany(ch => ch.Elements<RadarChartSeries>()));
+            colorSeries(plot.Elements<ScatterChart>().SelectMany(ch => ch.Elements<ScatterChartSeries>()));
             return this;
         }
     }

@@ -453,6 +453,7 @@
       </w:r>
     </w:p>
     <w:sectPr w:rsidR="R00000001">
+      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
       <w:pgSz w:w="11906" w:h="16838" w:code="9" />
     </w:sectPr>
   </w:body>

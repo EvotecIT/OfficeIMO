@@ -112,6 +112,157 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Normalizes this table for online viewers by updating tblGrid only.
+        /// Does not change authoring semantics (tblW, width type, positioning).
+        /// Skips pure-Auto tables (keeps Word's native behavior):
+        ///   - no table preferred width (or Auto),
+        ///   - no column width type set,
+        ///   - and all cells carry only the library's default tcW (DXA 2400).
+        /// </summary>
+        public void NormalizeForOnline() {
+            try {
+                bool explicitTableWidth = (this.WidthType == TableWidthUnitValues.Dxa && (this.Width ?? 0) > 0)
+                                       || (this.WidthType == TableWidthUnitValues.Pct && (this.Width ?? 0) > 0);
+                bool columnWidthTypeSet = this.ColumnWidthType != null;
+
+                // Treat the library's constructor default (DXA 2400) as non-explicit.
+                bool anyExplicitCellWidths = false;
+                foreach (var r in Rows) {
+                    foreach (var c in r.Cells) {
+                        if (c.Width.HasValue) {
+                            if (c.WidthType != TableWidthUnitValues.Dxa || c.Width!.Value != 2400) {
+                                anyExplicitCellWidths = true; break;
+                            }
+                        }
+                    }
+                    if (anyExplicitCellWidths) break;
+                }
+
+                bool pureAuto = !explicitTableWidth && !columnWidthTypeSet && !anyExplicitCellWidths;
+                if (pureAuto) {
+                    // Still convert merges so Online viewers display merged headers properly
+                    ConvertHorizontalMergesToGridSpan();
+                    return;
+                }
+
+                // Only update tblGrid using current widths/types
+                ConvertHorizontalMergesToGridSpan();
+                RefreshGrid();
+
+                // Normalize host cell vertical margins to 0 for consistency (Word Online tends
+                // to honor default bottom margin more aggressively than desktop).
+                if (IsNestedTable) EnsureHostCellVerticalMargins(72);
+
+                // Desktop Word may suppress top border when style-only; make sure
+                // the first row has a top border if absent (nested tables only).
+                if (IsNestedTable) EnsureFirstRowTopBorder();
+            } catch { }
+        }
+
+        /// <summary>
+        /// Ensures the parent cell of a nested table has at least the provided top/bottom
+        /// padding (cell margins) so the inner table does not touch the borders vertically.
+        /// No effect for non-nested tables. Applied conservatively (only when current value is null or 0).
+        /// </summary>
+        private void EnsureFirstRowTopBorder() {
+            if (Rows.Count == 0) return;
+            var first = Rows[0];
+            foreach (var cell in first.Cells) {
+                // Do not overwrite if user already set something
+                if (cell.Borders.TopStyle == null) {
+                    cell.Borders.TopStyle = BorderValues.Single;
+                    cell.Borders.TopSize = 4;
+                    // Let Word/consumers choose the default color; do not emit "auto" as an explicit hex.
+                    cell.Borders.TopColorHex = null;
+                }
+            }
+        }
+
+        private void EnsureHostCellVerticalMargins(int twips) {
+            if (!IsNestedTable) return;
+            if (_table.Parent is not TableCell parentCell) return;
+            parentCell.TableCellProperties ??= new TableCellProperties();
+            var tcPr = parentCell.TableCellProperties!;
+            tcPr.TableCellMargin ??= new TableCellMargin();
+            var mar = tcPr.TableCellMargin!;
+            mar.TopMargin ??= new TopMargin();
+            mar.TopMargin.Width = twips.ToString();
+            mar.TopMargin.Type = TableWidthUnitValues.Dxa;
+            mar.BottomMargin ??= new BottomMargin();
+            mar.BottomMargin.Width = twips.ToString();
+            mar.BottomMargin.Type = TableWidthUnitValues.Dxa;
+        }
+
+        /// <summary>
+        /// Converts w:hMerge (restart/continue) patterns to w:gridSpan and removes
+        /// the continued cells. Many online viewers ignore hMerge but support gridSpan.
+        /// </summary>
+        private void ConvertHorizontalMergesToGridSpan() {
+            try {
+                foreach (var row in Rows) {
+                    // Work on raw OpenXml cells list to allow removals during iteration
+                    var cells = row._tableRow.ChildElements.OfType<TableCell>().ToList();
+                    for (int i = 0; i < cells.Count; i++) {
+                        var tc = cells[i];
+                        var tcPr = tc.TableCellProperties;
+                        if (tcPr?.HorizontalMerge?.Val?.Value == MergedCellValues.Restart) {
+                            // Identify the full run of continued cells so we can both compute
+                            // the span and opportunistically preserve styling information
+                            // (such as shading) that may have been applied to the merged-out cells.
+                            int span = 1;
+                            int groupEndIndex = i;
+                            for (int j = i + 1; j < cells.Count; j++) {
+                                var nextPr = cells[j].TableCellProperties;
+                                if (nextPr?.HorizontalMerge?.Val?.Value == MergedCellValues.Continue) {
+                                    span++;
+                                    groupEndIndex = j;
+                                } else {
+                                    break;
+                                }
+                            }
+
+                            // If there is a cell immediately after the merged run and it does not
+                            // have explicit shading, propagate shading from the last continued cell.
+                            // This preserves column-style shading that would otherwise be lost when
+                            // the continued cells are removed.
+                            if (groupEndIndex > i && groupEndIndex + 1 < cells.Count) {
+                                var lastContinuedCell = cells[groupEndIndex];
+                                var afterCell = cells[groupEndIndex + 1];
+
+                                var srcShading = lastContinuedCell.TableCellProperties?.Shading;
+                                if (srcShading?.Fill != null) {
+                                    afterCell.TableCellProperties ??= new TableCellProperties();
+                                    // Override any existing shading so that column-style
+                                    // colors applied to merged-out cells remain visible
+                                    // on the first non-merged neighbor (e.g. header C).
+                                    afterCell.TableCellProperties.Shading =
+                                        (Shading)srcShading.CloneNode(true);
+                                }
+                            }
+
+                            // Remove continued cells from DOM and local list, starting from the end
+                            for (int removeIndex = groupEndIndex; removeIndex > i; removeIndex--) {
+                                cells[removeIndex].Remove();
+                                cells.RemoveAt(removeIndex);
+                            }
+
+                            // Set gridSpan on the restart cell
+                            if (tc.TableCellProperties == null) tc.TableCellProperties = new TableCellProperties();
+                            var gridSpan = tc.TableCellProperties.GetFirstChild<GridSpan>();
+                            if (gridSpan == null) {
+                                tc.TableCellProperties.InsertAt(new GridSpan() { Val = span }, 0);
+                            } else {
+                                gridSpan.Val = span;
+                            }
+                            // Remove hMerge properties from the restart cell for clarity
+                            tc.TableCellProperties.HorizontalMerge?.Remove();
+                        }
+                    }
+                }
+            } catch { }
+        }
+
+        /// <summary>
         /// Applies a table style defined in the document.
         /// </summary>
         /// <param name="styleId">Identifier of the table style to apply.</param>
