@@ -206,19 +206,46 @@ namespace OfficeIMO.Word {
                         var tc = cells[i];
                         var tcPr = tc.TableCellProperties;
                         if (tcPr?.HorizontalMerge?.Val?.Value == MergedCellValues.Restart) {
+                            // Identify the full run of continued cells so we can both compute
+                            // the span and opportunistically preserve styling information
+                            // (such as shading) that may have been applied to the merged-out cells.
                             int span = 1;
-                            int j = i + 1;
-                            while (j < cells.Count) {
+                            int groupEndIndex = i;
+                            for (int j = i + 1; j < cells.Count; j++) {
                                 var nextPr = cells[j].TableCellProperties;
                                 if (nextPr?.HorizontalMerge?.Val?.Value == MergedCellValues.Continue) {
-                                    // remove continued cell from row
-                                    cells[j].Remove();
-                                    cells.RemoveAt(j);
                                     span++;
-                                    continue; // do not advance j; we removed current position
+                                    groupEndIndex = j;
+                                } else {
+                                    break;
                                 }
-                                break;
                             }
+
+                            // If there is a cell immediately after the merged run and it does not
+                            // have explicit shading, propagate shading from the last continued cell.
+                            // This preserves column-style shading that would otherwise be lost when
+                            // the continued cells are removed.
+                            if (groupEndIndex > i && groupEndIndex + 1 < cells.Count) {
+                                var lastContinuedCell = cells[groupEndIndex];
+                                var afterCell = cells[groupEndIndex + 1];
+
+                                var srcShading = lastContinuedCell.TableCellProperties?.Shading;
+                                if (srcShading?.Fill != null) {
+                                    afterCell.TableCellProperties ??= new TableCellProperties();
+                                    // Override any existing shading so that column-style
+                                    // colors applied to merged-out cells remain visible
+                                    // on the first non-merged neighbor (e.g. header C).
+                                    afterCell.TableCellProperties.Shading =
+                                        (Shading)srcShading.CloneNode(true);
+                                }
+                            }
+
+                            // Remove continued cells from DOM and local list, starting from the end
+                            for (int removeIndex = groupEndIndex; removeIndex > i; removeIndex--) {
+                                cells[removeIndex].Remove();
+                                cells.RemoveAt(removeIndex);
+                            }
+
                             // Set gridSpan on the restart cell
                             if (tc.TableCellProperties == null) tc.TableCellProperties = new TableCellProperties();
                             var gridSpan = tc.TableCellProperties.GetFirstChild<GridSpan>();

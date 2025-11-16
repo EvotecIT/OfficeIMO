@@ -92,7 +92,20 @@ namespace OfficeIMO.Word {
                         Type = headerFooterValue,
                         Id = id
                     };
-                    sectionProperties.Append(headerReference);
+
+                    // Header/footer references must appear before other section
+                    // properties (such as pgSz/pgMar) to satisfy the Open XML
+                    // schema content model.
+                    var lastHdrFtrRef = sectionProperties
+                        .ChildElements
+                        .Where(e => e is HeaderReference || e is FooterReference)
+                        .LastOrDefault();
+
+                    if (lastHdrFtrRef != null) {
+                        sectionProperties.InsertAfter(headerReference, lastHdrFtrRef);
+                    } else {
+                        sectionProperties.InsertAt(headerReference, 0);
+                    }
                 }
             }
 
@@ -134,7 +147,19 @@ namespace OfficeIMO.Word {
                         Type = headerFooterValue,
                         Id = id
                     };
-                    sectionProperties.Append(footerReference);
+
+                    // Footer references must live in the same leading group as
+                    // header references inside sectPr.
+                    var lastHdrFtrRef = sectionProperties
+                        .ChildElements
+                        .Where(e => e is HeaderReference || e is FooterReference)
+                        .LastOrDefault();
+
+                    if (lastHdrFtrRef != null) {
+                        sectionProperties.InsertAfter(footerReference, lastHdrFtrRef);
+                    } else {
+                        sectionProperties.InsertAt(footerReference, 0);
+                    }
                 }
             }
 
@@ -154,7 +179,10 @@ namespace OfficeIMO.Word {
         /// <param name="wordDocument"></param>
         /// <returns></returns>
         internal static SectionProperties AddSectionProperties(this WordprocessingDocument wordDocument) {
-            var sectionProperties = CreateSectionProperties();
+            // When attaching section properties directly to the document body
+            // we want explicit page size and margins so that the document
+            // validates cleanly against the Open XML schema.
+            var sectionProperties = CreateSectionProperties(includeDefaultPageSettings: true);
             wordDocument.MainDocumentPart!.Document!.Body!.Append(sectionProperties);
             return sectionProperties;
         }
@@ -195,34 +223,57 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Create a new section properties
+        /// Create a new section properties container.
         /// </summary>
-        /// <returns></returns>
+        /// <remarks>
+        /// For new sections inserted into an existing document we only want a bare
+        /// <see cref="SectionProperties"/> element so that <see cref="WordSection"/>
+        /// can copy settings such as headers, footers, margins and numbering from
+        /// the previous section using <c>CopySectionProperties</c>.
+        /// </remarks>
+        /// <returns>Empty section properties element with a unique rsid.</returns>
         internal static SectionProperties CreateSectionProperties() {
+            // New sections should start with an empty sectPr so that existing
+            // section properties can be copied correctly.
+            return CreateSectionProperties(includeDefaultPageSettings: false);
+        }
+
+        /// <summary>
+        /// Create a new section properties container.
+        /// </summary>
+        /// <param name="includeDefaultPageSettings">
+        /// When <c>true</c>, includes default Letter page size and Normal margins.
+        /// </param>
+        /// <returns>Section properties element.</returns>
+        internal static SectionProperties CreateSectionProperties(bool includeDefaultPageSettings) {
             SectionProperties sectionProperties = new SectionProperties() { RsidR = GenerateRsid() };
 
-            // Align new documents with Word defaults: Letter page size with 1" margins.
-            var pageSize = WordPageSizes.Letter;
-            // Clone to avoid sharing instances between sections.
-            PageSize pageSizeClone = new PageSize() {
-                Width = pageSize.Width,
-                Height = pageSize.Height,
-                Code = pageSize.Code,
-                Orient = pageSize.Orient
-            };
+            if (includeDefaultPageSettings) {
+                // Align new documents with Word defaults:
+                // Letter page size with 1" Normal margins.
+                var pageSize = WordPageSizes.Letter;
+                // Clone to avoid sharing instances between sections.
+                PageSize pageSizeClone = new PageSize() {
+                    Width = pageSize.Width,
+                    Height = pageSize.Height,
+                    Code = pageSize.Code,
+                    Orient = pageSize.Orient
+                };
 
-            PageMargin pageMargin = new PageMargin() {
-                Top = 1440,    // 1 inch
-                Right = 1440,  // 1 inch
-                Bottom = 1440, // 1 inch
-                Left = 1440,   // 1 inch
-                Header = 708,  // Word default
-                Footer = 708,
-                Gutter = 0
-            };
+                // Match WordMargins.Normal so that margin presets are detected correctly.
+                PageMargin pageMargin = new PageMargin() {
+                    Top = 1440,    // 1 inch
+                    Right = 1440,  // 1 inch
+                    Bottom = 1440, // 1 inch
+                    Left = 1440,   // 1 inch
+                    Header = 720,
+                    Footer = 720,
+                    Gutter = 0
+                };
 
-            sectionProperties.Append(pageSizeClone);
-            sectionProperties.Append(pageMargin);
+                sectionProperties.Append(pageSizeClone);
+                sectionProperties.Append(pageMargin);
+            }
 
             return sectionProperties;
         }

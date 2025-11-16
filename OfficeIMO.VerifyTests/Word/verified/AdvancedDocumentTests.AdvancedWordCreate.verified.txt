@@ -422,10 +422,10 @@
         <w:tblLook w:val="04A0" w:firstRow="true" w:lastRow="false" w:firstColumn="true" w:lastColumn="false" w:noHBand="false" w:noVBand="true" />
       </w:tblPr>
       <w:tblGrid>
-        <w:gridCol />
-        <w:gridCol />
-        <w:gridCol />
-        <w:gridCol />
+        <w:gridCol w:w="2400" />
+        <w:gridCol w:w="2400" />
+        <w:gridCol w:w="2400" />
+        <w:gridCol w:w="2400" />
       </w:tblGrid>
       <w:tr>
         <w:tc>
@@ -801,6 +801,8 @@
         <w:sectPr w:rsidR="R00000001">
           <w:headerReference w:type="default" r:id="R00000001" />
           <w:footerReference w:type="default" r:id="R00000001" />
+          <w:pgSz w:w="12240" w:h="15840" w:code="1" />
+          <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
         </w:sectPr>
       </w:pPr>
     </w:p>
@@ -820,6 +822,7 @@
     <w:p>
       <w:pPr>
         <w:sectPr w:rsidR="R00000002">
+          <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
           <w:pgSz w:w="16838" w:h="11906" w:orient="landscape" w:code="9" />
         </w:sectPr>
       </w:pPr>
@@ -890,6 +893,7 @@
       </w:sdtContent>
     </w:sdt>
     <w:sectPr w:rsidR="R00000003">
+      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
       <w:pgSz w:w="8391" w:h="11906" w:code="11" />
     </w:sectPr>
   </w:body>

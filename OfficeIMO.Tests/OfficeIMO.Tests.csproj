@@ -62,4 +62,11 @@
       <EmbeddedResource Include="Images\\Kulek.jpg" />
   </ItemGroup>
 
+  <!-- On non-Windows hosts, ignore Visual Studio-specific fallback package folders
+       that are not present (they cause ResolvePackageAssets failures when running
+       tests on Linux/macOS). -->
+  <PropertyGroup Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' == 'false' ">
+    <RestoreAdditionalProjectFallbackFolders></RestoreAdditionalProjectFallbackFolders>
+  </PropertyGroup>
+
 </Project>
