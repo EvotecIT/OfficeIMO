@@ -36,7 +36,7 @@ public static partial class MarkdownReader {
             // Autolink: http(s)://... until whitespace or closing punct
             if (StartsWithHttp(text, pos, out int urlEnd)) {
                 var url = text.Substring(pos, urlEnd - pos);
-                seq.Link(url, url, null);
+                seq.Link(url, ResolveUrl(url, options) ?? url, null);
                 pos = urlEnd; continue;
             }
             if (text[pos] == '`') {
@@ -65,13 +65,13 @@ public static partial class MarkdownReader {
             }
 
             if (TryParseImageLink(text, pos, out int consumed, out var alt2, out var img2, out var imgTitle2, out var href2)) {
-                seq.ImageLink(alt2, img2, href2, imgTitle2); pos += consumed; continue;
+                seq.ImageLink(alt2, ResolveUrl(img2, options) ?? img2, ResolveUrl(href2, options) ?? href2, imgTitle2); pos += consumed; continue;
             }
 
             if (text[pos] == '!') {
                 // Inline image: ![alt](src "title")
                 if (TryParseInlineImage(text, pos, out int consumedImg, out var altImg, out var srcImg, out var titleImg)) {
-                    seq.Image(altImg, srcImg, titleImg); pos += consumedImg; continue;
+                    seq.Image(altImg, ResolveUrl(srcImg, options) ?? srcImg, titleImg); pos += consumedImg; continue;
                 }
             }
             if (text[pos] == '[') {
@@ -87,7 +87,7 @@ public static partial class MarkdownReader {
                     if (state.LinkRefs.TryGetValue(lbl3, out var def3)) seq.Link(lbl3, def3.Url, def3.Title); else seq.Text(text.Substring(pos, consumedS));
                     pos += consumedS; continue;
                 }
-                if (TryParseLink(text, pos, out int consumed2, out var label2, out var href3, out var title2)) { seq.Link(label2, href3, title2); pos += consumed2; continue; }
+                if (TryParseLink(text, pos, out int consumed2, out var label2, out var href3, out var title2)) { seq.Link(label2, ResolveUrl(href3, options) ?? href3, title2); pos += consumed2; continue; }
             }
 
             // Combined bold+italic ***text*** or ___text___
@@ -172,6 +172,18 @@ public static partial class MarkdownReader {
         label = text.Substring(start + 1, rb - (start + 1));
         consumed = rb + 1 - start;
         return true;
+    }
+
+    private static string? ResolveUrl(string url, MarkdownReaderOptions options) {
+        if (string.IsNullOrWhiteSpace(url)) return null;
+        if (url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) return url;
+        if (url.StartsWith("//")) return url;
+        if (url.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) || url.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) return url;
+        if (url.StartsWith("#")) return url;
+        if (!string.IsNullOrEmpty(options.BaseUri)) {
+            try { return new Uri(new Uri(options.BaseUri!, UriKind.Absolute), url).ToString(); } catch { }
+        }
+        return url; // leave as-is
     }
 
 
