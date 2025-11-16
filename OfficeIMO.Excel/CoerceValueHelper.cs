@@ -114,11 +114,15 @@ internal static class CoerceValueHelper {
         }
 
         try {
-            double serial = converted.ToOADate();
-            if (serial < ExcelMinimumSupportedSerial) {
+            // Excel cannot represent serial dates earlier than 1900-01-01. Detect this
+            // using the original UTC timestamp so the fallback works reliably regardless
+            // of the configured write strategy or local time zone.
+            var excelEpoch = DateTime.FromOADate(ExcelMinimumSupportedSerial);
+            if (value.UtcDateTime < excelEpoch) {
                 return HandleSharedString(fallbackText, sharedStringHandler, paramName);
             }
 
+            double serial = converted.ToOADate();
             return HandleNumber(serial);
         } catch (ArgumentException) {
             return HandleSharedString(fallbackText, sharedStringHandler, paramName);
