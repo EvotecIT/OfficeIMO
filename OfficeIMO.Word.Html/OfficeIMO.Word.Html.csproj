@@ -47,7 +47,7 @@
     <ItemGroup>
         <PackageReference Include="DocumentFormat.OpenXml" Version="[3.3.0,4.0.0)" />
         <PackageReference Include="AngleSharp" Version="1.3.0" />
-        <PackageReference Include="AngleSharp.Css" Version="1.0.0-beta.157" />
+        <PackageReference Include="AngleSharp.Css" Version="1.0.0-beta.159" />
     </ItemGroup>
 
     <ItemGroup>
