@@ -46,8 +46,14 @@ namespace OfficeIMO.Word {
             paragraph.Append(paragraphProperties);
             paragraph.Append(run);
 
+            var lastListItem = ListItems.LastOrDefault();
+
             if (wordParagraph is not null) {
-                wordParagraph._paragraph.InsertAfterSelf(paragraph);
+                if (lastListItem is not null) {
+                    lastListItem._paragraph.InsertAfterSelf(paragraph);
+                } else {
+                    wordParagraph._paragraph.InsertAfterSelf(paragraph);
+                }
             } else if (this.ListItems.Count == 0 && _wordParagraph is not null) {
                 _wordParagraph._paragraph.InsertAfterSelf(paragraph);
             } else if (_isToc || IsToc) {
