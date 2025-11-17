@@ -158,7 +158,7 @@ namespace OfficeIMO.Word {
                     this.Value = DateTime.Parse(customDocumentProperty.VTFileTime.Text).ToUniversalTime();
                     this.PropertyType = PropertyTypes.DateTime;
                 } else if (customDocumentProperty.VTFloat != null) {
-                    this.Value = double.Parse(customDocumentProperty.VTFloat.Text);
+                    this.Value = double.Parse(customDocumentProperty.VTFloat.Text, System.Globalization.CultureInfo.InvariantCulture);
                     this.PropertyType = PropertyTypes.NumberDouble;
                 } else if (customDocumentProperty.VTLPWSTR != null) {
                     this.Value = customDocumentProperty.VTLPWSTR.Text;
@@ -167,7 +167,7 @@ namespace OfficeIMO.Word {
                     this.Value = bool.Parse(customDocumentProperty.VTBool.Text);
                     this.PropertyType = PropertyTypes.YesNo;
                 } else if (customDocumentProperty.VTDouble != null) {
-                    this.Value = double.Parse(customDocumentProperty.VTDouble.Text);
+                    this.Value = double.Parse(customDocumentProperty.VTDouble.Text, System.Globalization.CultureInfo.InvariantCulture);
                     this.PropertyType = PropertyTypes.NumberDouble;
                 } else if (customDocumentProperty.VTInt64 != null) {
                     this.Value = long.Parse(customDocumentProperty.VTInt64.Text);

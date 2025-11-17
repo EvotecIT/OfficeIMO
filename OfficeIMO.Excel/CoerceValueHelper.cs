@@ -11,6 +11,8 @@ internal static class CoerceValueHelper {
     private static readonly CellValue EmptyStringTemplate = new(string.Empty);
     private static readonly CellValue TrueTemplate = new("1");
     private static readonly CellValue FalseTemplate = new("0");
+    // By default, treat DateTimeOffset values using LocalDateTime so that serial values
+    // follow the same semantics as Excel when writing local timestamps.
     private static readonly Func<DateTimeOffset, DateTime> DefaultDateTimeOffsetStrategy = static dto => dto.LocalDateTime;
     // Excel cannot represent serial dates earlier than 1900-01-01; 0 = 1899-12-30 and 2 = 1900-01-01.
     private const double ExcelMinimumSupportedSerial = 2d;
@@ -112,11 +114,15 @@ internal static class CoerceValueHelper {
         }
 
         try {
-            double serial = converted.ToOADate();
-            if (serial < ExcelMinimumSupportedSerial) {
+            // Excel cannot represent serial dates earlier than 1900-01-01. Detect this
+            // using the original UTC timestamp so the fallback works reliably regardless
+            // of the configured write strategy or local time zone.
+            var excelEpoch = DateTime.FromOADate(ExcelMinimumSupportedSerial);
+            if (value.UtcDateTime < excelEpoch) {
                 return HandleSharedString(fallbackText, sharedStringHandler, paramName);
             }
 
+            double serial = converted.ToOADate();
             return HandleNumber(serial);
         } catch (ArgumentException) {
             return HandleSharedString(fallbackText, sharedStringHandler, paramName);

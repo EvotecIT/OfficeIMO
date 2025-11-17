@@ -7,7 +7,7 @@ public static partial class MarkdownReader {
             // Paragraph begins when none of the other block starters match.
             if (IsAtxHeading(lines[i], out _, out _) ||
                 IsCodeFenceOpen(lines[i], out _) ||
-                LooksLikeTableRow(lines[i]) ||
+                StartsTable(lines, i) ||
                 IsUnorderedListLine(lines[i], out _, out _, out _) ||
                 IsOrderedListLine(lines[i], out _, out _) ||
                 IsCalloutHeader(lines[i], out _, out _) ||
@@ -19,7 +19,7 @@ public static partial class MarkdownReader {
             while (j < lines.Length && !string.IsNullOrWhiteSpace(lines[j]) &&
                    !IsAtxHeading(lines[j], out _, out _) &&
                    !IsCodeFenceOpen(lines[j], out _) &&
-                   !LooksLikeTableRow(lines[j]) &&
+                   !StartsTable(lines, j) &&
                    !IsUnorderedListLine(lines[j], out _, out _, out _) &&
                    !IsOrderedListLine(lines[j], out _, out _) &&
                    !IsCalloutHeader(lines[j], out _, out _) &&
@@ -34,7 +34,7 @@ public static partial class MarkdownReader {
             }
             if (sb.Length == 0) return false;
             var text = ExpandReferenceLinks(sb.ToString(), state);
-            doc.Add(new ParagraphBlock(ParseInlines(text, state)));
+            doc.Add(new ParagraphBlock(ParseInlines(text, options, state)));
             i = j; return true;
         }
 

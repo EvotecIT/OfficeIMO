@@ -88,7 +88,7 @@ namespace OfficeIMO.Visio {
             foreach (XElement relElem in pagesRels.Root!.Elements(pr + "Relationship")) {
                 string? relIdAttr = (string?)relElem.Attribute("Id");
                 if (!string.IsNullOrEmpty(relIdAttr)) {
-                    relationshipsById[relIdAttr] = relElem;
+                    relationshipsById[relIdAttr!] = relElem;
                 }
             }
 
@@ -109,7 +109,7 @@ namespace OfficeIMO.Visio {
 
                 foreach (XElement relChild in relChildren) {
                     string? rid = relChild.Attribute(rel + "id")?.Value;
-                    if (string.IsNullOrWhiteSpace(rid) || !rid.StartsWith("rId", StringComparison.Ordinal)) {
+                    if (string.IsNullOrWhiteSpace(rid) || !rid!.StartsWith("rId", StringComparison.Ordinal)) {
                         issues.Add($"Page {pageLabel}: Must contain <Rel r:id=\"rId#\"> child (not an attribute).");
                         continue;
                     }
@@ -140,7 +140,7 @@ namespace OfficeIMO.Visio {
                         string? badId = pageXml
                             .Descendants(v + "Shape")
                             .Select(x => (string?)x.Attribute("ID"))
-                            .FirstOrDefault(shapeId => !int.TryParse(shapeId, out _));
+                            .FirstOrDefault(shapeId => string.IsNullOrEmpty(shapeId) || !int.TryParse(shapeId, out _));
                         if (badId != null) {
                             issues.Add($"Page {pageLabel}: Shape/@ID must be numeric. Found non-numeric ID: '{badId}'.");
                         }

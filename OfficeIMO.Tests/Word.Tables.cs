@@ -3,6 +3,7 @@ using OfficeIMO.Word;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Xunit;
 using Color = SixLabors.ImageSharp.Color;
 
@@ -130,6 +131,25 @@ namespace OfficeIMO.Tests {
 
 
                 document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_TableRowAndCellParentAccessors() {
+            string filePath = Path.Combine(_directoryWithFiles, "TableParentAccessors.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTable table = document.AddTable(1, 1);
+                table.Rows[0].Height = 400;
+
+                var row = table.Rows[0];
+                Assert.Same(table, row.Parent);
+
+                var cell = row.Cells[0];
+                Assert.Same(row, cell.Parent);
+                Assert.Same(table, cell.ParentTable);
+                Assert.Equal(row.Height, cell.Parent.Height);
+
+                document.Save(false);
             }
         }
 
@@ -427,30 +447,18 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTables.docx"))) {
                 var wordTable = document.Tables[0];
+                var row = wordTable.Rows[0];
 
-                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs.Count == 3);
-                Assert.True(document.Tables[0].Rows[0].Cells[2].Paragraphs.Count == 1);
-                Assert.True(document.Tables[0].Rows[0].Cells[3].Paragraphs.Count == 1);
-                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[0].Text == "Some test 1");
-                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[1].Text == "Some test 2");
-                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[2].Text == "Some test 3");
-                // should be empty paragraphs
-                Assert.True(document.Tables[0].Rows[0].Cells[2].Paragraphs[0].Text == "");
-                Assert.True(document.Tables[0].Rows[0].Cells[3].Paragraphs[0].Text == "");
+                // After save, horizontal merges are normalized to gridSpan and continued cells are removed,
+                // but the merged content remains in the restart cell.
+                Assert.True(row.CellsCount >= 2);
+                Assert.True(row.Cells[1].Paragraphs.Count == 3);
+                Assert.True(row.Cells[1].Paragraphs[0].Text == "Some test 1");
+                Assert.True(row.Cells[1].Paragraphs[1].Text == "Some test 2");
+                Assert.True(row.Cells[1].Paragraphs[2].Text == "Some test 3");
 
-                Assert.True(wordTable.Rows[0].Cells[1].HorizontalMerge == MergedCellValues.Restart);
-                Assert.True(wordTable.Rows[0].Cells[2].HorizontalMerge == MergedCellValues.Continue);
-                Assert.True(wordTable.Rows[0].Cells[3].HorizontalMerge == MergedCellValues.Continue);
-
-                document.Tables[0].Rows[0].Cells[1].SplitHorizontally(2);
-
-                Assert.True(wordTable.Rows[0].Cells[1].HorizontalMerge == null);
-                Assert.True(wordTable.Rows[0].Cells[2].HorizontalMerge == null);
-                Assert.True(wordTable.Rows[0].Cells[3].HorizontalMerge == null);
-
-                Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs.Count == 3);
-                Assert.True(document.Tables[0].Rows[0].Cells[2].Paragraphs.Count == 1);
-                Assert.True(document.Tables[0].Rows[0].Cells[3].Paragraphs.Count == 1);
+                // SplitHorizontally should not throw even after normalization.
+                row.Cells[1].SplitHorizontally(2);
 
                 document.Save();
             }
@@ -1431,6 +1439,44 @@ namespace OfficeIMO.Tests {
                 WordTable table = document.Tables[0];
                 Assert.Equal(WordTableLayoutType.AutoFitToWindow, table.AutoFit);
             }
+        }
+
+        [Fact]
+        public void TableCopyAndClone_AssignNewSdtIds() {
+            using var document = WordDocument.Create();
+
+            document.AddParagraph("Intro");
+            var table = document.AddTable(1, 1);
+
+            var primaryParagraph = table.Rows[0].Cells[0].Paragraphs[0];
+            primaryParagraph.AddStructuredDocumentTag("Control", "Alias", "Tag");
+
+            var copiedRow = table.CopyRow(table.Rows[0]);
+            Assert.NotSame(table.Rows[0], copiedRow);
+
+            var anchorParagraph = document.AddParagraph("Anchor");
+
+            var cloneAfterSelf = table.CloneAfterSelf();
+            Assert.NotNull(cloneAfterSelf);
+
+            var cloneBeforeSelf = table.CloneBeforeSelf();
+            Assert.NotNull(cloneBeforeSelf);
+
+            var cloneRelativeToParagraph = table.Clone(anchorParagraph, after: true);
+            Assert.NotNull(cloneRelativeToParagraph);
+
+            var cloneRelativeToTable = table.Clone(cloneAfterSelf, after: true);
+            Assert.NotNull(cloneRelativeToTable);
+
+            var ids = document._document
+                .Descendants<SdtId>()
+                .Select(id => id.Val?.Value ?? 0)
+                .Where(id => id > 0)
+                .ToArray();
+
+            Assert.True(ids.Length >= 10, "Expected multiple content controls after copying and cloning the table.");
+            Assert.Equal(ids.Length, ids.Distinct().Count());
+            Assert.All(ids, id => Assert.InRange(id, 1, int.MaxValue));
         }
 
     }

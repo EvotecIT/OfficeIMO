@@ -490,7 +490,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static SdtBlock GetStyle(WordWatermarkStyle style) {
+        private SdtBlock GetStyle(WordWatermarkStyle style) {
             switch (style) {
                 case WordWatermarkStyle.Text: return TextWatermark;
                 case WordWatermarkStyle.Image: return Confidential2;
@@ -631,24 +631,37 @@ namespace OfficeIMO.Word {
             _sdtBlock = sdtBlock;
         }
 
-        private static SdtBlock TextWatermark {
-            get {
-                SdtBlock sdtBlock1 = new SdtBlock();
+        private SdtBlock TextWatermark => PrepareWatermark(CreateTextWatermarkTemplate);
 
-                SdtProperties sdtProperties1 = new SdtProperties();
-                SdtId sdtId1 = new SdtId() { Val = -78212419 };
+        private SdtBlock Confidential2 => PrepareWatermark(CreateConfidential2Template);
 
-                SdtContentDocPartObject sdtContentDocPartObject1 = new SdtContentDocPartObject();
-                DocPartGallery docPartGallery1 = new DocPartGallery() { Val = "Watermarks" };
-                DocPartUnique docPartUnique1 = new DocPartUnique();
+        private SdtBlock PrepareWatermark(Func<SdtBlock> factory) {
+            if (_document == null) {
+                throw new InvalidOperationException("Document context is not initialized for watermark creation.");
+            }
 
-                sdtContentDocPartObject1.Append(docPartGallery1);
-                sdtContentDocPartObject1.Append(docPartUnique1);
+            var block = factory();
+            _document.AssignNewSdtIds(block);
+            return block;
+        }
 
-                sdtProperties1.Append(sdtId1);
-                sdtProperties1.Append(sdtContentDocPartObject1);
+        private static SdtBlock CreateTextWatermarkTemplate() {
+            SdtBlock sdtBlock1 = new SdtBlock();
 
-                SdtContentBlock sdtContentBlock1 = new SdtContentBlock();
+            SdtProperties sdtProperties1 = new SdtProperties();
+            SdtId sdtId1 = new SdtId();
+
+            SdtContentDocPartObject sdtContentDocPartObject1 = new SdtContentDocPartObject();
+            DocPartGallery docPartGallery1 = new DocPartGallery() { Val = "Watermarks" };
+            DocPartUnique docPartUnique1 = new DocPartUnique();
+
+            sdtContentDocPartObject1.Append(docPartGallery1);
+            sdtContentDocPartObject1.Append(docPartUnique1);
+
+            sdtProperties1.Append(sdtId1);
+            sdtProperties1.Append(sdtContentDocPartObject1);
+
+            SdtContentBlock sdtContentBlock1 = new SdtContentBlock();
 
                 Paragraph paragraph1 = new Paragraph() { RsidParagraphAddition = "003C040D", RsidRunAdditionDefault = "003C040D", ParagraphId = "7710D5F9", TextId = "47C6A96F" };
 
@@ -739,30 +752,28 @@ namespace OfficeIMO.Word {
 
                 sdtContentBlock1.Append(paragraph1);
 
-                sdtBlock1.Append(sdtProperties1);
-                sdtBlock1.Append(sdtContentBlock1);
-                return sdtBlock1;
-            }
+            sdtBlock1.Append(sdtProperties1);
+            sdtBlock1.Append(sdtContentBlock1);
+            return sdtBlock1;
         }
 
-        private static SdtBlock Confidential2 {
-            get {
-                SdtBlock sdtBlock1 = new SdtBlock();
+        private static SdtBlock CreateConfidential2Template() {
+            SdtBlock sdtBlock1 = new SdtBlock();
 
-                SdtProperties sdtProperties1 = new SdtProperties();
-                SdtId sdtId1 = new SdtId() { Val = 1122028455 };
+            SdtProperties sdtProperties1 = new SdtProperties();
+            SdtId sdtId1 = new SdtId();
 
-                SdtContentDocPartObject sdtContentDocPartObject1 = new SdtContentDocPartObject();
-                DocPartGallery docPartGallery1 = new DocPartGallery() { Val = "Watermarks" };
-                DocPartUnique docPartUnique1 = new DocPartUnique();
+            SdtContentDocPartObject sdtContentDocPartObject1 = new SdtContentDocPartObject();
+            DocPartGallery docPartGallery1 = new DocPartGallery() { Val = "Watermarks" };
+            DocPartUnique docPartUnique1 = new DocPartUnique();
 
-                sdtContentDocPartObject1.Append(docPartGallery1);
-                sdtContentDocPartObject1.Append(docPartUnique1);
+            sdtContentDocPartObject1.Append(docPartGallery1);
+            sdtContentDocPartObject1.Append(docPartUnique1);
 
-                sdtProperties1.Append(sdtId1);
-                sdtProperties1.Append(sdtContentDocPartObject1);
+            sdtProperties1.Append(sdtId1);
+            sdtProperties1.Append(sdtContentDocPartObject1);
 
-                SdtContentBlock sdtContentBlock1 = new SdtContentBlock();
+            SdtContentBlock sdtContentBlock1 = new SdtContentBlock();
 
                 Paragraph paragraph1 = new Paragraph() { RsidParagraphAddition = "003C040D", RsidRunAdditionDefault = "00F42210", ParagraphId = "7710D5F9", TextId = "7F2AA104" };
 
@@ -847,10 +858,9 @@ namespace OfficeIMO.Word {
 
                 sdtContentBlock1.Append(paragraph1);
 
-                sdtBlock1.Append(sdtProperties1);
-                sdtBlock1.Append(sdtContentBlock1);
-                return sdtBlock1;
-            }
+            sdtBlock1.Append(sdtProperties1);
+            sdtBlock1.Append(sdtContentBlock1);
+            return sdtBlock1;
         }
 
         private void AddWatermarkImage(WordParagraph wordParagraph, WordImageLocation imageLocation) {

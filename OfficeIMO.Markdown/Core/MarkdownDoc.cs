@@ -8,6 +8,7 @@ public class MarkdownDoc {
     private readonly List<IMarkdownBlock> _blocks = new();
     private IMarkdownBlock? _lastBlock;
     private FrontMatterBlock? _frontMatter;
+    private System.Collections.Generic.Dictionary<HeadingBlock, string> _headingSlugMap = new();
 
     /// <summary>Creates a new, empty Markdown document.</summary>
     public static MarkdownDoc Create() => new MarkdownDoc();
@@ -179,7 +180,7 @@ public class MarkdownDoc {
     /// <summary>Renders the document to Markdown string.</summary>
     public string ToMarkdown() {
         // Build a transient block list where TOC placeholders are realized
-        var blocks = RealizeTocPlaceholders();
+        var (blocks, _) = GetBlocksAndHeadingSlugs();
         StringBuilder sb = new StringBuilder();
         if (_frontMatter != null) {
             sb.AppendLine(_frontMatter.Render());
@@ -237,6 +238,12 @@ public class MarkdownDoc {
     public HtmlRenderParts ToHtmlParts(HtmlOptions? options = null) {
         options ??= new HtmlOptions { Kind = HtmlKind.Fragment };
         return HtmlRenderer.RenderParts(this, options);
+    }
+
+    internal (System.Collections.Generic.List<IMarkdownBlock> Blocks, System.Collections.Generic.IReadOnlyDictionary<HeadingBlock, string> HeadingSlugs) GetBlocksAndHeadingSlugs() {
+        var registry = MarkdownSlug.CreateRegistry();
+        var realized = RealizeTocPlaceholders(registry);
+        return (realized, _headingSlugMap);
     }
 
     /// <summary>
@@ -339,13 +346,18 @@ public class MarkdownDoc {
         return Toc(opts => { opts.Title = title ?? ""; opts.IncludeTitle = !string.IsNullOrEmpty(title); opts.MinLevel = min; opts.MaxLevel = max; opts.Ordered = ordered; opts.TitleLevel = titleLevel; opts.Scope = TocScope.HeadingTitle; opts.ScopeHeadingTitle = headingTitle; }, placeAtTop: false);
     }
 
-    private System.Collections.Generic.List<IMarkdownBlock> RealizeTocPlaceholders() {
+    private System.Collections.Generic.List<IMarkdownBlock> RealizeTocPlaceholders(System.Collections.Generic.Dictionary<string, int> slugRegistry) {
         // Create a shallow copy first
         var realized = new System.Collections.Generic.List<IMarkdownBlock>(_blocks);
         // Collect heading info from realized list with indices
-        var headings = new System.Collections.Generic.List<(int Index, int Level, string Text)>();
+        var headings = new System.Collections.Generic.List<(int Index, int Level, string Text, HeadingBlock Block)>();
+        _headingSlugMap = new System.Collections.Generic.Dictionary<HeadingBlock, string>();
         for (int idx = 0; idx < realized.Count; idx++) {
-            if (realized[idx] is HeadingBlock h) headings.Add((idx, h.Level, h.Text));
+            if (realized[idx] is HeadingBlock h) {
+                var slug = MarkdownSlug.GitHub(h.Text, slugRegistry);
+                _headingSlugMap[h] = slug;
+                headings.Add((idx, h.Level, h.Text, h));
+            }
         }
         // Replace placeholders with generated TOC blocks
         for (int i = 0; i < realized.Count; i++) {
@@ -357,6 +369,10 @@ public class MarkdownDoc {
                 var toc = new TocBlock { Ordered = opts.Ordered, NormalizeLevels = opts.NormalizeToMinLevel };
                 // Determine scope bounds
                 int startIdx = 0; int endIdx = realized.Count;
+                string? titleAnchor = null;
+                if (opts.IncludeTitle && i > 0 && realized[i - 1] is HeadingBlock titleHeading) {
+                    if (!_headingSlugMap.TryGetValue(titleHeading, out titleAnchor)) titleAnchor = MarkdownSlug.GitHub(titleHeading.Text);
+                }
                 if (opts.Scope == TocScope.PreviousHeading) {
                     // Root at the nearest preceding heading with level < MinLevel if available; otherwise nearest heading.
                     var prev = headings.LastOrDefault(h => h.Index < i && h.Level < opts.MinLevel);
@@ -377,7 +393,8 @@ public class MarkdownDoc {
                 foreach (var h in headings) {
                     if (h.Index < startIdx || h.Index >= endIdx) continue;
                     if (h.Level < effectiveMin || h.Level > effectiveMax) continue;
-                    var anchor = MarkdownSlug.GitHub(h.Text);
+                    if (!_headingSlugMap.TryGetValue(h.Block, out var anchor)) anchor = MarkdownSlug.GitHub(h.Text);
+                    if (titleAnchor != null && string.Equals(anchor, titleAnchor, System.StringComparison.Ordinal)) continue;
                     toc.Entries.Add(new TocBlock.Entry { Level = h.Level, Text = h.Text, Anchor = anchor });
                 }
                 realized[i] = toc;

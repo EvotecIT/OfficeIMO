@@ -61,6 +61,8 @@ namespace OfficeIMO.Excel {
             if (lck == null) {
                 try { lck = _excelDocument.EnsureLock(); } catch { lck = null; }
             }
+            // If cancellation was requested during or after compute, honor it before mutating the DOM
+            ct.ThrowIfCancellationRequested();
             Locking.ExecuteWrite(lck, applySequential);
         }
     }

@@ -1,4 +1,6 @@
 using System.IO;
+using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -20,7 +22,7 @@ namespace OfficeIMO.Tests {
                 wordTableContent.Text = "This is Table of Contents";
                 wordTableContent.TextNoContent = "Ooopsi, no content";
 
-                Assert.True(document.Settings.UpdateFieldsOnOpen == false);
+                Assert.True(document.Settings.UpdateFieldsOnOpen, "UpdateFieldsOnOpen should be enabled once TOC is added");
 
                 wordTableContent.Update();
 
@@ -226,6 +228,99 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = WordDocument.Load(filePath)) {
+                Assert.True(document.Settings.UpdateFieldsOnOpen);
+            }
+        }
+
+        [Fact]
+        public void Test_TableOfContent_UpdateMarksFieldsDirty() {
+            string filePath = Path.Combine(_directoryWithFiles, "TocMarkedDirty.docx");
+
+            using (var document = WordDocument.Create(filePath)) {
+                var toc = document.AddTableOfContent();
+                var heading = document.AddParagraph("Heading 1");
+                heading.Style = WordParagraphStyles.Heading1;
+
+                toc.Update();
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                var toc = document.TableOfContent;
+                Assert.NotNull(toc);
+
+                var simpleFields = toc!.SdtBlock.Descendants<SimpleField>().ToList();
+                Assert.NotEmpty(simpleFields);
+                Assert.All(simpleFields, field => Assert.True(field.Dirty is not null && field.Dirty.Value));
+
+                var fieldChars = toc.SdtBlock.Descendants<FieldChar>().ToList();
+                Assert.All(fieldChars, fieldChar => Assert.True(fieldChar.Dirty is not null && fieldChar.Dirty.Value));
+
+                Assert.True(document.Settings.UpdateFieldsOnOpen);
+            }
+        }
+
+        [Fact]
+        public void Test_TocQueueUpdateHandlesMissingFields() {
+            string filePath = Path.Combine(_directoryWithFiles, "TocMissingFields.docx");
+
+            using (var document = WordDocument.Create(filePath)) {
+                var toc = document.AddTableOfContent();
+                Assert.NotNull(toc);
+                Assert.True(document.Settings.UpdateFieldsOnOpen);
+
+                document.Settings.UpdateFieldsOnOpen = false;
+                Assert.False(document.Settings.UpdateFieldsOnOpen);
+
+                foreach (var simpleField in toc!.SdtBlock.Descendants<SimpleField>().ToList()) {
+                    simpleField.Remove();
+                }
+
+                foreach (var fieldChar in toc.SdtBlock.Descendants<FieldChar>().ToList()) {
+                    fieldChar.Remove();
+                }
+
+                toc.QueueUpdateOnOpen();
+
+                Assert.True(document.Settings.UpdateFieldsOnOpen);
+            }
+        }
+
+        [Fact]
+        public void Test_TocAccessDoesNotAutoQueueUpdates() {
+            string filePath = Path.Combine(_directoryWithFiles, "TocAccessDoesNotQueue.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var toc = document.AddTableOfContent();
+                Assert.True(document.Settings.UpdateFieldsOnOpen);
+
+                document.Settings.UpdateFieldsOnOpen = false;
+                Assert.False(document.Settings.UpdateFieldsOnOpen);
+
+                var existingToc = document.TableOfContent;
+                Assert.NotNull(existingToc);
+                Assert.False(document.Settings.UpdateFieldsOnOpen);
+
+                toc.Update();
+                Assert.True(document.Settings.UpdateFieldsOnOpen);
+            }
+        }
+
+        [Fact]
+        public void Test_HeadingChangesReEnableTocUpdatesAfterDisable() {
+            string filePath = Path.Combine(_directoryWithFiles, "TocHeadingChanges.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                document.AddTableOfContent();
+
+                document.AddParagraph("Heading 1").Style = WordParagraphStyles.Heading1;
+                Assert.True(document.Settings.UpdateFieldsOnOpen);
+
+                document.Settings.UpdateFieldsOnOpen = false;
+                Assert.False(document.Settings.UpdateFieldsOnOpen);
+
+                document.AddParagraph("Heading 2").Style = WordParagraphStyles.Heading2;
+                Assert.True(document.Settings.UpdateFieldsOnOpen);
+
+                document.AddParagraph("Heading 3").Style = WordParagraphStyles.Heading3;
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
             }
         }

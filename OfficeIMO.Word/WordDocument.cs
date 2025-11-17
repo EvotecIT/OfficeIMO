@@ -14,6 +14,7 @@ namespace OfficeIMO.Word {
         internal List<int> _listNumbersUsed = new List<int>();
         internal int? _tableOfContentIndex;
         internal TableOfContentStyle? _tableOfContentStyle;
+        private bool _tableOfContentUpdateQueued;
         private bool _disposed;
 
         internal int BookmarkId {
@@ -1095,6 +1096,7 @@ namespace OfficeIMO.Word {
             word.FilePath = filePath ?? string.Empty;
             word._wordprocessingDocument = wordDocument;
             word._document = mainPart.Document;
+            word.InitializeSdtIdState();
 
             StyleDefinitionsPart styleDefinitionsPart1 = mainPart.AddNewPart<StyleDefinitionsPart>("rId1");
             GenerateStyleDefinitionsPart1Content(styleDefinitionsPart1);
@@ -1169,6 +1171,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         private void LoadDocument() {
             Sections.Clear();
+            InitializeSdtIdState();
             // add settings if not existing
             var wordSettings = new WordSettings(this);
             var applicationProperties = new ApplicationProperties(this);
@@ -1502,6 +1505,10 @@ namespace OfficeIMO.Word {
                 this.Save("", openWord);
             }
         }
+
+        // Note: Save() already normalizes table grids for consistent viewing across
+        // Word Online/Google Docs without changing authoring semantics. No extra
+        // save variants are needed.
 
         /// <summary>
         /// Save the document to a new file without modifying <see cref="FilePath"/> on this instance.
@@ -1897,14 +1904,49 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordCompatibilitySettings CompatibilitySettings { get; set; } = null!;
 
+        internal void NotifyTableOfContentUpdateQueued() {
+            _tableOfContentUpdateQueued = true;
+        }
+
+        internal void ResetTableOfContentUpdateQueue() {
+            _tableOfContentUpdateQueued = false;
+        }
+
+        /// <summary>
+        /// Ensures heading edits keep the table-of-contents refresh state aligned with the document settings.
+        /// </summary>
         internal void HeadingModified() {
-            if (TableOfContent != null) {
-                Settings.UpdateFieldsOnOpen = true;
+            var updateOnOpen = Settings.UpdateFieldsOnOpen;
+
+            if (_tableOfContentUpdateQueued) {
+                if (updateOnOpen) {
+                    // Updates are already queued and Word will refresh them on open.
+                    return;
+                }
+
+                // Word will not refresh fields anymore, so drop the stale queued state before requeueing.
+                ResetTableOfContentUpdateQueue();
             }
+
+            if (updateOnOpen) {
+                // Keep the queue flag in sync with Word's behaviour when UpdateFieldsOnOpen is set by the user.
+                _tableOfContentUpdateQueued = true;
+                return;
+            }
+
+            var tableOfContent = TableOfContent;
+            if (tableOfContent == null) {
+                return;
+            }
+
+            // Re-enable the automatic refresh by marking the table-of-contents fields dirty again.
+            tableOfContent.QueueUpdateOnOpen(force: true);
         }
 
         private void PreSaving() {
             MoveSectionProperties();
+            // Keep tblGrid consistent for online viewers without changing authoring semantics.
+            try { NormalizeTablesForOnline(); } catch { }
             SaveNumbering();
             if (AutoUpdateToc && TableOfContent != null) {
                 TableOfContent.Update();

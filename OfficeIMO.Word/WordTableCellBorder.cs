@@ -12,14 +12,37 @@ namespace OfficeIMO.Word {
         private readonly WordTableRow _wordTableRow;
         private readonly WordTable _wordTable;
         private readonly WordDocument _document;
-        private readonly TableCellProperties _tableCellProperties;
+        // Do not force-create TableCellProperties on construction; keep read-only access non-mutating.
+        // All writes ensure properties exist via helpers below.
+        private TableCellProperties? TcPr => _wordTableCell._tableCellProperties;
+        private TableCellProperties EnsurePr() {
+            if (_wordTableCell._tableCellProperties == null) {
+                _wordTableCell.AddTableCellProperties();
+            }
+            return _wordTableCell._tableCellProperties!;
+        }
+        private TableCellBorders? BordersOrNull => TcPr?.TableCellBorders;
+        private TableCellBorders EnsureBorders() {
+            var pr = EnsurePr();
+            return pr.TableCellBorders ??= new TableCellBorders();
+        }
+        private LeftBorder EnsureLeft() { var b = EnsureBorders(); return b.LeftBorder ??= new LeftBorder(); }
+        private RightBorder EnsureRight() { var b = EnsureBorders(); return b.RightBorder ??= new RightBorder(); }
+        private TopBorder EnsureTop() { var b = EnsureBorders(); return b.TopBorder ??= new TopBorder(); }
+        private BottomBorder EnsureBottom() { var b = EnsureBorders(); return b.BottomBorder ??= new BottomBorder(); }
+        private InsideHorizontalBorder EnsureInsideHorizontal() { var b = EnsureBorders(); return b.InsideHorizontalBorder ??= new InsideHorizontalBorder(); }
+        private InsideVerticalBorder EnsureInsideVertical() { var b = EnsureBorders(); return b.InsideVerticalBorder ??= new InsideVerticalBorder(); }
+        private StartBorder EnsureStart() { var b = EnsureBorders(); return b.StartBorder ??= new StartBorder(); }
+        private EndBorder EnsureEnd() { var b = EnsureBorders(); return b.EndBorder ??= new EndBorder(); }
+        private TopLeftToBottomRightCellBorder EnsureTLBR() { var b = EnsureBorders(); return b.TopLeftToBottomRightCellBorder ??= new TopLeftToBottomRightCellBorder(); }
+        private TopRightToBottomLeftCellBorder EnsureTRBL() { var b = EnsureBorders(); return b.TopRightToBottomLeftCellBorder ??= new TopRightToBottomLeftCellBorder(); }
 
         internal WordTableCellBorder(WordDocument wordDocument, WordTable wordTable, WordTableRow wordTableRow, WordTableCell wordTableCell) {
             _document = wordDocument;
             _wordTable = wordTable;
             _wordTableRow = wordTableRow;
             _wordTableCell = wordTableCell;
-            _tableCellProperties = wordTableCell._tableCellProperties ??= new TableCellProperties();
+            // Intentionally do not create TableCellProperties here.
         }
 
         /// <summary>
@@ -27,21 +50,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public BorderValues? LeftStyle {
             get {
-                if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.LeftBorder != null) {
-                    return _tableCellProperties.TableCellBorders.LeftBorder.Val?.Value;
-                }
-                return null;
+                return BordersOrNull?.LeftBorder?.Val?.Value;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.LeftBorder == null) {
-                    _tableCellProperties.TableCellBorders.LeftBorder = new LeftBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.LeftBorder.Val = value.HasValue ? value.Value : null;
+                var lb = EnsureLeft();
+                lb.Val = value.HasValue ? value.Value : null;
             }
         }
 
@@ -50,20 +63,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? LeftColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders?.LeftBorder?.Color?.Value is string color) {
-                    return color.Replace("#", "").ToLowerInvariant();
-                }
-                return null;
+                return BordersOrNull?.LeftBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.LeftBorder == null) {
-                    _tableCellProperties.TableCellBorders.LeftBorder = new LeftBorder();
-                }
-                _tableCellProperties.TableCellBorders.LeftBorder.Color = value?.Replace("#", "").ToLowerInvariant();
+                var lb = EnsureLeft();
+                lb.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -83,23 +87,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? LeftSpace {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.LeftBorder != null
-                    && _tableCellProperties.TableCellBorders.LeftBorder.Space != null) {
-                    return _tableCellProperties.TableCellBorders.LeftBorder.Space;
-                }
-                return null;
+                return BordersOrNull?.LeftBorder?.Space;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.LeftBorder == null) {
-                    _tableCellProperties.TableCellBorders.LeftBorder = new LeftBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.LeftBorder.Space = value;
+                var lb = EnsureLeft();
+                lb.Space = value;
             }
         }
 
@@ -108,24 +100,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? LeftSize {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.LeftBorder != null
-                    && _tableCellProperties.TableCellBorders.LeftBorder.Size != null) {
-                    return _tableCellProperties.TableCellBorders.LeftBorder.Size;
-                }
-
-                return null;
+                return BordersOrNull?.LeftBorder?.Size;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.LeftBorder == null) {
-                    _tableCellProperties.TableCellBorders.LeftBorder = new LeftBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.LeftBorder.Size = value;
+                var lb = EnsureLeft();
+                lb.Size = value;
             }
         }
 
@@ -135,21 +114,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public BorderValues? RightStyle {
             get {
-                if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.RightBorder != null) {
-                    return _tableCellProperties.TableCellBorders.RightBorder.Val?.Value;
-                }
-                return null;
+                return BordersOrNull?.RightBorder?.Val?.Value;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.RightBorder == null) {
-                    _tableCellProperties.TableCellBorders.RightBorder = new RightBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.RightBorder.Val = value.HasValue ? value.Value : null;
+                var rb = EnsureRight();
+                rb.Val = value.HasValue ? value.Value : null;
             }
         }
 
@@ -158,20 +127,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? RightColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders?.RightBorder?.Color?.Value is string color) {
-                    return color.Replace("#", "").ToLowerInvariant();
-                }
-                return null;
+                return BordersOrNull?.RightBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.RightBorder == null) {
-                    _tableCellProperties.TableCellBorders.RightBorder = new RightBorder();
-                }
-                _tableCellProperties.TableCellBorders.RightBorder.Color = value?.Replace("#", "").ToLowerInvariant();
+                var rb = EnsureRight();
+                rb.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -191,23 +151,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? RightSpace {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.RightBorder != null
-                    && _tableCellProperties.TableCellBorders.RightBorder.Space != null) {
-                    return _tableCellProperties.TableCellBorders.RightBorder.Space;
-                }
-                return null;
+                return BordersOrNull?.RightBorder?.Space;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.RightBorder == null) {
-                    _tableCellProperties.TableCellBorders.RightBorder = new RightBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.RightBorder.Space = value;
+                var rb = EnsureRight();
+                rb.Space = value;
             }
         }
 
@@ -216,24 +164,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? RightSize {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.RightBorder != null
-                    && _tableCellProperties.TableCellBorders.RightBorder.Size != null) {
-                    return _tableCellProperties.TableCellBorders.RightBorder.Size;
-                }
-
-                return null;
+                return BordersOrNull?.RightBorder?.Size;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.RightBorder == null) {
-                    _tableCellProperties.TableCellBorders.RightBorder = new RightBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.RightBorder.Size = value;
+                var rb = EnsureRight();
+                rb.Size = value;
             }
         }
 
@@ -245,21 +180,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public BorderValues? TopStyle {
             get {
-                if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.TopBorder != null) {
-                    return _tableCellProperties.TableCellBorders.TopBorder.Val?.Value;
-                }
-                return null;
+                return BordersOrNull?.TopBorder?.Val?.Value;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.TopBorder == null) {
-                    _tableCellProperties.TableCellBorders.TopBorder = new TopBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.TopBorder.Val = value.HasValue ? value.Value : null;
+                var tb = EnsureTop();
+                tb.Val = value.HasValue ? value.Value : null;
             }
         }
 
@@ -268,20 +193,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? TopColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders?.TopBorder?.Color?.Value is string color) {
-                    return color.Replace("#", "").ToLowerInvariant();
-                }
-                return null;
+                return BordersOrNull?.TopBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.TopBorder == null) {
-                    _tableCellProperties.TableCellBorders.TopBorder = new TopBorder();
-                }
-                _tableCellProperties.TableCellBorders.TopBorder.Color = value?.Replace("#", "").ToLowerInvariant();
+                var tb = EnsureTop();
+                tb.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -301,23 +217,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? TopSpace {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.TopBorder != null
-                    && _tableCellProperties.TableCellBorders.TopBorder.Space != null) {
-                    return _tableCellProperties.TableCellBorders.TopBorder.Space;
-                }
-                return null;
+                return BordersOrNull?.TopBorder?.Space;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.TopBorder == null) {
-                    _tableCellProperties.TableCellBorders.TopBorder = new TopBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.TopBorder.Space = value;
+                var tb = EnsureTop();
+                tb.Space = value;
             }
         }
 
@@ -326,24 +230,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? TopSize {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.TopBorder != null
-                    && _tableCellProperties.TableCellBorders.TopBorder.Size != null) {
-                    return _tableCellProperties.TableCellBorders.TopBorder.Size;
-                }
-
-                return null;
+                return BordersOrNull?.TopBorder?.Size;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.TopBorder == null) {
-                    _tableCellProperties.TableCellBorders.TopBorder = new TopBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.TopBorder.Size = value;
+                var tb = EnsureTop();
+                tb.Size = value;
             }
         }
 
@@ -358,21 +249,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public BorderValues? BottomStyle {
             get {
-                if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.BottomBorder != null) {
-                    return _tableCellProperties.TableCellBorders.BottomBorder.Val?.Value;
-                }
-                return null;
+                return BordersOrNull?.BottomBorder?.Val?.Value;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.BottomBorder == null) {
-                    _tableCellProperties.TableCellBorders.BottomBorder = new BottomBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.BottomBorder.Val = value.HasValue ? value.Value : null;
+                var bb = EnsureBottom();
+                bb.Val = value.HasValue ? value.Value : null;
             }
         }
 
@@ -381,20 +262,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? BottomColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders?.BottomBorder?.Color?.Value is string color) {
-                    return color.Replace("#", "").ToLowerInvariant();
-                }
-                return null;
+                return BordersOrNull?.BottomBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.BottomBorder == null) {
-                    _tableCellProperties.TableCellBorders.BottomBorder = new BottomBorder();
-                }
-                _tableCellProperties.TableCellBorders.BottomBorder.Color = value?.Replace("#", "").ToLowerInvariant();
+                var bb = EnsureBottom();
+                bb.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -414,23 +286,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? BottomSpace {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.BottomBorder != null
-                    && _tableCellProperties.TableCellBorders.BottomBorder.Space != null) {
-                    return _tableCellProperties.TableCellBorders.BottomBorder.Space;
-                }
-                return null;
+                return BordersOrNull?.BottomBorder?.Space;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.BottomBorder == null) {
-                    _tableCellProperties.TableCellBorders.BottomBorder = new BottomBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.BottomBorder.Space = value;
+                var bb = EnsureBottom();
+                bb.Space = value;
             }
         }
 
@@ -439,24 +299,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? BottomSize {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.BottomBorder != null
-                    && _tableCellProperties.TableCellBorders.BottomBorder.Size != null) {
-                    return _tableCellProperties.TableCellBorders.BottomBorder.Size;
-                }
-
-                return null;
+                return BordersOrNull?.BottomBorder?.Size;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.BottomBorder == null) {
-                    _tableCellProperties.TableCellBorders.BottomBorder = new BottomBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.BottomBorder.Size = value;
+                var bb = EnsureBottom();
+                bb.Size = value;
             }
         }
 
@@ -473,21 +320,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public BorderValues? InsideHorizontalStyle {
             get {
-                if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.InsideHorizontalBorder != null) {
-                    return _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Val?.Value;
-                }
-                return null;
+                return BordersOrNull?.InsideHorizontalBorder?.Val?.Value;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.InsideHorizontalBorder == null) {
-                    _tableCellProperties.TableCellBorders.InsideHorizontalBorder = new InsideHorizontalBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Val = value.HasValue ? value.Value : null;
+                var hb = EnsureInsideHorizontal();
+                hb.Val = value.HasValue ? value.Value : null;
             }
         }
 
@@ -496,20 +333,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? InsideHorizontalColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders?.InsideHorizontalBorder?.Color?.Value is string color) {
-                    return color.Replace("#", "").ToLowerInvariant();
-                }
-                return null;
+                return BordersOrNull?.InsideHorizontalBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.InsideHorizontalBorder == null) {
-                    _tableCellProperties.TableCellBorders.InsideHorizontalBorder = new InsideHorizontalBorder();
-                }
-                _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Color = value?.Replace("#", "").ToLowerInvariant();
+                var hb = EnsureInsideHorizontal();
+                hb.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -529,23 +357,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? InsideHorizontalSpace {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.InsideHorizontalBorder != null
-                    && _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Space != null) {
-                    return _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Space;
-                }
-                return null;
+                return BordersOrNull?.InsideHorizontalBorder?.Space;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.InsideHorizontalBorder == null) {
-                    _tableCellProperties.TableCellBorders.InsideHorizontalBorder = new InsideHorizontalBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Space = value;
+                var hb = EnsureInsideHorizontal();
+                hb.Space = value;
             }
         }
 
@@ -554,24 +370,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? InsideHorizontalSize {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.InsideHorizontalBorder != null
-                    && _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Size != null) {
-                    return _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Size;
-                }
-
-                return null;
+                return BordersOrNull?.InsideHorizontalBorder?.Size;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.InsideHorizontalBorder == null) {
-                    _tableCellProperties.TableCellBorders.InsideHorizontalBorder = new InsideHorizontalBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.InsideHorizontalBorder.Size = value;
+                var hb = EnsureInsideHorizontal();
+                hb.Size = value;
             }
         }
 
@@ -588,21 +391,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public BorderValues? InsideVerticalStyle {
             get {
-                if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.InsideVerticalBorder != null) {
-                    return _tableCellProperties.TableCellBorders.InsideVerticalBorder.Val?.Value;
-                }
-                return null;
+                return BordersOrNull?.InsideVerticalBorder?.Val?.Value;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.InsideVerticalBorder == null) {
-                    _tableCellProperties.TableCellBorders.InsideVerticalBorder = new InsideVerticalBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.InsideVerticalBorder.Val = value.HasValue ? value.Value : null;
+                var vb = EnsureInsideVertical();
+                vb.Val = value.HasValue ? value.Value : null;
             }
         }
 
@@ -611,20 +404,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? InsideVerticalColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders?.InsideVerticalBorder?.Color?.Value is string color) {
-                    return color.Replace("#", "").ToLowerInvariant();
-                }
-                return null;
+                return BordersOrNull?.InsideVerticalBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.InsideVerticalBorder == null) {
-                    _tableCellProperties.TableCellBorders.InsideVerticalBorder = new InsideVerticalBorder();
-                }
-                _tableCellProperties.TableCellBorders.InsideVerticalBorder.Color = value?.Replace("#", "").ToLowerInvariant();
+                var vb = EnsureInsideVertical();
+                vb.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -644,23 +428,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? InsideVerticalSpace {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.InsideVerticalBorder != null
-                    && _tableCellProperties.TableCellBorders.InsideVerticalBorder.Space != null) {
-                    return _tableCellProperties.TableCellBorders.InsideVerticalBorder.Space;
-                }
-                return null;
+                return BordersOrNull?.InsideVerticalBorder?.Space;
             }
-            set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.InsideVerticalBorder == null) {
-                    _tableCellProperties.TableCellBorders.InsideVerticalBorder = new InsideVerticalBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.InsideVerticalBorder.Space = value;
+                set {
+                var vb = EnsureInsideVertical();
+                vb.Space = value;
             }
         }
 
@@ -669,24 +441,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? InsideVerticalSize {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.InsideVerticalBorder != null
-                    && _tableCellProperties.TableCellBorders.InsideVerticalBorder.Size != null) {
-                    return _tableCellProperties.TableCellBorders.InsideVerticalBorder.Size;
-                }
-
-                return null;
+                return BordersOrNull?.InsideVerticalBorder?.Size;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.InsideVerticalBorder == null) {
-                    _tableCellProperties.TableCellBorders.InsideVerticalBorder = new InsideVerticalBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.InsideVerticalBorder.Size = value;
+                var vb = EnsureInsideVertical();
+                vb.Size = value;
             }
         }
 
@@ -700,21 +459,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public BorderValues? StartStyle {
             get {
-                if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.StartBorder != null) {
-                    return _tableCellProperties.TableCellBorders.StartBorder.Val?.Value;
-                }
-                return null;
+                return BordersOrNull?.StartBorder?.Val?.Value;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.StartBorder == null) {
-                    _tableCellProperties.TableCellBorders.StartBorder = new StartBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.StartBorder.Val = value.HasValue ? value.Value : null;
+                var sb = EnsureStart();
+                sb.Val = value.HasValue ? value.Value : null;
             }
         }
 
@@ -723,20 +472,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? StartColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders?.StartBorder?.Color?.Value is string color) {
-                    return color.Replace("#", "").ToLowerInvariant();
-                }
-                return null;
+                return BordersOrNull?.StartBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.StartBorder == null) {
-                    _tableCellProperties.TableCellBorders.StartBorder = new StartBorder();
-                }
-                _tableCellProperties.TableCellBorders.StartBorder.Color = value?.Replace("#", "").ToLowerInvariant();
+                var sb = EnsureStart();
+                sb.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -756,23 +496,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? StartSpace {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.StartBorder != null
-                    && _tableCellProperties.TableCellBorders.StartBorder.Space != null) {
-                    return _tableCellProperties.TableCellBorders.StartBorder.Space;
-                }
-                return null;
+                return BordersOrNull?.StartBorder?.Space;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.StartBorder == null) {
-                    _tableCellProperties.TableCellBorders.StartBorder = new StartBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.StartBorder.Space = value;
+                var sb = EnsureStart();
+                sb.Space = value;
             }
         }
 
@@ -781,24 +509,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? StartSize {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.StartBorder != null
-                    && _tableCellProperties.TableCellBorders.StartBorder.Size != null) {
-                    return _tableCellProperties.TableCellBorders.StartBorder.Size;
-                }
-
-                return null;
+                return BordersOrNull?.StartBorder?.Size;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.StartBorder == null) {
-                    _tableCellProperties.TableCellBorders.StartBorder = new StartBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.StartBorder.Size = value;
+                var sb = EnsureStart();
+                sb.Size = value;
             }
         }
 
@@ -812,21 +527,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public BorderValues? EndStyle {
             get {
-                if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.EndBorder != null) {
-                    return _tableCellProperties.TableCellBorders.EndBorder.Val?.Value;
-                }
-                return null;
+                return BordersOrNull?.EndBorder?.Val?.Value;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.EndBorder == null) {
-                    _tableCellProperties.TableCellBorders.EndBorder = new EndBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.EndBorder.Val = value.HasValue ? value.Value : null;
+                var eb = EnsureEnd();
+                eb.Val = value.HasValue ? value.Value : null;
             }
         }
 
@@ -835,20 +540,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? EndColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders?.EndBorder?.Color?.Value is string color) {
-                    return color.Replace("#", "").ToLowerInvariant();
-                }
-                return null;
+                return BordersOrNull?.EndBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.EndBorder == null) {
-                    _tableCellProperties.TableCellBorders.EndBorder = new EndBorder();
-                }
-                _tableCellProperties.TableCellBorders.EndBorder.Color = value?.Replace("#", "").ToLowerInvariant();
+                var eb = EnsureEnd();
+                eb.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -868,23 +564,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? EndSpace {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.EndBorder != null
-                    && _tableCellProperties.TableCellBorders.EndBorder.Space != null) {
-                    return _tableCellProperties.TableCellBorders.EndBorder.Space;
-                }
-                return null;
+                return BordersOrNull?.EndBorder?.Space;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.EndBorder == null) {
-                    _tableCellProperties.TableCellBorders.EndBorder = new EndBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.EndBorder.Space = value;
+                var eb = EnsureEnd();
+                eb.Space = value;
             }
         }
 
@@ -893,24 +577,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? EndSize {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.EndBorder != null
-                    && _tableCellProperties.TableCellBorders.EndBorder.Size != null) {
-                    return _tableCellProperties.TableCellBorders.EndBorder.Size;
-                }
-
-                return null;
+                return BordersOrNull?.EndBorder?.Size;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.EndBorder == null) {
-                    _tableCellProperties.TableCellBorders.EndBorder = new EndBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.EndBorder.Size = value;
+                var eb = EnsureEnd();
+                eb.Size = value;
             }
         }
 
@@ -931,21 +602,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public BorderValues? TopLeftToBottomRightStyle {
             get {
-                if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder != null) {
-                    return _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Val?.Value;
-                }
-                return null;
+                return BordersOrNull?.TopLeftToBottomRightCellBorder?.Val?.Value;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder == null) {
-                    _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder = new TopLeftToBottomRightCellBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Val = value.HasValue ? value.Value : null;
+                var d = EnsureTLBR();
+                d.Val = value.HasValue ? value.Value : null;
             }
         }
 
@@ -954,20 +615,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? TopLeftToBottomRightColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders?.TopLeftToBottomRightCellBorder?.Color?.Value is string color) {
-                    return color.Replace("#", "").ToLowerInvariant();
-                }
-                return null;
+                return BordersOrNull?.TopLeftToBottomRightCellBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder == null) {
-                    _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder = new TopLeftToBottomRightCellBorder();
-                }
-                _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Color = value?.Replace("#", "").ToLowerInvariant();
+                var d = EnsureTLBR();
+                d.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -987,23 +639,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? TopLeftToBottomRightSpace {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder != null
-                    && _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Space != null) {
-                    return _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Space;
-                }
-                return null;
+                return BordersOrNull?.TopLeftToBottomRightCellBorder?.Space;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder == null) {
-                    _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder = new TopLeftToBottomRightCellBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Space = value;
+                var d = EnsureTLBR();
+                d.Space = value;
             }
         }
 
@@ -1012,24 +652,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? TopLeftToBottomRightSize {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder != null
-                    && _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Size != null) {
-                    return _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Size;
-                }
-
-                return null;
+                return BordersOrNull?.TopLeftToBottomRightCellBorder?.Size;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder == null) {
-                    _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder = new TopLeftToBottomRightCellBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder.Size = value;
+                var d = EnsureTLBR();
+                d.Size = value;
             }
         }
 
@@ -1041,21 +668,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public BorderValues? TopRightToBottomLeftStyle {
             get {
-                if (_tableCellProperties.TableCellBorders != null && _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder != null) {
-                    return _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Val?.Value;
-                }
-                return null;
+                return BordersOrNull?.TopRightToBottomLeftCellBorder?.Val?.Value;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder == null) {
-                    _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder = new TopRightToBottomLeftCellBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Val = value.HasValue ? value.Value : null;
+                var d = EnsureTRBL();
+                d.Val = value.HasValue ? value.Value : null;
             }
         }
 
@@ -1064,20 +681,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? TopRightToBottomLeftColorHex {
             get {
-                if (_tableCellProperties.TableCellBorders?.TopRightToBottomLeftCellBorder?.Color?.Value is string color) {
-                    return color.Replace("#", "").ToLowerInvariant();
-                }
-                return null;
+                return BordersOrNull?.TopRightToBottomLeftCellBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder == null) {
-                    _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder = new TopRightToBottomLeftCellBorder();
-                }
-                _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Color = value?.Replace("#", "").ToLowerInvariant();
+                var d = EnsureTRBL();
+                d.Color = value?.Replace("#", "").ToLowerInvariant();
             }
         }
 
@@ -1097,23 +705,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? TopRightToBottomLeftSpace {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder != null
-                    && _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Space != null) {
-                    return _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Space;
-                }
-                return null;
+                return BordersOrNull?.TopRightToBottomLeftCellBorder?.Space;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder == null) {
-                    _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder = new TopRightToBottomLeftCellBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Space = value;
+                var d = EnsureTRBL();
+                d.Space = value;
             }
         }
 
@@ -1122,24 +718,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public UInt32Value? TopRightToBottomLeftSize {
             get {
-                if (_tableCellProperties.TableCellBorders != null
-                    && _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder != null
-                    && _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Size != null) {
-                    return _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Size;
-                }
-
-                return null;
+                return BordersOrNull?.TopRightToBottomLeftCellBorder?.Size;
             }
             set {
-                if (_tableCellProperties.TableCellBorders == null) {
-                    _tableCellProperties.TableCellBorders = new TableCellBorders();
-                }
-
-                if (_tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder == null) {
-                    _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder = new TopRightToBottomLeftCellBorder();
-                }
-
-                _tableCellProperties.TableCellBorders.TopRightToBottomLeftCellBorder.Size = value;
+                var d = EnsureTRBL();
+                d.Size = value;
             }
         }
 

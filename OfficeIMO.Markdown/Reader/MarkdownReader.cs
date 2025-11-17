@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text;
 // Intentionally avoid heavy regex use; simple scanning is used for resilience and speed.
 
 namespace OfficeIMO.Markdown;
@@ -18,6 +19,10 @@ public static partial class MarkdownReader {
         var doc = MarkdownDoc.Create();
         if (string.IsNullOrEmpty(markdown)) return doc;
 
+        // Normalize BOM (U+FEFF) at the very beginning to avoid blocking heading/html detection
+        if (markdown[0] == '\uFEFF') {
+            markdown = markdown.Substring(1);
+        }
         // Normalize line endings and split. Keep empty lines significant for block boundaries.
         var text = markdown.Replace("\r\n", "\n").Replace('\r', '\n');
         var lines = text.Split('\n');
@@ -37,7 +42,7 @@ public static partial class MarkdownReader {
             }
         }
 
-        var pipeline = MarkdownReaderPipeline.Default();
+        var pipeline = MarkdownReaderPipeline.Default(options);
         var state = new MarkdownReaderState();
         // Pre-scan for reference-style link definitions so inline refs in earlier paragraphs can resolve
         PreScanReferenceLinkDefinitions(lines, state);

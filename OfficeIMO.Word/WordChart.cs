@@ -187,10 +187,12 @@ namespace OfficeIMO.Word {
             DataLabels dataLabels1 = new DataLabels();
             dataLabels1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             ShowLegendKey showLegendKey1 = new ShowLegendKey() { Val = false };
-            ShowValue showValue1 = new ShowValue() { Val = false };
+            // Show numeric values by default to make charts executive‑friendly
+            ShowValue showValue1 = new ShowValue() { Val = true };
             ShowCategoryName showCategoryName1 = new ShowCategoryName() { Val = false };
             ShowSeriesName showSeriesName1 = new ShowSeriesName() { Val = false };
-            ShowPercent showPercent1 = new ShowPercent() { Val = false };
+            // For pie charts, percent labels are helpful; harmless on others
+            ShowPercent showPercent1 = new ShowPercent() { Val = true };
             ShowBubbleSize showBubbleSize1 = new ShowBubbleSize() { Val = false };
             ShowLeaderLines showLeaderLines1 = new ShowLeaderLines() { Val = true };
 

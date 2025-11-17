@@ -88,6 +88,7 @@ namespace OfficeIMO.Word {
         public WordCoverPage(WordDocument wordDocument, CoverPageTemplate coverPageTemplate) {
             _document = wordDocument;
             _sdtBlock = GetStyle(coverPageTemplate);
+            _document.AssignNewSdtIds(_sdtBlock);
             var body = _document._wordprocessingDocument?.MainDocumentPart?.Document?.Body
                 ?? throw new InvalidOperationException("Document body is missing.");
             body.Append(_sdtBlock);

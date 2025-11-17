@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Dynamic;
 using System.Text.RegularExpressions;
 using OfficeIMO.Markdown;
 using Xunit;
@@ -157,6 +158,40 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("| Key | Value |", lines);
             Assert.Contains("| One | 1 |", lines);
             Assert.Contains("| Two | x, y |", lines);
+        }
+
+        [Fact]
+        public void TableFromAny_DictionarySequence_Unionizes_Keys() {
+            var rows = new List<Dictionary<string, object?>> {
+                new Dictionary<string, object?> { ["Name"] = "Alice", ["Score"] = 10 },
+                new Dictionary<string, object?> { ["Name"] = "Bob", ["Age"] = 42 }
+            };
+
+            var md = MarkdownDoc.Create().Table(t => t.FromAny(rows));
+            var lines = md.ToMarkdown().Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+
+            Assert.Contains("| Name | Score | Age |", lines);
+            Assert.Contains("| Alice | 10 |  |", lines);
+            Assert.Contains("| Bob |  | 42 |", lines);
+        }
+
+        [Fact]
+        public void TableFromAny_ExpandoSequence_Uses_All_Member_Names() {
+            dynamic first = new ExpandoObject();
+            first.Name = "Alice";
+            first.City = "Paris";
+            dynamic second = new ExpandoObject();
+            second.Name = "Bob";
+            second.Country = "France";
+
+            var rows = new List<ExpandoObject> { first, second };
+
+            var md = MarkdownDoc.Create().Table(t => t.FromAny(rows));
+            var lines = md.ToMarkdown().Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+
+            Assert.Contains("| Name | City | Country |", lines);
+            Assert.Contains("| Alice | Paris |  |", lines);
+            Assert.Contains("| Bob |  | France |", lines);
         }
 
         private sealed class FakeReadOnlyDictionary : IReadOnlyDictionary<string, object?> {

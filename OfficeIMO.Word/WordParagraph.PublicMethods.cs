@@ -279,6 +279,7 @@ namespace OfficeIMO.Word {
             }
 
             this._paragraph.InsertAfterSelf(wordParagraph._paragraph);
+            wordParagraph.RefreshParent();
             return wordParagraph;
         }
 
@@ -293,6 +294,7 @@ namespace OfficeIMO.Word {
                 Text = text
             };
             this._paragraph.InsertAfterSelf(wordParagraph._paragraph);
+            wordParagraph.RefreshParent();
             return wordParagraph;
         }
 
@@ -303,6 +305,7 @@ namespace OfficeIMO.Word {
         public WordParagraph AddParagraphAfterSelf() {
             WordParagraph paragraph = new WordParagraph(this._document, true, false);
             this._paragraph.InsertAfterSelf(paragraph._paragraph);
+            paragraph.RefreshParent();
             return paragraph;
         }
 
@@ -337,6 +340,7 @@ namespace OfficeIMO.Word {
             }
 
             this._paragraph.InsertAfterSelf(paragraph._paragraph);
+            paragraph.RefreshParent();
             return paragraph;
         }
 
@@ -351,6 +355,7 @@ namespace OfficeIMO.Word {
 
             if (candidate._document == null) {
                 candidate._document = document;
+                candidate.InvalidateParent();
             }
 
             if (candidate._paragraph.Parent == null) {
@@ -383,6 +388,8 @@ namespace OfficeIMO.Word {
                     throw new InvalidOperationException($"Cannot {operationDescription} because the supplied paragraph originates from a different section. Provide a paragraph from the same section or clone it first.");
                 }
             }
+
+            candidate.InvalidateParent();
         }
 
         private static SectionProperties? GetSectionPropertiesForElement(OpenXmlElement element) {
@@ -489,6 +496,7 @@ namespace OfficeIMO.Word {
             WordParagraph paragraph = new WordParagraph(this._document, true, false);
             this._paragraph.InsertBeforeSelf(paragraph._paragraph);
             //document.Paragraphs.Add(paragraph);
+            paragraph.RefreshParent();
             return paragraph;
         }
 
@@ -1062,7 +1070,8 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrEmpty(tag)) {
                 sdtProperties.Append(new Tag() { Val = tag });
             }
-            sdtProperties.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(new Random().Next(1, int.MaxValue)) });
+            var sdtIdValue = WordHelpers.GetNextSdtId(_document);
+            sdtProperties.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(sdtIdValue) });
 
             var sdtContent = new SdtContentRun();
             var run = new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
@@ -1094,7 +1103,8 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrEmpty(tag)) {
                 props.Append(new Tag() { Val = tag });
             }
-            props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(new Random().Next(1, int.MaxValue)) });
+            var sdtIdValue = WordHelpers.GetNextSdtId(_document);
+            props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(sdtIdValue) });
 
             var checkBox = new W14.SdtContentCheckBox();
             checkBox.Append(new W14.Checked() { Val = isChecked ? W14.OnOffValues.One : W14.OnOffValues.Zero });
@@ -1165,7 +1175,8 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrEmpty(tag)) {
                 props.Append(new Tag() { Val = tag });
             }
-            props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(new System.Random().Next(1, int.MaxValue)) });
+            var sdtIdValue = WordHelpers.GetNextSdtId(_document);
+            props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(sdtIdValue) });
 
             var dateProp = new SdtContentDate();
             if (date.HasValue) {
@@ -1200,7 +1211,8 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrEmpty(tag)) {
                 props.Append(new Tag() { Val = tag });
             }
-            props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(new System.Random().Next(1, int.MaxValue)) });
+            var sdtIdValue = WordHelpers.GetNextSdtId(_document);
+            props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(sdtIdValue) });
 
             var ddl = new SdtContentDropDownList();
             if (items != null) {
@@ -1238,7 +1250,8 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrEmpty(tag)) {
                 props.Append(new Tag() { Val = tag });
             }
-            props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(new System.Random().Next(1, int.MaxValue)) });
+            var sdtIdValue = WordHelpers.GetNextSdtId(_document);
+            props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(sdtIdValue) });
 
             var combo = new SdtContentComboBox();
             var itemList = items?.ToList() ?? new List<string>();
@@ -1294,7 +1307,8 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrEmpty(tag)) {
                 props.Append(new Tag() { Val = tag });
             }
-            props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(new System.Random().Next(1, int.MaxValue)) });
+            var sdtIdValue = WordHelpers.GetNextSdtId(_document);
+            props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(sdtIdValue) });
             props.Append(new SdtContentPicture());
 
             var content = new SdtContentRun();
@@ -1322,16 +1336,7 @@ namespace OfficeIMO.Word {
         /// <param name="tag">Optional tag for the control.</param>
         /// <returns>The created <see cref="WordRepeatingSection"/> instance.</returns>
         public WordRepeatingSection AddRepeatingSection(string? sectionTitle = null, string? alias = null, string? tag = null) {
-            var sdtRun = new SdtRun();
-
-            var props = new SdtProperties();
-            if (!string.IsNullOrEmpty(alias)) {
-                props.Append(new SdtAlias() { Val = alias });
-            }
-            if (!string.IsNullOrEmpty(tag)) {
-                props.Append(new Tag() { Val = tag });
-            }
-            props.Append(new SdtId() { Val = new DocumentFormat.OpenXml.Int32Value(new System.Random().Next(1, int.MaxValue)) });
+            var sdtIdValue = WordHelpers.GetNextSdtId(_document);
 
             string xml = "<w:sdt xmlns:w='http://schemas.openxmlformats.org/wordprocessingml/2006/main' xmlns:w15='http://schemas.microsoft.com/office/word/2012/wordml'>";
             xml += "<w:sdtPr>";
@@ -1343,6 +1348,15 @@ namespace OfficeIMO.Word {
             xml += "</w:sdt>";
 
             var newSdt = new SdtRun(xml);
+
+            // Repeating sections are still composed from raw XML because the Open XML SDK does not
+            // expose strongly typed wrappers for the w15 repeating section vocabulary. Inject the
+            // generated identifier through the object model to stay consistent with other helpers.
+            var properties = newSdt.SdtProperties ?? new SdtProperties();
+            properties.RemoveAllChildren<SdtId>();
+            properties.Append(new SdtId { Val = new DocumentFormat.OpenXml.Int32Value(sdtIdValue) });
+            newSdt.SdtProperties = properties;
+
             this._paragraph.Append(newSdt);
 
             return new WordRepeatingSection(this._document, this._paragraph, newSdt);

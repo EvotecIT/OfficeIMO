@@ -1,0 +1,8 @@
+<Project>
+  <!-- Turn warnings into errors across the solution to keep code quality high. -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Do not elevate informational messages (e.g., preview SDK notice). -->
+  </PropertyGroup>
+</Project>
+

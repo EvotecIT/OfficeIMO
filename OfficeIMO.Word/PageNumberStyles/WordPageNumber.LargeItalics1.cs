@@ -16,7 +16,7 @@ public partial class WordPageNumber {
             RunFonts runFonts1 = new RunFonts() { EastAsiaTheme = ThemeFontValues.MinorEastAsia };
 
             runProperties1.Append(runFonts1);
-            SdtId sdtId1 = new SdtId() { Val = 142853570 };
+            SdtId sdtId1 = new SdtId();
 
             SdtContentDocPartObject sdtContentDocPartObject1 = new SdtContentDocPartObject();
             DocPartGallery docPartGallery1 = new DocPartGallery() { Val = "Page Numbers (Top of Page)" };

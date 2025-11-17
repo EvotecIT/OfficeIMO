@@ -95,12 +95,12 @@ namespace OfficeIMO.Excel {
                         throw new InvalidOperationException($"Row {rowIndex} in worksheet '{sheetName}' contains a cell without a reference.");
                     }
 
-                    var parsedRowIndex = GetRowIndex(reference);
+                    var parsedRowIndex = GetRowIndex(reference!);
                     if (parsedRowIndex != rowIndex) {
                         throw new InvalidOperationException($"Cell '{reference}' in worksheet '{sheetName}' does not match its containing row {rowIndex}.");
                     }
 
-                    int columnIndex = GetColumnIndex(reference);
+                    int columnIndex = GetColumnIndex(reference!);
                     if (columnIndex <= lastColumnIndex) {
                         throw new InvalidOperationException($"Row {rowIndex} in worksheet '{sheetName}' has unsorted or duplicate cells at column index {columnIndex}.");
                     }

@@ -297,8 +297,17 @@ namespace OfficeIMO.Word.Pdf {
                 Title = options?.Title ?? properties.Title,
                 Author = options?.Author ?? properties.Creator,
                 Subject = options?.Subject ?? properties.Subject,
-                Keywords = options?.Keywords ?? properties.Keywords
+                Keywords = BuildKeywords(options, properties)
             });
+
+            static string? BuildKeywords(PdfSaveOptions? opts, BuiltinDocumentProperties props) {
+                string? keys = opts?.Keywords ?? props.Keywords;
+                var fam = opts?.FontFamily;
+                if (!string.IsNullOrWhiteSpace(fam)) {
+                    keys = string.IsNullOrWhiteSpace(keys) ? fam : (keys + ";" + fam);
+                }
+                return keys;
+            }
 
             return pdf;
 

@@ -35,7 +35,15 @@ namespace OfficeIMO.Word.Markdown {
             bool first = true;
             foreach (var p in cell.Paragraphs) {
                 bool hasRuns = false;
-                try { hasRuns = p.GetRuns().Any(); } catch { }
+                try {
+                    hasRuns = p.GetRuns().Any();
+                } catch (InvalidOperationException ex) {
+                    System.Diagnostics.Debug.WriteLine($"GetRuns() failed for table cell paragraph: {ex.Message}");
+                    hasRuns = false;
+                } catch (NullReferenceException ex) {
+                    System.Diagnostics.Debug.WriteLine($"GetRuns() null reference for table cell paragraph: {ex.Message}");
+                    hasRuns = false;
+                }
                 // Render only once per underlying OpenXml paragraph:
                 // - If there are runs, render the first-run wrapper only
                 // - If there are no runs, render this paragraph once

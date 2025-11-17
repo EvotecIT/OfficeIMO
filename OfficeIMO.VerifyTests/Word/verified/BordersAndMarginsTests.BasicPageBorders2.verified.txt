@@ -33,6 +33,8 @@
     <w:p>
       <w:pPr>
         <w:sectPr w:rsidR="R00000001">
+          <w:pgSz w:w="12240" w:h="15840" w:code="1" />
+          <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
           <w:pgBorders w:offsetFrom="page">
             <w:top w:val="single" w:color="auto" w:sz="4" w:space="24" />
             <w:left w:val="single" w:color="auto" w:sz="4" w:space="24" />
@@ -43,6 +45,8 @@
       </w:pPr>
     </w:p>
     <w:sectPr w:rsidR="R00000002">
+      <w:pgSz w:w="12240" w:h="15840" w:code="1" />
+      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
       <w:pgBorders w:offsetFrom="page">
         <w:top w:val="single" w:color="auto" w:sz="4" w:space="24" w:shadow="true" />
         <w:left w:val="single" w:color="auto" w:sz="4" w:space="24" w:shadow="true" />

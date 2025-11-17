@@ -46,6 +46,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExecutionPolicy Execution { get; } = new();
 
+        // Default strategy mirrors CoerceValueHelper's behaviour and uses LocalDateTime so that
+        // serial values are aligned with Excel's local time interpretation.
         private Func<DateTimeOffset, DateTime> _dateTimeOffsetWriteStrategy = static dto => dto.LocalDateTime;
 
         /// <summary>

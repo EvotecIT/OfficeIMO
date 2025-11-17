@@ -114,6 +114,44 @@ namespace OfficeIMO.Word {
             return result;
         }
 
+        /// <summary>
+        /// Builds a lookup of list numeric indices for all paragraphs in the document.
+        /// The returned index is the 1-based number of the item at its nesting level,
+        /// accounting for list continuation across unrelated content.
+        /// </summary>
+        public static Dictionary<WordParagraph, (int Level, int Index)> BuildListIndices(WordDocument document) {
+            Dictionary<WordParagraph, (int, int)> result = new(ParagraphReferenceComparer.Instance);
+
+            foreach (WordList list in document.Lists) {
+                // Track current numbering per level within this list
+                Dictionary<int, int> indices = new();
+                int lastLevel = 0;
+                bool first = true;
+                foreach (WordParagraph item in list.ListItems) {
+                    ListInfo? info = GetListInfo(item);
+                    if (info == null) continue;
+
+                    int level = info.Value.Level;
+                    if (first) { lastLevel = level; first = false; }
+                    // If we moved to a shallower level, clear deeper counters so sublists restart
+                    if (level < lastLevel) {
+                        foreach (var key in indices.Keys.Where(k => k > level).ToList()) indices.Remove(key);
+                    }
+                    lastLevel = level;
+
+                    if (!indices.ContainsKey(level)) {
+                        indices[level] = info.Value.Start;
+                    }
+
+                    int currentIndex = indices[level];
+                    result[item] = (level, currentIndex);
+                    indices[level] = currentIndex + 1;
+                }
+            }
+
+            return result;
+        }
+
         private sealed class ParagraphReferenceComparer : IEqualityComparer<WordParagraph> {
             public static readonly ParagraphReferenceComparer Instance = new();
             public bool Equals(WordParagraph? x, WordParagraph? y) => ReferenceEquals(x?._paragraph, y?._paragraph);

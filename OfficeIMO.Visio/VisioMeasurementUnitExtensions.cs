@@ -38,7 +38,7 @@ namespace OfficeIMO.Visio {
                 return fallback;
             }
 
-            return unitCode.ToUpperInvariant() switch {
+            return unitCode!.ToUpperInvariant() switch {
                 "CM" => VisioMeasurementUnit.Centimeters,
                 "MM" => VisioMeasurementUnit.Millimeters,
                 "IN" => VisioMeasurementUnit.Inches,
