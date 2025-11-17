@@ -8,6 +8,30 @@ namespace OfficeIMO.Word {
     /// <see cref="WordChart"/>.
     /// </summary>
     public partial class WordChart {
+        /// <summary>
+        /// Built‑in color palettes for charts.
+        /// Used by <see cref="WordChart.ApplyPalette(WordChartPalette, bool, bool, bool, System.Collections.Generic.Dictionary{string, SixLabors.ImageSharp.Color}?)"/>
+        /// to style series and pie slices in a consistent, professional way.
+        /// </summary>
+        public enum WordChartPalette {
+            /// <summary>
+            /// Professional palette optimized for executive reports — balanced blues/greens/oranges with a neutral gray.
+            /// </summary>
+            Professional,
+            /// <summary>
+            /// Soft pastel palette suited for dashboards and slides; low‑contrast tints.
+            /// </summary>
+            Soft,
+            /// <summary>
+            /// Monochrome gray scale for print‑friendly output and high legibility.
+            /// </summary>
+            MonochromeGray,
+            /// <summary>
+            /// Color‑blind friendly palette (Okabe–Ito), designed for strong category separation.
+            /// </summary>
+            ColorBlindSafe
+        }
+
         private const long EnglishMetricUnitsPerInch = 914400;
         private const long PixelsPerInch = 96;
         private readonly WordDocument _document;

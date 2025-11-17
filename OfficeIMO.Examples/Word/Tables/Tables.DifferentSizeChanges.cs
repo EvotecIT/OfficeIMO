@@ -202,6 +202,15 @@ internal static partial class Tables {
             // Set via new property
             document.AddParagraph();
 
+            document.AddParagraph("Table 18: Column Percentages Helper").Style = WordParagraphStyles.Heading1;
+            WordTable wordTable17 = document.AddTable(2, 3, WordTableStyle.PlainTable1);
+            wordTable17.SetColumnWidthsPercentage(10, 30, 60);
+            wordTable17.Rows[0].Cells[0].Paragraphs[0].Text = "10%";
+            wordTable17.Rows[0].Cells[1].Paragraphs[0].Text = "30%";
+            wordTable17.Rows[0].Cells[2].Paragraphs[0].Text = "60%";
+            Console.WriteLine($"Table 18 - Column Percentages: {string.Join(", ", wordTable17.ColumnWidth!)}");
+            document.AddParagraph();
+
             document.Save(openWord);
         }
     }

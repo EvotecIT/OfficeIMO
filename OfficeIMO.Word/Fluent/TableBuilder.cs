@@ -316,6 +316,8 @@ namespace OfficeIMO.Word.Fluent {
             }
 
             _columns++;
+            // Keep the grid in sync after structure change
+            try { _table.RefreshGrid(); } catch { }
             return this;
         }
 
@@ -372,6 +374,14 @@ namespace OfficeIMO.Word.Fluent {
                     }
                 }
             }
+            return this;
+        }
+
+        /// <summary>
+        /// Sets column widths using percentage values.
+        /// </summary>
+        public TableBuilder ColumnWidthsPercentage(params int[] percentages) {
+            _table?.SetColumnWidthsPercentage(percentages);
             return this;
         }
 

@@ -30,6 +30,8 @@
       </w:r>
     </w:p>
     <w:sectPr w:rsidR="R00000001">
+      <w:pgSz w:w="12240" w:h="15840" w:code="1" />
+      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
       <w:pgBorders>
         <w:top w:val="sharksTeeth" w:color="adff2f" w:sz="10" />
         <w:left w:val="palmsColor" w:color="00ffff" w:sz="24" w:space="24" />

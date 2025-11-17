@@ -18,7 +18,7 @@ public partial class WordPageNumber {
             SdtBlock sdtBlock1 = new SdtBlock();
 
             SdtProperties sdtProperties1 = new SdtProperties();
-            SdtId sdtId1 = new SdtId() { Val = -259830808 };
+            SdtId sdtId1 = new SdtId();
 
             SdtContentDocPartObject sdtContentDocPartObject1 = new SdtContentDocPartObject();
             DocPartGallery docPartGallery1 = new DocPartGallery() { Val = "Page Numbers (Top of Page)" };

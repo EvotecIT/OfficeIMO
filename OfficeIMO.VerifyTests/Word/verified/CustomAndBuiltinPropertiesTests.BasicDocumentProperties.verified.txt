@@ -34,7 +34,10 @@
         <w:t xml:space="preserve">Basic paragraph</w:t>
       </w:r>
     </w:p>
-    <w:sectPr w:rsidR="R00000001" />
+    <w:sectPr w:rsidR="R00000001">
+      <w:pgSz w:w="12240" w:h="15840" w:code="1" />
+      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
+    </w:sectPr>
   </w:body>
 </w:document>
 <!--------------------------------------------------------------------------------------------------------------------->

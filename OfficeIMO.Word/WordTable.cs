@@ -148,6 +148,8 @@ namespace OfficeIMO.Word {
                         _tableProperties.TableWidth.Remove();
                     }
                 }
+                // Keep tblGrid consistent when width interpretation changes
+                if (!_suppressGridRefresh) { try { RefreshTblGridFromColumnWidths(); } catch { } }
             }
         }
 
@@ -175,6 +177,8 @@ namespace OfficeIMO.Word {
                 } else {
                     _tableProperties.TableWidth.Width = value?.ToString();
                 }
+                // Grid depends on overall width (for pct columns)
+                if (!_suppressGridRefresh) { try { RefreshTblGridFromColumnWidths(); } catch { } }
             }
         }
 
@@ -425,8 +429,15 @@ namespace OfficeIMO.Word {
                     WordTableCell cell = new WordTableCell(document, this, row);
                 }
             }
+            // Ensure tblGrid mirrors initial cell widths so online viewers render correctly
+            // (ColumnWidth defaults to DXA 2400 per cell at creation time).
+            try { RefreshTblGridFromColumnWidths(); } catch { }
             return table;
         }
+
+        // Prevents recursive RefreshTblGridFromColumnWidths() calls when setters adjust
+        // table width/widthType during normalization.
+        internal bool _suppressGridRefresh = false;
 
         /// <summary>
         /// Used during load of the document
@@ -545,6 +556,7 @@ namespace OfficeIMO.Word {
             WordTableRow row = new WordTableRow(_document, this);
             _table.Append(row._tableRow);
             AddCells(row, cellsCount);
+            try { RefreshTblGridFromColumnWidths(); } catch { }
             return row;
         }
 
@@ -561,6 +573,7 @@ namespace OfficeIMO.Word {
             for (int j = 0; j < cellsCount; j++) {
                 WordTableCell cell = new WordTableCell(_document, this, row);
             }
+            try { RefreshTblGridFromColumnWidths(); } catch { }
         }
 
         /// <summary>

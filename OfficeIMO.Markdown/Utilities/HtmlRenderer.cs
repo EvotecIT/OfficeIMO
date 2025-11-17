@@ -26,12 +26,13 @@ internal static class HtmlRenderer {
     }
 
     internal static HtmlRenderParts RenderParts(MarkdownDoc doc, HtmlOptions options) {
-        var realized = GetBlocks(doc);
+        var (_, headingSlugs) = doc.GetBlocksAndHeadingSlugs();
         var css = BuildCss(options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks);
         options._externalCssContentToWrite = cssToWrite; // pass back for SaveHtml
 
         // Insert a top anchor for back-to-top links
-        string bodyContent = (options.BackToTopLinks ? "<a id=\"top\"></a>" : string.Empty) + RenderBody(realized, options);
+        var blocksForRendering = doc.Blocks;
+        string bodyContent = (options.BackToTopLinks ? "<a id=\"top\"></a>" : string.Empty) + RenderBody(blocksForRendering, options, headingSlugs);
         if (options.ThemeToggle) {
             const string toggle = "<button class=\"theme-toggle\" data-theme-toggle title=\"Toggle theme\" aria-label=\"Toggle theme\">🌓</button>";
             bodyContent = toggle + bodyContent;
@@ -101,18 +102,7 @@ internal static class HtmlRenderer {
         return parts;
     }
 
-    private static System.Collections.Generic.List<IMarkdownBlock> GetBlocks(MarkdownDoc doc) {
-        // Access private RealizeTocPlaceholders via public ToMarkdown? We replicate the realization by re-rendering via Markdown
-        // but that would lose block info. Instead, since RealizeTocPlaceholders is private, we emulate quickly:
-        // Render Markdown and re-parse? Too heavy. Simpler approach: copy internal logic here by reflection.
-        // As we control code, we call doc.ToMarkdown() to force TOC realization, but we still have _blocks.
-        // We will re-run generation by temporarily creating a new doc from markdown is not feasible.
-        // Instead: use the HTML from doc.ToHtml() for non-heading blocks and stitch headings with anchors.
-        // For now, rely on doc.ToHtml() which already realizes TOC. This returns concatenated block HTML with ids.
-        return new System.Collections.Generic.List<IMarkdownBlock>(doc.Blocks);
-    }
-
-    private static string RenderBody(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, HtmlOptions options) {
+    private static string RenderBody(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, HtmlOptions options, System.Collections.Generic.IReadOnlyDictionary<HeadingBlock, string> headingSlugs) {
         // Detect a sidebar TOC and render a two-column layout when present
         TocPlaceholderBlock? sidebar = null;
         for (int i = 0; i < blocks.Count; i++) {
@@ -123,7 +113,7 @@ internal static class HtmlRenderer {
 
         if (sidebar != null) {
             var side = sidebar.Options.Layout == TocLayout.SidebarLeft ? "left" : "right";
-            var navHtml = BuildTocHtml(blocks, sidebar);
+            var navHtml = BuildTocHtml(blocks, sidebar, headingSlugs);
             var content = new StringBuilder();
             for (int i = 0; i < blocks.Count; i++) {
                 var block = blocks[i];
@@ -136,7 +126,7 @@ internal static class HtmlRenderer {
                 }
                 if (ReferenceEquals(block, sidebar)) continue; // skip the sidebar placeholder; it's rendered as navHtml
                 if (block is HeadingBlock h) {
-                    var id = MarkdownSlug.GitHub(h.Text);
+                    if (!headingSlugs.TryGetValue(h, out var id)) id = MarkdownSlug.GitHub(h.Text);
                     var encoded = System.Net.WebUtility.HtmlEncode(h.Text);
                     content.Append($"<h{h.Level} id=\"{id}\">");
                     content.Append(encoded);
@@ -152,7 +142,7 @@ internal static class HtmlRenderer {
                 } else if (block is TocPlaceholderBlock tp) {
                     // Render any non-sidebar TOCs inline within content
                     if (!(tp.Options.Layout == TocLayout.SidebarLeft || tp.Options.Layout == TocLayout.SidebarRight))
-                        content.Append(BuildTocHtml(blocks, tp));
+                        content.Append(BuildTocHtml(blocks, tp, headingSlugs));
                 } else {
                     content.Append(block.RenderHtml());
                 }
@@ -180,7 +170,7 @@ internal static class HtmlRenderer {
                 }
             }
             if (block is HeadingBlock h) {
-                var id = MarkdownSlug.GitHub(h.Text);
+                if (!headingSlugs.TryGetValue(h, out var id)) id = MarkdownSlug.GitHub(h.Text);
                 var encoded = System.Net.WebUtility.HtmlEncode(h.Text);
                 sb.Append($"<h{h.Level} id=\"{id}\">");
                 sb.Append(encoded);
@@ -195,7 +185,7 @@ internal static class HtmlRenderer {
                     sb.Append($"<div class=\"back-to-top\"><a href=\"#top\">{txt}</a></div>");
                 }
             } else if (block is TocPlaceholderBlock tp) {
-                sb.Append(BuildTocHtml(blocks, tp));
+                sb.Append(BuildTocHtml(blocks, tp, headingSlugs));
             } else {
                 sb.Append(block.RenderHtml());
             }
@@ -203,7 +193,7 @@ internal static class HtmlRenderer {
         return sb.ToString();
     }
 
-    private static string BuildTocHtml(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, TocPlaceholderBlock tp) {
+    private static string BuildTocHtml(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, TocPlaceholderBlock tp, System.Collections.Generic.IReadOnlyDictionary<HeadingBlock, string> headingSlugs) {
         static int ClampHeadingLevel(int level) => level < 1 ? 1 : (level > 6 ? 6 : level);
 
         var opts = tp.Options;
@@ -216,35 +206,35 @@ internal static class HtmlRenderer {
         int effectiveMax = maxLevel;
         // Collect headings with indices
         var headings = blocks
-            .Select((b, idx) => (b, idx))
-            .Where(t => t.b is HeadingBlock)
-            .Select(t => (Index: t.idx, Level: ((HeadingBlock)t.b).Level, Text: ((HeadingBlock)t.b).Text))
+            .Select((b, idx) => (Index: idx, Heading: b as HeadingBlock))
+            .Where(t => t.Heading is not null)
+            .Select(t => (Index: t.Index, Level: t.Heading!.Level, Text: t.Heading.Text, Heading: t.Heading))
             .ToList();
 
         int placeholderIndex = System.Array.IndexOf(blocks.ToArray(), tp);
         int startIdx = 0; int endIdx = blocks.Count;
         if (opts.Scope == TocScope.PreviousHeading) {
             var prev = headings.LastOrDefault(h => h.Index < placeholderIndex && h.Level < minLevel);
-            if (prev.Equals(default((int, int, string)))) prev = headings.LastOrDefault(h => h.Index < placeholderIndex);
-            if (!prev.Equals(default((int, int, string)))) {
+            if (prev.Equals(default((int, int, string, HeadingBlock)))) prev = headings.LastOrDefault(h => h.Index < placeholderIndex);
+            if (!prev.Equals(default((int, int, string, HeadingBlock)))) {
                 startIdx = prev.Index + 1;
                 var nextAtOrAbove = headings.FirstOrDefault(h => h.Index > prev.Index && h.Level <= prev.Level);
-                if (!nextAtOrAbove.Equals(default((int, int, string)))) endIdx = nextAtOrAbove.Index;
+                if (!nextAtOrAbove.Equals(default((int, int, string, HeadingBlock)))) endIdx = nextAtOrAbove.Index;
             }
         } else if (opts.Scope == TocScope.HeadingTitle && !string.IsNullOrWhiteSpace(opts.ScopeHeadingTitle)) {
             var root = headings.FirstOrDefault(h => string.Equals(h.Text, opts.ScopeHeadingTitle, StringComparison.OrdinalIgnoreCase));
-            if (!root.Equals(default((int, int, string)))) {
+            if (!root.Equals(default((int, int, string, HeadingBlock)))) {
                 startIdx = root.Index + 1;
                 var nextAtOrAbove = headings.FirstOrDefault(h => h.Index > root.Index && h.Level <= root.Level);
-                if (!nextAtOrAbove.Equals(default((int, int, string)))) endIdx = nextAtOrAbove.Index;
+                if (!nextAtOrAbove.Equals(default((int, int, string, HeadingBlock)))) endIdx = nextAtOrAbove.Index;
             }
         }
 
         var relevant = headings.Where(h => h.Index >= startIdx && h.Index < endIdx && h.Level >= effectiveMin && h.Level <= effectiveMax)
-                               .Select(h => (h.Level, h.Text, Anchor: MarkdownSlug.GitHub(h.Text)))
+                               .Select(h => (h.Level, h.Text, Anchor: headingSlugs.TryGetValue(h.Heading, out var slug) ? slug : MarkdownSlug.GitHub(h.Text)))
                                .ToList();
-        if (opts.IncludeTitle && !string.IsNullOrWhiteSpace(opts.Title)) {
-            var titleSlug = MarkdownSlug.GitHub(opts.Title);
+        if (opts.IncludeTitle && !string.IsNullOrWhiteSpace(opts.Title) && placeholderIndex > 0 && blocks[placeholderIndex - 1] is HeadingBlock titleHeading) {
+            if (!headingSlugs.TryGetValue(titleHeading, out var titleSlug)) titleSlug = MarkdownSlug.GitHub(titleHeading.Text);
             relevant = relevant.Where(e => !string.Equals(e.Anchor, titleSlug, StringComparison.Ordinal)).ToList();
         }
         if (relevant.Count == 0) return string.Empty;

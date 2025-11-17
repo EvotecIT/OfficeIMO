@@ -25,7 +25,7 @@
   <w:body>
     <w:sdt>
       <w:sdtPr>
-        <w:id w:val="-116450603" />
+        <w:id w:val="1" />
         <w:docPartObj>
           <w:docPartGallery w:val="Cover Pages" />
           <w:docPartUnique />
@@ -68,7 +68,7 @@
                             </w:rPr>
                             <w:alias w:val="Title" />
                             <w:tag w:val="" />
-                            <w:id w:val="-554696155" />
+                            <w:id w:val="2" />
                             <w:showingPlcHdr />
                             <w:dataBinding w:prefixMappings="xmlns:ns0='http://purl.org/dc/elements/1.1/' xmlns:ns1='http://schemas.openxmlformats.org/package/2006/metadata/core-properties' " w:xpath="/ns1:coreProperties[1]/ns0:title[1]" w:storeItemID="{6C3C8BC8-F283-45AE-878A-BAB7291924A1}" />
                             <w:text />
@@ -127,7 +127,7 @@
                           </w:rPr>
                           <w:alias w:val="Company" />
                           <w:tag w:val="" />
-                          <w:id w:val="-1880927279" />
+                          <w:id w:val="3" />
                           <w:showingPlcHdr />
                           <w:dataBinding w:prefixMappings="xmlns:ns0='http://schemas.openxmlformats.org/officeDocument/2006/extended-properties' " w:xpath="/ns0:Properties[1]/ns0:Company[1]" w:storeItemID="{6668398D-A668-4E3E-A5EB-62B293D839F1}" />
                           <w:text />
@@ -171,7 +171,7 @@
                           </w:rPr>
                           <w:alias w:val="Address" />
                           <w:tag w:val="" />
-                          <w:id w:val="-1023088507" />
+                          <w:id w:val="4" />
                           <w:showingPlcHdr />
                           <w:dataBinding w:prefixMappings="xmlns:ns0='http://schemas.microsoft.com/office/2006/coverPageProps' " w:xpath="/ns0:CoverPageProperties[1]/ns0:CompanyAddress[1]" w:storeItemID="{55AF091B-3C7A-41E3-B477-F2FDAA23CFDA}" />
                           <w:text />
@@ -213,7 +213,7 @@
                         </w:rPr>
                         <w:alias w:val="Subtitle" />
                         <w:tag w:val="" />
-                        <w:id w:val="-1452929454" />
+                        <w:id w:val="5" />
                         <w:showingPlcHdr />
                         <w:dataBinding w:prefixMappings="xmlns:ns0='http://purl.org/dc/elements/1.1/' xmlns:ns1='http://schemas.openxmlformats.org/package/2006/metadata/core-properties' " w:xpath="/ns1:coreProperties[1]/ns0:subject[1]" w:storeItemID="{6C3C8BC8-F283-45AE-878A-BAB7291924A1}" />
                         <w:text />
@@ -252,7 +252,7 @@
                         </w:rPr>
                         <w:alias w:val="Author" />
                         <w:tag w:val="" />
-                        <w:id w:val="-954487662" />
+                        <w:id w:val="6" />
                         <w:showingPlcHdr />
                         <w:dataBinding w:prefixMappings="xmlns:ns0='http://purl.org/dc/elements/1.1/' xmlns:ns1='http://schemas.openxmlformats.org/package/2006/metadata/core-properties' " w:xpath="/ns1:coreProperties[1]/ns0:creator[1]" w:storeItemID="{6C3C8BC8-F283-45AE-878A-BAB7291924A1}" />
                         <w:text />
@@ -305,7 +305,7 @@
                         </w:rPr>
                         <w:alias w:val="Year" />
                         <w:tag w:val="" />
-                        <w:id w:val="1595126926" />
+                        <w:id w:val="7" />
                         <w:showingPlcHdr />
                         <w:dataBinding w:prefixMappings="xmlns:ns0='http://schemas.microsoft.com/office/2006/coverPageProps' " w:xpath="/ns0:CoverPageProperties[1]/ns0:PublishDate[1]" w:storeItemID="{55AF091B-3C7A-41E3-B477-F2FDAA23CFDA}" />
                         <w:date w:fullDate="2012-03-16T00:00:00Z">
@@ -351,7 +351,7 @@
     </w:sdt>
     <w:sdt>
       <w:sdtPr>
-        <w:id w:val="-619995952" />
+        <w:id w:val="8" />
         <w:docPartObj>
           <w:docPartGallery w:val="Table of Contents" />
           <w:docPartUnique />
@@ -422,10 +422,10 @@
         <w:tblLook w:val="04A0" w:firstRow="true" w:lastRow="false" w:firstColumn="true" w:lastColumn="false" w:noHBand="false" w:noVBand="true" />
       </w:tblPr>
       <w:tblGrid>
-        <w:gridCol />
-        <w:gridCol />
-        <w:gridCol />
-        <w:gridCol />
+        <w:gridCol w:w="2400" />
+        <w:gridCol w:w="2400" />
+        <w:gridCol w:w="2400" />
+        <w:gridCol w:w="2400" />
       </w:tblGrid>
       <w:tr>
         <w:tc>
@@ -801,6 +801,8 @@
         <w:sectPr w:rsidR="R00000001">
           <w:headerReference w:type="default" r:id="R00000001" />
           <w:footerReference w:type="default" r:id="R00000001" />
+          <w:pgSz w:w="12240" w:h="15840" w:code="1" />
+          <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
         </w:sectPr>
       </w:pPr>
     </w:p>
@@ -820,6 +822,7 @@
     <w:p>
       <w:pPr>
         <w:sectPr w:rsidR="R00000002">
+          <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
           <w:pgSz w:w="16838" w:h="11906" w:orient="landscape" w:code="9" />
         </w:sectPr>
       </w:pPr>
@@ -839,7 +842,7 @@
     </w:p>
     <w:sdt>
       <w:sdtPr>
-        <w:id w:val="-78212419" />
+        <w:id w:val="10" />
         <w:docPartObj>
           <w:docPartGallery w:val="Watermarks" />
           <w:docPartUnique />
@@ -890,6 +893,7 @@
       </w:sdtContent>
     </w:sdt>
     <w:sectPr w:rsidR="R00000003">
+      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
       <w:pgSz w:w="8391" w:h="11906" w:code="11" />
     </w:sectPr>
   </w:body>
@@ -12106,7 +12110,7 @@
 <w:ftr xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:sdt xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml">
     <w:sdtPr>
-      <w:id w:val="-94168831" />
+      <w:id w:val="9" />
       <w:docPartObj>
         <w:docPartGallery w:val="Page Numbers (Top of Page)" />
         <w:docPartUnique />
