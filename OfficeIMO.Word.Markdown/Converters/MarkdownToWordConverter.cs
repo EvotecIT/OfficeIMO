@@ -169,6 +169,9 @@ namespace OfficeIMO.Word.Markdown {
                 case Omd.TocBlock:
                     // Skip TOC for Word
                     break;
+                case Omd.HtmlCommentBlock comment:
+                    document.AddHtmlToBody(comment.Comment);
+                    break;
                 case Omd.HtmlRawBlock html:
                     document.AddHtmlToBody(html.Html);
                     break;
