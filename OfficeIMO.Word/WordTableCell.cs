@@ -737,16 +737,25 @@ namespace OfficeIMO.Word {
         /// <param name="removePrecedingParagraph"></param>
         /// <returns></returns>
         public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid, bool removePrecedingParagraph = false) {
-            if (removePrecedingParagraph) {
-                var paragraph = _tableCell.ChildElements.OfType<Paragraph>().LastOrDefault();
-                if (paragraph != null) {
+            // Remove preceding empty paragraph by default (safe), or when explicitly requested.
+            var paragraph = _tableCell.ChildElements.OfType<Paragraph>().LastOrDefault();
+            if (paragraph != null) {
+                bool hasText = paragraph.Descendants<Text>().Any(t => !string.IsNullOrWhiteSpace(t.Text));
+                if (removePrecedingParagraph || !hasText) {
                     paragraph.Remove();
                 }
             }
             //this.Paragraphs[this.Paragraphs.Count - 1].Remove();
             WordTable wordTable = new WordTable(this._document, _tableCell, rows, columns, tableStyle);
-            // we need to add an empty paragraph, because that's what is required for tables to work
-            _tableCell.Append(new Paragraph());
+            // Append a trailing empty paragraph (required by Word), but force zero spacing
+            var trailing = new Paragraph();
+            trailing.ParagraphProperties = trailing.ParagraphProperties ?? new ParagraphProperties();
+            trailing.ParagraphProperties.SpacingBetweenLines = new SpacingBetweenLines() {
+                Before = "0",
+                After = "0",
+                Line = "0"
+            };
+            _tableCell.Append(trailing);
             return wordTable;
         }
 

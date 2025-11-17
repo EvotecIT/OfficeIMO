@@ -28,6 +28,7 @@ public partial class WordPageNumber {
         this._document = wordDocument;
         this._wordHeader = wordHeader;
         this._sdtBlock = GetStyle(wordPageNumberStyle);
+        _document.AssignNewSdtIds(_sdtBlock);
 
         _sdtBlock.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
         _sdtBlock.AddNamespaceDeclaration("wpg", "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup");
@@ -53,6 +54,7 @@ public partial class WordPageNumber {
         this._document = wordDocument;
         this._wordFooter = wordFooter;
         this._sdtBlock = GetStyle(wordPageNumberStyle);
+        _document.AssignNewSdtIds(_sdtBlock);
 
         _sdtBlock.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
         _sdtBlock.AddNamespaceDeclaration("wpg", "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup");

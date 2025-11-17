@@ -64,6 +64,7 @@ public static partial class MarkdownReader {
         };
 
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
+            if (!options.HtmlBlocks) return false;
             if (lines == null || lines.Length == 0) return false;
 
             var line = lines[i];

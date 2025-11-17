@@ -14,25 +14,26 @@ public sealed class MarkdownReaderPipeline {
     public MarkdownReaderPipeline Insert(int index, IMarkdownBlockParser parser) { _parsers.Insert(index, parser); return this; }
 
     /// <summary>Default pipeline covering the syntax OfficeIMO.Markdown emits today.</summary>
-    public static MarkdownReaderPipeline Default() {
+    public static MarkdownReaderPipeline Default(MarkdownReaderOptions? options = null) {
+        options ??= new MarkdownReaderOptions();
         var p = new MarkdownReaderPipeline();
-        p.Add(new MarkdownReader.FrontMatterParser());
-        p.Add(new MarkdownReader.CalloutParser());
+        if (options.FrontMatter) p.Add(new MarkdownReader.FrontMatterParser());
+        if (options.Callouts) p.Add(new MarkdownReader.CalloutParser());
         p.Add(new MarkdownReader.QuoteParser());
-        p.Add(new MarkdownReader.FencedCodeParser());
-        p.Add(new MarkdownReader.ImageParser());
+        if (options.FencedCode) p.Add(new MarkdownReader.FencedCodeParser());
+        if (options.Images) p.Add(new MarkdownReader.ImageParser());
         p.Add(new MarkdownReader.HrParser());
-        p.Add(new MarkdownReader.HtmlBlockParser());
+        if (options.HtmlBlocks) p.Add(new MarkdownReader.HtmlBlockParser());
         p.Add(new MarkdownReader.TocParser());
         p.Add(new MarkdownReader.ReferenceLinkDefParser());
         p.Add(new MarkdownReader.FootnoteParser());
-        p.Add(new MarkdownReader.TableParser());
-        p.Add(new MarkdownReader.DefinitionListParser());
-        p.Add(new MarkdownReader.OrderedListParser());
-        p.Add(new MarkdownReader.UnorderedListParser());
+        if (options.Tables) p.Add(new MarkdownReader.TableParser());
+        if (options.DefinitionLists) p.Add(new MarkdownReader.DefinitionListParser());
+        if (options.OrderedLists) p.Add(new MarkdownReader.OrderedListParser());
+        if (options.UnorderedLists) p.Add(new MarkdownReader.UnorderedListParser());
         p.Add(new MarkdownReader.SetextHeadingParser());
-        p.Add(new MarkdownReader.HeadingParser());
-        p.Add(new MarkdownReader.ParagraphParser()); // must be last
+        if (options.Headings) p.Add(new MarkdownReader.HeadingParser());
+        if (options.Paragraphs) p.Add(new MarkdownReader.ParagraphParser()); // must be last
         return p;
     }
 }

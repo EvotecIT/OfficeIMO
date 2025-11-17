@@ -20,7 +20,7 @@ public partial class WordPageNumber {
             runProperties1.Append(runFonts1);
             runProperties1.Append(fontSize1);
             runProperties1.Append(fontSizeComplexScript1);
-            SdtId sdtId1 = new SdtId() { Val = -1235152154 };
+            SdtId sdtId1 = new SdtId();
 
             SdtContentDocPartObject sdtContentDocPartObject1 = new SdtContentDocPartObject();
             DocPartGallery docPartGallery1 = new DocPartGallery() { Val = "Page Numbers (Top of Page)" };

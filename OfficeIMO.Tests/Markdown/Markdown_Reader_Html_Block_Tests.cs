@@ -243,6 +243,29 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Equal("<details>\n<div>\n<p>Loose</p>\n</details>", html.Html);
             Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
         }
+
+        [Fact]
+        public void Html_Blocks_Can_Be_Disabled() {
+            string md = "<div>Inline</div>\n\nParagraph";
+
+            var options = new MarkdownReaderOptions { HtmlBlocks = false };
+            var doc = MarkdownReader.Parse(md, options);
+
+            Assert.DoesNotContain(doc.Blocks, block => block is HtmlRawBlock);
+            var firstParagraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+            var firstText = Assert.IsType<TextRun>(firstParagraph.Inlines.Items[0]);
+            Assert.Contains("<div>Inline", firstText.Text);
+
+            bool hasClosingTag = false;
+            foreach (var inline in firstParagraph.Inlines.Items) {
+                if (inline is TextRun run && run.Text.IndexOf("</div>", StringComparison.Ordinal) >= 0) { hasClosingTag = true; break; }
+            }
+            Assert.True(hasClosingTag, "Closing tag should remain in the paragraph text.");
+
+            var secondParagraph = Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
+            var secondText = Assert.IsType<TextRun>(secondParagraph.Inlines.Items[0]);
+            Assert.Equal("Paragraph", secondText.Text);
+        }
     }
 }
 

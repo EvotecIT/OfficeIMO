@@ -67,6 +67,62 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Table_WithoutOuterPipes_Parses_WithAlignment() {
+            string md = "Alpha | Beta\n:--- | ---:\nleft | right\n";
+            var model = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(model.Blocks[0]);
+            Assert.Equal(new[] { "Alpha", "Beta" }, table.Headers);
+            Assert.Equal(new[] { ColumnAlignment.Left, ColumnAlignment.Right }, table.Alignments);
+            Assert.Single(table.Rows);
+            Assert.Equal(new[] { "left", "right" }, table.Rows[0]);
+        }
+
+        [Fact]
+        public void Table_WithOuterPipes_Parses_WithAlignment() {
+            string md = "| X | Y |\n|:---|---:|\n| 1 | 2 |\n"; 
+            var model = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(model.Blocks[0]);
+            Assert.Equal(new[] { "X", "Y" }, table.Headers);
+            Assert.Equal(new[] { ColumnAlignment.Left, ColumnAlignment.Right }, table.Alignments);
+            Assert.Single(table.Rows);
+            Assert.Equal(new[] { "1", "2" }, table.Rows[0]);
+        }
+
+        [Fact]
+        public void Table_WithSingleColumn_StillParses() {
+            string md = "| Header |\n| --- |\n| Row |\n";
+            var model = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(model.Blocks[0]);
+            Assert.Equal(new[] { "Header" }, table.Headers);
+            Assert.Equal(new[] { ColumnAlignment.None }, table.Alignments);
+            Assert.Single(table.Rows);
+            Assert.Equal(new[] { "Row" }, table.Rows[0]);
+        }
+
+        [Fact]
+        public void Paragraph_WithSinglePipe_DoesNotBecomeTable() {
+            string md = "Value | text\n\nSecond paragraph\n";
+            var model = MarkdownReader.Parse(md);
+            Assert.Equal(2, model.Blocks.Count);
+            Assert.All(model.Blocks, block => Assert.IsType<ParagraphBlock>(block));
+            string roundTrip = model.ToMarkdown();
+            Assert.Contains("Value | text", roundTrip);
+            Assert.Contains("Second paragraph", roundTrip);
+            Assert.DoesNotContain("---", roundTrip); // Ensure no alignment row was synthesized
+        }
+
+        [Fact]
+        public void Table_WithLeadingPipeOnly_StillParsesMultipleColumns() {
+            string md = "| ColA | ColB\n| --- | ---\n| 1 | 2\n";
+            var model = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(model.Blocks[0]);
+            Assert.Equal(new[] { "ColA", "ColB" }, table.Headers);
+            Assert.Equal(new[] { ColumnAlignment.None, ColumnAlignment.None }, table.Alignments);
+            Assert.Single(table.Rows);
+            Assert.Equal(new[] { "1", "2" }, table.Rows[0]);
+        }
+
+        [Fact]
         public void Setext_Headings_Are_Read_As_Headings() {
             string md = "Title\n=====\n\nSub\n-----\n";
             var model = MarkdownReader.Parse(md);

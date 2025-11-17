@@ -23,7 +23,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="OpenMcdf" Version="3.0.1" />
+        <PackageReference Include="OpenMcdf" Version="3.0.3" />
 
     </ItemGroup>
 
@@ -61,5 +61,12 @@
       </None>
       <EmbeddedResource Include="Images\\Kulek.jpg" />
   </ItemGroup>
+
+  <!-- On non-Windows hosts, ignore Visual Studio-specific fallback package folders
+       that are not present (they cause ResolvePackageAssets failures when running
+       tests on Linux/macOS). -->
+  <PropertyGroup Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' == 'false' ">
+    <RestoreAdditionalProjectFallbackFolders></RestoreAdditionalProjectFallbackFolders>
+  </PropertyGroup>
 
 </Project>
