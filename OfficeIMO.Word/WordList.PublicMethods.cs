@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using V = DocumentFormat.OpenXml.Vml;
@@ -46,10 +47,19 @@ namespace OfficeIMO.Word {
             paragraph.Append(paragraphProperties);
             paragraph.Append(run);
 
+            OpenXmlElement? insertionReference = null;
             if (wordParagraph is not null) {
-                wordParagraph._paragraph.InsertAfterSelf(paragraph);
-            } else if (this.ListItems.Count == 0 && _wordParagraph is not null) {
-                _wordParagraph._paragraph.InsertAfterSelf(paragraph);
+                if (ListItems.Count > 0) {
+                    insertionReference = ListItems.Last()._paragraph;
+                } else {
+                    insertionReference = wordParagraph._paragraph;
+                }
+            } else if (ListItems.Count == 0 && _wordParagraph is not null) {
+                insertionReference = _wordParagraph._paragraph;
+            }
+
+            if (insertionReference is not null) {
+                insertionReference.InsertAfterSelf(paragraph);
             } else if (_isToc || IsToc) {
                 _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
             } else if (_headerFooter != null) {
