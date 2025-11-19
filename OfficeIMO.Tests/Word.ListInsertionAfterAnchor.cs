@@ -40,5 +40,52 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[3].IsListItem);
             }
         }
+
+        [Fact]
+        public void Test_AddItemAfterAnchorWhenAnchorParagraphHasFollowingContent() {
+            var filePath = Path.Combine(_directoryWithFiles, "ListInsertedAfterContentAnchor.docx");
+
+            using (var document = WordDocument.Create(filePath)) {
+                var placeholder = document.AddParagraph("place holder here");
+                document.AddParagraph("This is some new content replacing the placeholder.");
+
+                var list = placeholder.AddList(WordListStyle.Numbered);
+
+                foreach (var item in new[] { "First item", "Second item", "Third item" }) {
+                    var listItem = list.AddItem(null, wordParagraph: placeholder);
+                    listItem.Text = item;
+                }
+
+                Assert.Equal(
+                    new[] {
+                        "place holder here",
+                        "First item",
+                        "Second item",
+                        "Third item",
+                        "This is some new content replacing the placeholder."
+                    },
+                    document.Paragraphs.Select(p => p.Text).ToArray());
+
+                Assert.Equal(3, list.ListItems.Count);
+                Assert.All(list.ListItems, p => Assert.True(p.IsListItem));
+
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.Equal(
+                    new[] {
+                        "place holder here",
+                        "First item",
+                        "Second item",
+                        "Third item",
+                        "This is some new content replacing the placeholder."
+                    },
+                    document.Paragraphs.Select(p => p.Text).ToArray());
+
+                var list = Assert.Single(document.Lists);
+                Assert.Equal(3, list.ListItems.Count);
+            }
+        }
     }
 }
