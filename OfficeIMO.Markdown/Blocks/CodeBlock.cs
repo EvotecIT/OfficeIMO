@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 /// <summary>
-/// Fenced code block with optional caption.
+/// Fenced code block with optional caption. Fence length adapts to backticks inside the content.
 /// </summary>
 public sealed class CodeBlock : IMarkdownBlock, ICaptionable {
     /// <summary>Optional language hint (e.g., csharp, bash).</summary>
@@ -19,10 +19,24 @@ public sealed class CodeBlock : IMarkdownBlock, ICaptionable {
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() {
+        // Choose a fence with length > any run of backticks in the content to avoid premature closure.
+        int maxRun = 0;
+        int run = 0;
+        foreach (char c in Content) {
+            if (c == '`') {
+                run++;
+                if (run > maxRun) maxRun = run;
+            } else {
+                run = 0;
+            }
+        }
+
+        string fence = new string('`', Math.Max(3, maxRun + 1));
+
         StringBuilder sb = new StringBuilder();
-        sb.AppendLine($"```{Language}");
+        sb.AppendLine($"{fence}{Language}");
         sb.AppendLine(Content);
-        sb.AppendLine("```");
+        sb.AppendLine(fence);
         if (!string.IsNullOrWhiteSpace(Caption)) sb.AppendLine("_" + Caption + "_");
         return sb.ToString().TrimEnd();
     }
