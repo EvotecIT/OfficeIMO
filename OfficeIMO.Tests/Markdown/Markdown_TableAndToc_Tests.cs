@@ -53,6 +53,36 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Table_FromSequence_Truncates_And_Counts_Skipped_Rows() {
+            var rows = Enumerable.Range(1, 10050).Select(i => new { Index = i, Label = $"Row {i}" });
+
+            var doc = MarkdownDoc.Create()
+                .TableFrom(rows,
+                    ("Index", x => x.Index),
+                    ("Label", x => x.Label));
+
+            var table = Assert.IsType<TableBlock>(doc.Blocks.Single());
+            Assert.Equal(10000, table.Rows.Count);
+            Assert.Equal(50, table.SkippedRowCount);
+            Assert.All(table.Rows, row => Assert.Equal(2, row.Count));
+        }
+
+        [Fact]
+        public void Table_FromSequence_Clips_Columns_To_Max() {
+            var wideRow = new WideRow { Values = Enumerable.Range(0, 150).ToArray() };
+            var columns = Enumerable.Range(0, 150)
+                .Select(i => ($"H{i}", (Func<WideRow, object?>)(x => x.Values[i])))
+                .ToArray();
+
+            var doc = MarkdownDoc.Create().TableFrom(new[] { wideRow }, columns);
+
+            var table = Assert.IsType<TableBlock>(doc.Blocks.Single());
+            Assert.Equal(100, table.Headers.Count);
+            Assert.Single(table.Rows);
+            Assert.Equal(100, table.Rows[0].Count);
+        }
+
+        [Fact]
         public void Table_AlignDatesCenter_And_CurrencyRight() {
             var prev = System.Globalization.CultureInfo.CurrentCulture;
             try {
@@ -214,6 +244,10 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             public bool TryGetValue(string key, out object? value) => _inner.TryGetValue(key, out value);
 
             System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => _inner.GetEnumerator();
+        }
+
+        private sealed class WideRow {
+            public int[] Values { get; set; } = Array.Empty<int>();
         }
     }
 }

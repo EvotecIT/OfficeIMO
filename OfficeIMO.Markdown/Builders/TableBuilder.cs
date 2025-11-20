@@ -140,15 +140,26 @@ public sealed class TableBuilder {
     /// </summary>
     public TableBuilder FromSequence<T>(IEnumerable<T> items, params (string Header, System.Func<T, object?> Selector)[] columns) {
         if (columns == null || columns.Length == 0 || items == null) return this;
-        if (_table.Headers.Count == 0) _table.Headers.AddRange(columns.Select(c => c.Header ?? string.Empty));
+        int columnLimit = Math.Min(columns.Length, MaxColumns);
+        if (_table.Headers.Count == 0) {
+            for (int i = 0; i < columnLimit; i++) {
+                _table.Headers.Add(columns[i].Header ?? string.Empty);
+            }
+        }
+
+        int skippedRows = 0;
         foreach (var item in items) {
-            var row = new List<string>(columns.Length);
-            foreach (var c in columns) {
-                var selector = c.Selector ?? (_ => null);
+            if (_table.Rows.Count >= MaxRows) { skippedRows++; continue; }
+
+            var row = new List<string>(columnLimit);
+            for (int i = 0; i < columnLimit; i++) {
+                var selector = columns[i].Selector ?? (_ => null);
                 row.Add(FormatValue(selector(item)));
             }
             _table.Rows.Add(row);
         }
+
+        _table.SkippedRowCount += skippedRows;
         return this;
     }
 
