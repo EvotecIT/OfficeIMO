@@ -16,6 +16,17 @@ public static partial class MarkdownReader {
     /// </summary>
     public static MarkdownDoc Parse(string markdown, MarkdownReaderOptions? options = null) {
         options ??= new MarkdownReaderOptions();
+        var state = new MarkdownReaderState();
+        return ParseInternal(markdown, options, state, allowFrontMatter: true);
+    }
+
+    /// <summary>Parses a Markdown file path into a <see cref="MarkdownDoc"/>.</summary>
+    public static MarkdownDoc ParseFile(string path, MarkdownReaderOptions? options = null) {
+        string text = File.ReadAllText(path, Encoding.UTF8);
+        return Parse(text, options);
+    }
+
+    private static MarkdownDoc ParseInternal(string markdown, MarkdownReaderOptions options, MarkdownReaderState state, bool allowFrontMatter) {
         var doc = MarkdownDoc.Create();
         if (string.IsNullOrEmpty(markdown)) return doc;
 
@@ -29,7 +40,7 @@ public static partial class MarkdownReader {
         int i = 0;
 
         // Front matter (YAML) only if it's the very first thing in the file
-        if (options.FrontMatter && i < lines.Length && lines[i].Trim() == "---") {
+        if (allowFrontMatter && options.FrontMatter && i < lines.Length && lines[i].Trim() == "---") {
             int start = i + 1;
             int end = -1;
             for (int j = start; j < lines.Length; j++) { if (lines[j].Trim() == "---") { end = j; break; } }
@@ -43,7 +54,6 @@ public static partial class MarkdownReader {
         }
 
         var pipeline = MarkdownReaderPipeline.Default(options);
-        var state = new MarkdownReaderState();
         // Pre-scan for reference-style link definitions so inline refs in earlier paragraphs can resolve
         PreScanReferenceLinkDefinitions(lines, state);
         while (i < lines.Length) {
@@ -57,12 +67,6 @@ public static partial class MarkdownReader {
         }
 
         return doc;
-    }
-
-    /// <summary>Parses a Markdown file path into a <see cref="MarkdownDoc"/>.</summary>
-    public static MarkdownDoc ParseFile(string path, MarkdownReaderOptions? options = null) {
-        string text = File.ReadAllText(path, Encoding.UTF8);
-        return Parse(text, options);
     }
 
     private static void PreScanReferenceLinkDefinitions(string[] lines, MarkdownReaderState state) {
@@ -93,5 +97,28 @@ public static partial class MarkdownReader {
             }
             if (!string.IsNullOrEmpty(label) && !string.IsNullOrEmpty(url)) state.LinkRefs[label] = (url, title);
         }
+    }
+
+    private static MarkdownReaderOptions CloneOptionsWithoutFrontMatter(MarkdownReaderOptions source) {
+        return new MarkdownReaderOptions {
+            FrontMatter = false,
+            Callouts = source.Callouts,
+            Headings = source.Headings,
+            FencedCode = source.FencedCode,
+            Images = source.Images,
+            UnorderedLists = source.UnorderedLists,
+            OrderedLists = source.OrderedLists,
+            Tables = source.Tables,
+            DefinitionLists = source.DefinitionLists,
+            HtmlBlocks = source.HtmlBlocks,
+            Paragraphs = source.Paragraphs,
+            InlineHtml = source.InlineHtml,
+        };
+    }
+
+    private static MarkdownReaderState CloneState(MarkdownReaderState state) {
+        var clone = new MarkdownReaderState();
+        foreach (var kvp in state.LinkRefs) clone.LinkRefs[kvp.Key] = kvp.Value;
+        return clone;
     }
 }

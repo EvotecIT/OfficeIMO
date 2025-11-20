@@ -108,12 +108,59 @@ public static partial class MarkdownReader {
             }
 
             string htmlContent = string.Join("\n", segments);
-            if (blockState.Kind == HtmlBlockKind.Type2) {
+            if (string.Equals(blockState.PrimaryTagName, "details", StringComparison.OrdinalIgnoreCase) &&
+                TryParseDetails(htmlContent, options, state, out var details)) {
+                doc.Add(details!);
+            } else if (blockState.Kind == HtmlBlockKind.Type2) {
                 doc.Add(new HtmlCommentBlock(htmlContent));
             } else {
                 doc.Add(new HtmlRawBlock(htmlContent));
             }
             i = j;
+            return true;
+        }
+
+        private static bool TryParseDetails(string htmlContent, MarkdownReaderOptions options, MarkdownReaderState state, out DetailsBlock? block) {
+            block = null;
+            if (string.IsNullOrWhiteSpace(htmlContent)) return false;
+
+            int tagEnd = htmlContent.IndexOf('>');
+            if (tagEnd < 0) return false;
+
+            string openTag = htmlContent.Substring(0, tagEnd + 1).Trim();
+            if (!openTag.StartsWith("<details", StringComparison.OrdinalIgnoreCase)) return false;
+
+            bool isOpen = openTag.IndexOf(" open", StringComparison.OrdinalIgnoreCase) >= 0;
+
+            int closeIdx = htmlContent.LastIndexOf("</details>", StringComparison.OrdinalIgnoreCase);
+            if (closeIdx < 0 || closeIdx <= tagEnd) return false;
+
+            string inner = htmlContent.Substring(tagEnd + 1, closeIdx - tagEnd - 1);
+
+            SummaryBlock? summary = null;
+            int bodyStart = 0;
+            int summaryStart = inner.IndexOf("<summary", StringComparison.OrdinalIgnoreCase);
+            if (summaryStart >= 0) {
+                int summaryTagEnd = inner.IndexOf('>', summaryStart);
+                if (summaryTagEnd < 0) return false;
+                int summaryClose = inner.IndexOf("</summary>", summaryTagEnd + 1, StringComparison.OrdinalIgnoreCase);
+                if (summaryClose < 0) return false;
+
+                string summaryInner = inner.Substring(summaryTagEnd + 1, summaryClose - summaryTagEnd - 1).Trim();
+                var decoded = System.Net.WebUtility.HtmlDecode(summaryInner);
+                var inlines = ParseInlines(decoded, options, state);
+                summary = new SummaryBlock(inlines);
+                bodyStart = summaryClose + "</summary>".Length;
+            }
+
+            string body = inner.Substring(bodyStart);
+            var nestedOptions = CloneOptionsWithoutFrontMatter(options);
+            var nestedState = CloneState(state);
+            var nestedDoc = ParseInternal(body, nestedOptions, nestedState, allowFrontMatter: false);
+            block = new DetailsBlock(summary, nestedDoc.Blocks, isOpen) {
+                InsertBlankLineAfterSummary = body.StartsWith("\n\n", StringComparison.Ordinal),
+                InsertBlankLineBeforeClosing = body.EndsWith("\n\n", StringComparison.Ordinal)
+            };
             return true;
         }
 

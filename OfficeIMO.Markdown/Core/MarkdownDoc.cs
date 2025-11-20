@@ -68,6 +68,14 @@ public class MarkdownDoc {
         return Add(builder.Build());
     }
 
+    /// <summary>Adds a collapsible details block.</summary>
+    public MarkdownDoc Details(string summary, Action<MarkdownDoc> buildBody, bool open = false) {
+        var inner = MarkdownDoc.Create();
+        buildBody(inner);
+        var details = new DetailsBlock(new SummaryBlock(summary), inner.Blocks, open);
+        return Add(details);
+    }
+
     /// <summary>Adds a horizontal rule.</summary>
     public MarkdownDoc Hr() => Add(new HorizontalRuleBlock());
 
