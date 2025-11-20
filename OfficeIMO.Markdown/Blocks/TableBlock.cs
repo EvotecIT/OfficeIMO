@@ -14,6 +14,8 @@ public sealed class TableBlock : IMarkdownBlock {
     public List<IReadOnlyList<string>> Rows { get; } = new List<IReadOnlyList<string>>();
     /// <summary>Optional column alignments per column (used when headers are present).</summary>
     public List<ColumnAlignment> Alignments { get; } = new List<ColumnAlignment>();
+    /// <summary>Number of rows skipped due to table limits.</summary>
+    public int SkippedRowCount { get; internal set; }
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() {
