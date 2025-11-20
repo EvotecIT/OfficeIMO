@@ -8,6 +8,6 @@ public sealed class StrikethroughInline {
     public string Text { get; }
     /// <summary>Creates a new strikethrough inline.</summary>
     public StrikethroughInline(string text) { Text = text ?? string.Empty; }
-    internal string RenderMarkdown() => $"~~{Text}~~";
+    internal string RenderMarkdown() => $"~~{MarkdownEscaper.EscapeEmphasis(Text)}~~";
     internal string RenderHtml() => $"<del>{System.Net.WebUtility.HtmlEncode(Text)}</del>";
 }

@@ -13,8 +13,8 @@ public sealed class ImageInline {
     /// <summary>Creates a new inline image.</summary>
     public ImageInline(string alt, string src, string? title = null) { Alt = alt; Src = src; Title = title; }
     internal string RenderMarkdown() {
-        var title = string.IsNullOrEmpty(Title) ? string.Empty : $" \"{Title}\"";
-        return $"![{Alt}]({Src}{title})";
+        var title = string.IsNullOrEmpty(Title) ? string.Empty : $" \"{MarkdownEscaper.EscapeText(Title!)}\"";
+        return $"![{MarkdownEscaper.EscapeImageAlt(Alt)}]({MarkdownEscaper.EscapeImageSrc(Src)}{title})";
     }
     internal string RenderHtml() {
         var titleAttr = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title)}\"";
