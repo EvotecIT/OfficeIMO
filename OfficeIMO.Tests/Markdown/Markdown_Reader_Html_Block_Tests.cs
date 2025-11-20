@@ -150,8 +150,9 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
             var doc = MarkdownReader.Parse(md);
 
-            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
-            Assert.Equal("<details>\n<summary>Summary</summary>\n\n<div>Body</div>\n</details>", html.Html);
+            var details = Assert.IsType<DetailsBlock>(doc.Blocks[0]);
+            Assert.Equal("Summary", Assert.IsType<TextRun>(details.Summary!.Inlines.Items[0]).Text);
+            Assert.Equal("<details>\n<summary>Summary</summary>\n\n<div>Body</div>\n</details>", ((IMarkdownBlock)details).RenderMarkdown());
             Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
         }
 
@@ -184,8 +185,9 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
             var doc = MarkdownReader.Parse(md);
 
-            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
-            Assert.Equal("<details>\n<summary>One</summary>\n\n<section>\n<p>Inner</p>\n</section>\n\n</details>", html.Html);
+            var details = Assert.IsType<DetailsBlock>(doc.Blocks[0]);
+            Assert.Equal("One", Assert.IsType<TextRun>(details.Summary!.Inlines.Items[0]).Text);
+            Assert.Equal("<details>\n<summary>One</summary>\n\n<section>\n<p>Inner</p>\n</section>\n\n</details>", ((IMarkdownBlock)details).RenderMarkdown());
             Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
         }
 
@@ -195,8 +197,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
             var doc = MarkdownReader.Parse(md);
 
-            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
-            Assert.Equal("<details>\n<summary>Summary</summary>\n\n<table>\n<thead>\n<tr><th>H</th></tr>\n</thead>\n\n<tbody>\n<tr><td>R1</td></tr>\n</tbody>\n</table>\n\n<div>Tail</div>\n</details>", html.Html);
+            var details = Assert.IsType<DetailsBlock>(doc.Blocks[0]);
+            Assert.Equal("<details>\n<summary>Summary</summary>\n\n<table>\n<thead>\n<tr><th>H</th></tr>\n</thead>\n\n<tbody>\n<tr><td>R1</td></tr>\n</tbody>\n</table>\n\n<div>Tail</div>\n</details>", ((IMarkdownBlock)details).RenderMarkdown());
         }
 
         [Fact]
@@ -205,8 +207,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
             var doc = MarkdownReader.Parse(md);
 
-            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
-            Assert.Equal("<details>\n<summary>Summary</summary>\n<component />\n\n<div>Body</div>\n</details>", html.Html);
+            var details = Assert.IsType<DetailsBlock>(doc.Blocks[0]);
+            Assert.Equal("<details>\n<summary>Summary</summary>\n<component />\n\n<div>Body</div>\n</details>", ((IMarkdownBlock)details).RenderMarkdown());
             Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
         }
 
@@ -239,8 +241,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
             var doc = MarkdownReader.Parse(md);
 
-            var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
-            Assert.Equal("<details>\n<div>\n<p>Loose</p>\n</details>", html.Html);
+            var details = Assert.IsType<DetailsBlock>(doc.Blocks[0]);
+            Assert.Equal("<details>\n<div>\n<p>Loose</p>\n</details>", ((IMarkdownBlock)details).RenderMarkdown());
             Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
         }
 
