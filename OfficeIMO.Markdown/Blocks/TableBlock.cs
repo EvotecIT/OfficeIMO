@@ -16,6 +16,8 @@ public sealed class TableBlock : IMarkdownBlock {
     public List<ColumnAlignment> Alignments { get; } = new List<ColumnAlignment>();
     /// <summary>Number of rows skipped due to table limits.</summary>
     public int SkippedRowCount { get; internal set; }
+    /// <summary>Number of columns skipped due to table limits.</summary>
+    public int SkippedColumnCount { get; internal set; }
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() {

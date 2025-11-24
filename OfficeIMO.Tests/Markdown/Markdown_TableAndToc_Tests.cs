@@ -65,6 +65,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Equal(10000, table.Rows.Count);
             Assert.Equal(50, table.SkippedRowCount);
             Assert.All(table.Rows, row => Assert.Equal(2, row.Count));
+            Assert.Equal(0, table.SkippedColumnCount);
         }
 
         [Fact]
@@ -80,6 +81,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Equal(100, table.Headers.Count);
             Assert.Single(table.Rows);
             Assert.Equal(100, table.Rows[0].Count);
+            Assert.Equal(50, table.SkippedColumnCount);
         }
 
         [Fact]

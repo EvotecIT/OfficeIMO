@@ -22,7 +22,9 @@ public sealed class TableBuilder {
     /// <summary>Sets the header row.</summary>
     public TableBuilder Headers(params string[] headers) {
         var hs = headers ?? Array.Empty<string>();
+        int skippedColumns = Math.Max(0, hs.Length - MaxColumns);
         for (int i = 0; i < hs.Length && i < MaxColumns; i++) _table.Headers.Add(hs[i]?.Trim() ?? string.Empty);
+        _table.SkippedColumnCount += skippedColumns;
         return this;
     }
     /// <summary>Adds a data row.</summary>
@@ -111,6 +113,7 @@ public sealed class TableBuilder {
                 var tmp = new System.Reflection.PropertyInfo[MaxColumns];
                 System.Array.Copy(props2, 0, tmp, 0, MaxColumns);
                 limitedProps = tmp;
+                _table.SkippedColumnCount += props2.Length - MaxColumns;
             }
             var row = new List<string>(limitedProps.Length);
             foreach (var p in limitedProps) row.Add(FormatValue(p.GetValue(data, null), p.Name, options));
@@ -141,8 +144,10 @@ public sealed class TableBuilder {
     public TableBuilder FromSequence<T>(IEnumerable<T> items, params (string Header, System.Func<T, object?> Selector)[] columns) {
         if (columns == null || columns.Length == 0 || items == null) return this;
         int columnLimit = Math.Min(columns.Length, MaxColumns);
+        int skippedColumns = columns.Length - columnLimit;
         if (_table.Headers.Count == 0) {
-            for (int i = 0; i < columnLimit; i++) {
+            for (int i = 0; i < columns.Length; i++) {
+                if (i >= MaxColumns) break;
                 _table.Headers.Add(columns[i].Header ?? string.Empty);
             }
         }
@@ -152,7 +157,8 @@ public sealed class TableBuilder {
             if (_table.Rows.Count >= MaxRows) { skippedRows++; continue; }
 
             var row = new List<string>(columnLimit);
-            for (int i = 0; i < columnLimit; i++) {
+            for (int i = 0; i < columns.Length; i++) {
+                if (i >= MaxColumns) break;
                 var selector = columns[i].Selector ?? (_ => null);
                 row.Add(FormatValue(selector(item)));
             }
@@ -160,6 +166,7 @@ public sealed class TableBuilder {
         }
 
         _table.SkippedRowCount += skippedRows;
+        _table.SkippedColumnCount += skippedColumns;
         return this;
     }
 
@@ -187,16 +194,19 @@ public sealed class TableBuilder {
 
         var discovered = new List<string>();
         var seen = new HashSet<string>(System.StringComparer.Ordinal);
+        int skippedColumns = 0;
         foreach (var item in items) {
             foreach (var entry in EnumerateDictionaryEntries(item)) {
                 var key = entry.Key ?? string.Empty;
                 if (!seen.Contains(key)) {
                     seen.Add(key);
-                    discovered.Add(key);
-                    if (discovered.Count >= MaxColumns) break;
+                    if (discovered.Count < MaxColumns) {
+                        discovered.Add(key);
+                    } else {
+                        skippedColumns++;
+                    }
                 }
             }
-            if (discovered.Count >= MaxColumns) break;
         }
 
         var headerKeys = ApplyDictionaryOptions(discovered, options);
@@ -207,6 +217,8 @@ public sealed class TableBuilder {
                 _table.Headers.Add(Rename(key, options));
             }
         }
+
+        _table.SkippedColumnCount += skippedColumns;
 
         foreach (var item in items) {
             if (_table.Rows.Count >= MaxRows) break;
