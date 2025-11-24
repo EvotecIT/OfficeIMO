@@ -153,16 +153,33 @@ public sealed class TableBuilder {
         }
 
         int skippedRows = 0;
-        foreach (var item in items) {
-            if (_table.Rows.Count >= MaxRows) { skippedRows++; continue; }
 
+        void AddRow(T item) {
             var row = new List<string>(columnLimit);
-            for (int i = 0; i < columns.Length; i++) {
-                if (i >= MaxColumns) break;
+            for (int i = 0; i < columnLimit; i++) {
                 var selector = columns[i].Selector ?? (_ => null);
                 row.Add(FormatValue(selector(item)));
             }
             _table.Rows.Add(row);
+        }
+
+        if (items is System.Collections.Generic.ICollection<T> collection) {
+            int available = Math.Max(0, MaxRows - _table.Rows.Count);
+            int added = 0;
+
+            foreach (var item in collection) {
+                if (added >= available) break;
+                AddRow(item);
+                added++;
+            }
+
+            int remaining = collection.Count - added;
+            if (remaining > 0) skippedRows += remaining;
+        } else {
+            foreach (var item in items) {
+                if (_table.Rows.Count >= MaxRows) { skippedRows++; continue; }
+                AddRow(item);
+            }
         }
 
         _table.SkippedRowCount += skippedRows;

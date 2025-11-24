@@ -69,6 +69,22 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Table_FromSequence_ICollection_Counts_Skipped_Rows_Without_Full_Enumeration() {
+            var rows = Enumerable.Range(1, 10050).Select(i => new { Index = i, Label = $"Row {i}" });
+            var limited = new LimitedCollection<(int Index, string Label)>(rows.Select(r => (r.Index, r.Label)), 10005);
+
+            var doc = MarkdownDoc.Create()
+                .TableFrom(limited,
+                    ("Index", x => x.Index),
+                    ("Label", x => x.Label));
+
+            var table = Assert.IsType<TableBlock>(doc.Blocks.Single());
+            Assert.Equal(10000, table.Rows.Count);
+            Assert.Equal(50, table.SkippedRowCount);
+            Assert.InRange(limited.EnumerationCount, 0, 10005);
+        }
+
+        [Fact]
         public void Table_FromSequence_Clips_Columns_To_Max() {
             var wideRow = new WideRow { Values = Enumerable.Range(0, 150).ToArray() };
             var columns = Enumerable.Range(0, 150)
@@ -246,6 +262,43 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             public bool TryGetValue(string key, out object? value) => _inner.TryGetValue(key, out value);
 
             System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => _inner.GetEnumerator();
+        }
+
+        private sealed class LimitedCollection<T> : ICollection<T> {
+            private readonly List<T> _items;
+            private readonly int _maxEnumeration;
+            private int _enumerationCount;
+
+            public LimitedCollection(IEnumerable<T> items, int maxEnumeration) {
+                _items = items.ToList();
+                _maxEnumeration = maxEnumeration;
+            }
+
+            public int EnumerationCount => _enumerationCount;
+
+            public int Count => _items.Count;
+
+            public bool IsReadOnly => true;
+
+            public IEnumerator<T> GetEnumerator() {
+                foreach (var item in _items) {
+                    _enumerationCount++;
+                    if (_enumerationCount > _maxEnumeration) throw new InvalidOperationException("Enumeration exceeded limit");
+                    yield return item;
+                }
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+
+            public bool Contains(T item) => _items.Contains(item);
+
+            public void CopyTo(T[] array, int arrayIndex) => _items.CopyTo(array, arrayIndex);
+
+            void ICollection<T>.Add(T item) => throw new NotSupportedException();
+
+            void ICollection<T>.Clear() => throw new NotSupportedException();
+
+            bool ICollection<T>.Remove(T item) => throw new NotSupportedException();
         }
 
         private sealed class WideRow {
