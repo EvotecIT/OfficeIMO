@@ -1,5 +1,6 @@
 namespace OfficeIMO.Markdown;
 
+using System;
 using System.Text;
 
 /// <summary>
@@ -18,12 +19,12 @@ internal static class MarkdownEscaper {
     internal static string EscapeImageAlt(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeImageSrc(string? text) => Escape(text, UrlReserved);
 
-    private static string Escape(string? text, ReadOnlySpan<char> reserved) {
+    private static string Escape(string? text, char[] reserved) {
         if (string.IsNullOrEmpty(text)) return string.Empty;
 
         StringBuilder sb = new(text.Length);
         foreach (char c in text) {
-            if (reserved.IndexOf(c) >= 0) sb.Append('\\');
+            if (Array.IndexOf(reserved, c) >= 0) sb.Append('\\');
             sb.Append(c);
         }
         return sb.ToString();
