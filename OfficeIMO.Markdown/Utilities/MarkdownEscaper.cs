@@ -9,6 +9,8 @@ using System.Text;
 internal static class MarkdownEscaper {
     // Inline HTML is allowed in rendered Markdown (e.g., <u> for underline), so we intentionally
     // do not escape angle brackets here to preserve legitimate HTML passthroughs.
+    // Allows: "Use <u>underline</u> for emphasis" → "Use <u>underline</u> for emphasis"
+    // Escapes: "Text [link](url)" → "Text \\[link\\]\(url\)"
     private static readonly char[] GeneralReserved = ['\\', '[', ']', '(', ')', '|', '*', '_'];
     private static readonly char[] UrlReserved = ['\\', '(', ')', '[', ']', '|'];
 
@@ -22,7 +24,7 @@ internal static class MarkdownEscaper {
     private static string Escape(string? text, char[] reserved) {
         if (string.IsNullOrEmpty(text)) return string.Empty;
 
-        StringBuilder sb = new(text.Length);
+        StringBuilder sb = new(text!.Length);
         foreach (char c in text) {
             if (Array.IndexOf(reserved, c) >= 0) sb.Append('\\');
             sb.Append(c);
