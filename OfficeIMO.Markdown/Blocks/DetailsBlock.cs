@@ -35,30 +35,31 @@ public sealed class DetailsBlock : IMarkdownBlock {
 
     private string Render(bool renderHtmlChildren) {
         var sb = new System.Text.StringBuilder();
+        const string NewLine = "\n";
         sb.Append("<details");
         if (Open) sb.Append(" open");
         sb.Append('>');
 
         if (Summary != null) {
-            sb.AppendLine();
+            sb.Append(NewLine);
             sb.Append(((IMarkdownBlock)Summary).RenderHtml());
         }
 
         if (Children.Count > 0) {
-            sb.AppendLine();
+            sb.Append(NewLine);
             for (int i = 0; i < Children.Count; i++) {
                 if (i == 0) {
-                    if (Summary != null && InsertBlankLineAfterSummary) sb.AppendLine();
+                    if (Summary != null && InsertBlankLineAfterSummary) sb.Append(NewLine);
                 } else {
-                    sb.AppendLine().AppendLine();
+                    sb.Append(NewLine).Append(NewLine);
                 }
                 var rendered = renderHtmlChildren ? Children[i].RenderHtml() : Children[i].RenderMarkdown();
                 sb.Append(rendered);
             }
         }
 
-        sb.AppendLine();
-        if (InsertBlankLineBeforeClosing && (Children.Count > 0 || Summary != null)) sb.AppendLine();
+        sb.Append(NewLine);
+        if (InsertBlankLineBeforeClosing && (Children.Count > 0 || Summary != null)) sb.Append(NewLine);
         sb.Append("</details>");
         return sb.ToString();
     }
