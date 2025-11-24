@@ -10,11 +10,11 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var md = MarkdownDoc.Create().Code("bash", snippet);
 
             var lines = md.ToMarkdown().Replace("\r", string.Empty)
-                .Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                .Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
             Assert.StartsWith("`````bash", lines[0]);
             Assert.Contains(snippet, lines);
-            Assert.Equal("`````", lines[^1]);
+            Assert.Equal("`````", lines[lines.Length - 1]);
         }
 
         [Fact]
@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var md = MarkdownDoc.Create().Code("text", snippet);
 
             var lines = md.ToMarkdown().Replace("\r", string.Empty)
-                .Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                .Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
             Assert.StartsWith("````text", lines[0]);
             Assert.Equal(snippet, lines[1]);

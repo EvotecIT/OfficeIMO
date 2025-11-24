@@ -15,14 +15,22 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static bool IsCodeFenceOpen(string line, out string language) {
-        language = string.Empty;
+    private static bool IsCodeFenceOpen(string line, out string language, out int fenceLength) {
+        language = string.Empty; fenceLength = 0;
         if (line is null) return false;
         line = line.Trim();
-        if (line.StartsWith("```")) { language = line.Length > 3 ? line.Substring(3).Trim() : string.Empty; return true; }
-        return false;
+        int ticks = 0;
+        while (ticks < line.Length && line[ticks] == '`') ticks++;
+        if (ticks < 3) return false;
+        fenceLength = ticks;
+        language = line.Length > ticks ? line.Substring(ticks).Trim() : string.Empty;
+        return true;
     }
-    private static bool IsCodeFenceClose(string line) => line.Trim() == "```";
+    private static bool IsCodeFenceClose(string line, int fenceLength) {
+        if (line is null) return false;
+        var trimmed = line.Trim();
+        return trimmed == new string('`', Math.Max(3, fenceLength));
+    }
 
     private static bool TryParseCaption(string line, out string caption) {
         caption = string.Empty;
