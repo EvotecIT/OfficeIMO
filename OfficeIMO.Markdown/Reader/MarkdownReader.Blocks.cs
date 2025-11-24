@@ -32,9 +32,10 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static bool IsImageLine(string line) => TryParseImage(line, out _);
-    private static bool TryParseImage(string line, out ImageBlock image) {
+    private static bool IsImageLine(string line) => TryParseImage(line, out _, out _);
+    private static bool TryParseImage(string line, out ImageBlock image, out string? sizeSpec) {
         image = null!;
+        sizeSpec = null;
         if (string.IsNullOrEmpty(line)) return false;
         var t = line.Trim();
         if (!t.StartsWith("![")) return false;
@@ -55,7 +56,8 @@ public static partial class MarkdownReader {
             if (rest.StartsWith("{")) {
                 int close = rest.IndexOf('}');
                 if (close > 0) {
-                    var attrs = rest.Substring(1, close - 1).Trim();
+                    sizeSpec = rest.Substring(1, close - 1).Trim();
+                    var attrs = sizeSpec;
                     foreach (var part in attrs.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
                         int eq = part.IndexOf('=');
                         if (eq > 0) {
