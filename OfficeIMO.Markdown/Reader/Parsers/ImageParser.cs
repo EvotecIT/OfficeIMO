@@ -19,10 +19,9 @@ public static partial class MarkdownReader {
                     }
                 }
             }
-            if (!string.IsNullOrEmpty(options.BaseUri))
-            {
-                try { var resolved = new Uri(new Uri(options.BaseUri!, UriKind.Absolute), img.Path).ToString(); img = new ImageBlock(resolved, img.Alt, img.Title) { Caption = img.Caption, Height = img.Height, Width = img.Width }; }
-                catch { }
+            var resolvedPath = ResolveUrl(img.Path, options);
+            if (!string.IsNullOrWhiteSpace(resolvedPath) && !string.Equals(resolvedPath, img.Path, StringComparison.Ordinal)) {
+                img = new ImageBlock(resolvedPath!, img.Alt, img.Title) { Caption = img.Caption, Height = img.Height, Width = img.Width };
             }
             int j = i + 1;
             if (j < lines.Length && TryParseCaption(lines[j], out var cap)) { img.Caption = cap; j++; }
