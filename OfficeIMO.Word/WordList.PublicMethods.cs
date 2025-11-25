@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using V = DocumentFormat.OpenXml.Vml;
@@ -46,10 +47,10 @@ namespace OfficeIMO.Word {
             paragraph.Append(paragraphProperties);
             paragraph.Append(run);
 
-            if (wordParagraph is not null) {
-                wordParagraph._paragraph.InsertAfterSelf(paragraph);
-            } else if (this.ListItems.Count == 0 && _wordParagraph is not null) {
-                _wordParagraph._paragraph.InsertAfterSelf(paragraph);
+            var insertionReference = GetInsertionReference(wordParagraph);
+
+            if (insertionReference is not null) {
+                insertionReference.InsertAfterSelf(paragraph);
             } else if (_isToc || IsToc) {
                 _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
             } else if (_headerFooter != null) {
@@ -81,6 +82,26 @@ namespace OfficeIMO.Word {
             }
 
             return newParagraph;
+        }
+
+        /// <summary>
+        /// Determines the insertion reference for a new item. When an anchor paragraph is supplied, it is used only for the
+        /// first insertion; subsequent items are chained after the last list item to preserve order.
+        /// </summary>
+        /// <param name="wordParagraph">Anchor paragraph requested for the insertion.</param>
+        /// <returns>The <see cref="OpenXmlElement"/> that should be used as the insertion point, if any.</returns>
+        private OpenXmlElement? GetInsertionReference(WordParagraph? wordParagraph) {
+            var lastItem = ListItems.LastOrDefault();
+
+            if (wordParagraph is not null) {
+                return lastItem?._paragraph ?? wordParagraph._paragraph;
+            }
+
+            if (ListItems.Count == 0 && _wordParagraph is not null) {
+                return _wordParagraph._paragraph;
+            }
+
+            return null;
         }
 
         internal void RemoveItem(WordParagraph paragraph) {
