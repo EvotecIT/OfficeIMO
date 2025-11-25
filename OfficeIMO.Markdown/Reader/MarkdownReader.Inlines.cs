@@ -174,14 +174,15 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static string? ResolveUrl(string url, MarkdownReaderOptions options) {
+    private static string? ResolveUrl(string url, MarkdownReaderOptions? options) {
         if (string.IsNullOrWhiteSpace(url)) return null;
         if (url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) return url;
         if (url.StartsWith("//")) return url;
         if (url.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) || url.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) return url;
         if (url.StartsWith("#")) return url;
-        if (!string.IsNullOrEmpty(options.BaseUri)) {
-            try { return new Uri(new Uri(options.BaseUri!, UriKind.Absolute), url).ToString(); } catch { }
+        if (!string.IsNullOrWhiteSpace(options?.BaseUri)) {
+            try { return new Uri(new Uri(options!.BaseUri!, UriKind.Absolute), url).ToString(); }
+            catch (UriFormatException) { /* invalid base or relative path; keep original */ }
         }
         return url; // leave as-is
     }

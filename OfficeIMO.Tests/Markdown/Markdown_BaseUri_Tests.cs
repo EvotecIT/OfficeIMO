@@ -56,6 +56,25 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void BaseUri_SkipsDataUrls() {
+            var options = new MarkdownReaderOptions { BaseUri = "https://assets.example.com/" };
+            var doc = MarkdownReader.Parse("![Inline](data:image/png;base64,AAA)", options);
+
+            var image = Assert.IsType<ImageBlock>(doc.Blocks[0]);
+            Assert.Equal("data:image/png;base64,AAA", image.Path);
+        }
+
+        [Fact]
+        public void BaseUri_AllowsEmptyHref() {
+            var options = new MarkdownReaderOptions { BaseUri = "https://docs.example.com/base/" };
+            var doc = MarkdownReader.Parse("[Empty]()", options);
+
+            var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+            var link = Assert.Single(paragraph.Inlines.Items.OfType<LinkInline>());
+            Assert.Equal(string.Empty, link.Url);
+        }
+
+        [Fact]
         public void BaseUri_HandlesInvalidUris() {
             var options = new MarkdownReaderOptions { BaseUri = "http://exa mple.com" }; // invalid base should be ignored
             var doc = MarkdownReader.Parse("![Photo](images/photo.png)", options);
