@@ -75,6 +75,16 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void BaseUri_BlocksFileScheme() {
+            var options = new MarkdownReaderOptions { BaseUri = "file:///tmp/" };
+            var doc = MarkdownReader.Parse("![Pic](images/photo.png)", options);
+
+            var image = Assert.IsType<ImageBlock>(doc.Blocks[0]);
+            // file:// base should be ignored, leaving relative path untouched
+            Assert.Equal("images/photo.png", image.Path);
+        }
+
+        [Fact]
         public void BaseUri_HandlesInvalidUris() {
             var options = new MarkdownReaderOptions { BaseUri = "http://exa mple.com" }; // invalid base should be ignored
             var doc = MarkdownReader.Parse("![Photo](images/photo.png)", options);

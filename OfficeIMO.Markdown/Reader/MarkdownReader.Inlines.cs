@@ -181,7 +181,14 @@ public static partial class MarkdownReader {
         if (url.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) || url.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) return url;
         if (url.StartsWith("#")) return url;
         if (!string.IsNullOrWhiteSpace(options?.BaseUri)) {
-            try { return new Uri(new Uri(options!.BaseUri!, UriKind.Absolute), url).ToString(); }
+            try {
+                var resolved = new Uri(new Uri(options.BaseUri!, UriKind.Absolute), url);
+                if (!resolved.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) &&
+                    !resolved.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)) {
+                    return url; // refuse non-http(s) schemes
+                }
+                return resolved.ToString();
+            }
             catch (UriFormatException) { /* invalid base or relative path; keep original */ }
         }
         return url; // leave as-is
