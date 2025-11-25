@@ -29,5 +29,20 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Equal(snippet, lines[1]);
             Assert.Equal("````", lines[2]);
         }
+
+        [Fact]
+        public void CodeBlock_RoundTrips_With_Adaptive_Fence_Lengths() {
+            var snippet = "echo ```value````"; // contains a run of 4 backticks
+            var original = MarkdownDoc.Create().Code("bash", snippet);
+
+            var markdown = original.ToMarkdown();
+            var parsed = MarkdownReader.Parse(markdown);
+
+            var block = Assert.Single(parsed.Blocks);
+            var code = Assert.IsType<CodeBlock>(block);
+            Assert.Equal("bash", code.Language);
+            Assert.Equal(snippet, code.Content);
+            Assert.Equal(markdown, parsed.ToMarkdown());
+        }
     }
 }
