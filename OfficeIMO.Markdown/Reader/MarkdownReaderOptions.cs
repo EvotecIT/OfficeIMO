@@ -44,4 +44,10 @@ public sealed class MarkdownReaderOptions {
     /// </code>
     /// </example>
     public bool InlineHtml { get; set; } = true;
+
+    /// <summary>
+    /// Optional base URI used to resolve relative links/images. When set, relative URLs (not starting with http/https,//,#,mailto:,data:)
+    /// are converted to absolute using this base during parsing.
+    /// </summary>
+    public string? BaseUri { get; set; }
 }

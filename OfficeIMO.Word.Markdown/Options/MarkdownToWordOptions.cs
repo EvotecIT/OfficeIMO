@@ -11,6 +11,11 @@ namespace OfficeIMO.Word.Markdown {
         public string? FontFamily { get; set; }
 
         /// <summary>
+        /// Optional base URI applied when resolving relative links and images in Markdown.
+        /// </summary>
+        public string? BaseUri { get; set; }
+
+        /// <summary>
         /// Emits warnings from the converter (e.g., invalid URIs). Optional.
         /// </summary>
         public Action<string>? OnWarning { get; set; }

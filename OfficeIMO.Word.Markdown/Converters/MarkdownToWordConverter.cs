@@ -39,7 +39,8 @@ namespace OfficeIMO.Word.Markdown {
             options.ApplyDefaults(document);
 
             // Parse using OfficeIMO.Markdown reader.
-            var omd = Omd.MarkdownReader.Parse(markdown);
+            var readerOptions = new Omd.MarkdownReaderOptions { BaseUri = options.BaseUri };
+            var omd = Omd.MarkdownReader.Parse(markdown, readerOptions);
             var blocks = omd.Blocks;
             // Build footnote definitions map for this document
             _currentFootnotes = blocks is not null
