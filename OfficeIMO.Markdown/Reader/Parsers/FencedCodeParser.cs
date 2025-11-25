@@ -9,7 +9,7 @@ public static partial class MarkdownReader {
             var code = new System.Text.StringBuilder();
             while (j < lines.Length && !IsCodeFenceClose(lines[j], fenceLength)) { code.AppendLine(lines[j]); j++; }
             if (j < lines.Length && IsCodeFenceClose(lines[j], fenceLength)) j++;
-            var block = new CodeBlock(language, code.ToString().TrimEnd('\n'));
+            var block = new CodeBlock(language, code.ToString().TrimEnd('\r', '\n'));
             if (j < lines.Length && TryParseCaption(lines[j], out var cap)) { block.Caption = cap; j++; }
             doc.Add(block);
             i = j; return true;
