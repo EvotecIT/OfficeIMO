@@ -19,6 +19,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             presentation.MoveSlide(2, 0);
             presentation.RemoveSlide(1);
             presentation.Save();
+
+            Helpers.Open(filePath, openPowerPoint);
         }
     }
 }

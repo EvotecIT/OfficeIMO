@@ -23,6 +23,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             table.RemoveRow(2);
             table.RemoveColumn(2);
             presentation.Save();
+
+            Helpers.Open(filePath, openPowerPoint);
         }
     }
 }

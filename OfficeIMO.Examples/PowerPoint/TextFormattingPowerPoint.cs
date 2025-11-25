@@ -22,6 +22,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             text.AddBullet("First bullet");
             text.AddBullet("Second bullet");
             presentation.Save();
+
+            Helpers.Open(filePath, openPowerPoint);
         }
     }
 }

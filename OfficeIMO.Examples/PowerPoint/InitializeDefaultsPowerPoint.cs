@@ -14,6 +14,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             presentation.AddSlide();
             presentation.Save();
+
+            Helpers.Open(filePath, openPowerPoint);
         }
     }
 }

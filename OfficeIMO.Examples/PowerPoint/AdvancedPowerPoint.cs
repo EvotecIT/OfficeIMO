@@ -20,6 +20,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             slide.Transition = SlideTransition.Wipe;
             //slide.Notes.Text = "Demo notes";
             presentation.Save();
+
+            Helpers.Open(filePath, openPowerPoint);
         }
     }
 }
