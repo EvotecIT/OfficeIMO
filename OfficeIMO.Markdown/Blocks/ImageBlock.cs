@@ -18,10 +18,17 @@ public sealed class ImageBlock : IMarkdownBlock, ICaptionable {
     public string? Caption { get; set; }
 
     /// <summary>Create an image block.</summary>
-    public ImageBlock(string path, string? alt, string? title) {
+    public ImageBlock(string path, string? alt, string? title)
+        : this(path, alt, title, null, null) {
+    }
+
+    /// <summary>Create an image block with optional size hints.</summary>
+    public ImageBlock(string path, string? alt = null, string? title = null, double? width = null, double? height = null) {
         Path = path;
         Alt = alt;
         Title = title;
+        Width = width;
+        Height = height;
     }
 
     /// <inheritdoc />
