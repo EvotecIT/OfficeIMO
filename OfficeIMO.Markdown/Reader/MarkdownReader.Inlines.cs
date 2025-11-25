@@ -180,9 +180,10 @@ public static partial class MarkdownReader {
         if (url.StartsWith("//")) return url;
         if (url.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) || url.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) return url;
         if (url.StartsWith("#")) return url;
-        if (!string.IsNullOrWhiteSpace(options?.BaseUri)) {
+        var baseUri = options?.BaseUri;
+        if (!string.IsNullOrWhiteSpace(baseUri)) {
             try {
-                var resolved = new Uri(new Uri(options.BaseUri!, UriKind.Absolute), url);
+                var resolved = new Uri(new Uri(baseUri, UriKind.Absolute), url);
                 if (!resolved.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) &&
                     !resolved.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)) {
                     return url; // refuse non-http(s) schemes
