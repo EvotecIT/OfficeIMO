@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var md = "See [site](https://example.com/foo(bar)/baz).";
             var doc = MarkdownReader.Parse(md);
             var outMd = doc.ToMarkdown();
-            Assert.Contains("(https://example.com/foo(bar)/baz)", outMd);
+            Assert.Contains("(https://example.com/foo\\(bar\\)/baz)", outMd);
         }
     }
 }

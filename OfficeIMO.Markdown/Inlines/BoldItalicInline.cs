@@ -8,6 +8,6 @@ public sealed class BoldItalicInline {
     public string Text { get; }
     /// <summary>Create a bold+italic inline.</summary>
     public BoldItalicInline(string text) { Text = text ?? string.Empty; }
-    internal string RenderMarkdown() => "***" + Text.Replace("***", "\\***") + "***";
+    internal string RenderMarkdown() => "***" + MarkdownEscaper.EscapeEmphasis(Text) + "***";
     internal string RenderHtml() => "<strong><em>" + System.Net.WebUtility.HtmlEncode(Text) + "</em></strong>";
 }

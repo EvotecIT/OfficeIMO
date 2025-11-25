@@ -18,8 +18,8 @@ public sealed class ImageLinkInline {
         Alt = alt ?? string.Empty; ImageUrl = imageUrl ?? string.Empty; LinkUrl = linkUrl ?? string.Empty; Title = title;
     }
     internal string RenderMarkdown() {
-        var title = string.IsNullOrEmpty(Title) ? string.Empty : " \"" + Title + "\"";
-        return $"[![{Alt}]({ImageUrl}{title})]({LinkUrl})";
+        var title = string.IsNullOrEmpty(Title) ? string.Empty : " \"" + MarkdownEscaper.EscapeText(Title!) + "\"";
+        return $"[![{MarkdownEscaper.EscapeImageAlt(Alt)}]({MarkdownEscaper.EscapeImageSrc(ImageUrl)}{title})]({MarkdownEscaper.EscapeLinkUrl(LinkUrl)})";
     }
     internal string RenderHtml() {
         var title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title!)}\"";

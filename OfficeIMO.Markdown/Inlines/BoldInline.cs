@@ -8,6 +8,6 @@ public sealed class BoldInline {
     public string Text { get; }
     /// <summary>Creates a bold inline with the given text.</summary>
     public BoldInline(string text) { Text = text ?? string.Empty; }
-    internal string RenderMarkdown() => "**" + Text.Replace("**", "\\**") + "**";
+    internal string RenderMarkdown() => "**" + MarkdownEscaper.EscapeEmphasis(Text) + "**";
     internal string RenderHtml() => "<strong>" + System.Net.WebUtility.HtmlEncode(Text) + "</strong>";
 }
