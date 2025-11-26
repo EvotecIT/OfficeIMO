@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
+using System.IO.Compression;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
@@ -77,56 +77,114 @@ namespace OfficeIMO.PowerPoint {
 
         private const string RelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
-        internal static void NormalizeContentTypes(string filePath) {
+        /// <summary>
+        /// Rebase chart-related parts created under ppt/slides/charts to the canonical ppt/charts locations
+        /// and adjust relationships/content types accordingly. This keeps programmatic generation intact while
+        /// matching the structure produced by PowerPoint itself.
+        /// </summary>
+        internal static void RebaseChartParts(string filePath) {
             if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath)) return;
 
             using var stream = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
             using var archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true);
-            var entry = archive.GetEntry("[Content_Types].xml");
-            if (entry == null) return;
 
-            string xml;
-            using (var reader = new StreamReader(entry.Open())) {
-                xml = reader.ReadToEnd();
-            }
+            // Map old -> new
+            var rebase = new (string oldName, string newName, string contentType)[] {
+                ("ppt/slides/charts/chart1.xml", "ppt/charts/chart1.xml", "application/vnd.openxmlformats-officedocument.drawingml.chart+xml"),
+                ("ppt/slides/charts/chart2.xml", "ppt/charts/chart2.xml", "application/vnd.openxmlformats-officedocument.drawingml.chart+xml"),
+                ("ppt/slides/charts/style.xml", "ppt/charts/style1.xml", "application/vnd.ms-office.chartstyle+xml"),
+                ("ppt/slides/charts/style2.xml", "ppt/charts/style2.xml", "application/vnd.ms-office.chartstyle+xml"),
+                ("ppt/slides/charts/colors.xml", "ppt/charts/colors1.xml", "application/vnd.ms-office.chartcolorstyle+xml"),
+                ("ppt/slides/charts/colors2.xml", "ppt/charts/colors2.xml", "application/vnd.ms-office.chartcolorstyle+xml"),
+                ("ppt/slides/charts/embeddings/package.bin", "ppt/embeddings/Microsoft_Excel_Worksheet.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+                ("ppt/slides/charts/embeddings/package2.bin", "ppt/embeddings/Microsoft_Excel_Worksheet1.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+                ("ppt/slides/charts/_rels/chart1.xml.rels", "ppt/charts/_rels/chart1.xml.rels", "application/vnd.openxmlformats-package.relationships+xml"),
+                ("ppt/slides/charts/_rels/chart2.xml.rels", "ppt/charts/_rels/chart2.xml.rels", "application/vnd.openxmlformats-package.relationships+xml"),
+                ("ppt/media/image.png", "ppt/media/image1.png", "image/png"),
+            };
 
-            if (string.IsNullOrWhiteSpace(xml)) return;
-
-            XDocument xdoc;
-            try { xdoc = XDocument.Parse(xml, LoadOptions.PreserveWhitespace); }
-            catch { xdoc = XDocument.Parse(xml, LoadOptions.None); }
-
-            XNamespace ns = xdoc.Root?.Name.Namespace ?? "http://schemas.openxmlformats.org/package/2006/content-types";
-            var types = xdoc.Root ?? new XElement(ns + "Types");
-
-            void EnsureDefault(string ext, string contentType) {
-                var matches = types.Elements(ns + "Default").Where(e => string.Equals((string?)e.Attribute("Extension"), ext, StringComparison.OrdinalIgnoreCase)).ToList();
-                if (matches.Count == 0) {
-                    types.AddFirst(new XElement(ns + "Default", new XAttribute("Extension", ext), new XAttribute("ContentType", contentType)));
-                } else {
-                    matches[0].SetAttributeValue("ContentType", contentType);
-                    for (int i = 1; i < matches.Count; i++) matches[i].Remove();
-                }
-            }
+            // Load content types
+            var ctEntry = archive.GetEntry("[Content_Types].xml") ?? throw new InvalidOperationException("Missing [Content_Types].xml");
+            XDocument ctDoc;
+            using (var ctStream = ctEntry.Open()) ctDoc = XDocument.Load(ctStream);
+            XNamespace ns = ctDoc.Root!.Name.Namespace;
 
             void EnsureOverride(string partName, string contentType) {
-                var el = types.Elements(ns + "Override").FirstOrDefault(e => string.Equals((string?)e.Attribute("PartName"), partName, StringComparison.OrdinalIgnoreCase));
-                if (el == null) {
-                    types.Add(new XElement(ns + "Override", new XAttribute("PartName", partName), new XAttribute("ContentType", contentType)));
+                var ov = ctDoc.Root!.Elements(ns + "Override").FirstOrDefault(e => (string?)e.Attribute("PartName") == partName);
+                if (ov == null) {
+                    ctDoc.Root!.Add(new XElement(ns + "Override", new XAttribute("PartName", partName), new XAttribute("ContentType", contentType)));
                 } else {
-                    el.SetAttributeValue("ContentType", contentType);
+                    ov.SetAttributeValue("ContentType", contentType);
                 }
             }
 
-            EnsureDefault("rels", "application/vnd.openxmlformats-package.relationships+xml");
-            EnsureDefault("xml", "application/xml");
-            EnsureOverride("/ppt/presentation.xml", "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml");
+            foreach (var (oldName, newName, ct) in rebase) {
+                var oldEntry = archive.GetEntry(oldName);
+                if (oldEntry == null) continue;
+                using MemoryStream buffer = new();
+                using (var os = oldEntry.Open()) os.CopyTo(buffer);
+                buffer.Position = 0;
+                oldEntry.Delete();
+                var newEntry = archive.CreateEntry(newName, CompressionLevel.Optimal);
+                using (var target = newEntry.Open()) buffer.CopyTo(target);
+                EnsureOverride("/" + newName, ct);
 
-            // Replace entry content
-            entry.Delete();
-            var newEntry = archive.CreateEntry("[Content_Types].xml", CompressionLevel.Optimal);
-            using var writer = new StreamWriter(newEntry.Open());
-            xdoc.Save(writer);
+                if (newName.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)) {
+                    XDocument relDoc;
+                    using (var rs = newEntry.Open()) relDoc = XDocument.Load(rs);
+                    XNamespace relNs = "http://schemas.openxmlformats.org/package/2006/relationships";
+                    foreach (var r in relDoc.Descendants(relNs + "Relationship")) {
+                        var target = (string?)r.Attribute("Target") ?? string.Empty;
+                        target = target.Replace("/ppt/slides/charts/embeddings/package2.bin", "../embeddings/Microsoft_Excel_Worksheet1.xlsx")
+                                       .Replace("/ppt/slides/charts/embeddings/package.bin", "../embeddings/Microsoft_Excel_Worksheet.xlsx")
+                                       .Replace("/ppt/slides/charts/style2.xml", "../charts/style2.xml")
+                                       .Replace("/ppt/slides/charts/style.xml", "../charts/style1.xml")
+                                       .Replace("/ppt/slides/charts/colors2.xml", "../charts/colors2.xml")
+                                       .Replace("/ppt/slides/charts/colors.xml", "../charts/colors1.xml")
+                                       .Replace("/ppt/slides/charts/chart2.xml", "../charts/chart2.xml")
+                                       .Replace("/ppt/slides/charts/chart1.xml", "../charts/chart1.xml")
+                                       .Replace("/ppt/media/image.png", "../media/image1.png");
+                        r.SetAttributeValue("Target", target);
+                    }
+                    using var outStream = newEntry.Open();
+                    outStream.SetLength(0);
+                    using var writer = new StreamWriter(outStream);
+                    relDoc.Save(writer);
+                }
+            }
+
+            // Fix slide rel targets that still point to /ppt/slides/charts or image.png
+            foreach (var rel in archive.Entries.Where(e => e.FullName.StartsWith("ppt/slides/_rels/slide") && e.Name.EndsWith(".rels")).ToList()) {
+                XDocument relDoc;
+                using (var rs = rel.Open()) relDoc = XDocument.Load(rs);
+                XNamespace relNs = "http://schemas.openxmlformats.org/package/2006/relationships";
+                bool changed = false;
+                foreach (var r in relDoc.Descendants(relNs + "Relationship")) {
+                    var target = (string?)r.Attribute("Target") ?? string.Empty;
+                    if (target.Contains("/ppt/slides/charts/")) {
+                        target = target.Replace("/ppt/slides/charts/", "/ppt/charts/");
+                        r.SetAttributeValue("Target", target);
+                        changed = true;
+                    }
+                    if (target.EndsWith("/media/image.png", StringComparison.OrdinalIgnoreCase)) {
+                        r.SetAttributeValue("Target", target.Replace("/media/image.png", "/media/image1.png"));
+                        changed = true;
+                    }
+                }
+                if (changed) {
+                    using var rs2 = rel.Open();
+                    rs2.SetLength(0);
+                    using var writer = new StreamWriter(rs2);
+                    relDoc.Save(writer);
+                }
+            }
+
+            // Write back [Content_Types].xml
+            using (var ctStream = ctEntry.Open()) {
+                ctStream.SetLength(0);
+                using var writer = new StreamWriter(ctStream);
+                ctDoc.Save(writer);
+            }
         }
 
         // Thumbnail extracted from Assets/PowerPointTemplates/PowerPointBlank.pptx (docProps/thumbnail.jpeg)

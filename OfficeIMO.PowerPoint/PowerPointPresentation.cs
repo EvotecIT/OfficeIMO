@@ -74,7 +74,6 @@ namespace OfficeIMO.PowerPoint {
         public void Dispose() {
             if (_disposed) return;
             _document.Dispose();
-            try { PowerPointUtils.NormalizeContentTypes(_filePath); } catch { }
             _disposed = true;
         }
 
@@ -357,10 +356,13 @@ namespace OfficeIMO.PowerPoint {
             _presentationPart.Presentation.Save();
             _document.Save();
 
-            // Release the package lock so we can patch the content types safely
-            string currentPath = _filePath;
-            Dispose();
-            PowerPointUtils.NormalizeContentTypes(currentPath);
+            // Close to release file lock, normalize part locations, then reopen to keep object usable
+            _document.Dispose();
+            PowerPointUtils.RebaseChartParts(_filePath);
+            _document = PresentationDocument.Open(_filePath, true);
+            _presentationPart = _document.PresentationPart ?? _document.AddPresentationPart();
+            _slides.Clear();
+            LoadExistingSlides();
         }
 
         /// <summary>

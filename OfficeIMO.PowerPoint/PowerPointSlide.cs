@@ -1,10 +1,12 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using DocumentFormat.OpenXml.Spreadsheet;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using S = DocumentFormat.OpenXml.Spreadsheet;
 using Cs = DocumentFormat.OpenXml.Office2013.Drawing.ChartStyle;
-using OfficeIMO.Excel;
+using A14 = DocumentFormat.OpenXml.Office2010.Drawing;
+using C14 = DocumentFormat.OpenXml.Office2010.Drawing.Charts;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -332,7 +334,7 @@ namespace OfficeIMO.PowerPoint {
             string relationshipId = _slidePart.GetIdOfPart(imagePart);
 
             string name = GenerateUniqueName("Picture");
-            Picture picture = new(
+            DocumentFormat.OpenXml.Presentation.Picture picture = new(
                 new NonVisualPictureProperties(
                     new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
                     new NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = true }),
@@ -431,37 +433,25 @@ namespace OfficeIMO.PowerPoint {
             string chartRelId;
             do { chartRelId = "rId" + relIdx++; } while (existingRels.Contains(chartRelId));
 
-            // Create chart under /ppt/charts by adding it to the presentation part, then relate from the slide.
-            var presPart = _slidePart.PresentationPart!;
-            ChartPart chartPart = presPart.AddNewPart<ChartPart>();
+            // Chart parts must be attached to the slide; we'll normalize their locations on save.
+            ChartPart chartPart = _slidePart.AddNewPart<ChartPart>(chartRelId);
 
-            // Embed a tiny workbook so PowerPoint can "Edit Data" without repair dialogs.
+            // Embed workbook + styles/colors exactly like the template
             var embedded = chartPart.AddNewPart<EmbeddedPackagePart>(
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-            using (var ms = new MemoryStream()) {
-                using var wb = ExcelDocument.Create("embedded");
-                var sheet = wb.Worksheets[0];
-                sheet[1, 1].Value = "Category";
-                sheet[1, 2].Value = "Value";
-                sheet[2, 1].Value = "A";
-                sheet[2, 2].Value = 4;
-                sheet[3, 1].Value = "B";
-                sheet[3, 2].Value = 5;
-                wb.Save(ms);
-                ms.Position = 0;
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "rId3");
+            using (var ms = new MemoryStream(TemplateChartWorkbookBytes())) {
                 embedded.FeedData(ms);
             }
 
-            // Minimal style/color parts to align with PowerPoint templates
-            var stylePart = chartPart.AddNewPart<ChartStylePart>();
-            stylePart.ChartStyle = new Cs.ChartStyle() { Id = 201U };
-            var colorStylePart = chartPart.AddNewPart<ChartColorStylePart>();
-            colorStylePart.ColorStyle = new Cs.ColorStyle() { Id = 201U };
+            var stylePart = chartPart.AddNewPart<ChartStylePart>("rId1");
+            stylePart.ChartStyle = TemplateChartStyle251();
+            stylePart.ChartStyle.Save();
+            var colorStylePart = chartPart.AddNewPart<ChartColorStylePart>("rId2");
+            colorStylePart.ColorStyle = TemplateChartColorStyle10();
+            colorStylePart.ColorStyle.Save();
 
-            GenerateDefaultChart(chartPart);
-
-            // Relate the chart to the slide
-            _slidePart.AddPart(chartPart, chartRelId);
+            GenerateDefaultChart(chartPart, embedded);
 
             string relId = chartRelId;
             string name = GenerateUniqueName("Chart");
@@ -485,7 +475,39 @@ namespace OfficeIMO.PowerPoint {
             return chart;
         }
 
-        private static void GenerateDefaultChart(ChartPart chartPart) {
+        private static byte[] TemplateChartWorkbookBytes() {
+            // Same tiny workbook as in the template: categories A,B with values 4,5
+            using MemoryStream ms = new();
+            using (var doc = SpreadsheetDocument.Create(ms, SpreadsheetDocumentType.Workbook)) {
+                WorkbookPart wbPart = doc.AddWorkbookPart();
+                wbPart.Workbook = new S.Workbook();
+                WorksheetPart wsPart = wbPart.AddNewPart<WorksheetPart>();
+                S.SheetData sheetData = new(
+                    new S.Row(
+                        new S.Cell { CellValue = new S.CellValue("Category"), DataType = S.CellValues.String },
+                        new S.Cell { CellValue = new S.CellValue("Value"), DataType = S.CellValues.String }
+                    ),
+                    new S.Row(
+                        new S.Cell { CellValue = new S.CellValue("A"), DataType = S.CellValues.String },
+                        new S.Cell { CellValue = new S.CellValue("4"), DataType = S.CellValues.Number }
+                    ),
+                    new S.Row(
+                        new S.Cell { CellValue = new S.CellValue("B"), DataType = S.CellValues.String },
+                        new S.Cell { CellValue = new S.CellValue("5"), DataType = S.CellValues.Number }
+                    )
+                );
+                wsPart.Worksheet = new S.Worksheet(sheetData);
+                wbPart.Workbook.Append(new S.Sheets(new S.Sheet {
+                    Id = wbPart.GetIdOfPart(wsPart),
+                    SheetId = 1U,
+                    Name = "Sheet1"
+                }));
+                wbPart.Workbook.Save();
+            }
+            return ms.ToArray();
+        }
+
+        private static void GenerateDefaultChart(ChartPart chartPart, EmbeddedPackagePart embeddedWorkbook) {
             uint categoryAxisId = PowerPointChartAxisIdGenerator.GetNextId();
             uint valueAxisId = PowerPointChartAxisIdGenerator.GetNextId();
             C.ChartSpace chartSpace =
@@ -527,62 +549,72 @@ namespace OfficeIMO.PowerPoint {
             plotArea.Append(barChart, catAxis, valAxis);
             chart.Append(plotArea, new C.PlotVisibleOnly { Val = true });
             chartSpace.Append(chart);
-
-            // Generate a unique relationship ID for the embedded Excel part
-            var chartRelationships = new HashSet<string>(
-                chartPart.Parts.Select(p => p.RelationshipId)
-                .Union(chartPart.ExternalRelationships.Select(r => r.Id))
-                .Union(chartPart.HyperlinkRelationships.Select(r => r.Id))
-                .Where(id => !string.IsNullOrEmpty(id))
-            );
-
-            int excelIdNum = 1;
-            string excelRelId;
-            do {
-                excelRelId = "rId" + excelIdNum;
-                excelIdNum++;
-            } while (chartRelationships.Contains(excelRelId));
-
-            EmbeddedPackagePart excelPart =
-                chartPart.AddNewPart<EmbeddedPackagePart>(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    excelRelId);
-            using (MemoryStream ms = new()) {
-                using (SpreadsheetDocument doc = SpreadsheetDocument.Create(ms, SpreadsheetDocumentType.Workbook)) {
-                    WorkbookPart wbPart = doc.AddWorkbookPart();
-                    wbPart.Workbook = new S.Workbook();
-                    WorksheetPart wsPart = wbPart.AddNewPart<WorksheetPart>();
-                    S.SheetData sheetData = new(
-                        new S.Row(
-                            new S.Cell { CellValue = new S.CellValue("Category"), DataType = S.CellValues.String },
-                            new S.Cell { CellValue = new S.CellValue("Value"), DataType = S.CellValues.String }
-                        ),
-                        new S.Row(
-                            new S.Cell { CellValue = new S.CellValue("A"), DataType = S.CellValues.String },
-                            new S.Cell { CellValue = new S.CellValue("4"), DataType = S.CellValues.Number }
-                        ),
-                        new S.Row(
-                            new S.Cell { CellValue = new S.CellValue("B"), DataType = S.CellValues.String },
-                            new S.Cell { CellValue = new S.CellValue("5"), DataType = S.CellValues.Number }
-                        )
-                    );
-                    wsPart.Worksheet = new S.Worksheet(sheetData);
-                    wbPart.Workbook.Append(new S.Sheets(new S.Sheet {
-                        Id = wbPart.GetIdOfPart(wsPart),
-                        SheetId = 1U,
-                        Name = "Sheet1"
-                    }));
-                    wbPart.Workbook.Save();
-                }
-
-                ms.Position = 0;
-                excelPart.FeedData(ms);
-            }
-
-            chartSpace.Append(new C.ExternalData { Id = chartPart.GetIdOfPart(excelPart) });
+            chartSpace.Append(new C.ExternalData { Id = chartPart.GetIdOfPart(embeddedWorkbook) });
 
             chartPart.ChartSpace = chartSpace;
             chartPart.ChartSpace.Save();
+        }
+
+        private static Cs.ColorStyle TemplateChartColorStyle10() {
+            Cs.ColorStyle colorStyle1 = new Cs.ColorStyle() { Method = "cycle", Id = 10U };
+            colorStyle1.AddNamespaceDeclaration("cs", "http://schemas.microsoft.com/office/drawing/2012/chartStyle");
+            colorStyle1.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");
+
+            colorStyle1.Append(
+                new A.SchemeColor() { Val = A.SchemeColorValues.Accent1 },
+                new A.SchemeColor() { Val = A.SchemeColorValues.Accent2 },
+                new A.SchemeColor() { Val = A.SchemeColorValues.Accent3 },
+                new A.SchemeColor() { Val = A.SchemeColorValues.Accent4 },
+                new A.SchemeColor() { Val = A.SchemeColorValues.Accent5 },
+                new A.SchemeColor() { Val = A.SchemeColorValues.Accent6 },
+                new A.SchemeColor() { Val = A.SchemeColorValues.Light1 },
+                new A.SchemeColor() { Val = A.SchemeColorValues.Dark1 },
+                new A.SchemeColor() { Val = A.SchemeColorValues.Light2 },
+                new A.SchemeColor() { Val = A.SchemeColorValues.Dark2 }
+            );
+
+            return colorStyle1;
+        }
+
+        private static Cs.ChartStyle TemplateChartStyle251() {
+            Cs.ChartStyle chartStyle1 = new Cs.ChartStyle() { Id = 251U };
+            chartStyle1.AddNamespaceDeclaration("cs", "http://schemas.microsoft.com/office/drawing/2012/chartStyle");
+            chartStyle1.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");
+
+            // Keep this minimal; Office will supply defaults for omitted nodes.
+            // Keep style minimal; ChartStyleColor is not available in all TFMs
+            return chartStyle1;
+        }
+
+        private static byte[] GenerateEmbeddedWorkbookBytes() {
+            using MemoryStream ms = new();
+            using (var doc = SpreadsheetDocument.Create(ms, SpreadsheetDocumentType.Workbook)) {
+                WorkbookPart wbPart = doc.AddWorkbookPart();
+                wbPart.Workbook = new S.Workbook();
+
+                WorksheetPart wsPart = wbPart.AddNewPart<WorksheetPart>();
+                S.SheetData sheetData = new(
+                    new S.Row(
+                        new S.Cell { CellValue = new S.CellValue("Category"), DataType = S.CellValues.String },
+                        new S.Cell { CellValue = new S.CellValue("Value"), DataType = S.CellValues.String }
+                    ),
+                    new S.Row(
+                        new S.Cell { CellValue = new S.CellValue("A"), DataType = S.CellValues.String },
+                        new S.Cell { CellValue = new S.CellValue("4"), DataType = S.CellValues.Number }
+                    ),
+                    new S.Row(
+                        new S.Cell { CellValue = new S.CellValue("B"), DataType = S.CellValues.String },
+                        new S.Cell { CellValue = new S.CellValue("5"), DataType = S.CellValues.Number }
+                    )
+                );
+                wsPart.Worksheet = new S.Worksheet(sheetData);
+
+                S.Sheets sheets = new();
+                sheets.Append(new S.Sheet { Name = "Sheet1", SheetId = 1U, Id = wbPart.GetIdOfPart(wsPart) });
+                wbPart.Workbook.AppendChild(sheets);
+                wbPart.Workbook.Save();
+            }
+            return ms.ToArray();
         }
 
         internal void Save() {
@@ -600,7 +632,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (OpenXmlElement element in tree.ChildElements) {
                 uint? id = element switch {
                     Shape s => s.NonVisualShapeProperties?.NonVisualDrawingProperties?.Id?.Value,
-                    Picture p => p.NonVisualPictureProperties?.NonVisualDrawingProperties?.Id?.Value,
+                    DocumentFormat.OpenXml.Presentation.Picture p => p.NonVisualPictureProperties?.NonVisualDrawingProperties?.Id?.Value,
                     GraphicFrame g => g.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties?.Id?.Value,
                     _ => null
                 };
@@ -613,7 +645,7 @@ namespace OfficeIMO.PowerPoint {
                     case Shape s when s.TextBody != null:
                         _shapes.Add(new PowerPointTextBox(s));
                         break;
-                    case Picture p:
+                    case DocumentFormat.OpenXml.Presentation.Picture p:
                         _shapes.Add(new PowerPointPicture(p, _slidePart));
                         break;
                     case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null:
