@@ -364,7 +364,7 @@ namespace OfficeIMO.PowerPoint {
             // We must create an initial blank slide with relationship ID "rId2" and then create
             // the slide layout, slide master, and theme in a specific order.
             // DO NOT modify this initialization pattern or PowerPoint will show a repair dialog!
-            PowerPointUtils.CreatePresentationParts(_presentationPart);
+            PowerPointUtils.CreatePresentationParts(_document, _presentationPart);
         }
 
         private void LoadExistingSlides() {

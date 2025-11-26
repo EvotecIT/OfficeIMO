@@ -30,43 +30,54 @@ namespace OfficeIMO.PowerPoint {
             PresentationPart presentationPart = presentationDoc.AddPresentationPart();
             presentationPart.Presentation = new Presentation();
 
-            CreatePresentationParts(presentationPart);
+            CreatePresentationParts(presentationDoc, presentationPart);
 
             return presentationDoc;
         }
 
-        internal static void CreatePresentationParts(PresentationPart presentationPart) {
+        internal static void CreatePresentationParts(PresentationDocument presentationDocument, PresentationPart presentationPart) {
             SlideMasterIdList slideMasterIdList1 = new SlideMasterIdList(new SlideMasterId() { Id = (UInt32Value)2147483648U, RelationshipId = "rId1" });
             SlideIdList slideIdList1 = new SlideIdList(new SlideId() { Id = (UInt32Value)256U, RelationshipId = "rId2" });
-            SlideSize slideSize1 = new SlideSize() { Cx = 9144000, Cy = 6858000, Type = SlideSizeValues.Screen4x3 };
+            // Match the common 16:9 widescreen default (same as the shipped blank template)
+            SlideSize slideSize1 = new SlideSize() { Cx = 12192000, Cy = 6858000, Type = SlideSizeValues.Screen16x9 };
             NotesSize notesSize1 = new NotesSize() { Cx = 6858000, Cy = 9144000 };
             DefaultTextStyle defaultTextStyle1 = new DefaultTextStyle();
 
             presentationPart.Presentation.Append(slideMasterIdList1, slideIdList1, slideSize1, notesSize1, defaultTextStyle1);
+            presentationPart.Presentation.SaveSubsetFonts = true;
 
-            SlidePart slidePart1;
-            SlideLayoutPart slideLayoutPart1;
-            SlideMasterPart slideMasterPart1;
-            ThemePart themePart1;
+            // Create master and layouts directly under the presentation part so they land at ppt/slideMasters and ppt/slideLayouts.
+            SlideMasterPart slideMasterPart1 = presentationPart.AddNewPart<SlideMasterPart>("rId1");
+            slideMasterPart1.SlideMaster = CreateSlideMasterSkeleton();
 
-            slidePart1 = CreateSlidePart(presentationPart);
-            slideLayoutPart1 = CreateSlideLayoutPart(slidePart1);
-            slideMasterPart1 = CreateSlideMasterPart(slideLayoutPart1);
-            themePart1 = CreateTheme(slideMasterPart1);
+            // Initial layout (Title Slide)
+            SlideLayoutPart titleLayout = slideMasterPart1.AddNewPart<SlideLayoutPart>("rId1");
+            titleLayout.SlideLayout = CreateTitleSlideLayout();
+            titleLayout.AddPart(slideMasterPart1);
 
-            slideMasterPart1.AddPart(slideLayoutPart1, "rId1");
-            CreateAdditionalSlideLayouts(slideMasterPart1, slideLayoutPart1);
+            // Additional default layouts (full set of 11 matching a blank PowerPoint)
+            CreateAdditionalSlideLayouts(slideMasterPart1, titleLayout);
+
+            // Theme is owned by the master
+            ThemePart themePart1 = CreateTheme(slideMasterPart1);
+
+            // Create initial slide and link to the title layout
+            SlidePart slidePart1 = presentationPart.AddNewPart<SlidePart>("rId2");
+            slidePart1.Slide = CreateBlankSlide();
+            slidePart1.AddPart(titleLayout, "rId1");
 
             CreatePresentationPropertiesPart(presentationPart);
             CreateViewPropertiesPart(presentationPart);
             CreateTableStylesPart(presentationPart);
             EnsureDocumentProperties(presentationPart);
-
-            presentationPart.AddPart(slideMasterPart1, "rId1");
-            presentationPart.AddPart(themePart1, "rId5");
+            EnsureThumbnail(presentationDocument);
         }
 
         private const string RelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
+        // Tiny 1x1 white JPEG thumbnail
+        private static readonly byte[] ThumbnailBytes = Convert.FromBase64String(
+            "/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxISEBUQEhIVFRUVFRUVFRUVFRUVFRUWFhUVFRUYHSggGBolGxUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGxAQGy0lHyUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAJ8BPgMBIgACEQEDEQH/xAAbAAACAwEBAQAAAAAAAAAAAAAEBQADBgIBB//EADsQAAEDAgMFBQcEAQQDAAAAAAECAxEABAUSITFBURMiYXGBkRRCocHR4fAHM1Ji8RVTYnKSscHS8f/EABoBAAIDAQEAAAAAAAAAAAAAAAIDAAEEBQb/xAAzEQACAgEDAwIEBgEFAAAAAAABAgMRAAQSITFBURMiYXGBkaGx8CJScsHR4fAy0f/aAAwDAQACEQMRAD8A8VREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQFmVnyvOITkk58FmSPrbr30YIOCQM7DDDeWGPA/nLcBY2Gj33jjXNMTvE66Q/HVbUaz2aR/dbXcXwjlzAIXazhbugzuDUFcPRl1bTTa70dNDO4xjoMnIKPQ4x3HnNGdiszNyIky3Uczdlz7YT1Do1B4ezgmO6ijLJMEVNEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQH//Z");
 
         internal static NotesMasterPart EnsureNotesMasterPart(PresentationPart presentationPart) {
             NotesMasterPart notesMasterPart = presentationPart.NotesMasterPart ?? presentationPart.AddNewPart<NotesMasterPart>();
@@ -167,42 +178,42 @@ namespace OfficeIMO.PowerPoint {
             notesMasterId.SetAttribute(new OpenXmlAttribute("r", "id", RelationshipNamespace, relationshipId));
         }
 
-        private static SlidePart CreateSlidePart(PresentationPart presentationPart) {
-            SlidePart slidePart1 = presentationPart.AddNewPart<SlidePart>("rId2");
-            // Create a completely blank slide - no shapes at all
-            slidePart1.Slide = new Slide(
-                    new CommonSlideData(
-                        new ShapeTree(
-                            new P.NonVisualGroupShapeProperties(
-                                new P.NonVisualDrawingProperties() { Id = (UInt32Value)1U, Name = "" },
-                                new P.NonVisualGroupShapeDrawingProperties(),
-                                new ApplicationNonVisualDrawingProperties()),
-                            new GroupShapeProperties(new TransformGroup()))),
-                    new ColorMapOverride(new MasterColorMapping()));
-            return slidePart1;
+        private static Slide CreateBlankSlide() {
+            return new Slide(
+                new CommonSlideData(
+                    new ShapeTree(
+                        new P.NonVisualGroupShapeProperties(
+                            new P.NonVisualDrawingProperties() { Id = (UInt32Value)1U, Name = "" },
+                            new P.NonVisualGroupShapeDrawingProperties(),
+                            new ApplicationNonVisualDrawingProperties()),
+                        new GroupShapeProperties(new TransformGroup()))),
+                new ColorMapOverride(new MasterColorMapping()));
         }
 
-        private static SlideLayoutPart CreateSlideLayoutPart(SlidePart slidePart1) {
-            SlideLayoutPart slideLayoutPart1 = slidePart1.AddNewPart<SlideLayoutPart>("rId1");
-            slideLayoutPart1.SlideLayout = CreateTitleSlideLayout();
-            return slideLayoutPart1;
-        }
-
-        private static SlideMasterPart CreateSlideMasterPart(SlideLayoutPart slideLayoutPart1) {
-            SlideMasterPart slideMasterPart1 = slideLayoutPart1.AddNewPart<SlideMasterPart>("rId1");
-            SlideMaster slideMaster = new SlideMaster(
-            new CommonSlideData(new ShapeTree(
-              new P.NonVisualGroupShapeProperties(
-              new P.NonVisualDrawingProperties() { Id = (UInt32Value)1U, Name = "" },
-              new P.NonVisualGroupShapeDrawingProperties(),
-              new ApplicationNonVisualDrawingProperties()),
-              new GroupShapeProperties(new TransformGroup()))),
-            new P.ColorMap() { Background1 = D.ColorSchemeIndexValues.Light1, Text1 = D.ColorSchemeIndexValues.Dark1, Background2 = D.ColorSchemeIndexValues.Light2, Text2 = D.ColorSchemeIndexValues.Dark2, Accent1 = D.ColorSchemeIndexValues.Accent1, Accent2 = D.ColorSchemeIndexValues.Accent2, Accent3 = D.ColorSchemeIndexValues.Accent3, Accent4 = D.ColorSchemeIndexValues.Accent4, Accent5 = D.ColorSchemeIndexValues.Accent5, Accent6 = D.ColorSchemeIndexValues.Accent6, Hyperlink = D.ColorSchemeIndexValues.Hyperlink, FollowedHyperlink = D.ColorSchemeIndexValues.FollowedHyperlink },
-            new SlideLayoutIdList(new SlideLayoutId() { Id = (UInt32Value)2147483649U, RelationshipId = "rId1" }),
-            new TextStyles(new TitleStyle(), new BodyStyle(), new OtherStyle()));
-            slideMasterPart1.SlideMaster = slideMaster;
-
-            return slideMasterPart1;
+        private static SlideMaster CreateSlideMasterSkeleton() {
+            return new SlideMaster(
+                new CommonSlideData(new ShapeTree(
+                    new P.NonVisualGroupShapeProperties(
+                        new P.NonVisualDrawingProperties() { Id = (UInt32Value)1U, Name = "" },
+                        new P.NonVisualGroupShapeDrawingProperties(),
+                        new ApplicationNonVisualDrawingProperties()),
+                    new GroupShapeProperties(new TransformGroup()))),
+                new P.ColorMap() {
+                    Background1 = D.ColorSchemeIndexValues.Light1,
+                    Text1 = D.ColorSchemeIndexValues.Dark1,
+                    Background2 = D.ColorSchemeIndexValues.Light2,
+                    Text2 = D.ColorSchemeIndexValues.Dark2,
+                    Accent1 = D.ColorSchemeIndexValues.Accent1,
+                    Accent2 = D.ColorSchemeIndexValues.Accent2,
+                    Accent3 = D.ColorSchemeIndexValues.Accent3,
+                    Accent4 = D.ColorSchemeIndexValues.Accent4,
+                    Accent5 = D.ColorSchemeIndexValues.Accent5,
+                    Accent6 = D.ColorSchemeIndexValues.Accent6,
+                    Hyperlink = D.ColorSchemeIndexValues.Hyperlink,
+                    FollowedHyperlink = D.ColorSchemeIndexValues.FollowedHyperlink
+                },
+                new SlideLayoutIdList(new SlideLayoutId() { Id = (UInt32Value)2147483649U, RelationshipId = "rId1" }),
+                new TextStyles(new TitleStyle(), new BodyStyle(), new OtherStyle()));
         }
 
         private static void CreateAdditionalSlideLayouts(SlideMasterPart slideMasterPart, SlideLayoutPart initialLayoutPart) {
@@ -231,8 +242,13 @@ namespace OfficeIMO.PowerPoint {
             yield return new SlideLayoutDefinition("rId2", 2147483650U, CreateTitleAndContentLayout);
             yield return new SlideLayoutDefinition("rId3", 2147483651U, CreateSectionHeaderLayout);
             yield return new SlideLayoutDefinition("rId4", 2147483652U, CreateTwoContentLayout);
-            yield return new SlideLayoutDefinition("rId6", 2147483653U, CreateTitleOnlyLayout);
-            yield return new SlideLayoutDefinition("rId7", 2147483654U, CreateBlankLayout);
+            yield return new SlideLayoutDefinition("rId5", 2147483653U, CreateComparisonLayout);
+            yield return new SlideLayoutDefinition("rId6", 2147483654U, CreateTitleOnlyLayout);
+            yield return new SlideLayoutDefinition("rId7", 2147483655U, CreateBlankLayout);
+            yield return new SlideLayoutDefinition("rId8", 2147483656U, CreatePictureWithCaptionLayout);
+            yield return new SlideLayoutDefinition("rId9", 2147483657U, CreateTitleAndVerticalTextLayout);
+            yield return new SlideLayoutDefinition("rId10", 2147483658U, CreateVerticalTitleAndTextLayout);
+            yield return new SlideLayoutDefinition("rId11", 2147483659U, CreateTwoContentWithCaptionLayout);
         }
 
         private static SlideLayout CreateTitleSlideLayout() {
@@ -272,6 +288,40 @@ namespace OfficeIMO.PowerPoint {
 
         private static SlideLayout CreateBlankLayout() {
             return CreateSlideLayout("Blank", SlideLayoutValues.Blank);
+        }
+
+        private static SlideLayout CreateComparisonLayout() {
+            P.Shape titleShape = CreateLayoutPlaceholderShape(2U, "Comparison Title 1", PlaceholderValues.Title, 0U, 457200L, 365125L, 8048625L, 457200L);
+            P.Shape leftContent = CreateLayoutPlaceholderShape(3U, "Left Text Placeholder 2", PlaceholderValues.Body, 1U, 457200L, 899158L, 3889375L, 3504892L);
+            P.Shape rightContent = CreateLayoutPlaceholderShape(4U, "Right Text Placeholder 3", PlaceholderValues.Body, 2U, 457200L + 4000000L, 899158L, 3889375L, 3504892L);
+            return CreateSlideLayout("Comparison", SlideLayoutValues.TwoObjects, titleShape, leftContent, rightContent);
+        }
+
+        private static SlideLayout CreatePictureWithCaptionLayout() {
+            P.Shape titleShape = CreateLayoutPlaceholderShape(2U, "Picture Title 1", PlaceholderValues.Title, 0U, 838200L, 365125L, 7772400L, 457200L);
+            P.Shape caption = CreateLayoutPlaceholderShape(3U, "Caption Placeholder 2", PlaceholderValues.Body, 1U, 838200L, 1912625L, 7772400L, 1143000L);
+            P.Shape picture = CreateLayoutPlaceholderShape(4U, "Picture Placeholder 3", PlaceholderValues.Picture, 2U, 838200L, 760000L, 7772400L, 1016000L);
+            return CreateSlideLayout("Picture with Caption", SlideLayoutValues.PictureText, titleShape, picture, caption);
+        }
+
+        private static SlideLayout CreateTitleAndVerticalTextLayout() {
+            P.Shape titleShape = CreateLayoutPlaceholderShape(2U, "Vertical Title 1", PlaceholderValues.Title, 0U, 914400L, 365125L, 1828800L, 6858000L);
+            P.Shape verticalText = CreateLayoutPlaceholderShape(3U, "Vertical Text 2", PlaceholderValues.Body, 1U, 2743200L, 365125L, 5486400L, 6858000L);
+            return CreateSlideLayout("Title and Vertical Text", SlideLayoutValues.VerticalTitleAndText, titleShape, verticalText);
+        }
+
+        private static SlideLayout CreateVerticalTitleAndTextLayout() {
+            P.Shape verticalTitle = CreateLayoutPlaceholderShape(2U, "Vertical Title 1", PlaceholderValues.Title, 0U, 914400L, 365125L, 2743200L, 6858000L);
+            P.Shape text = CreateLayoutPlaceholderShape(3U, "Text Placeholder 2", PlaceholderValues.Body, 1U, 365125L, 365125L, 914400L, 6858000L);
+            return CreateSlideLayout("Vertical Title and Text", SlideLayoutValues.VerticalText, verticalTitle, text);
+        }
+
+        private static SlideLayout CreateTwoContentWithCaptionLayout() {
+            P.Shape title = CreateLayoutPlaceholderShape(2U, "Title Placeholder 1", PlaceholderValues.Title, 0U, 838200L, 365125L, 7772400L, 1470025L);
+            P.Shape leftContent = CreateLayoutPlaceholderShape(3U, "Content Placeholder 2", PlaceholderValues.Body, 1U, 685800L, 2174875L, 3657600L, 3962400L);
+            P.Shape rightContent = CreateLayoutPlaceholderShape(4U, "Content Placeholder 3", PlaceholderValues.Body, 2U, 4127500L, 2174875L, 3657600L, 3962400L);
+            P.Shape caption = CreateLayoutPlaceholderShape(5U, "Caption Placeholder 4", PlaceholderValues.Object, 3U, 685800L, 6200000L, 7090000L, 600000L);
+            return CreateSlideLayout("Two Content with Caption", SlideLayoutValues.TwoObjects, title, leftContent, rightContent, caption);
         }
 
         private static SlideLayout CreateSlideLayout(string name, SlideLayoutValues layoutType, params OpenXmlElement[] shapes) {
@@ -430,6 +480,13 @@ namespace OfficeIMO.PowerPoint {
             if (packageProperties.Modified == null) {
                 packageProperties.Modified = timestamp;
             }
+        }
+
+        private static void EnsureThumbnail(PresentationDocument doc) {
+            if (doc.ThumbnailPart != null) return;
+            ThumbnailPart thumbnailPart = doc.AddThumbnailPart("image/jpeg", "rId2");
+            using Stream stream = thumbnailPart.GetStream(FileMode.Create, FileAccess.Write);
+            stream.Write(ThumbnailBytes, 0, ThumbnailBytes.Length);
         }
 
         private static void InitializeCoreFilePropertiesPart(CoreFilePropertiesPart corePart, DateTime timestamp) {
