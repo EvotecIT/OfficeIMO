@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
@@ -74,6 +75,58 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private const string RelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
+        internal static void NormalizeContentTypes(string filePath) {
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath)) return;
+
+            using var stream = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+            using var archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true);
+            var entry = archive.GetEntry("[Content_Types].xml");
+            if (entry == null) return;
+
+            string xml;
+            using (var reader = new StreamReader(entry.Open())) {
+                xml = reader.ReadToEnd();
+            }
+
+            if (string.IsNullOrWhiteSpace(xml)) return;
+
+            XDocument xdoc;
+            try { xdoc = XDocument.Parse(xml, LoadOptions.PreserveWhitespace); }
+            catch { xdoc = XDocument.Parse(xml, LoadOptions.None); }
+
+            XNamespace ns = xdoc.Root?.Name.Namespace ?? "http://schemas.openxmlformats.org/package/2006/content-types";
+            var types = xdoc.Root ?? new XElement(ns + "Types");
+
+            void EnsureDefault(string ext, string contentType) {
+                var matches = types.Elements(ns + "Default").Where(e => string.Equals((string?)e.Attribute("Extension"), ext, StringComparison.OrdinalIgnoreCase)).ToList();
+                if (matches.Count == 0) {
+                    types.AddFirst(new XElement(ns + "Default", new XAttribute("Extension", ext), new XAttribute("ContentType", contentType)));
+                } else {
+                    matches[0].SetAttributeValue("ContentType", contentType);
+                    for (int i = 1; i < matches.Count; i++) matches[i].Remove();
+                }
+            }
+
+            void EnsureOverride(string partName, string contentType) {
+                var el = types.Elements(ns + "Override").FirstOrDefault(e => string.Equals((string?)e.Attribute("PartName"), partName, StringComparison.OrdinalIgnoreCase));
+                if (el == null) {
+                    types.Add(new XElement(ns + "Override", new XAttribute("PartName", partName), new XAttribute("ContentType", contentType)));
+                } else {
+                    el.SetAttributeValue("ContentType", contentType);
+                }
+            }
+
+            EnsureDefault("rels", "application/vnd.openxmlformats-package.relationships+xml");
+            EnsureDefault("xml", "application/xml");
+            EnsureOverride("/ppt/presentation.xml", "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml");
+
+            // Replace entry content
+            entry.Delete();
+            var newEntry = archive.CreateEntry("[Content_Types].xml", CompressionLevel.Optimal);
+            using var writer = new StreamWriter(newEntry.Open());
+            xdoc.Save(writer);
+        }
 
         // Thumbnail extracted from Assets/PowerPointTemplates/PowerPointBlank.pptx (docProps/thumbnail.jpeg)
         private static readonly byte[] ThumbnailBytes = Convert.FromBase64String(
@@ -484,7 +537,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void EnsureThumbnail(PresentationDocument doc) {
             if (doc.ThumbnailPart != null) return;
-            ThumbnailPart thumbnailPart = doc.AddThumbnailPart("image/jpeg", "rId2");
+            ThumbnailPart thumbnailPart = doc.AddThumbnailPart("image/jpeg");
             using Stream stream = thumbnailPart.GetStream(FileMode.Create, FileAccess.Write);
             stream.Write(ThumbnailBytes, 0, ThumbnailBytes.Length);
         }

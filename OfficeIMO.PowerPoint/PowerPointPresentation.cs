@@ -9,13 +9,16 @@ namespace OfficeIMO.PowerPoint {
     ///     Represents a PowerPoint presentation providing basic create, open and save operations.
     /// </summary>
     public sealed class PowerPointPresentation : IDisposable {
-        private readonly PresentationDocument _document;
-        private readonly PresentationPart _presentationPart;
+        private PresentationDocument _document;
+        private PresentationPart _presentationPart;
         private readonly List<PowerPointSlide> _slides = new();
+        private readonly string _filePath;
         private bool _initialSlideUntouched = false;
+        private bool _disposed = false;
 
-        private PowerPointPresentation(PresentationDocument document, bool isNewPresentation) {
+        private PowerPointPresentation(PresentationDocument document, string filePath, bool isNewPresentation) {
             _document = document;
+            _filePath = filePath;
             _presentationPart = document.PresentationPart ?? document.AddPresentationPart();
             if (_presentationPart.Presentation == null) {
                 // New presentation - create with required initial structure
@@ -69,7 +72,10 @@ namespace OfficeIMO.PowerPoint {
 
         /// <inheritdoc />
         public void Dispose() {
+            if (_disposed) return;
             _document.Dispose();
+            try { PowerPointUtils.NormalizeContentTypes(_filePath); } catch { }
+            _disposed = true;
         }
 
         /// <summary>
@@ -78,7 +84,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="filePath">Path where the presentation file will be created.</param>
         public static PowerPointPresentation Create(string filePath) {
             PresentationDocument document = PresentationDocument.Create(filePath, PresentationDocumentType.Presentation);
-            PowerPointPresentation presentation = new(document, isNewPresentation: true);
+            PowerPointPresentation presentation = new(document, filePath, isNewPresentation: true);
             presentation._presentationPart.Presentation.Save();
             presentation._document.Save();
             return presentation;
@@ -90,7 +96,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="filePath">Path of the presentation file to open.</param>
         public static PowerPointPresentation Open(string filePath) {
             PresentationDocument document = PresentationDocument.Open(filePath, true);
-            return new PowerPointPresentation(document, isNewPresentation: false);
+            return new PowerPointPresentation(document, filePath, isNewPresentation: false);
         }
 
         /// <summary>
@@ -350,6 +356,11 @@ namespace OfficeIMO.PowerPoint {
 
             _presentationPart.Presentation.Save();
             _document.Save();
+
+            // Release the package lock so we can patch the content types safely
+            string currentPath = _filePath;
+            Dispose();
+            PowerPointUtils.NormalizeContentTypes(currentPath);
         }
 
         /// <summary>
