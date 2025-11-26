@@ -374,11 +374,20 @@ namespace OfficeIMO.PowerPoint {
             A.Table table = new();
             A.TableProperties props = new();
             props.Append(new A.TableStyleId { Text = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" });
+            props.FirstRow = true;
+            props.BandRow = true;
             table.Append(props);
 
             A.TableGrid grid = new();
+            // Match template column widths (~2103120 EMU) and include a16:colId metadata
             for (int c = 0; c < columns; c++) {
-                grid.Append(new A.GridColumn { Width = 3708400L });
+                var gridCol = new A.GridColumn { Width = 2103120L };
+                gridCol.Append(new A.ExtensionList(
+                    new A.Extension {
+                        Uri = "{9D8B030D-6E8A-4147-A177-3AD203B41FA5}",
+                        InnerXml = "<a16:colId xmlns:a16=\"http://schemas.microsoft.com/office/drawing/2014/main\" val=\"" + Guid.NewGuid().ToString("N") + "\"/>"
+                    }));
+                grid.Append(gridCol);
             }
 
             table.Append(grid);
@@ -389,8 +398,8 @@ namespace OfficeIMO.PowerPoint {
                     A.TableCell cell = new(
                         new A.TextBody(new A.BodyProperties(), new A.ListStyle(),
                             new A.Paragraph(new A.Run(new A.Text(string.Empty)))),
-                        new A.TableCellProperties()
-                    );
+                        new A.TableCellProperties());
+
                     row.Append(cell);
                 }
 

@@ -2,7 +2,9 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+#if !NETFRAMEWORK
 using OfficeIMO.Examples.PowerPoint;
+#endif
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -19,6 +21,24 @@ namespace OfficeIMO.Tests {
             var actParts = act.Entries.Where(e => !e.FullName.EndsWith("/")).Select(e => e.FullName).OrderBy(x => x).ToArray();
 
             Assert.Equal(expParts, actParts);
+        }
+
+        private static void AssertHasEntries(string pptxPath, params string[] entries) {
+            using var zip = ZipFile.OpenRead(pptxPath);
+            var names = zip.Entries.Select(e => e.FullName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (string entry in entries) {
+                Assert.True(names.Contains(entry), $"Missing expected entry: {entry}");
+            }
+        }
+
+        private static int CountEntries(string pptxPath, string prefix) {
+            using var zip = ZipFile.OpenRead(pptxPath);
+            return zip.Entries.Count(e => e.FullName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static long EntryLength(string pptxPath, string entryName) {
+            using var zip = ZipFile.OpenRead(pptxPath);
+            return zip.Entries.First(e => e.FullName.Equals(entryName, StringComparison.OrdinalIgnoreCase)).Length;
         }
 
         [Fact]
@@ -46,6 +66,33 @@ namespace OfficeIMO.Tests {
             var outPath = Path.Combine(dir, "Table Operations.pptx");
             TablesPowerPoint.Example_PowerPointTables(dir, false);
             CompareManifests("Assets/PowerPointTemplates/PowerPointWithTablesAndCharts.pptx", outPath);
+
+            // Additional structure assertions to catch packaging regressions
+            AssertHasEntries(outPath,
+                "ppt/charts/chart1.xml",
+                "ppt/charts/chart2.xml",
+                "ppt/charts/style1.xml",
+                "ppt/charts/style2.xml",
+                "ppt/charts/colors1.xml",
+                "ppt/charts/colors2.xml",
+                "ppt/embeddings/Microsoft_Excel_Worksheet.xlsx",
+                "ppt/embeddings/Microsoft_Excel_Worksheet1.xlsx",
+                "ppt/media/image1.png");
+        }
+
+        [Fact]
+        public void BlankTemplateLayoutsAndTableStylesMatch() {
+            string dir = TempDir();
+            Directory.CreateDirectory(dir);
+            var outPath = Path.Combine(dir, "Basic PowerPoint.pptx");
+            BasicPowerPointDocument.Example_BasicPowerPoint(dir, false);
+
+            Assert.Equal(
+                CountEntries("Assets/PowerPointTemplates/PowerPointBlank.pptx", "ppt/slideLayouts/slideLayout"),
+                CountEntries(outPath, "ppt/slideLayouts/slideLayout"));
+
+            // Sizes can differ slightly; ensure tableStyles exists and is non-empty
+            Assert.True(EntryLength(outPath, "ppt/tableStyles.xml") > 0);
         }
 #endif
     }

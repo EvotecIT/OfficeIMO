@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Drawing;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -19,11 +20,11 @@ namespace OfficeIMO.PowerPoint {
 
 
             set {
-                Cell.TextBody ??= new TextBody(new BodyProperties(), new ListStyle());
-                Paragraph paragraph = Cell.TextBody.GetFirstChild<Paragraph>() ?? new Paragraph();
-                Cell.TextBody.RemoveAllChildren<Paragraph>();
-                paragraph.RemoveAllChildren<Run>();
-                paragraph.Append(new Run(new Text(value ?? string.Empty)));
+                Cell.TextBody ??= new A.TextBody(new A.BodyProperties(), new A.ListStyle());
+                A.Paragraph paragraph = Cell.TextBody.GetFirstChild<A.Paragraph>() ?? new A.Paragraph();
+                Cell.TextBody.RemoveAllChildren<A.Paragraph>();
+                paragraph.RemoveAllChildren<A.Run>();
+                paragraph.Append(new A.Run(new A.Text(value ?? string.Empty)));
                 Cell.TextBody.Append(paragraph);
             }
         }
@@ -54,6 +55,22 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        /// <summary>
+        ///     Gets or sets the horizontal alignment of the cell text.
+        /// </summary>
+        public A.TextAlignmentTypeValues? HorizontalAlignment {
+            get {
+                var pPr = Cell.TextBody?.Elements<Paragraph>().FirstOrDefault()?.ParagraphProperties;
+                return pPr?.Alignment?.Value;
+            }
+            set {
+                Cell.TextBody ??= new A.TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph());
+                var paragraph = Cell.TextBody.Elements<A.Paragraph>().First();
+                paragraph.ParagraphProperties ??= new A.ParagraphProperties();
+                paragraph.ParagraphProperties.Alignment = value;
+            }
+        }
+
 
         /// <summary>
         ///     Gets or sets the fill color of the cell in hex format (e.g. "FF0000").
@@ -71,6 +88,43 @@ namespace OfficeIMO.PowerPoint {
                 if (value != null) {
                     Cell.TableCellProperties.Append(new SolidFill(new RgbColorModelHex { Val = value }));
                 }
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the border color (all sides) in hex format.
+        /// </summary>
+        public string? BorderColor {
+            get {
+                var ln = Cell.TableCellProperties?.GetFirstChild<Outline>();
+                return ln?.GetFirstChild<SolidFill>()?.RgbColorModelHex?.Val;
+            }
+            set {
+                Cell.TableCellProperties ??= new TableCellProperties();
+                var outline = Cell.TableCellProperties.GetFirstChild<Outline>();
+                if (value == null) {
+                    outline?.Remove();
+                    return;
+                }
+                if (outline == null) {
+                    outline = new Outline();
+                    Cell.TableCellProperties.Append(outline);
+                }
+                outline.RemoveAllChildren<SolidFill>();
+                outline.Append(new SolidFill(new RgbColorModelHex { Val = value }));
+            }
+        }
+
+        // VerticalAlignment intentionally omitted for now (pending schema-safe implementation).
+
+        /// <summary>
+        ///     Gets or sets the vertical alignment of the cell text (top/center/bottom).
+        /// </summary>
+        public A.TextAnchoringTypeValues? VerticalAlignment {
+            get => Cell.TableCellProperties?.Anchor?.Value;
+            set {
+                Cell.TableCellProperties ??= new TableCellProperties();
+                Cell.TableCellProperties.Anchor = value;
             }
         }
     }
