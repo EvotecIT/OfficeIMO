@@ -59,8 +59,9 @@ namespace OfficeIMO.PowerPoint {
             // Additional default layouts (full set of 11 matching a blank PowerPoint)
             CreateAdditionalSlideLayouts(slideMasterPart1, titleLayout);
 
-            // Theme is owned by the master
-            ThemePart themePart1 = CreateTheme(slideMasterPart1);
+            // Theme stored under /ppt/theme/theme1.xml and linked from master
+            ThemePart themePart1 = CreateTheme(presentationPart);
+            slideMasterPart1.AddPart(themePart1, "rId12");
 
             // Create initial slide and link to the title layout
             SlidePart slidePart1 = presentationPart.AddNewPart<SlidePart>("rId2");
@@ -278,6 +279,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (SlideLayoutDefinition definition in GetDefaultSlideLayoutDefinitions()) {
                 SlideLayoutPart layoutPart = slideMasterPart.AddNewPart<SlideLayoutPart>(definition.RelationshipId);
                 layoutPart.SlideLayout = definition.CreateLayout();
+                layoutPart.AddPart(slideMasterPart);
                 layoutEntries.Add((layoutPart, definition.RelationshipId, definition.LayoutId));
             }
 
@@ -426,7 +428,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void CreatePresentationPropertiesPart(PresentationPart presentationPart) {
-            PresentationPropertiesPart part = presentationPart.PresentationPropertiesPart ?? presentationPart.AddNewPart<PresentationPropertiesPart>("rId3");
+            PresentationPropertiesPart part = presentationPart.PresentationPropertiesPart ?? presentationPart.AddNewPart<PresentationPropertiesPart>();
 
             part.PresentationProperties ??= new PresentationProperties();
 
@@ -437,7 +439,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void CreateViewPropertiesPart(PresentationPart presentationPart) {
-            ViewPropertiesPart viewPart = presentationPart.ViewPropertiesPart ?? presentationPart.AddNewPart<ViewPropertiesPart>("rId4");
+            ViewPropertiesPart viewPart = presentationPart.ViewPropertiesPart ?? presentationPart.AddNewPart<ViewPropertiesPart>();
 
             NormalViewProperties normalViewProperties = new NormalViewProperties(
                 new RestoredLeft() { Size = DefaultRestoredLeftSize, AutoAdjust = false },
@@ -479,7 +481,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void CreateTableStylesPart(PresentationPart presentationPart) {
-            TableStylesPart tableStylesPart = presentationPart.TableStylesPart ?? presentationPart.AddNewPart<TableStylesPart>("rId6");
+            TableStylesPart tableStylesPart = presentationPart.TableStylesPart ?? presentationPart.AddNewPart<TableStylesPart>();
 
             D.TableStyleList tableStyleList = new D.TableStyleList() { Default = DefaultTableStyleGuid };
             tableStyleList.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");
@@ -572,9 +574,9 @@ namespace OfficeIMO.PowerPoint {
             coreDocument.Save(stream);
         }
 
-        private static ThemePart CreateTheme(SlideMasterPart slideMasterPart1) {
-            // Let the SDK assign a unique rId to avoid collisions with slide layout rels.
-            ThemePart themePart1 = slideMasterPart1.AddNewPart<ThemePart>();
+        private static ThemePart CreateTheme(PresentationPart presentationPart) {
+            // Theme should live under /ppt/theme/theme1.xml; create it on the presentation part
+            ThemePart themePart1 = presentationPart.AddNewPart<ThemePart>();
             D.Theme theme1 = new D.Theme() { Name = "Office Theme" };
 
             D.ThemeElements themeElements1 = new D.ThemeElements(

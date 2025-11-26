@@ -3,6 +3,8 @@ using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using S = DocumentFormat.OpenXml.Spreadsheet;
+using Cs = DocumentFormat.OpenXml.Office2013.Drawing.ChartStyle;
+using OfficeIMO.Excel;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -418,25 +420,50 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a basic clustered column chart with default data.
         /// </summary>
         public PowerPointChart AddChart() {
-            // Generate a unique relationship ID for the chart part
-            var slideRelationships = new HashSet<string>(
+            // Ensure unique rId on the slide
+            var existingRels = new HashSet<string>(
                 _slidePart.Parts.Select(p => p.RelationshipId)
-                .Union(_slidePart.ExternalRelationships.Select(r => r.Id))
-                .Union(_slidePart.HyperlinkRelationships.Select(r => r.Id))
-                .Where(id => !string.IsNullOrEmpty(id))
+                    .Concat(_slidePart.ExternalRelationships.Select(r => r.Id))
+                    .Concat(_slidePart.HyperlinkRelationships.Select(r => r.Id))
+                    .Where(id => !string.IsNullOrEmpty(id))
             );
-
-            int chartIdNum = 1;
+            int relIdx = 1;
             string chartRelId;
-            do {
-                chartRelId = "rId" + chartIdNum;
-                chartIdNum++;
-            } while (slideRelationships.Contains(chartRelId));
+            do { chartRelId = "rId" + relIdx++; } while (existingRels.Contains(chartRelId));
 
-            ChartPart chartPart = _slidePart.AddNewPart<ChartPart>(chartRelId);
+            // Create chart under /ppt/charts by adding it to the presentation part, then relate from the slide.
+            var presPart = _slidePart.PresentationPart!;
+            ChartPart chartPart = presPart.AddNewPart<ChartPart>();
+
+            // Embed a tiny workbook so PowerPoint can "Edit Data" without repair dialogs.
+            var embedded = chartPart.AddNewPart<EmbeddedPackagePart>(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            using (var ms = new MemoryStream()) {
+                using var wb = ExcelDocument.Create("embedded");
+                var sheet = wb.Worksheets[0];
+                sheet[1, 1].Value = "Category";
+                sheet[1, 2].Value = "Value";
+                sheet[2, 1].Value = "A";
+                sheet[2, 2].Value = 4;
+                sheet[3, 1].Value = "B";
+                sheet[3, 2].Value = 5;
+                wb.Save(ms);
+                ms.Position = 0;
+                embedded.FeedData(ms);
+            }
+
+            // Minimal style/color parts to align with PowerPoint templates
+            var stylePart = chartPart.AddNewPart<ChartStylePart>();
+            stylePart.ChartStyle = new Cs.ChartStyle() { Id = 201U };
+            var colorStylePart = chartPart.AddNewPart<ChartColorStylePart>();
+            colorStylePart.ColorStyle = new Cs.ColorStyle() { Id = 201U };
+
             GenerateDefaultChart(chartPart);
 
-            string relId = _slidePart.GetIdOfPart(chartPart);
+            // Relate the chart to the slide
+            _slidePart.AddPart(chartPart, chartRelId);
+
+            string relId = chartRelId;
             string name = GenerateUniqueName("Chart");
             GraphicFrame frame = new(
                 new NonVisualGraphicFrameProperties(

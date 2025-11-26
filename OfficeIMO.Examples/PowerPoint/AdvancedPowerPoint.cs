@@ -13,12 +13,10 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTextBox text = slide.AddTextBox("Sample text");
-            slide.AddChart();
-            slide.BackgroundColor = "FFFF00";
-            text.FillColor = "FF0000";
+            PowerPointTextBox text = slide.AddTextBox("Title Slide");
+            text.AddBullet("Subtitle");
+            slide.BackgroundColor = "FFFFFF";
             slide.Transition = SlideTransition.Wipe;
-            //slide.Notes.Text = "Demo notes";
             presentation.Save();
 
             Helpers.Open(filePath, openPowerPoint);
