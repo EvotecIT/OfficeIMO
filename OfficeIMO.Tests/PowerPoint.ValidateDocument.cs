@@ -28,6 +28,27 @@ namespace OfficeIMO.Tests {
             File.Delete(filePath);
         }
 
+        [Fact]
+        public void Test_PowerPointValidationCacheInvalidation() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (var presentation = PowerPointPresentation.Create(filePath)) {
+                var initialErrors = presentation.DocumentValidationErrors;
+                var cachedErrors = presentation.DocumentValidationErrors;
+
+                Assert.Same(initialErrors, cachedErrors);
+
+                presentation.AddSlide();
+
+                var refreshedErrors = presentation.DocumentValidationErrors;
+
+                Assert.NotSame(initialErrors, refreshedErrors);
+                Assert.True(presentation.DocumentIsValid);
+            }
+
+            File.Delete(filePath);
+        }
+
         private static string FormatValidationErrors(IEnumerable<ValidationErrorInfo> errors) {
             return string.Join(Environment.NewLine + Environment.NewLine,
                 errors.Select(error =>

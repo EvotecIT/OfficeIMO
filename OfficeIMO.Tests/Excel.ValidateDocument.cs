@@ -20,6 +20,25 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.DocumentIsValid);
             }
         }
+
+        [Fact]
+        public void Test_ExcelValidationCacheInvalidation() {
+            string filePath = Path.Combine(_directoryWithFiles, "ValidationCache.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var initialErrors = document.DocumentValidationErrors;
+                var cachedErrors = document.DocumentValidationErrors;
+
+                Assert.Same(initialErrors, cachedErrors);
+
+                var sheet = document.AddWorkSheet("Cache");
+                sheet.CellValue(1, 1, "Cached value");
+
+                var refreshedErrors = document.DocumentValidationErrors;
+
+                Assert.NotSame(initialErrors, refreshedErrors);
+                Assert.True(document.DocumentIsValid);
+            }
+        }
     }
 }
 

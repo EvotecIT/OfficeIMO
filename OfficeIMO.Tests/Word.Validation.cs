@@ -97,5 +97,24 @@ namespace OfficeIMO.Tests {
                     d => d.Contains("restartNumberingAfterBreak"));
             }
         }
+
+        [Fact]
+        public void Test_WordValidationCacheInvalidatesOnMutation() {
+            string filePath = Path.Combine(_directoryWithFiles, "ValidationCache.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var initialErrors = document.DocumentValidationErrors;
+                var cachedErrors = document.DocumentValidationErrors;
+
+                Assert.Same(initialErrors, cachedErrors);
+
+                document.AddParagraph("Cached validation should refresh after edits.");
+
+                var refreshedErrors = document.DocumentValidationErrors;
+
+                Assert.NotSame(initialErrors, refreshedErrors);
+                Assert.Equal(refreshedErrors.Count, document.DocumentValidationErrors.Count);
+            }
+        }
     }
 }

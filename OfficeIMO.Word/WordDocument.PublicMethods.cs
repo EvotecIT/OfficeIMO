@@ -25,6 +25,7 @@ namespace OfficeIMO.Word {
                 "append a paragraph to the document body");
             body.AppendChild(wordParagraph._paragraph);
             wordParagraph.RefreshParent();
+            InvalidateValidationCache();
             return wordParagraph;
         }
 
@@ -52,6 +53,7 @@ namespace OfficeIMO.Word {
             var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
             body.Append(newWordParagraph._paragraph);
             newWordParagraph.RefreshParent();
+            InvalidateValidationCache();
             return newWordParagraph;
         }
 
@@ -600,6 +602,8 @@ namespace OfficeIMO.Word {
 
             WordSection wordSection = new WordSection(this, paragraph);
 
+            InvalidateValidationCache();
+
             return wordSection;
         }
 
@@ -613,6 +617,7 @@ namespace OfficeIMO.Word {
             }
 
             this.Sections[index].RemoveSection();
+            InvalidateValidationCache();
         }
 
         /// <summary>

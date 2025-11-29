@@ -16,6 +16,9 @@ namespace OfficeIMO.Word {
         internal TableOfContentStyle? _tableOfContentStyle;
         private bool _tableOfContentUpdateQueued;
         private bool _disposed;
+        private List<ValidationErrorInfo>? _validationErrorsCache;
+        private bool _validationCacheInvalidated = true;
+        private FileFormatVersions _lastValidatedFileFormat = FileFormatVersions.Microsoft365;
 
         internal int BookmarkId {
             get {
@@ -1860,11 +1863,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool DocumentIsValid {
             get {
-                if (DocumentValidationErrors.Count > 0) {
-                    return false;
-                }
-
-                return true;
+                return DocumentValidationErrors.Count == 0;
             }
         }
 
@@ -1873,8 +1872,31 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<ValidationErrorInfo> DocumentValidationErrors {
             get {
-                return ValidateDocument();
+                return EnsureValidationCache();
             }
+        }
+
+        /// <summary>
+        /// Validates the document, refreshes the cached errors, and returns the latest validation results.
+        /// </summary>
+        /// <param name="fileFormatVersions">File format version to validate against.</param>
+        public List<ValidationErrorInfo> Validate(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
+            _validationCacheInvalidated = false;
+            _validationErrorsCache = ValidateDocument(fileFormatVersions);
+            _lastValidatedFileFormat = fileFormatVersions;
+            return _validationErrorsCache;
+        }
+
+        private List<ValidationErrorInfo> EnsureValidationCache(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
+            if (_validationCacheInvalidated || _validationErrorsCache is null || _lastValidatedFileFormat != fileFormatVersions) {
+                return Validate(fileFormatVersions);
+            }
+
+            return _validationErrorsCache;
+        }
+
+        internal void InvalidateValidationCache() {
+            _validationCacheInvalidated = true;
         }
 
         /// <summary>
