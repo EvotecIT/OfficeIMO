@@ -37,4 +37,11 @@ public class CsvSchemaTests
         var ex = Assert.Throws<CsvValidationException>(() => doc.ValidateOrThrow());
         Assert.Contains(ex.Errors, e => e.ColumnName == "Age");
     }
+
+    [Fact]
+    public void Malformed_Unterminated_Quote_Throws()
+    {
+        var csv = "Id,Name\n1,\"Unclosed";
+        Assert.Throws<CsvParseException>(() => CsvDocument.Parse(csv));
+    }
 }

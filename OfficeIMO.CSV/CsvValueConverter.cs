@@ -76,26 +76,50 @@ internal static class CsvValueConverter
 
             if (targetType == typeof(int))
             {
-                result = int.Parse(text, NumberStyles.Any, culture);
-                return true;
+                if (int.TryParse(text, NumberStyles.Any, culture, out var parsed))
+                {
+                    result = parsed;
+                    return true;
+                }
+
+                error = $"Cannot parse '{text}' as Int32.";
+                return false;
             }
 
             if (targetType == typeof(long))
             {
-                result = long.Parse(text, NumberStyles.Any, culture);
-                return true;
+                if (long.TryParse(text, NumberStyles.Any, culture, out var parsed))
+                {
+                    result = parsed;
+                    return true;
+                }
+
+                error = $"Cannot parse '{text}' as Int64.";
+                return false;
             }
 
             if (targetType == typeof(short))
             {
-                result = short.Parse(text, NumberStyles.Any, culture);
-                return true;
+                if (short.TryParse(text, NumberStyles.Any, culture, out var parsed))
+                {
+                    result = parsed;
+                    return true;
+                }
+
+                error = $"Cannot parse '{text}' as Int16.";
+                return false;
             }
 
             if (targetType == typeof(byte))
             {
-                result = byte.Parse(text, NumberStyles.Any, culture);
-                return true;
+                if (byte.TryParse(text, NumberStyles.Any, culture, out var parsed))
+                {
+                    result = parsed;
+                    return true;
+                }
+
+                error = $"Cannot parse '{text}' as Byte.";
+                return false;
             }
 
             if (targetType == typeof(bool))
@@ -124,20 +148,38 @@ internal static class CsvValueConverter
 
             if (targetType == typeof(double))
             {
-                result = double.Parse(text, NumberStyles.Any, culture);
-                return true;
+                if (double.TryParse(text, NumberStyles.Any, culture, out var parsed))
+                {
+                    result = parsed;
+                    return true;
+                }
+
+                error = $"Cannot parse '{text}' as Double.";
+                return false;
             }
 
             if (targetType == typeof(decimal))
             {
-                result = decimal.Parse(text, NumberStyles.Any, culture);
-                return true;
+                if (decimal.TryParse(text, NumberStyles.Any, culture, out var parsed))
+                {
+                    result = parsed;
+                    return true;
+                }
+
+                error = $"Cannot parse '{text}' as Decimal.";
+                return false;
             }
 
             if (targetType == typeof(float))
             {
-                result = float.Parse(text, NumberStyles.Any, culture);
-                return true;
+                if (float.TryParse(text, NumberStyles.Any, culture, out var parsed))
+                {
+                    result = parsed;
+                    return true;
+                }
+
+                error = $"Cannot parse '{text}' as Single.";
+                return false;
             }
 
             if (targetType == typeof(DateTime))

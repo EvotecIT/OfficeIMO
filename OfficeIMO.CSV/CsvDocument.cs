@@ -6,7 +6,7 @@ using System.Text;
 namespace OfficeIMO.CSV;
 
 /// <summary>
-/// Represents a CSV document with a fluent, document-centric API.
+/// Represents a CSV document with a fluent, document-centric API. Thread-safe for independent read enumeration; not thread-safe for concurrent mutations on the same instance.
 /// </summary>
 public sealed class CsvDocument
 {

@@ -61,4 +61,21 @@ public class CsvDocumentBasicsTests
         var value = parsed.AsEnumerable().Single().AsString("Value");
         Assert.Equal($"hello{delimiter}world", value);
     }
+
+    [Fact]
+    public void Empty_File_Produces_Empty_Document()
+    {
+        var parsed = CsvDocument.Parse(string.Empty);
+        Assert.Empty(parsed.Header);
+        Assert.Empty(parsed.AsEnumerable());
+    }
+
+    [Fact]
+    public void Header_Only_Has_No_Rows()
+    {
+        var csv = "Name,Age\n";
+        var parsed = CsvDocument.Parse(csv);
+        Assert.Equal(new[] { "Name", "Age" }, parsed.Header);
+        Assert.Empty(parsed.AsEnumerable());
+    }
 }
