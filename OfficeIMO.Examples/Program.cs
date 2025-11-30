@@ -15,6 +15,17 @@ namespace OfficeIMO.Examples {
             string templatesPath = Path.Combine(baseFolder, "Templates");
             string folderPath = Path.Combine(baseFolder, "Documents");
             Setup(folderPath);
+            // PDF/Read Benchmarks
+            // PDF/Read Benchmarks (native)
+            Pdf.ReadCisBenchmark.Example_Pdf_ReadCIS2016_Columns(folderPath, open: false, startPage: 1, pageCount: 3);
+            Pdf.ReadCisBenchmark.Example_Pdf_ReadCIS2016_Raw(folderPath, open: false, startPage: 1, pageCount: 5);
+            Pdf.ReadCisBenchmarkStructured.Example_Pdf_ReadCIS2016_Structured(folderPath, open: false, startPage: 1, pageCount: 3);
+
+            Console.WriteLine("Examples finished. Press any key to exit.");
+
+            Word.AdvancedDocument.Example_AdvancedWord(folderPath, true);
+            return;
+
             // Visio - Core Examples
             // Visio.BasicVisioDocument.Example_BasicVisio(folderPath, false);
             // Visio.ConnectRectangles.Example_ConnectRectangles(folderPath, false);
