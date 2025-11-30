@@ -180,6 +180,41 @@ namespace OfficeIMO.Tests {
                 Assert.Single(ws.TableDefinitionParts);
             }
         }
+
+        [Fact]
+        public async Task EnsureValidUniqueTableName_MultiThreadedAdditions_AreUnique() {
+            string filePath = Path.Combine(_directoryWithFiles, "Table.Names.ConcurrentUnique.xlsx");
+            const int tableCount = 10;
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+
+                for (int i = 0; i < tableCount; i++) {
+                    int rowStart = 1 + i * 3;
+                    sheet.CellValue(rowStart, 1, "Name");
+                    sheet.CellValue(rowStart, 2, "Value");
+                    sheet.CellValue(rowStart + 1, 1, $"R{i}");
+                    sheet.CellValue(rowStart + 1, 2, (double)i);
+                }
+
+                var tasks = Enumerable.Range(0, tableCount)
+                    .Select(i => Task.Run(() =>
+                        sheet.AddTable($"A{1 + i * 3}:B{2 + i * 3}", hasHeader: true, name: "Concurrent", TableStyle.TableStyleMedium9)))
+                    .ToArray();
+
+                await Task.WhenAll(tasks);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var names = wsPart.TableDefinitionParts.Select(t => t.Table!.Name!.Value!).ToArray();
+
+                Assert.Equal(tableCount, names.Length);
+                Assert.Equal(tableCount, names.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+                Assert.Contains(names, n => n.Equals("Concurrent", StringComparison.OrdinalIgnoreCase));
+            }
+        }
     }
 }
 

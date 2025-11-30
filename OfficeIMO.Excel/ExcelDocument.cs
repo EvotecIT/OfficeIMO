@@ -196,40 +196,36 @@ namespace OfficeIMO.Excel {
             // Fast path without locking
             if (_tableNameCache != null) return _tableNameCache;
 
-            // Initialize without taking a new lock if we're already in a write scope
-            if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld)) {
-                if (_tableNameCache == null) {
-                    var set = new HashSet<string>(_tableNameComparer);
-                    var wb = _spreadSheetDocument.WorkbookPart;
-                    if (wb != null) {
-                        foreach (var ws in wb.WorksheetParts) {
-                            foreach (var tdp in ws.TableDefinitionParts) {
-                                var n = tdp.Table?.Name?.Value;
-                                if (!string.IsNullOrEmpty(n)) set.Add(n!);
-                            }
-                        }
-                    }
-                    _tableNameCache = set;
-                }
-                return _tableNameCache!;
+            // Always initialize the cache under the document lock when we don't already own it
+            if (!Locking.IsNoLock && (_lock == null || !_lock.IsWriteLockHeld)) {
+                return Locking.ExecuteWrite(EnsureLock(), InitializeTableNameCacheWithInterlocked);
             }
 
-            // Otherwise, use write lock for thread safety
-            return Locking.ExecuteWrite(EnsureLock(), () => {
-                if (_tableNameCache != null) return _tableNameCache;
-                var set = new HashSet<string>(_tableNameComparer);
-                var wb = _spreadSheetDocument.WorkbookPart;
-                if (wb != null) {
-                    foreach (var ws in wb.WorksheetParts) {
-                        foreach (var tdp in ws.TableDefinitionParts) {
-                            var n = tdp.Table?.Name?.Value;
-                            if (!string.IsNullOrEmpty(n)) set.Add(n!);
-                        }
+            // When running without locks (or already under a write lock), rely on interlocked initialization
+            return InitializeTableNameCacheWithInterlocked();
+        }
+
+        private HashSet<string> InitializeTableNameCacheWithInterlocked() {
+            var existing = _tableNameCache;
+            if (existing != null) return existing;
+
+            var built = BuildTableNameCache();
+            var original = Interlocked.CompareExchange(ref _tableNameCache, built, null);
+            return original ?? built;
+        }
+
+        private HashSet<string> BuildTableNameCache() {
+            var set = new HashSet<string>(_tableNameComparer);
+            var wb = _spreadSheetDocument.WorkbookPart;
+            if (wb != null) {
+                foreach (var ws in wb.WorksheetParts) {
+                    foreach (var tdp in ws.TableDefinitionParts) {
+                        var n = tdp.Table?.Name?.Value;
+                        if (!string.IsNullOrEmpty(n)) set.Add(n!);
                     }
                 }
-                _tableNameCache = set;
-                return _tableNameCache;
-            });
+            }
+            return set;
         }
 
         /// <summary>
