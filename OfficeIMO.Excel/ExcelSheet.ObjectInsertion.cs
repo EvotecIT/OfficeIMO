@@ -56,7 +56,7 @@ namespace OfficeIMO.Excel {
             }
 
             // Use the batch CellValues path with planner + execution policy
-            SetCellValues(cells, null);
+            CellValues(cells, null);
         }
 
         private static void FlattenObject(object? value, string? prefix, IDictionary<string, object?> result) {
