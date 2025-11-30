@@ -112,81 +112,87 @@ namespace OfficeIMO.Excel {
         }
 
         private void MoveSheetToBeginning(string sheetName) {
-            var wb = _workBookPart.Workbook;
-            var sheets = wb.Sheets;
-            if (sheets == null) return;
+            Locking.ExecuteWrite(EnsureLock(), () => {
+                var wb = _workBookPart.Workbook;
+                var sheets = wb.Sheets;
+                if (sheets == null) return;
 
-            var all = sheets.Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>().ToList();
-            var target = all.FirstOrDefault(s => string.Equals(s.Name, sheetName, StringComparison.Ordinal));
-            if (target == null) return;
+                var all = sheets.Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>().ToList();
+                var target = all.FirstOrDefault(s => string.Equals(s.Name, sheetName, StringComparison.Ordinal));
+                if (target == null) return;
 
-            int oldIdx = all.IndexOf(target);
-            if (oldIdx <= 0) {
-                // Already first or not found
-                return;
-            }
-
-            // Reorder sheet nodes
-            target.Remove();
-            sheets.InsertAt(target, 0);
-
-            // Adjust LocalSheetId for all defined names to reflect new sheet positions
-            var definedNames = wb.DefinedNames;
-            if (definedNames != null) {
-                foreach (var dn in definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>()) {
-                    if (dn.LocalSheetId == null) continue;
-                    uint v = dn.LocalSheetId.Value;
-                    if (v == (uint)oldIdx) dn.LocalSheetId = 0u; // moved sheet
-                    else if (v < (uint)oldIdx) dn.LocalSheetId = v + 1; // sheets that were before moved one shift right
-                    // v > oldIdx unchanged
+                int oldIdx = all.IndexOf(target);
+                if (oldIdx <= 0) {
+                    // Already first or not found
+                    return;
                 }
-            }
 
-            wb.Save();
+                // Reorder sheet nodes
+                target.Remove();
+                sheets.InsertAt(target, 0);
+
+                // Adjust LocalSheetId for all defined names to reflect new sheet positions
+                var definedNames = wb.DefinedNames;
+                if (definedNames != null) {
+                    foreach (var dn in definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>()) {
+                        if (dn.LocalSheetId == null) continue;
+                        uint v = dn.LocalSheetId.Value;
+                        if (v == (uint)oldIdx) dn.LocalSheetId = 0u; // moved sheet
+                        else if (v < (uint)oldIdx) dn.LocalSheetId = v + 1; // sheets that were before moved one shift right
+                        // v > oldIdx unchanged
+                    }
+                }
+
+                wb.Save();
+                MarkSheetCacheDirty();
+            });
         }
 
         /// <summary>
         /// Removes a worksheet by name, deleting its part and entry in the workbook.
         /// </summary>
         public void RemoveWorkSheet(string sheetName) {
-            var wb = _workBookPart.Workbook;
-            var sheets = wb.Sheets;
-            if (sheets == null) return;
-            var all = sheets.Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>().ToList();
-            var sheet = all.FirstOrDefault(s => string.Equals(s.Name, sheetName, StringComparison.Ordinal));
-            if (sheet == null) return;
+            Locking.ExecuteWrite(EnsureLock(), () => {
+                var wb = _workBookPart.Workbook;
+                var sheets = wb.Sheets;
+                if (sheets == null) return;
+                var all = sheets.Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>().ToList();
+                var sheet = all.FirstOrDefault(s => string.Equals(s.Name, sheetName, StringComparison.Ordinal));
+                if (sheet == null) return;
 
-            int removedIdx = all.IndexOf(sheet);
-            var relId = sheet.Id?.Value;
-            sheet.Remove();
+                int removedIdx = all.IndexOf(sheet);
+                var relId = sheet.Id?.Value;
+                sheet.Remove();
 
-            // Clean up defined names scoped to the removed sheet, and reindex others after the removal
-            var definedNames = wb.DefinedNames;
-            if (definedNames != null) {
-                foreach (var dn in definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>().ToList()) {
-                    if (dn.LocalSheetId == null) continue;
-                    uint v = dn.LocalSheetId.Value;
-                    if (v == (uint)removedIdx) {
-                        // Remove names that belonged to the deleted sheet to avoid Excel repair
-                        dn.Remove();
-                    } else if (v > (uint)removedIdx) {
-                        // Shift indices down so names remain attached to the same logical sheet
-                        dn.LocalSheetId = v - 1;
+                // Clean up defined names scoped to the removed sheet, and reindex others after the removal
+                var definedNames = wb.DefinedNames;
+                if (definedNames != null) {
+                    foreach (var dn in definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>().ToList()) {
+                        if (dn.LocalSheetId == null) continue;
+                        uint v = dn.LocalSheetId.Value;
+                        if (v == (uint)removedIdx) {
+                            // Remove names that belonged to the deleted sheet to avoid Excel repair
+                            dn.Remove();
+                        } else if (v > (uint)removedIdx) {
+                            // Shift indices down so names remain attached to the same logical sheet
+                            dn.LocalSheetId = v - 1;
+                        }
+                    }
+                    if (!definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>().Any()) {
+                        wb.DefinedNames = null;
                     }
                 }
-                if (!definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>().Any()) {
-                    wb.DefinedNames = null;
-                }
-            }
 
-            if (!string.IsNullOrEmpty(relId)) {
-                var part = (DocumentFormat.OpenXml.Packaging.WorksheetPart)_workBookPart.GetPartById(relId!);
-                foreach (var t in part.TableDefinitionParts.ToList()) {
-                    part.DeletePart(t);
+                if (!string.IsNullOrEmpty(relId)) {
+                    var part = (DocumentFormat.OpenXml.Packaging.WorksheetPart)_workBookPart.GetPartById(relId!);
+                    foreach (var t in part.TableDefinitionParts.ToList()) {
+                        part.DeletePart(t);
+                    }
+                    _workBookPart.DeletePart(part);
                 }
-                _workBookPart.DeletePart(part);
-            }
-            wb.Save();
+                wb.Save();
+                MarkSheetCacheDirty();
+            });
         }
     }
 }
