@@ -31,4 +31,12 @@ public class CsvStreamingTests
             File.Delete(tempPath);
         }
     }
+
+    [Fact]
+    public void StreamingMode_Disallows_FilterUntilMaterialized()
+    {
+        var csv = "Id,Value\n1,A\n2,B\n";
+        var doc = CsvDocument.Parse(csv, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        Assert.Throws<InvalidOperationException>(() => doc.Filter(_ => true));
+    }
 }

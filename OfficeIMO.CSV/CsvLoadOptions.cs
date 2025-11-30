@@ -39,6 +39,7 @@ public sealed class CsvLoadOptions
 
     /// <summary>
     /// Gets or sets the load mode controlling materialization behavior. Default is <see cref="CsvLoadMode.InMemory"/>.
+    /// Use <see cref="CsvLoadMode.Stream"/> for very large files when you only need forward-only enumeration; prefer InMemory when you plan to sort/filter/transform.
     /// </summary>
     public CsvLoadMode Mode { get; set; } = CsvLoadMode.InMemory;
 
