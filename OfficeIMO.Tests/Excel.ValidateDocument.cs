@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using DocumentFormat.OpenXml;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -37,6 +38,25 @@ namespace OfficeIMO.Tests {
 
                 Assert.NotSame(initialErrors, refreshedErrors);
                 Assert.True(document.DocumentIsValid);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelValidationCachesByFormat() {
+            string filePath = Path.Combine(_directoryWithFiles, "ValidationCacheFormats.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("CacheFormats");
+
+                var defaultErrors = document.Validate(FileFormatVersions.Microsoft365);
+                var repeatDefaultErrors = document.Validate(FileFormatVersions.Microsoft365);
+
+                Assert.Same(defaultErrors, repeatDefaultErrors);
+
+                var office2007Errors = document.Validate(FileFormatVersions.Office2007);
+                var repeatOffice2007Errors = document.Validate(FileFormatVersions.Office2007);
+
+                Assert.Same(office2007Errors, repeatOffice2007Errors);
+                Assert.NotSame(defaultErrors, office2007Errors);
             }
         }
     }

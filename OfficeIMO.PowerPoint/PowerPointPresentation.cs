@@ -2,6 +2,8 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint.Fluent;
+using System;
+using System.Collections.Generic;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -13,9 +15,19 @@ namespace OfficeIMO.PowerPoint {
         private readonly PresentationPart _presentationPart;
         private readonly List<PowerPointSlide> _slides = new();
         private bool _initialSlideUntouched = false;
-        private List<ValidationErrorInfo>? _validationErrorsCache;
+        private readonly Dictionary<FileFormatVersions, ValidationCacheEntry> _validationCache = new();
         private bool _validationCacheInvalidated = true;
         private FileFormatVersions _lastValidatedFileFormat = FileFormatVersions.Microsoft365;
+
+        /// <summary>
+        /// Maximum number of validation errors to cache. When exceeded, results are not cached to avoid excessive memory use.
+        /// </summary>
+        public int ValidationCacheMaxErrors { get; set; } = 2000;
+
+        /// <summary>
+        /// Duration to keep validation cache entries before refreshing.
+        /// </summary>
+        public TimeSpan ValidationCacheDuration { get; set; } = TimeSpan.FromMinutes(5);
 
         private PowerPointPresentation(PresentationDocument document, bool isNewPresentation) {
             _document = document;
@@ -323,22 +335,55 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="fileFormatVersions">File format version to validate against.</param>
         public List<ValidationErrorInfo> Validate(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
+            if (!_validationCacheInvalidated &&
+                _validationCache.TryGetValue(fileFormatVersions, out var existingEntry) &&
+                DateTime.UtcNow - existingEntry.Timestamp <= ValidationCacheDuration) {
+                return existingEntry.Errors;
+            }
+
+            var errors = ValidateDocument(fileFormatVersions);
             _validationCacheInvalidated = false;
-            _validationErrorsCache = ValidateDocument(fileFormatVersions);
             _lastValidatedFileFormat = fileFormatVersions;
-            return _validationErrorsCache;
+
+            if (ValidationCacheMaxErrors > 0 && errors.Count > ValidationCacheMaxErrors) {
+                _validationCache.Remove(fileFormatVersions);
+                return errors;
+            }
+
+            _validationCache[fileFormatVersions] = new ValidationCacheEntry(errors, DateTime.UtcNow);
+            return errors;
         }
 
         private List<ValidationErrorInfo> EnsureValidationCache(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
-            if (_validationCacheInvalidated || _validationErrorsCache is null || _lastValidatedFileFormat != fileFormatVersions) {
+            if (_validationCacheInvalidated) {
+                _validationCache.Clear();
                 return Validate(fileFormatVersions);
             }
 
-            return _validationErrorsCache;
+            if (_validationCache.TryGetValue(fileFormatVersions, out var cacheEntry)) {
+                if (DateTime.UtcNow - cacheEntry.Timestamp <= ValidationCacheDuration) {
+                    return cacheEntry.Errors;
+                }
+
+                _validationCache.Remove(fileFormatVersions);
+            }
+
+            return Validate(fileFormatVersions);
         }
 
         internal void InvalidateValidationCache() {
             _validationCacheInvalidated = true;
+            _validationCache.Clear();
+        }
+
+        private sealed class ValidationCacheEntry {
+            public ValidationCacheEntry(List<ValidationErrorInfo> errors, DateTime timestamp) {
+                Errors = errors;
+                Timestamp = timestamp;
+            }
+
+            public List<ValidationErrorInfo> Errors { get; }
+            public DateTime Timestamp { get; }
         }
 
         /// <summary>

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
 using Xunit;
@@ -44,6 +45,26 @@ namespace OfficeIMO.Tests {
 
                 Assert.NotSame(initialErrors, refreshedErrors);
                 Assert.True(presentation.DocumentIsValid);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Test_PowerPointValidationCachesByFormat() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (var presentation = PowerPointPresentation.Create(filePath)) {
+                var microsoft365Errors = presentation.Validate(FileFormatVersions.Microsoft365);
+                var repeat365Errors = presentation.Validate(FileFormatVersions.Microsoft365);
+
+                Assert.Same(microsoft365Errors, repeat365Errors);
+
+                var office2007Errors = presentation.Validate(FileFormatVersions.Office2007);
+                var repeatOffice2007Errors = presentation.Validate(FileFormatVersions.Office2007);
+
+                Assert.Same(office2007Errors, repeatOffice2007Errors);
+                Assert.NotSame(microsoft365Errors, office2007Errors);
             }
 
             File.Delete(filePath);

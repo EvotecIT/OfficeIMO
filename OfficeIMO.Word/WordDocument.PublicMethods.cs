@@ -62,6 +62,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void AddHeadersAndFooters() {
             WordHeadersAndFooters.AddHeadersAndFooters(this);
+            InvalidateValidationCache();
         }
 
         /// <summary>
@@ -85,6 +86,7 @@ namespace OfficeIMO.Word {
                 body.Append(newWordParagraph._paragraph);
                 newWordParagraph.RefreshParent();
             }
+            InvalidateValidationCache();
             return newWordParagraph;
         }
 

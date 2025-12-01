@@ -7,6 +7,7 @@ using System.IO.Packaging;
 using System.Xml.Linq;
 using OfficeIMO.Word;
 using Xunit;
+using System.Threading;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -114,6 +115,37 @@ namespace OfficeIMO.Tests {
 
                 Assert.NotSame(initialErrors, refreshedErrors);
                 Assert.Equal(refreshedErrors.Count, document.DocumentValidationErrors.Count);
+            }
+        }
+
+        [Fact]
+        public void Test_WordValidationCacheExpiresAndInvalidatesAdditionalMutations() {
+            string filePath = Path.Combine(_directoryWithFiles, "ValidationCacheExpiry.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.ValidationCacheDuration = TimeSpan.FromMilliseconds(5);
+
+                var initialErrors = document.DocumentValidationErrors;
+                var cachedErrors = document.DocumentValidationErrors;
+
+                Assert.Same(initialErrors, cachedErrors);
+
+                Thread.Sleep(15);
+
+                var postExpiryErrors = document.DocumentValidationErrors;
+
+                Assert.NotSame(initialErrors, postExpiryErrors);
+
+                var breakParagraph = document.AddBreak();
+                Assert.NotNull(breakParagraph);
+
+                var afterBreakErrors = document.DocumentValidationErrors;
+                Assert.NotSame(postExpiryErrors, afterBreakErrors);
+
+                document.AddHeadersAndFooters();
+
+                var afterHeadersErrors = document.DocumentValidationErrors;
+                Assert.NotSame(afterBreakErrors, afterHeadersErrors);
             }
         }
     }
