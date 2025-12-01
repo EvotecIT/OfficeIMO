@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Excel;
 using Xunit;
@@ -57,6 +58,30 @@ namespace OfficeIMO.Tests {
 
                 Assert.Same(office2007Errors, repeatOffice2007Errors);
                 Assert.NotSame(defaultErrors, office2007Errors);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelValidationInvalidatesForWorkbookMutations() {
+            string filePath = Path.Combine(_directoryWithFiles, "ValidationCacheWorkbookMutations.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var initialErrors = document.DocumentValidationErrors;
+                var cachedErrors = document.DocumentValidationErrors;
+
+                Assert.Same(initialErrors, cachedErrors);
+
+                var sheet = document.AddWorkSheet("Primary");
+                sheet.CellValue(1, 1, 42);
+
+                var afterCellEditErrors = document.DocumentValidationErrors;
+                Assert.NotSame(initialErrors, afterCellEditErrors);
+
+                document.AddWorkSheet("ToRemove");
+                document.RemoveWorkSheet("ToRemove");
+
+                var afterSheetRemovalErrors = document.DocumentValidationErrors;
+                Assert.NotSame(afterCellEditErrors, afterSheetRemovalErrors);
             }
         }
     }

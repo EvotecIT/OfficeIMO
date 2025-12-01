@@ -10,11 +10,13 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public class PowerPointSlide {
         private readonly List<PowerPointShape> _shapes = new();
+        private readonly PowerPointPresentation _presentation;
         private readonly SlidePart _slidePart;
         private PowerPointNotes? _notes;
         private uint _nextShapeId = 2;
 
-        internal PowerPointSlide(SlidePart slidePart) {
+        internal PowerPointSlide(PowerPointPresentation presentation, SlidePart slidePart) {
+            _presentation = presentation;
             _slidePart = slidePart;
             LoadExistingShapes();
         }
@@ -49,6 +51,17 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointNotes Notes => _notes ??= new PowerPointNotes(_slidePart);
 
+        private void MarkDirty() => _presentation.InvalidateValidationCache();
+
+        private void AttachShape(PowerPointShape shape, bool markDirty = true) {
+            shape.OnModified = MarkDirty;
+            _shapes.Add(shape);
+
+            if (markDirty) {
+                MarkDirty();
+            }
+        }
+
         /// <summary>
         ///     Gets or sets the slide background color in hex format (e.g. "FF0000").
         /// </summary>
@@ -63,6 +76,7 @@ namespace OfficeIMO.PowerPoint {
                 CommonSlideData common = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
                 if (value == null) {
                     common.Background = null;
+                    MarkDirty();
                     return;
                 }
 
@@ -72,6 +86,8 @@ namespace OfficeIMO.PowerPoint {
                 props.Append(new A.SolidFill(new A.RgbColorModelHex { Val = value }));
                 bg.BackgroundProperties = props;
                 common.Background = bg;
+
+                MarkDirty();
             }
         }
 
@@ -98,6 +114,7 @@ namespace OfficeIMO.PowerPoint {
             set {
                 if (value == SlideTransition.None) {
                     _slidePart.Slide.Transition = null;
+                    MarkDirty();
                     return;
                 }
 
@@ -112,6 +129,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 _slidePart.Slide.Transition = transition;
+                MarkDirty();
             }
         }
 
@@ -162,6 +180,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             _slidePart.AddPart(layoutPart);
+
+            MarkDirty();
         }
 
         /// <summary>
@@ -229,6 +249,7 @@ namespace OfficeIMO.PowerPoint {
 
             shape.Element.Remove();
             _shapes.Remove(shape);
+            MarkDirty();
         }
 
         private string GenerateUniqueName(string baseName) {
@@ -272,7 +293,7 @@ namespace OfficeIMO.PowerPoint {
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(shape);
             PowerPointTextBox textBox = new(shape);
-            _shapes.Add(textBox);
+            AttachShape(textBox);
             return textBox;
         }
 
@@ -307,7 +328,7 @@ namespace OfficeIMO.PowerPoint {
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(shape);
             PowerPointTextBox textBox = new(shape);
-            _shapes.Add(textBox);
+            AttachShape(textBox);
             return textBox;
         }
 
@@ -350,7 +371,7 @@ namespace OfficeIMO.PowerPoint {
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(picture);
             PowerPointPicture pic = new(picture, _slidePart);
-            _shapes.Add(pic);
+            AttachShape(pic);
             return pic;
         }
 
@@ -410,7 +431,7 @@ namespace OfficeIMO.PowerPoint {
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(frame);
             PowerPointTable tbl = new(frame);
-            _shapes.Add(tbl);
+            AttachShape(tbl);
             return tbl;
         }
 
@@ -454,7 +475,7 @@ namespace OfficeIMO.PowerPoint {
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(frame);
             PowerPointChart chart = new(frame);
-            _shapes.Add(chart);
+            AttachShape(chart);
             return chart;
         }
 
@@ -584,16 +605,16 @@ namespace OfficeIMO.PowerPoint {
 
                 switch (element) {
                     case Shape s when s.TextBody != null:
-                        _shapes.Add(new PowerPointTextBox(s));
+                        AttachShape(new PowerPointTextBox(s), markDirty: false);
                         break;
                     case Picture p:
-                        _shapes.Add(new PowerPointPicture(p, _slidePart));
+                        AttachShape(new PowerPointPicture(p, _slidePart), markDirty: false);
                         break;
                     case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null:
-                        _shapes.Add(new PowerPointTable(g));
+                        AttachShape(new PowerPointTable(g), markDirty: false);
                         break;
                     case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null:
-                        _shapes.Add(new PowerPointChart(g));
+                        AttachShape(new PowerPointChart(g), markDirty: false);
                         break;
                 }
             }

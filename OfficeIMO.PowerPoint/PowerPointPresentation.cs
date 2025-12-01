@@ -44,7 +44,7 @@ namespace OfficeIMO.PowerPoint {
                         string? relId = slideId.RelationshipId;
                         if (!string.IsNullOrEmpty(relId)) {
                             SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(relId!);
-                            _slides.Add(new PowerPointSlide(slidePart));
+                            _slides.Add(new PowerPointSlide(this, slidePart));
                         }
                     }
                 }
@@ -222,7 +222,7 @@ namespace OfficeIMO.PowerPoint {
             _presentationPart.Presentation.SlideIdList.Append(slideId);
             _presentationPart.Presentation.Save();
 
-            PowerPointSlide slide = new(slidePart);
+            PowerPointSlide slide = new(this, slidePart);
             _slides.Add(slide);
             InvalidateValidationCache();
             return slide;
@@ -445,7 +445,7 @@ namespace OfficeIMO.PowerPoint {
                     string? relId = slideId.RelationshipId;
                     if (!string.IsNullOrEmpty(relId)) {
                         SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(relId!);
-                        _slides.Add(new PowerPointSlide(slidePart));
+                        _slides.Add(new PowerPointSlide(this, slidePart));
                     }
                 }
             }

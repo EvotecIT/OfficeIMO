@@ -148,5 +148,28 @@ namespace OfficeIMO.Tests {
                 Assert.NotSame(afterBreakErrors, afterHeadersErrors);
             }
         }
+
+        [Fact]
+        public void Test_WordValidationCacheInvalidatesForTables() {
+            string filePath = Path.Combine(_directoryWithFiles, "ValidationCacheTables.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var initialErrors = document.DocumentValidationErrors;
+                var cachedErrors = document.DocumentValidationErrors;
+
+                Assert.Same(initialErrors, cachedErrors);
+
+                var table = document.AddTable(2, 2);
+                Assert.NotNull(table);
+
+                var afterTableErrors = document.DocumentValidationErrors;
+                Assert.NotSame(initialErrors, afterTableErrors);
+
+                table.AddRow(1);
+
+                var afterRowAdditionErrors = document.DocumentValidationErrors;
+                Assert.NotSame(afterTableErrors, afterRowAdditionErrors);
+            }
+        }
     }
 }

@@ -375,6 +375,7 @@ namespace OfficeIMO.Word {
             if (table is null) throw new ArgumentNullException(nameof(table));
 
             anchor._paragraph.InsertAfterSelf(table._table);
+            InvalidateValidationCache();
             return table;
         }
 

@@ -299,6 +299,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void WriteLock(Action action) {
+            _excelDocument.InvalidateValidationCache();
             Locking.ExecuteWrite(_excelDocument.EnsureLock(), action);
         }
 
@@ -306,6 +307,7 @@ namespace OfficeIMO.Excel {
             // If we're already in a batch operation or in a NoLock scope,
             // just execute the action directly
             if (_isBatchOperation || Locking.IsNoLock) {
+                _excelDocument.InvalidateValidationCache();
                 action();
             } else {
                 WriteLock(action);

@@ -487,6 +487,8 @@ namespace OfficeIMO.Word {
                 // Append the table to the document before given paragraph
                 wordParagraph._paragraph.InsertBeforeSelf(_table);
             }
+
+            _document.InvalidateValidationCache();
         }
 
         /// <summary>
@@ -507,6 +509,8 @@ namespace OfficeIMO.Word {
             if (insert) {
                 // Append the table to the document.
                 document._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Append(_table);
+
+                _document.InvalidateValidationCache();
             }
         }
 
@@ -527,6 +531,8 @@ namespace OfficeIMO.Word {
             Position = new WordTablePosition(this);
 
             wordTableCell.Append(_table);
+
+            _document.InvalidateValidationCache();
         }
 
         internal WordTable(WordDocument document, Footer footer, int rows, int columns, WordTableStyle tableStyle) {
@@ -537,6 +543,8 @@ namespace OfficeIMO.Word {
             Position = new WordTablePosition(this);
 
             footer.Append(_table);
+
+            _document.InvalidateValidationCache();
         }
         internal WordTable(WordDocument document, Header header, int rows, int columns, WordTableStyle tableStyle) {
             _document = document;
@@ -546,6 +554,8 @@ namespace OfficeIMO.Word {
             Position = new WordTablePosition(this);
 
             header.Append(_table);
+
+            _document.InvalidateValidationCache();
         }
 
         /// <summary>
@@ -557,6 +567,7 @@ namespace OfficeIMO.Word {
             _table.Append(row._tableRow);
             AddCells(row, cellsCount);
             try { RefreshTblGridFromColumnWidths(); } catch { }
+            _document.InvalidateValidationCache();
             return row;
         }
 
@@ -586,6 +597,7 @@ namespace OfficeIMO.Word {
             for (int i = 0; i < rowsCount; i++) {
                 rows.Add(AddRow(cellsCount));
             }
+            _document.InvalidateValidationCache();
             return rows;
         }
 
@@ -595,6 +607,7 @@ namespace OfficeIMO.Word {
         /// <param name="row"></param>
         private void AddRow(WordTableRow row) {
             _table.Append(row._tableRow);
+            _document.InvalidateValidationCache();
         }
 
         /// <summary>
@@ -602,6 +615,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void Remove() {
             _table.Remove();
+            _document.InvalidateValidationCache();
         }
 
         /// <summary>

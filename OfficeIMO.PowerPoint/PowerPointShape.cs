@@ -11,6 +11,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal OpenXmlElement Element { get; }
+        internal Action? OnModified { get; set; }
+
+        /// <summary>
+        /// Notifies the owning presentation that this shape was modified.
+        /// </summary>
+        protected void MarkModified() {
+            OnModified?.Invoke();
+        }
 
         /// <summary>
         ///     Name assigned to the shape.
@@ -50,6 +58,8 @@ namespace OfficeIMO.PowerPoint {
                         shape.ShapeProperties.Append(new A.SolidFill(new A.RgbColorModelHex { Val = value }));
                     }
                 }
+
+                MarkModified();
             }
         }
 
@@ -58,7 +68,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public long Left {
             get => GetOffset().X?.Value ?? 0L;
-            set => GetOffset().X = value;
+            set {
+                GetOffset().X = value;
+                MarkModified();
+            }
         }
 
         /// <summary>
@@ -66,7 +79,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public long Top {
             get => GetOffset().Y?.Value ?? 0L;
-            set => GetOffset().Y = value;
+            set {
+                GetOffset().Y = value;
+                MarkModified();
+            }
         }
 
         /// <summary>
@@ -74,7 +90,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public long Width {
             get => GetExtents().Cx?.Value ?? 0L;
-            set => GetExtents().Cx = value;
+            set {
+                GetExtents().Cx = value;
+                MarkModified();
+            }
         }
 
         /// <summary>
@@ -82,7 +101,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public long Height {
             get => GetExtents().Cy?.Value ?? 0L;
-            set => GetExtents().Cy = value;
+            set {
+                GetExtents().Cy = value;
+                MarkModified();
+            }
         }
 
         private A.Offset GetOffset() {

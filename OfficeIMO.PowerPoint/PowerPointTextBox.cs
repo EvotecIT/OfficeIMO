@@ -75,6 +75,8 @@ namespace OfficeIMO.PowerPoint {
 
                     textBody.Append(paragraph);
                 }
+
+                MarkModified();
             }
         }
 
@@ -91,6 +93,8 @@ namespace OfficeIMO.PowerPoint {
                     A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
                     runProps.Bold = value ? true : null;
                 }
+
+                MarkModified();
             }
         }
 
@@ -107,6 +111,8 @@ namespace OfficeIMO.PowerPoint {
                     A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
                     runProps.Italic = value ? true : null;
                 }
+
+                MarkModified();
             }
         }
 
@@ -124,6 +130,8 @@ namespace OfficeIMO.PowerPoint {
                     A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
                     runProps.FontSize = value != null ? value * 100 : null;
                 }
+
+                MarkModified();
             }
         }
 
@@ -143,6 +151,8 @@ namespace OfficeIMO.PowerPoint {
                         runProps.Append(new A.LatinFont { Typeface = value });
                     }
                 }
+
+                MarkModified();
             }
         }
 
@@ -162,6 +172,8 @@ namespace OfficeIMO.PowerPoint {
                         runProps.Append(new A.SolidFill(new A.RgbColorModelHex { Val = value }));
                     }
                 }
+
+                MarkModified();
             }
         }
 
@@ -180,6 +192,7 @@ namespace OfficeIMO.PowerPoint {
                 run
             );
             Shape.TextBody!.AppendChild(paragraph);
+            MarkModified();
         }
     }
 }

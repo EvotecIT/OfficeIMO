@@ -88,6 +88,8 @@ namespace OfficeIMO.Excel {
             }
             if (placeFirst) MoveSheetToBeginning(sheetName);
 
+            InvalidateValidationCache();
+
             // As a safety net, clean up any broken/duplicate defined names after sheet changes.
             RepairDefinedNames(save: true);
         }
@@ -143,6 +145,8 @@ namespace OfficeIMO.Excel {
             }
 
             wb.Save();
+
+            InvalidateValidationCache();
         }
 
         /// <summary>
@@ -187,6 +191,8 @@ namespace OfficeIMO.Excel {
                 _workBookPart.DeletePart(part);
             }
             wb.Save();
+
+            InvalidateValidationCache();
         }
     }
 }

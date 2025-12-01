@@ -70,6 +70,31 @@ namespace OfficeIMO.Tests {
             File.Delete(filePath);
         }
 
+        [Fact]
+        public void Test_PowerPointValidationInvalidatesOnSlideEdits() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (var presentation = PowerPointPresentation.Create(filePath)) {
+                var initialErrors = presentation.DocumentValidationErrors;
+                var cachedErrors = presentation.DocumentValidationErrors;
+
+                Assert.Same(initialErrors, cachedErrors);
+
+                var slide = presentation.Slides.First();
+                slide.AddTextBox("Updated content");
+
+                var afterTextBoxErrors = presentation.DocumentValidationErrors;
+                Assert.NotSame(initialErrors, afterTextBoxErrors);
+
+                slide.BackgroundColor = "FF00FF";
+
+                var afterBackgroundErrors = presentation.DocumentValidationErrors;
+                Assert.NotSame(afterTextBoxErrors, afterBackgroundErrors);
+            }
+
+            File.Delete(filePath);
+        }
+
         private static string FormatValidationErrors(IEnumerable<ValidationErrorInfo> errors) {
             return string.Join(Environment.NewLine + Environment.NewLine,
                 errors.Select(error =>
