@@ -136,7 +136,7 @@ public class ExcelCoerceValueHelper
         {
             new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.Zero),
             (Func<DateTimeOffset, DateTime>)(dto => dto.UtcDateTime),
-            "45293.12783564815",
+            45293.12783564815d,
             "UTC timestamps should serialize to the exact documented OADate representation."
         };
 
@@ -144,7 +144,7 @@ public class ExcelCoerceValueHelper
         {
             new DateTimeOffset(2024, 3, 10, 6, 30, 0, TimeSpan.Zero),
             CreateZoneStrategy(customEastern),
-            "45361.0625",
+            45361.0625d,
             "Local conversion before the US DST jump preserves 01:30 standard time as serial 45361.0625."
         };
 
@@ -152,15 +152,15 @@ public class ExcelCoerceValueHelper
         {
             new DateTimeOffset(2024, 3, 10, 7, 30, 0, TimeSpan.Zero),
             CreateZoneStrategy(customEastern),
-            "45361.145833333336",
-            "Local conversion after the DST gap advances to 03:30 and must emit serial 45361.145833333336."
+            45361.145833333336d,
+            "Local conversion after the DST gap advances to 03:30 and must emit serial 45361.1458333333."
         };
 
         yield return new object[]
         {
             new DateTimeOffset(2024, 11, 3, 5, 30, 0, TimeSpan.Zero),
             CreateZoneStrategy(customEastern),
-            "45599.0625",
+            45599.0625d,
             "During the repeated hour at DST fall-back, 01:30 should serialize to 45599.0625."
         };
 
@@ -168,7 +168,7 @@ public class ExcelCoerceValueHelper
         {
             new DateTimeOffset(2024, 5, 1, 10, 0, 0, TimeSpan.FromHours(2)),
             (Func<DateTimeOffset, DateTime>)(dto => dto.DateTime),
-            "45413.416666666664",
+            45413.416666666664d,
             "Custom strategies that ignore offsets must continue to produce the documented wall-clock serial."
         };
     }
@@ -178,14 +178,18 @@ public class ExcelCoerceValueHelper
     public void Coerce_DateTimeOffset_DocumentsSerialValues(
         DateTimeOffset input,
         Func<DateTimeOffset, DateTime> strategy,
-        string expectedSerial,
+        double expectedSerial,
         string reason)
     {
         var (value, type) = CoerceValueHelper.Coerce(input, s => new CellValue(s), strategy);
 
+        var expectedSerialText = expectedSerial.ToString("G12", CultureInfo.InvariantCulture);
+        var actualSerial = double.Parse(value.Text, CultureInfo.InvariantCulture);
+
         Assert.Equal(CellValues.Number, type);
-        Assert.Equal(expectedSerial, value.Text);
-        Assert.True(expectedSerial == value.Text, reason);
+        Assert.Equal(expectedSerialText, actualSerial.ToString("G12", CultureInfo.InvariantCulture));
+        Assert.Equal(expectedSerial, actualSerial);
+        Assert.True(Math.Abs(expectedSerial - actualSerial) < 1e-9, reason);
     }
 
     private static Func<DateTimeOffset, DateTime> CreateZoneStrategy(TimeZoneInfo zone) =>
