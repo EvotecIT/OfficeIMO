@@ -28,6 +28,12 @@ namespace OfficeIMO.Excel {
         private bool _sheetCacheDirty = true;
 
         /// <summary>
+        /// Enables caching of <see cref="ExcelSheet"/> wrappers for faster repeat access at the cost of higher memory usage.
+        /// Set to <see langword="false"/> to avoid holding references to every sheet in very large workbooks.
+        /// </summary>
+        public bool SheetCachingEnabled { get; set; } = true;
+
+        /// <summary>
         /// Controls how workbook-level table name uniqueness is compared.
         /// Defaults to <see cref="StringComparer.OrdinalIgnoreCase"/>. Changing this will reset the
         /// internal cache and rebuild it on next use. Set it once before adding tables for predictable behavior.
@@ -74,30 +80,43 @@ namespace OfficeIMO.Excel {
             _cachedSheets = null;
         }
 
-        private void RebuildSheetCacheLocked()
+        private List<Sheet> ReadSheetElements()
         {
-            List<ExcelSheet> listExcel = new List<ExcelSheet>();
-            List<Sheet>? elements = null;
             var sheets = _spreadSheetDocument?.WorkbookPart?.Workbook.Sheets;
-            if (sheets != null) {
-                elements = sheets.OfType<Sheet>().ToList();
-                foreach (Sheet s in elements) {
-                    listExcel.Add(new ExcelSheet(this, _spreadSheetDocument!, s));
-                }
+            if (sheets == null) {
+                return new List<Sheet>();
             }
 
+            return sheets.OfType<Sheet>().ToList();
+        }
+
+        private void UpdateSheetIdCache(List<Sheet> elements)
+        {
             id.Clear();
             id.Add(0);
-            if (elements != null) {
-                foreach (Sheet s in elements) {
-                    var sheetId = s.SheetId;
-                    if (sheetId != null && !id.Contains(sheetId)) {
-                        id.Add(sheetId);
-                    }
+            foreach (Sheet s in elements) {
+                var sheetId = s.SheetId;
+                if (sheetId != null && !id.Contains(sheetId)) {
+                    id.Add(sheetId);
                 }
             }
+        }
 
-            _cachedSheets = listExcel;
+        private List<ExcelSheet> MaterializeSheets(List<Sheet> elements)
+        {
+            List<ExcelSheet> listExcel = new List<ExcelSheet>(elements.Count);
+            foreach (Sheet s in elements) {
+                listExcel.Add(new ExcelSheet(this, _spreadSheetDocument!, s));
+            }
+
+            return listExcel;
+        }
+
+        private void RebuildSheetCacheLocked()
+        {
+            var elements = ReadSheetElements();
+            UpdateSheetIdCache(elements);
+            _cachedSheets = SheetCachingEnabled ? MaterializeSheets(elements) : null;
             _sheetCacheDirty = false;
         }
 
@@ -129,7 +148,14 @@ namespace OfficeIMO.Excel {
             return new List<ExcelSheet>(_cachedSheets);
         }
 
-        internal void InvalidateSheetCacheForTests()
+        private List<ExcelSheet> BuildSheetsWithoutCaching()
+        {
+            var elements = ReadSheetElements();
+            UpdateSheetIdCache(elements);
+            return MaterializeSheets(elements);
+        }
+
+        internal void InvalidateSheetCache()
         {
             Locking.ExecuteWrite(EnsureLock(), MarkSheetCacheDirty);
         }
@@ -141,8 +167,30 @@ namespace OfficeIMO.Excel {
             get {
                 var lck = EnsureLock();
                 if (Locking.IsNoLock || lck is null) {
-                    EnsureSheetCacheInitialized(lck);
-                    return CloneSheetCache();
+                    if (SheetCachingEnabled) {
+                        EnsureSheetCacheInitialized(lck);
+                        return CloneSheetCache();
+                    }
+
+                    return BuildSheetsWithoutCaching();
+                }
+
+                if (!SheetCachingEnabled) {
+                    lck.EnterReadLock();
+                    try {
+                        return BuildSheetsWithoutCaching();
+                    } finally {
+                        lck.ExitReadLock();
+                    }
+                }
+
+                lck.EnterReadLock();
+                try {
+                    if (!(_sheetCacheDirty || _cachedSheets == null)) {
+                        return CloneSheetCache();
+                    }
+                } finally {
+                    lck.ExitReadLock();
                 }
 
                 lck.EnterUpgradeableReadLock();

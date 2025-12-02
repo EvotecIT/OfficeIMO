@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
             document.AddWorkSheet("SheetB");
             document.AddWorkSheet("SheetC");
 
-            document.InvalidateSheetCacheForTests();
+            document.InvalidateSheetCache();
             ExcelSheet.ResetInstanceCountForTests();
 
             var initial = document.Sheets;
@@ -70,11 +70,12 @@ namespace OfficeIMO.Tests {
 
             int cachedInstances = ExcelSheet.InstancesCreatedForTests;
 
-            document.InvalidateSheetCacheForTests();
+            document.InvalidateSheetCache();
             ExcelSheet.ResetInstanceCountForTests();
 
+            document.SheetCachingEnabled = false;
+
             for (int i = 0; i < 100; i++) {
-                document.InvalidateSheetCacheForTests();
                 var sheets = document.Sheets;
                 Assert.Equal(sheetCount, sheets.Count);
             }
