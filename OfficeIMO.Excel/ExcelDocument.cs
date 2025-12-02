@@ -24,6 +24,14 @@ namespace OfficeIMO.Excel {
         // Workbook-level cache of table names for fast uniqueness checks
         private HashSet<string>? _tableNameCache;
         private System.Collections.Generic.IEqualityComparer<string> _tableNameComparer = System.StringComparer.OrdinalIgnoreCase;
+        private List<ExcelSheet>? _cachedSheets;
+        private bool _sheetCacheDirty = true;
+
+        /// <summary>
+        /// Enables caching of <see cref="ExcelSheet"/> wrappers for faster repeat access at the cost of higher memory usage.
+        /// Set to <see langword="false"/> to avoid holding references to every sheet in very large workbooks.
+        /// </summary>
+        public bool SheetCachingEnabled { get; set; } = true;
 
         /// <summary>
         /// Controls how workbook-level table name uniqueness is compared.
@@ -66,38 +74,135 @@ namespace OfficeIMO.Excel {
         internal ReaderWriterLockSlim EnsureLock()
             => _lock ??= new ReaderWriterLockSlim(); // default: NoRecursion
 
+        private void MarkSheetCacheDirty()
+        {
+            _sheetCacheDirty = true;
+            _cachedSheets = null;
+        }
+
+        private List<Sheet> ReadSheetElements()
+        {
+            var sheets = _spreadSheetDocument?.WorkbookPart?.Workbook.Sheets;
+            if (sheets == null) {
+                return new List<Sheet>();
+            }
+
+            return sheets.OfType<Sheet>().ToList();
+        }
+
+        private void UpdateSheetIdCache(List<Sheet> elements)
+        {
+            id.Clear();
+            id.Add(0);
+            foreach (Sheet s in elements) {
+                var sheetId = s.SheetId;
+                if (sheetId != null && !id.Contains(sheetId)) {
+                    id.Add(sheetId);
+                }
+            }
+        }
+
+        private List<ExcelSheet> MaterializeSheets(List<Sheet> elements)
+        {
+            List<ExcelSheet> listExcel = new List<ExcelSheet>(elements.Count);
+            foreach (Sheet s in elements) {
+                listExcel.Add(new ExcelSheet(this, _spreadSheetDocument!, s));
+            }
+
+            return listExcel;
+        }
+
+        private void RebuildSheetCacheLocked()
+        {
+            var elements = ReadSheetElements();
+            UpdateSheetIdCache(elements);
+            _cachedSheets = SheetCachingEnabled ? MaterializeSheets(elements) : null;
+            _sheetCacheDirty = false;
+        }
+
+        private void EnsureSheetCacheInitialized(ReaderWriterLockSlim? lck)
+        {
+            if (!(_sheetCacheDirty || _cachedSheets == null)) return;
+
+            if (Locking.IsNoLock || lck is null || lck.IsWriteLockHeld) {
+                RebuildSheetCacheLocked();
+                return;
+            }
+
+            lck.EnterWriteLock();
+            try {
+                if (_sheetCacheDirty || _cachedSheets == null) {
+                    RebuildSheetCacheLocked();
+                }
+            } finally {
+                lck.ExitWriteLock();
+            }
+        }
+
+        private List<ExcelSheet> CloneSheetCache()
+        {
+            if (_cachedSheets == null) {
+                return new List<ExcelSheet>();
+            }
+
+            return new List<ExcelSheet>(_cachedSheets);
+        }
+
+        private List<ExcelSheet> BuildSheetsWithoutCaching()
+        {
+            var elements = ReadSheetElements();
+            UpdateSheetIdCache(elements);
+            return MaterializeSheets(elements);
+        }
+
+        internal void InvalidateSheetCache()
+        {
+            Locking.ExecuteWrite(EnsureLock(), MarkSheetCacheDirty);
+        }
+
         /// <summary>
         /// Gets a list of worksheets contained in the document.
         /// </summary>
         public List<ExcelSheet> Sheets {
             get {
-                // Since we need to both read and write, we'll use a write lock for the entire operation
-                // to avoid nested lock issues
-                return Locking.ExecuteWrite(EnsureLock(), () => {
-                    List<ExcelSheet> listExcel = new List<ExcelSheet>();
-                    List<Sheet>? elements = null;
-                    var sheets = _spreadSheetDocument?.WorkbookPart?.Workbook.Sheets;
-                    if (sheets != null) {
-                        elements = sheets.OfType<Sheet>().ToList();
-                        foreach (Sheet s in elements) {
-                            listExcel.Add(new ExcelSheet(this, _spreadSheetDocument!, s));
-                        }
+                var lck = EnsureLock();
+                if (Locking.IsNoLock || lck is null) {
+                    if (SheetCachingEnabled) {
+                        EnsureSheetCacheInitialized(lck);
+                        return CloneSheetCache();
                     }
 
-                    // Update the id list
-                    id.Clear();
-                    id.Add(0);
-                    if (elements != null) {
-                        foreach (Sheet s in elements) {
-                            var sheetId = s.SheetId;
-                            if (sheetId != null && !id.Contains(sheetId)) {
-                                id.Add(sheetId);
-                            }
-                        }
+                    return BuildSheetsWithoutCaching();
+                }
+
+                if (!SheetCachingEnabled) {
+                    lck.EnterReadLock();
+                    try {
+                        return BuildSheetsWithoutCaching();
+                    } finally {
+                        lck.ExitReadLock();
+                    }
+                }
+
+                lck.EnterReadLock();
+                try {
+                    if (!(_sheetCacheDirty || _cachedSheets == null)) {
+                        return CloneSheetCache();
+                    }
+                } finally {
+                    lck.ExitReadLock();
+                }
+
+                lck.EnterUpgradeableReadLock();
+                try {
+                    if (_sheetCacheDirty || _cachedSheets == null) {
+                        EnsureSheetCacheInitialized(lck);
                     }
 
-                    return listExcel;
-                });
+                    return CloneSheetCache();
+                } finally {
+                    lck.ExitUpgradeableReadLock();
+                }
             }
         }
 
@@ -682,8 +787,10 @@ namespace OfficeIMO.Excel {
         /// <returns>Created <see cref="ExcelSheet"/> instance.</returns>
         public ExcelSheet AddWorkSheet(string workSheetName, SheetNameValidationMode validationMode) {
             return Locking.ExecuteWrite(EnsureLock(), () => {
+                EnsureSheetCacheInitialized(_lock);
                 string name = ValidateOrSanitizeSheetName(workSheetName, validationMode);
                 ExcelSheet excelSheet = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, name);
+                MarkSheetCacheDirty();
                 return excelSheet;
             });
         }
