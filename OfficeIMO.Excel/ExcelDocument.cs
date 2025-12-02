@@ -639,7 +639,18 @@ namespace OfficeIMO.Excel {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
-            var bytes = File.ReadAllBytes(filePath);
+            var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
+
+            // Try direct file streaming first for better memory efficiency and avoid large intermediate buffers.
+            // Packages with content type issues may require normalization, so fall back to buffered reads on failures.
+            try {
+                var spreadSheetDocument = SpreadsheetDocument.Open(filePath, !readOnly, effectiveOpenSettings);
+                return CreateDocument(spreadSheetDocument, filePath);
+            } catch (Exception ex) when (ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException) {
+                log?.Invoke($"Failed to open '{filePath}' directly. Falling back to normalized stream. Inner exception: {ex.Message}", ex);
+            }
+
+            var bytes = ReadAllBytesCompatAsync(filePath, CancellationToken.None).GetAwaiter().GetResult();
             return LoadFromByteArray(bytes, readOnly, autoSave, filePath, log, openSettings, preferFilePathOnFallback: true);
         }
 
