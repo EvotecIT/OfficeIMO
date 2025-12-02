@@ -1,7 +1,9 @@
+using System;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
@@ -56,7 +58,7 @@ namespace OfficeIMO.Excel {
             }
 
             // Use the batch CellValues path with planner + execution policy
-            SetCellValues(cells, null);
+            CellValues(cells, null);
         }
 
         private static void FlattenObject(object? value, string? prefix, IDictionary<string, object?> result) {
@@ -125,52 +127,17 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Sets multiple cell values in parallel without mutating the DOM concurrently.
-        /// Cell data is prepared in parallel, then applied sequentially under write lock
-        /// to prevent XML corruption and ensure thread safety.
+        /// Obsolete. Use <see cref="CellValues(IEnumerable{ValueTuple{int, int, object}}, ExecutionMode?, System.Threading.CancellationToken)"/>
+        /// with <see cref="ExecutionMode.Parallel"/> instead.
         /// </summary>
         /// <param name="cells">Collection of cell coordinates and values.</param>
+        [Obsolete("Use CellValues(..., ExecutionMode.Parallel) instead.")]
         public void CellValuesParallel(IEnumerable<(int Row, int Column, object Value)> cells) {
             if (cells == null) {
                 throw new ArgumentNullException(nameof(cells));
             }
 
-            var cellList = cells as IList<(int Row, int Column, object Value)> ?? cells.ToList();
-            int cellCount = cellList.Count;
-            bool monitor = cellCount > 5000;
-            Stopwatch? prepWatch = null;
-            Stopwatch? applyWatch = null;
-            if (monitor) {
-                prepWatch = Stopwatch.StartNew();
-            }
-
-            var bag = new ConcurrentBag<CellUpdate>();
-
-            Parallel.ForEach(cellList, cell => {
-                bag.Add(PrepareCellUpdate(cell.Row, cell.Column, cell.Value));
-            });
-
-            if (monitor && prepWatch != null) {
-                prepWatch.Stop();
-                applyWatch = Stopwatch.StartNew();
-            }
-
-            WriteLock(() => {
-                _isBatchOperation = true;
-                try {
-                    foreach (var update in bag) {
-                        ApplyCellUpdate(update);
-                    }
-                    ValidateWorksheetXml();
-                } finally {
-                    _isBatchOperation = false;
-                }
-            });
-
-            if (monitor && applyWatch != null && prepWatch != null) {
-                applyWatch.Stop();
-                Debug.WriteLine($"CellValuesParallel: prepared {cellCount} cells in {prepWatch.ElapsedMilliseconds} ms, applied in {applyWatch.ElapsedMilliseconds} ms.");
-            }
+            CellValues(cells, ExecutionMode.Parallel);
         }
 
         private CellUpdate PrepareCellUpdate(int row, int column, object value) {

@@ -23,12 +23,12 @@ namespace OfficeIMO.Examples.Excel {
                 .SelectMany(row => Enumerable.Range(1, 3).Select(col => (row, col, (object)$"R{row}C{col}")))
                 .ToList();
 
-            sheet.CellValuesParallel(cells);
+            sheet.CellValues(cells, ExecutionMode.Parallel);
 
             // Switch to disabled mode for throughput-sensitive sections.
             document.Execution.WorksheetValidation = WorksheetValidationMode.Disabled;
             var fastCells = Enumerable.Range(21, 20).Select(i => (i, 1, (object)$"Fast {i}"));
-            sheet.CellValuesParallel(fastCells);
+            sheet.CellValues(fastCells, ExecutionMode.Parallel);
 
             document.Save(openExcel);
         }
