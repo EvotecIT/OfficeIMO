@@ -215,6 +215,23 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(names, n => n.Equals("Concurrent", StringComparison.OrdinalIgnoreCase));
             }
         }
+
+        [Fact]
+        public void TableNameComparer_CannotChangeAfterCacheInitialization() {
+            string filePath = Path.Combine(_directoryWithFiles, "Table.Names.ComparerFreeze.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.TableNameComparer = StringComparer.Ordinal;
+
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Col1");
+                sheet.CellValue(2, 1, "A");
+                sheet.AddTable("A1:A2", hasHeader: true, name: "Name", TableStyle.TableStyleMedium9);
+
+                Assert.Throws<InvalidOperationException>(() => document.TableNameComparer = StringComparer.OrdinalIgnoreCase);
+                document.Save();
+            }
+        }
     }
 }
 

@@ -24,6 +24,7 @@ namespace OfficeIMO.Excel {
         // Workbook-level cache of table names for fast uniqueness checks
         private HashSet<string>? _tableNameCache;
         private System.Collections.Generic.IEqualityComparer<string> _tableNameComparer = System.StringComparer.OrdinalIgnoreCase;
+        private int _tableNameComparerFrozen;
 
         /// <summary>
         /// Controls how workbook-level table name uniqueness is compared.
@@ -32,13 +33,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public System.Collections.Generic.IEqualityComparer<string> TableNameComparer {
             get => _tableNameComparer;
-            set {
-                if (value == null) throw new System.ArgumentNullException(nameof(value));
-                if (!object.ReferenceEquals(_tableNameComparer, value)) {
-                    _tableNameComparer = value;
-                    _tableNameCache = null; // rebuild lazily on next use with the new comparer
-                }
-            }
+            set => Locking.ExecuteWrite(EnsureLock(), () => UpdateTableNameComparer(value));
         }
 
         /// <summary>
@@ -196,26 +191,41 @@ namespace OfficeIMO.Excel {
             // Fast path without locking
             if (_tableNameCache != null) return _tableNameCache;
 
-            // Always initialize the cache under the document lock when we don't already own it
-            if (!Locking.IsNoLock && (_lock == null || !_lock.IsWriteLockHeld)) {
-                return Locking.ExecuteWrite(EnsureLock(), InitializeTableNameCacheWithInterlocked);
+            // Initialize under the document lock when available; otherwise rely on interlocked initialization
+            if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld)) {
+                return InitializeTableNameCacheWithInterlocked();
             }
 
-            // When running without locks (or already under a write lock), rely on interlocked initialization
-            return InitializeTableNameCacheWithInterlocked();
+            return Locking.ExecuteWrite(EnsureLock(), InitializeTableNameCacheWithInterlocked);
         }
 
         private HashSet<string> InitializeTableNameCacheWithInterlocked() {
             var existing = _tableNameCache;
             if (existing != null) return existing;
 
-            var built = BuildTableNameCache();
+            var built = BuildTableNameCache(_tableNameComparer);
             var original = Interlocked.CompareExchange(ref _tableNameCache, built, null);
-            return original ?? built;
+            var winner = original ?? built;
+            Volatile.Write(ref _tableNameComparerFrozen, 1);
+            return winner;
         }
 
-        private HashSet<string> BuildTableNameCache() {
-            var set = new HashSet<string>(_tableNameComparer);
+        private void UpdateTableNameComparer(System.Collections.Generic.IEqualityComparer<string> value) {
+            if (value == null) throw new System.ArgumentNullException(nameof(value));
+
+            if (Volatile.Read(ref _tableNameComparerFrozen) == 1 && !object.ReferenceEquals(_tableNameComparer, value)) {
+                throw new System.InvalidOperationException("TableNameComparer cannot be changed after table names have been cached. Configure it before adding tables.");
+            }
+
+            if (object.ReferenceEquals(_tableNameComparer, value)) return;
+
+            _tableNameComparer = value;
+            _tableNameCache = BuildTableNameCache(value);
+            Volatile.Write(ref _tableNameComparerFrozen, 1);
+        }
+
+        private HashSet<string> BuildTableNameCache(System.Collections.Generic.IEqualityComparer<string> comparer) {
+            var set = new HashSet<string>(comparer);
             var wb = _spreadSheetDocument.WorkbookPart;
             if (wb != null) {
                 foreach (var ws in wb.WorksheetParts) {
