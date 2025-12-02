@@ -536,6 +536,8 @@ namespace OfficeIMO.Excel {
 
             var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
 
+            // Try direct file streaming first for better memory efficiency and avoid large intermediate buffers.
+            // Packages with content type issues may require normalization, so fall back to buffered reads on failures.
             try {
                 var spreadSheetDocument = SpreadsheetDocument.Open(filePath, !readOnly, effectiveOpenSettings);
                 return CreateDocument(spreadSheetDocument, filePath);

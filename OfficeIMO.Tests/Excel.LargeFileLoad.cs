@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests
     public partial class Excel
     {
         [Fact]
-        public void Load_LargeWorkbook_StreamsWithoutLargeArrayAllocation()
+        public void Load_LargeWorkbook_UsesStreamingToAvoidLargeAllocations()
         {
             string filePath = Path.Combine(_directoryWithFiles, $"LargeLoad_{Guid.NewGuid():N}.xlsx");
 
