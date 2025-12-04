@@ -22,6 +22,7 @@ namespace OfficeIMO.Word {
         /// <param name="text">The text to be added to the paragraph.</param>
         /// <returns>The paragraph containing the new text.</returns>
         public WordParagraph AddText(string text) {
+            _document.InvalidateValidationCache();
             WordParagraph wordParagraph = ConvertToTextWithBreaks(text);
             //WordParagraph wordParagraph = new WordParagraph(this._document, this._paragraph, new Run());
             //wordParagraph.Text = text;

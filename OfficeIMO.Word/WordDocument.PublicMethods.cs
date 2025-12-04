@@ -13,6 +13,7 @@ namespace OfficeIMO.Word {
         /// <param name="wordParagraph">Optional paragraph to append. When <c>null</c> a new paragraph is created.</param>
         /// <returns>The added <see cref="WordParagraph"/> instance.</returns>
         public WordParagraph AddParagraph(WordParagraph? wordParagraph = null) {
+            InvalidateValidationCache();
             if (wordParagraph is null) {
                 // we create paragraph (and within that add it to document)
                 wordParagraph = new WordParagraph(this, newParagraph: true, newRun: false);
@@ -43,6 +44,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns>The created <see cref="WordParagraph"/> representing the page break.</returns>
         public WordParagraph AddPageBreak() {
+            InvalidateValidationCache();
             WordParagraph newWordParagraph = new WordParagraph {
                 _run = new Run(new Break() { Type = BreakValues.Page }),
                 _document = this
@@ -68,6 +70,7 @@ namespace OfficeIMO.Word {
         /// <param name="breakType">Type of break to insert.</param>
         /// <returns>The created <see cref="WordParagraph"/> containing the break.</returns>
         public WordParagraph AddBreak(BreakValues? breakType = null) {
+            InvalidateValidationCache();
             breakType ??= BreakValues.Page;
             WordParagraph newWordParagraph = new WordParagraph {
                 _run = new Run(new Break() { Type = breakType }),
