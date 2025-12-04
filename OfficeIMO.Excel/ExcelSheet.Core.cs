@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel {
                 return _sheet.Name?.Value ?? string.Empty;
             }
             set {
+                _excelDocument.InvalidateValidationCache();
                 _sheet.Name = value;
             }
         }
@@ -314,9 +315,13 @@ namespace OfficeIMO.Excel {
             // If we're already in a batch operation or in a NoLock scope,
             // just execute the action directly
             if (_isBatchOperation || Locking.IsNoLock) {
+                _excelDocument.InvalidateValidationCache();
                 action();
             } else {
-                WriteLock(action);
+                WriteLock(() => {
+                    _excelDocument.InvalidateValidationCache();
+                    action();
+                });
             }
         }
 
