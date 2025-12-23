@@ -33,13 +33,16 @@
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <LangVersion>Latest</LangVersion>
         <Nullable>enable</Nullable>
+        <EnableTrimmingPolyfills>true</EnableTrimmingPolyfills>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
+    <PropertyGroup
+        Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
         <WarningLevel>4</WarningLevel>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0|AnyCPU'">
+    <PropertyGroup
+        Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0|AnyCPU'">
         <WarningLevel>4</WarningLevel>
     </PropertyGroup>
 
@@ -80,6 +83,7 @@
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Word.Html" />
+        <InternalsVisibleTo Include="OfficeIMO.Word.Pdf" />
     </ItemGroup>
 
 </Project>
