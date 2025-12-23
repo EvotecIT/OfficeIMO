@@ -1,7 +1,6 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.Reflection;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -14,14 +13,12 @@ namespace OfficeIMO.Word.Html {
             if (ordered) {
                 if (options.ContinueNumbering && _orderedListNumberId.HasValue && listStack.Count == 0 && cell == null && headerFooter == null) {
                     list = new WordList(doc);
-                    var field = typeof(WordList).GetField("_numberId", BindingFlags.NonPublic | BindingFlags.Instance);
-                    field?.SetValue(list, _orderedListNumberId.Value);
+                    list.NumberId = _orderedListNumberId.Value;
                 } else {
                     // Use standard numbered list style for ordered lists in all contexts
                     list = cell != null ? cell.AddList(WordListStyle.Numbered) : headerFooter != null ? headerFooter.AddList(WordListStyle.Numbered) : doc.AddListNumbered();
                     if (options.ContinueNumbering && listStack.Count == 0 && cell == null && headerFooter == null) {
-                        var field = typeof(WordList).GetField("_numberId", BindingFlags.NonPublic | BindingFlags.Instance);
-                        _orderedListNumberId = (int?)field?.GetValue(list);
+                        _orderedListNumberId = list.NumberId;
                     }
                 }
                 var level = list.Numbering!.Levels[0];
