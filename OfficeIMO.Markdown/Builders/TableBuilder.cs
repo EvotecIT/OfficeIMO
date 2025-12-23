@@ -1,5 +1,6 @@
-namespace OfficeIMO.Markdown;
+using System.Diagnostics.CodeAnalysis;
 
+namespace OfficeIMO.Markdown;
 /// <summary>
 /// Builder for pipe tables.
 /// </summary>
@@ -44,12 +45,14 @@ public sealed class TableBuilder {
     /// - a dictionary → two columns Key/Value,
     /// - a POCO → two columns Property/Value.
     /// </summary>
+    [RequiresUnreferencedCode("Uses reflection over arbitrary runtime types. For AOT-safe usage, use FromSequenceAuto/FromObject or FromSequence with selectors.")]
     public TableBuilder FromAny(object? data) { return FromAny(data, _defaultOptions); }
 
     /// <summary>
     /// Populates the table from arbitrary data with options (include/exclude/order).
     /// </summary>
-    public TableBuilder FromAny(object? data, TableFromOptions? options) {
+    [RequiresUnreferencedCode("Uses reflection over arbitrary runtime types. For AOT-safe usage, use FromSequenceAuto/FromObject or FromSequence with selectors.")]
+    public TableBuilder FromAny(object? data, TableFromOptions? options) {      
         if (data is null) return this;
         if (data is string || data.GetType().IsPrimitive) {
             if (_table.Headers.Count == 0) _table.Headers.Add("Value");
@@ -136,6 +139,68 @@ public sealed class TableBuilder {
         var opts = new TableFromOptions();
         configure(opts);
         return FromAny(data, opts);
+    }
+
+    /// <summary>
+    /// Populates the table from a sequence of objects using public readable properties.
+    /// </summary>
+    public TableBuilder FromSequenceAuto<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(IEnumerable<T> items, TableFromOptions? options = null) {
+        if (items == null) return this;
+        var props = SelectProperties(typeof(T), options);
+        if (_table.Headers.Count == 0) _table.Headers.AddRange(props.Select(p => Rename(p.Name, options)));
+
+        foreach (var item in items) {
+            if (_table.Rows.Count >= MaxRows) break;
+            if (item == null) {
+                _table.Rows.Add(props.Select(_ => string.Empty).ToArray());
+                continue;
+            }
+            var row = props.Select(p => FormatValue(p.GetValue(item, null), p.Name, options)).ToArray();
+            _table.Rows.Add(row);
+        }
+
+        if (options?.Alignments != null && options.Alignments.Count > 0) {
+            _table.Alignments.Clear();
+            _table.Alignments.AddRange(options.Alignments);
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Populates the table from a single object using public readable properties.
+    /// </summary>
+    public TableBuilder FromObject<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(T data, TableFromOptions? options = null) {
+        if (data == null) return this;
+        var props = SelectProperties(typeof(T), options);
+        bool wide = options != null && (
+            (options.Include != null && options.Include.Count > 0) ||
+            (options.Order != null && options.Order.Count > 0) ||
+            (options.HeaderRenames != null && options.HeaderRenames.Count > 0) ||
+            (options.Formatters != null && options.Formatters.Count > 0)
+        );
+        if (wide) {
+            if (_table.Headers.Count == 0) _table.Headers.AddRange(props.Select(p => Rename(p.Name, options)));
+            System.Reflection.PropertyInfo[] limitedProps = props;
+            if (props.Length > MaxColumns) {
+                var tmp = new System.Reflection.PropertyInfo[MaxColumns];
+                System.Array.Copy(props, 0, tmp, 0, MaxColumns);
+                limitedProps = tmp;
+                _table.SkippedColumnCount += props.Length - MaxColumns;
+            }
+            var row = new List<string>(limitedProps.Length);
+            foreach (var p in limitedProps) row.Add(FormatValue(p.GetValue(data, null), p.Name, options));
+            _table.Rows.Add(row);
+        } else {
+            if (_table.Headers.Count == 0) _table.Headers.AddRange(new[] { "Property", "Value" });
+            foreach (var p in props) {
+                _table.Rows.Add(new[] { Rename(p.Name, options), FormatValue(p.GetValue(data, null), p.Name, options) });
+            }
+        }
+        if (options?.Alignments != null && options.Alignments.Count > 0) {
+            _table.Alignments.Clear();
+            _table.Alignments.AddRange(options.Alignments);
+        }
+        return this;
     }
 
     /// <summary>
@@ -402,14 +467,14 @@ public sealed class TableBuilder {
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, (System.Reflection.PropertyInfo? Key, System.Reflection.PropertyInfo? Value)> _kvpAccessors = new();
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Reflection.PropertyInfo[]> _propsCache = new();
-    private static System.Reflection.PropertyInfo[] GetReadableProperties(System.Type t) {
+    private static System.Reflection.PropertyInfo[] GetReadableProperties([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] System.Type t) {
         return _propsCache.GetOrAdd(t, static tArg =>
             tArg.GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)
                 .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
                 .ToArray());
     }
 
-    private static System.Reflection.PropertyInfo[] SelectProperties(System.Type t, TableFromOptions? options) {
+    private static System.Reflection.PropertyInfo[] SelectProperties([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] System.Type t, TableFromOptions? options) {
         var props = GetReadableProperties(t);
         if (options == null) return props;
         var list = new List<System.Reflection.PropertyInfo>(props);

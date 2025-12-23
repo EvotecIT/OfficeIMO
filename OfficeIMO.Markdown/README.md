@@ -38,6 +38,21 @@ Highlights
 - Prism highlighting: CDN link or offline inline; manifest for safe dedupe across fragments.
 - Reader (experimental): parse Markdown back into the typed object model you can traverse.
 
+### AOT / Trimming notes
+
+- `FromAny(...)` uses reflection for arbitrary runtime types (handy for PowerShell/Expando/etc.).
+- For NativeAOT/trimming, prefer typed overloads or explicit selectors.
+
+```csharp
+var doc = MarkdownDoc.Create();
+// AOT-safe: typed sequence
+doc.Table(t => t.FromSequenceAuto(people));
+
+// AOT-safe: typed object -> front matter
+public sealed class BuildInfo { public string Version { get; set; } = "1.0"; }
+doc.FrontMatter(FrontMatterBlock.FromObject(new BuildInfo()));
+```
+
 ## Supported Markdown
 
 Blocks
