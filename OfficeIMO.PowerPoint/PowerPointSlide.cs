@@ -1,3 +1,4 @@
+using System.Globalization;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -387,18 +388,20 @@ namespace OfficeIMO.PowerPoint {
 
             A.TableGrid grid = new();
             // Match template column widths (~2103120 EMU) and include a16:colId metadata
+            const uint baseColId = 20000;
             for (int c = 0; c < columns; c++) {
                 var gridCol = new A.GridColumn { Width = 2103120L };
-                gridCol.Append(new A.ExtensionList(
-                    new A.Extension {
-                        Uri = "{9D8B030D-6E8A-4147-A177-3AD203B41FA5}",
-                        InnerXml = "<a16:colId xmlns:a16=\"http://schemas.microsoft.com/office/drawing/2014/main\" val=\"" + Guid.NewGuid().ToString("N") + "\"/>"
-                    }));
+                uint colIdValue = baseColId + (uint)c;
+                var colIdElement = CreateA16ExtensionElement("colId", colIdValue);
+                var ext = new A.Extension { Uri = "{9D8B030D-6E8A-4147-A177-3AD203B41FA5}" };
+                ext.Append(colIdElement);
+                gridCol.Append(new A.ExtensionList(ext));
                 grid.Append(gridCol);
             }
 
             table.Append(grid);
 
+            const uint baseRowId = 10000;
             for (int r = 0; r < rows; r++) {
                 A.TableRow row = new() { Height = 370840L };
                 for (int c = 0; c < columns; c++) {
@@ -409,6 +412,12 @@ namespace OfficeIMO.PowerPoint {
 
                     row.Append(cell);
                 }
+
+                uint rowIdValue = baseRowId + (uint)r;
+                var rowIdElement = CreateA16ExtensionElement("rowId", rowIdValue);
+                var rowExt = new A.Extension { Uri = "{0D108BD9-81ED-4DB2-BD59-A6C34878D82A}" };
+                rowExt.Append(rowIdElement);
+                row.Append(new A.ExtensionList(rowExt));
 
                 table.Append(row);
             }
@@ -475,6 +484,14 @@ namespace OfficeIMO.PowerPoint {
             PowerPointChart chart = new(frame);
             _shapes.Add(chart);
             return chart;
+        }
+
+        private static OpenXmlUnknownElement CreateA16ExtensionElement(string localName, uint value) {
+            const string a16Namespace = "http://schemas.microsoft.com/office/drawing/2014/main";
+            var element = new OpenXmlUnknownElement("a16", localName, a16Namespace);
+            element.AddNamespaceDeclaration("a16", a16Namespace);
+            element.SetAttribute(new OpenXmlAttribute("val", string.Empty, value.ToString(CultureInfo.InvariantCulture)));
+            return element;
         }
 
         private static byte[] TemplateChartWorkbookBytes() {
