@@ -24,6 +24,14 @@ namespace OfficeIMO.PowerPoint {
         private const int DefaultRestoredTopSize = 94660;
         private const string DefaultTableStyleGuid = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}";
         private const string DefaultDocumentAuthor = "OfficeIMO";
+        private static readonly Lazy<byte[]> ChartStyle251Bytes = new(() =>
+            LoadEmbeddedResource("OfficeIMO.PowerPoint.Resources.chart-style-251.xml"));
+        private static readonly Lazy<byte[]> ChartColorStyle10Bytes = new(() =>
+            LoadEmbeddedResource("OfficeIMO.PowerPoint.Resources.chart-colors-10.xml"));
+        private static readonly Lazy<byte[]> ChartTemplateBarBytes = new(() =>
+            LoadEmbeddedResource("OfficeIMO.PowerPoint.Resources.chart-template-bar.xml"));
+        private static readonly Lazy<byte[]> ChartWorkbookBarBytes = new(() =>
+            LoadEmbeddedResource("OfficeIMO.PowerPoint.Resources.chart-workbook-bar.xlsx"));
 
         public static PresentationDocument CreatePresentation(string filepath) {
             // Create a presentation at a specified file path. The presentation document type is pptx by default.
@@ -88,26 +96,12 @@ namespace OfficeIMO.PowerPoint {
             using var stream = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
             using var archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true);
 
-            // Map old -> new
-            var rebase = new (string oldName, string newName, string contentType)[] {
-                ("ppt/slides/charts/chart1.xml", "ppt/charts/chart1.xml", "application/vnd.openxmlformats-officedocument.drawingml.chart+xml"),
-                ("ppt/slides/charts/chart2.xml", "ppt/charts/chart2.xml", "application/vnd.openxmlformats-officedocument.drawingml.chart+xml"),
-                ("ppt/slides/charts/style.xml", "ppt/charts/style1.xml", "application/vnd.ms-office.chartstyle+xml"),
-                ("ppt/slides/charts/style2.xml", "ppt/charts/style2.xml", "application/vnd.ms-office.chartstyle+xml"),
-                ("ppt/slides/charts/colors.xml", "ppt/charts/colors1.xml", "application/vnd.ms-office.chartcolorstyle+xml"),
-                ("ppt/slides/charts/colors2.xml", "ppt/charts/colors2.xml", "application/vnd.ms-office.chartcolorstyle+xml"),
-                ("ppt/slides/charts/embeddings/package.bin", "ppt/embeddings/Microsoft_Excel_Worksheet.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
-                ("ppt/slides/charts/embeddings/package2.bin", "ppt/embeddings/Microsoft_Excel_Worksheet1.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
-                ("ppt/slides/charts/_rels/chart1.xml.rels", "ppt/charts/_rels/chart1.xml.rels", "application/vnd.openxmlformats-package.relationships+xml"),
-                ("ppt/slides/charts/_rels/chart2.xml.rels", "ppt/charts/_rels/chart2.xml.rels", "application/vnd.openxmlformats-package.relationships+xml"),
-                ("ppt/media/image.png", "ppt/media/image1.png", "image/png"),
-            };
-
             // Load content types
             var ctEntry = archive.GetEntry("[Content_Types].xml") ?? throw new InvalidOperationException("Missing [Content_Types].xml");
             XDocument ctDoc;
             using (var ctStream = ctEntry.Open()) ctDoc = XDocument.Load(ctStream);
             XNamespace ns = ctDoc.Root!.Name.Namespace;
+            var pathMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             void EnsureOverride(string partName, string contentType) {
                 var ov = ctDoc.Root!.Elements(ns + "Override").FirstOrDefault(e => (string?)e.Attribute("PartName") == partName);
@@ -118,65 +112,149 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            foreach (var (oldName, newName, ct) in rebase) {
-                var oldEntry = archive.GetEntry(oldName);
-                if (oldEntry == null) continue;
+            void RemoveOverride(string partName) {
+                var ov = ctDoc.Root!.Elements(ns + "Override")
+                    .FirstOrDefault(e => (string?)e.Attribute("PartName") == partName);
+                ov?.Remove();
+            }
+
+            string? GetContentTypeForPart(string partName) {
+                if (partName.StartsWith("ppt/charts/chart", StringComparison.OrdinalIgnoreCase)) {
+                    return "application/vnd.openxmlformats-officedocument.drawingml.chart+xml";
+                }
+                if (partName.StartsWith("ppt/charts/style", StringComparison.OrdinalIgnoreCase)) {
+                    return "application/vnd.ms-office.chartstyle+xml";
+                }
+                if (partName.StartsWith("ppt/charts/colors", StringComparison.OrdinalIgnoreCase)) {
+                    return "application/vnd.ms-office.chartcolorstyle+xml";
+                }
+                if (partName.StartsWith("ppt/charts/_rels/", StringComparison.OrdinalIgnoreCase) ||
+                    partName.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)) {
+                    return "application/vnd.openxmlformats-package.relationships+xml";
+                }
+                if (partName.StartsWith("ppt/embeddings/", StringComparison.OrdinalIgnoreCase) &&
+                    partName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase)) {
+                    return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                }
+                if (partName.StartsWith("ppt/media/", StringComparison.OrdinalIgnoreCase) &&
+                    partName.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) {
+                    return "image/png";
+                }
+                return null;
+            }
+
+            void MoveEntry(ZipArchiveEntry entry, string newName) {
+                if (entry.FullName.Equals(newName, StringComparison.OrdinalIgnoreCase)) return;
                 using MemoryStream buffer = new();
-                using (var os = oldEntry.Open()) os.CopyTo(buffer);
+                using (var os = entry.Open()) os.CopyTo(buffer);
                 buffer.Position = 0;
-                oldEntry.Delete();
+                string oldPath = "/" + entry.FullName;
+                string newPath = "/" + newName;
+                entry.Delete();
+                var existing = archive.GetEntry(newName);
+                existing?.Delete();
                 var newEntry = archive.CreateEntry(newName, CompressionLevel.Optimal);
                 using (var target = newEntry.Open()) buffer.CopyTo(target);
-                EnsureOverride("/" + newName, ct);
-
-                if (newName.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)) {
-                    XDocument relDoc;
-                    using (var rs = newEntry.Open()) relDoc = XDocument.Load(rs);
-                    XNamespace relNs = "http://schemas.openxmlformats.org/package/2006/relationships";
-                    foreach (var r in relDoc.Descendants(relNs + "Relationship")) {
-                        var target = (string?)r.Attribute("Target") ?? string.Empty;
-                        target = target.Replace("/ppt/slides/charts/embeddings/package2.bin", "../embeddings/Microsoft_Excel_Worksheet1.xlsx")
-                                       .Replace("/ppt/slides/charts/embeddings/package.bin", "../embeddings/Microsoft_Excel_Worksheet.xlsx")
-                                       .Replace("/ppt/slides/charts/style2.xml", "../charts/style2.xml")
-                                       .Replace("/ppt/slides/charts/style.xml", "../charts/style1.xml")
-                                       .Replace("/ppt/slides/charts/colors2.xml", "../charts/colors2.xml")
-                                       .Replace("/ppt/slides/charts/colors.xml", "../charts/colors1.xml")
-                                       .Replace("/ppt/slides/charts/chart2.xml", "../charts/chart2.xml")
-                                       .Replace("/ppt/slides/charts/chart1.xml", "../charts/chart1.xml")
-                                       .Replace("/ppt/media/image.png", "../media/image1.png");
-                        r.SetAttributeValue("Target", target);
-                    }
-                    using var outStream = newEntry.Open();
-                    outStream.SetLength(0);
-                    using var writer = new StreamWriter(outStream);
-                    relDoc.Save(writer);
+                pathMap[oldPath] = newPath;
+                RemoveOverride(oldPath);
+                var contentType = GetContentTypeForPart(newName);
+                if (contentType != null) {
+                    EnsureOverride(newPath, contentType);
                 }
             }
 
-            // Fix slide rel targets that still point to /ppt/slides/charts or image.png
-            foreach (var rel in archive.Entries.Where(e => e.FullName.StartsWith("ppt/slides/_rels/slide") && e.Name.EndsWith(".rels")).ToList()) {
+            string? GetChartTarget(string entryName) {
+                const string chartPrefix = "ppt/slides/charts/";
+                if (!entryName.StartsWith(chartPrefix, StringComparison.OrdinalIgnoreCase)) return null;
+                string relative = entryName.Substring(chartPrefix.Length);
+                if (relative.StartsWith("_rels/", StringComparison.OrdinalIgnoreCase)) {
+                    return "ppt/charts/_rels/" + relative.Substring("_rels/".Length);
+                }
+                if (relative.StartsWith("embeddings/", StringComparison.OrdinalIgnoreCase)) {
+                    string fileName = relative.Substring("embeddings/".Length);
+                    int index = ParseIndexedFileName(fileName, "package", ".bin");
+                    if (index == 0) return null;
+                    string suffix = index == 1 ? string.Empty : (index - 1).ToString(CultureInfo.InvariantCulture);
+                    return $"ppt/embeddings/Microsoft_Excel_Worksheet{suffix}.xlsx";
+                }
+                if (relative.StartsWith("chart", StringComparison.OrdinalIgnoreCase) &&
+                    relative.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)) {
+                    return "ppt/charts/" + relative;
+                }
+                if (relative.StartsWith("style", StringComparison.OrdinalIgnoreCase) &&
+                    relative.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)) {
+                    int index = ParseIndexedFileName(relative, "style", ".xml");
+                    if (index == 0) return null;
+                    string suffix = index == 1 ? "1" : index.ToString(CultureInfo.InvariantCulture);
+                    return $"ppt/charts/style{suffix}.xml";
+                }
+                if (relative.StartsWith("colors", StringComparison.OrdinalIgnoreCase) &&
+                    relative.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)) {
+                    int index = ParseIndexedFileName(relative, "colors", ".xml");
+                    if (index == 0) return null;
+                    string suffix = index == 1 ? "1" : index.ToString(CultureInfo.InvariantCulture);
+                    return $"ppt/charts/colors{suffix}.xml";
+                }
+                return null;
+            }
+
+            foreach (var entry in archive.Entries
+                         .Where(e => e.FullName.StartsWith("ppt/slides/charts/", StringComparison.OrdinalIgnoreCase))
+                         .ToList()) {
+                if (entry.FullName.EndsWith("/", StringComparison.Ordinal)) continue;
+                string? newName = GetChartTarget(entry.FullName);
+                if (newName is { Length: > 0 }) {
+                    MoveEntry(entry, newName);
+                }
+            }
+
+            // Normalize chart-generated media name if present
+            var legacyImage = archive.GetEntry("ppt/media/image.png");
+            if (legacyImage != null) {
+                int index = 1;
+                string candidate;
+                do {
+                    candidate = $"ppt/media/image{index}.png";
+                    index++;
+                } while (archive.GetEntry(candidate) != null);
+                MoveEntry(legacyImage, candidate);
+            }
+
+            void UpdateRelationshipTargets(ZipArchiveEntry relEntry) {
                 XDocument relDoc;
-                using (var rs = rel.Open()) relDoc = XDocument.Load(rs);
+                using (var rs = relEntry.Open()) relDoc = XDocument.Load(rs);
                 XNamespace relNs = "http://schemas.openxmlformats.org/package/2006/relationships";
+                string owningPart = GetOwningPartName(relEntry.FullName);
+                if (string.IsNullOrEmpty(owningPart)) return;
+                Uri baseUri = new Uri("http://temp" + owningPart, UriKind.Absolute);
                 bool changed = false;
                 foreach (var r in relDoc.Descendants(relNs + "Relationship")) {
-                    var target = (string?)r.Attribute("Target") ?? string.Empty;
-                    if (target.Contains("/ppt/slides/charts/")) {
-                        target = target.Replace("/ppt/slides/charts/", "/ppt/charts/");
-                        r.SetAttributeValue("Target", target);
-                        changed = true;
+                    string? mode = (string?)r.Attribute("TargetMode");
+                    if (string.Equals(mode, "External", StringComparison.OrdinalIgnoreCase)) {
+                        continue;
                     }
-                    if (target.EndsWith("/media/image.png", StringComparison.OrdinalIgnoreCase)) {
-                        r.SetAttributeValue("Target", target.Replace("/media/image.png", "/media/image1.png"));
-                        changed = true;
+                    string target = (string?)r.Attribute("Target") ?? string.Empty;
+                    if (string.IsNullOrWhiteSpace(target)) continue;
+                    Uri resolved = new Uri(baseUri, target);
+                    if (pathMap.TryGetValue(resolved.AbsolutePath, out string? newTarget) && newTarget != null) {
+                        Uri newTargetUri = new Uri("http://temp" + newTarget, UriKind.Absolute);
+                        string relativeTarget = baseUri.MakeRelativeUri(newTargetUri).ToString();
+                        if (!string.Equals(target, relativeTarget, StringComparison.Ordinal)) {
+                            r.SetAttributeValue("Target", relativeTarget);
+                            changed = true;
+                        }
                     }
                 }
                 if (changed) {
-                    using var rs2 = rel.Open();
+                    using var rs2 = relEntry.Open();
                     rs2.SetLength(0);
                     using var writer = new StreamWriter(rs2);
                     relDoc.Save(writer);
                 }
+            }
+
+            foreach (var rel in archive.Entries.Where(e => e.FullName.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)).ToList()) {
+                UpdateRelationshipTargets(rel);
             }
 
             // Write back [Content_Types].xml
@@ -187,9 +265,93 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        private static int ParseIndexedFileName(string fileName, string prefix, string suffix) {
+            if (fileName.Equals(prefix + suffix, StringComparison.OrdinalIgnoreCase)) {
+                return 1;
+            }
+
+            if (!fileName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ||
+                !fileName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) {
+                return 0;
+            }
+
+            string numberPart = fileName.Substring(prefix.Length, fileName.Length - prefix.Length - suffix.Length);
+            return int.TryParse(numberPart, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : 0;
+        }
+
+        private static string GetOwningPartName(string relsPath) {
+            if (string.IsNullOrWhiteSpace(relsPath) || !relsPath.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)) {
+                return string.Empty;
+            }
+
+            string normalized = relsPath.Replace("\\", "/");
+            if (string.Equals(normalized, "_rels/.rels", StringComparison.OrdinalIgnoreCase)) {
+                return "/";
+            }
+            normalized = normalized.Replace("/_rels/", "/");
+            return normalized.Substring(0, normalized.Length - ".rels".Length).Insert(0, "/");
+        }
+
         // Thumbnail extracted from Assets/PowerPointTemplates/PowerPointBlank.pptx (docProps/thumbnail.jpeg)
         private static readonly byte[] ThumbnailBytes = Convert.FromBase64String(
             "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUEBAUEBQUFBQUEBQUFBQUEBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQT/wAARCAAkAA4DAREAAhEBAxEB/8QAHQABAAEEAwEAAAAAAAAAAAAAAAYHAgUEAwIBCf/EADgQAAECAwQJBgUEAwAAAAAAAAECAwAEBRESBiExBxNBUWFxFCIyobHBFBZCksEVM1NiY//EABsBAQEAAwEBAQAAAAAAAAAAAAABAgMEAQUG/8QALREBAAIBBAECBQMEAwAAAAAAAAECAxEEEiExQQUTIlFhcZGh0fAUI0JSsf/aAAwDAQACEQMRAD8A9P8A0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARvbLcm6goc0JdU5pUW4RjjdM9i9Wxj6WutKLa9c7WJXu1L05PwnHA/0eFX3c/B/5UX5xvV+zY+q2cL6ZrGdOHFjT3yL1clOVruomDfaYy6USsvXxP6c8g3k3kDWK6byPXF0jHGU0kqdZSk0nFJJySgAAAAAAAAAAAAAAAAAAABK/pv3iQvqVps2fwXyrGnUsPW9jHTV6hBZ6wqn6UdZacK3WN+S2z87zuzp/8AflmWzNtZ0rJQ1pqSikopSnVKUqk1SlKSgAAbcRLRqy5F06ys3xcrKzJSmkoxVFLKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKU//Z");
+
+        internal static void PopulateChartStyle(ChartStylePart stylePart) {
+            if (stylePart == null) {
+                throw new ArgumentNullException(nameof(stylePart));
+            }
+
+            using var stream = new MemoryStream(ChartStyle251Bytes.Value);
+            stylePart.FeedData(stream);
+        }
+
+        internal static void PopulateChartColorStyle(ChartColorStylePart colorStylePart) {
+            if (colorStylePart == null) {
+                throw new ArgumentNullException(nameof(colorStylePart));
+            }
+
+            using var stream = new MemoryStream(ChartColorStyle10Bytes.Value);
+            colorStylePart.FeedData(stream);
+        }
+
+        internal static void PopulateChartTemplate(ChartPart chartPart) {
+            if (chartPart == null) {
+                throw new ArgumentNullException(nameof(chartPart));
+            }
+
+            using var stream = new MemoryStream(ChartTemplateBarBytes.Value);
+            chartPart.FeedData(stream);
+        }
+
+        internal static byte[] GetChartWorkbookTemplateBytes() {
+            return ChartWorkbookBarBytes.Value;
+        }
+
+        internal static GroupShapeProperties CreateDefaultGroupShapeProperties() {
+            return new GroupShapeProperties(CreateDefaultTransformGroup());
+        }
+
+        private static D.TransformGroup CreateDefaultTransformGroup() {
+            return new D.TransformGroup(
+                new D.Offset { X = 0L, Y = 0L },
+                new D.Extents { Cx = 0L, Cy = 0L },
+                new D.ChildOffset { X = 0L, Y = 0L },
+                new D.ChildExtents { Cx = 0L, Cy = 0L });
+        }
+
+        private static byte[] LoadEmbeddedResource(string resourceName) {
+            var assembly = typeof(PowerPointUtils).Assembly;
+            using Stream? stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream == null) {
+                throw new InvalidOperationException($"Missing embedded resource '{resourceName}'.");
+            }
+
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            return buffer.ToArray();
+        }
 
         internal static NotesMasterPart EnsureNotesMasterPart(PresentationPart presentationPart) {
             NotesMasterPart notesMasterPart = presentationPart.NotesMasterPart ?? presentationPart.AddNewPart<NotesMasterPart>();
@@ -221,7 +383,7 @@ namespace OfficeIMO.PowerPoint {
                     new P.NonVisualDrawingProperties { Id = 1U, Name = "Notes Group Shape" },
                     new P.NonVisualGroupShapeDrawingProperties(),
                     new ApplicationNonVisualDrawingProperties()),
-                new P.GroupShapeProperties(new D.TransformGroup()));
+                CreateDefaultGroupShapeProperties());
 
             shapeTree.Append(
                 CreatePlaceholderShape(2U, "Notes Placeholder", PlaceholderValues.Body, 1U, includeEndParagraph: true),
@@ -298,7 +460,7 @@ namespace OfficeIMO.PowerPoint {
                             new P.NonVisualDrawingProperties() { Id = (UInt32Value)1U, Name = "" },
                             new P.NonVisualGroupShapeDrawingProperties(),
                             new ApplicationNonVisualDrawingProperties()),
-                        new GroupShapeProperties(new TransformGroup()))),
+                        CreateDefaultGroupShapeProperties())),
                 new ColorMapOverride(new MasterColorMapping()));
         }
 
@@ -309,7 +471,7 @@ namespace OfficeIMO.PowerPoint {
                         new P.NonVisualDrawingProperties() { Id = (UInt32Value)1U, Name = "" },
                         new P.NonVisualGroupShapeDrawingProperties(),
                         new ApplicationNonVisualDrawingProperties()),
-                    new GroupShapeProperties(new TransformGroup()))),
+                    CreateDefaultGroupShapeProperties())),
                 new P.ColorMap() {
                     Background1 = D.ColorSchemeIndexValues.Light1,
                     Text1 = D.ColorSchemeIndexValues.Dark1,
@@ -443,7 +605,7 @@ namespace OfficeIMO.PowerPoint {
                     new P.NonVisualDrawingProperties() { Id = 1U, Name = "" },
                     new P.NonVisualGroupShapeDrawingProperties(),
                     new ApplicationNonVisualDrawingProperties()),
-                new P.GroupShapeProperties(new D.TransformGroup()));
+                CreateDefaultGroupShapeProperties());
 
             foreach (OpenXmlElement shape in shapes) {
                 shapeTree.Append(shape);

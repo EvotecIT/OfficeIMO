@@ -4,9 +4,6 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using S = DocumentFormat.OpenXml.Spreadsheet;
-using Cs = DocumentFormat.OpenXml.Office2013.Drawing.ChartStyle;
-using A14 = DocumentFormat.OpenXml.Office2010.Drawing;
-using C14 = DocumentFormat.OpenXml.Office2010.Drawing.Charts;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -328,7 +325,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new FileNotFoundException("Image file not found.", imagePath);
             }
 
-            ImagePart imagePart = _slidePart.AddImagePart(ImagePartType.Png.ToPartTypeInfo());
+            ImagePart imagePart = _slidePart.AddImagePart(GetImagePartType(imagePath).ToPartTypeInfo());
             using FileStream stream = new(imagePath, FileMode.Open, FileAccess.Read);
             imagePart.FeedData(stream);
             string relationshipId = _slidePart.GetIdOfPart(imagePart);
@@ -356,6 +353,16 @@ namespace OfficeIMO.PowerPoint {
             PowerPointPicture pic = new(picture, _slidePart);
             _shapes.Add(pic);
             return pic;
+        }
+
+        private static ImagePartType GetImagePartType(string imagePath) {
+            string extension = Path.GetExtension(imagePath).ToLowerInvariant();
+            return extension switch {
+                ".jpg" or ".jpeg" => ImagePartType.Jpeg,
+                ".gif" => ImagePartType.Gif,
+                ".bmp" => ImagePartType.Bmp,
+                _ => ImagePartType.Png
+            };
         }
 
         /// <summary>
@@ -431,21 +438,14 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a basic clustered column chart with default data.
         /// </summary>
         public PowerPointChart AddChart() {
-            // Ensure unique rId on the slide
-            var existingRels = new HashSet<string>(
-                _slidePart.Parts.Select(p => p.RelationshipId)
-                    .Concat(_slidePart.ExternalRelationships.Select(r => r.Id))
-                    .Concat(_slidePart.HyperlinkRelationships.Select(r => r.Id))
-                    .Where(id => !string.IsNullOrEmpty(id))
-            );
-            int relIdx = 1;
-            string chartRelId;
-            do { chartRelId = "rId" + relIdx++; } while (existingRels.Contains(chartRelId));
-
-            // Chart parts must be attached to the slide; we'll normalize their locations on save.
-            ChartPart chartPart = _slidePart.AddNewPart<ChartPart>(chartRelId);
+            ChartPart chartPart = _slidePart.AddNewPart<ChartPart>();
+            string chartRelId = _slidePart.GetIdOfPart(chartPart);
 
             // Embed workbook + styles/colors exactly like the template
+            var stylePart = chartPart.AddNewPart<ChartStylePart>("rId1");
+            PowerPointUtils.PopulateChartStyle(stylePart);
+            var colorStylePart = chartPart.AddNewPart<ChartColorStylePart>("rId2");
+            PowerPointUtils.PopulateChartColorStyle(colorStylePart);
             var embedded = chartPart.AddNewPart<EmbeddedPackagePart>(
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 "rId3");
@@ -453,14 +453,7 @@ namespace OfficeIMO.PowerPoint {
                 embedded.FeedData(ms);
             }
 
-            var stylePart = chartPart.AddNewPart<ChartStylePart>("rId1");
-            stylePart.ChartStyle = TemplateChartStyle251();
-            stylePart.ChartStyle.Save();
-            var colorStylePart = chartPart.AddNewPart<ChartColorStylePart>("rId2");
-            colorStylePart.ColorStyle = TemplateChartColorStyle10();
-            colorStylePart.ColorStyle.Save();
-
-            GenerateDefaultChart(chartPart, embedded);
+            GenerateDefaultChart(chartPart);
 
             string relId = chartRelId;
             string name = GenerateUniqueName("Chart");
@@ -485,114 +478,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static byte[] TemplateChartWorkbookBytes() {
-            // Same tiny workbook as in the template: categories A,B with values 4,5
-            using MemoryStream ms = new();
-            using (var doc = SpreadsheetDocument.Create(ms, SpreadsheetDocumentType.Workbook)) {
-                WorkbookPart wbPart = doc.AddWorkbookPart();
-                wbPart.Workbook = new S.Workbook();
-                WorksheetPart wsPart = wbPart.AddNewPart<WorksheetPart>();
-                S.SheetData sheetData = new(
-                    new S.Row(
-                        new S.Cell { CellValue = new S.CellValue("Category"), DataType = S.CellValues.String },
-                        new S.Cell { CellValue = new S.CellValue("Value"), DataType = S.CellValues.String }
-                    ),
-                    new S.Row(
-                        new S.Cell { CellValue = new S.CellValue("A"), DataType = S.CellValues.String },
-                        new S.Cell { CellValue = new S.CellValue("4"), DataType = S.CellValues.Number }
-                    ),
-                    new S.Row(
-                        new S.Cell { CellValue = new S.CellValue("B"), DataType = S.CellValues.String },
-                        new S.Cell { CellValue = new S.CellValue("5"), DataType = S.CellValues.Number }
-                    )
-                );
-                wsPart.Worksheet = new S.Worksheet(sheetData);
-                wbPart.Workbook.Append(new S.Sheets(new S.Sheet {
-                    Id = wbPart.GetIdOfPart(wsPart),
-                    SheetId = 1U,
-                    Name = "Sheet1"
-                }));
-                wbPart.Workbook.Save();
-            }
-            return ms.ToArray();
+            return PowerPointUtils.GetChartWorkbookTemplateBytes();
         }
 
-        private static void GenerateDefaultChart(ChartPart chartPart, EmbeddedPackagePart embeddedWorkbook) {
-            uint categoryAxisId = PowerPointChartAxisIdGenerator.GetNextId();
-            uint valueAxisId = PowerPointChartAxisIdGenerator.GetNextId();
-            C.ChartSpace chartSpace =
-                new(new C.EditingLanguage { Val = "en-US" }, new C.RoundedCorners { Val = false });
-            C.Chart chart = new();
-            C.PlotArea plotArea = new();
-            C.BarChart barChart = new(new C.BarDirection { Val = C.BarDirectionValues.Column },
-                new C.BarGrouping { Val = C.BarGroupingValues.Clustered });
-
-            C.BarChartSeries series = new(new C.Index { Val = 0U }, new C.Order { Val = 0U },
-                new C.SeriesText(new C.NumericValue { Text = "Series 1" }));
-
-            C.CategoryAxisData catData = new(new C.StringLiteral(new C.PointCount { Val = 2U },
-                new C.StringPoint { Index = 0U, NumericValue = new C.NumericValue("A") },
-                new C.StringPoint { Index = 1U, NumericValue = new C.NumericValue("B") }));
-            C.Values values = new(new C.NumberLiteral(new C.PointCount { Val = 2U },
-                new C.NumericPoint { Index = 0U, NumericValue = new C.NumericValue("4") },
-                new C.NumericPoint { Index = 1U, NumericValue = new C.NumericValue("5") }));
-
-            series.Append(catData, values);
-            barChart.Append(series, new C.AxisId { Val = categoryAxisId }, new C.AxisId { Val = valueAxisId });
-
-            C.CategoryAxis catAxis = new(new C.AxisId { Val = categoryAxisId },
-                new C.Scaling(new C.Orientation { Val = C.OrientationValues.MinMax }),
-                new C.AxisPosition { Val = C.AxisPositionValues.Bottom },
-                new C.TickLabelPosition { Val = C.TickLabelPositionValues.NextTo },
-                new C.CrossingAxis { Val = valueAxisId }, new C.Crosses { Val = C.CrossesValues.AutoZero },
-                new C.AutoLabeled { Val = true }, new C.LabelAlignment { Val = C.LabelAlignmentValues.Center },
-                new C.LabelOffset { Val = (UInt16Value)100U });
-
-            C.ValueAxis valAxis = new(new C.AxisId { Val = valueAxisId },
-                new C.Scaling(new C.Orientation { Val = C.OrientationValues.MinMax }),
-                new C.AxisPosition { Val = C.AxisPositionValues.Left }, new C.MajorGridlines(),
-                new C.NumberingFormat { FormatCode = "General", SourceLinked = true },
-                new C.TickLabelPosition { Val = C.TickLabelPositionValues.NextTo },
-                new C.CrossingAxis { Val = categoryAxisId }, new C.Crosses { Val = C.CrossesValues.AutoZero },
-                new C.CrossBetween { Val = C.CrossBetweenValues.Between });
-
-            plotArea.Append(barChart, catAxis, valAxis);
-            chart.Append(plotArea, new C.PlotVisibleOnly { Val = true });
-            chartSpace.Append(chart);
-            chartSpace.Append(new C.ExternalData { Id = chartPart.GetIdOfPart(embeddedWorkbook) });
-
-            chartPart.ChartSpace = chartSpace;
-            chartPart.ChartSpace.Save();
-        }
-
-        private static Cs.ColorStyle TemplateChartColorStyle10() {
-            Cs.ColorStyle colorStyle1 = new Cs.ColorStyle() { Method = "cycle", Id = 10U };
-            colorStyle1.AddNamespaceDeclaration("cs", "http://schemas.microsoft.com/office/drawing/2012/chartStyle");
-            colorStyle1.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");
-
-            colorStyle1.Append(
-                new A.SchemeColor() { Val = A.SchemeColorValues.Accent1 },
-                new A.SchemeColor() { Val = A.SchemeColorValues.Accent2 },
-                new A.SchemeColor() { Val = A.SchemeColorValues.Accent3 },
-                new A.SchemeColor() { Val = A.SchemeColorValues.Accent4 },
-                new A.SchemeColor() { Val = A.SchemeColorValues.Accent5 },
-                new A.SchemeColor() { Val = A.SchemeColorValues.Accent6 },
-                new A.SchemeColor() { Val = A.SchemeColorValues.Light1 },
-                new A.SchemeColor() { Val = A.SchemeColorValues.Dark1 },
-                new A.SchemeColor() { Val = A.SchemeColorValues.Light2 },
-                new A.SchemeColor() { Val = A.SchemeColorValues.Dark2 }
-            );
-
-            return colorStyle1;
-        }
-
-        private static Cs.ChartStyle TemplateChartStyle251() {
-            Cs.ChartStyle chartStyle1 = new Cs.ChartStyle() { Id = 251U };
-            chartStyle1.AddNamespaceDeclaration("cs", "http://schemas.microsoft.com/office/drawing/2012/chartStyle");
-            chartStyle1.AddNamespaceDeclaration("a", "http://schemas.openxmlformats.org/drawingml/2006/main");
-
-            // Keep this minimal; Office will supply defaults for omitted nodes.
-            // Keep style minimal; ChartStyleColor is not available in all TFMs
-            return chartStyle1;
+        private static void GenerateDefaultChart(ChartPart chartPart) {
+            PowerPointUtils.PopulateChartTemplate(chartPart);
         }
 
         private static byte[] GenerateEmbeddedWorkbookBytes() {

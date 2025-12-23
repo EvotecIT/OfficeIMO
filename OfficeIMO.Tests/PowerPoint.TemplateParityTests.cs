@@ -13,6 +13,19 @@ namespace OfficeIMO.Tests {
 #if !NETFRAMEWORK
         private static string TempDir() => Path.Combine(Path.GetTempPath(), "officeimo_ppt_parity", Guid.NewGuid().ToString("N"));
 
+        private static string TemplatePath(string fileName) {
+            DirectoryInfo? dir = new(AppContext.BaseDirectory);
+            while (dir != null && !Directory.Exists(Path.Combine(dir.FullName, "Assets", "PowerPointTemplates"))) {
+                dir = dir.Parent;
+            }
+
+            if (dir == null) {
+                throw new DirectoryNotFoundException("Could not locate Assets/PowerPointTemplates for PowerPoint parity tests.");
+            }
+
+            return Path.Combine(dir.FullName, "Assets", "PowerPointTemplates", fileName);
+        }
+
         private static void CompareManifests(string expectedPath, string actualPath) {
             using var exp = ZipFile.OpenRead(expectedPath);
             using var act = ZipFile.OpenRead(actualPath);
@@ -47,7 +60,7 @@ namespace OfficeIMO.Tests {
             Directory.CreateDirectory(dir);
             var outPath = Path.Combine(dir, "Basic PowerPoint.pptx");
             BasicPowerPointDocument.Example_BasicPowerPoint(dir, false);
-            CompareManifests("Assets/PowerPointTemplates/PowerPointBlank.pptx", outPath);
+            CompareManifests(TemplatePath("PowerPointBlank.pptx"), outPath);
         }
 
         [Fact]
@@ -56,7 +69,7 @@ namespace OfficeIMO.Tests {
             Directory.CreateDirectory(dir);
             var outPath = Path.Combine(dir, "Advanced PowerPoint.pptx");
             AdvancedPowerPoint.Example_AdvancedPowerPoint(dir, false);
-            CompareManifests("Assets/PowerPointTemplates/PowerPointWithTitle.pptx", outPath);
+            CompareManifests(TemplatePath("PowerPointWithTitle.pptx"), outPath);
         }
 
         [Fact]
@@ -65,7 +78,7 @@ namespace OfficeIMO.Tests {
             Directory.CreateDirectory(dir);
             var outPath = Path.Combine(dir, "Table Operations.pptx");
             TablesPowerPoint.Example_PowerPointTables(dir, false);
-            CompareManifests("Assets/PowerPointTemplates/PowerPointWithTablesAndCharts.pptx", outPath);
+            CompareManifests(TemplatePath("PowerPointWithTablesAndCharts.pptx"), outPath);
 
             // Additional structure assertions to catch packaging regressions
             AssertHasEntries(outPath,
@@ -88,7 +101,7 @@ namespace OfficeIMO.Tests {
             BasicPowerPointDocument.Example_BasicPowerPoint(dir, false);
 
             Assert.Equal(
-                CountEntries("Assets/PowerPointTemplates/PowerPointBlank.pptx", "ppt/slideLayouts/slideLayout"),
+                CountEntries(TemplatePath("PowerPointBlank.pptx"), "ppt/slideLayouts/slideLayout"),
                 CountEntries(outPath, "ppt/slideLayouts/slideLayout"));
 
             // Sizes can differ slightly; ensure tableStyles exists and is non-empty

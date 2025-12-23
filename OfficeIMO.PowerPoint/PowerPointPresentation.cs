@@ -73,8 +73,12 @@ namespace OfficeIMO.PowerPoint {
         /// <inheritdoc />
         public void Dispose() {
             if (_disposed) return;
+            bool hasCharts = _presentationPart.SlideParts.Any(slide => slide.ChartParts.Any());
             _document.Dispose();
             _disposed = true;
+            if (hasCharts) {
+                PowerPointUtils.RebaseChartParts(_filePath);
+            }
         }
 
         /// <summary>
@@ -146,7 +150,7 @@ namespace OfficeIMO.PowerPoint {
                             new NonVisualDrawingProperties() { Id = 1U, Name = "" },
                             new NonVisualGroupShapeDrawingProperties(),
                             new ApplicationNonVisualDrawingProperties()),
-                        new GroupShapeProperties(new A.TransformGroup()))),
+                        PowerPointUtils.CreateDefaultGroupShapeProperties())),
                 new ColorMapOverride(new A.MasterColorMapping()));
 
             SlideMasterPart[] masters = _presentationPart.SlideMasterParts.ToArray();
@@ -355,14 +359,6 @@ namespace OfficeIMO.PowerPoint {
 
             _presentationPart.Presentation.Save();
             _document.Save();
-
-            // Close to release file lock, normalize part locations, then reopen to keep object usable
-            _document.Dispose();
-            PowerPointUtils.RebaseChartParts(_filePath);
-            _document = PresentationDocument.Open(_filePath, true);
-            _presentationPart = _document.PresentationPart ?? _document.AddPresentationPart();
-            _slides.Clear();
-            LoadExistingSlides();
         }
 
         /// <summary>

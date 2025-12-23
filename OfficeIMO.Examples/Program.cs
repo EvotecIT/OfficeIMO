@@ -101,7 +101,7 @@ namespace OfficeIMO.Examples {
             PowerPoint.FluentPowerPoint.Example_FluentPowerPoint(folderPath, false);
             PowerPoint.ShapesPowerPoint.Example_PowerPointShapes(folderPath, false);
             PowerPoint.SlidesManagementPowerPoint.Example_SlidesManagement(folderPath, false);
-            PowerPoint.TablesPowerPoint.Example_PowerPointTables(folderPath, false);
+            PowerPoint.TablesPowerPoint.Example_PowerPointTables(folderPath, true);
             PowerPoint.TextFormattingPowerPoint.Example_TextFormattingPowerPoint(folderPath, false);
             PowerPoint.ThemeAndLayoutPowerPoint.Example_PowerPointThemeAndLayout(folderPath, false);
             PowerPoint.UpdatePicturePowerPoint.Example_PowerPointUpdatePicture(folderPath, false);

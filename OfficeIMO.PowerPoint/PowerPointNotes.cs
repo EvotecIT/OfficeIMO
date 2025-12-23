@@ -133,7 +133,7 @@ namespace OfficeIMO.PowerPoint {
                     new NonVisualDrawingProperties { Id = 1U, Name = "Notes Group Shape" },
                     new NonVisualGroupShapeDrawingProperties(),
                     new ApplicationNonVisualDrawingProperties()),
-                new GroupShapeProperties(new A.TransformGroup()));
+                PowerPointUtils.CreateDefaultGroupShapeProperties());
         }
 
         private static ShapeTree EnsureShapeTree(CommonSlideData commonSlideData) {
@@ -147,7 +147,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (tree.GetFirstChild<GroupShapeProperties>() == null) {
-                tree.AppendChild(new GroupShapeProperties(new A.TransformGroup()));
+                tree.AppendChild(PowerPointUtils.CreateDefaultGroupShapeProperties());
             }
 
             return tree;

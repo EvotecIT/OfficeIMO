@@ -79,4 +79,11 @@
         <InternalsVisibleTo Include="OfficeIMO.Tests" />
     </ItemGroup>
 
+    <ItemGroup>
+    <EmbeddedResource Include="Resources\chart-style-251.xml" />
+    <EmbeddedResource Include="Resources\chart-colors-10.xml" />
+    <EmbeddedResource Include="Resources\chart-template-bar.xml" />
+    <EmbeddedResource Include="Resources\chart-workbook-bar.xlsx" />
+  </ItemGroup>
+
 </Project>
