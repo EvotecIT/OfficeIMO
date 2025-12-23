@@ -26,6 +26,9 @@ namespace OfficeIMO.Excel {
         private System.Collections.Generic.IEqualityComparer<string> _tableNameComparer = System.StringComparer.OrdinalIgnoreCase;
         private List<ExcelSheet>? _cachedSheets;
         private bool _sheetCacheDirty = true;
+        private bool _validationCacheInvalidated = true;
+        private FileFormatVersions _lastValidationVersion = FileFormatVersions.Microsoft365;
+        private List<ValidationErrorInfo>? _validationErrorsCache;
 
         /// <summary>
         /// Enables caching of <see cref="ExcelSheet"/> wrappers for faster repeat access at the cost of higher memory usage.
@@ -275,13 +278,7 @@ namespace OfficeIMO.Excel {
         /// Indicates whether the document is valid.
         /// </summary>
         public bool DocumentIsValid {
-            get {
-                if (DocumentValidationErrors.Count > 0) {
-                    return false;
-                }
-
-                return true;
-            }
+            get { return DocumentValidationErrors.Count == 0; }
         }
 
         /// <summary>
@@ -289,7 +286,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public List<ValidationErrorInfo> DocumentValidationErrors {
             get {
-                return ValidateDocument();
+                return Validate();
             }
         }
 
@@ -361,13 +358,36 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="fileFormatVersions">File format version to validate against.</param>
         /// <returns>List of validation errors.</returns>
+        public List<ValidationErrorInfo> Validate(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
+            if (_validationCacheInvalidated || _validationErrorsCache == null || _lastValidationVersion != fileFormatVersions) {
+                _validationErrorsCache = RunValidation(fileFormatVersions);
+                _lastValidationVersion = fileFormatVersions;
+                _validationCacheInvalidated = false;
+            }
+
+            return _validationErrorsCache;
+        }
+
+        /// <summary>
+        /// Validates the document using the specified file format version.
+        /// </summary>
+        /// <param name="fileFormatVersions">File format version to validate against.</param>
+        /// <returns>List of validation errors.</returns>
         public List<ValidationErrorInfo> ValidateDocument(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
+            return Validate(fileFormatVersions);
+        }
+
+        private List<ValidationErrorInfo> RunValidation(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
             List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
             OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersions);
             foreach (ValidationErrorInfo error in validator.Validate(_spreadSheetDocument)) {
                 listErrors.Add(error);
             }
             return listErrors;
+        }
+
+        internal void InvalidateValidationCache() {
+            _validationCacheInvalidated = true;
         }
 
         internal SharedStringTablePart SharedStringTablePart {
@@ -802,6 +822,7 @@ namespace OfficeIMO.Excel {
                 string name = ValidateOrSanitizeSheetName(workSheetName, validationMode);
                 ExcelSheet excelSheet = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, name);
                 MarkSheetCacheDirty();
+                InvalidateValidationCache();
                 return excelSheet;
             });
         }

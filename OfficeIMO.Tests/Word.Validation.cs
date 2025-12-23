@@ -51,6 +51,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ValidationCacheInvalidation() {
+            string filePath = Path.Combine(_directoryWithFiles, "ValidationCache.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var initial = document.DocumentValidationErrors;
+                var second = document.DocumentValidationErrors;
+
+                Assert.Same(initial, second);
+
+                document.AddParagraph("Cache busting");
+
+                var refreshed = document.DocumentValidationErrors;
+
+                Assert.NotSame(initial, refreshed);
+                Assert.Same(refreshed, document.DocumentValidationErrors);
+
+                document.Save(false);
+            }
+        }
+
+        [Fact]
         public void Test_ListRestartNumberingAddsNamespace() {
             string filePath = Path.Combine(_directoryWithFiles, "RestartNumberingNamespace.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {

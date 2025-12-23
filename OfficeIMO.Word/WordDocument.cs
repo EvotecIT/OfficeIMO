@@ -16,6 +16,9 @@ namespace OfficeIMO.Word {
         internal TableOfContentStyle? _tableOfContentStyle;
         private bool _tableOfContentUpdateQueued;
         private bool _disposed;
+        private bool _validationCacheInvalidated = true;
+        private FileFormatVersions _lastValidationVersion = FileFormatVersions.Microsoft365;
+        private List<ValidationErrorInfo>? _validationErrorsCache;
 
         internal int BookmarkId {
             get {
@@ -1859,13 +1862,7 @@ namespace OfficeIMO.Word {
         /// Indicates whether the document passes Open XML validation.
         /// </summary>
         public bool DocumentIsValid {
-            get {
-                if (DocumentValidationErrors.Count > 0) {
-                    return false;
-                }
-
-                return true;
-            }
+            get { return DocumentValidationErrors.Count == 0; }
         }
 
         /// <summary>
@@ -1873,7 +1870,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<ValidationErrorInfo> DocumentValidationErrors {
             get {
-                return ValidateDocument();
+                return Validate();
             }
         }
 
@@ -1882,13 +1879,36 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="fileFormatVersions">File format version to validate against.</param>
         /// <returns>List of validation errors.</returns>
+        public List<ValidationErrorInfo> Validate(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
+            if (_validationCacheInvalidated || _validationErrorsCache == null || _lastValidationVersion != fileFormatVersions) {
+                _validationErrorsCache = RunValidation(fileFormatVersions);
+                _lastValidationVersion = fileFormatVersions;
+                _validationCacheInvalidated = false;
+            }
+
+            return _validationErrorsCache;
+        }
+
+        /// <summary>
+        /// Validates the document using the specified file format version.
+        /// </summary>
+        /// <param name="fileFormatVersions">File format version to validate against.</param>
+        /// <returns>List of validation errors.</returns>
         public List<ValidationErrorInfo> ValidateDocument(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
+            return Validate(fileFormatVersions);
+        }
+
+        private List<ValidationErrorInfo> RunValidation(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
             List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
             OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersions);
             foreach (ValidationErrorInfo error in validator.Validate(this._wordprocessingDocument)) {
                 listErrors.Add(error);
             }
             return listErrors;
+        }
+
+        internal void InvalidateValidationCache() {
+            _validationCacheInvalidated = true;
         }
 
         /// <summary>
