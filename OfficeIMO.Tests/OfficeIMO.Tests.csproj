@@ -38,10 +38,6 @@
         <ProjectReference Include="..\\OfficeIMO.PowerPoint\\OfficeIMO.PowerPoint.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj" />
     </ItemGroup>
-    <!-- Examples are only available for .NET Core/NET 8+/9+; exclude net472 to avoid restore failures on Windows. -->
-    <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETCoreApp'">
-        <ProjectReference Include="..\\OfficeIMO.Examples\\OfficeIMO.Examples.csproj" />
-    </ItemGroup>
     <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
         <Reference Include="System.IO.Compression" />
         <Reference Include="System.IO.Compression.FileSystem" />
