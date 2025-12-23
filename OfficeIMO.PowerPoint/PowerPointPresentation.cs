@@ -79,6 +79,7 @@ namespace OfficeIMO.PowerPoint {
             if (hasCharts) {
                 PowerPointUtils.RebaseChartParts(_filePath);
             }
+            PowerPointUtils.NormalizeContentTypes(_filePath);
         }
 
         /// <summary>

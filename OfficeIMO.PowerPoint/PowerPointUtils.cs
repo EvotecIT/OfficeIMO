@@ -265,6 +265,123 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        internal static void NormalizeContentTypes(string filePath) {
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath)) return;
+
+            using var stream = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+            using var archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true);
+
+            var ctEntry = archive.GetEntry("[Content_Types].xml");
+            if (ctEntry == null) {
+                return;
+            }
+
+            XDocument ctDoc;
+            using (var ctStream = ctEntry.Open()) ctDoc = XDocument.Load(ctStream);
+            XNamespace ns = ctDoc.Root?.Name.Namespace ?? "http://schemas.openxmlformats.org/package/2006/content-types";
+
+            void EnsureDefault(string extension, string contentType) {
+                var def = ctDoc.Root!.Elements(ns + "Default")
+                    .FirstOrDefault(e => string.Equals((string?)e.Attribute("Extension"), extension, StringComparison.OrdinalIgnoreCase));
+                if (def == null) {
+                    ctDoc.Root!.Add(new XElement(ns + "Default",
+                        new XAttribute("Extension", extension),
+                        new XAttribute("ContentType", contentType)));
+                } else {
+                    def.SetAttributeValue("ContentType", contentType);
+                }
+            }
+
+            void RemoveDefault(string extension) {
+                var def = ctDoc.Root!.Elements(ns + "Default")
+                    .FirstOrDefault(e => string.Equals((string?)e.Attribute("Extension"), extension, StringComparison.OrdinalIgnoreCase));
+                def?.Remove();
+            }
+
+            void EnsureOverride(string partName, string contentType) {
+                var ov = ctDoc.Root!.Elements(ns + "Override")
+                    .FirstOrDefault(e => string.Equals((string?)e.Attribute("PartName"), partName, StringComparison.OrdinalIgnoreCase));
+                if (ov == null) {
+                    ctDoc.Root!.Add(new XElement(ns + "Override",
+                        new XAttribute("PartName", partName),
+                        new XAttribute("ContentType", contentType)));
+                } else {
+                    ov.SetAttributeValue("ContentType", contentType);
+                }
+            }
+
+            bool hasPng = archive.Entries.Any(e => e.FullName.EndsWith(".png", StringComparison.OrdinalIgnoreCase));
+            bool hasJpeg = archive.Entries.Any(e => e.FullName.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase));
+            bool hasJpg = archive.Entries.Any(e => e.FullName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase));
+            bool hasXlsx = archive.Entries.Any(e => e.FullName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase));
+
+            EnsureDefault("rels", "application/vnd.openxmlformats-package.relationships+xml");
+            EnsureDefault("xml", "application/xml");
+            if (hasPng) {
+                EnsureDefault("png", "image/png");
+            }
+            if (hasJpeg) {
+                EnsureDefault("jpeg", "image/jpeg");
+            }
+            if (hasJpg) {
+                EnsureDefault("jpg", "image/jpeg");
+            }
+            if (hasXlsx) {
+                EnsureDefault("xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            }
+            RemoveDefault("bin");
+
+            if (archive.GetEntry("ppt/presentation.xml") != null) {
+                EnsureOverride("/ppt/presentation.xml",
+                    "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml");
+            }
+
+            bool hasRelsDefault = ctDoc.Root!.Elements(ns + "Default")
+                .Any(e => string.Equals((string?)e.Attribute("Extension"), "rels", StringComparison.OrdinalIgnoreCase));
+            bool hasXlsxDefault = ctDoc.Root!.Elements(ns + "Default")
+                .Any(e => string.Equals((string?)e.Attribute("Extension"), "xlsx", StringComparison.OrdinalIgnoreCase));
+            bool hasPngDefault = ctDoc.Root!.Elements(ns + "Default")
+                .Any(e => string.Equals((string?)e.Attribute("Extension"), "png", StringComparison.OrdinalIgnoreCase));
+            bool hasJpegDefault = ctDoc.Root!.Elements(ns + "Default")
+                .Any(e => string.Equals((string?)e.Attribute("Extension"), "jpeg", StringComparison.OrdinalIgnoreCase));
+            bool hasJpgDefault = ctDoc.Root!.Elements(ns + "Default")
+                .Any(e => string.Equals((string?)e.Attribute("Extension"), "jpg", StringComparison.OrdinalIgnoreCase));
+
+            var overrides = ctDoc.Root!.Elements(ns + "Override").ToList();
+            foreach (var ov in overrides) {
+                string partName = (string?)ov.Attribute("PartName") ?? string.Empty;
+                if (string.IsNullOrEmpty(partName)) {
+                    continue;
+                }
+                if (hasRelsDefault && partName.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)) {
+                    ov.Remove();
+                    continue;
+                }
+                if (hasXlsxDefault && partName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase)) {
+                    ov.Remove();
+                    continue;
+                }
+                if (hasPngDefault && partName.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) {
+                    ov.Remove();
+                    continue;
+                }
+                if (hasJpegDefault && partName.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)) {
+                    ov.Remove();
+                    continue;
+                }
+                if (hasJpgDefault && partName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)) {
+                    ov.Remove();
+                    continue;
+                }
+            }
+
+            using (var ctStream = ctEntry.Open()) {
+                ctStream.SetLength(0);
+                using var writer = new StreamWriter(ctStream);
+                ctDoc.Save(writer);
+            }
+        }
+
         private static int ParseIndexedFileName(string fileName, string prefix, string suffix) {
             if (fileName.Equals(prefix + suffix, StringComparison.OrdinalIgnoreCase)) {
                 return 1;
