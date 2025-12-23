@@ -439,7 +439,35 @@ namespace OfficeIMO.PowerPoint {
             }
 
             using var stream = new MemoryStream(ChartTemplateBarBytes.Value);
-            chartPart.FeedData(stream);
+            XDocument chartDoc = XDocument.Load(stream);
+            XNamespace chartNs = "http://schemas.openxmlformats.org/drawingml/2006/chart";
+
+            var axisElements = chartDoc
+                .Descendants()
+                .Where(e => e.Name == chartNs + "axId" || e.Name == chartNs + "crossAx")
+                .ToList();
+
+            if (axisElements.Count > 0) {
+                var axisMap = new Dictionary<string, string>(StringComparer.Ordinal);
+                foreach (var axisElement in axisElements) {
+                    XAttribute? valAttribute = axisElement.Attribute("val");
+                    if (valAttribute == null || string.IsNullOrWhiteSpace(valAttribute.Value)) {
+                        continue;
+                    }
+
+                    if (!axisMap.TryGetValue(valAttribute.Value, out string? mapped)) {
+                        mapped = PowerPointChartAxisIdGenerator.GetNextId().ToString(CultureInfo.InvariantCulture);
+                        axisMap[valAttribute.Value] = mapped;
+                    }
+
+                    valAttribute.Value = mapped;
+                }
+            }
+
+            using var output = new MemoryStream();
+            chartDoc.Save(output);
+            output.Position = 0;
+            chartPart.FeedData(output);
         }
 
         internal static byte[] GetChartWorkbookTemplateBytes() {

@@ -28,17 +28,23 @@ namespace OfficeIMO.Tests {
             }
 
             sb.AppendLine("Parts and Relationships:");
+            var visited = new HashSet<string>();
             foreach (var part in doc.Parts) {
-                AppendPart(sb, part.OpenXmlPart, doc.GetIdOfPart(part.OpenXmlPart), indent:"  ");
+                AppendPart(sb, part.OpenXmlPart, doc.GetIdOfPart(part.OpenXmlPart), indent:"  ", visited);
             }
 
             File.WriteAllText(manifestPath, sb.ToString());
         }
 
-        private static void AppendPart(StringBuilder sb, OpenXmlPart part, string relId, string indent) {
+        private static void AppendPart(StringBuilder sb, OpenXmlPart part, string relId, string indent, HashSet<string> visited) {
+            string key = part.Uri.ToString();
+            if (!visited.Add(key)) {
+                sb.AppendLine($"{indent}- {relId}: {part.Uri} ({part.ContentType}) [already listed]");
+                return;
+            }
             sb.AppendLine($"{indent}- {relId}: {part.Uri} ({part.ContentType})");
             foreach (var rel in part.Parts) {
-                AppendPart(sb, rel.OpenXmlPart, part.GetIdOfPart(rel.OpenXmlPart), indent + "  ");
+                AppendPart(sb, rel.OpenXmlPart, part.GetIdOfPart(rel.OpenXmlPart), indent + "  ", visited);
             }
         }
     }
