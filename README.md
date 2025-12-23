@@ -40,6 +40,11 @@ Each project ships as its own NuGet package under the MIT license.
 - Excel: netstandard2.0, net472, net48, net8.0/net9.0 (cross‑platform)
 - CSV: netstandard2.0, net472, net8.0, net9.0 (cross‑platform, streaming capable)
 
+## AOT / Trimming
+
+- Reflection-heavy APIs remain for dynamic/PowerShell scenarios.
+- For NativeAOT, prefer explicit selectors and typed overloads (e.g., `ExcelSheet.InsertObjects` with selectors, `TableBuilder.FromSequenceAuto<T>`, `FrontMatterBlock.FromObject<T>`).
+
 ## Build & Coverage
 
 - CI (Windows/Linux/macOS): single workflow badge above
