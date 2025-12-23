@@ -2,6 +2,7 @@ using System;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,7 +16,8 @@ namespace OfficeIMO.Excel {
         /// <param name="items">Collection of objects to insert.</param>
         /// <param name="includeHeaders">Whether to include column headers.</param>
         /// <param name="startRow">1-based starting row.</param>
-        public void InsertObjects<T>(IEnumerable<T> items, bool includeHeaders = true, int startRow = 1) {
+        [RequiresUnreferencedCode("Uses reflection over arbitrary object graphs. For AOT-safe usage, map values explicitly with CellValues or pre-flatten using known types.")]
+        public void InsertObjects<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(IEnumerable<T> items, bool includeHeaders = true, int startRow = 1) {
             if (items == null) {
                 throw new ArgumentNullException(nameof(items));
             }
@@ -57,7 +59,55 @@ namespace OfficeIMO.Excel {
                 row++;
             }
 
-            // Use the batch CellValues path with planner + execution policy
+            // Use the batch CellValues path with planner + execution policy    
+            CellValues(cells, null);
+        }
+
+        /// <summary>
+        /// Inserts objects into the worksheet using explicit column selectors (AOT-safe).
+        /// </summary>
+        /// <typeparam name="T">Type of objects being inserted.</typeparam>
+        /// <param name="items">Collection of objects to insert.</param>
+        /// <param name="columns">Column headers and selectors.</param>
+        public void InsertObjects<T>(IEnumerable<T> items, params (string Header, Func<T, object?> Selector)[] columns) {
+            InsertObjects(items, includeHeaders: true, startRow: 1, columns);
+        }
+
+        /// <summary>
+        /// Inserts objects into the worksheet using explicit column selectors (AOT-safe).
+        /// </summary>
+        /// <typeparam name="T">Type of objects being inserted.</typeparam>
+        /// <param name="items">Collection of objects to insert.</param>
+        /// <param name="includeHeaders">Whether to include column headers.</param>
+        /// <param name="startRow">1-based starting row.</param>
+        /// <param name="columns">Column headers and selectors.</param>
+        public void InsertObjects<T>(IEnumerable<T> items, bool includeHeaders, int startRow, params (string Header, Func<T, object?> Selector)[] columns) {
+            if (items == null) {
+                throw new ArgumentNullException(nameof(items));
+            }
+            if (columns == null || columns.Length == 0) {
+                throw new ArgumentException("At least one column selector is required.", nameof(columns));
+            }
+
+            var cells = new List<(int Row, int Column, object Value)>();
+            int row = startRow;
+            if (includeHeaders) {
+                for (int c = 0; c < columns.Length; c++) {
+                    var header = columns[c].Header ?? $"Column{c + 1}";
+                    cells.Add((row, c + 1, header));
+                }
+                row++;
+            }
+
+            foreach (var item in items) {
+                for (int c = 0; c < columns.Length; c++) {
+                    var selector = columns[c].Selector ?? (_ => null);
+                    object value = selector(item) ?? string.Empty;
+                    cells.Add((row, c + 1, value));
+                }
+                row++;
+            }
+
             CellValues(cells, null);
         }
 

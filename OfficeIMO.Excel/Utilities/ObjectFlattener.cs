@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace OfficeIMO.Excel {
@@ -136,7 +137,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Flattens <paramref name="item"/> into a dictionary according to <paramref name="opts"/>.
         /// </summary>
-        public Dictionary<string, object?> Flatten<T>(T item, ObjectFlattenerOptions opts) {
+        public Dictionary<string, object?> Flatten<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(T item, ObjectFlattenerOptions opts) {
             var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             if (item == null) return result;
             FlattenInternal(item!, result, string.Empty, 0, opts);
@@ -146,7 +147,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Computes all reachable dotted paths for a given <paramref name="type"/> under <paramref name="opts"/>.
         /// </summary>
-        public List<string> GetPaths(Type type, ObjectFlattenerOptions opts) {
+        public List<string> GetPaths([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] Type type, ObjectFlattenerOptions opts) {
             var paths = new List<string>();
             BuildPaths(type, string.Empty, 0, opts, paths);
             // Apply prefix-based ignore first
@@ -292,7 +293,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void BuildPaths(Type type, string prefix, int depth, ObjectFlattenerOptions opts, List<string> paths) {
+        private static void BuildPaths([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] Type type, string prefix, int depth, ObjectFlattenerOptions opts, List<string> paths) {
             if (depth >= opts.MaxDepth) return;
             if (IsValueTuple(type)) {
                 // Prefer counting actual Item* fields for precision (covers non-generic System.ValueTuple)

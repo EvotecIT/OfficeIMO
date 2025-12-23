@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Threading;
 
@@ -11,7 +12,7 @@ namespace OfficeIMO.Excel {
         /// Reads a rectangular range and maps rows (excluding the header row) into instances of T.
         /// Header cells are matched to public writable properties on T by name (case-insensitive).
         /// </summary>
-        public IEnumerable<T> ReadObjects<T>(string a1Range, OfficeIMO.Excel.ExecutionMode? mode = null, CancellationToken ct = default) where T : new() {
+        public IEnumerable<T> ReadObjects<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string a1Range, OfficeIMO.Excel.ExecutionMode? mode = null, CancellationToken ct = default) where T : new() {
             var values = ReadRange(a1Range, mode, ct);
             int rows = values.GetLength(0);
             int cols = values.GetLength(1);
