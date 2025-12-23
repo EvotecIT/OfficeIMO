@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
                 var col1 = Enumerable.Range(1, 1000).Select(i => (i, 1, (object)$"R{i}C1"));
 
                 await Task.WhenAll(
-                    Task.Run(() => sheet.CellValuesParallel(col1)),
+                    Task.Run(() => sheet.CellValues(col1, ExecutionMode.Parallel)),
                     Task.Run(() => {
                         for (int i = 1; i <= 1000; i++) {
                             sheet.CellValue(i, 2, $"R{i}C2");

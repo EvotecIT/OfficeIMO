@@ -10,6 +10,11 @@ OfficeIMO.Word is a cross‑platform .NET library for creating and editing Micro
 - NuGet: `OfficeIMO.Word`
 - Dependencies: DocumentFormat.OpenXml, SixLabors.ImageSharp
 
+### AOT / Trimming notes
+
+- Core Word APIs avoid private reflection; converters are AOT‑aware.
+- Macro removal uses OpenXmlPackage reflection and is annotated for trimming.
+
 Quick starts and runnable samples live in `OfficeIMO.Examples/Word/*`.
 
 ## Install

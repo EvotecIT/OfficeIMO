@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel.Fluent {
                     cells.Add((_fromRow + r, _fromCol + c, values[r, c]));
                 }
             }
-            _sheet.CellValuesParallel(cells);
+            _sheet.CellValues(cells, ExecutionMode.Parallel);
             return this;
         }
 

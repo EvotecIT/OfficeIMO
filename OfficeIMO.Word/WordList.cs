@@ -13,6 +13,10 @@ public partial class WordList : WordElement {
     // private readonly WordSection _section;
     private int _abstractId;
     internal int _numberId;
+    internal int NumberId {
+        get => _numberId;
+        set => _numberId = value;
+    }
 
     /// <summary>
     /// This provides a way to set items to be treated with heading style
