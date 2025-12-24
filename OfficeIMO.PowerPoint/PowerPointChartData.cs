@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -6,6 +7,19 @@ namespace OfficeIMO.PowerPoint {
     /// Describes chart categories and series values for PowerPoint charts.
     /// </summary>
     public sealed class PowerPointChartData {
+        /// <summary>
+        /// Creates default chart data used by parameterless chart creation.
+        /// </summary>
+        public static PowerPointChartData CreateDefault() {
+            return new PowerPointChartData(
+                new[] { "Category 1", "Category 2", "Category 3", "Category 4" },
+                new[] {
+                    new PowerPointChartSeries("Series 1", new[] { 4d, 2d, 3d, 5d }),
+                    new PowerPointChartSeries("Series 2", new[] { 2d, 4d, 2d, 3d }),
+                    new PowerPointChartSeries("Series 3", new[] { 1d, 3d, 2d, 4d })
+                });
+        }
+
         /// <summary>
         /// Initializes a new chart data container with categories and series.
         /// </summary>
@@ -48,6 +62,29 @@ namespace OfficeIMO.PowerPoint {
         /// Series definitions for the chart.
         /// </summary>
         public IReadOnlyList<PowerPointChartSeries> Series { get; }
+
+        /// <summary>
+        /// Builds chart data from a sequence of objects using selectors.
+        /// </summary>
+        public static PowerPointChartData From<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+            params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            if (items == null) {
+                throw new System.ArgumentNullException(nameof(items));
+            }
+            if (categorySelector == null) {
+                throw new System.ArgumentNullException(nameof(categorySelector));
+            }
+            if (seriesDefinitions == null || seriesDefinitions.Length == 0) {
+                throw new System.ArgumentException("At least one series definition is required.", nameof(seriesDefinitions));
+            }
+
+            var list = items.ToList();
+            var categories = list.Select(categorySelector).ToList();
+            var series = seriesDefinitions.Select(def =>
+                new PowerPointChartSeries(def.Name, list.Select(def.ValueSelector))).ToList();
+
+            return new PowerPointChartData(categories, series);
+        }
     }
 
     /// <summary>
@@ -79,5 +116,28 @@ namespace OfficeIMO.PowerPoint {
         /// Series values aligned with chart categories.
         /// </summary>
         public IReadOnlyList<double> Values { get; }
+    }
+
+    /// <summary>
+    /// Describes a series for chart data generation from objects.
+    /// </summary>
+    public sealed class PowerPointChartSeriesDefinition<T> {
+        /// <summary>
+        /// Initializes a series definition.
+        /// </summary>
+        public PowerPointChartSeriesDefinition(string name, Func<T, double> valueSelector) {
+            Name = name ?? throw new System.ArgumentNullException(nameof(name));
+            ValueSelector = valueSelector ?? throw new System.ArgumentNullException(nameof(valueSelector));
+        }
+
+        /// <summary>
+        /// Series name.
+        /// </summary>
+        public string Name { get; }
+
+        /// <summary>
+        /// Selector for series values.
+        /// </summary>
+        public Func<T, double> ValueSelector { get; }
     }
 }

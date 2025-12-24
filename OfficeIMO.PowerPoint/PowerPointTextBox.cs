@@ -217,25 +217,28 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a new bulleted paragraph to the textbox.
         /// </summary>
-        public void AddBullet(string text) {
+        public PowerPointParagraph AddBullet(string text) {
             PowerPointParagraph paragraph = AddParagraph(text);
             paragraph.SetBullet();
+            return paragraph;
         }
 
         /// <summary>
         ///     Adds a numbered item to the textbox.
         /// </summary>
-        public void AddNumberedItem(string text, A.TextAutoNumberSchemeValues style, int startAt = 1) {
+        public PowerPointParagraph AddNumberedItem(string text, A.TextAutoNumberSchemeValues style, int startAt = 1) {
             PowerPointParagraph paragraph = AddParagraph(text);
             paragraph.SetNumbered(style, startAt);
+            return paragraph;
         }
 
         /// <summary>
         ///     Adds a numbered item to the textbox using the default numbering style.
         /// </summary>
-        public void AddNumberedItem(string text, int startAt = 1) {
+        public PowerPointParagraph AddNumberedItem(string text, int startAt = 1) {
             PowerPointParagraph paragraph = AddParagraph(text);
             paragraph.SetNumbered(startAt);
+            return paragraph;
         }
 
         private TextBody EnsureTextBody() {

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -26,7 +27,26 @@ namespace OfficeIMO.PowerPoint {
             return AddChartInternal(data, left, top, width, height);
         }
 
+        /// <summary>
+        ///     Adds a clustered column chart using object data selectors.
+        /// </summary>
+        public PowerPointChart AddChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+            params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            return AddChart(items, categorySelector, 0L, 0L, 5486400L, 3200400L, seriesDefinitions);
+        }
+
+        /// <summary>
+        ///     Adds a clustered column chart using object data selectors at a specific position.
+        /// </summary>
+        public PowerPointChart AddChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+            long left, long top, long width, long height,
+            params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            var data = PowerPointChartData.From(items, categorySelector, seriesDefinitions);
+            return AddChartInternal(data, left, top, width, height);
+        }
+
         private PowerPointChart AddChartInternal(PowerPointChartData? data, long left, long top, long width, long height) {
+            PowerPointChartData chartData = data ?? PowerPointChartData.CreateDefault();
             string chartPartUri = PowerPointPartFactory.GetIndexedPartUri(
                 _slidePart.OpenXmlPackage,
                 "ppt/charts",
@@ -73,13 +93,13 @@ namespace OfficeIMO.PowerPoint {
                 chartPart,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 embeddedPartUri);
-            byte[] workbookBytes = data == null ? TemplateChartWorkbookBytes() : PowerPointUtils.BuildChartWorkbook(data);
+            byte[] workbookBytes = PowerPointUtils.BuildChartWorkbook(chartData);
             using (var ms = new MemoryStream(workbookBytes)) {
                 embedded.FeedData(ms);
             }
 
             string embeddedRelId = chartPart.GetIdOfPart(embedded);
-            PowerPointUtils.PopulateChartTemplate(chartPart, embeddedRelId, data);
+            PowerPointUtils.PopulateChart(chartPart, embeddedRelId, chartData);
 
             string name = GenerateUniqueName("Chart");
             GraphicFrame frame = new(
@@ -100,10 +120,6 @@ namespace OfficeIMO.PowerPoint {
             PowerPointChart chart = new(frame);
             _shapes.Add(chart);
             return chart;
-        }
-
-        private static byte[] TemplateChartWorkbookBytes() {
-            return PowerPointUtils.GetChartWorkbookTemplateBytes();
         }
 
     }

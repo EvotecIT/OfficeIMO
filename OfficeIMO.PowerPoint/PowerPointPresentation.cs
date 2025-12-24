@@ -122,6 +122,9 @@ namespace OfficeIMO.PowerPoint {
             // If we have an untouched initial slide, return it for the user to use
             if (_initialSlideUntouched && _slides.Count == 1) {
                 _initialSlideUntouched = false;
+                if (masterIndex != 0 || layoutIndex != 0) {
+                    _slides[0].SetLayout(masterIndex, layoutIndex);
+                }
                 return _slides[0];
             }
 

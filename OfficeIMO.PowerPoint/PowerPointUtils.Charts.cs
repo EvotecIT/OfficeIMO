@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Xml.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 using S = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.PowerPoint {
@@ -15,11 +15,9 @@ namespace OfficeIMO.PowerPoint {
         private static readonly Lazy<byte[]> ChartColorStyle10Bytes =
             new(() => LoadEmbeddedResource("OfficeIMO.PowerPoint.Resources.chart-colors-10.xml"));
 
-        private static readonly Lazy<byte[]> ChartTemplateBarBytes =
-            new(() => LoadEmbeddedResource("OfficeIMO.PowerPoint.Resources.chart-template-bar.xml"));
-
-        private static readonly Lazy<byte[]> ChartWorkbookBarBytes =
-            new(() => LoadEmbeddedResource("OfficeIMO.PowerPoint.Resources.chart-workbook-bar.xlsx"));
+        private const string ChartNamespace = "http://schemas.openxmlformats.org/drawingml/2006/chart";
+        private const string DrawingNamespace = "http://schemas.openxmlformats.org/drawingml/2006/main";
+        private const string RelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
         internal static void PopulateChartStyle(ChartStylePart stylePart) {
             if (stylePart == null) {
@@ -39,78 +37,79 @@ namespace OfficeIMO.PowerPoint {
             colorStylePart.FeedData(stream);
         }
 
-        internal static void PopulateChartTemplate(ChartPart chartPart, string embeddedRelId, PowerPointChartData? data = null) {
+        internal static void PopulateChart(ChartPart chartPart, string embeddedRelId, PowerPointChartData data) {
             if (chartPart == null) {
                 throw new ArgumentNullException(nameof(chartPart));
             }
-
-            using var stream = new MemoryStream(ChartTemplateBarBytes.Value);
-            XDocument chartDoc = XDocument.Load(stream);
-            XNamespace chartNs = "http://schemas.openxmlformats.org/drawingml/2006/chart";
-            XNamespace relNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-
-            var axisElements = chartDoc
-                .Descendants()
-                .Where(e => e.Name == chartNs + "axId" || e.Name == chartNs + "crossAx")
-                .ToList();
-
-            if (axisElements.Count > 0) {
-                var axisMap = new Dictionary<string, string>(StringComparer.Ordinal);
-                foreach (var axisElement in axisElements) {
-                    XAttribute? valAttribute = axisElement.Attribute("val");
-                    if (valAttribute == null || string.IsNullOrWhiteSpace(valAttribute.Value)) {
-                        continue;
-                    }
-
-                    if (!axisMap.TryGetValue(valAttribute.Value, out string? mapped)) {
-                        mapped = PowerPointChartAxisIdGenerator.GetNextId().ToString(CultureInfo.InvariantCulture);
-                        axisMap[valAttribute.Value] = mapped;
-                    }
-
-                    valAttribute.Value = mapped;
-                }
+            if (data == null) {
+                throw new ArgumentNullException(nameof(data));
             }
 
-            // PowerPoint expects unique series identifiers per chart instance.
-            XNamespace c16Ns = "http://schemas.microsoft.com/office/drawing/2014/chart";
-            foreach (var uniqueId in chartDoc.Descendants(c16Ns + "uniqueId")) {
-                uniqueId.SetAttributeValue("val", Guid.NewGuid().ToString("B").ToUpperInvariant());
-            }
+            C.ChartSpace chartSpace = new();
+            chartSpace.AddNamespaceDeclaration("c", ChartNamespace);
+            chartSpace.AddNamespaceDeclaration("a", DrawingNamespace);
+            chartSpace.AddNamespaceDeclaration("r", RelationshipNamespace);
+
+            chartSpace.Append(new C.Date1904 { Val = false });
+            chartSpace.Append(new C.EditingLanguage { Val = "en-US" });
+            chartSpace.Append(new C.RoundedCorners { Val = false });
+
+            C.Chart chart = new();
+            chart.Append(new C.AutoTitleDeleted { Val = false });
+
+            C.PlotArea plotArea = new();
+            plotArea.Append(new C.Layout());
+
+            uint categoryAxisId;
+            uint valueAxisId;
+            C.BarChart barChart = CreateBarChart(data, out categoryAxisId, out valueAxisId);
+            plotArea.Append(barChart);
+            plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+            plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+
+            chart.Append(plotArea);
+            chart.Append(new C.Legend(
+                new C.LegendPosition { Val = C.LegendPositionValues.Bottom },
+                new C.Layout(),
+                new C.Overlay { Val = false }));
+            chart.Append(new C.PlotVisibleOnly { Val = true });
+            chart.Append(new C.DisplayBlanksAs { Val = C.DisplayBlanksAsValues.Gap });
+            chart.Append(new C.ShowDataLabelsOverMaximum { Val = false });
+
+            chartSpace.Append(chart);
 
             if (!string.IsNullOrWhiteSpace(embeddedRelId)) {
-                var externalData = chartDoc.Descendants(chartNs + "externalData").FirstOrDefault();
-                if (externalData != null) {
-                    externalData.SetAttributeValue(XName.Get("id", relNs.NamespaceName), embeddedRelId);
-                }
+                chartSpace.Append(new C.ExternalData {
+                    Id = embeddedRelId,
+                    AutoUpdate = new C.AutoUpdate { Val = false }
+                });
             }
 
-            if (data != null) {
-                UpdateChartSeries(chartDoc, chartNs, data);
-            }
-
-            using var output = new MemoryStream();
-            chartDoc.Save(output);
-            output.Position = 0;
-            chartPart.FeedData(output);
+            chartPart.ChartSpace = chartSpace;
         }
 
         internal static byte[] BuildChartWorkbook(PowerPointChartData data) {
-            byte[] template = GetChartWorkbookTemplateBytes();
             using MemoryStream ms = new();
-            ms.Write(template, 0, template.Length);
-            ms.Position = 0;
+            using (SpreadsheetDocument doc = SpreadsheetDocument.Create(ms, SpreadsheetDocumentType.Workbook)) {
+                WorkbookPart wbPart = doc.AddWorkbookPart();
+                wbPart.Workbook = new S.Workbook();
 
-            using (SpreadsheetDocument doc = SpreadsheetDocument.Open(ms, true)) {
-                WorkbookPart wbPart = doc.WorkbookPart ?? throw new InvalidOperationException("Chart workbook missing workbook part.");
-                WorksheetPart wsPart = wbPart.WorksheetParts.FirstOrDefault()
-                    ?? throw new InvalidOperationException("Chart workbook missing worksheet part.");
+                WorksheetPart wsPart = wbPart.AddNewPart<WorksheetPart>();
+                var sheetData = new S.SheetData();
 
-                var sheetData = wsPart.Worksheet.GetFirstChild<S.SheetData>() ?? new S.SheetData();
-                sheetData.RemoveAllChildren<S.Row>();
+                int seriesCount = data.Series.Count;
+                int categoryCount = data.Categories.Count;
+                int totalColumns = seriesCount + 1;
+                int totalRows = categoryCount + 1;
+                string lastColumn = ColumnLetter(totalColumns);
+                string dimensionRef = $"A1:{lastColumn}{totalRows}";
 
-                var sharedStringsPart = wbPart.SharedStringTablePart ?? wbPart.AddNewPart<SharedStringTablePart>();
-                sharedStringsPart.SharedStringTable ??= new S.SharedStringTable();
-                sharedStringsPart.SharedStringTable.RemoveAllChildren<S.SharedStringItem>();
+                wsPart.Worksheet = new S.Worksheet(
+                    new S.SheetDimension { Reference = dimensionRef },
+                    sheetData);
+
+                var sharedStringsPart = wbPart.AddNewPart<SharedStringTablePart>();
+                sharedStringsPart.SharedStringTable = new S.SharedStringTable();
 
                 var stringIndex = new Dictionary<string, int>(StringComparer.Ordinal);
                 int GetStringIndex(string value) {
@@ -121,13 +120,6 @@ namespace OfficeIMO.PowerPoint {
                     }
                     return idx;
                 }
-
-                int seriesCount = data.Series.Count;
-                int categoryCount = data.Categories.Count;
-                int totalColumns = seriesCount + 1;
-                int totalRows = categoryCount + 1;
-                string lastColumn = ColumnLetter(totalColumns);
-                string dimensionRef = $"A1:{lastColumn}{totalRows}";
 
                 var headerRow = new S.Row { RowIndex = 1U, Spans = new ListValue<StringValue> { InnerText = $"1:{totalColumns}" } };
                 headerRow.Append(CreateSharedStringCell("A1", GetStringIndex(" ")));
@@ -148,52 +140,16 @@ namespace OfficeIMO.PowerPoint {
                         double value = data.Series[seriesIndex].Values[rowIndex];
                         row.Append(CreateNumberCell(cellRef, value));
                     }
-
                     sheetData.Append(row);
                 }
 
-                if (wsPart.Worksheet.GetFirstChild<S.SheetData>() == null) {
-                    wsPart.Worksheet.Append(sheetData);
-                }
+                var sheets = wbPart.Workbook.AppendChild(new S.Sheets());
+                sheets.Append(new S.Sheet {
+                    Id = wbPart.GetIdOfPart(wsPart),
+                    SheetId = 1U,
+                    Name = "Sheet1"
+                });
 
-                var dimension = wsPart.Worksheet.SheetDimension ?? wsPart.Worksheet.GetFirstChild<S.SheetDimension>();
-                if (dimension == null) {
-                    dimension = new S.SheetDimension();
-                    wsPart.Worksheet.InsertAt(dimension, 0);
-                }
-                dimension.Reference = dimensionRef;
-
-                var cols = wsPart.Worksheet.GetFirstChild<S.Columns>();
-                if (cols != null) {
-                    var colList = cols.Elements<S.Column>().ToList();
-                    if (colList.Count > 0) {
-                        colList[0].Min = 1U;
-                        colList[0].Max = 1U;
-                    }
-                    if (colList.Count > 1) {
-                        colList[1].Min = 2U;
-                        colList[1].Max = (uint)totalColumns;
-                    } else if (totalColumns > 1) {
-                        cols.Append(new S.Column { Min = 2U, Max = (uint)totalColumns, Width = 9.36328125, CustomWidth = true });
-                    }
-                }
-
-                var tablePart = wsPart.TableDefinitionParts.FirstOrDefault();
-                if (tablePart?.Table != null) {
-                    tablePart.Table.Reference = dimensionRef;
-                    var tableColumns = tablePart.Table.TableColumns ?? new S.TableColumns();
-                    tableColumns.RemoveAllChildren<S.TableColumn>();
-                    tableColumns.Append(new S.TableColumn { Id = 1U, Name = " " });
-                    for (int i = 0; i < seriesCount; i++) {
-                        tableColumns.Append(new S.TableColumn { Id = (uint)(i + 2), Name = data.Series[i].Name });
-                    }
-                    tableColumns.Count = (uint)totalColumns;
-                    tablePart.Table.TableColumns = tableColumns;
-                    tablePart.Table.Save();
-                }
-
-                sharedStringsPart.SharedStringTable.Count = (uint)stringIndex.Count;
-                sharedStringsPart.SharedStringTable.UniqueCount = (uint)stringIndex.Count;
                 sharedStringsPart.SharedStringTable.Save();
                 wsPart.Worksheet.Save();
                 wbPart.Workbook.Save();
@@ -202,134 +158,126 @@ namespace OfficeIMO.PowerPoint {
             return ms.ToArray();
         }
 
-        internal static byte[] GetChartWorkbookTemplateBytes() {
-            return ChartWorkbookBarBytes.Value;
-        }
+        private static C.BarChart CreateBarChart(PowerPointChartData data, out uint categoryAxisId, out uint valueAxisId) {
+            categoryAxisId = PowerPointChartAxisIdGenerator.GetNextId();
+            valueAxisId = PowerPointChartAxisIdGenerator.GetNextId();
 
-        private static void UpdateChartSeries(XDocument chartDoc, XNamespace chartNs, PowerPointChartData data) {
-            var barChart = chartDoc.Descendants(chartNs + "barChart").FirstOrDefault();
-            if (barChart == null) {
-                return;
-            }
+            C.BarChart barChart = new();
+            barChart.Append(new C.BarDirection { Val = C.BarDirectionValues.Column });
+            barChart.Append(new C.BarGrouping { Val = C.BarGroupingValues.Clustered });
+            barChart.Append(new C.VaryColors { Val = false });
 
-            var seriesElements = barChart.Elements(chartNs + "ser").ToList();
-            if (seriesElements.Count == 0) {
-                return;
-            }
-
-            var insertBefore = barChart.Elements().FirstOrDefault(e => e.Name != chartNs + "ser");
-            var newSeries = new List<XElement>();
             for (int i = 0; i < data.Series.Count; i++) {
-                var template = i < seriesElements.Count ? seriesElements[i] : seriesElements.Last();
-                var seriesElement = new XElement(template);
-                UpdateSeriesElement(seriesElement, chartNs, data.Series[i], data.Categories, i);
-                newSeries.Add(seriesElement);
+                barChart.Append(CreateBarChartSeries(i, data.Series[i], data.Categories));
             }
 
-            barChart.Elements(chartNs + "ser").Remove();
-            foreach (var seriesElement in newSeries) {
-                if (insertBefore != null) {
-                    insertBefore.AddBeforeSelf(seriesElement);
-                } else {
-                    barChart.Add(seriesElement);
-                }
-            }
+            barChart.Append(CreateDefaultDataLabels());
+            barChart.Append(new C.GapWidth { Val = (UInt16Value)219U });
+            barChart.Append(new C.Overlap { Val = (SByteValue)(sbyte)-27 });
+            barChart.Append(new C.AxisId { Val = categoryAxisId });
+            barChart.Append(new C.AxisId { Val = valueAxisId });
+            return barChart;
         }
 
-        private static void UpdateSeriesElement(XElement seriesElement, XNamespace chartNs, PowerPointChartSeries series,
-            IReadOnlyList<string> categories, int seriesIndex) {
+        private static C.BarChartSeries CreateBarChartSeries(int seriesIndex, PowerPointChartSeries series, IReadOnlyList<string> categories) {
             int lastRow = categories.Count + 1;
-            string seriesCol = ColumnLetter(seriesIndex + 2);
-            string seriesNameRef = $"Sheet1!${seriesCol}$1";
+            string seriesColumn = ColumnLetter(seriesIndex + 2);
+            string seriesNameRef = $"Sheet1!${seriesColumn}$1";
             string categoriesRef = $"Sheet1!$A$2:$A${lastRow}";
-            string valuesRef = $"Sheet1!${seriesCol}$2:${seriesCol}${lastRow}";
+            string valuesRef = $"Sheet1!${seriesColumn}$2:${seriesColumn}${lastRow}";
 
-            SetValue(seriesElement, chartNs, "order", seriesIndex);
-            SetValue(seriesElement, chartNs, "idx", seriesIndex);
+            C.BarChartSeries seriesElement = new(
+                new C.Index { Val = (uint)seriesIndex },
+                new C.Order { Val = (uint)seriesIndex },
+                new C.SeriesText(CreateStringReference(seriesNameRef, new[] { series.Name })),
+                new C.InvertIfNegative { Val = false },
+                new C.CategoryAxisData(CreateStringReference(categoriesRef, categories)),
+                new C.Values(CreateNumberReference(valuesRef, series.Values))
+            );
 
-            var tx = seriesElement.Element(chartNs + "tx") ?? new XElement(chartNs + "tx");
-            var txRef = tx.Element(chartNs + "strRef") ?? new XElement(chartNs + "strRef");
-            SetStringRef(chartNs, txRef, seriesNameRef, new[] { series.Name });
-            if (tx.Parent == null) tx.Add(txRef);
-            if (tx.Parent == null) seriesElement.Add(tx);
-            else if (txRef.Parent == null) tx.Add(txRef);
-
-            var cat = seriesElement.Element(chartNs + "cat") ?? new XElement(chartNs + "cat");
-            var catRef = cat.Element(chartNs + "strRef") ?? new XElement(chartNs + "strRef");
-            SetStringRef(chartNs, catRef, categoriesRef, categories);
-            if (cat.Parent == null) cat.Add(catRef);
-            if (cat.Parent == null) seriesElement.Add(cat);
-            else if (catRef.Parent == null) cat.Add(catRef);
-
-            var val = seriesElement.Element(chartNs + "val") ?? new XElement(chartNs + "val");
-            var numRef = val.Element(chartNs + "numRef") ?? new XElement(chartNs + "numRef");
-            SetNumberRef(chartNs, numRef, valuesRef, series.Values);
-            if (val.Parent == null) val.Add(numRef);
-            if (val.Parent == null) seriesElement.Add(val);
-            else if (numRef.Parent == null) val.Add(numRef);
-
-            XNamespace c16 = "http://schemas.microsoft.com/office/drawing/2014/chart";
-            var uniqueId = seriesElement.Descendants(c16 + "uniqueId").FirstOrDefault();
-            if (uniqueId != null) {
-                uniqueId.SetAttributeValue("val", Guid.NewGuid().ToString("B").ToUpperInvariant());
-            }
+            return seriesElement;
         }
 
-        private static void SetValue(XElement seriesElement, XNamespace chartNs, string name, int value) {
-            var element = seriesElement.Element(chartNs + name);
-            if (element == null) {
-                element = new XElement(chartNs + name);
-                seriesElement.AddFirst(element);
-            }
-            element.SetAttributeValue("val", value.ToString(CultureInfo.InvariantCulture));
+        private static C.CategoryAxis CreateCategoryAxis(uint axisId, uint crossingAxisId) {
+            C.CategoryAxis axis = new(
+                new C.AxisId { Val = axisId },
+                new C.Scaling(new C.Orientation { Val = C.OrientationValues.MinMax }),
+                new C.Delete { Val = false },
+                new C.AxisPosition { Val = C.AxisPositionValues.Bottom },
+                new C.NumberingFormat { FormatCode = "General", SourceLinked = true },
+                new C.MajorTickMark { Val = C.TickMarkValues.None },
+                new C.MinorTickMark { Val = C.TickMarkValues.None },
+                new C.TickLabelPosition { Val = C.TickLabelPositionValues.NextTo },
+                new C.CrossingAxis { Val = crossingAxisId },
+                new C.Crosses { Val = C.CrossesValues.AutoZero },
+                new C.AutoLabeled { Val = true },
+                new C.LabelAlignment { Val = C.LabelAlignmentValues.Center },
+                new C.LabelOffset { Val = (UInt16Value)100U },
+                new C.NoMultiLevelLabels { Val = false }
+            );
+
+            return axis;
         }
 
-        private static void SetStringRef(XNamespace chartNs, XElement strRef, string formula, IReadOnlyList<string> values) {
-            var f = strRef.Element(chartNs + "f");
-            if (f == null) {
-                f = new XElement(chartNs + "f");
-                strRef.AddFirst(f);
-            }
-            f.Value = formula;
+        private static C.ValueAxis CreateValueAxis(uint axisId, uint crossingAxisId) {
+            C.ValueAxis axis = new(
+                new C.AxisId { Val = axisId },
+                new C.Scaling(new C.Orientation { Val = C.OrientationValues.MinMax }),
+                new C.Delete { Val = false },
+                new C.AxisPosition { Val = C.AxisPositionValues.Left },
+                new C.MajorGridlines(),
+                new C.NumberingFormat { FormatCode = "General", SourceLinked = true },
+                new C.MajorTickMark { Val = C.TickMarkValues.None },
+                new C.MinorTickMark { Val = C.TickMarkValues.None },
+                new C.TickLabelPosition { Val = C.TickLabelPositionValues.NextTo },
+                new C.CrossingAxis { Val = crossingAxisId },
+                new C.Crosses { Val = C.CrossesValues.AutoZero },
+                new C.CrossBetween { Val = C.CrossBetweenValues.Between }
+            );
 
-            var cache = strRef.Element(chartNs + "strCache");
-            if (cache == null) {
-                cache = new XElement(chartNs + "strCache");
-                strRef.Add(cache);
-            }
+            return axis;
+        }
 
-            cache.RemoveNodes();
-            cache.Add(new XElement(chartNs + "ptCount", new XAttribute("val", values.Count)));
+        private static C.DataLabels CreateDefaultDataLabels() {
+            return new C.DataLabels(
+                new C.ShowLegendKey { Val = false },
+                new C.ShowValue { Val = false },
+                new C.ShowCategoryName { Val = false },
+                new C.ShowSeriesName { Val = false },
+                new C.ShowPercent { Val = false },
+                new C.ShowBubbleSize { Val = false }
+            );
+        }
+
+        private static C.StringReference CreateStringReference(string formula, IReadOnlyList<string> values) {
+            C.StringCache cache = new();
+            cache.Append(new C.PointCount { Val = (uint)values.Count });
             for (int i = 0; i < values.Count; i++) {
-                cache.Add(new XElement(chartNs + "pt",
-                    new XAttribute("idx", i.ToString(CultureInfo.InvariantCulture)),
-                    new XElement(chartNs + "v", values[i] ?? string.Empty)));
+                cache.Append(new C.StringPoint {
+                    Index = (uint)i,
+                    NumericValue = new C.NumericValue { Text = values[i] ?? string.Empty }
+                });
             }
+
+            return new C.StringReference(
+                new C.Formula { Text = formula },
+                cache);
         }
 
-        private static void SetNumberRef(XNamespace chartNs, XElement numRef, string formula, IReadOnlyList<double> values) {
-            var f = numRef.Element(chartNs + "f");
-            if (f == null) {
-                f = new XElement(chartNs + "f");
-                numRef.AddFirst(f);
-            }
-            f.Value = formula;
-
-            var cache = numRef.Element(chartNs + "numCache");
-            string formatCode = cache?.Element(chartNs + "formatCode")?.Value ?? "General";
-            if (cache == null) {
-                cache = new XElement(chartNs + "numCache");
-                numRef.Add(cache);
-            }
-
-            cache.RemoveNodes();
-            cache.Add(new XElement(chartNs + "formatCode", formatCode));
-            cache.Add(new XElement(chartNs + "ptCount", new XAttribute("val", values.Count)));
+        private static C.NumberReference CreateNumberReference(string formula, IReadOnlyList<double> values) {
+            C.NumberingCache cache = new();
+            cache.Append(new C.FormatCode { Text = "General" });
+            cache.Append(new C.PointCount { Val = (uint)values.Count });
             for (int i = 0; i < values.Count; i++) {
-                cache.Add(new XElement(chartNs + "pt",
-                    new XAttribute("idx", i.ToString(CultureInfo.InvariantCulture)),
-                    new XElement(chartNs + "v", values[i].ToString(CultureInfo.InvariantCulture))));
+                cache.Append(new C.NumericPoint {
+                    Index = (uint)i,
+                    NumericValue = new C.NumericValue { Text = values[i].ToString(CultureInfo.InvariantCulture) }
+                });
             }
+
+            return new C.NumberReference(
+                new C.Formula { Text = formula },
+                cache);
         }
 
         private static string ColumnLetter(int column) {
