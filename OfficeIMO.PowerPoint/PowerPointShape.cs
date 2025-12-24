@@ -6,6 +6,8 @@ namespace OfficeIMO.PowerPoint {
     ///     Base class for shapes used on PowerPoint slides.
     /// </summary>
     public abstract class PowerPointShape {
+        private const int EmusPerPoint = 12700;
+
         internal PowerPointShape(OpenXmlElement element) {
             Element = element;
         }
@@ -35,20 +37,19 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string? FillColor {
             get {
-                if (Element is Shape shape) {
-                    A.SolidFill? solid = shape.ShapeProperties?.GetFirstChild<A.SolidFill>();
-                    return solid?.RgbColorModelHex?.Val;
-                }
-
-                return null;
+                ShapeProperties? props = GetShapeProperties();
+                A.SolidFill? solid = props?.GetFirstChild<A.SolidFill>();
+                return solid?.RgbColorModelHex?.Val;
             }
             set {
-                if (Element is Shape shape) {
-                    shape.ShapeProperties ??= new ShapeProperties();
-                    shape.ShapeProperties.RemoveAllChildren<A.SolidFill>();
-                    if (value != null) {
-                        shape.ShapeProperties.Append(new A.SolidFill(new A.RgbColorModelHex { Val = value }));
-                    }
+                ShapeProperties? props = GetShapeProperties(create: value != null);
+                if (props == null) {
+                    return;
+                }
+
+                props.RemoveAllChildren<A.SolidFill>();
+                if (value != null) {
+                    props.Append(new A.SolidFill(new A.RgbColorModelHex { Val = value }));
                 }
             }
         }
@@ -83,6 +84,177 @@ namespace OfficeIMO.PowerPoint {
         public long Height {
             get => GetExtents().Cy?.Value ?? 0L;
             set => GetExtents().Cy = value;
+        }
+
+        /// <summary>
+        ///     Gets or sets the outline color for the shape in hex format (e.g. "FF0000").
+        /// </summary>
+        public string? OutlineColor {
+            get {
+                A.Outline? outline = GetOutline();
+                return outline?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
+            }
+            set {
+                A.Outline? outline = GetOutline(create: value != null);
+                if (outline == null) {
+                    return;
+                }
+
+                if (value == null) {
+                    outline.Remove();
+                    return;
+                }
+
+                outline.RemoveAllChildren<A.SolidFill>();
+                outline.Append(new A.SolidFill(new A.RgbColorModelHex { Val = value }));
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the outline width in points.
+        /// </summary>
+        public double? OutlineWidthPoints {
+            get {
+                A.Outline? outline = GetOutline();
+                int? width = outline?.Width?.Value;
+                return width != null ? width.Value / (double)EmusPerPoint : null;
+            }
+            set {
+                A.Outline? outline = GetOutline(create: value != null);
+                if (outline == null) {
+                    return;
+                }
+
+                if (value == null) {
+                    outline.Width = null;
+                    if (!outline.HasChildren) {
+                        outline.Remove();
+                    }
+                    return;
+                }
+
+                outline.Width = (int)Math.Round(value.Value * EmusPerPoint);
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the fill transparency percentage (0-100). 0 = opaque, 100 = fully transparent.
+        /// </summary>
+        public int? FillTransparency {
+            get {
+                ShapeProperties? props = GetShapeProperties();
+                A.SolidFill? solid = props?.GetFirstChild<A.SolidFill>();
+                A.RgbColorModelHex? color = solid?.RgbColorModelHex;
+                A.Alpha? alpha = color?.GetFirstChild<A.Alpha>();
+                int? val = alpha?.Val?.Value;
+                if (val == null) {
+                    return null;
+                }
+                return (int)Math.Round((100000 - val.Value) / 1000d);
+            }
+            set {
+                if (value is < 0 or > 100) {
+                    throw new ArgumentOutOfRangeException(nameof(value), "Transparency must be between 0 and 100.");
+                }
+
+                ShapeProperties? props = GetShapeProperties(create: value != null);
+                if (props == null) {
+                    return;
+                }
+
+                A.SolidFill? solid = props.GetFirstChild<A.SolidFill>();
+                if (solid == null) {
+                    if (value == null) {
+                        return;
+                    }
+                    solid = new A.SolidFill(new A.RgbColorModelHex { Val = "FFFFFF" });
+                    props.Append(solid);
+                }
+
+                A.RgbColorModelHex? rgb = solid.RgbColorModelHex ?? new A.RgbColorModelHex { Val = "FFFFFF" };
+                solid.RgbColorModelHex ??= rgb;
+                A.Alpha? alpha = rgb.GetFirstChild<A.Alpha>();
+                if (value == null) {
+                    alpha?.Remove();
+                    return;
+                }
+
+                if (alpha == null) {
+                    alpha = new A.Alpha();
+                    rgb.Append(alpha);
+                }
+                alpha.Val = 100000 - value.Value * 1000;
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets rotation in degrees.
+        /// </summary>
+        public double? Rotation {
+            get {
+                int? rotation = GetRotation();
+                return rotation != null ? rotation.Value / 60000d : null;
+            }
+            set {
+                int? rotation = value != null ? (int)Math.Round(value.Value * 60000d) : null;
+                SetRotation(rotation);
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets horizontal flip.
+        /// </summary>
+        public bool? HorizontalFlip {
+            get => GetHorizontalFlip();
+            set => SetHorizontalFlip(value);
+        }
+
+        /// <summary>
+        ///     Gets or sets vertical flip.
+        /// </summary>
+        public bool? VerticalFlip {
+            get => GetVerticalFlip();
+            set => SetVerticalFlip(value);
+        }
+
+        /// <summary>
+        ///     Moves the shape to the front (top) of the z-order within its parent.
+        /// </summary>
+        public void BringToFront() {
+            OpenXmlElement? parent = Element.Parent;
+            if (parent == null) {
+                return;
+            }
+
+            Element.Remove();
+            parent.Append(Element);
+        }
+
+        /// <summary>
+        ///     Moves the shape to the back (bottom) of the z-order within its parent.
+        /// </summary>
+        public void SendToBack() {
+            OpenXmlElement? parent = Element.Parent;
+            if (parent == null) {
+                return;
+            }
+
+            Element.Remove();
+
+            OpenXmlElement? insertBefore = null;
+            foreach (OpenXmlElement child in parent.ChildElements) {
+                if (child is NonVisualGroupShapeProperties || child is GroupShapeProperties) {
+                    continue;
+                }
+                insertBefore = child;
+                break;
+            }
+
+            if (insertBefore != null) {
+                parent.InsertBefore(Element, insertBefore);
+            } else {
+                parent.Append(Element);
+            }
         }
 
         private A.Offset GetOffset() {
@@ -124,6 +296,122 @@ namespace OfficeIMO.PowerPoint {
                     return g.Transform.Extents;
                 default:
                     throw new NotSupportedException();
+            }
+        }
+
+        private ShapeProperties? GetShapeProperties(bool create = false) {
+            switch (Element) {
+                case Shape s:
+                    if (create) {
+                        s.ShapeProperties ??= new ShapeProperties();
+                    }
+                    return s.ShapeProperties;
+                case Picture p:
+                    if (create) {
+                        p.ShapeProperties ??= new ShapeProperties();
+                    }
+                    return p.ShapeProperties;
+                default:
+                    return null;
+            }
+        }
+
+        private A.Outline? GetOutline(bool create = false) {
+            ShapeProperties? props = GetShapeProperties(create);
+            if (props == null) {
+                return null;
+            }
+
+            A.Outline? outline = props.GetFirstChild<A.Outline>();
+            if (outline == null && create) {
+                outline = new A.Outline();
+                props.Append(outline);
+            }
+
+            return outline;
+        }
+
+        private int? GetRotation() {
+            return Element switch {
+                Shape s => s.ShapeProperties?.Transform2D?.Rotation?.Value,
+                Picture p => p.ShapeProperties?.Transform2D?.Rotation?.Value,
+                GraphicFrame g => g.Transform?.Rotation?.Value,
+                _ => null
+            };
+        }
+
+        private void SetRotation(int? rotation) {
+            switch (Element) {
+                case Shape s:
+                    s.ShapeProperties ??= new ShapeProperties();
+                    s.ShapeProperties.Transform2D ??= new A.Transform2D();
+                    s.ShapeProperties.Transform2D.Rotation = rotation;
+                    break;
+                case Picture p:
+                    p.ShapeProperties ??= new ShapeProperties();
+                    p.ShapeProperties.Transform2D ??= new A.Transform2D();
+                    p.ShapeProperties.Transform2D.Rotation = rotation;
+                    break;
+                case GraphicFrame g:
+                    g.Transform ??= new Transform();
+                    g.Transform.Rotation = rotation;
+                    break;
+            }
+        }
+
+        private bool? GetHorizontalFlip() {
+            return Element switch {
+                Shape s => s.ShapeProperties?.Transform2D?.HorizontalFlip?.Value,
+                Picture p => p.ShapeProperties?.Transform2D?.HorizontalFlip?.Value,
+                GraphicFrame g => g.Transform?.HorizontalFlip?.Value,
+                _ => null
+            };
+        }
+
+        private void SetHorizontalFlip(bool? value) {
+            switch (Element) {
+                case Shape s:
+                    s.ShapeProperties ??= new ShapeProperties();
+                    s.ShapeProperties.Transform2D ??= new A.Transform2D();
+                    s.ShapeProperties.Transform2D.HorizontalFlip = value;
+                    break;
+                case Picture p:
+                    p.ShapeProperties ??= new ShapeProperties();
+                    p.ShapeProperties.Transform2D ??= new A.Transform2D();
+                    p.ShapeProperties.Transform2D.HorizontalFlip = value;
+                    break;
+                case GraphicFrame g:
+                    g.Transform ??= new Transform();
+                    g.Transform.HorizontalFlip = value;
+                    break;
+            }
+        }
+
+        private bool? GetVerticalFlip() {
+            return Element switch {
+                Shape s => s.ShapeProperties?.Transform2D?.VerticalFlip?.Value,
+                Picture p => p.ShapeProperties?.Transform2D?.VerticalFlip?.Value,
+                GraphicFrame g => g.Transform?.VerticalFlip?.Value,
+                _ => null
+            };
+        }
+
+        private void SetVerticalFlip(bool? value) {
+            switch (Element) {
+                case Shape s:
+                    s.ShapeProperties ??= new ShapeProperties();
+                    s.ShapeProperties.Transform2D ??= new A.Transform2D();
+                    s.ShapeProperties.Transform2D.VerticalFlip = value;
+                    break;
+                case Picture p:
+                    p.ShapeProperties ??= new ShapeProperties();
+                    p.ShapeProperties.Transform2D ??= new A.Transform2D();
+                    p.ShapeProperties.Transform2D.VerticalFlip = value;
+                    break;
+                case GraphicFrame g:
+                    g.Transform ??= new Transform();
+                    g.Transform.VerticalFlip = value;
+                    break;
             }
         }
     }

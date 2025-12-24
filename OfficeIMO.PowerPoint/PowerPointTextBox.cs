@@ -11,39 +11,75 @@ namespace OfficeIMO.PowerPoint {
 
         private Shape Shape => (Shape)Element;
 
-        private IEnumerable<A.Run> Runs => Shape.TextBody!.Elements<A.Paragraph>().SelectMany(p => p.Elements<A.Run>());
+        private IEnumerable<A.Run> Runs => EnsureTextBody().Elements<A.Paragraph>().SelectMany(p => p.Elements<A.Run>());
+
+        /// <summary>
+        ///     Paragraphs contained in the textbox.
+        /// </summary>
+        public IReadOnlyList<PowerPointParagraph> Paragraphs =>
+            EnsureTextBody().Elements<A.Paragraph>().Select(p => new PowerPointParagraph(p)).ToList();
+
+        /// <summary>
+        ///     Adds a paragraph to the textbox.
+        /// </summary>
+        public PowerPointParagraph AddParagraph(string text = "", Action<PowerPointParagraph>? configure = null,
+            Action<PowerPointTextRun>? run = null) {
+            TextBody textBody = EnsureTextBody();
+
+            A.Paragraph paragraph = new();
+            A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
+            if (templateParagraph?.ParagraphProperties != null) {
+                paragraph.ParagraphProperties = (A.ParagraphProperties)templateParagraph.ParagraphProperties.CloneNode(true);
+            }
+
+            A.Run newRun = new(new A.Text(text ?? string.Empty));
+            A.RunProperties? templateRunProps = templateParagraph?
+                .Elements<A.Run>()
+                .Select(r => r.RunProperties)
+                .FirstOrDefault(rp => rp != null);
+            if (templateRunProps != null) {
+                newRun.RunProperties = (A.RunProperties)templateRunProps.CloneNode(true);
+            }
+            paragraph.Append(newRun);
+
+            A.EndParagraphRunProperties? templateEnd = templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
+            if (templateEnd != null) {
+                paragraph.Append((A.EndParagraphRunProperties)templateEnd.CloneNode(true));
+            }
+
+            textBody.Append(paragraph);
+
+            var wrapper = new PowerPointParagraph(paragraph);
+            configure?.Invoke(wrapper);
+            if (run != null) {
+                var runWrapper = wrapper.Runs.FirstOrDefault() ?? wrapper.AddRun(text ?? string.Empty);
+                run.Invoke(runWrapper);
+            }
+
+            return wrapper;
+        }
+
+        /// <summary>
+        ///     Removes all paragraphs from the textbox.
+        /// </summary>
+        public void Clear() {
+            EnsureTextBody().RemoveAllChildren<A.Paragraph>();
+        }
 
         /// <summary>
         ///     Text contained in the textbox.
         /// </summary>
         public string Text {
             get {
-                TextBody? textBody = Shape.TextBody;
-                if (textBody == null) {
-                    return string.Empty;
-                }
-
-                List<string> paragraphs = new();
-                foreach (A.Paragraph paragraph in textBody.Elements<A.Paragraph>()) {
-                    paragraphs.Add(paragraph.InnerText ?? string.Empty);
-                }
-
-                if (paragraphs.Count == 0) {
-                    return string.Empty;
-                }
-
-                return string.Join(Environment.NewLine, paragraphs);
+                var paragraphs = EnsureTextBody().Elements<A.Paragraph>()
+                    .Select(p => p.InnerText ?? string.Empty)
+                    .ToList();
+                return paragraphs.Count == 0 ? string.Empty : string.Join(Environment.NewLine, paragraphs);
             }
             set {
                 string textValue = value ?? string.Empty;
+                TextBody textBody = EnsureTextBody();
 
-                TextBody? existingTextBody = Shape.TextBody;
-                if (existingTextBody == null) {
-                    existingTextBody = new TextBody(new A.BodyProperties(), new A.ListStyle());
-                    Shape.TextBody = existingTextBody;
-                }
-
-                TextBody textBody = existingTextBody;
                 A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
                 A.ParagraphProperties? templateParagraphProperties = templateParagraph?.GetFirstChild<A.ParagraphProperties>();
                 A.EndParagraphRunProperties? templateEndParagraphRunProperties = templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
@@ -182,17 +218,33 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a new bulleted paragraph to the textbox.
         /// </summary>
         public void AddBullet(string text) {
-            A.Run run = new(new A.Text(text));
-            A.Run? template = Runs.FirstOrDefault();
-            if (template?.RunProperties != null) {
-                run.RunProperties = (A.RunProperties)template.RunProperties.CloneNode(true);
-            }
+            PowerPointParagraph paragraph = AddParagraph(text);
+            paragraph.SetBullet();
+        }
 
-            A.Paragraph paragraph = new(
-                new A.ParagraphProperties(new A.CharacterBullet() { Char = "•" }),
-                run
-            );
-            Shape.TextBody!.AppendChild(paragraph);
+        /// <summary>
+        ///     Adds a numbered item to the textbox.
+        /// </summary>
+        public void AddNumberedItem(string text, A.TextAutoNumberSchemeValues style, int startAt = 1) {
+            PowerPointParagraph paragraph = AddParagraph(text);
+            paragraph.SetNumbered(style, startAt);
+        }
+
+        /// <summary>
+        ///     Adds a numbered item to the textbox using the default numbering style.
+        /// </summary>
+        public void AddNumberedItem(string text, int startAt = 1) {
+            PowerPointParagraph paragraph = AddParagraph(text);
+            paragraph.SetNumbered(startAt);
+        }
+
+        private TextBody EnsureTextBody() {
+            TextBody? existingTextBody = Shape.TextBody;
+            if (existingTextBody == null) {
+                existingTextBody = new TextBody(new A.BodyProperties(), new A.ListStyle());
+                Shape.TextBody = existingTextBody;
+            }
+            return existingTextBody;
         }
     }
 }

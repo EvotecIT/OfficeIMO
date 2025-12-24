@@ -269,8 +269,12 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 switch (element) {
-                    case Shape s when s.TextBody != null:
-                        _shapes.Add(new PowerPointTextBox(s));
+                    case Shape s:
+                        if (s.TextBody != null) {
+                            _shapes.Add(new PowerPointTextBox(s));
+                        } else {
+                            _shapes.Add(new PowerPointAutoShape(s));
+                        }
                         break;
                     case DocumentFormat.OpenXml.Presentation.Picture p:
                         _shapes.Add(new PowerPointPicture(p, _slidePart));
