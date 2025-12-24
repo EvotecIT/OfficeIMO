@@ -51,7 +51,17 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            ImagePart imagePart = _slidePart.AddImagePart(partTypeInfo);
+            string imageExtension = PowerPointPartFactory.GetImageExtension(type);
+            string imagePartUri = PowerPointPartFactory.GetIndexedPartUri(
+                _slidePart.OpenXmlPackage,
+                "ppt/media",
+                "image",
+                imageExtension,
+                allowBaseWithoutIndex: false);
+            ImagePart imagePart = PowerPointPartFactory.CreatePart<ImagePart>(
+                _slidePart,
+                partTypeInfo.ContentType,
+                imagePartUri);
             newImage.Position = 0;
             imagePart.FeedData(newImage);
             string relId = _slidePart.GetIdOfPart(imagePart);

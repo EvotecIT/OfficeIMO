@@ -18,6 +18,9 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointSlide second = presentation.AddSlide(layoutIndex: 0);
             second.AddTextBox("Same layout (only one available)");
             presentation.Save();
+
+            Helpers.Open(filePath, openPowerPoint);
         }
     }
 }
+

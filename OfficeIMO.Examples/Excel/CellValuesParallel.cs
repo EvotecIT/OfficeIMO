@@ -24,8 +24,8 @@ namespace OfficeIMO.Examples.Excel {
                 }
 
                 Task.WaitAll(
-                    Task.Run(() => sheet.CellValuesParallel(column1)),
-                    Task.Run(() => sheet.CellValuesParallel(column2))
+                    Task.Run(() => sheet.CellValues(column1, ExecutionMode.Parallel)),
+                    Task.Run(() => sheet.CellValues(column2, ExecutionMode.Parallel))
                 );
 
                 document.Save(openExcel);

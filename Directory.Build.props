@@ -4,5 +4,9 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <!-- Do not elevate informational messages (e.g., preview SDK notice). -->
   </PropertyGroup>
+  <ItemGroup Condition="'$(EnableTrimmingPolyfills)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)Build\Trimming\TrimmingAttributes.cs"
+             Condition="Exists('$(MSBuildThisFileDirectory)Build\Trimming\TrimmingAttributes.cs')" />
+  </ItemGroup>
 </Project>
 

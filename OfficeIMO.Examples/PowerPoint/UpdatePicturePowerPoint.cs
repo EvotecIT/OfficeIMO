@@ -23,6 +23,9 @@ namespace OfficeIMO.Examples.PowerPoint {
             Console.WriteLine("Updated type: " + picture.ContentType);
 
             presentation.Save();
+
+            Helpers.Open(filePath, openPowerPoint);
         }
     }
 }
+

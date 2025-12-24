@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Packaging;
 using System.Reflection;
 
@@ -12,6 +13,8 @@ namespace OfficeIMO.Word {
     /// </remarks>
     public class WordMacro {
         private readonly WordDocument _document;
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)]
+        private static readonly Type OpenXmlPackageType = typeof(OpenXmlPackage);
 
         /// <summary>
         /// Gets the macro module name.
@@ -161,7 +164,7 @@ namespace OfficeIMO.Word {
             }
 
             var vbaUri = main.VbaProjectPart.Uri;
-            var packageProp = document._wordprocessingDocument.GetType().GetProperty("Package", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            var packageProp = OpenXmlPackageType.GetProperty("Package", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             if (packageProp?.GetValue(document._wordprocessingDocument) is Package package) {
                 foreach (var rel in package.GetRelationshipsByType("http://schemas.microsoft.com/office/2006/relationships/vbaProject").ToList()) {
                     if (rel.TargetUri == vbaUri) {

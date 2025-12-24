@@ -393,13 +393,10 @@ namespace OfficeIMO.Word.Pdf {
             float strokeWidth = (float)(shape.StrokeWeight ?? 1);
             bool drawStroke = shape.Stroked ?? false;
 
-            var type = shape.GetType();
-            var runField = type.GetField("_run", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var run = runField?.GetValue(shape) as DocumentFormat.OpenXml.Wordprocessing.Run;
+            var run = shape.Run;
             string text = run?.InnerText ?? string.Empty;
 
-            var lineField = type.GetField("_line", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var line = lineField?.GetValue(shape) as Line;
+            var line = shape.Line;
 
             if (line != null) {
                 (float x1, float y1) = ParsePoint(line.From?.Value ?? "0pt,0pt");

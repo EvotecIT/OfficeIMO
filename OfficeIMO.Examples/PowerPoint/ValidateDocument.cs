@@ -18,10 +18,9 @@ namespace OfficeIMO.Examples.PowerPoint {
                 presentation.Save();
             }
 
-            if (openPowerPoint) {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });
-            }
+            Helpers.Open(filePath, openPowerPoint);
         }
     }
 }
+
 

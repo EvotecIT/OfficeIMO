@@ -9,13 +9,16 @@ namespace OfficeIMO.PowerPoint {
     ///     Represents a PowerPoint presentation providing basic create, open and save operations.
     /// </summary>
     public sealed class PowerPointPresentation : IDisposable {
-        private readonly PresentationDocument _document;
-        private readonly PresentationPart _presentationPart;
+        private PresentationDocument? _document;
+        private PresentationPart _presentationPart;
         private readonly List<PowerPointSlide> _slides = new();
+        private readonly string _filePath;
         private bool _initialSlideUntouched = false;
+        private bool _disposed = false;
 
-        private PowerPointPresentation(PresentationDocument document, bool isNewPresentation) {
+        private PowerPointPresentation(PresentationDocument document, string filePath, bool isNewPresentation) {
             _document = document;
+            _filePath = filePath;
             _presentationPart = document.PresentationPart ?? document.AddPresentationPart();
             if (_presentationPart.Presentation == null) {
                 // New presentation - create with required initial structure
@@ -46,17 +49,24 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Collection of slides in the presentation.
         /// </summary>
-        public IReadOnlyList<PowerPointSlide> Slides => _slides;
+        public IReadOnlyList<PowerPointSlide> Slides {
+            get {
+                ThrowIfDisposed();
+                return _slides;
+            }
+        }
 
         /// <summary>
         ///     Gets or sets the name of the presentation theme.
         /// </summary>
         public string ThemeName {
             get {
+                ThrowIfDisposed();
                 SlideMasterPart master = _presentationPart.SlideMasterParts.First();
                 return master.ThemePart?.Theme?.Name?.Value ?? string.Empty;
             }
             set {
+                ThrowIfDisposed();
                 SlideMasterPart master = _presentationPart.SlideMasterParts.First();
                 ThemePart themePart = master.ThemePart ?? master.AddNewPart<ThemePart>();
                 if (themePart.Theme == null) {
@@ -69,7 +79,16 @@ namespace OfficeIMO.PowerPoint {
 
         /// <inheritdoc />
         public void Dispose() {
-            _document.Dispose();
+            if (_disposed) {
+                return;
+            }
+
+            try {
+                _document?.Dispose();
+            } finally {
+                _document = null;
+                _disposed = true;
+            }
         }
 
         /// <summary>
@@ -78,9 +97,9 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="filePath">Path where the presentation file will be created.</param>
         public static PowerPointPresentation Create(string filePath) {
             PresentationDocument document = PresentationDocument.Create(filePath, PresentationDocumentType.Presentation);
-            PowerPointPresentation presentation = new(document, isNewPresentation: true);
+            PowerPointPresentation presentation = new(document, filePath, isNewPresentation: true);
             presentation._presentationPart.Presentation.Save();
-            presentation._document.Save();
+            presentation._document?.Save();
             return presentation;
         }
 
@@ -90,7 +109,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="filePath">Path of the presentation file to open.</param>
         public static PowerPointPresentation Open(string filePath) {
             PresentationDocument document = PresentationDocument.Open(filePath, true);
-            return new PowerPointPresentation(document, isNewPresentation: false);
+            return new PowerPointPresentation(document, filePath, isNewPresentation: false);
         }
 
         /// <summary>
@@ -99,6 +118,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="masterIndex">Index of the slide master.</param>
         /// <param name="layoutIndex">Index of the slide layout.</param>
         public PowerPointSlide AddSlide(int masterIndex = 0, int layoutIndex = 0) {
+            ThrowIfDisposed();
             // If we have an untouched initial slide, return it for the user to use
             if (_initialSlideUntouched && _slides.Count == 1) {
                 _initialSlideUntouched = false;
@@ -141,7 +161,7 @@ namespace OfficeIMO.PowerPoint {
                             new NonVisualDrawingProperties() { Id = 1U, Name = "" },
                             new NonVisualGroupShapeDrawingProperties(),
                             new ApplicationNonVisualDrawingProperties()),
-                        new GroupShapeProperties(new A.TransformGroup()))),
+                        PowerPointUtils.CreateDefaultGroupShapeProperties())),
                 new ColorMapOverride(new A.MasterColorMapping()));
 
             SlideMasterPart[] masters = _presentationPart.SlideMasterParts.ToArray();
@@ -331,9 +351,10 @@ namespace OfficeIMO.PowerPoint {
         /// </code>
         /// </example>
         public List<ValidationErrorInfo> ValidateDocument(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
+            ThrowIfDisposed();
             List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
             OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersions);
-            foreach (ValidationErrorInfo error in validator.Validate(_document)) {
+            foreach (ValidationErrorInfo error in validator.Validate(_document!)) {
                 listErrors.Add(error);
             }
 
@@ -344,18 +365,20 @@ namespace OfficeIMO.PowerPoint {
         ///     Saves all pending changes to the underlying package.
         /// </summary>
         public void Save() {
+            ThrowIfDisposed();
             foreach (PowerPointSlide slide in _slides) {
                 slide.Save();
             }
 
             _presentationPart.Presentation.Save();
-            _document.Save();
+            _document!.Save();
         }
 
         /// <summary>
         ///     Creates a fluent wrapper for this presentation.
         /// </summary>
         public PowerPointFluentPresentation AsFluent() {
+            ThrowIfDisposed();
             return new PowerPointFluentPresentation(this);
         }
 
@@ -364,7 +387,7 @@ namespace OfficeIMO.PowerPoint {
             // We must create an initial blank slide with relationship ID "rId2" and then create
             // the slide layout, slide master, and theme in a specific order.
             // DO NOT modify this initialization pattern or PowerPoint will show a repair dialog!
-            PowerPointUtils.CreatePresentationParts(_presentationPart);
+            PowerPointUtils.CreatePresentationParts(_document!, _presentationPart);
         }
 
         private void LoadExistingSlides() {
@@ -376,6 +399,12 @@ namespace OfficeIMO.PowerPoint {
                         _slides.Add(new PowerPointSlide(slidePart));
                     }
                 }
+            }
+        }
+
+        private void ThrowIfDisposed() {
+            if (_disposed || _document == null) {
+                throw new ObjectDisposedException(nameof(PowerPointPresentation));
             }
         }
     }

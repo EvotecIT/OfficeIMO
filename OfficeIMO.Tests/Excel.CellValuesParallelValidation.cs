@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             var sheet = document.AddWorkSheet("Data");
 
             var cells = Enumerable.Range(1, 10).Select(i => (i, 1, (object)$"Value {i}"));
-            sheet.CellValuesParallel(cells);
+            sheet.CellValues(cells, ExecutionMode.Parallel);
 
             var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             var firstCell = sheetData.Elements<Row>().First().Elements<Cell>().First();
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
 
             var cells = Enumerable.Range(1, 5).SelectMany(row =>
                 Enumerable.Range(1, 3).Select(col => (row, col, (object)$"R{row}C{col}")));
-            sheet.CellValuesParallel(cells);
+            sheet.CellValues(cells, ExecutionMode.Parallel);
 
             var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             var secondRow = sheetData.Elements<Row>().ElementAt(1);
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
                 .SelectMany(row => Enumerable.Range(1, 8).Select(col => (row, col, (object)$"R{row}C{col}")))
                 .ToList();
 
-            sheet.CellValuesParallel(cells);
+            sheet.CellValues(cells, ExecutionMode.Parallel);
 
             // Warm up targeted validation once before timing.
             WorksheetIntegrityValidator.Validate(sheet.WorksheetPart, new ExecutionPolicy {
