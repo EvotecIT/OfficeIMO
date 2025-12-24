@@ -327,6 +327,11 @@ namespace OfficeIMO.PowerPoint {
             }
 
             long used = columns.Sum(c => c.WidthEmus ?? 0L);
+            if (used > totalWidth) {
+                throw new ArgumentException(
+                    $"Explicit column widths ({used}) exceed table width ({totalWidth}).",
+                    nameof(columns));
+            }
             int remainingCount = columns.Count(c => !c.WidthEmus.HasValue);
             long remaining = Math.Max(0L, totalWidth - used);
             long fallbackWidth = remainingCount > 0 ? remaining / remainingCount : 0L;

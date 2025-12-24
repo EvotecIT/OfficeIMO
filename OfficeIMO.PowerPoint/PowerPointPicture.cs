@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -97,7 +98,7 @@ namespace OfficeIMO.PowerPoint {
             ValidatePercent(rightPercent, nameof(rightPercent));
             ValidatePercent(bottomPercent, nameof(bottomPercent));
 
-            if (leftPercent == 0 && topPercent == 0 && rightPercent == 0 && bottomPercent == 0) {
+            if (IsZero(leftPercent) && IsZero(topPercent) && IsZero(rightPercent) && IsZero(bottomPercent)) {
                 ResetCrop();
                 return;
             }
@@ -198,6 +199,10 @@ namespace OfficeIMO.PowerPoint {
 
         private static int ToCropValue(double percent) {
             return (int)Math.Round(percent * 1000);
+        }
+
+        private static bool IsZero(double value) {
+            return Math.Abs(value) < 0.000001d;
         }
 
         private void SetSourceRectangle(int? left, int? top, int? right, int? bottom) {

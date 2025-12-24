@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(data, columns, includeHeaders: true,
+                slide.AddTable(data, columns, includeHeaders: true,
                     left: 0L, top: 0L, width: 6000000L, height: 2000000L);
                 presentation.Save();
             }
