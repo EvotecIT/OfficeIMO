@@ -109,6 +109,7 @@ namespace OfficeIMO.PowerPoint {
                 if (level > 0) {
                     paragraph.Level = level;
                 }
+                ApplyDefaultListSpacing(paragraph);
                 configure?.Invoke(paragraph);
                 results.Add(paragraph);
             }
@@ -152,6 +153,7 @@ namespace OfficeIMO.PowerPoint {
                 if (level > 0) {
                     paragraph.Level = level;
                 }
+                ApplyDefaultListSpacing(paragraph);
                 configure?.Invoke(paragraph);
                 results.Add(paragraph);
             }
@@ -395,6 +397,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointParagraph AddBullet(string text) {
             PowerPointParagraph paragraph = AddParagraph(text);
             paragraph.SetBullet();
+            ApplyDefaultListSpacing(paragraph);
             return paragraph;
         }
 
@@ -404,6 +407,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointParagraph AddNumberedItem(string text, A.TextAutoNumberSchemeValues style, int startAt = 1) {
             PowerPointParagraph paragraph = AddParagraph(text);
             paragraph.SetNumbered(style, startAt);
+            ApplyDefaultListSpacing(paragraph);
             return paragraph;
         }
 
@@ -413,6 +417,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointParagraph AddNumberedItem(string text, int startAt = 1) {
             PowerPointParagraph paragraph = AddParagraph(text);
             paragraph.SetNumbered(startAt);
+            ApplyDefaultListSpacing(paragraph);
             return paragraph;
         }
 
@@ -431,6 +436,13 @@ namespace OfficeIMO.PowerPoint {
                 paragraphs.Add(AddParagraph());
             }
             return paragraphs;
+        }
+
+        private static readonly PowerPointParagraphStyle DefaultListParagraphStyle =
+            new(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
+
+        private static void ApplyDefaultListSpacing(PowerPointParagraph paragraph) {
+            DefaultListParagraphStyle.Apply(paragraph);
         }
     }
 }
