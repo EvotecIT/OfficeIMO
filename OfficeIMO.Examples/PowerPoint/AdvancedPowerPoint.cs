@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using OfficeIMO.PowerPoint;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Examples.PowerPoint {
     /// <summary>
@@ -60,6 +61,16 @@ namespace OfficeIMO.Examples.PowerPoint {
                 width: contentWidth,
                 height: 2286000L);
             kpiTable.BandedRows = true;
+            kpiTable.SetColumnWidthsPoints(220, 120, 120);
+            kpiTable.SetRowHeightPoints(0, 28);
+            for (int c = 0; c < kpiTable.Columns; c++) {
+                PowerPointTableCell header = kpiTable.GetCell(0, c);
+                header.FillColor = "2F5597";
+                header.Color = "FFFFFF";
+                header.Bold = true;
+                header.HorizontalAlignment = A.TextAlignmentTypeValues.Center;
+                header.VerticalAlignment = A.TextAnchoringTypeValues.Center;
+            }
 
             // Slide 4: KPI chart
             PowerPointSlide slide4 = presentation.AddSlide();
@@ -69,7 +80,12 @@ namespace OfficeIMO.Examples.PowerPoint {
                 k => k.Metric,
                 new PowerPointChartSeriesDefinition<KpiRow>("Current", k => k.Current),
                 new PowerPointChartSeriesDefinition<KpiRow>("Target", k => k.Target));
-            slide4.AddChart(chartData, margin, 1524000L, contentWidth, 3810000L);
+            PowerPointChart chart = slide4.AddChart(chartData, margin, 1524000L, contentWidth, 3810000L);
+            chart.SetTitle("Current vs Target")
+                .SetLegend(C.LegendPositionValues.Right)
+                .SetDataLabels(showValue: true)
+                .SetCategoryAxisTitle("Metric")
+                .SetValueAxisTitle("Score");
             slide4.Notes.Text = "Targets are shown alongside current values.";
 
             presentation.Save();

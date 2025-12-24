@@ -45,10 +45,18 @@ namespace OfficeIMO.Examples.PowerPoint {
                 width: contentWidth,
                 height: 3048000L);
             table.BandedRows = true;
+            table.SetColumnWidthsPoints(200, 90, 90, 90, 90);
+            table.SetRowHeightPoints(0, 28);
+            for (int r = 1; r < table.Rows; r++) {
+                table.SetRowHeightPoints(r, 24);
+            }
 
             for (int c = 0; c < table.Columns; c++) {
                 PowerPointTableCell header = table.GetCell(0, c);
                 header.FillColor = "1F4E79";
+                header.Color = "FFFFFF";
+                header.Bold = true;
+                header.FontSize = 12;
                 header.HorizontalAlignment = A.TextAlignmentTypeValues.Center;
                 header.VerticalAlignment = A.TextAnchoringTypeValues.Center;
                 header.SetBorders(TableCellBorders.All, "FFFFFF", 1);
@@ -61,6 +69,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             for (int r = 1; r < table.Rows; r++) {
                 for (int c = 0; c < table.Columns; c++) {
                     PowerPointTableCell cell = table.GetCell(r, c);
+                    cell.FontSize = 11;
                     cell.SetBorders(TableCellBorders.All, "D9D9D9", 0.5);
                     cell.PaddingLeftPoints = 3;
                     cell.PaddingRightPoints = 3;

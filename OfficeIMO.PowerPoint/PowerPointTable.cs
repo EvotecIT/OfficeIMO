@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -6,6 +8,7 @@ namespace OfficeIMO.PowerPoint {
     ///     Represents a table on a slide.
     /// </summary>
     public class PowerPointTable : PowerPointShape {
+        private const int EmusPerPoint = 12700;
         internal PowerPointTable(GraphicFrame frame) : base(frame) {
         }
 
@@ -42,6 +45,82 @@ namespace OfficeIMO.PowerPoint {
             set {
                 TableElement.TableProperties ??= new A.TableProperties();
                 TableElement.TableProperties.BandRow = value;
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the table style ID GUID.
+        /// </summary>
+        public string? StyleId {
+            get => TableElement.TableProperties?.GetFirstChild<A.TableStyleId>()?.Text;
+            set {
+                TableElement.TableProperties ??= new A.TableProperties();
+                TableElement.TableProperties.RemoveAllChildren<A.TableStyleId>();
+                if (!string.IsNullOrWhiteSpace(value)) {
+                    TableElement.TableProperties.Append(new A.TableStyleId { Text = value! });
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Sets the width of a specific column in EMUs.
+        /// </summary>
+        public void SetColumnWidth(int columnIndex, long width) {
+            if (columnIndex < 0 || columnIndex >= Columns) {
+                throw new ArgumentOutOfRangeException(nameof(columnIndex));
+            }
+            A.GridColumn column = TableElement.TableGrid!.Elements<A.GridColumn>().ElementAt(columnIndex);
+            column.Width = width;
+        }
+
+        /// <summary>
+        ///     Sets the width of a specific column in points.
+        /// </summary>
+        public void SetColumnWidthPoints(int columnIndex, double widthPoints) {
+            SetColumnWidth(columnIndex, ToEmus(widthPoints));
+        }
+
+        /// <summary>
+        ///     Sets widths for columns in points (applies to the first N columns provided).
+        /// </summary>
+        public void SetColumnWidthsPoints(params double[] widthsPoints) {
+            if (widthsPoints == null) {
+                throw new ArgumentNullException(nameof(widthsPoints));
+            }
+            int count = Math.Min(widthsPoints.Length, Columns);
+            for (int i = 0; i < count; i++) {
+                SetColumnWidthPoints(i, widthsPoints[i]);
+            }
+        }
+
+        /// <summary>
+        ///     Sets the height of a specific row in EMUs.
+        /// </summary>
+        public void SetRowHeight(int rowIndex, long height) {
+            if (rowIndex < 0 || rowIndex >= Rows) {
+                throw new ArgumentOutOfRangeException(nameof(rowIndex));
+            }
+            A.TableRow row = TableElement.Elements<A.TableRow>().ElementAt(rowIndex);
+            row.Height = height;
+        }
+
+        /// <summary>
+        ///     Sets the height of a specific row in points.
+        /// </summary>
+        public void SetRowHeightPoints(int rowIndex, double heightPoints) {
+            SetRowHeight(rowIndex, ToEmus(heightPoints));
+        }
+
+        /// <summary>
+        ///     Sets heights for rows in points (applies to the first N rows provided).
+        /// </summary>
+        public void SetRowHeightsPoints(params double[] heightsPoints) {
+            if (heightsPoints == null) {
+                throw new ArgumentNullException(nameof(heightsPoints));
+            }
+            int count = Math.Min(heightsPoints.Length, Rows);
+            for (int i = 0; i < count; i++) {
+                SetRowHeightPoints(i, heightsPoints[i]);
             }
         }
 
@@ -135,6 +214,10 @@ namespace OfficeIMO.PowerPoint {
             foreach (A.TableRow row in table.Elements<A.TableRow>()) {
                 row.Elements<A.TableCell>().ElementAt(index).Remove();
             }
+        }
+
+        private static long ToEmus(double points) {
+            return (long)Math.Round(points * EmusPerPoint);
         }
     }
 }

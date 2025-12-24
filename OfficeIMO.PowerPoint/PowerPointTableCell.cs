@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using DocumentFormat.OpenXml.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -108,6 +110,82 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 SetBorders(TableCellBorders.All, value);
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets whether the cell text is bold.
+        /// </summary>
+        public bool Bold {
+            get => GetRun()?.RunProperties?.Bold?.Value == true;
+            set {
+                var props = EnsureRunProperties();
+                props.Bold = value ? true : null;
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets whether the cell text is italic.
+        /// </summary>
+        public bool Italic {
+            get => GetRun()?.RunProperties?.Italic?.Value == true;
+            set {
+                var props = EnsureRunProperties();
+                props.Italic = value ? true : null;
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the font size in points.
+        /// </summary>
+        public int? FontSize {
+            get {
+                int? size = GetRun()?.RunProperties?.FontSize?.Value;
+                return size != null ? size / 100 : null;
+            }
+            set {
+                var props = EnsureRunProperties();
+                props.FontSize = value != null ? value * 100 : null;
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the font name.
+        /// </summary>
+        public string? FontName {
+            get => GetRun()?.RunProperties?.GetFirstChild<A.LatinFont>()?.Typeface;
+            set {
+                var props = EnsureRunProperties();
+                props.RemoveAllChildren<A.LatinFont>();
+                if (value != null) {
+                    props.Append(new A.LatinFont { Typeface = value });
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the text color in hex format (e.g. "FF0000").
+        /// </summary>
+        public string? Color {
+            get => GetRun()?.RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
+            set {
+                var props = EnsureRunProperties();
+                var latin = props.GetFirstChild<A.LatinFont>();
+                var ea = props.GetFirstChild<A.EastAsianFont>();
+                var cs = props.GetFirstChild<A.ComplexScriptFont>();
+
+                props.RemoveAllChildren<A.SolidFill>();
+                props.RemoveAllChildren<A.LatinFont>();
+                props.RemoveAllChildren<A.EastAsianFont>();
+                props.RemoveAllChildren<A.ComplexScriptFont>();
+
+                if (value != null) {
+                    props.Append(new A.SolidFill(new A.RgbColorModelHex { Val = value }));
+                }
+
+                if (latin != null) props.Append((A.LatinFont)latin.CloneNode(true));
+                if (ea != null) props.Append((A.EastAsianFont)ea.CloneNode(true));
+                if (cs != null) props.Append((A.ComplexScriptFont)cs.CloneNode(true));
             }
         }
 
@@ -238,6 +316,34 @@ namespace OfficeIMO.PowerPoint {
 
         private TableCellProperties EnsureProperties() {
             return Cell.TableCellProperties ??= new TableCellProperties();
+        }
+
+        private A.Run? GetRun() {
+            return Cell.TextBody?
+                .Elements<A.Paragraph>()
+                .FirstOrDefault()?
+                .Elements<A.Run>()
+                .FirstOrDefault();
+        }
+
+        private A.Run EnsureRun() {
+            Cell.TextBody ??= new A.TextBody(new A.BodyProperties(), new A.ListStyle());
+            A.Paragraph paragraph = Cell.TextBody.Elements<A.Paragraph>().FirstOrDefault() ?? new A.Paragraph();
+            if (paragraph.Parent == null) {
+                Cell.TextBody.Append(paragraph);
+            }
+
+            A.Run run = paragraph.Elements<A.Run>().FirstOrDefault() ?? new A.Run(new A.Text(string.Empty));
+            if (run.Parent == null) {
+                paragraph.Append(run);
+            }
+
+            return run;
+        }
+
+        private A.RunProperties EnsureRunProperties() {
+            A.Run run = EnsureRun();
+            return run.RunProperties ??= new A.RunProperties();
         }
     }
 }

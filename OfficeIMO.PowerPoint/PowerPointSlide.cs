@@ -283,7 +283,7 @@ namespace OfficeIMO.PowerPoint {
                         _shapes.Add(new PowerPointTable(g));
                         break;
                     case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null:
-                        _shapes.Add(new PowerPointChart(g));
+                        _shapes.Add(new PowerPointChart(g, _slidePart));
                         break;
                 }
             }
