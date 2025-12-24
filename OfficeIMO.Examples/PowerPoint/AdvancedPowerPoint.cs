@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using OfficeIMO.PowerPoint;
+using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Examples.PowerPoint {
@@ -15,9 +16,15 @@ namespace OfficeIMO.Examples.PowerPoint {
             string filePath = Path.Combine(folderPath, "Advanced PowerPoint.pptx");
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
 
-            const long slideWidth = 12192000L;
-            const long margin = 914400L;
-            const long contentWidth = slideWidth - (2 * margin);
+            const double marginCm = 1.5;
+            const double gutterCm = 1.0;
+            double slideHeightCm = presentation.SlideSize.HeightCm;
+            PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
+            long bodyTop = PowerPointUnits.FromCentimeters(3.6);
+            long bodyHeight = content.Bottom - bodyTop;
+            PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumnsCm(2, marginCm, gutterCm);
+            PowerPointLayoutBox leftColumn = new(columns[0].Left, bodyTop, columns[0].Width, bodyHeight);
+            PowerPointLayoutBox rightColumn = new(columns[1].Left, bodyTop, columns[1].Width, bodyHeight);
 
             List<KpiRow> kpis = new() {
                 new KpiRow { Metric = "Revenue", Current = 2.4, Target = 2.8 },
@@ -28,14 +35,15 @@ namespace OfficeIMO.Examples.PowerPoint {
             // Slide 1: title
             PowerPointSlide slide1 = presentation.AddSlide();
             slide1.AddTitle("Advanced PowerPoint Example");
-            slide1.AddTextBox("Shows layout, charts, tables, images, and notes", margin, 2011680L, contentWidth, 914400L);
+            slide1.AddTextBoxCm("Shows layout, charts, tables, images, and notes", marginCm, 3.2, content.WidthCm, 1.1);
             slide1.BackgroundColor = "F7F7F7";
             slide1.Transition = SlideTransition.Fade;
 
             // Slide 2: highlights with image
             PowerPointSlide slide2 = presentation.AddSlide();
             slide2.AddTitle("Highlights");
-            PowerPointTextBox highlights = slide2.AddTextBox("This slide demonstrates:");
+            PowerPointTextBox highlights = slide2.AddTextBox("This slide demonstrates:",
+                leftColumn.Left, leftColumn.Top, leftColumn.Width, leftColumn.Height);
             highlights.AddBullet("Positioned elements");
             highlights.AddBullet("Tables created from objects");
             highlights.AddBullet("Charts with real data");
@@ -43,23 +51,25 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             string imagePath = Path.Combine(AppContext.BaseDirectory, "Images", "BackgroundImage.png");
             if (File.Exists(imagePath)) {
-                slide2.AddPicture(imagePath, 6400000L, 1700000L, 4572000L, 2570400L);
+                slide2.AddPicture(imagePath, rightColumn.Left, rightColumn.Top, rightColumn.Width, rightColumn.Height);
             }
 
             // Slide 3: KPI table
             PowerPointSlide slide3 = presentation.AddSlide();
             slide3.AddTitle("KPI Table");
-            PowerPointTable kpiTable = slide3.AddTable(
+            double tableTopCm = 3.8;
+            double tableHeightCm = slideHeightCm - tableTopCm - marginCm;
+            PowerPointTable kpiTable = slide3.AddTableCm(
                 kpis,
                 o => {
                     o.HeaderCase = HeaderCase.Title;
                     o.PinFirst("Metric");
                 },
                 includeHeaders: true,
-                left: margin,
-                top: 1828800L,
-                width: contentWidth,
-                height: 2286000L);
+                leftCm: marginCm,
+                topCm: tableTopCm,
+                widthCm: content.WidthCm,
+                heightCm: tableHeightCm);
             kpiTable.BandedRows = true;
             kpiTable.SetColumnWidthsPoints(220, 120, 120);
             kpiTable.SetRowHeightPoints(0, 28);
@@ -80,7 +90,9 @@ namespace OfficeIMO.Examples.PowerPoint {
                 k => k.Metric,
                 new PowerPointChartSeriesDefinition<KpiRow>("Current", k => k.Current),
                 new PowerPointChartSeriesDefinition<KpiRow>("Target", k => k.Target));
-            PowerPointChart chart = slide4.AddChart(chartData, margin, 1524000L, contentWidth, 3810000L);
+            double chartTopCm = 3.6;
+            double chartHeightCm = slideHeightCm - chartTopCm - marginCm;
+            PowerPointChart chart = slide4.AddChartCm(chartData, marginCm, chartTopCm, content.WidthCm, chartHeightCm);
             chart.SetTitle("Current vs Target")
                 .SetLegend(C.LegendPositionValues.Right)
                 .SetDataLabels(showValue: true)

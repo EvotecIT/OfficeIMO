@@ -15,9 +15,17 @@ namespace OfficeIMO.Examples.PowerPoint {
             string filePath = Path.Combine(folderPath, "Table Operations.pptx");
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
 
-            const long slideWidth = 12192000L;
-            const long margin = 914400L;
-            const long contentWidth = slideWidth - (2 * margin);
+            const double marginCm = 1.5;
+            const double gutterCm = 1.0;
+            double slideHeightCm = presentation.SlideSize.HeightCm;
+            PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
+            double bodyTopCm = 3.8;
+            double bodyHeightCm = slideHeightCm - bodyTopCm - marginCm;
+            long bodyTop = PowerPointUnits.FromCentimeters(bodyTopCm);
+            long bodyHeight = PowerPointUnits.FromCentimeters(bodyHeightCm);
+            PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumnsCm(2, marginCm, gutterCm);
+            PowerPointLayoutBox leftColumn = new(columns[0].Left, bodyTop, columns[0].Width, bodyHeight);
+            PowerPointLayoutBox rightColumn = new(columns[1].Left, bodyTop, columns[1].Width, bodyHeight);
 
             List<SalesRecord> data = new() {
                 new SalesRecord { Product = "Alpha", Q1 = 12, Q2 = 15, Q3 = 18, Q4 = 20 },
@@ -28,22 +36,22 @@ namespace OfficeIMO.Examples.PowerPoint {
             // Slide 1: title
             PowerPointSlide titleSlide = presentation.AddSlide();
             titleSlide.AddTitle("Quarterly Sales Overview");
-            titleSlide.AddTextBox("Tables and charts created from data objects", margin, 2011680L, contentWidth, 914400L);
+            titleSlide.AddTextBoxCm("Tables and charts created from data objects", marginCm, 3.2, content.WidthCm, 1.1);
 
             // Slide 2: table from objects
             PowerPointSlide tableSlide = presentation.AddSlide();
             tableSlide.AddTitle("Sales by Product");
-            PowerPointTable table = tableSlide.AddTable(
+            PowerPointTable table = tableSlide.AddTableCm(
                 data,
                 o => {
                     o.HeaderCase = HeaderCase.Title;
                     o.PinFirst("Product");
                 },
                 includeHeaders: true,
-                left: margin,
-                top: 1828800L,
-                width: contentWidth,
-                height: 3048000L);
+                leftCm: marginCm,
+                topCm: bodyTopCm,
+                widthCm: content.WidthCm,
+                heightCm: bodyHeightCm);
             table.BandedRows = true;
             table.SetColumnWidthsPoints(200, 90, 90, 90, 90);
             table.SetRowHeightPoints(0, 28);
@@ -87,10 +95,30 @@ namespace OfficeIMO.Examples.PowerPoint {
                     new PowerPointChartSeries("Q3", data.Select(d => (double)d.Q3)),
                     new PowerPointChartSeries("Q4", data.Select(d => (double)d.Q4))
                 });
-            chartSlide.AddChart(chartData, margin, 1524000L, contentWidth, 3810000L);
-           chartSlide.Notes.Text = "Chart and table share the same source data.";
+            chartSlide.AddChartCm(chartData, marginCm, bodyTopCm, content.WidthCm, bodyHeightCm);
+            chartSlide.Notes.Text = "Chart and table share the same source data.";
 
-            // Slide 4: totals by quarter
+            // Slide 4: table + chart side by side
+            PowerPointSlide comboSlide = presentation.AddSlide();
+            comboSlide.AddTitle("Table and Chart (Compact)");
+            PowerPointTable compactTable = comboSlide.AddTableCm(
+                data,
+                o => {
+                    o.HeaderCase = HeaderCase.Title;
+                    o.PinFirst("Product");
+                },
+                includeHeaders: true,
+                leftCm: leftColumn.LeftCm,
+                topCm: leftColumn.TopCm,
+                widthCm: leftColumn.WidthCm,
+                heightCm: leftColumn.HeightCm);
+            compactTable.BandedRows = true;
+            compactTable.SetRowHeightPoints(0, 24);
+
+            comboSlide.AddChartCm(chartData, rightColumn.LeftCm, rightColumn.TopCm, rightColumn.WidthCm,
+                rightColumn.HeightCm);
+
+            // Slide 5: totals by quarter
             PowerPointSlide totalsSlide = presentation.AddSlide();
             totalsSlide.AddTitle("Totals by Quarter");
             var quarterLabels = new[] { "Q1", "Q2", "Q3", "Q4" };
@@ -103,19 +131,19 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointChartData totalsData = new(
                 quarterLabels,
                 new[] { new PowerPointChartSeries("Total", totals.Select(t => (double)t)) });
-            totalsSlide.AddChart(totalsData, margin, 1524000L, contentWidth, 3810000L);
+            totalsSlide.AddChartCm(totalsData, marginCm, bodyTopCm, content.WidthCm, bodyHeightCm);
 
-            // Slide 5: picture with caption
+            // Slide 6: picture with caption
             PowerPointSlide imageSlide = presentation.AddSlide();
             imageSlide.AddTitle("Brand Assets");
             string imagePath = Path.Combine(AppContext.BaseDirectory, "Images", "BackgroundImage.png");
             if (File.Exists(imagePath)) {
-                imageSlide.AddPicture(imagePath, margin, 1828800L, contentWidth, 3200400L);
+                imageSlide.AddPictureCm(imagePath, marginCm, bodyTopCm, content.WidthCm, bodyHeightCm);
             } else {
-                imageSlide.AddTextBox("(image placeholder)", margin, 1828800L, contentWidth, 914400L);
+                imageSlide.AddTextBoxCm("(image placeholder)", marginCm, bodyTopCm, content.WidthCm, 2.5);
             }
 
-            // Slide 6: summary table
+            // Slide 7: summary table
             PowerPointSlide summarySlide = presentation.AddSlide();
             summarySlide.AddTitle("Summary");
             var summaryRows = new[] {
@@ -124,14 +152,14 @@ namespace OfficeIMO.Examples.PowerPoint {
                 new SummaryRow { Metric = "Total Q3", Value = totals[2] },
                 new SummaryRow { Metric = "Total Q4", Value = totals[3] }
             };
-            PowerPointTable summary = summarySlide.AddTable(
+            PowerPointTable summary = summarySlide.AddTableCm(
                 summaryRows,
                 o => o.HeaderCase = HeaderCase.Title,
                 includeHeaders: true,
-                left: margin,
-                top: 1828800L,
-                width: contentWidth,
-                height: 2286000L);
+                leftCm: marginCm,
+                topCm: bodyTopCm,
+                widthCm: content.WidthCm,
+                heightCm: bodyHeightCm);
             summary.BandedRows = true;
 
             PowerPointTableCell summaryHeader = summary.GetCell(0, 0);
