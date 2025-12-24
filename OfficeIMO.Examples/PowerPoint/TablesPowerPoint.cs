@@ -113,7 +113,32 @@ namespace OfficeIMO.Examples.PowerPoint {
                 widthCm: leftColumn.WidthCm,
                 heightCm: leftColumn.HeightCm);
             compactTable.BandedRows = true;
-            compactTable.SetRowHeightPoints(0, 24);
+            double compactWidthPoints = leftColumn.WidthPoints;
+            double productWidthPoints = compactWidthPoints * 0.38;
+            double quarterWidthPoints = (compactWidthPoints - productWidthPoints) / 4;
+            compactTable.SetColumnWidthsPoints(productWidthPoints, quarterWidthPoints, quarterWidthPoints,
+                quarterWidthPoints, quarterWidthPoints);
+            compactTable.SetRowHeightPoints(0, 20);
+            for (int r = 1; r < compactTable.Rows; r++) {
+                compactTable.SetRowHeightPoints(r, 18);
+            }
+
+            for (int c = 0; c < compactTable.Columns; c++) {
+                PowerPointTableCell header = compactTable.GetCell(0, c);
+                header.FillColor = "1F4E79";
+                header.Color = "FFFFFF";
+                header.Bold = true;
+                header.FontSize = 10;
+                header.HorizontalAlignment = A.TextAlignmentTypeValues.Center;
+                header.VerticalAlignment = A.TextAnchoringTypeValues.Center;
+            }
+
+            for (int r = 1; r < compactTable.Rows; r++) {
+                for (int c = 0; c < compactTable.Columns; c++) {
+                    PowerPointTableCell cell = compactTable.GetCell(r, c);
+                    cell.FontSize = 9;
+                }
+            }
 
             comboSlide.AddChartCm(chartData, rightColumn.LeftCm, rightColumn.TopCm, rightColumn.WidthCm,
                 rightColumn.HeightCm);

@@ -15,16 +15,23 @@ namespace OfficeIMO.Examples.PowerPoint {
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                 const double marginCm = 1.5;
                 const double gutterCm = 1.0;
+                const double titleHeightCm = 1.6;
+                const double calloutHeightCm = 2.6;
+                const double gapCm = 0.6;
                 PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
                 PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumnsCm(2, marginCm, gutterCm);
-                PowerPointLayoutBox[] rows = presentation.SlideSize.GetRowsCm(2, marginCm, gutterCm);
-                PowerPointLayoutBox listRow = rows[0];
-                PowerPointLayoutBox calloutRow = rows[1];
-                PowerPointLayoutBox leftList = new(columns[0].Left, listRow.Top, columns[0].Width, listRow.Height);
-                PowerPointLayoutBox rightList = new(columns[1].Left, listRow.Top, columns[1].Width, listRow.Height);
+                double bodyHeightCm = content.HeightCm - titleHeightCm - calloutHeightCm - (gapCm * 2);
+                double bodyTopCm = marginCm + titleHeightCm + gapCm;
+                double calloutTopCm = bodyTopCm + bodyHeightCm + gapCm;
+                long bodyTop = PowerPointUnits.FromCentimeters(bodyTopCm);
+                long bodyHeight = PowerPointUnits.FromCentimeters(bodyHeightCm);
+                long calloutTop = PowerPointUnits.FromCentimeters(calloutTopCm);
+                long calloutHeight = PowerPointUnits.FromCentimeters(calloutHeightCm);
+                PowerPointLayoutBox leftList = new(columns[0].Left, bodyTop, columns[0].Width, bodyHeight);
+                PowerPointLayoutBox rightList = new(columns[1].Left, bodyTop, columns[1].Width, bodyHeight);
                 presentation.AsFluent()
                     .Slide(0, 0, s => {
-                        s.Title("Fluent Presentation", tb => {
+                        s.TitleCm("Fluent Presentation", marginCm, marginCm, content.WidthCm, titleHeightCm, tb => {
                             tb.FontSize = 32;
                             tb.Color = "1F4E79";
                         });
@@ -39,9 +46,15 @@ namespace OfficeIMO.Examples.PowerPoint {
                             tb.Width = rightList.Width;
                             tb.Height = rightList.Height;
                         }, "Step one", "Step two");
-                        s.Shape(A.ShapeTypeValues.Rectangle, content.Left, calloutRow.Top, content.Width,
-                            calloutRow.Height,
+                        s.Shape(A.ShapeTypeValues.Rectangle, content.Left, calloutTop, content.Width, calloutHeight,
                             shape => shape.Fill("E7F7FF").Stroke("007ACC", 2));
+                        s.TextBox("Tip: fluent builders compose slides quickly while keeping layouts consistent.",
+                            content.Left + PowerPointUnits.Cm(0.4), calloutTop + PowerPointUnits.Cm(0.3),
+                            content.Width - PowerPointUnits.Cm(0.8), calloutHeight - PowerPointUnits.Cm(0.6),
+                            tb => {
+                                tb.FontSize = 16;
+                                tb.Color = "1F4E79";
+                            });
                         s.Notes("Example notes");
                     })
                     .Slide(s => s.Title("Second Slide"))
