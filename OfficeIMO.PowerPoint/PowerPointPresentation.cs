@@ -358,27 +358,6 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Repairs package-level structures for troubleshooting. Intended for manual use only.
-        /// </summary>
-        public void RepairPackage() {
-            if (!_disposed) {
-                Save();
-                _document.Dispose();
-                _disposed = true;
-            }
-            PowerPointUtils.RebaseChartParts(_filePath);
-            PowerPointUtils.NormalizeContentTypes(_filePath);
-        }
-
-        /// <summary>
-        ///     Repairs package-level structures for a closed presentation file.
-        /// </summary>
-        public static void RepairPackage(string filePath) {
-            PowerPointUtils.RebaseChartParts(filePath);
-            PowerPointUtils.NormalizeContentTypes(filePath);
-        }
-
-        /// <summary>
         ///     Creates a fluent wrapper for this presentation.
         /// </summary>
         public PowerPointFluentPresentation AsFluent() {
