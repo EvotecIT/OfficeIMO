@@ -1,47 +1,116 @@
-using System;
-using System.IO;
-using System.Linq;
+using System;
+
+using System.IO;
+
+using System.Linq;
+
 using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
-using OfficeIMO.PowerPoint;
-using Xunit;
-
-namespace OfficeIMO.Tests {
-    public class PowerPointTables {
-        [Fact]
-        public void CanManipulateTableCellsAndPreserveStyle() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
-
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
-                PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(2, 2);
-                PowerPointTableCell cell = table.GetCell(0, 0);
-                cell.Text = "Test";
-                cell.FillColor = "FF0000";
-                cell.Merge = (1, 2);
-                table.AddRow();
-                table.AddColumn();
-                table.RemoveRow(2);
-                table.RemoveColumn(2);
-                presentation.Save();
-            }
-
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
-                PowerPointTable table = presentation.Slides[0].Tables.First();
-                Assert.Equal(2, table.Rows);
-                Assert.Equal(2, table.Columns);
-                PowerPointTableCell cell = table.GetCell(0, 0);
-                Assert.Equal("Test", cell.Text);
-                Assert.Equal((1, 2), cell.Merge);
-            }
-
+using OfficeIMO.PowerPoint;
+
+using Xunit;
+
+
+
+namespace OfficeIMO.Tests {
+
+    public class PowerPointTables {
+
+        [Fact]
+
+        public void CanManipulateTableCellsAndPreserveStyle() {
+
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+
+                PowerPointSlide slide = presentation.AddSlide();
+
+                PowerPointTable table = slide.AddTable(2, 2);
+
+                PowerPointTableCell cell = table.GetCell(0, 0);
+
+                cell.Text = "Test";
+
+                cell.FillColor = "FF0000";
+
+                cell.Merge = (1, 2);
+
+                table.AddRow();
+
+                table.AddColumn();
+
+                table.RemoveRow(2);
+
+                table.RemoveColumn(2);
+
+                presentation.Save();
+
+            }
+
+
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+
+                PowerPointTable table = presentation.Slides[0].Tables.First();
+
+                Assert.Equal(2, table.Rows);
+
+                Assert.Equal(2, table.Columns);
+
+                PowerPointTableCell cell = table.GetCell(0, 0);
+
+                Assert.Equal("Test", cell.Text);
+
+                Assert.Equal((1, 2), cell.Merge);
+
+            }
+
+
+
             using (PresentationDocument doc = PresentationDocument.Open(filePath, false)) {
                 A.Table table = doc.PresentationPart!.SlideParts.First().Slide.Descendants<A.Table>().First();
                 string? styleId = table.TableProperties?.GetFirstChild<A.TableStyleId>()?.Text;
                 Assert.Equal("{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}", styleId);
             }
-
-            File.Delete(filePath);
-        }
-    }
-}
+
+
+            File.Delete(filePath);
+
+        }
+
+
+        [Fact]
+        public void CanToggleHeaderAndBandedRows() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointTable table = slide.AddTable(2, 2);
+                table.HeaderRow = false;
+                table.BandedRows = false;
+                presentation.Save();
+            }
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                PowerPointTable table = presentation.Slides.Single().Tables.First();
+                Assert.False(table.HeaderRow);
+                Assert.False(table.BandedRows);
+            }
+
+            using (PresentationDocument doc = PresentationDocument.Open(filePath, false)) {
+                A.Table table = doc.PresentationPart!.SlideParts.First().Slide.Descendants<A.Table>().First();
+                A.TableProperties? properties = table.TableProperties;
+                Assert.NotNull(properties);
+                Assert.False(properties!.FirstRow?.Value ?? false);
+                Assert.False(properties.BandRow?.Value ?? false);
+            }
+
+            File.Delete(filePath);
+        }
+    }
+
+}
+

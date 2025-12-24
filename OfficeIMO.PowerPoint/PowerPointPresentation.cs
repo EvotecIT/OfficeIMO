@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint {
     ///     Represents a PowerPoint presentation providing basic create, open and save operations.
     /// </summary>
     public sealed class PowerPointPresentation : IDisposable {
-        private PresentationDocument _document;
+        private PresentationDocument? _document;
         private PresentationPart _presentationPart;
         private readonly List<PowerPointSlide> _slides = new();
         private readonly string _filePath;
@@ -72,9 +72,16 @@ namespace OfficeIMO.PowerPoint {
 
         /// <inheritdoc />
         public void Dispose() {
-            if (_disposed) return;
-            _document.Dispose();
-            _disposed = true;
+            if (_disposed) {
+                return;
+            }
+
+            try {
+                _document?.Dispose();
+            } finally {
+                _document = null;
+                _disposed = true;
+            }
         }
 
         /// <summary>
@@ -85,7 +92,7 @@ namespace OfficeIMO.PowerPoint {
             PresentationDocument document = PresentationDocument.Create(filePath, PresentationDocumentType.Presentation);
             PowerPointPresentation presentation = new(document, filePath, isNewPresentation: true);
             presentation._presentationPart.Presentation.Save();
-            presentation._document.Save();
+            presentation._document?.Save();
             return presentation;
         }
 
@@ -336,9 +343,10 @@ namespace OfficeIMO.PowerPoint {
         /// </code>
         /// </example>
         public List<ValidationErrorInfo> ValidateDocument(FileFormatVersions fileFormatVersions = FileFormatVersions.Microsoft365) {
+            ThrowIfDisposed();
             List<ValidationErrorInfo> listErrors = new List<ValidationErrorInfo>();
             OpenXmlValidator validator = new OpenXmlValidator(fileFormatVersions);
-            foreach (ValidationErrorInfo error in validator.Validate(_document)) {
+            foreach (ValidationErrorInfo error in validator.Validate(_document!)) {
                 listErrors.Add(error);
             }
 
@@ -349,12 +357,13 @@ namespace OfficeIMO.PowerPoint {
         ///     Saves all pending changes to the underlying package.
         /// </summary>
         public void Save() {
+            ThrowIfDisposed();
             foreach (PowerPointSlide slide in _slides) {
                 slide.Save();
             }
 
             _presentationPart.Presentation.Save();
-            _document.Save();
+            _document!.Save();
         }
 
         /// <summary>
@@ -369,7 +378,7 @@ namespace OfficeIMO.PowerPoint {
             // We must create an initial blank slide with relationship ID "rId2" and then create
             // the slide layout, slide master, and theme in a specific order.
             // DO NOT modify this initialization pattern or PowerPoint will show a repair dialog!
-            PowerPointUtils.CreatePresentationParts(_document, _presentationPart);
+            PowerPointUtils.CreatePresentationParts(_document!, _presentationPart);
         }
 
         private void LoadExistingSlides() {
@@ -381,6 +390,12 @@ namespace OfficeIMO.PowerPoint {
                         _slides.Add(new PowerPointSlide(slidePart));
                     }
                 }
+            }
+        }
+
+        private void ThrowIfDisposed() {
+            if (_disposed || _document == null) {
+                throw new ObjectDisposedException(nameof(PowerPointPresentation));
             }
         }
     }

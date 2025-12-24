@@ -4,7 +4,6 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
-using S = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
@@ -28,28 +27,52 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private PowerPointChart AddChartInternal(PowerPointChartData? data, long left, long top, long width, long height) {
+            string chartPartUri = PowerPointPartFactory.GetIndexedPartUri(
+                _slidePart.OpenXmlPackage,
+                "ppt/charts",
+                "chart",
+                ".xml",
+                allowBaseWithoutIndex: false);
             ChartPart chartPart = PowerPointPartFactory.CreatePart<ChartPart>(
                 _slidePart,
                 contentType: null,
-                "/ppt/charts/chart.xml");
+                chartPartUri);
             string chartRelId = _slidePart.GetIdOfPart(chartPart);
 
             // Embed workbook + styles/colors exactly like the template
+            string stylePartUri = PowerPointPartFactory.GetIndexedPartUri(
+                _slidePart.OpenXmlPackage,
+                "ppt/charts",
+                "style",
+                ".xml",
+                allowBaseWithoutIndex: false);
             ChartStylePart stylePart = PowerPointPartFactory.CreatePart<ChartStylePart>(
                 chartPart,
                 contentType: null,
-                "/ppt/charts/style.xml");
+                stylePartUri);
             PowerPointUtils.PopulateChartStyle(stylePart);
+            string colorStylePartUri = PowerPointPartFactory.GetIndexedPartUri(
+                _slidePart.OpenXmlPackage,
+                "ppt/charts",
+                "colors",
+                ".xml",
+                allowBaseWithoutIndex: false);
             ChartColorStylePart colorStylePart = PowerPointPartFactory.CreatePart<ChartColorStylePart>(
                 chartPart,
                 contentType: null,
-                "/ppt/charts/colors.xml");
+                colorStylePartUri);
             PowerPointUtils.PopulateChartColorStyle(colorStylePart);
 
+            string embeddedPartUri = PowerPointPartFactory.GetIndexedPartUri(
+                _slidePart.OpenXmlPackage,
+                "ppt/embeddings",
+                "Microsoft_Excel_Worksheet",
+                ".xlsx",
+                allowBaseWithoutIndex: false);
             EmbeddedPackagePart embedded = PowerPointPartFactory.CreatePart<EmbeddedPackagePart>(
                 chartPart,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "/ppt/embeddings/Microsoft_Excel_Worksheet.xlsx");
+                embeddedPartUri);
             byte[] workbookBytes = data == null ? TemplateChartWorkbookBytes() : PowerPointUtils.BuildChartWorkbook(data);
             using (var ms = new MemoryStream(workbookBytes)) {
                 embedded.FeedData(ms);
@@ -81,37 +104,6 @@ namespace OfficeIMO.PowerPoint {
 
         private static byte[] TemplateChartWorkbookBytes() {
             return PowerPointUtils.GetChartWorkbookTemplateBytes();
-        }
-
-        private static byte[] GenerateEmbeddedWorkbookBytes() {
-            using MemoryStream ms = new();
-            using (var doc = SpreadsheetDocument.Create(ms, SpreadsheetDocumentType.Workbook)) {
-                WorkbookPart wbPart = doc.AddWorkbookPart();
-                wbPart.Workbook = new S.Workbook();
-
-                WorksheetPart wsPart = wbPart.AddNewPart<WorksheetPart>();
-                S.SheetData sheetData = new(
-                    new S.Row(
-                        new S.Cell { CellValue = new S.CellValue("Category"), DataType = S.CellValues.String },
-                        new S.Cell { CellValue = new S.CellValue("Value"), DataType = S.CellValues.String }
-                    ),
-                    new S.Row(
-                        new S.Cell { CellValue = new S.CellValue("A"), DataType = S.CellValues.String },
-                        new S.Cell { CellValue = new S.CellValue("4"), DataType = S.CellValues.Number }
-                    ),
-                    new S.Row(
-                        new S.Cell { CellValue = new S.CellValue("B"), DataType = S.CellValues.String },
-                        new S.Cell { CellValue = new S.CellValue("5"), DataType = S.CellValues.Number }
-                    )
-                );
-                wsPart.Worksheet = new S.Worksheet(sheetData);
-
-                S.Sheets sheets = new();
-                sheets.Append(new S.Sheet { Name = "Sheet1", SheetId = 1U, Id = wbPart.GetIdOfPart(wsPart) });
-                wbPart.Workbook.AppendChild(sheets);
-                wbPart.Workbook.Save();
-            }
-            return ms.ToArray();
         }
 
     }
