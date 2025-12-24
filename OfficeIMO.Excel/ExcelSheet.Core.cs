@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using SixLabors.Fonts;
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -31,6 +32,11 @@ namespace OfficeIMO.Excel {
         private readonly object _batchLock = new object();
         private static int _nextTableId = 1;
         private static readonly object _tableIdLock = new object();
+        private static int _instancesCreated;
+
+        internal static int InstancesCreatedForTests => Volatile.Read(ref _instancesCreated);
+
+        internal static void ResetInstanceCountForTests() => Interlocked.Exchange(ref _instancesCreated, 0);
 
         /// <summary>
         /// Override execution policy for this sheet. Null = inherit from document.
@@ -83,6 +89,7 @@ namespace OfficeIMO.Excel {
             var workbookPart = spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
             _worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
             _id = sheet.SheetId!;
+            Interlocked.Increment(ref _instancesCreated);
         }
 
         /// <summary>
@@ -128,6 +135,7 @@ namespace OfficeIMO.Excel {
             this._worksheetPart = worksheetPart;
 
             excelDocument.id.Add(id);
+            Interlocked.Increment(ref _instancesCreated);
         }
 
         private Cell GetCell(int row, int column) {

@@ -6,7 +6,7 @@
         <AssemblyName>OfficeIMO.Excel</AssemblyName>
         <AssemblyTitle>OfficeIMO.Excel</AssemblyTitle>
 
-        <VersionPrefix>0.5.0</VersionPrefix>
+        <VersionPrefix>0.6.0</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472</TargetFrameworks>
@@ -29,6 +29,7 @@
         <DebugType>portable</DebugType>
         <LangVersion>Latest</LangVersion>
         <Nullable>enable</Nullable>
+        <EnableTrimmingPolyfills>true</EnableTrimmingPolyfills>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     </PropertyGroup>
@@ -41,14 +42,14 @@
 
     <ItemGroup
         Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
-        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.3" />
     </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.IO.Compression" />
-    <Reference Include="System.IO.Compression.FileSystem" />
-  </ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.Net.Http" />
+        <Reference Include="System.IO.Compression" />
+        <Reference Include="System.IO.Compression.FileSystem" />
+    </ItemGroup>
 
     <ItemGroup>
         <Using Include="System" />

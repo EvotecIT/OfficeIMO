@@ -15,6 +15,9 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointSlide slide = presentation.AddSlide();
             slide.Notes.Text = "Example notes";
             presentation.Save();
+
+            Helpers.Open(filePath, openPowerPoint);
         }
     }
 }
+

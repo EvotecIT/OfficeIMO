@@ -1,14 +1,17 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
-using S = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents a single slide in a presentation.
     /// </summary>
-    public class PowerPointSlide {
+    public partial class PowerPointSlide {
         private readonly List<PowerPointShape> _shapes = new();
         private readonly SlidePart _slidePart;
         private PowerPointNotes? _notes;
@@ -241,323 +244,6 @@ namespace OfficeIMO.PowerPoint {
             return name;
         }
 
-        /// <summary>
-        ///     Adds a title textbox to the slide.
-        /// </summary>
-        public PowerPointTextBox AddTitle(string text, long left = 838200L, long top = 365125L,
-            long width = 7772400L, long height = 1470025L) {
-            if (text == null) {
-                throw new ArgumentNullException(nameof(text));
-            }
-
-            string name = GenerateUniqueName("Title");
-            Shape shape = new(
-                new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
-                    new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
-                    new ApplicationNonVisualDrawingProperties(new PlaceholderShape { Type = PlaceholderValues.Title })
-                ),
-                new ShapeProperties(
-                    new A.Transform2D(new A.Offset { X = left, Y = top }, new A.Extents { Cx = width, Cy = height }),
-                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }
-                ),
-                new TextBody(
-                    new A.BodyProperties(),
-                    new A.ListStyle(),
-                    new A.Paragraph(new A.Run(new A.Text(text)))
-                )
-            );
-
-            CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
-            tree.AppendChild(shape);
-            PowerPointTextBox textBox = new(shape);
-            _shapes.Add(textBox);
-            return textBox;
-        }
-
-        /// <summary>
-        ///     Adds a textbox with the specified text.
-        /// </summary>
-        public PowerPointTextBox AddTextBox(string text, long left = 838200L, long top = 2174875L, long width = 7772400L,
-            long height = 3962400L) {
-            if (text == null) {
-                throw new ArgumentNullException(nameof(text));
-            }
-
-            string name = GenerateUniqueName("TextBox");
-            Shape shape = new(
-                new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
-                    new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
-                    new ApplicationNonVisualDrawingProperties(new PlaceholderShape())
-                ),
-                new ShapeProperties(
-                    new A.Transform2D(new A.Offset { X = left, Y = top }, new A.Extents { Cx = width, Cy = height }),
-                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }
-                ),
-                new TextBody(
-                    new A.BodyProperties(),
-                    new A.ListStyle(),
-                    new A.Paragraph(new A.Run(new A.Text(text)))
-                )
-            );
-
-            CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
-            tree.AppendChild(shape);
-            PowerPointTextBox textBox = new(shape);
-            _shapes.Add(textBox);
-            return textBox;
-        }
-
-        /// <summary>
-        ///     Adds an image from the given file path.
-        /// </summary>
-        public PowerPointPicture AddPicture(string imagePath, long left = 0L, long top = 0L, long width = 914400L,
-            long height = 914400L) {
-            if (imagePath == null) {
-                throw new ArgumentNullException(nameof(imagePath));
-            }
-
-            if (!File.Exists(imagePath)) {
-                throw new FileNotFoundException("Image file not found.", imagePath);
-            }
-
-            ImagePart imagePart = _slidePart.AddImagePart(ImagePartType.Png.ToPartTypeInfo());
-            using FileStream stream = new(imagePath, FileMode.Open, FileAccess.Read);
-            imagePart.FeedData(stream);
-            string relationshipId = _slidePart.GetIdOfPart(imagePart);
-
-            string name = GenerateUniqueName("Picture");
-            Picture picture = new(
-                new NonVisualPictureProperties(
-                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
-                    new NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = true }),
-                    new ApplicationNonVisualDrawingProperties()
-                ),
-                new BlipFill(
-                    new A.Blip { Embed = relationshipId },
-                    new A.Stretch(new A.FillRectangle())
-                ),
-                new ShapeProperties(
-                    new A.Transform2D(new A.Offset { X = left, Y = top }, new A.Extents { Cx = width, Cy = height }),
-                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }
-                )
-            );
-
-            CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
-            tree.AppendChild(picture);
-            PowerPointPicture pic = new(picture, _slidePart);
-            _shapes.Add(pic);
-            return pic;
-        }
-
-        /// <summary>
-        ///     Adds a table with the specified rows and columns.
-        /// </summary>
-        public PowerPointTable AddTable(int rows, int columns, long left = 0L, long top = 0L, long width = 5000000L,
-            long height = 3000000L) {
-            if (rows <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(rows));
-            }
-
-            if (columns <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(columns));
-            }
-
-            A.Table table = new();
-            A.TableProperties props = new();
-            props.Append(new A.TableStyleId { Text = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" });
-            table.Append(props);
-
-            A.TableGrid grid = new();
-            for (int c = 0; c < columns; c++) {
-                grid.Append(new A.GridColumn { Width = 3708400L });
-            }
-
-            table.Append(grid);
-
-            for (int r = 0; r < rows; r++) {
-                A.TableRow row = new() { Height = 370840L };
-                for (int c = 0; c < columns; c++) {
-                    A.TableCell cell = new(
-                        new A.TextBody(new A.BodyProperties(), new A.ListStyle(),
-                            new A.Paragraph(new A.Run(new A.Text(string.Empty)))),
-                        new A.TableCellProperties()
-                    );
-                    row.Append(cell);
-                }
-
-                table.Append(row);
-            }
-
-            string name = GenerateUniqueName("Table");
-            GraphicFrame frame = new(
-                new NonVisualGraphicFrameProperties(
-                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
-                    new NonVisualGraphicFrameDrawingProperties(),
-                    new ApplicationNonVisualDrawingProperties()
-                ),
-                new Transform(new A.Offset { X = left, Y = top }, new A.Extents { Cx = width, Cy = height }),
-                new A.Graphic(new A.GraphicData(table) {
-                    Uri = "http://schemas.openxmlformats.org/drawingml/2006/table"
-                })
-            );
-
-            CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
-            tree.AppendChild(frame);
-            PowerPointTable tbl = new(frame);
-            _shapes.Add(tbl);
-            return tbl;
-        }
-
-        /// <summary>
-        ///     Adds a basic clustered column chart with default data.
-        /// </summary>
-        public PowerPointChart AddChart() {
-            // Generate a unique relationship ID for the chart part
-            var slideRelationships = new HashSet<string>(
-                _slidePart.Parts.Select(p => p.RelationshipId)
-                .Union(_slidePart.ExternalRelationships.Select(r => r.Id))
-                .Union(_slidePart.HyperlinkRelationships.Select(r => r.Id))
-                .Where(id => !string.IsNullOrEmpty(id))
-            );
-
-            int chartIdNum = 1;
-            string chartRelId;
-            do {
-                chartRelId = "rId" + chartIdNum;
-                chartIdNum++;
-            } while (slideRelationships.Contains(chartRelId));
-
-            ChartPart chartPart = _slidePart.AddNewPart<ChartPart>(chartRelId);
-            GenerateDefaultChart(chartPart);
-
-            string relId = _slidePart.GetIdOfPart(chartPart);
-            string name = GenerateUniqueName("Chart");
-            GraphicFrame frame = new(
-                new NonVisualGraphicFrameProperties(
-                    new NonVisualDrawingProperties { Id = _nextShapeId++, Name = name },
-                    new NonVisualGraphicFrameDrawingProperties(),
-                    new ApplicationNonVisualDrawingProperties()
-                ),
-                new Transform(new A.Offset { X = 0L, Y = 0L }, new A.Extents { Cx = 5486400L, Cy = 3200400L }),
-                new A.Graphic(new A.GraphicData(new C.ChartReference { Id = relId }) {
-                    Uri = "http://schemas.openxmlformats.org/drawingml/2006/chart"
-                })
-            );
-
-            CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
-            tree.AppendChild(frame);
-            PowerPointChart chart = new(frame);
-            _shapes.Add(chart);
-            return chart;
-        }
-
-        private static void GenerateDefaultChart(ChartPart chartPart) {
-            uint categoryAxisId = PowerPointChartAxisIdGenerator.GetNextId();
-            uint valueAxisId = PowerPointChartAxisIdGenerator.GetNextId();
-            C.ChartSpace chartSpace =
-                new(new C.EditingLanguage { Val = "en-US" }, new C.RoundedCorners { Val = false });
-            C.Chart chart = new();
-            C.PlotArea plotArea = new();
-            C.BarChart barChart = new(new C.BarDirection { Val = C.BarDirectionValues.Column },
-                new C.BarGrouping { Val = C.BarGroupingValues.Clustered });
-
-            C.BarChartSeries series = new(new C.Index { Val = 0U }, new C.Order { Val = 0U },
-                new C.SeriesText(new C.NumericValue { Text = "Series 1" }));
-
-            C.CategoryAxisData catData = new(new C.StringLiteral(new C.PointCount { Val = 2U },
-                new C.StringPoint { Index = 0U, NumericValue = new C.NumericValue("A") },
-                new C.StringPoint { Index = 1U, NumericValue = new C.NumericValue("B") }));
-            C.Values values = new(new C.NumberLiteral(new C.PointCount { Val = 2U },
-                new C.NumericPoint { Index = 0U, NumericValue = new C.NumericValue("4") },
-                new C.NumericPoint { Index = 1U, NumericValue = new C.NumericValue("5") }));
-
-            series.Append(catData, values);
-            barChart.Append(series, new C.AxisId { Val = categoryAxisId }, new C.AxisId { Val = valueAxisId });
-
-            C.CategoryAxis catAxis = new(new C.AxisId { Val = categoryAxisId },
-                new C.Scaling(new C.Orientation { Val = C.OrientationValues.MinMax }),
-                new C.AxisPosition { Val = C.AxisPositionValues.Bottom },
-                new C.TickLabelPosition { Val = C.TickLabelPositionValues.NextTo },
-                new C.CrossingAxis { Val = valueAxisId }, new C.Crosses { Val = C.CrossesValues.AutoZero },
-                new C.AutoLabeled { Val = true }, new C.LabelAlignment { Val = C.LabelAlignmentValues.Center },
-                new C.LabelOffset { Val = (UInt16Value)100U });
-
-            C.ValueAxis valAxis = new(new C.AxisId { Val = valueAxisId },
-                new C.Scaling(new C.Orientation { Val = C.OrientationValues.MinMax }),
-                new C.AxisPosition { Val = C.AxisPositionValues.Left }, new C.MajorGridlines(),
-                new C.NumberingFormat { FormatCode = "General", SourceLinked = true },
-                new C.TickLabelPosition { Val = C.TickLabelPositionValues.NextTo },
-                new C.CrossingAxis { Val = categoryAxisId }, new C.Crosses { Val = C.CrossesValues.AutoZero },
-                new C.CrossBetween { Val = C.CrossBetweenValues.Between });
-
-            plotArea.Append(barChart, catAxis, valAxis);
-            chart.Append(plotArea, new C.PlotVisibleOnly { Val = true });
-            chartSpace.Append(chart);
-
-            // Generate a unique relationship ID for the embedded Excel part
-            var chartRelationships = new HashSet<string>(
-                chartPart.Parts.Select(p => p.RelationshipId)
-                .Union(chartPart.ExternalRelationships.Select(r => r.Id))
-                .Union(chartPart.HyperlinkRelationships.Select(r => r.Id))
-                .Where(id => !string.IsNullOrEmpty(id))
-            );
-
-            int excelIdNum = 1;
-            string excelRelId;
-            do {
-                excelRelId = "rId" + excelIdNum;
-                excelIdNum++;
-            } while (chartRelationships.Contains(excelRelId));
-
-            EmbeddedPackagePart excelPart =
-                chartPart.AddNewPart<EmbeddedPackagePart>(
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    excelRelId);
-            using (MemoryStream ms = new()) {
-                using (SpreadsheetDocument doc = SpreadsheetDocument.Create(ms, SpreadsheetDocumentType.Workbook)) {
-                    WorkbookPart wbPart = doc.AddWorkbookPart();
-                    wbPart.Workbook = new S.Workbook();
-                    WorksheetPart wsPart = wbPart.AddNewPart<WorksheetPart>();
-                    S.SheetData sheetData = new(
-                        new S.Row(
-                            new S.Cell { CellValue = new S.CellValue("Category"), DataType = S.CellValues.String },
-                            new S.Cell { CellValue = new S.CellValue("Value"), DataType = S.CellValues.String }
-                        ),
-                        new S.Row(
-                            new S.Cell { CellValue = new S.CellValue("A"), DataType = S.CellValues.String },
-                            new S.Cell { CellValue = new S.CellValue("4"), DataType = S.CellValues.Number }
-                        ),
-                        new S.Row(
-                            new S.Cell { CellValue = new S.CellValue("B"), DataType = S.CellValues.String },
-                            new S.Cell { CellValue = new S.CellValue("5"), DataType = S.CellValues.Number }
-                        )
-                    );
-                    wsPart.Worksheet = new S.Worksheet(sheetData);
-                    wbPart.Workbook.Append(new S.Sheets(new S.Sheet {
-                        Id = wbPart.GetIdOfPart(wsPart),
-                        SheetId = 1U,
-                        Name = "Sheet1"
-                    }));
-                    wbPart.Workbook.Save();
-                }
-
-                ms.Position = 0;
-                excelPart.FeedData(ms);
-            }
-
-            chartSpace.Append(new C.ExternalData { Id = chartPart.GetIdOfPart(excelPart) });
-
-            chartPart.ChartSpace = chartSpace;
-            chartPart.ChartSpace.Save();
-        }
-
         internal void Save() {
             _slidePart.Slide.Save();
             _notes?.Save();
@@ -573,7 +259,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (OpenXmlElement element in tree.ChildElements) {
                 uint? id = element switch {
                     Shape s => s.NonVisualShapeProperties?.NonVisualDrawingProperties?.Id?.Value,
-                    Picture p => p.NonVisualPictureProperties?.NonVisualDrawingProperties?.Id?.Value,
+                    DocumentFormat.OpenXml.Presentation.Picture p => p.NonVisualPictureProperties?.NonVisualDrawingProperties?.Id?.Value,
                     GraphicFrame g => g.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties?.Id?.Value,
                     _ => null
                 };
@@ -586,7 +272,7 @@ namespace OfficeIMO.PowerPoint {
                     case Shape s when s.TextBody != null:
                         _shapes.Add(new PowerPointTextBox(s));
                         break;
-                    case Picture p:
+                    case DocumentFormat.OpenXml.Presentation.Picture p:
                         _shapes.Add(new PowerPointPicture(p, _slidePart));
                         break;
                     case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null:

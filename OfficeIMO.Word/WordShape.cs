@@ -34,6 +34,8 @@ namespace OfficeIMO.Word {
         internal V.Oval? _ellipse;
         /// <summary>The line element if present.</summary>
         internal V.Line? _line;
+        internal Run? Run => _run;
+        internal V.Line? Line => _line;
         /// <summary>The polygon element if present.</summary>
         internal V.PolyLine? _polygon;
         /// <summary>The generic shape element if present.</summary>

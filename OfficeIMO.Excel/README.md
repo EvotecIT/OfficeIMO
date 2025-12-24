@@ -58,6 +58,20 @@ Design choices you’ll run into
 - Named ranges & sheet ops: sheet moves/removals re‑index local names; broken names are repaired before save.
 - Deterministic ordering: element order is normalized before save to keep Excel happy and validation stable.
 
+### AOT / Trimming notes
+
+- Reflection-based helpers are preserved for dynamic/PowerShell usage.
+- For NativeAOT/trimming, prefer explicit selectors to avoid reflection.
+
+```csharp
+// AOT-safe: explicit column selectors
+var sheet = doc["Data"];
+sheet.InsertObjects(people,
+    ("Name",   p => p.Name),
+    ("Value",  p => p.Value),
+    ("Status", p => p.Status));
+```
+
 
 ## Quick Read Patterns
 

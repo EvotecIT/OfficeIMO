@@ -17,8 +17,13 @@ namespace OfficeIMO.Tests {
                 SlideLayoutValues.Text,
                 SlideLayoutValues.SectionHeader,
                 SlideLayoutValues.TwoColumnText,
+                SlideLayoutValues.TwoObjects,
                 SlideLayoutValues.TitleOnly,
-                SlideLayoutValues.Blank
+                SlideLayoutValues.Blank,
+                SlideLayoutValues.PictureText,
+                SlideLayoutValues.VerticalTitleAndText,
+                SlideLayoutValues.VerticalText,
+                SlideLayoutValues.TwoObjects
             };
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {

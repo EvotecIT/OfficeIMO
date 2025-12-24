@@ -24,6 +24,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                     .End()
                     .Save();
             }
+
+            Helpers.Open(filePath, openPowerPoint);
         }
     }
 }

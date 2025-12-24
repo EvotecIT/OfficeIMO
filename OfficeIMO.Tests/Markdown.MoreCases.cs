@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, model.Blocks.Count);
             Assert.All(model.Blocks, block => Assert.IsType<ParagraphBlock>(block));
             string roundTrip = model.ToMarkdown();
-            Assert.Contains("Value | text", roundTrip);
+            Assert.Contains("Value \\| text", roundTrip);
             Assert.Contains("Second paragraph", roundTrip);
             Assert.DoesNotContain("---", roundTrip); // Ensure no alignment row was synthesized
         }

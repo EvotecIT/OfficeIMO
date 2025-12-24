@@ -15,6 +15,7 @@ OfficeIMO is a family of lightweight, cross‑platform .NET libraries that make 
 
 - Word: create and edit .docx documents with a friendly API
 - Excel: fast read/write helpers, tables, styles, ranges, fluent composers
+- CSV: fluent, typed CSV document model with schema validation, mapping, streaming
 - PowerPoint: build .pptx slides programmatically
 - Visio: basic .vsdx diagrams
 
@@ -25,6 +26,7 @@ Each project ships as its own NuGet package under the MIT license.
 
 - Word → `OfficeIMO.Word/README.md`
 - Excel → `OfficeIMO.Excel/README.md`
+- CSV → `OfficeIMO.CSV/README.md`
 - PowerPoint → `OfficeIMO.PowerPoint/README.md`
 - Visio → `OfficeIMO.Visio/README.md`
 - Converters:
@@ -36,6 +38,12 @@ Each project ships as its own NuGet package under the MIT license.
 
 - Word, PowerPoint, Visio: netstandard2.0, net472, net8.0 (Linux/macOS: net8.0); select projects also net9.0
 - Excel: netstandard2.0, net472, net48, net8.0/net9.0 (cross‑platform)
+- CSV: netstandard2.0, net472, net8.0, net9.0 (cross‑platform, streaming capable)
+
+## AOT / Trimming
+
+- Reflection-heavy APIs remain for dynamic/PowerShell scenarios.
+- For NativeAOT, prefer explicit selectors and typed overloads (e.g., `ExcelSheet.InsertObjects` with selectors, `TableBuilder.FromSequenceAuto<T>`, `FrontMatterBlock.FromObject<T>`).
 
 ## Build & Coverage
 

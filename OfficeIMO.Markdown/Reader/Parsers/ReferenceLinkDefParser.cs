@@ -29,7 +29,11 @@ public static partial class MarkdownReader {
                 int q2 = rest.LastIndexOf('"');
                 if (q2 > q) title = rest.Substring(q + 1, q2 - q - 1);
             }
-            if (!string.IsNullOrEmpty(label) && !string.IsNullOrEmpty(url)) state.LinkRefs[label] = (url, title);
+            if (!string.IsNullOrEmpty(label) && !string.IsNullOrEmpty(url))
+            {
+                var resolved = ResolveUrl(url, options) ?? url;
+                state.LinkRefs[label] = (resolved, title);
+            }
             i++; return true;
         }
     }

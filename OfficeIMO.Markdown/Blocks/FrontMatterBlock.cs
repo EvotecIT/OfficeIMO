@@ -1,5 +1,7 @@
 using System.Globalization;
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace OfficeIMO.Markdown;
 
 /// <summary>
@@ -11,14 +13,32 @@ public sealed class FrontMatterBlock : IMarkdownBlock {
     /// <summary>
     /// Creates front matter from an anonymous object or dictionary.
     /// </summary>
+    [RequiresUnreferencedCode("Uses reflection over arbitrary runtime types. For AOT-safe usage, use FromObject<T> or pass a dictionary.")]
     public static FrontMatterBlock FromObject(object data) {
         FrontMatterBlock fm = new FrontMatterBlock();
         if (data is IEnumerable<KeyValuePair<string, object?>> dict) {
             foreach (KeyValuePair<string, object?> kv in dict) fm._pairs.Add((kv.Key, kv.Value));
         } else {
-            var props = data.GetType().GetProperties();
+            var props = data.GetType().GetProperties()
+                .Where(p => p.CanRead && p.GetIndexParameters().Length == 0 && p.GetMethod != null && p.GetMethod.GetParameters().Length == 0);
             foreach (var p in props) fm._pairs.Add((p.Name, p.GetValue(data)));
         }
+        return fm;
+    }
+
+    /// <summary>
+    /// Creates front matter from a typed object using public readable properties.
+    /// </summary>
+    public static FrontMatterBlock FromObject<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(T data) {
+        if (data is null) throw new ArgumentNullException(nameof(data));        
+        FrontMatterBlock fm = new FrontMatterBlock();
+        if (data is IEnumerable<KeyValuePair<string, object?>> dict) {
+            foreach (KeyValuePair<string, object?> kv in dict) fm._pairs.Add((kv.Key, kv.Value));
+            return fm;
+        }
+        var props = typeof(T).GetProperties()
+            .Where(p => p.CanRead && p.GetIndexParameters().Length == 0 && p.GetMethod != null && p.GetMethod.GetParameters().Length == 0);
+        foreach (var p in props) fm._pairs.Add((p.Name, p.GetValue(data)));
         return fm;
     }
 

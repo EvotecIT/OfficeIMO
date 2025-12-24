@@ -1,4 +1,5 @@
 using SixLabors.ImageSharp;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace OfficeIMO.Word {
@@ -8,11 +9,18 @@ namespace OfficeIMO.Word {
     /// </summary>
     public class ColorNameResolver {
         private static readonly Dictionary<Color, string> colorNameMap = new Dictionary<Color, string>();
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)]
+        private static readonly Type ColorType = typeof(Color);
 
         static ColorNameResolver() {
             // Use reflection to get all named colors from the Color structure
-            foreach (var prop in typeof(Color).GetFields(BindingFlags.Static | BindingFlags.Public)) {
-                if (prop.FieldType == typeof(Color) && prop.GetValue(null) is Color color) {
+            foreach (var field in ColorType.GetFields(BindingFlags.Static | BindingFlags.Public)) {
+                if (field.FieldType == typeof(Color) && field.GetValue(null) is Color color) {
+                    colorNameMap[color] = field.Name;
+                }
+            }
+            foreach (var prop in ColorType.GetProperties(BindingFlags.Static | BindingFlags.Public)) {
+                if (prop.PropertyType == typeof(Color) && prop.GetValue(null) is Color color) {
                     colorNameMap[color] = prop.Name;
                 }
             }

@@ -18,7 +18,7 @@ namespace OfficeIMO.Visio {
         private static VisioDocument LoadCore(string filePath) {
             VisioDocument document = new() { _filePath = filePath };
 
-            using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);
+            using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
             document.Title = package.PackageProperties.Title;
             document.Author = package.PackageProperties.Creator;

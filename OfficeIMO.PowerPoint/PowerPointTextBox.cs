@@ -157,10 +157,23 @@ namespace OfficeIMO.PowerPoint {
             set {
                 foreach (A.Run run in Runs) {
                     A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
+                    // preserve existing fonts so we can reapply them after the fill (schema: fill must precede fonts)
+                    var latin = runProps.GetFirstChild<A.LatinFont>();
+                    var ea = runProps.GetFirstChild<A.EastAsianFont>();
+                    var cs = runProps.GetFirstChild<A.ComplexScriptFont>();
+
                     runProps.RemoveAllChildren<A.SolidFill>();
+                    runProps.RemoveAllChildren<A.LatinFont>();
+                    runProps.RemoveAllChildren<A.EastAsianFont>();
+                    runProps.RemoveAllChildren<A.ComplexScriptFont>();
+
                     if (value != null) {
                         runProps.Append(new A.SolidFill(new A.RgbColorModelHex { Val = value }));
                     }
+
+                    if (latin != null) runProps.Append((A.LatinFont)latin.CloneNode(true));
+                    if (ea != null) runProps.Append((A.EastAsianFont)ea.CloneNode(true));
+                    if (cs != null) runProps.Append((A.ComplexScriptFont)cs.CloneNode(true));
                 }
             }
         }
