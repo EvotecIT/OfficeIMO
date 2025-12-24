@@ -156,12 +156,20 @@ namespace OfficeIMO.PowerPoint {
         private static Shape CreateNotesPlaceholderShape(uint id) {
             return new Shape(
                 new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = id, Name = "Notes Placeholder" },
-                    new NonVisualShapeDrawingProperties(),
-                    new ApplicationNonVisualDrawingProperties(new PlaceholderShape())
+                    new NonVisualDrawingProperties { Id = id, Name = "Notes Placeholder 1" },
+                    new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
+                    new ApplicationNonVisualDrawingProperties(
+                        new PlaceholderShape { Type = PlaceholderValues.Body, Index = 1U })
                 ),
                 new ShapeProperties(),
-                new TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.Run(new A.Text())))
+                new TextBody(
+                    new A.BodyProperties(),
+                    new A.ListStyle(),
+                    new A.Paragraph(
+                        new A.Run(
+                            new A.RunProperties { Language = "en-US" },
+                            new A.Text()),
+                        new A.EndParagraphRunProperties { Language = "en-US" }))
             );
         }
 

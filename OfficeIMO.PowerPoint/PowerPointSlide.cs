@@ -326,7 +326,19 @@ namespace OfficeIMO.PowerPoint {
                 throw new FileNotFoundException("Image file not found.", imagePath);
             }
 
-            ImagePart imagePart = _slidePart.AddImagePart(GetImagePartType(imagePath).ToPartTypeInfo());
+            ImagePartType imageType = GetImagePartType(imagePath);
+            PartTypeInfo partTypeInfo = imageType.ToPartTypeInfo();
+            string imageExtension = PowerPointPartFactory.GetImageExtension(imageType, imagePath);
+            string imagePartUri = PowerPointPartFactory.GetIndexedPartUri(
+                _slidePart.OpenXmlPackage,
+                "ppt/media",
+                "image",
+                imageExtension,
+                allowBaseWithoutIndex: false);
+            ImagePart imagePart = PowerPointPartFactory.CreatePart<ImagePart>(
+                _slidePart,
+                partTypeInfo.ContentType,
+                imagePartUri);
             using FileStream stream = new(imagePath, FileMode.Open, FileAccess.Read);
             imagePart.FeedData(stream);
             string relationshipId = _slidePart.GetIdOfPart(imagePart);
@@ -444,27 +456,136 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Adds a table built from a sequence of objects.
+        /// </summary>
+        public PowerPointTable AddTable<T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure = null,
+            bool includeHeaders = true, long left = 0L, long top = 0L, long width = 5000000L, long height = 3000000L) {
+            if (data == null) {
+                throw new ArgumentNullException(nameof(data));
+            }
+
+            var options = new ObjectFlattenerOptions();
+            configure?.Invoke(options);
+            var flattener = new ObjectFlattener();
+
+            var items = data.ToList();
+            var paths = options.Columns?.ToList() ?? flattener.GetPaths(typeof(T), options);
+            if (options.Columns != null) {
+                paths = ObjectFlattener.ApplySelection(paths, options);
+                paths = ObjectFlattener.ApplyOrdering(paths, options);
+            }
+
+            if (paths.Count == 0) {
+                throw new InvalidOperationException("No columns could be resolved from the supplied data.");
+            }
+
+            var headers = paths.Select(p => TransformHeader(p, options)).ToList();
+            var rowsData = new List<object?[]>();
+
+            foreach (var item in items) {
+                var dict = flattener.Flatten(item, options);
+                if (options.CollectionMode == CollectionMode.ExpandRows) {
+                    var collectionPath = paths.FirstOrDefault(p =>
+                        dict.TryGetValue(p, out var val) && val is IEnumerable && val is not string);
+                    if (collectionPath != null && dict[collectionPath] is IEnumerable coll) {
+                        var list = coll.Cast<object?>().ToList();
+                        if (list.Count == 0) {
+                            rowsData.Add(paths.Select(p => dict.TryGetValue(p, out var v) ? v :
+                                (options.DefaultValues.TryGetValue(p, out var d) ? d : null)).ToArray());
+                        } else {
+                            foreach (var element in list) {
+                                var rowValues = paths.Select(p => p == collectionPath ? element :
+                                    dict.TryGetValue(p, out var v) ? v :
+                                    (options.DefaultValues.TryGetValue(p, out var d) ? d : null)).ToArray();
+                                rowsData.Add(rowValues);
+                            }
+                        }
+                        continue;
+                    }
+                }
+
+                rowsData.Add(paths.Select(p => dict.TryGetValue(p, out var v) ? v :
+                    (options.DefaultValues.TryGetValue(p, out var d) ? d : null)).ToArray());
+            }
+
+            int totalRows = rowsData.Count + (includeHeaders ? 1 : 0);
+            if (totalRows <= 0) {
+                throw new InvalidOperationException("No data rows were generated.");
+            }
+
+            PowerPointTable table = AddTable(totalRows, headers.Count, left, top, width, height);
+            table.HeaderRow = includeHeaders;
+            table.BandedRows = true;
+
+            int rowIndex = 0;
+            if (includeHeaders) {
+                for (int c = 0; c < headers.Count; c++) {
+                    table.GetCell(0, c).Text = headers[c];
+                }
+                rowIndex = 1;
+            }
+
+            foreach (object?[] row in rowsData) {
+                for (int c = 0; c < headers.Count; c++) {
+                    string value = Convert.ToString(row[c], CultureInfo.InvariantCulture) ?? string.Empty;
+                    table.GetCell(rowIndex, c).Text = value;
+                }
+                rowIndex++;
+            }
+
+            return table;
+        }
+
+        /// <summary>
         ///     Adds a basic clustered column chart with default data.
         /// </summary>
         public PowerPointChart AddChart() {
-            ChartPart chartPart = _slidePart.AddNewPart<ChartPart>();
+            return AddChartInternal(null, 0L, 0L, 5486400L, 3200400L);
+        }
+
+        /// <summary>
+        ///     Adds a clustered column chart using the supplied data.
+        /// </summary>
+        public PowerPointChart AddChart(PowerPointChartData data, long left = 0L, long top = 0L, long width = 5486400L,
+            long height = 3200400L) {
+            if (data == null) {
+                throw new ArgumentNullException(nameof(data));
+            }
+
+            return AddChartInternal(data, left, top, width, height);
+        }
+
+        private PowerPointChart AddChartInternal(PowerPointChartData? data, long left, long top, long width, long height) {
+            ChartPart chartPart = PowerPointPartFactory.CreatePart<ChartPart>(
+                _slidePart,
+                contentType: null,
+                "/ppt/charts/chart.xml");
             string chartRelId = _slidePart.GetIdOfPart(chartPart);
 
             // Embed workbook + styles/colors exactly like the template
-            var stylePart = chartPart.AddNewPart<ChartStylePart>("rId1");
+            ChartStylePart stylePart = PowerPointPartFactory.CreatePart<ChartStylePart>(
+                chartPart,
+                contentType: null,
+                "/ppt/charts/style.xml");
             PowerPointUtils.PopulateChartStyle(stylePart);
-            var colorStylePart = chartPart.AddNewPart<ChartColorStylePart>("rId2");
+            ChartColorStylePart colorStylePart = PowerPointPartFactory.CreatePart<ChartColorStylePart>(
+                chartPart,
+                contentType: null,
+                "/ppt/charts/colors.xml");
             PowerPointUtils.PopulateChartColorStyle(colorStylePart);
-            var embedded = chartPart.AddNewPart<EmbeddedPackagePart>(
+
+            EmbeddedPackagePart embedded = PowerPointPartFactory.CreatePart<EmbeddedPackagePart>(
+                chartPart,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "rId3");
-            using (var ms = new MemoryStream(TemplateChartWorkbookBytes())) {
+                "/ppt/embeddings/Microsoft_Excel_Worksheet.xlsx");
+            byte[] workbookBytes = data == null ? TemplateChartWorkbookBytes() : PowerPointUtils.BuildChartWorkbook(data);
+            using (var ms = new MemoryStream(workbookBytes)) {
                 embedded.FeedData(ms);
             }
 
-            GenerateDefaultChart(chartPart);
+            string embeddedRelId = chartPart.GetIdOfPart(embedded);
+            PowerPointUtils.PopulateChartTemplate(chartPart, embeddedRelId, data);
 
-            string relId = chartRelId;
             string name = GenerateUniqueName("Chart");
             GraphicFrame frame = new(
                 new NonVisualGraphicFrameProperties(
@@ -472,14 +593,14 @@ namespace OfficeIMO.PowerPoint {
                     new NonVisualGraphicFrameDrawingProperties(),
                     new ApplicationNonVisualDrawingProperties()
                 ),
-                new Transform(new A.Offset { X = 0L, Y = 0L }, new A.Extents { Cx = 5486400L, Cy = 3200400L }),
-                new A.Graphic(new A.GraphicData(new C.ChartReference { Id = relId }) {
+                new Transform(new A.Offset { X = left, Y = top }, new A.Extents { Cx = width, Cy = height }),
+                new A.Graphic(new A.GraphicData(new C.ChartReference { Id = chartRelId }) {
                     Uri = "http://schemas.openxmlformats.org/drawingml/2006/chart"
                 })
             );
 
-            CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
-            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
+            CommonSlideData dataElement = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+            ShapeTree tree = dataElement.ShapeTree ??= new ShapeTree();
             tree.AppendChild(frame);
             PowerPointChart chart = new(frame);
             _shapes.Add(chart);
@@ -498,8 +619,17 @@ namespace OfficeIMO.PowerPoint {
             return PowerPointUtils.GetChartWorkbookTemplateBytes();
         }
 
-        private static void GenerateDefaultChart(ChartPart chartPart) {
-            PowerPointUtils.PopulateChartTemplate(chartPart);
+        private static string TransformHeader(string path, ObjectFlattenerOptions opts) {
+            foreach (var prefix in opts.HeaderPrefixTrimPaths) {
+                if (path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) {
+                    path = path.Substring(prefix.Length);
+                }
+            }
+            return opts.HeaderCase switch {
+                HeaderCase.Pascal => string.Concat(path.Split('.').Select(s => char.ToUpperInvariant(s[0]) + s.Substring(1))),
+                HeaderCase.Title => string.Join(" ", path.Split('.').Select(s => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s.ToLowerInvariant()))),
+                _ => path
+            };
         }
 
         private static byte[] GenerateEmbeddedWorkbookBytes() {
