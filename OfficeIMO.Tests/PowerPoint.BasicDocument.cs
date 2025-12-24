@@ -10,7 +10,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public class PowerPointBasicDocument {
-        [Fact(Skip = "Doesn't work after changes to PowerPoint")]
+        [Fact]
         public void CanCreateSaveAndLoadPresentation() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Office Theme", presentation.ThemeName);
                 PowerPointSlide slide = presentation.Slides[0];
                 PowerPointTextBox box = slide.Shapes.OfType<PowerPointTextBox>().First();
-                Assert.Equal("Hello", box.Text);
+                Assert.Equal($"Hello{Environment.NewLine}Bullet1", box.Text);
                 Assert.Equal("Test notes", slide.Notes.Text);
                 Assert.Equal(3, slide.Shapes.Count); // textbox, picture, table
             }

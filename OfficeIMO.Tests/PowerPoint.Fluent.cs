@@ -7,7 +7,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public class PowerPointFluentPresentation {
-        [Fact(Skip = "Doesn't work after changes to PowerPoint")]
+        [Fact]
         public void CanBuildPresentationFluently() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
