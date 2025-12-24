@@ -24,3 +24,4 @@ namespace OfficeIMO.Examples.PowerPoint {
         }
     }
 }
+

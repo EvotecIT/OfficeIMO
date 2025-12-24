@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.Examples.PowerPoint {
@@ -10,53 +12,114 @@ namespace OfficeIMO.Examples.PowerPoint {
         public static void Example_PowerPointTables(string folderPath, bool openPowerPoint) {
             Console.WriteLine("[*] PowerPoint - Table operations");
             string filePath = Path.Combine(folderPath, "Table Operations.pptx");
-
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-            // Slide 1: basic table
-            PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTable table = slide.AddTable(3, 3);
-            table.GetCell(0, 0).Text = "Product";
-            table.GetCell(0, 1).Text = "Q1";
-            table.GetCell(0, 2).Text = "Q2";
-            table.GetCell(1, 0).Text = "Alpha";
-            table.GetCell(1, 1).Text = "12";
-            table.GetCell(1, 2).Text = "15";
-            table.GetCell(2, 0).Text = "Beta";
-            table.GetCell(2, 1).Text = "9";
-            table.GetCell(2, 2).Text = "11";
 
-            // Slide 2: clustered column chart
-            PowerPointSlide slide2 = presentation.AddSlide();
-            slide2.AddChart();
+            const long slideWidth = 12192000L;
+            const long margin = 914400L;
+            const long contentWidth = slideWidth - (2 * margin);
 
-            // Slide 3: content slide
-            PowerPointSlide slide3 = presentation.AddSlide();
-            slide3.AddTextBox("Notes for tables and charts");
+            List<SalesRecord> data = new() {
+                new SalesRecord { Product = "Alpha", Q1 = 12, Q2 = 15, Q3 = 18, Q4 = 20 },
+                new SalesRecord { Product = "Beta", Q1 = 9, Q2 = 11, Q3 = 13, Q4 = 14 },
+                new SalesRecord { Product = "Gamma", Q1 = 6, Q2 = 9, Q3 = 12, Q4 = 16 }
+            };
 
-            // Slide 4: pie chart
-            PowerPointSlide slide4 = presentation.AddSlide();
-            slide4.AddChart();
+            // Slide 1: title
+            PowerPointSlide titleSlide = presentation.AddSlide();
+            titleSlide.AddTitle("Quarterly Sales Overview");
+            titleSlide.AddTextBox("Tables and charts created from data objects", margin, 2011680L, contentWidth, 914400L);
+
+            // Slide 2: table from objects
+            PowerPointSlide tableSlide = presentation.AddSlide();
+            tableSlide.AddTitle("Sales by Product");
+            PowerPointTable table = tableSlide.AddTable(
+                data,
+                o => {
+                    o.HeaderCase = HeaderCase.Title;
+                    o.PinFirst("Product");
+                },
+                includeHeaders: true,
+                left: margin,
+                top: 1828800L,
+                width: contentWidth,
+                height: 3048000L);
+            table.BandedRows = true;
+
+            // Slide 3: chart from the same dataset
+            PowerPointSlide chartSlide = presentation.AddSlide();
+            chartSlide.AddTitle("Quarterly Performance");
+            PowerPointChartData chartData = new(
+                data.Select(d => d.Product),
+                new[] {
+                    new PowerPointChartSeries("Q1", data.Select(d => (double)d.Q1)),
+                    new PowerPointChartSeries("Q2", data.Select(d => (double)d.Q2)),
+                    new PowerPointChartSeries("Q3", data.Select(d => (double)d.Q3)),
+                    new PowerPointChartSeries("Q4", data.Select(d => (double)d.Q4))
+                });
+            chartSlide.AddChart(chartData, margin, 1524000L, contentWidth, 3810000L);
+           chartSlide.Notes.Text = "Chart and table share the same source data.";
+
+            // Slide 4: totals by quarter
+            PowerPointSlide totalsSlide = presentation.AddSlide();
+            totalsSlide.AddTitle("Totals by Quarter");
+            var quarterLabels = new[] { "Q1", "Q2", "Q3", "Q4" };
+            var totals = new[] {
+                data.Sum(d => d.Q1),
+                data.Sum(d => d.Q2),
+                data.Sum(d => d.Q3),
+                data.Sum(d => d.Q4)
+            };
+            PowerPointChartData totalsData = new(
+                quarterLabels,
+                new[] { new PowerPointChartSeries("Total", totals.Select(t => (double)t)) });
+            totalsSlide.AddChart(totalsData, margin, 1524000L, contentWidth, 3810000L);
 
             // Slide 5: picture with caption
-            PowerPointSlide slide5 = presentation.AddSlide();
+            PowerPointSlide imageSlide = presentation.AddSlide();
+            imageSlide.AddTitle("Brand Assets");
             string imagePath = Path.Combine(AppContext.BaseDirectory, "Images", "BackgroundImage.png");
             if (File.Exists(imagePath)) {
-                slide5.AddPicture(imagePath, 914400L, 914400L, 5486400L, 3200400L);
+                imageSlide.AddPicture(imagePath, margin, 1828800L, contentWidth, 3200400L);
             } else {
-                slide5.AddTextBox("(image placeholder)");
+                imageSlide.AddTextBox("(image placeholder)", margin, 1828800L, contentWidth, 914400L);
             }
 
             // Slide 6: summary table
-            PowerPointSlide slide6 = presentation.AddSlide();
-            PowerPointTable summary = slide6.AddTable(2, 2);
-            summary.GetCell(0, 0).Text = "Metric";
-            summary.GetCell(0, 1).Text = "Value";
-            summary.GetCell(1, 0).Text = "Total";
-            summary.GetCell(1, 1).Text = "48";
+            PowerPointSlide summarySlide = presentation.AddSlide();
+            summarySlide.AddTitle("Summary");
+            var summaryRows = new[] {
+                new SummaryRow { Metric = "Total Q1", Value = totals[0] },
+                new SummaryRow { Metric = "Total Q2", Value = totals[1] },
+                new SummaryRow { Metric = "Total Q3", Value = totals[2] },
+                new SummaryRow { Metric = "Total Q4", Value = totals[3] }
+            };
+            PowerPointTable summary = summarySlide.AddTable(
+                summaryRows,
+                o => o.HeaderCase = HeaderCase.Title,
+                includeHeaders: true,
+                left: margin,
+                top: 1828800L,
+                width: contentWidth,
+                height: 2286000L);
+            summary.BandedRows = true;
 
             presentation.Save();
 
             Helpers.Open(filePath, openPowerPoint);
         }
+
+        private sealed class SalesRecord {
+            public string Product { get; set; } = string.Empty;
+            public int Q1 { get; set; }
+            public int Q2 { get; set; }
+            public int Q3 { get; set; }
+            public int Q4 { get; set; }
+        }
+
+        private sealed class SummaryRow {
+            public string Metric { get; set; } = string.Empty;
+            public int Value { get; set; }
+        }
     }
 }
+

@@ -22,10 +22,11 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             PowerPointShape? shape = slide.GetShape("TextBox 1");
             Console.WriteLine("Found shape: " + shape?.Name);
-            slide.RemoveShape(picture);
+            //slide.RemoveShape(picture);
             presentation.Save();
 
             Helpers.Open(filePath, openPowerPoint);
         }
     }
 }
+
