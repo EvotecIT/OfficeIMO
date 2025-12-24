@@ -123,9 +123,7 @@ namespace OfficeIMO.PowerPoint.Fluent {
         /// </summary>
         public PowerPointSlideBuilder Bullets(params string[] bullets) {
             PowerPointTextBox box = _slide.AddTextBox(string.Empty);
-            foreach (string bullet in bullets) {
-                box.AddBullet(bullet);
-            }
+            box.AddBullets(bullets);
 
             return this;
         }
@@ -135,9 +133,7 @@ namespace OfficeIMO.PowerPoint.Fluent {
         /// </summary>
         public PowerPointSlideBuilder Bullets(Action<PowerPointTextBox> configure, params string[] bullets) {
             PowerPointTextBox box = _slide.AddTextBox(string.Empty);
-            foreach (string bullet in bullets) {
-                box.AddBullet(bullet);
-            }
+            box.AddBullets(bullets);
             configure?.Invoke(box);
             return this;
         }
@@ -147,9 +143,7 @@ namespace OfficeIMO.PowerPoint.Fluent {
         /// </summary>
         public PowerPointSlideBuilder Numbered(params string[] items) {
             PowerPointTextBox box = _slide.AddTextBox(string.Empty);
-            foreach (string item in items) {
-                box.AddNumberedItem(item);
-            }
+            box.AddNumberedList(items);
             return this;
         }
 
@@ -158,9 +152,7 @@ namespace OfficeIMO.PowerPoint.Fluent {
         /// </summary>
         public PowerPointSlideBuilder Numbered(Action<PowerPointTextBox> configure, params string[] items) {
             PowerPointTextBox box = _slide.AddTextBox(string.Empty);
-            foreach (string item in items) {
-                box.AddNumberedItem(item);
-            }
+            box.AddNumberedList(items);
             configure?.Invoke(box);
             return this;
         }
@@ -226,6 +218,16 @@ namespace OfficeIMO.PowerPoint.Fluent {
         }
 
         /// <summary>
+        ///     Adds a table using column bindings.
+        /// </summary>
+        public PowerPointSlideBuilder Table<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
+            Action<PowerPointTable>? configure = null) {
+            PowerPointTable table = _slide.AddTable(data, columns);
+            configure?.Invoke(table);
+            return this;
+        }
+
+        /// <summary>
         ///     Adds a table to the slide at a position (EMU units).
         /// </summary>
         public PowerPointSlideBuilder Table(int rows, int columns, long left, long top, long width, long height,
@@ -236,11 +238,31 @@ namespace OfficeIMO.PowerPoint.Fluent {
         }
 
         /// <summary>
+        ///     Adds a table using column bindings at a position (EMU units).
+        /// </summary>
+        public PowerPointSlideBuilder Table<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
+            long left, long top, long width, long height, Action<PowerPointTable>? configure = null) {
+            PowerPointTable table = _slide.AddTable(data, columns, includeHeaders: true, left, top, width, height);
+            configure?.Invoke(table);
+            return this;
+        }
+
+        /// <summary>
         ///     Adds a table to the slide at a position (centimeters).
         /// </summary>
         public PowerPointSlideBuilder TableCm(int rows, int columns, double leftCm, double topCm, double widthCm,
             double heightCm, Action<PowerPointTable>? configure = null) {
             PowerPointTable table = _slide.AddTableCm(rows, columns, leftCm, topCm, widthCm, heightCm);
+            configure?.Invoke(table);
+            return this;
+        }
+
+        /// <summary>
+        ///     Adds a table using column bindings at a position (centimeters).
+        /// </summary>
+        public PowerPointSlideBuilder TableCm<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
+            double leftCm, double topCm, double widthCm, double heightCm, Action<PowerPointTable>? configure = null) {
+            PowerPointTable table = _slide.AddTableCm(data, columns, leftCm, topCm, widthCm, heightCm);
             configure?.Invoke(table);
             return this;
         }
@@ -257,11 +279,35 @@ namespace OfficeIMO.PowerPoint.Fluent {
         }
 
         /// <summary>
+        ///     Adds a table using column bindings at a position (inches).
+        /// </summary>
+        public PowerPointSlideBuilder TableInches<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
+            double leftInches, double topInches, double widthInches, double heightInches,
+            Action<PowerPointTable>? configure = null) {
+            PowerPointTable table = _slide.AddTableInches(data, columns, leftInches, topInches, widthInches,
+                heightInches);
+            configure?.Invoke(table);
+            return this;
+        }
+
+        /// <summary>
         ///     Adds a table to the slide at a position (points).
         /// </summary>
         public PowerPointSlideBuilder TablePoints(int rows, int columns, double leftPoints, double topPoints,
             double widthPoints, double heightPoints, Action<PowerPointTable>? configure = null) {
             PowerPointTable table = _slide.AddTablePoints(rows, columns, leftPoints, topPoints, widthPoints,
+                heightPoints);
+            configure?.Invoke(table);
+            return this;
+        }
+
+        /// <summary>
+        ///     Adds a table using column bindings at a position (points).
+        /// </summary>
+        public PowerPointSlideBuilder TablePoints<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
+            double leftPoints, double topPoints, double widthPoints, double heightPoints,
+            Action<PowerPointTable>? configure = null) {
+            PowerPointTable table = _slide.AddTablePoints(data, columns, leftPoints, topPoints, widthPoints,
                 heightPoints);
             configure?.Invoke(table);
             return this;

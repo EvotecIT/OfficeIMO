@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -30,10 +31,51 @@ namespace OfficeIMO.PowerPoint {
         ///     Enables or disables header row styling (firstRow attribute) on the table.
         /// </summary>
         public bool HeaderRow {
+            get => FirstRow;
+            set => FirstRow = value;
+        }
+
+        /// <summary>
+        ///     Enables or disables first row styling on the table.
+        /// </summary>
+        public bool FirstRow {
             get => TableElement.TableProperties?.FirstRow?.Value == true;
             set {
                 TableElement.TableProperties ??= new A.TableProperties();
                 TableElement.TableProperties.FirstRow = value;
+            }
+        }
+
+        /// <summary>
+        ///     Enables or disables last row styling on the table.
+        /// </summary>
+        public bool LastRow {
+            get => TableElement.TableProperties?.LastRow?.Value == true;
+            set {
+                TableElement.TableProperties ??= new A.TableProperties();
+                TableElement.TableProperties.LastRow = value;
+            }
+        }
+
+        /// <summary>
+        ///     Enables or disables first column styling on the table.
+        /// </summary>
+        public bool FirstColumn {
+            get => TableElement.TableProperties?.FirstColumn?.Value == true;
+            set {
+                TableElement.TableProperties ??= new A.TableProperties();
+                TableElement.TableProperties.FirstColumn = value;
+            }
+        }
+
+        /// <summary>
+        ///     Enables or disables last column styling on the table.
+        /// </summary>
+        public bool LastColumn {
+            get => TableElement.TableProperties?.LastColumn?.Value == true;
+            set {
+                TableElement.TableProperties ??= new A.TableProperties();
+                TableElement.TableProperties.LastColumn = value;
             }
         }
 
@@ -45,6 +87,17 @@ namespace OfficeIMO.PowerPoint {
             set {
                 TableElement.TableProperties ??= new A.TableProperties();
                 TableElement.TableProperties.BandRow = value;
+            }
+        }
+
+        /// <summary>
+        ///     Enables or disables banded columns styling (bandCol attribute) on the table.
+        /// </summary>
+        public bool BandedColumns {
+            get => TableElement.TableProperties?.BandColumn?.Value == true;
+            set {
+                TableElement.TableProperties ??= new A.TableProperties();
+                TableElement.TableProperties.BandColumn = value;
             }
         }
 
@@ -74,10 +127,35 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Gets the width of a specific column in EMUs.
+        /// </summary>
+        public long GetColumnWidth(int columnIndex) {
+            if (columnIndex < 0 || columnIndex >= Columns) {
+                throw new ArgumentOutOfRangeException(nameof(columnIndex));
+            }
+            A.GridColumn column = TableElement.TableGrid!.Elements<A.GridColumn>().ElementAt(columnIndex);
+            return column.Width?.Value ?? 0L;
+        }
+
+        /// <summary>
         ///     Sets the width of a specific column in points.
         /// </summary>
         public void SetColumnWidthPoints(int columnIndex, double widthPoints) {
             SetColumnWidth(columnIndex, ToEmus(widthPoints));
+        }
+
+        /// <summary>
+        ///     Sets the width of a specific column in centimeters.
+        /// </summary>
+        public void SetColumnWidthCm(int columnIndex, double widthCm) {
+            SetColumnWidth(columnIndex, PowerPointUnits.FromCentimeters(widthCm));
+        }
+
+        /// <summary>
+        ///     Sets the width of a specific column in inches.
+        /// </summary>
+        public void SetColumnWidthInches(int columnIndex, double widthInches) {
+            SetColumnWidth(columnIndex, PowerPointUnits.FromInches(widthInches));
         }
 
         /// <summary>
@@ -91,6 +169,85 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < count; i++) {
                 SetColumnWidthPoints(i, widthsPoints[i]);
             }
+        }
+
+        /// <summary>
+        ///     Sets widths for columns in centimeters (applies to the first N columns provided).
+        /// </summary>
+        public void SetColumnWidthsCm(params double[] widthsCm) {
+            if (widthsCm == null) {
+                throw new ArgumentNullException(nameof(widthsCm));
+            }
+            int count = Math.Min(widthsCm.Length, Columns);
+            for (int i = 0; i < count; i++) {
+                SetColumnWidthCm(i, widthsCm[i]);
+            }
+        }
+
+        /// <summary>
+        ///     Sets widths for columns in inches (applies to the first N columns provided).
+        /// </summary>
+        public void SetColumnWidthsInches(params double[] widthsInches) {
+            if (widthsInches == null) {
+                throw new ArgumentNullException(nameof(widthsInches));
+            }
+            int count = Math.Min(widthsInches.Length, Columns);
+            for (int i = 0; i < count; i++) {
+                SetColumnWidthInches(i, widthsInches[i]);
+            }
+        }
+
+        /// <summary>
+        ///     Sets column widths proportionally using ratios.
+        /// </summary>
+        public void SetColumnWidthsByRatio(params double[] ratios) {
+            if (ratios == null) {
+                throw new ArgumentNullException(nameof(ratios));
+            }
+            if (ratios.Length == 0) {
+                throw new ArgumentException("At least one ratio is required.", nameof(ratios));
+            }
+
+            int count = Math.Min(ratios.Length, Columns);
+            double totalRatio = 0;
+            for (int i = 0; i < count; i++) {
+                if (ratios[i] <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(ratios), "Ratios must be positive.");
+                }
+                totalRatio += ratios[i];
+            }
+
+            long totalWidth = Width;
+            if (totalWidth <= 0) {
+                totalWidth = TableElement.TableGrid?.Elements<A.GridColumn>()
+                    .Sum(c => c.Width?.Value ?? 0) ?? 0;
+            }
+            if (totalWidth <= 0) {
+                throw new InvalidOperationException("Table width is not available.");
+            }
+
+            long assigned = 0;
+            for (int i = 0; i < count; i++) {
+                long width = (long)Math.Round(totalWidth * (ratios[i] / totalRatio));
+                SetColumnWidth(i, width);
+                assigned += width;
+            }
+
+            if (assigned != totalWidth && count > 0) {
+                int adjustIndex = count - 1;
+                A.GridColumn column = TableElement.TableGrid!.Elements<A.GridColumn>().ElementAt(adjustIndex);
+                column.Width = (column.Width ?? 0) + (totalWidth - assigned);
+            }
+        }
+
+        /// <summary>
+        ///     Sets column widths evenly across the table width.
+        /// </summary>
+        public void SetColumnWidthsEvenly() {
+            if (Columns == 0) {
+                return;
+            }
+            SetColumnWidthsByRatio(Enumerable.Repeat(1d, Columns).ToArray());
         }
 
         /// <summary>
@@ -112,6 +269,20 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets the height of a specific row in centimeters.
+        /// </summary>
+        public void SetRowHeightCm(int rowIndex, double heightCm) {
+            SetRowHeight(rowIndex, PowerPointUnits.FromCentimeters(heightCm));
+        }
+
+        /// <summary>
+        ///     Sets the height of a specific row in inches.
+        /// </summary>
+        public void SetRowHeightInches(int rowIndex, double heightInches) {
+            SetRowHeight(rowIndex, PowerPointUnits.FromInches(heightInches));
+        }
+
+        /// <summary>
         ///     Sets heights for rows in points (applies to the first N rows provided).
         /// </summary>
         public void SetRowHeightsPoints(params double[] heightsPoints) {
@@ -121,6 +292,59 @@ namespace OfficeIMO.PowerPoint {
             int count = Math.Min(heightsPoints.Length, Rows);
             for (int i = 0; i < count; i++) {
                 SetRowHeightPoints(i, heightsPoints[i]);
+            }
+        }
+
+        /// <summary>
+        ///     Sets heights for rows in centimeters (applies to the first N rows provided).
+        /// </summary>
+        public void SetRowHeightsCm(params double[] heightsCm) {
+            if (heightsCm == null) {
+                throw new ArgumentNullException(nameof(heightsCm));
+            }
+            int count = Math.Min(heightsCm.Length, Rows);
+            for (int i = 0; i < count; i++) {
+                SetRowHeightCm(i, heightsCm[i]);
+            }
+        }
+
+        /// <summary>
+        ///     Sets heights for rows in inches (applies to the first N rows provided).
+        /// </summary>
+        public void SetRowHeightsInches(params double[] heightsInches) {
+            if (heightsInches == null) {
+                throw new ArgumentNullException(nameof(heightsInches));
+            }
+            int count = Math.Min(heightsInches.Length, Rows);
+            for (int i = 0; i < count; i++) {
+                SetRowHeightInches(i, heightsInches[i]);
+            }
+        }
+
+        /// <summary>
+        ///     Applies a style preset to the table.
+        /// </summary>
+        public void ApplyStyle(PowerPointTableStylePreset preset) {
+            if (!string.IsNullOrWhiteSpace(preset.StyleId)) {
+                StyleId = preset.StyleId;
+            }
+            if (preset.FirstRow.HasValue) {
+                FirstRow = preset.FirstRow.Value;
+            }
+            if (preset.LastRow.HasValue) {
+                LastRow = preset.LastRow.Value;
+            }
+            if (preset.FirstColumn.HasValue) {
+                FirstColumn = preset.FirstColumn.Value;
+            }
+            if (preset.LastColumn.HasValue) {
+                LastColumn = preset.LastColumn.Value;
+            }
+            if (preset.BandedRows.HasValue) {
+                BandedRows = preset.BandedRows.Value;
+            }
+            if (preset.BandedColumns.HasValue) {
+                BandedColumns = preset.BandedColumns.Value;
             }
         }
 
@@ -213,6 +437,58 @@ namespace OfficeIMO.PowerPoint {
             grid.Elements<A.GridColumn>().ElementAt(index).Remove();
             foreach (A.TableRow row in table.Elements<A.TableRow>()) {
                 row.Elements<A.TableCell>().ElementAt(index).Remove();
+            }
+        }
+
+        /// <summary>
+        ///     Binds data to the table, expanding rows/columns as needed.
+        /// </summary>
+        public void Bind<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
+            bool includeHeaders = true, int startRow = 0, int startColumn = 0) {
+            if (data == null) {
+                throw new ArgumentNullException(nameof(data));
+            }
+            if (columns == null) {
+                throw new ArgumentNullException(nameof(columns));
+            }
+            if (startRow < 0) {
+                throw new ArgumentOutOfRangeException(nameof(startRow));
+            }
+            if (startColumn < 0) {
+                throw new ArgumentOutOfRangeException(nameof(startColumn));
+            }
+
+            var items = data.ToList();
+            var columnList = columns.ToList();
+            if (columnList.Count == 0) {
+                throw new ArgumentException("At least one column is required.", nameof(columns));
+            }
+
+            int requiredRows = items.Count + (includeHeaders ? 1 : 0);
+            int requiredColumns = columnList.Count;
+
+            while (Rows < startRow + requiredRows) {
+                AddRow();
+            }
+            while (Columns < startColumn + requiredColumns) {
+                AddColumn();
+            }
+
+            int rowIndex = startRow;
+            if (includeHeaders) {
+                for (int c = 0; c < columnList.Count; c++) {
+                    GetCell(rowIndex, startColumn + c).Text = columnList[c].Header;
+                }
+                rowIndex++;
+            }
+
+            foreach (var item in items) {
+                for (int c = 0; c < columnList.Count; c++) {
+                    object? value = columnList[c].ValueSelector(item);
+                    string text = Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+                    GetCell(rowIndex, startColumn + c).Text = text;
+                }
+                rowIndex++;
             }
         }
 

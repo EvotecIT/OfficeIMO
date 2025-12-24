@@ -60,5 +60,17 @@ namespace OfficeIMO.Tests {
 
             File.Delete(filePath);
         }
+
+        [Fact]
+        public void LayoutBoxCanSplitRowsAndColumns() {
+            PowerPointLayoutBox box = PowerPointLayoutBox.FromCentimeters(1.0, 2.0, 20.0, 10.0);
+            PowerPointLayoutBox[] columns = box.SplitColumnsCm(2, gutterCm: 1.0);
+            PowerPointLayoutBox[] rows = box.SplitRowsCm(2, gutterCm: 1.0);
+
+            Assert.Equal(box.Left, columns[0].Left);
+            Assert.Equal(box.Right, columns[1].Right);
+            Assert.Equal(box.Top, rows[0].Top);
+            Assert.Equal(box.Bottom, rows[1].Bottom);
+        }
     }
 }

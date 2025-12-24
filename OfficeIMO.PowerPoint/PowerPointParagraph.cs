@@ -286,6 +286,15 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        /// Applies an auto-numbered bullet to the paragraph without resetting the start value.
+        /// </summary>
+        public void SetNumbered(A.TextAutoNumberSchemeValues style) {
+            A.ParagraphProperties props = EnsureParagraphProperties();
+            ClearBulletInternal(props);
+            props.Append(new A.AutoNumberedBullet { Type = style });
+        }
+
+        /// <summary>
         /// Applies a default auto-numbered bullet (Arabic period) to the paragraph.
         /// </summary>
         public void SetNumbered(int startAt = 1) {

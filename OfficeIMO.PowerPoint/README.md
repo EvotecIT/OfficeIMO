@@ -45,9 +45,13 @@ slide.AddTextBox("Agenda\n• Intro\n• KPIs\n• Next Steps",
 ### Bullets (API)
 ```csharp
 var box = slide.AddTextBox("Agenda:");
-box.AddBullet("Intro");
-box.AddBullet("KPIs");
-box.AddBullet("Next Steps");
+box.AddBullets(new[] { "Intro", "KPIs", "Next Steps" });
+```
+
+### Numbered lists
+```csharp
+var box = slide.AddTextBox("Plan:");
+box.AddNumberedList(new[] { "Discover", "Design", "Deliver" });
 ```
 
 ### Images
@@ -81,6 +85,25 @@ ppt.AsFluent()
        s.Bullets("One", "Two", "Three");
        s.Notes("Talking points for the presenter");
    });
+```
+
+### Tables (data binding)
+```csharp
+record SalesRow(string Product, int Q1, int Q2);
+
+var rows = new[] {
+    new SalesRow("Alpha", 12, 15),
+    new SalesRow("Beta", 9, 11)
+};
+
+var columns = new[] {
+    PowerPointTableColumn<SalesRow>.Create("Product", r => r.Product).WithWidthCm(4.0),
+    PowerPointTableColumn<SalesRow>.Create("Q1", r => r.Q1),
+    PowerPointTableColumn<SalesRow>.Create("Q2", r => r.Q2)
+};
+
+slide.AddTable(rows, columns, left: PowerPointUnits.Cm(1.5), top: PowerPointUnits.Cm(4),
+    width: PowerPointUnits.Cm(20), height: PowerPointUnits.Cm(6));
 ```
 
 ## Feature Highlights

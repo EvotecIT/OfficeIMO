@@ -200,7 +200,148 @@ namespace OfficeIMO.PowerPoint {
                 rowIndex++;
             }
 
+            table.SetColumnWidthsEvenly();
             return table;
+        }
+
+        /// <summary>
+        ///     Adds a table using explicit column bindings.
+        /// </summary>
+        public PowerPointTable AddTable<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
+            bool includeHeaders = true, long left = 0L, long top = 0L, long width = 5000000L, long height = 3000000L) {
+            if (data == null) {
+                throw new ArgumentNullException(nameof(data));
+            }
+            if (columns == null) {
+                throw new ArgumentNullException(nameof(columns));
+            }
+
+            var items = data.ToList();
+            var columnList = columns.ToList();
+            if (columnList.Count == 0) {
+                throw new ArgumentException("At least one column is required.", nameof(columns));
+            }
+
+            int totalRows = items.Count + (includeHeaders ? 1 : 0);
+            if (totalRows == 0) {
+                throw new InvalidOperationException("No data rows were generated.");
+            }
+
+            PowerPointTable table = AddTable(totalRows, columnList.Count, left, top, width, height);
+            table.HeaderRow = includeHeaders;
+            table.BandedRows = true;
+
+            int rowIndex = 0;
+            if (includeHeaders) {
+                for (int c = 0; c < columnList.Count; c++) {
+                    table.GetCell(0, c).Text = columnList[c].Header;
+                }
+                rowIndex = 1;
+            }
+
+            foreach (var item in items) {
+                for (int c = 0; c < columnList.Count; c++) {
+                    object? value = columnList[c].ValueSelector(item);
+                    string text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+                    table.GetCell(rowIndex, c).Text = text;
+                }
+                rowIndex++;
+            }
+
+            ApplyColumnWidths(table, width, columnList);
+            return table;
+        }
+
+        /// <summary>
+        ///     Adds a table using explicit column bindings (centimeters).
+        /// </summary>
+        public PowerPointTable AddTableCm<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
+            bool includeHeaders, double leftCm, double topCm, double widthCm, double heightCm) {
+            return AddTable(data, columns, includeHeaders,
+                PowerPointUnits.FromCentimeters(leftCm),
+                PowerPointUnits.FromCentimeters(topCm),
+                PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm));
+        }
+
+        /// <summary>
+        ///     Adds a table using explicit column bindings (centimeters).
+        /// </summary>
+        public PowerPointTable AddTableCm<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
+            double leftCm, double topCm, double widthCm, double heightCm) {
+            return AddTableCm(data, columns, includeHeaders: true, leftCm, topCm, widthCm, heightCm);
+        }
+
+        /// <summary>
+        ///     Adds a table using explicit column bindings (inches).
+        /// </summary>
+        public PowerPointTable AddTableInches<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
+            bool includeHeaders, double leftInches, double topInches, double widthInches, double heightInches) {
+            return AddTable(data, columns, includeHeaders,
+                PowerPointUnits.FromInches(leftInches),
+                PowerPointUnits.FromInches(topInches),
+                PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches));
+        }
+
+        /// <summary>
+        ///     Adds a table using explicit column bindings (inches).
+        /// </summary>
+        public PowerPointTable AddTableInches<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
+            double leftInches, double topInches, double widthInches, double heightInches) {
+            return AddTableInches(data, columns, includeHeaders: true, leftInches, topInches, widthInches, heightInches);
+        }
+
+        /// <summary>
+        ///     Adds a table using explicit column bindings (points).
+        /// </summary>
+        public PowerPointTable AddTablePoints<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
+            bool includeHeaders, double leftPoints, double topPoints, double widthPoints, double heightPoints) {
+            return AddTable(data, columns, includeHeaders,
+                PowerPointUnits.FromPoints(leftPoints),
+                PowerPointUnits.FromPoints(topPoints),
+                PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints));
+        }
+
+        /// <summary>
+        ///     Adds a table using explicit column bindings (points).
+        /// </summary>
+        public PowerPointTable AddTablePoints<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
+            double leftPoints, double topPoints, double widthPoints, double heightPoints) {
+            return AddTablePoints(data, columns, includeHeaders: true, leftPoints, topPoints, widthPoints, heightPoints);
+        }
+
+        private static void ApplyColumnWidths<T>(PowerPointTable table, long tableWidthEmus,
+            IReadOnlyList<PowerPointTableColumn<T>> columns) {
+            bool hasExplicitWidths = columns.Any(c => c.WidthEmus.HasValue);
+            if (!hasExplicitWidths) {
+                table.SetColumnWidthsEvenly();
+                return;
+            }
+
+            long totalWidth = tableWidthEmus > 0 ? tableWidthEmus : table.Width;
+            if (totalWidth <= 0) {
+                table.SetColumnWidthsEvenly();
+                return;
+            }
+
+            long used = columns.Sum(c => c.WidthEmus ?? 0L);
+            int remainingCount = columns.Count(c => !c.WidthEmus.HasValue);
+            long remaining = Math.Max(0L, totalWidth - used);
+            long fallbackWidth = remainingCount > 0 ? remaining / remainingCount : 0L;
+
+            for (int i = 0; i < columns.Count; i++) {
+                long width = columns[i].WidthEmus ?? fallbackWidth;
+                table.SetColumnWidth(i, width);
+            }
+
+            long assigned = columns.Sum(c => c.WidthEmus ?? fallbackWidth);
+            long delta = totalWidth - assigned;
+            if (delta != 0 && columns.Count > 0) {
+                int adjustIndex = columns.Count - 1;
+                table.SetColumnWidth(adjustIndex, table.GetColumnWidth(adjustIndex) + delta);
+            }
         }
 
         /// <summary>
