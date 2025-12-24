@@ -29,6 +29,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 textBox.AddBullet("Add text, images, tables, and charts");
                 textBox.AddBullet("Customize formatting and styles");
                 textBox.AddBullet("No repair dialog issues!");
+                textBox.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
 
                 // Add a picture if available
                 if (File.Exists(imagePath)) {

@@ -39,12 +39,14 @@ namespace OfficeIMO.Examples.PowerPoint {
                             tb => {
                             tb.AddBullet("Built with builders");
                             tb.AddBullet("Configurable content");
+                            tb.ApplyAutoSpacing(lineSpacingMultiplier: 1.15);
                         });
                         s.Numbered(tb => {
                             tb.Left = rightList.Left;
                             tb.Top = rightList.Top;
                             tb.Width = rightList.Width;
                             tb.Height = rightList.Height;
+                            tb.ApplyAutoSpacing(lineSpacingMultiplier: 1.15);
                         }, "Step one", "Step two");
                         s.Shape(A.ShapeTypeValues.Rectangle, content.Left, calloutTop, content.Width, calloutHeight,
                             shape => shape.Fill("E7F7FF").Stroke("007ACC", 2));

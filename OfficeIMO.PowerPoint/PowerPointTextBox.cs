@@ -190,6 +190,51 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Applies a text style to the textbox.
+        /// </summary>
+        public PowerPointTextBox ApplyTextStyle(PowerPointTextStyle style, bool applyToRuns = false) {
+            var paragraphs = GetParagraphsForStyling();
+            foreach (PowerPointParagraph paragraph in paragraphs) {
+                if (applyToRuns) {
+                    IReadOnlyList<PowerPointTextRun> runs = paragraph.Runs;
+                    if (runs.Count == 0) {
+                        runs = new List<PowerPointTextRun> { paragraph.AddRun(string.Empty) };
+                    }
+                    foreach (PowerPointTextRun run in runs) {
+                        style.Apply(run);
+                    }
+                } else {
+                    style.Apply(paragraph);
+                }
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        ///     Applies a paragraph style to the textbox.
+        /// </summary>
+        public PowerPointTextBox ApplyParagraphStyle(PowerPointParagraphStyle style) {
+            var paragraphs = GetParagraphsForStyling();
+            foreach (PowerPointParagraph paragraph in paragraphs) {
+                style.Apply(paragraph);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        ///     Applies automatic spacing defaults to the textbox paragraphs.
+        /// </summary>
+        public PowerPointTextBox ApplyAutoSpacing(double lineSpacingMultiplier = 1.2,
+            double? spaceBeforePoints = null, double? spaceAfterPoints = null) {
+            PowerPointParagraphStyle style = new(lineSpacingMultiplier: lineSpacingMultiplier,
+                spaceBeforePoints: spaceBeforePoints,
+                spaceAfterPoints: spaceAfterPoints);
+            return ApplyParagraphStyle(style);
+        }
+
+        /// <summary>
         ///     Removes all paragraphs from the textbox.
         /// </summary>
         public void Clear() {
@@ -378,6 +423,14 @@ namespace OfficeIMO.PowerPoint {
                 Shape.TextBody = existingTextBody;
             }
             return existingTextBody;
+        }
+
+        private List<PowerPointParagraph> GetParagraphsForStyling() {
+            var paragraphs = Paragraphs.ToList();
+            if (paragraphs.Count == 0) {
+                paragraphs.Add(AddParagraph());
+            }
+            return paragraphs;
         }
     }
 }

@@ -21,9 +21,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 p.Alignment = A.TextAlignmentTypeValues.Center;
                 p.SpaceAfterPoints = 6;
             });
-            heading.SetBold()
-                .SetFontSize(32)
-                .SetColor("1F4E79");
+            PowerPointTextStyle.Title.WithColor("1F4E79").Apply(heading);
 
             PowerPointParagraph line = text.AddParagraph();
             line.AddText("This line shows ");
@@ -36,6 +34,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             text.AddBullet("Bulleted item two");
             text.AddNumberedItem("First step");
             text.AddNumberedItem("Second step");
+            text.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
             presentation.Save();
 
             Helpers.Open(filePath, openPowerPoint);

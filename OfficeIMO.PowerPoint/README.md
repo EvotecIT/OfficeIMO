@@ -54,6 +54,14 @@ var box = slide.AddTextBox("Plan:");
 box.AddNumberedList(new[] { "Discover", "Design", "Deliver" });
 ```
 
+### Text styles + spacing
+```csharp
+var box = slide.AddTextBox("Highlights");
+box.AddBullets(new[] { "Readable defaults", "Auto spacing", "Consistent styles" });
+box.ApplyTextStyle(PowerPointTextStyle.Body.WithColor("1F4E79"));
+box.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
+```
+
 ### Images
 ```csharp
 slide.AddPicture("logo.png",

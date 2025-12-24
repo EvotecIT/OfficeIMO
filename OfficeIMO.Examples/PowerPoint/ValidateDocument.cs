@@ -34,6 +34,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 foreach (string message in errors.Select(e => e.Description).Take(3)) {
                     details.AddBullet(message);
                 }
+                details.ApplyAutoSpacing(lineSpacingMultiplier: 1.1, spaceAfterPoints: 2);
             }
 
             presentation.Save();

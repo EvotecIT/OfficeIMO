@@ -48,6 +48,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             highlights.AddBullet("Tables created from objects");
             highlights.AddBullet("Charts with real data");
             highlights.AddBullet("Notes and transitions");
+            highlights.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
 
             string imagePath = Path.Combine(AppContext.BaseDirectory, "Images", "BackgroundImage.png");
             if (File.Exists(imagePath)) {

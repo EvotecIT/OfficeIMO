@@ -129,11 +129,81 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        /// Gets or sets paragraph left margin in points.
+        /// </summary>
+        public double? LeftMarginPoints {
+            get => FromTextCoordinate(Paragraph.ParagraphProperties?.LeftMargin?.Value);
+            set {
+                A.ParagraphProperties props = EnsureParagraphProperties();
+                props.LeftMargin = ToTextCoordinate(value);
+            }
+        }
+
+        /// <summary>
         /// Sets indentation in points and returns the paragraph for chaining.
         /// </summary>
         public PowerPointParagraph SetIndentPoints(double points) {
             IndentPoints = points;
             return this;
+        }
+
+        /// <summary>
+        /// Sets indentation in centimeters and returns the paragraph for chaining.
+        /// </summary>
+        public PowerPointParagraph SetIndentCm(double centimeters) {
+            return SetIndentPoints(PointsFromCentimeters(centimeters));
+        }
+
+        /// <summary>
+        /// Sets indentation in inches and returns the paragraph for chaining.
+        /// </summary>
+        public PowerPointParagraph SetIndentInches(double inches) {
+            return SetIndentPoints(PointsFromInches(inches));
+        }
+
+        /// <summary>
+        /// Sets left margin in points and returns the paragraph for chaining.
+        /// </summary>
+        public PowerPointParagraph SetLeftMarginPoints(double points) {
+            LeftMarginPoints = points;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets left margin in centimeters and returns the paragraph for chaining.
+        /// </summary>
+        public PowerPointParagraph SetLeftMarginCm(double centimeters) {
+            return SetLeftMarginPoints(PointsFromCentimeters(centimeters));
+        }
+
+        /// <summary>
+        /// Sets left margin in inches and returns the paragraph for chaining.
+        /// </summary>
+        public PowerPointParagraph SetLeftMarginInches(double inches) {
+            return SetLeftMarginPoints(PointsFromInches(inches));
+        }
+
+        /// <summary>
+        /// Sets a hanging indent in points and returns the paragraph for chaining.
+        /// </summary>
+        public PowerPointParagraph SetHangingPoints(double points) {
+            LeftMarginPoints = points;
+            IndentPoints = -points;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets a hanging indent in centimeters and returns the paragraph for chaining.
+        /// </summary>
+        public PowerPointParagraph SetHangingCm(double centimeters) {
+            return SetHangingPoints(PointsFromCentimeters(centimeters));
+        }
+
+        /// <summary>
+        /// Sets a hanging indent in inches and returns the paragraph for chaining.
+        /// </summary>
+        public PowerPointParagraph SetHangingInches(double inches) {
+            return SetHangingPoints(PointsFromInches(inches));
         }
 
         /// <summary>
@@ -152,10 +222,33 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        /// Gets or sets line spacing as a multiplier (1.0 = 100%).
+        /// </summary>
+        public double? LineSpacingMultiplier {
+            get => FromSpacingPercent(Paragraph.ParagraphProperties?.LineSpacing?.SpacingPercent?.Val?.Value);
+            set {
+                A.ParagraphProperties props = EnsureParagraphProperties();
+                if (value == null) {
+                    props.LineSpacing = null;
+                    return;
+                }
+                props.LineSpacing = new A.LineSpacing(new A.SpacingPercent { Val = ToSpacingPercent(value.Value) });
+            }
+        }
+
+        /// <summary>
         /// Sets line spacing in points and returns the paragraph for chaining.
         /// </summary>
         public PowerPointParagraph SetLineSpacingPoints(double points) {
             LineSpacingPoints = points;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets line spacing as a multiplier (1.0 = 100%) and returns the paragraph for chaining.
+        /// </summary>
+        public PowerPointParagraph SetLineSpacingMultiplier(double multiplier) {
+            LineSpacingMultiplier = multiplier;
             return this;
         }
 
@@ -351,6 +444,24 @@ namespace OfficeIMO.PowerPoint {
 
         private static double? FromSpacingPoints(int? value) {
             return value != null ? value.Value / 100d : null;
+        }
+
+        private static int ToSpacingPercent(double multiplier) {
+            return (int)Math.Round(multiplier * 100000d);
+        }
+
+        private static double? FromSpacingPercent(int? value) {
+            return value != null ? value.Value / 100000d : null;
+        }
+
+        private static double PointsFromCentimeters(double centimeters) {
+            long emus = PowerPointUnits.FromCentimeters(centimeters);
+            return PowerPointUnits.ToPoints(emus);
+        }
+
+        private static double PointsFromInches(double inches) {
+            long emus = PowerPointUnits.FromInches(inches);
+            return PowerPointUnits.ToPoints(emus);
         }
     }
 }
