@@ -11,15 +11,17 @@ namespace OfficeIMO.Examples.PowerPoint {
             Console.WriteLine("[*] PowerPoint - Update picture");
             string filePath = Path.Combine(folderPath, "Update Picture.pptx");
             string imagePath = Path.Combine(Directory.GetCurrentDirectory(), "Images", "BackgroundImage.png");
-            string newImagePath = Path.Combine(Directory.GetCurrentDirectory(), "Images", "Kulek.jpg");
-
+            string newImagePath = Path.Combine(Directory.GetCurrentDirectory(), "Images", "EvotecLogo.png");
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointPicture picture = slide.AddPicture(imagePath);
+            PowerPointPicture picture = slide.AddPicture(imagePath, left: 914400, top: 914400, width: 7315200, height: 3657600);
             Console.WriteLine("Original type: " + picture.ContentType);
 
-            using FileStream stream = new(newImagePath, FileMode.Open, FileAccess.Read);
-            picture.UpdateImage(stream, ImagePartType.Jpeg);
+            picture.FitToBox(1200, 800, crop: true);
+            picture.Crop(5, 5, 5, 5);
+            picture.UpdateImage(newImagePath);
+            picture.ResetCrop();
+            picture.FitToBox(800, 800, crop: false);
             Console.WriteLine("Updated type: " + picture.ContentType);
 
             presentation.Save();
@@ -28,4 +30,3 @@ namespace OfficeIMO.Examples.PowerPoint {
         }
     }
 }
-

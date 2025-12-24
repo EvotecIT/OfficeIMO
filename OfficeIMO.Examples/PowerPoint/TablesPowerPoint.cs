@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using OfficeIMO.PowerPoint;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Examples.PowerPoint {
     /// <summary>
@@ -44,6 +45,27 @@ namespace OfficeIMO.Examples.PowerPoint {
                 width: contentWidth,
                 height: 3048000L);
             table.BandedRows = true;
+
+            for (int c = 0; c < table.Columns; c++) {
+                PowerPointTableCell header = table.GetCell(0, c);
+                header.FillColor = "1F4E79";
+                header.HorizontalAlignment = A.TextAlignmentTypeValues.Center;
+                header.VerticalAlignment = A.TextAnchoringTypeValues.Center;
+                header.SetBorders(TableCellBorders.All, "FFFFFF", 1);
+                header.PaddingLeftPoints = 4;
+                header.PaddingRightPoints = 4;
+                header.PaddingTopPoints = 3;
+                header.PaddingBottomPoints = 3;
+            }
+
+            for (int r = 1; r < table.Rows; r++) {
+                for (int c = 0; c < table.Columns; c++) {
+                    PowerPointTableCell cell = table.GetCell(r, c);
+                    cell.SetBorders(TableCellBorders.All, "D9D9D9", 0.5);
+                    cell.PaddingLeftPoints = 3;
+                    cell.PaddingRightPoints = 3;
+                }
+            }
 
             // Slide 3: chart from the same dataset
             PowerPointSlide chartSlide = presentation.AddSlide();
@@ -102,6 +124,11 @@ namespace OfficeIMO.Examples.PowerPoint {
                 width: contentWidth,
                 height: 2286000L);
             summary.BandedRows = true;
+
+            PowerPointTableCell summaryHeader = summary.GetCell(0, 0);
+            summaryHeader.FillColor = "2F5597";
+            summaryHeader.SetBorders(TableCellBorders.All, "FFFFFF", 1);
+            summaryHeader.PaddingLeftPoints = 4;
 
             presentation.Save();
 
