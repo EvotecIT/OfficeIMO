@@ -61,8 +61,44 @@ namespace OfficeIMO.PowerPoint {
             return pic;
         }
 
-        private static ImagePartType GetImagePartType(string imagePath) {
-            string extension = Path.GetExtension(imagePath).ToLowerInvariant();
+        /// <summary>
+        ///     Adds an image from the given file path using centimeter measurements.
+        /// </summary>
+        public PowerPointPicture AddPictureCm(string imagePath, double leftCm, double topCm, double widthCm,
+            double heightCm) {
+            return AddPicture(imagePath,
+                PowerPointUnits.FromCentimeters(leftCm),
+                PowerPointUnits.FromCentimeters(topCm),
+                PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm));
+        }
+
+        /// <summary>
+        ///     Adds an image from the given file path using inch measurements.
+        /// </summary>
+        public PowerPointPicture AddPictureInches(string imagePath, double leftInches, double topInches,
+            double widthInches, double heightInches) {
+            return AddPicture(imagePath,
+                PowerPointUnits.FromInches(leftInches),
+                PowerPointUnits.FromInches(topInches),
+                PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches));
+        }
+
+        /// <summary>
+        ///     Adds an image from the given file path using point measurements.
+        /// </summary>
+        public PowerPointPicture AddPicturePoints(string imagePath, double leftPoints, double topPoints,
+            double widthPoints, double heightPoints) {
+            return AddPicture(imagePath,
+                PowerPointUnits.FromPoints(leftPoints),
+                PowerPointUnits.FromPoints(topPoints),
+                PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints));
+        }
+
+        private static ImagePartType GetImagePartType(string imagePath) {       
+            string extension = Path.GetExtension(imagePath).ToLowerInvariant(); 
             return extension switch {
                 ".jpg" or ".jpeg" => ImagePartType.Jpeg,
                 ".gif" => ImagePartType.Gif,

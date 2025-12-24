@@ -87,6 +87,42 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Adds a table with the specified rows and columns using centimeter measurements.
+        /// </summary>
+        public PowerPointTable AddTableCm(int rows, int columns, double leftCm, double topCm, double widthCm,
+            double heightCm) {
+            return AddTable(rows, columns,
+                PowerPointUnits.FromCentimeters(leftCm),
+                PowerPointUnits.FromCentimeters(topCm),
+                PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm));
+        }
+
+        /// <summary>
+        ///     Adds a table with the specified rows and columns using inch measurements.
+        /// </summary>
+        public PowerPointTable AddTableInches(int rows, int columns, double leftInches, double topInches,
+            double widthInches, double heightInches) {
+            return AddTable(rows, columns,
+                PowerPointUnits.FromInches(leftInches),
+                PowerPointUnits.FromInches(topInches),
+                PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches));
+        }
+
+        /// <summary>
+        ///     Adds a table with the specified rows and columns using point measurements.
+        /// </summary>
+        public PowerPointTable AddTablePoints(int rows, int columns, double leftPoints, double topPoints,
+            double widthPoints, double heightPoints) {
+            return AddTable(rows, columns,
+                PowerPointUnits.FromPoints(leftPoints),
+                PowerPointUnits.FromPoints(topPoints),
+                PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints));
+        }
+
+        /// <summary>
         ///     Adds a table built from a sequence of objects.
         /// </summary>
         public PowerPointTable AddTable<T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure = null,
@@ -165,6 +201,68 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return table;
+        }
+
+        /// <summary>
+        ///     Adds a table built from a sequence of objects using centimeter measurements.
+        /// </summary>
+        public PowerPointTable AddTableCm<T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure,
+            bool includeHeaders, double leftCm, double topCm, double widthCm, double heightCm) {
+            return AddTable(data, configure, includeHeaders,
+                PowerPointUnits.FromCentimeters(leftCm),
+                PowerPointUnits.FromCentimeters(topCm),
+                PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm));
+        }
+
+        /// <summary>
+        ///     Adds a table built from a sequence of objects using centimeter measurements.
+        /// </summary>
+        public PowerPointTable AddTableCm<T>(IEnumerable<T> data, double leftCm, double topCm, double widthCm,
+            double heightCm) {
+            return AddTableCm(data, configure: null, includeHeaders: true, leftCm, topCm, widthCm, heightCm);
+        }
+
+        /// <summary>
+        ///     Adds a table built from a sequence of objects using inch measurements.
+        /// </summary>
+        public PowerPointTable AddTableInches<T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure,
+            bool includeHeaders, double leftInches, double topInches, double widthInches, double heightInches) {
+            return AddTable(data, configure, includeHeaders,
+                PowerPointUnits.FromInches(leftInches),
+                PowerPointUnits.FromInches(topInches),
+                PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches));
+        }
+
+        /// <summary>
+        ///     Adds a table built from a sequence of objects using inch measurements.
+        /// </summary>
+        public PowerPointTable AddTableInches<T>(IEnumerable<T> data, double leftInches, double topInches,
+            double widthInches, double heightInches) {
+            return AddTableInches(data, configure: null, includeHeaders: true, leftInches, topInches, widthInches,
+                heightInches);
+        }
+
+        /// <summary>
+        ///     Adds a table built from a sequence of objects using point measurements.
+        /// </summary>
+        public PowerPointTable AddTablePoints<T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure,
+            bool includeHeaders, double leftPoints, double topPoints, double widthPoints, double heightPoints) {
+            return AddTable(data, configure, includeHeaders,
+                PowerPointUnits.FromPoints(leftPoints),
+                PowerPointUnits.FromPoints(topPoints),
+                PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints));
+        }
+
+        /// <summary>
+        ///     Adds a table built from a sequence of objects using point measurements.
+        /// </summary>
+        public PowerPointTable AddTablePoints<T>(IEnumerable<T> data, double leftPoints, double topPoints,
+            double widthPoints, double heightPoints) {
+            return AddTablePoints(data, configure: null, includeHeaders: true, leftPoints, topPoints, widthPoints,
+                heightPoints);
         }
 
         private static OpenXmlUnknownElement CreateA16ExtensionElement(string localName, uint value) {

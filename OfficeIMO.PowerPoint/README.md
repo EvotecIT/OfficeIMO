@@ -118,6 +118,14 @@ ppt.AsFluent()
 Positions and sizes are stored in EMUs (English Metric Units). Use `PowerPointUnits` or the `SetPositionCm`/`SetSizeCm`
 helpers to work in centimeters, inches, or points.
 
+### Layout helpers
+```csharp
+var content = ppt.SlideSize.GetContentBoxCm(1.5);
+var columns = ppt.SlideSize.GetColumnsCm(2, marginCm: 1.5, gutterCm: 1.0);
+columns[0].ApplyTo(slide.AddTextBox("Left column"));
+columns[1].ApplyTo(slide.AddTextBox("Right column"));
+```
+
 ## Dependencies & License
 
 - DocumentFormat.OpenXml: 3.3.x (range [3.3.0, 4.0.0))

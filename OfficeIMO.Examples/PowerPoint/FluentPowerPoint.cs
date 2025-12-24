@@ -13,36 +13,34 @@ namespace OfficeIMO.Examples.PowerPoint {
             Console.WriteLine("[*] PowerPoint - Creating presentation with fluent API");
             string filePath = Path.Combine(folderPath, "FluentPowerPoint.pptx");
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
-                long slideWidth = presentation.SlideSize.WidthEmus;
-                long margin = PowerPointUnits.Cm(1.5);
-                long gutter = PowerPointUnits.Cm(1);
-                long contentWidth = slideWidth - (2 * margin);
-                long columnWidth = (contentWidth - gutter) / 2;
-                long listTop = PowerPointUnits.Cm(5.5);
-                long listHeight = PowerPointUnits.Cm(4);
-                long calloutTop = listTop + listHeight + PowerPointUnits.Cm(1.5);
-                long calloutHeight = PowerPointUnits.Cm(2.5);
+                const double marginCm = 1.5;
+                const double gutterCm = 1.0;
+                PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
+                PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumnsCm(2, marginCm, gutterCm);
+                PowerPointLayoutBox[] rows = presentation.SlideSize.GetRowsCm(2, marginCm, gutterCm);
+                PowerPointLayoutBox listRow = rows[0];
+                PowerPointLayoutBox calloutRow = rows[1];
+                PowerPointLayoutBox leftList = new(columns[0].Left, listRow.Top, columns[0].Width, listRow.Height);
+                PowerPointLayoutBox rightList = new(columns[1].Left, listRow.Top, columns[1].Width, listRow.Height);
                 presentation.AsFluent()
                     .Slide(0, 0, s => {
                         s.Title("Fluent Presentation", tb => {
                             tb.FontSize = 32;
                             tb.Color = "1F4E79";
                         });
-                        s.TextBox("Hello from fluent API", tb => {
-                            tb.Left = margin;
-                            tb.Top = listTop;
-                            tb.Width = columnWidth;
-                            tb.Height = listHeight;
+                        s.TextBox("Hello from fluent API", leftList.Left, leftList.Top, leftList.Width, leftList.Height,
+                            tb => {
                             tb.AddBullet("Built with builders");
                             tb.AddBullet("Configurable content");
                         });
                         s.Numbered(tb => {
-                            tb.Left = margin + columnWidth + gutter;
-                            tb.Top = listTop;
-                            tb.Width = columnWidth;
-                            tb.Height = listHeight;
+                            tb.Left = rightList.Left;
+                            tb.Top = rightList.Top;
+                            tb.Width = rightList.Width;
+                            tb.Height = rightList.Height;
                         }, "Step one", "Step two");
-                        s.Shape(A.ShapeTypeValues.Rectangle, margin, calloutTop, contentWidth, calloutHeight,
+                        s.Shape(A.ShapeTypeValues.Rectangle, content.Left, calloutRow.Top, content.Width,
+                            calloutRow.Height,
                             shape => shape.Fill("E7F7FF").Stroke("007ACC", 2));
                         s.Notes("Example notes");
                     })
