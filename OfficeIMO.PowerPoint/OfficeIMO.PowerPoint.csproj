@@ -59,9 +59,11 @@
         <PackageReference Include="DocumentFormat.OpenXml" Version="[3.3.0,4.0.0)" />
     </ItemGroup>
 
-    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-        <Reference Include="System.Net.Http" />
-    </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+  </ItemGroup>
 
     <ItemGroup>
         <Using Include="System" />
@@ -76,5 +78,12 @@
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Tests" />
     </ItemGroup>
+
+    <ItemGroup>
+    <EmbeddedResource Include="Resources\chart-style-251.xml" />
+    <EmbeddedResource Include="Resources\chart-colors-10.xml" />
+    <EmbeddedResource Include="Resources\chart-template-bar.xml" />
+    <EmbeddedResource Include="Resources\chart-workbook-bar.xlsx" />
+  </ItemGroup>
 
 </Project>

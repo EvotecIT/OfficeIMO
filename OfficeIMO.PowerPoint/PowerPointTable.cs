@@ -10,6 +10,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private GraphicFrame Frame => (GraphicFrame)Element;
+        internal A.Table TableElement => Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
 
         /// <summary>
         ///     Returns number of rows in the table.
@@ -21,6 +22,28 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public int Columns => Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!.TableGrid!.Elements<A.GridColumn>()
             .Count();
+
+        /// <summary>
+        ///     Enables or disables header row styling (firstRow attribute) on the table.
+        /// </summary>
+        public bool HeaderRow {
+            get => TableElement.TableProperties?.FirstRow?.Value == true;
+            set {
+                TableElement.TableProperties ??= new A.TableProperties();
+                TableElement.TableProperties.FirstRow = value;
+            }
+        }
+
+        /// <summary>
+        ///     Enables or disables banded rows styling (bandRow attribute) on the table.
+        /// </summary>
+        public bool BandedRows {
+            get => TableElement.TableProperties?.BandRow?.Value == true;
+            set {
+                TableElement.TableProperties ??= new A.TableProperties();
+                TableElement.TableProperties.BandRow = value;
+            }
+        }
 
         /// <summary>
         ///     Retrieves a cell at the specified row and column index.

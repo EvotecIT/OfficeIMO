@@ -133,7 +133,7 @@ namespace OfficeIMO.PowerPoint {
                     new NonVisualDrawingProperties { Id = 1U, Name = "Notes Group Shape" },
                     new NonVisualGroupShapeDrawingProperties(),
                     new ApplicationNonVisualDrawingProperties()),
-                new GroupShapeProperties(new A.TransformGroup()));
+                PowerPointUtils.CreateDefaultGroupShapeProperties());
         }
 
         private static ShapeTree EnsureShapeTree(CommonSlideData commonSlideData) {
@@ -147,7 +147,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (tree.GetFirstChild<GroupShapeProperties>() == null) {
-                tree.AppendChild(new GroupShapeProperties(new A.TransformGroup()));
+                tree.AppendChild(PowerPointUtils.CreateDefaultGroupShapeProperties());
             }
 
             return tree;
@@ -156,12 +156,20 @@ namespace OfficeIMO.PowerPoint {
         private static Shape CreateNotesPlaceholderShape(uint id) {
             return new Shape(
                 new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = id, Name = "Notes Placeholder" },
-                    new NonVisualShapeDrawingProperties(),
-                    new ApplicationNonVisualDrawingProperties(new PlaceholderShape())
+                    new NonVisualDrawingProperties { Id = id, Name = "Notes Placeholder 1" },
+                    new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
+                    new ApplicationNonVisualDrawingProperties(
+                        new PlaceholderShape { Type = PlaceholderValues.Body, Index = 1U })
                 ),
                 new ShapeProperties(),
-                new TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.Run(new A.Text())))
+                new TextBody(
+                    new A.BodyProperties(),
+                    new A.ListStyle(),
+                    new A.Paragraph(
+                        new A.Run(
+                            new A.RunProperties { Language = "en-US" },
+                            new A.Text()),
+                        new A.EndParagraphRunProperties { Language = "en-US" }))
             );
         }
 

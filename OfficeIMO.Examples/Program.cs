@@ -96,17 +96,17 @@ namespace OfficeIMO.Examples {
             // // Markdown/DomainDetective report (mirrors the Excel structure)
             // Markdown.DomainDetectiveReportMarkdown.Example(folderPath, false);
             // // PowerPoint
-            // PowerPoint.BasicPowerPointDocument.Example_BasicPowerPoint(folderPath, false);
-            // PowerPoint.AdvancedPowerPoint.Example_AdvancedPowerPoint(folderPath, false);
-            // PowerPoint.FluentPowerPoint.Example_FluentPowerPoint(folderPath, false);
-            // PowerPoint.ShapesPowerPoint.Example_PowerPointShapes(folderPath, false);
-            // PowerPoint.SlidesManagementPowerPoint.Example_SlidesManagement(folderPath, false);
-            // PowerPoint.TablesPowerPoint.Example_PowerPointTables(folderPath, false);
-            // PowerPoint.TextFormattingPowerPoint.Example_TextFormattingPowerPoint(folderPath, false);
-            // PowerPoint.ThemeAndLayoutPowerPoint.Example_PowerPointThemeAndLayout(folderPath, false);
-            // PowerPoint.UpdatePicturePowerPoint.Example_PowerPointUpdatePicture(folderPath, false);
-            // PowerPoint.ValidateDocument.Example(folderPath, false);
-            // PowerPoint.TestLazyInit.Example_TestLazyInit(folderPath, false);
+            PowerPoint.BasicPowerPointDocument.Example_BasicPowerPoint(folderPath, false);
+            PowerPoint.AdvancedPowerPoint.Example_AdvancedPowerPoint(folderPath, false);
+            PowerPoint.FluentPowerPoint.Example_FluentPowerPoint(folderPath, false);
+            PowerPoint.ShapesPowerPoint.Example_PowerPointShapes(folderPath, false);
+            PowerPoint.SlidesManagementPowerPoint.Example_SlidesManagement(folderPath, false);
+            PowerPoint.TablesPowerPoint.Example_PowerPointTables(folderPath, false);
+            PowerPoint.TextFormattingPowerPoint.Example_TextFormattingPowerPoint(folderPath, false);
+            PowerPoint.ThemeAndLayoutPowerPoint.Example_PowerPointThemeAndLayout(folderPath, false);
+            PowerPoint.UpdatePicturePowerPoint.Example_PowerPointUpdatePicture(folderPath, false);
+            PowerPoint.ValidateDocument.Example(folderPath, false);
+            PowerPoint.TestLazyInit.Example_TestLazyInit(folderPath, false);
             // // Html/Html (consolidated set)
             // Html.Html.Example_Html01_LoadAndRoundTripBasics(folderPath, false);
             // Html.Html.Example_Html02_SaveAsHtmlFromWord(folderPath, false);
@@ -139,9 +139,9 @@ namespace OfficeIMO.Examples {
             // Word.AdvancedDocument.Example_AdvancedWord(folderPath, false);
             // Word.AdvancedDocument.Example_AdvancedWord2(folderPath, false);
             // Word/WebCompat quick galleries
-            Word.WebCompat.Example_TablesGallery(folderPath, false);
-            Word.WebCompat.Example_CoverTemplates_Basic(folderPath, false);
-            Word.WebCompat.Example_CoverWithConfidentialWatermark(folderPath, false);
+            // Word.WebCompat.Example_TablesGallery(folderPath, false);
+            // Word.WebCompat.Example_CoverTemplates_Basic(folderPath, false);
+            // Word.WebCompat.Example_CoverWithConfidentialWatermark(folderPath, false);
             // Word/Background
             // Word.Background.Example_BackgroundImageAdvanced(folderPath, false);
             // Word.Background.Example_BackgroundImageSimple(folderPath, false);
@@ -186,7 +186,7 @@ namespace OfficeIMO.Examples {
             // Word.Charts.Example_PieChart(folderPath, false);
             // Word.Charts.Example_RadarChart(folderPath, false);
             // Word.Charts.Example_ScatterChart(folderPath, false);
-            Word.Charts.Example_Charts_PaletteAndSizing(folderPath, false);
+            // Word.Charts.Example_Charts_PaletteAndSizing(folderPath, false);
             // // Word/CheckBoxes
             // Word.CheckBoxes.Example_BasicCheckBox(folderPath, false);
             // // Word/CitationsExamples
