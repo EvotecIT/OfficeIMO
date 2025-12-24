@@ -64,12 +64,11 @@ namespace OfficeIMO.Examples.PowerPoint {
             // Slide 4: KPI chart
             PowerPointSlide slide4 = presentation.AddSlide();
             slide4.AddTitle("KPI Chart");
-            PowerPointChartData chartData = new(
-                kpis.Select(k => k.Metric),
-                new[] {
-                    new PowerPointChartSeries("Current", kpis.Select(k => k.Current)),
-                    new PowerPointChartSeries("Target", kpis.Select(k => k.Target))
-                });
+            PowerPointChartData chartData = PowerPointChartData.From(
+                kpis,
+                k => k.Metric,
+                new PowerPointChartSeriesDefinition<KpiRow>("Current", k => k.Current),
+                new PowerPointChartSeriesDefinition<KpiRow>("Target", k => k.Target));
             slide4.AddChart(chartData, margin, 1524000L, contentWidth, 3810000L);
             slide4.Notes.Text = "Targets are shown alongside current values.";
 

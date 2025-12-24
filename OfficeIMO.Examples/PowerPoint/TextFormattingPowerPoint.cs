@@ -21,23 +21,16 @@ namespace OfficeIMO.Examples.PowerPoint {
                 p.Alignment = A.TextAlignmentTypeValues.Center;
                 p.SpaceAfterPoints = 6;
             });
-            var headingRun = heading.Runs.First();
-            headingRun.Bold = true;
-            headingRun.FontSize = 32;
-            headingRun.Color = "1F4E79";
+            heading.SetBold()
+                .SetFontSize(32)
+                .SetColor("1F4E79");
 
             PowerPointParagraph line = text.AddParagraph();
-            line.AddRun("This line shows ");
-            line.AddRun("bold", r => {
-                r.Bold = true;
-                r.Color = "C00000";
-            });
-            line.AddRun(" and ");
-            line.AddRun("italic", r => {
-                r.Italic = true;
-                r.Color = "0070C0";
-            });
-            line.AddRun(" runs.");
+            line.AddText("This line shows ");
+            line.AddFormattedText("bold", bold: true).SetColor("C00000");
+            line.AddText(" and ");
+            line.AddFormattedText("italic", italic: true).SetColor("0070C0");
+            line.AddText(" runs.");
 
             text.AddBullet("Bulleted item one");
             text.AddBullet("Bulleted item two");
