@@ -22,5 +22,25 @@ namespace OfficeIMO.Tests {
 
             File.Delete(filePath);
         }
+
+        [Fact]
+        public void CanSetSlideSizeUsingCentimeters() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                presentation.SlideSize.WidthCm = 25.4;
+                presentation.SlideSize.HeightCm = 14.0;
+                presentation.Save();
+            }
+
+            using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                var slideSize = document.PresentationPart?.Presentation?.SlideSize;
+                Assert.NotNull(slideSize);
+                Assert.Equal((int)PowerPointUnits.FromCentimeters(25.4), slideSize!.Cx!.Value);
+                Assert.Equal((int)PowerPointUnits.FromCentimeters(14.0), slideSize!.Cy!.Value);
+            }
+
+            File.Delete(filePath);
+        }
     }
 }

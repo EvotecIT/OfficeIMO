@@ -50,5 +50,37 @@ namespace OfficeIMO.Tests {
 
             File.Delete(filePath);
         }
+
+        [Fact]
+        public void CanUseCentimeterHelpers() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointTextBox textBox = slide.AddTextBox("Hello");
+
+                textBox.SetPositionCm(2.5, 3.5);
+                textBox.SetSizeCm(10, 4);
+
+                Assert.Equal(PowerPointUnits.Cm(2.5), textBox.Left);
+                Assert.Equal(PowerPointUnits.Cm(3.5), textBox.Top);
+                Assert.Equal(PowerPointUnits.Cm(10), textBox.Width);
+                Assert.Equal(PowerPointUnits.Cm(4), textBox.Height);
+
+                presentation.Save();
+            }
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                PowerPointSlide slide = presentation.Slides.Single();
+                PowerPointTextBox textBox = slide.TextBoxes.First();
+
+                Assert.InRange(textBox.LeftCm, 2.49, 2.51);
+                Assert.InRange(textBox.TopCm, 3.49, 3.51);
+                Assert.InRange(textBox.WidthCm, 9.99, 10.01);
+                Assert.InRange(textBox.HeightCm, 3.99, 4.01);
+            }
+
+            File.Delete(filePath);
+        }
     }
 }

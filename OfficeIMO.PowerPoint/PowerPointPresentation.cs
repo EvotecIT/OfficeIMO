@@ -13,6 +13,7 @@ namespace OfficeIMO.PowerPoint {
         private PresentationPart _presentationPart;
         private readonly List<PowerPointSlide> _slides = new();
         private readonly string _filePath;
+        private PowerPointSlideSize? _slideSize;
         private bool _initialSlideUntouched = false;
         private bool _disposed = false;
 
@@ -53,6 +54,16 @@ namespace OfficeIMO.PowerPoint {
             get {
                 ThrowIfDisposed();
                 return _slides;
+            }
+        }
+
+        /// <summary>
+        ///     Slide size information for the presentation.
+        /// </summary>
+        public PowerPointSlideSize SlideSize {
+            get {
+                ThrowIfDisposed();
+                return _slideSize ??= new PowerPointSlideSize(_presentationPart);
             }
         }
 

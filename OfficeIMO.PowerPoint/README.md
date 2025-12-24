@@ -23,10 +23,12 @@ dotnet add package OfficeIMO.PowerPoint
 ```csharp
 using OfficeIMO.PowerPoint;
 
-using var ppt = PowerPointDocument.Create("demo.pptx");
+using var ppt = PowerPointPresentation.Create("demo.pptx");
 var slide = ppt.AddSlide();
 slide.AddTitle("Hello PowerPoint");
-slide.AddTextBox(2, 2, 6, 2, "Generated with OfficeIMO.PowerPoint");
+var box = slide.AddTextBox("Generated with OfficeIMO.PowerPoint");
+box.SetPositionCm(2, 2);
+box.SetSizeCm(6, 2);
 ppt.Save();
 ```
 
@@ -36,7 +38,8 @@ ppt.Save();
 ```csharp
 var slide = ppt.AddSlide();
 slide.AddTitle("Quarterly Review");
-slide.AddTextBox(1.5, 2.5, 7.5, 3.0, "Agenda\n• Intro\n• KPIs\n• Next Steps");
+slide.AddTextBox("Agenda\n• Intro\n• KPIs\n• Next Steps",
+    PowerPointUnits.Cm(1.5), PowerPointUnits.Cm(2.5), PowerPointUnits.Cm(7.5), PowerPointUnits.Cm(3.0));
 ```
 
 ### Bullets (API)
@@ -49,12 +52,16 @@ box.AddBullet("Next Steps");
 
 ### Images
 ```csharp
-slide.AddImage("logo.png", left: 9.0, top: 0.5, width: 2.0, height: 0.8);
+slide.AddPicture("logo.png",
+    PowerPointUnits.Cm(23), PowerPointUnits.Cm(1.2), PowerPointUnits.Cm(5), PowerPointUnits.Cm(2));
 ```
 
 ### Simple shapes
 ```csharp
-slide.AddRectangle(1,1, 3,1).Fill("#E7F7FF").Stroke("#007ACC");
+slide.AddRectangle(PowerPointUnits.Cm(1), PowerPointUnits.Cm(1),
+    PowerPointUnits.Cm(3), PowerPointUnits.Cm(1))
+    .Fill("#E7F7FF")
+    .Stroke("#007ACC");
 ```
 
 ### Slide properties
@@ -106,10 +113,14 @@ ppt.AsFluent()
 - Simple API surface to add slides, titles, text, bullets, and images without repair prompts
 - Fluent helpers available for quick demos and templated decks
 
+## Measurements
+
+Positions and sizes are stored in EMUs (English Metric Units). Use `PowerPointUnits` or the `SetPositionCm`/`SetSizeCm`
+helpers to work in centimeters, inches, or points.
+
 ## Dependencies & License
 
 - DocumentFormat.OpenXml: 3.3.x (range [3.3.0, 4.0.0))
 - License: MIT
 
 <!-- (No migration notes: these APIs are new additions.) -->
-

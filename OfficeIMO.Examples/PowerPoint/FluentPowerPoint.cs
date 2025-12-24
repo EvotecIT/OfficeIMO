@@ -12,15 +12,16 @@ namespace OfficeIMO.Examples.PowerPoint {
         public static void Example_FluentPowerPoint(string folderPath, bool openPowerPoint) {
             Console.WriteLine("[*] PowerPoint - Creating presentation with fluent API");
             string filePath = Path.Combine(folderPath, "FluentPowerPoint.pptx");
-            const long slideWidth = 12192000L;
-            const long margin = 914400L;
-            const long gutter = 457200L;
-            const long contentWidth = slideWidth - (2 * margin);
-            long columnWidth = (contentWidth - gutter) / 2;
-            const long listTop = 2174875L;
-            const long listHeight = 1651000L;
-
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                long slideWidth = presentation.SlideSize.WidthEmus;
+                long margin = PowerPointUnits.Cm(1.5);
+                long gutter = PowerPointUnits.Cm(1);
+                long contentWidth = slideWidth - (2 * margin);
+                long columnWidth = (contentWidth - gutter) / 2;
+                long listTop = PowerPointUnits.Cm(5.5);
+                long listHeight = PowerPointUnits.Cm(4);
+                long calloutTop = listTop + listHeight + PowerPointUnits.Cm(1.5);
+                long calloutHeight = PowerPointUnits.Cm(2.5);
                 presentation.AsFluent()
                     .Slide(0, 0, s => {
                         s.Title("Fluent Presentation", tb => {
@@ -41,7 +42,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                             tb.Width = columnWidth;
                             tb.Height = listHeight;
                         }, "Step one", "Step two");
-                        s.Shape(A.ShapeTypeValues.Rectangle, 914400, 3657600, 4572000, 1143000,
+                        s.Shape(A.ShapeTypeValues.Rectangle, margin, calloutTop, contentWidth, calloutHeight,
                             shape => shape.Fill("E7F7FF").Stroke("007ACC", 2));
                         s.Notes("Example notes");
                     })

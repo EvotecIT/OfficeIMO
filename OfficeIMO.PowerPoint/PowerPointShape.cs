@@ -1,3 +1,4 @@
+using System;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -63,11 +64,59 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Horizontal position of the shape in points.
+        /// </summary>
+        public double LeftPoints {
+            get => PowerPointUnits.ToPoints(Left);
+            set => Left = PowerPointUnits.FromPoints(value);
+        }
+
+        /// <summary>
+        ///     Horizontal position of the shape in centimeters.
+        /// </summary>
+        public double LeftCm {
+            get => PowerPointUnits.ToCentimeters(Left);
+            set => Left = PowerPointUnits.FromCentimeters(value);
+        }
+
+        /// <summary>
+        ///     Horizontal position of the shape in inches.
+        /// </summary>
+        public double LeftInches {
+            get => PowerPointUnits.ToInches(Left);
+            set => Left = PowerPointUnits.FromInches(value);
+        }
+
+        /// <summary>
         ///     Vertical position of the shape in EMUs.
         /// </summary>
         public long Top {
             get => GetOffset().Y?.Value ?? 0L;
             set => GetOffset().Y = value;
+        }
+
+        /// <summary>
+        ///     Vertical position of the shape in points.
+        /// </summary>
+        public double TopPoints {
+            get => PowerPointUnits.ToPoints(Top);
+            set => Top = PowerPointUnits.FromPoints(value);
+        }
+
+        /// <summary>
+        ///     Vertical position of the shape in centimeters.
+        /// </summary>
+        public double TopCm {
+            get => PowerPointUnits.ToCentimeters(Top);
+            set => Top = PowerPointUnits.FromCentimeters(value);
+        }
+
+        /// <summary>
+        ///     Vertical position of the shape in inches.
+        /// </summary>
+        public double TopInches {
+            get => PowerPointUnits.ToInches(Top);
+            set => Top = PowerPointUnits.FromInches(value);
         }
 
         /// <summary>
@@ -79,11 +128,107 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Width of the shape in points.
+        /// </summary>
+        public double WidthPoints {
+            get => PowerPointUnits.ToPoints(Width);
+            set => Width = PowerPointUnits.FromPoints(value);
+        }
+
+        /// <summary>
+        ///     Width of the shape in centimeters.
+        /// </summary>
+        public double WidthCm {
+            get => PowerPointUnits.ToCentimeters(Width);
+            set => Width = PowerPointUnits.FromCentimeters(value);
+        }
+
+        /// <summary>
+        ///     Width of the shape in inches.
+        /// </summary>
+        public double WidthInches {
+            get => PowerPointUnits.ToInches(Width);
+            set => Width = PowerPointUnits.FromInches(value);
+        }
+
+        /// <summary>
         ///     Height of the shape in EMUs.
         /// </summary>
         public long Height {
             get => GetExtents().Cy?.Value ?? 0L;
             set => GetExtents().Cy = value;
+        }
+
+        /// <summary>
+        ///     Height of the shape in points.
+        /// </summary>
+        public double HeightPoints {
+            get => PowerPointUnits.ToPoints(Height);
+            set => Height = PowerPointUnits.FromPoints(value);
+        }
+
+        /// <summary>
+        ///     Height of the shape in centimeters.
+        /// </summary>
+        public double HeightCm {
+            get => PowerPointUnits.ToCentimeters(Height);
+            set => Height = PowerPointUnits.FromCentimeters(value);
+        }
+
+        /// <summary>
+        ///     Height of the shape in inches.
+        /// </summary>
+        public double HeightInches {
+            get => PowerPointUnits.ToInches(Height);
+            set => Height = PowerPointUnits.FromInches(value);
+        }
+
+        /// <summary>
+        ///     Sets position using points.
+        /// </summary>
+        public void SetPositionPoints(double leftPoints, double topPoints) {
+            LeftPoints = leftPoints;
+            TopPoints = topPoints;
+        }
+
+        /// <summary>
+        ///     Sets position using centimeters.
+        /// </summary>
+        public void SetPositionCm(double leftCm, double topCm) {
+            LeftCm = leftCm;
+            TopCm = topCm;
+        }
+
+        /// <summary>
+        ///     Sets position using inches.
+        /// </summary>
+        public void SetPositionInches(double leftInches, double topInches) {
+            LeftInches = leftInches;
+            TopInches = topInches;
+        }
+
+        /// <summary>
+        ///     Sets size using points.
+        /// </summary>
+        public void SetSizePoints(double widthPoints, double heightPoints) {
+            WidthPoints = widthPoints;
+            HeightPoints = heightPoints;
+        }
+
+        /// <summary>
+        ///     Sets size using centimeters.
+        /// </summary>
+        public void SetSizeCm(double widthCm, double heightCm) {
+            WidthCm = widthCm;
+            HeightCm = heightCm;
+        }
+
+        /// <summary>
+        ///     Sets size using inches.
+        /// </summary>
+        public void SetSizeInches(double widthInches, double heightInches) {
+            WidthInches = widthInches;
+            HeightInches = heightInches;
         }
 
         /// <summary>
