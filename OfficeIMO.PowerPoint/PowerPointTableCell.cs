@@ -115,7 +115,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        // VerticalAlignment intentionally omitted for now (pending schema-safe implementation).
+        // VerticalAlignment is supported through TableCellProperties.Anchor.
 
         /// <summary>
         ///     Gets or sets the vertical alignment of the cell text (top/center/bottom).

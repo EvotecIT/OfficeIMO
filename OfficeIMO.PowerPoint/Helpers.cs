@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -16,6 +17,9 @@ namespace OfficeIMO.PowerPoint {
 
             if (string.IsNullOrEmpty(filePath)) {
                 throw new ArgumentException("File path cannot be null or empty.", nameof(filePath));
+            }
+            if (!File.Exists(filePath)) {
+                throw new FileNotFoundException("File not found.", filePath);
             }
 
             ProcessStartInfo startInfo = new ProcessStartInfo(filePath) {

@@ -49,17 +49,24 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Collection of slides in the presentation.
         /// </summary>
-        public IReadOnlyList<PowerPointSlide> Slides => _slides;
+        public IReadOnlyList<PowerPointSlide> Slides {
+            get {
+                ThrowIfDisposed();
+                return _slides;
+            }
+        }
 
         /// <summary>
         ///     Gets or sets the name of the presentation theme.
         /// </summary>
         public string ThemeName {
             get {
+                ThrowIfDisposed();
                 SlideMasterPart master = _presentationPart.SlideMasterParts.First();
                 return master.ThemePart?.Theme?.Name?.Value ?? string.Empty;
             }
             set {
+                ThrowIfDisposed();
                 SlideMasterPart master = _presentationPart.SlideMasterParts.First();
                 ThemePart themePart = master.ThemePart ?? master.AddNewPart<ThemePart>();
                 if (themePart.Theme == null) {
@@ -111,6 +118,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="masterIndex">Index of the slide master.</param>
         /// <param name="layoutIndex">Index of the slide layout.</param>
         public PowerPointSlide AddSlide(int masterIndex = 0, int layoutIndex = 0) {
+            ThrowIfDisposed();
             // If we have an untouched initial slide, return it for the user to use
             if (_initialSlideUntouched && _slides.Count == 1) {
                 _initialSlideUntouched = false;
@@ -370,6 +378,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Creates a fluent wrapper for this presentation.
         /// </summary>
         public PowerPointFluentPresentation AsFluent() {
+            ThrowIfDisposed();
             return new PowerPointFluentPresentation(this);
         }
 
