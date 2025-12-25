@@ -33,6 +33,16 @@ namespace OfficeIMO.PowerPoint.Fluent {
         }
 
         /// <summary>
+        ///     Adds a title textbox to the slide using a layout box.
+        /// </summary>
+        public PowerPointSlideBuilder Title(string text, PowerPointLayoutBox layout,
+            Action<PowerPointTextBox>? configure = null) {
+            PowerPointTextBox box = _slide.AddTitle(text, layout);
+            configure?.Invoke(box);
+            return this;
+        }
+
+        /// <summary>
         ///     Adds a title textbox to the slide at a specific position (centimeters).
         /// </summary>
         public PowerPointSlideBuilder TitleCm(string text, double leftCm, double topCm, double widthCm,
@@ -77,6 +87,16 @@ namespace OfficeIMO.PowerPoint.Fluent {
         public PowerPointSlideBuilder TextBox(string text, long left, long top, long width, long height,
             Action<PowerPointTextBox>? configure = null) {
             PowerPointTextBox box = _slide.AddTextBox(text, left, top, width, height);
+            configure?.Invoke(box);
+            return this;
+        }
+
+        /// <summary>
+        ///     Adds a textbox with the specified text using a layout box.
+        /// </summary>
+        public PowerPointSlideBuilder TextBox(string text, PowerPointLayoutBox layout,
+            Action<PowerPointTextBox>? configure = null) {
+            PowerPointTextBox box = _slide.AddTextBox(text, layout);
             configure?.Invoke(box);
             return this;
         }
@@ -153,10 +173,30 @@ namespace OfficeIMO.PowerPoint.Fluent {
         }
 
         /// <summary>
+        ///     Adds a bulleted list to the slide using a layout box.
+        /// </summary>
+        public PowerPointSlideBuilder Bullets(PowerPointLayoutBox layout, params string[] bullets) {
+            PowerPointTextBox box = _slide.AddTextBox(layout);
+            box.AddBullets(bullets);
+            return this;
+        }
+
+        /// <summary>
         ///     Adds a bulleted list to the slide and applies configuration.
         /// </summary>
         public PowerPointSlideBuilder Bullets(Action<PowerPointTextBox> configure, params string[] bullets) {
             PowerPointTextBox box = _slide.AddTextBox(string.Empty);
+            box.AddBullets(bullets);
+            configure?.Invoke(box);
+            return this;
+        }
+
+        /// <summary>
+        ///     Adds a bulleted list to the slide using a layout box and applies configuration.
+        /// </summary>
+        public PowerPointSlideBuilder Bullets(PowerPointLayoutBox layout, Action<PowerPointTextBox> configure,
+            params string[] bullets) {
+            PowerPointTextBox box = _slide.AddTextBox(layout);
             box.AddBullets(bullets);
             configure?.Invoke(box);
             return this;
@@ -172,10 +212,30 @@ namespace OfficeIMO.PowerPoint.Fluent {
         }
 
         /// <summary>
+        ///     Adds a numbered list to the slide using a layout box.
+        /// </summary>
+        public PowerPointSlideBuilder Numbered(PowerPointLayoutBox layout, params string[] items) {
+            PowerPointTextBox box = _slide.AddTextBox(layout);
+            box.AddNumberedList(items);
+            return this;
+        }
+
+        /// <summary>
         ///     Adds a numbered list to the slide and applies configuration.
         /// </summary>
         public PowerPointSlideBuilder Numbered(Action<PowerPointTextBox> configure, params string[] items) {
             PowerPointTextBox box = _slide.AddTextBox(string.Empty);
+            box.AddNumberedList(items);
+            configure?.Invoke(box);
+            return this;
+        }
+
+        /// <summary>
+        ///     Adds a numbered list to the slide using a layout box and applies configuration.
+        /// </summary>
+        public PowerPointSlideBuilder Numbered(PowerPointLayoutBox layout, Action<PowerPointTextBox> configure,
+            params string[] items) {
+            PowerPointTextBox box = _slide.AddTextBox(layout);
             box.AddNumberedList(items);
             configure?.Invoke(box);
             return this;
@@ -196,6 +256,16 @@ namespace OfficeIMO.PowerPoint.Fluent {
         public PowerPointSlideBuilder Image(string imagePath, long left, long top, long width, long height,
             Action<PowerPointPicture>? configure = null) {
             PowerPointPicture picture = _slide.AddPicture(imagePath, left, top, width, height);
+            configure?.Invoke(picture);
+            return this;
+        }
+
+        /// <summary>
+        ///     Adds an image from the given file path using a layout box.
+        /// </summary>
+        public PowerPointSlideBuilder Image(string imagePath, PowerPointLayoutBox layout,
+            Action<PowerPointPicture>? configure = null) {
+            PowerPointPicture picture = _slide.AddPicture(imagePath, layout);
             configure?.Invoke(picture);
             return this;
         }
@@ -242,11 +312,31 @@ namespace OfficeIMO.PowerPoint.Fluent {
         }
 
         /// <summary>
+        ///     Adds a table using a layout box.
+        /// </summary>
+        public PowerPointSlideBuilder Table(int rows, int columns, PowerPointLayoutBox layout,
+            Action<PowerPointTable>? configure = null) {
+            PowerPointTable table = _slide.AddTable(rows, columns, layout);
+            configure?.Invoke(table);
+            return this;
+        }
+
+        /// <summary>
         ///     Adds a table using column bindings.
         /// </summary>
         public PowerPointSlideBuilder Table<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
             Action<PowerPointTable>? configure = null) {
             PowerPointTable table = _slide.AddTable(data, columns);
+            configure?.Invoke(table);
+            return this;
+        }
+
+        /// <summary>
+        ///     Adds a table using column bindings and a layout box.
+        /// </summary>
+        public PowerPointSlideBuilder Table<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
+            PowerPointLayoutBox layout, Action<PowerPointTable>? configure = null) {
+            PowerPointTable table = _slide.AddTable(data, columns, layout);
             configure?.Invoke(table);
             return this;
         }

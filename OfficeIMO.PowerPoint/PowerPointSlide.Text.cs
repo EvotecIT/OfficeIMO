@@ -40,6 +40,13 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Adds a title textbox using a layout box.
+        /// </summary>
+        public PowerPointTextBox AddTitle(string text, PowerPointLayoutBox layout) {
+            return AddTitle(text, layout.Left, layout.Top, layout.Width, layout.Height);
+        }
+
+        /// <summary>
         ///     Adds a title textbox using centimeter measurements.
         /// </summary>
         public PowerPointTextBox AddTitleCm(string text, double leftCm, double topCm, double widthCm, double heightCm) {
@@ -107,6 +114,20 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTextBox textBox = new(shape);
             _shapes.Add(textBox);
             return textBox;
+        }
+
+        /// <summary>
+        ///     Adds a textbox using a layout box.
+        /// </summary>
+        public PowerPointTextBox AddTextBox(string text, PowerPointLayoutBox layout) {
+            return AddTextBox(text, layout.Left, layout.Top, layout.Width, layout.Height);
+        }
+
+        /// <summary>
+        ///     Adds an empty textbox using a layout box.
+        /// </summary>
+        public PowerPointTextBox AddTextBox(PowerPointLayoutBox layout) {
+            return AddTextBox(string.Empty, layout.Left, layout.Top, layout.Width, layout.Height);
         }
 
         /// <summary>

@@ -21,6 +21,12 @@ namespace OfficeIMO.PowerPoint {
             if (columns <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(columns));
             }
+            if (width <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(width));
+            }
+            if (height <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(height));
+            }
 
             A.Table table = new();
             A.TableProperties props = new();
@@ -84,6 +90,13 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTable tbl = new(frame);
             _shapes.Add(tbl);
             return tbl;
+        }
+
+        /// <summary>
+        ///     Adds a table using a layout box.
+        /// </summary>
+        public PowerPointTable AddTable(int rows, int columns, PowerPointLayoutBox layout) {
+            return AddTable(rows, columns, layout.Left, layout.Top, layout.Width, layout.Height);
         }
 
         /// <summary>
@@ -253,6 +266,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Adds a table using explicit column bindings and a layout box.
+        /// </summary>
+        public PowerPointTable AddTable<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
+            PowerPointLayoutBox layout, bool includeHeaders = true) {
+            return AddTable(data, columns, includeHeaders, layout.Left, layout.Top, layout.Width, layout.Height);
+        }
+
+        /// <summary>
         ///     Adds a table using explicit column bindings (centimeters).
         /// </summary>
         public PowerPointTable AddTableCm<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
@@ -345,7 +366,12 @@ namespace OfficeIMO.PowerPoint {
             long delta = totalWidth - assigned;
             if (delta != 0 && columns.Count > 0) {
                 int adjustIndex = columns.Count - 1;
-                table.SetColumnWidth(adjustIndex, table.GetColumnWidth(adjustIndex) + delta);
+                long current = table.GetColumnWidth(adjustIndex);
+                long updated = current + delta;
+                if (updated <= 0) {
+                    throw new InvalidOperationException("Computed table column width is not positive.");
+                }
+                table.SetColumnWidth(adjustIndex, updated);
             }
         }
 

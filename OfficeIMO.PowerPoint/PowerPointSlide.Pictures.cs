@@ -18,6 +18,12 @@ namespace OfficeIMO.PowerPoint {
             if (!File.Exists(imagePath)) {
                 throw new FileNotFoundException("Image file not found.", imagePath);
             }
+            if (width <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(width));
+            }
+            if (height <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(height));
+            }
 
             ImagePartType imageType = GetImagePartType(imagePath);
             PartTypeInfo partTypeInfo = imageType.ToPartTypeInfo();
@@ -59,6 +65,13 @@ namespace OfficeIMO.PowerPoint {
             PowerPointPicture pic = new(picture, _slidePart);
             _shapes.Add(pic);
             return pic;
+        }
+
+        /// <summary>
+        ///     Adds an image using a layout box.
+        /// </summary>
+        public PowerPointPicture AddPicture(string imagePath, PowerPointLayoutBox layout) {
+            return AddPicture(imagePath, layout.Left, layout.Top, layout.Width, layout.Height);
         }
 
         /// <summary>

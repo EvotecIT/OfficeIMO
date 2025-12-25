@@ -209,9 +209,17 @@ helpers to work in centimeters, inches, or points.
 ### Layout helpers
 ```csharp
 var content = ppt.SlideSize.GetContentBoxCm(1.5);
-var columns = ppt.SlideSize.GetColumnsCm(2, marginCm: 1.5, gutterCm: 1.0);
+var columns = ppt.SlideSize.GetColumnsCm(2, marginCm: 1.5, gutterCm: 1.0);      
 columns[0].ApplyTo(slide.AddTextBox("Left column"));
 columns[1].ApplyTo(slide.AddTextBox("Right column"));
+```
+
+### Layout boxes as parameters
+```csharp
+var content = ppt.SlideSize.GetContentBoxCm(1.5);
+var columns = content.SplitColumnsCm(2, 1.0);
+slide.AddTextBox("Left column", columns[0]);
+slide.AddPicture("logo.png", columns[1]);
 ```
 
 ## Dependencies & License
