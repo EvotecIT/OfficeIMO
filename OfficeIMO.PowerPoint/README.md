@@ -62,10 +62,25 @@ box.ApplyTextStyle(PowerPointTextStyle.Body.WithColor("1F4E79"));
 box.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
 ```
 
+### Text box layout (margins + autofit)
+```csharp
+using A = DocumentFormat.OpenXml.Drawing;
+
+var box = slide.AddTextBox("Inset text");
+box.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
+box.TextAutoFit = PowerPointTextAutoFit.Normal;
+box.TextVerticalAlignment = A.TextAnchoringTypeValues.Center;
+```
+
 ### Images
 ```csharp
 slide.AddPicture("logo.png",
     PowerPointUnits.Cm(23), PowerPointUnits.Cm(1.2), PowerPointUnits.Cm(5), PowerPointUnits.Cm(2));
+```
+
+### Background image
+```csharp
+slide.SetBackgroundImage("hero.png");
 ```
 
 ### Simple shapes
@@ -80,6 +95,12 @@ slide.AddRectangle(PowerPointUnits.Cm(1), PowerPointUnits.Cm(1),
 ```csharp
 ppt.BuiltinDocumentProperties.Title = "Contoso Review";
 ppt.ApplicationProperties.Company = "Contoso";
+```
+
+### Slide visibility + duplication
+```csharp
+var duplicate = ppt.DuplicateSlide(0);
+duplicate.Hidden = true;
 ```
 
 ### Layouts and notes (fluent)
@@ -114,29 +135,58 @@ slide.AddTable(rows, columns, left: PowerPointUnits.Cm(1.5), top: PowerPointUnit
     width: PowerPointUnits.Cm(20), height: PowerPointUnits.Cm(6));
 ```
 
+### Tables (merged cells)
+```csharp
+var table = slide.AddTable(rows: 4, columns: 4, left: PowerPointUnits.Cm(1.5),
+    top: PowerPointUnits.Cm(4), width: PowerPointUnits.Cm(20), height: PowerPointUnits.Cm(6));
+table.GetCell(0, 0).Text = "Merged header";
+table.MergeCells(0, 0, 0, 3);
+```
+
+### Placeholders (layout-driven)
+```csharp
+using DocumentFormat.OpenXml.Presentation;
+
+var slide = ppt.AddSlide(masterIndex: 0, layoutIndex: 1);
+var title = slide.GetPlaceholder(PlaceholderValues.Title);
+title?.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
+if (title != null) title.Text = "Layout Placeholder";
+```
+
+### Replace text
+```csharp
+ppt.ReplaceText("FY24", "FY25", includeTables: true, includeNotes: true);
+```
+
 ## Feature Highlights
 
-- Slides: add slides and text boxes, titles
+- Slides: add, duplicate, reorder, hide, and edit slides
 - Shapes: basic rectangles/ellipses/lines with fill/stroke
 - Images: add images from file/stream
 - Properties: set built‑in and application properties
+- Themes & transitions: default theme/table styles + slide transitions
+- Text boxes: margins, auto-fit, vertical alignment
+- Tables: basic styling + merged cells
+- Placeholders: read/update layout placeholders
+- Backgrounds: set background images
+- Text replacement: find/replace across slides
 
 ## Feature Matrix (scope today)
 
 - 📽️ Slides
-  - ✅ Add slides; ✅ set title; ✅ add text boxes; ✅ basic bullets
+  - ✅ Add slides; ✅ duplicate/reorder; ✅ hide/show; ✅ set title; ✅ add text boxes; ✅ basic bullets
 - 🖼️ Media & Shapes
   - ✅ Insert images; ✅ basic shapes (rect/ellipse/line) with fill/stroke
 - 🗒️ Notes & Layout
   - ✅ Speaker notes; ⚠️ basic layout selection
 - 📋 Tables
-  - ⚠️ Basic only (where supported)
+  - ⚠️ Basic styling + merged cells
 - 📊 Charts
   - 🚧 Not yet
 - ✨ Themes/Transitions
-  - 🚧 Not yet
+  - ✅ Default theme + full table styles; ✅ slide transitions (fade/wipe/push/etc.)
 
-> Roadmap: richer shape/text APIs, layout/mast er controls, charts, transitions — tracked in issues.
+> Roadmap: richer shape/text APIs, layout/master controls, charts — tracked in issues.
 
 ## Why OfficeIMO.PowerPoint (today)
 

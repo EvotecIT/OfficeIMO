@@ -361,6 +361,60 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Merges a rectangular range of cells into the top-left cell.
+        /// </summary>
+        /// <param name="startRow">Zero-based start row.</param>
+        /// <param name="startColumn">Zero-based start column.</param>
+        /// <param name="endRow">Zero-based end row.</param>
+        /// <param name="endColumn">Zero-based end column.</param>
+        /// <param name="clearMergedContent">Whether to clear text from merged cells.</param>
+        public void MergeCells(int startRow, int startColumn, int endRow, int endColumn, bool clearMergedContent = true) {
+            int topRow = Math.Min(startRow, endRow);
+            int bottomRow = Math.Max(startRow, endRow);
+            int leftColumn = Math.Min(startColumn, endColumn);
+            int rightColumn = Math.Max(startColumn, endColumn);
+
+            if (topRow < 0 || leftColumn < 0) {
+                throw new ArgumentOutOfRangeException("Row and column indices must be non-negative.");
+            }
+            if (bottomRow >= Rows || rightColumn >= Columns) {
+                throw new ArgumentOutOfRangeException("Merge range exceeds table bounds.");
+            }
+
+            int rowSpan = bottomRow - topRow + 1;
+            int colSpan = rightColumn - leftColumn + 1;
+            if (rowSpan == 1 && colSpan == 1) {
+                return;
+            }
+
+            A.Table table = TableElement;
+            for (int r = topRow; r <= bottomRow; r++) {
+                A.TableRow row = table.Elements<A.TableRow>().ElementAt(r);
+                for (int c = leftColumn; c <= rightColumn; c++) {
+                    A.TableCell cell = row.Elements<A.TableCell>().ElementAt(c);
+                    bool isAnchor = r == topRow && c == leftColumn;
+
+                    if (isAnchor) {
+                        cell.RowSpan = rowSpan > 1 ? rowSpan : null;
+                        cell.GridSpan = colSpan > 1 ? colSpan : null;
+                        cell.HorizontalMerge = null;
+                        cell.VerticalMerge = null;
+                        continue;
+                    }
+
+                    cell.RowSpan = null;
+                    cell.GridSpan = null;
+                    cell.HorizontalMerge = c > leftColumn ? true : (bool?)null;
+                    cell.VerticalMerge = r > topRow ? true : (bool?)null;
+
+                    if (clearMergedContent) {
+                        ClearMergedCellText(cell);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         ///     Adds a new row to the table.
         /// </summary>
         /// <param name="index">Optional zero-based index where the row should be inserted. If omitted, row is appended.</param>
@@ -494,6 +548,15 @@ namespace OfficeIMO.PowerPoint {
 
         private static long ToEmus(double points) {
             return (long)Math.Round(points * EmusPerPoint);
+        }
+
+        private static void ClearMergedCellText(A.TableCell cell) {
+            if (cell.TextBody == null) {
+                return;
+            }
+
+            cell.TextBody.RemoveAllChildren<A.Paragraph>();
+            cell.TextBody.Append(new A.Paragraph(new A.Run(new A.Text(string.Empty))));
         }
     }
 }

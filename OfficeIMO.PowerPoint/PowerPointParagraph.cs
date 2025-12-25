@@ -1,4 +1,5 @@
 using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml.Drawing;
@@ -61,6 +62,36 @@ namespace OfficeIMO.PowerPoint {
                 wrapper.Run.RunProperties.Underline = underline.Value;
             }
             return this;
+        }
+
+        /// <summary>
+        /// Replaces text within the paragraph runs while preserving formatting.
+        /// </summary>
+        public int ReplaceText(string oldValue, string newValue) {
+            if (oldValue == null) {
+                throw new ArgumentNullException(nameof(oldValue));
+            }
+            if (oldValue.Length == 0) {
+                throw new ArgumentException("Old value cannot be empty.", nameof(oldValue));
+            }
+
+            string replacement = newValue ?? string.Empty;
+            int count = 0;
+
+            foreach (A.Run run in Paragraph.Elements<A.Run>()) {
+                foreach (A.Text text in run.Elements<A.Text>()) {
+                    string current = text.Text ?? string.Empty;
+                    int occurrences = CountOccurrences(current, oldValue);
+                    if (occurrences == 0) {
+                        continue;
+                    }
+
+                    text.Text = current.Replace(oldValue, replacement);
+                    count += occurrences;
+                }
+            }
+
+            return count;
         }
 
         /// <summary>
@@ -428,6 +459,20 @@ namespace OfficeIMO.PowerPoint {
 
         private A.ParagraphProperties EnsureParagraphProperties() {
             return Paragraph.ParagraphProperties ??= new A.ParagraphProperties();
+        }
+
+        private static int CountOccurrences(string value, string oldValue) {
+            int count = 0;
+            int index = 0;
+            while (true) {
+                index = value.IndexOf(oldValue, index, StringComparison.Ordinal);
+                if (index < 0) {
+                    break;
+                }
+                count++;
+                index += oldValue.Length;
+            }
+            return count;
         }
 
         private static int? ToTextCoordinate(double? points) {

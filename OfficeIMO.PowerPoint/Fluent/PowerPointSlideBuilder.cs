@@ -119,6 +119,30 @@ namespace OfficeIMO.PowerPoint.Fluent {
         }
 
         /// <summary>
+        ///     Sets whether the slide is hidden in slide show mode.
+        /// </summary>
+        public PowerPointSlideBuilder Hidden(bool hidden = true) {
+            _slide.Hidden = hidden;
+            return this;
+        }
+
+        /// <summary>
+        ///     Hides the slide in slide show mode.
+        /// </summary>
+        public PowerPointSlideBuilder Hide() {
+            _slide.Hide();
+            return this;
+        }
+
+        /// <summary>
+        ///     Shows the slide in slide show mode.
+        /// </summary>
+        public PowerPointSlideBuilder Show() {
+            _slide.Show();
+            return this;
+        }
+
+        /// <summary>
         ///     Adds a bulleted list to the slide.
         /// </summary>
         public PowerPointSlideBuilder Bullets(params string[] bullets) {

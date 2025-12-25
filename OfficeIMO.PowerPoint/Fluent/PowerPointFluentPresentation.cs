@@ -24,6 +24,28 @@ namespace OfficeIMO.PowerPoint.Fluent {
         }
 
         /// <summary>
+        ///     Duplicates a slide and returns a builder for the new slide.
+        /// </summary>
+        /// <param name="index">Index of the slide to duplicate.</param>
+        /// <param name="insertAt">Index where the duplicate should be inserted. Defaults to index + 1.</param>
+        public PowerPointSlideBuilder DuplicateSlide(int index, int? insertAt = null) {
+            PowerPointSlide slide = Presentation.DuplicateSlide(index, insertAt);
+            return new PowerPointSlideBuilder(this, slide);
+        }
+
+        /// <summary>
+        ///     Duplicates a slide and applies configuration.
+        /// </summary>
+        /// <param name="index">Index of the slide to duplicate.</param>
+        /// <param name="insertAt">Index where the duplicate should be inserted.</param>
+        /// <param name="configure">Action used to configure the duplicated slide.</param>
+        public PowerPointFluentPresentation DuplicateSlide(int index, int? insertAt, Action<PowerPointSlideBuilder> configure) {
+            PowerPointSlideBuilder builder = DuplicateSlide(index, insertAt);
+            configure?.Invoke(builder);
+            return this;
+        }
+
+        /// <summary>
         ///     Adds and optionally configures a new slide to the presentation.
         /// </summary>
         /// <param name="masterIndex">Index of the slide master.</param>

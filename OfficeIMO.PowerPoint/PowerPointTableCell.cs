@@ -114,6 +114,41 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Replaces text within the cell while preserving run formatting.
+        /// </summary>
+        public int ReplaceText(string oldValue, string newValue) {
+            if (oldValue == null) {
+                throw new ArgumentNullException(nameof(oldValue));
+            }
+            if (oldValue.Length == 0) {
+                throw new ArgumentException("Old value cannot be empty.", nameof(oldValue));
+            }
+
+            string replacement = newValue ?? string.Empty;
+            int count = 0;
+
+            if (Cell.TextBody == null) {
+                return 0;
+            }
+
+            foreach (A.Paragraph paragraph in Cell.TextBody.Elements<A.Paragraph>()) {
+                foreach (A.Run run in paragraph.Elements<A.Run>()) {
+                    foreach (A.Text text in run.Elements<A.Text>()) {
+                        string current = text.Text ?? string.Empty;
+                        int occurrences = CountOccurrences(current, oldValue);
+                        if (occurrences == 0) {
+                            continue;
+                        }
+
+                        text.Text = current.Replace(oldValue, replacement);
+                        count += occurrences;
+                    }
+                }
+            }
+
+            return count;
+        }
+        /// <summary>
         ///     Gets or sets whether the cell text is bold.
         /// </summary>
         public bool Bold {
@@ -312,6 +347,20 @@ namespace OfficeIMO.PowerPoint {
 
         private static double? FromEmus(int? emus) {
             return emus != null ? emus.Value / (double)EmusPerPoint : null;
+        }
+
+        private static int CountOccurrences(string value, string oldValue) {
+            int count = 0;
+            int index = 0;
+            while (true) {
+                index = value.IndexOf(oldValue, index, StringComparison.Ordinal);
+                if (index < 0) {
+                    break;
+                }
+                count++;
+                index += oldValue.Length;
+            }
+            return count;
         }
 
         private TableCellProperties EnsureProperties() {

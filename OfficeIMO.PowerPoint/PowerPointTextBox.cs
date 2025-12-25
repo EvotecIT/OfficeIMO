@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -237,6 +238,17 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Replaces text within the textbox while preserving run formatting.
+        /// </summary>
+        public int ReplaceText(string oldValue, string newValue) {
+            int count = 0;
+            foreach (PowerPointParagraph paragraph in Paragraphs) {
+                count += paragraph.ReplaceText(oldValue, newValue);
+            }
+            return count;
+        }
+
+        /// <summary>
         ///     Removes all paragraphs from the textbox.
         /// </summary>
         public void Clear() {
@@ -292,7 +304,250 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Gets or sets a value indicating whether the text is bold.
+        ///     Returns true if the textbox is tied to a slide placeholder.
+        /// </summary>
+        public bool IsPlaceholder {
+            get {
+                PlaceholderShape? placeholder = GetPlaceholderShape();
+                return placeholder?.Type != null || placeholder?.Index != null;
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the placeholder type for this textbox.
+        /// </summary>
+        public PlaceholderValues? PlaceholderType {
+            get => GetPlaceholderShape()?.Type?.Value;
+            set {
+                if (value == null) {
+                    PlaceholderShape? placeholder = GetPlaceholderShape();
+                    if (placeholder != null) {
+                        placeholder.Type = null;
+                        if (placeholder.Index == null && placeholder.HasChildren == false) {
+                            placeholder.Remove();
+                        }
+                    }
+                    return;
+                }
+
+                PlaceholderShape shape = EnsurePlaceholderShape();
+                shape.Type = value.Value;
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the placeholder index for this textbox.
+        /// </summary>
+        public uint? PlaceholderIndex {
+            get => GetPlaceholderShape()?.Index?.Value;
+            set {
+                if (value == null) {
+                    PlaceholderShape? placeholder = GetPlaceholderShape();
+                    if (placeholder != null) {
+                        placeholder.Index = null;
+                        if (placeholder.Type == null && placeholder.HasChildren == false) {
+                            placeholder.Remove();
+                        }
+                    }
+                    return;
+                }
+
+                PlaceholderShape shape = EnsurePlaceholderShape();
+                shape.Index = value.Value;
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the left text margin in points.
+        /// </summary>
+        public double? TextMarginLeftPoints {
+            get => FromEmusInt(GetBodyProperties()?.LeftInset?.Value, PowerPointUnits.EmusPerPoint);
+            set => EnsureBodyProperties().LeftInset = ToEmusInt(value, PowerPointUnits.EmusPerPoint);
+        }
+
+        /// <summary>
+        ///     Gets or sets the right text margin in points.
+        /// </summary>
+        public double? TextMarginRightPoints {
+            get => FromEmusInt(GetBodyProperties()?.RightInset?.Value, PowerPointUnits.EmusPerPoint);
+            set => EnsureBodyProperties().RightInset = ToEmusInt(value, PowerPointUnits.EmusPerPoint);
+        }
+
+        /// <summary>
+        ///     Gets or sets the top text margin in points.
+        /// </summary>
+        public double? TextMarginTopPoints {
+            get => FromEmusInt(GetBodyProperties()?.TopInset?.Value, PowerPointUnits.EmusPerPoint);
+            set => EnsureBodyProperties().TopInset = ToEmusInt(value, PowerPointUnits.EmusPerPoint);
+        }
+
+        /// <summary>
+        ///     Gets or sets the bottom text margin in points.
+        /// </summary>
+        public double? TextMarginBottomPoints {
+            get => FromEmusInt(GetBodyProperties()?.BottomInset?.Value, PowerPointUnits.EmusPerPoint);
+            set => EnsureBodyProperties().BottomInset = ToEmusInt(value, PowerPointUnits.EmusPerPoint);
+        }
+
+        /// <summary>
+        ///     Gets or sets the left text margin in centimeters.
+        /// </summary>
+        public double? TextMarginLeftCm {
+            get => FromEmusInt(GetBodyProperties()?.LeftInset?.Value, PowerPointUnits.EmusPerCentimeter);
+            set => EnsureBodyProperties().LeftInset = ToEmusInt(value, PowerPointUnits.EmusPerCentimeter);
+        }
+
+        /// <summary>
+        ///     Gets or sets the right text margin in centimeters.
+        /// </summary>
+        public double? TextMarginRightCm {
+            get => FromEmusInt(GetBodyProperties()?.RightInset?.Value, PowerPointUnits.EmusPerCentimeter);
+            set => EnsureBodyProperties().RightInset = ToEmusInt(value, PowerPointUnits.EmusPerCentimeter);
+        }
+
+        /// <summary>
+        ///     Gets or sets the top text margin in centimeters.
+        /// </summary>
+        public double? TextMarginTopCm {
+            get => FromEmusInt(GetBodyProperties()?.TopInset?.Value, PowerPointUnits.EmusPerCentimeter);
+            set => EnsureBodyProperties().TopInset = ToEmusInt(value, PowerPointUnits.EmusPerCentimeter);
+        }
+
+        /// <summary>
+        ///     Gets or sets the bottom text margin in centimeters.
+        /// </summary>
+        public double? TextMarginBottomCm {
+            get => FromEmusInt(GetBodyProperties()?.BottomInset?.Value, PowerPointUnits.EmusPerCentimeter);
+            set => EnsureBodyProperties().BottomInset = ToEmusInt(value, PowerPointUnits.EmusPerCentimeter);
+        }
+
+        /// <summary>
+        ///     Gets or sets the left text margin in inches.
+        /// </summary>
+        public double? TextMarginLeftInches {
+            get => FromEmusInt(GetBodyProperties()?.LeftInset?.Value, PowerPointUnits.EmusPerInch);
+            set => EnsureBodyProperties().LeftInset = ToEmusInt(value, PowerPointUnits.EmusPerInch);
+        }
+
+        /// <summary>
+        ///     Gets or sets the right text margin in inches.
+        /// </summary>
+        public double? TextMarginRightInches {
+            get => FromEmusInt(GetBodyProperties()?.RightInset?.Value, PowerPointUnits.EmusPerInch);
+            set => EnsureBodyProperties().RightInset = ToEmusInt(value, PowerPointUnits.EmusPerInch);
+        }
+
+        /// <summary>
+        ///     Gets or sets the top text margin in inches.
+        /// </summary>
+        public double? TextMarginTopInches {
+            get => FromEmusInt(GetBodyProperties()?.TopInset?.Value, PowerPointUnits.EmusPerInch);
+            set => EnsureBodyProperties().TopInset = ToEmusInt(value, PowerPointUnits.EmusPerInch);
+        }
+
+        /// <summary>
+        ///     Gets or sets the bottom text margin in inches.
+        /// </summary>
+        public double? TextMarginBottomInches {
+            get => FromEmusInt(GetBodyProperties()?.BottomInset?.Value, PowerPointUnits.EmusPerInch);
+            set => EnsureBodyProperties().BottomInset = ToEmusInt(value, PowerPointUnits.EmusPerInch);
+        }
+
+        /// <summary>
+        ///     Sets all text margins in points.
+        /// </summary>
+        public PowerPointTextBox SetTextMarginsPoints(double left, double top, double right, double bottom) {
+            TextMarginLeftPoints = left;
+            TextMarginTopPoints = top;
+            TextMarginRightPoints = right;
+            TextMarginBottomPoints = bottom;
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets all text margins in centimeters.
+        /// </summary>
+        public PowerPointTextBox SetTextMarginsCm(double leftCm, double topCm, double rightCm, double bottomCm) {
+            TextMarginLeftCm = leftCm;
+            TextMarginTopCm = topCm;
+            TextMarginRightCm = rightCm;
+            TextMarginBottomCm = bottomCm;
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets all text margins in inches.
+        /// </summary>
+        public PowerPointTextBox SetTextMarginsInches(double leftInches, double topInches, double rightInches, double bottomInches) {
+            TextMarginLeftInches = leftInches;
+            TextMarginTopInches = topInches;
+            TextMarginRightInches = rightInches;
+            TextMarginBottomInches = bottomInches;
+            return this;
+        }
+
+        /// <summary>
+        ///     Gets or sets the vertical anchoring of text inside the textbox.
+        /// </summary>
+        public A.TextAnchoringTypeValues? TextVerticalAlignment {
+            get => GetBodyProperties()?.Anchor?.Value;
+            set => EnsureBodyProperties().Anchor = value;
+        }
+
+        /// <summary>
+        ///     Gets or sets the text direction (horizontal/vertical).
+        /// </summary>
+        public A.TextVerticalValues? TextDirection {
+            get => GetBodyProperties()?.Vertical?.Value;
+            set => EnsureBodyProperties().Vertical = value;
+        }
+
+        /// <summary>
+        ///     Gets or sets the text auto-fit behavior.
+        /// </summary>
+        public PowerPointTextAutoFit? TextAutoFit {
+            get {
+                A.BodyProperties? body = GetBodyProperties();
+                if (body == null) {
+                    return null;
+                }
+                if (body.GetFirstChild<A.NoAutoFit>() != null) {
+                    return PowerPointTextAutoFit.None;
+                }
+                if (body.GetFirstChild<A.NormalAutoFit>() != null) {
+                    return PowerPointTextAutoFit.Normal;
+                }
+                if (body.GetFirstChild<A.ShapeAutoFit>() != null) {
+                    return PowerPointTextAutoFit.Shape;
+                }
+                return null;
+            }
+            set {
+                A.BodyProperties body = EnsureBodyProperties();
+                body.RemoveAllChildren<A.NoAutoFit>();
+                body.RemoveAllChildren<A.NormalAutoFit>();
+                body.RemoveAllChildren<A.ShapeAutoFit>();
+
+                if (value == null) {
+                    return;
+                }
+
+                switch (value.Value) {
+                    case PowerPointTextAutoFit.None:
+                        body.Append(new A.NoAutoFit());
+                        break;
+                    case PowerPointTextAutoFit.Normal:
+                        body.Append(new A.NormalAutoFit());
+                        break;
+                    case PowerPointTextAutoFit.Shape:
+                        body.Append(new A.ShapeAutoFit());
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets a value indicating whether the text is bold.       
         /// </summary>
         public bool Bold {
             get {
@@ -443,6 +698,47 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ApplyDefaultListSpacing(PowerPointParagraph paragraph) {
             DefaultListParagraphStyle.Apply(paragraph);
+        }
+
+        private A.BodyProperties? GetBodyProperties() {
+            return Shape.TextBody?.GetFirstChild<A.BodyProperties>();
+        }
+
+        private A.BodyProperties EnsureBodyProperties() {
+            TextBody textBody = EnsureTextBody();
+            A.BodyProperties? body = textBody.GetFirstChild<A.BodyProperties>();
+            if (body == null) {
+                body = new A.BodyProperties();
+                OpenXmlElement? first = textBody.FirstChild;
+                if (first != null) {
+                    textBody.InsertBefore(body, first);
+                } else {
+                    textBody.Append(body);
+                }
+            }
+            return body;
+        }
+
+        private PlaceholderShape? GetPlaceholderShape() {
+            return Shape.NonVisualShapeProperties?
+                .ApplicationNonVisualDrawingProperties?
+                .PlaceholderShape;
+        }
+
+        private PlaceholderShape EnsurePlaceholderShape() {
+            NonVisualShapeProperties nonVisual = Shape.NonVisualShapeProperties ??= new NonVisualShapeProperties();
+            ApplicationNonVisualDrawingProperties app = nonVisual.ApplicationNonVisualDrawingProperties ??
+                                                       new ApplicationNonVisualDrawingProperties();
+            nonVisual.ApplicationNonVisualDrawingProperties ??= app;
+            return app.PlaceholderShape ??= new PlaceholderShape();
+        }
+
+        private static int? ToEmusInt(double? value, double emusPerUnit) {
+            return value != null ? (int)Math.Round(value.Value * emusPerUnit) : null;
+        }
+
+        private static double? FromEmusInt(int? emus, double emusPerUnit) {
+            return emus != null ? emus.Value / emusPerUnit : null;
         }
     }
 }
