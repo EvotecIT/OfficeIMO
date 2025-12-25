@@ -17,19 +17,21 @@ namespace OfficeIMO.Examples.PowerPoint {
                 const double marginCm = 1.5;
                 const double gutterCm = 1.0;
                 const double titleHeightCm = 1.6;
-                const double calloutHeightCm = 2.4;
-                const double gapCm = 0.6;
+                const double calloutHeightCm = 2.2;
+                const double gapCm = 0.7;
                 PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
                 double bodyHeightCm = content.HeightCm - titleHeightCm - calloutHeightCm - (gapCm * 2);
                 double bodyTopCm = content.TopCm + titleHeightCm + gapCm;
-                long bodyTop = PowerPointUnits.FromCentimeters(bodyTopCm);
-                long bodyHeight = PowerPointUnits.FromCentimeters(bodyHeightCm);
-                long calloutTop = bodyTop + bodyHeight + PowerPointUnits.FromCentimeters(gapCm);
+                long calloutTop = PowerPointUnits.FromCentimeters(bodyTopCm + bodyHeightCm + gapCm);
                 long calloutHeight = PowerPointUnits.FromCentimeters(calloutHeightCm);
 
+                PowerPointLayoutBox titleBox = PowerPointLayoutBox.FromCentimeters(content.LeftCm, content.TopCm,
+                    content.WidthCm, titleHeightCm);
                 PowerPointLayoutBox body = PowerPointLayoutBox.FromCentimeters(content.LeftCm, bodyTopCm, content.WidthCm, bodyHeightCm);
                 PowerPointLayoutBox[] columns = body.SplitColumnsCm(2, gutterCm);
-                PowerPointLayoutBox[] leftRows = columns[0].SplitRowsCm(2, 0.4);
+                PowerPointLayoutBox[] leftRows = columns[0].SplitRowsCm(2, 0.6);
+                PowerPointLayoutBox calloutBox = PowerPointLayoutBox.FromCentimeters(content.LeftCm,
+                    bodyTopCm + bodyHeightCm + gapCm, content.WidthCm, calloutHeightCm);
 
                 PowerPointLayoutBox sourceContent = importSource.SlideSize.GetContentBoxCm(marginCm);
                 PowerPointSlide sourceSlide = importSource.AddSlide();
@@ -51,37 +53,42 @@ namespace OfficeIMO.Examples.PowerPoint {
 
                 presentation.AsFluent()
                     .Slide(0, 0, s => {
-                        s.TitleCm("Fluent Presentation", marginCm, marginCm, content.WidthCm, titleHeightCm, tb => {
+                        s.Title("Fluent Presentation", titleBox, tb => {
                             tb.FontSize = 32;
                             tb.Color = "1F4E79";
                         });
-                        s.TextBox("Hello from fluent API", leftRows[0].Left, leftRows[0].Top, leftRows[0].Width, leftRows[0].Height,
-                            tb => {
-                                tb.FontSize = 18;
-                                tb.Color = "1F4E79";
-                            });
-                        s.TextBox(string.Empty, leftRows[1].Left, leftRows[1].Top, leftRows[1].Width, leftRows[1].Height,
-                            tb => {
-                                tb.AddBullet("Built with builders");
-                                tb.AddBullet("Configurable content");
-                                tb.AddBullet("Readable layout helpers");
-                                tb.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
-                            });
+                        s.TextBox("Hello from fluent API", leftRows[0], tb => {
+                            tb.FontSize = 18;
+                            tb.Color = "1F4E79";
+                            tb.TextAutoFit = PowerPointTextAutoFit.Normal;
+                            tb.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
+                        });
+                        s.TextBox(string.Empty, leftRows[1], tb => {
+                            tb.AddBullet("Built with builders");
+                            tb.AddBullet("Configurable content");
+                            tb.AddBullet("Readable layout helpers");
+                            tb.TextAutoFit = PowerPointTextAutoFit.Normal;
+                            tb.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
+                            tb.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
+                        });
                         s.Numbered(tb => {
                             tb.Left = columns[1].Left;
                             tb.Top = columns[1].Top;
                             tb.Width = columns[1].Width;
                             tb.Height = columns[1].Height;
                             tb.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
+                            tb.TextAutoFit = PowerPointTextAutoFit.Normal;
+                            tb.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
                         }, "Step one", "Step two", "Step three");
-                        s.Shape(A.ShapeTypeValues.Rectangle, content.Left, calloutTop, content.Width, calloutHeight,
+                        s.Shape(A.ShapeTypeValues.Rectangle, calloutBox.Left, calloutTop, calloutBox.Width, calloutHeight,
                             shape => shape.Fill("E7F7FF").Stroke("007ACC", 2));
                         s.TextBox("Tip: fluent builders compose slides quickly while keeping layouts consistent.",
-                            content.Left + PowerPointUnits.Cm(0.4), calloutTop + PowerPointUnits.Cm(0.3),
-                            content.Width - PowerPointUnits.Cm(0.8), calloutHeight - PowerPointUnits.Cm(0.6),
+                            calloutBox.Left + PowerPointUnits.Cm(0.4), calloutTop + PowerPointUnits.Cm(0.3),
+                            calloutBox.Width - PowerPointUnits.Cm(0.8), calloutHeight - PowerPointUnits.Cm(0.6),
                             tb => {
                                 tb.FontSize = 16;
                                 tb.Color = "1F4E79";
+                                tb.TextAutoFit = PowerPointTextAutoFit.Normal;
                             });
                         s.Notes("Example notes");
                     })
