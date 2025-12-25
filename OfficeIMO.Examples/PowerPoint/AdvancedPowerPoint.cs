@@ -15,13 +15,15 @@ namespace OfficeIMO.Examples.PowerPoint {
             Console.WriteLine("[*] PowerPoint - Advanced features");
             string filePath = Path.Combine(folderPath, "Advanced PowerPoint.pptx");
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-
             const double marginCm = 1.5;
             const double gutterCm = 1.0;
+            const double titleHeightCm = 1.4;
             double slideHeightCm = presentation.SlideSize.HeightCm;
             PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
-            long bodyTop = PowerPointUnits.FromCentimeters(3.6);
-            long bodyHeight = content.Bottom - bodyTop;
+            double bodyTopCm = 3.6;
+            double bodyHeightCm = slideHeightCm - bodyTopCm - marginCm;
+            long bodyTop = PowerPointUnits.FromCentimeters(bodyTopCm);
+            long bodyHeight = PowerPointUnits.FromCentimeters(bodyHeightCm);
             PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumnsCm(2, marginCm, gutterCm);
             PowerPointLayoutBox leftColumn = new(columns[0].Left, bodyTop, columns[0].Width, bodyHeight);
             PowerPointLayoutBox rightColumn = new(columns[1].Left, bodyTop, columns[1].Width, bodyHeight);
@@ -34,14 +36,17 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             // Slide 1: title
             PowerPointSlide slide1 = presentation.AddSlide();
-            slide1.AddTitle("Advanced PowerPoint Example");
-            slide1.AddTextBoxCm("Shows layout, charts, tables, images, and notes", marginCm, 3.2, content.WidthCm, 1.1);
+            PowerPointTextBox title = slide1.AddTitleCm("Advanced PowerPoint Example", marginCm, marginCm, content.WidthCm, titleHeightCm);
+            title.FontSize = 30;
+            title.Color = "1F4E79";
+            slide1.AddTextBoxCm("Shows layout, charts, tables, images, notes, and transitions.", marginCm, 3.2, content.WidthCm, 1.1);
             slide1.BackgroundColor = "F7F7F7";
             slide1.Transition = SlideTransition.Fade;
 
             // Slide 2: highlights with image
             PowerPointSlide slide2 = presentation.AddSlide();
-            slide2.AddTitle("Highlights");
+            slide2.AddTitleCm("Highlights", marginCm, marginCm, content.WidthCm, titleHeightCm);
+            slide2.Transition = SlideTransition.PushLeft;
             PowerPointTextBox highlights = slide2.AddTextBox("This slide demonstrates:",
                 leftColumn.Left, leftColumn.Top, leftColumn.Width, leftColumn.Height);
             highlights.AddBullet("Positioned elements");
@@ -57,8 +62,9 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             // Slide 3: KPI table
             PowerPointSlide slide3 = presentation.AddSlide();
-            slide3.AddTitle("KPI Table");
-            double tableTopCm = 3.8;
+            slide3.AddTitleCm("KPI Table", marginCm, marginCm, content.WidthCm, titleHeightCm);
+            slide3.Transition = SlideTransition.Wipe;
+            double tableTopCm = bodyTopCm;
             double tableHeightCm = slideHeightCm - tableTopCm - marginCm;
             PowerPointTable kpiTable = slide3.AddTableCm(
                 kpis,
@@ -71,13 +77,11 @@ namespace OfficeIMO.Examples.PowerPoint {
                 topCm: tableTopCm,
                 widthCm: content.WidthCm,
                 heightCm: tableHeightCm);
-            kpiTable.BandedRows = true;
+            kpiTable.ApplyStyle(PowerPointTableStylePreset.Default);
             kpiTable.SetColumnWidthsPoints(220, 120, 120);
             kpiTable.SetRowHeightPoints(0, 28);
             for (int c = 0; c < kpiTable.Columns; c++) {
                 PowerPointTableCell header = kpiTable.GetCell(0, c);
-                header.FillColor = "2F5597";
-                header.Color = "FFFFFF";
                 header.Bold = true;
                 header.HorizontalAlignment = A.TextAlignmentTypeValues.Center;
                 header.VerticalAlignment = A.TextAnchoringTypeValues.Center;
@@ -85,13 +89,14 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             // Slide 4: KPI chart
             PowerPointSlide slide4 = presentation.AddSlide();
-            slide4.AddTitle("KPI Chart");
+            slide4.AddTitleCm("KPI Chart", marginCm, marginCm, content.WidthCm, titleHeightCm);
+            slide4.Transition = SlideTransition.CombHorizontal;
             PowerPointChartData chartData = PowerPointChartData.From(
                 kpis,
                 k => k.Metric,
                 new PowerPointChartSeriesDefinition<KpiRow>("Current", k => k.Current),
                 new PowerPointChartSeriesDefinition<KpiRow>("Target", k => k.Target));
-            double chartTopCm = 3.6;
+            double chartTopCm = bodyTopCm;
             double chartHeightCm = slideHeightCm - chartTopCm - marginCm;
             PowerPointChart chart = slide4.AddChartCm(chartData, marginCm, chartTopCm, content.WidthCm, chartHeightCm);
             chart.SetTitle("Current vs Target")
@@ -113,4 +118,3 @@ namespace OfficeIMO.Examples.PowerPoint {
         }
     }
 }
-
