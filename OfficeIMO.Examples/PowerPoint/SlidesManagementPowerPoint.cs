@@ -32,6 +32,26 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             slide2.Hidden = true;
 
+            string sourcePath = Path.Combine(folderPath, "Slides Management - Source.pptx");
+            using (PowerPointPresentation sourcePresentation = PowerPointPresentation.Create(sourcePath)) {
+                PowerPointLayoutBox sourceContent = sourcePresentation.SlideSize.GetContentBoxCm(marginCm);
+                PowerPointSlide sourceSlide = sourcePresentation.AddSlide();
+                ConfigureSlide(sourceSlide, sourceContent, "Imported Slide", "This slide is imported from another presentation.");
+                PowerPointTextBox sourceBadge = sourceSlide.AddTextBoxCm(
+                    "Source deck",
+                    sourceContent.LeftCm, sourceContent.TopCm + 3.2, sourceContent.WidthCm, 0.8);
+                sourceBadge.ApplyTextStyle(PowerPointTextStyle.Caption.WithColor("1F4E79"));
+                sourceBadge.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
+                sourcePresentation.Save();
+
+                PowerPointSlide imported = presentation.ImportSlide(sourcePresentation, 0, insertAt: 1);
+                PowerPointTextBox importBadge = imported.AddTextBoxCm(
+                    "Imported from Slides Management - Source.pptx",
+                    content.LeftCm, content.TopCm + 3.2, content.WidthCm, 0.8);
+                importBadge.ApplyTextStyle(PowerPointTextStyle.Caption.WithColor("1F4E79"));
+                importBadge.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
+            }
+
             presentation.MoveSlide(3, 0);
 
             for (int i = 0; i < presentation.Slides.Count; i++) {

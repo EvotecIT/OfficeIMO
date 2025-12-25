@@ -12,6 +12,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             Console.WriteLine("[*] PowerPoint - Creating presentation with fluent API");
             string filePath = Path.Combine(folderPath, "FluentPowerPoint.pptx");
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                string importSourcePath = Path.Combine(folderPath, "FluentPowerPoint-Source.pptx");
+                using PowerPointPresentation importSource = PowerPointPresentation.Create(importSourcePath);
                 const double marginCm = 1.5;
                 const double gutterCm = 1.0;
                 const double titleHeightCm = 1.6;
@@ -28,6 +30,24 @@ namespace OfficeIMO.Examples.PowerPoint {
                 PowerPointLayoutBox body = PowerPointLayoutBox.FromCentimeters(content.LeftCm, bodyTopCm, content.WidthCm, bodyHeightCm);
                 PowerPointLayoutBox[] columns = body.SplitColumnsCm(2, gutterCm);
                 PowerPointLayoutBox[] leftRows = columns[0].SplitRowsCm(2, 0.4);
+
+                PowerPointLayoutBox sourceContent = importSource.SlideSize.GetContentBoxCm(marginCm);
+                PowerPointSlide sourceSlide = importSource.AddSlide();
+                sourceSlide.AddTitleCm("Imported Slide", marginCm, marginCm, sourceContent.WidthCm, titleHeightCm);
+                sourceSlide.AddTextBoxCm(
+                    "This slide is pulled in from another deck.",
+                    sourceContent.LeftCm,
+                    sourceContent.TopCm + 2.0,
+                    sourceContent.WidthCm,
+                    1.4);
+                sourceSlide.AddRectangle(
+                    PowerPointUnits.FromCentimeters(sourceContent.LeftCm),
+                    PowerPointUnits.FromCentimeters(sourceContent.TopCm + 3.8),
+                    PowerPointUnits.FromCentimeters(sourceContent.WidthCm),
+                    PowerPointUnits.FromCentimeters(2.0))
+                    .Fill("E7F7FF")
+                    .Stroke("007ACC", 2);
+                importSource.Save();
 
                 presentation.AsFluent()
                     .Slide(0, 0, s => {
@@ -64,6 +84,14 @@ namespace OfficeIMO.Examples.PowerPoint {
                                 tb.Color = "1F4E79";
                             });
                         s.Notes("Example notes");
+                    })
+                    .ImportSlide(importSource, 0, 1, s => {
+                        s.TextBox("Imported via fluent API", content.Left, calloutTop,
+                            content.Width, PowerPointUnits.Cm(0.8),
+                            tb => {
+                                tb.FontSize = 14;
+                                tb.Color = "666666";
+                            });
                     })
                     .Slide(s => s.Title("Second Slide"))
                     .DuplicateSlide(0, null, s => {
