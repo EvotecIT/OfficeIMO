@@ -19,6 +19,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_Paragraph_TextIndent_Positive() {
+            string html = "<p style=\"text-indent:18pt\">Indented</p>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var paragraph = doc.Paragraphs[0];
+            Assert.Equal(18d, paragraph.IndentationFirstLinePoints);
+            Assert.Null(paragraph.IndentationHangingPoints);
+        }
+
+        [Fact]
+        public void HtmlToWord_Paragraph_TextIndent_Negative() {
+            string html = "<p style=\"text-indent:-12pt\">Hanging</p>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var paragraph = doc.Paragraphs[0];
+            Assert.Equal(12d, paragraph.IndentationHangingPoints);
+            Assert.Null(paragraph.IndentationFirstLinePoints);
+        }
+
+        [Fact]
+        public void HtmlToWord_Paragraph_PaddingShorthand() {
+            string html = "<p style=\"padding:12pt 0 0 6pt\">Padded</p>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var paragraph = doc.Paragraphs[0];
+            Assert.Equal(6d, paragraph.IndentationBeforePoints);
+            Assert.Equal(12d, paragraph.LineSpacingBeforePoints);
+        }
+
+        [Fact]
         public void HtmlToWord_SpanStyles_MultipleDeclarations() {
             string html = "<p><span style=\"font-weight:bold;font-style:italic;text-decoration:underline line-through;font-size:16pt;color:rgb(0,128,0)\">Styled</span></p>";
             var doc = html.LoadFromHtml(new HtmlToWordOptions());
