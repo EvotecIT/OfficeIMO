@@ -89,8 +89,8 @@ namespace OfficeIMO.Word.Html {
                     var url = new Url(new Url(document.BaseUrl), path);
                     if (url.Scheme == "http" || url.Scheme == "https") {
                         await LoadAndParseCssAsync(context, url, cancellationToken).ConfigureAwait(false);
-                    } else if (url.Scheme == "file" && File.Exists(url.Path)) {
-                        ParseCss(File.ReadAllText(url.Path), url.Path);
+                    } else if (url.Scheme == "file") {
+                        TryLoadCssFromFileUrl(url);
                     }
                 } else if (File.Exists(path)) {
                     ParseCss(File.ReadAllText(path), path);
@@ -143,8 +143,8 @@ namespace OfficeIMO.Word.Html {
 
                         if (url.Scheme == "http" || url.Scheme == "https") {
                             await LoadAndParseCssAsync(context, url, cancellationToken).ConfigureAwait(false);
-                        } else if (url.Scheme == "file" && File.Exists(url.Path)) {
-                            ParseCss(File.ReadAllText(url.Path), url.Path);
+                        } else if (url.Scheme == "file") {
+                            TryLoadCssFromFileUrl(url);
                         }
                     }
                 }
@@ -216,8 +216,8 @@ namespace OfficeIMO.Word.Html {
                     var url = new Url(new Url(document.BaseUrl), path);
                     if (url.Scheme == "http" || url.Scheme == "https") {
                         await LoadAndParseCssAsync(context, url, cancellationToken).ConfigureAwait(false);
-                    } else if (url.Scheme == "file" && File.Exists(url.Path)) {
-                        ParseCss(File.ReadAllText(url.Path), url.Path);
+                    } else if (url.Scheme == "file") {
+                        TryLoadCssFromFileUrl(url);
                     }
                 } else if (File.Exists(path)) {
                     ParseCss(File.ReadAllText(path), path);
@@ -270,8 +270,8 @@ namespace OfficeIMO.Word.Html {
 
                         if (url.Scheme == "http" || url.Scheme == "https") {
                             await LoadAndParseCssAsync(context, url, cancellationToken).ConfigureAwait(false);
-                        } else if (url.Scheme == "file" && File.Exists(url.Path)) {
-                            ParseCss(File.ReadAllText(url.Path), url.Path);
+                        } else if (url.Scheme == "file") {
+                            TryLoadCssFromFileUrl(url);
                         }
                     }
                 }
@@ -341,8 +341,8 @@ namespace OfficeIMO.Word.Html {
                     var url = new Url(new Url(document.BaseUrl), path);
                     if (url.Scheme == "http" || url.Scheme == "https") {
                         await LoadAndParseCssAsync(context, url, cancellationToken).ConfigureAwait(false);
-                    } else if (url.Scheme == "file" && File.Exists(url.Path)) {
-                        ParseCss(File.ReadAllText(url.Path), url.Path);
+                    } else if (url.Scheme == "file") {
+                        TryLoadCssFromFileUrl(url);
                     }
                 } else if (File.Exists(path)) {
                     ParseCss(File.ReadAllText(path), path);
@@ -395,8 +395,8 @@ namespace OfficeIMO.Word.Html {
 
                         if (url.Scheme == "http" || url.Scheme == "https") {
                             await LoadAndParseCssAsync(context, url, cancellationToken).ConfigureAwait(false);
-                        } else if (url.Scheme == "file" && File.Exists(url.Path)) {
-                            ParseCss(File.ReadAllText(url.Path), url.Path);
+                        } else if (url.Scheme == "file") {
+                            TryLoadCssFromFileUrl(url);
                         }
                     }
                 }
@@ -444,6 +444,19 @@ namespace OfficeIMO.Word.Html {
 #endif
                 ParseCss(css, url.Href);
             }
+        }
+
+        private void TryLoadCssFromFileUrl(Url url) {
+            if (!Uri.TryCreate(url.Href, UriKind.Absolute, out var fileUri) || !fileUri.IsFile) {
+                return;
+            }
+
+            var localPath = fileUri.LocalPath;
+            if (string.IsNullOrEmpty(localPath) || !File.Exists(localPath)) {
+                return;
+            }
+
+            ParseCss(File.ReadAllText(localPath), localPath);
         }
 
         private static bool HasBlockDescendant(IElement element) {
@@ -1208,8 +1221,8 @@ namespace OfficeIMO.Word.Html {
                                 if (_context != null) {
                                     LoadAndParseCssAsync(_context, url, CancellationToken.None).GetAwaiter().GetResult();
                                 }
-                            } else if (url.Scheme == "file" && File.Exists(url.Path)) {
-                                ParseCss(File.ReadAllText(url.Path), url.Path);
+                            } else if (url.Scheme == "file") {
+                                TryLoadCssFromFileUrl(url);
                             }
                             break;
                         }
