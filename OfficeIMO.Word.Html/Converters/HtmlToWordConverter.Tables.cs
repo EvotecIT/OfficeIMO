@@ -43,6 +43,7 @@ namespace OfficeIMO.Word.Html {
                 captionParagraph.SetStyleId("Caption");
                 var props = ApplyParagraphStyleFromCss(captionParagraph, caption);
                 ApplyClassStyle(caption, captionParagraph, options);
+                ApplyBidiIfPresent(caption, captionParagraph);
                 AddBookmarkIfPresent(caption, captionParagraph);
                 var fmt = new TextFormatting();
                 if (props.WhiteSpace.HasValue) {
@@ -164,6 +165,7 @@ namespace OfficeIMO.Word.Html {
                 captionParagraphBelow.SetStyleId("Caption");
                 var propsBelow = ApplyParagraphStyleFromCss(captionParagraphBelow, caption);
                 ApplyClassStyle(caption, captionParagraphBelow, options);
+                ApplyBidiIfPresent(caption, captionParagraphBelow);
                 AddBookmarkIfPresent(caption, captionParagraphBelow);
                 var fmtBelow = new TextFormatting();
                 if (propsBelow.WhiteSpace.HasValue) {

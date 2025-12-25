@@ -171,7 +171,7 @@ namespace OfficeIMO.Word.Html {
             var parsed = CssStyleMapper.ParseStyles(styleAttribute);
             var declaration = _inlineParser.ParseDeclaration(styleAttribute ?? string.Empty);
             int? marginLeft = parsed.MarginLeft, marginRight = parsed.MarginRight, marginTop = parsed.MarginTop, marginBottom = parsed.MarginBottom;
-            int? paddingLeft = null, paddingRight = null, paddingTop = null, paddingBottom = null;
+            int? paddingLeft = parsed.PaddingLeft, paddingRight = parsed.PaddingRight, paddingTop = parsed.PaddingTop, paddingBottom = parsed.PaddingBottom;
             JustificationValues? alignment = null;
 
             var colorVal = NormalizeColor(declaration.GetPropertyValue("color"));
@@ -231,6 +231,19 @@ namespace OfficeIMO.Word.Html {
             if (TryConvertToTwip(declaration.GetProperty("padding-right")?.RawValue, out int pr)) paddingRight = pr;
             if (TryConvertToTwip(declaration.GetProperty("padding-top")?.RawValue, out int pt)) paddingTop = pt;
             if (TryConvertToTwip(declaration.GetProperty("padding-bottom")?.RawValue, out int pb)) paddingBottom = pb;
+
+            if (TryConvertToTwipAllowNegative(declaration.GetProperty("text-indent")?.RawValue, out int indent)) {
+                if (indent > 0) {
+                    paragraph.IndentationFirstLine = indent;
+                    paragraph.IndentationHanging = null;
+                } else if (indent < 0) {
+                    paragraph.IndentationHanging = -indent;
+                    paragraph.IndentationFirstLine = null;
+                } else {
+                    paragraph.IndentationFirstLine = null;
+                    paragraph.IndentationHanging = null;
+                }
+            }
 
             if (alignment.HasValue) {
                 paragraph.ParagraphAlignment = alignment;

@@ -3,6 +3,7 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -121,6 +122,56 @@ namespace OfficeIMO.Word.Html {
                     ".tif" => "image/tiff",
                     ".tiff" => "image/tiff",
                     _ => "image/png"
+                };
+            }
+
+            string FormatNumber(double value) {
+                return value.ToString("0.##", CultureInfo.InvariantCulture);
+            }
+
+            string FormatTwips(int twips) {
+                return FormatNumber(twips / 20.0) + "pt";
+            }
+
+            string? GetHighlightKey(HighlightColorValues value) {
+                if (value is IEnumValue enumValue && !string.IsNullOrWhiteSpace(enumValue.Value)) {
+                    return enumValue.Value;
+                }
+                return value.ToString();
+            }
+
+            string? GetHighlightCss(HighlightColorValues? highlight) {
+                if (highlight == null) {
+                    return null;
+                }
+                var key = GetHighlightKey(highlight.Value);
+                if (key == null) {
+                    return null;
+                }
+                key = key.Trim();
+                if (key.Length == 0) {
+                    return null;
+                }
+                key = key.ToLowerInvariant();
+                return key switch {
+                    "none" => null,
+                    "yellow" => "#ffff00",
+                    "green" => "#00ff00",
+                    "cyan" => "#00ffff",
+                    "magenta" => "#ff00ff",
+                    "blue" => "#0000ff",
+                    "red" => "#ff0000",
+                    "darkblue" => "#00008b",
+                    "darkcyan" => "#008b8b",
+                    "darkgreen" => "#006400",
+                    "darkmagenta" => "#8b008b",
+                    "darkred" => "#8b0000",
+                    "darkyellow" => "#808000",
+                    "darkgray" => "#a9a9a9",
+                    "lightgray" => "#d3d3d3",
+                    "black" => "#000000",
+                    "white" => "#ffffff",
+                    _ => null
                 };
             }
 
@@ -332,7 +383,29 @@ namespace OfficeIMO.Word.Html {
                         node = span;
                     }
 
-                    // Avoid injecting extra spans for color/highlight to keep round-trip HTML minimal.
+                    if (options.IncludeRunColorStyles || options.IncludeRunHighlightStyles) {
+                        var inlineStyles = new List<string>();
+                        if (options.IncludeRunColorStyles) {
+                            var colorHex = run.ColorHex;
+                            if (!string.IsNullOrEmpty(colorHex) &&
+                                !string.Equals(colorHex, "auto", StringComparison.OrdinalIgnoreCase)) {
+                                var normalized = colorHex.Trim().TrimStart('#').ToLowerInvariant();
+                                inlineStyles.Add($"color:#{normalized}");
+                            }
+                        }
+                        if (options.IncludeRunHighlightStyles) {
+                            var highlightCss = GetHighlightCss(run.Highlight);
+                            if (!string.IsNullOrEmpty(highlightCss)) {
+                                inlineStyles.Add($"background-color:{highlightCss}");
+                            }
+                        }
+                        if (inlineStyles.Count > 0) {
+                            var span = htmlDoc.CreateElement("span");
+                            span.SetAttribute("style", string.Join(";", inlineStyles));
+                            span.AppendChild(node);
+                            node = span;
+                        }
+                    }
 
                     if (options.IncludeRunClasses && !string.IsNullOrEmpty(run.CharacterStyleId) && !handledHtmlStyle) {
                         var spanClass = htmlDoc.CreateElement("span");
@@ -358,8 +431,6 @@ namespace OfficeIMO.Word.Html {
                     parent.AppendChild(node);
                 }
             }
-
-            // No highlight-to-hex mapping needed in HTML output path right now.
 
             bool IsCodeParagraph(WordParagraph para) {
                 if (string.Equals(para.StyleId, "Code", StringComparison.OrdinalIgnoreCase) ||
@@ -437,6 +508,38 @@ namespace OfficeIMO.Word.Html {
                 var pBorderCss = GetParagraphBorderCss(para);
                 if (pBorderCss.Count > 0) {
                     pStyles.AddRange(pBorderCss);
+                }
+                if (options.IncludeParagraphIndentationStyles) {
+                    if (para.IndentationBefore.HasValue && para.IndentationBefore.Value != 0) {
+                        pStyles.Add($"margin-left:{FormatTwips(para.IndentationBefore.Value)}");
+                    }
+                    if (para.IndentationAfter.HasValue && para.IndentationAfter.Value != 0) {
+                        pStyles.Add($"margin-right:{FormatTwips(para.IndentationAfter.Value)}");
+                    }
+                    if (para.IndentationFirstLine.HasValue && para.IndentationFirstLine.Value != 0) {
+                        pStyles.Add($"text-indent:{FormatTwips(para.IndentationFirstLine.Value)}");
+                    } else if (para.IndentationHanging.HasValue && para.IndentationHanging.Value != 0) {
+                        pStyles.Add($"text-indent:{FormatTwips(-para.IndentationHanging.Value)}");
+                    }
+                }
+                if (options.IncludeParagraphSpacingStyles) {
+                    if (para.LineSpacingBefore.HasValue && para.LineSpacingBefore.Value != 0) {
+                        pStyles.Add($"margin-top:{FormatTwips(para.LineSpacingBefore.Value)}");
+                    }
+                    if (para.LineSpacingAfter.HasValue && para.LineSpacingAfter.Value != 0) {
+                        pStyles.Add($"margin-bottom:{FormatTwips(para.LineSpacingAfter.Value)}");
+                    }
+                    if (para.LineSpacing.HasValue && para.LineSpacing.Value != 0) {
+                        var rule = para.LineSpacingRule;
+                        if (rule == null || rule == LineSpacingRuleValues.Auto) {
+                            var multiple = para.LineSpacing.Value / 240.0;
+                            if (multiple > 0) {
+                                pStyles.Add($"line-height:{FormatNumber(multiple)}");
+                            }
+                        } else {
+                            pStyles.Add($"line-height:{FormatTwips(para.LineSpacing.Value)}");
+                        }
+                    }
                 }
                 if (pStyles.Count > 0) {
                     element.SetAttribute("style", string.Join(";", pStyles));

@@ -561,6 +561,7 @@ namespace OfficeIMO.Word.Html {
                             ApplySpanStyles(element, ref fmt);
                             var props = ApplyParagraphStyleFromCss(paragraph, element);
                             ApplyClassStyle(element, paragraph, options);
+                            ApplyBidiIfPresent(element, paragraph);
                             AddBookmarkIfPresent(element, paragraph);
                             if (props.WhiteSpace.HasValue) {
                                 fmt.WhiteSpace = props.WhiteSpace.Value;
@@ -579,6 +580,7 @@ namespace OfficeIMO.Word.Html {
                                 fmt.WhiteSpace = props.WhiteSpace.Value;
                             }
                             ApplyClassStyle(element, paragraph, options);
+                            ApplyBidiIfPresent(element, paragraph);
                             AddBookmarkIfPresent(element, paragraph);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell, headerFooter, headingList);
@@ -594,6 +596,7 @@ namespace OfficeIMO.Word.Html {
                                 fmt.WhiteSpace = props.WhiteSpace.Value;
                             }
                             ApplyClassStyle(element, paragraph, options);
+                            ApplyBidiIfPresent(element, paragraph);
                             AddBookmarkIfPresent(element, paragraph);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell, headerFooter, headingList);
@@ -609,6 +612,7 @@ namespace OfficeIMO.Word.Html {
                                 fmt.WhiteSpace = props.WhiteSpace.Value;
                             }
                             ApplyClassStyle(element, paragraph, options);
+                            ApplyBidiIfPresent(element, paragraph);
                             AddBookmarkIfPresent(element, paragraph);
                             var currentIndent = paragraph.IndentationBefore ?? 0;
                             if (currentIndent < 720) {
@@ -643,6 +647,7 @@ namespace OfficeIMO.Word.Html {
                                 para.IndentationBefore = 720;
                                 ApplyParagraphStyleFromCss(para, element);
                                 ApplyClassStyle(element, para, options);
+                                ApplyBidiIfPresent(element, para);
                                 if (para == firstPara) {
                                     AddBookmarkIfPresent(element, para);
                                 }
@@ -687,6 +692,7 @@ namespace OfficeIMO.Word.Html {
                                     if (!string.IsNullOrEmpty(mono)) {
                                         paragraph.SetFontFamily(mono!);
                                     }
+                                    ApplyBidiIfPresent(element, paragraph);
                                     if (!bookmarkAdded) {
                                         AddBookmarkIfPresent(element, paragraph);
                                         bookmarkAdded = true;
@@ -702,6 +708,7 @@ namespace OfficeIMO.Word.Html {
                                     if (!string.IsNullOrEmpty(mono)) {
                                         paragraph.SetFontFamily(mono!);
                                     }
+                                    ApplyBidiIfPresent(element, paragraph);
                                     if (!bookmarkAdded) {
                                         AddBookmarkIfPresent(element, paragraph);
                                         bookmarkAdded = true;
@@ -1231,6 +1238,9 @@ namespace OfficeIMO.Word.Html {
                     }
                 }
                 currentParagraph ??= cell != null ? cell.AddParagraph(paragraph: null, removeExistingParagraphs: true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                if (textNode.ParentElement != null) {
+                    ApplyBidiIfPresent(textNode.ParentElement, currentParagraph);
+                }
                 AddTextRun(currentParagraph, text, formatting, options);
             }
         }
@@ -1365,17 +1375,54 @@ namespace OfficeIMO.Word.Html {
         private static bool? GetBidiFromDir(IElement element) {
             for (IElement? current = element; current != null; current = current.ParentElement) {
                 var dir = current.GetAttribute("dir");
-                if (string.IsNullOrWhiteSpace(dir)) {
-                    continue;
+                if (!string.IsNullOrWhiteSpace(dir)) {
+                    if (string.Equals(dir, "rtl", StringComparison.OrdinalIgnoreCase)) {
+                        return true;
+                    }
+                    if (string.Equals(dir, "ltr", StringComparison.OrdinalIgnoreCase)) {
+                        return false;
+                    }
                 }
-                if (string.Equals(dir, "rtl", StringComparison.OrdinalIgnoreCase)) {
-                    return true;
-                }
-                if (string.Equals(dir, "ltr", StringComparison.OrdinalIgnoreCase)) {
-                    return false;
+                var style = current.GetAttribute("style");
+                if (TryGetDirectionFromStyle(style, out var bidi)) {
+                    return bidi;
                 }
             }
             return null;
+        }
+
+        private static bool TryGetDirectionFromStyle(string? style, out bool bidi) {
+            bidi = false;
+            if (string.IsNullOrWhiteSpace(style)) {
+                return false;
+            }
+            foreach (var part in (style ?? string.Empty).Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                var pieces = part.Split(new[] { ':' }, 2);
+                if (pieces.Length != 2) {
+                    continue;
+                }
+                if (!string.Equals(pieces[0].Trim(), "direction", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+                var value = pieces[1].Trim();
+                if (string.Equals(value, "rtl", StringComparison.OrdinalIgnoreCase)) {
+                    bidi = true;
+                    return true;
+                }
+                if (string.Equals(value, "ltr", StringComparison.OrdinalIgnoreCase)) {
+                    bidi = false;
+                    return true;
+                }
+                return false;
+            }
+            return false;
+        }
+
+        private static void ApplyBidiIfPresent(IElement element, WordParagraph paragraph) {
+            var bidi = GetBidiFromDir(element);
+            if (bidi.HasValue) {
+                paragraph.BiDi = bidi.Value;
+            }
         }
 
         private void ApplyClassStyle(IElement element, WordParagraph paragraph, HtmlToWordOptions options) {
