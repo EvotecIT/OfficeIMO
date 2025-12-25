@@ -383,7 +383,7 @@ namespace OfficeIMO.PowerPoint {
             SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>(slideRelId);
             slidePart.Slide = (Slide)sourcePart.Slide.CloneNode(true);
 
-            CloneSlidePartRelationships(sourcePart, slidePart);
+            CloneSlidePartRelationships(sourcePart, slidePart, ShouldSharePart, includeDataParts: true);
 
             SlideIdList slideIdList = _presentationPart.Presentation.SlideIdList ??= new SlideIdList();
             SlideId slideId = new() { Id = GetNextSlideId(), RelationshipId = slideRelId };
@@ -394,6 +394,106 @@ namespace OfficeIMO.PowerPoint {
             _slides.Insert(targetIndex, duplicate);
             _presentationPart.Presentation.Save();
             return duplicate;
+        }
+
+        /// <summary>
+        ///     Imports a slide from another presentation and inserts it into the current presentation.
+        /// </summary>
+        /// <param name="sourcePresentation">Presentation to import from.</param>
+        /// <param name="sourceIndex">Index of the slide to import.</param>
+        /// <param name="insertAt">Index where the imported slide should be inserted. Defaults to end.</param>
+        public PowerPointSlide ImportSlide(PowerPointPresentation sourcePresentation, int sourceIndex, int? insertAt = null) {
+            ThrowIfDisposed();
+            if (sourcePresentation == null) {
+                throw new ArgumentNullException(nameof(sourcePresentation));
+            }
+
+            if (ReferenceEquals(sourcePresentation, this)) {
+                return DuplicateSlide(sourceIndex, insertAt);
+            }
+
+            SlidePart? initialSlidePart = null;
+            if (_initialSlideUntouched && _slides.Count == 1) {
+                initialSlidePart = _slides[0].SlidePart;
+            }
+
+            IReadOnlyList<PowerPointSlide> sourceSlides = sourcePresentation.Slides;
+            if (sourceIndex < 0 || sourceIndex >= sourceSlides.Count) {
+                throw new ArgumentOutOfRangeException(nameof(sourceIndex));
+            }
+
+            int targetIndex = insertAt ?? _slides.Count;
+            if (targetIndex < 0 || targetIndex > _slides.Count) {
+                throw new ArgumentOutOfRangeException(nameof(insertAt));
+            }
+
+            PowerPointSlide sourceSlide = sourceSlides[sourceIndex];
+            sourceSlide.Save();
+
+            SlideLayoutPart? sourceLayoutPart = sourceSlide.SlidePart.SlideLayoutPart;
+            if (sourceLayoutPart == null) {
+                throw new InvalidOperationException("Source slide does not have a layout to import.");
+            }
+
+            SlideLayoutPart? targetLayoutPart = FindMatchingLayout(sourceLayoutPart);
+            if (targetLayoutPart == null) {
+                SlideMasterPart sourceMasterPart = sourceLayoutPart.SlideMasterPart
+                    ?? throw new InvalidOperationException("Source slide layout does not have a master.");
+
+                Dictionary<SlideLayoutPart, SlideLayoutPart> layoutMap;
+                CloneSlideMasterPart(sourceMasterPart, out layoutMap);
+
+                if (!layoutMap.TryGetValue(sourceLayoutPart, out targetLayoutPart)) {
+                    throw new InvalidOperationException("Failed to resolve the imported slide layout.");
+                }
+            }
+
+            string slideRelId = GetNextSlideRelationshipId();
+            SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>(slideRelId);
+            slidePart.Slide = (Slide)sourceSlide.SlidePart.Slide.CloneNode(true);
+
+            Dictionary<DataPart, MediaDataPart> mediaPartMap = new();
+            CloneSlidePartRelationships(
+                sourceSlide.SlidePart,
+                slidePart,
+                shouldShare: _ => false,
+                includeDataParts: true,
+                shouldSkip: part => part is SlideLayoutPart || part is NotesSlidePart,
+                dataPartMap: mediaPartMap);
+
+            string? layoutRelId = sourceSlide.SlidePart.GetIdOfPart(sourceLayoutPart);
+            if (string.IsNullOrWhiteSpace(layoutRelId)) {
+                layoutRelId = GetNextRelationshipId(slidePart);
+            }
+
+            slidePart.AddPart(targetLayoutPart, layoutRelId);
+
+            SlideIdList slideIdList = _presentationPart.Presentation.SlideIdList ??= new SlideIdList();
+            SlideId slideId = new() { Id = GetNextSlideId(), RelationshipId = slideRelId };
+            InsertSlideId(slideIdList, slideId, targetIndex);
+
+            PowerPointSlide imported = new(slidePart);
+            imported.Hidden = sourceSlide.Hidden;
+
+            if (sourceSlide.SlidePart.NotesSlidePart != null) {
+                string notesText = sourceSlide.Notes.Text;
+                if (!string.IsNullOrWhiteSpace(notesText)) {
+                    imported.Notes.Text = notesText;
+                }
+            }
+
+            _slides.Insert(targetIndex, imported);
+            _presentationPart.Presentation.Save();
+
+            if (initialSlidePart != null) {
+                _initialSlideUntouched = false;
+                int blankIndex = _slides.FindIndex(slide => ReferenceEquals(slide.SlidePart, initialSlidePart));
+                if (blankIndex >= 0) {
+                    RemoveSlide(blankIndex);
+                }
+            }
+
+            return imported;
         }
 
         /// <summary>
@@ -523,6 +623,79 @@ namespace OfficeIMO.PowerPoint {
             return maxId >= 255 ? maxId + 1 : 256;
         }
 
+        private string GetNextSlideMasterRelationshipId() {
+            var existingRelationships = new HashSet<string>(
+                _presentationPart.Parts
+                    .Select(p => p.RelationshipId)
+                    .Union(_presentationPart.ExternalRelationships.Select(r => r.Id))
+                    .Union(_presentationPart.HyperlinkRelationships.Select(r => r.Id))
+                    .Where(id => !string.IsNullOrEmpty(id))
+                    .Select(id => id!)
+            );
+
+            if (_presentationPart.Presentation.SlideMasterIdList != null) {
+                foreach (SlideMasterId existingMasterId in _presentationPart.Presentation.SlideMasterIdList.Elements<SlideMasterId>()) {
+                    if (existingMasterId.RelationshipId is { Value: { Length: > 0 } existingRelId }) {
+                        existingRelationships.Add(existingRelId);
+                    }
+                }
+            }
+
+            int nextId = 1;
+            string masterRelId;
+            do {
+                masterRelId = "rId" + nextId;
+                nextId++;
+            } while (existingRelationships.Contains(masterRelId));
+
+            return masterRelId;
+        }
+
+        private uint GetNextSlideMasterId() {
+            SlideMasterIdList? slideMasterIdList = _presentationPart.Presentation.SlideMasterIdList;
+            if (slideMasterIdList != null && slideMasterIdList.Elements<SlideMasterId>().Any()) {
+                uint maxId = slideMasterIdList.Elements<SlideMasterId>().Max(s => s.Id?.Value ?? 0U);
+                return maxId >= 2147483648U ? maxId + 1U : 2147483648U;
+            }
+
+            return 2147483648U;
+        }
+
+        private SlideLayoutPart? FindMatchingLayout(SlideLayoutPart sourceLayoutPart) {
+            SlideLayout? sourceLayout = sourceLayoutPart.SlideLayout;
+            if (sourceLayout == null) {
+                return null;
+            }
+
+            string? sourceName = sourceLayout.CommonSlideData?.Name?.Value;
+            SlideLayoutValues? sourceType = sourceLayout.Type?.Value;
+
+            foreach (SlideMasterPart masterPart in _presentationPart.SlideMasterParts) {
+                foreach (SlideLayoutPart layoutPart in masterPart.SlideLayoutParts) {
+                    SlideLayout? candidateLayout = layoutPart.SlideLayout;
+                    if (candidateLayout == null) {
+                        continue;
+                    }
+
+                    SlideLayoutValues? candidateType = candidateLayout.Type?.Value;
+                    if (sourceType.HasValue && candidateType != sourceType) {
+                        continue;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(sourceName)) {
+                        string? candidateName = candidateLayout.CommonSlideData?.Name?.Value;
+                        if (!string.Equals(sourceName, candidateName, StringComparison.OrdinalIgnoreCase)) {
+                            continue;
+                        }
+                    }
+
+                    return layoutPart;
+                }
+            }
+
+            return null;
+        }
+
         private static void InsertSlideId(SlideIdList slideIdList, SlideId slideId, int index) {
             List<SlideId> ids = slideIdList.Elements<SlideId>().ToList();
             if (index < 0 || index > ids.Count) {
@@ -536,16 +709,123 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void CloneSlidePartRelationships(SlidePart source, SlidePart target) {
-            foreach (var partPair in source.Parts) {
-                ClonePartRecursive(partPair.OpenXmlPart, target, partPair.RelationshipId);
-            }
+        private static string GetNextRelationshipId(OpenXmlPartContainer container) {
+            var existingRelationships = new HashSet<string>(
+                container.Parts.Select(p => p.RelationshipId)
+                    .Concat(container.ExternalRelationships.Select(r => r.Id))
+                    .Concat(container.HyperlinkRelationships.Select(r => r.Id))
+                    .Where(id => !string.IsNullOrEmpty(id)),
+                StringComparer.Ordinal);
 
-            CloneReferenceRelationships(source, target);
+            int nextId = 1;
+            string relId;
+            do {
+                relId = "rId" + nextId;
+                nextId++;
+            } while (!existingRelationships.Add(relId));
+
+            return relId;
         }
 
-        private static void ClonePartRecursive(OpenXmlPart sourcePart, OpenXmlPartContainer targetContainer, string relationshipId) {
-            if (ShouldSharePart(sourcePart)) {
+        private SlideMasterPart CloneSlideMasterPart(
+            SlideMasterPart sourceMasterPart,
+            out Dictionary<SlideLayoutPart, SlideLayoutPart> layoutMap) {
+            layoutMap = new Dictionary<SlideLayoutPart, SlideLayoutPart>();
+
+            if (sourceMasterPart.SlideMaster == null) {
+                throw new InvalidOperationException("Source slide master is missing.");
+            }
+
+            string masterRelId = GetNextSlideMasterRelationshipId();
+            SlideMasterPart targetMasterPart = _presentationPart.AddNewPart<SlideMasterPart>(masterRelId);
+            targetMasterPart.SlideMaster = (SlideMaster)sourceMasterPart.SlideMaster.CloneNode(true);
+
+            foreach (var partPair in sourceMasterPart.Parts) {
+                OpenXmlPart part = partPair.OpenXmlPart;
+                string relId = partPair.RelationshipId;
+
+                if (part is SlideLayoutPart sourceLayoutPart) {
+                    SlideLayoutPart clonedLayout = CloneSlideLayoutPart(sourceLayoutPart, targetMasterPart, relId);
+                    layoutMap[sourceLayoutPart] = clonedLayout;
+                    continue;
+                }
+
+                ClonePartRecursive(part, targetMasterPart, relId, _ => false, includeDataParts: false);
+            }
+
+            CloneReferenceRelationships(sourceMasterPart, targetMasterPart, includeDataParts: false);
+
+            SlideMasterIdList slideMasterIdList = _presentationPart.Presentation.SlideMasterIdList ??= new SlideMasterIdList();
+            slideMasterIdList.Append(new SlideMasterId { Id = GetNextSlideMasterId(), RelationshipId = masterRelId });
+            _presentationPart.Presentation.Save();
+
+            return targetMasterPart;
+        }
+
+        private static SlideLayoutPart CloneSlideLayoutPart(
+            SlideLayoutPart sourceLayoutPart,
+            SlideMasterPart targetMasterPart,
+            string relationshipId) {
+            if (sourceLayoutPart.SlideLayout == null) {
+                throw new InvalidOperationException("Source slide layout is missing.");
+            }
+
+            SlideLayoutPart targetLayoutPart = targetMasterPart.AddNewPart<SlideLayoutPart>(relationshipId);
+            targetLayoutPart.SlideLayout = (SlideLayout)sourceLayoutPart.SlideLayout.CloneNode(true);
+
+            CloneChildParts(
+                sourceLayoutPart,
+                targetLayoutPart,
+                shouldSkip: part => part is SlideMasterPart,
+                includeDataParts: false);
+
+            targetLayoutPart.AddPart(targetMasterPart);
+            return targetLayoutPart;
+        }
+
+        private static void CloneChildParts(
+            OpenXmlPart sourcePart,
+            OpenXmlPart targetPart,
+            Func<OpenXmlPart, bool> shouldSkip,
+            bool includeDataParts,
+            Dictionary<DataPart, MediaDataPart>? dataPartMap = null) {
+            foreach (var childPair in sourcePart.Parts) {
+                if (shouldSkip(childPair.OpenXmlPart)) {
+                    continue;
+                }
+
+                ClonePartRecursive(childPair.OpenXmlPart, targetPart, childPair.RelationshipId, _ => false, includeDataParts, dataPartMap);
+            }
+
+            CloneReferenceRelationships(sourcePart, targetPart, includeDataParts, dataPartMap);
+        }
+
+        private static void CloneSlidePartRelationships(
+            SlidePart source,
+            SlidePart target,
+            Func<OpenXmlPart, bool> shouldShare,
+            bool includeDataParts,
+            Func<OpenXmlPart, bool>? shouldSkip = null,
+            Dictionary<DataPart, MediaDataPart>? dataPartMap = null) {
+            foreach (var partPair in source.Parts) {
+                if (shouldSkip != null && shouldSkip(partPair.OpenXmlPart)) {
+                    continue;
+                }
+
+                ClonePartRecursive(partPair.OpenXmlPart, target, partPair.RelationshipId, shouldShare, includeDataParts, dataPartMap);
+            }
+
+            CloneReferenceRelationships(source, target, includeDataParts, dataPartMap);
+        }
+
+        private static void ClonePartRecursive(
+            OpenXmlPart sourcePart,
+            OpenXmlPartContainer targetContainer,
+            string relationshipId,
+            Func<OpenXmlPart, bool> shouldShare,
+            bool includeDataParts,
+            Dictionary<DataPart, MediaDataPart>? dataPartMap = null) {
+            if (shouldShare(sourcePart)) {
                 AddExistingPart(targetContainer, sourcePart, relationshipId);
                 return;
             }
@@ -555,10 +835,10 @@ namespace OfficeIMO.PowerPoint {
                 : AddNewPartWithContentType(targetContainer, sourcePart, relationshipId);
 
             CopyPartData(sourcePart, newPart);
-            CloneReferenceRelationships(sourcePart, newPart);
+            CloneReferenceRelationships(sourcePart, newPart, includeDataParts, dataPartMap);
 
             foreach (var childPair in sourcePart.Parts) {
-                ClonePartRecursive(childPair.OpenXmlPart, newPart, childPair.RelationshipId);
+                ClonePartRecursive(childPair.OpenXmlPart, newPart, childPair.RelationshipId, shouldShare, includeDataParts, dataPartMap);
             }
         }
 
@@ -578,7 +858,17 @@ namespace OfficeIMO.PowerPoint {
             sourceStream.CopyTo(targetStream);
         }
 
-        private static void CloneReferenceRelationships(OpenXmlPartContainer source, OpenXmlPartContainer target) {
+        private static void CopyPartData(DataPart sourcePart, DataPart targetPart) {
+            using Stream sourceStream = sourcePart.GetStream(FileMode.Open, FileAccess.Read);
+            using Stream targetStream = targetPart.GetStream(FileMode.Create, FileAccess.Write);
+            sourceStream.CopyTo(targetStream);
+        }
+
+        private static void CloneReferenceRelationships(
+            OpenXmlPartContainer source,
+            OpenXmlPartContainer target,
+            bool includeDataParts,
+            Dictionary<DataPart, MediaDataPart>? dataPartMap = null) {
             foreach (ExternalRelationship rel in source.ExternalRelationships) {
                 target.AddExternalRelationship(rel.RelationshipType, rel.Uri, rel.Id);
             }
@@ -587,27 +877,55 @@ namespace OfficeIMO.PowerPoint {
                 target.AddHyperlinkRelationship(rel.Uri, rel.IsExternal, rel.Id);
             }
 
-            CloneDataPartReferenceRelationships(source, target);
+            if (includeDataParts) {
+                CloneDataPartReferenceRelationships(source, target, dataPartMap);
+            }
         }
 
-        private static void CloneDataPartReferenceRelationships(OpenXmlPartContainer source, OpenXmlPartContainer target) {
+        private static void CloneDataPartReferenceRelationships(
+            OpenXmlPartContainer source,
+            OpenXmlPartContainer target,
+            Dictionary<DataPart, MediaDataPart>? dataPartMap) {
+            OpenXmlPackage? sourcePackage = GetPackage(source);
+            OpenXmlPackage? targetPackage = GetPackage(target);
+            bool samePackage = sourcePackage != null && targetPackage != null && ReferenceEquals(sourcePackage, targetPackage);
+
             foreach (DataPartReferenceRelationship rel in source.DataPartReferenceRelationships) {
                 if (rel.DataPart is not MediaDataPart mediaPart) {
                     continue;
                 }
 
+                MediaDataPart targetMediaPart = mediaPart;
+                if (!samePackage) {
+                    if (targetPackage == null) {
+                        throw new InvalidOperationException("Unable to resolve target package for media import.");
+                    }
+
+                    if (dataPartMap != null && dataPartMap.TryGetValue(mediaPart, out MediaDataPart? existing)) {
+                        targetMediaPart = existing;
+                    } else {
+                        targetMediaPart = CreateMediaDataPart(targetPackage, mediaPart.ContentType);
+                        CopyPartData(mediaPart, targetMediaPart);
+                        dataPartMap?.Add(mediaPart, targetMediaPart);
+                    }
+                }
+
                 if (rel is AudioReferenceRelationship) {
-                    if (TryAddMediaReferenceRelationship(target, "AddAudioReferenceRelationship", mediaPart, rel.Id)) {
+                    if (TryAddMediaReferenceRelationship(target, "AddAudioReferenceRelationship", targetMediaPart, rel.Id)) {
                         continue;
                     }
                 } else if (rel is VideoReferenceRelationship) {
-                    if (TryAddMediaReferenceRelationship(target, "AddVideoReferenceRelationship", mediaPart, rel.Id)) {
+                    if (TryAddMediaReferenceRelationship(target, "AddVideoReferenceRelationship", targetMediaPart, rel.Id)) {
                         continue;
                     }
                 } else {
-                    if (TryAddMediaReferenceRelationship(target, "AddMediaReferenceRelationship", mediaPart, rel.Id)) {
+                    if (TryAddMediaReferenceRelationship(target, "AddMediaReferenceRelationship", targetMediaPart, rel.Id)) {
                         continue;
                     }
+                }
+
+                if (!samePackage) {
+                    throw new InvalidOperationException("Unable to add media reference relationship to the imported slide.");
                 }
             }
         }
@@ -622,6 +940,84 @@ namespace OfficeIMO.PowerPoint {
 
             method.Invoke(target, new object[] { mediaPart, relationshipId });
             return true;
+        }
+
+        private static OpenXmlPackage? GetPackage(OpenXmlPartContainer container) {
+            if (container is OpenXmlPackage package) {
+                return package;
+            }
+
+            if (container is OpenXmlPart part) {
+                return part.OpenXmlPackage;
+            }
+
+            return null;
+        }
+
+        private static MediaDataPart CreateMediaDataPart(OpenXmlPackage targetPackage, string contentType) {
+            if (TryInvokeCreateMediaDataPart(targetPackage, new[] { typeof(string) }, new object[] { contentType }, out MediaDataPart? mediaPart) &&
+                mediaPart != null) {
+                return mediaPart;
+            }
+
+            MediaDataPartType? mediaType = TryGetMediaDataPartType(contentType);
+            if (mediaType.HasValue &&
+                TryInvokeCreateMediaDataPart(targetPackage, new[] { typeof(MediaDataPartType) }, new object[] { mediaType.Value }, out mediaPart) &&
+                mediaPart != null) {
+                return mediaPart;
+            }
+
+            throw new InvalidOperationException($"Unable to create a media data part for content type '{contentType}'.");
+        }
+
+        private static bool TryInvokeCreateMediaDataPart(
+            OpenXmlPackage targetPackage,
+            Type[] parameterTypes,
+            object[] args,
+            out MediaDataPart? mediaPart) {
+            mediaPart = null;
+            MethodInfo? method = targetPackage.GetType().GetMethod("CreateMediaDataPart", parameterTypes);
+            if (method == null) {
+                return false;
+            }
+
+            mediaPart = (MediaDataPart?)method.Invoke(targetPackage, args);
+            return mediaPart != null;
+        }
+
+        private static MediaDataPartType? TryGetMediaDataPartType(string contentType) {
+            if (string.IsNullOrWhiteSpace(contentType)) {
+                return null;
+            }
+
+            return contentType.ToLowerInvariant() switch {
+                "audio/aiff" => MediaDataPartType.Aiff,
+                "audio/x-aiff" => MediaDataPartType.Aiff,
+                "audio/midi" => MediaDataPartType.Midi,
+                "audio/x-midi" => MediaDataPartType.Midi,
+                "audio/mpeg" => MediaDataPartType.Mp3,
+                "audio/mp3" => MediaDataPartType.Mp3,
+                "audio/wav" => MediaDataPartType.Wav,
+                "audio/x-wav" => MediaDataPartType.Wav,
+                "audio/x-ms-wma" => MediaDataPartType.Wma,
+                "audio/wma" => MediaDataPartType.Wma,
+                "audio/ogg" => MediaDataPartType.OggAudio,
+                "application/ogg" => MediaDataPartType.OggAudio,
+                "audio/mpegurl" => MediaDataPartType.MpegUrl,
+                "application/vnd.ms-asf" => MediaDataPartType.Asx,
+                "video/x-msvideo" => MediaDataPartType.Avi,
+                "video/avi" => MediaDataPartType.Avi,
+                "video/mpeg" => MediaDataPartType.MpegVideo,
+                "video/mpg" => MediaDataPartType.Mpg,
+                "video/mp4" => MediaDataPartType.MpegVideo,
+                "video/quicktime" => MediaDataPartType.Quicktime,
+                "video/x-ms-wmv" => MediaDataPartType.Wmv,
+                "video/x-ms-wmx" => MediaDataPartType.Wmx,
+                "video/x-ms-wvx" => MediaDataPartType.Wvx,
+                "video/ogg" => MediaDataPartType.OggVideo,
+                "video/vc1" => MediaDataPartType.VC1,
+                _ => null
+            };
         }
 
         private static bool ShouldSharePart(OpenXmlPart part) {

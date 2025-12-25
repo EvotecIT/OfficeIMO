@@ -34,6 +34,17 @@ namespace OfficeIMO.PowerPoint.Fluent {
         }
 
         /// <summary>
+        ///     Imports a slide from another presentation and returns a builder for the new slide.
+        /// </summary>
+        /// <param name="sourcePresentation">Presentation to import from.</param>
+        /// <param name="sourceIndex">Index of the slide to import.</param>
+        /// <param name="insertAt">Index where the imported slide should be inserted. Defaults to end.</param>
+        public PowerPointSlideBuilder ImportSlide(PowerPointPresentation sourcePresentation, int sourceIndex, int? insertAt = null) {
+            PowerPointSlide slide = Presentation.ImportSlide(sourcePresentation, sourceIndex, insertAt);
+            return new PowerPointSlideBuilder(this, slide);
+        }
+
+        /// <summary>
         ///     Duplicates a slide and applies configuration.
         /// </summary>
         /// <param name="index">Index of the slide to duplicate.</param>
@@ -41,6 +52,23 @@ namespace OfficeIMO.PowerPoint.Fluent {
         /// <param name="configure">Action used to configure the duplicated slide.</param>
         public PowerPointFluentPresentation DuplicateSlide(int index, int? insertAt, Action<PowerPointSlideBuilder> configure) {
             PowerPointSlideBuilder builder = DuplicateSlide(index, insertAt);
+            configure?.Invoke(builder);
+            return this;
+        }
+
+        /// <summary>
+        ///     Imports a slide from another presentation and applies configuration.
+        /// </summary>
+        /// <param name="sourcePresentation">Presentation to import from.</param>
+        /// <param name="sourceIndex">Index of the slide to import.</param>
+        /// <param name="insertAt">Index where the imported slide should be inserted.</param>
+        /// <param name="configure">Action used to configure the imported slide.</param>
+        public PowerPointFluentPresentation ImportSlide(
+            PowerPointPresentation sourcePresentation,
+            int sourceIndex,
+            int? insertAt,
+            Action<PowerPointSlideBuilder> configure) {
+            PowerPointSlideBuilder builder = ImportSlide(sourcePresentation, sourceIndex, insertAt);
             configure?.Invoke(builder);
             return this;
         }

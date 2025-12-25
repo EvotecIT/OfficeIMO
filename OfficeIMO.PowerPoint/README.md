@@ -103,6 +103,13 @@ var duplicate = ppt.DuplicateSlide(0);
 duplicate.Hidden = true;
 ```
 
+### Import slide from another deck
+```csharp
+using var source = PowerPointPresentation.Open("source.pptx");
+var imported = ppt.ImportSlide(source, sourceIndex: 0);
+imported.AddTextBox("Imported content");
+```
+
 ### Layouts and notes (fluent)
 ```csharp
 using OfficeIMO.PowerPoint.Fluent;
@@ -160,7 +167,7 @@ ppt.ReplaceText("FY24", "FY25", includeTables: true, includeNotes: true);
 
 ## Feature Highlights
 
-- Slides: add, duplicate, reorder, hide, and edit slides
+- Slides: add, import, duplicate, reorder, hide, and edit slides
 - Shapes: basic rectangles/ellipses/lines with fill/stroke
 - Images: add images from file/stream
 - Properties: set built‑in and application properties
@@ -174,7 +181,7 @@ ppt.ReplaceText("FY24", "FY25", includeTables: true, includeNotes: true);
 ## Feature Matrix (scope today)
 
 - 📽️ Slides
-  - ✅ Add slides; ✅ duplicate/reorder; ✅ hide/show; ✅ set title; ✅ add text boxes; ✅ basic bullets
+  - ✅ Add slides; ✅ import/duplicate/reorder; ✅ hide/show; ✅ set title; ✅ add text boxes; ✅ basic bullets
 - 🖼️ Media & Shapes
   - ✅ Insert images; ✅ basic shapes (rect/ellipse/line) with fill/stroke
 - 🗒️ Notes & Layout
