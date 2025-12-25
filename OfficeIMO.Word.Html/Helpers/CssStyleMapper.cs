@@ -235,6 +235,13 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
             value = value.Trim();
+            if (value.StartsWith("hsl", StringComparison.OrdinalIgnoreCase)) {
+                if (TryParseHsl(value, out byte hr, out byte hg, out byte hb)) {
+                    var color = new Color(new Rgb24(hr, hg, hb));
+                    return color.ToHexColor();
+                }
+                return null;
+            }
             if (value.StartsWith("rgb", StringComparison.OrdinalIgnoreCase)) {
                 int start = value.IndexOf('(');
                 int end = value.IndexOf(')');
@@ -264,6 +271,76 @@ namespace OfficeIMO.Word.Html {
                 }
                 return null;
             }
+        }
+
+        private static bool TryParseHsl(string text, out byte r, out byte g, out byte b) {
+            r = g = b = 0;
+            int start = text.IndexOf('(');
+            int end = text.LastIndexOf(')');
+            if (start < 0 || end <= start) {
+                return false;
+            }
+            var content = text.Substring(start + 1, end - start - 1);
+            var slashIndex = content.IndexOf('/');
+            if (slashIndex >= 0) {
+                content = content.Substring(0, slashIndex);
+            }
+            var parts = content.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 3) {
+                return false;
+            }
+            if (!double.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var h)) {
+                return false;
+            }
+            if (!TryParsePercent(parts[1], out var s) || !TryParsePercent(parts[2], out var l)) {
+                return false;
+            }
+            return HslToRgb(h, s, l, out r, out g, out b);
+        }
+
+        private static bool TryParsePercent(string text, out double value) {
+            value = 0;
+            var t = text.Trim();
+            if (t.EndsWith("%", StringComparison.Ordinal)) {
+                t = t.Substring(0, t.Length - 1);
+            }
+            if (!double.TryParse(t, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)) {
+                return false;
+            }
+            value = parsed / 100d;
+            return true;
+        }
+
+        private static bool HslToRgb(double h, double s, double l, out byte r, out byte g, out byte b) {
+            r = g = b = 0;
+            h = h % 360;
+            if (h < 0) h += 360;
+            s = s < 0 ? 0 : s > 1 ? 1 : s;
+            l = l < 0 ? 0 : l > 1 ? 1 : l;
+
+            double c = (1 - Math.Abs(2 * l - 1)) * s;
+            double x = c * (1 - Math.Abs((h / 60d) % 2 - 1));
+            double m = l - c / 2;
+
+            double r1, g1, b1;
+            if (h < 60) {
+                r1 = c; g1 = x; b1 = 0;
+            } else if (h < 120) {
+                r1 = x; g1 = c; b1 = 0;
+            } else if (h < 180) {
+                r1 = 0; g1 = c; b1 = x;
+            } else if (h < 240) {
+                r1 = 0; g1 = x; b1 = c;
+            } else if (h < 300) {
+                r1 = x; g1 = 0; b1 = c;
+            } else {
+                r1 = c; g1 = 0; b1 = x;
+            }
+
+            r = (byte)Math.Round((r1 + m) * 255);
+            g = (byte)Math.Round((g1 + m) * 255);
+            b = (byte)Math.Round((b1 + m) * 255);
+            return true;
         }
     }
 }
