@@ -648,7 +648,8 @@ namespace OfficeIMO.Word.Html {
                                 }
                             }
                             if (!string.IsNullOrEmpty(cite)) {
-                                firstPara?.AddFootNote(cite ?? string.Empty);
+                                var noteRef = AddNoteReference(firstPara!, cite ?? string.Empty, options);
+                                TryLinkNoteReference(noteRef, cite ?? string.Empty, options);
                             }
                             break;
                         }
@@ -965,8 +966,9 @@ namespace OfficeIMO.Word.Html {
                             }
                             if (!string.IsNullOrEmpty(title)) {
                                 currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
-                                var fnRun = currentParagraph.AddFootNote(title ?? string.Empty);
+                                var fnRun = AddNoteReference(currentParagraph, title ?? string.Empty, options);
                                 fnRun.SetCharacterStyleId("HtmlAbbr");
+                                TryLinkNoteReference(fnRun, title ?? string.Empty, options);
                             }
                             break;
                         }
@@ -1020,7 +1022,8 @@ namespace OfficeIMO.Word.Html {
 
                                 if (_footnoteMap.TryGetValue(anchor, out var fnText)) {
                                     currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
-                                    currentParagraph!.AddFootNote(fnText ?? string.Empty);
+                                    var noteRef = AddNoteReference(currentParagraph!, fnText ?? string.Empty, options);
+                                    TryLinkNoteReference(noteRef, fnText ?? string.Empty, options);
                                     break;
                                 }
 
@@ -1242,6 +1245,48 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
+        private WordParagraph AddNoteReference(WordParagraph paragraph, string text, HtmlToWordOptions options) {
+            return options.NoteReferenceType == NoteReferenceType.Endnote
+                ? paragraph.AddEndNote(text)
+                : paragraph.AddFootNote(text);
+        }
+
+        private void TryLinkNoteReference(WordParagraph noteReference, string text, HtmlToWordOptions options) {
+            if (!options.LinkNoteUrls) {
+                return;
+            }
+            if (!TryCreateUriFromText(text, out var uri, out var displayText)) {
+                return;
+            }
+
+            var noteParagraph = options.NoteReferenceType == NoteReferenceType.Endnote
+                ? noteReference.EndNote?.Paragraphs?.FirstOrDefault()
+                : noteReference.FootNote?.Paragraphs?.FirstOrDefault();
+            if (noteParagraph == null) {
+                return;
+            }
+
+            ReplaceNoteParagraphWithHyperlink(noteParagraph, uri, displayText);
+        }
+
+        private static void ReplaceNoteParagraphWithHyperlink(WordParagraph paragraph, Uri uri, string displayText) {
+            if (paragraph == null) {
+                return;
+            }
+            var runs = paragraph._paragraph.Elements<Run>().ToList();
+            foreach (var run in runs) {
+                if (run.GetFirstChild<FootnoteReferenceMark>() != null) {
+                    continue;
+                }
+                if (run.GetFirstChild<EndnoteReferenceMark>() != null) {
+                    continue;
+                }
+                run.Remove();
+            }
+
+            WordHyperLink.AddHyperLink(paragraph, displayText, uri);
+        }
+
         private void InsertTopBookmarkIfNeeded(WordDocument doc) {
             if (!_pendingTopBookmark) {
                 return;
@@ -1283,6 +1328,54 @@ namespace OfficeIMO.Word.Html {
                 return "http://" + trimmed;
             }
             return trimmed;
+        }
+
+        private static bool TryCreateUriFromText(string text, out Uri uri, out string displayText) {
+            uri = null!;
+            displayText = text;
+            if (string.IsNullOrWhiteSpace(text)) {
+                return false;
+            }
+
+            var trimmed = text.Trim();
+            displayText = trimmed;
+
+            if (trimmed.StartsWith(@"\\", StringComparison.Ordinal)) {
+                var normalized = "file://" + trimmed.TrimStart('\\').Replace('\\', '/');
+                if (Uri.TryCreate(normalized, UriKind.Absolute, out var parsed) && parsed != null) {
+                    uri = parsed;
+                    return true;
+                }
+            }
+
+            var candidate = NormalizeHref(trimmed);
+            if (Uri.TryCreate(candidate, UriKind.Absolute, out var absolute) && absolute != null) {
+                uri = absolute;
+                return true;
+            }
+
+            if (Uri.TryCreate(candidate, UriKind.RelativeOrAbsolute, out var maybe) && maybe != null && maybe.IsAbsoluteUri) {
+                uri = maybe;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool? GetBidiFromDir(IElement element) {
+            for (IElement? current = element; current != null; current = current.ParentElement) {
+                var dir = current.GetAttribute("dir");
+                if (string.IsNullOrWhiteSpace(dir)) {
+                    continue;
+                }
+                if (string.Equals(dir, "rtl", StringComparison.OrdinalIgnoreCase)) {
+                    return true;
+                }
+                if (string.Equals(dir, "ltr", StringComparison.OrdinalIgnoreCase)) {
+                    return false;
+                }
+            }
+            return null;
         }
 
         private void ApplyClassStyle(IElement element, WordParagraph paragraph, HtmlToWordOptions options) {

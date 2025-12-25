@@ -68,8 +68,12 @@ namespace OfficeIMO.Word.Html {
             int level = listStack.Count - 1;
             var paragraph = list.AddItem("", level);
             ApplyClassStyle(element, paragraph, options);
-            AddBookmarkIfPresent(element, paragraph);
-            foreach (var child in element.ChildNodes) {
+            AddBookmarkIfPresent(element, paragraph);
+            var bidi = GetBidiFromDir(element);
+            if (bidi.HasValue) {
+                paragraph.BiDi = bidi.Value;
+            }
+            foreach (var child in element.ChildNodes) {
                 ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell, headerFooter);
             }
         }

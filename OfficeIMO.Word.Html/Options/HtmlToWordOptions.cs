@@ -58,6 +58,16 @@ namespace OfficeIMO.Word.Html {
         public string? BasePath { get; set; }
 
         /// <summary>
+        /// Controls whether HTML-generated notes are inserted as footnotes or endnotes.
+        /// </summary>
+        public NoteReferenceType NoteReferenceType { get; set; } = NoteReferenceType.Footnote;
+
+        /// <summary>
+        /// When true, URLs used as note text are emitted as hyperlinks inside the note.
+        /// </summary>
+        public bool LinkNoteUrls { get; set; } = true;
+
+        /// <summary>
         /// Controls how images are processed during conversion.
         /// </summary>
         public ImageProcessingMode ImageProcessing { get; set; } = ImageProcessingMode.Embed;
@@ -133,6 +143,21 @@ namespace OfficeIMO.Word.Html {
         /// Only embeds data URI images; external images are skipped.
         /// </summary>
         EmbedDataUriOnly
+    }
+
+    /// <summary>
+    /// Specifies where generated note references are placed.
+    /// </summary>
+    public enum NoteReferenceType {
+        /// <summary>
+        /// Use footnotes (default).
+        /// </summary>
+        Footnote,
+
+        /// <summary>
+        /// Use endnotes.
+        /// </summary>
+        Endnote
     }
 
     /// <summary>

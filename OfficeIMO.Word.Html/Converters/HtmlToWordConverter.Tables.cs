@@ -1,7 +1,9 @@
 using AngleSharp.Css.Parser;
+using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
 using SixColor = SixLabors.ImageSharp.Color;
+using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -67,13 +69,15 @@ namespace OfficeIMO.Word.Html {
             var occupied = new bool[rows, cols];
             int rIndex = 0;
 
-            void HandleRows(IEnumerable<IHtmlTableRowElement> htmlRows) {
-                foreach (var htmlRow in htmlRows) {
+            void HandleRows(IHtmlCollection<IHtmlTableRowElement> htmlRows) {
+                var groupRowCount = htmlRows.Length;
+                for (int localRowIndex = 0; localRowIndex < groupRowCount; localRowIndex++) {
+                    var htmlRow = htmlRows[localRowIndex];
                     var wordRow = wordTable.Rows[rIndex];
                     ApplyRowStyles(wordRow, htmlRow);
                     int cIndex = 0;
                     for (int c = 0; c < htmlRow.Cells.Length; c++) {
-                        while (cIndex < cols && occupied[rIndex, cIndex]) {
+                        while (cIndex < cols && occupied[rIndex, cIndex]) {     
                             cIndex++;
                         }
 
@@ -103,14 +107,22 @@ namespace OfficeIMO.Word.Html {
                         int rowSpan = 1;
                         int colSpan = 1;
                         if (htmlCell is IHtmlTableCellElement htmlTableCell) {
-                            rowSpan = Math.Max(1, htmlTableCell.RowSpan);
+                            rowSpan = htmlTableCell.RowSpan;
                             colSpan = Math.Max(1, htmlTableCell.ColumnSpan);
+                            if (rowSpan == 0) {
+                                rowSpan = groupRowCount - localRowIndex;
+                            }
                         }
+
+                        rowSpan = Math.Max(1, rowSpan);
+                        colSpan = Math.Max(1, colSpan);
+                        rowSpan = Math.Min(rowSpan, rows - rIndex);
+                        colSpan = Math.Min(colSpan, cols - cIndex);
 
                         if (rowSpan > 1 || colSpan > 1) {
                             wordTable.MergeCells(rIndex, cIndex, rowSpan, colSpan);
-                            for (int rr = rIndex; rr < rIndex + rowSpan; rr++) {
-                                for (int cc = cIndex; cc < cIndex + colSpan; cc++) {
+                            for (int rr = rIndex; rr < rIndex + rowSpan && rr < rows; rr++) {
+                                for (int cc = cIndex; cc < cIndex + colSpan && cc < cols; cc++) {
                                     if (rr == rIndex && cc == cIndex) {
                                         continue;
                                     }
@@ -208,16 +220,12 @@ namespace OfficeIMO.Word.Html {
                 int size;
                 TableWidthUnitValues thisType;
                 var widthText = width ?? string.Empty;
-                if (widthText.EndsWith("%", StringComparison.Ordinal)) {
-                    var num = widthText.TrimEnd('%');
-                    if (!int.TryParse(num, out int pct)) {
-                        continue;
-                    }
-                    size = pct * 50;
+                if (TryParsePercentWidth(widthText, out int pctWidth)) {
+                    size = pctWidth;
                     thisType = TableWidthUnitValues.Pct;
                 } else {
                     var parser = new CssParser();
-                    var decl = parser.ParseDeclaration($"x:{widthText}");
+                    var decl = parser.ParseDeclaration($"x:{widthText}");       
                     if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int w)) {
                         size = w;
                         thisType = TableWidthUnitValues.Dxa;
@@ -241,6 +249,23 @@ namespace OfficeIMO.Word.Html {
                 wordTable.ColumnWidth = widths;
                 wordTable.ColumnWidthType = widthType;
             }
+        }
+
+        private static bool TryParsePercentWidth(string value, out int width) {
+            width = 0;
+            if (string.IsNullOrWhiteSpace(value)) {
+                return false;
+            }
+            var trimmed = value.Trim();
+            if (!trimmed.EndsWith("%", StringComparison.Ordinal)) {
+                return false;
+            }
+            var num = trimmed.TrimEnd('%');
+            if (!double.TryParse(num, NumberStyles.Float, CultureInfo.InvariantCulture, out var pct)) {
+                return false;
+            }
+            width = (int)Math.Round(pct * 50);
+            return true;
         }
 
         private static void ApplyTableStyles(WordTable wordTable, IHtmlTableElement tableElem) {
@@ -287,12 +312,12 @@ namespace OfficeIMO.Word.Html {
                             }
                             break;
                         case "width":
-                            if (value.EndsWith("%", StringComparison.Ordinal)) {
-                                var num = value.TrimEnd('%');
-                                if (int.TryParse(num, out int pct)) {
-                                    wordTable.Width = pct * 50;
-                                    wordTable.WidthType = TableWidthUnitValues.Pct;
-                                }
+                            if (value.Equals("auto", StringComparison.OrdinalIgnoreCase)) {
+                                wordTable.WidthType = TableWidthUnitValues.Auto;
+                                wordTable.Width = 0;
+                            } else if (TryParsePercentWidth(value, out int pctWidth)) {
+                                wordTable.Width = pctWidth;
+                                wordTable.WidthType = TableWidthUnitValues.Pct;
                             } else {
                                 var parser = new CssParser();
                                 var decl = parser.ParseDeclaration($"x:{value}");
@@ -451,12 +476,9 @@ namespace OfficeIMO.Word.Html {
                             if (color != null) cell.ShadingFillColorHex = color;
                             break;
                         case "width":
-                            if (value.EndsWith("%", StringComparison.Ordinal)) {
-                                var num = value.TrimEnd('%');
-                                if (int.TryParse(num, out int pct)) {
-                                    cell.Width = pct * 50;
-                                    cell.WidthType = TableWidthUnitValues.Pct;
-                                }
+                            if (TryParsePercentWidth(value, out int pctWidth)) {
+                                cell.Width = pctWidth;
+                                cell.WidthType = TableWidthUnitValues.Pct;
                             } else {
                                 var parser = new CssParser();
                                 var decl = parser.ParseDeclaration($"x:{value}");
