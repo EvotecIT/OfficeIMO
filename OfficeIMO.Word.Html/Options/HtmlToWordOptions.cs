@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Net.Http;
 
 namespace OfficeIMO.Word.Html {
     /// <summary>
@@ -57,6 +58,22 @@ namespace OfficeIMO.Word.Html {
         public string? BasePath { get; set; }
 
         /// <summary>
+        /// Controls how images are processed during conversion.
+        /// </summary>
+        public ImageProcessingMode ImageProcessing { get; set; } = ImageProcessingMode.Embed;
+
+        /// <summary>
+        /// Optional <see cref="HttpClient"/> used to download remote resources (images, SVG).
+        /// If not provided, a shared client instance is used.
+        /// </summary>
+        public HttpClient? HttpClient { get; set; }
+
+        /// <summary>
+        /// Optional timeout applied when downloading remote resources.
+        /// </summary>
+        public TimeSpan? ResourceTimeout { get; set; }
+
+        /// <summary>
         /// File paths pointing to external stylesheets that should be applied during conversion.
         /// </summary>
         public List<string> StylesheetPaths { get; } = new List<string>();
@@ -75,6 +92,11 @@ namespace OfficeIMO.Word.Html {
         /// Specifies where table captions should be inserted relative to the table.
         /// </summary>
         public TableCaptionPosition TableCaptionPosition { get; set; } = TableCaptionPosition.Above;
+
+        /// <summary>
+        /// Controls how the <c>&lt;section&gt;</c> tag is mapped into Word.
+        /// </summary>
+        public SectionTagHandling SectionTagHandling { get; set; } = SectionTagHandling.WordSection;
     }
 
     /// <summary>
@@ -90,5 +112,41 @@ namespace OfficeIMO.Word.Html {
         /// Caption is placed after the table.
         /// </summary>
         Below
+    }
+
+    /// <summary>
+    /// Specifies how images should be processed during HTML to Word conversion.
+    /// </summary>
+    public enum ImageProcessingMode {
+        /// <summary>
+        /// Downloads and embeds all images into the document (default).
+        /// </summary>
+        Embed,
+
+        /// <summary>
+        /// Links to external images via relationships instead of embedding them.
+        /// Data URI images are still embedded.
+        /// </summary>
+        LinkExternal,
+
+        /// <summary>
+        /// Only embeds data URI images; external images are skipped.
+        /// </summary>
+        EmbedDataUriOnly
+    }
+
+    /// <summary>
+    /// Determines how the <c>&lt;section&gt;</c> HTML tag is represented in Word.
+    /// </summary>
+    public enum SectionTagHandling {
+        /// <summary>
+        /// Creates a new Word section for each <c>&lt;section&gt;</c>.
+        /// </summary>
+        WordSection,
+
+        /// <summary>
+        /// Treats <c>&lt;section&gt;</c> like a generic block container.
+        /// </summary>
+        Block
     }
 }
