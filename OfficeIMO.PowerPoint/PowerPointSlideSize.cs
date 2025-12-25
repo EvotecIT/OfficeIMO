@@ -23,12 +23,20 @@ namespace OfficeIMO.PowerPoint {
             return size;
         }
 
+        private static int EnsureEmuFitsInt(long value, string paramName) {
+            if (value < int.MinValue || value > int.MaxValue) {
+                throw new ArgumentOutOfRangeException(paramName,
+                    $"Value must be between {int.MinValue} and {int.MaxValue}.");
+            }
+            return (int)value;
+        }
+
         /// <summary>
         ///     Slide width in EMUs.
         /// </summary>
         public long WidthEmus {
             get => EnsureSlideSize().Cx?.Value ?? 0;
-            set => EnsureSlideSize().Cx = checked((int)value);
+            set => EnsureSlideSize().Cx = EnsureEmuFitsInt(value, nameof(WidthEmus));
         }
 
         /// <summary>
@@ -36,7 +44,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public long HeightEmus {
             get => EnsureSlideSize().Cy?.Value ?? 0;
-            set => EnsureSlideSize().Cy = checked((int)value);
+            set => EnsureSlideSize().Cy = EnsureEmuFitsInt(value, nameof(HeightEmus));
         }
 
         /// <summary>

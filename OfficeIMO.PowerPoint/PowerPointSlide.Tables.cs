@@ -214,7 +214,10 @@ namespace OfficeIMO.PowerPoint {
                 rowIndex++;
             }
 
-            table.SetColumnWidthsEvenly();
+            var columns = headers
+                .Select(header => PowerPointTableColumn<object?[]>.Create(header, _ => null))
+                .ToList();
+            ApplyColumnWidths(table, width, columns);
             return table;
         }
 

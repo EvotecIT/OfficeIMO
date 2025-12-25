@@ -145,6 +145,60 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AutoBoundTableUsesAvailableWidth() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            var data = new[] {
+                new SalesRow("Alpha", 12, 15),
+                new SalesRow("Beta", 9, 11)
+            };
+
+            const long tableWidth = 6000000L;
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                slide.AddTable(data, includeHeaders: true,
+                    left: 0L, top: 0L, width: tableWidth, height: 2000000L);
+                presentation.Save();
+            }
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                PowerPointTable table = presentation.Slides[0].Tables.First();
+                long sum = 0;
+                for (int i = 0; i < table.Columns; i++) {
+                    long width = table.GetColumnWidth(i);
+                    Assert.True(width > 0);
+                    sum += width;
+                }
+                Assert.Equal(tableWidth, sum);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void ExplicitColumnWidthsCannotExceedTableWidth() {
+            var data = new[] {
+                new SalesRow("Alpha", 12, 15)
+            };
+
+            var columns = new[] {
+                PowerPointTableColumn<SalesRow>.Create("Product", row => row.Product).WithWidth(1500000L),
+                PowerPointTableColumn<SalesRow>.Create("Q1", row => row.Q1).WithWidth(1500000L)
+            };
+
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                Assert.Throws<ArgumentException>(() =>
+                    slide.AddTable(data, columns, includeHeaders: true, left: 0L, top: 0L, width: 2000000L, height: 1000000L));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void CanApplyColumnWidthRatios() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 

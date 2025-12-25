@@ -44,6 +44,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SlideSizeRejectsValuesOutsideIntRange() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                Assert.Throws<ArgumentOutOfRangeException>(() => presentation.SlideSize.WidthEmus = (long)int.MaxValue + 1);
+                Assert.Throws<ArgumentOutOfRangeException>(() => presentation.SlideSize.HeightEmus = (long)int.MinValue - 1);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void CanCreateLayoutBoxes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
