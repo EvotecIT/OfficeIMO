@@ -88,6 +88,7 @@ namespace OfficeIMO.PowerPoint {
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(frame);
             PowerPointTable tbl = new(frame);
+            tbl.SetColumnWidthsEvenly();
             _shapes.Add(tbl);
             return tbl;
         }
