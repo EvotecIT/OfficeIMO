@@ -85,6 +85,50 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Sets the starting number for the specified list level.
+        /// Updates both the abstract definition and the list instance override.
+        /// </summary>
+        /// <param name="value">Starting number for the level.</param>
+        /// <param name="level">Zero-based list level.</param>
+        public void SetStartNumberingValue(int value, int level = 0) {
+            if (level < 0) {
+                throw new ArgumentOutOfRangeException(nameof(level));
+            }
+
+            var levels = Numbering.Levels;
+            var targetLevel = levels.FirstOrDefault(l => l._level.LevelIndex?.Value == level)
+                ?? (levels.Count > level ? levels[level] : null);
+            targetLevel?.SetStartNumberingValue(value);
+
+            var numbering = _document._wordprocessingDocument.MainDocumentPart?
+                .NumberingDefinitionsPart?.Numbering;
+            if (numbering == null) {
+                return;
+            }
+
+            var instance = numbering.Elements<NumberingInstance>()
+                .FirstOrDefault(n => n.NumberID?.Value == _numberId);
+            if (instance == null) {
+                return;
+            }
+
+            var levelOverride = instance.Elements<LevelOverride>()
+                .FirstOrDefault(l => l.LevelIndex?.Value == level);
+            if (levelOverride == null) {
+                levelOverride = new LevelOverride { LevelIndex = level };
+                instance.Append(levelOverride);
+            }
+
+            var startOverride = levelOverride.GetFirstChild<StartOverrideNumberingValue>();
+            if (startOverride == null) {
+                startOverride = new StartOverrideNumberingValue();
+                levelOverride.Append(startOverride);
+            }
+
+            startOverride.Val = value;
+        }
+
+        /// <summary>
         /// Determines the insertion reference for a new item. When an anchor paragraph is supplied, it is used only for the
         /// first insertion; subsequent items are chained after the last list item to preserve order.
         /// </summary>
