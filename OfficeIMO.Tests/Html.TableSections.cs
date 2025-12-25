@@ -17,5 +17,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(TableWidthUnitValues.Pct, table.ColumnWidthType);
             Assert.Equal("F1", table.Rows[table.Rows.Count - 1].Cells[0].Paragraphs[0]._paragraph.InnerText);
         }
+
+        [Fact]
+        public void HtmlToWord_TableSections_ColGroupDecimalPercent() {
+            string html = "<table><colgroup><col style=\"width:13.5%\"><col style=\"width:86.5%\"></colgroup><tbody><tr><td>A</td><td>B</td></tr></tbody></table>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var table = doc.Tables[0];
+            Assert.Equal(new List<int> { 675, 4325 }, table.ColumnWidth);
+            Assert.Equal(TableWidthUnitValues.Pct, table.ColumnWidthType);
+        }
     }
 }

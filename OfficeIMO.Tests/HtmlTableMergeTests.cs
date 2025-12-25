@@ -33,6 +33,17 @@ namespace OfficeIMO.Tests {
             Assert.Contains("rowspan=\"2\"", html);
             Assert.Contains("colspan=\"2\"", html);
         }
+
+        [Fact]
+        public void HtmlToWordConverter_RowSpanZero_StopsAtSectionEnd() {
+            string html = "<table><tbody><tr><td rowspan=\"0\">A</td><td>B1</td></tr><tr><td>B2</td></tr></tbody><tfoot><tr><td>F1</td><td>F2</td></tr></tfoot></table>";
+            using WordDocument doc = html.LoadFromHtml();
+            var table = doc.Tables[0];
+
+            Assert.Equal(MergedCellValues.Restart, table.Rows[0].Cells[0].VerticalMerge);
+            Assert.Equal(MergedCellValues.Continue, table.Rows[1].Cells[0].VerticalMerge);
+            Assert.Null(table.Rows[2].Cells[0].VerticalMerge);
+        }
     }
 }
 

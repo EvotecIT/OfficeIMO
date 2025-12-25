@@ -22,5 +22,18 @@ namespace OfficeIMO.Tests {
             Assert.Contains(">text</abbr>", roundTrip, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("<sup", roundTrip, StringComparison.OrdinalIgnoreCase);
         }
+
+        [Fact]
+        public void AbbrCanUseEndnotes() {
+            const string html = "<abbr title=\"desc\">text</abbr>";
+            var options = new HtmlToWordOptions { NoteReferenceType = NoteReferenceType.Endnote };
+            using var doc = html.LoadFromHtml(options);
+            Assert.True(doc.Paragraphs.Count >= 1);
+            Assert.Equal("text", doc.Paragraphs[0].Text);
+            var endNotes = doc.EndNotes;
+            Assert.NotNull(endNotes);
+            Assert.Single(endNotes!);
+            Assert.Equal("desc", endNotes![0].Paragraphs![1].Text);
+        }
     }
 }

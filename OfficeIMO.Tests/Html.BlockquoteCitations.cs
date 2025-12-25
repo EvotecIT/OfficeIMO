@@ -1,5 +1,6 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
+using System;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -14,7 +15,7 @@ namespace OfficeIMO.Tests {
             var footNotes = doc.FootNotes;
             Assert.NotNull(footNotes);
             Assert.Single(footNotes!);
-            Assert.Equal("https://example.com", footNotes![0].Paragraphs![1].Text);
+            Assert.Contains(footNotes![0].Paragraphs!, p => p.Hyperlink?.Uri == new Uri("https://example.com"));
         }
     }
 }
