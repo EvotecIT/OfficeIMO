@@ -270,13 +270,19 @@ namespace OfficeIMO.Word.Html {
 
                     if (run.IsHyperLink && run.Hyperlink != null) {
                         var href = run.Hyperlink.Uri?.ToString();
+                        if (string.IsNullOrEmpty(href)) {
+                            var anchor = run.Hyperlink.Anchor;
+                            if (!string.IsNullOrEmpty(anchor)) {
+                                href = "#" + anchor;
+                            }
+                        }
                         if (!string.IsNullOrEmpty(href)) {
                             var a = htmlDoc.CreateElement("a");
                             a.SetAttribute("href", href);
                             a.AppendChild(node);
                             node = a;
                         }
-                        // if href is null/empty, fall back to plain text
+                        // if href is null/empty, fall back to plain text       
                     }
 
                     bool handledHtmlStyle = false;

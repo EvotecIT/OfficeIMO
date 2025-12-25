@@ -1,5 +1,7 @@
 using AngleSharp.Html.Dom;
+using System.Globalization;
 using System.Net.Http;
+using System.Threading;
 using Wp = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
 namespace OfficeIMO.Word.Html {
@@ -7,7 +9,6 @@ namespace OfficeIMO.Word.Html {
         private void ProcessImage(IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
             var src = img.GetAttribute("src") ?? string.Empty;
             if (string.IsNullOrEmpty(src)) return;
-
             var decl = _inlineParser.ParseDeclaration(img.GetAttribute("style") ?? string.Empty);
             var floatVal = decl.GetPropertyValue("float")?.Trim().ToLowerInvariant();
             var wrap = WrapTextImage.InLineWithText;
@@ -35,7 +36,14 @@ namespace OfficeIMO.Word.Html {
 
             double? width = img.DisplayWidth > 0 ? img.DisplayWidth : null;
             double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;
+            width ??= TryParsePixelValue(img.GetAttribute("width"));
+            height ??= TryParsePixelValue(img.GetAttribute("height"));
             var alt = img.AlternativeText ?? string.Empty;
+
+            if (options.ImageProcessing == ImageProcessingMode.EmbedDataUriOnly && !src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
+                InsertAltText(currentParagraph, headerFooter, doc, alt);
+                return;
+            }
 
             WordParagraph? paragraph = currentParagraph;
 
@@ -47,28 +55,13 @@ namespace OfficeIMO.Word.Html {
 
             WordImage image;
             if (src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
-                var commaIndex = src.IndexOf(',');
-                if (commaIndex > 0) {
-                    try {
-                        var meta = src.Substring(5, commaIndex - 5); // e.g., image/png;base64
-                        var base64 = src.Substring(commaIndex + 1);
-                        var ext = "png";
-                        var parts = meta.Split(new[] { ';', '/' }, StringSplitOptions.RemoveEmptyEntries);
-                        if (parts.Length >= 2) {
-                            ext = parts[1];
-                        }
-                        paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                        paragraph.AddImageFromBase64(base64, "image." + ext, width, height, wrap, description: alt);
-                        image = paragraph.Image!;
-                    } catch (Exception ex) {
-                        Console.WriteLine($"Failed to decode data-image: {ex.Message}");
-                        if (!string.IsNullOrEmpty(alt)) {
-                            paragraph ??= currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph());
-                            paragraph.AddText(alt);
-                        }
-                        return;
-                    }
-                } else {
+                if (!TryHandleDataImage(src, doc, ref paragraph, headerFooter, width, height, wrap, alt, out image)) {
+                    InsertAltText(currentParagraph, headerFooter, doc, alt);
+                    return;
+                }
+            } else if (options.ImageProcessing == ImageProcessingMode.LinkExternal) {
+                if (!TryHandleExternalImage(src, doc, ref paragraph, headerFooter, width, height, wrap, alt, out image)) {
+                    InsertAltText(currentParagraph, headerFooter, doc, alt);
                     return;
                 }
             } else if (Uri.TryCreate(src, UriKind.Absolute, out var uri) && uri.IsFile) {
@@ -78,10 +71,7 @@ namespace OfficeIMO.Word.Html {
                     image = paragraph.Image!;
                 } catch (Exception ex) {
                     Console.WriteLine($"Failed to load image from file '{uri.LocalPath}': {ex.Message}");
-                    if (!string.IsNullOrEmpty(alt)) {
-                        paragraph ??= currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph());
-                        paragraph.AddText(alt);
-                    }
+                    InsertAltText(currentParagraph, headerFooter, doc, alt);
                     return;
                 }
             } else if (File.Exists(src)) {
@@ -91,34 +81,20 @@ namespace OfficeIMO.Word.Html {
                     image = paragraph.Image!;
                 } catch (Exception ex) {
                     Console.WriteLine($"Failed to load image from file '{src}': {ex.Message}");
-                    if (!string.IsNullOrEmpty(alt)) {
-                        paragraph ??= currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph());
-                        paragraph.AddText(alt);
-                    }
+                    InsertAltText(currentParagraph, headerFooter, doc, alt);
                     return;
                 }
             } else {
                 try {
-                    using HttpClient client = new HttpClient();
-                    var data = client.GetByteArrayAsync(src).GetAwaiter().GetResult();
+                    var data = FetchBytes(new Uri(src));
                     using var ms = new MemoryStream(data);
-                    string fileName = "image";
-                    try {
-                        var uriSrc = new Uri(src);
-                        fileName = Path.GetFileName(uriSrc.LocalPath) ?? "image";
-                        if (string.IsNullOrEmpty(fileName)) fileName = "image";
-                    } catch (UriFormatException) {
-                        // ignore
-                    }
+                    string fileName = GetFileNameFromUri(src);
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                     paragraph.AddImage(ms, fileName, width, height, wrap, description: alt);
                     image = paragraph.Image!;
                 } catch (Exception ex) {
                     Console.WriteLine($"Failed to load image from '{src}': {ex.Message}");
-                    if (!string.IsNullOrEmpty(alt)) {
-                        paragraph ??= currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph());
-                        paragraph.AddText(alt);
-                    }
+                    InsertAltText(currentParagraph, headerFooter, doc, alt);
                     return;
                 }
             }
@@ -139,35 +115,172 @@ namespace OfficeIMO.Word.Html {
         private void ProcessSvgImage(string src, IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
             double? width = img.DisplayWidth > 0 ? img.DisplayWidth : null;
             double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;
+            width ??= TryParsePixelValue(img.GetAttribute("width"));
+            height ??= TryParsePixelValue(img.GetAttribute("height"));
             var alt = img.AlternativeText;
+
+            if (options.ImageProcessing == ImageProcessingMode.EmbedDataUriOnly && !src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
+                InsertAltText(currentParagraph, headerFooter, doc, alt ?? string.Empty);
+                return;
+            }
 
             WordParagraph paragraph = currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph());
 
             string svgContent;
             if (src.StartsWith("data:image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
-                var commaIndex = src.IndexOf(',');
-                if (commaIndex < 0) return;
-                var base64 = src.Substring(commaIndex + 1);
-                var bytes = System.Convert.FromBase64String(base64);
-                svgContent = Encoding.UTF8.GetString(bytes);
+                if (!TryGetDataUriContent(src, out var meta, out var data, out var isBase64)) {
+                    return;
+                }
+                if (isBase64) {
+                    var bytes = System.Convert.FromBase64String(data);
+                    svgContent = Encoding.UTF8.GetString(bytes);
+                } else {
+                    svgContent = Uri.UnescapeDataString(data);
+                }
             } else if (Uri.TryCreate(src, UriKind.Absolute, out var uri) && uri.IsFile) {
                 svgContent = File.ReadAllText(uri.LocalPath);
             } else if (File.Exists(src)) {
                 svgContent = File.ReadAllText(src);
             } else {
-                using HttpClient client = new HttpClient();
-                svgContent = client.GetStringAsync(src).GetAwaiter().GetResult();
+                svgContent = FetchString(new Uri(src));
             }
 
             try {
                 SvgHelper.AddSvg(paragraph, svgContent, width, height, alt ?? string.Empty);
                 _imageCache[src] = paragraph.Image!;
-            } catch (System.Exception ex) {
-                System.Console.WriteLine($"Failed to embed SVG: {ex.Message}");
+            } catch (Exception ex) {
+                Console.WriteLine($"Failed to embed SVG: {ex.Message}");
                 if (!string.IsNullOrEmpty(alt)) {
                     paragraph.AddText(alt ?? string.Empty);
                 }
             }
+        }
+
+        private static double? TryParsePixelValue(string? value) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+            var trimmed = value!.Trim().ToLowerInvariant();
+            if (trimmed.EndsWith("px", StringComparison.Ordinal)) {
+                trimmed = trimmed.Substring(0, trimmed.Length - 2);
+            }
+            if (double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out var result)) {
+                return result > 0 ? result : null;
+            }
+            return null;
+        }
+
+        private static string GetFileNameFromUri(string src) {
+            try {
+                var uriSrc = new Uri(src);
+                var fileName = Path.GetFileName(uriSrc.LocalPath);
+                return string.IsNullOrEmpty(fileName) ? "image" : fileName;
+            } catch (UriFormatException) {
+                return "image";
+            }
+        }
+
+        private static void InsertAltText(WordParagraph? currentParagraph, WordHeaderFooter? headerFooter, WordDocument doc, string alt) {
+            if (string.IsNullOrEmpty(alt)) {
+                return;
+            }
+            var paragraph = currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph());
+            paragraph.AddText(alt);
+        }
+
+        private bool TryHandleExternalImage(string src, WordDocument doc, ref WordParagraph? paragraph, WordHeaderFooter? headerFooter, double? width, double? height, WrapTextImage wrap, string alt, out WordImage image) {
+            image = null!;
+            if (!width.HasValue || !height.HasValue) {
+                return false;
+            }
+
+            if (Uri.TryCreate(src, UriKind.Absolute, out var uri)) {
+                paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
+                paragraph.AddImage(uri, width.Value, height.Value, wrap, description: alt);
+                image = paragraph.Image!;
+                return true;
+            }
+
+            if (File.Exists(src)) {
+                var fileUri = new Uri(Path.GetFullPath(src));
+                paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
+                paragraph.AddImage(fileUri, width.Value, height.Value, wrap, description: alt);
+                image = paragraph.Image!;
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool TryHandleDataImage(string src, WordDocument doc, ref WordParagraph? paragraph, WordHeaderFooter? headerFooter, double? width, double? height, WrapTextImage wrap, string alt, out WordImage image) {
+            image = null!;
+            if (!TryGetDataUriContent(src, out var meta, out var data, out var isBase64)) {
+                return false;
+            }
+            try {
+                var ext = "png";
+                var parts = meta.Split(new[] { ';', '/' }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length >= 2) {
+                    ext = parts[1];
+                }
+                paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
+                if (isBase64) {
+                    paragraph.AddImageFromBase64(data, "image." + ext, width, height, wrap, description: alt);
+                } else {
+                    if (!meta.Contains("svg+xml", StringComparison.OrdinalIgnoreCase)) {
+                        return false;
+                    }
+                    var svgContent = Uri.UnescapeDataString(data);
+                    SvgHelper.AddSvg(paragraph, svgContent, width, height, alt);
+                }
+                image = paragraph.Image!;
+                return true;
+            } catch (Exception ex) {
+                Console.WriteLine($"Failed to decode data-image: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static bool TryGetDataUriContent(string src, out string meta, out string data, out bool isBase64) {
+            meta = string.Empty;
+            data = string.Empty;
+            isBase64 = false;
+            var commaIndex = src.IndexOf(',');
+            if (commaIndex <= 0) {
+                return false;
+            }
+            meta = src.Substring(5, commaIndex - 5);
+            data = src.Substring(commaIndex + 1);
+            isBase64 = meta.IndexOf("base64", StringComparison.OrdinalIgnoreCase) >= 0;
+            return true;
+        }
+
+        private byte[] FetchBytes(Uri uri) {
+            using var cts = _resourceTimeout.HasValue
+                ? CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken)
+                : null;
+            var token = cts?.Token ?? _cancellationToken;
+            if (cts != null && _resourceTimeout.HasValue) {
+                cts.CancelAfter(_resourceTimeout.Value);
+            }
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            using var response = _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).GetAwaiter().GetResult();
+            response.EnsureSuccessStatusCode();
+            return response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
+        }
+
+        private string FetchString(Uri uri) {
+            using var cts = _resourceTimeout.HasValue
+                ? CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken)
+                : null;
+            var token = cts?.Token ?? _cancellationToken;
+            if (cts != null && _resourceTimeout.HasValue) {
+                cts.CancelAfter(_resourceTimeout.Value);
+            }
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            using var response = _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).GetAwaiter().GetResult();
+            response.EnsureSuccessStatusCode();
+            return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
         }
 
         private void ProcessSvgElement(AngleSharp.Dom.IElement svg, WordDocument doc, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
@@ -179,8 +292,8 @@ namespace OfficeIMO.Word.Html {
             var paragraph = currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : section.AddParagraph());
             try {
                 SvgHelper.AddSvg(paragraph, svg.OuterHtml, width, height, string.Empty);
-            } catch (System.Exception ex) {
-                System.Console.WriteLine($"Failed to embed inline SVG: {ex.Message}");
+            } catch (Exception ex) {
+                Console.WriteLine($"Failed to embed inline SVG: {ex.Message}");
             }
         }
     }
