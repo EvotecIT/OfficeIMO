@@ -38,5 +38,13 @@ namespace OfficeIMO.Tests {
             var text = string.Concat(doc.Paragraphs[0].GetRuns().Where(r => !r.IsBreak).Select(r => r.Text));
             Assert.Equal("Hello\u00A0world\u00A0Foo", text);
         }
+
+        [Fact]
+        public void HtmlToWord_WhiteSpace_InlineNodes() {
+            string html = "<p><span>foo</span> <span>bar</span></p>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var text = string.Concat(doc.Paragraphs[0].GetRuns().Where(r => !r.IsBreak).Select(r => r.Text));
+            Assert.Equal("foo bar", text);
+        }
     }
 }

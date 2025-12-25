@@ -36,6 +36,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_AnchorLinks() {
+            using var doc = WordDocument.Create();
+            var target = doc.AddParagraph("Target");
+            WordBookmark.AddBookmark(target, "anchor");
+            var link = doc.AddParagraph();
+            link.AddHyperLink("Go", "anchor");
+
+            string html = doc.ToHtml();
+
+            Assert.Contains("href=\"#anchor\"", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Test_WordToHtml_ListsAndTable() {
             using var doc = WordDocument.Create();
 
