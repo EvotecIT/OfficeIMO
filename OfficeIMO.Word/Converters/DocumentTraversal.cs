@@ -57,16 +57,43 @@ namespace OfficeIMO.Word {
             }
 
             int level = paragraph.ListItemLevel ?? 0;
+            int? overrideStart = null;
             int start = 1;
             NumberFormatValues? numberFormat = null;
             string? levelText = null;
 
             int? numberId = paragraph._listNumberId;
             var list = numberId.HasValue ? paragraph._document?.Lists.FirstOrDefault(l => l._numberId == numberId) : null;
+            if (numberId.HasValue && paragraph._document != null) {
+                var numbering = paragraph._document._wordprocessingDocument.MainDocumentPart?.NumberingDefinitionsPart?.Numbering;
+                var instance = numbering?.Elements<NumberingInstance>()
+                    .FirstOrDefault(n => n.NumberID?.Value == numberId.Value);
+                bool overridesAreDefault = false;
+                if (instance != null) {
+                    var overrides = instance.Elements<LevelOverride>().ToList();
+                    if (overrides.Count >= 9) {
+                        overridesAreDefault = overrides.All(o => {
+                            var startOverrideValue = o.GetFirstChild<StartOverrideNumberingValue>();
+                            return startOverrideValue?.Val?.HasValue == true && startOverrideValue.Val.Value == 1;
+                        });
+                    }
+                    var levelOverride = overrides.FirstOrDefault(l => l.LevelIndex?.Value == level);
+                    var startOverride = levelOverride?.GetFirstChild<StartOverrideNumberingValue>();
+                    if (startOverride?.Val != null && startOverride.Val.HasValue) {
+                        var overrideValue = startOverride.Val.Value;
+                        if (!overridesAreDefault || overrideValue != 1) {
+                            overrideStart = overrideValue;
+                            start = overrideValue;
+                        }
+                    }
+                }
+            }
             var wordLevel = list?.Numbering.Levels.FirstOrDefault(l => l._level.LevelIndex?.Value == level);
             if (wordLevel != null) {
                 var startVal = wordLevel._level.StartNumberingValue?.Val;
-                start = startVal?.Value ?? 1;
+                if (!overrideStart.HasValue) {
+                    start = startVal?.Value ?? 1;
+                }
                 numberFormat = wordLevel._level.NumberingFormat?.Val?.Value;
                 levelText = wordLevel.LevelText;
             }

@@ -36,6 +36,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_AnchorLinks() {
+            using var doc = WordDocument.Create();
+            var target = doc.AddParagraph("Target");
+            WordBookmark.AddBookmark(target, "anchor");
+            var link = doc.AddParagraph();
+            link.AddHyperLink("Go", "anchor");
+
+            string html = doc.ToHtml();
+
+            Assert.Contains("href=\"#anchor\"", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Test_WordToHtml_ListsAndTable() {
             using var doc = WordDocument.Create();
 
@@ -279,6 +292,46 @@ namespace OfficeIMO.Tests {
             string htmlNoClasses = doc.ToHtml(new WordToHtmlOptions());
             Assert.DoesNotContain("class=\"Heading1\"", htmlNoClasses, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("Heading1Char", htmlNoClasses, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_RunColorAndHighlightStyles() {
+            using var doc = WordDocument.Create();
+            var p = doc.AddParagraph();
+            var run = p.AddText("Colored");
+            run.ColorHex = "ff0000";
+            run.Highlight = HighlightColorValues.Cyan;
+
+            string html = doc.ToHtml(new WordToHtmlOptions {
+                IncludeRunColorStyles = true,
+                IncludeRunHighlightStyles = true
+            });
+
+            Assert.Contains("color:#ff0000", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("background-color:#00ffff", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_ParagraphSpacingAndIndentationStyles() {
+            using var doc = WordDocument.Create();
+            var p = doc.AddParagraph("Spacing");
+            p.LineSpacingBefore = 240;
+            p.LineSpacingAfter = 480;
+            p.LineSpacing = 360;
+            p.LineSpacingRule = LineSpacingRuleValues.Auto;
+            p.IndentationAfter = 720;
+            p.IndentationFirstLine = 360;
+
+            string html = doc.ToHtml(new WordToHtmlOptions {
+                IncludeParagraphSpacingStyles = true,
+                IncludeParagraphIndentationStyles = true
+            });
+
+            Assert.Contains("margin-top:12pt", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("margin-bottom:24pt", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("line-height:1.5", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("margin-right:36pt", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("text-indent:18pt", html, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

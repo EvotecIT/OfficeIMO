@@ -224,8 +224,7 @@ public partial class WordList : WordElement {
         var abstractNumId = new AbstractNumId {
             Val = _abstractId
         };
-        NumberingInstance numberingInstance = new NumberingInstance();
-        numberingInstance = RestartNumberingInstance(abstractNumId, _numberId);
+        NumberingInstance numberingInstance = RestartNumberingInstance(abstractNumId, _numberId);
         numbering.Append(numberingInstance, abstractNum);
     }
 

@@ -104,6 +104,7 @@ namespace OfficeIMO.Examples {
             PowerPoint.TablesPowerPoint.Example_PowerPointTables(folderPath, false);
             PowerPoint.TextFormattingPowerPoint.Example_TextFormattingPowerPoint(folderPath, false);
             PowerPoint.ThemeAndLayoutPowerPoint.Example_PowerPointThemeAndLayout(folderPath, false);
+            PowerPoint.TransitionsThemesPowerPoint.Example_TransitionsThemes(folderPath, false);
             PowerPoint.UpdatePicturePowerPoint.Example_PowerPointUpdatePicture(folderPath, false);
             PowerPoint.ValidateDocument.Example(folderPath, false);
             PowerPoint.TestLazyInit.Example_TestLazyInit(folderPath, false);

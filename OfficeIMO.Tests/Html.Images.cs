@@ -130,5 +130,32 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(hPos.HorizontalAlignment);
             Assert.Equal("right", hPos.HorizontalAlignment.Text);
         }
+
+        [Fact]
+        public void HtmlToWord_ImageProcessing_LinkExternal_UsesExternalRelationship() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            var uri = new Uri(path).AbsoluteUri;
+            string html = $"<img src=\"{uri}\" width=\"64\" height=\"64\" alt=\"Logo\" />";
+            var options = new HtmlToWordOptions { ImageProcessing = ImageProcessingMode.LinkExternal };
+            var doc = html.LoadFromHtml(options);
+            var img = Assert.Single(doc.Images);
+            Assert.True(img.IsExternal);
+            Assert.Equal(new Uri(uri), img.ExternalUri);
+            var mainPart = doc._wordprocessingDocument?.MainDocumentPart;
+            Assert.NotNull(mainPart);
+            Assert.Empty(mainPart!.ImageParts);
+        }
+
+        [Fact]
+        public void HtmlToWord_ImageProcessing_EmbedDataUriOnly_SkipsExternalImages() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            var uri = new Uri(path).AbsoluteUri;
+            string html = $"<img src=\"{uri}\" alt=\"Logo\" />";
+            var options = new HtmlToWordOptions { ImageProcessing = ImageProcessingMode.EmbedDataUriOnly };
+            var doc = html.LoadFromHtml(options);
+            Assert.Empty(doc.Images);
+            Assert.Single(doc.Paragraphs);
+            Assert.Equal("Logo", doc.Paragraphs[0].Text);
+        }
     }
 }

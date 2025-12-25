@@ -49,5 +49,14 @@ namespace OfficeIMO.Tests {
             Assert.Contains("text-align:left", back, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("text-align:justify", back, StringComparison.OrdinalIgnoreCase);
         }
+
+        [Fact]
+        public void HtmlToWord_TableStyles_WidthAuto() {
+            string html = "<table style=\"width:auto\"><tr><td>Cell</td></tr></table>";
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var table = doc.Tables[0];
+            Assert.Equal(TableWidthUnitValues.Auto, table.WidthType);
+            Assert.Equal(0, table.Width);
+        }
     }
 }

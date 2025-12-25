@@ -171,7 +171,7 @@ namespace OfficeIMO.Word.Html {
             var parsed = CssStyleMapper.ParseStyles(styleAttribute);
             var declaration = _inlineParser.ParseDeclaration(styleAttribute ?? string.Empty);
             int? marginLeft = parsed.MarginLeft, marginRight = parsed.MarginRight, marginTop = parsed.MarginTop, marginBottom = parsed.MarginBottom;
-            int? paddingLeft = null, paddingRight = null, paddingTop = null, paddingBottom = null;
+            int? paddingLeft = parsed.PaddingLeft, paddingRight = parsed.PaddingRight, paddingTop = parsed.PaddingTop, paddingBottom = parsed.PaddingBottom;
             JustificationValues? alignment = null;
 
             var colorVal = NormalizeColor(declaration.GetPropertyValue("color"));
@@ -232,6 +232,19 @@ namespace OfficeIMO.Word.Html {
             if (TryConvertToTwip(declaration.GetProperty("padding-top")?.RawValue, out int pt)) paddingTop = pt;
             if (TryConvertToTwip(declaration.GetProperty("padding-bottom")?.RawValue, out int pb)) paddingBottom = pb;
 
+            if (TryConvertToTwipAllowNegative(declaration.GetProperty("text-indent")?.RawValue, out int indent)) {
+                if (indent > 0) {
+                    paragraph.IndentationFirstLine = indent;
+                    paragraph.IndentationHanging = null;
+                } else if (indent < 0) {
+                    paragraph.IndentationHanging = -indent;
+                    paragraph.IndentationFirstLine = null;
+                } else {
+                    paragraph.IndentationFirstLine = null;
+                    paragraph.IndentationHanging = null;
+                }
+            }
+
             if (alignment.HasValue) {
                 paragraph.ParagraphAlignment = alignment;
             }
@@ -257,8 +270,22 @@ namespace OfficeIMO.Word.Html {
         private static readonly Regex _urlRegex = new(@"((?:https?|ftp)://[^\s]+)", RegexOptions.IgnoreCase);
         private static readonly Regex _collapseWhitespaceRegex = new(@"\s+", RegexOptions.Compiled);
 
-        private static void AddTextRun(WordParagraph paragraph, string text, TextFormatting formatting, HtmlToWordOptions options) {
+        private void AddTextRun(WordParagraph paragraph, string text, TextFormatting formatting, HtmlToWordOptions options) {
             text = ApplyWhiteSpace(text, formatting.WhiteSpace);
+            if (string.IsNullOrEmpty(text)) {
+                return;
+            }
+
+            if (_suppressAutoLinksDepth > 0) {
+                var segment = ApplyTextTransform(text, formatting.Transform);
+                if (string.IsNullOrEmpty(segment)) {
+                    return;
+                }
+                var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, formatting.Underline ? UnderlineValues.Single : null);
+                ApplyFormatting(run, formatting, options);
+                return;
+            }
+
             int lastIndex = 0;
             foreach (Match match in _urlRegex.Matches(text)) {
                 if (match.Index > lastIndex) {
@@ -332,6 +359,11 @@ namespace OfficeIMO.Word.Html {
             var declaration = _inlineParser.ParseDeclaration(styleText);
             if (declaration.Length == 0 && parsed.BackgroundColor == null && !parsed.Underline && !parsed.Strike) {
                 return;
+            }
+
+            var fontShorthand = declaration.GetPropertyValue("font");
+            if (!string.IsNullOrWhiteSpace(fontShorthand)) {
+                ApplyFontShorthand(fontShorthand, ref formatting);
             }
 
             var color = NormalizeColor(declaration.GetPropertyValue("color"));
@@ -414,6 +446,91 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
+        private static void ApplyFontShorthand(string font, ref TextFormatting formatting) {
+            var tokens = TokenizeFontShorthand(font);
+            if (tokens.Count == 0) {
+                return;
+            }
+
+            int sizeIndex = -1;
+            int? parsedSize = null;
+            for (int i = 0; i < tokens.Count; i++) {
+                var token = tokens[i];
+                var sizeToken = token;
+                var slashIndex = token.IndexOf('/');
+                if (slashIndex >= 0) {
+                    sizeToken = token.Substring(0, slashIndex);
+                }
+                if (TryParseFontSize(sizeToken, out int size)) {
+                    sizeIndex = i;
+                    parsedSize = size;
+                    break;
+                }
+            }
+
+            if (sizeIndex < 0) {
+                return;
+            }
+
+            for (int i = 0; i < sizeIndex; i++) {
+                var t = tokens[i].Trim().ToLowerInvariant();
+                if (t == "italic" || t == "oblique") {
+                    formatting.Italic = true;
+                } else if (t == "small-caps") {
+                    formatting.Caps = CapsStyle.SmallCaps;
+                } else if (t == "bold" || t == "bolder") {
+                    formatting.Bold = true;
+                } else if (int.TryParse(t, out int weight)) {
+                    formatting.Bold = weight >= 600;
+                }
+            }
+
+            if (parsedSize.HasValue) {
+                formatting.FontSize = parsedSize.Value;
+            }
+
+            if (sizeIndex + 1 < tokens.Count) {
+                var familyText = string.Join(" ", tokens.Skip(sizeIndex + 1));
+                var resolved = ResolveFontFamily(familyText);
+                if (!string.IsNullOrEmpty(resolved)) {
+                    formatting.FontFamily = resolved;
+                }
+            }
+        }
+
+        private static List<string> TokenizeFontShorthand(string font) {
+            var tokens = new List<string>();
+            if (string.IsNullOrWhiteSpace(font)) {
+                return tokens;
+            }
+            var sb = new StringBuilder();
+            char quote = '\0';
+            foreach (var ch in font) {
+                if (quote == '\0' && (ch == '"' || ch == '\'')) {
+                    quote = ch;
+                    sb.Append(ch);
+                    continue;
+                }
+                if (quote != '\0' && ch == quote) {
+                    quote = '\0';
+                    sb.Append(ch);
+                    continue;
+                }
+                if (char.IsWhiteSpace(ch) && quote == '\0') {
+                    if (sb.Length > 0) {
+                        tokens.Add(sb.ToString());
+                        sb.Clear();
+                    }
+                } else {
+                    sb.Append(ch);
+                }
+            }
+            if (sb.Length > 0) {
+                tokens.Add(sb.ToString());
+            }
+            return tokens;
+        }
+
         private static bool TryParseHtmlFontSize(string? value, out int size) {
             size = 0;
             if (TryParseFontSize(value, out size)) {
@@ -466,6 +583,13 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
             string v = value!.Trim();
+            if (v.StartsWith("hsl", StringComparison.OrdinalIgnoreCase)) {
+                if (TryParseHsl(v, out byte hr, out byte hg, out byte hb)) {
+                    var color = new Color(new Rgb24(hr, hg, hb));
+                    return color.ToHexColor();
+                }
+                return null;
+            }
             if (v.StartsWith("rgb", StringComparison.OrdinalIgnoreCase)) {
                 int start = v.IndexOf('(');
                 int end = v.IndexOf(')');
@@ -495,6 +619,76 @@ namespace OfficeIMO.Word.Html {
                 }
                 return null;
             }
+        }
+
+        private static bool TryParseHsl(string text, out byte r, out byte g, out byte b) {
+            r = g = b = 0;
+            int start = text.IndexOf('(');
+            int end = text.LastIndexOf(')');
+            if (start < 0 || end <= start) {
+                return false;
+            }
+            var content = text.Substring(start + 1, end - start - 1);
+            var slashIndex = content.IndexOf('/');
+            if (slashIndex >= 0) {
+                content = content.Substring(0, slashIndex);
+            }
+            var parts = content.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 3) {
+                return false;
+            }
+            if (!double.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var h)) {
+                return false;
+            }
+            if (!TryParsePercent(parts[1], out var s) || !TryParsePercent(parts[2], out var l)) {
+                return false;
+            }
+            return HslToRgb(h, s, l, out r, out g, out b);
+        }
+
+        private static bool TryParsePercent(string text, out double value) {
+            value = 0;
+            var t = text.Trim();
+            if (t.EndsWith("%", StringComparison.Ordinal)) {
+                t = t.Substring(0, t.Length - 1);
+            }
+            if (!double.TryParse(t, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)) {
+                return false;
+            }
+            value = parsed / 100d;
+            return true;
+        }
+
+        private static bool HslToRgb(double h, double s, double l, out byte r, out byte g, out byte b) {
+            r = g = b = 0;
+            h = h % 360;
+            if (h < 0) h += 360;
+            s = s < 0 ? 0 : s > 1 ? 1 : s;
+            l = l < 0 ? 0 : l > 1 ? 1 : l;
+
+            double c = (1 - Math.Abs(2 * l - 1)) * s;
+            double x = c * (1 - Math.Abs((h / 60d) % 2 - 1));
+            double m = l - c / 2;
+
+            double r1, g1, b1;
+            if (h < 60) {
+                r1 = c; g1 = x; b1 = 0;
+            } else if (h < 120) {
+                r1 = x; g1 = c; b1 = 0;
+            } else if (h < 180) {
+                r1 = 0; g1 = c; b1 = x;
+            } else if (h < 240) {
+                r1 = 0; g1 = x; b1 = c;
+            } else if (h < 300) {
+                r1 = x; g1 = 0; b1 = c;
+            } else {
+                r1 = c; g1 = 0; b1 = x;
+            }
+
+            r = (byte)Math.Round((r1 + m) * 255);
+            g = (byte)Math.Round((g1 + m) * 255);
+            b = (byte)Math.Round((b1 + m) * 255);
+            return true;
         }
 
         private static readonly Dictionary<HighlightColorValues, Color> _highlightColors = new() {

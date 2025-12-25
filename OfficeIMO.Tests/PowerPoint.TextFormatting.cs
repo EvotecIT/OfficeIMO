@@ -124,5 +124,43 @@ namespace OfficeIMO.Tests {
 
             File.Delete(filePath);
         }
+
+        [Fact]
+        public void CanApplyTextAndParagraphStyles() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointTextBox box = slide.AddTextBox("Highlights");
+                box.AddBullets(new[] { "First", "Second" });
+                box.ApplyTextStyle(new PowerPointTextStyle(fontSize: 20, bold: true, color: "336699"));
+                box.ApplyParagraphStyle(new PowerPointParagraphStyle(
+                    lineSpacingMultiplier: 1.2,
+                    spaceAfterPoints: 4,
+                    leftMarginPoints: 18,
+                    indentPoints: -18));
+                presentation.Save();
+            }
+
+            using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                SlidePart slidePart = document.PresentationPart!.SlideParts.First();
+                Shape shape = slidePart.Slide.Descendants<Shape>().First();
+                A.Paragraph paragraph = shape.TextBody!.Elements<A.Paragraph>().First();
+                A.Run run = paragraph.GetFirstChild<A.Run>()!;
+                A.RunProperties rp = run.RunProperties!;
+
+                Assert.Equal(2000, rp.FontSize!.Value);
+                Assert.True(rp.Bold?.Value ?? false);
+                Assert.Equal("336699", rp.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val);
+
+                A.ParagraphProperties pp = paragraph.ParagraphProperties!;
+                Assert.Equal(1800, pp.LeftMargin!.Value);
+                Assert.Equal(-1800, pp.Indent!.Value);
+                Assert.Equal(120000, pp.LineSpacing!.SpacingPercent!.Val!.Value);
+                Assert.Equal(400, pp.SpaceAfter!.SpacingPoints!.Val!.Value);
+            }
+
+            File.Delete(filePath);
+        }
     }
 }

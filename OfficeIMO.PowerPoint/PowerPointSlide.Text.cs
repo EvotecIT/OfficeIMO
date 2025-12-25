@@ -34,9 +34,51 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(shape);
-            PowerPointTextBox textBox = new(shape);
+            PowerPointTextBox textBox = new(shape, _slidePart);
             _shapes.Add(textBox);
             return textBox;
+        }
+
+        /// <summary>
+        ///     Adds a title textbox using a layout box.
+        /// </summary>
+        public PowerPointTextBox AddTitle(string text, PowerPointLayoutBox layout) {
+            return AddTitle(text, layout.Left, layout.Top, layout.Width, layout.Height);
+        }
+
+        /// <summary>
+        ///     Adds a title textbox using centimeter measurements.
+        /// </summary>
+        public PowerPointTextBox AddTitleCm(string text, double leftCm, double topCm, double widthCm, double heightCm) {
+            return AddTitle(text,
+                PowerPointUnits.FromCentimeters(leftCm),
+                PowerPointUnits.FromCentimeters(topCm),
+                PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm));
+        }
+
+        /// <summary>
+        ///     Adds a title textbox using inch measurements.
+        /// </summary>
+        public PowerPointTextBox AddTitleInches(string text, double leftInches, double topInches, double widthInches,
+            double heightInches) {
+            return AddTitle(text,
+                PowerPointUnits.FromInches(leftInches),
+                PowerPointUnits.FromInches(topInches),
+                PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches));
+        }
+
+        /// <summary>
+        ///     Adds a title textbox using point measurements.
+        /// </summary>
+        public PowerPointTextBox AddTitlePoints(string text, double leftPoints, double topPoints, double widthPoints,
+            double heightPoints) {
+            return AddTitle(text,
+                PowerPointUnits.FromPoints(leftPoints),
+                PowerPointUnits.FromPoints(topPoints),
+                PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints));
         }
 
         /// <summary>
@@ -69,9 +111,59 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(shape);
-            PowerPointTextBox textBox = new(shape);
+            PowerPointTextBox textBox = new(shape, _slidePart);
             _shapes.Add(textBox);
             return textBox;
+        }
+
+        /// <summary>
+        ///     Adds a textbox using a layout box.
+        /// </summary>
+        public PowerPointTextBox AddTextBox(string text, PowerPointLayoutBox layout) {
+            return AddTextBox(text, layout.Left, layout.Top, layout.Width, layout.Height);
+        }
+
+        /// <summary>
+        ///     Adds an empty textbox using a layout box.
+        /// </summary>
+        public PowerPointTextBox AddTextBox(PowerPointLayoutBox layout) {
+            return AddTextBox(string.Empty, layout.Left, layout.Top, layout.Width, layout.Height);
+        }
+
+        /// <summary>
+        ///     Adds a textbox using centimeter measurements.
+        /// </summary>
+        public PowerPointTextBox AddTextBoxCm(string text, double leftCm, double topCm, double widthCm,
+            double heightCm) {
+            return AddTextBox(text,
+                PowerPointUnits.FromCentimeters(leftCm),
+                PowerPointUnits.FromCentimeters(topCm),
+                PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm));
+        }
+
+        /// <summary>
+        ///     Adds a textbox using inch measurements.
+        /// </summary>
+        public PowerPointTextBox AddTextBoxInches(string text, double leftInches, double topInches, double widthInches,
+            double heightInches) {
+            return AddTextBox(text,
+                PowerPointUnits.FromInches(leftInches),
+                PowerPointUnits.FromInches(topInches),
+                PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches));
+        }
+
+        /// <summary>
+        ///     Adds a textbox using point measurements.
+        /// </summary>
+        public PowerPointTextBox AddTextBoxPoints(string text, double leftPoints, double topPoints, double widthPoints,
+            double heightPoints) {
+            return AddTextBox(text,
+                PowerPointUnits.FromPoints(leftPoints),
+                PowerPointUnits.FromPoints(topPoints),
+                PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints));
         }
 
     }

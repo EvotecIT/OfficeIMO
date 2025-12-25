@@ -7,7 +7,6 @@ using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointUtils {
-        private const string RelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
         internal static NotesMasterPart EnsureNotesMasterPart(PresentationPart presentationPart) {
             NotesMasterPart notesMasterPart = presentationPart.NotesMasterPart ?? presentationPart.AddNewPart<NotesMasterPart>();
