@@ -28,6 +28,20 @@ namespace OfficeIMO.PowerPoint {
             .Count();
 
         /// <summary>
+        ///     Row wrappers for the table.
+        /// </summary>
+        public IReadOnlyList<PowerPointTableRow> RowItems =>
+            TableElement.Elements<A.TableRow>().Select(r => new PowerPointTableRow(this, r)).ToList();
+
+        /// <summary>
+        ///     Column wrappers for the table.
+        /// </summary>
+        public IReadOnlyList<PowerPointTableColumn> ColumnItems =>
+            TableElement.TableGrid?.Elements<A.GridColumn>()
+                .Select(c => new PowerPointTableColumn(this, c))
+                .ToList() ?? new List<PowerPointTableColumn>();
+
+        /// <summary>
         ///     Enables or disables header row styling (firstRow attribute) on the table.
         /// </summary>
         public bool HeaderRow {
@@ -361,6 +375,30 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Retrieves a row wrapper at the specified index.
+        /// </summary>
+        public PowerPointTableRow GetRow(int rowIndex) {
+            if (rowIndex < 0 || rowIndex >= Rows) {
+                throw new ArgumentOutOfRangeException(nameof(rowIndex));
+            }
+
+            A.TableRow tableRow = TableElement.Elements<A.TableRow>().ElementAt(rowIndex);
+            return new PowerPointTableRow(this, tableRow);
+        }
+
+        /// <summary>
+        ///     Retrieves a column wrapper at the specified index.
+        /// </summary>
+        public PowerPointTableColumn GetColumn(int columnIndex) {
+            if (columnIndex < 0 || columnIndex >= Columns) {
+                throw new ArgumentOutOfRangeException(nameof(columnIndex));
+            }
+
+            A.GridColumn column = TableElement.TableGrid!.Elements<A.GridColumn>().ElementAt(columnIndex);
+            return new PowerPointTableColumn(this, column);
+        }
+
+        /// <summary>
         ///     Merges a rectangular range of cells into the top-left cell.
         /// </summary>
         /// <param name="startRow">Zero-based start row.</param>
@@ -440,6 +478,34 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Adds a new row cloned from a template row.
+        /// </summary>
+        public PowerPointTableRow AddRowFromTemplate(int templateRowIndex, int? index = null, bool clearText = true) {
+            if (templateRowIndex < 0 || templateRowIndex >= Rows) {
+                throw new ArgumentOutOfRangeException(nameof(templateRowIndex));
+            }
+
+            A.Table table = TableElement;
+            A.TableRow templateRow = table.Elements<A.TableRow>().ElementAt(templateRowIndex);
+            A.TableRow newRow = (A.TableRow)templateRow.CloneNode(true);
+            if (clearText) {
+                foreach (A.TableCell cell in newRow.Elements<A.TableCell>()) {
+                    ClearCellText(cell);
+                }
+            }
+
+            int insertAt = index.HasValue ? Math.Min(index.Value, Rows) : Rows;
+            if (insertAt < Rows) {
+                A.TableRow refRow = table.Elements<A.TableRow>().ElementAt(insertAt);
+                table.InsertBefore(newRow, refRow);
+            } else {
+                table.Append(newRow);
+            }
+
+            return new PowerPointTableRow(this, newRow);
+        }
+
+        /// <summary>
         ///     Removes a row at the specified index.
         /// </summary>
         /// <param name="index">Zero-based index of the row to remove.</param>
@@ -479,6 +545,46 @@ namespace OfficeIMO.PowerPoint {
                     row.Append(cell);
                 }
             }
+        }
+
+        /// <summary>
+        ///     Adds a new column cloned from a template column.
+        /// </summary>
+        public PowerPointTableColumn AddColumnFromTemplate(int templateColumnIndex, int? index = null, bool clearText = true) {
+            if (templateColumnIndex < 0 || templateColumnIndex >= Columns) {
+                throw new ArgumentOutOfRangeException(nameof(templateColumnIndex));
+            }
+
+            A.Table table = TableElement;
+            A.TableGrid grid = table.TableGrid ?? throw new InvalidOperationException("Table grid is missing.");
+            int existingColumns = Columns;
+            A.GridColumn templateColumn = grid.Elements<A.GridColumn>().ElementAt(templateColumnIndex);
+            A.GridColumn newColumn = (A.GridColumn)templateColumn.CloneNode(true);
+
+            int insertAt = index.HasValue ? Math.Min(index.Value, existingColumns) : existingColumns;
+            if (insertAt < existingColumns) {
+                A.GridColumn refColumn = grid.Elements<A.GridColumn>().ElementAt(insertAt);
+                grid.InsertBefore(newColumn, refColumn);
+            } else {
+                grid.Append(newColumn);
+            }
+
+            foreach (A.TableRow row in table.Elements<A.TableRow>()) {
+                A.TableCell templateCell = row.Elements<A.TableCell>().ElementAt(templateColumnIndex);
+                A.TableCell newCell = (A.TableCell)templateCell.CloneNode(true);
+                if (clearText) {
+                    ClearCellText(newCell);
+                }
+
+                if (insertAt < existingColumns) {
+                    A.TableCell refCell = row.Elements<A.TableCell>().ElementAt(insertAt);
+                    row.InsertBefore(newCell, refCell);
+                } else {
+                    row.Append(newCell);
+                }
+            }
+
+            return new PowerPointTableColumn(this, newColumn);
         }
 
         /// <summary>
@@ -550,13 +656,17 @@ namespace OfficeIMO.PowerPoint {
             return (long)Math.Round(points * EmusPerPoint);
         }
 
-        private static void ClearMergedCellText(A.TableCell cell) {
+        private static void ClearCellText(A.TableCell cell) {
             if (cell.TextBody == null) {
                 return;
             }
 
             cell.TextBody.RemoveAllChildren<A.Paragraph>();
             cell.TextBody.Append(new A.Paragraph(new A.Run(new A.Text(string.Empty))));
+        }
+
+        private static void ClearMergedCellText(A.TableCell cell) {
+            ClearCellText(cell);
         }
     }
 }

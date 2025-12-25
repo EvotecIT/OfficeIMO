@@ -34,7 +34,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(shape);
-            PowerPointTextBox textBox = new(shape);
+            PowerPointTextBox textBox = new(shape, _slidePart);
             _shapes.Add(textBox);
             return textBox;
         }
@@ -111,7 +111,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(shape);
-            PowerPointTextBox textBox = new(shape);
+            PowerPointTextBox textBox = new(shape, _slidePart);
             _shapes.Add(textBox);
             return textBox;
         }

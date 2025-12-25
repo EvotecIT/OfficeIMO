@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -7,10 +9,10 @@ using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.PowerPoint {
-    /// <summary>
-    ///     Represents a chart on a slide.
-    /// </summary>
-    public class PowerPointChart : PowerPointShape {
+        /// <summary>
+        ///     Represents a chart on a slide.
+        /// </summary>
+        public class PowerPointChart : PowerPointShape {
         private readonly SlidePart _slidePart;
 
         internal PowerPointChart(GraphicFrame frame, SlidePart slidePart) : base(frame) {
@@ -18,6 +20,37 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private GraphicFrame Frame => (GraphicFrame)Element;
+
+        /// <summary>
+        ///     Updates the chart data (series and categories).
+        /// </summary>
+        public PowerPointChart UpdateData(PowerPointChartData data) {
+            if (data == null) {
+                throw new ArgumentNullException(nameof(data));
+            }
+
+            ChartPart chartPart = GetChartPart();
+            PowerPointUtils.UpdateChartData(chartPart, data);
+
+            EmbeddedPackagePart? embedded = chartPart.GetPartsOfType<EmbeddedPackagePart>().FirstOrDefault();
+            if (embedded != null) {
+                byte[] workbookBytes = PowerPointUtils.BuildChartWorkbook(data);
+                using var stream = new MemoryStream(workbookBytes);
+                embedded.FeedData(stream);
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Updates the chart data using selectors.
+        /// </summary>
+        public PowerPointChart UpdateData<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+            params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            PowerPointChartData data = PowerPointChartData.From(items, categorySelector, seriesDefinitions);
+            return UpdateData(data);
+        }
 
         /// <summary>
         ///     Sets the chart title text.

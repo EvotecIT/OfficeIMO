@@ -114,6 +114,18 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Gets a value indicating whether this cell is a merged continuation cell.
+        /// </summary>
+        public bool IsMergedCell =>
+            Cell.HorizontalMerge?.Value == true || Cell.VerticalMerge?.Value == true;
+
+        /// <summary>
+        ///     Gets a value indicating whether this cell is the anchor for a merged range.
+        /// </summary>
+        public bool IsMergeAnchor =>
+            (Cell.RowSpan?.Value ?? 1) > 1 || (Cell.GridSpan?.Value ?? 1) > 1;
+
+        /// <summary>
         ///     Replaces text within the cell while preserving run formatting.
         /// </summary>
         public int ReplaceText(string oldValue, string newValue) {

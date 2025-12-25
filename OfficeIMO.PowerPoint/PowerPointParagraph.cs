@@ -1,8 +1,8 @@
 using System;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml.Drawing;
+using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -10,8 +10,11 @@ namespace OfficeIMO.PowerPoint {
     /// Represents a paragraph within a textbox.
     /// </summary>
     public class PowerPointParagraph {
-        internal PowerPointParagraph(A.Paragraph paragraph) {
+        private readonly SlidePart? _slidePart;
+
+        internal PowerPointParagraph(A.Paragraph paragraph, SlidePart? slidePart = null) {
             Paragraph = paragraph;
+            _slidePart = slidePart;
         }
 
         internal A.Paragraph Paragraph { get; }
@@ -38,7 +41,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointParagraph AddText(string text, Action<PowerPointTextRun>? configure = null) {
             A.Run run = InsertRun(text);
-            var wrapper = new PowerPointTextRun(run);
+            var wrapper = new PowerPointTextRun(run, _slidePart);
             configure?.Invoke(wrapper);
             return this;
         }
@@ -49,7 +52,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointParagraph AddFormattedText(string text, bool bold = false, bool italic = false,
             A.TextUnderlineValues? underline = null) {
             A.Run run = InsertRun(text);
-            var wrapper = new PowerPointTextRun(run);
+            var wrapper = new PowerPointTextRun(run, _slidePart);
             if (bold) {
                 wrapper.Bold = true;
             }
@@ -98,14 +101,14 @@ namespace OfficeIMO.PowerPoint {
         /// Runs within the paragraph.
         /// </summary>
         public IReadOnlyList<PowerPointTextRun> Runs =>
-            Paragraph.Elements<A.Run>().Select(r => new PowerPointTextRun(r)).ToList();
+            Paragraph.Elements<A.Run>().Select(r => new PowerPointTextRun(r, _slidePart)).ToList();
 
         /// <summary>
         /// Adds a run to the paragraph.
         /// </summary>
         public PowerPointTextRun AddRun(string text, Action<PowerPointTextRun>? configure = null) {
             A.Run run = InsertRun(text);
-            var wrapper = new PowerPointTextRun(run);
+            var wrapper = new PowerPointTextRun(run, _slidePart);
             configure?.Invoke(wrapper);
             return wrapper;
         }
@@ -384,10 +387,93 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        /// Sets the current run highlight color and returns the paragraph for chaining.
+        /// </summary>
+        public PowerPointParagraph SetHighlightColor(string color) {
+            PowerPointTextRun run = GetDefaultRun();
+            run.HighlightColor = color;
+            return this;
+        }
+
+        /// <summary>
         /// Sets the paragraph text and returns the paragraph for chaining.
         /// </summary>
         public PowerPointParagraph SetText(string text) {
             Text = text;
+            return this;
+        }
+
+        /// <summary>
+        /// Gets or sets the bullet font name.
+        /// </summary>
+        public string? BulletFontName {
+            get => Paragraph.ParagraphProperties?.GetFirstChild<A.BulletFont>()?.Typeface;
+            set {
+                A.ParagraphProperties props = EnsureParagraphProperties();
+                props.RemoveAllChildren<A.BulletFont>();
+                if (!string.IsNullOrWhiteSpace(value)) {
+                    props.Append(new A.BulletFont { Typeface = value });
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the bullet size in points.
+        /// </summary>
+        public int? BulletSizePoints {
+            get {
+                int? size = Paragraph.ParagraphProperties?.GetFirstChild<A.BulletSizePoints>()?.Val?.Value;
+                return size != null ? size / 100 : null;
+            }
+            set {
+                A.ParagraphProperties props = EnsureParagraphProperties();
+                props.RemoveAllChildren<A.BulletSizePoints>();
+                props.RemoveAllChildren<A.BulletSizePercentage>();
+                if (value != null) {
+                    props.Append(new A.BulletSizePoints { Val = value.Value * 100 });
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the bullet size in percent (100 = 100%).
+        /// </summary>
+        public int? BulletSizePercent {
+            get {
+                int? size = Paragraph.ParagraphProperties?.GetFirstChild<A.BulletSizePercentage>()?.Val?.Value;
+                return size != null ? size / 1000 : null;
+            }
+            set {
+                A.ParagraphProperties props = EnsureParagraphProperties();
+                props.RemoveAllChildren<A.BulletSizePercentage>();
+                props.RemoveAllChildren<A.BulletSizePoints>();
+                if (value != null) {
+                    props.Append(new A.BulletSizePercentage { Val = value.Value * 1000 });
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sets the bullet font and returns the paragraph for chaining.
+        /// </summary>
+        public PowerPointParagraph SetBulletFont(string fontName) {
+            BulletFontName = fontName;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the bullet size in points and returns the paragraph for chaining.
+        /// </summary>
+        public PowerPointParagraph SetBulletSizePoints(int sizePoints) {
+            BulletSizePoints = sizePoints;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the bullet size in percent (100 = 100%) and returns the paragraph for chaining.
+        /// </summary>
+        public PowerPointParagraph SetBulletSizePercent(int percent) {
+            BulletSizePercent = percent;
             return this;
         }
 
@@ -436,7 +522,7 @@ namespace OfficeIMO.PowerPoint {
 
         private PowerPointTextRun GetDefaultRun() {
             A.Run run = Paragraph.Elements<A.Run>().LastOrDefault() ?? InsertRun(string.Empty);
-            return new PowerPointTextRun(run);
+            return new PowerPointTextRun(run, _slidePart);
         }
 
         private A.Run InsertRun(string text) {
@@ -452,6 +538,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ClearBulletInternal(A.ParagraphProperties props) {
             props.RemoveAllChildren<A.BulletFont>();
+            props.RemoveAllChildren<A.BulletSizePoints>();
+            props.RemoveAllChildren<A.BulletSizePercentage>();
             props.RemoveAllChildren<A.CharacterBullet>();
             props.RemoveAllChildren<A.AutoNumberedBullet>();
             props.RemoveAllChildren<A.NoBullet>();

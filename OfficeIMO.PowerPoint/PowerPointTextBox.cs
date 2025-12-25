@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -9,7 +10,10 @@ namespace OfficeIMO.PowerPoint {
     ///     Represents a textbox shape.
     /// </summary>
     public class PowerPointTextBox : PowerPointShape {
-        internal PowerPointTextBox(Shape shape) : base(shape) {
+        private readonly SlidePart? _slidePart;
+
+        internal PowerPointTextBox(Shape shape, SlidePart? slidePart = null) : base(shape) {
+            _slidePart = slidePart;
         }
 
         private Shape Shape => (Shape)Element;
@@ -20,7 +24,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Paragraphs contained in the textbox.
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> Paragraphs =>
-            EnsureTextBody().Elements<A.Paragraph>().Select(p => new PowerPointParagraph(p)).ToList();
+            EnsureTextBody().Elements<A.Paragraph>().Select(p => new PowerPointParagraph(p, _slidePart)).ToList();
 
         /// <summary>
         ///     Adds a paragraph to the textbox.
@@ -52,7 +56,7 @@ namespace OfficeIMO.PowerPoint {
 
             textBody.Append(paragraph);
 
-            var wrapper = new PowerPointParagraph(paragraph);
+            var wrapper = new PowerPointParagraph(paragraph, _slidePart);
             configure?.Invoke(wrapper);
             if (run != null) {
                 var runWrapper = wrapper.Runs.FirstOrDefault() ?? wrapper.AddRun(text ?? string.Empty);

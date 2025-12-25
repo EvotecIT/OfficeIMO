@@ -9,13 +9,14 @@ namespace OfficeIMO.PowerPoint {
         /// Creates a new text style instance.
         /// </summary>
         public PowerPointTextStyle(int? fontSize = null, string? fontName = null, string? color = null,
-            bool? bold = null, bool? italic = null, bool? underline = null) {
+            bool? bold = null, bool? italic = null, bool? underline = null, string? highlightColor = null) {
             FontSize = fontSize;
             FontName = fontName;
             Color = color;
             Bold = bold;
             Italic = italic;
             Underline = underline;
+            HighlightColor = highlightColor;
         }
 
         /// <summary>
@@ -47,6 +48,11 @@ namespace OfficeIMO.PowerPoint {
         /// Underline formatting.
         /// </summary>
         public bool? Underline { get; }
+
+        /// <summary>
+        /// Highlight color in hex (e.g. "FFF59D").
+        /// </summary>
+        public string? HighlightColor { get; }
 
         /// <summary>
         /// A preset for typical slide titles.
@@ -99,6 +105,9 @@ namespace OfficeIMO.PowerPoint {
             if (Underline != null) {
                 run.Underline = Underline.Value;
             }
+            if (HighlightColor != null) {
+                run.HighlightColor = HighlightColor;
+            }
         }
 
         /// <summary>
@@ -127,48 +136,58 @@ namespace OfficeIMO.PowerPoint {
             if (Underline != null) {
                 paragraph.SetUnderline(Underline.Value);
             }
+            if (HighlightColor != null) {
+                paragraph.SetHighlightColor(HighlightColor);
+            }
         }
 
         /// <summary>
         /// Returns a copy with a new font size.
         /// </summary>
         public PowerPointTextStyle WithFontSize(int? fontSize) {
-            return new PowerPointTextStyle(fontSize, FontName, Color, Bold, Italic, Underline);
+            return new PowerPointTextStyle(fontSize, FontName, Color, Bold, Italic, Underline, HighlightColor);
         }
 
         /// <summary>
         /// Returns a copy with a new font name.
         /// </summary>
         public PowerPointTextStyle WithFontName(string? fontName) {
-            return new PowerPointTextStyle(FontSize, fontName, Color, Bold, Italic, Underline);
+            return new PowerPointTextStyle(FontSize, fontName, Color, Bold, Italic, Underline, HighlightColor);
         }
 
         /// <summary>
         /// Returns a copy with a new color.
         /// </summary>
         public PowerPointTextStyle WithColor(string? color) {
-            return new PowerPointTextStyle(FontSize, FontName, color, Bold, Italic, Underline);
+            return new PowerPointTextStyle(FontSize, FontName, color, Bold, Italic, Underline, HighlightColor);
         }
 
         /// <summary>
         /// Returns a copy with bold formatting updated.
         /// </summary>
         public PowerPointTextStyle WithBold(bool? bold) {
-            return new PowerPointTextStyle(FontSize, FontName, Color, bold, Italic, Underline);
+            return new PowerPointTextStyle(FontSize, FontName, Color, bold, Italic, Underline, HighlightColor);
         }
 
         /// <summary>
         /// Returns a copy with italic formatting updated.
         /// </summary>
         public PowerPointTextStyle WithItalic(bool? italic) {
-            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, italic, Underline);
+            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, italic, Underline, HighlightColor);
         }
 
         /// <summary>
         /// Returns a copy with underline formatting updated.
         /// </summary>
         public PowerPointTextStyle WithUnderline(bool? underline) {
-            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, Italic, underline);
+            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, Italic, underline, HighlightColor);
+        }
+
+        /// <summary>
+        /// Returns a copy with a new highlight color.
+        /// </summary>
+        public PowerPointTextStyle WithHighlightColor(string? highlightColor) {
+            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, Italic, Underline, highlightColor);
         }
     }
 }

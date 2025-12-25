@@ -1,4 +1,7 @@
+using System;
+using System.Linq;
 using DocumentFormat.OpenXml.Drawing;
+using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -6,8 +9,11 @@ namespace OfficeIMO.PowerPoint {
     /// Represents a formatted text run within a paragraph.
     /// </summary>
     public class PowerPointTextRun {
-        internal PowerPointTextRun(A.Run run) {
+        private readonly SlidePart? _slidePart;
+
+        internal PowerPointTextRun(A.Run run, SlidePart? slidePart = null) {
             Run = run;
+            _slidePart = slidePart;
         }
 
         internal A.Run Run { get; }
@@ -85,7 +91,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the text color in hexadecimal format (e.g. "FF0000").
+        /// Gets or sets the text color in hexadecimal format (e.g. "FF0000").  
         /// </summary>
         public string? Color {
             get => Run.RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
@@ -108,6 +114,87 @@ namespace OfficeIMO.PowerPoint {
                 if (ea != null) props.Append((A.EastAsianFont)ea.CloneNode(true));
                 if (cs != null) props.Append((A.ComplexScriptFont)cs.CloneNode(true));
             }
+        }
+
+        /// <summary>
+        /// Gets or sets the highlight color in hexadecimal format (e.g. "FFFF00").
+        /// </summary>
+        public string? HighlightColor {
+            get => Run.RunProperties?.GetFirstChild<A.Highlight>()?.GetFirstChild<A.RgbColorModelHex>()?.Val;
+            set {
+                A.RunProperties props = EnsureRunProperties();
+                props.RemoveAllChildren<A.Highlight>();
+                if (value != null) {
+                    props.Append(new A.Highlight(new A.RgbColorModelHex { Val = value }));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the hyperlink target for this run.
+        /// </summary>
+        public Uri? Hyperlink {
+            get {
+                if (_slidePart == null) {
+                    return null;
+                }
+
+                string? relId = Run.RunProperties?.GetFirstChild<A.HyperlinkOnClick>()?.Id;
+                if (string.IsNullOrWhiteSpace(relId)) {
+                    return null;
+                }
+
+                HyperlinkRelationship? rel = _slidePart.HyperlinkRelationships
+                    .FirstOrDefault(r => string.Equals(r.Id, relId, StringComparison.Ordinal));
+                return rel?.Uri;
+            }
+            set {
+                if (value == null) {
+                    ClearHyperlink();
+                } else {
+                    SetHyperlink(value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sets a hyperlink for this run.
+        /// </summary>
+        public void SetHyperlink(string url, string? tooltip = null) {
+            if (url == null) {
+                throw new ArgumentNullException(nameof(url));
+            }
+
+            SetHyperlink(new Uri(url, UriKind.RelativeOrAbsolute), tooltip);
+        }
+
+        /// <summary>
+        /// Sets a hyperlink for this run.
+        /// </summary>
+        public void SetHyperlink(Uri uri, string? tooltip = null) {
+            if (uri == null) {
+                throw new ArgumentNullException(nameof(uri));
+            }
+            if (_slidePart == null) {
+                throw new InvalidOperationException("Hyperlinks require a slide context.");
+            }
+
+            HyperlinkRelationship rel = _slidePart.AddHyperlinkRelationship(uri, true);
+            A.RunProperties props = EnsureRunProperties();
+            props.RemoveAllChildren<A.HyperlinkOnClick>();
+            var hyperlink = new A.HyperlinkOnClick { Id = rel.Id };
+            if (!string.IsNullOrWhiteSpace(tooltip)) {
+                hyperlink.Tooltip = tooltip;
+            }
+            props.Append(hyperlink);
+        }
+
+        /// <summary>
+        /// Removes any hyperlink from this run.
+        /// </summary>
+        public void ClearHyperlink() {
+            A.RunProperties? props = Run.RunProperties;
+            props?.RemoveAllChildren<A.HyperlinkOnClick>();
         }
 
         private A.RunProperties EnsureRunProperties() {

@@ -598,7 +598,7 @@ namespace OfficeIMO.PowerPoint {
                 switch (element) {
                     case Shape s:
                         if (s.TextBody != null) {
-                            _shapes.Add(new PowerPointTextBox(s));
+                            _shapes.Add(new PowerPointTextBox(s, _slidePart));
                         } else {
                             _shapes.Add(new PowerPointAutoShape(s));
                         }
