@@ -1,5 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Word {
 
@@ -300,6 +302,39 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Adds a hyperlink pointing to the specified anchor within the document using existing runs.
+        /// </summary>
+        public static WordParagraph AddHyperLink(WordParagraph paragraph, IEnumerable<WordParagraph> runs, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
+            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+            if (runs == null) throw new ArgumentNullException(nameof(runs));
+
+            Hyperlink hyperlink = new Hyperlink() {
+                Anchor = anchor,
+                History = history,
+            };
+
+            if (!string.IsNullOrEmpty(tooltip)) {
+                hyperlink.Tooltip = tooltip;
+            }
+
+            foreach (var runParagraph in runs) {
+                var run = runParagraph?._run;
+                if (run == null) {
+                    continue;
+                }
+                var cloned = (Run)run.CloneNode(true);
+                if (addStyle) {
+                    ApplyHyperlinkStyle(cloned);
+                }
+                hyperlink.Append(cloned);
+            }
+
+            paragraph._paragraph.Append(hyperlink);
+            paragraph._hyperlink = hyperlink;
+            return paragraph;
+        }
+
+        /// <summary>
         /// Adds a hyperlink pointing to an external URI.
         /// </summary>
         public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
@@ -349,6 +384,59 @@ namespace OfficeIMO.Word {
             paragraph._paragraph.Append(hyperlink);
             paragraph._hyperlink = hyperlink;
             return paragraph;
+        }
+
+        /// <summary>
+        /// Adds a hyperlink pointing to an external URI using existing runs.
+        /// </summary>
+        public static WordParagraph AddHyperLink(WordParagraph paragraph, IEnumerable<WordParagraph> runs, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
+            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+            if (runs == null) throw new ArgumentNullException(nameof(runs));
+
+            HyperlinkRelationship rel;
+
+            var headerPart = paragraph._paragraph.Ancestors<Header>().FirstOrDefault()?.HeaderPart;
+            var footerPart = paragraph._paragraph.Ancestors<Footer>().FirstOrDefault()?.FooterPart;
+
+            if (headerPart != null) {
+                rel = headerPart.AddHyperlinkRelationship(uri, true);
+            } else if (footerPart != null) {
+                rel = footerPart.AddHyperlinkRelationship(uri, true);
+            } else {
+                rel = paragraph._document._wordprocessingDocument.MainDocumentPart!.AddHyperlinkRelationship(uri, true);
+            }
+
+            Hyperlink hyperlink = new Hyperlink() {
+                Id = rel.Id,
+                History = history,
+            };
+
+            if (!string.IsNullOrEmpty(tooltip)) {
+                hyperlink.Tooltip = tooltip;
+            }
+
+            foreach (var runParagraph in runs) {
+                var run = runParagraph?._run;
+                if (run == null) {
+                    continue;
+                }
+                var cloned = (Run)run.CloneNode(true);
+                if (addStyle) {
+                    ApplyHyperlinkStyle(cloned);
+                }
+                hyperlink.Append(cloned);
+            }
+
+            paragraph._paragraph.Append(hyperlink);
+            paragraph._hyperlink = hyperlink;
+            return paragraph;
+        }
+
+        private static void ApplyHyperlinkStyle(Run run) {
+            run.RunProperties ??= new RunProperties();
+            run.RunProperties.RunStyle ??= new RunStyle { Val = "Hyperlink" };
+            run.RunProperties.Color ??= new Color { ThemeColor = ThemeColorValues.Hyperlink, Val = "0000FF" };
+            run.RunProperties.Underline ??= new Underline { Val = UnderlineValues.Single };
         }
 
         /// <summary>
