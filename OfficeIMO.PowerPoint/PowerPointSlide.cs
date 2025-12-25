@@ -308,13 +308,15 @@ namespace OfficeIMO.PowerPoint {
         public bool Hidden {
             get {
                 SlideId slideId = GetSlideId();
-                OpenXmlAttribute showAttribute = slideId.GetAttribute("show", string.Empty);
-                if (string.IsNullOrEmpty(showAttribute.Value)) {
+                OpenXmlAttribute? showAttribute = slideId.GetAttributes()
+                    .FirstOrDefault(attribute =>
+                        attribute.LocalName == "show" && string.IsNullOrEmpty(attribute.NamespaceUri));
+                if (showAttribute == null || string.IsNullOrEmpty(showAttribute.Value.Value)) {
                     return false;
                 }
 
-                return string.Equals(showAttribute.Value, "0", StringComparison.Ordinal) ||
-                       string.Equals(showAttribute.Value, "false", StringComparison.OrdinalIgnoreCase);
+                return string.Equals(showAttribute.Value.Value, "0", StringComparison.Ordinal) ||
+                       string.Equals(showAttribute.Value.Value, "false", StringComparison.OrdinalIgnoreCase);
             }
             set {
                 SlideId slideId = GetSlideId();

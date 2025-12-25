@@ -377,6 +377,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointSlide sourceSlide = _slides[index];
             SlidePart sourcePart = sourceSlide.SlidePart;
 
+            sourceSlide.Save();
+
             string slideRelId = GetNextSlideRelationshipId();
             SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>(slideRelId);
             slidePart.Slide = (Slide)sourcePart.Slide.CloneNode(true);
@@ -388,7 +390,9 @@ namespace OfficeIMO.PowerPoint {
             InsertSlideId(slideIdList, slideId, targetIndex);
 
             PowerPointSlide duplicate = new(slidePart);
+            duplicate.Hidden = sourceSlide.Hidden;
             _slides.Insert(targetIndex, duplicate);
+            _presentationPart.Presentation.Save();
             return duplicate;
         }
 
@@ -587,23 +591,37 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void CloneDataPartReferenceRelationships(OpenXmlPartContainer source, OpenXmlPartContainer target) {
-            if (target is not SlidePart slidePart) {
-                return;
-            }
-
             foreach (DataPartReferenceRelationship rel in source.DataPartReferenceRelationships) {
                 if (rel.DataPart is not MediaDataPart mediaPart) {
                     continue;
                 }
 
                 if (rel is AudioReferenceRelationship) {
-                    slidePart.AddAudioReferenceRelationship(mediaPart, rel.Id);
+                    if (TryAddMediaReferenceRelationship(target, "AddAudioReferenceRelationship", mediaPart, rel.Id)) {
+                        continue;
+                    }
                 } else if (rel is VideoReferenceRelationship) {
-                    slidePart.AddVideoReferenceRelationship(mediaPart, rel.Id);
+                    if (TryAddMediaReferenceRelationship(target, "AddVideoReferenceRelationship", mediaPart, rel.Id)) {
+                        continue;
+                    }
                 } else {
-                    slidePart.AddMediaReferenceRelationship(mediaPart, rel.Id);
+                    if (TryAddMediaReferenceRelationship(target, "AddMediaReferenceRelationship", mediaPart, rel.Id)) {
+                        continue;
+                    }
                 }
             }
+        }
+
+        private static bool TryAddMediaReferenceRelationship(OpenXmlPartContainer target, string methodName,
+            MediaDataPart mediaPart, string relationshipId) {
+            MethodInfo? method = target.GetType().GetMethod(methodName,
+                new[] { typeof(MediaDataPart), typeof(string) });
+            if (method == null) {
+                return false;
+            }
+
+            method.Invoke(target, new object[] { mediaPart, relationshipId });
+            return true;
         }
 
         private static bool ShouldSharePart(OpenXmlPart part) {

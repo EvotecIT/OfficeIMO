@@ -66,6 +66,14 @@ namespace OfficeIMO.Examples.PowerPoint {
                         s.Notes("Example notes");
                     })
                     .Slide(s => s.Title("Second Slide"))
+                    .DuplicateSlide(0, null, s => {
+                        s.Hide();
+                        s.TextBox("Duplicated slide (hidden in show).", content.Left, calloutTop,
+                            content.Width, PowerPointUnits.Cm(0.8), tb => {
+                                tb.FontSize = 14;
+                                tb.Color = "666666";
+                            });
+                    })
                     .End()
                     .Save();
             }
