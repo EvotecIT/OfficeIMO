@@ -17,6 +17,10 @@ namespace OfficeIMO.Word.Html {
             internal int? MarginRight { get; set; }
             internal int? MarginTop { get; set; }
             internal int? MarginBottom { get; set; }
+            internal int? PaddingLeft { get; set; }
+            internal int? PaddingRight { get; set; }
+            internal int? PaddingTop { get; set; }
+            internal int? PaddingBottom { get; set; }
             internal bool Underline { get; set; }
             internal bool Strike { get; set; }
             internal string? BackgroundColor { get; set; }
@@ -72,6 +76,14 @@ namespace OfficeIMO.Word.Html {
             if (properties.TryGetValue("margin-right", out string? mr) && TryParseLength(mr, out int mR)) result.MarginRight = mR;
             if (properties.TryGetValue("margin-top", out string? mt) && TryParseLength(mt, out int mT)) result.MarginTop = mT;
             if (properties.TryGetValue("margin-bottom", out string? mb) && TryParseLength(mb, out int mB)) result.MarginBottom = mB;
+
+            if (properties.TryGetValue("padding", out string? padding)) {
+                ApplyPaddingShorthand(padding, result);
+            }
+            if (properties.TryGetValue("padding-left", out string? pl) && TryParseLength(pl, out int pL)) result.PaddingLeft = pL;
+            if (properties.TryGetValue("padding-right", out string? pr) && TryParseLength(pr, out int pR)) result.PaddingRight = pR;
+            if (properties.TryGetValue("padding-top", out string? pt) && TryParseLength(pt, out int pT)) result.PaddingTop = pT;
+            if (properties.TryGetValue("padding-bottom", out string? pb) && TryParseLength(pb, out int pB)) result.PaddingBottom = pB;
 
             if (properties.TryGetValue("text-decoration", out string? deco)) {
                 foreach (var part in deco.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
@@ -198,6 +210,41 @@ namespace OfficeIMO.Word.Html {
             if (right.HasValue) result.MarginRight = right;
             if (bottom.HasValue) result.MarginBottom = bottom;
             if (left.HasValue) result.MarginLeft = left;
+        }
+
+        private static void ApplyPaddingShorthand(string padding, CssProperties result) {
+            var parts = padding.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0) {
+                return;
+            }
+            int? top = null, right = null, bottom = null, left = null;
+            if (parts.Length == 1) {
+                if (TryParseLength(parts[0], out int all)) {
+                    top = right = bottom = left = all;
+                }
+            } else if (parts.Length == 2) {
+                if (TryParseLength(parts[0], out int tb) && TryParseLength(parts[1], out int lr)) {
+                    top = bottom = tb;
+                    left = right = lr;
+                }
+            } else if (parts.Length == 3) {
+                if (TryParseLength(parts[0], out int t) && TryParseLength(parts[1], out int rl) && TryParseLength(parts[2], out int b)) {
+                    top = t;
+                    bottom = b;
+                    left = right = rl;
+                }
+            } else {
+                if (TryParseLength(parts[0], out int t) && TryParseLength(parts[1], out int r) && TryParseLength(parts[2], out int b) && TryParseLength(parts[3], out int l)) {
+                    top = t;
+                    right = r;
+                    bottom = b;
+                    left = l;
+                }
+            }
+            if (top.HasValue) result.PaddingTop = top;
+            if (right.HasValue) result.PaddingRight = right;
+            if (bottom.HasValue) result.PaddingBottom = bottom;
+            if (left.HasValue) result.PaddingLeft = left;
         }
 
         private static bool TryParseLineHeight(string value, out int twips, out LineSpacingRuleValues rule) {

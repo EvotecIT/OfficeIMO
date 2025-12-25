@@ -29,6 +29,26 @@ namespace OfficeIMO.Word.Html {
         public bool IncludeRunClasses { get; set; }
 
         /// <summary>
+        /// When true, includes run color information as inline styles.
+        /// </summary>
+        public bool IncludeRunColorStyles { get; set; }
+
+        /// <summary>
+        /// When true, includes run highlight information as inline styles.
+        /// </summary>
+        public bool IncludeRunHighlightStyles { get; set; }
+
+        /// <summary>
+        /// When true, includes paragraph spacing information as inline styles.
+        /// </summary>
+        public bool IncludeParagraphSpacingStyles { get; set; }
+
+        /// <summary>
+        /// When true, includes paragraph indentation information as inline styles.
+        /// </summary>
+        public bool IncludeParagraphIndentationStyles { get; set; }
+
+        /// <summary>
         /// When true, footnotes are exported to HTML. Set to false to omit footnotes.
         /// </summary>
         public bool ExportFootnotes { get; set; } = true;
