@@ -46,6 +46,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AlignShapesToSlideContent_Center_RespectsMargin() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointAutoShape shape = slide.AddRectangle(0, 0, 1000000, 1000000);
+                long margin = PowerPointUnits.FromCentimeters(1);
+
+                slide.AlignShapesToSlideContent(new[] { shape }, PowerPointShapeAlignment.Center, margin);
+
+                PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(margin);
+                long expected = content.Left + (content.Width - shape.Width) / 2;
+                Assert.Equal(expected, shape.Left);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DistributeShapes_Horizontal_EvensSpacing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
@@ -60,6 +81,67 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0, a.Left);
                 Assert.Equal(4500, b.Left);
                 Assert.Equal(9000, c.Left);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DistributeShapes_Horizontal_AlignsBottom() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 500);
+                PowerPointAutoShape b = slide.AddRectangle(2000, 200, 1000, 700);
+                PowerPointAutoShape c = slide.AddRectangle(4000, 400, 1000, 900);
+                var bounds = new PowerPointLayoutBox(0, 0, 6000, 2000);
+
+                slide.DistributeShapes(slide.Shapes, PowerPointShapeDistribution.Horizontal, bounds,
+                    PowerPointShapeAlignment.Bottom);
+
+                Assert.Equal(0, a.Left);
+                Assert.Equal(2500, b.Left);
+                Assert.Equal(5000, c.Left);
+
+                Assert.Equal(bounds.Bottom - a.Height, a.Top);
+                Assert.Equal(bounds.Bottom - b.Height, b.Top);
+                Assert.Equal(bounds.Bottom - c.Height, c.Top);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DistributeShapesToSlideContent_Horizontal_UsesMargin() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 1000);
+                PowerPointAutoShape b = slide.AddRectangle(2000, 0, 1000, 1000);
+                PowerPointAutoShape c = slide.AddRectangle(4000, 0, 1000, 1000);
+                long margin = PowerPointUnits.FromCentimeters(1);
+
+                slide.DistributeShapesToSlideContent(slide.Shapes, PowerPointShapeDistribution.Horizontal, margin);
+
+                PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(margin);
+                long totalWidth = a.Width + b.Width + c.Width;
+                double gap = (content.Width - totalWidth) / 2d;
+                double current = content.Left;
+                long expectedA = (long)Math.Round(current);
+                current += a.Width + gap;
+                long expectedB = (long)Math.Round(current);
+                current += b.Width + gap;
+                long expectedC = (long)Math.Round(current);
+
+                Assert.Equal(expectedA, a.Left);
+                Assert.Equal(expectedB, b.Left);
+                Assert.Equal(expectedC, c.Left);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
