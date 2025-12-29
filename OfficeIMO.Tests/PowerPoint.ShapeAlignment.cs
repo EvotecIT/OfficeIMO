@@ -5,7 +5,7 @@ using OfficeIMO.PowerPoint;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class PowerPointShapeAlignment {
+    public class PowerPointShapeAlignmentTests {
         [Fact]
         public void AlignShapes_Left_UsesSelectionBounds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
