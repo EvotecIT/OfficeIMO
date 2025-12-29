@@ -54,6 +54,50 @@ namespace OfficeIMO.PowerPoint {
         public IEnumerable<PowerPointChart> Charts => _shapes.OfType<PowerPointChart>();
 
         /// <summary>
+        ///     Retrieves shapes that are within or intersect the provided bounds.
+        /// </summary>
+        public IReadOnlyList<PowerPointShape> GetShapesInBounds(PowerPointLayoutBox bounds, bool includePartial = true) {
+            if (includePartial) {
+                return _shapes
+                    .Where(shape =>
+                        shape.Right >= bounds.Left &&
+                        shape.Left <= bounds.Right &&
+                        shape.Bottom >= bounds.Top &&
+                        shape.Top <= bounds.Bottom)
+                    .ToList();
+            }
+
+            return _shapes
+                .Where(shape =>
+                    shape.Left >= bounds.Left &&
+                    shape.Top >= bounds.Top &&
+                    shape.Right <= bounds.Right &&
+                    shape.Bottom <= bounds.Bottom)
+                .ToList();
+        }
+
+        /// <summary>
+        ///     Retrieves shapes using bounds defined in centimeters.
+        /// </summary>
+        public IReadOnlyList<PowerPointShape> GetShapesInBoundsCm(double leftCm, double topCm, double widthCm, double heightCm, bool includePartial = true) {
+            return GetShapesInBounds(PowerPointLayoutBox.FromCentimeters(leftCm, topCm, widthCm, heightCm), includePartial);
+        }
+
+        /// <summary>
+        ///     Retrieves shapes using bounds defined in inches.
+        /// </summary>
+        public IReadOnlyList<PowerPointShape> GetShapesInBoundsInches(double leftInches, double topInches, double widthInches, double heightInches, bool includePartial = true) {
+            return GetShapesInBounds(PowerPointLayoutBox.FromInches(leftInches, topInches, widthInches, heightInches), includePartial);
+        }
+
+        /// <summary>
+        ///     Retrieves shapes using bounds defined in points.
+        /// </summary>
+        public IReadOnlyList<PowerPointShape> GetShapesInBoundsPoints(double leftPoints, double topPoints, double widthPoints, double heightPoints, bool includePartial = true) {
+            return GetShapesInBounds(PowerPointLayoutBox.FromPoints(leftPoints, topPoints, widthPoints, heightPoints), includePartial);
+        }
+
+        /// <summary>
         ///     Notes associated with the slide.
         /// </summary>
         public PowerPointNotes Notes => _notes ??= new PowerPointNotes(_slidePart);

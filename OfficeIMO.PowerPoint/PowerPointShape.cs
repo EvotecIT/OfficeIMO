@@ -27,6 +27,8 @@ namespace OfficeIMO.PowerPoint {
                         return p.NonVisualPictureProperties?.NonVisualDrawingProperties?.Name?.Value;
                     case GraphicFrame g:
                         return g.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties?.Name?.Value;
+                    case GroupShape g:
+                        return g.NonVisualGroupShapeProperties?.NonVisualDrawingProperties?.Name?.Value;
                     default:
                         return null;
                 }
@@ -184,6 +186,147 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Right position of the shape in EMUs.
+        /// </summary>
+        public long Right {
+            get => Left + Width;
+            set => Left = value - Width;
+        }
+
+        /// <summary>
+        ///     Right position of the shape in points.
+        /// </summary>
+        public double RightPoints {
+            get => PowerPointUnits.ToPoints(Right);
+            set => Right = PowerPointUnits.FromPoints(value);
+        }
+
+        /// <summary>
+        ///     Right position of the shape in centimeters.
+        /// </summary>
+        public double RightCm {
+            get => PowerPointUnits.ToCentimeters(Right);
+            set => Right = PowerPointUnits.FromCentimeters(value);
+        }
+
+        /// <summary>
+        ///     Right position of the shape in inches.
+        /// </summary>
+        public double RightInches {
+            get => PowerPointUnits.ToInches(Right);
+            set => Right = PowerPointUnits.FromInches(value);
+        }
+
+        /// <summary>
+        ///     Bottom position of the shape in EMUs.
+        /// </summary>
+        public long Bottom {
+            get => Top + Height;
+            set => Top = value - Height;
+        }
+
+        /// <summary>
+        ///     Bottom position of the shape in points.
+        /// </summary>
+        public double BottomPoints {
+            get => PowerPointUnits.ToPoints(Bottom);
+            set => Bottom = PowerPointUnits.FromPoints(value);
+        }
+
+        /// <summary>
+        ///     Bottom position of the shape in centimeters.
+        /// </summary>
+        public double BottomCm {
+            get => PowerPointUnits.ToCentimeters(Bottom);
+            set => Bottom = PowerPointUnits.FromCentimeters(value);
+        }
+
+        /// <summary>
+        ///     Bottom position of the shape in inches.
+        /// </summary>
+        public double BottomInches {
+            get => PowerPointUnits.ToInches(Bottom);
+            set => Bottom = PowerPointUnits.FromInches(value);
+        }
+
+        /// <summary>
+        ///     Horizontal center of the shape in EMUs.
+        /// </summary>
+        public long CenterX {
+            get => Left + (long)Math.Round(Width / 2d);
+            set => Left = (long)Math.Round(value - Width / 2d);
+        }
+
+        /// <summary>
+        ///     Horizontal center of the shape in points.
+        /// </summary>
+        public double CenterXPoints {
+            get => PowerPointUnits.ToPoints(CenterX);
+            set => CenterX = PowerPointUnits.FromPoints(value);
+        }
+
+        /// <summary>
+        ///     Horizontal center of the shape in centimeters.
+        /// </summary>
+        public double CenterXCm {
+            get => PowerPointUnits.ToCentimeters(CenterX);
+            set => CenterX = PowerPointUnits.FromCentimeters(value);
+        }
+
+        /// <summary>
+        ///     Horizontal center of the shape in inches.
+        /// </summary>
+        public double CenterXInches {
+            get => PowerPointUnits.ToInches(CenterX);
+            set => CenterX = PowerPointUnits.FromInches(value);
+        }
+
+        /// <summary>
+        ///     Vertical center of the shape in EMUs.
+        /// </summary>
+        public long CenterY {
+            get => Top + (long)Math.Round(Height / 2d);
+            set => Top = (long)Math.Round(value - Height / 2d);
+        }
+
+        /// <summary>
+        ///     Vertical center of the shape in points.
+        /// </summary>
+        public double CenterYPoints {
+            get => PowerPointUnits.ToPoints(CenterY);
+            set => CenterY = PowerPointUnits.FromPoints(value);
+        }
+
+        /// <summary>
+        ///     Vertical center of the shape in centimeters.
+        /// </summary>
+        public double CenterYCm {
+            get => PowerPointUnits.ToCentimeters(CenterY);
+            set => CenterY = PowerPointUnits.FromCentimeters(value);
+        }
+
+        /// <summary>
+        ///     Vertical center of the shape in inches.
+        /// </summary>
+        public double CenterYInches {
+            get => PowerPointUnits.ToInches(CenterY);
+            set => CenterY = PowerPointUnits.FromInches(value);
+        }
+
+        /// <summary>
+        ///     Gets or sets the shape bounds in EMUs.
+        /// </summary>
+        public PowerPointLayoutBox Bounds {
+            get => new PowerPointLayoutBox(Left, Top, Width, Height);
+            set {
+                Left = value.Left;
+                Top = value.Top;
+                Width = value.Width;
+                Height = value.Height;
+            }
+        }
+
+        /// <summary>
         ///     Sets position using points.
         /// </summary>
         public void SetPositionPoints(double leftPoints, double topPoints) {
@@ -229,6 +372,35 @@ namespace OfficeIMO.PowerPoint {
         public void SetSizeInches(double widthInches, double heightInches) {
             WidthInches = widthInches;
             HeightInches = heightInches;
+        }
+
+        /// <summary>
+        ///     Moves the shape by the specified offsets in EMUs.
+        /// </summary>
+        public void MoveBy(long offsetX, long offsetY) {
+            Left += offsetX;
+            Top += offsetY;
+        }
+
+        /// <summary>
+        ///     Moves the shape by the specified offsets in points.
+        /// </summary>
+        public void MoveByPoints(double offsetXPoints, double offsetYPoints) {
+            MoveBy(PowerPointUnits.FromPoints(offsetXPoints), PowerPointUnits.FromPoints(offsetYPoints));
+        }
+
+        /// <summary>
+        ///     Moves the shape by the specified offsets in centimeters.
+        /// </summary>
+        public void MoveByCm(double offsetXCm, double offsetYCm) {
+            MoveBy(PowerPointUnits.FromCentimeters(offsetXCm), PowerPointUnits.FromCentimeters(offsetYCm));
+        }
+
+        /// <summary>
+        ///     Moves the shape by the specified offsets in inches.
+        /// </summary>
+        public void MoveByInches(double offsetXInches, double offsetYInches) {
+            MoveBy(PowerPointUnits.FromInches(offsetXInches), PowerPointUnits.FromInches(offsetYInches));
         }
 
         /// <summary>
@@ -418,6 +590,10 @@ namespace OfficeIMO.PowerPoint {
                     g.Transform ??= new Transform();
                     g.Transform.Offset ??= new A.Offset();
                     return g.Transform.Offset;
+                case GroupShape g:
+                    A.TransformGroup transform = EnsureTransformGroup(g);
+                    transform.Offset ??= new A.Offset();
+                    return transform.Offset;
                 default:
                     throw new NotSupportedException();
             }
@@ -439,6 +615,10 @@ namespace OfficeIMO.PowerPoint {
                     g.Transform ??= new Transform();
                     g.Transform.Extents ??= new A.Extents();
                     return g.Transform.Extents;
+                case GroupShape g:
+                    A.TransformGroup transform = EnsureTransformGroup(g);
+                    transform.Extents ??= new A.Extents();
+                    return transform.Extents;
                 default:
                     throw new NotSupportedException();
             }
@@ -558,6 +738,16 @@ namespace OfficeIMO.PowerPoint {
                     g.Transform.VerticalFlip = value;
                     break;
             }
+        }
+
+        private static A.TransformGroup EnsureTransformGroup(GroupShape group) {
+            group.GroupShapeProperties ??= new GroupShapeProperties();
+            A.TransformGroup transform = group.GroupShapeProperties.TransformGroup ??= new A.TransformGroup();
+            transform.Offset ??= new A.Offset();
+            transform.Extents ??= new A.Extents();
+            transform.ChildOffset ??= new A.ChildOffset();
+            transform.ChildExtents ??= new A.ChildExtents();
+            return transform;
         }
     }
 }

@@ -230,6 +230,8 @@ namespace OfficeIMO.PowerPoint {
                     return s.TextBody != null ? new PowerPointTextBox(s, _slidePart) : new PowerPointAutoShape(s);
                 case Picture p:
                     return new PowerPointPicture(p, _slidePart);
+                case GroupShape g:
+                    return new PowerPointGroupShape(g);
                 case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null:
                     return new PowerPointTable(g);
                 case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null:

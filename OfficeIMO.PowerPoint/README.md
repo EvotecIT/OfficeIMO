@@ -99,6 +99,121 @@ slide.AddRectangle(PowerPointUnits.Cm(1), PowerPointUnits.Cm(1),
 ```csharp
 slide.AlignShapes(slide.Shapes, PowerPointShapeAlignment.Left);
 slide.DistributeShapes(slide.Shapes, PowerPointShapeDistribution.Horizontal);   
+
+slide.AlignShapesToSlideContent(slide.Shapes, PowerPointShapeAlignment.Left,
+    marginEmus: PowerPointUnits.Cm(1));
+slide.DistributeShapesToSlideContent(slide.Shapes, PowerPointShapeDistribution.Horizontal,
+    marginEmus: PowerPointUnits.Cm(1));
+slide.DistributeShapes(slide.Shapes, PowerPointShapeDistribution.Horizontal,
+    PowerPointShapeAlignment.Bottom);
+
+slide.DistributeShapesWithSpacing(slide.Shapes, PowerPointShapeDistribution.Horizontal,
+    spacingEmus: PowerPointUnits.Cm(0.5), center: true);
+
+slide.DistributeShapesWithSpacing(slide.Shapes, PowerPointShapeDistribution.Horizontal,
+    spacingEmus: PowerPointUnits.Cm(0.5), PowerPointShapeAlignment.Right);      
+slide.DistributeShapesWithSpacing(slide.Shapes, PowerPointShapeDistribution.Horizontal,
+    spacingEmus: PowerPointUnits.Cm(0.5), PowerPointShapeAlignment.Right,
+    PowerPointShapeAlignment.Bottom);
+
+slide.DistributeShapesWithSpacing(slide.Shapes, PowerPointShapeDistribution.Horizontal,
+    new PowerPointShapeSpacingOptions {
+        SpacingEmus = PowerPointUnits.Cm(0.4),
+        ClampSpacingToBounds = true,
+        Alignment = PowerPointShapeAlignment.Center,
+        CrossAxisAlignment = PowerPointShapeAlignment.Bottom
+    });
+slide.DistributeShapesWithSpacing(slide.Shapes, PowerPointShapeDistribution.Horizontal,
+    new PowerPointShapeSpacingOptions {
+        SpacingEmus = PowerPointUnits.Cm(0.4),
+        ScaleToFitBounds = true,
+        PreserveAspect = true
+    });
+
+slide.DistributeShapesWithSpacingToSlideContent(slide.Shapes, PowerPointShapeDistribution.Horizontal,
+    spacingEmus: PowerPointUnits.Cm(0.5), marginEmus: PowerPointUnits.Cm(1));
+
+slide.StackShapes(slide.Shapes, PowerPointShapeStackDirection.Horizontal,
+    spacingEmus: PowerPointUnits.Cm(0.3), PowerPointShapeAlignment.Bottom);
+slide.StackShapesToSlideContent(slide.Shapes, PowerPointShapeStackDirection.Vertical,
+    spacingEmus: PowerPointUnits.Cm(0.3), marginEmus: PowerPointUnits.Cm(1));
+
+slide.StackShapes(slide.Shapes, PowerPointShapeStackDirection.Horizontal,
+    spacingEmus: PowerPointUnits.Cm(0.3), PowerPointShapeStackJustify.Center);
+
+slide.StackShapes(slide.Shapes, PowerPointShapeStackDirection.Horizontal,       
+    new PowerPointShapeStackOptions {
+        SpacingEmus = PowerPointUnits.Cm(0.4),
+        ClampSpacingToBounds = true,
+        Justify = PowerPointShapeStackJustify.Center
+    });
+slide.StackShapes(slide.Shapes, PowerPointShapeStackDirection.Horizontal,
+    new PowerPointShapeStackOptions {
+        SpacingEmus = PowerPointUnits.Cm(0.4),
+        ScaleToFitBounds = true,
+        PreserveAspect = true
+    });
+```
+
+### Resize shapes
+```csharp
+slide.ResizeShapes(slide.Shapes, PowerPointShapeSizeDimension.Width, PowerPointShapeSizeReference.Largest);
+slide.ResizeShapesCm(slide.Shapes, widthCm: 3.0, heightCm: null);
+```
+
+### Shape bounds + movement
+```csharp
+var shape = slide.AddRectangle(0, 0, PowerPointUnits.Cm(3), PowerPointUnits.Cm(2));
+
+shape.Right = PowerPointUnits.Cm(10);
+shape.CenterX = PowerPointUnits.Cm(12);
+shape.Bounds = PowerPointLayoutBox.FromCentimeters(2, 2, 4, 2);
+
+shape.MoveBy(PowerPointUnits.Cm(0.5), PowerPointUnits.Cm(0.25));
+
+var inArea = slide.GetShapesInBounds(
+    PowerPointLayoutBox.FromCentimeters(1, 1, 5, 3),
+    includePartial: true);
+```
+
+### Grid layout
+```csharp
+slide.ArrangeShapesInGrid(slide.Shapes,
+    new PowerPointLayoutBox(0, 0, 8000, 4000),
+    columns: 4, rows: 2, gutterX: 200, gutterY: 200,
+    flow: PowerPointShapeGridFlow.RowMajor);
+
+slide.ArrangeShapesInGridAuto(slide.Shapes,
+    new PowerPointLayoutBox(0, 0, 8000, 4000));
+
+slide.ArrangeShapesInGridAuto(slide.Shapes,
+    new PowerPointLayoutBox(0, 0, 8000, 4000),
+    new PowerPointShapeGridOptions { MinColumns = 2, MaxColumns = 4, TargetCellAspect = 1.0 });
+
+slide.ArrangeShapesInGridToSlideContent(slide.Shapes, columns: 3, rows: 2,
+    marginEmus: PowerPointUnits.Cm(1), gutterX: PowerPointUnits.Cm(0.5));
+```
+
+### Fit shapes to bounds
+```csharp
+slide.FitShapesToBounds(slide.Shapes, new PowerPointLayoutBox(0, 0, 8000, 4500));
+slide.FitShapesToSlideContentCm(slide.Shapes, marginCm: 1.0, preserveAspect: true, center: true);
+```
+
+### Group + ungroup shapes
+```csharp
+var group = slide.GroupShapes(slide.Shapes);
+slide.UngroupShape(group);
+
+slide.AlignGroupChildren(group, PowerPointShapeAlignment.Left);
+slide.DistributeGroupChildrenWithSpacing(group, PowerPointShapeDistribution.Horizontal,
+    spacingEmus: PowerPointUnits.Cm(0.4));
+slide.StackGroupChildren(group, PowerPointShapeStackDirection.Vertical,
+    new PowerPointShapeStackOptions { SpacingEmus = PowerPointUnits.Cm(0.3) });
+slide.ArrangeGroupChildrenInGrid(group, columns: 2, rows: 2);
+
+var groupTextBoxes = slide.GetGroupTextBoxes(group);
+var groupBoundsCm = slide.GetGroupChildBoundsCm(group);
 ```
 
 ### Arrange + duplicate shapes

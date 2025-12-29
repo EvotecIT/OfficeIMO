@@ -59,10 +59,50 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Distributes shapes evenly within their selection bounds.
+        ///     Aligns shapes within the slide content bounds using a margin (EMUs).
+        /// </summary>
+        public void AlignShapesToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeAlignment alignment,
+            long marginEmus) {
+            AlignShapes(shapes, alignment, GetSlideContentBounds(marginEmus));
+        }
+
+        /// <summary>
+        ///     Aligns shapes within the slide content bounds using a margin (centimeters).
+        /// </summary>
+        public void AlignShapesToSlideContentCm(IEnumerable<PowerPointShape> shapes, PowerPointShapeAlignment alignment,
+            double marginCm) {
+            AlignShapesToSlideContent(shapes, alignment, PowerPointUnits.FromCentimeters(marginCm));
+        }
+
+        /// <summary>
+        ///     Aligns shapes within the slide content bounds using a margin (inches).
+        /// </summary>
+        public void AlignShapesToSlideContentInches(IEnumerable<PowerPointShape> shapes, PowerPointShapeAlignment alignment,
+            double marginInches) {
+            AlignShapesToSlideContent(shapes, alignment, PowerPointUnits.FromInches(marginInches));
+        }
+
+        /// <summary>
+        ///     Aligns shapes within the slide content bounds using a margin (points).
+        /// </summary>
+        public void AlignShapesToSlideContentPoints(IEnumerable<PowerPointShape> shapes, PowerPointShapeAlignment alignment,
+            double marginPoints) {
+            AlignShapesToSlideContent(shapes, alignment, PowerPointUnits.FromPoints(marginPoints));
+        }
+
+        /// <summary>
+        ///     Distributes shapes evenly within their selection bounds.        
         /// </summary>
         public void DistributeShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution) {
             DistributeShapes(shapes, distribution, GetSelectionBounds(shapes));
+        }
+
+        /// <summary>
+        ///     Distributes shapes evenly within their selection bounds and aligns them on the cross axis.
+        /// </summary>
+        public void DistributeShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
+            PowerPointShapeAlignment crossAxisAlignment) {
+            DistributeShapes(shapes, distribution, GetSelectionBounds(shapes), crossAxisAlignment);
         }
 
         /// <summary>
@@ -91,10 +131,100 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Distributes shapes evenly within a custom bounding box and aligns them on the cross axis.
+        /// </summary>
+        public void DistributeShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
+            PowerPointLayoutBox bounds, PowerPointShapeAlignment crossAxisAlignment) {
+            if (shapes == null) {
+                throw new ArgumentNullException(nameof(shapes));
+            }
+
+            List<PowerPointShape> list = NormalizeShapes(shapes);
+            if (list.Count == 0) {
+                return;
+            }
+
+            DistributeShapes(list, distribution, bounds);
+            ApplyCrossAxisAlignment(list, distribution, bounds, crossAxisAlignment);
+        }
+
+        /// <summary>
         ///     Distributes shapes evenly within the full slide bounds.
         /// </summary>
         public void DistributeShapesToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution) {
             DistributeShapes(shapes, distribution, GetSlideBounds());
+        }
+
+        /// <summary>
+        ///     Distributes shapes evenly within the full slide bounds and aligns them on the cross axis.
+        /// </summary>
+        public void DistributeShapesToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
+            PowerPointShapeAlignment crossAxisAlignment) {
+            DistributeShapes(shapes, distribution, GetSlideBounds(), crossAxisAlignment);
+        }
+
+        /// <summary>
+        ///     Distributes shapes evenly within the slide content bounds using a margin (EMUs) and aligns them on the cross axis.
+        /// </summary>
+        public void DistributeShapesToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
+            long marginEmus, PowerPointShapeAlignment crossAxisAlignment) {
+            DistributeShapes(shapes, distribution, GetSlideContentBounds(marginEmus), crossAxisAlignment);
+        }
+
+        /// <summary>
+        ///     Distributes shapes evenly within the slide content bounds using a margin (centimeters) and aligns them on the cross axis.
+        /// </summary>
+        public void DistributeShapesToSlideContentCm(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
+            double marginCm, PowerPointShapeAlignment crossAxisAlignment) {
+            DistributeShapesToSlideContent(shapes, distribution, PowerPointUnits.FromCentimeters(marginCm), crossAxisAlignment);
+        }
+
+        /// <summary>
+        ///     Distributes shapes evenly within the slide content bounds using a margin (inches) and aligns them on the cross axis.
+        /// </summary>
+        public void DistributeShapesToSlideContentInches(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
+            double marginInches, PowerPointShapeAlignment crossAxisAlignment) {
+            DistributeShapesToSlideContent(shapes, distribution, PowerPointUnits.FromInches(marginInches), crossAxisAlignment);
+        }
+
+        /// <summary>
+        ///     Distributes shapes evenly within the slide content bounds using a margin (points) and aligns them on the cross axis.
+        /// </summary>
+        public void DistributeShapesToSlideContentPoints(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
+            double marginPoints, PowerPointShapeAlignment crossAxisAlignment) {
+            DistributeShapesToSlideContent(shapes, distribution, PowerPointUnits.FromPoints(marginPoints), crossAxisAlignment);
+        }
+
+        /// <summary>
+        ///     Distributes shapes evenly within the slide content bounds using a margin (EMUs).
+        /// </summary>
+        public void DistributeShapesToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
+            long marginEmus) {
+            DistributeShapes(shapes, distribution, GetSlideContentBounds(marginEmus));
+        }
+
+        /// <summary>
+        ///     Distributes shapes evenly within the slide content bounds using a margin (centimeters).
+        /// </summary>
+        public void DistributeShapesToSlideContentCm(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
+            double marginCm) {
+            DistributeShapesToSlideContent(shapes, distribution, PowerPointUnits.FromCentimeters(marginCm));
+        }
+
+        /// <summary>
+        ///     Distributes shapes evenly within the slide content bounds using a margin (inches).
+        /// </summary>
+        public void DistributeShapesToSlideContentInches(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
+            double marginInches) {
+            DistributeShapesToSlideContent(shapes, distribution, PowerPointUnits.FromInches(marginInches));
+        }
+
+        /// <summary>
+        ///     Distributes shapes evenly within the slide content bounds using a margin (points).
+        /// </summary>
+        public void DistributeShapesToSlideContentPoints(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
+            double marginPoints) {
+            DistributeShapesToSlideContent(shapes, distribution, PowerPointUnits.FromPoints(marginPoints));
         }
 
         private static List<PowerPointShape> NormalizeShapes(IEnumerable<PowerPointShape> shapes) {
@@ -159,6 +289,46 @@ namespace OfficeIMO.PowerPoint {
                 shape.Top = (long)Math.Round(current);
                 current += shape.Height + gap;
             }
+        }
+
+        private static void ApplyCrossAxisAlignment(IReadOnlyList<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
+            PowerPointLayoutBox bounds, PowerPointShapeAlignment alignment) {
+            switch (distribution) {
+                case PowerPointShapeDistribution.Horizontal:
+                    foreach (PowerPointShape shape in shapes) {
+                        shape.Top = ResolveCrossAxisTop(bounds, shape, alignment);
+                    }
+                    break;
+                case PowerPointShapeDistribution.Vertical:
+                    foreach (PowerPointShape shape in shapes) {
+                        shape.Left = ResolveCrossAxisLeft(bounds, shape, alignment);
+                    }
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(distribution));
+            }
+        }
+
+        private static long ResolveCrossAxisTop(PowerPointLayoutBox bounds, PowerPointShape shape,
+            PowerPointShapeAlignment alignment) {
+            return alignment switch {
+                PowerPointShapeAlignment.Top => bounds.Top,
+                PowerPointShapeAlignment.Middle => bounds.Top + (long)Math.Round((bounds.Height - shape.Height) / 2d),
+                PowerPointShapeAlignment.Bottom => bounds.Bottom - shape.Height,
+                _ => throw new ArgumentOutOfRangeException(nameof(alignment),
+                    "Horizontal distribution supports Top, Middle, or Bottom alignment.")
+            };
+        }
+
+        private static long ResolveCrossAxisLeft(PowerPointLayoutBox bounds, PowerPointShape shape,
+            PowerPointShapeAlignment alignment) {
+            return alignment switch {
+                PowerPointShapeAlignment.Left => bounds.Left,
+                PowerPointShapeAlignment.Center => bounds.Left + (long)Math.Round((bounds.Width - shape.Width) / 2d),
+                PowerPointShapeAlignment.Right => bounds.Right - shape.Width,
+                _ => throw new ArgumentOutOfRangeException(nameof(alignment),
+                    "Vertical distribution supports Left, Center, or Right alignment.")
+            };
         }
     }
 }
