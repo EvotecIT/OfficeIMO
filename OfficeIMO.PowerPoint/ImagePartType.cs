@@ -11,5 +11,15 @@ namespace OfficeIMO.PowerPoint {
         Gif,
         /// <summary>Bitmap image.</summary>
         Bmp,
+        /// <summary>Tagged Image File Format image.</summary>
+        Tiff,
+        /// <summary>Enhanced Metafile image.</summary>
+        Emf,
+        /// <summary>Windows Metafile image.</summary>
+        Wmf,
+        /// <summary>Icon image.</summary>
+        Icon,
+        /// <summary>PCX image.</summary>
+        Pcx,
     }
 }

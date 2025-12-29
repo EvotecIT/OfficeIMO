@@ -76,6 +76,10 @@ box.TextVerticalAlignment = A.TextAnchoringTypeValues.Center;
 ```csharp
 slide.AddPicture("logo.png",
     PowerPointUnits.Cm(23), PowerPointUnits.Cm(1.2), PowerPointUnits.Cm(5), PowerPointUnits.Cm(2));
+
+using var logoStream = File.OpenRead("logo.png");
+slide.AddPicture(logoStream, ImagePartType.Png,
+    PowerPointUnits.Cm(23), PowerPointUnits.Cm(1.2), PowerPointUnits.Cm(5), PowerPointUnits.Cm(2));
 ```
 
 ### Background image
@@ -89,6 +93,12 @@ slide.AddRectangle(PowerPointUnits.Cm(1), PowerPointUnits.Cm(1),
     PowerPointUnits.Cm(3), PowerPointUnits.Cm(1))
     .Fill("#E7F7FF")
     .Stroke("#007ACC");
+```
+
+### Align + distribute shapes
+```csharp
+slide.AlignShapes(slide.Shapes, PowerPointShapeAlignment.Left);
+slide.DistributeShapes(slide.Shapes, PowerPointShapeDistribution.Horizontal);
 ```
 
 ### Slide properties
@@ -168,8 +178,8 @@ ppt.ReplaceText("FY24", "FY25", includeTables: true, includeNotes: true);
 ## Feature Highlights
 
 - Slides: add, import, duplicate, reorder, hide, and edit slides
-- Shapes: basic rectangles/ellipses/lines with fill/stroke
-- Images: add images from file/stream
+- Shapes: basic rectangles/ellipses/lines with fill/stroke; align/distribute
+- Images: add images from file/stream (PNG/JPEG/GIF/BMP/TIFF/EMF/WMF/ICO/PCX)
 - Properties: set built‑in and application properties
 - Themes & transitions: default theme/table styles + slide transitions
 - Text boxes: margins, auto-fit, vertical alignment
