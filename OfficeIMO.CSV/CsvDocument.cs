@@ -1,6 +1,8 @@
 #nullable enable
 
+using System.Collections;
 using System.Globalization;
+using System.Reflection;
 using System.Text;
 
 namespace OfficeIMO.CSV;
@@ -36,6 +38,71 @@ public sealed class CsvDocument
         _delimiter = delimiter;
         _culture = culture;
         _encoding = encoding;
+    }
+
+    /// <summary>
+    /// Creates a CSV document from a sequence of objects by projecting their properties or dictionary keys into columns.
+    /// </summary>
+    /// <param name="items">Sequence of objects to convert into CSV rows.</param>
+    /// <param name="delimiter">Delimiter to use for the CSV document.</param>
+    /// <param name="culture">Optional culture for value formatting.</param>
+    /// <param name="encoding">Optional encoding for file operations.</param>
+    /// <returns>A populated <see cref="CsvDocument"/>.</returns>
+    public static CsvDocument FromObjects(IEnumerable<object?> items, char delimiter = ',', CultureInfo? culture = null, Encoding? encoding = null)
+    {
+        if (items == null)
+        {
+            throw new ArgumentNullException(nameof(items));
+        }
+
+        var list = items.ToList();
+        if (list.Count == 0)
+        {
+            throw new ArgumentException("Provide at least one data row.", nameof(items));
+        }
+
+        var first = list.FirstOrDefault();
+        if (first == null)
+        {
+            throw new ArgumentException("Data rows cannot be null.", nameof(items));
+        }
+
+        var columns = GetColumnNames(first);
+        if (columns.Count == 0)
+        {
+            throw new InvalidOperationException("Unable to infer column names. Use objects with properties or dictionaries.");
+        }
+
+        var document = new CsvDocument().WithDelimiter(delimiter);
+        if (culture != null)
+        {
+            document.WithCulture(culture);
+        }
+
+        if (encoding != null)
+        {
+            document.WithEncoding(encoding);
+        }
+
+        document.WithHeader(columns.ToArray());
+
+        foreach (var item in list)
+        {
+            if (item == null)
+            {
+                throw new InvalidOperationException("Data rows cannot contain null entries.");
+            }
+
+            var rowValues = new object?[columns.Count];
+            for (var i = 0; i < columns.Count; i++)
+            {
+                rowValues[i] = GetValue(item, columns[i]);
+            }
+
+            document.AddRow(rowValues);
+        }
+
+        return document;
     }
 
     /// <summary>
@@ -510,6 +577,78 @@ public sealed class CsvDocument
         }
 
         return result;
+    }
+
+    private static IReadOnlyList<string> GetColumnNames(object item)
+    {
+        if (item is IReadOnlyDictionary<string, object?> roDict)
+        {
+            return roDict.Keys.Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
+        }
+
+        if (item is IDictionary<string, object?> dict)
+        {
+            return dict.Keys.Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
+        }
+
+        if (item is IDictionary legacyDict)
+        {
+            var names = new List<string>();
+            foreach (DictionaryEntry entry in legacyDict)
+            {
+                var key = entry.Key?.ToString();
+                if (!string.IsNullOrWhiteSpace(key))
+                {
+                    names.Add(key!);
+                }
+            }
+            return names;
+        }
+
+        var props = item.GetType()
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
+            .OrderBy(p => p.MetadataToken)
+            .Select(p => p.Name)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .ToList();
+
+        return props;
+    }
+
+    private static object? GetValue(object item, string column)
+    {
+        if (item is IReadOnlyDictionary<string, object?> roDict)
+        {
+            return roDict.TryGetValue(column, out var value) ? value : null;
+        }
+
+        if (item is IDictionary<string, object?> dict)
+        {
+            return dict.TryGetValue(column, out var value) ? value : null;
+        }
+
+        if (item is IDictionary legacyDict)
+        {
+            if (legacyDict.Contains(column))
+            {
+                return legacyDict[column];
+            }
+
+            foreach (DictionaryEntry entry in legacyDict)
+            {
+                var key = entry.Key?.ToString();
+                if (string.Equals(key, column, StringComparison.OrdinalIgnoreCase))
+                {
+                    return entry.Value;
+                }
+            }
+
+            return null;
+        }
+
+        var prop = item.GetType().GetProperty(column, BindingFlags.Public | BindingFlags.Instance);
+        return prop?.GetValue(item);
     }
 
     private static object?[] AppendValue(IReadOnlyList<object?> source, object? value)
