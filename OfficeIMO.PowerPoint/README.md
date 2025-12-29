@@ -98,7 +98,17 @@ slide.AddRectangle(PowerPointUnits.Cm(1), PowerPointUnits.Cm(1),
 ### Align + distribute shapes
 ```csharp
 slide.AlignShapes(slide.Shapes, PowerPointShapeAlignment.Left);
-slide.DistributeShapes(slide.Shapes, PowerPointShapeDistribution.Horizontal);
+slide.DistributeShapes(slide.Shapes, PowerPointShapeDistribution.Horizontal);   
+```
+
+### Arrange + duplicate shapes
+```csharp
+slide.BringForward(shape);
+slide.SendBackward(shape);
+slide.BringToFront(shape);
+slide.SendToBack(shape);
+
+var copy = slide.DuplicateShapeCm(shape, 0.5, 0.5);
 ```
 
 ### Slide properties
@@ -178,8 +188,8 @@ ppt.ReplaceText("FY24", "FY25", includeTables: true, includeNotes: true);
 ## Feature Highlights
 
 - Slides: add, import, duplicate, reorder, hide, and edit slides
-- Shapes: basic rectangles/ellipses/lines with fill/stroke; align/distribute
-- Images: add images from file/stream (PNG/JPEG/GIF/BMP/TIFF/EMF/WMF/ICO/PCX)
+- Shapes: basic rectangles/ellipses/lines with fill/stroke; align/distribute; z-order + duplicate
+- Images: add images from file/stream (PNG/JPEG/GIF/BMP/TIFF/EMF/WMF/ICO/PCX)   
 - Properties: set built‑in and application properties
 - Themes & transitions: default theme/table styles + slide transitions
 - Text boxes: margins, auto-fit, vertical alignment
@@ -193,7 +203,7 @@ ppt.ReplaceText("FY24", "FY25", includeTables: true, includeNotes: true);
 - 📽️ Slides
   - ✅ Add slides; ✅ import/duplicate/reorder; ✅ hide/show; ✅ set title; ✅ add text boxes; ✅ basic bullets
 - 🖼️ Media & Shapes
-  - ✅ Insert images; ✅ basic shapes (rect/ellipse/line) with fill/stroke
+  - ✅ Insert images; ✅ basic shapes (rect/ellipse/line) with fill/stroke; ✅ align/distribute/arrange
 - 🗒️ Notes & Layout
   - ✅ Speaker notes; ⚠️ basic layout selection
 - 📋 Tables

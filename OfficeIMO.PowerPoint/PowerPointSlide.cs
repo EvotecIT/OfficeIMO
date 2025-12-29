@@ -595,23 +595,9 @@ namespace OfficeIMO.PowerPoint {
                     maxId = id.Value;
                 }
 
-                switch (element) {
-                    case Shape s:
-                        if (s.TextBody != null) {
-                            _shapes.Add(new PowerPointTextBox(s, _slidePart));
-                        } else {
-                            _shapes.Add(new PowerPointAutoShape(s));
-                        }
-                        break;
-                    case DocumentFormat.OpenXml.Presentation.Picture p:
-                        _shapes.Add(new PowerPointPicture(p, _slidePart));
-                        break;
-                    case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null:
-                        _shapes.Add(new PowerPointTable(g));
-                        break;
-                    case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null:
-                        _shapes.Add(new PowerPointChart(g, _slidePart));
-                        break;
+                PowerPointShape? shape = CreateShapeFromElement(element);
+                if (shape != null) {
+                    _shapes.Add(shape);
                 }
             }
 
