@@ -1,10 +1,12 @@
 using System.IO;
 using System.Reflection;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint.Fluent;
 using A = DocumentFormat.OpenXml.Drawing;
+using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -18,6 +20,9 @@ namespace OfficeIMO.PowerPoint {
         private PowerPointSlideSize? _slideSize;
         private bool _initialSlideUntouched = false;
         private bool _disposed = false;
+        private const string P14Namespace = "http://schemas.microsoft.com/office/powerpoint/2010/main";
+        private const string SectionListUri = "{521415D9-36F7-43E2-AB2F-B90AF26B5E84}";
+        private const string DefaultSectionName = "Section 1";
         private static readonly MethodInfo AddNewPartWithContentTypeMethod =
             typeof(OpenXmlPartContainer)
                 .GetMethods()
@@ -100,6 +105,285 @@ namespace OfficeIMO.PowerPoint {
 
                 themePart.Theme.Name = value;
             }
+        }
+
+        /// <summary>
+        ///     Returns the layouts available for a slide master.
+        /// </summary>
+        public IReadOnlyList<PowerPointSlideLayoutInfo> GetSlideLayouts(int masterIndex = 0) {
+            ThrowIfDisposed();
+            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
+            SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
+            var results = new List<PowerPointSlideLayoutInfo>(layouts.Length);
+
+            for (int i = 0; i < layouts.Length; i++) {
+                SlideLayoutPart layoutPart = layouts[i];
+                SlideLayout? layout = layoutPart.SlideLayout;
+                string name = layout?.CommonSlideData?.Name?.Value ?? string.Empty;
+                SlideLayoutValues? type = layout?.Type?.Value;
+                string? relationshipId = masterPart.GetIdOfPart(layoutPart);
+                results.Add(new PowerPointSlideLayoutInfo(masterIndex, i, name, type, relationshipId));
+            }
+
+            return results;
+        }
+
+        /// <summary>
+        ///     Returns the sections defined in the presentation.
+        /// </summary>
+        public IReadOnlyList<PowerPointSectionInfo> GetSections() {
+            ThrowIfDisposed();
+            P14.SectionList? sectionList = GetSectionList(create: false);
+            if (sectionList == null) {
+                return Array.Empty<PowerPointSectionInfo>();
+            }
+
+            List<SlideId> slideIds = _presentationPart.Presentation?.SlideIdList?
+                .Elements<SlideId>()
+                .ToList() ?? new List<SlideId>();
+            Dictionary<uint, int> slideIndexMap = BuildSlideIndexMap(slideIds);
+
+            List<PowerPointSectionInfo> sections = new();
+            foreach (P14.Section section in sectionList.Elements<P14.Section>()) {
+                List<int> indices = new();
+                P14.SectionSlideIdList? list = section.SectionSlideIdList;
+                if (list != null) {
+                    foreach (P14.SectionSlideIdListEntry entry in list.Elements<P14.SectionSlideIdListEntry>()) {
+                        uint? slideId = entry.Id?.Value;
+                        if (slideId != null && slideIndexMap.TryGetValue(slideId.Value, out int index)) {
+                            indices.Add(index);
+                        }
+                    }
+                }
+
+                indices.Sort();
+                string name = section.Name?.Value ?? string.Empty;
+                string id = section.Id?.Value ?? string.Empty;
+                sections.Add(new PowerPointSectionInfo(name, id, indices));
+            }
+
+            return sections;
+        }
+
+        /// <summary>
+        ///     Adds a new section starting at the specified slide index.
+        /// </summary>
+        public PowerPointSectionInfo AddSection(string name, int startSlideIndex) {
+            ThrowIfDisposed();
+            if (string.IsNullOrWhiteSpace(name)) {
+                throw new ArgumentException("Section name cannot be null or empty.", nameof(name));
+            }
+
+            SlideIdList? slideIdList = _presentationPart.Presentation?.SlideIdList;
+            if (slideIdList == null) {
+                throw new InvalidOperationException("Presentation has no slides.");
+            }
+
+            List<SlideId> slideIds = slideIdList.Elements<SlideId>().ToList();
+            if (slideIds.Count == 0) {
+                throw new InvalidOperationException("Presentation has no slides.");
+            }
+            if (startSlideIndex < 0 || startSlideIndex >= slideIds.Count) {
+                throw new ArgumentOutOfRangeException(nameof(startSlideIndex));
+            }
+
+            P14.SectionList sectionList = EnsureSectionList(slideIds);
+            uint slideIdValue = slideIds[startSlideIndex].Id?.Value ?? throw new InvalidOperationException("Slide ID is missing.");
+
+            P14.Section? containing = FindSectionBySlideId(sectionList, slideIdValue);
+            if (containing == null) {
+                P14.Section fallback = sectionList.Elements<P14.Section>().Last();
+                EnsureSectionSlideIdList(fallback)
+                    .Append(new P14.SectionSlideIdListEntry { Id = slideIdValue });
+                return BuildSectionInfo(fallback, slideIds);
+            }
+
+            P14.SectionSlideIdList list = EnsureSectionSlideIdList(containing);
+            List<P14.SectionSlideIdListEntry> entries = list.Elements<P14.SectionSlideIdListEntry>().ToList();
+            int entryIndex = entries.FindIndex(entry => entry.Id?.Value == slideIdValue);
+            if (entryIndex <= 0) {
+                containing.Name = name;
+                return BuildSectionInfo(containing, slideIds);
+            }
+
+            List<uint> movedIds = entries
+                .Skip(entryIndex)
+                .Select(entry => entry.Id?.Value)
+                .Where(id => id != null)
+                .Select(id => id!.Value)
+                .ToList();
+            foreach (P14.SectionSlideIdListEntry entry in entries.Skip(entryIndex)) {
+                entry.Remove();
+            }
+
+            P14.Section newSection = CreateSection(name, movedIds);
+            sectionList.InsertAfter(newSection, containing);
+            return BuildSectionInfo(newSection, slideIds);
+        }
+
+        /// <summary>
+        ///     Renames the first section matching the provided name.
+        /// </summary>
+        public bool RenameSection(string name, string newName, bool ignoreCase = true) {
+            ThrowIfDisposed();
+            if (name == null) {
+                throw new ArgumentNullException(nameof(name));
+            }
+            if (string.IsNullOrWhiteSpace(newName)) {
+                throw new ArgumentException("Section name cannot be null or empty.", nameof(newName));
+            }
+
+            P14.SectionList? sectionList = GetSectionList(create: false);
+            if (sectionList == null) {
+                return false;
+            }
+
+            StringComparison comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            foreach (P14.Section section in sectionList.Elements<P14.Section>()) {
+                string currentName = section.Name?.Value ?? string.Empty;
+                if (string.Equals(currentName, name, comparison)) {
+                    section.Name = newName;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///     Finds a layout index by layout type.
+        /// </summary>
+        public int GetLayoutIndex(SlideLayoutValues layoutType, int masterIndex = 0) {
+            ThrowIfDisposed();
+            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
+            SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
+            for (int i = 0; i < layouts.Length; i++) {
+                SlideLayoutValues? type = layouts[i].SlideLayout?.Type?.Value;
+                if (type == layoutType) {
+                    return i;
+                }
+            }
+
+            throw new InvalidOperationException($"Layout type '{layoutType}' not found for master {masterIndex}.");
+        }
+
+        /// <summary>
+        ///     Finds a layout index by layout name.
+        /// </summary>
+        public int GetLayoutIndex(string layoutName, int masterIndex = 0, bool ignoreCase = true) {
+            ThrowIfDisposed();
+            if (layoutName == null) {
+                throw new ArgumentNullException(nameof(layoutName));
+            }
+
+            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
+            SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
+            StringComparison comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            for (int i = 0; i < layouts.Length; i++) {
+                string name = layouts[i].SlideLayout?.CommonSlideData?.Name?.Value ?? string.Empty;
+                if (string.Equals(name, layoutName, comparison)) {
+                    return i;
+                }
+            }
+
+            throw new InvalidOperationException($"Layout '{layoutName}' not found for master {masterIndex}.");
+        }
+
+        /// <summary>
+        ///     Adds a slide using a layout type.
+        /// </summary>
+        public PowerPointSlide AddSlide(SlideLayoutValues layoutType, int masterIndex = 0) {
+            int layoutIndex = GetLayoutIndex(layoutType, masterIndex);
+            return AddSlide(masterIndex, layoutIndex);
+        }
+
+        /// <summary>
+        ///     Adds a slide using a layout name.
+        /// </summary>
+        public PowerPointSlide AddSlide(string layoutName, int masterIndex = 0, bool ignoreCase = true) {
+            int layoutIndex = GetLayoutIndex(layoutName, masterIndex, ignoreCase);
+            return AddSlide(masterIndex, layoutIndex);
+        }
+
+        /// <summary>
+        ///     Gets a theme color value in hex format (e.g. "FF0000").
+        /// </summary>
+        public string? GetThemeColor(PowerPointThemeColor color, int masterIndex = 0) {
+            ThrowIfDisposed();
+            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
+            A.ColorScheme? scheme = masterPart.ThemePart?.Theme?.ThemeElements?.ColorScheme;
+            if (scheme == null) {
+                return null;
+            }
+
+            OpenXmlCompositeElement? element = GetColorElement(scheme, color);
+            return element?.GetFirstChild<A.RgbColorModelHex>()?.Val;
+        }
+
+        /// <summary>
+        ///     Sets a theme color value in hex format (e.g. "FF0000").
+        /// </summary>
+        public void SetThemeColor(PowerPointThemeColor color, string hexValue, int masterIndex = 0) {
+            ThrowIfDisposed();
+            if (string.IsNullOrWhiteSpace(hexValue)) {
+                throw new ArgumentException("Theme color value cannot be null or empty.", nameof(hexValue));
+            }
+
+            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
+            A.ColorScheme scheme = EnsureColorScheme(masterPart);
+            OpenXmlCompositeElement element = GetOrCreateColorElement(scheme, color);
+            element.RemoveAllChildren<A.RgbColorModelHex>();
+            element.RemoveAllChildren<A.SystemColor>();
+            element.Append(new A.RgbColorModelHex { Val = hexValue });
+        }
+
+        /// <summary>
+        ///     Sets multiple theme colors at once.
+        /// </summary>
+        public void SetThemeColors(IDictionary<PowerPointThemeColor, string> colors, int masterIndex = 0) {
+            ThrowIfDisposed();
+            if (colors == null) {
+                throw new ArgumentNullException(nameof(colors));
+            }
+
+            foreach (KeyValuePair<PowerPointThemeColor, string> entry in colors) {
+                SetThemeColor(entry.Key, entry.Value, masterIndex);
+            }
+        }
+
+        /// <summary>
+        ///     Gets the major/minor Latin fonts for the theme.
+        /// </summary>
+        public PowerPointThemeFontInfo GetThemeLatinFonts(int masterIndex = 0) {
+            ThrowIfDisposed();
+            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
+            A.FontScheme? scheme = masterPart.ThemePart?.Theme?.ThemeElements?.FontScheme;
+            string? majorLatin = scheme?.MajorFont?.LatinFont?.Typeface;
+            string? minorLatin = scheme?.MinorFont?.LatinFont?.Typeface;
+            return new PowerPointThemeFontInfo(majorLatin, minorLatin);
+        }
+
+        /// <summary>
+        ///     Sets the major/minor Latin fonts for the theme.
+        /// </summary>
+        public void SetThemeLatinFonts(string majorLatin, string minorLatin, int masterIndex = 0) {
+            ThrowIfDisposed();
+            if (string.IsNullOrWhiteSpace(majorLatin)) {
+                throw new ArgumentException("Major font cannot be null or empty.", nameof(majorLatin));
+            }
+            if (string.IsNullOrWhiteSpace(minorLatin)) {
+                throw new ArgumentException("Minor font cannot be null or empty.", nameof(minorLatin));
+            }
+
+            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
+            A.FontScheme scheme = EnsureFontScheme(masterPart);
+            scheme.MajorFont ??= new A.MajorFont();
+            scheme.MinorFont ??= new A.MinorFont();
+
+            scheme.MajorFont.LatinFont ??= new A.LatinFont();
+            scheme.MinorFont.LatinFont ??= new A.LatinFont();
+            scheme.MajorFont.LatinFont.Typeface = majorLatin;
+            scheme.MinorFont.LatinFont.Typeface = minorLatin;
         }
 
         /// <summary>
@@ -623,6 +907,79 @@ namespace OfficeIMO.PowerPoint {
             return maxId >= 255 ? maxId + 1 : 256;
         }
 
+        private SlideMasterPart GetSlideMasterPart(int masterIndex) {
+            SlideMasterPart[] masters = _presentationPart.SlideMasterParts.ToArray();
+            if (masterIndex < 0 || masterIndex >= masters.Length) {
+                throw new ArgumentOutOfRangeException(nameof(masterIndex));
+            }
+            return masters[masterIndex];
+        }
+
+        private static A.Theme EnsureTheme(SlideMasterPart masterPart) {
+            ThemePart themePart = masterPart.ThemePart ?? masterPart.AddNewPart<ThemePart>();
+            themePart.Theme ??= new A.Theme { ThemeElements = new A.ThemeElements() };
+            themePart.Theme.ThemeElements ??= new A.ThemeElements();
+            return themePart.Theme;
+        }
+
+        private static A.ColorScheme EnsureColorScheme(SlideMasterPart masterPart) {
+            A.Theme theme = EnsureTheme(masterPart);
+            theme.ThemeElements ??= new A.ThemeElements();
+            A.ColorScheme scheme = theme.ThemeElements.ColorScheme ??= new A.ColorScheme { Name = "Office" };
+            return scheme;
+        }
+
+        private static A.FontScheme EnsureFontScheme(SlideMasterPart masterPart) {
+            A.Theme theme = EnsureTheme(masterPart);
+            theme.ThemeElements ??= new A.ThemeElements();
+            A.FontScheme scheme = theme.ThemeElements.FontScheme ??= new A.FontScheme { Name = "Office" };
+            return scheme;
+        }
+
+        private static OpenXmlCompositeElement? GetColorElement(A.ColorScheme scheme, PowerPointThemeColor color) {
+            return color switch {
+                PowerPointThemeColor.Dark1 => scheme.GetFirstChild<A.Dark1Color>(),
+                PowerPointThemeColor.Light1 => scheme.GetFirstChild<A.Light1Color>(),
+                PowerPointThemeColor.Dark2 => scheme.GetFirstChild<A.Dark2Color>(),
+                PowerPointThemeColor.Light2 => scheme.GetFirstChild<A.Light2Color>(),
+                PowerPointThemeColor.Accent1 => scheme.GetFirstChild<A.Accent1Color>(),
+                PowerPointThemeColor.Accent2 => scheme.GetFirstChild<A.Accent2Color>(),
+                PowerPointThemeColor.Accent3 => scheme.GetFirstChild<A.Accent3Color>(),
+                PowerPointThemeColor.Accent4 => scheme.GetFirstChild<A.Accent4Color>(),
+                PowerPointThemeColor.Accent5 => scheme.GetFirstChild<A.Accent5Color>(),
+                PowerPointThemeColor.Accent6 => scheme.GetFirstChild<A.Accent6Color>(),
+                PowerPointThemeColor.Hyperlink => scheme.GetFirstChild<A.Hyperlink>(),
+                PowerPointThemeColor.FollowedHyperlink => scheme.GetFirstChild<A.FollowedHyperlinkColor>(),
+                _ => null
+            };
+        }
+
+        private static OpenXmlCompositeElement GetOrCreateColorElement(A.ColorScheme scheme, PowerPointThemeColor color) {
+            OpenXmlCompositeElement? element = GetColorElement(scheme, color);
+            if (element != null) {
+                return element;
+            }
+
+            element = color switch {
+                PowerPointThemeColor.Dark1 => new A.Dark1Color(),
+                PowerPointThemeColor.Light1 => new A.Light1Color(),
+                PowerPointThemeColor.Dark2 => new A.Dark2Color(),
+                PowerPointThemeColor.Light2 => new A.Light2Color(),
+                PowerPointThemeColor.Accent1 => new A.Accent1Color(),
+                PowerPointThemeColor.Accent2 => new A.Accent2Color(),
+                PowerPointThemeColor.Accent3 => new A.Accent3Color(),
+                PowerPointThemeColor.Accent4 => new A.Accent4Color(),
+                PowerPointThemeColor.Accent5 => new A.Accent5Color(),
+                PowerPointThemeColor.Accent6 => new A.Accent6Color(),
+                PowerPointThemeColor.Hyperlink => new A.Hyperlink(),
+                PowerPointThemeColor.FollowedHyperlink => new A.FollowedHyperlinkColor(),
+                _ => new A.Dark1Color()
+            };
+
+            scheme.Append(element);
+            return element;
+        }
+
         private string GetNextSlideMasterRelationshipId() {
             var existingRelationships = new HashSet<string>(
                 _presentationPart.Parts
@@ -694,6 +1051,149 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return null;
+        }
+
+        private P14.SectionList? GetSectionList(bool create) {
+            Presentation presentation = _presentationPart.Presentation ??= new Presentation();
+            PresentationExtensionList? extList = presentation.GetFirstChild<PresentationExtensionList>();
+            if (extList == null && create) {
+                extList = new PresentationExtensionList();
+                presentation.Append(extList);
+            }
+
+            if (extList == null) {
+                return null;
+            }
+
+            PresentationExtension? sectionExt = extList.Elements<PresentationExtension>()
+                .FirstOrDefault(ext => string.Equals(ext.Uri?.Value, SectionListUri, StringComparison.Ordinal));
+            if (sectionExt == null && create) {
+                sectionExt = new PresentationExtension { Uri = SectionListUri };
+                extList.Append(sectionExt);
+            }
+
+            if (sectionExt == null) {
+                return null;
+            }
+
+            P14.SectionList? sectionList = sectionExt.GetFirstChild<P14.SectionList>();
+            if (sectionList == null && create) {
+                sectionList = new P14.SectionList();
+                sectionList.AddNamespaceDeclaration("p14", P14Namespace);
+                sectionExt.Append(sectionList);
+            }
+
+            return sectionList;
+        }
+
+        private P14.SectionList EnsureSectionList(IReadOnlyList<SlideId> slideIds) {
+            P14.SectionList sectionList = GetSectionList(create: true)
+                ?? throw new InvalidOperationException("Unable to create a section list.");
+            if (!sectionList.Elements<P14.Section>().Any()) {
+                List<uint> ids = slideIds
+                    .Select(id => id.Id?.Value)
+                    .Where(id => id != null)
+                    .Select(id => id!.Value)
+                    .ToList();
+                sectionList.Append(CreateSection(DefaultSectionName, ids));
+            }
+
+            EnsureSectionCoverage(sectionList, slideIds);
+            return sectionList;
+        }
+
+        private static void EnsureSectionCoverage(P14.SectionList sectionList, IReadOnlyList<SlideId> slideIds) {
+            Dictionary<uint, int> slideIndexMap = BuildSlideIndexMap(slideIds);
+            HashSet<uint> assigned = new();
+
+            foreach (P14.Section section in sectionList.Elements<P14.Section>()) {
+                P14.SectionSlideIdList list = EnsureSectionSlideIdList(section);
+                List<P14.SectionSlideIdListEntry> entries = list.Elements<P14.SectionSlideIdListEntry>()
+                    .Where(entry => entry.Id?.Value != null && slideIndexMap.ContainsKey(entry.Id.Value))
+                    .ToList();
+
+                list.RemoveAllChildren();
+                foreach (P14.SectionSlideIdListEntry entry in entries
+                             .OrderBy(entry => slideIndexMap[entry.Id!.Value])) {
+                    list.Append(entry);
+                    assigned.Add(entry.Id!.Value);
+                }
+            }
+
+            P14.Section? lastSection = sectionList.Elements<P14.Section>().LastOrDefault();
+            if (lastSection == null) {
+                return;
+            }
+
+            P14.SectionSlideIdList target = EnsureSectionSlideIdList(lastSection);
+            foreach (uint slideId in slideIndexMap.Keys.Where(id => !assigned.Contains(id))) {
+                target.Append(new P14.SectionSlideIdListEntry { Id = slideId });
+            }
+        }
+
+        private static P14.Section CreateSection(string name, IReadOnlyList<uint> slideIds) {
+            P14.Section section = new() {
+                Id = Guid.NewGuid().ToString("D"),
+                Name = name
+            };
+            P14.SectionSlideIdList list = new();
+            foreach (uint slideId in slideIds) {
+                list.Append(new P14.SectionSlideIdListEntry { Id = slideId });
+            }
+            section.Append(list);
+            return section;
+        }
+
+        private static P14.SectionSlideIdList EnsureSectionSlideIdList(P14.Section section) {
+            P14.SectionSlideIdList? list = section.SectionSlideIdList;
+            if (list == null) {
+                list = new P14.SectionSlideIdList();
+                section.Append(list);
+            }
+            return list;
+        }
+
+        private static Dictionary<uint, int> BuildSlideIndexMap(IReadOnlyList<SlideId> slideIds) {
+            Dictionary<uint, int> map = new();
+            for (int i = 0; i < slideIds.Count; i++) {
+                uint? id = slideIds[i].Id?.Value;
+                if (id != null) {
+                    map[id.Value] = i;
+                }
+            }
+            return map;
+        }
+
+        private static P14.Section? FindSectionBySlideId(P14.SectionList sectionList, uint slideId) {
+            foreach (P14.Section section in sectionList.Elements<P14.Section>()) {
+                P14.SectionSlideIdList? list = section.SectionSlideIdList;
+                if (list == null) {
+                    continue;
+                }
+
+                if (list.Elements<P14.SectionSlideIdListEntry>().Any(entry => entry.Id?.Value == slideId)) {
+                    return section;
+                }
+            }
+
+            return null;
+        }
+
+        private PowerPointSectionInfo BuildSectionInfo(P14.Section section, IReadOnlyList<SlideId> slideIds) {
+            Dictionary<uint, int> slideIndexMap = BuildSlideIndexMap(slideIds);
+            List<int> indices = new();
+            P14.SectionSlideIdList? list = section.SectionSlideIdList;
+            if (list != null) {
+                foreach (P14.SectionSlideIdListEntry entry in list.Elements<P14.SectionSlideIdListEntry>()) {
+                    uint? id = entry.Id?.Value;
+                    if (id != null && slideIndexMap.TryGetValue(id.Value, out int index)) {
+                        indices.Add(index);
+                    }
+                }
+            }
+
+            indices.Sort();
+            return new PowerPointSectionInfo(section.Name?.Value ?? string.Empty, section.Id?.Value ?? string.Empty, indices);
         }
 
         private static void InsertSlideId(SlideIdList slideIdList, SlideId slideId, int index) {

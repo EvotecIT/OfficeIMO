@@ -375,6 +375,77 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Resizes the shape while keeping the specified anchor fixed.
+        /// </summary>
+        public void Resize(long width, long height, PowerPointShapeAnchor anchor = PowerPointShapeAnchor.TopLeft) {
+            if (width < 0) {
+                throw new ArgumentOutOfRangeException(nameof(width));
+            }
+            if (height < 0) {
+                throw new ArgumentOutOfRangeException(nameof(height));
+            }
+
+            PowerPointLayoutBox bounds = Bounds;
+            (double anchorX, double anchorY) = ResolveAnchorPoint(bounds, anchor);
+            (double offsetX, double offsetY) = ResolveAnchorOffset(width, height, anchor);
+
+            Width = width;
+            Height = height;
+            Left = (long)Math.Round(anchorX - offsetX);
+            Top = (long)Math.Round(anchorY - offsetY);
+        }
+
+        /// <summary>
+        ///     Resizes the shape using points while keeping the specified anchor fixed.
+        /// </summary>
+        public void ResizePoints(double widthPoints, double heightPoints, PowerPointShapeAnchor anchor = PowerPointShapeAnchor.TopLeft) {
+            Resize(PowerPointUnits.FromPoints(widthPoints), PowerPointUnits.FromPoints(heightPoints), anchor);
+        }
+
+        /// <summary>
+        ///     Resizes the shape using centimeters while keeping the specified anchor fixed.
+        /// </summary>
+        public void ResizeCm(double widthCm, double heightCm, PowerPointShapeAnchor anchor = PowerPointShapeAnchor.TopLeft) {
+            Resize(PowerPointUnits.FromCentimeters(widthCm), PowerPointUnits.FromCentimeters(heightCm), anchor);
+        }
+
+        /// <summary>
+        ///     Resizes the shape using inches while keeping the specified anchor fixed.
+        /// </summary>
+        public void ResizeInches(double widthInches, double heightInches, PowerPointShapeAnchor anchor = PowerPointShapeAnchor.TopLeft) {
+            Resize(PowerPointUnits.FromInches(widthInches), PowerPointUnits.FromInches(heightInches), anchor);
+        }
+
+        /// <summary>
+        ///     Scales the shape uniformly using the specified anchor.
+        /// </summary>
+        public void Scale(double scale, PowerPointShapeAnchor anchor = PowerPointShapeAnchor.Center) {
+            if (scale < 0) {
+                throw new ArgumentOutOfRangeException(nameof(scale));
+            }
+
+            long newWidth = (long)Math.Round(Width * scale);
+            long newHeight = (long)Math.Round(Height * scale);
+            Resize(newWidth, newHeight, anchor);
+        }
+
+        /// <summary>
+        ///     Scales the shape using separate X/Y factors and the specified anchor.
+        /// </summary>
+        public void Scale(double scaleX, double scaleY, PowerPointShapeAnchor anchor = PowerPointShapeAnchor.Center) {
+            if (scaleX < 0) {
+                throw new ArgumentOutOfRangeException(nameof(scaleX));
+            }
+            if (scaleY < 0) {
+                throw new ArgumentOutOfRangeException(nameof(scaleY));
+            }
+
+            long newWidth = (long)Math.Round(Width * scaleX);
+            long newHeight = (long)Math.Round(Height * scaleY);
+            Resize(newWidth, newHeight, anchor);
+        }
+
+        /// <summary>
         ///     Moves the shape by the specified offsets in EMUs.
         /// </summary>
         public void MoveBy(long offsetX, long offsetY) {
@@ -451,6 +522,265 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 outline.Width = (int)Math.Round(value.Value * EmusPerPoint);
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the outline dash preset.
+        /// </summary>
+        public A.PresetLineDashValues? OutlineDash {
+            get => GetOutline()?.GetFirstChild<A.PresetDash>()?.Val?.Value;
+            set {
+                A.Outline? outline = GetOutline(create: value != null);
+                if (outline == null) {
+                    return;
+                }
+
+                if (value == null) {
+                    outline.GetFirstChild<A.PresetDash>()?.Remove();
+                    return;
+                }
+
+                A.PresetDash dash = outline.GetFirstChild<A.PresetDash>() ?? new A.PresetDash();
+                dash.Val = value.Value;
+                if (dash.Parent == null) {
+                    outline.Append(dash);
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Sets arrowheads for line-based shapes.
+        /// </summary>
+        public void SetLineEnds(A.LineEndValues? startType, A.LineEndValues? endType, A.LineEndWidthValues? width = null, A.LineEndLengthValues? length = null) {
+            bool create = startType != null || endType != null || width != null || length != null;
+            A.Outline? outline = GetOutline(create: create);
+            if (outline == null) {
+                return;
+            }
+
+            ApplyLineEnd(outline, startType, width, length, isStart: true);
+            ApplyLineEnd(outline, endType, width, length, isStart: false);
+        }
+
+        /// <summary>
+        ///     Applies a drop shadow to the shape.
+        /// </summary>
+        public void SetShadow(string color, double blurPoints = 4, double distancePoints = 3,
+            double angleDegrees = 45, int transparencyPercent = 35, bool rotateWithShape = false) {
+            if (string.IsNullOrWhiteSpace(color)) {
+                throw new ArgumentException("Shadow color cannot be null or empty.", nameof(color));
+            }
+            if (blurPoints < 0) {
+                throw new ArgumentOutOfRangeException(nameof(blurPoints));
+            }
+            if (distancePoints < 0) {
+                throw new ArgumentOutOfRangeException(nameof(distancePoints));
+            }
+            if (transparencyPercent is < 0 or > 100) {
+                throw new ArgumentOutOfRangeException(nameof(transparencyPercent), "Transparency must be between 0 and 100.");
+            }
+
+            A.OuterShadow? shadow = GetOuterShadow(create: true);
+            if (shadow == null) {
+                return;
+            }
+
+            shadow.BlurRadius = PowerPointUnits.FromPoints(blurPoints);
+            shadow.Distance = PowerPointUnits.FromPoints(distancePoints);
+            shadow.Direction = ToShadowAngle(angleDegrees);
+            shadow.RotateWithShape = rotateWithShape;
+
+            RemoveShadowColors(shadow);
+            A.RgbColorModelHex rgb = new() { Val = color };
+            int alpha = 100000 - transparencyPercent * 1000;
+            rgb.Append(new A.Alpha { Val = alpha });
+            shadow.Append(rgb);
+        }
+
+        /// <summary>
+        ///     Removes any drop shadow from the shape.
+        /// </summary>
+        public void ClearShadow() {
+            A.EffectList? effects = GetEffectList();
+            if (effects == null) {
+                return;
+            }
+
+            effects.GetFirstChild<A.OuterShadow>()?.Remove();
+            if (!effects.HasChildren) {
+                effects.Remove();
+            }
+        }
+
+        /// <summary>
+        ///     Applies a glow effect to the shape.
+        /// </summary>
+        public void SetGlow(string color, double radiusPoints = 4, int transparencyPercent = 30) {
+            if (string.IsNullOrWhiteSpace(color)) {
+                throw new ArgumentException("Glow color cannot be null or empty.", nameof(color));
+            }
+            if (radiusPoints < 0) {
+                throw new ArgumentOutOfRangeException(nameof(radiusPoints));
+            }
+            if (transparencyPercent is < 0 or > 100) {
+                throw new ArgumentOutOfRangeException(nameof(transparencyPercent), "Transparency must be between 0 and 100.");
+            }
+
+            A.Glow? glow = GetGlow(create: true);
+            if (glow == null) {
+                return;
+            }
+
+            glow.Radius = PowerPointUnits.FromPoints(radiusPoints);
+            RemoveGlowColors(glow);
+
+            A.RgbColorModelHex rgb = new() { Val = color };
+            int alpha = 100000 - transparencyPercent * 1000;
+            rgb.Append(new A.Alpha { Val = alpha });
+            glow.Append(rgb);
+        }
+
+        /// <summary>
+        ///     Removes any glow effect from the shape.
+        /// </summary>
+        public void ClearGlow() {
+            A.EffectList? effects = GetEffectList();
+            if (effects == null) {
+                return;
+            }
+
+            effects.GetFirstChild<A.Glow>()?.Remove();
+            if (!effects.HasChildren) {
+                effects.Remove();
+            }
+        }
+
+        /// <summary>
+        ///     Applies a soft edges effect to the shape.
+        /// </summary>
+        public void SetSoftEdges(double radiusPoints) {
+            if (radiusPoints < 0) {
+                throw new ArgumentOutOfRangeException(nameof(radiusPoints));
+            }
+
+            A.SoftEdge? softEdge = GetSoftEdge(create: true);
+            if (softEdge == null) {
+                return;
+            }
+
+            softEdge.Radius = PowerPointUnits.FromPoints(radiusPoints);
+        }
+
+        /// <summary>
+        ///     Removes any soft edges effect from the shape.
+        /// </summary>
+        public void ClearSoftEdges() {
+            A.EffectList? effects = GetEffectList();
+            if (effects == null) {
+                return;
+            }
+
+            effects.GetFirstChild<A.SoftEdge>()?.Remove();
+            if (!effects.HasChildren) {
+                effects.Remove();
+            }
+        }
+
+        /// <summary>
+        ///     Applies a blur effect to the shape.
+        /// </summary>
+        public void SetBlur(double radiusPoints, bool grow = false) {
+            if (radiusPoints < 0) {
+                throw new ArgumentOutOfRangeException(nameof(radiusPoints));
+            }
+
+            A.Blur? blur = GetBlur(create: true);
+            if (blur == null) {
+                return;
+            }
+
+            blur.Radius = PowerPointUnits.FromPoints(radiusPoints);
+            blur.Grow = grow;
+        }
+
+        /// <summary>
+        ///     Removes any blur effect from the shape.
+        /// </summary>
+        public void ClearBlur() {
+            A.EffectList? effects = GetEffectList();
+            if (effects == null) {
+                return;
+            }
+
+            effects.GetFirstChild<A.Blur>()?.Remove();
+            if (!effects.HasChildren) {
+                effects.Remove();
+            }
+        }
+
+        /// <summary>
+        ///     Applies a reflection effect to the shape.
+        /// </summary>
+        public void SetReflection(
+            double blurPoints = 4,
+            double distancePoints = 2,
+            double directionDegrees = 270,
+            double fadeDirectionDegrees = 90,
+            int startOpacityPercent = 50,
+            int endOpacityPercent = 0,
+            int startPositionPercent = 0,
+            int endPositionPercent = 100,
+            A.RectangleAlignmentValues? alignment = null,
+            bool rotateWithShape = false) {
+            if (blurPoints < 0) {
+                throw new ArgumentOutOfRangeException(nameof(blurPoints));
+            }
+            if (distancePoints < 0) {
+                throw new ArgumentOutOfRangeException(nameof(distancePoints));
+            }
+            if (startOpacityPercent is < 0 or > 100) {
+                throw new ArgumentOutOfRangeException(nameof(startOpacityPercent), "Opacity must be between 0 and 100.");
+            }
+            if (endOpacityPercent is < 0 or > 100) {
+                throw new ArgumentOutOfRangeException(nameof(endOpacityPercent), "Opacity must be between 0 and 100.");
+            }
+            if (startPositionPercent is < 0 or > 100) {
+                throw new ArgumentOutOfRangeException(nameof(startPositionPercent), "Position must be between 0 and 100.");
+            }
+            if (endPositionPercent is < 0 or > 100) {
+                throw new ArgumentOutOfRangeException(nameof(endPositionPercent), "Position must be between 0 and 100.");
+            }
+
+            A.Reflection? reflection = GetReflection(create: true);
+            if (reflection == null) {
+                return;
+            }
+
+            reflection.BlurRadius = PowerPointUnits.FromPoints(blurPoints);
+            reflection.Distance = PowerPointUnits.FromPoints(distancePoints);
+            reflection.Direction = ToShadowAngle(directionDegrees);
+            reflection.FadeDirection = ToShadowAngle(fadeDirectionDegrees);
+            reflection.StartOpacity = ToAlphaValue(startOpacityPercent);
+            reflection.EndAlpha = ToAlphaValue(endOpacityPercent);
+            reflection.StartPosition = ToPercentValue(startPositionPercent);
+            reflection.EndPosition = ToPercentValue(endPositionPercent);
+            reflection.Alignment = alignment ?? A.RectangleAlignmentValues.Bottom;
+            reflection.RotateWithShape = rotateWithShape;
+        }
+
+        /// <summary>
+        ///     Removes any reflection effect from the shape.
+        /// </summary>
+        public void ClearReflection() {
+            A.EffectList? effects = GetEffectList();
+            if (effects == null) {
+                return;
+            }
+
+            effects.GetFirstChild<A.Reflection>()?.Remove();
+            if (!effects.HasChildren) {
+                effects.Remove();
             }
         }
 
@@ -656,6 +986,167 @@ namespace OfficeIMO.PowerPoint {
             return outline;
         }
 
+        private A.EffectList? GetEffectList(bool create = false) {
+            ShapeProperties? props = GetShapeProperties(create);
+            if (props == null) {
+                return null;
+            }
+
+            A.EffectList? effectList = props.GetFirstChild<A.EffectList>();
+            if (effectList == null && create) {
+                effectList = new A.EffectList();
+                props.Append(effectList);
+            }
+
+            return effectList;
+        }
+
+        private A.OuterShadow? GetOuterShadow(bool create = false) {
+            A.EffectList? effects = GetEffectList(create);
+            if (effects == null) {
+                return null;
+            }
+
+            A.OuterShadow? shadow = effects.GetFirstChild<A.OuterShadow>();
+            if (shadow == null && create) {
+                shadow = new A.OuterShadow();
+                effects.Append(shadow);
+            }
+
+            return shadow;
+        }
+
+        private A.Blur? GetBlur(bool create = false) {
+            A.EffectList? effects = GetEffectList(create);
+            if (effects == null) {
+                return null;
+            }
+
+            A.Blur? blur = effects.GetFirstChild<A.Blur>();
+            if (blur == null && create) {
+                blur = new A.Blur();
+                effects.Append(blur);
+            }
+
+            return blur;
+        }
+
+        private A.Reflection? GetReflection(bool create = false) {
+            A.EffectList? effects = GetEffectList(create);
+            if (effects == null) {
+                return null;
+            }
+
+            A.Reflection? reflection = effects.GetFirstChild<A.Reflection>();
+            if (reflection == null && create) {
+                reflection = new A.Reflection();
+                effects.Append(reflection);
+            }
+
+            return reflection;
+        }
+
+        private A.Glow? GetGlow(bool create = false) {
+            A.EffectList? effects = GetEffectList(create);
+            if (effects == null) {
+                return null;
+            }
+
+            A.Glow? glow = effects.GetFirstChild<A.Glow>();
+            if (glow == null && create) {
+                glow = new A.Glow();
+                effects.Append(glow);
+            }
+
+            return glow;
+        }
+
+        private A.SoftEdge? GetSoftEdge(bool create = false) {
+            A.EffectList? effects = GetEffectList(create);
+            if (effects == null) {
+                return null;
+            }
+
+            A.SoftEdge? softEdge = effects.GetFirstChild<A.SoftEdge>();
+            if (softEdge == null && create) {
+                softEdge = new A.SoftEdge();
+                effects.Append(softEdge);
+            }
+
+            return softEdge;
+        }
+
+        private static void RemoveShadowColors(A.OuterShadow shadow) {
+            shadow.RemoveAllChildren<A.RgbColorModelHex>();
+            shadow.RemoveAllChildren<A.SchemeColor>();
+            shadow.RemoveAllChildren<A.SystemColor>();
+            shadow.RemoveAllChildren<A.PresetColor>();
+        }
+
+        private static void RemoveGlowColors(A.Glow glow) {
+            glow.RemoveAllChildren<A.RgbColorModelHex>();
+            glow.RemoveAllChildren<A.SchemeColor>();
+            glow.RemoveAllChildren<A.SystemColor>();
+            glow.RemoveAllChildren<A.PresetColor>();
+        }
+
+        private static int ToShadowAngle(double degrees) {
+            double normalized = degrees % 360d;
+            if (normalized < 0) {
+                normalized += 360d;
+            }
+            return (int)Math.Round(normalized * 60000d);
+        }
+
+        private static int ToAlphaValue(int percent) {
+            return percent * 1000;
+        }
+
+        private static int ToPercentValue(int percent) {
+            return percent * 1000;
+        }
+
+        private static void ApplyLineEnd(A.Outline outline, A.LineEndValues? type, A.LineEndWidthValues? width, A.LineEndLengthValues? length, bool isStart) {
+            bool hasData = type != null || width != null || length != null;
+            if (isStart) {
+                A.HeadEnd? head = outline.GetFirstChild<A.HeadEnd>();
+                if (!hasData) {
+                    head?.Remove();
+                    return;
+                }
+
+                head ??= new A.HeadEnd();
+                head.Type = type ?? A.LineEndValues.None;
+                if (width != null) {
+                    head.Width = width.Value;
+                }
+                if (length != null) {
+                    head.Length = length.Value;
+                }
+                if (head.Parent == null) {
+                    outline.Append(head);
+                }
+            } else {
+                A.TailEnd? tail = outline.GetFirstChild<A.TailEnd>();
+                if (!hasData) {
+                    tail?.Remove();
+                    return;
+                }
+
+                tail ??= new A.TailEnd();
+                tail.Type = type ?? A.LineEndValues.None;
+                if (width != null) {
+                    tail.Width = width.Value;
+                }
+                if (length != null) {
+                    tail.Length = length.Value;
+                }
+                if (tail.Parent == null) {
+                    outline.Append(tail);
+                }
+            }
+        }
+
         private int? GetRotation() {
             return Element switch {
                 Shape s => s.ShapeProperties?.Transform2D?.Rotation?.Value,
@@ -748,6 +1239,46 @@ namespace OfficeIMO.PowerPoint {
             transform.ChildOffset ??= new A.ChildOffset();
             transform.ChildExtents ??= new A.ChildExtents();
             return transform;
+        }
+
+        private static (double x, double y) ResolveAnchorPoint(PowerPointLayoutBox bounds, PowerPointShapeAnchor anchor) {
+            double left = bounds.Left;
+            double top = bounds.Top;
+            double right = bounds.Right;
+            double bottom = bounds.Bottom;
+            double centerX = bounds.Left + bounds.Width / 2d;
+            double centerY = bounds.Top + bounds.Height / 2d;
+
+            return anchor switch {
+                PowerPointShapeAnchor.TopLeft => (left, top),
+                PowerPointShapeAnchor.Top => (centerX, top),
+                PowerPointShapeAnchor.TopRight => (right, top),
+                PowerPointShapeAnchor.Left => (left, centerY),
+                PowerPointShapeAnchor.Center => (centerX, centerY),
+                PowerPointShapeAnchor.Right => (right, centerY),
+                PowerPointShapeAnchor.BottomLeft => (left, bottom),
+                PowerPointShapeAnchor.Bottom => (centerX, bottom),
+                PowerPointShapeAnchor.BottomRight => (right, bottom),
+                _ => (left, top)
+            };
+        }
+
+        private static (double offsetX, double offsetY) ResolveAnchorOffset(long width, long height, PowerPointShapeAnchor anchor) {
+            double w = width;
+            double h = height;
+
+            return anchor switch {
+                PowerPointShapeAnchor.TopLeft => (0d, 0d),
+                PowerPointShapeAnchor.Top => (w / 2d, 0d),
+                PowerPointShapeAnchor.TopRight => (w, 0d),
+                PowerPointShapeAnchor.Left => (0d, h / 2d),
+                PowerPointShapeAnchor.Center => (w / 2d, h / 2d),
+                PowerPointShapeAnchor.Right => (w, h / 2d),
+                PowerPointShapeAnchor.BottomLeft => (0d, h),
+                PowerPointShapeAnchor.Bottom => (w / 2d, h),
+                PowerPointShapeAnchor.BottomRight => (w, h),
+                _ => (0d, 0d)
+            };
         }
     }
 }
