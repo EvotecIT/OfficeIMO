@@ -108,5 +108,18 @@ namespace OfficeIMO.Tests {
                 File.Delete(filePath);
             }
         }
+
+        [Fact]
+        public void Test_AddTableFromObjects_ThrowsOnMissingColumns() {
+            string filePath = Path.Combine(_directoryWithFiles, "Table.FromObjects.MissingColumns.docx");
+
+            try {
+                using var document = WordDocument.Create(filePath);
+                var ex = Assert.Throws<InvalidOperationException>(() => document.AddTableFromObjects(new object?[] { new object() }));
+                Assert.Equal("Unable to infer column names. Use objects with properties or dictionaries.", ex.Message);
+            } finally {
+                File.Delete(filePath);
+            }
+        }
     }
 }
