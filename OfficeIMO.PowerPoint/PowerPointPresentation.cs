@@ -367,7 +367,7 @@ namespace OfficeIMO.PowerPoint {
                 OpenXmlCompositeElement? element = GetColorElement(scheme, color);
                 string? hexValue = element?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value;
                 if (!string.IsNullOrEmpty(hexValue)) {
-                    colors[color] = hexValue;
+                    colors[color] = hexValue!;
                 }
             }
 
@@ -2101,13 +2101,13 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static PowerPointLayoutBox GetFallbackPlaceholderBounds(PlaceholderValues placeholderType) {
-            return placeholderType switch {
-                PlaceholderValues.Title or PlaceholderValues.CenteredTitle =>
-                    new PowerPointLayoutBox(838200L, 365125L, 7772400L, 1470025L),
-                PlaceholderValues.SubTitle =>
-                    new PowerPointLayoutBox(838200L, 2174875L, 7772400L, 1470025L),
-                _ => new PowerPointLayoutBox(838200L, 2174875L, 7772400L, 3962400L)
-            };
+            if (placeholderType == PlaceholderValues.Title || placeholderType == PlaceholderValues.CenteredTitle) {
+                return new PowerPointLayoutBox(838200L, 365125L, 7772400L, 1470025L);
+            }
+            if (placeholderType == PlaceholderValues.SubTitle) {
+                return new PowerPointLayoutBox(838200L, 2174875L, 7772400L, 1470025L);
+            }
+            return new PowerPointLayoutBox(838200L, 2174875L, 7772400L, 3962400L);
         }
 
         private void ThrowIfDisposed() {
