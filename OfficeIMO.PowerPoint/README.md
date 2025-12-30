@@ -68,7 +68,8 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 var box = slide.AddTextBox("Inset text");
 box.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
-box.TextAutoFit = PowerPointTextAutoFit.Normal;
+box.SetTextAutoFit(PowerPointTextAutoFit.Normal,
+    new PowerPointTextAutoFitOptions(fontScalePercent: 85, lineSpaceReductionPercent: 10));
 box.TextVerticalAlignment = A.TextAnchoringTypeValues.Center;
 ```
 
@@ -286,6 +287,13 @@ slide.SetLayout("Title and Content");
 
 ppt.SetThemeColor(PowerPointThemeColor.Accent1, "FF0000");
 ppt.SetThemeLatinFonts("Aptos", "Calibri");
+ppt.SetThemeFonts(new PowerPointThemeFontSet(
+    majorLatin: "Aptos",
+    minorLatin: "Calibri",
+    majorEastAsian: "MS Mincho",
+    minorEastAsian: "Yu Gothic",
+    majorComplexScript: "Arial",
+    minorComplexScript: "Tahoma"));
 ```
 
 ### Import slide from another deck
@@ -439,6 +447,13 @@ var sections = ppt.GetSections();
 
 Positions and sizes are stored in EMUs (English Metric Units). Use `PowerPointUnits` or the `SetPositionCm`/`SetSizeCm`
 helpers to work in centimeters, inches, or points.
+
+### Slide size presets
+```csharp
+ppt.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+ppt.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen4x3, portrait: true);
+ppt.SlideSize.SetSizeCm(25.4, 14.0); // custom size
+```
 
 ### Layout helpers
 ```csharp
