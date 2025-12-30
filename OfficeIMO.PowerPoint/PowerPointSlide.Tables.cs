@@ -94,6 +94,33 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Adds a table with a style preset applied.
+        /// </summary>
+        public PowerPointTable AddTable(int rows, int columns, PowerPointTableStylePreset preset, long left = 0L,
+            long top = 0L, long width = 5000000L, long height = 3000000L) {
+            PowerPointTable table = AddTable(rows, columns, left, top, width, height);
+            table.ApplyStyle(preset);
+            return table;
+        }
+
+        /// <summary>
+        ///     Adds a table with a table style name applied.
+        /// </summary>
+        public PowerPointTable AddTable(int rows, int columns, string styleName, long left = 0L, long top = 0L,
+            long width = 5000000L, long height = 3000000L, bool ignoreCase = true, bool? firstRow = null,
+            bool? lastRow = null, bool? firstColumn = null, bool? lastColumn = null, bool? bandedRows = null,
+            bool? bandedColumns = null) {
+            if (string.IsNullOrWhiteSpace(styleName)) {
+                throw new ArgumentException("Style name cannot be null or empty.", nameof(styleName));
+            }
+
+            PowerPointTable table = AddTable(rows, columns, left, top, width, height);
+            table.ApplyStyleByName(styleName, ignoreCase, firstRow, lastRow, firstColumn, lastColumn, bandedRows,
+                bandedColumns);
+            return table;
+        }
+
+        /// <summary>
         ///     Adds a table using a layout box.
         /// </summary>
         public PowerPointTable AddTable(int rows, int columns, PowerPointLayoutBox layout) {
@@ -266,6 +293,34 @@ namespace OfficeIMO.PowerPoint {
             }
 
             ApplyColumnWidths(table, width, columnList);
+            return table;
+        }
+
+        /// <summary>
+        ///     Adds a table using explicit column bindings with a style preset applied.
+        /// </summary>
+        public PowerPointTable AddTable<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
+            PowerPointTableStylePreset preset, bool includeHeaders = true, long left = 0L, long top = 0L,
+            long width = 5000000L, long height = 3000000L) {
+            PowerPointTable table = AddTable(data, columns, includeHeaders, left, top, width, height);
+            table.ApplyStyle(preset);
+            return table;
+        }
+
+        /// <summary>
+        ///     Adds a table using explicit column bindings with a table style name applied.
+        /// </summary>
+        public PowerPointTable AddTable<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
+            string styleName, bool includeHeaders = true, long left = 0L, long top = 0L, long width = 5000000L,
+            long height = 3000000L, bool ignoreCase = true, bool? firstRow = null, bool? lastRow = null,
+            bool? firstColumn = null, bool? lastColumn = null, bool? bandedRows = null, bool? bandedColumns = null) {
+            if (string.IsNullOrWhiteSpace(styleName)) {
+                throw new ArgumentException("Style name cannot be null or empty.", nameof(styleName));
+            }
+
+            PowerPointTable table = AddTable(data, columns, includeHeaders, left, top, width, height);
+            table.ApplyStyleByName(styleName, ignoreCase, firstRow, lastRow, firstColumn, lastColumn, bandedRows,
+                bandedColumns);
             return table;
         }
 

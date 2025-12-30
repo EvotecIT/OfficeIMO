@@ -294,6 +294,11 @@ ppt.SetThemeFonts(new PowerPointThemeFontSet(
     minorEastAsian: "Yu Gothic",
     majorComplexScript: "Arial",
     minorComplexScript: "Tahoma"));
+
+// Apply updates across all masters
+ppt.SetThemeColorForAllMasters(PowerPointThemeColor.Accent2, "00B0F0");
+ppt.SetThemeLatinFontsForAllMasters("Aptos", "Calibri");
+ppt.SetThemeNameForAllMasters("Contoso Theme");
 ```
 
 ### Import slide from another deck
@@ -372,6 +377,33 @@ table.SetCellAlignment(A.TextAlignmentTypeValues.Center, A.TextAnchoringTypeValu
     startRow: 0, endRow: 0, startColumn: 0, endColumn: 2);
 table.SetCellBorders(TableCellBorders.All, "E0E0E0", widthPoints: 0.5,
     dash: A.PresetLineDashValues.Dash);
+table.GetCell(0, 0).SetTextAutoFit(PowerPointTextAutoFit.Normal,
+    new PowerPointTextAutoFitOptions(fontScalePercent: 80, lineSpaceReductionPercent: 10));
+```
+
+### Tables (style presets)
+```csharp
+var themed = slide.AddTable(rows: 4, columns: 4,
+    styleName: "Medium Style 2 - Accent 1",
+    left: PowerPointUnits.Cm(1), top: PowerPointUnits.Cm(1),
+    width: PowerPointUnits.Cm(18), height: PowerPointUnits.Cm(5),
+    firstRow: true, bandedRows: true);
+
+var headerOnly = slide.AddTable(rows: 3, columns: 3,
+    preset: PowerPointTableStylePreset.HeaderOnly,
+    left: PowerPointUnits.Cm(1), top: PowerPointUnits.Cm(7),
+    width: PowerPointUnits.Cm(18), height: PowerPointUnits.Cm(5));
+```
+
+### Guides & grid
+```csharp
+ppt.SnapToGrid = true;
+ppt.SetGridSpacingCm(0.5, 0.5);
+
+ppt.ClearGuides();
+ppt.AddGuideCm(PowerPointGuideOrientation.Vertical, 2.0);
+ppt.AddColumnGuidesCm(columnCount: 3, marginCm: 1.0, gutterCm: 0.5,
+    includeOuterEdges: true);
 ```
 
 ### Placeholders (layout-driven)
@@ -413,6 +445,7 @@ var sections = ppt.GetSections();
 - Images: add images from file/stream (PNG/JPEG/GIF/BMP/TIFF/EMF/WMF/ICO/PCX)   
 - Properties: set built‑in and application properties
 - Themes & transitions: default theme/table styles + slide transitions
+- Guides & grid: snap, spacing, and guide helpers
 - Text boxes: margins, auto-fit, vertical alignment
 - Tables: styling + merged cells + sizing helpers
 - Placeholders: read/update layout placeholders
@@ -427,7 +460,7 @@ var sections = ppt.GetSections();
 - 🖼️ Media & Shapes
   - ✅ Insert images; ✅ basic shapes (rect/ellipse/line) with fill/stroke + line styles + shadows/glow/soft edges/blur/reflection; ✅ align/distribute/arrange
 - 🗒️ Notes & Layout
-  - ✅ Speaker notes; ⚠️ basic layout selection
+  - ✅ Speaker notes; ✅ guides/grid helpers; ⚠️ basic layout selection
 - 📋 Tables
   - ⚠️ Basic styling + merged cells
 - 📊 Charts
@@ -453,6 +486,8 @@ helpers to work in centimeters, inches, or points.
 ppt.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 ppt.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen4x3, portrait: true);
 ppt.SlideSize.SetSizeCm(25.4, 14.0); // custom size
+var ratio = ppt.SlideSize.AspectRatio;
+var portrait = ppt.SlideSize.IsPortrait;
 ```
 
 ### Layout helpers

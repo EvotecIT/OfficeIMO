@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -1009,22 +1011,64 @@ namespace OfficeIMO.PowerPoint {
                 .GetParentParts()
                 .OfType<PresentationPart>()
                 .FirstOrDefault();
-            TableStylesPart? stylesPart = presentationPart?.TableStylesPart;
-            if (stylesPart?.TableStyleList == null) {
-                return null;
+
+            if (presentationPart != null && presentationPart.TableStylesPart?.TableStyleList == null) {
+                PowerPointUtils.CreateTableStylesPart(presentationPart);
             }
 
+            TableStylesPart? stylesPart = presentationPart?.TableStylesPart;
             StringComparison comparison = ignoreCase
                 ? StringComparison.OrdinalIgnoreCase
                 : StringComparison.Ordinal;
 
-            foreach (A.TableStyle style in stylesPart.TableStyleList.Elements<A.TableStyle>()) {
-                string? styleId = style.StyleId?.Value;
+            if (stylesPart?.TableStyleList != null) {
+                foreach (A.TableStyle style in stylesPart.TableStyleList.Elements<A.TableStyle>()) {
+                    string? styleId = style.StyleId?.Value;
+                    if (!string.IsNullOrWhiteSpace(styleId) && string.Equals(styleId, styleName, comparison)) {
+                        return styleId;
+                    }
+
+                    string? name = style.StyleName?.Value;
+                    if (!string.IsNullOrWhiteSpace(name) && string.Equals(name, styleName, comparison)) {
+                        return styleId;
+                    }
+                }
+            }
+
+            if (stylesPart != null) {
+                using Stream stream = stylesPart.GetStream(FileMode.Open, FileAccess.Read);
+                if (stream.Length > 0) {
+                    string? resolved = ResolveStyleIdFromXml(styleName, comparison, stream);
+                    if (!string.IsNullOrWhiteSpace(resolved)) {
+                        return resolved;
+                    }
+                }
+            }
+
+            using Stream? resource = typeof(PowerPointTable).Assembly
+                .GetManifestResourceStream("OfficeIMO.PowerPoint.Resources.tableStyles.xml");
+            if (resource != null) {
+                return ResolveStyleIdFromXml(styleName, comparison, resource);
+            }
+
+            return null;
+        }
+
+        private static string? ResolveStyleIdFromXml(string styleName, StringComparison comparison, Stream stream) {
+            XDocument document = XDocument.Load(stream);
+            XElement? root = document.Root;
+            if (root == null) {
+                return null;
+            }
+
+            XNamespace drawing = "http://schemas.openxmlformats.org/drawingml/2006/main";
+            foreach (XElement style in root.Elements(drawing + "tblStyle")) {
+                string? styleId = style.Attribute("styleId")?.Value;
                 if (!string.IsNullOrWhiteSpace(styleId) && string.Equals(styleId, styleName, comparison)) {
                     return styleId;
                 }
 
-                string? name = style.StyleName?.Value;
+                string? name = style.Attribute("styleName")?.Value;
                 if (!string.IsNullOrWhiteSpace(name) && string.Equals(name, styleName, comparison)) {
                     return styleId;
                 }

@@ -96,6 +96,21 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Gets the slide aspect ratio (width / height).
+        /// </summary>
+        public double AspectRatio => HeightEmus == 0 ? 0 : WidthEmus / (double)HeightEmus;
+
+        /// <summary>
+        ///     Gets a value indicating whether the slide is in portrait orientation.
+        /// </summary>
+        public bool IsPortrait => HeightEmus > WidthEmus;
+
+        /// <summary>
+        ///     Gets a value indicating whether the slide is in landscape orientation.
+        /// </summary>
+        public bool IsLandscape => WidthEmus >= HeightEmus;
+
+        /// <summary>
         ///     Slide size preset type.
         /// </summary>
         public SlideSizeValues? Type {

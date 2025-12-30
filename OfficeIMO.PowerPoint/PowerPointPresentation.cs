@@ -1,5 +1,6 @@
 using System.IO;
 using System.Reflection;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -23,6 +24,7 @@ namespace OfficeIMO.PowerPoint {
         private const string P14Namespace = "http://schemas.microsoft.com/office/powerpoint/2010/main";
         private const string SectionListUri = "{521415D9-36F7-43E2-AB2F-B90AF26B5E84}";
         private const string DefaultSectionName = "Section 1";
+        private const string TableStylesResourceName = "OfficeIMO.PowerPoint.Resources.tableStyles.xml";
         private static readonly MethodInfo AddNewPartWithContentTypeMethod =
             typeof(OpenXmlPartContainer)
                 .GetMethods()
@@ -352,7 +354,32 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Returns the theme colors that are defined on the master.
+        ///     Sets a theme color value across all masters.
+        /// </summary>
+        public void SetThemeColorForAllMasters(PowerPointThemeColor color, string hexValue) {
+            ThrowIfDisposed();
+            int masterCount = _presentationPart.SlideMasterParts.Count();
+            for (int i = 0; i < masterCount; i++) {
+                SetThemeColor(color, hexValue, i);
+            }
+        }
+
+        /// <summary>
+        ///     Sets multiple theme colors across all masters.
+        /// </summary>
+        public void SetThemeColorsForAllMasters(IDictionary<PowerPointThemeColor, string> colors) {
+            ThrowIfDisposed();
+            if (colors == null) {
+                throw new ArgumentNullException(nameof(colors));
+            }
+            int masterCount = _presentationPart.SlideMasterParts.Count();
+            for (int i = 0; i < masterCount; i++) {
+                SetThemeColors(colors, i);
+            }
+        }
+
+        /// <summary>
+        ///     Returns the theme colors that are defined on the master.        
         /// </summary>
         public IReadOnlyDictionary<PowerPointThemeColor, string> GetThemeColors(int masterIndex = 0) {
             ThrowIfDisposed();
@@ -400,6 +427,17 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets the major/minor Latin fonts across all masters.
+        /// </summary>
+        public void SetThemeLatinFontsForAllMasters(string majorLatin, string minorLatin) {
+            ThrowIfDisposed();
+            int masterCount = _presentationPart.SlideMasterParts.Count();
+            for (int i = 0; i < masterCount; i++) {
+                SetThemeLatinFonts(majorLatin, minorLatin, i);
+            }
+        }
+
+        /// <summary>
         ///     Gets the major/minor fonts (Latin, East Asian, and complex script).
         /// </summary>
         public PowerPointThemeFontSet GetThemeFonts(int masterIndex = 0) {
@@ -433,6 +471,32 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets the major/minor fonts (Latin, East Asian, and complex script) across all masters.
+        /// </summary>
+        public void SetThemeFontsForAllMasters(PowerPointThemeFontSet fonts, bool keepExistingWhenNull = true) {
+            ThrowIfDisposed();
+            int masterCount = _presentationPart.SlideMasterParts.Count();
+            for (int i = 0; i < masterCount; i++) {
+                SetThemeFonts(fonts, i, keepExistingWhenNull);
+            }
+        }
+
+        /// <summary>
+        ///     Sets the theme name across all masters.
+        /// </summary>
+        public void SetThemeNameForAllMasters(string name) {
+            ThrowIfDisposed();
+            if (string.IsNullOrWhiteSpace(name)) {
+                throw new ArgumentException("Theme name cannot be null or empty.", nameof(name));
+            }
+            foreach (SlideMasterPart masterPart in _presentationPart.SlideMasterParts) {
+                ThemePart themePart = masterPart.ThemePart ?? masterPart.AddNewPart<ThemePart>();
+                themePart.Theme ??= new A.Theme { ThemeElements = new A.ThemeElements() };
+                themePart.Theme.Name = name;
+            }
+        }
+
+        /// <summary>
         ///     Gets the list of table styles available in the presentation.
         /// </summary>
         public IReadOnlyList<PowerPointTableStyleInfo> TableStyles {
@@ -440,21 +504,59 @@ namespace OfficeIMO.PowerPoint {
                 ThrowIfDisposed();
                 TableStylesPart? stylesPart = _presentationPart.TableStylesPart;
                 if (stylesPart?.TableStyleList == null) {
-                    return Array.Empty<PowerPointTableStyleInfo>();
+                    PowerPointUtils.CreateTableStylesPart(_presentationPart);
+                    stylesPart = _presentationPart.TableStylesPart;
                 }
 
                 List<PowerPointTableStyleInfo> styles = new();
-                foreach (A.TableStyle style in stylesPart.TableStyleList.Elements<A.TableStyle>()) {
-                    string styleId = style.StyleId?.Value ?? string.Empty;
-                    if (string.IsNullOrWhiteSpace(styleId)) {
-                        continue;
-                    }
+                A.TableStyleList? styleList = stylesPart?.TableStyleList;
+                if (styleList != null) {
+                    foreach (A.TableStyle style in styleList.Elements<A.TableStyle>()) {
+                        string styleId = style.StyleId?.Value ?? string.Empty;
+                        if (string.IsNullOrWhiteSpace(styleId)) {
+                            continue;
+                        }
 
-                    string name = style.StyleName?.Value ?? string.Empty;
-                    styles.Add(new PowerPointTableStyleInfo(styleId, name));
+                        string name = style.StyleName?.Value ?? string.Empty;
+                        styles.Add(new PowerPointTableStyleInfo(styleId, name));
+                    }
                 }
 
-                return styles;
+                if (stylesPart != null) {
+                    using Stream stream = stylesPart.GetStream(FileMode.Open, FileAccess.Read);
+                    if (stream.Length > 0) {
+                        AddTableStylesFromStream(styles, stream);
+                    }
+                }
+
+                if (styles.Count == 0) {
+                    using Stream? resource = typeof(PowerPointPresentation).Assembly
+                        .GetManifestResourceStream(TableStylesResourceName);
+                    if (resource != null) {
+                        AddTableStylesFromStream(styles, resource);
+                    }
+                }
+
+                return styles.Count == 0 ? Array.Empty<PowerPointTableStyleInfo>() : styles;
+            }
+        }
+
+        private static void AddTableStylesFromStream(List<PowerPointTableStyleInfo> styles, Stream stream) {
+            XDocument document = XDocument.Load(stream);
+            XElement? root = document.Root;
+            if (root == null) {
+                return;
+            }
+
+            XNamespace drawing = "http://schemas.openxmlformats.org/drawingml/2006/main";
+            foreach (XElement style in root.Elements(drawing + "tblStyle")) {
+                string styleId = style.Attribute("styleId")?.Value ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(styleId)) {
+                    continue;
+                }
+
+                string name = style.Attribute("styleName")?.Value ?? string.Empty;
+                styles.Add(new PowerPointTableStyleInfo(styleId, name));
             }
         }
 

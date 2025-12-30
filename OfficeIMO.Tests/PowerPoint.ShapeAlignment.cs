@@ -89,6 +89,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DistributeShapes_Horizontal_AnchorsLastShapeToBounds() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointAutoShape a = slide.AddRectangle(0, 0, 1111, 1000);
+                PowerPointAutoShape b = slide.AddRectangle(3000, 0, 2222, 1000);
+                PowerPointAutoShape c = slide.AddRectangle(7000, 0, 3333, 1000);
+                var bounds = new PowerPointLayoutBox(100, 0, 10000, 1000);
+
+                slide.DistributeShapes(slide.Shapes, PowerPointShapeDistribution.Horizontal, bounds);
+
+                Assert.Equal(bounds.Left, a.Left);
+                Assert.Equal(bounds.Right, c.Left + c.Width);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DistributeShapes_Horizontal_AlignsBottom() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {

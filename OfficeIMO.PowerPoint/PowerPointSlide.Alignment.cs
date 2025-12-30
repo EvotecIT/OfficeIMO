@@ -266,8 +266,13 @@ namespace OfficeIMO.PowerPoint {
             double gap = ordered.Count > 1 ? available / (ordered.Count - 1) : 0d;
 
             double current = bounds.Left;
-            foreach (PowerPointShape shape in ordered) {
-                shape.Left = (long)Math.Round(current);
+            for (int i = 0; i < ordered.Count; i++) {
+                PowerPointShape shape = ordered[i];
+                if (i == ordered.Count - 1 && ordered.Count > 1) {
+                    shape.Left = bounds.Right - shape.Width;
+                } else {
+                    shape.Left = (long)Math.Round(current);
+                }
                 current += shape.Width + gap;
             }
         }
@@ -279,8 +284,13 @@ namespace OfficeIMO.PowerPoint {
             double gap = ordered.Count > 1 ? available / (ordered.Count - 1) : 0d;
 
             double current = bounds.Top;
-            foreach (PowerPointShape shape in ordered) {
-                shape.Top = (long)Math.Round(current);
+            for (int i = 0; i < ordered.Count; i++) {
+                PowerPointShape shape = ordered[i];
+                if (i == ordered.Count - 1 && ordered.Count > 1) {
+                    shape.Top = bounds.Bottom - shape.Height;
+                } else {
+                    shape.Top = (long)Math.Round(current);
+                }
                 current += shape.Height + gap;
             }
         }

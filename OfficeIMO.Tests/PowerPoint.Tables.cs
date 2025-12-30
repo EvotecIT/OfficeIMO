@@ -112,6 +112,62 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CanAddTableWithStyleName() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string? styleName = null;
+            string? styleId = null;
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointTableStyleInfo style = presentation.TableStyles
+                    .FirstOrDefault(s => !string.IsNullOrWhiteSpace(s.StyleId));
+                Assert.False(string.IsNullOrWhiteSpace(style.StyleId));
+
+                styleId = style.StyleId;
+                styleName = string.IsNullOrWhiteSpace(style.Name) ? style.StyleId : style.Name;
+
+                PowerPointSlide slide = presentation.AddSlide();
+                slide.AddTable(rows: 2, columns: 2, styleName: styleName,
+                    left: 0L, top: 0L, width: 6000000L, height: 2000000L,
+                    firstRow: true, bandedRows: true);
+                presentation.Save();
+            }
+
+            using (PresentationDocument doc = PresentationDocument.Open(filePath, false)) {
+                A.Table table = doc.PresentationPart!.SlideParts.First().Slide.Descendants<A.Table>().First();
+                string? appliedStyle = table.TableProperties?.GetFirstChild<A.TableStyleId>()?.Text;
+                Assert.Equal(styleId, appliedStyle);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void CanSetTableCellAutoFit() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointTable table = slide.AddTable(1, 1);
+                PowerPointTableCell cell = table.GetCell(0, 0);
+                cell.SetTextAutoFit(PowerPointTextAutoFit.Normal,
+                    new PowerPointTextAutoFitOptions(fontScalePercent: 80, lineSpaceReductionPercent: 10));
+                presentation.Save();
+            }
+
+            using (PresentationDocument doc = PresentationDocument.Open(filePath, false)) {
+                A.TableCell cell = doc.PresentationPart!.SlideParts.First().Slide
+                    .Descendants<A.TableCell>().First();
+                A.BodyProperties? body = cell.TextBody?.GetFirstChild<A.BodyProperties>();
+                A.NormalAutoFit? normal = body?.GetFirstChild<A.NormalAutoFit>();
+                Assert.NotNull(normal);
+                Assert.Equal(80000, normal!.FontScale!.Value);
+                Assert.Equal(10000, normal.LineSpaceReduction!.Value);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void CanBindTableWithColumnDefinitions() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
