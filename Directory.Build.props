@@ -8,5 +8,13 @@
     <Compile Include="$(MSBuildThisFileDirectory)Build\Trimming\TrimmingAttributes.cs"
              Condition="Exists('$(MSBuildThisFileDirectory)Build\Trimming\TrimmingAttributes.cs')" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <OfficeIMOSharedDir>$(MSBuildThisFileDirectory)OfficeIMO.Shared</OfficeIMOSharedDir>
+  </PropertyGroup>
+  <ItemGroup Condition="Exists('$(OfficeIMOSharedDir)')">
+    <Compile Include="$(OfficeIMOSharedDir)\**\*.cs"
+             Link="Shared\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>
 
