@@ -19,7 +19,11 @@ internal static class ObjectDataHelpers
 #endif
     public static IReadOnlyList<string> GetColumnNames(object item)
     {
+#if NET6_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(item);
+#else
         if (item == null) throw new ArgumentNullException(nameof(item));
+#endif
 
         if (item is IReadOnlyDictionary<string, object?> roDict)
         {
@@ -64,8 +68,13 @@ internal static class ObjectDataHelpers
 #endif
     public static object? GetValue(object item, string column)
     {
+#if NET6_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(item);
+        ArgumentNullException.ThrowIfNull(column);
+#else
         if (item == null) throw new ArgumentNullException(nameof(item));
         if (column == null) throw new ArgumentNullException(nameof(column));
+#endif
 
         if (item is IReadOnlyDictionary<string, object?> roDict)
         {
