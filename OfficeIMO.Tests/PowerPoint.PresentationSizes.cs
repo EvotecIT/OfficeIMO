@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -83,6 +84,25 @@ namespace OfficeIMO.Tests {
             Assert.Equal(box.Right, columns[1].Right);
             Assert.Equal(box.Top, rows[0].Top);
             Assert.Equal(box.Bottom, rows[1].Bottom);
+        }
+
+        [Fact]
+        public void CanSetSlideSizePreset() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen4x3);
+                presentation.Save();
+            }
+
+            using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                SlideSize slideSize = document.PresentationPart!.Presentation!.SlideSize!;
+                Assert.Equal(SlideSizeValues.Screen4x3, slideSize.Type!.Value);
+                Assert.Equal((int)PowerPointUnits.FromInches(10), slideSize.Cx!.Value);
+                Assert.Equal((int)PowerPointUnits.FromInches(7.5), slideSize.Cy!.Value);
+            }
+
+            File.Delete(filePath);
         }
     }
 }

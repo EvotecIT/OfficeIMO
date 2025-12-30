@@ -68,13 +68,18 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 var box = slide.AddTextBox("Inset text");
 box.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
-box.TextAutoFit = PowerPointTextAutoFit.Normal;
+box.SetTextAutoFit(PowerPointTextAutoFit.Normal,
+    new PowerPointTextAutoFitOptions(fontScalePercent: 85, lineSpaceReductionPercent: 10));
 box.TextVerticalAlignment = A.TextAnchoringTypeValues.Center;
 ```
 
 ### Images
 ```csharp
 slide.AddPicture("logo.png",
+    PowerPointUnits.Cm(23), PowerPointUnits.Cm(1.2), PowerPointUnits.Cm(5), PowerPointUnits.Cm(2));
+
+using var logoStream = File.OpenRead("logo.png");
+slide.AddPicture(logoStream, ImagePartType.Png,
     PowerPointUnits.Cm(23), PowerPointUnits.Cm(1.2), PowerPointUnits.Cm(5), PowerPointUnits.Cm(2));
 ```
 
@@ -91,6 +96,173 @@ slide.AddRectangle(PowerPointUnits.Cm(1), PowerPointUnits.Cm(1),
     .Stroke("#007ACC");
 ```
 
+### Lines (dash + arrows)
+```csharp
+using A = DocumentFormat.OpenXml.Drawing;
+
+var line = slide.AddLine(
+    PowerPointUnits.Cm(1), PowerPointUnits.Cm(1),
+    PowerPointUnits.Cm(8), PowerPointUnits.Cm(1));
+line.OutlineColor = "2F5597";
+line.OutlineDash = A.PresetLineDashValues.Dash;
+line.SetLineEnds(A.LineEndValues.Triangle, A.LineEndValues.Stealth,
+    A.LineEndWidthValues.Medium, A.LineEndLengthValues.Medium);
+```
+
+### Shape effects (shadow + glow + blur)
+```csharp
+var card = slide.AddRectangle(PowerPointUnits.Cm(1), PowerPointUnits.Cm(4),
+    PowerPointUnits.Cm(6), PowerPointUnits.Cm(2), "Card");
+card.FillColor = "FFFFFF";
+card.OutlineColor = "D0D0D0";
+card.SetShadow("000000", blurPoints: 6, distancePoints: 4,
+    angleDegrees: 270, transparencyPercent: 40);
+card.SetGlow("000000", radiusPoints: 3, transparencyPercent: 60);
+card.SetSoftEdges(1.5);
+card.SetBlur(2, grow: false);
+```
+
+### Shape effects (reflection)
+```csharp
+var logo = slide.AddRectangle(PowerPointUnits.Cm(10), PowerPointUnits.Cm(4),
+    PowerPointUnits.Cm(4), PowerPointUnits.Cm(2), "Logo");
+logo.SetReflection(blurPoints: 4, distancePoints: 2, directionDegrees: 270,
+    fadeDirectionDegrees: 90, startOpacityPercent: 60, endOpacityPercent: 0);
+```
+
+### Align + distribute shapes
+```csharp
+slide.AlignShapes(slide.Shapes, PowerPointShapeAlignment.Left);
+slide.DistributeShapes(slide.Shapes, PowerPointShapeDistribution.Horizontal);   
+
+slide.AlignShapesToSlideContent(slide.Shapes, PowerPointShapeAlignment.Left,
+    marginEmus: PowerPointUnits.Cm(1));
+slide.DistributeShapesToSlideContent(slide.Shapes, PowerPointShapeDistribution.Horizontal,
+    marginEmus: PowerPointUnits.Cm(1));
+slide.DistributeShapes(slide.Shapes, PowerPointShapeDistribution.Horizontal,
+    PowerPointShapeAlignment.Bottom);
+
+slide.DistributeShapesWithSpacing(slide.Shapes, PowerPointShapeDistribution.Horizontal,
+    spacingEmus: PowerPointUnits.Cm(0.5), center: true);
+
+slide.DistributeShapesWithSpacing(slide.Shapes, PowerPointShapeDistribution.Horizontal,
+    spacingEmus: PowerPointUnits.Cm(0.5), PowerPointShapeAlignment.Right);      
+slide.DistributeShapesWithSpacing(slide.Shapes, PowerPointShapeDistribution.Horizontal,
+    spacingEmus: PowerPointUnits.Cm(0.5), PowerPointShapeAlignment.Right,
+    PowerPointShapeAlignment.Bottom);
+
+slide.DistributeShapesWithSpacing(slide.Shapes, PowerPointShapeDistribution.Horizontal,
+    new PowerPointShapeSpacingOptions {
+        SpacingEmus = PowerPointUnits.Cm(0.4),
+        ClampSpacingToBounds = true,
+        Alignment = PowerPointShapeAlignment.Center,
+        CrossAxisAlignment = PowerPointShapeAlignment.Bottom
+    });
+slide.DistributeShapesWithSpacing(slide.Shapes, PowerPointShapeDistribution.Horizontal,
+    new PowerPointShapeSpacingOptions {
+        SpacingEmus = PowerPointUnits.Cm(0.4),
+        ScaleToFitBounds = true,
+        PreserveAspect = true
+    });
+
+slide.DistributeShapesWithSpacingToSlideContent(slide.Shapes, PowerPointShapeDistribution.Horizontal,
+    spacingEmus: PowerPointUnits.Cm(0.5), marginEmus: PowerPointUnits.Cm(1));
+
+slide.StackShapes(slide.Shapes, PowerPointShapeStackDirection.Horizontal,
+    spacingEmus: PowerPointUnits.Cm(0.3), PowerPointShapeAlignment.Bottom);
+slide.StackShapesToSlideContent(slide.Shapes, PowerPointShapeStackDirection.Vertical,
+    spacingEmus: PowerPointUnits.Cm(0.3), marginEmus: PowerPointUnits.Cm(1));
+
+slide.StackShapes(slide.Shapes, PowerPointShapeStackDirection.Horizontal,
+    spacingEmus: PowerPointUnits.Cm(0.3), PowerPointShapeStackJustify.Center);
+
+slide.StackShapes(slide.Shapes, PowerPointShapeStackDirection.Horizontal,       
+    new PowerPointShapeStackOptions {
+        SpacingEmus = PowerPointUnits.Cm(0.4),
+        ClampSpacingToBounds = true,
+        Justify = PowerPointShapeStackJustify.Center
+    });
+slide.StackShapes(slide.Shapes, PowerPointShapeStackDirection.Horizontal,
+    new PowerPointShapeStackOptions {
+        SpacingEmus = PowerPointUnits.Cm(0.4),
+        ScaleToFitBounds = true,
+        PreserveAspect = true
+    });
+```
+
+### Resize shapes
+```csharp
+slide.ResizeShapes(slide.Shapes, PowerPointShapeSizeDimension.Width, PowerPointShapeSizeReference.Largest);
+slide.ResizeShapesCm(slide.Shapes, widthCm: 3.0, heightCm: null);
+```
+
+### Shape bounds + movement
+```csharp
+var shape = slide.AddRectangle(0, 0, PowerPointUnits.Cm(3), PowerPointUnits.Cm(2));
+
+shape.Right = PowerPointUnits.Cm(10);
+shape.CenterX = PowerPointUnits.Cm(12);
+shape.Bounds = PowerPointLayoutBox.FromCentimeters(2, 2, 4, 2);
+
+shape.MoveBy(PowerPointUnits.Cm(0.5), PowerPointUnits.Cm(0.25));
+shape.Resize(PowerPointUnits.Cm(5), PowerPointUnits.Cm(2), PowerPointShapeAnchor.Center);
+shape.Scale(1.2, PowerPointShapeAnchor.BottomRight);
+
+var inArea = slide.GetShapesInBounds(
+    PowerPointLayoutBox.FromCentimeters(1, 1, 5, 3),
+    includePartial: true);
+```
+
+### Grid layout
+```csharp
+slide.ArrangeShapesInGrid(slide.Shapes,
+    new PowerPointLayoutBox(0, 0, 8000, 4000),
+    columns: 4, rows: 2, gutterX: 200, gutterY: 200,
+    flow: PowerPointShapeGridFlow.RowMajor);
+
+slide.ArrangeShapesInGridAuto(slide.Shapes,
+    new PowerPointLayoutBox(0, 0, 8000, 4000));
+
+slide.ArrangeShapesInGridAuto(slide.Shapes,
+    new PowerPointLayoutBox(0, 0, 8000, 4000),
+    new PowerPointShapeGridOptions { MinColumns = 2, MaxColumns = 4, TargetCellAspect = 1.0 });
+
+slide.ArrangeShapesInGridToSlideContent(slide.Shapes, columns: 3, rows: 2,
+    marginEmus: PowerPointUnits.Cm(1), gutterX: PowerPointUnits.Cm(0.5));
+```
+
+### Fit shapes to bounds
+```csharp
+slide.FitShapesToBounds(slide.Shapes, new PowerPointLayoutBox(0, 0, 8000, 4500));
+slide.FitShapesToSlideContentCm(slide.Shapes, marginCm: 1.0, preserveAspect: true, center: true);
+```
+
+### Group + ungroup shapes
+```csharp
+var group = slide.GroupShapes(slide.Shapes);
+slide.UngroupShape(group);
+
+slide.AlignGroupChildren(group, PowerPointShapeAlignment.Left);
+slide.DistributeGroupChildrenWithSpacing(group, PowerPointShapeDistribution.Horizontal,
+    spacingEmus: PowerPointUnits.Cm(0.4));
+slide.StackGroupChildren(group, PowerPointShapeStackDirection.Vertical,
+    new PowerPointShapeStackOptions { SpacingEmus = PowerPointUnits.Cm(0.3) });
+slide.ArrangeGroupChildrenInGrid(group, columns: 2, rows: 2);
+
+var groupTextBoxes = slide.GetGroupTextBoxes(group);
+var groupBoundsCm = slide.GetGroupChildBoundsCm(group);
+```
+
+### Arrange + duplicate shapes
+```csharp
+slide.BringForward(shape);
+slide.SendBackward(shape);
+slide.BringToFront(shape);
+slide.SendToBack(shape);
+
+var copy = slide.DuplicateShapeCm(shape, 0.5, 0.5);
+```
+
 ### Slide properties
 ```csharp
 ppt.BuiltinDocumentProperties.Title = "Contoso Review";
@@ -103,11 +275,53 @@ var duplicate = ppt.DuplicateSlide(0);
 duplicate.Hidden = true;
 ```
 
+### Slide layouts + theme helpers
+```csharp
+using DocumentFormat.OpenXml.Presentation;
+
+var layouts = ppt.GetSlideLayouts();
+var titleLayoutIndex = ppt.GetLayoutIndex(SlideLayoutValues.Title);
+
+var slide = ppt.AddSlide(SlideLayoutValues.TitleOnly);
+slide.SetLayout("Title and Content");
+
+ppt.SetThemeColor(PowerPointThemeColor.Accent1, "FF0000");
+ppt.SetThemeLatinFonts("Aptos", "Calibri");
+ppt.SetThemeFonts(new PowerPointThemeFontSet(
+    majorLatin: "Aptos",
+    minorLatin: "Calibri",
+    majorEastAsian: "MS Mincho",
+    minorEastAsian: "Yu Gothic",
+    majorComplexScript: "Arial",
+    minorComplexScript: "Tahoma"));
+
+// Apply updates across all masters
+ppt.SetThemeColorForAllMasters(PowerPointThemeColor.Accent2, "00B0F0");
+ppt.SetThemeLatinFontsForAllMasters("Aptos", "Calibri");
+ppt.SetThemeNameForAllMasters("Contoso Theme");
+```
+
 ### Import slide from another deck
 ```csharp
 using var source = PowerPointPresentation.Open("source.pptx");
 var imported = ppt.ImportSlide(source, sourceIndex: 0);
 imported.AddTextBox("Imported content");
+```
+
+### Charts (formatting)
+```csharp
+using C = DocumentFormat.OpenXml.Drawing.Charts;
+
+var chart = slide.AddChart();
+chart.SetTitle("Sales Trend")
+     .SetLegend(C.LegendPositionValues.Right)
+     .SetDataLabels(showValue: true)
+     .SetCategoryAxisTitle("Quarter")
+     .SetValueAxisTitle("Revenue")
+     .SetValueAxisNumberFormat("#,##0.00")
+     .SetSeriesFillColor(0, "4472C4")
+     .SetSeriesLineColor("Series 2", "ED7D31", widthPoints: 1)
+     .SetSeriesMarker(0, C.MarkerStyleValues.Circle, size: 6, fillColor: "FFFFFF", lineColor: "4472C4");
 ```
 
 ### Layouts and notes (fluent)
@@ -144,10 +358,52 @@ slide.AddTable(rows, columns, left: PowerPointUnits.Cm(1.5), top: PowerPointUnit
 
 ### Tables (merged cells)
 ```csharp
-var table = slide.AddTable(rows: 4, columns: 4, left: PowerPointUnits.Cm(1.5),
+var table = slide.AddTable(rows: 4, columns: 4, left: PowerPointUnits.Cm(1.5),  
     top: PowerPointUnits.Cm(4), width: PowerPointUnits.Cm(20), height: PowerPointUnits.Cm(6));
 table.GetCell(0, 0).Text = "Merged header";
 table.MergeCells(0, 0, 0, 3);
+```
+
+### Tables (formatting helpers)
+```csharp
+using A = DocumentFormat.OpenXml.Drawing;
+
+var table = slide.AddTable(rows: 3, columns: 3, left: PowerPointUnits.Cm(1), top: PowerPointUnits.Cm(5),
+    width: PowerPointUnits.Cm(18), height: PowerPointUnits.Cm(5));
+
+table.SetRowHeightsEvenly();
+table.SetCellPaddingCm(0.2, 0.1, 0.2, 0.1);
+table.SetCellAlignment(A.TextAlignmentTypeValues.Center, A.TextAnchoringTypeValues.Center,
+    startRow: 0, endRow: 0, startColumn: 0, endColumn: 2);
+table.SetCellBorders(TableCellBorders.All, "E0E0E0", widthPoints: 0.5,
+    dash: A.PresetLineDashValues.Dash);
+table.GetCell(0, 0).SetTextAutoFit(PowerPointTextAutoFit.Normal,
+    new PowerPointTextAutoFitOptions(fontScalePercent: 80, lineSpaceReductionPercent: 10));
+```
+
+### Tables (style presets)
+```csharp
+var themed = slide.AddTable(rows: 4, columns: 4,
+    styleName: "Medium Style 2 - Accent 1",
+    left: PowerPointUnits.Cm(1), top: PowerPointUnits.Cm(1),
+    width: PowerPointUnits.Cm(18), height: PowerPointUnits.Cm(5),
+    firstRow: true, bandedRows: true);
+
+var headerOnly = slide.AddTable(rows: 3, columns: 3,
+    preset: PowerPointTableStylePreset.HeaderOnly,
+    left: PowerPointUnits.Cm(1), top: PowerPointUnits.Cm(7),
+    width: PowerPointUnits.Cm(18), height: PowerPointUnits.Cm(5));
+```
+
+### Guides & grid
+```csharp
+ppt.SnapToGrid = true;
+ppt.SetGridSpacingCm(0.5, 0.5);
+
+ppt.ClearGuides();
+ppt.AddGuideCm(PowerPointGuideOrientation.Vertical, 2.0);
+ppt.AddColumnGuidesCm(columnCount: 3, marginCm: 1.0, gutterCm: 0.5,
+    includeOuterEdges: true);
 ```
 
 ### Placeholders (layout-driven)
@@ -158,6 +414,13 @@ var slide = ppt.AddSlide(masterIndex: 0, layoutIndex: 1);
 var title = slide.GetPlaceholder(PlaceholderValues.Title);
 title?.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
 if (title != null) title.Text = "Layout Placeholder";
+
+var layoutPlaceholders = slide.GetLayoutPlaceholders();
+var titleBounds = slide.GetLayoutPlaceholderBounds(PlaceholderValues.Title);
+if (titleBounds != null) {
+    var aligned = slide.AddTextBox("Aligned to layout");
+    titleBounds.Value.ApplyTo(aligned);
+}
 ```
 
 ### Replace text
@@ -165,35 +428,47 @@ if (title != null) title.Text = "Layout Placeholder";
 ppt.ReplaceText("FY24", "FY25", includeTables: true, includeNotes: true);
 ```
 
+### Sections
+```csharp
+ppt.AddSection("Intro", startSlideIndex: 0);
+ppt.AddSection("Results", startSlideIndex: 2);
+ppt.RenameSection("Results", "Deep Dive");
+
+var sections = ppt.GetSections();
+```
+
 ## Feature Highlights
 
-- Slides: add, import, duplicate, reorder, hide, and edit slides
-- Shapes: basic rectangles/ellipses/lines with fill/stroke
-- Images: add images from file/stream
+- Slides: add, import, duplicate, reorder, hide, edit, and section slides
+- Sections: add, rename, and list sections
+- Shapes: basic rectangles/ellipses/lines with fill/stroke, line styles, shadows/glow/soft edges/blur/reflection; align/distribute; z-order + duplicate
+- Images: add images from file/stream (PNG/JPEG/GIF/BMP/TIFF/EMF/WMF/ICO/PCX)   
 - Properties: set built‑in and application properties
 - Themes & transitions: default theme/table styles + slide transitions
+- Guides & grid: snap, spacing, and guide helpers
 - Text boxes: margins, auto-fit, vertical alignment
-- Tables: basic styling + merged cells
+- Tables: styling + merged cells + sizing helpers
 - Placeholders: read/update layout placeholders
 - Backgrounds: set background images
 - Text replacement: find/replace across slides
+- Charts: add + format titles/legend/labels/series/markers
 
 ## Feature Matrix (scope today)
 
 - 📽️ Slides
-  - ✅ Add slides; ✅ import/duplicate/reorder; ✅ hide/show; ✅ set title; ✅ add text boxes; ✅ basic bullets
+  - ✅ Add slides; ✅ import/duplicate/reorder; ✅ hide/show; ✅ sections; ✅ set title; ✅ add text boxes; ✅ basic bullets
 - 🖼️ Media & Shapes
-  - ✅ Insert images; ✅ basic shapes (rect/ellipse/line) with fill/stroke
+  - ✅ Insert images; ✅ basic shapes (rect/ellipse/line) with fill/stroke + line styles + shadows/glow/soft edges/blur/reflection; ✅ align/distribute/arrange
 - 🗒️ Notes & Layout
-  - ✅ Speaker notes; ⚠️ basic layout selection
+  - ✅ Speaker notes; ✅ guides/grid helpers; ⚠️ basic layout selection
 - 📋 Tables
   - ⚠️ Basic styling + merged cells
 - 📊 Charts
-  - 🚧 Not yet
+  - ✅ Add charts; ✅ title/legend/labels; ✅ axis formatting; ✅ series fill/line/markers
 - ✨ Themes/Transitions
   - ✅ Default theme + full table styles; ✅ slide transitions (fade/wipe/push/etc.)
 
-> Roadmap: richer shape/text APIs, layout/master controls, charts — tracked in issues.
+> Roadmap: richer shape/text APIs, layout/master controls, advanced charts — tracked in issues.
 
 ## Why OfficeIMO.PowerPoint (today)
 
@@ -205,6 +480,15 @@ ppt.ReplaceText("FY24", "FY25", includeTables: true, includeNotes: true);
 
 Positions and sizes are stored in EMUs (English Metric Units). Use `PowerPointUnits` or the `SetPositionCm`/`SetSizeCm`
 helpers to work in centimeters, inches, or points.
+
+### Slide size presets
+```csharp
+ppt.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+ppt.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen4x3, portrait: true);
+ppt.SlideSize.SetSizeCm(25.4, 14.0); // custom size
+var ratio = ppt.SlideSize.AspectRatio;
+var portrait = ppt.SlideSize.IsPortrait;
+```
 
 ### Layout helpers
 ```csharp

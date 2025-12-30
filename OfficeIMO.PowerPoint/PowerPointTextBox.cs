@@ -551,6 +551,48 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Gets or sets detailed auto-fit options (only applies to Normal auto-fit).
+        /// </summary>
+        public PowerPointTextAutoFitOptions? TextAutoFitOptions {
+            get {
+                A.BodyProperties? body = GetBodyProperties();
+                A.NormalAutoFit? normal = body?.GetFirstChild<A.NormalAutoFit>();
+                if (normal == null) {
+                    return null;
+                }
+                return PowerPointTextAutoFitOptions.FromOpenXmlValues(
+                    normal.FontScale?.Value, normal.LineSpaceReduction?.Value);
+            }
+            set {
+                if (value == null) {
+                    A.BodyProperties? body = GetBodyProperties();
+                    body?.RemoveAllChildren<A.NormalAutoFit>();
+                    return;
+                }
+
+                A.BodyProperties bodyProperties = EnsureBodyProperties();
+                bodyProperties.RemoveAllChildren<A.NoAutoFit>();
+                bodyProperties.RemoveAllChildren<A.ShapeAutoFit>();
+                A.NormalAutoFit normal = bodyProperties.GetFirstChild<A.NormalAutoFit>()
+                    ?? bodyProperties.AppendChild(new A.NormalAutoFit());
+                ApplyNormalAutoFitOptions(normal, value.Value);
+            }
+        }
+
+        /// <summary>
+        ///     Sets the auto-fit mode and optional Normal auto-fit options.
+        /// </summary>
+        public PowerPointTextBox SetTextAutoFit(PowerPointTextAutoFit fit, PowerPointTextAutoFitOptions? options = null) {
+            TextAutoFit = fit;
+            if (fit == PowerPointTextAutoFit.Normal && options != null) {
+                A.BodyProperties body = EnsureBodyProperties();
+                A.NormalAutoFit normal = body.GetFirstChild<A.NormalAutoFit>() ?? body.AppendChild(new A.NormalAutoFit());
+                ApplyNormalAutoFitOptions(normal, options.Value);
+            }
+            return this;
+        }
+
+        /// <summary>
         ///     Gets or sets a value indicating whether the text is bold.       
         /// </summary>
         public bool Bold {
@@ -648,6 +690,11 @@ namespace OfficeIMO.PowerPoint {
                     if (cs != null) runProps.Append((A.ComplexScriptFont)cs.CloneNode(true));
                 }
             }
+        }
+
+        private static void ApplyNormalAutoFitOptions(A.NormalAutoFit normal, PowerPointTextAutoFitOptions options) {
+            normal.FontScale = options.FontScaleValue;
+            normal.LineSpaceReduction = options.LineSpaceReductionValue;
         }
 
         /// <summary>

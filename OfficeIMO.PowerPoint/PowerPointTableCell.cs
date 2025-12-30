@@ -240,10 +240,10 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the left padding in points.
         /// </summary>
         public double? PaddingLeftPoints {
-            get => FromEmus(Cell.TableCellProperties?.LeftMargin?.Value);
+            get => FromEmus(Cell.TableCellProperties?.LeftMargin?.Value, EmusPerPoint);
             set {
                 TableCellProperties props = EnsureProperties();
-                props.LeftMargin = ToEmus(value);
+                props.LeftMargin = ToEmus(value, EmusPerPoint);
             }
         }
 
@@ -251,10 +251,10 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the right padding in points.
         /// </summary>
         public double? PaddingRightPoints {
-            get => FromEmus(Cell.TableCellProperties?.RightMargin?.Value);
+            get => FromEmus(Cell.TableCellProperties?.RightMargin?.Value, EmusPerPoint);
             set {
                 TableCellProperties props = EnsureProperties();
-                props.RightMargin = ToEmus(value);
+                props.RightMargin = ToEmus(value, EmusPerPoint);
             }
         }
 
@@ -262,10 +262,10 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the top padding in points.
         /// </summary>
         public double? PaddingTopPoints {
-            get => FromEmus(Cell.TableCellProperties?.TopMargin?.Value);
+            get => FromEmus(Cell.TableCellProperties?.TopMargin?.Value, EmusPerPoint);
             set {
                 TableCellProperties props = EnsureProperties();
-                props.TopMargin = ToEmus(value);
+                props.TopMargin = ToEmus(value, EmusPerPoint);
             }
         }
 
@@ -273,10 +273,98 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the bottom padding in points.
         /// </summary>
         public double? PaddingBottomPoints {
-            get => FromEmus(Cell.TableCellProperties?.BottomMargin?.Value);
+            get => FromEmus(Cell.TableCellProperties?.BottomMargin?.Value, EmusPerPoint);
             set {
                 TableCellProperties props = EnsureProperties();
-                props.BottomMargin = ToEmus(value);
+                props.BottomMargin = ToEmus(value, EmusPerPoint);
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the left padding in centimeters.
+        /// </summary>
+        public double? PaddingLeftCm {
+            get => FromEmus(Cell.TableCellProperties?.LeftMargin?.Value, PowerPointUnits.EmusPerCentimeter);
+            set {
+                TableCellProperties props = EnsureProperties();
+                props.LeftMargin = ToEmus(value, PowerPointUnits.EmusPerCentimeter);
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the right padding in centimeters.
+        /// </summary>
+        public double? PaddingRightCm {
+            get => FromEmus(Cell.TableCellProperties?.RightMargin?.Value, PowerPointUnits.EmusPerCentimeter);
+            set {
+                TableCellProperties props = EnsureProperties();
+                props.RightMargin = ToEmus(value, PowerPointUnits.EmusPerCentimeter);
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the top padding in centimeters.
+        /// </summary>
+        public double? PaddingTopCm {
+            get => FromEmus(Cell.TableCellProperties?.TopMargin?.Value, PowerPointUnits.EmusPerCentimeter);
+            set {
+                TableCellProperties props = EnsureProperties();
+                props.TopMargin = ToEmus(value, PowerPointUnits.EmusPerCentimeter);
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the bottom padding in centimeters.
+        /// </summary>
+        public double? PaddingBottomCm {
+            get => FromEmus(Cell.TableCellProperties?.BottomMargin?.Value, PowerPointUnits.EmusPerCentimeter);
+            set {
+                TableCellProperties props = EnsureProperties();
+                props.BottomMargin = ToEmus(value, PowerPointUnits.EmusPerCentimeter);
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the left padding in inches.
+        /// </summary>
+        public double? PaddingLeftInches {
+            get => FromEmus(Cell.TableCellProperties?.LeftMargin?.Value, PowerPointUnits.EmusPerInch);
+            set {
+                TableCellProperties props = EnsureProperties();
+                props.LeftMargin = ToEmus(value, PowerPointUnits.EmusPerInch);
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the right padding in inches.
+        /// </summary>
+        public double? PaddingRightInches {
+            get => FromEmus(Cell.TableCellProperties?.RightMargin?.Value, PowerPointUnits.EmusPerInch);
+            set {
+                TableCellProperties props = EnsureProperties();
+                props.RightMargin = ToEmus(value, PowerPointUnits.EmusPerInch);
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the top padding in inches.
+        /// </summary>
+        public double? PaddingTopInches {
+            get => FromEmus(Cell.TableCellProperties?.TopMargin?.Value, PowerPointUnits.EmusPerInch);
+            set {
+                TableCellProperties props = EnsureProperties();
+                props.TopMargin = ToEmus(value, PowerPointUnits.EmusPerInch);
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the bottom padding in inches.
+        /// </summary>
+        public double? PaddingBottomInches {
+            get => FromEmus(Cell.TableCellProperties?.BottomMargin?.Value, PowerPointUnits.EmusPerInch);
+            set {
+                TableCellProperties props = EnsureProperties();
+                props.BottomMargin = ToEmus(value, PowerPointUnits.EmusPerInch);
             }
         }
 
@@ -291,6 +379,93 @@ namespace OfficeIMO.PowerPoint {
                 Cell.TableCellProperties ??= new TableCellProperties();
                 Cell.TableCellProperties.Anchor = value;
             }
+        }
+
+        /// <summary>
+        ///     Gets or sets the text auto-fit behavior for the cell.
+        /// </summary>
+        public PowerPointTextAutoFit? TextAutoFit {
+            get {
+                A.BodyProperties? body = GetBodyProperties();
+                if (body == null) {
+                    return null;
+                }
+                if (body.GetFirstChild<A.NoAutoFit>() != null) {
+                    return PowerPointTextAutoFit.None;
+                }
+                if (body.GetFirstChild<A.NormalAutoFit>() != null) {
+                    return PowerPointTextAutoFit.Normal;
+                }
+                if (body.GetFirstChild<A.ShapeAutoFit>() != null) {
+                    return PowerPointTextAutoFit.Shape;
+                }
+                return null;
+            }
+            set {
+                A.BodyProperties body = EnsureBodyProperties();
+                body.RemoveAllChildren<A.NoAutoFit>();
+                body.RemoveAllChildren<A.NormalAutoFit>();
+                body.RemoveAllChildren<A.ShapeAutoFit>();
+
+                if (value == null) {
+                    return;
+                }
+
+                switch (value.Value) {
+                    case PowerPointTextAutoFit.None:
+                        body.Append(new A.NoAutoFit());
+                        break;
+                    case PowerPointTextAutoFit.Normal:
+                        body.Append(new A.NormalAutoFit());
+                        break;
+                    case PowerPointTextAutoFit.Shape:
+                        body.Append(new A.ShapeAutoFit());
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets detailed auto-fit options (only applies to Normal auto-fit).
+        /// </summary>
+        public PowerPointTextAutoFitOptions? TextAutoFitOptions {
+            get {
+                A.BodyProperties? body = GetBodyProperties();
+                A.NormalAutoFit? normal = body?.GetFirstChild<A.NormalAutoFit>();
+                if (normal == null) {
+                    return null;
+                }
+                return PowerPointTextAutoFitOptions.FromOpenXmlValues(
+                    normal.FontScale?.Value, normal.LineSpaceReduction?.Value);
+            }
+            set {
+                if (value == null) {
+                    A.BodyProperties? body = GetBodyProperties();
+                    body?.RemoveAllChildren<A.NormalAutoFit>();
+                    return;
+                }
+
+                A.BodyProperties bodyProperties = EnsureBodyProperties();
+                bodyProperties.RemoveAllChildren<A.NoAutoFit>();
+                bodyProperties.RemoveAllChildren<A.ShapeAutoFit>();
+                A.NormalAutoFit normal = bodyProperties.GetFirstChild<A.NormalAutoFit>()
+                    ?? bodyProperties.AppendChild(new A.NormalAutoFit());
+                ApplyNormalAutoFitOptions(normal, value.Value);
+            }
+        }
+
+        /// <summary>
+        ///     Sets the auto-fit mode and optional Normal auto-fit options.
+        /// </summary>
+        public PowerPointTableCell SetTextAutoFit(PowerPointTextAutoFit fit, PowerPointTextAutoFitOptions? options = null) {
+            TextAutoFit = fit;
+            if (fit == PowerPointTextAutoFit.Normal && options != null) {
+                A.BodyProperties body = EnsureBodyProperties();
+                A.NormalAutoFit normal = body.GetFirstChild<A.NormalAutoFit>()
+                    ?? body.AppendChild(new A.NormalAutoFit());
+                ApplyNormalAutoFitOptions(normal, options.Value);
+            }
+            return this;
         }
 
         /// <summary>
@@ -322,6 +497,34 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Applies border styling with a dash pattern to the specified sides.
+        /// </summary>
+        public void SetBorders(TableCellBorders borders, string color, double? widthPoints, A.PresetLineDashValues dash) {
+            if (string.IsNullOrWhiteSpace(color)) {
+                throw new ArgumentException("Border color cannot be null or empty.", nameof(color));
+            }
+
+            TableCellProperties props = EnsureProperties();
+
+            if (borders.HasFlag(TableCellBorders.Left)) {
+                props.LeftBorderLineProperties ??= new LeftBorderLineProperties();
+                ApplyLine(props.LeftBorderLineProperties, color, widthPoints, dash);
+            }
+            if (borders.HasFlag(TableCellBorders.Top)) {
+                props.TopBorderLineProperties ??= new TopBorderLineProperties();
+                ApplyLine(props.TopBorderLineProperties, color, widthPoints, dash);
+            }
+            if (borders.HasFlag(TableCellBorders.Right)) {
+                props.RightBorderLineProperties ??= new RightBorderLineProperties();
+                ApplyLine(props.RightBorderLineProperties, color, widthPoints, dash);
+            }
+            if (borders.HasFlag(TableCellBorders.Bottom)) {
+                props.BottomBorderLineProperties ??= new BottomBorderLineProperties();
+                ApplyLine(props.BottomBorderLineProperties, color, widthPoints, dash);
+            }
+        }
+
+        /// <summary>
         ///     Clears borders on the specified sides.
         /// </summary>
         public void ClearBorders(TableCellBorders borders) {
@@ -349,16 +552,22 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        private static void ApplyLine(LinePropertiesType line, string color, double? widthPoints, A.PresetLineDashValues dash) {
+            ApplyLine(line, color, widthPoints);
+            line.RemoveAllChildren<A.PresetDash>();
+            line.Append(new A.PresetDash { Val = dash });
+        }
+
         private static string? GetLineColor(LinePropertiesType? line) {
             return line?.GetFirstChild<SolidFill>()?.RgbColorModelHex?.Val;
         }
 
-        private static int? ToEmus(double? points) {
-            return points != null ? (int)Math.Round(points.Value * EmusPerPoint) : null;
+        private static int? ToEmus(double? value, double emusPerUnit) {
+            return value != null ? (int)Math.Round(value.Value * emusPerUnit) : null;
         }
 
-        private static double? FromEmus(int? emus) {
-            return emus != null ? emus.Value / (double)EmusPerPoint : null;
+        private static double? FromEmus(int? emus, double emusPerUnit) {
+            return emus != null ? emus.Value / emusPerUnit : null;
         }
 
         private static int CountOccurrences(string value, string oldValue) {
@@ -375,8 +584,27 @@ namespace OfficeIMO.PowerPoint {
             return count;
         }
 
+        private static void ApplyNormalAutoFitOptions(A.NormalAutoFit normal, PowerPointTextAutoFitOptions options) {
+            normal.FontScale = options.FontScaleValue;
+            normal.LineSpaceReduction = options.LineSpaceReductionValue;
+        }
+
         private TableCellProperties EnsureProperties() {
             return Cell.TableCellProperties ??= new TableCellProperties();
+        }
+
+        private A.BodyProperties? GetBodyProperties() {
+            return Cell.TextBody?.GetFirstChild<A.BodyProperties>();
+        }
+
+        private A.BodyProperties EnsureBodyProperties() {
+            Cell.TextBody ??= new A.TextBody(new A.BodyProperties(), new A.ListStyle());
+            A.BodyProperties? body = Cell.TextBody.GetFirstChild<A.BodyProperties>();
+            if (body == null) {
+                body = new A.BodyProperties();
+                Cell.TextBody.PrependChild(body);
+            }
+            return body;
         }
 
         private A.Run? GetRun() {

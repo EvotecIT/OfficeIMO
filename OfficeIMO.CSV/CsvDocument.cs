@@ -1,7 +1,9 @@
 #nullable enable
 
+using System.Collections;
 using System.Globalization;
 using System.Text;
+using OfficeIMO.Shared;
 
 namespace OfficeIMO.CSV;
 
@@ -36,6 +38,71 @@ public sealed class CsvDocument
         _delimiter = delimiter;
         _culture = culture;
         _encoding = encoding;
+    }
+
+    /// <summary>
+    /// Creates a CSV document from a sequence of objects by projecting their properties or dictionary keys into columns.
+    /// </summary>
+    /// <param name="items">Sequence of objects to convert into CSV rows.</param>
+    /// <param name="delimiter">Delimiter to use for the CSV document.</param>
+    /// <param name="culture">Optional culture for value formatting.</param>
+    /// <param name="encoding">Optional encoding for file operations.</param>
+    /// <returns>A populated <see cref="CsvDocument"/>.</returns>
+    public static CsvDocument FromObjects(IEnumerable<object?> items, char delimiter = ',', CultureInfo? culture = null, Encoding? encoding = null)
+    {
+        if (items == null)
+        {
+            throw new ArgumentNullException(nameof(items));
+        }
+
+        var list = items.ToList();
+        if (list.Count == 0)
+        {
+            throw new ArgumentException("Provide at least one data row.", nameof(items));
+        }
+
+        var first = list.FirstOrDefault();
+        if (first == null)
+        {
+            throw new ArgumentException("Data rows cannot be null.", nameof(items));
+        }
+
+        var columns = ObjectDataHelpers.GetColumnNames(first);
+        if (columns.Count == 0)
+        {
+            throw new InvalidOperationException("Unable to infer column names. Use objects with properties or dictionaries.");
+        }
+
+        var document = new CsvDocument().WithDelimiter(delimiter);
+        if (culture != null)
+        {
+            document.WithCulture(culture);
+        }
+
+        if (encoding != null)
+        {
+            document.WithEncoding(encoding);
+        }
+
+        document.WithHeader(columns.ToArray());
+
+        foreach (var item in list)
+        {
+            if (item == null)
+            {
+                throw new InvalidOperationException("Data rows cannot contain null entries.");
+            }
+
+            var rowValues = new object?[columns.Count];
+            for (var i = 0; i < columns.Count; i++)
+            {
+                rowValues[i] = ObjectDataHelpers.GetValue(item, columns[i]);
+            }
+
+            document.AddRow(rowValues);
+        }
+
+        return document;
     }
 
     /// <summary>

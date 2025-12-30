@@ -9,6 +9,11 @@ namespace OfficeIMO.PowerPoint {
             ImagePartType.Jpeg => OpenXmlImagePartType.Jpeg,
             ImagePartType.Gif => OpenXmlImagePartType.Gif,
             ImagePartType.Bmp => OpenXmlImagePartType.Bmp,
+            ImagePartType.Tiff => OpenXmlImagePartType.Tiff,
+            ImagePartType.Emf => OpenXmlImagePartType.Emf,
+            ImagePartType.Wmf => OpenXmlImagePartType.Wmf,
+            ImagePartType.Icon => OpenXmlImagePartType.Icon,
+            ImagePartType.Pcx => OpenXmlImagePartType.Pcx,
             _ => throw new NotSupportedException($"Image type {type} is not supported."),
         };
     }

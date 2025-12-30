@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Xml.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -10,7 +13,10 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public class PowerPointTable : PowerPointShape {
         private const int EmusPerPoint = 12700;
-        internal PowerPointTable(GraphicFrame frame) : base(frame) {
+        private readonly SlidePart? _slidePart;
+
+        internal PowerPointTable(GraphicFrame frame, SlidePart? slidePart = null) : base(frame) {
+            _slidePart = slidePart;
         }
 
         private GraphicFrame Frame => (GraphicFrame)Element;
@@ -152,6 +158,27 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Gets the width of a specific column in points.
+        /// </summary>
+        public double GetColumnWidthPoints(int columnIndex) {
+            return PowerPointUnits.ToPoints(GetColumnWidth(columnIndex));
+        }
+
+        /// <summary>
+        ///     Gets the width of a specific column in centimeters.
+        /// </summary>
+        public double GetColumnWidthCm(int columnIndex) {
+            return PowerPointUnits.ToCentimeters(GetColumnWidth(columnIndex));
+        }
+
+        /// <summary>
+        ///     Gets the width of a specific column in inches.
+        /// </summary>
+        public double GetColumnWidthInches(int columnIndex) {
+            return PowerPointUnits.ToInches(GetColumnWidth(columnIndex));
+        }
+
+        /// <summary>
         ///     Sets the width of a specific column in points.
         /// </summary>
         public void SetColumnWidthPoints(int columnIndex, double widthPoints) {
@@ -276,6 +303,38 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Gets the height of a specific row in EMUs.
+        /// </summary>
+        public long GetRowHeight(int rowIndex) {
+            if (rowIndex < 0 || rowIndex >= Rows) {
+                throw new ArgumentOutOfRangeException(nameof(rowIndex));
+            }
+            A.TableRow row = TableElement.Elements<A.TableRow>().ElementAt(rowIndex);
+            return row.Height?.Value ?? 0L;
+        }
+
+        /// <summary>
+        ///     Gets the height of a specific row in points.
+        /// </summary>
+        public double GetRowHeightPoints(int rowIndex) {
+            return PowerPointUnits.ToPoints(GetRowHeight(rowIndex));
+        }
+
+        /// <summary>
+        ///     Gets the height of a specific row in centimeters.
+        /// </summary>
+        public double GetRowHeightCm(int rowIndex) {
+            return PowerPointUnits.ToCentimeters(GetRowHeight(rowIndex));
+        }
+
+        /// <summary>
+        ///     Gets the height of a specific row in inches.
+        /// </summary>
+        public double GetRowHeightInches(int rowIndex) {
+            return PowerPointUnits.ToInches(GetRowHeight(rowIndex));
+        }
+
+        /// <summary>
         ///     Sets the height of a specific row in points.
         /// </summary>
         public void SetRowHeightPoints(int rowIndex, double heightPoints) {
@@ -336,6 +395,80 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets row heights evenly across the table height.
+        /// </summary>
+        public void SetRowHeightsEvenly() {
+            if (Rows == 0) {
+                return;
+            }
+
+            long totalHeight = Height;
+            if (totalHeight <= 0) {
+                totalHeight = TableElement.Elements<A.TableRow>()
+                    .Sum(r => r.Height?.Value ?? 0L);
+            }
+            if (totalHeight <= 0) {
+                return;
+            }
+
+            long rowHeight = (long)Math.Floor(totalHeight / (double)Rows);
+            long assigned = 0;
+            for (int i = 0; i < Rows; i++) {
+                SetRowHeight(i, rowHeight);
+                assigned += rowHeight;
+            }
+
+            if (assigned != totalHeight && Rows > 0) {
+                int adjustIndex = Rows - 1;
+                A.TableRow row = TableElement.Elements<A.TableRow>().ElementAt(adjustIndex);
+                row.Height = (row.Height ?? 0) + (totalHeight - assigned);
+            }
+        }
+
+        /// <summary>
+        ///     Sets row heights proportionally using ratios.
+        /// </summary>
+        public void SetRowHeightsByRatio(params double[] ratios) {
+            if (ratios == null) {
+                throw new ArgumentNullException(nameof(ratios));
+            }
+            if (ratios.Length == 0) {
+                throw new ArgumentException("At least one ratio is required.", nameof(ratios));
+            }
+
+            int count = Math.Min(ratios.Length, Rows);
+            double totalRatio = 0;
+            for (int i = 0; i < count; i++) {
+                if (ratios[i] <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(ratios), "Ratios must be positive.");
+                }
+                totalRatio += ratios[i];
+            }
+
+            long totalHeight = Height;
+            if (totalHeight <= 0) {
+                totalHeight = TableElement.Elements<A.TableRow>()
+                    .Sum(r => r.Height?.Value ?? 0L);
+            }
+            if (totalHeight <= 0) {
+                throw new InvalidOperationException("Table height is not available.");
+            }
+
+            long assigned = 0;
+            for (int i = 0; i < count; i++) {
+                long height = (long)Math.Round(totalHeight * (ratios[i] / totalRatio));
+                SetRowHeight(i, height);
+                assigned += height;
+            }
+
+            if (assigned != totalHeight && count > 0) {
+                int adjustIndex = count - 1;
+                A.TableRow row = TableElement.Elements<A.TableRow>().ElementAt(adjustIndex);
+                row.Height = (row.Height ?? 0) + (totalHeight - assigned);
+            }
+        }
+
+        /// <summary>
         ///     Applies a style preset to the table.
         /// </summary>
         public void ApplyStyle(PowerPointTableStylePreset preset) {
@@ -363,6 +496,55 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Applies a table style by name, with optional banding/heading toggles.
+        /// </summary>
+        public void ApplyStyleByName(string styleName, bool ignoreCase = true,
+            bool? firstRow = null, bool? lastRow = null, bool? firstColumn = null, bool? lastColumn = null,
+            bool? bandedRows = null, bool? bandedColumns = null) {
+            if (!TryApplyStyleByName(styleName, ignoreCase, firstRow, lastRow, firstColumn, lastColumn, bandedRows, bandedColumns)) {
+                throw new InvalidOperationException($"Table style '{styleName}' was not found in the presentation.");
+            }
+        }
+
+        /// <summary>
+        ///     Tries to apply a table style by name. Returns false if the style is not found.
+        /// </summary>
+        public bool TryApplyStyleByName(string styleName, bool ignoreCase = true,
+            bool? firstRow = null, bool? lastRow = null, bool? firstColumn = null, bool? lastColumn = null,
+            bool? bandedRows = null, bool? bandedColumns = null) {
+            if (string.IsNullOrWhiteSpace(styleName)) {
+                throw new ArgumentException("Style name cannot be null or empty.", nameof(styleName));
+            }
+
+            string? styleId = ResolveStyleId(styleName, ignoreCase);
+            if (string.IsNullOrWhiteSpace(styleId)) {
+                return false;
+            }
+
+            StyleId = styleId;
+            if (firstRow.HasValue) {
+                FirstRow = firstRow.Value;
+            }
+            if (lastRow.HasValue) {
+                LastRow = lastRow.Value;
+            }
+            if (firstColumn.HasValue) {
+                FirstColumn = firstColumn.Value;
+            }
+            if (lastColumn.HasValue) {
+                LastColumn = lastColumn.Value;
+            }
+            if (bandedRows.HasValue) {
+                BandedRows = bandedRows.Value;
+            }
+            if (bandedColumns.HasValue) {
+                BandedColumns = bandedColumns.Value;
+            }
+
+            return true;
+        }
+
+        /// <summary>
         ///     Retrieves a cell at the specified row and column index.
         /// </summary>
         /// <param name="row">Zero-based row index.</param>
@@ -372,6 +554,161 @@ namespace OfficeIMO.PowerPoint {
             A.TableRow tableRow = table.Elements<A.TableRow>().ElementAt(row);
             A.TableCell cell = tableRow.Elements<A.TableCell>().ElementAt(column);
             return new PowerPointTableCell(cell);
+        }
+
+        /// <summary>
+        ///     Applies an action to all cells in the table.
+        /// </summary>
+        public void ApplyToCells(Action<PowerPointTableCell> action) {
+            if (action == null) {
+                throw new ArgumentNullException(nameof(action));
+            }
+            if (Rows == 0 || Columns == 0) {
+                return;
+            }
+
+            ApplyToCells(0, Rows - 1, 0, Columns - 1, action);
+        }
+
+        /// <summary>
+        ///     Applies an action to a rectangular range of cells.
+        /// </summary>
+        public void ApplyToCells(int startRow, int endRow, int startColumn, int endColumn, Action<PowerPointTableCell> action) {
+            if (action == null) {
+                throw new ArgumentNullException(nameof(action));
+            }
+            if (Rows == 0 || Columns == 0) {
+                return;
+            }
+
+            int topRow = Math.Min(startRow, endRow);
+            int bottomRow = Math.Max(startRow, endRow);
+            int leftColumn = Math.Min(startColumn, endColumn);
+            int rightColumn = Math.Max(startColumn, endColumn);
+
+            if (topRow < 0 || leftColumn < 0) {
+                throw new ArgumentOutOfRangeException("Row and column indices must be non-negative.");
+            }
+            if (bottomRow >= Rows || rightColumn >= Columns) {
+                throw new ArgumentOutOfRangeException("Range exceeds table bounds.");
+            }
+
+            for (int r = topRow; r <= bottomRow; r++) {
+                for (int c = leftColumn; c <= rightColumn; c++) {
+                    action(GetCell(r, c));
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Applies an action to a specific row.
+        /// </summary>
+        public void ApplyToRow(int rowIndex, Action<PowerPointTableCell> action) {
+            if (rowIndex < 0 || rowIndex >= Rows) {
+                throw new ArgumentOutOfRangeException(nameof(rowIndex));
+            }
+            ApplyToCells(rowIndex, rowIndex, 0, Columns - 1, action);
+        }
+
+        /// <summary>
+        ///     Applies an action to a specific column.
+        /// </summary>
+        public void ApplyToColumn(int columnIndex, Action<PowerPointTableCell> action) {
+            if (columnIndex < 0 || columnIndex >= Columns) {
+                throw new ArgumentOutOfRangeException(nameof(columnIndex));
+            }
+            ApplyToCells(0, Rows - 1, columnIndex, columnIndex, action);
+        }
+
+        /// <summary>
+        ///     Sets cell padding in points for all cells.
+        /// </summary>
+        public void SetCellPaddingPoints(double? left, double? top, double? right, double? bottom) {
+            ApplyToCells(cell => {
+                cell.PaddingLeftPoints = left;
+                cell.PaddingTopPoints = top;
+                cell.PaddingRightPoints = right;
+                cell.PaddingBottomPoints = bottom;
+            });
+        }
+
+        /// <summary>
+        ///     Sets cell padding in points for a range of cells.
+        /// </summary>
+        public void SetCellPaddingPoints(double? left, double? top, double? right, double? bottom,
+            int startRow, int endRow, int startColumn, int endColumn) {
+            ApplyToCells(startRow, endRow, startColumn, endColumn, cell => {
+                cell.PaddingLeftPoints = left;
+                cell.PaddingTopPoints = top;
+                cell.PaddingRightPoints = right;
+                cell.PaddingBottomPoints = bottom;
+            });
+        }
+
+        /// <summary>
+        ///     Sets cell padding in centimeters for all cells.
+        /// </summary>
+        public void SetCellPaddingCm(double? leftCm, double? topCm, double? rightCm, double? bottomCm) {
+            ApplyToCells(cell => {
+                cell.PaddingLeftCm = leftCm;
+                cell.PaddingTopCm = topCm;
+                cell.PaddingRightCm = rightCm;
+                cell.PaddingBottomCm = bottomCm;
+            });
+        }
+
+        /// <summary>
+        ///     Sets cell padding in inches for all cells.
+        /// </summary>
+        public void SetCellPaddingInches(double? leftInches, double? topInches, double? rightInches, double? bottomInches) {
+            ApplyToCells(cell => {
+                cell.PaddingLeftInches = leftInches;
+                cell.PaddingTopInches = topInches;
+                cell.PaddingRightInches = rightInches;
+                cell.PaddingBottomInches = bottomInches;
+            });
+        }
+
+        /// <summary>
+        ///     Sets cell alignment for all cells.
+        /// </summary>
+        public void SetCellAlignment(A.TextAlignmentTypeValues? horizontal, A.TextAnchoringTypeValues? vertical) {
+            ApplyToCells(cell => {
+                cell.HorizontalAlignment = horizontal;
+                cell.VerticalAlignment = vertical;
+            });
+        }
+
+        /// <summary>
+        ///     Sets cell alignment for a range of cells.
+        /// </summary>
+        public void SetCellAlignment(A.TextAlignmentTypeValues? horizontal, A.TextAnchoringTypeValues? vertical,
+            int startRow, int endRow, int startColumn, int endColumn) {
+            ApplyToCells(startRow, endRow, startColumn, endColumn, cell => {
+                cell.HorizontalAlignment = horizontal;
+                cell.VerticalAlignment = vertical;
+            });
+        }
+
+        /// <summary>
+        ///     Applies borders to all cells.
+        /// </summary>
+        public void SetCellBorders(TableCellBorders borders, string color, double? widthPoints = null) {
+            ApplyToCells(cell => cell.SetBorders(borders, color, widthPoints));
+        }
+
+        /// <summary>
+        ///     Applies dashed borders to all cells.
+        /// </summary>
+        public void SetCellBorders(TableCellBorders borders, string color, double? widthPoints, A.PresetLineDashValues dash) {
+            ApplyToCells(cell => cell.SetBorders(borders, color, widthPoints, dash));
+        }
+
+        /// <summary>
+        ///     Clears borders for all cells.
+        /// </summary>
+        public void ClearCellBorders(TableCellBorders borders) {
+            ApplyToCells(cell => cell.ClearBorders(borders));
         }
 
         /// <summary>
@@ -667,6 +1004,77 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ClearMergedCellText(A.TableCell cell) {
             ClearCellText(cell);
+        }
+
+        private string? ResolveStyleId(string styleName, bool ignoreCase) {
+            PresentationPart? presentationPart = _slidePart?
+                .GetParentParts()
+                .OfType<PresentationPart>()
+                .FirstOrDefault();
+
+            if (presentationPart != null && presentationPart.TableStylesPart?.TableStyleList == null) {
+                PowerPointUtils.CreateTableStylesPart(presentationPart);
+            }
+
+            TableStylesPart? stylesPart = presentationPart?.TableStylesPart;
+            StringComparison comparison = ignoreCase
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
+
+            if (stylesPart?.TableStyleList != null) {
+                foreach (A.TableStyle style in stylesPart.TableStyleList.Elements<A.TableStyle>()) {
+                    string? styleId = style.StyleId?.Value;
+                    if (!string.IsNullOrWhiteSpace(styleId) && string.Equals(styleId, styleName, comparison)) {
+                        return styleId;
+                    }
+
+                    string? name = style.StyleName?.Value;
+                    if (!string.IsNullOrWhiteSpace(name) && string.Equals(name, styleName, comparison)) {
+                        return styleId;
+                    }
+                }
+            }
+
+            if (stylesPart != null) {
+                using Stream stream = stylesPart.GetStream(FileMode.Open, FileAccess.Read);
+                if (stream.Length > 0) {
+                    string? resolved = ResolveStyleIdFromXml(styleName, comparison, stream);
+                    if (!string.IsNullOrWhiteSpace(resolved)) {
+                        return resolved;
+                    }
+                }
+            }
+
+            using Stream? resource = typeof(PowerPointTable).Assembly
+                .GetManifestResourceStream("OfficeIMO.PowerPoint.Resources.tableStyles.xml");
+            if (resource != null) {
+                return ResolveStyleIdFromXml(styleName, comparison, resource);
+            }
+
+            return null;
+        }
+
+        private static string? ResolveStyleIdFromXml(string styleName, StringComparison comparison, Stream stream) {
+            XDocument document = XDocument.Load(stream);
+            XElement? root = document.Root;
+            if (root == null) {
+                return null;
+            }
+
+            XNamespace drawing = "http://schemas.openxmlformats.org/drawingml/2006/main";
+            foreach (XElement style in root.Elements(drawing + "tblStyle")) {
+                string? styleId = style.Attribute("styleId")?.Value;
+                if (!string.IsNullOrWhiteSpace(styleId) && string.Equals(styleId, styleName, comparison)) {
+                    return styleId;
+                }
+
+                string? name = style.Attribute("styleName")?.Value;
+                if (!string.IsNullOrWhiteSpace(name) && string.Equals(name, styleName, comparison)) {
+                    return styleId;
+                }
+            }
+
+            return null;
         }
     }
 }

@@ -161,6 +161,11 @@ namespace OfficeIMO.PowerPoint {
                 ImagePartType.Jpeg => ".jpeg",
                 ImagePartType.Gif => ".gif",
                 ImagePartType.Bmp => ".bmp",
+                ImagePartType.Tiff => ".tiff",
+                ImagePartType.Emf => ".emf",
+                ImagePartType.Wmf => ".wmf",
+                ImagePartType.Icon => ".ico",
+                ImagePartType.Pcx => ".pcx",
                 _ => ".png"
             };
         }

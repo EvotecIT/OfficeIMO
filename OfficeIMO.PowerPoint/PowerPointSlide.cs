@@ -54,6 +54,50 @@ namespace OfficeIMO.PowerPoint {
         public IEnumerable<PowerPointChart> Charts => _shapes.OfType<PowerPointChart>();
 
         /// <summary>
+        ///     Retrieves shapes that are within or intersect the provided bounds.
+        /// </summary>
+        public IReadOnlyList<PowerPointShape> GetShapesInBounds(PowerPointLayoutBox bounds, bool includePartial = true) {
+            if (includePartial) {
+                return _shapes
+                    .Where(shape =>
+                        shape.Right >= bounds.Left &&
+                        shape.Left <= bounds.Right &&
+                        shape.Bottom >= bounds.Top &&
+                        shape.Top <= bounds.Bottom)
+                    .ToList();
+            }
+
+            return _shapes
+                .Where(shape =>
+                    shape.Left >= bounds.Left &&
+                    shape.Top >= bounds.Top &&
+                    shape.Right <= bounds.Right &&
+                    shape.Bottom <= bounds.Bottom)
+                .ToList();
+        }
+
+        /// <summary>
+        ///     Retrieves shapes using bounds defined in centimeters.
+        /// </summary>
+        public IReadOnlyList<PowerPointShape> GetShapesInBoundsCm(double leftCm, double topCm, double widthCm, double heightCm, bool includePartial = true) {
+            return GetShapesInBounds(PowerPointLayoutBox.FromCentimeters(leftCm, topCm, widthCm, heightCm), includePartial);
+        }
+
+        /// <summary>
+        ///     Retrieves shapes using bounds defined in inches.
+        /// </summary>
+        public IReadOnlyList<PowerPointShape> GetShapesInBoundsInches(double leftInches, double topInches, double widthInches, double heightInches, bool includePartial = true) {
+            return GetShapesInBounds(PowerPointLayoutBox.FromInches(leftInches, topInches, widthInches, heightInches), includePartial);
+        }
+
+        /// <summary>
+        ///     Retrieves shapes using bounds defined in points.
+        /// </summary>
+        public IReadOnlyList<PowerPointShape> GetShapesInBoundsPoints(double leftPoints, double topPoints, double widthPoints, double heightPoints, bool includePartial = true) {
+            return GetShapesInBounds(PowerPointLayoutBox.FromPoints(leftPoints, topPoints, widthPoints, heightPoints), includePartial);
+        }
+
+        /// <summary>
         ///     Notes associated with the slide.
         /// </summary>
         public PowerPointNotes Notes => _notes ??= new PowerPointNotes(_slidePart);
@@ -421,6 +465,63 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets the slide layout using a layout type.
+        /// </summary>
+        public void SetLayout(SlideLayoutValues layoutType, int masterIndex = 0) {
+            int layoutIndex = GetLayoutIndex(layoutType, masterIndex);
+            SetLayout(masterIndex, layoutIndex);
+        }
+
+        /// <summary>
+        ///     Sets the slide layout using a layout name.
+        /// </summary>
+        public void SetLayout(string layoutName, int masterIndex = 0, bool ignoreCase = true) {
+            int layoutIndex = GetLayoutIndex(layoutName, masterIndex, ignoreCase);
+            SetLayout(masterIndex, layoutIndex);
+        }
+
+        private int GetLayoutIndex(SlideLayoutValues layoutType, int masterIndex) {
+            PresentationPart presentationPart = _slidePart.GetParentParts().OfType<PresentationPart>().First();
+            SlideMasterPart[] masters = presentationPart.SlideMasterParts.ToArray();
+            if (masterIndex < 0 || masterIndex >= masters.Length) {
+                throw new ArgumentOutOfRangeException(nameof(masterIndex));
+            }
+
+            SlideLayoutPart[] layouts = masters[masterIndex].SlideLayoutParts.ToArray();
+            for (int i = 0; i < layouts.Length; i++) {
+                SlideLayoutValues? type = layouts[i].SlideLayout?.Type?.Value;
+                if (type == layoutType) {
+                    return i;
+                }
+            }
+
+            throw new InvalidOperationException($"Layout type '{layoutType}' not found for master {masterIndex}.");
+        }
+
+        private int GetLayoutIndex(string layoutName, int masterIndex, bool ignoreCase) {
+            if (layoutName == null) {
+                throw new ArgumentNullException(nameof(layoutName));
+            }
+
+            PresentationPart presentationPart = _slidePart.GetParentParts().OfType<PresentationPart>().First();
+            SlideMasterPart[] masters = presentationPart.SlideMasterParts.ToArray();
+            if (masterIndex < 0 || masterIndex >= masters.Length) {
+                throw new ArgumentOutOfRangeException(nameof(masterIndex));
+            }
+
+            SlideLayoutPart[] layouts = masters[masterIndex].SlideLayoutParts.ToArray();
+            StringComparison comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            for (int i = 0; i < layouts.Length; i++) {
+                string name = layouts[i].SlideLayout?.CommonSlideData?.Name?.Value ?? string.Empty;
+                if (string.Equals(name, layoutName, comparison)) {
+                    return i;
+                }
+            }
+
+            throw new InvalidOperationException($"Layout '{layoutName}' not found for master {masterIndex}.");
+        }
+
+        /// <summary>
         ///     Retrieves a shape by its name.
         /// </summary>
         public PowerPointShape? GetShape(string name) {
@@ -460,6 +561,62 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return matches.FirstOrDefault();
+        }
+
+        /// <summary>
+        ///     Retrieves placeholders defined by the slide layout.
+        /// </summary>
+        public IReadOnlyList<PowerPointLayoutPlaceholderInfo> GetLayoutPlaceholders() {
+            SlideLayoutPart? layoutPart = _slidePart.SlideLayoutPart;
+            ShapeTree? shapeTree = layoutPart?.SlideLayout?.CommonSlideData?.ShapeTree;
+            if (shapeTree == null) {
+                return Array.Empty<PowerPointLayoutPlaceholderInfo>();
+            }
+
+            List<PowerPointLayoutPlaceholderInfo> placeholders = new();
+            foreach (OpenXmlElement element in shapeTree.ChildElements) {
+                PlaceholderShape? placeholder = GetLayoutPlaceholderShape(element);
+                if (placeholder == null) {
+                    continue;
+                }
+
+                string name = GetLayoutElementName(element);
+                PowerPointLayoutBox? bounds = GetLayoutElementBounds(element);
+                placeholders.Add(new PowerPointLayoutPlaceholderInfo(
+                    name,
+                    placeholder.Type?.Value,
+                    placeholder.Index?.Value,
+                    bounds));
+            }
+
+            return placeholders;
+        }
+
+        /// <summary>
+        ///     Retrieves a layout placeholder by type and optional index.
+        /// </summary>
+        public PowerPointLayoutPlaceholderInfo? GetLayoutPlaceholder(PlaceholderValues placeholderType, uint? index = null) {
+            foreach (PowerPointLayoutPlaceholderInfo placeholder in GetLayoutPlaceholders()) {
+                if (placeholder.PlaceholderType != placeholderType) {
+                    continue;
+                }
+
+                if (index != null && placeholder.PlaceholderIndex != index) {
+                    continue;
+                }
+
+                return placeholder;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        ///     Retrieves layout placeholder bounds by type and optional index.
+        /// </summary>
+        public PowerPointLayoutBox? GetLayoutPlaceholderBounds(PlaceholderValues placeholderType, uint? index = null) {
+            PowerPointLayoutPlaceholderInfo? placeholder = GetLayoutPlaceholder(placeholderType, index);
+            return placeholder?.Bounds;
         }
 
         /// <summary>
@@ -576,6 +733,57 @@ namespace OfficeIMO.PowerPoint {
             return count;
         }
 
+        private static PlaceholderShape? GetLayoutPlaceholderShape(OpenXmlElement element) {
+            return element switch {
+                Shape s => s.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
+                DocumentFormat.OpenXml.Presentation.Picture p => p.NonVisualPictureProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
+                GraphicFrame g => g.NonVisualGraphicFrameProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
+                _ => null
+            };
+        }
+
+        private static string GetLayoutElementName(OpenXmlElement element) {
+            return element switch {
+                Shape s => s.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value ?? string.Empty,
+                DocumentFormat.OpenXml.Presentation.Picture p => p.NonVisualPictureProperties?.NonVisualDrawingProperties?.Name?.Value ?? string.Empty,
+                GraphicFrame g => g.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties?.Name?.Value ?? string.Empty,
+                _ => string.Empty
+            };
+        }
+
+        private static PowerPointLayoutBox? GetLayoutElementBounds(OpenXmlElement element) {
+            return element switch {
+                Shape s => GetLayoutElementBounds(s.ShapeProperties?.Transform2D),
+                DocumentFormat.OpenXml.Presentation.Picture p => GetLayoutElementBounds(p.ShapeProperties?.Transform2D),
+                GraphicFrame g => GetLayoutElementBounds(g.Transform),
+                _ => null
+            };
+        }
+
+        private static PowerPointLayoutBox? GetLayoutElementBounds(A.Transform2D? transform) {
+            long? x = transform?.Offset?.X?.Value;
+            long? y = transform?.Offset?.Y?.Value;
+            long? cx = transform?.Extents?.Cx?.Value;
+            long? cy = transform?.Extents?.Cy?.Value;
+            if (x == null || y == null || cx == null || cy == null) {
+                return null;
+            }
+
+            return new PowerPointLayoutBox(x.Value, y.Value, cx.Value, cy.Value);
+        }
+
+        private static PowerPointLayoutBox? GetLayoutElementBounds(Transform? transform) {
+            long? x = transform?.Offset?.X?.Value;
+            long? y = transform?.Offset?.Y?.Value;
+            long? cx = transform?.Extents?.Cx?.Value;
+            long? cy = transform?.Extents?.Cy?.Value;
+            if (x == null || y == null || cx == null || cy == null) {
+                return null;
+            }
+
+            return new PowerPointLayoutBox(x.Value, y.Value, cx.Value, cy.Value);
+        }
+
         private void LoadExistingShapes() {
             ShapeTree? tree = _slidePart.Slide.CommonSlideData?.ShapeTree;
             if (tree == null) {
@@ -595,23 +803,9 @@ namespace OfficeIMO.PowerPoint {
                     maxId = id.Value;
                 }
 
-                switch (element) {
-                    case Shape s:
-                        if (s.TextBody != null) {
-                            _shapes.Add(new PowerPointTextBox(s, _slidePart));
-                        } else {
-                            _shapes.Add(new PowerPointAutoShape(s));
-                        }
-                        break;
-                    case DocumentFormat.OpenXml.Presentation.Picture p:
-                        _shapes.Add(new PowerPointPicture(p, _slidePart));
-                        break;
-                    case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null:
-                        _shapes.Add(new PowerPointTable(g));
-                        break;
-                    case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null:
-                        _shapes.Add(new PowerPointChart(g, _slidePart));
-                        break;
+                PowerPointShape? shape = CreateShapeFromElement(element);
+                if (shape != null) {
+                    _shapes.Add(shape);
                 }
             }
 

@@ -72,7 +72,7 @@ namespace OfficeIMO.PowerPoint {
             viewPart.ViewProperties = viewProperties;
         }
 
-        private static void CreateTableStylesPart(PresentationPart presentationPart) {
+        internal static void CreateTableStylesPart(PresentationPart presentationPart) {
             TableStylesPart tableStylesPart = presentationPart.TableStylesPart ?? presentationPart.AddNewPart<TableStylesPart>();
 
             if (tableStylesPart.TableStyleList == null) {
