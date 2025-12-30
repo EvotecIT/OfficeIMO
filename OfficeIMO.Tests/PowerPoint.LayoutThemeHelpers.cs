@@ -60,5 +60,38 @@ namespace OfficeIMO.Tests {
                 }
             }
         }
+
+        [Fact]
+        public void CanSetThemeFontsAcrossScripts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.SetThemeFonts(new PowerPointThemeFontSet(
+                        majorLatin: "Aptos",
+                        minorLatin: "Calibri",
+                        majorEastAsian: "MS Mincho",
+                        minorEastAsian: "Yu Gothic",
+                        majorComplexScript: "Arial",
+                        minorComplexScript: "Tahoma"));
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    SlideMasterPart master = document.PresentationPart!.SlideMasterParts.First();
+                    A.FontScheme? fontScheme = master.ThemePart?.Theme?.ThemeElements?.FontScheme;
+                    Assert.NotNull(fontScheme);
+                    Assert.Equal("Aptos", fontScheme!.MajorFont?.LatinFont?.Typeface);
+                    Assert.Equal("Calibri", fontScheme.MinorFont?.LatinFont?.Typeface);
+                    Assert.Equal("MS Mincho", fontScheme.MajorFont?.EastAsianFont?.Typeface);
+                    Assert.Equal("Yu Gothic", fontScheme.MinorFont?.EastAsianFont?.Typeface);
+                    Assert.Equal("Arial", fontScheme.MajorFont?.ComplexScriptFont?.Typeface);
+                    Assert.Equal("Tahoma", fontScheme.MinorFont?.ComplexScriptFont?.Typeface);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
     }
 }
