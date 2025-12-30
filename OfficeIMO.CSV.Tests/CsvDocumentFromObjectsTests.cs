@@ -77,4 +77,11 @@ public class CsvDocumentFromObjectsTests
         var ex = Assert.Throws<InvalidOperationException>(() => CsvDocument.FromObjects(new object?[] { new { Name = "A", Value = 1 }, null }));
         Assert.Equal("Data rows cannot contain null entries.", ex.Message);
     }
+
+    [Fact]
+    public void FromObjects_ThrowsOnMissingColumns()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => CsvDocument.FromObjects(new object?[] { new object() }));
+        Assert.Equal("Unable to infer column names. Use objects with properties or dictionaries.", ex.Message);
+    }
 }
