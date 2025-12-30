@@ -264,9 +264,6 @@ namespace OfficeIMO.PowerPoint {
             long totalWidth = ordered.Sum(s => s.Width);
             double available = bounds.Width - totalWidth;
             double gap = ordered.Count > 1 ? available / (ordered.Count - 1) : 0d;
-            if (gap < 0) {
-                gap = 0;
-            }
 
             double current = bounds.Left;
             foreach (PowerPointShape shape in ordered) {
@@ -280,9 +277,6 @@ namespace OfficeIMO.PowerPoint {
             long totalHeight = ordered.Sum(s => s.Height);
             double available = bounds.Height - totalHeight;
             double gap = ordered.Count > 1 ? available / (ordered.Count - 1) : 0d;
-            if (gap < 0) {
-                gap = 0;
-            }
 
             double current = bounds.Top;
             foreach (PowerPointShape shape in ordered) {
