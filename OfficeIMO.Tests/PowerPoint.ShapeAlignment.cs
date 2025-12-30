@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void DistributeShapes_Horizontal_EvensSpacing() {
+        public void DistributeShapes_Horizontal_EvenSpacing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -142,6 +142,50 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(expectedA, a.Left);
                 Assert.Equal(expectedB, b.Left);
                 Assert.Equal(expectedC, c.Left);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DistributeShapes_Horizontal_AllowsOverlapToFitBounds() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 1000);
+                PowerPointAutoShape b = slide.AddRectangle(2000, 0, 1000, 1000);
+                var bounds = new PowerPointLayoutBox(0, 0, 1500, 1000);
+
+                slide.DistributeShapes(slide.Shapes, PowerPointShapeDistribution.Horizontal, bounds);
+
+                Assert.Equal(0, a.Left);
+                Assert.Equal(500, b.Left);
+                Assert.Equal(bounds.Right, b.Left + b.Width);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DistributeShapes_Vertical_AllowsOverlapToFitBounds() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 1000);
+                PowerPointAutoShape b = slide.AddRectangle(0, 2000, 1000, 1000);
+                var bounds = new PowerPointLayoutBox(0, 0, 1000, 1500);
+
+                slide.DistributeShapes(slide.Shapes, PowerPointShapeDistribution.Vertical, bounds);
+
+                Assert.Equal(0, a.Top);
+                Assert.Equal(500, b.Top);
+                Assert.Equal(bounds.Bottom, b.Top + b.Height);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

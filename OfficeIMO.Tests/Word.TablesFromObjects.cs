@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using OfficeIMO.Word;
@@ -52,6 +53,60 @@ namespace OfficeIMO.Tests {
             }
 
             File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Test_AddTableFromObjects_ThrowsOnNullItems() {
+            string filePath = Path.Combine(_directoryWithFiles, "Table.FromObjects.NullItems.docx");
+
+            try {
+                using var document = WordDocument.Create(filePath);
+                var ex = Assert.Throws<ArgumentNullException>(() => document.AddTableFromObjects(null!));
+                Assert.Equal("items", ex.ParamName);
+            } finally {
+                File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public void Test_AddTableFromObjects_ThrowsOnEmptyItems() {
+            string filePath = Path.Combine(_directoryWithFiles, "Table.FromObjects.Empty.docx");
+
+            try {
+                using var document = WordDocument.Create(filePath);
+                var ex = Assert.Throws<ArgumentException>(() => document.AddTableFromObjects(Array.Empty<object?>()));
+                Assert.StartsWith("Provide at least one data row.", ex.Message);
+                Assert.Equal("items", ex.ParamName);
+            } finally {
+                File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public void Test_AddTableFromObjects_ThrowsOnNullFirstRow() {
+            string filePath = Path.Combine(_directoryWithFiles, "Table.FromObjects.NullFirst.docx");
+
+            try {
+                using var document = WordDocument.Create(filePath);
+                var ex = Assert.Throws<ArgumentException>(() => document.AddTableFromObjects(new object?[] { null }));
+                Assert.StartsWith("Data rows cannot be null.", ex.Message);
+                Assert.Equal("items", ex.ParamName);
+            } finally {
+                File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public void Test_AddTableFromObjects_ThrowsOnNullEntry() {
+            string filePath = Path.Combine(_directoryWithFiles, "Table.FromObjects.NullEntry.docx");
+
+            try {
+                using var document = WordDocument.Create(filePath);
+                var ex = Assert.Throws<InvalidOperationException>(() => document.AddTableFromObjects(new object?[] { new { Name = "Alpha", Value = 1 }, null }));
+                Assert.Equal("Data rows cannot contain null entries.", ex.Message);
+            } finally {
+                File.Delete(filePath);
+            }
         }
     }
 }
