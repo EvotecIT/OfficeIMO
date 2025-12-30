@@ -352,15 +352,35 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Returns the theme colors that are defined on the master.
+        /// </summary>
+        public IReadOnlyDictionary<PowerPointThemeColor, string> GetThemeColors(int masterIndex = 0) {
+            ThrowIfDisposed();
+            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
+            A.ColorScheme? scheme = masterPart.ThemePart?.Theme?.ThemeElements?.ColorScheme;
+            if (scheme == null) {
+                return new Dictionary<PowerPointThemeColor, string>();
+            }
+
+            var colors = new Dictionary<PowerPointThemeColor, string>();
+            foreach (PowerPointThemeColor color in Enum.GetValues(typeof(PowerPointThemeColor))) {
+                OpenXmlCompositeElement? element = GetColorElement(scheme, color);
+                string? hexValue = element?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value;
+                if (!string.IsNullOrEmpty(hexValue)) {
+                    colors[color] = hexValue;
+                }
+            }
+
+            return colors;
+        }
+
+        /// <summary>
         ///     Gets the major/minor Latin fonts for the theme.
         /// </summary>
         public PowerPointThemeFontInfo GetThemeLatinFonts(int masterIndex = 0) {
             ThrowIfDisposed();
-            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
-            A.FontScheme? scheme = masterPart.ThemePart?.Theme?.ThemeElements?.FontScheme;
-            string? majorLatin = scheme?.MajorFont?.LatinFont?.Typeface;
-            string? minorLatin = scheme?.MinorFont?.LatinFont?.Typeface;
-            return new PowerPointThemeFontInfo(majorLatin, minorLatin);
+            PowerPointThemeFontSet fonts = GetThemeFonts(masterIndex);
+            return new PowerPointThemeFontInfo(fonts.MajorLatin, fonts.MinorLatin);
         }
 
         /// <summary>
@@ -375,19 +395,45 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("Minor font cannot be null or empty.", nameof(minorLatin));
             }
 
+            SetThemeFonts(new PowerPointThemeFontSet(majorLatin, minorLatin, null, null, null, null),
+                masterIndex, keepExistingWhenNull: true);
+        }
+
+        /// <summary>
+        ///     Gets the major/minor fonts (Latin, East Asian, and complex script).
+        /// </summary>
+        public PowerPointThemeFontSet GetThemeFonts(int masterIndex = 0) {
+            ThrowIfDisposed();
+            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
+            A.FontScheme? scheme = masterPart.ThemePart?.Theme?.ThemeElements?.FontScheme;
+
+            return new PowerPointThemeFontSet(
+                scheme?.MajorFont?.LatinFont?.Typeface,
+                scheme?.MinorFont?.LatinFont?.Typeface,
+                scheme?.MajorFont?.EastAsianFont?.Typeface,
+                scheme?.MinorFont?.EastAsianFont?.Typeface,
+                scheme?.MajorFont?.ComplexScriptFont?.Typeface,
+                scheme?.MinorFont?.ComplexScriptFont?.Typeface);
+        }
+
+        /// <summary>
+        ///     Sets the major/minor fonts (Latin, East Asian, and complex script).
+        /// </summary>
+        public void SetThemeFonts(PowerPointThemeFontSet fonts, int masterIndex = 0, bool keepExistingWhenNull = true) {
+            ThrowIfDisposed();
             SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
             A.FontScheme scheme = EnsureFontScheme(masterPart);
             scheme.MajorFont ??= new A.MajorFont();
             scheme.MinorFont ??= new A.MinorFont();
 
-            scheme.MajorFont.LatinFont ??= new A.LatinFont();
-            scheme.MinorFont.LatinFont ??= new A.LatinFont();
-            scheme.MajorFont.LatinFont.Typeface = majorLatin;
-            scheme.MinorFont.LatinFont.Typeface = minorLatin;
+            SetThemeFont(scheme.MajorFont, fonts.MajorLatin, fonts.MajorEastAsian, fonts.MajorComplexScript,
+                keepExistingWhenNull);
+            SetThemeFont(scheme.MinorFont, fonts.MinorLatin, fonts.MinorEastAsian, fonts.MinorComplexScript,
+                keepExistingWhenNull);
         }
 
         /// <summary>
-        ///     Gets the list of table styles available in the presentation.    
+        ///     Gets the list of table styles available in the presentation.
         /// </summary>
         public IReadOnlyList<PowerPointTableStyleInfo> TableStyles {
             get {
@@ -1302,6 +1348,29 @@ namespace OfficeIMO.PowerPoint {
             theme.ThemeElements ??= new A.ThemeElements();
             A.FontScheme scheme = theme.ThemeElements.FontScheme ??= new A.FontScheme { Name = "Office" };
             return scheme;
+        }
+
+        private static void SetThemeFont(OpenXmlCompositeElement parent, string? latin, string? eastAsian,
+            string? complexScript, bool keepExistingWhenNull) {
+            SetThemeFontElement<A.LatinFont>(parent, latin, keepExistingWhenNull);
+            SetThemeFontElement<A.EastAsianFont>(parent, eastAsian, keepExistingWhenNull);
+            SetThemeFontElement<A.ComplexScriptFont>(parent, complexScript, keepExistingWhenNull);
+        }
+
+        private static void SetThemeFontElement<TFont>(OpenXmlCompositeElement parent, string? typeface,
+            bool keepExistingWhenNull) where TFont : A.TextFontType, new() {
+            if (typeface == null) {
+                if (!keepExistingWhenNull) {
+                    parent.RemoveAllChildren<TFont>();
+                }
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(typeface)) {
+                throw new ArgumentException("Font name cannot be null or empty.", nameof(typeface));
+            }
+
+            parent.RemoveAllChildren<TFont>();
+            parent.Append(new TFont { Typeface = typeface });
         }
 
         private static OpenXmlCompositeElement? GetColorElement(A.ColorScheme scheme, PowerPointThemeColor color) {

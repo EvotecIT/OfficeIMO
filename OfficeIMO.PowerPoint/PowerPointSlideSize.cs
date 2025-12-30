@@ -104,6 +104,71 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets a slide size preset.
+        /// </summary>
+        public void SetPreset(PowerPointSlideSizePreset preset, bool portrait = false) {
+            (long width, long height, SlideSizeValues type) = preset switch {
+                PowerPointSlideSizePreset.Screen4x3 =>
+                    (PowerPointUnits.FromInches(10), PowerPointUnits.FromInches(7.5), SlideSizeValues.Screen4x3),
+                PowerPointSlideSizePreset.Screen16x9 =>
+                    (PowerPointUnits.FromInches(13.333), PowerPointUnits.FromInches(7.5), SlideSizeValues.Screen16x9),
+                PowerPointSlideSizePreset.Screen16x10 =>
+                    (PowerPointUnits.FromInches(10), PowerPointUnits.FromInches(6.25), SlideSizeValues.Screen16x10),
+                _ => throw new ArgumentOutOfRangeException(nameof(preset))
+            };
+
+            if (portrait) {
+                (width, height) = (height, width);
+            }
+
+            SetSizeEmus(width, height, type);
+        }
+
+        /// <summary>
+        ///     Sets the slide size in EMUs.
+        /// </summary>
+        public void SetSizeEmus(long widthEmus, long heightEmus, SlideSizeValues? type = SlideSizeValues.Custom) {
+            if (widthEmus <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(widthEmus));
+            }
+            if (heightEmus <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(heightEmus));
+            }
+
+            WidthEmus = widthEmus;
+            HeightEmus = heightEmus;
+            if (type != null) {
+                Type = type.Value;
+            }
+        }
+
+        /// <summary>
+        ///     Sets the slide size in centimeters.
+        /// </summary>
+        public void SetSizeCm(double widthCm, double heightCm, SlideSizeValues? type = SlideSizeValues.Custom) {
+            SetSizeEmus(PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm), type);
+        }
+
+        /// <summary>
+        ///     Sets the slide size in inches.
+        /// </summary>
+        public void SetSizeInches(double widthInches, double heightInches,
+            SlideSizeValues? type = SlideSizeValues.Custom) {
+            SetSizeEmus(PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches), type);
+        }
+
+        /// <summary>
+        ///     Sets the slide size in points.
+        /// </summary>
+        public void SetSizePoints(double widthPoints, double heightPoints,
+            SlideSizeValues? type = SlideSizeValues.Custom) {
+            SetSizeEmus(PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints), type);
+        }
+
+        /// <summary>
         ///     Gets a content box that respects the specified margin (EMU units).
         /// </summary>
         /// <param name="marginEmus">Margin in EMUs.</param>
