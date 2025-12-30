@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -10,7 +11,10 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public class PowerPointTable : PowerPointShape {
         private const int EmusPerPoint = 12700;
-        internal PowerPointTable(GraphicFrame frame) : base(frame) {
+        private readonly SlidePart? _slidePart;
+
+        internal PowerPointTable(GraphicFrame frame, SlidePart? slidePart = null) : base(frame) {
+            _slidePart = slidePart;
         }
 
         private GraphicFrame Frame => (GraphicFrame)Element;
@@ -490,6 +494,55 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Applies a table style by name, with optional banding/heading toggles.
+        /// </summary>
+        public void ApplyStyleByName(string styleName, bool ignoreCase = true,
+            bool? firstRow = null, bool? lastRow = null, bool? firstColumn = null, bool? lastColumn = null,
+            bool? bandedRows = null, bool? bandedColumns = null) {
+            if (!TryApplyStyleByName(styleName, ignoreCase, firstRow, lastRow, firstColumn, lastColumn, bandedRows, bandedColumns)) {
+                throw new InvalidOperationException($"Table style '{styleName}' was not found in the presentation.");
+            }
+        }
+
+        /// <summary>
+        ///     Tries to apply a table style by name. Returns false if the style is not found.
+        /// </summary>
+        public bool TryApplyStyleByName(string styleName, bool ignoreCase = true,
+            bool? firstRow = null, bool? lastRow = null, bool? firstColumn = null, bool? lastColumn = null,
+            bool? bandedRows = null, bool? bandedColumns = null) {
+            if (string.IsNullOrWhiteSpace(styleName)) {
+                throw new ArgumentException("Style name cannot be null or empty.", nameof(styleName));
+            }
+
+            string? styleId = ResolveStyleId(styleName, ignoreCase);
+            if (string.IsNullOrWhiteSpace(styleId)) {
+                return false;
+            }
+
+            StyleId = styleId;
+            if (firstRow.HasValue) {
+                FirstRow = firstRow.Value;
+            }
+            if (lastRow.HasValue) {
+                LastRow = lastRow.Value;
+            }
+            if (firstColumn.HasValue) {
+                FirstColumn = firstColumn.Value;
+            }
+            if (lastColumn.HasValue) {
+                LastColumn = lastColumn.Value;
+            }
+            if (bandedRows.HasValue) {
+                BandedRows = bandedRows.Value;
+            }
+            if (bandedColumns.HasValue) {
+                BandedColumns = bandedColumns.Value;
+            }
+
+            return true;
+        }
+
+        /// <summary>
         ///     Retrieves a cell at the specified row and column index.
         /// </summary>
         /// <param name="row">Zero-based row index.</param>
@@ -949,6 +1002,35 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ClearMergedCellText(A.TableCell cell) {
             ClearCellText(cell);
+        }
+
+        private string? ResolveStyleId(string styleName, bool ignoreCase) {
+            PresentationPart? presentationPart = _slidePart?
+                .GetParentParts()
+                .OfType<PresentationPart>()
+                .FirstOrDefault();
+            TableStylesPart? stylesPart = presentationPart?.TableStylesPart;
+            if (stylesPart?.TableStyleList == null) {
+                return null;
+            }
+
+            StringComparison comparison = ignoreCase
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
+
+            foreach (A.TableStyle style in stylesPart.TableStyleList.Elements<A.TableStyle>()) {
+                string? styleId = style.StyleId?.Value;
+                if (!string.IsNullOrWhiteSpace(styleId) && string.Equals(styleId, styleName, comparison)) {
+                    return styleId;
+                }
+
+                string? name = style.StyleName?.Value;
+                if (!string.IsNullOrWhiteSpace(name) && string.Equals(name, styleName, comparison)) {
+                    return styleId;
+                }
+            }
+
+            return null;
         }
     }
 }

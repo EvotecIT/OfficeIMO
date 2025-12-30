@@ -87,7 +87,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(frame);
-            PowerPointTable tbl = new(frame);
+            PowerPointTable tbl = new(frame, _slidePart);
             tbl.SetColumnWidthsEvenly();
             _shapes.Add(tbl);
             return tbl;

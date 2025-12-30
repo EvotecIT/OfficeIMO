@@ -233,7 +233,7 @@ namespace OfficeIMO.PowerPoint {
                 case GroupShape g:
                     return new PowerPointGroupShape(g);
                 case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null:
-                    return new PowerPointTable(g);
+                    return new PowerPointTable(g, _slidePart);
                 case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null:
                     return new PowerPointChart(g, _slidePart);
                 default:

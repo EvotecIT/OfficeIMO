@@ -413,6 +413,374 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Gets or sets whether slide view snapping uses the grid.
+        /// </summary>
+        public bool SnapToGrid {
+            get {
+                ThrowIfDisposed();
+                CommonSlideViewProperties? common = GetCommonSlideViewProperties();
+                return common?.SnapToGrid?.Value == true;
+            }
+            set {
+                ThrowIfDisposed();
+                CommonSlideViewProperties common = EnsureCommonSlideViewProperties();
+                common.SnapToGrid = value;
+            }
+        }
+
+        /// <summary>
+        ///     Horizontal grid spacing in EMUs.
+        /// </summary>
+        public long GridSpacingXEmus {
+            get {
+                ThrowIfDisposed();
+                return GetGridSpacing()?.Cx?.Value ?? 0L;
+            }
+            set {
+                ThrowIfDisposed();
+                GridSpacing spacing = EnsureGridSpacing();
+                spacing.Cx = EnsureInt32(value, nameof(GridSpacingXEmus));
+            }
+        }
+
+        /// <summary>
+        ///     Vertical grid spacing in EMUs.
+        /// </summary>
+        public long GridSpacingYEmus {
+            get {
+                ThrowIfDisposed();
+                return GetGridSpacing()?.Cy?.Value ?? 0L;
+            }
+            set {
+                ThrowIfDisposed();
+                GridSpacing spacing = EnsureGridSpacing();
+                spacing.Cy = EnsureInt32(value, nameof(GridSpacingYEmus));
+            }
+        }
+
+        /// <summary>
+        ///     Sets grid spacing in EMUs.
+        /// </summary>
+        public void SetGridSpacing(long xEmus, long yEmus) {
+            ThrowIfDisposed();
+            GridSpacingXEmus = xEmus;
+            GridSpacingYEmus = yEmus;
+        }
+
+        /// <summary>
+        ///     Sets grid spacing in centimeters.
+        /// </summary>
+        public void SetGridSpacingCm(double xCm, double yCm) {
+            SetGridSpacing(PowerPointUnits.FromCentimeters(xCm), PowerPointUnits.FromCentimeters(yCm));
+        }
+
+        /// <summary>
+        ///     Sets grid spacing in inches.
+        /// </summary>
+        public void SetGridSpacingInches(double xInches, double yInches) {
+            SetGridSpacing(PowerPointUnits.FromInches(xInches), PowerPointUnits.FromInches(yInches));
+        }
+
+        /// <summary>
+        ///     Sets grid spacing in points.
+        /// </summary>
+        public void SetGridSpacingPoints(double xPoints, double yPoints) {
+            SetGridSpacing(PowerPointUnits.FromPoints(xPoints), PowerPointUnits.FromPoints(yPoints));
+        }
+
+        /// <summary>
+        ///     Returns the current guides defined for slide view.
+        /// </summary>
+        public IReadOnlyList<PowerPointGuideInfo> GetGuides() {
+            ThrowIfDisposed();
+            CommonSlideViewProperties? common = GetCommonSlideViewProperties();
+            GuideList? guideList = common?.GuideList;
+            if (guideList == null) {
+                return Array.Empty<PowerPointGuideInfo>();
+            }
+
+            List<PowerPointGuideInfo> guides = new();
+            foreach (Guide guide in guideList.Elements<Guide>()) {
+                DirectionValues? direction = guide.Orientation?.Value;
+                PowerPointGuideOrientation orientation = direction == DirectionValues.Vertical
+                    ? PowerPointGuideOrientation.Vertical
+                    : PowerPointGuideOrientation.Horizontal;
+                guides.Add(new PowerPointGuideInfo(orientation, guide.Position?.Value ?? 0));
+            }
+
+            return guides;
+        }
+
+        /// <summary>
+        ///     Clears all guides from slide view.
+        /// </summary>
+        public void ClearGuides() {
+            ThrowIfDisposed();
+            CommonSlideViewProperties? common = GetCommonSlideViewProperties();
+            common?.GuideList?.RemoveAllChildren<Guide>();
+        }
+
+        /// <summary>
+        ///     Sets the guide list to the provided collection.
+        /// </summary>
+        public void SetGuides(IEnumerable<PowerPointGuideInfo> guides) {
+            ThrowIfDisposed();
+            if (guides == null) {
+                throw new ArgumentNullException(nameof(guides));
+            }
+
+            CommonSlideViewProperties common = EnsureCommonSlideViewProperties();
+            GuideList guideList = common.GuideList ??= new GuideList();
+            guideList.RemoveAllChildren<Guide>();
+
+            foreach (PowerPointGuideInfo guide in guides) {
+                guideList.Append(CreateGuide(guide));
+            }
+        }
+
+        /// <summary>
+        ///     Adds a guide to slide view.
+        /// </summary>
+        public void AddGuide(PowerPointGuideOrientation orientation, long positionEmus) {
+            ThrowIfDisposed();
+            CommonSlideViewProperties common = EnsureCommonSlideViewProperties();
+            GuideList guideList = common.GuideList ??= new GuideList();
+            guideList.Append(CreateGuide(new PowerPointGuideInfo(orientation, positionEmus)));
+        }
+
+        /// <summary>
+        ///     Adds a guide using centimeter measurements.
+        /// </summary>
+        public void AddGuideCm(PowerPointGuideOrientation orientation, double positionCm) {
+            AddGuide(orientation, PowerPointUnits.FromCentimeters(positionCm));
+        }
+
+        /// <summary>
+        ///     Adds a guide using inch measurements.
+        /// </summary>
+        public void AddGuideInches(PowerPointGuideOrientation orientation, double positionInches) {
+            AddGuide(orientation, PowerPointUnits.FromInches(positionInches));
+        }
+
+        /// <summary>
+        ///     Adds a guide using point measurements.
+        /// </summary>
+        public void AddGuidePoints(PowerPointGuideOrientation orientation, double positionPoints) {
+            AddGuide(orientation, PowerPointUnits.FromPoints(positionPoints));
+        }
+
+        /// <summary>
+        ///     Adds vertical column guides based on a grid definition.
+        /// </summary>
+        public void AddColumnGuides(int columnCount, long marginEmus, long gutterEmus, bool includeOuterEdges = true,
+            bool clearExisting = false) {
+            ThrowIfDisposed();
+            if (clearExisting) {
+                ClearGuides();
+            }
+
+            PowerPointLayoutBox[] columns = SlideSize.GetColumns(columnCount, marginEmus, gutterEmus);
+            var positions = new SortedSet<long>();
+            foreach (PowerPointLayoutBox column in columns) {
+                positions.Add(column.Left);
+                positions.Add(column.Right);
+            }
+
+            if (!includeOuterEdges && positions.Count >= 2) {
+                positions.Remove(positions.Min);
+                positions.Remove(positions.Max);
+            }
+
+            foreach (long position in positions) {
+                AddGuide(PowerPointGuideOrientation.Vertical, position);
+            }
+        }
+
+        /// <summary>
+        ///     Adds vertical column guides using centimeters.
+        /// </summary>
+        public void AddColumnGuidesCm(int columnCount, double marginCm, double gutterCm, bool includeOuterEdges = true,
+            bool clearExisting = false) {
+            AddColumnGuides(columnCount,
+                PowerPointUnits.FromCentimeters(marginCm),
+                PowerPointUnits.FromCentimeters(gutterCm),
+                includeOuterEdges,
+                clearExisting);
+        }
+
+        /// <summary>
+        ///     Adds horizontal row guides based on a grid definition.
+        /// </summary>
+        public void AddRowGuides(int rowCount, long marginEmus, long gutterEmus, bool includeOuterEdges = true,
+            bool clearExisting = false) {
+            ThrowIfDisposed();
+            if (clearExisting) {
+                ClearGuides();
+            }
+
+            PowerPointLayoutBox[] rows = SlideSize.GetRows(rowCount, marginEmus, gutterEmus);
+            var positions = new SortedSet<long>();
+            foreach (PowerPointLayoutBox row in rows) {
+                positions.Add(row.Top);
+                positions.Add(row.Bottom);
+            }
+
+            if (!includeOuterEdges && positions.Count >= 2) {
+                positions.Remove(positions.Min);
+                positions.Remove(positions.Max);
+            }
+
+            foreach (long position in positions) {
+                AddGuide(PowerPointGuideOrientation.Horizontal, position);
+            }
+        }
+
+        /// <summary>
+        ///     Adds horizontal row guides using centimeters.
+        /// </summary>
+        public void AddRowGuidesCm(int rowCount, double marginCm, double gutterCm, bool includeOuterEdges = true,
+            bool clearExisting = false) {
+            AddRowGuides(rowCount,
+                PowerPointUnits.FromCentimeters(marginCm),
+                PowerPointUnits.FromCentimeters(gutterCm),
+                includeOuterEdges,
+                clearExisting);
+        }
+
+        /// <summary>
+        ///     Retrieves a layout placeholder textbox for a master/layout pair.
+        /// </summary>
+        public PowerPointTextBox? GetLayoutPlaceholderTextBox(int masterIndex, int layoutIndex, PlaceholderValues placeholderType,
+            uint? index = null) {
+            ThrowIfDisposed();
+            SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);
+            Shape? shape = FindLayoutPlaceholderShape(layoutPart, placeholderType, index);
+            return shape == null ? null : new PowerPointTextBox(shape);
+        }
+
+        /// <summary>
+        ///     Ensures a layout placeholder textbox exists, creating it if missing.
+        /// </summary>
+        public PowerPointTextBox EnsureLayoutPlaceholderTextBox(int masterIndex, int layoutIndex, PlaceholderValues placeholderType,
+            uint? index = null, PowerPointLayoutBox? bounds = null, string? name = null) {
+            ThrowIfDisposed();
+            SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);
+            Shape? shape = FindLayoutPlaceholderShape(layoutPart, placeholderType, index);
+            if (shape != null) {
+                return new PowerPointTextBox(shape);
+            }
+
+            ShapeTree tree = EnsureLayoutShapeTree(layoutPart);
+            uint shapeId = GetNextShapeId(tree);
+            uint resolvedIndex = index ?? 0U;
+            string resolvedName = name ?? $"{placeholderType} Placeholder";
+            PowerPointLayoutBox resolvedBounds = bounds ?? GetFallbackPlaceholderBounds(placeholderType);
+
+            Shape created = CreateLayoutPlaceholderShape(shapeId, resolvedName, placeholderType, resolvedIndex, resolvedBounds);
+            tree.AppendChild(created);
+            return new PowerPointTextBox(created);
+        }
+
+        /// <summary>
+        ///     Sets layout placeholder bounds.
+        /// </summary>
+        public void SetLayoutPlaceholderBounds(int masterIndex, int layoutIndex, PlaceholderValues placeholderType,
+            PowerPointLayoutBox bounds, uint? index = null, bool createIfMissing = false) {
+            ThrowIfDisposed();
+            PowerPointTextBox? textBox = createIfMissing
+                ? EnsureLayoutPlaceholderTextBox(masterIndex, layoutIndex, placeholderType, index, bounds)
+                : GetLayoutPlaceholderTextBox(masterIndex, layoutIndex, placeholderType, index);
+
+            if (textBox == null) {
+                throw new InvalidOperationException("Layout placeholder was not found.");
+            }
+
+            textBox.Bounds = bounds;
+        }
+
+        /// <summary>
+        ///     Sets layout placeholder text margins in centimeters.
+        /// </summary>
+        public void SetLayoutPlaceholderTextMarginsCm(int masterIndex, int layoutIndex, PlaceholderValues placeholderType,
+            double leftCm, double topCm, double rightCm, double bottomCm, uint? index = null, bool createIfMissing = false) {
+            ThrowIfDisposed();
+            PowerPointTextBox? textBox = createIfMissing
+                ? EnsureLayoutPlaceholderTextBox(masterIndex, layoutIndex, placeholderType, index)
+                : GetLayoutPlaceholderTextBox(masterIndex, layoutIndex, placeholderType, index);
+
+            if (textBox == null) {
+                throw new InvalidOperationException("Layout placeholder was not found.");
+            }
+
+            textBox.SetTextMarginsCm(leftCm, topCm, rightCm, bottomCm);
+        }
+
+        /// <summary>
+        ///     Sets layout placeholder text margins in inches.
+        /// </summary>
+        public void SetLayoutPlaceholderTextMarginsInches(int masterIndex, int layoutIndex, PlaceholderValues placeholderType,
+            double leftInches, double topInches, double rightInches, double bottomInches, uint? index = null,
+            bool createIfMissing = false) {
+            ThrowIfDisposed();
+            PowerPointTextBox? textBox = createIfMissing
+                ? EnsureLayoutPlaceholderTextBox(masterIndex, layoutIndex, placeholderType, index)
+                : GetLayoutPlaceholderTextBox(masterIndex, layoutIndex, placeholderType, index);
+
+            if (textBox == null) {
+                throw new InvalidOperationException("Layout placeholder was not found.");
+            }
+
+            textBox.SetTextMarginsInches(leftInches, topInches, rightInches, bottomInches);
+        }
+
+        /// <summary>
+        ///     Sets layout placeholder text margins in points.
+        /// </summary>
+        public void SetLayoutPlaceholderTextMarginsPoints(int masterIndex, int layoutIndex, PlaceholderValues placeholderType,
+            double leftPoints, double topPoints, double rightPoints, double bottomPoints, uint? index = null,
+            bool createIfMissing = false) {
+            ThrowIfDisposed();
+            PowerPointTextBox? textBox = createIfMissing
+                ? EnsureLayoutPlaceholderTextBox(masterIndex, layoutIndex, placeholderType, index)
+                : GetLayoutPlaceholderTextBox(masterIndex, layoutIndex, placeholderType, index);
+
+            if (textBox == null) {
+                throw new InvalidOperationException("Layout placeholder was not found.");
+            }
+
+            textBox.SetTextMarginsPoints(leftPoints, topPoints, rightPoints, bottomPoints);
+        }
+
+        /// <summary>
+        ///     Sets layout placeholder text styling and optional bullet settings.
+        /// </summary>
+        public void SetLayoutPlaceholderTextStyle(int masterIndex, int layoutIndex, PlaceholderValues placeholderType,
+            PowerPointTextStyle style, uint? index = null, int? level = null, char? bulletChar = null,
+            A.TextAutoNumberSchemeValues? numbering = null, bool createIfMissing = false) {
+            ThrowIfDisposed();
+            PowerPointTextBox? textBox = createIfMissing
+                ? EnsureLayoutPlaceholderTextBox(masterIndex, layoutIndex, placeholderType, index)
+                : GetLayoutPlaceholderTextBox(masterIndex, layoutIndex, placeholderType, index);
+
+            if (textBox == null) {
+                throw new InvalidOperationException("Layout placeholder was not found.");
+            }
+
+            PowerPointParagraph paragraph = textBox.Paragraphs.FirstOrDefault() ?? textBox.AddParagraph();
+            if (level != null) {
+                paragraph.Level = level;
+            }
+
+            if (numbering != null) {
+                paragraph.SetNumbered(numbering.Value);
+            } else if (bulletChar != null) {
+                paragraph.SetBullet(bulletChar.Value);
+            }
+
+            style.Apply(paragraph);
+        }
+
+        /// <summary>
         ///     Replaces text across all slides.
         /// </summary>
         public int ReplaceText(string oldValue, string newValue, bool includeTables = true, bool includeNotes = false) {
@@ -1522,6 +1890,155 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool ShouldSharePart(OpenXmlPart part) {
             return part is SlideLayoutPart || part is NotesMasterPart;
+        }
+
+        private static Guide CreateGuide(PowerPointGuideInfo guide) {
+            DirectionValues orientation = guide.Orientation == PowerPointGuideOrientation.Vertical
+                ? DirectionValues.Vertical
+                : DirectionValues.Horizontal;
+            return new Guide {
+                Orientation = orientation,
+                Position = EnsureInt32(guide.PositionEmus, nameof(guide.PositionEmus))
+            };
+        }
+
+        private static int EnsureInt32(long value, string paramName) {
+            if (value < int.MinValue || value > int.MaxValue) {
+                throw new ArgumentOutOfRangeException(paramName,
+                    $"Value must be between {int.MinValue} and {int.MaxValue}.");
+            }
+            return (int)value;
+        }
+
+        private ViewProperties EnsureViewProperties() {
+            ViewPropertiesPart viewPart = _presentationPart.ViewPropertiesPart
+                ?? _presentationPart.AddNewPart<ViewPropertiesPart>();
+            viewPart.ViewProperties ??= new ViewProperties();
+            return viewPart.ViewProperties;
+        }
+
+        private GridSpacing? GetGridSpacing() {
+            return _presentationPart.ViewPropertiesPart?.ViewProperties?.GridSpacing;
+        }
+
+        private GridSpacing EnsureGridSpacing() {
+            ViewProperties viewProperties = EnsureViewProperties();
+            GridSpacing spacing = viewProperties.GridSpacing ??= new GridSpacing();
+            return spacing;
+        }
+
+        private CommonSlideViewProperties? GetCommonSlideViewProperties() {
+            return _presentationPart.ViewPropertiesPart?
+                .ViewProperties?
+                .GetFirstChild<SlideViewProperties>()?
+                .GetFirstChild<CommonSlideViewProperties>();
+        }
+
+        private CommonSlideViewProperties EnsureCommonSlideViewProperties() {
+            ViewProperties viewProperties = EnsureViewProperties();
+            SlideViewProperties slideView = viewProperties.GetFirstChild<SlideViewProperties>()
+                ?? viewProperties.AppendChild(new SlideViewProperties());
+            CommonSlideViewProperties common = slideView.GetFirstChild<CommonSlideViewProperties>()
+                ?? slideView.AppendChild(new CommonSlideViewProperties());
+            return common;
+        }
+
+        private SlideLayoutPart GetSlideLayoutPart(int masterIndex, int layoutIndex) {
+            SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
+            SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
+            if (layoutIndex < 0 || layoutIndex >= layouts.Length) {
+                throw new ArgumentOutOfRangeException(nameof(layoutIndex));
+            }
+            return layouts[layoutIndex];
+        }
+
+        private static Shape? FindLayoutPlaceholderShape(SlideLayoutPart layoutPart, PlaceholderValues placeholderType, uint? index) {
+            ShapeTree? shapeTree = layoutPart.SlideLayout?.CommonSlideData?.ShapeTree;
+            if (shapeTree == null) {
+                return null;
+            }
+
+            foreach (OpenXmlElement element in shapeTree.ChildElements) {
+                PlaceholderShape? placeholder = GetLayoutPlaceholderShape(element);
+                if (placeholder?.Type?.Value != placeholderType) {
+                    continue;
+                }
+                if (index != null && placeholder.Index?.Value != index.Value) {
+                    continue;
+                }
+                if (element is Shape shape) {
+                    return shape;
+                }
+            }
+
+            return null;
+        }
+
+        private static PlaceholderShape? GetLayoutPlaceholderShape(OpenXmlElement element) {
+            return element switch {
+                Shape s => s.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
+                DocumentFormat.OpenXml.Presentation.Picture p =>
+                    p.NonVisualPictureProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
+                GraphicFrame g => g.NonVisualGraphicFrameProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
+                _ => null
+            };
+        }
+
+        private static ShapeTree EnsureLayoutShapeTree(SlideLayoutPart layoutPart) {
+            SlideLayout layout = layoutPart.SlideLayout ??= new SlideLayout();
+            CommonSlideData common = layout.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+            ShapeTree tree = common.ShapeTree ??= new ShapeTree();
+
+            if (tree.GetFirstChild<NonVisualGroupShapeProperties>() == null) {
+                tree.PrependChild(new NonVisualGroupShapeProperties(
+                    new NonVisualDrawingProperties { Id = 1U, Name = string.Empty },
+                    new NonVisualGroupShapeDrawingProperties(),
+                    new ApplicationNonVisualDrawingProperties()));
+            }
+
+            if (tree.GetFirstChild<GroupShapeProperties>() == null) {
+                tree.AppendChild(PowerPointUtils.CreateDefaultGroupShapeProperties());
+            }
+
+            return tree;
+        }
+
+        private static uint GetNextShapeId(ShapeTree shapeTree) {
+            uint maxId = shapeTree
+                .Descendants<NonVisualDrawingProperties>()
+                .Select(properties => properties.Id?.Value ?? 0U)
+                .DefaultIfEmpty(0U)
+                .Max();
+            return maxId + 1U;
+        }
+
+        private static Shape CreateLayoutPlaceholderShape(uint id, string name, PlaceholderValues type, uint index,
+            PowerPointLayoutBox bounds) {
+            return new Shape(
+                new NonVisualShapeProperties(
+                    new NonVisualDrawingProperties { Id = id, Name = name },
+                    new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
+                    new ApplicationNonVisualDrawingProperties(new PlaceholderShape { Type = type, Index = index })),
+                new ShapeProperties(
+                    new A.Transform2D(new A.Offset { X = bounds.Left, Y = bounds.Top },
+                        new A.Extents { Cx = bounds.Width, Cy = bounds.Height }),
+                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }
+                ),
+                new TextBody(
+                    new A.BodyProperties(),
+                    new A.ListStyle(),
+                    new A.Paragraph(new A.Run(new A.Text(string.Empty)))))
+            { };
+        }
+
+        private static PowerPointLayoutBox GetFallbackPlaceholderBounds(PlaceholderValues placeholderType) {
+            return placeholderType switch {
+                PlaceholderValues.Title or PlaceholderValues.CenteredTitle =>
+                    new PowerPointLayoutBox(838200L, 365125L, 7772400L, 1470025L),
+                PlaceholderValues.SubTitle =>
+                    new PowerPointLayoutBox(838200L, 2174875L, 7772400L, 1470025L),
+                _ => new PowerPointLayoutBox(838200L, 2174875L, 7772400L, 3962400L)
+            };
         }
 
         private void ThrowIfDisposed() {
