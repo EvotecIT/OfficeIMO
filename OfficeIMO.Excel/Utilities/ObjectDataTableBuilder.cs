@@ -1,7 +1,6 @@
-using System.Collections;
 using System.Data;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
+using OfficeIMO.Shared;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -30,7 +29,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("Data rows cannot be null.", nameof(items));
             }
 
-            var columns = GetColumnNames(first);
+            var columns = ObjectDataHelpers.GetColumnNames(first);
             if (columns.Count == 0) {
                 throw new InvalidOperationException("Unable to infer column names. Use objects with properties or dictionaries.");
             }
@@ -47,7 +46,7 @@ namespace OfficeIMO.Excel {
 
                 var row = table.NewRow();
                 foreach (var column in columns) {
-                    row[column] = GetValue(item, column) ?? DBNull.Value;
+                    row[column] = ObjectDataHelpers.GetValue(item, column) ?? DBNull.Value;
                 }
                 table.Rows.Add(row);
             }
@@ -55,63 +54,5 @@ namespace OfficeIMO.Excel {
             return table;
         }
 
-        private static IReadOnlyList<string> GetColumnNames(object item) {
-            if (item is IReadOnlyDictionary<string, object?> roDict) {
-                return roDict.Keys.Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
-            }
-
-            if (item is IDictionary<string, object?> dict) {
-                return dict.Keys.Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
-            }
-
-            if (item is IDictionary legacyDict) {
-                var names = new List<string>();
-                foreach (DictionaryEntry entry in legacyDict) {
-                    var key = entry.Key?.ToString();
-                    if (!string.IsNullOrWhiteSpace(key)) {
-                        names.Add(key!);
-                    }
-                }
-                return names;
-            }
-
-            var props = item.GetType()
-                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
-                .OrderBy(p => p.MetadataToken)
-                .Select(p => p.Name)
-                .Where(n => !string.IsNullOrWhiteSpace(n))
-                .ToList();
-
-            return props;
-        }
-
-        private static object? GetValue(object item, string column) {
-            if (item is IReadOnlyDictionary<string, object?> roDict) {
-                return roDict.TryGetValue(column, out var value) ? value : null;
-            }
-
-            if (item is IDictionary<string, object?> dict) {
-                return dict.TryGetValue(column, out var value) ? value : null;
-            }
-
-            if (item is IDictionary legacyDict) {
-                if (legacyDict.Contains(column)) {
-                    return legacyDict[column];
-                }
-
-                foreach (DictionaryEntry entry in legacyDict) {
-                    var key = entry.Key?.ToString();
-                    if (string.Equals(key, column, StringComparison.OrdinalIgnoreCase)) {
-                        return entry.Value;
-                    }
-                }
-
-                return null;
-            }
-
-            var prop = item.GetType().GetProperty(column, BindingFlags.Public | BindingFlags.Instance);
-            return prop?.GetValue(item);
-        }
     }
 }
