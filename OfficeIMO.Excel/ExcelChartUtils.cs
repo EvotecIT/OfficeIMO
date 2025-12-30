@@ -419,11 +419,12 @@ namespace OfficeIMO.Excel {
             rangeA1 = string.Empty;
             if (string.IsNullOrWhiteSpace(formula)) return false;
 
-            int bang = formula.LastIndexOf('!');
-            if (bang <= 0 || bang >= formula.Length - 1) return false;
+            string formulaValue = formula ?? string.Empty;
+            int bang = formulaValue.LastIndexOf('!');
+            if (bang <= 0 || bang >= formulaValue.Length - 1) return false;
 
-            sheetName = formula.Substring(0, bang);
-            rangeA1 = formula.Substring(bang + 1);
+            sheetName = formulaValue.Substring(0, bang);
+            rangeA1 = formulaValue.Substring(bang + 1);
 
             sheetName = UnquoteSheetName(sheetName);
             rangeA1 = rangeA1.Replace("$", string.Empty);
@@ -446,7 +447,7 @@ namespace OfficeIMO.Excel {
 
         private static string UnquoteSheetName(string name) {
             name = name.Trim();
-            if (name.Length >= 2 && name[0] == '\'' && name[^1] == '\'') {
+            if (name.Length >= 2 && name[0] == '\'' && name[name.Length - 1] == '\'') {
                 name = name.Substring(1, name.Length - 2).Replace("''", "'");
             }
             return name;
