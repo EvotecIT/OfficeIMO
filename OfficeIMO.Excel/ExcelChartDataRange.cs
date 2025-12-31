@@ -5,6 +5,9 @@ namespace OfficeIMO.Excel {
     /// Represents the workbook range used for chart data (categories + series values).
     /// </summary>
     public sealed class ExcelChartDataRange {
+        private const int MaxExcelRows = 1_048_576;
+        private const int MaxExcelColumns = 16_384;
+
         /// <summary>
         /// Creates a chart data range descriptor for categories and series values.
         /// </summary>
@@ -13,6 +16,15 @@ namespace OfficeIMO.Excel {
             if (startRow <= 0 || startColumn <= 0) throw new ArgumentOutOfRangeException(nameof(startRow));
             if (categoryCount <= 0) throw new ArgumentOutOfRangeException(nameof(categoryCount));
             if (seriesCount <= 0) throw new ArgumentOutOfRangeException(nameof(seriesCount));
+            if (startRow > MaxExcelRows) throw new ArgumentOutOfRangeException(nameof(startRow));
+            if (startColumn >= MaxExcelColumns) throw new ArgumentOutOfRangeException(nameof(startColumn));
+
+            int categoryStartRow = startRow + (hasHeaderRow ? 1 : 0);
+            int categoryEndRow = categoryStartRow + categoryCount - 1;
+            int seriesStartColumn = startColumn + 1;
+            int seriesEndColumn = seriesStartColumn + seriesCount - 1;
+            if (categoryEndRow > MaxExcelRows) throw new ArgumentOutOfRangeException(nameof(categoryCount));
+            if (seriesEndColumn > MaxExcelColumns) throw new ArgumentOutOfRangeException(nameof(seriesCount));
 
             SheetName = sheetName;
             StartRow = startRow;

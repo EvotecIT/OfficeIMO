@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel {
 
             if (writeToSheet) {
                 var targetSheet = _document[resolved.SheetName];
-                targetSheet.WriteChartData(data, resolved.StartRow, resolved.StartColumn);
+                targetSheet.WriteChartData(data, resolved.StartRow, resolved.StartColumn, includeHeaderRow: resolved.HasHeaderRow);
             }
 
             ExcelChartUtils.UpdateChartData(GetChartPart(), data, resolved);

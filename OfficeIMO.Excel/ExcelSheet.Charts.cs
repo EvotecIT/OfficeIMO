@@ -36,20 +36,23 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Writes chart data into the worksheet and returns the corresponding data range.
         /// </summary>
-        public ExcelChartDataRange WriteChartData(ExcelChartData data, int startRow = 1, int startColumn = 1, string? categoryHeader = null) {
+        public ExcelChartDataRange WriteChartData(ExcelChartData data, int startRow = 1, int startColumn = 1, string? categoryHeader = null, bool includeHeaderRow = true) {
             if (data == null) throw new ArgumentNullException(nameof(data));
             if (startRow <= 0 || startColumn <= 0) throw new ArgumentOutOfRangeException(nameof(startRow));
 
             var cells = new List<(int Row, int Column, object Value)>();
-            string header = categoryHeader ?? string.Empty;
-            cells.Add((startRow, startColumn, header));
+            int rowOffset = includeHeaderRow ? 1 : 0;
+            if (includeHeaderRow) {
+                string header = categoryHeader ?? string.Empty;
+                cells.Add((startRow, startColumn, header));
 
-            for (int s = 0; s < data.Series.Count; s++) {
-                cells.Add((startRow, startColumn + s + 1, data.Series[s].Name));
+                for (int s = 0; s < data.Series.Count; s++) {
+                    cells.Add((startRow, startColumn + s + 1, data.Series[s].Name));
+                }
             }
 
             for (int i = 0; i < data.Categories.Count; i++) {
-                int row = startRow + i + 1;
+                int row = startRow + i + rowOffset;
                 cells.Add((row, startColumn, data.Categories[i]));
                 for (int s = 0; s < data.Series.Count; s++) {
                     cells.Add((row, startColumn + s + 1, data.Series[s].Values[i]));
@@ -58,7 +61,7 @@ namespace OfficeIMO.Excel {
 
             CellValues(cells, null);
 
-            return new ExcelChartDataRange(Name, startRow, startColumn, data.Categories.Count, data.Series.Count, hasHeaderRow: true);
+            return new ExcelChartDataRange(Name, startRow, startColumn, data.Categories.Count, data.Series.Count, hasHeaderRow: includeHeaderRow);
         }
 
         /// <summary>

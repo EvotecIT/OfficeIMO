@@ -11,6 +11,8 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
+        private const int DefaultChartFontSize = 1100;
+
         [Fact]
         public void Test_ExcelCharts_CanCreateChartFromData() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Basic.xlsx");
@@ -78,6 +80,47 @@ namespace OfficeIMO.Tests {
                     .GetFirstChild<C.NumberReference>()!
                     .GetFirstChild<C.NumberingCache>()!;
                 Assert.Equal((uint)3, cache.PointCount!.Val!.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelCharts_UpdateData_NoHeaders_StartsBelowRow1() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Update.NoHeaders.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Summary");
+                sheet.CellValues(new[] {
+                    (9, 1, (object)"sentinel"),
+                    (9, 2, (object)"sentinel"),
+                    (10, 1, (object)"A"),
+                    (11, 1, (object)"B"),
+                    (12, 1, (object)"C"),
+                    (10, 2, (object)1d),
+                    (11, 2, (object)2d),
+                    (12, 2, (object)3d)
+                });
+
+                var chart = sheet.AddChartFromRange("A10:B12", row: 1, column: 4, widthPixels: 480, heightPixels: 320,
+                    type: ExcelChartType.ColumnClustered, hasHeaders: false, title: "No Headers");
+
+                var updated = new ExcelChartData(
+                    new[] { "D", "E", "F" },
+                    new[] { new ExcelChartSeries("Series 1", new[] { 4d, 5d, 6d }) });
+
+                chart.UpdateData(updated);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Assert.Equal("sentinel", GetCellValue(spreadsheet, wsPart, "A9"));
+                Assert.Equal("sentinel", GetCellValue(spreadsheet, wsPart, "B9"));
+                Assert.Equal("D", GetCellValue(spreadsheet, wsPart, "A10"));
+                Assert.Equal("E", GetCellValue(spreadsheet, wsPart, "A11"));
+                Assert.Equal("F", GetCellValue(spreadsheet, wsPart, "A12"));
+                Assert.Equal("4", GetCellValue(spreadsheet, wsPart, "B10"));
+                Assert.Equal("5", GetCellValue(spreadsheet, wsPart, "B11"));
+                Assert.Equal("6", GetCellValue(spreadsheet, wsPart, "B12"));
             }
         }
 
@@ -471,7 +514,7 @@ namespace OfficeIMO.Tests {
                     .GetFirstChild<A.RunProperties>();
 
                 Assert.NotNull(categoryTitleProps);
-                Assert.Equal(1100, categoryTitleProps!.FontSize!.Value);
+                Assert.Equal(DefaultChartFontSize, categoryTitleProps!.FontSize!.Value);
                 Assert.True(categoryTitleProps.Bold!.Value);
 
                 var categoryLabelProps = categoryAxis.GetFirstChild<C.TextProperties>()?
@@ -491,7 +534,7 @@ namespace OfficeIMO.Tests {
                     .GetFirstChild<A.RunProperties>();
 
                 Assert.NotNull(valueTitleProps);
-                Assert.Equal(1100, valueTitleProps!.FontSize!.Value);
+                Assert.Equal(DefaultChartFontSize, valueTitleProps!.FontSize!.Value);
 
                 var valueLabelProps = valueAxis.GetFirstChild<C.TextProperties>()?
                     .GetFirstChild<A.Paragraph>()?
@@ -808,7 +851,7 @@ namespace OfficeIMO.Tests {
                     .GetFirstChild<A.Paragraph>()?
                     .GetFirstChild<A.ParagraphProperties>()?
                     .GetFirstChild<A.DefaultRunProperties>();
-                Assert.Equal(1100, pointTextProps?.FontSize?.Value);
+                Assert.Equal(DefaultChartFontSize, pointTextProps?.FontSize?.Value);
                 Assert.True(pointTextProps?.Bold?.Value ?? false);
                 Assert.Equal("FF0000", pointTextProps?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val?.Value);
 
@@ -896,6 +939,19 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("00B0F0", plotOutline?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val?.Value);
                 Assert.Equal((int)Math.Round(0.5d * 12700d), plotOutline?.Width?.Value);
             }
+        }
+
+        private static string GetCellValue(SpreadsheetDocument document, WorksheetPart worksheetPart, string cellReference) {
+            var cell = worksheetPart.Worksheet.Descendants<Cell>()
+                .First(c => c.CellReference != null && c.CellReference.Value == cellReference);
+            var value = cell.CellValue?.Text ?? string.Empty;
+            if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString) {
+                var table = document.WorkbookPart?.SharedStringTablePart?.SharedStringTable;
+                if (table != null && int.TryParse(value, out int id)) {
+                    return table.ChildElements[id].InnerText;
+                }
+            }
+            return value;
         }
     }
 }

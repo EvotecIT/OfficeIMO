@@ -60,11 +60,23 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("At least one series definition is required.", nameof(seriesDefinitions));
             }
 
-            var list = items.ToList();
-            var categories = list.Select(categorySelector).ToList();
-            var series = seriesDefinitions
-                .Select(def => new ExcelChartSeries(def.Name, list.Select(def.ValueSelector), def.ChartType, def.AxisGroup))
-                .ToList();
+            var list = items as IList<T> ?? items.ToList();
+            var categories = new List<string>(list.Count);
+            for (int i = 0; i < list.Count; i++) {
+                categories.Add(categorySelector(list[i]));
+            }
+
+            var series = new List<ExcelChartSeries>(seriesDefinitions.Length);
+            foreach (var def in seriesDefinitions) {
+                if (def == null) {
+                    throw new ArgumentNullException(nameof(seriesDefinitions));
+                }
+                var values = new double[list.Count];
+                for (int i = 0; i < list.Count; i++) {
+                    values[i] = def.ValueSelector(list[i]);
+                }
+                series.Add(new ExcelChartSeries(def.Name, values, def.ChartType, def.AxisGroup));
+            }
 
             return new ExcelChartData(categories, series);
         }
