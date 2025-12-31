@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -125,6 +126,93 @@ public class ExcelCoerceValueHelper
 
         Assert.Equal(CellValues.Number, type);
         Assert.Equal(expected, value.Text);
+    }
+
+    public static IEnumerable<object[]> DateTimeOffsetSerialExpectations()
+    {
+        var customEastern = CreateCustomEasternTimeZone();
+
+        yield return new object[]
+        {
+            new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.Zero),
+            (Func<DateTimeOffset, DateTime>)(dto => dto.UtcDateTime),
+            45293.12783564815d,
+            "UTC timestamps should serialize to the exact documented OADate representation."
+        };
+
+        yield return new object[]
+        {
+            new DateTimeOffset(2024, 3, 10, 6, 30, 0, TimeSpan.Zero),
+            CreateZoneStrategy(customEastern),
+            45361.0625d,
+            "Local conversion before the US DST jump preserves 01:30 standard time as serial 45361.0625."
+        };
+
+        yield return new object[]
+        {
+            new DateTimeOffset(2024, 3, 10, 7, 30, 0, TimeSpan.Zero),
+            CreateZoneStrategy(customEastern),
+            45361.145833333336d,
+            "Local conversion after the DST gap advances to 03:30 and must emit serial 45361.1458333333."
+        };
+
+        yield return new object[]
+        {
+            new DateTimeOffset(2024, 11, 3, 5, 30, 0, TimeSpan.Zero),
+            CreateZoneStrategy(customEastern),
+            45599.0625d,
+            "During the repeated hour at DST fall-back, 01:30 should serialize to 45599.0625."
+        };
+
+        yield return new object[]
+        {
+            new DateTimeOffset(2024, 5, 1, 10, 0, 0, TimeSpan.FromHours(2)),
+            (Func<DateTimeOffset, DateTime>)(dto => dto.DateTime),
+            45413.416666666664d,
+            "Custom strategies that ignore offsets must continue to produce the documented wall-clock serial."
+        };
+    }
+
+    [Theory]
+    [MemberData(nameof(DateTimeOffsetSerialExpectations))]
+    public void Coerce_DateTimeOffset_DocumentsSerialValues(
+        DateTimeOffset input,
+        Func<DateTimeOffset, DateTime> strategy,
+        double expectedSerial,
+        string reason)
+    {
+        var (value, type) = CoerceValueHelper.Coerce(input, s => new CellValue(s), strategy);
+
+        var expectedSerialText = expectedSerial.ToString("G12", CultureInfo.InvariantCulture);
+        var actualSerial = double.Parse(value.Text, CultureInfo.InvariantCulture);
+
+        Assert.Equal(CellValues.Number, type);
+        Assert.Equal(expectedSerialText, actualSerial.ToString("G12", CultureInfo.InvariantCulture));
+        Assert.Equal(expectedSerial, actualSerial);
+        Assert.True(Math.Abs(expectedSerial - actualSerial) < 1e-9, reason);
+    }
+
+    private static Func<DateTimeOffset, DateTime> CreateZoneStrategy(TimeZoneInfo zone) =>
+        dto => TimeZoneInfo.ConvertTime(dto, zone).DateTime;
+
+    private static TimeZoneInfo CreateCustomEasternTimeZone()
+    {
+        var daylightStart = TimeZoneInfo.TransitionTime.CreateFloatingDateRule(new DateTime(1, 1, 1, 2, 0, 0), 3, 2, DayOfWeek.Sunday);
+        var daylightEnd = TimeZoneInfo.TransitionTime.CreateFloatingDateRule(new DateTime(1, 1, 1, 2, 0, 0), 11, 1, DayOfWeek.Sunday);
+        var adjustment = TimeZoneInfo.AdjustmentRule.CreateAdjustmentRule(
+            new DateTime(2007, 1, 1),
+            DateTime.MaxValue.Date,
+            TimeSpan.FromHours(1),
+            daylightStart,
+            daylightEnd);
+
+        return TimeZoneInfo.CreateCustomTimeZone(
+            "OfficeIMO Eastern",
+            TimeSpan.FromHours(-5),
+            "OfficeIMO Eastern",
+            "OfficeIMO Eastern",
+            "OfficeIMO Eastern Daylight",
+            new[] { adjustment });
     }
 
 #if NET6_0_OR_GREATER
