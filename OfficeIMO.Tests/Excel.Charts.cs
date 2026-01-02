@@ -150,6 +150,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelCharts_Scatter_WritesNumericCategoriesToChartDataSheet() {
+            const string chartDataSheetName = "OfficeIMO_ChartData";
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Scatter.NumericCategories.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Summary");
+                var data = new ExcelChartData(
+                    new[] { "1", "2", "3" },
+                    new[] { new ExcelChartSeries("Series 1", new[] { 2d, 4d, 6d }, ExcelChartType.Scatter) });
+
+                sheet.AddChart(data, row: 1, column: 6, widthPixels: 480, heightPixels: 320,
+                    type: ExcelChartType.Scatter, title: "Scatter");
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart chartHostSheet = spreadsheet.WorkbookPart!.WorksheetParts
+                    .First(p => p.DrawingsPart?.ChartParts.Any() == true);
+                var chartPart = chartHostSheet.DrawingsPart!.ChartParts.First();
+                var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+                var scatter = plotArea.GetFirstChild<C.ScatterChart>()!;
+                var series = scatter.Elements<C.ScatterChartSeries>().First();
+                string formula = series.GetFirstChild<C.XValues>()!
+                    .GetFirstChild<C.NumberReference>()!
+                    .Formula!.Text!;
+
+                int bang = formula.LastIndexOf('!');
+                Assert.True(bang > 0);
+                string sheetName = formula.Substring(0, bang).Trim().Trim('\'');
+                Assert.Equal(chartDataSheetName, sheetName);
+
+                string a1Range = formula.Substring(bang + 1).Replace("$", string.Empty);
+                Assert.True(A1.TryParseRange(a1Range, out int r1, out int c1, out int r2, out int c2));
+                Assert.Equal(c1, c2);
+
+                var dataSheet = spreadsheet.WorkbookPart.Workbook.Sheets!
+                    .OfType<Sheet>()
+                    .First(s => s.Name?.Value == chartDataSheetName);
+                var dataSheetPart = (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(dataSheet.Id!);
+
+                for (int r = r1; r <= r2; r++) {
+                    string cellRef = $"{A1.ColumnIndexToLetters(c1)}{r}";
+                    var cell = dataSheetPart.Worksheet.Descendants<Cell>()
+                        .First(c => c.CellReference != null && c.CellReference.Value == cellRef);
+                    Assert.NotEqual(CellValues.SharedString, cell.DataType?.Value);
+                }
+            }
+        }
+
+        [Fact]
         public void Test_ExcelCharts_Combo_WithSecondaryAxis() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Combo.xlsx");
 

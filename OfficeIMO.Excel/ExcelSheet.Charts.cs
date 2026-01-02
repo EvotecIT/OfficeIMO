@@ -36,7 +36,8 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Writes chart data into the worksheet and returns the corresponding data range.
         /// </summary>
-        public ExcelChartDataRange WriteChartData(ExcelChartData data, int startRow = 1, int startColumn = 1, string? categoryHeader = null, bool includeHeaderRow = true) {
+        public ExcelChartDataRange WriteChartData(ExcelChartData data, int startRow = 1, int startColumn = 1, string? categoryHeader = null,
+            bool includeHeaderRow = true, bool numericCategories = false) {
             if (data == null) throw new ArgumentNullException(nameof(data));
             if (startRow <= 0 || startColumn <= 0) throw new ArgumentOutOfRangeException(nameof(startRow));
 
@@ -53,7 +54,14 @@ namespace OfficeIMO.Excel {
 
             for (int i = 0; i < data.Categories.Count; i++) {
                 int row = startRow + i + rowOffset;
-                cells.Add((row, startColumn, data.Categories[i]));
+                object categoryValue = data.Categories[i];
+                if (numericCategories) {
+                    if (!double.TryParse(data.Categories[i], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var numeric)) {
+                        throw new ArgumentException($"Category '{data.Categories[i]}' is not numeric. Scatter charts require numeric X values. Use AddScatterChartFromRanges for non-numeric categories.");
+                    }
+                    categoryValue = numeric;
+                }
+                cells.Add((row, startColumn, categoryValue));
                 for (int s = 0; s < data.Series.Count; s++) {
                     cells.Add((row, startColumn + s + 1, data.Series[s].Values[i]));
                 }
@@ -74,7 +82,8 @@ namespace OfficeIMO.Excel {
 
             var dataSheet = _excelDocument.GetOrCreateChartDataSheet();
             int startRow = _excelDocument.ReserveChartDataStartRow(data.Categories.Count + 1);
-            ExcelChartDataRange range = dataSheet.WriteChartData(data, startRow, 1);
+            bool numericCategories = type == ExcelChartType.Scatter || data.Series.Any(s => s.ChartType == ExcelChartType.Scatter);
+            ExcelChartDataRange range = dataSheet.WriteChartData(data, startRow, 1, numericCategories: numericCategories);
             return AddChart(range, row, column, widthPixels, heightPixels, type, data, title);
         }
 

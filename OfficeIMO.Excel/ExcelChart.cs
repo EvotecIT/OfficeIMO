@@ -51,7 +51,8 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(data));
             }
 
-            ExcelChartDataRange? resolved = dataRange ?? _dataRange ?? ExcelChartUtils.TryExtractDataRange(GetChartPart());
+            var chartPart = GetChartPart();
+            ExcelChartDataRange? resolved = dataRange ?? _dataRange ?? ExcelChartUtils.TryExtractDataRange(chartPart);
             if (resolved == null) {
                 throw new InvalidOperationException("Chart data range could not be resolved. Provide a data range explicitly.");
             }
@@ -60,10 +61,14 @@ namespace OfficeIMO.Excel {
 
             if (writeToSheet) {
                 var targetSheet = _document[resolved.SheetName];
-                targetSheet.WriteChartData(data, resolved.StartRow, resolved.StartColumn, includeHeaderRow: resolved.HasHeaderRow);
+                bool numericCategories = chartPart.ChartSpace?
+                    .GetFirstChild<C.Chart>()?
+                    .GetFirstChild<C.PlotArea>()?
+                    .GetFirstChild<C.ScatterChart>() != null;
+                targetSheet.WriteChartData(data, resolved.StartRow, resolved.StartColumn, includeHeaderRow: resolved.HasHeaderRow, numericCategories: numericCategories);
             }
 
-            ExcelChartUtils.UpdateChartData(GetChartPart(), data, resolved);
+            ExcelChartUtils.UpdateChartData(chartPart, data, resolved);
             _dataRange = resolved;
             Save();
             return this;
