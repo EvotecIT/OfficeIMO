@@ -415,17 +415,16 @@ namespace OfficeIMO.Excel {
 
         private static BubbleChart CreateBubbleChartFromRanges(IReadOnlyList<ExcelChartSeriesRange> seriesRanges,
             string defaultSheetName, uint xAxisId, uint yAxisId) {
-            var bubbleChart = new BubbleChart(
-                new VaryColors { Val = false },
-                new BubbleScale { Val = 100 },
-                new ShowNegativeBubbles { Val = false },
-                new SizeRepresents { Val = SizeRepresentsValues.Area });
+            var bubbleChart = new BubbleChart(new VaryColors { Val = false });
 
             for (int i = 0; i < seriesRanges.Count; i++) {
                 bubbleChart.Append(CreateBubbleChartSeriesFromRanges(i, seriesRanges[i], defaultSheetName));
             }
 
             bubbleChart.Append(CreateDefaultDataLabels());
+            bubbleChart.Append(new BubbleScale { Val = 100 });
+            bubbleChart.Append(new ShowNegativeBubbles { Val = false });
+            bubbleChart.Append(new SizeRepresents { Val = SizeRepresentsValues.Area });
             bubbleChart.Append(new AxisId { Val = xAxisId });
             bubbleChart.Append(new AxisId { Val = yAxisId });
             return bubbleChart;
@@ -519,11 +518,11 @@ namespace OfficeIMO.Excel {
                 return new SeriesText(CreateStringReference(formula, new[] { name }));
             }
 
-            return new SeriesText(CreateStringLiteral(new[] { name }));
+            return new SeriesText(new NumericValue { Text = name });
         }
 
         private static SeriesText CreateSeriesTextLiteral(string name) {
-            return new SeriesText(CreateStringLiteral(new[] { name }));
+            return new SeriesText(new NumericValue { Text = name });
         }
 
         private static CategoryAxisData CreateCategoryAxisData(ExcelChartDataRange range) {
