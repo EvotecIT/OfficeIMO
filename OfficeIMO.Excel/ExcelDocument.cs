@@ -50,6 +50,11 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Optional default chart style preset applied to charts created in this workbook.
+        /// </summary>
+        public ExcelChartStylePreset? DefaultChartStylePreset { get; set; }
+
+        /// <summary>
         /// Execution policy for controlling parallel vs sequential operations.
         /// </summary>
         public ExecutionPolicy Execution { get; } = new();
@@ -484,6 +489,7 @@ namespace OfficeIMO.Excel {
 
             document.BuiltinDocumentProperties = new BuiltinDocumentProperties(document);
             document.ApplicationProperties = new ApplicationProperties(document);
+            ExcelChartAxisIdGenerator.Initialize(document._spreadSheetDocument);
             return document;
         }
 
