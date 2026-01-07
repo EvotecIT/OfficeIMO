@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using SixLabors.Fonts;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
@@ -135,11 +136,34 @@ namespace OfficeIMO.Excel {
 
             double maxWidth = 0;
 
-            // Get the default font for MDW calculation
+            // Get the default font for MDW fallback calculation
             var defaultFont = GetDefaultFont();
-            var defaultOptions = new TextOptions(defaultFont) { Dpi = 96 };
-            float mdw = TextMeasurer.MeasureSize("0", defaultOptions).Width;
-            if (mdw <= 0.0001f) return 0;
+            var defaultOptions = new TextOptions(defaultFont);
+            float defaultMdw = TextMeasurer.MeasureSize("0", defaultOptions).Width;
+            if (defaultMdw <= 0.0001f) return 0;
+
+            var mdwCache = new Dictionary<(string name, float size, bool bold, bool italic), float>();
+
+            float GetMdw(SixLabors.Fonts.Font font, TextOptions options) {
+                var key = (font.Name, font.Size, font.IsBold, font.IsItalic);
+                if (mdwCache.TryGetValue(key, out var cached)) {
+                    return cached;
+                }
+
+                float mdw;
+                try {
+                    mdw = TextMeasurer.MeasureSize("0", options).Width;
+                } catch {
+                    mdw = 0;
+                }
+
+                if (mdw <= 0.0001f) {
+                    mdw = defaultMdw;
+                }
+
+                mdwCache[key] = mdw;
+                return mdw;
+            }
 
             // Pixel Padding (PP) - extra pixels at left and right border (ClosedXML uses 2)
             const double pixelPadding = 2.0;
@@ -159,7 +183,8 @@ namespace OfficeIMO.Excel {
                 bool hasWrapText = HasWrapText(cell);
 
                 var font = GetCellFont(cell);
-                var options = new TextOptions(font) { Dpi = 96 };
+                var options = new TextOptions(font);
+                float mdw = GetMdw(font, options);
 
                 float textWidthPx;
                 if (text.Contains('\n') || text.Contains('\r')) {

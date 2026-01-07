@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Reflection;
 using System.Xml.Linq;
@@ -6,6 +7,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint.Fluent;
+using OfficeIMO.Shared;
 using A = DocumentFormat.OpenXml.Drawing;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 
@@ -18,9 +20,14 @@ namespace OfficeIMO.PowerPoint {
         private PresentationPart _presentationPart;
         private readonly List<PowerPointSlide> _slides = new();
         private readonly string _filePath;
+        private Stream? _packageStream;
+        private Stream? _sourceStream;
+        private bool _copyPackageToSourceOnDispose;
+        private bool _leaveSourceStreamOpen = true;
         private PowerPointSlideSize? _slideSize;
         private bool _initialSlideUntouched = false;
         private bool _disposed = false;
+        private const int StreamBufferSize = 4096;
         private const string P14Namespace = "http://schemas.microsoft.com/office/powerpoint/2010/main";
         private const string SectionListUri = "{521415D9-36F7-43E2-AB2F-B90AF26B5E84}";
         private const string DefaultSectionName = "Section 1";
@@ -66,6 +73,23 @@ namespace OfficeIMO.PowerPoint {
             }
 
             PowerPointChartAxisIdGenerator.Initialize(_presentationPart);
+        }
+
+        private void ConfigureStreamCopy(Stream? packageStream, Stream? sourceStream, bool copyPackageToSourceOnDispose, bool leaveSourceStreamOpen) {
+            _packageStream = copyPackageToSourceOnDispose ? packageStream : null;
+            _sourceStream = copyPackageToSourceOnDispose ? sourceStream : null;
+            _copyPackageToSourceOnDispose = copyPackageToSourceOnDispose && sourceStream != null;
+            _leaveSourceStreamOpen = leaveSourceStreamOpen;
+        }
+
+        private static byte[] ReadAllBytes(Stream stream) {
+            if (stream.CanSeek) {
+                stream.Seek(0, SeekOrigin.Begin);
+            }
+
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            return buffer.ToArray();
         }
 
         /// <summary>
@@ -954,9 +978,19 @@ namespace OfficeIMO.PowerPoint {
             }
 
             try {
-                _document?.Dispose();
+                if (_document != null) {
+                    if (_copyPackageToSourceOnDispose) {
+                        try {
+                            Save();
+                        } catch {
+                            // ignored
+                        }
+                    }
+                    _document.Dispose();
+                }
             } finally {
                 _document = null;
+                PersistPackageToSourceIfNeeded();
                 _disposed = true;
             }
         }
@@ -974,12 +1008,69 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Creates a new PowerPoint presentation in memory and optionally persists it to the provided stream on dispose.
+        /// </summary>
+        /// <param name="stream">Destination stream for the presentation package.</param>
+        /// <param name="autoSave">When true, writes the package back to the stream on dispose.</param>
+        public static PowerPointPresentation Create(Stream stream, bool autoSave = true) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
+            if (autoSave && !stream.CanSeek) {
+                throw new ArgumentException("Stream must support seeking when autoSave is enabled.", nameof(stream));
+            }
+
+            Stream packageStream = autoSave
+                ? new NonDisposingMemoryStream(StreamBufferSize)
+                : new MemoryStream(StreamBufferSize);
+
+            PresentationDocument document = PresentationDocument.Create(packageStream, PresentationDocumentType.Presentation, autoSave: true);
+            PowerPointPresentation presentation = new(document, string.Empty, isNewPresentation: true);
+            presentation._presentationPart.Presentation.Save();
+            presentation._document?.Save();
+            presentation.ConfigureStreamCopy(packageStream, stream, autoSave, leaveSourceStreamOpen: true);
+            return presentation;
+        }
+
+        /// <summary>
         ///     Opens an existing PowerPoint presentation.
         /// </summary>
         /// <param name="filePath">Path of the presentation file to open.</param>
         public static PowerPointPresentation Open(string filePath) {
             PresentationDocument document = PresentationDocument.Open(filePath, true);
             return new PowerPointPresentation(document, filePath, isNewPresentation: false);
+        }
+
+        /// <summary>
+        ///     Opens a PowerPoint presentation from a stream.
+        /// </summary>
+        /// <param name="stream">Source stream containing the presentation package.</param>
+        /// <param name="readOnly">Open the document in read-only mode.</param>
+        /// <param name="autoSave">When true, writes the package back to the stream on dispose.</param>
+        public static PowerPointPresentation Open(Stream stream, bool readOnly = false, bool autoSave = false) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+            bool shouldCopyBack = autoSave && !readOnly;
+            if (shouldCopyBack) {
+                if (!stream.CanWrite) {
+                    throw new ArgumentException("Stream must be writable when autoSave is enabled for editable documents.", nameof(stream));
+                }
+                if (!stream.CanSeek) {
+                    throw new ArgumentException("Stream must support seeking when autoSave is enabled for editable documents.", nameof(stream));
+                }
+            }
+
+            var bytes = ReadAllBytes(stream);
+            Stream packageStream = shouldCopyBack
+                ? new NonDisposingMemoryStream(bytes.Length + StreamBufferSize)
+                : new MemoryStream(bytes.Length + StreamBufferSize);
+            packageStream.Write(bytes, 0, bytes.Length);
+            packageStream.Position = 0;
+
+            PresentationDocument document = PresentationDocument.Open(packageStream, !readOnly);
+            PowerPointPresentation presentation = new(document, string.Empty, isNewPresentation: false);
+            presentation.ConfigureStreamCopy(packageStream, stream, shouldCopyBack, leaveSourceStreamOpen: true);
+            return presentation;
         }
 
         /// <summary>
@@ -1355,6 +1446,103 @@ namespace OfficeIMO.PowerPoint {
 
             _presentationPart.Presentation.Save();
             _document!.Save();
+        }
+
+        /// <summary>
+        ///     Saves the presentation to the provided stream.
+        /// </summary>
+        public void Save(Stream destination) {
+            ThrowIfDisposed();
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+
+            foreach (PowerPointSlide slide in _slides) {
+                slide.Save();
+            }
+            _presentationPart.Presentation.Save();
+            _document!.Save();
+
+            if (destination.CanSeek) {
+                destination.Seek(0, SeekOrigin.Begin);
+                destination.SetLength(0);
+            }
+
+            using (var clone = _document.Clone(destination)) {
+                // Clone writes the package into destination; dispose immediately to finalize the write.
+            }
+
+            try {
+                destination.Flush();
+            } catch (NotSupportedException) {
+                // Some streams do not support Flush; ignore.
+            }
+            if (destination.CanSeek) {
+                destination.Seek(0, SeekOrigin.Begin);
+            }
+        }
+
+        private void PersistPackageToSourceIfNeeded() {
+            if (_packageStream == null) {
+                return;
+            }
+
+            try {
+                if (_copyPackageToSourceOnDispose && _sourceStream != null) {
+                    PersistPackageToSource();
+                }
+            } catch {
+                // ignored
+            } finally {
+                DisposeStream(_packageStream);
+
+                if (_copyPackageToSourceOnDispose && _sourceStream != null) {
+                    if (!_leaveSourceStreamOpen) {
+                        try {
+                            _sourceStream.Dispose();
+                        } catch {
+                            // ignored
+                        }
+                    } else if (_sourceStream.CanSeek) {
+                        try {
+                            _sourceStream.Seek(0, SeekOrigin.Begin);
+                        } catch {
+                            // ignored
+                        }
+                    }
+                }
+
+                _packageStream = null;
+                _sourceStream = null;
+                _copyPackageToSourceOnDispose = false;
+                _leaveSourceStreamOpen = true;
+            }
+        }
+
+        private void PersistPackageToSource() {
+            var packageStream = _packageStream ?? throw new InvalidOperationException("Package stream is not available.");
+            var targetStream = _sourceStream ?? throw new InvalidOperationException("Source stream is not available.");
+
+            if (!targetStream.CanSeek) {
+                throw new InvalidOperationException("The provided stream must support seeking when autoSave is enabled.");
+            }
+
+            if (packageStream.CanSeek) {
+                packageStream.Seek(0, SeekOrigin.Begin);
+            }
+
+            targetStream.Seek(0, SeekOrigin.Begin);
+            targetStream.SetLength(0);
+            packageStream.CopyTo(targetStream);
+            targetStream.Flush();
+            targetStream.Seek(0, SeekOrigin.Begin);
+        }
+
+        private static void DisposeStream(Stream stream) {
+            if (stream is NonDisposingMemoryStream ndms) {
+                ndms.DisposeUnderlying();
+            } else {
+                stream.Dispose();
+            }
         }
 
         /// <summary>

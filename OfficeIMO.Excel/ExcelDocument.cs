@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel.Utilities;
+using OfficeIMO.Shared;
 using System.IO.Packaging;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,6 +17,7 @@ namespace OfficeIMO.Excel {
     /// loading and saving spreadsheets.
     /// </summary>
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
+        private const int StreamBufferSize = 4096;
         private static readonly System.Text.RegularExpressions.Regex _multipleUnderscoresRegex =
             new System.Text.RegularExpressions.Regex("_+", System.Text.RegularExpressions.RegexOptions.Compiled);
 
@@ -506,19 +508,55 @@ namespace OfficeIMO.Excel {
         /// <param name="filePath">Path to the new file.</param>
         /// <returns>Created <see cref="ExcelDocument"/> instance.</returns>
         public static ExcelDocument Create(string filePath) {
-            ExcelDocument document = new ExcelDocument();
-            document.FilePath = filePath;
-
             // Create a spreadsheet document by supplying the filepath.
             // By default, AutoSave = true, Editable = true, and Type = xlsx.
             SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(filePath, SpreadsheetDocumentType.Workbook);
-            document._spreadSheetDocument = spreadSheetDocument;
+            return CreateNewDocument(spreadSheetDocument, filePath, packageStream: null, sourceStream: null, copyPackageToSourceOnDispose: false, leaveSourceStreamOpen: true);
+        }
+
+        /// <summary>
+        /// Creates a new Excel document in memory and optionally persists it to the provided stream on dispose.
+        /// </summary>
+        /// <param name="stream">Destination stream to receive the workbook package.</param>
+        /// <param name="autoSave">When true, the package is written back to the stream on dispose.</param>
+        /// <returns>Created <see cref="ExcelDocument"/> instance.</returns>
+        public static ExcelDocument Create(Stream stream, bool autoSave = true) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
+
+            if (autoSave && !stream.CanSeek) {
+                throw new ArgumentException("Stream must support seeking when autoSave is enabled.", nameof(stream));
+            }
+
+            Stream packageStream = autoSave
+                ? new NonDisposingMemoryStream(StreamBufferSize)
+                : new MemoryStream(StreamBufferSize);
+
+            var spreadSheetDocument = SpreadsheetDocument.Create(packageStream, SpreadsheetDocumentType.Workbook, true);
+            return CreateNewDocument(spreadSheetDocument, filePath: null, packageStream, stream, autoSave, leaveSourceStreamOpen: true);
+        }
+
+        private static ExcelDocument CreateNewDocument(
+            SpreadsheetDocument spreadSheetDocument,
+            string? filePath,
+            Stream? packageStream,
+            Stream? sourceStream,
+            bool copyPackageToSourceOnDispose,
+            bool leaveSourceStreamOpen) {
+            var document = new ExcelDocument {
+                FilePath = filePath ?? string.Empty,
+                _spreadSheetDocument = spreadSheetDocument
+            };
 
             // Add a WorkbookPart to the document.
             WorkbookPart workbookpart = spreadSheetDocument.AddWorkbookPart();
             workbookpart.Workbook = new Workbook();
-
             document._workBookPart = workbookpart;
+
+            document._packageStream = copyPackageToSourceOnDispose ? packageStream : null;
+            document._sourceStream = copyPackageToSourceOnDispose ? sourceStream : null;
+            document._copyPackageToSourceOnDispose = copyPackageToSourceOnDispose && sourceStream != null;
+            document._leaveSourceStreamOpen = leaveSourceStreamOpen;
 
             // Initialize document property helpers
             document.BuiltinDocumentProperties = new BuiltinDocumentProperties(document);
@@ -585,8 +623,8 @@ namespace OfficeIMO.Excel {
 
             try {
                 normalizedStream = shouldCopyBack
-                    ? new NonDisposingMemoryStream(bytes.Length + 4096)
-                    : new MemoryStream(bytes.Length + 4096);
+                    ? new NonDisposingMemoryStream(bytes.Length + StreamBufferSize)
+                    : new MemoryStream(bytes.Length + StreamBufferSize);
                 normalizedStream.Write(bytes, 0, bytes.Length);
                 normalizedStream.Position = 0;
 
@@ -618,8 +656,8 @@ namespace OfficeIMO.Excel {
                 return CreateDocument(spreadSheetDocument, filePath);
             } else {
                 var fallbackStream = shouldCopyBack
-                    ? new NonDisposingMemoryStream(bytes.Length + 4096)
-                    : new MemoryStream(bytes.Length + 4096);
+                    ? new NonDisposingMemoryStream(bytes.Length + StreamBufferSize)
+                    : new MemoryStream(bytes.Length + StreamBufferSize);
                 fallbackStream.Write(bytes, 0, bytes.Length);
                 fallbackStream.Position = 0;
                 var spreadSheetDocument = SpreadsheetDocument.Open(fallbackStream, !readOnly, effectiveOpenSettings);
@@ -1259,7 +1297,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static byte[] NormalizePackageBytes(byte[] packageBytes) {
-            var working = new MemoryStream(packageBytes.Length + 4096);
+            var working = new MemoryStream(packageBytes.Length + StreamBufferSize);
             working.Write(packageBytes, 0, packageBytes.Length);
             working.Position = 0;
 
@@ -1361,7 +1399,7 @@ namespace OfficeIMO.Excel {
                 if (packageBytes.Length == 0) return packageBytes;
 
                 try {
-                    var working = new MemoryStream(packageBytes.Length + 4096);
+                    var working = new MemoryStream(packageBytes.Length + StreamBufferSize);
                     working.Write(packageBytes, 0, packageBytes.Length);
                     working.Position = 0;
 
@@ -1388,23 +1426,6 @@ namespace OfficeIMO.Excel {
                 } catch {
                     return packageBytes;
                 }
-            }
-        }
-
-        private sealed class NonDisposingMemoryStream : MemoryStream {
-            public NonDisposingMemoryStream(int capacity) : base(capacity) {
-            }
-
-            public NonDisposingMemoryStream(byte[] buffer) : base(buffer) {
-            }
-
-            protected override void Dispose(bool disposing) {
-                // Suppress disposal so the buffer remains accessible after SpreadsheetDocument closes the stream.
-            }
-
-            public void DisposeUnderlying() {
-                base.Dispose(true);
-                GC.SuppressFinalize(this);
             }
         }
 
