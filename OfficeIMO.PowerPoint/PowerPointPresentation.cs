@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint.Fluent;
+using OfficeIMO.Shared;
 using A = DocumentFormat.OpenXml.Drawing;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 
@@ -26,6 +27,7 @@ namespace OfficeIMO.PowerPoint {
         private PowerPointSlideSize? _slideSize;
         private bool _initialSlideUntouched = false;
         private bool _disposed = false;
+        private const int StreamBufferSize = 4096;
         private const string P14Namespace = "http://schemas.microsoft.com/office/powerpoint/2010/main";
         private const string SectionListUri = "{521415D9-36F7-43E2-AB2F-B90AF26B5E84}";
         private const string DefaultSectionName = "Section 1";
@@ -1018,8 +1020,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             Stream packageStream = autoSave
-                ? new NonDisposingMemoryStream(4096)
-                : new MemoryStream(4096);
+                ? new NonDisposingMemoryStream(StreamBufferSize)
+                : new MemoryStream(StreamBufferSize);
 
             PresentationDocument document = PresentationDocument.Create(packageStream, PresentationDocumentType.Presentation, autoSave: true);
             PowerPointPresentation presentation = new(document, string.Empty, isNewPresentation: true);
@@ -1060,8 +1062,8 @@ namespace OfficeIMO.PowerPoint {
 
             var bytes = ReadAllBytes(stream);
             Stream packageStream = shouldCopyBack
-                ? new NonDisposingMemoryStream(bytes.Length + 4096)
-                : new MemoryStream(bytes.Length + 4096);
+                ? new NonDisposingMemoryStream(bytes.Length + StreamBufferSize)
+                : new MemoryStream(bytes.Length + StreamBufferSize);
             packageStream.Write(bytes, 0, bytes.Length);
             packageStream.Position = 0;
 
@@ -1466,9 +1468,14 @@ namespace OfficeIMO.PowerPoint {
             }
 
             using (var clone = _document.Clone(destination)) {
+                // Clone writes the package into destination; dispose immediately to finalize the write.
             }
 
-            try { destination.Flush(); } catch (NotSupportedException) { }
+            try {
+                destination.Flush();
+            } catch (NotSupportedException) {
+                // Some streams do not support Flush; ignore.
+            }
             if (destination.CanSeek) {
                 destination.Seek(0, SeekOrigin.Begin);
             }
@@ -1535,23 +1542,6 @@ namespace OfficeIMO.PowerPoint {
                 ndms.DisposeUnderlying();
             } else {
                 stream.Dispose();
-            }
-        }
-
-        private sealed class NonDisposingMemoryStream : MemoryStream {
-            public NonDisposingMemoryStream(int capacity) : base(capacity) {
-            }
-
-            public NonDisposingMemoryStream(byte[] buffer) : base(buffer) {
-            }
-
-            protected override void Dispose(bool disposing) {
-                // Suppress disposal so the buffer remains accessible after PresentationDocument closes the stream.
-            }
-
-            public void DisposeUnderlying() {
-                base.Dispose(true);
-                GC.SuppressFinalize(this);
             }
         }
 

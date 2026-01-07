@@ -142,10 +142,10 @@ namespace OfficeIMO.Excel {
             float defaultMdw = TextMeasurer.MeasureSize("0", defaultOptions).Width;
             if (defaultMdw <= 0.0001f) return 0;
 
-            var mdwCache = new Dictionary<(string name, float size), float>();
+            var mdwCache = new Dictionary<(string name, float size, bool bold, bool italic), float>();
 
             float GetMdw(SixLabors.Fonts.Font font, TextOptions options) {
-                var key = (font.Name, font.Size);
+                var key = (font.Name, font.Size, font.IsBold, font.IsItalic);
                 if (mdwCache.TryGetValue(key, out var cached)) {
                     return cached;
                 }

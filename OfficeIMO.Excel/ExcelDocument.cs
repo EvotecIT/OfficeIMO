@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel.Utilities;
+using OfficeIMO.Shared;
 using System.IO.Packaging;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,6 +17,7 @@ namespace OfficeIMO.Excel {
     /// loading and saving spreadsheets.
     /// </summary>
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
+        private const int StreamBufferSize = 4096;
         private static readonly System.Text.RegularExpressions.Regex _multipleUnderscoresRegex =
             new System.Text.RegularExpressions.Regex("_+", System.Text.RegularExpressions.RegexOptions.Compiled);
 
@@ -527,8 +529,8 @@ namespace OfficeIMO.Excel {
             }
 
             Stream packageStream = autoSave
-                ? new NonDisposingMemoryStream(4096)
-                : new MemoryStream(4096);
+                ? new NonDisposingMemoryStream(StreamBufferSize)
+                : new MemoryStream(StreamBufferSize);
 
             var spreadSheetDocument = SpreadsheetDocument.Create(packageStream, SpreadsheetDocumentType.Workbook, true);
             return CreateNewDocument(spreadSheetDocument, filePath: null, packageStream, stream, autoSave, leaveSourceStreamOpen: true);
@@ -621,8 +623,8 @@ namespace OfficeIMO.Excel {
 
             try {
                 normalizedStream = shouldCopyBack
-                    ? new NonDisposingMemoryStream(bytes.Length + 4096)
-                    : new MemoryStream(bytes.Length + 4096);
+                    ? new NonDisposingMemoryStream(bytes.Length + StreamBufferSize)
+                    : new MemoryStream(bytes.Length + StreamBufferSize);
                 normalizedStream.Write(bytes, 0, bytes.Length);
                 normalizedStream.Position = 0;
 
@@ -654,8 +656,8 @@ namespace OfficeIMO.Excel {
                 return CreateDocument(spreadSheetDocument, filePath);
             } else {
                 var fallbackStream = shouldCopyBack
-                    ? new NonDisposingMemoryStream(bytes.Length + 4096)
-                    : new MemoryStream(bytes.Length + 4096);
+                    ? new NonDisposingMemoryStream(bytes.Length + StreamBufferSize)
+                    : new MemoryStream(bytes.Length + StreamBufferSize);
                 fallbackStream.Write(bytes, 0, bytes.Length);
                 fallbackStream.Position = 0;
                 var spreadSheetDocument = SpreadsheetDocument.Open(fallbackStream, !readOnly, effectiveOpenSettings);
@@ -1295,7 +1297,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static byte[] NormalizePackageBytes(byte[] packageBytes) {
-            var working = new MemoryStream(packageBytes.Length + 4096);
+            var working = new MemoryStream(packageBytes.Length + StreamBufferSize);
             working.Write(packageBytes, 0, packageBytes.Length);
             working.Position = 0;
 
@@ -1397,7 +1399,7 @@ namespace OfficeIMO.Excel {
                 if (packageBytes.Length == 0) return packageBytes;
 
                 try {
-                    var working = new MemoryStream(packageBytes.Length + 4096);
+                    var working = new MemoryStream(packageBytes.Length + StreamBufferSize);
                     working.Write(packageBytes, 0, packageBytes.Length);
                     working.Position = 0;
 
@@ -1424,23 +1426,6 @@ namespace OfficeIMO.Excel {
                 } catch {
                     return packageBytes;
                 }
-            }
-        }
-
-        private sealed class NonDisposingMemoryStream : MemoryStream {
-            public NonDisposingMemoryStream(int capacity) : base(capacity) {
-            }
-
-            public NonDisposingMemoryStream(byte[] buffer) : base(buffer) {
-            }
-
-            protected override void Dispose(bool disposing) {
-                // Suppress disposal so the buffer remains accessible after SpreadsheetDocument closes the stream.
-            }
-
-            public void DisposeUnderlying() {
-                base.Dispose(true);
-                GC.SuppressFinalize(this);
             }
         }
 

@@ -32,7 +32,7 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
-        /// Core save routine that writes the VSdx structure to a stream.
+        /// Core save routine that writes the VSDX structure to a stream.
         /// </summary>
         /// <param name="destination">Target stream.</param>
         private void SaveInternalCore(Stream destination) {
