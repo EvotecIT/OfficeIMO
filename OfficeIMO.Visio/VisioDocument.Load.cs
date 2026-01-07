@@ -27,7 +27,7 @@ namespace OfficeIMO.Visio {
             stream.CopyTo(buffer);
             buffer.Seek(0, SeekOrigin.Begin);
 
-            using Package package = Package.Open(buffer, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using Package package = Package.Open(buffer, FileMode.Open, FileAccess.Read);
             return LoadCore(package, filePath: null);
         }
     }

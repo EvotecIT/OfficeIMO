@@ -692,7 +692,6 @@ namespace OfficeIMO.Visio {
                 pagePartNames.AddRange(pageParts
                     .Select(part => part.Part.Uri.OriginalString)
                     .Distinct(StringComparer.OrdinalIgnoreCase));
-        }
 
             return masterCount;
         }
