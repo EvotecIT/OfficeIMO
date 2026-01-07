@@ -9,5 +9,12 @@ namespace OfficeIMO.PowerPoint.Fluent {
         public static PowerPointPresentation Create(string filePath) {
             return PowerPointPresentation.Create(filePath);
         }
+
+        /// <summary>
+        ///     Creates a new PowerPoint presentation backed by a stream.
+        /// </summary>
+        public static PowerPointPresentation Create(System.IO.Stream stream, bool autoSave = true) {
+            return PowerPointPresentation.Create(stream, autoSave);
+        }
     }
 }

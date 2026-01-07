@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -9,6 +10,7 @@ namespace OfficeIMO.Visio {
         private readonly List<VisioPage> _pages = new();
         private bool _requestRecalcOnOpen;
         private string? _filePath;
+        private Stream? _sourceStream;
         private readonly Dictionary<string, VisioMaster> _builtinMasters = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, (string Id, System.Xml.Linq.XDocument Xml, System.Xml.Linq.XElement MasterElement)> _templateMasters = new(StringComparer.OrdinalIgnoreCase);
 
@@ -116,6 +118,16 @@ namespace OfficeIMO.Visio {
         /// <param name="path">Path where the document will be saved.</param>
         public static VisioDocument Create(string path) {
             return new VisioDocument { _filePath = path };
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="VisioDocument"/> that will be saved to the provided stream.
+        /// </summary>
+        /// <param name="stream">Destination stream for the VSDX package.</param>
+        public static VisioDocument Create(Stream stream) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
+            return new VisioDocument { _sourceStream = stream };
         }
 
         /// <summary>

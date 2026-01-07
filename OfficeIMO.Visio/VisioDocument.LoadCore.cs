@@ -16,9 +16,12 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="filePath">Path to the <c>.vsdx</c> file.</param>
         private static VisioDocument LoadCore(string filePath) {
-            VisioDocument document = new() { _filePath = filePath };
-
             using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return LoadCore(package, filePath);
+        }
+
+        private static VisioDocument LoadCore(Package package, string? filePath) {
+            VisioDocument document = new() { _filePath = filePath };
 
             document.Title = package.PackageProperties.Title;
             document.Author = package.PackageProperties.Creator;

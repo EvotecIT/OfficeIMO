@@ -43,6 +43,19 @@ var s = doc.AddWorkSheet("Data");
 s.AutoFitColumns();
 ```
 
+Create in-memory (Stream)
+
+```csharp
+using var stream = new MemoryStream();
+using (var doc = ExcelDocument.Create(stream)) {
+    var sheet = doc.AddWorkSheet("Data");
+    sheet.CellValue(1, 1, "Hello Stream");
+}
+// stream now contains the .xlsx package
+stream.Position = 0;
+File.WriteAllBytes("out.xlsx", stream.ToArray());
+```
+
 What to expect
 
 - Noticeable wins on:

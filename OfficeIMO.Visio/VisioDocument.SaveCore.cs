@@ -21,12 +21,56 @@ namespace OfficeIMO.Visio {
             bool includeTheme = Theme != null;
             List<VisioPage> pagesToSave = _pages.Count > 0 ? _pages : new List<VisioPage> { new VisioPage("Page-1") { Id = 0 } };
             int pageCount = pagesToSave.Count;
-            int masterCount;
             List<string> pagePartNames = new();
+            int masterCount;
+
             using (Package package = Package.Open(filePath, FileMode.Create)) {
-                Uri documentUri = new("/visio/document.xml", UriKind.Relative);
-                PackagePart documentPart = package.CreatePart(documentUri, DocumentContentType);
-                package.CreateRelationship(documentUri, TargetMode.Internal, DocumentRelationshipType, "rId1");
+                masterCount = WritePackage(package, includeTheme, pagesToSave, pageCount, pagePartNames);
+            }
+
+            FixContentTypes(filePath, masterCount, includeTheme, pagePartNames);
+        }
+
+        /// <summary>
+        /// Core save routine that writes the VSdx structure to a stream.
+        /// </summary>
+        /// <param name="destination">Target stream.</param>
+        private void SaveInternalCore(Stream destination) {
+            bool includeTheme = Theme != null;
+            List<VisioPage> pagesToSave = _pages.Count > 0 ? _pages : new List<VisioPage> { new VisioPage("Page-1") { Id = 0 } };
+            int pageCount = pagesToSave.Count;
+            List<string> pagePartNames = new();
+            int masterCount;
+
+            using var packageStream = new MemoryStream();
+            using (Package package = Package.Open(packageStream, FileMode.Create, FileAccess.ReadWrite)) {
+                masterCount = WritePackage(package, includeTheme, pagesToSave, pageCount, pagePartNames);
+            }
+
+            FixContentTypes(packageStream, masterCount, includeTheme, pagePartNames);
+
+            if (destination.CanSeek) {
+                destination.Seek(0, SeekOrigin.Begin);
+                destination.SetLength(0);
+            }
+            packageStream.Seek(0, SeekOrigin.Begin);
+            packageStream.CopyTo(destination);
+            destination.Flush();
+            if (destination.CanSeek) {
+                destination.Seek(0, SeekOrigin.Begin);
+            }
+        }
+
+        private int WritePackage(
+            Package package,
+            bool includeTheme,
+            List<VisioPage> pagesToSave,
+            int pageCount,
+            List<string> pagePartNames) {
+            int masterCount;
+            Uri documentUri = new("/visio/document.xml", UriKind.Relative);
+            PackagePart documentPart = package.CreatePart(documentUri, DocumentContentType);
+            package.CreateRelationship(documentUri, TargetMode.Internal, DocumentRelationshipType, "rId1");
 
                 Uri coreUri = new("/docProps/core.xml", UriKind.Relative);
                 PackagePart corePart = package.CreatePart(coreUri, "application/vnd.openxmlformats-package.core-properties+xml");
@@ -644,13 +688,13 @@ namespace OfficeIMO.Visio {
                     }
                 }
                 masterCount = masters.Count;
-                pagePartNames = pageParts
+                pagePartNames.Clear();
+                pagePartNames.AddRange(pageParts
                     .Select(part => part.Part.Uri.OriginalString)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-            }
+                    .Distinct(StringComparer.OrdinalIgnoreCase));
+        }
 
-            FixContentTypes(filePath, masterCount, includeTheme, pagePartNames);
+            return masterCount;
         }
     }
 }

@@ -360,6 +360,27 @@ namespace OfficeIMO.Visio {
 
             using FileStream zipStream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite);
             using ZipArchive archive = new(zipStream, ZipArchiveMode.Update);
+            FixContentTypesCore(archive, masterCount, includeTheme, pagePartNames);
+        }
+
+        private static void FixContentTypes(Stream stream, int masterCount, bool includeTheme, IEnumerable<string> pagePartNames) {
+            if (stream == null) {
+                throw new ArgumentNullException(nameof(stream));
+            }
+            if (!stream.CanRead || !stream.CanWrite || !stream.CanSeek) {
+                throw new ArgumentException("Stream must be readable, writable, and seekable.", nameof(stream));
+            }
+            if (pagePartNames is null) {
+                throw new ArgumentNullException(nameof(pagePartNames));
+            }
+
+            stream.Seek(0, SeekOrigin.Begin);
+            using ZipArchive archive = new(stream, ZipArchiveMode.Update, leaveOpen: true);
+            FixContentTypesCore(archive, masterCount, includeTheme, pagePartNames);
+            stream.Seek(0, SeekOrigin.Begin);
+        }
+
+        private static void FixContentTypesCore(ZipArchive archive, int masterCount, bool includeTheme, IEnumerable<string> pagePartNames) {
             ZipArchiveEntry? entry = archive.GetEntry("[Content_Types].xml");
             entry?.Delete();
             ZipArchiveEntry newEntry = archive.CreateEntry("[Content_Types].xml");

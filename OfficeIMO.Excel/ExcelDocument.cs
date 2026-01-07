@@ -506,19 +506,55 @@ namespace OfficeIMO.Excel {
         /// <param name="filePath">Path to the new file.</param>
         /// <returns>Created <see cref="ExcelDocument"/> instance.</returns>
         public static ExcelDocument Create(string filePath) {
-            ExcelDocument document = new ExcelDocument();
-            document.FilePath = filePath;
-
             // Create a spreadsheet document by supplying the filepath.
             // By default, AutoSave = true, Editable = true, and Type = xlsx.
             SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(filePath, SpreadsheetDocumentType.Workbook);
-            document._spreadSheetDocument = spreadSheetDocument;
+            return CreateNewDocument(spreadSheetDocument, filePath, packageStream: null, sourceStream: null, copyPackageToSourceOnDispose: false, leaveSourceStreamOpen: true);
+        }
+
+        /// <summary>
+        /// Creates a new Excel document in memory and optionally persists it to the provided stream on dispose.
+        /// </summary>
+        /// <param name="stream">Destination stream to receive the workbook package.</param>
+        /// <param name="autoSave">When true, the package is written back to the stream on dispose.</param>
+        /// <returns>Created <see cref="ExcelDocument"/> instance.</returns>
+        public static ExcelDocument Create(Stream stream, bool autoSave = true) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
+
+            if (autoSave && !stream.CanSeek) {
+                throw new ArgumentException("Stream must support seeking when autoSave is enabled.", nameof(stream));
+            }
+
+            Stream packageStream = autoSave
+                ? new NonDisposingMemoryStream(4096)
+                : new MemoryStream(4096);
+
+            var spreadSheetDocument = SpreadsheetDocument.Create(packageStream, SpreadsheetDocumentType.Workbook, true);
+            return CreateNewDocument(spreadSheetDocument, filePath: null, packageStream, stream, autoSave, leaveSourceStreamOpen: true);
+        }
+
+        private static ExcelDocument CreateNewDocument(
+            SpreadsheetDocument spreadSheetDocument,
+            string? filePath,
+            Stream? packageStream,
+            Stream? sourceStream,
+            bool copyPackageToSourceOnDispose,
+            bool leaveSourceStreamOpen) {
+            var document = new ExcelDocument {
+                FilePath = filePath ?? string.Empty,
+                _spreadSheetDocument = spreadSheetDocument
+            };
 
             // Add a WorkbookPart to the document.
             WorkbookPart workbookpart = spreadSheetDocument.AddWorkbookPart();
             workbookpart.Workbook = new Workbook();
-
             document._workBookPart = workbookpart;
+
+            document._packageStream = copyPackageToSourceOnDispose ? packageStream : null;
+            document._sourceStream = copyPackageToSourceOnDispose ? sourceStream : null;
+            document._copyPackageToSourceOnDispose = copyPackageToSourceOnDispose && sourceStream != null;
+            document._leaveSourceStreamOpen = leaveSourceStreamOpen;
 
             // Initialize document property helpers
             document.BuiltinDocumentProperties = new BuiltinDocumentProperties(document);
