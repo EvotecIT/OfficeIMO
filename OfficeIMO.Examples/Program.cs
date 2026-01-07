@@ -95,6 +95,13 @@ namespace OfficeIMO.Examples {
             // Word.EndToEnd.Word_EndToEnd.Example(folderPath, false);
             // // Markdown/DomainDetective report (mirrors the Excel structure)
             // Markdown.DomainDetectiveReportMarkdown.Example(folderPath, false);
+
+
+            Excel.ChartsExcel.Charts_Basic(folderPath, true);
+            Excel.ChartsExcel.Charts_ComboAndScatter(folderPath, true);
+
+
+
             // // PowerPoint
             PowerPoint.BasicPowerPointDocument.Example_BasicPowerPoint(folderPath, false);
             PowerPoint.AdvancedPowerPoint.Example_AdvancedPowerPoint(folderPath, false);

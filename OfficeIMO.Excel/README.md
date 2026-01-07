@@ -150,10 +150,118 @@ var logo = File.ReadAllBytes("logo.png");
 s.SetHeaderImage(HeaderFooterPosition.Center, logo, widthPoints: 96, heightPoints: 32);
 ```
 
+### Charts
+```csharp
+using OfficeIMO.Excel;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
+
+using var doc = ExcelDocument.Create(path);
+var sheet = doc.AddWorkSheet("Summary");
+doc.DefaultChartStylePreset = ExcelChartStylePreset.Default;
+
+var data = new ExcelChartData(
+    new[] { "Q1", "Q2", "Q3", "Q4" },
+    new[] {
+        new ExcelChartSeries("Sales", new[] { 10d, 20d, 25d, 30d }),
+        new ExcelChartSeries("Target", new[] { 12d, 22d, 24d, 32d })
+    });
+
+var chart = sheet.AddChart(data, row: 1, column: 6, widthPixels: 480, heightPixels: 320,
+    type: ExcelChartType.ColumnClustered, title: "Quarterly");
+
+chart.SetLegend(C.LegendPositionValues.Right)
+     .SetDataLabels(showValue: true)
+     .SetSeriesFillColor(0, "4472C4")
+     .SetDataLabelTextStyle(fontSizePoints: 9, color: "1F4E79")
+     .SetDataLabelShapeStyle(fillColor: "FFFFFF", lineColor: "1F4E79", lineWidthPoints: 0.5);
+chart.SetDataLabelLeaderLines(showLeaderLines: true, lineColor: "1F4E79", lineWidthPoints: 0.5);
+chart.SetTitleTextStyle(fontSizePoints: 14, bold: true, color: "1F4E79")
+     .SetLegendTextStyle(fontSizePoints: 9, color: "404040")
+     .SetCategoryAxisTitle("Quarter")
+     .SetValueAxisTitle("Revenue")
+     .SetCategoryAxisTitleTextStyle(fontSizePoints: 10, bold: true)
+     .SetValueAxisLabelTextStyle(fontSizePoints: 9, color: "404040")
+     .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: "C0C0C0", lineWidthPoints: 0.75)
+     .SetCategoryAxisLabelRotation(45)
+     .SetValueAxisTickLabelPosition(C.TickLabelPositionValues.Low);
+chart.SetCategoryAxisReverseOrder()
+     .SetValueAxisScale(minimum: 0, maximum: 100, majorUnit: 20, minorUnit: 10);
+chart.SetValueAxisCrossing(C.CrossesValues.Maximum)
+     .SetCategoryAxisCrossing(C.CrossesValues.Minimum)
+     .SetValueAxisCrossBetween(C.CrossBetweenValues.Between)
+     .SetValueAxisDisplayUnits(C.BuiltInUnitValues.Thousands, "Thousands USD", showLabel: true);
+chart.SetChartAreaStyle(fillColor: "F2F2F2", lineColor: "404040", lineWidthPoints: 1)
+     .SetPlotAreaStyle(fillColor: "FFFFFF", lineColor: "BFBFBF", lineWidthPoints: 0.75);
+chart.SetSeriesTrendline(0, C.TrendlineValues.Polynomial, order: 2,
+    displayEquation: true, displayRSquared: true, lineColor: "FF0000", lineWidthPoints: 1.5);
+
+var labelTemplate = new ExcelChartDataLabelTemplate {
+    ShowValue = true,
+    Position = C.DataLabelPositionValues.Top,
+    NumberFormat = "0.0",
+    FontSizePoints = 9,
+    TextColor = "404040",
+    Separator = " - "
+};
+chart.SetSeriesDataLabelTemplate(0, labelTemplate)
+     .SetSeriesDataLabelForPoint(0, 1, showValue: true, position: C.DataLabelPositionValues.OutsideEnd,
+        numberFormat: "0.00")
+     .SetSeriesDataLabelSeparatorForPoint(0, 1, " | ")
+     .SetSeriesDataLabelTextStyleForPoint(0, 1, fontSizePoints: 11, bold: true, color: "FF0000");
+
+// Use an existing range/table instead:
+// sheet.AddChartFromRange("A1:D5", row: 8, column: 6, type: ExcelChartType.Line);
+// sheet.AddChartFromTable("SalesTable", row: 8, column: 6, type: ExcelChartType.Line);
+```
+
+```csharp
+// Combo chart with secondary axis
+var comboData = new ExcelChartData(
+    new[] { "Q1", "Q2", "Q3", "Q4" },
+    new[] {
+        new ExcelChartSeries("Sales", new[] { 10d, 20d, 25d, 30d }, ExcelChartType.ColumnClustered, ExcelChartAxisGroup.Primary),
+        new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d, 35d }, ExcelChartType.Line, ExcelChartAxisGroup.Secondary)
+    });
+
+var comboChart = sheet.AddChart(comboData, row: 10, column: 6, widthPixels: 480, heightPixels: 320,
+    type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
+comboChart.ApplyStylePreset()
+          .SetSeriesMarker(1, C.MarkerStyleValues.Circle, size: 6, lineColor: "4472C4");
+comboChart.SetValueAxisNumberFormat("0.00", sourceLinked: false, axisGroup: ExcelChartAxisGroup.Secondary)
+          .SetSeriesDataLabels(1, showValue: true, position: C.DataLabelPositionValues.Top, numberFormat: "0.0");
+
+// Scatter chart (X values come from the category column)
+var scatterData = new ExcelChartData(
+    new[] { "1", "2", "3", "4" },
+    new[] { new ExcelChartSeries("Points", new[] { 2d, 4d, 3d, 5d }, ExcelChartType.Scatter) });
+var scatterChart = sheet.AddChart(scatterData, row: 20, column: 6, widthPixels: 480, heightPixels: 320,
+    type: ExcelChartType.Scatter, title: "Scatter Sample");
+scatterChart.SetScatterXAxisScale(minimum: 1, maximum: 10, majorUnit: 1, logScale: true);
+scatterChart.SetScatterYAxisScale(minimum: 0, maximum: 6, majorUnit: 1);
+scatterChart.SetScatterYAxisCrossing(C.CrossesValues.Minimum, crossesAt: 2d);
+
+// Scatter chart with explicit X/Y ranges
+sheet.AddScatterChartFromRanges(new[] {
+    new ExcelChartSeriesRange("Series 1", "A2:A5", "B2:B5"),
+    new ExcelChartSeriesRange("Series 2", "A2:A5", "C2:C5")
+}, row: 30, column: 6, widthPixels: 480, heightPixels: 320,
+   title: "Scatter (Ranges)");
+
+// Bubble chart with explicit X/Y/Size ranges
+sheet.AddBubbleChartFromRanges(new[] {
+    new ExcelChartSeriesRange("Bubbles", "A2:A5", "B2:B5", "D2:D5")
+}, row: 40, column: 6, widthPixels: 480, heightPixels: 320,
+   title: "Bubble");
+
+// Combo charts use per-series ChartType + AxisGroup to determine layout.       
+```
+
+Note: Bubble charts require explicit X/Y/size ranges via `AddBubbleChartFromRanges`. Ranges without a sheet qualifier default to the current worksheet.
+
 ### Link a table column by header
 
 ```csharp
-using OfficeIMO.Excel; // A1 helpers are available under OfficeIMO.Excel.A1
+using OfficeIMO.Excel; // A1 helpers are available under OfficeIMO.Excel.A1     
 
 var s = doc["Summary"]; // table with a header row
 
