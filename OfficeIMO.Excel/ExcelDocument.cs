@@ -7,6 +7,8 @@ using System.IO.Packaging;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
+using System;
+using System.IO;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -16,6 +18,8 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
         private static readonly System.Text.RegularExpressions.Regex _multipleUnderscoresRegex =
             new System.Text.RegularExpressions.Regex("_+", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private static readonly Lazy<byte[]> DefaultThemeBytes = new(() => LoadEmbeddedResource("OfficeIMO.Excel.Resources.theme1.xml"));
         // Allocated only when an operation actually needs a serialized apply stage
         internal ReaderWriterLockSlim? _lock;
         internal List<UInt32Value> id = new List<UInt32Value>() { 0 };
@@ -78,6 +82,58 @@ namespace OfficeIMO.Excel {
 
         internal ReaderWriterLockSlim EnsureLock()
             => _lock ??= new ReaderWriterLockSlim(); // default: NoRecursion
+
+        internal void EnsureWorkbookThemeAndStyles() {
+            var workbookPart = _spreadSheetDocument?.WorkbookPart ?? _workBookPart;
+
+            if (!workbookPart.GetPartsOfType<ThemePart>().Any()) {
+                ThemePart themePart = workbookPart.AddNewPart<ThemePart>();
+                using var themeStream = new MemoryStream(DefaultThemeBytes.Value);
+                themePart.FeedData(themeStream);
+            }
+
+            var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+            if (stylesPart.Stylesheet == null) {
+                stylesPart.Stylesheet = CreateDefaultStylesheet();
+                stylesPart.Stylesheet.Save();
+            }
+        }
+
+        private static Stylesheet CreateDefaultStylesheet() {
+            var stylesheet = new Stylesheet();
+
+            stylesheet.Fonts = new Fonts(new Font());
+            stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
+
+            stylesheet.Fills = new Fills(
+                new Fill(new PatternFill { PatternType = PatternValues.None }),
+                new Fill(new PatternFill { PatternType = PatternValues.Gray125 })
+            );
+            stylesheet.Fills.Count = (uint)stylesheet.Fills.Count();
+
+            stylesheet.Borders = new Borders(new Border());
+            stylesheet.Borders.Count = (uint)stylesheet.Borders.Count();
+
+            stylesheet.CellStyleFormats = new CellStyleFormats(new CellFormat());
+            stylesheet.CellStyleFormats.Count = (uint)stylesheet.CellStyleFormats.Count();
+
+            stylesheet.CellFormats = new CellFormats(new CellFormat());
+            stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
+
+            return stylesheet;
+        }
+
+        private static byte[] LoadEmbeddedResource(string resourceName) {
+            var assembly = typeof(ExcelDocument).Assembly;
+            using Stream? stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream == null) {
+                throw new InvalidOperationException($"Missing embedded resource '{resourceName}'.");
+            }
+
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            return buffer.ToArray();
+        }
 
         private void MarkSheetCacheDirty()
         {

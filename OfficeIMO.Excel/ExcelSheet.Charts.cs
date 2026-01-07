@@ -182,6 +182,8 @@ namespace OfficeIMO.Excel {
                     drawingPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
                 }
 
+                _excelDocument.EnsureWorkbookThemeAndStyles();
+
                 ChartPart chartPart = drawingPart!.AddNewPart<ChartPart>();
                 ExcelChartUtils.PopulateChartFromSeriesRanges(chartPart, type, Name, ranges, title);
                 if (_excelDocument.DefaultChartStylePreset != null) {
@@ -245,6 +247,8 @@ namespace OfficeIMO.Excel {
                     drawingPart = (DrawingsPart)_worksheetPart.GetPartById(drawing.Id!);
                     drawingPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
                 }
+
+                _excelDocument.EnsureWorkbookThemeAndStyles();
 
                 ChartPart chartPart = drawingPart!.AddNewPart<ChartPart>();
                 ExcelChartUtils.PopulateChart(chartPart, type, range, data, title);

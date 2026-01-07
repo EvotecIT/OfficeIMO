@@ -207,6 +207,7 @@ namespace OfficeIMO.Excel {
         /// Applies a built-in chart style/color preset.
         /// </summary>
         public ExcelChart ApplyStylePreset(int styleId = 251, int colorStyleId = 10) {
+            _document.EnsureWorkbookThemeAndStyles();
             ExcelChartUtils.ApplyChartStyle(GetChartPart(), styleId, colorStyleId);
             Save();
             return this;
@@ -219,6 +220,7 @@ namespace OfficeIMO.Excel {
             if (preset == null) {
                 throw new ArgumentNullException(nameof(preset));
             }
+            _document.EnsureWorkbookThemeAndStyles();
             ExcelChartUtils.ApplyChartStyle(GetChartPart(), preset);
             Save();
             return this;
