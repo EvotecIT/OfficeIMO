@@ -56,7 +56,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="DocumentFormat.OpenXml" Version="[3.3.0,4.0.0)" />
+        <PackageReference Include="DocumentFormat.OpenXml" Version="[3.4.1, 4.0.0)" />
     </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
