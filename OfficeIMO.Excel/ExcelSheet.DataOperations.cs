@@ -401,7 +401,7 @@ namespace OfficeIMO.Excel {
                     var row = list[i];
                     int sheetRow = r1 + 1 + i; // first data row
                     for (int c = 0; c < cols; c++) {
-                        CellValue(sheetRow, c1 + c, row.Row[c] ?? string.Empty);
+                        CellValueCore(sheetRow, c1 + c, row.Row[c] ?? string.Empty);
                     }
                 }
             });
@@ -465,7 +465,7 @@ namespace OfficeIMO.Excel {
                     var row = list[i];
                     int sheetRow = r1 + 1 + i;
                     for (int c = 0; c < width; c++)
-                        CellValue(sheetRow, c1 + c, row.Row[c] ?? string.Empty);
+                        CellValueCore(sheetRow, c1 + c, row.Row[c] ?? string.Empty);
                 }
             });
 
