@@ -33,7 +33,7 @@ public sealed class CsvLoadOptions
     public CultureInfo Culture { get; set; } = CultureInfo.InvariantCulture;
 
     /// <summary>
-    /// Gets or sets whether empty lines should be ignored. Default is <c>false</c> (an empty line produces a single empty field).
+    /// Gets or sets whether empty lines should be preserved. Default is <c>false</c> (empty lines are ignored).
     /// </summary>
     public bool AllowEmptyLines { get; set; }
 

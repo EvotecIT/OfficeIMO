@@ -508,9 +508,19 @@ namespace OfficeIMO.Excel {
         /// <param name="filePath">Path to the new file.</param>
         /// <returns>Created <see cref="ExcelDocument"/> instance.</returns>
         public static ExcelDocument Create(string filePath) {
+            return Create(filePath, autoSave: true);
+        }
+
+        /// <summary>
+        /// Creates a new Excel document at the specified path with explicit AutoSave behavior.
+        /// </summary>
+        /// <param name="filePath">Path to the new file.</param>
+        /// <param name="autoSave">When true, saves changes on dispose.</param>
+        /// <returns>Created <see cref="ExcelDocument"/> instance.</returns>
+        public static ExcelDocument Create(string filePath, bool autoSave) {
             // Create a spreadsheet document by supplying the filepath.
-            // By default, AutoSave = true, Editable = true, and Type = xlsx.
-            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(filePath, SpreadsheetDocumentType.Workbook);
+            // AutoSave controls whether workbook changes are persisted on dispose.
+            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(filePath, SpreadsheetDocumentType.Workbook, autoSave);
             return CreateNewDocument(spreadSheetDocument, filePath, packageStream: null, sourceStream: null, copyPackageToSourceOnDispose: false, leaveSourceStreamOpen: true);
         }
 

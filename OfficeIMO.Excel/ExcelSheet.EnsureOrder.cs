@@ -9,6 +9,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         internal void EnsureWorksheetElementOrder() {
             var worksheet = _worksheetPart.Worksheet;
+            const string SpreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 
             // Define the correct order of elements according to OpenXML schema
             var elementOrder = new List<System.Type>
@@ -21,7 +22,7 @@ namespace OfficeIMO.Excel {
                 typeof(SheetData),
                 typeof(SheetCalculationProperties),
                 typeof(SheetProtection),
-                typeof(ProtectedRanges),
+                typeof(DocumentFormat.OpenXml.Spreadsheet.ProtectedRanges),
                 typeof(Scenarios),
                 typeof(AutoFilter),
                 typeof(SortState),
@@ -29,8 +30,9 @@ namespace OfficeIMO.Excel {
                 typeof(CustomSheetViews),
                 typeof(MergeCells),
                 typeof(PhoneticProperties),
-                typeof(ConditionalFormatting),
-                typeof(DataValidations),
+                typeof(DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting),
+                typeof(DocumentFormat.OpenXml.Spreadsheet.DataValidations),
+                typeof(DocumentFormat.OpenXml.Office2010.Excel.SparklineGroups),
                 typeof(Hyperlinks),
                 typeof(PrintOptions),
                 typeof(PageMargins),
@@ -40,7 +42,7 @@ namespace OfficeIMO.Excel {
                 typeof(ColumnBreaks),
                 typeof(CustomProperties),
                 typeof(CellWatches),
-                typeof(IgnoredErrors),
+                typeof(DocumentFormat.OpenXml.Spreadsheet.IgnoredErrors),
                 // SmartTags is deprecated and not in current OpenXML SDK
                 typeof(Drawing),
                 typeof(LegacyDrawing),
@@ -51,13 +53,19 @@ namespace OfficeIMO.Excel {
                 typeof(Controls),
                 typeof(WebPublishItems),
                 typeof(TableParts),
-                typeof(ExtensionList)
+                typeof(DocumentFormat.OpenXml.Spreadsheet.ExtensionList)
             };
+            int pivotTablePartsIndex = elementOrder.IndexOf(typeof(TableParts)) + 1;
 
             // Snapshot children once and bucket by type for O(n)
             var children = worksheet.ChildElements.ToList();
             var buckets = new Dictionary<System.Type, List<OpenXmlElement>>();
+            var pivotTableParts = new List<OpenXmlElement>();
             foreach (var child in children) {
+                if (IsPivotTableParts(child, SpreadsheetNamespace)) {
+                    pivotTableParts.Add(child);
+                    continue;
+                }
                 var t = child.GetType();
                 if (!buckets.TryGetValue(t, out var list)) {
                     list = new List<OpenXmlElement>();
@@ -76,8 +84,13 @@ namespace OfficeIMO.Excel {
             int last = -1;
             int unknownIndexBase = elementOrder.Count; // unknowns come after knowns
             foreach (var child in children) {
-                var t = child.GetType();
-                int idx = orderIndex.TryGetValue(t, out var val) ? val : unknownIndexBase;
+                int idx;
+                if (IsPivotTableParts(child, SpreadsheetNamespace)) {
+                    idx = pivotTablePartsIndex;
+                } else {
+                    var t = child.GetType();
+                    idx = orderIndex.TryGetValue(t, out var val) ? val : unknownIndexBase;
+                }
                 if (idx < last) {
                     needsReorder = true;
                     break;
@@ -100,11 +113,14 @@ namespace OfficeIMO.Excel {
                 if (buckets.TryGetValue(elementType, out var list)) {
                     ordered.AddRange(list);
                 }
+                if (elementType == typeof(TableParts) && pivotTableParts.Count > 0) {
+                    ordered.AddRange(pivotTableParts);
+                }
             }
 
             // Unknown types in original order
             foreach (var child in children) {
-                if (!knownTypes.Contains(child.GetType())) {
+                if (!knownTypes.Contains(child.GetType()) && !IsPivotTableParts(child, SpreadsheetNamespace)) {
                     ordered.Add(child);
                 }
             }
@@ -116,6 +132,11 @@ namespace OfficeIMO.Excel {
 
             // Persist any structural changes
             worksheet.Save();
+        }
+
+        private static bool IsPivotTableParts(OpenXmlElement element, string mainNamespace) {
+            if (element is not OpenXmlUnknownElement unknown) return false;
+            return unknown.LocalName == "pivotTableParts" && unknown.NamespaceUri == mainNamespace;
         }
     }
 }
