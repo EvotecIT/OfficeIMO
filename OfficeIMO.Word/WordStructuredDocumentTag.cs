@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using SixLabors.ImageSharp;
+using ImageSharpColor = SixLabors.ImageSharp.Color;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -239,7 +239,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the text color using <see cref="Color"/>.
         /// </summary>
-        public Color? Color {
+        public ImageSharpColor? Color {
             get {
                 if (string.IsNullOrEmpty(ColorHex)) {
                     return null;
@@ -373,7 +373,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets the text color and returns the instance for chaining.
         /// </summary>
-        public WordStructuredDocumentTag SetColor(Color? color) {
+        public WordStructuredDocumentTag SetColor(ImageSharpColor? color) {
             Color = color;
             return this;
         }
