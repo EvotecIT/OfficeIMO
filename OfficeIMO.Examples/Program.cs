@@ -213,6 +213,7 @@ namespace OfficeIMO.Examples {
             // Word.ContentControls.Example_AdvancedContentControls(folderPath, false);
             // Word.ContentControls.Example_ContentControlsInTable(folderPath, false);
             // Word.ContentControls.Example_MultipleContentControls(folderPath, false);
+            // Word.ContentControls.Example_FormattedContentControls(folderPath, false);
             // // Word/CleanupDocuments
             // Word.CleanupDocuments.CleanupDocuments_Sample01(false);
             // Word.CleanupDocuments.CleanupDocuments_Sample02(folderPath, false);
