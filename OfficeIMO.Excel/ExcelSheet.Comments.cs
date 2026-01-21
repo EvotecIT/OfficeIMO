@@ -18,7 +18,8 @@ namespace OfficeIMO.Excel {
         /// <param name="author">Author name (optional).</param>
         /// <param name="initials">Author initials (optional).</param>
         public void SetComment(int row, int column, string text, string author = "OfficeIMO", string? initials = null) {
-            if (row <= 0 || column <= 0) throw new ArgumentOutOfRangeException("Row and column are 1-based and must be positive.");
+            if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row), "Row and column are 1-based and must be positive.");
+            if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
             if (string.IsNullOrEmpty(text)) throw new ArgumentException("Comment text is required.", nameof(text));
 
             WriteLock(() => {
@@ -62,7 +63,8 @@ namespace OfficeIMO.Excel {
         /// <param name="row">1-based row index.</param>
         /// <param name="column">1-based column index.</param>
         public void ClearComment(int row, int column) {
-            if (row <= 0 || column <= 0) throw new ArgumentOutOfRangeException("Row and column are 1-based and must be positive.");
+            if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row), "Row and column are 1-based and must be positive.");
+            if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
 
             WriteLock(() => {
                 string reference = A1.ColumnIndexToLetters(column) + row.ToString(CultureInfo.InvariantCulture);
@@ -96,12 +98,13 @@ namespace OfficeIMO.Excel {
         /// <param name="row">1-based row index.</param>
         /// <param name="column">1-based column index.</param>
         public bool HasComment(int row, int column) {
-            if (row <= 0 || column <= 0) throw new ArgumentOutOfRangeException("Row and column are 1-based and must be positive.");
+            if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row), "Row and column are 1-based and must be positive.");
+            if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
             string reference = A1.ColumnIndexToLetters(column) + row.ToString(CultureInfo.InvariantCulture);
             var commentsPart = _worksheetPart.WorksheetCommentsPart;
             return commentsPart?.Comments?.CommentList?
                 .Elements<Comment>()
-                .Any(c => string.Equals(c.Reference?.Value, reference, StringComparison.OrdinalIgnoreCase)) == true;
+                .Any(c => string.Equals(c.Reference?.Value, reference, StringComparison.OrdinalIgnoreCase)) is true;
         }
 
         private static string NormalizeAuthor(string author, string? initials) {
@@ -302,8 +305,7 @@ namespace OfficeIMO.Excel {
             int max = 1024;
             foreach (var shape in root.Elements(v + "shape")) {
                 var idAttr = shape.Attribute("id")?.Value;
-                if (idAttr == null || idAttr.Length == 0) continue;
-                if (idAttr.StartsWith("_x0000_s", StringComparison.OrdinalIgnoreCase)) {
+                if (!string.IsNullOrEmpty(idAttr) && idAttr.StartsWith("_x0000_s", StringComparison.OrdinalIgnoreCase)) {
                     var numPart = idAttr.Substring("_x0000_s".Length);
                     if (int.TryParse(numPart, NumberStyles.Integer, CultureInfo.InvariantCulture, out int id)) {
                         if (id > max) max = id;
