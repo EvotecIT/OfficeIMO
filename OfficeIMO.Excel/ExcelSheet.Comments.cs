@@ -307,11 +307,16 @@ namespace OfficeIMO.Excel {
             int max = 1024;
             foreach (var shape in root.Elements(v + "shape")) {
                 var idAttr = shape.Attribute("id")?.Value;
-                if (!string.IsNullOrEmpty(idAttr) && idAttr.StartsWith("_x0000_s", StringComparison.OrdinalIgnoreCase)) {
-                    var numPart = idAttr.Substring("_x0000_s".Length);
-                    if (int.TryParse(numPart, NumberStyles.Integer, CultureInfo.InvariantCulture, out int id)) {
-                        if (id > max) max = id;
-                    }
+                if (idAttr == null || idAttr.Length == 0) {
+                    continue;
+                }
+                if (!idAttr.StartsWith("_x0000_s", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
+                var numPart = idAttr.Substring("_x0000_s".Length);
+                if (int.TryParse(numPart, NumberStyles.Integer, CultureInfo.InvariantCulture, out int id)) {
+                    if (id > max) max = id;
                 }
             }
             return max + 1;
