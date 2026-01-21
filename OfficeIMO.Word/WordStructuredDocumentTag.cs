@@ -161,7 +161,9 @@ namespace OfficeIMO.Word {
                 var runProperties = VerifyRunProperties();
                 if (value) {
                     runProperties.Italic = new Italic();
+                    runProperties.ItalicComplexScript = new ItalicComplexScript();
                 } else {
+                    runProperties.ItalicComplexScript?.Remove();
                     runProperties.Italic?.Remove();
                 }
             }
@@ -222,6 +224,9 @@ namespace OfficeIMO.Word {
 
                 if (string.IsNullOrEmpty(value)) {
                     runProperties.RunFonts.Ascii = null;
+                    runProperties.RunFonts.HighAnsi = null;
+                    runProperties.RunFonts.ComplexScript = null;
+                    runProperties.RunFonts.EastAsia = null;
                 } else {
                     runProperties.RunFonts.Ascii = value;
                     runProperties.RunFonts.HighAnsi = value;
@@ -242,9 +247,7 @@ namespace OfficeIMO.Word {
                 return Helpers.ParseColor(ColorHex);
             }
             set {
-                if (value != null) {
-                    ColorHex = value.Value.ToHexColor();
-                }
+                ColorHex = value?.ToHexColor() ?? string.Empty;
             }
         }
 
@@ -278,7 +281,11 @@ namespace OfficeIMO.Word {
             }
             set {
                 var runProperties = VerifyRunProperties();
-                runProperties.Highlight = new Highlight { Val = value };
+                if (value.HasValue) {
+                    runProperties.Highlight = new Highlight { Val = value.Value };
+                } else {
+                    runProperties.Highlight?.Remove();
+                }
             }
         }
 
@@ -334,7 +341,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets the underline style and returns the instance for chaining.
         /// </summary>
-        public WordStructuredDocumentTag SetUnderline(UnderlineValues underline) {
+        public WordStructuredDocumentTag SetUnderline(UnderlineValues? underline) {
             Underline = underline;
             return this;
         }
@@ -366,7 +373,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets the text color and returns the instance for chaining.
         /// </summary>
-        public WordStructuredDocumentTag SetColor(Color color) {
+        public WordStructuredDocumentTag SetColor(Color? color) {
             Color = color;
             return this;
         }
@@ -374,7 +381,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets the highlight color and returns the instance for chaining.
         /// </summary>
-        public WordStructuredDocumentTag SetHighlight(HighlightColorValues highlight) {
+        public WordStructuredDocumentTag SetHighlight(HighlightColorValues? highlight) {
             Highlight = highlight;
             return this;
         }
