@@ -268,7 +268,9 @@ namespace OfficeIMO.Excel {
                 if (stream.Length > 0) {
                     return XDocument.Load(stream);
                 }
-            } catch { }
+            } catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"Failed to load VML drawing part stream: {ex}");
+            }
 
             var v = XNamespace.Get("urn:schemas-microsoft-com:vml");
             var o = XNamespace.Get("urn:schemas-microsoft-com:office:office");
