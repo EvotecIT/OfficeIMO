@@ -325,6 +325,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets the content control text to bold and returns the instance for chaining.
         /// </summary>
+        /// <param name="isBold">Whether the text should be bold.</param>
         public WordStructuredDocumentTag SetBold(bool isBold = true) {
             Bold = isBold;
             return this;
@@ -333,6 +334,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets the content control text to italic and returns the instance for chaining.
         /// </summary>
+        /// <param name="isItalic">Whether the text should be italic.</param>
         public WordStructuredDocumentTag SetItalic(bool isItalic = true) {
             Italic = isItalic;
             return this;
@@ -341,6 +343,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets the underline style and returns the instance for chaining.
         /// </summary>
+        /// <param name="underline">Underline style, or <c>null</c> to clear.</param>
         public WordStructuredDocumentTag SetUnderline(UnderlineValues? underline) {
             Underline = underline;
             return this;
@@ -349,6 +352,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets the font size in points and returns the instance for chaining.
         /// </summary>
+        /// <param name="fontSize">Font size in points.</param>
         public WordStructuredDocumentTag SetFontSize(int fontSize) {
             FontSize = fontSize;
             return this;
@@ -357,6 +361,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets the font family and returns the instance for chaining.
         /// </summary>
+        /// <param name="fontFamily">Name of the font family.</param>
         public WordStructuredDocumentTag SetFontFamily(string fontFamily) {
             FontFamily = fontFamily;
             return this;
@@ -365,6 +370,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets the text color using a hexadecimal value and returns the instance for chaining.
         /// </summary>
+        /// <param name="color">Color in hexadecimal format.</param>
         public WordStructuredDocumentTag SetColorHex(string color) {
             ColorHex = color;
             return this;
@@ -373,6 +379,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets the text color and returns the instance for chaining.
         /// </summary>
+        /// <param name="color">Text color, or <c>null</c> to clear.</param>
         public WordStructuredDocumentTag SetColor(ImageSharpColor? color) {
             Color = color;
             return this;
@@ -381,6 +388,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets the highlight color and returns the instance for chaining.
         /// </summary>
+        /// <param name="highlight">Highlight color, or <c>null</c> to clear.</param>
         public WordStructuredDocumentTag SetHighlight(HighlightColorValues? highlight) {
             Highlight = highlight;
             return this;
