@@ -158,6 +158,17 @@ namespace OfficeIMO.Excel {
             if (value.Length != 8) {
                 throw new ArgumentException($"Color '{color}' must be in #RRGGBB or #AARRGGBB format.", nameof(color));
             }
+            for (int i = 0; i < value.Length; i++) {
+                char c = value[i];
+                bool isHexDigit = (c >= '0' && c <= '9')
+                    || (c >= 'A' && c <= 'F')
+                    || (c >= 'a' && c <= 'f');
+                if (!isHexDigit) {
+                    throw new ArgumentException(
+                        $"Color '{color}' contains invalid hex character '{c}' at position {i + 1}.",
+                        nameof(color));
+                }
+            }
             return new HexBinaryValue(value.ToUpperInvariant());
         }
 
