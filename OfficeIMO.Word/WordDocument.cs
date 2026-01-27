@@ -922,6 +922,13 @@ namespace OfficeIMO.Word {
         /// </summary>
         public BuiltinDocumentProperties BuiltinDocumentProperties = null!;
 
+        private WordCoverPageProperties? _coverPageProperties;
+
+        /// <summary>
+        /// Provides access to the cover page properties custom XML part used by built-in templates.
+        /// </summary>
+        public WordCoverPageProperties CoverPageProperties => _coverPageProperties ??= new WordCoverPageProperties(this);
+
         /// <summary>
         /// Collection of custom document properties.
         /// </summary>

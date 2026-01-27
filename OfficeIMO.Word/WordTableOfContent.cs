@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -21,6 +22,7 @@ namespace OfficeIMO.Word {
     /// Represents a table of contents within a Word document.
     /// </summary>
     public class WordTableOfContent : WordElement {
+        private static readonly string TocLevelSwitchPattern = @"\\o\s+(?:""\d+-\d+""|&quot;\d+-\d+&quot;)";
         private readonly WordDocument _document;
         private readonly SdtBlock _sdtBlock;
 
@@ -119,8 +121,17 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordDocument">Parent document where the table of contents will be created.</param>
         /// <param name="tableOfContentStyle">Template style used to generate the table of contents.</param>
-        public WordTableOfContent(WordDocument wordDocument, TableOfContentStyle tableOfContentStyle)
-            : this(wordDocument, PrepareTemplate(wordDocument, tableOfContentStyle), tableOfContentStyle, appendToBody: true, queueUpdateOnOpen: true) {
+        /// <param name="minLevel">Minimum heading level to include (1..9).</param>
+        /// <param name="maxLevel">Maximum heading level to include (1..9).</param>
+        public WordTableOfContent(WordDocument wordDocument, TableOfContentStyle tableOfContentStyle, int minLevel = 1, int maxLevel = 3)
+            : this(
+                wordDocument,
+                PrepareTemplate(wordDocument, tableOfContentStyle),
+                tableOfContentStyle,
+                appendToBody: true,
+                queueUpdateOnOpen: true,
+                minLevel: minLevel,
+                maxLevel: maxLevel) {
         }
 
         /// <summary>
@@ -136,7 +147,14 @@ namespace OfficeIMO.Word {
             : this(wordDocument, sdtBlock, TableOfContentStyle.Template1, appendToBody: false, queueUpdateOnOpen: queueUpdateOnOpen) {
         }
 
-        private WordTableOfContent(WordDocument wordDocument, SdtBlock sdtBlock, TableOfContentStyle style, bool appendToBody, bool queueUpdateOnOpen) {
+        private WordTableOfContent(
+            WordDocument wordDocument,
+            SdtBlock sdtBlock,
+            TableOfContentStyle style,
+            bool appendToBody,
+            bool queueUpdateOnOpen,
+            int? minLevel = null,
+            int? maxLevel = null) {
             this._document = wordDocument ?? throw new ArgumentNullException(nameof(wordDocument));
             this._sdtBlock = sdtBlock ?? throw new ArgumentNullException(nameof(sdtBlock));
             this.Style = style;
@@ -144,6 +162,14 @@ namespace OfficeIMO.Word {
             if (appendToBody) {
                 var body = this._document._wordprocessingDocument?.MainDocumentPart?.Document?.Body;
                 body?.Append(_sdtBlock);
+            }
+
+            if (minLevel.HasValue && maxLevel.HasValue) {
+                var (normalizedMin, normalizedMax) = NormalizeLevels(minLevel.Value, maxLevel.Value);
+                // Avoid mutating the template when the caller requests the default 1-3 range.
+                if (normalizedMin != 1 || normalizedMax != 3) {
+                    ConfigureLevels(normalizedMin, normalizedMax);
+                }
             }
 
             if (queueUpdateOnOpen) {
@@ -167,6 +193,16 @@ namespace OfficeIMO.Word {
 
             this._document.Settings.UpdateFieldsOnOpen = true;
             this._document.NotifyTableOfContentUpdateQueued();
+        }
+
+        /// <summary>
+        /// Updates the heading levels included by the TOC field switch (for example: \o "1-5").
+        /// </summary>
+        /// <param name="minLevel">Minimum heading level to include (1..9).</param>
+        /// <param name="maxLevel">Maximum heading level to include (1..9).</param>
+        public void SetLevels(int minLevel, int maxLevel) {
+            ConfigureLevels(minLevel, maxLevel);
+            QueueUpdateOnOpen(force: true);
         }
 
         /// <summary>
@@ -201,6 +237,82 @@ namespace OfficeIMO.Word {
             }
 
             return fieldsFound ? marked : true;
+        }
+
+        private void ConfigureLevels(int minLevel, int maxLevel) {
+            var (normalizedMin, normalizedMax) = NormalizeLevels(minLevel, maxLevel);
+            var levelSwitch = $"\\o \"{normalizedMin}-{normalizedMax}\"";
+
+            foreach (var simpleField in _sdtBlock.Descendants<SimpleField>()) {
+                var instruction = simpleField.Instruction?.Value ?? simpleField.Instruction;
+                if (string.IsNullOrWhiteSpace(instruction)) {
+                    continue;
+                }
+
+                if (!instruction.Contains("TOC", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
+                var instructionText = instruction!;
+                var hadLevelSwitch = Regex.IsMatch(instructionText, TocLevelSwitchPattern);
+                string updated;
+                if (hadLevelSwitch) {
+                    updated = Regex.Replace(instructionText, TocLevelSwitchPattern, levelSwitch);
+                } else {
+                    updated = instructionText.TrimEnd() + " " + levelSwitch + " ";
+                }
+
+                simpleField.Instruction = updated;
+                simpleField.Dirty = true;
+            }
+
+            // Word often converts TOC fields into complex fields (FieldChar/FieldCode).
+            // Update those instructions as well so SetLevels works on existing documents.
+            foreach (var fieldCode in _sdtBlock.Descendants<FieldCode>()) {
+                var instructionText = fieldCode.Text;
+                if (string.IsNullOrWhiteSpace(instructionText)) {
+                    continue;
+                }
+
+                if (!instructionText.Contains("TOC", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
+                var hadLevelSwitch = Regex.IsMatch(instructionText, TocLevelSwitchPattern);
+                string updated;
+                if (hadLevelSwitch) {
+                    updated = Regex.Replace(instructionText, TocLevelSwitchPattern, levelSwitch);
+                } else {
+                    updated = instructionText.TrimEnd() + " " + levelSwitch + " ";
+                }
+
+                fieldCode.Text = updated;
+            }
+
+            foreach (var fieldChar in _sdtBlock.Descendants<FieldChar>()) {
+                if (fieldChar.Dirty?.Value != true) {
+                    fieldChar.Dirty = true;
+                }
+            }
+        }
+
+        private static (int MinLevel, int MaxLevel) NormalizeLevels(int minLevel, int maxLevel) {
+            var min = ClampLevel(minLevel);
+            var max = ClampLevel(maxLevel);
+            if (min > max) {
+                (min, max) = (max, min);
+            }
+            return (min, max);
+        }
+
+        private static int ClampLevel(int level) {
+            if (level < 1) {
+                return 1;
+            }
+            if (level > 9) {
+                return 9;
+            }
+            return level;
         }
 
         /// <summary>

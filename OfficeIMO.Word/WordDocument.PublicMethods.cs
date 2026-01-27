@@ -433,9 +433,14 @@ namespace OfficeIMO.Word {
         /// Adds a table of contents to the current document.
         /// </summary>
         /// <param name="tableOfContentStyle">Optional style to use when creating the table of contents.</param>
+        /// <param name="minLevel">Minimum heading level to include (1..9).</param>
+        /// <param name="maxLevel">Maximum heading level to include (1..9).</param>
         /// <returns>The created <see cref="WordTableOfContent"/> instance.</returns>
-        public WordTableOfContent AddTableOfContent(TableOfContentStyle tableOfContentStyle = TableOfContentStyle.Template1) {
-            WordTableOfContent wordTableContent = new WordTableOfContent(this, tableOfContentStyle);
+        public WordTableOfContent AddTableOfContent(
+            TableOfContentStyle tableOfContentStyle = TableOfContentStyle.Template1,
+            int minLevel = 1,
+            int maxLevel = 3) {
+            WordTableOfContent wordTableContent = new WordTableOfContent(this, tableOfContentStyle, minLevel, maxLevel);
             var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
             _tableOfContentIndex = body.ChildElements.Count - 1;
             _tableOfContentStyle = tableOfContentStyle;
