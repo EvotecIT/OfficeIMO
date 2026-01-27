@@ -255,16 +255,44 @@ namespace OfficeIMO.Word {
 
                 var instructionText = instruction!;
                 var hadLevelSwitch = Regex.IsMatch(instructionText, TocLevelSwitchPattern);
-                var updated = hadLevelSwitch
-                    ? Regex.Replace(instructionText, TocLevelSwitchPattern, levelSwitch)
-                    : instructionText;
-
-                if (!hadLevelSwitch) {
+                string updated;
+                if (hadLevelSwitch) {
+                    updated = Regex.Replace(instructionText, TocLevelSwitchPattern, levelSwitch);
+                } else {
                     updated = instructionText.TrimEnd() + " " + levelSwitch + " ";
                 }
 
                 simpleField.Instruction = updated;
                 simpleField.Dirty = true;
+            }
+
+            // Word often converts TOC fields into complex fields (FieldChar/FieldCode).
+            // Update those instructions as well so SetLevels works on existing documents.
+            foreach (var fieldCode in _sdtBlock.Descendants<FieldCode>()) {
+                var instructionText = fieldCode.Text;
+                if (string.IsNullOrWhiteSpace(instructionText)) {
+                    continue;
+                }
+
+                if (!instructionText.Contains("TOC", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
+                var hadLevelSwitch = Regex.IsMatch(instructionText, TocLevelSwitchPattern);
+                string updated;
+                if (hadLevelSwitch) {
+                    updated = Regex.Replace(instructionText, TocLevelSwitchPattern, levelSwitch);
+                } else {
+                    updated = instructionText.TrimEnd() + " " + levelSwitch + " ";
+                }
+
+                fieldCode.Text = updated;
+            }
+
+            foreach (var fieldChar in _sdtBlock.Descendants<FieldChar>()) {
+                if (fieldChar.Dirty?.Value != true) {
+                    fieldChar.Dirty = true;
+                }
             }
         }
 

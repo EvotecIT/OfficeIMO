@@ -30,5 +30,40 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
         }
+
+        [Fact]
+        public void Test_TableOfContentsLevelsUpdateComplexFields() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTOCLevelsComplex.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var toc = document.AddTableOfContent();
+
+                var simpleField = toc.SdtBlock.Descendants<SimpleField>().First();
+                var instructionText = simpleField.Instruction?.Value ?? simpleField.Instruction;
+                instructionText ??= " TOC \\o \"1-3\" \\h \\z \\u ";
+                var paragraph = simpleField.Ancestors<Paragraph>().First();
+
+                // Simulate Word converting the TOC into a complex field.
+                simpleField.Remove();
+                paragraph.Append(
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode { Text = instructionText }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("No table of contents entries found.")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+                toc.SetLevels(1, 5);
+
+                var fieldCodeText = toc.SdtBlock
+                    .Descendants<FieldCode>()
+                    .Select(code => code.Text)
+                    .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+
+                Assert.NotNull(fieldCodeText);
+                Assert.Contains("\\o \"1-5\"", fieldCodeText);
+
+                document.Save(false);
+            }
+        }
     }
 }
