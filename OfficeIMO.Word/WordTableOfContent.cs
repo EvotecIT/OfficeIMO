@@ -22,6 +22,7 @@ namespace OfficeIMO.Word {
     /// Represents a table of contents within a Word document.
     /// </summary>
     public class WordTableOfContent : WordElement {
+        private static readonly string TocLevelSwitchPattern = @"\\o\s+(?:""\d+-\d+""|&quot;\d+-\d+&quot;)";
         private readonly WordDocument _document;
         private readonly SdtBlock _sdtBlock;
 
@@ -253,10 +254,9 @@ namespace OfficeIMO.Word {
                 }
 
                 var instructionText = instruction!;
-                var levelPattern = @"\\o\s+(?:""\d+-\d+""|&quot;\d+-\d+&quot;)";
-                var hadLevelSwitch = Regex.IsMatch(instructionText, levelPattern);
+                var hadLevelSwitch = Regex.IsMatch(instructionText, TocLevelSwitchPattern);
                 var updated = hadLevelSwitch
-                    ? Regex.Replace(instructionText, levelPattern, levelSwitch)
+                    ? Regex.Replace(instructionText, TocLevelSwitchPattern, levelSwitch)
                     : instructionText;
 
                 if (!hadLevelSwitch) {

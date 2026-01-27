@@ -96,7 +96,8 @@ namespace OfficeIMO.Word {
             element.Value = value ?? string.Empty;
             SaveXml(part, document);
 
-            // Encourage Word to refresh bound content controls on open.
+            // Encourage Word to refresh bound content controls on open by marking
+            // the document to update fields on open.
             _document.Settings.UpdateFieldsOnOpen = true;
         }
 
