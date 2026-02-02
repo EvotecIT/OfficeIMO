@@ -187,6 +187,8 @@ public static partial class MarkdownReader {
 
     private static bool IsDefinitionLine(string line) {
         if (string.IsNullOrWhiteSpace(line)) return false;
+        var trimmed = line.TrimStart();
+        if (trimmed.StartsWith("#")) return false; // headings take priority over definition lists
         var idx = line.IndexOf(':');
         if (idx <= 0) return false;
         if (idx + 1 >= line.Length) return false;
