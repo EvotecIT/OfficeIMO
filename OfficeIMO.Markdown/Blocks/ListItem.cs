@@ -24,7 +24,7 @@ public sealed class ListItem {
     /// <summary>Creates a task (checklist) item.</summary>
     public static ListItem Task(string text, bool done = false) => new ListItem(new InlineSequence().Text(text), true, done);
     /// <summary>Creates a task (checklist) item with inline markup parsed.</summary>
-    public static ListItem Task(InlineSequence content, bool done = false) => new ListItem(content ?? new InlineSequence(), true, done);
+    public static ListItem TaskInlines(InlineSequence content, bool done = false) => new ListItem(content ?? new InlineSequence(), true, done);
 
     internal string RenderMarkdown() => Content.RenderMarkdown();
     internal string RenderHtml() => Content.RenderHtml();

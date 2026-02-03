@@ -7,6 +7,13 @@ namespace OfficeIMO.Markdown;
 public sealed class DefinitionListBlock : IMarkdownBlock {
     /// <summary>List of (term, definition) pairs.</summary>
     public List<(string Term, string Definition)> Items { get; } = new List<(string, string)>();
+    internal MarkdownReaderOptions? ReaderOptions { get; private set; }
+    internal MarkdownReaderState? ReaderState { get; private set; }
+
+    internal void SetParsingContext(MarkdownReaderOptions options, MarkdownReaderState state) {
+        ReaderOptions = options;
+        ReaderState = state;
+    }
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() {
@@ -22,13 +29,13 @@ public sealed class DefinitionListBlock : IMarkdownBlock {
         foreach (var (term, def) in Items) {
             sb.Append("<dt>");
             if (!string.IsNullOrEmpty(term)) {
-                var termInlines = MarkdownReader.ParseInlineText(term);
+                var termInlines = MarkdownReader.ParseInlineText(term, ReaderOptions, ReaderState);
                 sb.Append(termInlines.RenderHtml());
             }
             sb.Append("</dt>");
             sb.Append("<dd>");
             if (!string.IsNullOrEmpty(def)) {
-                var inlines = MarkdownReader.ParseInlineText(def);
+                var inlines = MarkdownReader.ParseInlineText(def, ReaderOptions, ReaderState);
                 sb.Append(inlines.RenderHtml());
             }
             sb.Append("</dd>");

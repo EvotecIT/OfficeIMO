@@ -86,6 +86,27 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Equal(2, heading.Level);
             Assert.Equal("Heading: Text", heading.Text);
         }
+
+        [Fact]
+        public void Unordered_List_Parses_Inline_Markup() {
+            string md = "- *emphasis* and [link](https://example.com)\n- [x] **bold** task";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Equal(2, list.Items.Count);
+            Assert.Contains(list.Items[0].Content.Items, item => item is ItalicInline);
+            Assert.Contains(list.Items[0].Content.Items, item => item is LinkInline);
+            Assert.Contains(list.Items[1].Content.Items, item => item is BoldInline);
+        }
+
+        [Fact]
+        public void Definition_List_Terms_Parse_Inline_Markup() {
+            string md = "*Term*: Definition\n[Link](https://example.com): Another";
+            var doc = MarkdownReader.Parse(md);
+            var defList = Assert.IsType<DefinitionListBlock>(doc.Blocks[0]);
+            var html = ((IMarkdownBlock)defList).RenderHtml();
+            Assert.Contains("<em>Term</em>", html);
+            Assert.Contains("href=\"https://example.com\"", html);
+        }
     }
 }
 

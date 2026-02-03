@@ -188,11 +188,24 @@ public static partial class MarkdownReader {
     private static bool IsDefinitionLine(string line) {
         if (string.IsNullOrWhiteSpace(line)) return false;
         var trimmed = line.TrimStart();
-        if (trimmed.StartsWith("#")) return false; // headings take priority over definition lists
-        var idx = line.IndexOf(':');
-        if (idx <= 0) return false;
-        if (idx + 1 >= line.Length) return false;
-        return line[idx + 1] == ' ';
+        if (IsAtxHeading(trimmed, out _, out _)) return false; // headings take priority over definition lists
+        return TryGetDefinitionSeparator(line, out _);
+    }
+
+    private static bool TryGetDefinitionSeparator(string line, out int idx) {
+        idx = -1;
+        if (string.IsNullOrWhiteSpace(line)) return false;
+        int start = 0;
+        while (start < line.Length) {
+            int pos = line.IndexOf(':', start);
+            if (pos < 0) return false;
+            if (pos > 0 && pos + 1 < line.Length && line[pos + 1] == ' ') {
+                idx = pos;
+                return true;
+            }
+            start = pos + 1;
+        }
+        return false;
     }
 
     private static bool IsOrderedListLine(string line, out int number, out string content) {

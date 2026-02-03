@@ -323,5 +323,9 @@ public static partial class MarkdownReader {
     /// <param name="text">Inline Markdown text.</param>
     /// <param name="options">Reader options controlling inline interpretation.</param>
     /// <returns>Parsed sequence of inline nodes.</returns>
-    public static InlineSequence ParseInlineText(string? text, MarkdownReaderOptions? options = null) => ParseInlines(text ?? string.Empty, options ?? new MarkdownReaderOptions(), null);
+    public static InlineSequence ParseInlineText(string? text, MarkdownReaderOptions? options = null) =>
+        ParseInlineText(text, options, null);
+
+    internal static InlineSequence ParseInlineText(string? text, MarkdownReaderOptions? options, MarkdownReaderState? state) =>
+        ParseInlines(text ?? string.Empty, options ?? new MarkdownReaderOptions(), state);
 }
