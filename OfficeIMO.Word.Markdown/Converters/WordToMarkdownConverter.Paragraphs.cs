@@ -133,7 +133,9 @@ namespace OfficeIMO.Word.Markdown {
                 }
 
                 if (run.IsHyperLink && run.Hyperlink != null && run.Hyperlink.Uri != null) {
-                    text = $"[{text}]({run.Hyperlink.Uri})";
+                    var uri = run.Hyperlink.Uri;
+                    var url = uri.OriginalString ?? uri.ToString();
+                    text = $"[{text}]({url})";
                 }
 
                 sb.Append(text);

@@ -77,6 +77,15 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var text = Assert.IsType<TextRun>(paragraph.Inlines.Items[0]);
             Assert.Equal("Paragraph", text.Text);
         }
+
+        [Fact]
+        public void Heading_With_Colon_Is_Not_Definition_List() {
+            string md = "## Heading: Text\n\nParagraph.";
+            var doc = MarkdownReader.Parse(md);
+            var heading = Assert.IsType<HeadingBlock>(doc.Blocks[0]);
+            Assert.Equal(2, heading.Level);
+            Assert.Equal("Heading: Text", heading.Text);
+        }
     }
 }
 
