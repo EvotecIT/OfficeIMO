@@ -134,7 +134,19 @@ namespace OfficeIMO.Word.Markdown {
 
                 if (run.IsHyperLink && run.Hyperlink != null && run.Hyperlink.Uri != null) {
                     var uri = run.Hyperlink.Uri;
-                    var url = uri.ToString();
+                    string url;
+                    if (uri.IsAbsoluteUri) {
+                        url = uri.GetComponents(UriComponents.AbsoluteUri, UriFormat.UriEscaped);
+                        var original = uri.OriginalString;
+                        if (!string.IsNullOrEmpty(original) &&
+                            !original.EndsWith("/", StringComparison.Ordinal) &&
+                            uri.AbsolutePath == "/" &&
+                            url.EndsWith("/", StringComparison.Ordinal)) {
+                            url = url.TrimEnd('/');
+                        }
+                    } else {
+                        url = uri.ToString();
+                    }
                     text = $"[{text}]({url})";
                 }
 

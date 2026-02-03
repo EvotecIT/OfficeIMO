@@ -23,7 +23,11 @@ public sealed class ListItem {
     public static ListItem Link(string text, string url, string? title = null) => new ListItem(new InlineSequence().Link(text, url, title));
     /// <summary>Creates a task (checklist) item.</summary>
     public static ListItem Task(string text, bool done = false) => new ListItem(new InlineSequence().Text(text), true, done);
-    /// <summary>Creates a task (checklist) item with inline markup parsed.</summary>
+    /// <summary>
+    /// Creates a task (checklist) item using inline content.
+    /// </summary>
+    /// <param name="content">Inline content for the list item. When <c>null</c>, an empty sequence is used.</param>
+    /// <param name="done">Whether the task should be marked as completed.</param>
     public static ListItem TaskInlines(InlineSequence content, bool done = false) => new ListItem(content ?? new InlineSequence(), true, done);
 
     internal string RenderMarkdown() => Content.RenderMarkdown();
