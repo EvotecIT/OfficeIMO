@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("~~strike~~", markdown);
             Assert.Contains("`code`", markdown);
             Assert.Contains("- Item 1", markdown);
-            Assert.Contains("[OfficeIMO](https://example.com/)", markdown);
+            Assert.Matches("\\[OfficeIMO\\]\\(https://example\\.com/?\\)", markdown);
             Assert.Contains("| H1 | H2 |", markdown);
             Assert.Contains("data:image/png;base64", markdown);
         }

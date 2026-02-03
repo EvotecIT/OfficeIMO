@@ -6,9 +6,10 @@ public static partial class MarkdownReader {
             if (!options.DefinitionLists) return false;
             if (!IsDefinitionLine(lines[i])) return false;
             var dl = new DefinitionListBlock();
+            dl.SetParsingContext(options, state);
             int j = i;
             while (j < lines.Length && IsDefinitionLine(lines[j])) {
-                var idx = lines[j].IndexOf(':');
+                if (!TryGetDefinitionSeparator(lines[j], out var idx)) break;
                 var term = lines[j].Substring(0, idx).Trim();
                 var def = lines[j].Substring(idx + 1).TrimStart();
                 dl.Items.Add((term, def)); j++;
