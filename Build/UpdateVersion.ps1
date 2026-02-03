@@ -12,8 +12,4 @@ Invoke-DotNetRepositoryRelease `
     -ExcludeProject $config.ExcludeProject `
     -NugetSource $config.NugetSource `
     -IncludePrerelease:$config.IncludePrerelease `
-    -OutputPath $config.OutputPath `
-    -Publish `
-    -PublishApiKeyFilePath $config.PublishApiKeyFilePath `
-    -PublishSource $config.PublishSource `
-    -SkipDuplicate
+    -SkipPack
