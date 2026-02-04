@@ -366,6 +366,8 @@ FodyWeavers.xsd
 
 /.idea/
 Ignore/*
+Build/Artefacts/
+Artefacts/
 
 *.received.*
 dotnet-install.sh

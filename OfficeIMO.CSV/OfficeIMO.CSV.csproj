@@ -5,7 +5,7 @@
     <AssemblyName>OfficeIMO.CSV</AssemblyName>
     <AssemblyTitle>OfficeIMO.CSV</AssemblyTitle>
 
-    <VersionPrefix>0.1.1</VersionPrefix>
+    <VersionPrefix>0.1.2</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net9.0;net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
