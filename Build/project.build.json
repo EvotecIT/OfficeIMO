@@ -1,0 +1,40 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/master/Schemas/project.build.schema.json",
+  "RootPath": "..",
+  "ExpectedVersion": null,
+  "ExpectedVersionMap": {
+    "OfficeIMO.CSV": "0.1.X",
+    "OfficeIMO.Excel": "0.6.X",
+    "OfficeIMO.Markdown": "0.5.X",
+    "OfficeIMO.Word": "1.0.X"
+  },
+  "ExpectedVersionMapAsInclude": true,
+  "ExpectedVersionMapUseWildcards": false,
+  "ExcludeProjects": [
+    "OfficeIMO.Visio",
+    "OfficeIMO.Project",
+    "OfficeIMO.Word.Html",
+    "OfficeIMO.Word.Markdown",
+    "OfficeIMO.Word.Pdf"
+  ],
+  "NugetSource": [],
+  "IncludePrerelease": false,
+  "Configuration": "Release",
+  "OutputPath": null,
+  "UpdateVersions": true,
+  "Build": true,
+  "PublishNuget": true,
+  "PublishGitHub": true,
+  "CertificateThumbprint": "483292C9E317AA13B07BB7A96AE9D1A5ED9E7703",
+  "CertificateStore": "CurrentUser",
+  "TimeStampServer": "http://timestamp.digicert.com",
+  "PublishSource": "https://api.nuget.org/v3/index.json",
+  "PublishApiKeyFilePath": "C:\\Support\\Important\\NugetOrgEvotec.txt",
+  "SkipDuplicate": true,
+  "PublishFailFast": true,
+  "GitHubAccessTokenFilePath": "C:\\Support\\Important\\GithubAPI.txt",
+  "GitHubUsername": "EvotecIT",
+  "GitHubRepositoryName": "OfficeIMO",
+  "GitHubIsPreRelease": false,
+  "GitHubIncludeProjectNameInTag": true
+}
