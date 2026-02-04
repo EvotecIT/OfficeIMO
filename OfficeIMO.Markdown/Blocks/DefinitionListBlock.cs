@@ -26,16 +26,18 @@ public sealed class DefinitionListBlock : IMarkdownBlock {
     string IMarkdownBlock.RenderHtml() {
         StringBuilder sb = new StringBuilder();
         sb.Append("<dl>");
+        var options = ReaderOptions ?? new MarkdownReaderOptions();
+        var state = ReaderState ?? new MarkdownReaderState();
         foreach (var (term, def) in Items) {
             sb.Append("<dt>");
             if (!string.IsNullOrEmpty(term)) {
-                var termInlines = MarkdownReader.ParseInlineText(term, ReaderOptions, ReaderState);
+                var termInlines = MarkdownReader.ParseInlineText(term, options, state);
                 sb.Append(termInlines.RenderHtml());
             }
             sb.Append("</dt>");
             sb.Append("<dd>");
             if (!string.IsNullOrEmpty(def)) {
-                var inlines = MarkdownReader.ParseInlineText(def, ReaderOptions, ReaderState);
+                var inlines = MarkdownReader.ParseInlineText(def, options, state);
                 sb.Append(inlines.RenderHtml());
             }
             sb.Append("</dd>");
