@@ -1,9 +1,11 @@
 param(
     [string] $ConfigPath = "$PSScriptRoot\project.build.json",
-    [switch] $UpdateVersions,
-    [switch] $Build,
-    [switch] $PublishNuget,
-    [switch] $PublishGitHub
+    [Nullable[bool]] $UpdateVersions,
+    [Nullable[bool]] $Build,
+    [Nullable[bool]] $PublishNuget,
+    [Nullable[bool]] $PublishGitHub,
+    [Nullable[bool]] $Plan,
+    [string] $PlanPath
 )
 
 Import-Module PSPublishModule -Force -ErrorAction Stop
@@ -11,9 +13,11 @@ Import-Module PSPublishModule -Force -ErrorAction Stop
 $invokeParams = @{
     ConfigPath = $ConfigPath
 }
-if ($UpdateVersions) { $invokeParams.UpdateVersions = $true }
-if ($Build) { $invokeParams.Build = $true }
-if ($PublishNuget) { $invokeParams.PublishNuget = $false }
-if ($PublishGitHub) { $invokeParams.PublishGitHub = $false }
+if ($null -ne $UpdateVersions) { $invokeParams.UpdateVersions = $UpdateVersions }
+if ($null -ne $Build) { $invokeParams.Build = $Build }
+if ($null -ne $PublishNuget) { $invokeParams.PublishNuget = $PublishNuget }
+if ($null -ne $PublishGitHub) { $invokeParams.PublishGitHub = $PublishGitHub }
+if ($null -ne $Plan) { $invokeParams.Plan = $Plan }
+if ($PlanPath) { $invokeParams.PlanPath = $PlanPath }
 
 Invoke-ProjectBuild @invokeParams

@@ -21,10 +21,14 @@
   "IncludePrerelease": false,
   "Configuration": "Release",
   "OutputPath": null,
+  "StagingPath": "Build/Artefacts/ProjectBuild",
+  "CleanStaging": true,
+  "PlanOutputPath": "Build/Artefacts/ProjectBuild/project.build.plan.json",
   "UpdateVersions": true,
   "Build": true,
   "PublishNuget": true,
   "PublishGitHub": true,
+  "CreateReleaseZip": true,
   "CertificateThumbprint": "483292C9E317AA13B07BB7A96AE9D1A5ED9E7703",
   "CertificateStore": "CurrentUser",
   "TimeStampServer": "http://timestamp.digicert.com",
@@ -36,5 +40,9 @@
   "GitHubUsername": "EvotecIT",
   "GitHubRepositoryName": "OfficeIMO",
   "GitHubIsPreRelease": false,
-  "GitHubIncludeProjectNameInTag": true
+  "GitHubIncludeProjectNameInTag": true,
+  "GitHubGenerateReleaseNotes": true,
+  "GitHubReleaseMode": "Single",
+  "GitHubPrimaryProject": "OfficeIMO.Word",
+  "GitHubTagTemplate": "{Project}-v{Version}"
 }
