@@ -7,6 +7,8 @@ $OfficeIMOReleaseConfig = @{
         "OfficeIMO.Markdown" = "0.5.X"
         "OfficeIMO.Word"     = "1.0.X"
     }
+    ExpectedVersionMapAsInclude = $true
+    ExpectedVersionMapUseWildcards = $false
     ExcludeProject             = @("OfficeIMO.Visio", "OfficeIMO.Project")
     NugetSource                = @()
     IncludePrerelease          = $false

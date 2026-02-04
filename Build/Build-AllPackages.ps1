@@ -9,6 +9,8 @@ Invoke-DotNetRepositoryRelease `
     -Path $repoRoot `
     -ExpectedVersion $config.ExpectedVersion `
     -ExpectedVersionMap $config.ExpectedVersionMap `
+    -ExpectedVersionMapAsInclude:$config.ExpectedVersionMapAsInclude `
+    -ExpectedVersionMapUseWildcards:$config.ExpectedVersionMapUseWildcards `
     -ExcludeProject $config.ExcludeProject `
     -NugetSource $config.NugetSource `
     -IncludePrerelease:$config.IncludePrerelease `
