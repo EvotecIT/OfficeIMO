@@ -73,9 +73,18 @@ public static class MarkdownRenderer {
 
         var sb = new StringBuilder(16 * 1024);
         sb.Append("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">");
+        if (!string.IsNullOrWhiteSpace(options.ContentSecurityPolicy)) {
+            sb.Append("<meta http-equiv=\"Content-Security-Policy\" content=\"")
+              .Append(System.Net.WebUtility.HtmlEncode(options.ContentSecurityPolicy!.Trim()))
+              .Append("\">");
+        }
         sb.Append("<title>").Append(System.Net.WebUtility.HtmlEncode(title ?? "Markdown")).Append("</title>");
         if (!string.IsNullOrEmpty(parts.Css)) sb.Append("<style>\n").Append(parts.Css).Append("\n</style>");
         if (!string.IsNullOrEmpty(parts.Head)) sb.Append(parts.Head);
+
+        if (options.Math?.Enabled == true) {
+            sb.Append(BuildMathBootstrap(options.Math));
+        }
 
         if (options.Mermaid?.Enabled == true) {
             sb.Append(BuildMermaidBootstrap(options.Mermaid));
@@ -171,9 +180,21 @@ mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-col
         return $"\n<script src=\"{url}\"></script>\n";
     }
 
+    private static string BuildMathBootstrap(MathOptions o) {
+        string css = System.Net.WebUtility.HtmlEncode((o?.CssUrl ?? string.Empty).Trim());
+        string js = System.Net.WebUtility.HtmlEncode((o?.ScriptUrl ?? string.Empty).Trim());
+        string ar = System.Net.WebUtility.HtmlEncode((o?.AutoRenderScriptUrl ?? string.Empty).Trim());
+        if (string.IsNullOrEmpty(css) || string.IsNullOrEmpty(js) || string.IsNullOrEmpty(ar)) return string.Empty;
+
+        // KaTeX should be ready before we render content via updateContent(...). Use defer so it doesn't block HTML parse,
+        // and call renderMathInElement from updateContent after DOM updates.
+        return $"\n<link rel=\"stylesheet\" href=\"{css}\">\n<script defer src=\"{js}\"></script>\n<script defer src=\"{ar}\"></script>\n";
+    }
+
     private static string BuildIncrementalUpdateScript(MarkdownRendererOptions options) {
         bool mermaid = options.Mermaid?.Enabled == true;
         bool chart = options.Chart?.Enabled == true;
+        var mathOptions = options.Math;
 
         // Notes:
         // - We keep <base> in <head> so relative links/images resolve.
@@ -298,9 +319,35 @@ async function updateContent(newBodyHtml) {
       else if (typeof Prism.highlightAll === 'function') Prism.highlightAll();
     }
   } catch(e) { /* ignore */ }
-}
 """);
 
+        if (mathOptions != null && mathOptions.Enabled) {
+            sb.Append("""
+
+  // KaTeX auto-render (optional).
+  try {
+    if (window.renderMathInElement) {
+      const delimiters = [];
+""");
+            if (mathOptions.EnableDollarDisplay) sb.Append("      delimiters.push({ left: \"$$\", right: \"$$\", display: true });\n");
+            if (mathOptions.EnableDollarInline) sb.Append("      delimiters.push({ left: \"$\", right: \"$\", display: false });\n");
+            if (mathOptions.EnableBracketDisplay) sb.Append("      delimiters.push({ left: \"\\\\[\", right: \"\\\\]\", display: true });\n");
+            if (mathOptions.EnableParenInline) sb.Append("      delimiters.push({ left: \"\\\\(\", right: \"\\\\)\", display: false });\n");
+            sb.Append("""
+      if (delimiters.length > 0) {
+        window.renderMathInElement(root, {
+          delimiters: delimiters,
+          throwOnError: false,
+          strict: 'ignore',
+          ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        });
+      }
+    }
+  } catch(e) { /* ignore */ }
+""");
+        }
+
+        sb.Append("}\n");
         return sb.ToString();
     }
 }

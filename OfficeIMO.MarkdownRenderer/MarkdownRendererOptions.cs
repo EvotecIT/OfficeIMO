@@ -59,4 +59,14 @@ public sealed class MarkdownRendererOptions {
 
     /// <summary>Chart.js support options.</summary>
     public ChartOptions Chart { get; } = new ChartOptions();
+
+    /// <summary>Math (KaTeX) support options.</summary>
+    public MathOptions Math { get; } = new MathOptions();
+
+    /// <summary>
+    /// Optional Content-Security-Policy meta tag value for the shell document (inserted as http-equiv).
+    /// Leave unset unless your host wants to enforce a specific policy.
+    /// Default: null.
+    /// </summary>
+    public string? ContentSecurityPolicy { get; set; }
 }

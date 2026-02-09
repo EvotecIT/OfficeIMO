@@ -35,6 +35,8 @@ public class Markdown_Renderer_Tests {
         Assert.Contains("async function updateContent", shell, StringComparison.Ordinal);
         Assert.Contains("omdRoot", shell, StringComparison.Ordinal);
         Assert.Contains("mermaid.esm.min.mjs", shell, StringComparison.Ordinal);
+        Assert.Contains("katex", shell, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("renderMathInElement", shell, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
