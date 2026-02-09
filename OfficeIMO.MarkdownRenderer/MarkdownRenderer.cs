@@ -30,6 +30,14 @@ public static class MarkdownRenderer {
             markdown = markdown.Replace("\\r\\n", "\n").Replace("\\n", "\n");
         }
 
+        if (!string.IsNullOrWhiteSpace(options.BaseHref) && htmlOptions.BaseUri == null) {
+            // Best-effort: use BaseHref for origin restrictions (if enabled). If parsing fails or BaseHref isn't absolute,
+            // keep BaseUri null and origin restriction will effectively be disabled.
+            if (Uri.TryCreate(options.BaseHref!.Trim(), UriKind.Absolute, out var baseUri)) {
+                htmlOptions.BaseUri = baseUri;
+            }
+        }
+
         var doc = MarkdownReader.Parse(markdown ?? string.Empty, readerOptions);
         string html = doc.ToHtmlFragment(htmlOptions);
 

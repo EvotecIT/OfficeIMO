@@ -24,7 +24,20 @@ public sealed class ImageLinkInline {
     internal string RenderHtml() {
         var title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title!)}\"";
         var o = HtmlRenderContext.Options;
-        var extra = LinkHtmlAttributes.BuildExternalLinkAttributes(o, LinkUrl);
-        return $"<a href=\"{System.Net.WebUtility.HtmlEncode(LinkUrl)}\"{extra}><img src=\"{System.Net.WebUtility.HtmlEncode(ImageUrl)}\" alt=\"{System.Net.WebUtility.HtmlEncode(Alt)}\"{title} /></a>";
+        bool linkAllowed = UrlOriginPolicy.IsAllowedHttpLink(o, LinkUrl);
+        bool imageAllowed = UrlOriginPolicy.IsAllowedHttpImage(o, ImageUrl);
+
+        var imgExtra = imageAllowed ? ImageHtmlAttributes.BuildImageAttributes(o, ImageUrl) : string.Empty;
+        var extra = linkAllowed ? LinkHtmlAttributes.BuildExternalLinkAttributes(o, LinkUrl) : string.Empty;
+
+        if (!linkAllowed && !imageAllowed) return ImageHtmlAttributes.BuildBlockedPlaceholder(Alt);
+        if (!imageAllowed && linkAllowed) {
+            return $"<a href=\"{System.Net.WebUtility.HtmlEncode(LinkUrl)}\"{extra}>{System.Net.WebUtility.HtmlEncode(Alt)}</a>";
+        }
+        if (imageAllowed && !linkAllowed) {
+            return $"<img src=\"{System.Net.WebUtility.HtmlEncode(ImageUrl)}\" alt=\"{System.Net.WebUtility.HtmlEncode(Alt)}\"{title}{imgExtra} />";
+        }
+
+        return $"<a href=\"{System.Net.WebUtility.HtmlEncode(LinkUrl)}\"{extra}><img src=\"{System.Net.WebUtility.HtmlEncode(ImageUrl)}\" alt=\"{System.Net.WebUtility.HtmlEncode(Alt)}\"{title}{imgExtra} /></a>";
     }
 }

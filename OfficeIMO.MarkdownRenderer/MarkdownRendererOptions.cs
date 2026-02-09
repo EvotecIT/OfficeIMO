@@ -31,8 +31,13 @@ public sealed class MarkdownRendererOptions {
         BodyClass = "markdown-body",
         RawHtmlHandling = RawHtmlHandling.Strip,
         ExternalLinksTargetBlank = true,
-        ExternalLinksRel = "noopener noreferrer",
+        ExternalLinksRel = "noopener noreferrer nofollow ugc",
         ExternalLinksReferrerPolicy = "no-referrer",
+        RestrictHttpLinksToBaseOrigin = true,
+        RestrictHttpImagesToBaseOrigin = true,
+        ImagesLoadingLazy = true,
+        ImagesDecodingAsync = true,
+        ImagesReferrerPolicy = "no-referrer",
         Prism = new PrismOptions { Enabled = true, Theme = PrismTheme.GithubAuto }
     };
 

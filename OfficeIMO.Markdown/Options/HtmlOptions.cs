@@ -71,6 +71,50 @@ public sealed class HtmlOptions {
     /// </summary>
     public string ExternalLinksReferrerPolicy { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Optional base URI used for origin-based restrictions during HTML rendering.
+    /// When set and <see cref="RestrictHttpLinksToBaseOrigin"/>/<see cref="RestrictHttpImagesToBaseOrigin"/> are enabled,
+    /// absolute HTTP(S) links/images that are cross-origin are suppressed.
+    /// Default: null.
+    /// </summary>
+    public Uri? BaseUri { get; set; }
+
+    /// <summary>
+    /// When true and <see cref="BaseUri"/> is an absolute HTTP(S) URI, suppresses cross-origin absolute HTTP(S) links.
+    /// Relative links and non-HTTP schemes (e.g., mailto) are not affected.
+    /// Default: false.
+    /// </summary>
+    public bool RestrictHttpLinksToBaseOrigin { get; set; } = false;
+
+    /// <summary>
+    /// When true and <see cref="BaseUri"/> is an absolute HTTP(S) URI, suppresses cross-origin absolute HTTP(S) images.
+    /// Relative image URLs are not affected.
+    /// Default: false.
+    /// </summary>
+    public bool RestrictHttpImagesToBaseOrigin { get; set; } = false;
+
+    /// <summary>
+    /// When true, suppresses absolute external HTTP(S) images regardless of <see cref="BaseUri"/>.
+    /// Useful for privacy-sensitive/untrusted content. Default: false.
+    /// </summary>
+    public bool BlockExternalHttpImages { get; set; } = false;
+
+    /// <summary>
+    /// When true, emits <c>loading="lazy"</c> on rendered <c>&lt;img&gt;</c> tags. Default: false.
+    /// </summary>
+    public bool ImagesLoadingLazy { get; set; } = false;
+
+    /// <summary>
+    /// When true, emits <c>decoding="async"</c> on rendered <c>&lt;img&gt;</c> tags. Default: false.
+    /// </summary>
+    public bool ImagesDecodingAsync { get; set; } = false;
+
+    /// <summary>
+    /// Optional <c>referrerpolicy</c> value to apply to rendered <c>&lt;img&gt;</c> tags.
+    /// Common privacy value: <c>no-referrer</c>. Default: empty (no referrerpolicy attribute added).
+    /// </summary>
+    public string ImagesReferrerPolicy { get; set; } = string.Empty;
+
     // The following are used internally by the renderer; not part of the public API surface.
     internal string? ExternalCssOutputPath { get; set; }
     internal string? _externalCssContentToWrite { get; set; }

@@ -60,6 +60,10 @@ public sealed class LinkInline {
     internal string RenderHtml() {
         string title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title!)}\"";
         var o = HtmlRenderContext.Options;
+        if (!UrlOriginPolicy.IsAllowedHttpLink(o, Url)) {
+            if (LabelInlines != null) return LabelInlines.RenderHtml();
+            return System.Net.WebUtility.HtmlEncode(Text);
+        }
         string extra = LinkHtmlAttributes.BuildExternalLinkAttributes(o, Url);
         if (LabelInlines != null) {
             return $"<a href=\"{System.Net.WebUtility.HtmlEncode(Url)}\"{title}{extra}>{LabelInlines.RenderHtml()}</a>";

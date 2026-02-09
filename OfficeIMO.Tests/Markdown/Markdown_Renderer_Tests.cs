@@ -77,7 +77,40 @@ public class Markdown_Renderer_Tests {
     public void MarkdownRenderer_Defaults_To_Hardened_External_Links() {
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("[x](https://example.com)");
         Assert.Contains("target=\"_blank\"", html, StringComparison.Ordinal);
-        Assert.Contains("rel=\"noopener noreferrer\"", html, StringComparison.Ordinal);
+        Assert.Contains("rel=\"", html, StringComparison.Ordinal);
+        Assert.Contains("noopener", html, StringComparison.Ordinal);
+        Assert.Contains("noreferrer", html, StringComparison.Ordinal);
+        Assert.Contains("nofollow", html, StringComparison.Ordinal);
+        Assert.Contains("ugc", html, StringComparison.Ordinal);
+        Assert.Contains("referrerpolicy=\"no-referrer\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Can_Restrict_Absolute_Http_Links_To_Base_Origin() {
+        var opts = new MarkdownRendererOptions { BaseHref = "https://example.com/" };
+        opts.HtmlOptions.RestrictHttpLinksToBaseOrigin = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("[x](https://other.example.com/path)", opts);
+        Assert.DoesNotContain("other.example.com", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(">x<", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Can_Restrict_Absolute_Http_Images_To_Base_Origin() {
+        var opts = new MarkdownRendererOptions { BaseHref = "https://example.com/" };
+        opts.HtmlOptions.RestrictHttpImagesToBaseOrigin = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("![alt](https://other.example.com/a.png)", opts);
+        Assert.DoesNotContain("<img", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("omd-image-blocked", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Defaults_Emit_Image_Hardening_Attributes() {
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("![alt](https://example.com/a.png)");
+        Assert.Contains("<img", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("loading=\"lazy\"", html, StringComparison.Ordinal);
+        Assert.Contains("decoding=\"async\"", html, StringComparison.Ordinal);
         Assert.Contains("referrerpolicy=\"no-referrer\"", html, StringComparison.Ordinal);
     }
 
