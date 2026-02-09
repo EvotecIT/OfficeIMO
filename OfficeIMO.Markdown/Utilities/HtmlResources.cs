@@ -230,6 +230,15 @@ article.markdown-body .md-layout.two-col > nav.md-toc.sidebar.sticky { position:
 article.markdown-body table { margin: .75rem 0 1.1rem 0; }
 article.markdown-body pre { margin: .75rem 0 1.1rem 0; }
 article.markdown-body blockquote { margin: .65rem 0 1rem 0; }
+
+/* Task lists (GitHub-like) */
+article.markdown-body ul.contains-task-list,
+article.markdown-body ol.contains-task-list { list-style: none; padding-left: 0; }
+article.markdown-body ul.contains-task-list > li,
+article.markdown-body ol.contains-task-list > li { padding-left: 1.6rem; position: relative; }
+article.markdown-body li.task-list-item { list-style: none; }
+article.markdown-body input.task-list-item-checkbox { margin: 0 .35rem 0 0; vertical-align: middle; }
+article.markdown-body li.task-list-item > input.task-list-item-checkbox { position: absolute; left: 0; top: .2em; }
 @media (max-width: 1000px) {
   article.markdown-body nav.md-toc.sidebar.right,
   article.markdown-body nav.md-toc.sidebar.left { float: none; width: auto; margin: 0 0 1rem 0; }

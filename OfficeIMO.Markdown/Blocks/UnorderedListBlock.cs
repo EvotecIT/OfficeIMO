@@ -66,14 +66,28 @@ public sealed class UnorderedListBlock : IMarkdownBlock {
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
         var sb = new System.Text.StringBuilder();
-        sb.Append("<ul>");
+
+        bool ContainsTasksInScope(int startIndex, int level) {
+            for (int i = startIndex; i < Items.Count; i++) {
+                var it = Items[i];
+                if (it.Level < level) break;
+                if (it.Level == level && it.IsTask) return true;
+            }
+            return false;
+        }
+
+        void AppendOpenUl(int startIndex, int level) {
+            sb.Append(ContainsTasksInScope(startIndex, level) ? "<ul class=\"contains-task-list\">" : "<ul>");
+        }
+
+        AppendOpenUl(0, 0);
         int currentLevel = 0;
         bool liOpen = false;
         for (int idx = 0; idx < Items.Count; idx++) {
             var item = Items[idx];
             int level = item.Level;
             if (level > currentLevel) {
-                for (int k = currentLevel; k < level; k++) sb.Append("<ul>");
+                for (int k = currentLevel + 1; k <= level; k++) AppendOpenUl(idx, k);
                 currentLevel = level;
                 // keep parent <li> open
             } else if (level < currentLevel) {
@@ -83,7 +97,7 @@ public sealed class UnorderedListBlock : IMarkdownBlock {
             } else {
                 if (liOpen) { sb.Append("</li>"); liOpen = false; }
             }
-            sb.Append("<li>").Append(item.RenderHtml());
+            sb.Append(item.IsTask ? "<li class=\"task-list-item\">" : "<li>").Append(item.RenderHtml());
             liOpen = true;
         }
         if (liOpen) { sb.Append("</li>"); liOpen = false; }

@@ -51,4 +51,18 @@ public class Markdown_Renderer_Tests {
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("[link](/x)", opts);
         Assert.Contains("<base href=\"https://example.com/\">", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Task_Lists_Emit_GithubLike_Classes() {
+        var md = """
+- [ ] Todo
+- [x] Done
+""";
+        var doc = MarkdownReader.Parse(md);
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("contains-task-list", html, StringComparison.Ordinal);
+        Assert.Contains("task-list-item", html, StringComparison.Ordinal);
+        Assert.Contains("task-list-item-checkbox", html, StringComparison.Ordinal);
+    }
 }

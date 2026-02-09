@@ -85,7 +85,7 @@ What we do today:
 
 - Mermaid: supported via `OfficeIMO.MarkdownRenderer` (fenced blocks named `mermaid` are rendered in the WebView).
 
-What to add next (if needed for IntelligenceX.Chat):
+What to add next (if needed for the chat app):
 
 - Additional diagram engines (PlantUML, Graphviz) using the same approach: keep them as fenced code blocks in Markdown, render via client-side JS or a server-side renderer if required.
 - "Charts" (for example via Chart.js) by agreeing on a fenced block format (JSON/YAML) and adding a renderer that transforms those blocks into `<canvas>` plus JS.

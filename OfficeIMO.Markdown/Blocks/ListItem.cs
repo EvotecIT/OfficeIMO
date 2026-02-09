@@ -45,7 +45,7 @@ public sealed class ListItem {
     }
 
     internal string RenderHtml() {
-        string checkbox = IsTask ? "<input type=\"checkbox\" disabled" + (Checked ? " checked" : string.Empty) + "> " : string.Empty;
+        string checkbox = IsTask ? "<input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled" + (Checked ? " checked" : string.Empty) + "> " : string.Empty;
         if (AdditionalParagraphs.Count == 0 && Children.Count == 0) {
             return checkbox + Content.RenderHtml();
         }
@@ -82,6 +82,7 @@ public sealed class ListItem {
         return indent + "- " + RenderMarkdown();
     }
     internal string ToHtmlListItem() {
-        return "<li>" + RenderHtml() + "</li>";
+        var cls = IsTask ? " class=\"task-list-item\"" : string.Empty;
+        return "<li" + cls + ">" + RenderHtml() + "</li>";
     }
 }
