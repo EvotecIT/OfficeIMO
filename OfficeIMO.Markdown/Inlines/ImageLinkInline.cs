@@ -23,6 +23,8 @@ public sealed class ImageLinkInline {
     }
     internal string RenderHtml() {
         var title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title!)}\"";
-        return $"<a href=\"{System.Net.WebUtility.HtmlEncode(LinkUrl)}\"><img src=\"{System.Net.WebUtility.HtmlEncode(ImageUrl)}\" alt=\"{System.Net.WebUtility.HtmlEncode(Alt)}\"{title} /></a>";
+        var o = HtmlRenderContext.Options;
+        var extra = LinkHtmlAttributes.BuildExternalLinkAttributes(o, LinkUrl);
+        return $"<a href=\"{System.Net.WebUtility.HtmlEncode(LinkUrl)}\"{extra}><img src=\"{System.Net.WebUtility.HtmlEncode(ImageUrl)}\" alt=\"{System.Net.WebUtility.HtmlEncode(Alt)}\"{title} /></a>";
     }
 }

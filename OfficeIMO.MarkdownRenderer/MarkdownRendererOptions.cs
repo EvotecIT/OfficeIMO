@@ -27,6 +27,9 @@ public sealed class MarkdownRendererOptions {
         AssetMode = AssetMode.Online,
         BodyClass = "markdown-body",
         RawHtmlHandling = RawHtmlHandling.Strip,
+        ExternalLinksTargetBlank = true,
+        ExternalLinksRel = "noopener noreferrer",
+        ExternalLinksReferrerPolicy = "no-referrer",
         Prism = new PrismOptions { Enabled = true, Theme = PrismTheme.GithubAuto }
     };
 

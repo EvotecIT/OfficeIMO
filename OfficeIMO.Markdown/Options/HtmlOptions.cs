@@ -51,6 +51,26 @@ public sealed class HtmlOptions {
     /// </summary>
     public RawHtmlHandling RawHtmlHandling { get; set; } = RawHtmlHandling.Allow;
 
+    /// <summary>
+    /// When true, external HTTP(S) links are rendered with <c>target="_blank"</c>.
+    /// Default: false.
+    /// </summary>
+    public bool ExternalLinksTargetBlank { get; set; } = false;
+
+    /// <summary>
+    /// Optional <c>rel</c> attribute value to apply to external HTTP(S) links.
+    /// Common safe value: <c>noopener noreferrer</c>.
+    /// Default: empty (no rel attribute added).
+    /// </summary>
+    public string ExternalLinksRel { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional <c>referrerpolicy</c> value to apply to external HTTP(S) links.
+    /// Common privacy value: <c>no-referrer</c>.
+    /// Default: empty (no referrerpolicy attribute added).
+    /// </summary>
+    public string ExternalLinksReferrerPolicy { get; set; } = string.Empty;
+
     // The following are used internally by the renderer; not part of the public API surface.
     internal string? ExternalCssOutputPath { get; set; }
     internal string? _externalCssContentToWrite { get; set; }

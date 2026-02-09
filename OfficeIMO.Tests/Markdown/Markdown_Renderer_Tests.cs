@@ -74,6 +74,14 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_Defaults_To_Hardened_External_Links() {
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("[x](https://example.com)");
+        Assert.Contains("target=\"_blank\"", html, StringComparison.Ordinal);
+        Assert.Contains("rel=\"noopener noreferrer\"", html, StringComparison.Ordinal);
+        Assert.Contains("referrerpolicy=\"no-referrer\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Task_Lists_Emit_GithubLike_Classes() {
         var md = """
 - [ ] Todo

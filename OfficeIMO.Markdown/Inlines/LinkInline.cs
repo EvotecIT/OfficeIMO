@@ -59,9 +59,11 @@ public sealed class LinkInline {
     }
     internal string RenderHtml() {
         string title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title!)}\"";
+        var o = HtmlRenderContext.Options;
+        string extra = LinkHtmlAttributes.BuildExternalLinkAttributes(o, Url);
         if (LabelInlines != null) {
-            return $"<a href=\"{System.Net.WebUtility.HtmlEncode(Url)}\"{title}>{LabelInlines.RenderHtml()}</a>";
+            return $"<a href=\"{System.Net.WebUtility.HtmlEncode(Url)}\"{title}{extra}>{LabelInlines.RenderHtml()}</a>";
         }
-        return $"<a href=\"{System.Net.WebUtility.HtmlEncode(Url)}\"{title}>{System.Net.WebUtility.HtmlEncode(Text)}</a>";
+        return $"<a href=\"{System.Net.WebUtility.HtmlEncode(Url)}\"{title}{extra}>{System.Net.WebUtility.HtmlEncode(Text)}</a>";
     }
 }
