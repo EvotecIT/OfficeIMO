@@ -20,7 +20,7 @@
     <Compile Update="WordPdfConverterExtensions.Tables.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="QuestPDF" Version="2025.12.1" />
+    <PackageReference Include="QuestPDF" Version="2025.12.4" />
     <PackageReference Include="SkiaSharp" Version="3.119.1" />
   </ItemGroup>
   <ItemGroup>
