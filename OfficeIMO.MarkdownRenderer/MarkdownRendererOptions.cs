@@ -35,6 +35,7 @@ public sealed class MarkdownRendererOptions {
         ExternalLinksReferrerPolicy = "no-referrer",
         RestrictHttpLinksToBaseOrigin = true,
         RestrictHttpImagesToBaseOrigin = true,
+        BlockExternalHttpImages = true,
         ImagesLoadingLazy = true,
         ImagesDecodingAsync = true,
         ImagesReferrerPolicy = "no-referrer",

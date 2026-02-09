@@ -119,11 +119,26 @@ public class Markdown_Renderer_Tests {
 
     [Fact]
     public void MarkdownRenderer_Defaults_Emit_Image_Hardening_Attributes() {
-        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("![alt](https://example.com/a.png)");
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("![alt](/a.png)");
         Assert.Contains("<img", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("loading=\"lazy\"", html, StringComparison.Ordinal);
         Assert.Contains("decoding=\"async\"", html, StringComparison.Ordinal);
         Assert.Contains("referrerpolicy=\"no-referrer\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Defaults_Block_External_Absolute_Http_Images() {
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("![alt](https://example.com/a.png)");
+        Assert.DoesNotContain("<img", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("omd-image-blocked", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Allows_SameOrigin_Absolute_Http_Images_When_BaseHref_Is_Set() {
+        var opts = new MarkdownRendererOptions { BaseHref = "https://example.com/" };
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("![alt](https://example.com/a.png)", opts);
+        Assert.Contains("<img", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("loading=\"lazy\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -142,6 +157,7 @@ public class Markdown_Renderer_Tests {
     [Fact]
     public void HtmlOptions_Can_Restrict_Absolute_Http_Images_By_Host_AllowList() {
         var opts = new MarkdownRendererOptions();
+        opts.HtmlOptions.BlockExternalHttpImages = false; // isolate host allowlist behavior
         opts.HtmlOptions.AllowedHttpImageHosts.Add(".example.com"); // apex + subdomains
 
         var ok = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("![a](https://a.example.com/x.png)", opts);

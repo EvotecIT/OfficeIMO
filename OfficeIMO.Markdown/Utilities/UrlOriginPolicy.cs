@@ -10,7 +10,16 @@ internal static class UrlOriginPolicy {
         if (u.Length == 0) return true;
 
         if (o.BlockExternalHttpImages) {
-            if (IsAbsoluteExternalHttp(u)) return false;
+            // Treat "external" relative to BaseUri when available; otherwise, any absolute HTTP(S) image is external.
+            // Relative images (including "/path") are not blocked by this option.
+            if (TryGetAbsoluteHttpUri(u, o.BaseUri, out var abs) && abs != null && IsHttpScheme(abs.Scheme)) {
+                var baseUri = o.BaseUri;
+                if (baseUri != null && baseUri.IsAbsoluteUri && IsHttpScheme(baseUri.Scheme)) {
+                    if (!IsSameOrigin(baseUri, abs)) return false;
+                } else {
+                    return false;
+                }
+            }
         }
 
         return IsAllowedHttpUrl(o, u, forImages: true);
