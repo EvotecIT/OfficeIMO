@@ -34,6 +34,30 @@ public sealed class MarkdownReaderOptions {
     public bool Paragraphs { get; set; } = true;
 
     /// <summary>
+    /// When <c>true</c>, auto-detects plain <c>http(s)://...</c> URLs in text and turns them into links.
+    /// Default: <c>true</c>.
+    /// </summary>
+    public bool AutolinkUrls { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, auto-detects plain <c>www.example.com</c> URLs in text and turns them into links.
+    /// Default: <c>true</c>.
+    /// </summary>
+    public bool AutolinkWwwUrls { get; set; } = true;
+
+    /// <summary>
+    /// Scheme prefix to use for <see cref="AutolinkWwwUrls"/> (for example <c>https://</c>).
+    /// Default: <c>https://</c>.
+    /// </summary>
+    public string AutolinkWwwScheme { get; set; } = "https://";
+
+    /// <summary>
+    /// When <c>true</c>, auto-detects plain emails in text (for example <c>user@example.com</c>) and turns them into <c>mailto:</c> links.
+    /// Default: <c>true</c>.
+    /// </summary>
+    public bool AutolinkEmails { get; set; } = true;
+
+    /// <summary>
     /// When <c>true</c>, a trailing backslash at the end of a paragraph line is treated as a hard line break (like GitHub/CommonMark).
     /// This is in addition to the "two trailing spaces" hard break form.
     /// Default: <c>true</c>.

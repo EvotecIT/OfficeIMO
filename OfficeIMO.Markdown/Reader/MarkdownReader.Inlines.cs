@@ -44,12 +44,33 @@ public static partial class MarkdownReader {
             }
 
             // Autolink: http(s)://... until whitespace or closing punct
-            if (StartsWithHttp(text, pos, out int urlEnd)) {
+            if (options.AutolinkUrls && StartsWithHttp(text, pos, out int urlEnd)) {
                 var url = text.Substring(pos, urlEnd - pos);
                 var resolved = ResolveUrl(url, options);
                 if (string.IsNullOrEmpty(resolved)) seq.Text(url);
                 else seq.Link(url, resolved!, null);
                 pos = urlEnd; continue;
+            }
+
+            // Autolink: www.example.com
+            if (options.AutolinkWwwUrls && StartsWithWww(text, pos, out int wwwEnd)) {
+                var label = text.Substring(pos, wwwEnd - pos);
+                var scheme = string.IsNullOrWhiteSpace(options.AutolinkWwwScheme) ? "https://" : options.AutolinkWwwScheme.Trim();
+                if (!scheme.EndsWith("://", StringComparison.Ordinal)) scheme = scheme.TrimEnd('/') + "://";
+                var href = scheme + label;
+                var resolved = ResolveUrl(href, options);
+                if (string.IsNullOrEmpty(resolved)) seq.Text(label);
+                else seq.Link(label, resolved!, null);
+                pos = wwwEnd; continue;
+            }
+
+            // Autolink: plain email
+            if (options.AutolinkEmails && TryConsumePlainEmail(text, pos, out int emailEnd, out string email)) {
+                var href = "mailto:" + email;
+                var resolved = ResolveUrl(href, options);
+                if (string.IsNullOrEmpty(resolved)) seq.Text(email);
+                else seq.Link(email, resolved!, null);
+                pos = emailEnd; continue;
             }
             if (text[pos] == '`') {
                 // Support multi-backtick code spans: count fence length and find a matching run
@@ -249,6 +270,9 @@ public static partial class MarkdownReader {
                 if (text[pos] == '\n') break;
                 if (text[pos] == '\\' && pos + 1 < text.Length && IsBackslashEscapable(text[pos + 1])) break;
                 if (text[pos] == '<' && IsAngleAutolinkStart(text, pos)) break;
+                if (options.AutolinkUrls && (text[pos] == 'h' || text[pos] == 'H') && StartsWithHttp(text, pos, out _)) break;
+                if (options.AutolinkWwwUrls && (text[pos] == 'w' || text[pos] == 'W') && StartsWithWww(text, pos, out _)) break;
+                if (options.AutolinkEmails && IsEmailStartChar(text[pos]) && TryConsumePlainEmail(text, pos, out _, out _)) break;
                 pos++;
             }
             seq.Text(text.Substring(start, pos - start));
@@ -679,6 +703,8 @@ public static partial class MarkdownReader {
     private static bool StartsWithHttp(string text, int start, out int end) {
         end = start;
         if (start + 7 > text.Length) return false;
+        // Require a boundary on the left so we don't linkify inside longer words.
+        if (start > 0 && char.IsLetterOrDigit(text[start - 1])) return false;
         var rem = text.Substring(start);
         if (!(rem.StartsWith("http://") || rem.StartsWith("https://"))) return false;
         int i = start;
@@ -691,6 +717,75 @@ public static partial class MarkdownReader {
         // Trim trailing punctuation commonly outside URLs
         while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':')) i--;
         end = i; return end > start + 7;
+    }
+
+    private static bool StartsWithWww(string text, int start, out int end) {
+        end = start;
+        if (start + 4 > text.Length) return false;
+        if (start > 0 && char.IsLetterOrDigit(text[start - 1])) return false;
+        if (!(text.Substring(start).StartsWith("www.", StringComparison.OrdinalIgnoreCase))) return false;
+
+        int i = start;
+        while (i < text.Length) {
+            char c = text[i];
+            if (char.IsWhiteSpace(c)) break;
+            if (c == ')' || c == ']' || c == '<') break;
+            i++;
+        }
+        int scanEnd = i;
+        while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':')) i--;
+
+        // Must include at least one dot after the www.
+        var token = text.Substring(start, i - start);
+        if (token.Length <= 4) return false;
+        if (token.IndexOf('.', 4) < 0) return false;
+
+        // Right boundary: avoid linking as part of an identifier-like token.
+        if (scanEnd < text.Length && IsEmailChar(text[scanEnd])) return false;
+
+        end = i;
+        return end > start + 4;
+    }
+
+    private static bool TryConsumePlainEmail(string text, int start, out int end, out string email) {
+        end = start;
+        email = string.Empty;
+        if (start < 0 || start >= text.Length) return false;
+        if (!IsEmailStartChar(text[start])) return false;
+        if (start > 0 && IsEmailChar(text[start - 1])) return false;
+
+        int i = start;
+        bool sawAt = false;
+        // Stop at whitespace or common "outside token" delimiters; keep it pragmatic.
+        while (i < text.Length) {
+            char c = text[i];
+            if (char.IsWhiteSpace(c)) break;
+            if (c == ')' || c == ']' || c == '<') break;
+            if (!IsEmailChar(c)) break;
+            if (c == '@') sawAt = true;
+            i++;
+        }
+        if (!sawAt) return false;
+
+        int scanEnd = i;
+        int j = i;
+        while (j > start && (text[j - 1] == '.' || text[j - 1] == ',' || text[j - 1] == ';' || text[j - 1] == ':')) j--;
+        if (j <= start) return false;
+
+        var token = text.Substring(start, j - start);
+        if (!LooksLikeEmail(token)) return false;
+        if (scanEnd < text.Length && IsEmailChar(text[scanEnd])) return false;
+
+        end = j;
+        email = token;
+        return true;
+    }
+
+    private static bool IsEmailStartChar(char c) => char.IsLetterOrDigit(c);
+
+    private static bool IsEmailChar(char c) {
+        if (char.IsLetterOrDigit(c)) return true;
+        return c == '@' || c == '.' || c == '-' || c == '_' || c == '+';
     }
 
     /// <summary>
