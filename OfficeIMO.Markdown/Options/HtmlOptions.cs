@@ -115,6 +115,25 @@ public sealed class HtmlOptions {
     /// </summary>
     public string ImagesReferrerPolicy { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Optional allowlist of host patterns for absolute HTTP(S) links during HTML rendering.
+    /// When non-empty, absolute HTTP(S) links are suppressed unless their host matches an entry.
+    /// Supported patterns:
+    /// - <c>example.com</c>: exact host match
+    /// - <c>.example.com</c>: example.com and any subdomain
+    /// - <c>*.example.com</c>: any subdomain only (not the apex)
+    /// Default: empty (allow all hosts).
+    /// </summary>
+    public List<string> AllowedHttpLinkHosts { get; } = new();
+
+    /// <summary>
+    /// Optional allowlist of host patterns for absolute HTTP(S) images during HTML rendering.
+    /// When non-empty, absolute HTTP(S) images are suppressed unless their host matches an entry.
+    /// Pattern rules match <see cref="AllowedHttpLinkHosts"/>.
+    /// Default: empty (allow all hosts).
+    /// </summary>
+    public List<string> AllowedHttpImageHosts { get; } = new();
+
     // The following are used internally by the renderer; not part of the public API surface.
     internal string? ExternalCssOutputPath { get; set; }
     internal string? _externalCssContentToWrite { get; set; }

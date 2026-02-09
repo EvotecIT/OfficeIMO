@@ -40,6 +40,16 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_Shell_Includes_Csp_Meta_When_Configured() {
+        var opts = new MarkdownRendererOptions {
+            ContentSecurityPolicy = "default-src 'self'; img-src https:; style-src 'unsafe-inline' https:; script-src 'unsafe-inline' https:"
+        };
+        var shell = MarkdownRenderer.MarkdownRenderer.BuildShellHtml("Chat", opts);
+        Assert.Contains("http-equiv=\"Content-Security-Policy\"", shell, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("default-src", shell, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Adds_Mermaid_Hash_Attributes() {
         var md = "```mermaid\nflowchart LR\nA-->B\n```";
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md);
@@ -114,6 +124,33 @@ public class Markdown_Renderer_Tests {
         Assert.Contains("loading=\"lazy\"", html, StringComparison.Ordinal);
         Assert.Contains("decoding=\"async\"", html, StringComparison.Ordinal);
         Assert.Contains("referrerpolicy=\"no-referrer\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlOptions_Can_Restrict_Absolute_Http_Links_By_Host_AllowList() {
+        var opts = new MarkdownRendererOptions();
+        opts.HtmlOptions.AllowedHttpLinkHosts.Add("example.com");
+
+        var ok = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("[x](https://example.com/a)", opts);
+        Assert.Contains("href=\"https://example.com/a\"", ok, StringComparison.OrdinalIgnoreCase);
+
+        var blocked = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("[x](https://evil.example/a)", opts);
+        Assert.DoesNotContain("evil.example", blocked, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(">x<", blocked, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlOptions_Can_Restrict_Absolute_Http_Images_By_Host_AllowList() {
+        var opts = new MarkdownRendererOptions();
+        opts.HtmlOptions.AllowedHttpImageHosts.Add(".example.com"); // apex + subdomains
+
+        var ok = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("![a](https://a.example.com/x.png)", opts);
+        Assert.Contains("<img", ok, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("a.example.com", ok, StringComparison.OrdinalIgnoreCase);
+
+        var blocked = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("![a](https://evil.test/x.png)", opts);
+        Assert.DoesNotContain("<img", blocked, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("omd-image-blocked", blocked, StringComparison.Ordinal);
     }
 
     [Fact]
