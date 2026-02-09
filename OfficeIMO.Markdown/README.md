@@ -73,7 +73,7 @@ Inlines
 - Strikethrough `~~..~~`
 - Underline via `<u>text</u>`
 - Code spans: backtick‑delimited; supports multi‑backtick fences when content contains backticks
-- Links: inline `[text](url "title")`, autolinks, and reference‑style `[text][label]` with separate definitions
+- Links: inline `[text](url "title")`, autolinks (`http(s)://...`, `www.*`, plain emails), and reference‑style `[text][label]` with separate definitions
 - Images: `![alt](src "title")` and linked images `[![alt](img "title")](href)`
 
 Writer guarantees

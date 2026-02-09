@@ -44,6 +44,7 @@ Inline:
 - Inline code spans (single or multi-backtick)
 - Hard breaks (from explicit line breaks / `<br>` when inline HTML is enabled)
 - Angle-bracket autolinks (`<https://...>` and `<user@example.com>`)
+- Literal autolinks in text: `http(s)://...`, `www.example.com`, `user@example.com` (configurable via `MarkdownReaderOptions`)
 
 Lists note:
 
@@ -71,7 +72,7 @@ These are the main reasons you will see differences compared to typical CommonMa
 - Inline emphasis rules
   - Delimiter-run rules (nesting, intraword `_`, etc.) are simplified and can differ from CommonMark output.
 - Autolinks
-  - Literal autolinks are limited (primarily `http(s)://...` scanning).
+  - Literal autolinks cover common cases (`http(s)://...`, `www.*`, and plain emails) but do not aim for full spec coverage.
 - Code blocks
   - Some CommonMark edge cases around indentation and list nesting are not fully covered (fenced code is the most reliable form).
 - HTML
@@ -87,8 +88,8 @@ What we do today:
 
 What to add next (if needed for the chat app):
 
-- Additional diagram engines (PlantUML, Graphviz) using the same approach: keep them as fenced code blocks in Markdown, render via client-side JS or a server-side renderer if required.
-- "Charts" (for example via Chart.js) by agreeing on a fenced block format (JSON/YAML) and adding a renderer that transforms those blocks into `<canvas>` plus JS.
+- Additional diagram engines using the same approach: keep them as fenced code blocks in Markdown, render via client-side JS or a server-side renderer if required.
+- More chart formats by agreeing on a fenced block format (JSON/YAML) and adding a renderer that transforms those blocks into `<canvas>` plus JS.
 
 ## Suggested Roadmap (To Get Closer to GFM)
 
