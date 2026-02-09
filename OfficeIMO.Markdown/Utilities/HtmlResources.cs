@@ -295,6 +295,9 @@ article.markdown-body a.footnote-backref:hover { opacity: 1; text-decoration: un
   article.markdown-body section.footnotes > hr { border-top-color: rgba(240,246,252,.2); }
 }
 html[data-theme=dark] article.markdown-body section.footnotes > hr { border-top-color: rgba(240,246,252,.2); }
+
+/* Escaped raw HTML blocks */
+article.markdown-body pre.md-raw-html { white-space: pre-wrap; }
 ";
 
     // Word-like, document-centric styling – Calibri/Cambria fonts, comfortable spacing,

@@ -113,6 +113,24 @@ internal static class HtmlRenderer {
         // Footnote definitions are rendered at the bottom in a dedicated section.
         var footnotes = new List<FootnoteDefinitionBlock>();
 
+        string RenderBlockHtml(IMarkdownBlock block) {
+            if (block is HtmlRawBlock raw) {
+                return options.RawHtmlHandling switch {
+                    RawHtmlHandling.Allow => raw.Html,
+                    RawHtmlHandling.Escape => "<pre class=\"md-raw-html\"><code>" + System.Net.WebUtility.HtmlEncode(raw.Html) + "</code></pre>",
+                    _ => string.Empty
+                };
+            }
+            if (block is HtmlCommentBlock c) {
+                return options.RawHtmlHandling switch {
+                    RawHtmlHandling.Allow => c.Comment,
+                    RawHtmlHandling.Escape => "<pre class=\"md-raw-html\"><code>" + System.Net.WebUtility.HtmlEncode(c.Comment) + "</code></pre>",
+                    _ => string.Empty
+                };
+            }
+            return block.RenderHtml();
+        }
+
         // Detect a sidebar TOC and render a two-column layout when present
         TocPlaceholderBlock? sidebar = null;
         for (int i = 0; i < blocks.Count; i++) {
@@ -155,7 +173,7 @@ internal static class HtmlRenderer {
                     if (!(tp.Options.Layout == TocLayout.SidebarLeft || tp.Options.Layout == TocLayout.SidebarRight))
                         content.Append(BuildTocHtml(blocks, tp, headingSlugs));
                 } else {
-                    content.Append(block.RenderHtml());
+                    content.Append(RenderBlockHtml(block));
                 }
             }
             if (footnotes.Count > 0) content.Append(BuildFootnotesSectionHtml(footnotes));
@@ -200,7 +218,7 @@ internal static class HtmlRenderer {
             } else if (block is TocPlaceholderBlock tp) {
                 sb.Append(BuildTocHtml(blocks, tp, headingSlugs));
             } else {
-                sb.Append(block.RenderHtml());
+                sb.Append(RenderBlockHtml(block));
             }
         }
         if (footnotes.Count > 0) sb.Append(BuildFootnotesSectionHtml(footnotes));

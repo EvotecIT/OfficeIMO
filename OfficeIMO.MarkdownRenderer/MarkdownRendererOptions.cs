@@ -26,6 +26,7 @@ public sealed class MarkdownRendererOptions {
         CssDelivery = CssDelivery.Inline,
         AssetMode = AssetMode.Online,
         BodyClass = "markdown-body",
+        RawHtmlHandling = RawHtmlHandling.Strip,
         Prism = new PrismOptions { Enabled = true, Theme = PrismTheme.GithubAuto }
     };
 
