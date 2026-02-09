@@ -13,6 +13,10 @@ public static class MarkdownRenderer {
         "(<pre[^>]*>)\\s*<code\\s+class=\"language-mermaid\"[^>]*>([\\s\\S]*?)</code>\\s*</pre>",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    private static readonly Regex ChartPreCodeBlockRegex = new Regex(
+        "(<pre[^>]*>)\\s*<code\\s+class=\"language-chart\"[^>]*>([\\s\\S]*?)</code>\\s*</pre>",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     /// <summary>
     /// Parses Markdown using OfficeIMO.Markdown and returns an HTML fragment (typically an &lt;article class="markdown-body"&gt; wrapper).
     /// When Mermaid is enabled, Mermaid code blocks are annotated with hashes for incremental rendering.
@@ -31,6 +35,10 @@ public static class MarkdownRenderer {
 
         if (options.Mermaid?.Enabled == true) {
             html = ConvertMermaidCodeBlocks(html, enableHashCaching: options.Mermaid.EnableHashCaching);
+        }
+
+        if (options.Chart?.Enabled == true) {
+            html = ConvertChartCodeBlocks(html);
         }
 
         if (!string.IsNullOrWhiteSpace(options.BaseHref)) {
@@ -65,6 +73,10 @@ public static class MarkdownRenderer {
             sb.Append(BuildMermaidBootstrap(options.Mermaid));
         }
 
+        if (options.Chart?.Enabled == true) {
+            sb.Append(BuildChartBootstrap(options.Chart));
+        }
+
         sb.Append("</head><body>");
         sb.Append("<div id=\"omdRoot\"></div>");
         sb.Append("<script>\n").Append(BuildIncrementalUpdateScript(options)).Append("\n</script>");
@@ -91,6 +103,19 @@ public static class MarkdownRenderer {
                 hashAttr = $" data-mermaid-hash=\"{hash}\"";
             }
             return $"<pre class=\"mermaid\"{hashAttr}>{content}</pre>";
+        });
+    }
+
+    private static string ConvertChartCodeBlocks(string html) {
+        if (string.IsNullOrEmpty(html)) return html;
+        // Charts are authored as fenced code blocks named `chart` with JSON config. Convert
+        // <pre><code class="language-chart">..</code></pre> into a <canvas> annotated with base64 config.
+        return ChartPreCodeBlockRegex.Replace(html, m => {
+            var encoded = m.Groups[2].Value ?? string.Empty;
+            var rawJson = System.Net.WebUtility.HtmlDecode(encoded);
+            var b64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawJson ?? string.Empty));
+            var hash = ComputeShortHash(encoded);
+            return $"<canvas class=\"omd-chart\" data-chart-hash=\"{hash}\" data-chart-config-b64=\"{System.Net.WebUtility.HtmlEncode(b64)}\"></canvas>";
         });
     }
 
@@ -132,8 +157,15 @@ mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-col
 </script>";
     }
 
+    private static string BuildChartBootstrap(ChartOptions o) {
+        string url = System.Net.WebUtility.HtmlEncode((o?.ScriptUrl ?? string.Empty).Trim());
+        if (string.IsNullOrEmpty(url)) return string.Empty;
+        return $"\n<script src=\"{url}\"></script>\n";
+    }
+
     private static string BuildIncrementalUpdateScript(MarkdownRendererOptions options) {
         bool mermaid = options.Mermaid?.Enabled == true;
+        bool chart = options.Chart?.Enabled == true;
 
         // Notes:
         // - We keep <base> in <head> so relative links/images resolve.
@@ -161,6 +193,19 @@ async function updateContent(newBodyHtml) {
     }
   } catch(e) { /* best-effort */ }
 """);
+
+        if (chart) {
+            sb.Append("""
+  // Destroy existing Chart.js instances before replacing DOM to avoid leaks.
+  try {
+    if (window.Chart && typeof Chart.getChart === 'function') {
+      root.querySelectorAll('canvas.omd-chart').forEach(c => {
+        try { const inst = Chart.getChart(c); if (inst) inst.destroy(); } catch(e) { /* ignore */ }
+      });
+    }
+  } catch(e) { /* ignore */ }
+""");
+        }
 
         if (mermaid) {
             sb.Append("""
@@ -202,6 +247,38 @@ async function updateContent(newBodyHtml) {
   if (plainMermaid.length > 0 && window.mermaid) {
     try { await window.mermaid.run({ nodes: plainMermaid }); } catch(e) { console.warn('Mermaid render error:', e); }
   }
+""");
+        }
+
+        if (chart) {
+            sb.Append("""
+  // Chart.js rendering (optional).
+  try {
+    function b64ToUtf8(b64) {
+      try {
+        const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+        if (window.TextDecoder) return new TextDecoder('utf-8').decode(bytes);
+        // Fallback for older engines.
+        return decodeURIComponent(escape(String.fromCharCode.apply(null, Array.from(bytes))));
+      } catch(e) { return ''; }
+    }
+    if (window.Chart) {
+      root.querySelectorAll('canvas.omd-chart:not([data-chart-rendered])').forEach(c => {
+        const b64 = c.getAttribute('data-chart-config-b64');
+        if (!b64) return;
+        const jsonText = b64ToUtf8(b64);
+        if (!jsonText) return;
+        let cfg = null;
+        try { cfg = JSON.parse(jsonText); } catch(e) { console.warn('Chart config JSON parse error:', e); return; }
+        try {
+          const ctx = c.getContext && c.getContext('2d');
+          if (!ctx) return;
+          new Chart(ctx, cfg);
+          c.setAttribute('data-chart-rendered', 'true');
+        } catch(e) { console.warn('Chart render error:', e); }
+      });
+    }
+  } catch(e) { /* ignore */ }
 """);
         }
 

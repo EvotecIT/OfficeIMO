@@ -32,10 +32,22 @@ flowchart LR
 ```
 ```
 
+Charts (Chart.js)
+
+To enable Chart.js rendering:
+- set `opts.Chart.Enabled = true`
+
+Write charts in fenced code blocks named `chart` containing JSON:
+
+```markdown
+~~~chart
+{"type":"bar","data":{"labels":["A","B"],"datasets":[{"label":"Count","data":[3,7]}]}}
+~~~
+```
+
 Security note
 
 Defaults are biased for untrusted chat output:
 - raw HTML parsing is disabled
 - `javascript:` / `vbscript:` URLs are blocked by the reader
 - `file:` URLs are blocked by default in `MarkdownRendererOptions.ReaderOptions`
-

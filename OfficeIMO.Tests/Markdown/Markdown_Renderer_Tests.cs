@@ -46,6 +46,27 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_Converts_Chart_Code_Fences_When_Enabled() {
+        var md = "```chart\n{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}\n```";
+        var opts = new MarkdownRendererOptions();
+        opts.Chart.Enabled = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+        Assert.Contains("canvas", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("class=\"omd-chart\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-chart-config-b64", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Shell_Contains_ChartJs_When_Enabled() {
+        var opts = new MarkdownRendererOptions();
+        opts.Chart.Enabled = true;
+
+        var shell = MarkdownRenderer.MarkdownRenderer.BuildShellHtml("Chat", opts);
+        Assert.Contains("chart.umd", shell, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void MarkdownRenderer_BaseHref_Is_Emitted_As_Base_Tag() {
         var opts = new MarkdownRendererOptions { BaseHref = "https://example.com/" };
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("[link](/x)", opts);

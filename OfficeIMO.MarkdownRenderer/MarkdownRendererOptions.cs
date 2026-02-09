@@ -44,5 +44,7 @@ public sealed class MarkdownRendererOptions {
 
     /// <summary>Mermaid support options.</summary>
     public MermaidOptions Mermaid { get; } = new MermaidOptions();
-}
 
+    /// <summary>Chart.js support options.</summary>
+    public ChartOptions Chart { get; } = new ChartOptions();
+}
