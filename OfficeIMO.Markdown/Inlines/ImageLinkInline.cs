@@ -18,7 +18,7 @@ public sealed class ImageLinkInline {
         Alt = alt ?? string.Empty; ImageUrl = imageUrl ?? string.Empty; LinkUrl = linkUrl ?? string.Empty; Title = title;
     }
     internal string RenderMarkdown() {
-        var title = string.IsNullOrEmpty(Title) ? string.Empty : " \"" + MarkdownEscaper.EscapeText(Title!) + "\"";
+        var title = MarkdownEscaper.FormatOptionalTitle(Title);
         return $"[![{MarkdownEscaper.EscapeImageAlt(Alt)}]({MarkdownEscaper.EscapeImageSrc(ImageUrl)}{title})]({MarkdownEscaper.EscapeLinkUrl(LinkUrl)})";
     }
     internal string RenderHtml() {

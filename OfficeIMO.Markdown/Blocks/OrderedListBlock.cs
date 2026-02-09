@@ -15,14 +15,50 @@ public sealed class OrderedListBlock : IMarkdownBlock {
         var sb = new System.Text.StringBuilder();
         foreach (var item in Items) {
             var indent = new string(' ', item.Level * 2);
-            if (item.Level == 0) {
-                sb.Append(indent).Append(i++).Append(". ").Append(item.RenderMarkdown()).Append('\n');
-            } else {
-                // For nested levels, emit "1." which most renderers normalize visually
-                sb.Append(indent).Append("1. ").Append(item.RenderMarkdown()).Append('\n');
-            }
+            string marker = item.Level == 0 ? (i++).ToString(System.Globalization.CultureInfo.InvariantCulture) + ". " : "1. ";
+            string firstPrefix = indent + marker;
+            string contPrefix = indent + new string(' ', marker.Length);
+
+            AppendItemMarkdown(sb, item.RenderMarkdown(), indent, firstPrefix, contPrefix);
+            AppendChildrenMarkdown(sb, item, indent, contPrefix);
         }
         return sb.ToString().TrimEnd();
+    }
+
+    private static void AppendItemMarkdown(System.Text.StringBuilder sb, string content, string baseIndent, string firstPrefix, string contPrefix) {
+        if (content == null) content = string.Empty;
+        var lines = content.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        for (int li = 0; li < lines.Length; li++) {
+            var line = lines[li];
+            if (li == 0) {
+                sb.Append(firstPrefix).AppendLine(line);
+                continue;
+            }
+            if (line.Length == 0) {
+                sb.Append(baseIndent).AppendLine();
+            } else {
+                sb.Append(contPrefix).AppendLine(line);
+            }
+        }
+    }
+
+    private static void AppendChildrenMarkdown(System.Text.StringBuilder sb, ListItem item, string baseIndent, string contPrefix) {
+        if (item.Children.Count == 0) return;
+
+        for (int c = 0; c < item.Children.Count; c++) {
+            var child = item.Children[c];
+            var childMd = child.RenderMarkdown();
+            if (string.IsNullOrWhiteSpace(childMd)) continue;
+
+            sb.Append(baseIndent).AppendLine();
+
+            var lines = childMd.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+            for (int i = 0; i < lines.Length; i++) {
+                var line = lines[i];
+                if (line.Length == 0) sb.Append(baseIndent).AppendLine();
+                else sb.Append(contPrefix).AppendLine(line);
+            }
+        }
     }
 
     /// <inheritdoc />

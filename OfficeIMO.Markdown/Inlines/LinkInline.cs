@@ -13,7 +13,7 @@ public sealed class LinkInline {
     /// <summary>Creates a hyperlink inline.</summary>
     public LinkInline(string text, string url, string? title) { Text = text ?? string.Empty; Url = url ?? string.Empty; Title = title; }
     internal string RenderMarkdown() {
-        string title = string.IsNullOrEmpty(Title) ? string.Empty : " \"" + MarkdownEscaper.EscapeText(Title!) + "\"";
+        string title = MarkdownEscaper.FormatOptionalTitle(Title);
         return $"[{MarkdownEscaper.EscapeLinkText(Text)}]({MarkdownEscaper.EscapeLinkUrl(Url)}{title})";
     }
     internal string RenderHtml() {

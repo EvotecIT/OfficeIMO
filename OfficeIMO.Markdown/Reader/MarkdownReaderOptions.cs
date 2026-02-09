@@ -13,6 +13,8 @@ public sealed class MarkdownReaderOptions {
     public bool Headings { get; set; } = true;
     /// <summary>Enable fenced code blocks (```lang ... ```), including caption on the following _line_ if present.</summary>
     public bool FencedCode { get; set; } = true;
+    /// <summary>Enable indented code blocks (lines indented by 4 spaces).</summary>
+    public bool IndentedCodeBlocks { get; set; } = true;
     /// <summary>Enable images (standalone lines) with optional caption on the next _italic_ line.</summary>
     public bool Images { get; set; } = true;
     /// <summary>Enable unordered lists and task lists.</summary>
@@ -30,6 +32,13 @@ public sealed class MarkdownReaderOptions {
     public bool HtmlBlocks { get; set; } = true;
     /// <summary>Enable paragraph parsing and basic inlines.</summary>
     public bool Paragraphs { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, a trailing backslash at the end of a paragraph line is treated as a hard line break (like GitHub/CommonMark).
+    /// This is in addition to the "two trailing spaces" hard break form.
+    /// Default: <c>true</c>.
+    /// </summary>
+    public bool BackslashHardBreaks { get; set; } = true;
     /// <summary>
     /// Enable inline HTML interpretations (e.g. &lt;br&gt;, &lt;u&gt;...&lt;/u&gt;). When disabled, HTML tags remain literal text and no HTML
     /// decoding is performed.
@@ -50,4 +59,32 @@ public sealed class MarkdownReaderOptions {
     /// are converted to absolute using this base during parsing.
     /// </summary>
     public string? BaseUri { get; set; }
+
+    /// <summary>
+    /// When <c>true</c>, blocks scriptable URL schemes (e.g. <c>javascript:</c>, <c>vbscript:</c>) during parsing.
+    /// If a link/image uses a blocked scheme, it is treated as plain text instead of producing a clickable/linkable node.
+    /// Default: <c>true</c>.
+    /// </summary>
+    public bool DisallowScriptUrls { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, blocks <c>file:</c> URLs (and Windows drive-like <c>C:\</c> paths) during parsing.
+    /// Default: <c>false</c> to preserve legacy behavior for local/offline documents.
+    /// </summary>
+    public bool DisallowFileUrls { get; set; } = false;
+
+    /// <summary>
+    /// When <c>false</c>, <c>mailto:</c> links are treated as plain text. Default: <c>true</c>.
+    /// </summary>
+    public bool AllowMailtoUrls { get; set; } = true;
+
+    /// <summary>
+    /// When <c>false</c>, <c>data:</c> URLs are treated as plain text. Default: <c>true</c>.
+    /// </summary>
+    public bool AllowDataUrls { get; set; } = true;
+
+    /// <summary>
+    /// When <c>false</c>, protocol-relative URLs (<c>//example.com</c>) are treated as plain text. Default: <c>true</c>.
+    /// </summary>
+    public bool AllowProtocolRelativeUrls { get; set; } = true;
 }

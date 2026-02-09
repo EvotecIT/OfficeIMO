@@ -1,0 +1,221 @@
+using System.Security.Cryptography;
+using System.Text.RegularExpressions;
+using OfficeIMO.Markdown;
+
+namespace OfficeIMO.MarkdownRenderer;
+
+/// <summary>
+/// Renders Markdown to HTML suitable for WebView2/browser hosts, and provides a reusable shell page
+/// + an incremental update mechanism.
+/// </summary>
+public static class MarkdownRenderer {
+    private static readonly Regex MermaidPreCodeBlockRegex = new Regex(
+        "(<pre[^>]*>)\\s*<code\\s+class=\"language-mermaid\"[^>]*>([\\s\\S]*?)</code>\\s*</pre>",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    /// <summary>
+    /// Parses Markdown using OfficeIMO.Markdown and returns an HTML fragment (typically an &lt;article class="markdown-body"&gt; wrapper).
+    /// When Mermaid is enabled, Mermaid code blocks are annotated with hashes for incremental rendering.
+    /// </summary>
+    public static string RenderBodyHtml(string markdown, MarkdownRendererOptions? options = null) {
+        options ??= new MarkdownRendererOptions();
+        var readerOptions = options.ReaderOptions ?? new MarkdownReaderOptions();
+        var htmlOptions = options.HtmlOptions ?? new HtmlOptions { Kind = HtmlKind.Fragment };
+
+        if (options.NormalizeEscapedNewlines && !string.IsNullOrEmpty(markdown)) {
+            markdown = markdown.Replace("\\r\\n", "\n").Replace("\\n", "\n");
+        }
+
+        var doc = MarkdownReader.Parse(markdown ?? string.Empty, readerOptions);
+        string html = doc.ToHtmlFragment(htmlOptions);
+
+        if (options.Mermaid?.Enabled == true) {
+            html = ConvertMermaidCodeBlocks(html, enableHashCaching: options.Mermaid.EnableHashCaching);
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.BaseHref)) {
+            // Put <base> into the update payload. The incremental updater moves it into <head>.
+            var baseHref = System.Net.WebUtility.HtmlEncode(options.BaseHref!.Trim());
+            html = $"<base href=\"{baseHref}\">" + html;
+        }
+
+        return html;
+    }
+
+    /// <summary>
+    /// Builds a self-contained HTML document that preloads CSS and scripts once (Prism/Mermaid),
+    /// and exposes a global <c>updateContent(newBodyHtml)</c> function for incremental updates.
+    /// </summary>
+    public static string BuildShellHtml(string? title = null, MarkdownRendererOptions? options = null) {
+        options ??= new MarkdownRendererOptions();
+        var htmlOptions = options.HtmlOptions ?? new HtmlOptions { Kind = HtmlKind.Fragment };
+
+        // Build head assets (CSS + optional Prism assets) from OfficeIMO.Markdown.
+        // This intentionally uses an empty doc; content is pushed later via updateContent(...).
+        var empty = MarkdownDoc.Create();
+        var parts = empty.ToHtmlParts(htmlOptions);
+
+        var sb = new StringBuilder(16 * 1024);
+        sb.Append("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">");
+        sb.Append("<title>").Append(System.Net.WebUtility.HtmlEncode(title ?? "Markdown")).Append("</title>");
+        if (!string.IsNullOrEmpty(parts.Css)) sb.Append("<style>\n").Append(parts.Css).Append("\n</style>");
+        if (!string.IsNullOrEmpty(parts.Head)) sb.Append(parts.Head);
+
+        if (options.Mermaid?.Enabled == true) {
+            sb.Append(BuildMermaidBootstrap(options.Mermaid));
+        }
+
+        sb.Append("</head><body>");
+        sb.Append("<div id=\"omdRoot\"></div>");
+        sb.Append("<script>\n").Append(BuildIncrementalUpdateScript(options)).Append("\n</script>");
+        sb.Append("</body></html>");
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Returns a JavaScript snippet that calls <c>updateContent(...)</c> with a properly escaped string literal.
+    /// </summary>
+    public static string BuildUpdateScript(string bodyHtml) {
+        return "updateContent(" + JavaScriptString.SingleQuoted(bodyHtml ?? string.Empty) + ");";
+    }
+
+    private static string ConvertMermaidCodeBlocks(string html, bool enableHashCaching) {
+        if (string.IsNullOrEmpty(html)) return html;
+        // Mermaid expects elements with class="mermaid" containing the diagram text. Convert fenced blocks
+        // rendered as <pre><code class="language-mermaid">..</code></pre> into <pre class="mermaid">..</pre>.
+        return MermaidPreCodeBlockRegex.Replace(html, m => {
+            var content = m.Groups[2].Value;
+            string hashAttr = string.Empty;
+            if (enableHashCaching) {
+                string hash = ComputeShortHash(content);
+                hashAttr = $" data-mermaid-hash=\"{hash}\"";
+            }
+            return $"<pre class=\"mermaid\"{hashAttr}>{content}</pre>";
+        });
+    }
+
+    private static string ComputeShortHash(string input) {
+        var data = Encoding.UTF8.GetBytes(input ?? string.Empty);
+        byte[] hash;
+#if NET8_0_OR_GREATER
+        hash = SHA256.HashData(data);
+#else
+        using (var sha = SHA256.Create()) {
+            hash = sha.ComputeHash(data);
+        }
+#endif
+        // Use first 8 bytes as hex = 16 chars, plenty for DOM-diff keys.
+        return ToHex(hash, 8);
+    }
+
+    private static string ToHex(byte[] bytes, int take) {
+        if (bytes == null || bytes.Length == 0) return string.Empty;
+        int len = Math.Min(take, bytes.Length);
+        var sb = new StringBuilder(len * 2);
+        for (int i = 0; i < len; i++) {
+            sb.Append(bytes[i].ToString("x2"));
+        }
+        return sb.ToString();
+    }
+
+    private static string BuildMermaidBootstrap(MermaidOptions o) {
+        // Use ESM bootstrap for Mermaid.
+        string url = System.Net.WebUtility.HtmlEncode((o?.EsmModuleUrl ?? string.Empty).Trim());
+        string light = System.Net.WebUtility.HtmlEncode((o?.LightTheme ?? "default").Trim());
+        string dark = System.Net.WebUtility.HtmlEncode((o?.DarkTheme ?? "dark").Trim());
+        if (string.IsNullOrEmpty(url)) return string.Empty;
+        return $@"
+<script type=""module"">
+import mermaid from '{url}';
+window.mermaid = mermaid;
+mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? '{dark}' : '{light}' }});
+</script>";
+    }
+
+    private static string BuildIncrementalUpdateScript(MarkdownRendererOptions options) {
+        bool mermaid = options.Mermaid?.Enabled == true;
+
+        // Notes:
+        // - We keep <base> in <head> so relative links/images resolve.
+        // - We preserve already-rendered Mermaid SVGs by comparing data-mermaid-hash attributes.
+        // - We re-run Prism highlighting after updates (if Prism is present).
+        var sb = new StringBuilder(8 * 1024);
+        sb.Append("""
+async function updateContent(newBodyHtml) {
+  const root = document.getElementById('omdRoot') || document.body;
+  // Extract <base href="..."> from payload and place it in <head>.
+  try {
+    const baseMatch = newBodyHtml.match(/<base\s+href="([^"]*)"[^>]*>/i);
+    if (baseMatch) {
+      let baseEl = document.getElementById('omdBase');
+      if (!baseEl) {
+        baseEl = document.createElement('base');
+        baseEl.id = 'omdBase';
+        document.head.appendChild(baseEl);
+      }
+      baseEl.href = baseMatch[1];
+      newBodyHtml = newBodyHtml.replace(baseMatch[0], '');
+    } else {
+      const baseEl = document.getElementById('omdBase');
+      if (baseEl) baseEl.href = 'about:blank';
+    }
+  } catch(e) { /* best-effort */ }
+""");
+
+        if (mermaid) {
+            sb.Append("""
+  // Cache existing Mermaid SVGs keyed by data-mermaid-hash.
+  const existingSvgs = new Map();
+  root.querySelectorAll('[data-mermaid-hash]').forEach(el => {
+    const hash = el.getAttribute('data-mermaid-hash');
+    const svg = el.querySelector('svg') || (el.nextElementSibling && el.nextElementSibling.tagName === 'svg' ? el.nextElementSibling : null);
+    if (hash && svg) existingSvgs.set(hash, svg.cloneNode(true));
+  });
+""");
+        }
+
+        sb.Append("""
+  // Replace rendered contents.
+  root.innerHTML = newBodyHtml;
+""");
+
+        if (mermaid) {
+            sb.Append("""
+  // Restore cached Mermaid SVGs for unchanged diagrams.
+  root.querySelectorAll('[data-mermaid-hash]').forEach(el => {
+    const hash = el.getAttribute('data-mermaid-hash');
+    if (existingSvgs.has(hash)) {
+      const cachedSvg = existingSvgs.get(hash);
+      el.innerHTML = '';
+      el.appendChild(cachedSvg);
+      el.setAttribute('data-mermaid-rendered', 'true');
+    }
+  });
+
+  // Render only new/changed Mermaid blocks.
+  const unrendered = root.querySelectorAll('[data-mermaid-hash]:not([data-mermaid-rendered])');
+  if (unrendered.length > 0 && window.mermaid) {
+    try { await window.mermaid.run({ nodes: unrendered }); } catch(e) { console.warn('Mermaid render error:', e); }
+  }
+  // Render plain Mermaid blocks (language-mermaid) when hashes are not present.
+  const plainMermaid = root.querySelectorAll('pre > code.language-mermaid:not([data-mermaid-rendered]), .mermaid:not([data-mermaid-rendered]):not(svg)');
+  if (plainMermaid.length > 0 && window.mermaid) {
+    try { await window.mermaid.run({ nodes: plainMermaid }); } catch(e) { console.warn('Mermaid render error:', e); }
+  }
+""");
+        }
+
+        sb.Append("""
+  // Prism highlighting (optional).
+  try {
+    if (window.Prism) {
+      if (typeof Prism.highlightAllUnder === 'function') Prism.highlightAllUnder(root);
+      else if (typeof Prism.highlightAll === 'function') Prism.highlightAll();
+    }
+  } catch(e) { /* ignore */ }
+}
+""");
+
+        return sb.ToString();
+    }
+}

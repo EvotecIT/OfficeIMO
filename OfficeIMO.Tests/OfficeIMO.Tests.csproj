@@ -30,6 +30,7 @@
     <ItemGroup>
         <ProjectReference Include="..\\OfficeIMO.Word\\OfficeIMO.Word.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Markdown\\OfficeIMO.Markdown.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.MarkdownRenderer\\OfficeIMO.MarkdownRenderer.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel\\OfficeIMO.Excel.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word.Pdf\\OfficeIMO.Word.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word.Html\\OfficeIMO.Word.Html.csproj" />

@@ -31,6 +31,7 @@ public sealed class MarkdownReaderPipeline {
         if (options.DefinitionLists) p.Add(new MarkdownReader.DefinitionListParser());
         if (options.OrderedLists) p.Add(new MarkdownReader.OrderedListParser());
         if (options.UnorderedLists) p.Add(new MarkdownReader.UnorderedListParser());
+        if (options.IndentedCodeBlocks) p.Add(new MarkdownReader.IndentedCodeParser());
         p.Add(new MarkdownReader.SetextHeadingParser());
         if (options.Headings) p.Add(new MarkdownReader.HeadingParser());
         if (options.Paragraphs) p.Add(new MarkdownReader.ParagraphParser()); // must be last

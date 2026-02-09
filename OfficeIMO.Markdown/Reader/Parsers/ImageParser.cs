@@ -20,7 +20,11 @@ public static partial class MarkdownReader {
                 }
             }
             var resolvedPath = ResolveUrl(img.Path, options);
-            if (!string.IsNullOrWhiteSpace(resolvedPath) && !string.Equals(resolvedPath, img.Path, StringComparison.Ordinal)) {
+            if (string.IsNullOrWhiteSpace(resolvedPath)) {
+                // Unsafe or invalid URL: let paragraph parsing treat this line as plain text.
+                return false;
+            }
+            if (!string.Equals(resolvedPath, img.Path, StringComparison.Ordinal)) {
                 img = new ImageBlock(resolvedPath!, img.Alt, img.Title) { Caption = img.Caption, Height = img.Height, Width = img.Width };
             }
             int j = i + 1;

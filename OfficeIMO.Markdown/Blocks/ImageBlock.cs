@@ -33,10 +33,10 @@ public sealed class ImageBlock : IMarkdownBlock, ICaptionable {
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() {
-        string alt = Alt ?? string.Empty;
-        string title = string.IsNullOrEmpty(Title) ? string.Empty : " \"" + Title + "\"";
+        string alt = MarkdownEscaper.EscapeImageAlt(Alt ?? string.Empty);
+        string title = MarkdownEscaper.FormatOptionalTitle(Title);
         System.Text.StringBuilder sb = new System.Text.StringBuilder();
-        sb.Append($"![{alt}]({Path}{title})");
+        sb.Append($"![{alt}]({MarkdownEscaper.EscapeImageSrc(Path)}{title})");
         if (Width != null || Height != null) {
             var w = Width != null ? $"width={Width.Value}" : string.Empty;
             var h = Height != null ? $"height={Height.Value}" : string.Empty;

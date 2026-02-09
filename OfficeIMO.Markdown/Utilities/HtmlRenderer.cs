@@ -68,12 +68,7 @@ internal static class HtmlRenderer {
             }
         }
 
-        var parts = new HtmlRenderParts {
-            Head = head.ToString(),
-            Body = bodyContent,
-            Css = css ?? string.Empty,
-            Scripts = scripts.ToString()
-        };
+        var parts = new HtmlRenderParts();
 
         // Prism assets (manifest + optional emission)
         if (options.Prism?.Enabled == true) {
@@ -90,19 +85,34 @@ internal static class HtmlRenderer {
                         if (!string.IsNullOrEmpty(a.Href)) {
                             var media = string.IsNullOrEmpty(a.Media) ? string.Empty : $" media=\"{System.Net.WebUtility.HtmlEncode(a.Media)}\"";
                             head.Append($"<link rel=\"stylesheet\" data-asset-id=\"{System.Net.WebUtility.HtmlEncode(a.Id)}\" href=\"{System.Net.WebUtility.HtmlEncode(a.Href)}\"{media}>\n");
-                        } else if (!string.IsNullOrEmpty(a.Inline)) parts.Css += (parts.Css.Length > 0 ? "\n" : "") + a.Inline;
+                        } else if (!string.IsNullOrEmpty(a.Inline)) {
+                            if (options.CssDelivery == CssDelivery.ExternalFile) {
+                                // When writing CSS to a sidecar file, ensure Prism inline CSS is included there too.
+                                options._externalCssContentToWrite = (options._externalCssContentToWrite?.Length > 0 ? (options._externalCssContentToWrite + "\n") : (options._externalCssContentToWrite ?? string.Empty)) + a.Inline;
+                            } else {
+                                css = (css?.Length > 0 ? (css + "\n") : (css ?? string.Empty)) + a.Inline;
+                            }
+                        }
                     } else {
                         if (!string.IsNullOrEmpty(a.Href)) head.Append($"<script data-asset-id=\"{System.Net.WebUtility.HtmlEncode(a.Id)}\" src=\"{System.Net.WebUtility.HtmlEncode(a.Href)}\"></script>\n");
-                        else if (!string.IsNullOrEmpty(a.Inline)) parts.Scripts += (parts.Scripts.Length > 0 ? "\n" : "") + a.Inline;
+                        else if (!string.IsNullOrEmpty(a.Inline)) scripts.Append(a.Inline).Append('\n');
                     }
                 }
             }
         }
 
+        // Capture final strings after optional asset emission.
+        parts.Head = head.ToString();
+        parts.Body = bodyContent;
+        parts.Css = css ?? string.Empty;
+        parts.Scripts = scripts.ToString();
         return parts;
     }
 
     private static string RenderBody(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, HtmlOptions options, System.Collections.Generic.IReadOnlyDictionary<HeadingBlock, string> headingSlugs) {
+        // Footnote definitions are rendered at the bottom in a dedicated section.
+        var footnotes = new List<FootnoteDefinitionBlock>();
+
         // Detect a sidebar TOC and render a two-column layout when present
         TocPlaceholderBlock? sidebar = null;
         for (int i = 0; i < blocks.Count; i++) {
@@ -117,6 +127,7 @@ internal static class HtmlRenderer {
             var content = new StringBuilder();
             for (int i = 0; i < blocks.Count; i++) {
                 var block = blocks[i];
+                if (block is FootnoteDefinitionBlock fn) { footnotes.Add(fn); continue; }
                 // Skip the TOC title heading for enhanced layouts to avoid duplicate "On this page" in content
                 if (block is HeadingBlock h0 && i + 1 < blocks.Count && blocks[i + 1] is TocPlaceholderBlock tp0) {
                     var o0 = tp0.Options;
@@ -147,6 +158,7 @@ internal static class HtmlRenderer {
                     content.Append(block.RenderHtml());
                 }
             }
+            if (footnotes.Count > 0) content.Append(BuildFootnotesSectionHtml(footnotes));
             var sbLayout = new StringBuilder();
             string widthStyle = sidebar.Options.WidthPx.HasValue ? $" style=\"--md-toc-width: {sidebar.Options.WidthPx.Value}px\"" : string.Empty;
             sbLayout.Append($"<div class=\"md-layout two-col {side}\"{widthStyle}>");
@@ -162,6 +174,7 @@ internal static class HtmlRenderer {
         var sb = new StringBuilder();
         for (int i = 0; i < blocks.Count; i++) {
             var block = blocks[i];
+            if (block is FootnoteDefinitionBlock fn) { footnotes.Add(fn); continue; }
             // Skip TOC title heading for enhanced layouts
             if (block is HeadingBlock h0 && i + 1 < blocks.Count && blocks[i + 1] is TocPlaceholderBlock tp0) {
                 var o0 = tp0.Options;
@@ -190,6 +203,47 @@ internal static class HtmlRenderer {
                 sb.Append(block.RenderHtml());
             }
         }
+        if (footnotes.Count > 0) sb.Append(BuildFootnotesSectionHtml(footnotes));
+        return sb.ToString();
+    }
+
+    private static string BuildFootnotesSectionHtml(List<FootnoteDefinitionBlock> footnotes) {
+        if (footnotes == null || footnotes.Count == 0) return string.Empty;
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var sb = new StringBuilder();
+        sb.Append("<section class=\"footnotes\"><hr /><ol>");
+
+        for (int i = 0; i < footnotes.Count; i++) {
+            var fn = footnotes[i];
+            if (fn == null) continue;
+
+            var label = fn.Label ?? string.Empty;
+            if (label.Length == 0) continue;
+            if (!seen.Add(label)) continue;
+
+            var enc = System.Net.WebUtility.HtmlEncode(label);
+            sb.Append("<li id=\"fn:").Append(enc).Append("\">");
+
+            var paragraphs = fn.Paragraphs;
+            if (paragraphs == null || paragraphs.Count == 0) {
+                var one = MarkdownReader.ParseInlineText(fn.Text);
+                paragraphs = new List<InlineSequence> { one };
+            }
+
+            for (int p = 0; p < paragraphs.Count; p++) {
+                var para = paragraphs[p] ?? new InlineSequence();
+                sb.Append("<p>").Append(para.RenderHtml());
+                if (p == paragraphs.Count - 1) {
+                    sb.Append(" <a class=\"footnote-backref\" href=\"#fnref:").Append(enc).Append("\" aria-label=\"Back to reference\">&#8617;</a>");
+                }
+                sb.Append("</p>");
+            }
+
+            sb.Append("</li>");
+        }
+
+        sb.Append("</ol></section>");
         return sb.ToString();
     }
 

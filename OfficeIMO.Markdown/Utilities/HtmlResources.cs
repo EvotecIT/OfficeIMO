@@ -274,6 +274,18 @@ article.markdown-body li,
 article.markdown-body blockquote,
 article.markdown-body td,
 article.markdown-body th { overflow-wrap: anywhere; word-break: break-word; }
+
+/* Footnotes */
+article.markdown-body section.footnotes { margin-top: 2rem; }
+article.markdown-body section.footnotes > hr { border: 0; border-top: 1px solid rgba(27,31,36,.15); margin: 1rem 0; }
+article.markdown-body section.footnotes ol { margin: 0; padding-left: 1.25rem; }
+article.markdown-body section.footnotes li { margin: .35rem 0; }
+article.markdown-body a.footnote-backref { margin-left: .5rem; text-decoration: none; opacity: .8; }
+article.markdown-body a.footnote-backref:hover { opacity: 1; text-decoration: underline; }
+@media (prefers-color-scheme: dark) {
+  article.markdown-body section.footnotes > hr { border-top-color: rgba(240,246,252,.2); }
+}
+html[data-theme=dark] article.markdown-body section.footnotes > hr { border-top-color: rgba(240,246,252,.2); }
 ";
 
     // Word-like, document-centric styling – Calibri/Cambria fonts, comfortable spacing,

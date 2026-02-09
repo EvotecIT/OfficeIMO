@@ -10,16 +10,41 @@ public static partial class MarkdownReader {
             int rb = t.IndexOf(']'); if (rb < 0) return false;
             if (rb + 1 >= t.Length || t[rb + 1] != ':') return false;
             string label = t.Substring(2, rb - 2);
-            string content = t.Substring(rb + 2).TrimStart();
-            // Continuation lines: indented by at least two spaces or a tab
+
+            // Collect content lines; allow blank lines inside the footnote only when followed by indented continuation.
+            var contentLines = new List<string> { t.Substring(rb + 2).TrimStart() };
+
             int j = i + 1;
             while (j < lines.Length) {
-                var ln = lines[j];
-                if (string.IsNullOrEmpty(ln)) break;
+                var ln = lines[j] ?? string.Empty;
+
+                if (ln.Length == 0) {
+                    int peek = j + 1;
+                    if (peek >= lines.Length) break;
+                    var next = lines[peek] ?? string.Empty;
+                    int leadingNext = 0; while (leadingNext < next.Length && next[leadingNext] == ' ') leadingNext++;
+                    bool indentedNext = leadingNext >= 2 || (leadingNext < next.Length && next[leadingNext] == '\t');
+                    if (!indentedNext) break;
+
+                    contentLines.Add(string.Empty); // paragraph separator
+                    j++;
+                    continue;
+                }
+
                 int leading = 0; while (leading < ln.Length && ln[leading] == ' ') leading++;
-                if (leading >= 2 || (leading < ln.Length && ln[leading] == '\t')) { content += "\n" + ln.TrimStart(); j++; } else break;
+                if (leading >= 2 || (leading < ln.Length && ln[leading] == '\t')) {
+                    contentLines.Add(ln.TrimStart());
+                    j++;
+                    continue;
+                }
+
+                break;
             }
-            doc.Add(new FootnoteDefinitionBlock(label, content));
+
+            string content = string.Join("\n", contentLines);
+            var paragraphs = ParseParagraphsFromLines(contentLines, options, state);
+
+            doc.Add(new FootnoteDefinitionBlock(label, content, paragraphs));
             i = j; return true;
         }
     }
