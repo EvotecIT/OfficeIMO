@@ -15,5 +15,14 @@ public sealed class HtmlCommentBlock : IMarkdownBlock {
 
     string IMarkdownBlock.RenderMarkdown() => Comment;
 
-    string IMarkdownBlock.RenderHtml() => Comment;
+    string IMarkdownBlock.RenderHtml() {
+        var o = HtmlRenderContext.Options;
+        var handling = o?.RawHtmlHandling ?? RawHtmlHandling.Allow;
+        return handling switch {
+            RawHtmlHandling.Allow => Comment,
+            RawHtmlHandling.Escape => "<pre class=\"md-raw-html\"><code>" + System.Net.WebUtility.HtmlEncode(Comment) + "</code></pre>",
+            RawHtmlHandling.Sanitize => RawHtmlSanitizer.Sanitize(Comment),
+            _ => string.Empty
+        };
+    }
 }
