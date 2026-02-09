@@ -15,7 +15,10 @@ public sealed class OrderedListBlock : IMarkdownBlock {
         var sb = new System.Text.StringBuilder();
         foreach (var item in Items) {
             var indent = new string(' ', item.Level * 2);
-            string marker = item.Level == 0 ? (i++).ToString(System.Globalization.CultureInfo.InvariantCulture) + ". " : "1. ";
+            string baseMarker = item.Level == 0 ? (i++).ToString(System.Globalization.CultureInfo.InvariantCulture) + ". " : "1. ";
+            string marker = item.IsTask
+                ? baseMarker + "[" + (item.Checked ? "x" : " ") + "] "
+                : baseMarker;
             string firstPrefix = indent + marker;
             string contPrefix = indent + new string(' ', marker.Length);
 
