@@ -35,5 +35,18 @@ public sealed class MathOptions {
 
     /// <summary>Enable <c>\\[...\\]</c> display math. Default: true.</summary>
     public bool EnableBracketDisplay { get; set; } = true;
-}
 
+    /// <summary>
+    /// When true, fenced code blocks named <c>math</c>/<c>latex</c> are converted into display-math nodes before rendering,
+    /// so authors can write:
+    /// <code>```math\nx^2\n```</code>
+    /// Default: true.
+    /// </summary>
+    public bool EnableFencedMathBlocks { get; set; } = true;
+
+    /// <summary>
+    /// Fence languages treated as display math when <see cref="EnableFencedMathBlocks"/> is enabled.
+    /// Default: <c>math</c>, <c>latex</c>.
+    /// </summary>
+    public string[] FencedMathLanguages { get; set; } = new[] { "math", "latex" };
+}

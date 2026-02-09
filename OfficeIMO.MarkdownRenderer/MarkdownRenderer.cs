@@ -17,6 +17,10 @@ public static class MarkdownRenderer {
         "(<pre[^>]*>)\\s*<code\\s+class=\"language-chart\"[^>]*>([\\s\\S]*?)</code>\\s*</pre>",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    private static readonly Regex MathPreCodeBlockRegex = new Regex(
+        "(<pre[^>]*>)\\s*<code\\s+class=\"language-(math|latex)\"[^>]*>([\\s\\S]*?)</code>\\s*</pre>",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     /// <summary>
     /// Parses Markdown using OfficeIMO.Markdown and returns an HTML fragment (typically an &lt;article class="markdown-body"&gt; wrapper).
     /// When Mermaid is enabled, Mermaid code blocks are annotated with hashes for incremental rendering.
@@ -47,6 +51,10 @@ public static class MarkdownRenderer {
 
         if (options.Chart?.Enabled == true) {
             html = ConvertChartCodeBlocks(html);
+        }
+
+        if (options.Math?.Enabled == true && options.Math.EnableFencedMathBlocks) {
+            html = ConvertMathCodeBlocks(html, options.Math);
         }
 
         if (!string.IsNullOrWhiteSpace(options.BaseHref)) {
@@ -134,6 +142,37 @@ public static class MarkdownRenderer {
             var hash = ComputeShortHash(encoded);
             return $"<canvas class=\"omd-chart\" data-chart-hash=\"{hash}\" data-chart-config-b64=\"{System.Net.WebUtility.HtmlEncode(b64)}\"></canvas>";
         });
+    }
+
+    private static string ConvertMathCodeBlocks(string html, MathOptions mathOptions) {
+        if (string.IsNullOrEmpty(html)) return html;
+        // Convert fenced ```math/```latex blocks rendered as code fences into display-math text nodes.
+        // KaTeX auto-render runs on the updated DOM and will render the $$...$$ delimiters.
+        return MathPreCodeBlockRegex.Replace(html, m => {
+            var lang = (m.Groups[2].Value ?? string.Empty).Trim();
+            if (!IsMathFenceLanguageAllowed(lang, mathOptions)) return m.Value;
+
+            var encoded = m.Groups[3].Value ?? string.Empty;
+            var raw = System.Net.WebUtility.HtmlDecode(encoded) ?? string.Empty;
+
+            // Re-encode to keep content safe as text. Preserve newlines for nicer display rendering.
+            var safe = System.Net.WebUtility.HtmlEncode(raw);
+            return "<div class=\"omd-math\">$$\n" + safe + "\n$$</div>";
+        });
+    }
+
+    private static bool IsMathFenceLanguageAllowed(string lang, MathOptions mathOptions) {
+        if (string.IsNullOrWhiteSpace(lang)) return false;
+        if (mathOptions == null) return false;
+        var allowed = mathOptions.FencedMathLanguages;
+        if (allowed == null || allowed.Length == 0) return true; // treat as enabled for defaults
+
+        for (int i = 0; i < allowed.Length; i++) {
+            var a = (allowed[i] ?? string.Empty).Trim();
+            if (a.Length == 0) continue;
+            if (string.Equals(a, lang, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
     }
 
     private static string ComputeShortHash(string input) {

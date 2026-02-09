@@ -134,6 +134,22 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_Converts_Fenced_Math_To_Display_Math_When_Enabled() {
+        string md = """
+```math
+x^2 + 1
+```
+""";
+        var opts = new MarkdownRendererOptions { BaseHref = "https://example.com/" };
+        opts.HtmlOptions.BlockExternalHttpImages = false;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+        Assert.Contains("class=\"omd-math\"", html, StringComparison.Ordinal);
+        Assert.Contains("$$", html, StringComparison.Ordinal);
+        Assert.Contains("x^2 + 1", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Allows_SameOrigin_Absolute_Http_Images_When_BaseHref_Is_Set() {
         var opts = new MarkdownRendererOptions { BaseHref = "https://example.com/" };
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("![alt](https://example.com/a.png)", opts);
