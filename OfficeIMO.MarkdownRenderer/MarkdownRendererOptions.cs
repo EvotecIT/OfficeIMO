@@ -14,7 +14,10 @@ public sealed class MarkdownRendererOptions {
         HtmlBlocks = false,
         InlineHtml = false,
         DisallowFileUrls = true,
-        AllowDataUrls = false
+        AllowDataUrls = false,
+        AllowProtocolRelativeUrls = false,
+        RestrictUrlSchemes = true,
+        AllowedUrlSchemes = new[] { "http", "https", "mailto" }
     };
 
     /// <summary>

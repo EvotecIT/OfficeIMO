@@ -111,4 +111,18 @@ public sealed class MarkdownReaderOptions {
     /// When <c>false</c>, protocol-relative URLs (<c>//example.com</c>) are treated as plain text. Default: <c>true</c>.
     /// </summary>
     public bool AllowProtocolRelativeUrls { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, only URL schemes listed in <see cref="AllowedUrlSchemes"/> are allowed.
+    /// Relative URLs and fragments are still allowed.
+    /// Default: <c>false</c> to preserve legacy behavior.
+    /// </summary>
+    public bool RestrictUrlSchemes { get; set; } = false;
+
+    /// <summary>
+    /// List of allowed URL schemes when <see cref="RestrictUrlSchemes"/> is enabled.
+    /// Values are compared case-insensitively and should not include the trailing colon.
+    /// Default: <c>http</c>, <c>https</c>, <c>mailto</c>.
+    /// </summary>
+    public string[] AllowedUrlSchemes { get; set; } = new[] { "http", "https", "mailto" };
 }

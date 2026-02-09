@@ -538,6 +538,7 @@ public static partial class MarkdownReader {
 
         // Block scriptable schemes by default.
         if (TryGetScheme(url, out var scheme)) {
+            if (options?.RestrictUrlSchemes == true && !IsAllowedScheme(scheme, options.AllowedUrlSchemes)) return null;
             if (options?.DisallowScriptUrls != false) {
                 if (scheme.Equals("javascript", StringComparison.OrdinalIgnoreCase) ||
                     scheme.Equals("vbscript", StringComparison.OrdinalIgnoreCase)) {
@@ -553,7 +554,13 @@ public static partial class MarkdownReader {
             return url;
         }
 
-        if (url.StartsWith("//")) return (options?.AllowProtocolRelativeUrls ?? true) ? url : null;
+        if (url.StartsWith("//")) {
+            if (options?.AllowProtocolRelativeUrls != false) {
+                if (options?.RestrictUrlSchemes == true && !IsAllowedScheme("http", options.AllowedUrlSchemes) && !IsAllowedScheme("https", options.AllowedUrlSchemes)) return null;
+                return url;
+            }
+            return null;
+        }
         if (url.StartsWith("#")) return url;
         if (options?.DisallowFileUrls == true && IsWindowsDriveLike(url)) return null;
 
@@ -577,6 +584,17 @@ public static partial class MarkdownReader {
         }
 
         return url; // relative or unknown: leave as-is
+    }
+
+    private static bool IsAllowedScheme(string scheme, string[]? allowedSchemes) {
+        if (string.IsNullOrEmpty(scheme)) return false;
+        if (allowedSchemes == null || allowedSchemes.Length == 0) return false;
+        for (int i = 0; i < allowedSchemes.Length; i++) {
+            var s = allowedSchemes[i];
+            if (string.IsNullOrWhiteSpace(s)) continue;
+            if (scheme.Equals(s.Trim(), StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
     }
 
     private static bool TryGetScheme(string url, out string scheme) {
