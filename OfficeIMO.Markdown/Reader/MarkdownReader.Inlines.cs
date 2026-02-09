@@ -5,6 +5,10 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public static partial class MarkdownReader {
     private static InlineSequence ParseInlines(string text, MarkdownReaderOptions options, MarkdownReaderState? state = null) {
+        return ParseInlinesInternal(text, options, state, allowLinks: true, allowImages: true);
+    }
+
+    private static InlineSequence ParseInlinesInternal(string text, MarkdownReaderOptions options, MarkdownReaderState? state, bool allowLinks, bool allowImages) {
         var root = new InlineSequence { AutoSpacing = false };
         if (string.IsNullOrEmpty(text)) return root;
 
@@ -105,44 +109,48 @@ public static partial class MarkdownReader {
             }
 
             if (TryParseImageLink(text, pos, out int consumed, out var alt2, out var img2, out var imgTitle2, out var href2)) {
-                var imgResolved = ResolveUrl(img2, options);
-                var hrefResolved = ResolveUrl(href2, options);
-                if (string.IsNullOrEmpty(imgResolved) || string.IsNullOrEmpty(hrefResolved)) {
-                    // Unsafe URLs: keep content as plain text instead of a clickable linked image.
-                    Current().Text(string.IsNullOrEmpty(alt2) ? "image" : alt2);
-                } else {
-                    Current().ImageLink(alt2, imgResolved!, hrefResolved!, imgTitle2);
+                if (allowLinks && allowImages) {
+                    var imgResolved = ResolveUrl(img2, options);
+                    var hrefResolved = ResolveUrl(href2, options);
+                    if (string.IsNullOrEmpty(imgResolved) || string.IsNullOrEmpty(hrefResolved)) {
+                        // Unsafe URLs: keep content as plain text instead of a clickable linked image.
+                        Current().Text(string.IsNullOrEmpty(alt2) ? "image" : alt2);
+                    } else {
+                        Current().ImageLink(alt2, imgResolved!, hrefResolved!, imgTitle2);
+                    }
+                    pos += consumed; continue;
                 }
-                pos += consumed; continue;
             }
 
             if (text[pos] == '!') {
-                // Reference-style image: ![alt][label], ![alt][], or shortcut ![label]
-                if (state != null && TryParseReferenceImage(text, pos, out int consumedRefImg, out var altRef, out var refLabel)) {
-                    var key = NormalizeReferenceLabel(refLabel);
-                    if (state.LinkRefs.TryGetValue(key, out var defImg)) {
-                        var resolved = ResolveUrl(defImg.Url, options);
-                        if (string.IsNullOrEmpty(resolved)) {
-                            Current().Text(string.IsNullOrEmpty(altRef) ? "image" : altRef);
+                if (allowImages) {
+                    // Reference-style image: ![alt][label], ![alt][], or shortcut ![label]
+                    if (state != null && TryParseReferenceImage(text, pos, out int consumedRefImg, out var altRef, out var refLabel)) {
+                        var key = NormalizeReferenceLabel(refLabel);
+                        if (state.LinkRefs.TryGetValue(key, out var defImg)) {
+                            var resolved = ResolveUrl(defImg.Url, options);
+                            if (string.IsNullOrEmpty(resolved)) {
+                                Current().Text(string.IsNullOrEmpty(altRef) ? "image" : altRef);
+                            } else {
+                                Current().Image(altRef, resolved!, defImg.Title);
+                            }
                         } else {
-                            Current().Image(altRef, resolved!, defImg.Title);
+                            // Preserve literal syntax when the definition is missing.
+                            Current().Text(text.Substring(pos, consumedRefImg));
                         }
-                    } else {
-                        // Preserve literal syntax when the definition is missing.
-                        Current().Text(text.Substring(pos, consumedRefImg));
+                        pos += consumedRefImg; continue;
                     }
-                    pos += consumedRefImg; continue;
-                }
 
-                // Inline image: ![alt](src "title")
-                if (TryParseInlineImage(text, pos, out int consumedImg, out var altImg, out var srcImg, out var titleImg)) {
-                    var srcResolved = ResolveUrl(srcImg, options);
-                    if (string.IsNullOrEmpty(srcResolved)) {
-                        Current().Text(string.IsNullOrEmpty(altImg) ? "image" : altImg);
-                    } else {
-                        Current().Image(altImg, srcResolved!, titleImg);
+                    // Inline image: ![alt](src "title")
+                    if (TryParseInlineImage(text, pos, out int consumedImg, out var altImg, out var srcImg, out var titleImg)) {
+                        var srcResolved = ResolveUrl(srcImg, options);
+                        if (string.IsNullOrEmpty(srcResolved)) {
+                            Current().Text(string.IsNullOrEmpty(altImg) ? "image" : altImg);
+                        } else {
+                            Current().Image(altImg, srcResolved!, titleImg);
+                        }
+                        pos += consumedImg; continue;
                     }
-                    pos += consumedImg; continue;
                 }
             }
 
@@ -158,47 +166,69 @@ public static partial class MarkdownReader {
                 continue;
             }
             if (text[pos] == '[') {
-                if (state != null && TryParseCollapsedRef(text, pos, out int consumedC, out var lbl2)) {
-                    var key = NormalizeReferenceLabel(lbl2);
-                    if (state.LinkRefs.TryGetValue(key, out var def2)) {
-                        var resolved = ResolveUrl(def2.Url, options);
-                        if (string.IsNullOrEmpty(resolved)) Current().Text(lbl2);
-                        else Current().Link(lbl2, resolved!, def2.Title);
-                    } else Current().Text(text.Substring(pos, consumedC));
-                    pos += consumedC; continue;
-                }
-                if (state != null && TryParseRefLink(text, pos, out int consumedR, out var lbl, out var refLabel)) {
-                    var key = NormalizeReferenceLabel(refLabel);
-                    if (state.LinkRefs.TryGetValue(key, out var def)) {
-                        var resolved = ResolveUrl(def.Url, options);
-                        if (string.IsNullOrEmpty(resolved)) Current().Text(lbl);
-                        else Current().Link(lbl, resolved!, def.Title);
-                    } else Current().Text(text.Substring(pos, consumedR));
-                    pos += consumedR; continue;
-                }
-                if (state != null && TryParseShortcutRef(text, pos, out int consumedS, out var lbl3)) {
-                    var key = NormalizeReferenceLabel(lbl3);
-                    if (state.LinkRefs.TryGetValue(key, out var def3)) {
-                        var resolved = ResolveUrl(def3.Url, options);
-                        if (string.IsNullOrEmpty(resolved)) Current().Text(lbl3);
-                        else Current().Link(lbl3, resolved!, def3.Title);
-                    } else Current().Text(text.Substring(pos, consumedS));
-                    pos += consumedS; continue;
-                }
-                if (TryParseLink(text, pos, out int consumed2, out var label2, out var href3, out var title2)) {
-                    // Allow empty href: commonly used as placeholder or to be filled by the host.
-                    if (string.IsNullOrWhiteSpace(href3)) {
-                        Current().Link(label2, string.Empty, title2);
-                    } else {
-                        var hrefResolved = ResolveUrl(href3, options);
-                        if (string.IsNullOrEmpty(hrefResolved)) {
-                            // Unsafe URLs: keep the label as plain text instead of producing an <a href="...">.
-                            Current().Text(label2);
+                if (allowLinks) {
+                    if (state != null && TryParseCollapsedRef(text, pos, out int consumedC, out var lbl2)) {
+                        var key = NormalizeReferenceLabel(lbl2);
+                        var labelSeq = ParseInlinesInternal(lbl2, options, state, allowLinks: false, allowImages: false);
+                        if (state.LinkRefs.TryGetValue(key, out var def2)) {
+                            var resolved = ResolveUrl(def2.Url, options);
+                            if (string.IsNullOrEmpty(resolved)) {
+                                foreach (var n in labelSeq.Items) Current().AddRaw(n);
+                            } else {
+                                Current().AddRaw(new LinkInline(labelSeq, resolved!, def2.Title));
+                            }
                         } else {
-                            Current().Link(label2, hrefResolved!, title2);
+                            Current().Text(text.Substring(pos, consumedC));
                         }
+                        pos += consumedC; continue;
                     }
-                    pos += consumed2; continue;
+                    if (state != null && TryParseRefLink(text, pos, out int consumedR, out var lbl, out var refLabel)) {
+                        var key = NormalizeReferenceLabel(refLabel);
+                        var labelSeq = ParseInlinesInternal(lbl, options, state, allowLinks: false, allowImages: false);
+                        if (state.LinkRefs.TryGetValue(key, out var def)) {
+                            var resolved = ResolveUrl(def.Url, options);
+                            if (string.IsNullOrEmpty(resolved)) {
+                                foreach (var n in labelSeq.Items) Current().AddRaw(n);
+                            } else {
+                                Current().AddRaw(new LinkInline(labelSeq, resolved!, def.Title));
+                            }
+                        } else {
+                            Current().Text(text.Substring(pos, consumedR));
+                        }
+                        pos += consumedR; continue;
+                    }
+                    if (state != null && TryParseShortcutRef(text, pos, out int consumedS, out var lbl3)) {
+                        var key = NormalizeReferenceLabel(lbl3);
+                        var labelSeq = ParseInlinesInternal(lbl3, options, state, allowLinks: false, allowImages: false);
+                        if (state.LinkRefs.TryGetValue(key, out var def3)) {
+                            var resolved = ResolveUrl(def3.Url, options);
+                            if (string.IsNullOrEmpty(resolved)) {
+                                foreach (var n in labelSeq.Items) Current().AddRaw(n);
+                            } else {
+                                Current().AddRaw(new LinkInline(labelSeq, resolved!, def3.Title));
+                            }
+                        } else {
+                            Current().Text(text.Substring(pos, consumedS));
+                        }
+                        pos += consumedS; continue;
+                    }
+                    if (TryParseLink(text, pos, out int consumed2, out var label2, out var href3, out var title2)) {
+                        var labelSeq = ParseInlinesInternal(label2, options, state, allowLinks: false, allowImages: false);
+
+                        // Allow empty href: commonly used as placeholder or to be filled by the host.
+                        if (string.IsNullOrWhiteSpace(href3)) {
+                            Current().AddRaw(new LinkInline(labelSeq, string.Empty, title2));
+                        } else {
+                            var hrefResolved = ResolveUrl(href3, options);
+                            if (string.IsNullOrEmpty(hrefResolved)) {
+                                // Unsafe URLs: keep the label as plain inline content instead of producing an <a href="...">.
+                                foreach (var n in labelSeq.Items) Current().AddRaw(n);
+                            } else {
+                                Current().AddRaw(new LinkInline(labelSeq, hrefResolved!, title2));
+                            }
+                        }
+                        pos += consumed2; continue;
+                    }
                 }
             }
 
@@ -271,7 +301,7 @@ public static partial class MarkdownReader {
             }
 
             int start = pos; pos++;
-            while (pos < text.Length && !IsPotentialInlineStart(text[pos], options.InlineHtml)) {
+            while (pos < text.Length && !IsPotentialInlineStart(text[pos], options.InlineHtml, allowLinks, allowImages)) {
                 // Ensure our explicit inline handlers see these characters.
                 if (text[pos] == '\n') break;
                 if (text[pos] == '\\' && pos + 1 < text.Length && IsBackslashEscapable(text[pos + 1])) break;
@@ -626,9 +656,14 @@ public static partial class MarkdownReader {
         return char.IsLetterOrDigit(text[left]) && char.IsLetterOrDigit(text[right]);
     }
 
-    private static bool IsPotentialInlineStart(char c, bool allowInlineHtml) {
-        if (c < PotentialInlineStartLookup.Length && PotentialInlineStartLookup[c]) return true;
-        return allowInlineHtml && c == '<';
+    private static bool IsPotentialInlineStart(char c, bool allowInlineHtml, bool allowLinks, bool allowImages) {
+        if (allowInlineHtml && c == '<') return true;
+        if (c < PotentialInlineStartLookup.Length && PotentialInlineStartLookup[c]) {
+            if (!allowLinks && c == '[') return false;
+            if (!allowImages && c == '!') return false;
+            return true;
+        }
+        return false;
     }
 
     private static bool TryParseLink(string text, int start, out int consumed, out string label, out string href, out string? title) {
