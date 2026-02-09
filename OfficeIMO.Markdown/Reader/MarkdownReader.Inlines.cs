@@ -5,26 +5,33 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public static partial class MarkdownReader {
     private static InlineSequence ParseInlines(string text, MarkdownReaderOptions options, MarkdownReaderState? state = null) {
-        var seq = new InlineSequence { AutoSpacing = false };
-        if (string.IsNullOrEmpty(text)) return seq;
+        var root = new InlineSequence { AutoSpacing = false };
+        if (string.IsNullOrEmpty(text)) return root;
+
+        // We parse emphasis/strong/strikethrough using a simple stack of open frames so that nesting like
+        // "*a **b** c*" behaves intuitively. This is not a full spec implementation, but it's materially
+        // more robust than naive IndexOf-based matching.
+        var stack = new Stack<InlineFrame>();
+        stack.Push(new InlineFrame(FrameKind.Root, '\0', 0, root));
+        InlineSequence Current() => stack.Peek().Seq;
 
         int pos = 0;
         while (pos < text.Length) {
             // Hard break signal encoded by paragraph joiner as a bare '\n'
-            if (text[pos] == '\n') { seq.HardBreak(); pos++; continue; }
+            if (text[pos] == '\n') { Current().HardBreak(); pos++; continue; }
             // HTML-style line breaks in source (commonly used inside table cells): <br>, <br/>, <br />
             if (options.InlineHtml && text[pos] == '<') {
                 const string br = "<br>";
                 const string brSelf = "<br/>";
                 const string brSelfSpaced = "<br />";
                 if (text.Length - pos >= br.Length && string.Compare(text, pos, br, 0, br.Length, StringComparison.OrdinalIgnoreCase) == 0) {
-                    seq.HardBreak(); pos += br.Length; continue;
+                    Current().HardBreak(); pos += br.Length; continue;
                 }
                 if (text.Length - pos >= brSelf.Length && string.Compare(text, pos, brSelf, 0, brSelf.Length, StringComparison.OrdinalIgnoreCase) == 0) {
-                    seq.HardBreak(); pos += brSelf.Length; continue;
+                    Current().HardBreak(); pos += brSelf.Length; continue;
                 }
                 if (text.Length - pos >= brSelfSpaced.Length && string.Compare(text, pos, brSelfSpaced, 0, brSelfSpaced.Length, StringComparison.OrdinalIgnoreCase) == 0) {
-                    seq.HardBreak(); pos += brSelfSpaced.Length; continue;
+                    Current().HardBreak(); pos += brSelfSpaced.Length; continue;
                 }
             }
             // Backslash escape (CommonMark-ish): only escape punctuation we care about so that Windows paths like
@@ -33,12 +40,12 @@ public static partial class MarkdownReader {
                 if (pos + 1 < text.Length) {
                     char next = text[pos + 1];
                     if (IsBackslashEscapable(next)) {
-                        seq.Text(next.ToString());
+                        Current().Text(next.ToString());
                         pos += 2;
                         continue;
                     }
                 }
-                seq.Text("\\");
+                Current().Text("\\");
                 pos++;
                 continue;
             }
@@ -47,8 +54,8 @@ public static partial class MarkdownReader {
             if (options.AutolinkUrls && StartsWithHttp(text, pos, out int urlEnd)) {
                 var url = text.Substring(pos, urlEnd - pos);
                 var resolved = ResolveUrl(url, options);
-                if (string.IsNullOrEmpty(resolved)) seq.Text(url);
-                else seq.Link(url, resolved!, null);
+                if (string.IsNullOrEmpty(resolved)) Current().Text(url);
+                else Current().Link(url, resolved!, null);
                 pos = urlEnd; continue;
             }
 
@@ -59,8 +66,8 @@ public static partial class MarkdownReader {
                 if (!scheme.EndsWith("://", StringComparison.Ordinal)) scheme = scheme.TrimEnd('/') + "://";
                 var href = scheme + label;
                 var resolved = ResolveUrl(href, options);
-                if (string.IsNullOrEmpty(resolved)) seq.Text(label);
-                else seq.Link(label, resolved!, null);
+                if (string.IsNullOrEmpty(resolved)) Current().Text(label);
+                else Current().Link(label, resolved!, null);
                 pos = wwwEnd; continue;
             }
 
@@ -68,8 +75,8 @@ public static partial class MarkdownReader {
             if (options.AutolinkEmails && TryConsumePlainEmail(text, pos, out int emailEnd, out string email)) {
                 var href = "mailto:" + email;
                 var resolved = ResolveUrl(href, options);
-                if (string.IsNullOrEmpty(resolved)) seq.Text(email);
-                else seq.Link(email, resolved!, null);
+                if (string.IsNullOrEmpty(resolved)) Current().Text(email);
+                else Current().Link(email, resolved!, null);
                 pos = emailEnd; continue;
             }
             if (text[pos] == '`') {
@@ -86,7 +93,7 @@ public static partial class MarkdownReader {
                     if (contentLen < 0) contentLen = 0;
                     var inner = text.Substring(contentStart, contentLen);
                     inner = NormalizeCodeSpanContent(inner);
-                    seq.Code(inner);
+                    Current().Code(inner);
                     pos = matchStart + fenceLen; continue;
                 }
             }
@@ -94,7 +101,7 @@ public static partial class MarkdownReader {
             // Footnote ref [^id] should be recognized before generic link parsing
             if (text[pos] == '[' && pos + 2 < text.Length && text[pos + 1] == '^') {
                 int rb = text.IndexOf(']', pos + 2);
-                if (rb > pos + 2) { var lab = text.Substring(pos + 2, rb - (pos + 2)); seq.FootnoteRef(lab); pos = rb + 1; continue; }
+                if (rb > pos + 2) { var lab = text.Substring(pos + 2, rb - (pos + 2)); Current().FootnoteRef(lab); pos = rb + 1; continue; }
             }
 
             if (TryParseImageLink(text, pos, out int consumed, out var alt2, out var img2, out var imgTitle2, out var href2)) {
@@ -102,9 +109,9 @@ public static partial class MarkdownReader {
                 var hrefResolved = ResolveUrl(href2, options);
                 if (string.IsNullOrEmpty(imgResolved) || string.IsNullOrEmpty(hrefResolved)) {
                     // Unsafe URLs: keep content as plain text instead of a clickable linked image.
-                    seq.Text(string.IsNullOrEmpty(alt2) ? "image" : alt2);
+                    Current().Text(string.IsNullOrEmpty(alt2) ? "image" : alt2);
                 } else {
-                    seq.ImageLink(alt2, imgResolved!, hrefResolved!, imgTitle2);
+                    Current().ImageLink(alt2, imgResolved!, hrefResolved!, imgTitle2);
                 }
                 pos += consumed; continue;
             }
@@ -116,13 +123,13 @@ public static partial class MarkdownReader {
                     if (state.LinkRefs.TryGetValue(key, out var defImg)) {
                         var resolved = ResolveUrl(defImg.Url, options);
                         if (string.IsNullOrEmpty(resolved)) {
-                            seq.Text(string.IsNullOrEmpty(altRef) ? "image" : altRef);
+                            Current().Text(string.IsNullOrEmpty(altRef) ? "image" : altRef);
                         } else {
-                            seq.Image(altRef, resolved!, defImg.Title);
+                            Current().Image(altRef, resolved!, defImg.Title);
                         }
                     } else {
                         // Preserve literal syntax when the definition is missing.
-                        seq.Text(text.Substring(pos, consumedRefImg));
+                        Current().Text(text.Substring(pos, consumedRefImg));
                     }
                     pos += consumedRefImg; continue;
                 }
@@ -131,9 +138,9 @@ public static partial class MarkdownReader {
                 if (TryParseInlineImage(text, pos, out int consumedImg, out var altImg, out var srcImg, out var titleImg)) {
                     var srcResolved = ResolveUrl(srcImg, options);
                     if (string.IsNullOrEmpty(srcResolved)) {
-                        seq.Text(string.IsNullOrEmpty(altImg) ? "image" : altImg);
+                        Current().Text(string.IsNullOrEmpty(altImg) ? "image" : altImg);
                     } else {
-                        seq.Image(altImg, srcResolved!, titleImg);
+                        Current().Image(altImg, srcResolved!, titleImg);
                     }
                     pos += consumedImg; continue;
                 }
@@ -143,9 +150,9 @@ public static partial class MarkdownReader {
             if (text[pos] == '<' && TryParseAngleAutolink(text, pos, out int consumedAngle, out var labelAngle, out var hrefAngle)) {
                 var resolved = ResolveUrl(hrefAngle, options);
                 if (string.IsNullOrEmpty(resolved)) {
-                    seq.Text(text.Substring(pos, consumedAngle));
+                    Current().Text(text.Substring(pos, consumedAngle));
                 } else {
-                    seq.Link(labelAngle, resolved!, null);
+                    Current().Link(labelAngle, resolved!, null);
                 }
                 pos += consumedAngle;
                 continue;
@@ -155,113 +162,112 @@ public static partial class MarkdownReader {
                     var key = NormalizeReferenceLabel(lbl2);
                     if (state.LinkRefs.TryGetValue(key, out var def2)) {
                         var resolved = ResolveUrl(def2.Url, options);
-                        if (string.IsNullOrEmpty(resolved)) seq.Text(lbl2);
-                        else seq.Link(lbl2, resolved!, def2.Title);
-                    } else seq.Text(text.Substring(pos, consumedC));
+                        if (string.IsNullOrEmpty(resolved)) Current().Text(lbl2);
+                        else Current().Link(lbl2, resolved!, def2.Title);
+                    } else Current().Text(text.Substring(pos, consumedC));
                     pos += consumedC; continue;
                 }
                 if (state != null && TryParseRefLink(text, pos, out int consumedR, out var lbl, out var refLabel)) {
                     var key = NormalizeReferenceLabel(refLabel);
                     if (state.LinkRefs.TryGetValue(key, out var def)) {
                         var resolved = ResolveUrl(def.Url, options);
-                        if (string.IsNullOrEmpty(resolved)) seq.Text(lbl);
-                        else seq.Link(lbl, resolved!, def.Title);
-                    } else seq.Text(text.Substring(pos, consumedR));
+                        if (string.IsNullOrEmpty(resolved)) Current().Text(lbl);
+                        else Current().Link(lbl, resolved!, def.Title);
+                    } else Current().Text(text.Substring(pos, consumedR));
                     pos += consumedR; continue;
                 }
                 if (state != null && TryParseShortcutRef(text, pos, out int consumedS, out var lbl3)) {
                     var key = NormalizeReferenceLabel(lbl3);
                     if (state.LinkRefs.TryGetValue(key, out var def3)) {
                         var resolved = ResolveUrl(def3.Url, options);
-                        if (string.IsNullOrEmpty(resolved)) seq.Text(lbl3);
-                        else seq.Link(lbl3, resolved!, def3.Title);
-                    } else seq.Text(text.Substring(pos, consumedS));
+                        if (string.IsNullOrEmpty(resolved)) Current().Text(lbl3);
+                        else Current().Link(lbl3, resolved!, def3.Title);
+                    } else Current().Text(text.Substring(pos, consumedS));
                     pos += consumedS; continue;
                 }
                 if (TryParseLink(text, pos, out int consumed2, out var label2, out var href3, out var title2)) {
                     // Allow empty href: commonly used as placeholder or to be filled by the host.
                     if (string.IsNullOrWhiteSpace(href3)) {
-                        seq.Link(label2, string.Empty, title2);
+                        Current().Link(label2, string.Empty, title2);
                     } else {
                         var hrefResolved = ResolveUrl(href3, options);
                         if (string.IsNullOrEmpty(hrefResolved)) {
                             // Unsafe URLs: keep the label as plain text instead of producing an <a href="...">.
-                            seq.Text(label2);
+                            Current().Text(label2);
                         } else {
-                            seq.Link(label2, hrefResolved!, title2);
+                            Current().Link(label2, hrefResolved!, title2);
                         }
                     }
                     pos += consumed2; continue;
                 }
             }
 
-            // Combined bold+italic ***text*** or ___text___
-            if ((text[pos] == '*' && pos + 2 < text.Length && text[pos + 1] == '*' && text[pos + 2] == '*') ||
-                (text[pos] == '_' && pos + 2 < text.Length && text[pos + 1] == '_' && text[pos + 2] == '_')) {
-                char m = text[pos];
-                if (m == '_' && IsIntrawordDelimiter(text, pos, 3)) {
-                    // Do not treat intraword underscores as emphasis markers (e.g., foo___bar___baz).
-                } else {
-                    int end = text.IndexOf(new string(m, 3), pos + 3, System.StringComparison.Ordinal);
-                    if (end >= 0) {
-                        var inner = text.Substring(pos + 3, end - (pos + 3));
-                        seq.AddRaw(new BoldItalicSequenceInline(ParseInlines(inner, options, state)));
-                        pos = end + 3; continue;
+            // Emphasis / strong / strike using delimiter-run rules + an open-frame stack.
+            if (text[pos] == '*' || text[pos] == '_' || text[pos] == '~') {
+                char marker = text[pos];
+                int runLen = 1;
+                while (pos + runLen < text.Length && text[pos + runLen] == marker) runLen++;
+
+                // Only "~~" opens/closes strikethrough.
+                if (marker == '~' && runLen < 2) {
+                    Current().Text("~");
+                    pos++;
+                    continue;
+                }
+
+                GetDelimiterFlags(text, pos, marker, runLen, out bool canOpen, out bool canClose);
+
+                int remaining = runLen;
+
+                if (canClose) {
+                    while (remaining > 0) {
+                        if (!TryCloseFrame(stack, marker, remaining, out int consumedClose)) break;
+                        remaining -= consumedClose;
                     }
                 }
-            }
 
-            // Bold **text** or __text__
-            if ((text[pos] == '*' && pos + 1 < text.Length && text[pos + 1] == '*') ||
-                (text[pos] == '_' && pos + 1 < text.Length && text[pos + 1] == '_')) {
-                if (text[pos] == '_' && IsIntrawordDelimiter(text, pos, 2)) {
-                    // do not parse intraword "__" as emphasis
-                } else {
-                    int end = text.IndexOf("**", pos + 2, StringComparison.Ordinal);
-                    if (text[pos] == '_') end = text.IndexOf("__", pos + 2, StringComparison.Ordinal);
-                    if (end >= 0) {
-                        var inner = text.Substring(pos + 2, end - (pos + 2));
-                        seq.AddRaw(new BoldSequenceInline(ParseInlines(inner, options, state)));
-                        pos = end + 2; continue;
+                if (canOpen) {
+                    while (remaining > 0) {
+                        if (marker == '~') {
+                            if (remaining >= 2) {
+                                stack.Push(new InlineFrame(FrameKind.Strike, marker, 2, new InlineSequence { AutoSpacing = false }));
+                                remaining -= 2;
+                                continue;
+                            }
+                            break;
+                        }
+
+                        if (remaining >= 2) {
+                            stack.Push(new InlineFrame(FrameKind.Bold, marker, 2, new InlineSequence { AutoSpacing = false }));
+                            remaining -= 2;
+                            continue;
+                        }
+
+                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }));
+                        remaining -= 1;
                     }
                 }
-            }
 
-            if (text[pos] == '~' && pos + 1 < text.Length && text[pos + 1] == '~') {
-                int end = text.IndexOf("~~", pos + 2, StringComparison.Ordinal);
-                if (end >= 0) {
-                    var inner = text.Substring(pos + 2, end - (pos + 2));
-                    seq.AddRaw(new StrikethroughSequenceInline(ParseInlines(inner, options, state)));
-                    pos = end + 2; continue;
+                if (remaining > 0) {
+                    Current().Text(new string(marker, remaining));
                 }
-            }
 
-            if (text[pos] == '_' || text[pos] == '*') {
-                if (text[pos] == '_' && IsIntrawordDelimiter(text, pos, 1)) {
-                    // do not parse intraword "_" as emphasis
-                } else {
-                    char m = text[pos];
-                    int end = FindSingleEmphasisEnd(text, pos, m);
-                    if (end > pos + 1) {
-                        var inner = text.Substring(pos + 1, end - pos - 1);
-                        seq.AddRaw(new ItalicSequenceInline(ParseInlines(inner, options, state)));
-                        pos = end + 1; continue;
-                    }
-                }
+                pos += runLen;
+                continue;
             }
 
             if (options.InlineHtml && text[pos] == '<') {
                 const string uOpen = "<u>"; const string uClose = "</u>";
                 if (text.Substring(pos).StartsWith(uOpen, StringComparison.OrdinalIgnoreCase)) {
                     int end = text.IndexOf(uClose, pos + uOpen.Length, StringComparison.OrdinalIgnoreCase);
-                    if (end > 0) { var inner = text.Substring(pos + uOpen.Length, end - (pos + uOpen.Length)); seq.Underline(System.Net.WebUtility.HtmlDecode(inner)); pos = end + uClose.Length; continue; }
+                    if (end > 0) { var inner = text.Substring(pos + uOpen.Length, end - (pos + uOpen.Length)); Current().Underline(System.Net.WebUtility.HtmlDecode(inner)); pos = end + uClose.Length; continue; }
                 }
             }
 
             // Footnote ref [^id]
             if (text[pos] == '[' && pos + 2 < text.Length && text[pos + 1] == '^') {
                 int rb = text.IndexOf(']', pos + 2);
-                if (rb > pos + 2) { var lab = text.Substring(pos + 2, rb - (pos + 2)); seq.FootnoteRef(lab); pos = rb + 1; continue; }
+                if (rb > pos + 2) { var lab = text.Substring(pos + 2, rb - (pos + 2)); Current().FootnoteRef(lab); pos = rb + 1; continue; }
             }
 
             int start = pos; pos++;
@@ -275,35 +281,111 @@ public static partial class MarkdownReader {
                 if (options.AutolinkEmails && IsEmailStartChar(text[pos]) && TryConsumePlainEmail(text, pos, out _, out _)) break;
                 pos++;
             }
-            seq.Text(text.Substring(start, pos - start));
+            Current().Text(text.Substring(start, pos - start));
         }
 
-        return seq;
-    }
-
-    private static int FindSingleEmphasisEnd(string text, int start, char marker) {
-        if (string.IsNullOrEmpty(text)) return -1;
-        int i = start + 1;
-        while (i < text.Length) {
-            i = text.IndexOf(marker, i);
-            if (i < 0) return -1;
-
-            // Avoid closing on a delimiter that's part of a longer run (e.g., the '*' in "**bold**").
-            if ((i > start + 1 && text[i - 1] == marker) || (i + 1 < text.Length && text[i + 1] == marker)) {
-                i++;
-                continue;
-            }
-
-            // Avoid closing on intraword '_' (e.g., "foo_bar_baz").
-            if (marker == '_' && IsIntrawordDelimiter(text, i, 1)) {
-                i++;
-                continue;
-            }
-
-            return i;
+        // Unwind any unclosed emphasis frames: treat their markers as literal text.
+        while (stack.Count > 1) {
+            var f = stack.Pop();
+            var parent = stack.Peek().Seq;
+            parent.Text(new string(f.Marker, f.OpenLen));
+            foreach (var node in f.Seq.Items) parent.AddRaw(node);
         }
-        return -1;
+
+        return root;
     }
+
+    private enum FrameKind {
+        Root,
+        Italic,
+        Bold,
+        Strike,
+    }
+
+    private sealed class InlineFrame {
+        public InlineFrame(FrameKind kind, char marker, int openLen, InlineSequence seq) {
+            Kind = kind;
+            Marker = marker;
+            OpenLen = openLen;
+            Seq = seq;
+        }
+
+        public FrameKind Kind { get; }
+        public char Marker { get; }
+        public int OpenLen { get; }
+        public InlineSequence Seq { get; }
+    }
+
+    private static bool TryCloseFrame(Stack<InlineFrame> stack, char marker, int remaining, out int consumed) {
+        consumed = 0;
+        if (stack == null || stack.Count <= 1) return false;
+        var top = stack.Peek();
+        if (top.Marker != marker) return false;
+
+        // Close the innermost matching frame only; this avoids crossing.
+        if (top.Kind == FrameKind.Italic && remaining >= 1) {
+            stack.Pop();
+            var node = new ItalicSequenceInline(top.Seq);
+            stack.Peek().Seq.AddRaw(node);
+            consumed = 1;
+            return true;
+        }
+        if (top.Kind == FrameKind.Bold && remaining >= 2) {
+            stack.Pop();
+            var node = new BoldSequenceInline(top.Seq);
+            stack.Peek().Seq.AddRaw(node);
+            consumed = 2;
+            return true;
+        }
+        if (top.Kind == FrameKind.Strike && remaining >= 2) {
+            stack.Pop();
+            var node = new StrikethroughSequenceInline(top.Seq);
+            stack.Peek().Seq.AddRaw(node);
+            consumed = 2;
+            return true;
+        }
+        return false;
+    }
+
+    private static void GetDelimiterFlags(string text, int start, char marker, int runLen, out bool canOpen, out bool canClose) {
+        canOpen = false;
+        canClose = false;
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return;
+
+        char prev = start > 0 ? text[start - 1] : '\0';
+        int nextIndex = start + runLen;
+        char next = nextIndex < text.Length ? text[nextIndex] : '\0';
+
+        bool prevWs = prev == '\0' || char.IsWhiteSpace(prev);
+        bool nextWs = next == '\0' || char.IsWhiteSpace(next);
+        bool prevPunct = prev != '\0' && IsPunctuationOrSymbol(prev);
+        bool nextPunct = next != '\0' && IsPunctuationOrSymbol(next);
+
+        bool leftFlanking = !nextWs && (!nextPunct || prevWs || prevPunct);
+        bool rightFlanking = !prevWs && (!prevPunct || nextWs || nextPunct);
+
+        if (marker == '~') {
+            // Pragmatic GFM-like: "~~" opens/closes when not adjacent to whitespace on the relevant side.
+            canOpen = !nextWs;
+            canClose = !prevWs;
+            return;
+        }
+
+        if (marker == '*') {
+            canOpen = leftFlanking;
+            canClose = rightFlanking;
+            return;
+        }
+
+        // '_' is more restrictive (avoid intraword emphasis like foo_bar_baz).
+        if (marker == '_') {
+            canOpen = leftFlanking && (!rightFlanking || prevPunct || prevWs);
+            canClose = rightFlanking && (!leftFlanking || nextPunct || nextWs);
+            return;
+        }
+    }
+
+    private static bool IsPunctuationOrSymbol(char c) => char.IsPunctuation(c) || char.IsSymbol(c);
 
     private static string NormalizeCodeSpanContent(string inner) {
         if (inner == null) return string.Empty;
