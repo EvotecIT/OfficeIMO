@@ -112,9 +112,13 @@ public static class MarkdownRenderer {
         string msg = System.Net.WebUtility.HtmlEncode(message ?? "Content too large.");
         string inner = $"<blockquote class=\"callout warning\" data-omd=\"overflow\"><p>{msg}</p></blockquote>";
 
-        if (!string.IsNullOrWhiteSpace(htmlOptions?.BodyClass)) {
-            string cls = System.Net.WebUtility.HtmlEncode(htmlOptions.BodyClass!.Trim());
-            return $"<article class=\"{cls}\">{inner}</article>";
+        var bodyClass = htmlOptions.BodyClass;
+        if (bodyClass != null) {
+            bodyClass = bodyClass.Trim();
+            if (bodyClass.Length > 0) {
+                string cls = System.Net.WebUtility.HtmlEncode(bodyClass);
+                return $"<article class=\"{cls}\">{inner}</article>";
+            }
         }
 
         return $"<div data-omd=\"overflow\">{inner}</div>";
