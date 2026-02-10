@@ -93,6 +93,14 @@ article.markdown-body tbody tr:nth-child(2n) { background: rgba(15,23,42,.03); }
 article.markdown-body img { max-width: 100%; height: auto; border-radius: 10px; }
 article.markdown-body .task-list-item { list-style: none; }
 article.markdown-body .task-list-item-checkbox { margin: 0 .4em 0 0; vertical-align: middle; }
+/* Optional chat bubble wrappers (opt-in; only applies when host wraps content). */
+.omd-chat-row { display: flex; gap: 10px; width: 100%; }
+.omd-chat-row.omd-role-user { justify-content: flex-end; }
+.omd-chat-row.omd-role-assistant { justify-content: flex-start; }
+.omd-chat-row.omd-role-system { justify-content: center; }
+.omd-chat-bubble { max-width: min(720px, 100%); padding: 10px 12px; border-radius: 14px; background: rgba(15,23,42,.04); border: 1px solid rgba(17,24,39,.10); }
+.omd-chat-row.omd-role-user .omd-chat-bubble { background: rgba(37,99,235,.10); border-color: rgba(37,99,235,.18); }
+.omd-chat-row.omd-role-system .omd-chat-bubble { background: rgba(17,24,39,.06); border-color: rgba(17,24,39,.10); }
 ";
 
     private const string ChatDarkCss = @"
@@ -126,6 +134,14 @@ article.markdown-body tbody tr:nth-child(2n) { background: rgba(148,163,184,.06)
 article.markdown-body img { max-width: 100%; height: auto; border-radius: 10px; }
 article.markdown-body .task-list-item { list-style: none; }
 article.markdown-body .task-list-item-checkbox { margin: 0 .4em 0 0; vertical-align: middle; }
+/* Optional chat bubble wrappers (opt-in; only applies when host wraps content). */
+.omd-chat-row { display: flex; gap: 10px; width: 100%; }
+.omd-chat-row.omd-role-user { justify-content: flex-end; }
+.omd-chat-row.omd-role-assistant { justify-content: flex-start; }
+.omd-chat-row.omd-role-system { justify-content: center; }
+.omd-chat-bubble { max-width: min(720px, 100%); padding: 10px 12px; border-radius: 14px; background: rgba(148,163,184,.10); border: 1px solid rgba(229,231,235,.14); }
+.omd-chat-row.omd-role-user .omd-chat-bubble { background: rgba(59,130,246,.20); border-color: rgba(147,197,253,.22); }
+.omd-chat-row.omd-role-system .omd-chat-bubble { background: rgba(148,163,184,.12); border-color: rgba(229,231,235,.14); }
 ";
 
     private const string ChatAutoCss = @"

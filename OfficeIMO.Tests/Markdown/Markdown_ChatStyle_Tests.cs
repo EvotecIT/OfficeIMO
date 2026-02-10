@@ -29,6 +29,25 @@ namespace OfficeIMO.Tests {
             Assert.EndsWith(");", js);
             Assert.Contains("markdown-body", js);
         }
+
+        [Fact]
+        public void HtmlStyle_ChatAuto_Includes_Bubble_Css_Classes() {
+            var doc = MarkdownReader.Parse("Hello");
+            var parts = doc.ToHtmlParts(new HtmlOptions { Kind = HtmlKind.Fragment, Style = HtmlStyle.ChatAuto });
+
+            Assert.Contains(".omd-chat-bubble", parts.Css, StringComparison.Ordinal);
+            Assert.Contains(".omd-chat-row", parts.Css, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void MarkdownRenderer_Can_Wrap_As_ChatBubble() {
+            var opts = MarkdownRendererPresets.CreateChatStrict();
+            var bubble = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderChatBubbleBodyHtml("Hello", ChatMessageRole.User, opts);
+
+            Assert.Contains("omd-chat-row", bubble, StringComparison.Ordinal);
+            Assert.Contains("omd-chat-bubble", bubble, StringComparison.Ordinal);
+            Assert.Contains("omd-role-user", bubble, StringComparison.Ordinal);
+            Assert.Contains("markdown-body", bubble, StringComparison.Ordinal);
+        }
     }
 }
-

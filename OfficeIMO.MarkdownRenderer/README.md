@@ -42,6 +42,19 @@ You can also send an object payload if you want to extend the message contract l
 webView.CoreWebView2.PostWebMessageAsJson("{\"bodyHtml\":" + System.Text.Json.JsonSerializer.Serialize(bodyHtml) + "}");
 ```
 
+Chat bubble helpers (optional)
+
+If you want message "bubbles" without authoring HTML in the app, use the bubble wrapper helpers.
+The chat presets already use `HtmlStyle.ChatAuto` which includes bubble CSS classes (opt-in):
+
+```csharp
+var opts = MarkdownRendererPresets.CreateChatStrict();
+
+// Render a single user message as a bubble
+var bubbleHtml = MarkdownRenderer.RenderChatBubbleBodyHtml(markdownText, ChatMessageRole.User, opts);
+webView.CoreWebView2.PostWebMessageAsString(bubbleHtml);
+```
+
 Presets
 
 - `MarkdownRendererPresets.CreateChatStrict(...)`: safe defaults for untrusted content and a compact chat-friendly theme (`HtmlStyle.ChatAuto`).

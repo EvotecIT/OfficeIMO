@@ -134,6 +134,37 @@ public static class MarkdownRenderer {
         return BuildUpdateScript(bodyHtml);
     }
 
+    /// <summary>
+    /// Wraps an existing HTML fragment in a chat "bubble" container (optional).
+    /// This is purely a formatting helper: it does not change Markdown parsing rules.
+    /// </summary>
+    public static string WrapAsChatBubble(string bodyHtml, ChatMessageRole role = ChatMessageRole.Assistant) {
+        string roleClass = role switch {
+            ChatMessageRole.User => "omd-role-user",
+            ChatMessageRole.System => "omd-role-system",
+            _ => "omd-role-assistant"
+        };
+
+        // bodyHtml is expected to be the output of RenderBodyHtml (typically an <article class="markdown-body"> wrapper).
+        // Keep it as-is and add a single outer container so host UIs don't have to author HTML around each message.
+        return $"<div class=\"omd-chat-row {roleClass}\"><div class=\"omd-chat-bubble\">{bodyHtml ?? string.Empty}</div></div>";
+    }
+
+    /// <summary>
+    /// Convenience helper: renders Markdown then wraps the result in a chat bubble.
+    /// </summary>
+    public static string RenderChatBubbleBodyHtml(string markdown, ChatMessageRole role = ChatMessageRole.Assistant, MarkdownRendererOptions? options = null) {
+        var bodyHtml = RenderBodyHtml(markdown ?? string.Empty, options);
+        return WrapAsChatBubble(bodyHtml, role);
+    }
+
+    /// <summary>
+    /// Convenience helper: renders Markdown as a chat bubble and returns an update script snippet.
+    /// </summary>
+    public static string RenderChatBubbleUpdateScript(string markdown, ChatMessageRole role = ChatMessageRole.Assistant, MarkdownRendererOptions? options = null) {
+        return BuildUpdateScript(RenderChatBubbleBodyHtml(markdown, role, options));
+    }
+
     private static string ConvertMermaidCodeBlocks(string html, bool enableHashCaching) {
         if (string.IsNullOrEmpty(html)) return html;
         if (html.IndexOf("language-mermaid", StringComparison.OrdinalIgnoreCase) < 0) return html;
