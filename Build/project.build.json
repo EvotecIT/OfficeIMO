@@ -6,6 +6,7 @@
     "OfficeIMO.CSV": "0.1.X",
     "OfficeIMO.Excel": "0.6.X",
     "OfficeIMO.Markdown": "0.5.X",
+    "OfficeIMO.MarkdownRenderer": "0.1.X",
     "OfficeIMO.Word": "1.0.X"
   },
   "ExpectedVersionMapAsInclude": true,
