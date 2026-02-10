@@ -43,6 +43,10 @@ public static class MarkdownRendererPresets {
         o.HtmlOptions.ImagesDecodingAsync = true;
         o.HtmlOptions.ImagesReferrerPolicy = "no-referrer";
 
+        // Common chat UX helpers
+        o.EnableCodeCopyButtons = true;
+        o.EnableTableCopyButtons = true;
+
         return o;
     }
 

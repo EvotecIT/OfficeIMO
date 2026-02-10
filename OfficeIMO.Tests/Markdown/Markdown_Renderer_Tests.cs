@@ -65,6 +65,15 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_Shell_Contains_CopyButton_Scripts_When_Enabled() {
+        var opts = new MarkdownRendererOptions { EnableCodeCopyButtons = true, EnableTableCopyButtons = true };
+        var shell = MarkdownRenderer.MarkdownRenderer.BuildShellHtml("Chat", opts);
+        Assert.Contains("omdSetupCodeCopyButtons", shell, StringComparison.Ordinal);
+        Assert.Contains("omdSetupTableCopyButtons", shell, StringComparison.Ordinal);
+        Assert.Contains("omdCopyText", shell, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Adds_Mermaid_Hash_Attributes() {
         var md = "```mermaid\nflowchart LR\nA-->B\n```";
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md);

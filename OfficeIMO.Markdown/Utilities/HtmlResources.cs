@@ -398,6 +398,31 @@ html[data-theme=dark] article.markdown-body section.footnotes > hr { border-top-
 
 /* Escaped raw HTML blocks */
 article.markdown-body pre.md-raw-html { white-space: pre-wrap; }
+
+/* Copy buttons (optional; used by OfficeIMO.MarkdownRenderer shell helpers) */
+article.markdown-body pre.omd-has-actions { position: relative; }
+article.markdown-body .omd-copy-btn {
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(27,31,36,.15);
+  background: rgba(255,255,255,.78);
+  color: inherit;
+  cursor: pointer;
+}
+article.markdown-body .omd-copy-btn:hover { background: rgba(255,255,255,.92); }
+article.markdown-body .omd-copy-btn[data-omd-flash] { border-color: rgba(9,105,218,.35); }
+article.markdown-body pre.omd-has-actions > .omd-copy-code { position: absolute; top: 10px; right: 10px; z-index: 2; }
+article.markdown-body .omd-table-actions { display: flex; gap: 8px; justify-content: flex-end; margin: .15rem 0 .35rem 0; }
+
+@media (prefers-color-scheme: dark) {
+  article.markdown-body .omd-copy-btn { border-color: rgba(240,246,252,.2); background: rgba(22,27,34,.78); }
+  article.markdown-body .omd-copy-btn:hover { background: rgba(22,27,34,.92); }
+}
+html[data-theme=dark] article.markdown-body .omd-copy-btn { border-color: rgba(240,246,252,.2); background: rgba(22,27,34,.78); }
+html[data-theme=dark] article.markdown-body .omd-copy-btn:hover { background: rgba(22,27,34,.92); }
 ";
 
     // Word-like, document-centric styling – Calibri/Cambria fonts, comfortable spacing,

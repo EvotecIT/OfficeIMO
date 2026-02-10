@@ -100,6 +100,22 @@ opts.ShellCss = """
 webView.NavigateToString(MarkdownRenderer.BuildShellHtml("Chat", opts));
 ```
 
+Copy buttons (code + tables)
+
+The chat presets enable copy buttons by default:
+
+- `MarkdownRendererOptions.EnableCodeCopyButtons = true`
+- `MarkdownRendererOptions.EnableTableCopyButtons = true`
+
+If you are building your own preset, enable them explicitly:
+
+```csharp
+var opts = new MarkdownRendererOptions();
+opts.EnableCodeCopyButtons = true;
+opts.EnableTableCopyButtons = true;
+webView.NavigateToString(MarkdownRenderer.BuildShellHtml("Chat", opts));
+```
+
 Mermaid diagrams
 
 Write Mermaid in fenced code blocks:

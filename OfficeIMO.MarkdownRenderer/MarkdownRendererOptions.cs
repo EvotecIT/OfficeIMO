@@ -84,4 +84,16 @@ public sealed class MarkdownRendererOptions {
     /// Default: null.
     /// </summary>
     public string? ShellCss { get; set; }
+
+    /// <summary>
+    /// When true, the shell will add "Copy" buttons to fenced code blocks (client-side).
+    /// Default: false.
+    /// </summary>
+    public bool EnableCodeCopyButtons { get; set; } = false;
+
+    /// <summary>
+    /// When true, the shell will add table copy actions (TSV/CSV) above rendered tables (client-side).
+    /// Default: false.
+    /// </summary>
+    public bool EnableTableCopyButtons { get; set; } = false;
 }

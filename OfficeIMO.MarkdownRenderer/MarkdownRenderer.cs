@@ -304,6 +304,8 @@ mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-col
         bool mermaid = options.Mermaid?.Enabled == true;
         bool chart = options.Chart?.Enabled == true;
         var mathOptions = options.Math;
+        bool codeCopy = options.EnableCodeCopyButtons;
+        bool tableCopy = options.EnableTableCopyButtons;
 
         // Notes:
         // - We keep <base> in <head> so relative links/images resolve.
@@ -362,6 +364,162 @@ async function updateContent(newBodyHtml) {
   root.innerHTML = newBodyHtml;
 """);
 
+        if (codeCopy || tableCopy) {
+            sb.Append("""
+
+  // Copy helpers (optional)
+  function omdCopyText(text) {
+    const s = String(text ?? '');
+    try {
+      const wv = window.chrome && window.chrome.webview;
+      if (wv && typeof wv.postMessage === 'function') {
+        // Host can optionally handle this message and place text on clipboard.
+        wv.postMessage({ type: 'omd.copy', text: s });
+      }
+    } catch(_) { /* ignore */ }
+
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        return navigator.clipboard.writeText(s);
+      }
+    } catch(_) { /* ignore */ }
+
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = s;
+      ta.setAttribute('readonly', 'readonly');
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch(_) { /* ignore */ }
+      document.body.removeChild(ta);
+    } catch(_) { /* ignore */ }
+
+    return Promise.resolve();
+  }
+
+  function omdFlash(btn, label) {
+    try {
+      const orig = btn.textContent;
+      btn.textContent = label;
+      btn.setAttribute('data-omd-flash', '1');
+      setTimeout(() => { try { btn.textContent = orig; btn.removeAttribute('data-omd-flash'); } catch(_){} }, 900);
+    } catch(_) {}
+  }
+""");
+        }
+
+        if (codeCopy) {
+            sb.Append("""
+
+  function omdSetupCodeCopyButtons(rootEl) {
+    try {
+      rootEl.querySelectorAll('pre > code').forEach(code => {
+        const pre = code.parentElement;
+        if (!pre || pre.getAttribute('data-omd-code-inited') === '1') return;
+        pre.setAttribute('data-omd-code-inited', '1');
+        pre.classList && pre.classList.add('omd-has-actions');
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'omd-copy-btn omd-copy-code';
+        btn.textContent = 'Copy';
+        btn.addEventListener('click', ev => {
+          try { ev.preventDefault(); ev.stopPropagation(); } catch(_) {}
+          omdCopyText(code.textContent || '');
+          omdFlash(btn, 'Copied');
+        });
+
+        // Put the button as the first child so it stays visible even if Prism modifies <code>.
+        pre.insertBefore(btn, pre.firstChild);
+      });
+    } catch(_) { /* ignore */ }
+  }
+""");
+        }
+
+        if (tableCopy) {
+            sb.Append("""
+
+  function omdCellText(cell) {
+    const t = (cell && (cell.innerText || cell.textContent)) ? String(cell.innerText || cell.textContent) : '';
+    return t.replace(/\r?\n/g, ' ').trim();
+  }
+
+  function omdTableToTsv(table) {
+    const rows = [];
+    const trs = table.querySelectorAll('tr');
+    trs.forEach(tr => {
+      const cells = tr.querySelectorAll('th,td');
+      if (!cells || cells.length === 0) return;
+      const vals = [];
+      cells.forEach(c => vals.push(omdCellText(c)));
+      rows.push(vals.join('\\t'));
+    });
+    return rows.join('\\n');
+  }
+
+  function omdCsvEscape(value) {
+    const s = String(value ?? '');
+    if (s.indexOf('\"') >= 0 || s.indexOf(',') >= 0 || s.indexOf('\\n') >= 0 || s.indexOf('\\r') >= 0) {
+      return '\"' + s.replace(/\"/g, '\"\"') + '\"';
+    }
+    return s;
+  }
+
+  function omdTableToCsv(table) {
+    const rows = [];
+    const trs = table.querySelectorAll('tr');
+    trs.forEach(tr => {
+      const cells = tr.querySelectorAll('th,td');
+      if (!cells || cells.length === 0) return;
+      const vals = [];
+      cells.forEach(c => vals.push(omdCsvEscape(omdCellText(c))));
+      rows.push(vals.join(','));
+    });
+    return rows.join('\\n');
+  }
+
+  function omdSetupTableCopyButtons(rootEl) {
+    try {
+      rootEl.querySelectorAll('table').forEach(table => {
+        if (table.getAttribute('data-omd-table-inited') === '1') return;
+        table.setAttribute('data-omd-table-inited', '1');
+
+        const actions = document.createElement('div');
+        actions.className = 'omd-table-actions';
+
+        const b1 = document.createElement('button');
+        b1.type = 'button';
+        b1.className = 'omd-copy-btn omd-copy-tsv';
+        b1.textContent = 'Copy TSV';
+        b1.addEventListener('click', ev => {
+          try { ev.preventDefault(); ev.stopPropagation(); } catch(_) {}
+          omdCopyText(omdTableToTsv(table));
+          omdFlash(b1, 'Copied');
+        });
+
+        const b2 = document.createElement('button');
+        b2.type = 'button';
+        b2.className = 'omd-copy-btn omd-copy-csv';
+        b2.textContent = 'Copy CSV';
+        b2.addEventListener('click', ev => {
+          try { ev.preventDefault(); ev.stopPropagation(); } catch(_) {}
+          omdCopyText(omdTableToCsv(table));
+          omdFlash(b2, 'Copied');
+        });
+
+        actions.appendChild(b1);
+        actions.appendChild(b2);
+
+        table.parentElement && table.parentElement.insertBefore(actions, table);
+      });
+    } catch(_) { /* ignore */ }
+  }
+""");
+        }
+
         if (mermaid) {
             sb.Append("""
   // Restore cached Mermaid SVGs for unchanged diagrams.
@@ -417,6 +575,19 @@ async function updateContent(newBodyHtml) {
       });
     }
   } catch(e) { /* ignore */ }
+""");
+        }
+
+        if (codeCopy || tableCopy) {
+            sb.Append("""
+
+  // Add optional copy buttons after updates (best-effort).
+  try {
+""");
+            if (codeCopy) sb.Append("    omdSetupCodeCopyButtons(root);\n");
+            if (tableCopy) sb.Append("    omdSetupTableCopyButtons(root);\n");
+            sb.Append("""
+  } catch(_) { /* ignore */ }
 """);
         }
 
