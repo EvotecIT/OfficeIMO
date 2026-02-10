@@ -883,7 +883,8 @@ public static partial class MarkdownReader {
         for (int i = 0; i < marker.Length; i++) if (!char.IsLetter(marker[i])) return false;
         kind = marker.ToLowerInvariant();
         title = t.Substring(close + 1).TrimStart();
-        return title.Length > 0;
+        // Title is optional: "> [!NOTE]" is valid and should produce a callout with the default title for the kind.
+        return true;
     }
 
     private static Dictionary<string, object?> ParseFrontMatter(string[] lines, int start, int end) {

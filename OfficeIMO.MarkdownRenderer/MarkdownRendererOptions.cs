@@ -65,6 +65,13 @@ public sealed class MarkdownRendererOptions {
     public MathOptions Math { get; } = new MathOptions();
 
     /// <summary>
+    /// Optional post-processors applied to the HTML fragment produced by <see cref="MarkdownRenderer.RenderBodyHtml"/>.
+    /// These run after built-in conversions (Mermaid/Chart/Math) and after BaseHref injection.
+    /// Default: none.
+    /// </summary>
+    public List<MarkdownHtmlPostProcessor> HtmlPostProcessors { get; } = new List<MarkdownHtmlPostProcessor>();
+
+    /// <summary>
     /// Optional Content-Security-Policy meta tag value for the shell document (inserted as http-equiv).
     /// Leave unset unless your host wants to enforce a specific policy.
     /// Default: null.

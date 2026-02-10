@@ -36,7 +36,8 @@ public sealed class CalloutBlock : IMarkdownBlock {
     string IMarkdownBlock.RenderMarkdown() {
         string tag = Kind.ToUpperInvariant();
         StringBuilder sb = new StringBuilder();
-        sb.AppendLine($"> [!{tag}] {Title}");
+        if (string.IsNullOrWhiteSpace(Title)) sb.AppendLine($"> [!{tag}]");
+        else sb.AppendLine($"> [!{tag}] {Title}");
         string bodyMarkdown;
         if (Children != null && Children.Count > 0) {
             var inner = new StringBuilder();
@@ -59,11 +60,14 @@ public sealed class CalloutBlock : IMarkdownBlock {
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
         var kind = System.Net.WebUtility.HtmlEncode(Kind);
-        var title = System.Net.WebUtility.HtmlEncode(Title);
+        var titleText = string.IsNullOrWhiteSpace(Title) ? FormatTitleFromKind(Kind) : Title;
+        var title = System.Net.WebUtility.HtmlEncode(titleText);
 
         var sb = new StringBuilder();
         sb.Append("<blockquote class=\"callout ").Append(kind).Append("\">");
-        sb.Append("<p><strong>").Append(title).Append("</strong></p>");
+        if (!string.IsNullOrWhiteSpace(titleText)) {
+            sb.Append("<p><strong>").Append(title).Append("</strong></p>");
+        }
 
         if (Children != null && Children.Count > 0) {
             for (int i = 0; i < Children.Count; i++) {
@@ -84,5 +88,13 @@ public sealed class CalloutBlock : IMarkdownBlock {
 
         sb.Append("</blockquote>");
         return sb.ToString();
+    }
+
+    private static string FormatTitleFromKind(string kind) {
+        if (string.IsNullOrWhiteSpace(kind)) return string.Empty;
+        var t = kind.Trim();
+        if (t.Length == 0) return string.Empty;
+        if (t.Length == 1) return t.ToUpperInvariant();
+        return char.ToUpperInvariant(t[0]) + t.Substring(1).ToLowerInvariant();
     }
 }

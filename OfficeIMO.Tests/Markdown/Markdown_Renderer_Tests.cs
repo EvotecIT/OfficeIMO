@@ -150,6 +150,15 @@ x^2 + 1
     }
 
     [Fact]
+    public void MarkdownRenderer_Can_Apply_Custom_Html_PostProcessors() {
+        var opts = new MarkdownRendererOptions();
+        opts.HtmlPostProcessors.Add((html, _) => html + "<div id=\"post\">x</div>");
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("hello", opts);
+        Assert.Contains("id=\"post\"", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Allows_SameOrigin_Absolute_Http_Images_When_BaseHref_Is_Set() {
         var opts = new MarkdownRendererOptions { BaseHref = "https://example.com/" };
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("![alt](https://example.com/a.png)", opts);

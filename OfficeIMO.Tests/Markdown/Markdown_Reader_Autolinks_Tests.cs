@@ -14,6 +14,17 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Autolinks_Trim_Trailing_Bang_And_Question() {
+        var doc = MarkdownReader.Parse("See https://example.com! And https://example.com?");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<a href=\"https://example.com\">https://example.com</a>!", html, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"https://example.com\">https://example.com</a>?", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("https://example.com!</a>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("https://example.com?</a>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Autolinks_Www_Inside_Text() {
         var doc = MarkdownReader.Parse("See www.example.com, thanks.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });

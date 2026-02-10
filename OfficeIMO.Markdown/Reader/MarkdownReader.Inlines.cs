@@ -850,7 +850,7 @@ public static partial class MarkdownReader {
             i++;
         }
         // Trim trailing punctuation commonly outside URLs
-        while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':')) i--;
+        while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
         end = i; return end > start + 7;
     }
 
@@ -868,7 +868,7 @@ public static partial class MarkdownReader {
             i++;
         }
         int scanEnd = i;
-        while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':')) i--;
+        while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
 
         // Must include at least one dot after the www.
         var token = text.Substring(start, i - start);

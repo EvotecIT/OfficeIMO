@@ -63,6 +63,15 @@ public static class MarkdownRenderer {
             html = $"<base href=\"{baseHref}\">" + html;
         }
 
+        var post = options.HtmlPostProcessors;
+        if (post != null && post.Count > 0) {
+            for (int i = 0; i < post.Count; i++) {
+                var p = post[i];
+                if (p == null) continue;
+                html = p(html, options) ?? html;
+            }
+        }
+
         return html;
     }
 
