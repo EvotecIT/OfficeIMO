@@ -36,6 +36,12 @@ var bodyHtml = MarkdownRenderer.RenderBodyHtml(markdownText, opts);
 webView.CoreWebView2.PostWebMessageAsString(bodyHtml);
 ```
 
+You can also send an object payload if you want to extend the message contract later:
+
+```csharp
+webView.CoreWebView2.PostWebMessageAsJson("{\"bodyHtml\":" + System.Text.Json.JsonSerializer.Serialize(bodyHtml) + "}");
+```
+
 Presets
 
 - `MarkdownRendererPresets.CreateChatStrict(...)`: safe defaults for untrusted content and a compact chat-friendly theme (`HtmlStyle.ChatAuto`).
