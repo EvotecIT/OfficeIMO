@@ -19,6 +19,11 @@ public sealed class TableBlock : IMarkdownBlock {
     /// <summary>Number of columns skipped due to table limits.</summary>
     public int SkippedColumnCount { get; internal set; }
 
+    // When a table is produced by the reader, we keep the parse options/state so inline parsing in cells
+    // (links/emphasis/etc) can honor URL safety settings and reference-style link definitions.
+    internal MarkdownReaderOptions? InlineRenderOptions { get; set; }
+    internal MarkdownReaderState? InlineRenderState { get; set; }
+
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() {
         static void AppendRow(StringBuilder builder, IReadOnlyList<string> cells) {
@@ -72,7 +77,9 @@ public sealed class TableBlock : IMarkdownBlock {
                 var h = preparedHeaders[i];
                 var style = GetAlignment(i);
                 var styleAttr = style switch { ColumnAlignment.Left => " style=\"text-align:left\"", ColumnAlignment.Center => " style=\"text-align:center\"", ColumnAlignment.Right => " style=\"text-align:right\"", _ => string.Empty };
-                sb.Append($"<th{styleAttr}>{System.Net.WebUtility.HtmlEncode(h)}</th>");
+                sb.Append($"<th{styleAttr}>");
+                sb.Append(RenderCellHtml(h, isHeaderCell: true));
+                sb.Append("</th>");
             }
             sb.Append("</tr></thead>");
         }
@@ -86,7 +93,7 @@ public sealed class TableBlock : IMarkdownBlock {
                 var style = GetAlignment(i);
                 var styleAttr = style switch { ColumnAlignment.Left => " style=\"text-align:left\"", ColumnAlignment.Center => " style=\"text-align:center\"", ColumnAlignment.Right => " style=\"text-align:right\"", _ => string.Empty };
                 sb.Append($"<td{styleAttr}>");
-                sb.Append(RenderCellHtml(cell));
+                sb.Append(RenderCellHtml(cell, isHeaderCell: false));
                 sb.Append("</td>");
             }
             sb.Append("</tr>");
@@ -95,13 +102,13 @@ public sealed class TableBlock : IMarkdownBlock {
         return sb.ToString();
     }
 
-    private static string RenderCellHtml(string cell) {
+    private string RenderCellHtml(string cell, bool isHeaderCell) {
         if (string.IsNullOrEmpty(cell)) return string.Empty;
         // Allow simple <br> markers inside table cells and support inline markdown (code, links, emphasis).
         // We avoid allowing arbitrary HTML by translating only <br> tags to hard breaks and then using the inline parser.
         var normalized = NormalizeBreakMarkers(cell);
         var sanitized = SanitizeInlineMarkdownInput(normalized);
-        var inlines = MarkdownReader.ParseInlineText(sanitized);
+        var inlines = MarkdownReader.ParseInlineText(sanitized, InlineRenderOptions, InlineRenderState);
         var rendered = inlines.RenderHtml();
         rendered = NormalizeEncodedEntities(rendered);
         return rendered.Contains('\n') ? rendered.Replace("\n", "<br/>") : rendered;

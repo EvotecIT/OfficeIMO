@@ -8,7 +8,7 @@ namespace OfficeIMO.Markdown;
 /// Parses Markdown text into OfficeIMO.Markdown's typed object model (<see cref="MarkdownDoc"/>, blocks, and inlines).
 ///
 /// Scope: intentionally focused on the syntax that <see cref="MarkdownDoc"/> currently emits so we can
-/// round‑trip what we generate. Reader behavior is controlled via <see cref="MarkdownReaderOptions"/>.
+/// round-trip what we generate. Reader behavior is controlled via <see cref="MarkdownReaderOptions"/>.
 /// </summary>
 public static partial class MarkdownReader {
     /// <summary>
@@ -55,7 +55,7 @@ public static partial class MarkdownReader {
 
         var pipeline = MarkdownReaderPipeline.Default(options);
         // Pre-scan for reference-style link definitions so inline refs in earlier paragraphs can resolve
-        PreScanReferenceLinkDefinitions(lines, state);
+        PreScanReferenceLinkDefinitions(lines, state, options);
         while (i < lines.Length) {
             if (string.IsNullOrWhiteSpace(lines[i])) { i++; continue; }
             bool matched = false;
@@ -70,33 +70,67 @@ public static partial class MarkdownReader {
     }
 
     private static void PreScanReferenceLinkDefinitions(string[] lines, MarkdownReaderState state) {
+        PreScanReferenceLinkDefinitions(lines, state, new MarkdownReaderOptions());
+    }
+
+    private static void PreScanReferenceLinkDefinitions(string[] lines, MarkdownReaderState state, MarkdownReaderOptions options) {
+        bool inFence = false;
+        char fenceChar = '\0';
+        int fenceLen = 0;
+
         for (int idx = 0; idx < lines.Length; idx++) {
             var line = lines[idx]; if (string.IsNullOrWhiteSpace(line)) continue;
+
+            // Ignore anything inside fenced code blocks.
+            if (!inFence) {
+                if (IsCodeFenceOpen(line, out _, out fenceChar, out fenceLen)) {
+                    inFence = true;
+                    continue;
+                }
+            } else {
+                if (IsCodeFenceClose(line, fenceChar, fenceLen)) {
+                    inFence = false;
+                }
+                continue;
+            }
+
+            // Ignore indented code blocks (4+ leading spaces or a tab). Reference definitions are only valid
+            // up to 3 leading spaces in typical Markdown implementations.
+            int leading = 0;
+            while (leading < line.Length && line[leading] == ' ') leading++;
+            if (leading >= 4) continue;
+            if (leading < line.Length && line[leading] == '\t') continue;
+
             var t = line.Trim(); if (t.Length < 5 || t[0] != '[') continue;
+            if (t.Length > 1 && t[1] == '^') continue; // footnote definition, not a link ref
             int rb = t.IndexOf(']'); if (rb <= 1) continue;
             if (rb + 1 >= t.Length || t[rb + 1] != ':') continue;
-            string label = t.Substring(1, rb - 1);
+            string label = NormalizeReferenceLabel(t.Substring(1, rb - 1));
             string rest = t.Substring(rb + 2).Trim(); if (string.IsNullOrEmpty(rest)) continue;
-            string url = rest; string? title = null;
-            bool urlWasBracketed = false;
-            if (rest.Length > 0 && rest[0] == '<') {
-                int gt = rest.IndexOf('>');
-                if (gt > 1) {
-                    url = rest.Substring(1, gt - 1);
-                    rest = rest.Substring(gt + 1).Trim();
-                    urlWasBracketed = true;
-                }
+            if (!TrySplitUrlAndOptionalTitle(rest, out var url, out var title)) continue;
+            if (!string.IsNullOrEmpty(label) && !string.IsNullOrEmpty(url)) {
+                var resolved = ResolveUrl(url, options);
+                if (!string.IsNullOrEmpty(resolved)) state.LinkRefs[label] = (resolved!, title);
             }
-            int q = rest.IndexOf('"');
-            if (q >= 0) {
-                if (!urlWasBracketed) {
-                    url = rest.Substring(0, q).Trim();
-                }
-                int q2 = rest.LastIndexOf('"');
-                if (q2 > q) title = rest.Substring(q + 1, q2 - q - 1);
-            }
-            if (!string.IsNullOrEmpty(label) && !string.IsNullOrEmpty(url)) state.LinkRefs[label] = (url, title);
         }
+    }
+
+    private static string NormalizeReferenceLabel(string? label) {
+        if (string.IsNullOrWhiteSpace(label)) return string.Empty;
+        var t = label!.Trim();
+        var sb = new System.Text.StringBuilder(t.Length);
+        bool prevSpace = false;
+        for (int i = 0; i < t.Length; i++) {
+            char c = t[i];
+            if (char.IsWhiteSpace(c)) {
+                if (!prevSpace) sb.Append(' ');
+                prevSpace = true;
+            } else {
+                sb.Append(c);
+                prevSpace = false;
+            }
+        }
+        return sb.ToString();
     }
 
     private static MarkdownReaderOptions CloneOptionsWithoutFrontMatter(MarkdownReaderOptions source) {
@@ -105,6 +139,7 @@ public static partial class MarkdownReader {
             Callouts = source.Callouts,
             Headings = source.Headings,
             FencedCode = source.FencedCode,
+            IndentedCodeBlocks = source.IndentedCodeBlocks,
             Images = source.Images,
             UnorderedLists = source.UnorderedLists,
             OrderedLists = source.OrderedLists,
@@ -112,7 +147,20 @@ public static partial class MarkdownReader {
             DefinitionLists = source.DefinitionLists,
             HtmlBlocks = source.HtmlBlocks,
             Paragraphs = source.Paragraphs,
+            AutolinkUrls = source.AutolinkUrls,
+            AutolinkWwwUrls = source.AutolinkWwwUrls,
+            AutolinkWwwScheme = source.AutolinkWwwScheme,
+            AutolinkEmails = source.AutolinkEmails,
+            BackslashHardBreaks = source.BackslashHardBreaks,
             InlineHtml = source.InlineHtml,
+            BaseUri = source.BaseUri,
+            DisallowScriptUrls = source.DisallowScriptUrls,
+            DisallowFileUrls = source.DisallowFileUrls,
+            AllowMailtoUrls = source.AllowMailtoUrls,
+            AllowDataUrls = source.AllowDataUrls,
+            AllowProtocolRelativeUrls = source.AllowProtocolRelativeUrls,
+            RestrictUrlSchemes = source.RestrictUrlSchemes,
+            AllowedUrlSchemes = source.AllowedUrlSchemes,
         };
     }
 

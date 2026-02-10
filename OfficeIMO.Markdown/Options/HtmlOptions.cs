@@ -45,6 +45,95 @@ public sealed class HtmlOptions {
     /// <summary>Prefix selectors in emitted CSS with this scope selector to avoid collisions. Default: "article.markdown-body".</summary>
     public string? CssScopeSelector { get; set; } = "article.markdown-body";
 
+    /// <summary>
+    /// Controls how raw HTML blocks are emitted. Default: <see cref="RawHtmlHandling.Allow"/>.
+    /// For untrusted chat scenarios, prefer <see cref="RawHtmlHandling.Strip"/> or <see cref="RawHtmlHandling.Escape"/>.
+    /// </summary>
+    public RawHtmlHandling RawHtmlHandling { get; set; } = RawHtmlHandling.Allow;
+
+    /// <summary>
+    /// When true, external HTTP(S) links are rendered with <c>target="_blank"</c>.
+    /// Default: false.
+    /// </summary>
+    public bool ExternalLinksTargetBlank { get; set; } = false;
+
+    /// <summary>
+    /// Optional <c>rel</c> attribute value to apply to external HTTP(S) links.
+    /// Common safe value: <c>noopener noreferrer</c>.
+    /// Default: empty (no rel attribute added).
+    /// </summary>
+    public string ExternalLinksRel { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional <c>referrerpolicy</c> value to apply to external HTTP(S) links.
+    /// Common privacy value: <c>no-referrer</c>.
+    /// Default: empty (no referrerpolicy attribute added).
+    /// </summary>
+    public string ExternalLinksReferrerPolicy { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional base URI used for origin-based restrictions during HTML rendering.
+    /// When set and <see cref="RestrictHttpLinksToBaseOrigin"/>/<see cref="RestrictHttpImagesToBaseOrigin"/> are enabled,
+    /// absolute HTTP(S) links/images that are cross-origin are suppressed.
+    /// Default: null.
+    /// </summary>
+    public Uri? BaseUri { get; set; }
+
+    /// <summary>
+    /// When true and <see cref="BaseUri"/> is an absolute HTTP(S) URI, suppresses cross-origin absolute HTTP(S) links.
+    /// Relative links and non-HTTP schemes (e.g., mailto) are not affected.
+    /// Default: false.
+    /// </summary>
+    public bool RestrictHttpLinksToBaseOrigin { get; set; } = false;
+
+    /// <summary>
+    /// When true and <see cref="BaseUri"/> is an absolute HTTP(S) URI, suppresses cross-origin absolute HTTP(S) images.
+    /// Relative image URLs are not affected.
+    /// Default: false.
+    /// </summary>
+    public bool RestrictHttpImagesToBaseOrigin { get; set; } = false;
+
+    /// <summary>
+    /// When true, suppresses absolute external HTTP(S) images regardless of <see cref="BaseUri"/>.
+    /// Useful for privacy-sensitive/untrusted content. Default: false.
+    /// </summary>
+    public bool BlockExternalHttpImages { get; set; } = false;
+
+    /// <summary>
+    /// When true, emits <c>loading="lazy"</c> on rendered <c>&lt;img&gt;</c> tags. Default: false.
+    /// </summary>
+    public bool ImagesLoadingLazy { get; set; } = false;
+
+    /// <summary>
+    /// When true, emits <c>decoding="async"</c> on rendered <c>&lt;img&gt;</c> tags. Default: false.
+    /// </summary>
+    public bool ImagesDecodingAsync { get; set; } = false;
+
+    /// <summary>
+    /// Optional <c>referrerpolicy</c> value to apply to rendered <c>&lt;img&gt;</c> tags.
+    /// Common privacy value: <c>no-referrer</c>. Default: empty (no referrerpolicy attribute added).
+    /// </summary>
+    public string ImagesReferrerPolicy { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional allowlist of host patterns for absolute HTTP(S) links during HTML rendering.
+    /// When non-empty, absolute HTTP(S) links are suppressed unless their host matches an entry.
+    /// Supported patterns:
+    /// - <c>example.com</c>: exact host match
+    /// - <c>.example.com</c>: example.com and any subdomain
+    /// - <c>*.example.com</c>: any subdomain only (not the apex)
+    /// Default: empty (allow all hosts).
+    /// </summary>
+    public List<string> AllowedHttpLinkHosts { get; } = new();
+
+    /// <summary>
+    /// Optional allowlist of host patterns for absolute HTTP(S) images during HTML rendering.
+    /// When non-empty, absolute HTTP(S) images are suppressed unless their host matches an entry.
+    /// Pattern rules match <see cref="AllowedHttpLinkHosts"/>.
+    /// Default: empty (allow all hosts).
+    /// </summary>
+    public List<string> AllowedHttpImageHosts { get; } = new();
+
     // The following are used internally by the renderer; not part of the public API surface.
     internal string? ExternalCssOutputPath { get; set; }
     internal string? _externalCssContentToWrite { get; set; }

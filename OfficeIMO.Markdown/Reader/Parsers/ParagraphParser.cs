@@ -6,7 +6,7 @@ public static partial class MarkdownReader {
             if (!options.Paragraphs) return false;
             // Paragraph begins when none of the other block starters match.
             if (IsAtxHeading(lines[i], out _, out _) ||
-                IsCodeFenceOpen(lines[i], out _, out _) ||
+                IsCodeFenceOpen(lines[i], out _, out _, out _) ||
                 StartsTable(lines, i) ||
                 IsUnorderedListLine(lines[i], out _, out _, out _) ||
                 IsOrderedListLine(lines[i], out _, out _) ||
@@ -16,9 +16,10 @@ public static partial class MarkdownReader {
 
             var sb = new StringBuilder();
             int j = i;
+            bool prevHard = false;
             while (j < lines.Length && !string.IsNullOrWhiteSpace(lines[j]) &&
                    !IsAtxHeading(lines[j], out _, out _) &&
-                   !IsCodeFenceOpen(lines[j], out _, out _) &&
+                   !IsCodeFenceOpen(lines[j], out _, out _, out _) &&
                    !StartsTable(lines, j) &&
                    !IsUnorderedListLine(lines[j], out _, out _, out _) &&
                    !IsOrderedListLine(lines[j], out _, out _) &&
@@ -28,8 +29,11 @@ public static partial class MarkdownReader {
                 var raw = lines[j];
                 bool hard = EndsWithTwoSpaces(raw);
                 var trimmed = raw.TrimEnd();
-                if (sb.Length > 0) sb.Append(hard ? "\n" : " ");
+                trimmed = ConsumeTrailingBackslashHardBreak(trimmed, options, out bool slashHard);
+                hard = hard || slashHard;
+                if (j > i) sb.Append(prevHard ? "\n" : " ");
                 sb.Append(trimmed);
+                prevHard = hard;
                 j++;
             }
             if (sb.Length == 0) return false;
@@ -64,7 +68,8 @@ public static partial class MarkdownReader {
                     // collapsed: [text][]
                     if (rb + 2 < text.Length && text[rb + 1] == '[' && text[rb + 2] == ']') {
                         var lbl = text.Substring(pos + 1, rb - (pos + 1));
-                        if (state.LinkRefs.TryGetValue(lbl, out var defc)) {
+                        var key = NormalizeReferenceLabel(lbl);
+                        if (state.LinkRefs.TryGetValue(key, out var defc)) {
                             sb.Append('[').Append(lbl).Append(']')
                               .Append('(').Append(defc.Url);
                             if (!string.IsNullOrEmpty(defc.Title)) sb.Append(' ').Append('"').Append(defc.Title).Append('"');
@@ -78,7 +83,8 @@ public static partial class MarkdownReader {
                         if (rb2 > rb + 2) {
                             var textLbl = text.Substring(pos + 1, rb - (pos + 1));
                             var refLbl = text.Substring(rb + 2, rb2 - (rb + 2));
-                            if (state.LinkRefs.TryGetValue(refLbl, out var def)) {
+                            var key = NormalizeReferenceLabel(refLbl);
+                            if (state.LinkRefs.TryGetValue(key, out var def)) {
                                 sb.Append('[').Append(textLbl).Append(']')
                                   .Append('(').Append(def.Url);
                                 if (!string.IsNullOrEmpty(def.Title)) sb.Append(' ').Append('"').Append(def.Title).Append('"');
@@ -90,7 +96,8 @@ public static partial class MarkdownReader {
                     // shortcut: [label]
                     if (!(rb + 1 < text.Length && (text[rb + 1] == '(' || text[rb + 1] == '['))) {
                         var lbls = text.Substring(pos + 1, rb - (pos + 1));
-                        if (state.LinkRefs.TryGetValue(lbls, out var defs)) {
+                        var key = NormalizeReferenceLabel(lbls);
+                        if (state.LinkRefs.TryGetValue(key, out var defs)) {
                             sb.Append('[').Append(lbls).Append(']')
                               .Append('(').Append(defs.Url);
                             if (!string.IsNullOrEmpty(defs.Title)) sb.Append(' ').Append('"').Append(defs.Title).Append('"');

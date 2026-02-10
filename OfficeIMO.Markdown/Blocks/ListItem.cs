@@ -6,6 +6,10 @@ namespace OfficeIMO.Markdown;
 public sealed class ListItem {
     /// <summary>Inlines representing item content.</summary>
     public InlineSequence Content { get; }
+    /// <summary>Additional paragraphs inside the list item (multi-paragraph list items).</summary>
+    public List<InlineSequence> AdditionalParagraphs { get; } = new List<InlineSequence>();
+    /// <summary>Nested block content inside the list item (e.g., nested ordered/unordered lists, code blocks).</summary>
+    public List<IMarkdownBlock> Children { get; } = new List<IMarkdownBlock>();
     /// <summary>True when rendered as a task item (<c>- [ ]</c> or <c>- [x]</c>).</summary>
     public bool IsTask { get; }
     /// <summary>Whether the task is checked.</summary>
@@ -30,18 +34,55 @@ public sealed class ListItem {
     /// <param name="done">Whether the task should be marked as completed.</param>
     public static ListItem TaskInlines(InlineSequence content, bool done = false) => new ListItem(content ?? new InlineSequence(), true, done);
 
-    internal string RenderMarkdown() => Content.RenderMarkdown();
-    internal string RenderHtml() => Content.RenderHtml();
+    internal IEnumerable<InlineSequence> Paragraphs() {
+        yield return Content;
+        for (int i = 0; i < AdditionalParagraphs.Count; i++) yield return AdditionalParagraphs[i];
+    }
+
+    internal string RenderMarkdown() {
+        var parts = Paragraphs().Select(p => p.RenderMarkdown());
+        return string.Join("\n\n", parts);
+    }
+
+    internal string RenderHtml() {
+        string checkbox = IsTask ? "<input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled" + (Checked ? " checked" : string.Empty) + "> " : string.Empty;
+        if (AdditionalParagraphs.Count == 0 && Children.Count == 0) {
+            return checkbox + Content.RenderHtml();
+        }
+
+        // Tight list behavior: when there is exactly one paragraph, keep it inline even if child blocks exist.
+        if (AdditionalParagraphs.Count == 0) {
+            var sbTight = new StringBuilder();
+            sbTight.Append(checkbox).Append(Content.RenderHtml());
+            for (int i = 0; i < Children.Count; i++) {
+                if (Children[i] is IMarkdownBlock b) sbTight.Append(b.RenderHtml());
+            }
+            return sbTight.ToString();
+        }
+
+        // When multiple paragraphs exist, wrap paragraph content in <p> tags.
+        var sb = new StringBuilder();
+        bool first = true;
+        foreach (var p in Paragraphs()) {
+            sb.Append("<p>");
+            if (first && IsTask) sb.Append(checkbox);
+            sb.Append(p.RenderHtml());
+            sb.Append("</p>");
+            first = false;
+        }
+
+        for (int i = 0; i < Children.Count; i++) {
+            if (Children[i] is IMarkdownBlock b) sb.Append(b.RenderHtml());
+        }
+        return sb.ToString();
+    }
     internal string ToMarkdownListLine() {
         var indent = new string(' ', Level * 2);
         if (IsTask) return indent + "- [" + (Checked ? "x" : " ") + "] " + RenderMarkdown();
         return indent + "- " + RenderMarkdown();
     }
     internal string ToHtmlListItem() {
-        if (IsTask) {
-            string checkbox = "<input type=\"checkbox\" disabled" + (Checked ? " checked" : string.Empty) + "> ";
-            return "<li>" + checkbox + RenderHtml() + "</li>";
-        }
-        return "<li>" + RenderHtml() + "</li>";
+        var cls = IsTask ? " class=\"task-list-item\"" : string.Empty;
+        return "<li" + cls + ">" + RenderHtml() + "</li>";
     }
 }

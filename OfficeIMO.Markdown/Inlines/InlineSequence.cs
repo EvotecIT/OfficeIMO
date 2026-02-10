@@ -5,6 +5,10 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class InlineSequence : IMarkdownInline {
     private readonly List<object> _inlines = new List<object>();
+
+    // When composing via the fluent/builder APIs, auto-spacing between adjacent inline nodes is convenient.
+    // When parsing Markdown source, spacing is already present in TextRun nodes, so auto-spacing would double spaces.
+    internal bool AutoSpacing { get; set; } = true;
     /// <summary>Exposes the inline nodes for safe iteration.</summary>
     public IReadOnlyList<object> Items => _inlines;
     /// <summary>Adds plain text.</summary>
@@ -32,10 +36,13 @@ public sealed class InlineSequence : IMarkdownInline {
     /// <summary>Adds a hard line break.</summary>
     public InlineSequence HardBreak() { _inlines.Add(new HardBreakInline()); return this; }
 
+    // Internal escape hatch for the reader to attach richer inline nodes without expanding the public fluent API.
+    internal InlineSequence AddRaw(object node) { if (node != null) _inlines.Add(node); return this; }
+
     internal string RenderMarkdown() {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < _inlines.Count; i++) {
-            if (i > 0) {
+            if (AutoSpacing && i > 0) {
                 var prev = _inlines[i - 1];
                 var cur = _inlines[i];
                 if (prev is not HardBreakInline && cur is not HardBreakInline) sb.Append(' ');
@@ -52,6 +59,11 @@ public sealed class InlineSequence : IMarkdownInline {
             else if (node is StrikethroughInline st) sb.Append(st.RenderMarkdown());
             else if (node is UnderlineInline un) sb.Append(un.RenderMarkdown());
             else if (node is FootnoteRefInline fn) sb.Append(fn.RenderMarkdown());
+            else if (node is HardBreakInline hb) sb.Append(hb.RenderMarkdown());
+            else if (node is BoldSequenceInline bs) sb.Append(bs.RenderMarkdown());
+            else if (node is ItalicSequenceInline es) sb.Append(es.RenderMarkdown());
+            else if (node is BoldItalicSequenceInline bis) sb.Append(bis.RenderMarkdown());
+            else if (node is StrikethroughSequenceInline sts) sb.Append(sts.RenderMarkdown());
         }
         return sb.ToString();
     }
@@ -59,7 +71,7 @@ public sealed class InlineSequence : IMarkdownInline {
     internal string RenderHtml() {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < _inlines.Count; i++) {
-            if (i > 0) {
+            if (AutoSpacing && i > 0) {
                 var prev = _inlines[i - 1];
                 var cur = _inlines[i];
                 if (prev is not HardBreakInline && cur is not HardBreakInline) sb.Append(' ');
@@ -76,6 +88,11 @@ public sealed class InlineSequence : IMarkdownInline {
             else if (node is StrikethroughInline st) sb.Append(st.RenderHtml());
             else if (node is UnderlineInline un) sb.Append(un.RenderHtml());
             else if (node is FootnoteRefInline fn) sb.Append(fn.RenderHtml());
+            else if (node is HardBreakInline hb) sb.Append(hb.RenderHtml());
+            else if (node is BoldSequenceInline bs) sb.Append(bs.RenderHtml());
+            else if (node is ItalicSequenceInline es) sb.Append(es.RenderHtml());
+            else if (node is BoldItalicSequenceInline bis) sb.Append(bis.RenderHtml());
+            else if (node is StrikethroughSequenceInline sts) sb.Append(sts.RenderHtml());
         }
         return sb.ToString();
     }

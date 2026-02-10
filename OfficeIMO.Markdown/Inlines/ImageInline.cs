@@ -13,11 +13,16 @@ public sealed class ImageInline {
     /// <summary>Creates a new inline image.</summary>
     public ImageInline(string alt, string src, string? title = null) { Alt = alt; Src = src; Title = title; }
     internal string RenderMarkdown() {
-        var title = string.IsNullOrEmpty(Title) ? string.Empty : $" \"{MarkdownEscaper.EscapeText(Title!)}\"";
+        var title = MarkdownEscaper.FormatOptionalTitle(Title);
         return $"![{MarkdownEscaper.EscapeImageAlt(Alt)}]({MarkdownEscaper.EscapeImageSrc(Src)}{title})";
     }
     internal string RenderHtml() {
         var titleAttr = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title)}\"";
-        return $"<img src=\"{System.Net.WebUtility.HtmlEncode(Src)}\" alt=\"{System.Net.WebUtility.HtmlEncode(Alt)}\"{titleAttr} />";
+        var o = HtmlRenderContext.Options;
+        if (!UrlOriginPolicy.IsAllowedHttpImage(o, Src)) {
+            return ImageHtmlAttributes.BuildBlockedPlaceholder(Alt);
+        }
+        var extra = ImageHtmlAttributes.BuildImageAttributes(o, Src);
+        return $"<img src=\"{System.Net.WebUtility.HtmlEncode(Src)}\" alt=\"{System.Net.WebUtility.HtmlEncode(Alt)}\"{titleAttr}{extra} />";
     }
 }

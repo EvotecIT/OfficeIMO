@@ -151,10 +151,26 @@ namespace OfficeIMO.Word.Markdown {
                 case Omd.UnorderedListBlock ul: {
                         var list = document.AddList(WordListStyle.Bulleted);
                         foreach (var item in ul.Items) {
-                            var li = list.AddItem(string.Empty, item.Level);
+                            int effectiveLevel = listLevel + item.Level;
+                            var li = list.AddItem(string.Empty, effectiveLevel);
                             // Task list support
                             if (item.IsTask) li.AddCheckBox(item.Checked);
                             ProcessInlinesOmd(item.Content, li, options, document, _currentFootnotes);
+
+                            // Multi-paragraph list items: keep subsequent paragraphs at the same list level.
+                            if (item.AdditionalParagraphs != null && item.AdditionalParagraphs.Count > 0) {
+                                foreach (var extra in item.AdditionalParagraphs) {
+                                    var li2 = list.AddItem(string.Empty, effectiveLevel);
+                                    ProcessInlinesOmd(extra, li2, options, document, _currentFootnotes);
+                                }
+                            }
+
+                            // Nested blocks inside list items (mixed ordered/unordered lists, code blocks, etc.).
+                            if (item.Children != null && item.Children.Count > 0) {
+                                foreach (var child in item.Children) {
+                                    ProcessBlockOmd(child, document, options, null, effectiveLevel + 1, quoteDepth);
+                                }
+                            }
                         }
                         break;
                     }
@@ -162,8 +178,23 @@ namespace OfficeIMO.Word.Markdown {
                         var list = document.AddList(WordListStyle.Numbered);
                         if (ol.Start != 1) list.Numbering.Levels[0].SetStartNumberingValue(ol.Start);
                         foreach (var item in ol.Items) {
-                            var li = list.AddItem(string.Empty, item.Level);
+                            int effectiveLevel = listLevel + item.Level;
+                            var li = list.AddItem(string.Empty, effectiveLevel);
+                            if (item.IsTask) li.AddCheckBox(item.Checked);
                             ProcessInlinesOmd(item.Content, li, options, document, _currentFootnotes);
+
+                            if (item.AdditionalParagraphs != null && item.AdditionalParagraphs.Count > 0) {
+                                foreach (var extra in item.AdditionalParagraphs) {
+                                    var li2 = list.AddItem(string.Empty, effectiveLevel);
+                                    ProcessInlinesOmd(extra, li2, options, document, _currentFootnotes);
+                                }
+                            }
+
+                            if (item.Children != null && item.Children.Count > 0) {
+                                foreach (var child in item.Children) {
+                                    ProcessBlockOmd(child, document, options, null, effectiveLevel + 1, quoteDepth);
+                                }
+                            }
                         }
                         break;
                     }

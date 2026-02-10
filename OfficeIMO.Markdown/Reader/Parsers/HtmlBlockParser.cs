@@ -76,6 +76,9 @@ public static partial class MarkdownReader {
             string trimmed = indent == 0 ? line : line.Substring(indent);
             if (trimmed.Length == 0 || trimmed[0] != '<') return false;
 
+            // Avoid treating angle-bracket autolinks like "<https://...>" as HTML blocks.
+            if (TryParseAngleAutolink(trimmed, 0, out _, out _, out _)) return false;
+
             if (!TryGetHtmlBlockState(trimmed, out var blockState)) return false;
 
             int j = i;
