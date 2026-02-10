@@ -67,6 +67,39 @@ Options (high level)
 - `MarkdownRendererOptions.Mermaid` / `Chart` / `Math`: optional client-side renderers for fenced blocks.
 - `MarkdownRendererOptions.HtmlPostProcessors`: last-mile HTML transformations (custom diagram types, host integration).
 
+Theming and customization
+
+- You are not stuck with the built-in styles. You can:
+  - choose a built-in preset: `HtmlStyle.ChatAuto`, `HtmlStyle.GithubAuto`, `HtmlStyle.Clean`, `HtmlStyle.Plain`, etc.
+  - override colors/spacing via `MarkdownRendererOptions.ShellCss` (appended after built-ins, so it wins)
+  - fully replace styling by using `HtmlStyle.Plain` and providing your own CSS
+
+Useful HTML structure and CSS hooks
+
+- Shell root: `#omdRoot` (this is where content is injected)
+- Default content wrapper (from `RenderBodyHtml`): `<article class="markdown-body">...</article>` (class is controlled by `HtmlOptions.BodyClass`)
+- Optional bubble wrappers (from `RenderChatBubbleBodyHtml`):
+  - `.omd-chat-row`
+  - `.omd-chat-bubble`
+  - roles: `.omd-role-user`, `.omd-role-assistant`, `.omd-role-system`
+- Optional block helpers emitted by the renderer:
+  - blocked images: `.omd-image-blocked`
+  - charts: `canvas.omd-chart`
+  - math: `.omd-math`
+
+Overriding styles in the chat app
+
+```csharp
+var opts = MarkdownRendererPresets.CreateChatStrict();
+opts.ShellCss = """
+/* Example: tighter paragraphs + custom bubble colors */
+.omd-chat-bubble { border-radius: 18px; }
+.omd-chat-row.omd-role-user .omd-chat-bubble { background: rgba(0, 120, 212, .18); }
+""";
+
+webView.NavigateToString(MarkdownRenderer.BuildShellHtml("Chat", opts));
+```
+
 Mermaid diagrams
 
 Write Mermaid in fenced code blocks:

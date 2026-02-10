@@ -98,6 +98,12 @@ public static class MarkdownRenderer {
         sb.Append("<title>").Append(System.Net.WebUtility.HtmlEncode(title ?? "Markdown")).Append("</title>");
         if (!string.IsNullOrEmpty(parts.Css)) sb.Append("<style>\n").Append(parts.Css).Append("\n</style>");
         if (!string.IsNullOrEmpty(parts.Head)) sb.Append(parts.Head);
+        if (!string.IsNullOrWhiteSpace(options.ShellCss)) {
+            sb.Append("<style data-omd=\"shell\">")
+              .Append("\n")
+              .Append(options.ShellCss)
+              .Append("\n</style>");
+        }
 
         if (options.Math?.Enabled == true) {
             sb.Append(BuildMathBootstrap(options.Math));

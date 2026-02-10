@@ -77,4 +77,11 @@ public sealed class MarkdownRendererOptions {
     /// Default: null.
     /// </summary>
     public string? ContentSecurityPolicy { get; set; }
+
+    /// <summary>
+    /// Optional additional CSS appended to the shell document after built-in styles and assets.
+    /// Use this to theme/override the default styles without replacing the full shell HTML.
+    /// Default: null.
+    /// </summary>
+    public string? ShellCss { get; set; }
 }

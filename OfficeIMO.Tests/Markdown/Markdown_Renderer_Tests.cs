@@ -57,6 +57,14 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_Shell_Appends_Custom_ShellCss() {
+        var opts = new MarkdownRendererOptions { ShellCss = "#omdRoot { padding: 12px; }" };
+        var shell = MarkdownRenderer.MarkdownRenderer.BuildShellHtml("Chat", opts);
+        Assert.Contains("data-omd=\"shell\"", shell, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("#omdRoot { padding: 12px; }", shell, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Adds_Mermaid_Hash_Attributes() {
         var md = "```mermaid\nflowchart LR\nA-->B\n```";
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md);
