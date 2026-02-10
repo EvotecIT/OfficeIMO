@@ -11,15 +11,15 @@ namespace OfficeIMO.MarkdownRenderer;
 public static class MarkdownRenderer {
     private static readonly Regex MermaidPreCodeBlockRegex = new Regex(
         "(<pre[^>]*>)\\s*<code\\s+class=\"language-mermaid\"[^>]*>([\\s\\S]*?)</code>\\s*</pre>",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex ChartPreCodeBlockRegex = new Regex(
         "(<pre[^>]*>)\\s*<code\\s+class=\"language-chart\"[^>]*>([\\s\\S]*?)</code>\\s*</pre>",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex MathPreCodeBlockRegex = new Regex(
         "(<pre[^>]*>)\\s*<code\\s+class=\"language-(math|latex)\"[^>]*>([\\s\\S]*?)</code>\\s*</pre>",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     /// <summary>
     /// Parses Markdown using OfficeIMO.Markdown and returns an HTML fragment (typically an &lt;article class="markdown-body"&gt; wrapper).
@@ -127,6 +127,7 @@ public static class MarkdownRenderer {
 
     private static string ConvertMermaidCodeBlocks(string html, bool enableHashCaching) {
         if (string.IsNullOrEmpty(html)) return html;
+        if (html.IndexOf("language-mermaid", StringComparison.OrdinalIgnoreCase) < 0) return html;
         // Mermaid expects elements with class="mermaid" containing the diagram text. Convert fenced blocks
         // rendered as <pre><code class="language-mermaid">..</code></pre> into <pre class="mermaid">..</pre>.
         return MermaidPreCodeBlockRegex.Replace(html, m => {
@@ -142,6 +143,7 @@ public static class MarkdownRenderer {
 
     private static string ConvertChartCodeBlocks(string html) {
         if (string.IsNullOrEmpty(html)) return html;
+        if (html.IndexOf("language-chart", StringComparison.OrdinalIgnoreCase) < 0) return html;
         // Charts are authored as fenced code blocks named `chart` with JSON config. Convert
         // <pre><code class="language-chart">..</code></pre> into a <canvas> annotated with base64 config.
         return ChartPreCodeBlockRegex.Replace(html, m => {
@@ -155,6 +157,8 @@ public static class MarkdownRenderer {
 
     private static string ConvertMathCodeBlocks(string html, MathOptions mathOptions) {
         if (string.IsNullOrEmpty(html)) return html;
+        if (html.IndexOf("language-math", StringComparison.OrdinalIgnoreCase) < 0 &&
+            html.IndexOf("language-latex", StringComparison.OrdinalIgnoreCase) < 0) return html;
         // Convert fenced ```math/```latex blocks rendered as code fences into display-math text nodes.
         // KaTeX auto-render runs on the updated DOM and will render the $$...$$ delimiters.
         return MathPreCodeBlockRegex.Replace(html, m => {

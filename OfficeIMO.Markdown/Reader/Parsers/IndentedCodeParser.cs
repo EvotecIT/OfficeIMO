@@ -8,6 +8,8 @@ public static partial class MarkdownReader {
     /// compatibility with common Markdown sources; output is represented as a fenced <see cref="CodeBlock"/>.
     /// </summary>
     internal sealed class IndentedCodeParser : IMarkdownBlockParser {
+        private const int IndentedCodeMinimumSpaces = 4;
+
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
             if (!options.IndentedCodeBlocks) return false;
             if (lines == null || i < 0 || i >= lines.Length) return false;
@@ -16,7 +18,7 @@ public static partial class MarkdownReader {
             if (string.IsNullOrWhiteSpace(line)) return false;
 
             int indent = CountLeadingSpaces(line);
-            if (indent < 4) return false;
+            if (indent < IndentedCodeMinimumSpaces) return false;
 
             var sb = new StringBuilder();
             int j = i;
@@ -29,17 +31,17 @@ public static partial class MarkdownReader {
                     int peek = j + 1;
                     if (peek >= lines.Length) break;
                     int nextIndent = CountLeadingSpaces(lines[peek] ?? string.Empty);
-                    if (nextIndent < 4) break;
+                    if (nextIndent < IndentedCodeMinimumSpaces) break;
                     sb.AppendLine();
                     j++;
                     continue;
                 }
 
                 int curIndent = CountLeadingSpaces(cur);
-                if (curIndent < 4) break;
+                if (curIndent < IndentedCodeMinimumSpaces) break;
 
                 // Strip the first 4 spaces; preserve any additional indentation.
-                sb.AppendLine(cur.Substring(4));
+                sb.AppendLine(cur.Substring(IndentedCodeMinimumSpaces));
                 j++;
             }
 
@@ -51,4 +53,3 @@ public static partial class MarkdownReader {
         }
     }
 }
-
