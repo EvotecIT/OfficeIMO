@@ -14,11 +14,15 @@ public class Markdown_Reader_Corpus_Tests {
             "> [!NOTE]\n> Callout body line\n>\n> - Item 1\n> - Item 2\n",
             "- Item A\n  - Nested B\n    - Nested C\n\n1. One\n2. Two\n",
             "| A | B |\n|---|---:|\n| x | 1 |\n| y | 2 |\n",
+            "| a \\| b | `c|d` |\n|---|---|\n| 1 | 2 |\n",
             "Text with [**bold label** link](https://example.com).\n",
             "Footnote ref[^a].\n\n[^a]: Footnote *content*.\n",
             "```csharp\nConsole.WriteLine(\"x\");\n```\n",
+            "```text\n[a]: https://evil.example/\n```\n\n[a]\n",
             "![alt](/img.png \"t\")\n",
-            "Term: Definition\n"
+            "Term: Definition\n",
+            "> - List item\n>   - Nested\n>\n>   | H1 | H2 |\n>   |---|---|\n>   | v1 | v2 |\n",
+            "Email: test@example.com and https://example.com/path). Trailing punctuation shouldn't break parsing.\n"
         };
 
         var readerOptions = new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false };
@@ -34,4 +38,3 @@ public class Markdown_Reader_Corpus_Tests {
         }
     }
 }
-

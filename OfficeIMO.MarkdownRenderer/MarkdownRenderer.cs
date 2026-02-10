@@ -419,7 +419,26 @@ async function updateContent(newBodyHtml) {
 """);
         }
 
-        sb.Append("}\n");
+        sb.Append("""
+}
+
+// Optional WebView2 integration: allow hosts to push updates without ExecuteScriptAsync.
+// - PostWebMessageAsString(bodyHtml)  => e.data is a string
+// - PostWebMessageAsJson({ bodyHtml }) => e.data is an object
+(function(){
+  try {
+    const wv = window.chrome && window.chrome.webview;
+    if (!wv || typeof wv.addEventListener !== 'function') return;
+    wv.addEventListener('message', e => {
+      try {
+        const d = e && e.data;
+        if (typeof d === 'string') { updateContent(d); return; }
+        if (d && typeof d === 'object' && typeof d.bodyHtml === 'string') { updateContent(d.bodyHtml); return; }
+      } catch(_) { /* ignore */ }
+    });
+  } catch(_) { /* ignore */ }
+})();
+""");
         return sb.ToString();
     }
 }

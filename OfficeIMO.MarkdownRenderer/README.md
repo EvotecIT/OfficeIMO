@@ -21,6 +21,21 @@ webView.NavigateToString(MarkdownRenderer.BuildShellHtml("Chat", opts));
 await webView.ExecuteScriptAsync(MarkdownRenderer.RenderUpdateScript(markdownText, opts));
 ```
 
+Alternative update path (recommended for streaming/large payloads)
+
+`BuildShellHtml(...)` includes a WebView2 message listener, so you can send the updated HTML without calling `ExecuteScriptAsync`:
+
+```csharp
+using OfficeIMO.MarkdownRenderer;
+
+var opts = MarkdownRendererPresets.CreateChatStrict(baseHref: null);
+webView.NavigateToString(MarkdownRenderer.BuildShellHtml("Chat", opts));
+
+// After CoreWebView2 is initialized and navigation completed:
+var bodyHtml = MarkdownRenderer.RenderBodyHtml(markdownText, opts);
+webView.CoreWebView2.PostWebMessageAsString(bodyHtml);
+```
+
 Presets
 
 - `MarkdownRendererPresets.CreateChatStrict(...)`: safe defaults for untrusted content and a compact chat-friendly theme (`HtmlStyle.ChatAuto`).

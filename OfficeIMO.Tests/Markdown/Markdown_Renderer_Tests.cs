@@ -40,6 +40,13 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_Shell_Contains_WebView2_Message_Listener() {
+        var shell = MarkdownRenderer.MarkdownRenderer.BuildShellHtml("Chat");
+        Assert.Contains("chrome.webview", shell, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("addEventListener('message'", shell, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Shell_Includes_Csp_Meta_When_Configured() {
         var opts = new MarkdownRendererOptions {
             ContentSecurityPolicy = "default-src 'self'; img-src https:; style-src 'unsafe-inline' https:; script-src 'unsafe-inline' https:"
