@@ -60,9 +60,9 @@ Blocks
 - Paragraphs and hard breaks: two spaces or explicit `\n` from composed content
 - Fenced code blocks: triple backticks with optional language; optional `_caption_` line below
 - Images: `![alt](src "title")` with optional `{width=.. height=..}` hints
-- Lists: unordered `-/*/+`, ordered `1.` (single level); task items `- [ ]` / `- [x]`
+- Lists: unordered `-/*/+`, ordered `1.`; supports nesting via indentation; task items `- [ ]` / `- [x]`
 - Tables: GitHub pipe tables with per‑column alignment markers (`:---`, `:---:`, `---:`)
-- Block quotes: `>` lines (single level)
+- Block quotes: `>` lines; supports nesting and lazy continuation
 - Callouts: `> [!info] Title` lines (Docs‑style), followed by body paragraphs
 - Horizontal rule: `---`
 - Footnotes: references `[^id]` and definitions `[^id]:` with continuation lines
