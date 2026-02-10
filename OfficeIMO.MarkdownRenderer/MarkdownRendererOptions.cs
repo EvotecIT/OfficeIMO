@@ -96,4 +96,26 @@ public sealed class MarkdownRendererOptions {
     /// Default: false.
     /// </summary>
     public bool EnableTableCopyButtons { get; set; } = false;
+
+    /// <summary>
+    /// Optional guardrail limit for Markdown input size (character count). When exceeded, <see cref="MarkdownOverflowHandling"/> applies.
+    /// Default: null (no limit).
+    /// </summary>
+    public int? MaxMarkdownChars { get; set; }
+
+    /// <summary>
+    /// Optional guardrail limit for the rendered HTML payload size (UTF-8 bytes). When exceeded, <see cref="BodyHtmlOverflowHandling"/> applies.
+    /// Default: null (no limit).
+    /// </summary>
+    public int? MaxBodyHtmlBytes { get; set; }
+
+    /// <summary>
+    /// Behavior when <see cref="MaxMarkdownChars"/> is exceeded. Default: <see cref="OverflowHandling.Truncate"/>.
+    /// </summary>
+    public OverflowHandling MarkdownOverflowHandling { get; set; } = OverflowHandling.Truncate;
+
+    /// <summary>
+    /// Behavior when <see cref="MaxBodyHtmlBytes"/> is exceeded. Default: <see cref="OverflowHandling.RenderError"/>.
+    /// </summary>
+    public OverflowHandling BodyHtmlOverflowHandling { get; set; } = OverflowHandling.RenderError;
 }

@@ -74,6 +74,29 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_Can_Truncate_Markdown_When_Limit_Exceeded() {
+        var opts = new MarkdownRendererOptions {
+            MaxMarkdownChars = 5,
+            MarkdownOverflowHandling = OverflowHandling.Truncate,
+            HtmlOptions = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null }
+        };
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("0123456789", opts);
+        Assert.Contains("01234", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("56789", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Renders_Overflow_Warning_When_Html_Too_Large() {
+        var opts = new MarkdownRendererOptions {
+            MaxBodyHtmlBytes = 1,
+            BodyHtmlOverflowHandling = OverflowHandling.RenderError,
+            HtmlOptions = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = "markdown-body" }
+        };
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("Hello", opts);
+        Assert.Contains("data-omd=\"overflow\"", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Adds_Mermaid_Hash_Attributes() {
         var md = "```mermaid\nflowchart LR\nA-->B\n```";
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md);

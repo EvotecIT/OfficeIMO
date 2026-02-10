@@ -47,6 +47,29 @@ public static class MarkdownRendererPresets {
         o.EnableCodeCopyButtons = true;
         o.EnableTableCopyButtons = true;
 
+        // Guardrails to keep WebView hosts responsive under streaming/extreme outputs.
+        o.MaxMarkdownChars = 500_000;
+        o.MaxBodyHtmlBytes = 5_000_000;
+        o.MarkdownOverflowHandling = OverflowHandling.Truncate;
+        o.BodyHtmlOverflowHandling = OverflowHandling.RenderError;
+
+        return o;
+    }
+
+    /// <summary>
+    /// Strict preset for untrusted chat messages, with optional client-side renderers disabled.
+    /// This disables Mermaid/Chart/Math/Prism and the copy-button UX helpers to minimize script usage in the shell.
+    /// </summary>
+    public static MarkdownRendererOptions CreateChatStrictMinimal(string? baseHref = null) {
+        var o = CreateChatStrict(baseHref);
+        o.EnableCodeCopyButtons = false;
+        o.EnableTableCopyButtons = false;
+
+        o.Mermaid.Enabled = false;
+        o.Chart.Enabled = false;
+        o.Math.Enabled = false;
+        if (o.HtmlOptions.Prism != null) o.HtmlOptions.Prism.Enabled = false;
+
         return o;
     }
 

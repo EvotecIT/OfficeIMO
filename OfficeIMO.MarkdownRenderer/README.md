@@ -59,6 +59,7 @@ Presets
 
 - `MarkdownRendererPresets.CreateChatStrict(...)`: safe defaults for untrusted content and a compact chat-friendly theme (`HtmlStyle.ChatAuto`).
 - `MarkdownRendererPresets.CreateChatRelaxed(...)`: enables HTML parsing and sanitizes raw HTML blocks (still conservative).
+- `MarkdownRendererPresets.CreateChatStrictMinimal(...)`: strict, but disables Mermaid/Chart/Math/Prism and copy buttons.
 
 Options (high level)
 
@@ -99,6 +100,21 @@ opts.ShellCss = """
 
 webView.NavigateToString(MarkdownRenderer.BuildShellHtml("Chat", opts));
 ```
+
+WebView2 host message contract (optional)
+
+Shell listens for WebView2 messages and updates content:
+
+- Host -> Web
+  - `PostWebMessageAsString(bodyHtml)` (string payload)
+  - `PostWebMessageAsJson({ type: "omd.update", bodyHtml: "..." })` (recommended object payload)
+
+Shell may also send helper messages to the host:
+
+- Web -> Host
+  - `{ type: "omd.copy", text: "..." }` when the user clicks a copy button (code/table)
+
+If the host handles `omd.copy`, it can put the text onto the native clipboard (more reliable than browser clipboard APIs in some environments).
 
 Copy buttons (code + tables)
 

@@ -34,6 +34,22 @@ public static class MarkdownRenderer {
             markdown = markdown.Replace("\\r\\n", "\n").Replace("\\n", "\n");
         }
 
+        markdown ??= string.Empty;
+
+        if (options.MaxMarkdownChars.HasValue && options.MaxMarkdownChars.Value >= 0 && markdown.Length > options.MaxMarkdownChars.Value) {
+            int max = options.MaxMarkdownChars.Value;
+            switch (options.MarkdownOverflowHandling) {
+                case OverflowHandling.Throw:
+                    throw new ArgumentOutOfRangeException(nameof(markdown), $"Markdown length {markdown.Length} exceeds MaxMarkdownChars {max}.");
+                case OverflowHandling.RenderError:
+                    return BuildOverflowBodyHtml(htmlOptions, $"Content exceeded the maximum allowed Markdown length ({max} chars).");
+                case OverflowHandling.Truncate:
+                default:
+                    markdown = markdown.Substring(0, max);
+                    break;
+            }
+        }
+
         if (!string.IsNullOrWhiteSpace(options.BaseHref) && htmlOptions.BaseUri == null) {
             // Best-effort: use BaseHref for origin restrictions (if enabled). If parsing fails or BaseHref isn't absolute,
             // keep BaseUri null and origin restriction will effectively be disabled.
@@ -42,8 +58,8 @@ public static class MarkdownRenderer {
             }
         }
 
-        var doc = MarkdownReader.Parse(markdown ?? string.Empty, readerOptions);
-        string html = doc.ToHtmlFragment(htmlOptions);
+        var doc = MarkdownReader.Parse(markdown, readerOptions);
+        string html = doc.ToHtmlFragment(htmlOptions) ?? string.Empty;
 
         if (options.Mermaid?.Enabled == true) {
             html = ConvertMermaidCodeBlocks(html, enableHashCaching: options.Mermaid.EnableHashCaching);
@@ -68,11 +84,40 @@ public static class MarkdownRenderer {
             for (int i = 0; i < post.Count; i++) {
                 var p = post[i];
                 if (p == null) continue;
-                html = p(html, options) ?? html;
+                html = p(html, options) ?? html ?? string.Empty;
             }
         }
 
-        return html;
+        if (options.MaxBodyHtmlBytes.HasValue && options.MaxBodyHtmlBytes.Value >= 0) {
+            int maxBytes = options.MaxBodyHtmlBytes.Value;
+            int bytes = Encoding.UTF8.GetByteCount(html ?? string.Empty);
+            if (bytes > maxBytes) {
+                switch (options.BodyHtmlOverflowHandling) {
+                    case OverflowHandling.Throw:
+                        throw new InvalidOperationException($"Rendered HTML payload size {bytes} bytes exceeds MaxBodyHtmlBytes {maxBytes}.");
+                    case OverflowHandling.Truncate:
+                        // Truncating HTML would likely break markup; render an in-band warning instead.
+                        return BuildOverflowBodyHtml(htmlOptions, $"Rendered output exceeded the maximum allowed size ({maxBytes} bytes).");
+                    case OverflowHandling.RenderError:
+                    default:
+                        return BuildOverflowBodyHtml(htmlOptions, $"Rendered output exceeded the maximum allowed size ({maxBytes} bytes).");
+                }
+            }
+        }
+
+        return html ?? string.Empty;
+    }
+
+    private static string BuildOverflowBodyHtml(HtmlOptions htmlOptions, string message) {
+        string msg = System.Net.WebUtility.HtmlEncode(message ?? "Content too large.");
+        string inner = $"<blockquote class=\"callout warning\" data-omd=\"overflow\"><p>{msg}</p></blockquote>";
+
+        if (!string.IsNullOrWhiteSpace(htmlOptions?.BodyClass)) {
+            string cls = System.Net.WebUtility.HtmlEncode(htmlOptions.BodyClass!.Trim());
+            return $"<article class=\"{cls}\">{inner}</article>";
+        }
+
+        return $"<div data-omd=\"overflow\">{inner}</div>";
     }
 
     /// <summary>
@@ -640,6 +685,7 @@ async function updateContent(newBodyHtml) {
     wv.addEventListener('message', e => {
       try {
         const d = e && e.data;
+        if (d && typeof d === 'object' && d.type === 'omd.update' && typeof d.bodyHtml === 'string') { updateContent(d.bodyHtml); return; }
         if (typeof d === 'string') { updateContent(d); return; }
         if (d && typeof d === 'object' && typeof d.bodyHtml === 'string') { updateContent(d.bodyHtml); return; }
       } catch(_) { /* ignore */ }
