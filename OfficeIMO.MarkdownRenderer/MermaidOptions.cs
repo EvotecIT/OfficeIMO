@@ -9,9 +9,15 @@ public sealed class MermaidOptions {
     public bool Enabled { get; set; } = true;
 
     /// <summary>
-    /// ESM module URL for Mermaid. Default points at Mermaid v11 on jsDelivr.
-    /// </summary>
+     /// ESM module URL for Mermaid. Default points at Mermaid v11 on jsDelivr.
+     /// </summary>
     public string EsmModuleUrl { get; set; } = "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+    /// <summary>
+    /// Script URL for Mermaid (non-module). This is useful for offline bundling/hosting scenarios.
+    /// Default points at Mermaid v11 on jsDelivr.
+    /// </summary>
+    public string ScriptUrl { get; set; } = "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js";
 
     /// <summary>Mermaid theme name to use in light mode. Default: "default".</summary>
     public string LightTheme { get; set; } = "default";

@@ -68,6 +68,39 @@ Options (high level)
 - `MarkdownRendererOptions.Mermaid` / `Chart` / `Math`: optional client-side renderers for fenced blocks.
 - `MarkdownRendererOptions.HtmlPostProcessors`: last-mile HTML transformations (custom diagram types, host integration).
 
+Offline assets (no network at runtime)
+
+If your host runs with limited or no network access (or you want deterministic rendering), set:
+
+- `MarkdownRendererOptions.HtmlOptions.AssetMode = AssetMode.Offline`
+
+When `AssetMode.Offline` is used, the shell builder will attempt to inline Mermaid/Chart/Math assets into the HTML
+as `data:` URLs (best-effort). This avoids WebView runtime fetches.
+
+```csharp
+using OfficeIMO.Markdown;
+using OfficeIMO.MarkdownRenderer;
+
+var opts = MarkdownRendererPresets.CreateChatStrict();
+opts.HtmlOptions.AssetMode = AssetMode.Offline;
+
+// Optional: point to local files so bundling never hits the network.
+opts.Mermaid.ScriptUrl = @"C:\app\assets\mermaid.min.js";
+opts.Chart.ScriptUrl = @"C:\app\assets\chart.umd.min.js";
+opts.Math.CssUrl = @"C:\app\assets\katex.min.css";
+opts.Math.ScriptUrl = @"C:\app\assets\katex.min.js";
+opts.Math.AutoRenderScriptUrl = @"C:\app\assets\auto-render.min.js";
+
+webView.NavigateToString(MarkdownRenderer.BuildShellHtml("Chat", opts));
+```
+
+Notes:
+
+- Bundling supports `http(s)` URLs and local file paths. Custom schemes (e.g. virtual host mappings) are not fetchable
+  by the .NET process and will not be inlined.
+- If you set a strict CSP via `MarkdownRendererOptions.ContentSecurityPolicy`, ensure it allows `data:` sources for
+  `script-src` and `style-src` (or keep `AssetMode.Online` and host assets from allowed origins).
+
 Theming and customization
 
 - You are not stuck with the built-in styles. You can:
