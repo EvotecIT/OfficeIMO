@@ -5,6 +5,10 @@ public static partial class MarkdownReader {
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
             var line = lines[i];
             if (string.IsNullOrWhiteSpace(line)) return false;
+            // Do not treat indented code as a footnote definition.
+            int leading0 = 0; while (leading0 < line.Length && line[leading0] == ' ') leading0++;
+            if (leading0 >= 4) return false;
+            if (leading0 < line.Length && line[leading0] == '\t') return false;
             var t = line.TrimStart();
             if (!(t.Length > 4 && t[0] == '[' && t.Length > 2 && t[1] == '^')) return false;
             int rb = t.IndexOf(']'); if (rb < 0) return false;

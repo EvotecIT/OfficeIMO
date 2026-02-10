@@ -210,16 +210,27 @@ public static class MarkdownRenderer {
 
     private static string BuildMermaidBootstrap(MermaidOptions o) {
         // Use ESM bootstrap for Mermaid.
-        string url = System.Net.WebUtility.HtmlEncode((o?.EsmModuleUrl ?? string.Empty).Trim());
-        string light = System.Net.WebUtility.HtmlEncode((o?.LightTheme ?? "default").Trim());
-        string dark = System.Net.WebUtility.HtmlEncode((o?.DarkTheme ?? "dark").Trim());
+        string url = (o?.EsmModuleUrl ?? string.Empty).Trim();
+        string light = (o?.LightTheme ?? "default").Trim();
+        string dark = (o?.DarkTheme ?? "dark").Trim();
         if (string.IsNullOrEmpty(url)) return string.Empty;
+
+        // Prevent closing the <script> tag if a caller passes a hostile value.
+        url = ReplaceScriptCloseSequence(url);
+        light = ReplaceScriptCloseSequence(light);
+        dark = ReplaceScriptCloseSequence(dark);
         return $@"
 <script type=""module"">
-import mermaid from '{url}';
+import mermaid from {JavaScriptString.SingleQuoted(url)};
 window.mermaid = mermaid;
-mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? '{dark}' : '{light}' }});
+mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? {JavaScriptString.SingleQuoted(dark)} : {JavaScriptString.SingleQuoted(light)} }});
 </script>";
+    }
+
+    private static string ReplaceScriptCloseSequence(string value) {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        // Avoid embedding a literal "</script" inside script contents.
+        return value.Replace("</", "<\\/");
     }
 
     private static string BuildChartBootstrap(ChartOptions o) {

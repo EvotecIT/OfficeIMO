@@ -74,8 +74,33 @@ public static partial class MarkdownReader {
     }
 
     private static void PreScanReferenceLinkDefinitions(string[] lines, MarkdownReaderState state, MarkdownReaderOptions options) {
+        bool inFence = false;
+        char fenceChar = '\0';
+        int fenceLen = 0;
+
         for (int idx = 0; idx < lines.Length; idx++) {
             var line = lines[idx]; if (string.IsNullOrWhiteSpace(line)) continue;
+
+            // Ignore anything inside fenced code blocks.
+            if (!inFence) {
+                if (IsCodeFenceOpen(line, out _, out fenceChar, out fenceLen)) {
+                    inFence = true;
+                    continue;
+                }
+            } else {
+                if (IsCodeFenceClose(line, fenceChar, fenceLen)) {
+                    inFence = false;
+                }
+                continue;
+            }
+
+            // Ignore indented code blocks (4+ leading spaces or a tab). Reference definitions are only valid
+            // up to 3 leading spaces in typical Markdown implementations.
+            int leading = 0;
+            while (leading < line.Length && line[leading] == ' ') leading++;
+            if (leading >= 4) continue;
+            if (leading < line.Length && line[leading] == '\t') continue;
+
             var t = line.Trim(); if (t.Length < 5 || t[0] != '[') continue;
             if (t.Length > 1 && t[1] == '^') continue; // footnote definition, not a link ref
             int rb = t.IndexOf(']'); if (rb <= 1) continue;
@@ -122,6 +147,10 @@ public static partial class MarkdownReader {
             DefinitionLists = source.DefinitionLists,
             HtmlBlocks = source.HtmlBlocks,
             Paragraphs = source.Paragraphs,
+            AutolinkUrls = source.AutolinkUrls,
+            AutolinkWwwUrls = source.AutolinkWwwUrls,
+            AutolinkWwwScheme = source.AutolinkWwwScheme,
+            AutolinkEmails = source.AutolinkEmails,
             BackslashHardBreaks = source.BackslashHardBreaks,
             InlineHtml = source.InlineHtml,
             BaseUri = source.BaseUri,
@@ -130,6 +159,8 @@ public static partial class MarkdownReader {
             AllowMailtoUrls = source.AllowMailtoUrls,
             AllowDataUrls = source.AllowDataUrls,
             AllowProtocolRelativeUrls = source.AllowProtocolRelativeUrls,
+            RestrictUrlSchemes = source.RestrictUrlSchemes,
+            AllowedUrlSchemes = source.AllowedUrlSchemes,
         };
     }
 
