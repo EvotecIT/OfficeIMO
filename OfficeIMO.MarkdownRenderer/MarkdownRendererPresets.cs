@@ -18,6 +18,10 @@ public static class MarkdownRendererPresets {
         var o = new MarkdownRendererOptions();
         o.BaseHref = baseHref;
 
+        // Chat look-and-feel (compact, embed-friendly). Scope to the renderer root to avoid CSS bleed.
+        o.HtmlOptions.Style = HtmlStyle.ChatAuto;
+        o.HtmlOptions.CssScopeSelector = "#omdRoot article.markdown-body";
+
         o.ReaderOptions.HtmlBlocks = false;
         o.ReaderOptions.InlineHtml = false;
         o.ReaderOptions.DisallowFileUrls = true;
@@ -63,4 +67,3 @@ public static class MarkdownRendererPresets {
         return o;
     }
 }
-

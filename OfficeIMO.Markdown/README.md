@@ -247,12 +247,16 @@ Doc‑level helpers
 
  HTML options
 - Kind: Fragment | Document
-- Style: Plain | Clean | GithubLight | GithubDark | GithubAuto | Word
+- Style: Plain | Clean | GithubLight | GithubDark | GithubAuto | ChatLight | ChatDark | ChatAuto | Word
 - CssDelivery: Inline | ExternalFile | LinkHref | None
 - AssetMode: Online (link) | Offline (download+inline)
 - Title, BodyClass (default "markdown-body"), IncludeAnchorLinks, ThemeToggle
 - EmitMode: Emit (default) | ManifestOnly for host-side asset merging
 - Prism: Enabled, Theme (Prism/Okaidia/GithubDark/GithubAuto), Languages, Plugins, CdnBase
+
+Chat styles
+- ChatLight/ChatDark/ChatAuto are compact, embed-friendly themes intended for chat UIs (no large page margins).
+
 TOC HTML options (via TocOptions in TocAtTop/TocHere/TocFor*)
 - Layout: List (default, plain nested list), Panel (card), SidebarRight/SidebarLeft
 - Collapsible: wrap in <details>; Collapsed: default state

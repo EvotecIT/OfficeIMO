@@ -125,6 +125,15 @@ public static class MarkdownRenderer {
         return "updateContent(" + JavaScriptString.SingleQuoted(bodyHtml ?? string.Empty) + ");";
     }
 
+    /// <summary>
+    /// Convenience helper for hosts: renders Markdown to an HTML fragment and returns the JavaScript snippet
+    /// that updates the shell (calls <c>updateContent(...)</c>).
+    /// </summary>
+    public static string RenderUpdateScript(string markdown, MarkdownRendererOptions? options = null) {
+        var bodyHtml = RenderBodyHtml(markdown ?? string.Empty, options);
+        return BuildUpdateScript(bodyHtml);
+    }
+
     private static string ConvertMermaidCodeBlocks(string html, bool enableHashCaching) {
         if (string.IsNullOrEmpty(html)) return html;
         if (html.IndexOf("language-mermaid", StringComparison.OrdinalIgnoreCase) < 0) return html;

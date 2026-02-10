@@ -3,16 +3,19 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Built-in CSS and tiny scripts for HTML rendering.
 /// </summary>
-internal static class HtmlResources {
-    internal static string GetStyleCss(HtmlStyle style) => style switch {
-        HtmlStyle.Plain => string.Empty,
-        HtmlStyle.Clean => CleanCss,
-        HtmlStyle.GithubLight => GithubLightCss,
-        HtmlStyle.GithubDark => GithubDarkCss,
-        HtmlStyle.GithubAuto => GithubAutoCss,
-        HtmlStyle.Word => WordCss,
-        _ => CleanCss
-    };
+    internal static class HtmlResources {
+        internal static string GetStyleCss(HtmlStyle style) => style switch {
+            HtmlStyle.Plain => string.Empty,
+            HtmlStyle.Clean => CleanCss,
+            HtmlStyle.GithubLight => GithubLightCss,
+            HtmlStyle.GithubDark => GithubDarkCss,
+            HtmlStyle.GithubAuto => GithubAutoCss,
+            HtmlStyle.ChatLight => ChatLightCss,
+            HtmlStyle.ChatDark => ChatDarkCss,
+            HtmlStyle.ChatAuto => ChatAutoCss,
+            HtmlStyle.Word => WordCss,
+            _ => CleanCss
+        };
 
     // Minimal, readable defaults
     private const string CleanCss = @"
@@ -55,6 +58,87 @@ article.markdown-body h6:hover .heading-anchor { opacity: .8; }
 /* Collapsible TOC details */
 details.md-toc { margin: .5rem 0 1rem 0; }
 details.md-toc > summary { cursor: pointer; font-weight: 600; margin-bottom: .5rem; }
+";
+
+    // Compact, chat-friendly styling. Intentionally avoids large page margins and keeps typography tighter.
+    // Marker comment is used by tests.
+    private const string ChatLightCss = @"
+/* omd-chat */
+html,body { height: 100%; }
+body { background: transparent; color: #111827; margin: 0; }
+article.markdown-body { max-width: 100%; margin: 0; padding: 0; line-height: 1.55; font-size: 14px; font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: inherit; }
+article.markdown-body > :first-child { margin-top: 0; }
+article.markdown-body > :last-child { margin-bottom: 0; }
+article.markdown-body h1,article.markdown-body h2,article.markdown-body h3,article.markdown-body h4,article.markdown-body h5,article.markdown-body h6 { margin: .9em 0 .45em; font-weight: 650; color: inherit; }
+article.markdown-body h1 { font-size: 1.25rem; }
+article.markdown-body h2 { font-size: 1.1rem; border-bottom: 1px solid rgba(17,24,39,.14); padding-bottom: .25rem; }
+article.markdown-body h3 { font-size: 1.0rem; }
+article.markdown-body p { margin: .55em 0; }
+article.markdown-body a { color: #2563eb; text-decoration: underline; text-underline-offset: .15em; }
+article.markdown-body a:hover { text-decoration-thickness: 2px; }
+article.markdown-body ul,article.markdown-body ol { margin: .4em 0; padding-left: 1.2em; }
+article.markdown-body li { margin: .2em 0; }
+article.markdown-body code { background: rgba(15,23,42,.08); padding: .15em .35em; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Consolas, 'Courier New', monospace; }
+article.markdown-body pre { background: rgba(15,23,42,.06); border: 1px solid rgba(17,24,39,.12); padding: 10px 12px; border-radius: 10px; overflow: auto; }
+article.markdown-body pre code { background: transparent; padding: 0; border-radius: 0; }
+article.markdown-body blockquote { color: inherit; border-left: .25em solid rgba(37,99,235,.35); background: rgba(37,99,235,.06); padding: .1em .9em; margin: .5em 0; border-radius: 8px; }
+article.markdown-body blockquote.callout { border-left-color: rgba(37,99,235,.55); }
+article.markdown-body blockquote.callout.warning { border-left-color: rgba(217,119,6,.6); background: rgba(217,119,6,.08); }
+article.markdown-body blockquote.callout.danger { border-left-color: rgba(220,38,38,.6); background: rgba(220,38,38,.08); }
+article.markdown-body hr { border: 0; border-top: 1px solid rgba(17,24,39,.12); margin: .8em 0; }
+article.markdown-body table { border-collapse: collapse; display: block; width: 100%; overflow: auto; margin: .6em 0; border: 1px solid rgba(17,24,39,.12); border-radius: 10px; }
+article.markdown-body th, article.markdown-body td { border-bottom: 1px solid rgba(17,24,39,.10); padding: 6px 10px; vertical-align: top; }
+article.markdown-body thead th { background: rgba(15,23,42,.06); font-weight: 650; }
+article.markdown-body tbody tr:nth-child(2n) { background: rgba(15,23,42,.03); }
+article.markdown-body img { max-width: 100%; height: auto; border-radius: 10px; }
+article.markdown-body .task-list-item { list-style: none; }
+article.markdown-body .task-list-item-checkbox { margin: 0 .4em 0 0; vertical-align: middle; }
+";
+
+    private const string ChatDarkCss = @"
+/* omd-chat */
+html,body { height: 100%; }
+body { background: transparent; color: #e5e7eb; margin: 0; }
+article.markdown-body { max-width: 100%; margin: 0; padding: 0; line-height: 1.55; font-size: 14px; font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: inherit; }
+article.markdown-body > :first-child { margin-top: 0; }
+article.markdown-body > :last-child { margin-bottom: 0; }
+article.markdown-body h1,article.markdown-body h2,article.markdown-body h3,article.markdown-body h4,article.markdown-body h5,article.markdown-body h6 { margin: .9em 0 .45em; font-weight: 650; color: inherit; }
+article.markdown-body h1 { font-size: 1.25rem; }
+article.markdown-body h2 { font-size: 1.1rem; border-bottom: 1px solid rgba(229,231,235,.18); padding-bottom: .25rem; }
+article.markdown-body h3 { font-size: 1.0rem; }
+article.markdown-body p { margin: .55em 0; }
+article.markdown-body a { color: #93c5fd; text-decoration: underline; text-underline-offset: .15em; }
+article.markdown-body a:hover { text-decoration-thickness: 2px; }
+article.markdown-body ul,article.markdown-body ol { margin: .4em 0; padding-left: 1.2em; }
+article.markdown-body li { margin: .2em 0; }
+article.markdown-body code { background: rgba(148,163,184,.18); padding: .15em .35em; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Consolas, 'Courier New', monospace; }
+article.markdown-body pre { background: rgba(148,163,184,.10); border: 1px solid rgba(229,231,235,.16); padding: 10px 12px; border-radius: 10px; overflow: auto; }
+article.markdown-body pre code { background: transparent; padding: 0; border-radius: 0; }
+article.markdown-body blockquote { color: inherit; border-left: .25em solid rgba(147,197,253,.45); background: rgba(59,130,246,.12); padding: .1em .9em; margin: .5em 0; border-radius: 8px; }
+article.markdown-body blockquote.callout { border-left-color: rgba(147,197,253,.6); }
+article.markdown-body blockquote.callout.warning { border-left-color: rgba(251,191,36,.6); background: rgba(251,191,36,.10); }
+article.markdown-body blockquote.callout.danger { border-left-color: rgba(248,113,113,.6); background: rgba(248,113,113,.10); }
+article.markdown-body hr { border: 0; border-top: 1px solid rgba(229,231,235,.14); margin: .8em 0; }
+article.markdown-body table { border-collapse: collapse; display: block; width: 100%; overflow: auto; margin: .6em 0; border: 1px solid rgba(229,231,235,.14); border-radius: 10px; }
+article.markdown-body th, article.markdown-body td { border-bottom: 1px solid rgba(229,231,235,.12); padding: 6px 10px; vertical-align: top; }
+article.markdown-body thead th { background: rgba(148,163,184,.10); font-weight: 650; }
+article.markdown-body tbody tr:nth-child(2n) { background: rgba(148,163,184,.06); }
+article.markdown-body img { max-width: 100%; height: auto; border-radius: 10px; }
+article.markdown-body .task-list-item { list-style: none; }
+article.markdown-body .task-list-item-checkbox { margin: 0 .4em 0 0; vertical-align: middle; }
+";
+
+    private const string ChatAutoCss = @"
+/* omd-chat */
+" + ChatLightCss + @"
+@media (prefers-color-scheme: dark) {
+" + ChatDarkCss + @"
+}
+/* data-theme overrides */
+html[data-theme=dark] body { background: transparent; color: #e5e7eb; }
+html[data-theme=dark] article.markdown-body { color: inherit; background: transparent; }
+html[data-theme=light] body { background: transparent; color: #111827; }
+html[data-theme=light] article.markdown-body { color: inherit; background: transparent; }
 ";
 
     // GitHub-ish light
