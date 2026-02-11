@@ -44,6 +44,7 @@
   "GitHubIncludeProjectNameInTag": true,
   "GitHubGenerateReleaseNotes": true,
   "GitHubReleaseMode": "Single",
-  "GitHubPrimaryProject": "OfficeIMO.Word",
-  "GitHubTagTemplate": "{Project}-v{Version}"
+  "GitHubPrimaryProject": null,
+  "GitHubTagTemplate": "{Repo}-v{UtcTimestamp}",
+  "GitHubReleaseName": "{Repo} {UtcDateTime}"
 }
