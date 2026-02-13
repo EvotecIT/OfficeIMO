@@ -125,4 +125,9 @@ public sealed class MarkdownReaderOptions {
     /// Default: <c>http</c>, <c>https</c>, <c>mailto</c>.
     /// </summary>
     public string[] AllowedUrlSchemes { get; set; } = new[] { "http", "https", "mailto" };
+
+    /// <summary>
+    /// Optional markdown input normalization before parsing. Defaults are conservative (no transformations).
+    /// </summary>
+    public MarkdownInputNormalizationOptions InputNormalization { get; set; } = new MarkdownInputNormalizationOptions();
 }

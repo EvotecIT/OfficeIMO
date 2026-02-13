@@ -183,6 +183,13 @@ var parsed = MarkdownReader.Parse(markdown, new MarkdownReaderOptions { Tables =
 // TOC placeholders in Markdown are recognized and rendered:
 // [TOC] or [[TOC]] or {:toc} or <!-- TOC -->
 // Parameterized form: [TOC min=2 max=3 layout=sidebar-right sticky=true scrollspy=true title="On this page"]
+
+// Optional input normalization for chat/model output before parsing
+var normalizedParsed = MarkdownReader.Parse("**Status\nHEALTHY**", new MarkdownReaderOptions {
+    InputNormalization = new MarkdownInputNormalizationOptions {
+        NormalizeSoftWrappedStrongSpans = true
+    }
+});
 ```
 
 Header transforms and acronyms

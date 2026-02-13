@@ -34,6 +34,9 @@ public static partial class MarkdownReader {
         if (markdown[0] == '\uFEFF') {
             markdown = markdown.Substring(1);
         }
+
+        markdown = MarkdownInputNormalizer.Normalize(markdown, options.InputNormalization);
+
         // Normalize line endings and split. Keep empty lines significant for block boundaries.
         var text = markdown.Replace("\r\n", "\n").Replace('\r', '\n');
         var lines = text.Split('\n');
@@ -161,6 +164,10 @@ public static partial class MarkdownReader {
             AllowProtocolRelativeUrls = source.AllowProtocolRelativeUrls,
             RestrictUrlSchemes = source.RestrictUrlSchemes,
             AllowedUrlSchemes = source.AllowedUrlSchemes,
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeSoftWrappedStrongSpans = source.InputNormalization?.NormalizeSoftWrappedStrongSpans ?? false,
+                NormalizeInlineCodeSpanLineBreaks = source.InputNormalization?.NormalizeInlineCodeSpanLineBreaks ?? false
+            }
         };
     }
 

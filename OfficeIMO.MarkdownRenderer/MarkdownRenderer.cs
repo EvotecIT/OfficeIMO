@@ -9,14 +9,6 @@ namespace OfficeIMO.MarkdownRenderer;
 /// + an incremental update mechanism.
 /// </summary>
 public static class MarkdownRenderer {
-    private static readonly Regex InlineCodeSpanRegex = new Regex(
-        "`([^`]+)`",
-        RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
-    private static readonly Regex SoftWrappedStrongRegex = new Regex(
-        "\\*\\*(?<left>[^\\r\\n*]{1,80})\\r?\\n(?<right>[^\\r\\n*]{1,80})\\*\\*",
-        RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
     private static readonly Regex MermaidPreCodeBlockRegex = new Regex(
         "(<pre[^>]*>)\\s*<code\\s+class=\"language-mermaid\"[^>]*>([\\s\\S]*?)</code>\\s*</pre>",
         RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
@@ -123,32 +115,10 @@ public static class MarkdownRenderer {
             return value;
         }
 
-        if (options.NormalizeSoftWrappedStrongSpans) {
-            value = SoftWrappedStrongRegex.Replace(value, static match => {
-                var left = match.Groups["left"].Value.Trim();
-                var right = match.Groups["right"].Value.Trim();
-                if (left.Length == 0 || right.Length == 0) {
-                    return match.Value;
-                }
-
-                return "**" + left + " " + right + "**";
-            });
-        }
-
-        if (options.NormalizeInlineCodeSpanLineBreaks) {
-            value = InlineCodeSpanRegex.Replace(value, static match => {
-                var body = match.Groups[1].Value;
-                if (body.IndexOfAny(new[] { '\r', '\n' }) < 0) {
-                    return match.Value;
-                }
-
-                var compact = body.Replace("\r\n", " ")
-                    .Replace('\r', ' ')
-                    .Replace('\n', ' ')
-                    .Trim();
-                return compact.Length == 0 ? "``" : "`" + compact + "`";
-            });
-        }
+        value = MarkdownInputNormalizer.Normalize(value, new MarkdownInputNormalizationOptions {
+            NormalizeSoftWrappedStrongSpans = options.NormalizeSoftWrappedStrongSpans,
+            NormalizeInlineCodeSpanLineBreaks = options.NormalizeInlineCodeSpanLineBreaks
+        });
 
         var pre = options.MarkdownPreProcessors;
         if (pre != null && pre.Count > 0) {

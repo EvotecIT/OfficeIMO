@@ -71,6 +71,8 @@ Options (high level)
 - `MarkdownRendererOptions.Mermaid` / `Chart` / `Math`: optional client-side renderers for fenced blocks.
 - `MarkdownRendererOptions.HtmlPostProcessors`: last-mile HTML transformations (custom diagram types, host integration).
 
+Normalization is backed by `OfficeIMO.Markdown.MarkdownInputNormalizer`, so the same behavior is available directly via `MarkdownReaderOptions.InputNormalization` when parsing outside the renderer.
+
 Offline assets (no network at runtime)
 
 If your host runs with limited or no network access (or you want deterministic rendering), set:
