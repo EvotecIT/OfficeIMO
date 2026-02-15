@@ -2,7 +2,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class WordToMarkdownConverter {
-        private string ConvertParagraph(WordParagraph paragraph, WordToMarkdownOptions options, bool? hasCheckboxOverride = null, bool checkboxCheckedOverride = false) {
+        internal string ConvertParagraph(WordParagraph paragraph, WordToMarkdownOptions options, bool? hasCheckboxOverride = null, bool checkboxCheckedOverride = false) {
             const string codeLangPrefix = "CodeLang_";
             string? styleId = paragraph.StyleId;
             string? codeFont = options.FontFamily ?? FontResolver.Resolve("monospace");
@@ -59,7 +59,7 @@ namespace OfficeIMO.Word.Markdown {
             "Cascadia Mono", "Cascadia Code", "JetBrains Mono"
         };
 
-        private string RenderRuns(WordParagraph paragraph, WordToMarkdownOptions options) {
+        internal string RenderRuns(WordParagraph paragraph, WordToMarkdownOptions options) {
             var sb = new StringBuilder();
             // Inline code detection:
             // 1) If caller specifies options.FontFamily, treat runs with that font as code
@@ -156,7 +156,7 @@ namespace OfficeIMO.Word.Markdown {
             return sb.ToString();
         }
 
-        private string RenderFootnote(WordFootNote footNote, WordToMarkdownOptions options) {
+        internal string RenderFootnote(WordFootNote footNote, WordToMarkdownOptions options) {
             var paragraphs = footNote.Paragraphs;
             if (paragraphs == null || paragraphs.Count == 0) return string.Empty;
             var sb = new StringBuilder();
@@ -167,7 +167,7 @@ namespace OfficeIMO.Word.Markdown {
             return sb.ToString();
         }
 
-        private string RenderImage(WordImage image, WordToMarkdownOptions options) {
+        internal string RenderImage(WordImage image, WordToMarkdownOptions options) {
             if (image == null) {
                 return string.Empty;
             }

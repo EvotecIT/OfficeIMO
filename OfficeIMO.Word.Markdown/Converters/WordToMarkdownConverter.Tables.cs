@@ -2,7 +2,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class WordToMarkdownConverter {
-        private string ConvertTable(WordTable table, WordToMarkdownOptions options) {
+        internal string ConvertTable(WordTable table, WordToMarkdownOptions options) {
             var sb = new StringBuilder();
             var rows = table.Rows;
             if (rows.Count == 0) return string.Empty;
@@ -30,7 +30,7 @@ namespace OfficeIMO.Word.Markdown {
             return sb.ToString().TrimEnd();
         }
 
-        private string GetCellText(WordTableCell cell, WordToMarkdownOptions options) {
+        internal string GetCellText(WordTableCell cell, WordToMarkdownOptions options) {
             var sb = new StringBuilder();
             bool first = true;
             foreach (var p in cell.Paragraphs) {

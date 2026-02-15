@@ -33,6 +33,8 @@ Each project ships as its own NuGet package under the MIT license.
   - `OfficeIMO.Word.Html` — HTML ↔ Word
   - `OfficeIMO.Word.Markdown` — Markdown ↔ Word
   - `OfficeIMO.Word.Pdf` — PDF export for Word
+- Reader:
+  - `OfficeIMO.Reader` — unified, read-only extraction facade for AI ingestion (Word/Excel/PowerPoint/Markdown)
 
 ## Targets
 
