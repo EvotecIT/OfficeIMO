@@ -40,9 +40,6 @@ namespace OfficeIMO.Word.Markdown {
                 } catch (InvalidOperationException ex) {
                     System.Diagnostics.Debug.WriteLine($"GetRuns() failed for table cell paragraph: {ex.Message}");
                     hasRuns = false;
-                } catch (NullReferenceException ex) {
-                    System.Diagnostics.Debug.WriteLine($"GetRuns() null reference for table cell paragraph: {ex.Message}");
-                    hasRuns = false;
                 }
                 // Render only once per underlying OpenXml paragraph:
                 // - If there are runs, render the first-run wrapper only

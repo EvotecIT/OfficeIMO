@@ -19,16 +19,31 @@ namespace OfficeIMO.Reader;
 /// <remarks>
 /// This facade is intentionally dependency-free and deterministic.
 /// It normalizes extraction into <see cref="ReaderChunk"/> instances with stable IDs and location metadata.
+/// The API is thread-safe as it does not use shared mutable state.
 /// </remarks>
 public static class DocumentReader {
+    private static string? TryGetExtension(string path) {
+        if (path == null) return null;
+        try {
+            return Path.GetExtension(path);
+        } catch (ArgumentException) {
+            return null;
+        } catch (NotSupportedException) {
+            return null;
+        }
+    }
+
     /// <summary>
     /// Detects the input kind based on file extension.
     /// </summary>
     /// <param name="path">Source file path.</param>
     public static ReaderInputKind DetectKind(string path) {
         if (path == null) throw new ArgumentNullException(nameof(path));
-        var ext = Path.GetExtension(path).ToLowerInvariant();
-        return ext switch {
+        if (path.Length == 0) throw new ArgumentException("Path cannot be empty.", nameof(path));
+
+        var extLower = (TryGetExtension(path) ?? string.Empty).ToLowerInvariant();
+        if (extLower.Length == 0) return ReaderInputKind.Unknown;
+        return extLower switch {
             ".docx" or ".docm" => ReaderInputKind.Word,
             ".xlsx" or ".xlsm" => ReaderInputKind.Excel,
             ".pptx" or ".pptm" => ReaderInputKind.PowerPoint,
@@ -102,8 +117,9 @@ public static class DocumentReader {
             cancellationToken.ThrowIfCancellationRequested();
 
             if (count >= folderOptions.MaxFiles) yield break;
-            var ext = Path.GetExtension(file);
-            if (!allowedExt.Contains(ext)) continue;
+            var ext = TryGetExtension(file);
+            if (string.IsNullOrEmpty(ext)) continue;
+            if (!allowedExt.Contains(ext!)) continue;
 
             long length = 0;
             try {
@@ -486,9 +502,9 @@ public static class DocumentReader {
     }
 
     private static IEnumerable<ReaderChunk> ReadUnknown(string path, ReaderOptions opt, CancellationToken ct) {
-        var ext = Path.GetExtension(path).ToLowerInvariant();
-        if (ext is ".doc" or ".xls" or ".ppt") {
-            throw new NotSupportedException($"Legacy binary format '{ext}' is not supported. Convert to OpenXML (.docx/.xlsx/.pptx) first.");
+        var extLower = (TryGetExtension(path) ?? string.Empty).ToLowerInvariant();
+        if (extLower is ".doc" or ".xls" or ".ppt") {
+            throw new NotSupportedException($"Legacy binary format '{extLower}' is not supported. Convert to OpenXML (.docx/.xlsx/.pptx) first.");
         }
 
         // Try plain text; if it fails (binary), the caller can decide how to handle it.
@@ -760,7 +776,8 @@ public static class DocumentReader {
 
     private static bool WouldExceed(ReaderOptions opt, StringBuilder current, string nextLine) {
         // +1 for newline to keep final chunk shape similar to file.
-        int extra = (current.Length == 0 ? 0 : 1) + (nextLine?.Length ?? 0);
+        int nextLen = nextLine?.Length ?? 0;
+        int extra = (current.Length == 0 ? 0 : 1) + nextLen;
         return current.Length > 0 && (current.Length + extra) > opt.MaxChars;
     }
 

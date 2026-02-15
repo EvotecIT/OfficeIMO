@@ -99,7 +99,8 @@ public static class ExcelExtractionExtensions {
             bool truncated = false;
             int totalRows = rowList.Count;
             if (rowList.Count > chunking.MaxTableRows) {
-                rowList = rowList.Take(chunking.MaxTableRows).ToList();
+                // Avoid duplicating memory by allocating a second list for large ranges.
+                rowList.RemoveRange(chunking.MaxTableRows, rowList.Count - chunking.MaxTableRows);
                 truncated = true;
             }
 
@@ -196,4 +197,3 @@ public static class ExcelExtractionExtensions {
         return $"{kind}:{safe}:{s}:c{chunkIndex}:r{startRow}";
     }
 }
-

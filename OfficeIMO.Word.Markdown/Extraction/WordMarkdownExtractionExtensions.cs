@@ -62,9 +62,6 @@ public static class WordMarkdownExtractionExtensions {
                     } catch (InvalidOperationException ex) {
                         Debug.WriteLine($"GetRuns() failed for paragraph during chunk extraction: {ex.Message}");
                         hasRuns = false;
-                    } catch (NullReferenceException ex) {
-                        Debug.WriteLine($"GetRuns() null reference for paragraph during chunk extraction: {ex.Message}");
-                        hasRuns = false;
                     }
 
                     // Only render once per underlying OpenXml paragraph (see converter logic).
@@ -283,4 +280,3 @@ public static class WordMarkdownExtractionExtensions {
         return $"{kind}:{safe}:c{chunkIndex}:b{b}";
     }
 }
-

@@ -56,9 +56,6 @@ namespace OfficeIMO.Word.Markdown {
                         } catch (InvalidOperationException ex) {
                             Debug.WriteLine($"GetRuns() failed for paragraph during Markdown conversion: {ex.Message}");
                             hasRuns = false;
-                        } catch (NullReferenceException ex) {
-                            Debug.WriteLine($"GetRuns() null reference for paragraph during Markdown conversion: {ex.Message}");
-                            hasRuns = false;
                         }
                         // Detect checkbox state across sibling wrappers for the same underlying paragraph
                         bool paraHasCheckbox = p.IsCheckBox;
