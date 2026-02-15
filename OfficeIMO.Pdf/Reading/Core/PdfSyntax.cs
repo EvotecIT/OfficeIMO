@@ -20,39 +20,155 @@ internal static class PdfSyntax {
             int id = int.Parse(matches[i].Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
             int gen = int.Parse(matches[i].Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture);
             int start = matches[i].Index;
-            int end = (i + 1 < matches.Count) ? matches[i + 1].Index : text.Length;
-            string body = text.Substring(start, end - start);
-            var m = StreamRegex.Match(body);
-            if (m.Success) {
-                var dict = ParseDictionary(m.Groups[1].Value);
-                var data = PdfEncoding.Latin1GetBytes(m.Groups[2].Value);
-                // Handle FlateDecode (best-effort, zero-dep)
-                if (HasFlateDecode(dict)) {
-                    try { data = Filters.FlateDecoder.Decode(data); } catch (Exception ex) {
-                        // Provide failure feedback while keeping original bytes
-                        System.Diagnostics.Trace.WriteLine($"OfficeIMO.Pdf: FlateDecode failed for object {id} {gen} R: {ex.Message}");
-                        map[id] = new PdfIndirectObject(id, gen, new PdfStream(dict, data, decodingFailed: true, error: ex.Message));
-                        continue;
+            int end = FindObjectEnd(text, start);
+            if (end < 0) end = (i + 1 < matches.Count) ? matches[i + 1].Index : text.Length;
+
+            // Extract dictionary (balanced << >>) within object bounds
+            int dictStart = text.IndexOf("<<", start, end - start, System.StringComparison.Ordinal);
+            if (dictStart >= 0) {
+                int dictEnd = FindDictEnd(text, dictStart, end);
+                if (dictEnd > dictStart) {
+                    string dictText = SafeSlice(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000); // cap to 1 MB
+                    PdfDictionary dict;
+                    try { dict = ParseDictionary(dictText); }
+                    catch (Exception ex) when (ex is not OutOfMemoryException) { dict = new PdfDictionary(); }
+
+                    // Check for stream section; prefer dictionary /Length when available
+                    int streamKw = IndexOfKeyword(text, "stream", dictEnd, end);
+                    if (streamKw >= 0) {
+                        int dataStart = SkipEOL(text, streamKw + 6, end);
+                        // Try /Length first (inline number only)
+                        int byteStart = dataStart;
+                        int byteLen = -1;
+                        var lenNum = dict.Get<PdfNumber>("Length");
+                        if (lenNum is not null) {
+                            int L = (int)Math.Max(0, Math.Min(int.MaxValue, lenNum.Value));
+                            if (byteStart >= 0 && byteStart + L <= pdf.Length) byteLen = L;
+                        }
+                        if (byteLen < 0) {
+                            int endStream = IndexOfKeyword(text, "endstream", dataStart, end);
+                            if (endStream > dataStart) byteLen = endStream - dataStart;
+                        }
+                        if (byteLen >= 0) {
+                            bool isImage = (dict.Get<PdfName>("Subtype")?.Name == "Image") || (dict.Get<PdfName>("Type")?.Name == "XObject" && dict.Get<PdfName>("Subtype")?.Name == "Image");
+                            if (!isImage) {
+                                if (byteStart >= 0 && byteLen >= 0 && byteStart + byteLen <= pdf.Length) {
+                                    var data = new byte[byteLen];
+                                    Buffer.BlockCopy(pdf, byteStart, data, 0, byteLen);
+                                    map[id] = new PdfIndirectObject(id, gen, new PdfStream(dict, data));
+                                    continue;
+                                }
+                            } else {
+                                map[id] = new PdfIndirectObject(id, gen, new PdfStream(dict, Array.Empty<byte>()));
+                                continue;
+                            }
+                        }
                     }
-                }
-                map[id] = new PdfIndirectObject(id, gen, new PdfStream(dict, data));
-            } else {
-                // Try dictionary only
-                int dictStart = body.IndexOf("<<", StringComparison.Ordinal);
-                int dictEnd = body.IndexOf(">>", dictStart + 2, StringComparison.Ordinal);
-                if (dictStart >= 0 && dictEnd > dictStart) {
-                    string dictText = body.Substring(dictStart + 2, dictEnd - (dictStart + 2));
-                    var dict = ParseDictionary(dictText);
+                    // No stream; store dictionary-only object
                     map[id] = new PdfIndirectObject(id, gen, dict);
                 }
             }
         }
+        // Expand object streams (/Type /ObjStm) to populate embedded objects (pages and resources often live there)
+        ExpandObjectStreams(map, pdf);
         int trailerIdx = text.LastIndexOf("trailer", StringComparison.OrdinalIgnoreCase);
         string trailerRaw = trailerIdx >= 0 ? text.Substring(trailerIdx) : string.Empty;
         return (map, trailerRaw);
     }
 
-    private static bool HasFlateDecode(PdfDictionary dict) {
+    private static void ExpandObjectStreams(Dictionary<int, PdfIndirectObject> map, byte[] pdf) {
+        // Snapshot keys to avoid modifying during enumeration
+        var keys = new List<int>(map.Keys);
+        foreach (var id in keys) {
+            if (!map.TryGetValue(id, out var ind)) continue;
+            if (ind.Value is not PdfStream s) continue;
+            var type = s.Dictionary.Get<PdfName>("Type")?.Name;
+            if (!string.Equals(type, "ObjStm", StringComparison.Ordinal)) continue;
+
+            // Decode object stream bytes (flate only for now)
+            var data = HasFlateDecode(s.Dictionary) ? Filters.FlateDecoder.Decode(s.Data) : s.Data;
+            int n = (int)(s.Dictionary.Get<PdfNumber>("N")?.Value ?? 0);
+            int first = (int)(s.Dictionary.Get<PdfNumber>("First")?.Value ?? 0);
+            if (n <= 0 || first <= 0 || first > data.Length) continue;
+            // Header: pairs of objectNumber and offset (ASCII)
+            var headerBytes = new byte[first];
+            Buffer.BlockCopy(data, 0, headerBytes, 0, first);
+            string header = PdfEncoding.Latin1GetString(headerBytes);
+            var pairs = ParsePairs(header, n);
+            if (pairs.Count != n) continue;
+            for (int i = 0; i < n; i++) {
+                int objNum = pairs[i].Obj;
+                int off = pairs[i].Off;
+                int start = first + off;
+                int end = (i + 1 < n) ? first + pairs[i + 1].Off : data.Length;
+                if (start < 0 || end > data.Length || end <= start) continue;
+                int len = end - start;
+                var sliceBytes = new byte[len];
+                Buffer.BlockCopy(data, start, sliceBytes, 0, len);
+                var slice = PdfEncoding.Latin1GetString(sliceBytes);
+                var parsed = ParseTopLevelObject(slice);
+                if (parsed is not null) { map[objNum] = new PdfIndirectObject(objNum, 0, parsed); }
+            }
+        }
+    }
+
+    private static List<(int Obj, int Off)> ParsePairs(string header, int n) {
+        var list = new List<(int, int)>(n);
+        int i = 0; int count = 0;
+        while (i < header.Length && count < n) {
+            SkipWs();
+            if (!ReadInt(out int obj)) break;
+            SkipWs();
+            if (!ReadInt(out int off)) break;
+            list.Add((obj, off)); count++;
+        }
+        return list;
+
+        void SkipWs() { while (i < header.Length && char.IsWhiteSpace(header[i])) i++; }
+        bool ReadInt(out int val) {
+            int sign = 1; if (i < header.Length && header[i] == '-') { sign = -1; i++; }
+            int start = i; long v = 0; bool any = false;
+            while (i < header.Length && char.IsDigit(header[i])) { v = v * 10 + (header[i] - '0'); i++; any = true; if (i - start > 10) break; }
+            val = any ? (int)(v * sign) : 0; return any;
+        }
+    }
+
+    private static PdfObject? ParseTopLevelObject(string body) {
+        if (string.IsNullOrWhiteSpace(body)) return null;
+        var s = body.TrimStart();
+        if (s.StartsWith("<<", System.StringComparison.Ordinal)) {
+            // Find matching >> and parse inside
+            int dictStart = body.IndexOf("<<", StringComparison.Ordinal);
+            if (dictStart >= 0) {
+                int dictEnd = FindDictEnd(body, dictStart, body.Length);
+                if (dictEnd > dictStart) {
+                    string dictText = SafeSlice(body, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000);
+                    try { return ParseDictionary(dictText); } catch { return new PdfDictionary(); }
+                }
+            }
+            return new PdfDictionary();
+        }
+        if (s.Length > 0 && s[0] == '[') {
+            var toks = Tokenize(s);
+            var (obj, _) = ParseObject(toks, 0);
+            return obj;
+        }
+        if (s.Length > 0 && s[0] == '(') {
+            // literal string
+            int end = s.LastIndexOf(')');
+            string inner = end > 1 ? s.Substring(1, end - 1) : s.Substring(1);
+            return new PdfStringObj(Unescape(inner));
+        }
+        // number or name fallbacks
+        var tokens = Tokenize(s);
+        if (tokens.Count > 0) {
+            var (obj0, _) = ParseObject(tokens, 0);
+            return obj0;
+        }
+        return null;
+    }
+
+    internal static bool HasFlateDecode(PdfDictionary dict) {
         if (!dict.Items.TryGetValue("Filter", out var f)) return false;
         if (f is PdfName n) return string.Equals(n.Name, "FlateDecode", System.StringComparison.Ordinal);
         if (f is PdfArray arr) {
@@ -78,7 +194,8 @@ internal static class PdfSyntax {
     }
 
     private static (PdfObject Obj, int Consumed) ParseObject(List<string> tokens, int i) {
-        string tok = tokens[i];
+        if (i < 0 || i >= tokens.Count) return (new PdfName(""), 0);
+        string tok = tokens[i] ?? string.Empty;
         if (tok == "[") {
             var arr = new PdfArray(); int j = i + 1;
             while (j < tokens.Count && tokens[j] != "]") {
@@ -90,7 +207,7 @@ internal static class PdfSyntax {
         }
         if (tok.Length > 0 && tok[0] == '/') return (new PdfName(tok.Substring(1)), 0);
         if (tok.Length > 0 && tok[0] == '(') return (new PdfStringObj(Unescape(tok.Substring(1, tok.Length - 2))), 0);
-        if (char.IsDigit(tok[0]) || tok[0] == '-' || tok[0] == '+') {
+        if (tok.Length > 0 && (char.IsDigit(tok[0]) || tok[0] == '-' || tok[0] == '+')) {
             // reference (obj gen R) or number
             if (i + 2 < tokens.Count && tokens[i + 2] == "R" && int.TryParse(tokens[i], out int obj) && int.TryParse(tokens[i + 1], out int gen)) {
                 return (new PdfReference(obj, gen), 2);
@@ -103,7 +220,9 @@ internal static class PdfSyntax {
     }
 
     private static List<string> Tokenize(string s) {
-        var tokens = new List<string>();
+        // Guardrails for pathological inputs; dictionaries should be small.
+        if (s.Length > 1_000_000) s = s.Substring(0, 1_000_000);
+        var tokens = new List<string>(Math.Min(16384, s.Length / 2 + 8));
         int i = 0;
         while (i < s.Length) {
             char c = s[i];
@@ -132,10 +251,48 @@ internal static class PdfSyntax {
                 tok = s.Substring(i, j - i);
             }
             tokens.Add(tok);
+            if (tokens.Count > 100_000) break; // hard stop
             i = j;
         }
         return tokens;
     }
 
     private static string Unescape(string s) => PdfTextExtractor.UnescapePdfLiteral(s);
+
+    private static int FindObjectEnd(string text, int start) {
+        int idx = text.IndexOf("endobj", start, StringComparison.Ordinal);
+        return idx >= 0 ? idx + 6 : -1;
+    }
+
+    private static int FindDictEnd(string text, int dictStart, int limit) {
+        int depth = 0;
+        for (int i = dictStart; i + 1 < limit; i++) {
+            char c = text[i]; char n = text[i + 1];
+            if (c == '<' && n == '<') { depth++; i++; continue; }
+            if (c == '>' && n == '>') { depth--; i++; if (depth == 0) return i + 1; continue; }
+        }
+        return -1;
+    }
+
+    private static int IndexOfKeyword(string text, string keyword, int start, int limit) {
+        if (start < 0) start = 0; if (limit > text.Length) limit = text.Length;
+        int idx = text.IndexOf(keyword, start, StringComparison.Ordinal);
+        return (idx >= 0 && idx < limit) ? idx : -1;
+    }
+
+    private static int SkipEOL(string text, int idx, int limit) {
+        if (idx < limit) {
+            if (text[idx] == '\r') idx++;
+            if (idx < limit && text[idx] == '\n') idx++;
+        }
+        return idx;
+    }
+
+    private static string SafeSlice(string s, int start, int length, int maxLen) {
+        int len = Math.Min(length, Math.Max(0, maxLen));
+        if (start < 0) start = 0;
+        if (start + len > s.Length) len = s.Length - start;
+        if (len <= 0) return string.Empty;
+        return s.Substring(start, len);
+    }
 }
