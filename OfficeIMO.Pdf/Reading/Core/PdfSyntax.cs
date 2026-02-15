@@ -31,7 +31,7 @@ internal static class PdfSyntax {
                     string dictText = SafeSlice(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000); // cap to 1 MB
                     PdfDictionary dict;
                     try { dict = ParseDictionary(dictText); }
-                    catch (OutOfMemoryException) { dict = new PdfDictionary(); }
+                    catch (Exception ex) when (ex is not OutOfMemoryException) { dict = new PdfDictionary(); }
 
                     // Check for stream section; prefer dictionary /Length when available
                     int streamKw = IndexOfKeyword(text, "stream", dictEnd, end);
@@ -71,17 +71,6 @@ internal static class PdfSyntax {
         }
         // Expand object streams (/Type /ObjStm) to populate embedded objects (pages and resources often live there)
         ExpandObjectStreams(map, pdf);
-        // Debug: count key object types after expansion
-        int pageDicts = 0, catalogs = 0, pagesNodes = 0;
-        foreach (var kv in map) {
-            if (kv.Value.Value is PdfDictionary d) {
-                var t = d.Get<PdfName>("Type")?.Name;
-                if (t == "Page") pageDicts++;
-                else if (t == "Catalog") catalogs++;
-                else if (t == "Pages") pagesNodes++;
-            }
-        }
-        System.Console.WriteLine($"Parsed objects: {map.Count}; Catalog: {catalogs}, Pages nodes: {pagesNodes}, Page dicts: {pageDicts}");
         int trailerIdx = text.LastIndexOf("trailer", StringComparison.OrdinalIgnoreCase);
         string trailerRaw = trailerIdx >= 0 ? text.Substring(trailerIdx) : string.Empty;
         return (map, trailerRaw);
@@ -90,13 +79,11 @@ internal static class PdfSyntax {
     private static void ExpandObjectStreams(Dictionary<int, PdfIndirectObject> map, byte[] pdf) {
         // Snapshot keys to avoid modifying during enumeration
         var keys = new List<int>(map.Keys);
-        int objStmCount = 0, expanded = 0;
         foreach (var id in keys) {
             if (!map.TryGetValue(id, out var ind)) continue;
             if (ind.Value is not PdfStream s) continue;
             var type = s.Dictionary.Get<PdfName>("Type")?.Name;
             if (!string.Equals(type, "ObjStm", StringComparison.Ordinal)) continue;
-            objStmCount++;
 
             // Decode object stream bytes (flate only for now)
             var data = HasFlateDecode(s.Dictionary) ? Filters.FlateDecoder.Decode(s.Data) : s.Data;
@@ -120,10 +107,9 @@ internal static class PdfSyntax {
                 Buffer.BlockCopy(data, start, sliceBytes, 0, len);
                 var slice = PdfEncoding.Latin1GetString(sliceBytes);
                 var parsed = ParseTopLevelObject(slice);
-                if (parsed is not null) { map[objNum] = new PdfIndirectObject(objNum, 0, parsed); expanded++; }
+                if (parsed is not null) { map[objNum] = new PdfIndirectObject(objNum, 0, parsed); }
             }
         }
-        System.Console.WriteLine($"ObjStm found: {objStmCount}, expanded objects: {expanded}");
     }
 
     private static List<(int Obj, int Off)> ParsePairs(string header, int n) {

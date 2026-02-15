@@ -48,26 +48,21 @@ public sealed class PdfReadDocument {
             if (kv.Value.Value is PdfDictionary d && d.Get<PdfName>("Type")?.Name == "Catalog") { catalogId = kv.Key; break; }
         }
         if (catalogId is int cat && _objects.TryGetValue(cat, out var catObj) && catObj.Value is PdfDictionary catalog) {
-            System.Console.WriteLine($"CollectPages: Catalog {cat}");
             var pagesNode = ResolveDict(catalog.Items.TryGetValue("Pages", out var v) ? v : null);
             if (pagesNode is not null) {
                 var kids = pagesNode.Get<PdfArray>("Kids");
                 int kidCount = kids?.Items.Count ?? 0;
-                System.Console.WriteLine($"CollectPages: Root /Pages has Kids={kidCount}");
                 var visited = new HashSet<int>();
                 var contentKeys = new HashSet<string>(StringComparer.Ordinal);
                 int? target = null;
                 var cnt = pagesNode.Get<PdfNumber>("Count");
                 if (cnt is not null) {
                     int cc = (int)cnt.Value; if (cc > 0) target = cc;
-                    System.Console.WriteLine($"CollectPages: Root /Pages Count={cc}");
                 }
                 TraversePagesNodeDeepLimited(pagesNode, visited, contentKeys, result, target);
-                System.Console.WriteLine($"CollectPages: Traversal found {result.Count} pages");
                 if (result.Count == 0 && kidCount > 0) {
                     // Build a reachable candidate set from Kids only
                     var reachable = CollectReachableLeafCandidates(pagesNode);
-                    System.Console.WriteLine($"CollectPages: Reachable leaf candidates = {reachable.Count}");
                     foreach (var id in reachable) {
                         if (_objects.TryGetValue(id, out var ind) && ind.Value is PdfDictionary dict) {
                             result.Add(new PdfReadPage(id, dict, _objects));
@@ -87,7 +82,6 @@ public sealed class PdfReadDocument {
             }
         }
         result.Sort((a, b) => a.ObjectNumber.CompareTo(b.ObjectNumber));
-        System.Console.WriteLine($"CollectPages: Fallback scan found {result.Count} pages");
         return result;
     }
 
@@ -103,17 +97,15 @@ public sealed class PdfReadDocument {
         if (type == "Page" || (type is null && IsLikelyPage(node))) {
             // Find this node's object number
             int objNum = FindObjectNumberFor(node);
-            System.Console.WriteLine($"Traverse: Found Page obj {objNum}");
             outList.Add(new PdfReadPage(objNum, node, _objects));
             return;
         }
         if (type == "Pages" || (type is null && node.Get<PdfArray>("Kids") is not null)) {
             var kids = node.Get<PdfArray>("Kids");
             if (kids is null) return;
-            System.Console.WriteLine($"Traverse: /Pages with {kids.Items.Count} kids");
             foreach (var kid in kids.Items) {
                 var d = ResolveDict(kid);
-                if (d is null) { System.Console.WriteLine("Traverse: Kid unresolved"); continue; }
+                if (d is null) { continue; }
                 if (d is not null) TraversePagesNode(d, outList);
             }
         }
@@ -144,11 +136,10 @@ public sealed class PdfReadDocument {
         }
         var kids = node.Get<PdfArray>("Kids");
         if (kids is null) return;
-        System.Console.WriteLine($"Traverse: /Pages with {kids.Items.Count} kids");
         foreach (var kid in kids.Items) {
             if (limit.HasValue && outList.Count >= limit.Value) return;
             var d = ResolveDict(kid);
-            if (d is null) { System.Console.WriteLine("Traverse: Kid unresolved"); continue; }
+            if (d is null) { continue; }
             var t = d.Get<PdfName>("Type")?.Name;
             if (t == "Pages" || (t is null && d.Get<PdfArray>("Kids") is not null)) TraversePagesNodeDeepLimited(d, visited, contentKeys, outList, limit);
             else if ((t == "Page" || IsLikelyPage(d) || IsLeafPageByParent(d)) && HasMedia(d)) {
