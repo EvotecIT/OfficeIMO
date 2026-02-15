@@ -2,6 +2,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
+using DocumentFormat.OpenXml.Packaging;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -46,22 +47,89 @@ public static class DocumentReader {
     /// <param name="cancellationToken">Cancellation token.</param>
     public static IEnumerable<ReaderChunk> Read(string path, ReaderOptions? options = null, CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
+        if (Directory.Exists(path)) {
+            // Keep Read(file) semantics intact; require explicit folder method for directories.
+            throw new IOException($"'{path}' is a directory. Use {nameof(ReadFolder)}(...) to ingest directories.");
+        }
         if (!File.Exists(path)) throw new FileNotFoundException($"File '{path}' doesn't exist.", path);
 
-        options ??= new ReaderOptions();
-        if (options.MaxChars < 256) options.MaxChars = 256;
-        if (options.MaxTableRows < 1) options.MaxTableRows = 1;
-        if (options.ExcelChunkRows < 1) options.ExcelChunkRows = 1;
+        var opt = NormalizeOptions(options);
+        EnforceFileSize(path, opt.MaxInputBytes);
 
         var kind = DetectKind(path);
         return kind switch {
-            ReaderInputKind.Word => ReadWord(path, options, cancellationToken),
-            ReaderInputKind.Excel => ReadExcel(path, options, cancellationToken),
-            ReaderInputKind.PowerPoint => ReadPowerPoint(path, options, cancellationToken),
-            ReaderInputKind.Markdown => ReadMarkdown(path, options, cancellationToken),
-            ReaderInputKind.Text => ReadText(path, options, cancellationToken),
-            _ => ReadUnknown(path, options, cancellationToken)
+            ReaderInputKind.Word => ReadWord(path, opt, cancellationToken),
+            ReaderInputKind.Excel => ReadExcel(path, opt, cancellationToken),
+            ReaderInputKind.PowerPoint => ReadPowerPoint(path, opt, cancellationToken),
+            ReaderInputKind.Markdown => ReadMarkdown(path, opt, cancellationToken),
+            ReaderInputKind.Text => ReadText(path, opt, cancellationToken),
+            _ => ReadUnknown(path, opt, cancellationToken)
         };
+    }
+
+    /// <summary>
+    /// Enumerates a folder and ingests all supported files (best-effort).
+    /// </summary>
+    /// <param name="folderPath">Folder path.</param>
+    /// <param name="folderOptions">Folder enumeration options.</param>
+    /// <param name="options">Extraction options.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    public static IEnumerable<ReaderChunk> ReadFolder(string folderPath, ReaderFolderOptions? folderOptions = null, ReaderOptions? options = null, CancellationToken cancellationToken = default) {
+        if (folderPath == null) throw new ArgumentNullException(nameof(folderPath));
+        if (!Directory.Exists(folderPath)) throw new DirectoryNotFoundException($"Folder '{folderPath}' doesn't exist.");
+
+        folderOptions ??= new ReaderFolderOptions();
+        if (folderOptions.MaxFiles < 1) folderOptions.MaxFiles = 1;
+
+        var opt = NormalizeOptions(options);
+
+        var allowedExt = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var exts = folderOptions.Extensions;
+        if (exts == null || exts.Count == 0) {
+            exts = new[] { ".docx", ".docm", ".xlsx", ".xlsm", ".pptx", ".pptm", ".md", ".markdown", ".txt", ".log", ".csv", ".tsv", ".json", ".xml", ".yml", ".yaml" };
+        }
+        foreach (var e in exts) {
+            if (string.IsNullOrWhiteSpace(e)) continue;
+            var normalized = e.StartsWith(".", StringComparison.Ordinal) ? e.Trim() : "." + e.Trim();
+            allowedExt.Add(normalized);
+        }
+
+        var searchOption = folderOptions.Recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+        long total = 0;
+        int count = 0;
+
+        foreach (var file in Directory.EnumerateFiles(folderPath, "*", searchOption)) {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (count >= folderOptions.MaxFiles) yield break;
+            var ext = Path.GetExtension(file);
+            if (!allowedExt.Contains(ext)) continue;
+
+            long length = 0;
+            try {
+                length = new FileInfo(file).Length;
+            } catch {
+                // Ignore files we can't stat.
+                continue;
+            }
+
+            if (folderOptions.MaxTotalBytes.HasValue) {
+                if ((total + length) > folderOptions.MaxTotalBytes.Value) yield break;
+            }
+            total += length;
+
+            if (opt.MaxInputBytes.HasValue && length > opt.MaxInputBytes.Value) {
+                // Skip too-large files rather than failing the whole folder.
+                continue;
+            }
+
+            foreach (var chunk in Read(file, opt, cancellationToken)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                yield return chunk;
+            }
+
+            count++;
+        }
     }
 
     /// <summary>
@@ -78,19 +146,17 @@ public static class DocumentReader {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
-        options ??= new ReaderOptions();
-        if (options.MaxChars < 256) options.MaxChars = 256;
-        if (options.MaxTableRows < 1) options.MaxTableRows = 1;
-        if (options.ExcelChunkRows < 1) options.ExcelChunkRows = 1;
+        var opt = NormalizeOptions(options);
+        EnforceStreamSize(stream, opt.MaxInputBytes);
 
         var kind = string.IsNullOrWhiteSpace(sourceName) ? ReaderInputKind.Unknown : DetectKind(sourceName!);
         return kind switch {
-            ReaderInputKind.Word => ReadWord(stream, sourceName, options, cancellationToken),
-            ReaderInputKind.Excel => ReadExcel(stream, sourceName, options, cancellationToken),
-            ReaderInputKind.PowerPoint => ReadPowerPoint(stream, sourceName, options, cancellationToken),
-            ReaderInputKind.Markdown => ReadMarkdown(stream, sourceName, options, cancellationToken),
-            ReaderInputKind.Text => ReadText(stream, sourceName, options, cancellationToken),
-            _ => ReadUnknown(stream, sourceName, options, cancellationToken)
+            ReaderInputKind.Word => ReadWord(stream, sourceName, opt, cancellationToken),
+            ReaderInputKind.Excel => ReadExcel(stream, sourceName, opt, cancellationToken),
+            ReaderInputKind.PowerPoint => ReadPowerPoint(stream, sourceName, opt, cancellationToken),
+            ReaderInputKind.Markdown => ReadMarkdown(stream, sourceName, opt, cancellationToken),
+            ReaderInputKind.Text => ReadText(stream, sourceName, opt, cancellationToken),
+            _ => ReadUnknown(stream, sourceName, opt, cancellationToken)
         };
     }
 
@@ -112,7 +178,7 @@ public static class DocumentReader {
     }
 
     private static IEnumerable<ReaderChunk> ReadWord(string path, ReaderOptions opt, CancellationToken ct) {
-        using var doc = WordDocument.Load(path, readOnly: true, autoSave: false);
+        using var doc = WordDocument.Load(path, readOnly: true, autoSave: false, openSettings: CreateOpenSettings(opt));
         var chunks = doc.ExtractMarkdownChunks(
             markdownOptions: new WordToMarkdownOptions(),
             chunking: new WordMarkdownChunkingOptions { MaxChars = opt.MaxChars, IncludeFootnotes = opt.IncludeWordFootnotes },
@@ -142,7 +208,7 @@ public static class DocumentReader {
     private static IEnumerable<ReaderChunk> ReadWord(Stream stream, string? sourceName, ReaderOptions opt, CancellationToken ct) {
         // Copy input so we can open read-only without affecting caller's stream.
         using var ms = CopyToMemory(stream, ct);
-        using var doc = WordDocument.Load(ms, readOnly: true, autoSave: false);
+        using var doc = WordDocument.Load(ms, readOnly: true, autoSave: false, openSettings: CreateOpenSettings(opt));
 
         var chunks = doc.ExtractMarkdownChunks(
             markdownOptions: new WordToMarkdownOptions(),
@@ -171,7 +237,13 @@ public static class DocumentReader {
     }
 
     private static IEnumerable<ReaderChunk> ReadExcel(string path, ReaderOptions opt, CancellationToken ct) {
-        using var reader = ExcelDocumentReader.Open(path);
+        // Use OpenSettings for basic OpenXML hardening (best-effort) and open from stream to avoid file handle collisions.
+        using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        var openSettings = CreateOpenSettings(opt);
+        using var openXml = openSettings == null
+            ? SpreadsheetDocument.Open(fs, false)
+            : SpreadsheetDocument.Open(fs, false, openSettings);
+        using var reader = ExcelDocumentReader.Wrap(openXml);
         var sheets = ResolveSheetNames(reader, opt.ExcelSheetName);
 
         int outIndex = 0;
@@ -221,7 +293,10 @@ public static class DocumentReader {
     private static IEnumerable<ReaderChunk> ReadExcel(Stream stream, string? sourceName, ReaderOptions opt, CancellationToken ct) {
         // Avoid exposing OpenXml types in the public API surface; internally we can wrap.
         using var ms = CopyToMemory(stream, ct);
-        using var openXml = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(ms, false);
+        var openSettings = CreateOpenSettings(opt);
+        using var openXml = openSettings == null
+            ? SpreadsheetDocument.Open(ms, false)
+            : SpreadsheetDocument.Open(ms, false, openSettings);
         using var reader = ExcelDocumentReader.Wrap(openXml);
 
         var sheets = ResolveSheetNames(reader, opt.ExcelSheetName);
@@ -736,6 +811,65 @@ public static class DocumentReader {
         }
         ms.Position = 0;
         return ms;
+    }
+
+    private static ReaderOptions NormalizeOptions(ReaderOptions? options) {
+        // Avoid mutating a caller-provided options instance.
+        var o = options;
+        var clone = new ReaderOptions {
+            MaxInputBytes = o?.MaxInputBytes,
+            OpenXmlMaxCharactersInPart = o?.OpenXmlMaxCharactersInPart,
+            MaxChars = o?.MaxChars ?? 8_000,
+            MaxTableRows = o?.MaxTableRows ?? 200,
+            IncludeWordFootnotes = o?.IncludeWordFootnotes ?? true,
+            IncludePowerPointNotes = o?.IncludePowerPointNotes ?? true,
+            ExcelHeadersInFirstRow = o?.ExcelHeadersInFirstRow ?? true,
+            ExcelChunkRows = o?.ExcelChunkRows ?? 200,
+            ExcelSheetName = o?.ExcelSheetName,
+            ExcelA1Range = o?.ExcelA1Range,
+            MarkdownChunkByHeadings = o?.MarkdownChunkByHeadings ?? true
+        };
+
+        if (clone.MaxChars < 256) clone.MaxChars = 256;
+        if (clone.MaxTableRows < 1) clone.MaxTableRows = 1;
+        if (clone.ExcelChunkRows < 1) clone.ExcelChunkRows = 1;
+        if (clone.OpenXmlMaxCharactersInPart.HasValue && clone.OpenXmlMaxCharactersInPart.Value < 1) clone.OpenXmlMaxCharactersInPart = null;
+
+        return clone;
+    }
+
+    private static OpenSettings? CreateOpenSettings(ReaderOptions opt) {
+        if (opt == null) return null;
+        if (!opt.OpenXmlMaxCharactersInPart.HasValue) return null;
+        return new OpenSettings {
+            MaxCharactersInPart = opt.OpenXmlMaxCharactersInPart.Value
+        };
+    }
+
+    private static void EnforceFileSize(string path, long? maxBytes) {
+        if (!maxBytes.HasValue) return;
+        try {
+            var fi = new FileInfo(path);
+            if (fi.Length > maxBytes.Value) {
+                throw new IOException($"Input exceeds MaxInputBytes ({fi.Length.ToString(CultureInfo.InvariantCulture)} > {maxBytes.Value.ToString(CultureInfo.InvariantCulture)}).");
+            }
+        } catch (IOException) {
+            throw;
+        } catch {
+            // If we can't stat, don't block reads.
+        }
+    }
+
+    private static void EnforceStreamSize(Stream stream, long? maxBytes) {
+        if (!maxBytes.HasValue) return;
+        if (!stream.CanSeek) return;
+        try {
+            if (stream.Length > maxBytes.Value) {
+                throw new IOException($"Input exceeds MaxInputBytes ({stream.Length.ToString(CultureInfo.InvariantCulture)} > {maxBytes.Value.ToString(CultureInfo.InvariantCulture)}).");
+            }
+        } catch (NotSupportedException) {
+            // ignore
+        }
     }
 
     private static string ReadAllText(Stream stream, CancellationToken ct) {

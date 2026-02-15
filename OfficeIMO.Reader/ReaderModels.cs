@@ -154,6 +154,18 @@ public sealed class ReaderTable {
 /// </summary>
 public sealed class ReaderOptions {
     /// <summary>
+    /// Optional maximum input size in bytes enforced by <see cref="DocumentReader"/> when reading from a file or seekable stream.
+    /// When null, no size limit is enforced.
+    /// </summary>
+    public long? MaxInputBytes { get; set; }
+
+    /// <summary>
+    /// OpenXML security: maximum characters allowed per part when opening OpenXML packages (best-effort).
+    /// When null, the OpenXML SDK default is used.
+    /// </summary>
+    public long? OpenXmlMaxCharactersInPart { get; set; } = 10_000_000;
+
+    /// <summary>
     /// Maximum characters per emitted chunk (best-effort).
     /// </summary>
     public int MaxChars { get; set; } = 8_000;
@@ -197,4 +209,31 @@ public sealed class ReaderOptions {
     /// Markdown: when true, chunk by headings where possible. Default: true.
     /// </summary>
     public bool MarkdownChunkByHeadings { get; set; } = true;
+}
+
+/// <summary>
+/// Options controlling folder enumeration for <see cref="DocumentReader.ReadFolder"/>.
+/// </summary>
+public sealed class ReaderFolderOptions {
+    /// <summary>
+    /// When true, enumerates all subdirectories. Default: true.
+    /// </summary>
+    public bool Recurse { get; set; } = true;
+
+    /// <summary>
+    /// Maximum number of files enumerated. Default: 500.
+    /// </summary>
+    public int MaxFiles { get; set; } = 500;
+
+    /// <summary>
+    /// Optional maximum total bytes across all enumerated files (best-effort).
+    /// When null, no cap is enforced.
+    /// </summary>
+    public long? MaxTotalBytes { get; set; }
+
+    /// <summary>
+    /// Optional allowed extensions (lower/upper insensitive). When null, a default set is used.
+    /// Examples: ".docx", ".xlsx", ".pptx", ".md".
+    /// </summary>
+    public IReadOnlyList<string>? Extensions { get; set; }
 }

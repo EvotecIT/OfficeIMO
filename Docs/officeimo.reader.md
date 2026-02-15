@@ -38,6 +38,23 @@ var bytes = File.ReadAllBytes(@"C:\Docs\Policy.docx");
 var chunksFromBytes = DocumentReader.Read(bytes, "Policy.docx").ToList();
 ```
 
+## Folders
+
+```csharp
+using OfficeIMO.Reader;
+
+var chunks = DocumentReader.ReadFolder(
+    folderPath: @"C:\Docs",
+    folderOptions: new ReaderFolderOptions {
+        Recurse = true,
+        MaxFiles = 500,
+        MaxTotalBytes = 500L * 1024 * 1024
+    },
+    options: new ReaderOptions {
+        MaxChars = 8_000
+    }).ToList();
+```
+
 ## Options
 
 ```csharp
@@ -78,4 +95,3 @@ Each chunk is returned as `ReaderChunk`:
 
 - Legacy binary formats (`.doc`, `.xls`, `.ppt`) are not supported (convert to OpenXML first).
 - This reader is best-effort and does not do OCR.
-

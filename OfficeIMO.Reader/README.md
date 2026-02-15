@@ -34,6 +34,23 @@ var bytes = File.ReadAllBytes(@"C:\Docs\Policy.docx");
 var chunksFromBytes = DocumentReader.Read(bytes, "Policy.docx").ToList();
 ```
 
+## Folders
+
+```csharp
+using OfficeIMO.Reader;
+
+var chunks = DocumentReader.ReadFolder(
+    folderPath: @"C:\Docs",
+    folderOptions: new ReaderFolderOptions {
+        Recurse = true,
+        MaxFiles = 500,
+        MaxTotalBytes = 500L * 1024 * 1024
+    },
+    options: new ReaderOptions {
+        MaxChars = 8_000
+    }).ToList();
+```
+
 ## Options
 
 ```csharp
