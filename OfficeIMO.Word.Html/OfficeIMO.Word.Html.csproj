@@ -28,6 +28,7 @@
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <LangVersion>Latest</LangVersion>
         <Nullable>enable</Nullable>
+        <NoWarn>$(NoWarn);NU5104</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
