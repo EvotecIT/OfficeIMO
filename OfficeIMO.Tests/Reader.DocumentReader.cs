@@ -160,6 +160,237 @@ public sealed class ReaderDocumentReaderTests {
 
             Assert.NotEmpty(chunks);
             Assert.Contains(chunks, c => c.Kind == ReaderInputKind.Markdown && (c.Text ?? string.Empty).Contains("Body", StringComparison.Ordinal));
+            Assert.Contains(chunks, c =>
+                c.Kind == ReaderInputKind.Unknown &&
+                string.Equals(c.Location.Path, badDocx, StringComparison.OrdinalIgnoreCase) &&
+                (c.Warnings?.Any(w => w.Contains("read error", StringComparison.OrdinalIgnoreCase)) ?? false));
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolder_RespectsRecursionAndExtensionFilter() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        var nested = Path.Combine(folder, "nested");
+        Directory.CreateDirectory(folder);
+        Directory.CreateDirectory(nested);
+
+        var rootMarkdown = Path.Combine(folder, "root.md");
+        var nestedMarkdown = Path.Combine(nested, "nested.md");
+        var nestedText = Path.Combine(nested, "ignored.txt");
+
+        try {
+            File.WriteAllText(rootMarkdown, "# Root");
+            File.WriteAllText(nestedMarkdown, "# Nested");
+            File.WriteAllText(nestedText, "Ignore me");
+
+            var noRecurse = DocumentReader.ReadFolder(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    Extensions = new[] { ".md" },
+                    DeterministicOrder = true
+                }).ToList();
+
+            Assert.Contains(noRecurse, c => string.Equals(c.Location.Path, rootMarkdown, StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(noRecurse, c => string.Equals(c.Location.Path, nestedMarkdown, StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(noRecurse, c => string.Equals(c.Location.Path, nestedText, StringComparison.OrdinalIgnoreCase));
+
+            var recurse = DocumentReader.ReadFolder(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = true,
+                    Extensions = new[] { ".md" },
+                    DeterministicOrder = true
+                }).ToList();
+
+            Assert.Contains(recurse, c => string.Equals(c.Location.Path, rootMarkdown, StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(recurse, c => string.Equals(c.Location.Path, nestedMarkdown, StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(recurse, c => string.Equals(c.Location.Path, nestedText, StringComparison.OrdinalIgnoreCase));
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolder_EmitsWarningWhenFileExceedsMaxInputBytes() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+
+        var smallMarkdown = Path.Combine(folder, "small.md");
+        var largeMarkdown = Path.Combine(folder, "large.md");
+
+        try {
+            File.WriteAllText(smallMarkdown, "# Small\n\nok");
+            File.WriteAllText(largeMarkdown, new string('x', 1024));
+
+            var chunks = DocumentReader.ReadFolder(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true
+                },
+                options: new ReaderOptions {
+                    MaxInputBytes = 128
+                }).ToList();
+
+            Assert.Contains(chunks, c => string.Equals(c.Location.Path, smallMarkdown, StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(chunks, c =>
+                c.Kind == ReaderInputKind.Unknown &&
+                string.Equals(c.Location.Path, largeMarkdown, StringComparison.OrdinalIgnoreCase) &&
+                (c.Warnings?.Any(w => w.Contains("MaxInputBytes", StringComparison.OrdinalIgnoreCase)) ?? false));
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolderDetailed_ReturnsSummaryAndFileStatuses() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+
+        var goodMarkdown = Path.Combine(folder, "good.md");
+        var badDocx = Path.Combine(folder, "broken.docx");
+
+        try {
+            File.WriteAllText(goodMarkdown, "# Good\n\nBody");
+            File.WriteAllText(badDocx, "not-a-zip-package");
+
+            var result = DocumentReader.ReadFolderDetailed(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true
+                },
+                options: new ReaderOptions {
+                    ComputeHashes = true
+                },
+                includeChunks: true);
+
+            Assert.NotNull(result);
+            Assert.True(result.FilesScanned >= 2);
+            Assert.True(result.FilesParsed >= 1);
+            Assert.True(result.FilesSkipped >= 1);
+            Assert.NotEmpty(result.Files);
+            Assert.NotEmpty(result.Chunks);
+
+            var good = result.Files.FirstOrDefault(f => string.Equals(f.Path, goodMarkdown, StringComparison.OrdinalIgnoreCase));
+            Assert.NotNull(good);
+            Assert.True(good!.Parsed);
+            Assert.False(string.IsNullOrWhiteSpace(good.SourceId));
+            Assert.False(string.IsNullOrWhiteSpace(good.SourceHash));
+
+            var bad = result.Files.FirstOrDefault(f => string.Equals(f.Path, badDocx, StringComparison.OrdinalIgnoreCase));
+            Assert.NotNull(bad);
+            Assert.False(bad!.Parsed);
+            Assert.True((bad.Warnings?.Count ?? 0) > 0);
+            Assert.Contains(bad.Warnings!, w => w.Contains("read error", StringComparison.OrdinalIgnoreCase));
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolder_ProgressCallback_EmitsLifecycleEvents() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var goodMarkdown = Path.Combine(folder, "good.md");
+        var badDocx = Path.Combine(folder, "broken.docx");
+        var events = new System.Collections.Generic.List<ReaderProgress>();
+
+        try {
+            File.WriteAllText(goodMarkdown, "# Good\n\nBody");
+            File.WriteAllText(badDocx, "not-a-zip-package");
+
+            var chunks = DocumentReader.ReadFolder(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true
+                },
+                options: new ReaderOptions(),
+                onProgress: p => events.Add(p)).ToList();
+
+            Assert.NotEmpty(chunks);
+            Assert.NotEmpty(events);
+            Assert.Contains(events, e => e.Kind == ReaderProgressEventKind.FileStarted);
+            Assert.Contains(events, e => e.Kind == ReaderProgressEventKind.FileCompleted);
+            Assert.Contains(events, e => e.Kind == ReaderProgressEventKind.FileSkipped);
+            Assert.Contains(events, e => e.Kind == ReaderProgressEventKind.Completed);
+
+            var final = events.Last();
+            Assert.Equal(ReaderProgressEventKind.Completed, final.Kind);
+            Assert.True(final.FilesScanned >= 2);
+            Assert.True(final.FilesParsed >= 1);
+            Assert.True(final.FilesSkipped >= 1);
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_Read_EmitsSourceAndChunkMetadata() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path, "# Title\n\nBody");
+
+            var chunks = DocumentReader.Read(path, new ReaderOptions { ComputeHashes = true }).ToList();
+            Assert.NotEmpty(chunks);
+            Assert.All(chunks, c => {
+                Assert.False(string.IsNullOrWhiteSpace(c.SourceId));
+                Assert.False(string.IsNullOrWhiteSpace(c.SourceHash));
+                Assert.False(string.IsNullOrWhiteSpace(c.ChunkHash));
+                Assert.True(c.TokenEstimate.HasValue && c.TokenEstimate.Value >= 1);
+                Assert.True(c.SourceLengthBytes.HasValue && c.SourceLengthBytes.Value > 0);
+            });
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolderDocuments_ReturnsPerFilePayloadsForDatabaseIngestion() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+
+        var goodMarkdown = Path.Combine(folder, "good.md");
+        var badDocx = Path.Combine(folder, "broken.docx");
+
+        try {
+            File.WriteAllText(goodMarkdown, "# Good\n\nBody");
+            File.WriteAllText(badDocx, "not-a-zip-package");
+
+            var docs = DocumentReader.ReadFolderDocuments(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true
+                },
+                options: new ReaderOptions {
+                    ComputeHashes = true
+                }).ToList();
+
+            Assert.NotEmpty(docs);
+            Assert.True(docs.Count >= 2);
+
+            var good = docs.FirstOrDefault(d => string.Equals(d.Path, goodMarkdown, StringComparison.OrdinalIgnoreCase));
+            Assert.NotNull(good);
+            Assert.True(good!.Parsed);
+            Assert.False(string.IsNullOrWhiteSpace(good.SourceId));
+            Assert.False(string.IsNullOrWhiteSpace(good.SourceHash));
+            Assert.True(good.ChunksProduced > 0);
+            Assert.True(good.TokenEstimateTotal > 0);
+            Assert.NotEmpty(good.Chunks);
+
+            var bad = docs.FirstOrDefault(d => string.Equals(d.Path, badDocx, StringComparison.OrdinalIgnoreCase));
+            Assert.NotNull(bad);
+            Assert.False(bad!.Parsed);
+            Assert.Equal(0, bad.ChunksProduced);
+            Assert.Equal(0, bad.TokenEstimateTotal);
+            Assert.Empty(bad.Chunks);
+            Assert.True((bad.Warnings?.Count ?? 0) > 0);
+            Assert.Contains(bad.Warnings!, w => w.Contains("read error", StringComparison.OrdinalIgnoreCase));
         } finally {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
