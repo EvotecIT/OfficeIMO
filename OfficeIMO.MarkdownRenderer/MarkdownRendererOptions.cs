@@ -55,6 +55,27 @@ public sealed class MarkdownRendererOptions {
     /// </summary>
     public bool NormalizeEscapedNewlines { get; set; } = true;
 
+    /// <summary>
+    /// When true, joins short hard-wrapped bold labels (for example, "**Status\nOK**") into a single bold span.
+    /// This helps chat-style outputs that wrap short headers mid-token.
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeSoftWrappedStrongSpans { get; set; } = false;
+
+    /// <summary>
+    /// When true, compacts inline code spans containing line breaks into a single line.
+    /// This preserves strict parser compatibility for malformed model outputs.
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeInlineCodeSpanLineBreaks { get; set; } = false;
+
+    /// <summary>
+    /// Optional markdown pre-processors applied before parsing.
+    /// These run after escaped newline normalization and after built-in text normalization.
+    /// Default: none.
+    /// </summary>
+    public List<MarkdownTextPreProcessor> MarkdownPreProcessors { get; } = new List<MarkdownTextPreProcessor>();
+
     /// <summary>Mermaid support options.</summary>
     public MermaidOptions Mermaid { get; } = new MermaidOptions();
 
