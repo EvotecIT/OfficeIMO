@@ -35,6 +35,7 @@ public static class MarkdownRenderer {
         }
 
         markdown ??= string.Empty;
+        markdown = PreprocessMarkdown(markdown, options);
 
         if (options.MaxMarkdownChars.HasValue && options.MaxMarkdownChars.Value >= 0 && markdown.Length > options.MaxMarkdownChars.Value) {
             int max = options.MaxMarkdownChars.Value;
@@ -106,6 +107,29 @@ public static class MarkdownRenderer {
         }
 
         return html ?? string.Empty;
+    }
+
+    private static string PreprocessMarkdown(string markdown, MarkdownRendererOptions options) {
+        var value = markdown ?? string.Empty;
+        if (value.Length == 0) {
+            return value;
+        }
+
+        value = MarkdownInputNormalizer.Normalize(value, new MarkdownInputNormalizationOptions {
+            NormalizeSoftWrappedStrongSpans = options.NormalizeSoftWrappedStrongSpans,
+            NormalizeInlineCodeSpanLineBreaks = options.NormalizeInlineCodeSpanLineBreaks
+        });
+
+        var pre = options.MarkdownPreProcessors;
+        if (pre != null && pre.Count > 0) {
+            for (int i = 0; i < pre.Count; i++) {
+                var processor = pre[i];
+                if (processor == null) continue;
+                value = processor(value, options) ?? value ?? string.Empty;
+            }
+        }
+
+        return value;
     }
 
     private static string BuildOverflowBodyHtml(HtmlOptions htmlOptions, string message) {

@@ -29,6 +29,8 @@ public static class MarkdownRendererPresets {
         o.ReaderOptions.AllowProtocolRelativeUrls = false;
         o.ReaderOptions.RestrictUrlSchemes = true;
         o.ReaderOptions.AllowedUrlSchemes = new[] { "http", "https", "mailto" };
+        o.NormalizeSoftWrappedStrongSpans = true;
+        o.NormalizeInlineCodeSpanLineBreaks = true;
 
         o.HtmlOptions.RawHtmlHandling = RawHtmlHandling.Strip;
         o.HtmlOptions.ExternalLinksTargetBlank = true;

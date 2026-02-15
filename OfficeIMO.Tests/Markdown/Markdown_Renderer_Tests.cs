@@ -206,6 +206,46 @@ x^2 + 1
     }
 
     [Fact]
+    public void MarkdownRenderer_Normalizes_SoftWrapped_Strong_When_Enabled() {
+        var opts = new MarkdownRendererOptions {
+            NormalizeSoftWrappedStrongSpans = true
+        };
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("**Status\nHEALTHY**", opts);
+        Assert.Contains("Status HEALTHY", htmlOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("Status\nHEALTHY", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Normalizes_InlineCode_LineBreaks_When_Enabled() {
+        var opts = new MarkdownRendererOptions {
+            NormalizeInlineCodeSpanLineBreaks = true
+        };
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("`line1\nline2`", opts);
+        Assert.Contains("line1 line2", htmlOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("line1\nline2", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Can_Apply_Markdown_PreProcessors() {
+        var opts = new MarkdownRendererOptions();
+        opts.MarkdownPreProcessors.Add((markdown, _) => markdown.Replace("{{name}}", "IntelligenceX"));
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("hello {{name}}", opts);
+        Assert.Contains("hello IntelligenceX", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_ChatStrictPreset_Enables_Text_Normalization() {
+        var opts = MarkdownRendererPresets.CreateChatStrictMinimal();
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("**Status\nHEALTHY**\n\n`a\nb`", opts);
+
+        Assert.Contains("Status HEALTHY", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("a b", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Allows_SameOrigin_Absolute_Http_Images_When_BaseHref_Is_Set() {
         var opts = new MarkdownRendererOptions { BaseHref = "https://example.com/" };
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("![alt](https://example.com/a.png)", opts);
