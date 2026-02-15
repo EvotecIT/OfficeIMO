@@ -44,7 +44,9 @@ var chunks = DocumentReader.ReadFolder(
     folderOptions: new ReaderFolderOptions {
         Recurse = true,
         MaxFiles = 500,
-        MaxTotalBytes = 500L * 1024 * 1024
+        MaxTotalBytes = 500L * 1024 * 1024,
+        SkipReparsePoints = true,
+        DeterministicOrder = true
     },
     options: new ReaderOptions {
         MaxChars = 8_000
@@ -73,5 +75,6 @@ var chunks = DocumentReader.Read(@"C:\Docs\Workbook.xlsx", options).ToList();
 
 ## Notes
 - `DocumentReader.Read(...)` is synchronous and streaming (returns `IEnumerable<T>`).
+- `DocumentReader.ReadFolder(...)` is best-effort: unreadable/corrupt files are skipped so ingestion can continue.
 - The reader is best-effort and does not attempt OCR.
 - Legacy binary formats (`.doc`, `.xls`, `.ppt`) are not supported.

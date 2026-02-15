@@ -91,4 +91,58 @@ public sealed class ReaderDocumentReaderTests {
             if (File.Exists(path)) File.Delete(path);
         }
     }
+
+    [Fact]
+    public void DocumentReader_ReadFolder_IsDeterministicWithMaxFiles() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var a = Path.Combine(folder, "a.md");
+        var b = Path.Combine(folder, "b.md");
+
+        try {
+            File.WriteAllText(a, "alpha");
+            File.WriteAllText(b, "beta");
+
+            var chunks = DocumentReader.ReadFolder(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    MaxFiles = 1,
+                    DeterministicOrder = true
+                }).ToList();
+
+            Assert.NotEmpty(chunks);
+            Assert.All(chunks, c => Assert.Contains("a.md", c.Location.Path ?? string.Empty, StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(chunks, c => (c.Text ?? string.Empty).Contains("beta", StringComparison.OrdinalIgnoreCase));
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolder_SkipsBrokenFilesAndContinues() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var badDocx = Path.Combine(folder, "broken.docx");
+        var goodMarkdown = Path.Combine(folder, "good.md");
+
+        try {
+            // Not a real DOCX package; this should fail to parse and be skipped.
+            File.WriteAllText(badDocx, "not-a-zip-package");
+            File.WriteAllText(goodMarkdown, "# Ok\n\nBody");
+
+            var chunks = DocumentReader.ReadFolder(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    MaxFiles = 10,
+                    DeterministicOrder = true
+                }).ToList();
+
+            Assert.NotEmpty(chunks);
+            Assert.Contains(chunks, c => c.Kind == ReaderInputKind.Markdown && (c.Text ?? string.Empty).Contains("Body", StringComparison.Ordinal));
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
 }

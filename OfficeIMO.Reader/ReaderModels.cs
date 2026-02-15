@@ -236,4 +236,14 @@ public sealed class ReaderFolderOptions {
     /// Examples: ".docx", ".xlsx", ".pptx", ".md".
     /// </summary>
     public IReadOnlyList<string>? Extensions { get; set; }
+
+    /// <summary>
+    /// When true, directory traversal skips reparse points (junctions/symlinks). Default: true.
+    /// </summary>
+    public bool SkipReparsePoints { get; set; } = true;
+
+    /// <summary>
+    /// When true, folder traversal is deterministic (ordinal path ordering). Default: true.
+    /// </summary>
+    public bool DeterministicOrder { get; set; } = true;
 }

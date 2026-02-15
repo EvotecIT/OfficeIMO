@@ -22,6 +22,14 @@ namespace OfficeIMO.Reader;
 /// The API is thread-safe as it does not use shared mutable state.
 /// </remarks>
 public static class DocumentReader {
+    private static readonly string[] DefaultFolderExtensions = {
+        ".docx", ".docm",
+        ".xlsx", ".xlsm",
+        ".pptx", ".pptm",
+        ".md", ".markdown",
+        ".txt", ".log", ".csv", ".tsv", ".json", ".xml", ".yml", ".yaml"
+    };
+
     private static string? TryGetExtension(string path) {
         if (path == null) return null;
         try {
@@ -93,30 +101,16 @@ public static class DocumentReader {
         if (folderPath == null) throw new ArgumentNullException(nameof(folderPath));
         if (!Directory.Exists(folderPath)) throw new DirectoryNotFoundException($"Folder '{folderPath}' doesn't exist.");
 
-        folderOptions ??= new ReaderFolderOptions();
-        if (folderOptions.MaxFiles < 1) folderOptions.MaxFiles = 1;
-
+        var fo = NormalizeFolderOptions(folderOptions);
         var opt = NormalizeOptions(options);
-
-        var allowedExt = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var exts = folderOptions.Extensions;
-        if (exts == null || exts.Count == 0) {
-            exts = new[] { ".docx", ".docm", ".xlsx", ".xlsm", ".pptx", ".pptm", ".md", ".markdown", ".txt", ".log", ".csv", ".tsv", ".json", ".xml", ".yml", ".yaml" };
-        }
-        foreach (var e in exts) {
-            if (string.IsNullOrWhiteSpace(e)) continue;
-            var normalized = e.StartsWith(".", StringComparison.Ordinal) ? e.Trim() : "." + e.Trim();
-            allowedExt.Add(normalized);
-        }
-
-        var searchOption = folderOptions.Recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+        var allowedExt = NormalizeExtensions(fo.Extensions);
         long total = 0;
         int count = 0;
 
-        foreach (var file in Directory.EnumerateFiles(folderPath, "*", searchOption)) {
+        foreach (var file in EnumerateFilesSafeDeterministic(folderPath, fo, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (count >= folderOptions.MaxFiles) yield break;
+            if (count >= fo.MaxFiles) yield break;
             var ext = TryGetExtension(file);
             if (string.IsNullOrEmpty(ext)) continue;
             if (!allowedExt.Contains(ext!)) continue;
@@ -129,8 +123,8 @@ public static class DocumentReader {
                 continue;
             }
 
-            if (folderOptions.MaxTotalBytes.HasValue) {
-                if ((total + length) > folderOptions.MaxTotalBytes.Value) yield break;
+            if (fo.MaxTotalBytes.HasValue) {
+                if ((total + length) > fo.MaxTotalBytes.Value) yield break;
             }
             total += length;
 
@@ -139,12 +133,21 @@ public static class DocumentReader {
                 continue;
             }
 
-            foreach (var chunk in Read(file, opt, cancellationToken)) {
+            count++;
+            List<ReaderChunk> fileChunks;
+            try {
+                fileChunks = Read(file, opt, cancellationToken).ToList();
+            } catch (OperationCanceledException) {
+                throw;
+            } catch (Exception) {
+                // Keep folder ingestion best-effort; skip files that fail parsing.
+                continue;
+            }
+
+            foreach (var chunk in fileChunks) {
                 cancellationToken.ThrowIfCancellationRequested();
                 yield return chunk;
             }
-
-            count++;
         }
     }
 
@@ -853,6 +856,84 @@ public static class DocumentReader {
         if (clone.OpenXmlMaxCharactersInPart.HasValue && clone.OpenXmlMaxCharactersInPart.Value < 1) clone.OpenXmlMaxCharactersInPart = null;
 
         return clone;
+    }
+
+    private static ReaderFolderOptions NormalizeFolderOptions(ReaderFolderOptions? folderOptions) {
+        var o = folderOptions;
+        var clone = new ReaderFolderOptions {
+            Recurse = o?.Recurse ?? true,
+            MaxFiles = o?.MaxFiles ?? 500,
+            MaxTotalBytes = o?.MaxTotalBytes,
+            Extensions = (o?.Extensions == null || o.Extensions.Count == 0) ? null : o.Extensions.ToArray(),
+            SkipReparsePoints = o?.SkipReparsePoints ?? true,
+            DeterministicOrder = o?.DeterministicOrder ?? true
+        };
+
+        if (clone.MaxFiles < 1) clone.MaxFiles = 1;
+        if (clone.MaxTotalBytes.HasValue && clone.MaxTotalBytes.Value < 1) clone.MaxTotalBytes = 1;
+        return clone;
+    }
+
+    private static HashSet<string> NormalizeExtensions(IReadOnlyList<string>? configuredExtensions) {
+        var allowedExt = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var source = (configuredExtensions == null || configuredExtensions.Count == 0)
+            ? DefaultFolderExtensions
+            : configuredExtensions;
+
+        foreach (var e in source) {
+            if (string.IsNullOrWhiteSpace(e)) continue;
+            var normalized = e.StartsWith(".", StringComparison.Ordinal) ? e.Trim() : "." + e.Trim();
+            if (normalized.Length > 1) allowedExt.Add(normalized);
+        }
+
+        return allowedExt;
+    }
+
+    private static IEnumerable<string> EnumerateFilesSafeDeterministic(string folderPath, ReaderFolderOptions options, CancellationToken cancellationToken) {
+        var dirs = new Queue<string>();
+        dirs.Enqueue(folderPath);
+
+        while (dirs.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var dir = dirs.Dequeue();
+
+            IEnumerable<string> entries;
+            try {
+                entries = Directory.EnumerateFileSystemEntries(dir);
+            } catch {
+                // Best-effort traversal: unreadable directories are ignored.
+                continue;
+            }
+
+            var ordered = options.DeterministicOrder
+                ? entries.OrderBy(static x => x, StringComparer.Ordinal).ToArray()
+                : entries.ToArray();
+
+            foreach (var entry in ordered) {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                FileAttributes attrs;
+                try {
+                    attrs = File.GetAttributes(entry);
+                } catch {
+                    continue;
+                }
+
+                var isDirectory = (attrs & FileAttributes.Directory) == FileAttributes.Directory;
+                if (isDirectory) {
+                    if (!options.Recurse) continue;
+
+                    if (options.SkipReparsePoints && (attrs & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint) {
+                        continue;
+                    }
+
+                    dirs.Enqueue(entry);
+                    continue;
+                }
+
+                yield return entry;
+            }
+        }
     }
 
     private static OpenSettings? CreateOpenSettings(ReaderOptions opt) {
