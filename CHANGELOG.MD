@@ -1,3 +1,7 @@
+## Unreleased
+### What's Changed
+* Add AI-ingestion focused chunk extraction APIs (Word/Excel/PowerPoint) and new `OfficeIMO.Reader` facade (Stream/byte[] supported) by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1430
+
 ## 0.23.0 - 2025.06.11
 ### What's Changed
 * chore(deps): bump Verify.Xunit from 28.16.0 to 29.2.0 by @dependabot in https://github.com/EvotecIT/OfficeIMO/pull/268

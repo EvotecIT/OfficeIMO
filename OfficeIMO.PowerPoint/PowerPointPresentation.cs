@@ -1041,6 +1041,15 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Opens an existing PowerPoint presentation in read-only mode (no writes, no repairs).
+        /// </summary>
+        /// <param name="filePath">Path of the presentation file to open.</param>
+        public static PowerPointPresentation OpenRead(string filePath) {
+            PresentationDocument document = PresentationDocument.Open(filePath, false);
+            return new PowerPointPresentation(document, filePath, isNewPresentation: false);
+        }
+
+        /// <summary>
         ///     Opens a PowerPoint presentation from a stream.
         /// </summary>
         /// <param name="stream">Source stream containing the presentation package.</param>
