@@ -10,16 +10,16 @@
     "OfficeIMO.Pdf": "0.1.X",
     "OfficeIMO.PowerPoint": "1.0.X",
     "OfficeIMO.Reader": "0.1.X",
-    "OfficeIMO.Word": "1.0.X"
+    "OfficeIMO.Word": "1.0.X",
+    "OfficeIMO.Word.Html": "1.0.X",
+    "OfficeIMO.Word.Markdown": "1.0.X",
+    "OfficeIMO.Word.Pdf": "1.0.X"
   },
   "ExpectedVersionMapAsInclude": true,
   "ExpectedVersionMapUseWildcards": false,
   "ExcludeProjects": [
     "OfficeIMO.Visio",
-    "OfficeIMO.Project",
-    "OfficeIMO.Word.Html",
-    "OfficeIMO.Word.Markdown",
-    "OfficeIMO.Word.Pdf"
+    "OfficeIMO.Project"
   ],
   "NugetSource": [],
   "IncludePrerelease": false,
