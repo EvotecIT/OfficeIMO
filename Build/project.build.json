@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/master/Schemas/project.build.schema.json",
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/project.build.schema.json",
   "RootPath": "..",
   "ExpectedVersion": null,
   "ExpectedVersionMap": {
@@ -24,7 +24,7 @@
   "OutputPath": null,
   "StagingPath": "Artefacts/ProjectBuild",
   "CleanStaging": true,
-  "PlanOutputPath": "Artefacts/ProjectBuild/project.build.plan.json",
+  "PlanOutputPath": null,
   "UpdateVersions": true,
   "Build": true,
   "PublishNuget": false,
@@ -48,3 +48,4 @@
   "GitHubTagTemplate": "{Repo}-v{UtcTimestamp}",
   "GitHubReleaseName": "{Repo} {UtcDateTime}"
 }
+
