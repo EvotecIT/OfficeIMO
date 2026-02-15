@@ -57,6 +57,37 @@ public sealed class ReaderChunk {
     public ReaderLocation Location { get; set; } = new ReaderLocation();
 
     /// <summary>
+    /// Stable identifier for the source document.
+    /// For file-based reads this is deterministic for a given normalized path.
+    /// </summary>
+    public string? SourceId { get; set; }
+
+    /// <summary>
+    /// Optional content hash for the source document (for incremental upserts).
+    /// </summary>
+    public string? SourceHash { get; set; }
+
+    /// <summary>
+    /// Optional content hash for this chunk (for incremental upserts).
+    /// </summary>
+    public string? ChunkHash { get; set; }
+
+    /// <summary>
+    /// Optional source last-write timestamp (UTC) when available.
+    /// </summary>
+    public DateTime? SourceLastWriteUtc { get; set; }
+
+    /// <summary>
+    /// Optional source length in bytes when available.
+    /// </summary>
+    public long? SourceLengthBytes { get; set; }
+
+    /// <summary>
+    /// Estimated token count (best-effort heuristic) for prompt budgeting.
+    /// </summary>
+    public int? TokenEstimate { get; set; }
+
+    /// <summary>
     /// Plain text representation of the chunk.
     /// </summary>
     public string Text { get; set; } = string.Empty;
@@ -218,10 +249,15 @@ public sealed class ReaderOptions {
     /// Markdown: when true, chunk by headings where possible. Default: true.
     /// </summary>
     public bool MarkdownChunkByHeadings { get; set; } = true;
+
+    /// <summary>
+    /// When true, computes source/chunk hashes for incremental indexing workflows. Default: true.
+    /// </summary>
+    public bool ComputeHashes { get; set; } = true;
 }
 
 /// <summary>
-/// Options controlling folder enumeration for <see cref="DocumentReader.ReadFolder"/>.
+/// Options controlling folder enumeration for <see cref="DocumentReader.ReadFolder(string, ReaderFolderOptions?, ReaderOptions?, System.Threading.CancellationToken)"/>.
 /// </summary>
 public sealed class ReaderFolderOptions {
     /// <summary>
@@ -255,4 +291,241 @@ public sealed class ReaderFolderOptions {
     /// When true, folder traversal is deterministic (ordinal path ordering). Default: true.
     /// </summary>
     public bool DeterministicOrder { get; set; } = true;
+}
+
+/// <summary>
+/// Progress event kind emitted during folder ingestion.
+/// </summary>
+public enum ReaderProgressEventKind {
+    /// <summary>
+    /// Processing started for a file.
+    /// </summary>
+    FileStarted = 0,
+    /// <summary>
+    /// Processing finished successfully for a file.
+    /// </summary>
+    FileCompleted,
+    /// <summary>
+    /// Processing skipped for a file (limits, parse errors, or metadata failures).
+    /// </summary>
+    FileSkipped,
+    /// <summary>
+    /// Folder ingestion completed.
+    /// </summary>
+    Completed
+}
+
+/// <summary>
+/// Progress event payload for folder ingestion.
+/// </summary>
+public sealed class ReaderProgress {
+    /// <summary>
+    /// Event kind.
+    /// </summary>
+    public ReaderProgressEventKind Kind { get; set; }
+
+    /// <summary>
+    /// Current file path for file-level events.
+    /// </summary>
+    public string? Path { get; set; }
+
+    /// <summary>
+    /// Optional source identifier for file-level events.
+    /// </summary>
+    public string? SourceId { get; set; }
+
+    /// <summary>
+    /// Optional source hash for file-level events.
+    /// </summary>
+    public string? SourceHash { get; set; }
+
+    /// <summary>
+    /// Files considered for ingestion so far (allowed extension scope).
+    /// </summary>
+    public int FilesScanned { get; set; }
+
+    /// <summary>
+    /// Files successfully parsed so far.
+    /// </summary>
+    public int FilesParsed { get; set; }
+
+    /// <summary>
+    /// Files skipped so far.
+    /// </summary>
+    public int FilesSkipped { get; set; }
+
+    /// <summary>
+    /// Total bytes accepted for parsed files so far.
+    /// </summary>
+    public long BytesRead { get; set; }
+
+    /// <summary>
+    /// Total chunks emitted so far.
+    /// </summary>
+    public int ChunksProduced { get; set; }
+
+    /// <summary>
+    /// Optional message for skip/reason summaries.
+    /// </summary>
+    public string? Message { get; set; }
+
+    /// <summary>
+    /// Optional current file size in bytes for file-level events.
+    /// </summary>
+    public long? CurrentFileBytes { get; set; }
+
+    /// <summary>
+    /// Optional current file chunk count for file completion events.
+    /// </summary>
+    public int? CurrentFileChunks { get; set; }
+
+    /// <summary>
+    /// Optional current file last-write timestamp (UTC) for file-level events.
+    /// </summary>
+    public DateTime? CurrentFileLastWriteUtc { get; set; }
+}
+
+/// <summary>
+/// Per-file ingestion status summary.
+/// </summary>
+public sealed class ReaderIngestFileResult {
+    /// <summary>
+    /// Source file path.
+    /// </summary>
+    public string Path { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Stable source identifier.
+    /// </summary>
+    public string? SourceId { get; set; }
+
+    /// <summary>
+    /// Optional source content hash.
+    /// </summary>
+    public string? SourceHash { get; set; }
+
+    /// <summary>
+    /// Optional source last-write timestamp.
+    /// </summary>
+    public DateTime? SourceLastWriteUtc { get; set; }
+
+    /// <summary>
+    /// Optional source length in bytes.
+    /// </summary>
+    public long? SourceLengthBytes { get; set; }
+
+    /// <summary>
+    /// True when parsing succeeded for this file.
+    /// </summary>
+    public bool Parsed { get; set; }
+
+    /// <summary>
+    /// Number of chunks emitted for this file.
+    /// </summary>
+    public int ChunksProduced { get; set; }
+
+    /// <summary>
+    /// Optional warnings associated with this file.
+    /// </summary>
+    public IReadOnlyList<string>? Warnings { get; set; }
+}
+
+/// <summary>
+/// Per-source ingestion payload optimized for direct database upserts.
+/// </summary>
+public sealed class ReaderSourceDocument {
+    /// <summary>
+    /// Source file path.
+    /// </summary>
+    public string Path { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Stable source identifier.
+    /// </summary>
+    public string? SourceId { get; set; }
+
+    /// <summary>
+    /// Optional source content hash.
+    /// </summary>
+    public string? SourceHash { get; set; }
+
+    /// <summary>
+    /// Optional source last-write timestamp.
+    /// </summary>
+    public DateTime? SourceLastWriteUtc { get; set; }
+
+    /// <summary>
+    /// Optional source length in bytes.
+    /// </summary>
+    public long? SourceLengthBytes { get; set; }
+
+    /// <summary>
+    /// True when parsing succeeded for this source.
+    /// </summary>
+    public bool Parsed { get; set; }
+
+    /// <summary>
+    /// Number of chunks emitted for this source.
+    /// </summary>
+    public int ChunksProduced { get; set; }
+
+    /// <summary>
+    /// Aggregated token estimate across emitted chunks.
+    /// </summary>
+    public int TokenEstimateTotal { get; set; }
+
+    /// <summary>
+    /// Optional source-level warnings (parse errors, limit skips, extraction warnings).
+    /// </summary>
+    public IReadOnlyList<string>? Warnings { get; set; }
+
+    /// <summary>
+    /// Emitted chunks for this source (empty for skipped files).
+    /// </summary>
+    public IReadOnlyList<ReaderChunk> Chunks { get; set; } = Array.Empty<ReaderChunk>();
+}
+
+/// <summary>
+/// Detailed folder-ingestion result optimized for indexing pipelines.
+/// </summary>
+public sealed class ReaderIngestResult {
+    /// <summary>
+    /// File-level statuses emitted during ingestion.
+    /// </summary>
+    public IReadOnlyList<ReaderIngestFileResult> Files { get; set; } = Array.Empty<ReaderIngestFileResult>();
+
+    /// <summary>
+    /// Emitted chunks when requested by the caller.
+    /// </summary>
+    public IReadOnlyList<ReaderChunk> Chunks { get; set; } = Array.Empty<ReaderChunk>();
+
+    /// <summary>
+    /// Files considered for ingestion (allowed extension scope).
+    /// </summary>
+    public int FilesScanned { get; set; }
+
+    /// <summary>
+    /// Files parsed successfully.
+    /// </summary>
+    public int FilesParsed { get; set; }
+
+    /// <summary>
+    /// Files skipped.
+    /// </summary>
+    public int FilesSkipped { get; set; }
+
+    /// <summary>
+    /// Bytes accepted for parsed files.
+    /// </summary>
+    public long BytesRead { get; set; }
+
+    /// <summary>
+    /// Total chunks produced.
+    /// </summary>
+    public int ChunksProduced { get; set; }
+
+    /// <summary>
+    /// Aggregated ingestion warnings.
+    /// </summary>
+    public IReadOnlyList<string>? Warnings { get; set; }
 }

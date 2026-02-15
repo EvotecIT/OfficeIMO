@@ -54,6 +54,45 @@ var chunks = DocumentReader.ReadFolder(
     }).ToList();
 ```
 
+## Folder Progress + Detailed Summary
+
+```csharp
+using OfficeIMO.Reader;
+
+var result = DocumentReader.ReadFolderDetailed(
+    folderPath: @"C:\KnowledgeBase",
+    folderOptions: new ReaderFolderOptions { Recurse = true, MaxFiles = 10_000 },
+    options: new ReaderOptions { ComputeHashes = true },
+    includeChunks: true,
+    onProgress: p => Console.WriteLine($"{p.Kind}: scanned={p.FilesScanned}, parsed={p.FilesParsed}, skipped={p.FilesSkipped}, chunks={p.ChunksProduced}"));
+
+Console.WriteLine($"Files parsed: {result.FilesParsed}");
+Console.WriteLine($"Files skipped: {result.FilesSkipped}");
+Console.WriteLine($"Chunks: {result.ChunksProduced}");
+```
+
+## Database-Ready Folder Streaming
+
+```csharp
+using OfficeIMO.Reader;
+
+foreach (var doc in DocumentReader.ReadFolderDocuments(
+    folderPath: @"C:\KnowledgeBase",
+    folderOptions: new ReaderFolderOptions { Recurse = true, MaxFiles = 10_000, DeterministicOrder = true },
+    options: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
+    onProgress: p => Console.WriteLine($"{p.Kind}: parsed={p.FilesParsed}, skipped={p.FilesSkipped}, chunks={p.ChunksProduced}"))) {
+
+    if (!doc.Parsed) {
+        Console.WriteLine($"SKIP {doc.Path}: {string.Join("; ", doc.Warnings ?? Array.Empty<string>())}");
+        continue;
+    }
+
+    // Upsert your "sources" table keyed by doc.SourceId/doc.SourceHash,
+    // then upsert chunk rows from doc.Chunks keyed by chunk.ChunkHash.
+    Console.WriteLine($"{doc.Path} => {doc.ChunksProduced} chunks, ~{doc.TokenEstimateTotal} tokens");
+}
+```
+
 ## AI Ingestion Pattern (With Citations)
 
 ```csharp
@@ -92,7 +131,8 @@ var options = new ReaderOptions {
     ExcelChunkRows = 200,
     ExcelSheetName = "Data",
     ExcelA1Range = "A1:Z500",
-    MarkdownChunkByHeadings = true
+    MarkdownChunkByHeadings = true,
+    ComputeHashes = true
 };
 
 var chunks = DocumentReader.Read(@"C:\Docs\Workbook.xlsx", options).ToList();
@@ -101,5 +141,8 @@ var chunks = DocumentReader.Read(@"C:\Docs\Workbook.xlsx", options).ToList();
 ## Notes
 - `DocumentReader.Read(...)` is synchronous and streaming (returns `IEnumerable<T>`).
 - `DocumentReader.ReadFolder(...)` is best-effort: unreadable/corrupt/oversized files emit warning chunks and ingestion continues.
+- `DocumentReader.ReadFolderDocuments(...)` yields one source payload at a time (`ReaderSourceDocument`) for easy DB upserts.
+- `DocumentReader.ReadFolderDetailed(...)` returns ingestion counts/file statuses and can surface progress callback events.
+- Chunks include `SourceId`/`SourceHash`/`ChunkHash` + token estimate for incremental indexing and prompt budgeting.
 - The reader is best-effort and does not attempt OCR.
 - Legacy binary formats (`.doc`, `.xls`, `.ppt`) are not supported.

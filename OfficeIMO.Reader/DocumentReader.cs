@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 
@@ -81,9 +82,10 @@ public static class DocumentReader {
 
         var opt = NormalizeOptions(options);
         EnforceFileSize(path, opt.MaxInputBytes);
+        var source = BuildSourceInfoFromPath(path, opt.ComputeHashes);
 
         var kind = DetectKind(path);
-        return kind switch {
+        var raw = kind switch {
             ReaderInputKind.Word => ReadWord(path, opt, cancellationToken),
             ReaderInputKind.Excel => ReadExcel(path, opt, cancellationToken),
             ReaderInputKind.PowerPoint => ReadPowerPoint(path, opt, cancellationToken),
@@ -92,6 +94,11 @@ public static class DocumentReader {
             ReaderInputKind.Text => ReadText(path, opt, cancellationToken),
             _ => ReadUnknown(path, opt, cancellationToken)
         };
+
+        foreach (var chunk in raw) {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return EnrichChunk(chunk, source, opt.ComputeHashes);
+        }
     }
 
     /// <summary>
@@ -102,61 +109,98 @@ public static class DocumentReader {
     /// <param name="options">Extraction options.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public static IEnumerable<ReaderChunk> ReadFolder(string folderPath, ReaderFolderOptions? folderOptions = null, ReaderOptions? options = null, CancellationToken cancellationToken = default) {
+        foreach (var chunk in ReadFolder(folderPath, folderOptions, options, onProgress: null, cancellationToken))
+            yield return chunk;
+    }
+
+    /// <summary>
+    /// Enumerates a folder and ingests all supported files (best-effort), emitting warning chunks for skipped files.
+    /// </summary>
+    /// <param name="folderPath">Folder path.</param>
+    /// <param name="folderOptions">Folder enumeration options.</param>
+    /// <param name="options">Extraction options.</param>
+    /// <param name="onProgress">Optional progress callback for file-level lifecycle and aggregate counts.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    public static IEnumerable<ReaderChunk> ReadFolder(
+        string folderPath,
+        ReaderFolderOptions? folderOptions,
+        ReaderOptions? options,
+        Action<ReaderProgress>? onProgress,
+        CancellationToken cancellationToken = default) {
         if (folderPath == null) throw new ArgumentNullException(nameof(folderPath));
         if (!Directory.Exists(folderPath)) throw new DirectoryNotFoundException($"Folder '{folderPath}' doesn't exist.");
 
         var fo = NormalizeFolderOptions(folderOptions);
         var opt = NormalizeOptions(options);
+        var fileReadOptions = CloneOptions(opt, computeHashes: false);
         var allowedExt = NormalizeExtensions(fo.Extensions);
         long total = 0;
-        int count = 0;
         int warningIndex = 0;
+        var state = new FolderIngestState();
 
         foreach (var file in EnumerateFilesSafeDeterministic(folderPath, fo, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (count >= fo.MaxFiles) yield break;
             var ext = TryGetExtension(file);
             if (string.IsNullOrEmpty(ext)) continue;
             if (!allowedExt.Contains(ext!)) continue;
+            if (state.FilesScanned >= fo.MaxFiles) break;
 
-            long length = 0;
+            state.FilesScanned++;
+            var source = BuildSourceInfoFromPath(file, opt.ComputeHashes);
+            NotifyProgress(onProgress, ReaderProgressEventKind.FileStarted, state, source, null, fileChunkCount: null);
+
             string? statWarning = null;
-            try {
-                length = new FileInfo(file).Length;
-            } catch {
+            var length = source.LengthBytes;
+            if (!length.HasValue) {
                 statWarning = "Skipped file because metadata could not be read.";
             }
             if (statWarning != null) {
-                yield return BuildFolderWarningChunk(file, warningIndex++, statWarning);
+                state.FilesSkipped++;
+                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, statWarning, fileChunkCount: null);
+                yield return EnrichChunk(BuildFolderWarningChunk(file, warningIndex++, statWarning), source, opt.ComputeHashes);
                 continue;
             }
 
+            var lengthValue = length.GetValueOrDefault();
             if (fo.MaxTotalBytes.HasValue) {
-                if ((total + length) > fo.MaxTotalBytes.Value) {
-                    yield return BuildFolderWarningChunk(
+                if ((total + lengthValue) > fo.MaxTotalBytes.Value) {
+                    state.FilesSkipped++;
+                    var limitWarning = $"Stopped folder ingestion after reaching MaxTotalBytes ({fo.MaxTotalBytes.Value.ToString(CultureInfo.InvariantCulture)}).";
+                    NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, limitWarning, fileChunkCount: null);
+                    yield return EnrichChunk(
+                        BuildFolderWarningChunk(
                         file,
                         warningIndex++,
-                        $"Stopped folder ingestion after reaching MaxTotalBytes ({fo.MaxTotalBytes.Value.ToString(CultureInfo.InvariantCulture)}).");
+                        limitWarning),
+                        source,
+                        opt.ComputeHashes);
                     yield break;
                 }
             }
-            total += length;
+            total += lengthValue;
 
-            if (opt.MaxInputBytes.HasValue && length > opt.MaxInputBytes.Value) {
+            if (opt.MaxInputBytes.HasValue && lengthValue > opt.MaxInputBytes.Value) {
                 // Skip too-large files rather than failing the whole folder.
-                yield return BuildFolderWarningChunk(
+                state.FilesSkipped++;
+                var warning = $"Skipped file because it exceeds MaxInputBytes ({lengthValue.ToString(CultureInfo.InvariantCulture)} > {opt.MaxInputBytes.Value.ToString(CultureInfo.InvariantCulture)}).";
+                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, warning, fileChunkCount: null);
+                yield return EnrichChunk(
+                    BuildFolderWarningChunk(
                     file,
                     warningIndex++,
-                    $"Skipped file because it exceeds MaxInputBytes ({length.ToString(CultureInfo.InvariantCulture)} > {opt.MaxInputBytes.Value.ToString(CultureInfo.InvariantCulture)}).");
+                    warning),
+                    source,
+                    opt.ComputeHashes);
                 continue;
             }
 
-            count++;
             List<ReaderChunk>? fileChunks = null;
             string? readWarning = null;
             try {
-                fileChunks = Read(file, opt, cancellationToken).ToList();
+                fileChunks = Read(file, fileReadOptions, cancellationToken)
+                    .Select(c => EnrichChunk(c, source, opt.ComputeHashes))
+                    .ToList();
             } catch (OperationCanceledException) {
                 throw;
             } catch (Exception ex) {
@@ -164,7 +208,9 @@ public static class DocumentReader {
                 readWarning = $"Skipped file due read error: {ex.GetType().Name}.";
             }
             if (readWarning != null) {
-                yield return BuildFolderWarningChunk(file, warningIndex++, readWarning);
+                state.FilesSkipped++;
+                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, readWarning, fileChunkCount: null);
+                yield return EnrichChunk(BuildFolderWarningChunk(file, warningIndex++, readWarning), source, opt.ComputeHashes);
                 continue;
             }
 
@@ -172,7 +218,198 @@ public static class DocumentReader {
                 cancellationToken.ThrowIfCancellationRequested();
                 yield return chunk;
             }
+
+            state.FilesParsed++;
+            state.BytesRead += lengthValue;
+            state.ChunksProduced += fileChunks!.Count;
+            NotifyProgress(onProgress, ReaderProgressEventKind.FileCompleted, state, source, null, fileChunks.Count);
         }
+
+        NotifyProgress(onProgress, ReaderProgressEventKind.Completed, state, source: null, message: null, fileChunkCount: null);
+    }
+
+    /// <summary>
+    /// Enumerates a folder and emits one source-level payload per file, ready for direct DB upserts.
+    /// </summary>
+    /// <param name="folderPath">Folder path.</param>
+    /// <param name="folderOptions">Folder enumeration options.</param>
+    /// <param name="options">Extraction options.</param>
+    /// <param name="onProgress">Optional progress callback for file-level lifecycle and aggregate counts.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    public static IEnumerable<ReaderSourceDocument> ReadFolderDocuments(
+        string folderPath,
+        ReaderFolderOptions? folderOptions = null,
+        ReaderOptions? options = null,
+        Action<ReaderProgress>? onProgress = null,
+        CancellationToken cancellationToken = default) {
+        if (folderPath == null) throw new ArgumentNullException(nameof(folderPath));
+        if (!Directory.Exists(folderPath)) throw new DirectoryNotFoundException($"Folder '{folderPath}' doesn't exist.");
+
+        var fo = NormalizeFolderOptions(folderOptions);
+        var opt = NormalizeOptions(options);
+        var fileReadOptions = CloneOptions(opt, computeHashes: false);
+        var allowedExt = NormalizeExtensions(fo.Extensions);
+        long total = 0;
+        var state = new FolderIngestState();
+
+        foreach (var file in EnumerateFilesSafeDeterministic(folderPath, fo, cancellationToken)) {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var ext = TryGetExtension(file);
+            if (string.IsNullOrEmpty(ext)) continue;
+            if (!allowedExt.Contains(ext!)) continue;
+            if (state.FilesScanned >= fo.MaxFiles) break;
+
+            state.FilesScanned++;
+            var source = BuildSourceInfoFromPath(file, opt.ComputeHashes);
+            NotifyProgress(onProgress, ReaderProgressEventKind.FileStarted, state, source, null, fileChunkCount: null);
+
+            var length = source.LengthBytes;
+            if (!length.HasValue) {
+                var warning = "Skipped file because metadata could not be read.";
+                state.FilesSkipped++;
+                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, warning, fileChunkCount: null);
+                yield return BuildSourceDocument(source, parsed: false, chunks: null, sourceWarnings: new[] { warning });
+                continue;
+            }
+
+            var lengthValue = length.GetValueOrDefault();
+            if (fo.MaxTotalBytes.HasValue && (total + lengthValue) > fo.MaxTotalBytes.Value) {
+                var limitWarning = $"Stopped folder ingestion after reaching MaxTotalBytes ({fo.MaxTotalBytes.Value.ToString(CultureInfo.InvariantCulture)}).";
+                state.FilesSkipped++;
+                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, limitWarning, fileChunkCount: null);
+                yield return BuildSourceDocument(source, parsed: false, chunks: null, sourceWarnings: new[] { limitWarning });
+                yield break;
+            }
+            total += lengthValue;
+
+            if (opt.MaxInputBytes.HasValue && lengthValue > opt.MaxInputBytes.Value) {
+                var warning = $"Skipped file because it exceeds MaxInputBytes ({lengthValue.ToString(CultureInfo.InvariantCulture)} > {opt.MaxInputBytes.Value.ToString(CultureInfo.InvariantCulture)}).";
+                state.FilesSkipped++;
+                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, warning, fileChunkCount: null);
+                yield return BuildSourceDocument(source, parsed: false, chunks: null, sourceWarnings: new[] { warning });
+                continue;
+            }
+
+            List<ReaderChunk>? fileChunks = null;
+            string? readWarning = null;
+            try {
+                fileChunks = Read(file, fileReadOptions, cancellationToken)
+                    .Select(c => EnrichChunk(c, source, opt.ComputeHashes))
+                    .ToList();
+            } catch (OperationCanceledException) {
+                throw;
+            } catch (Exception ex) {
+                // Keep folder ingestion best-effort; skip files that fail parsing.
+                readWarning = $"Skipped file due read error: {ex.GetType().Name}.";
+            }
+
+            if (readWarning != null) {
+                state.FilesSkipped++;
+                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, readWarning, fileChunkCount: null);
+                yield return BuildSourceDocument(source, parsed: false, chunks: null, sourceWarnings: new[] { readWarning });
+                continue;
+            }
+
+            state.FilesParsed++;
+            state.BytesRead += lengthValue;
+            state.ChunksProduced += fileChunks!.Count;
+            NotifyProgress(onProgress, ReaderProgressEventKind.FileCompleted, state, source, null, fileChunks.Count);
+
+            yield return BuildSourceDocument(source, parsed: true, chunks: fileChunks, sourceWarnings: null);
+        }
+
+        NotifyProgress(onProgress, ReaderProgressEventKind.Completed, state, source: null, message: null, fileChunkCount: null);
+    }
+
+    /// <summary>
+    /// Reads a folder and returns ingestion-ready summary/counts with optional chunk materialization.
+    /// </summary>
+    /// <param name="folderPath">Folder path.</param>
+    /// <param name="folderOptions">Folder enumeration options.</param>
+    /// <param name="options">Extraction options.</param>
+    /// <param name="includeChunks">When true, materializes chunks in the result object.</param>
+    /// <param name="onProgress">Optional progress callback.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    public static ReaderIngestResult ReadFolderDetailed(
+        string folderPath,
+        ReaderFolderOptions? folderOptions = null,
+        ReaderOptions? options = null,
+        bool includeChunks = true,
+        Action<ReaderProgress>? onProgress = null,
+        CancellationToken cancellationToken = default) {
+        var chunks = includeChunks ? new List<ReaderChunk>() : null;
+        var files = new Dictionary<string, ReaderIngestFileResult>(IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        var warnings = new List<string>();
+        ReaderProgress? completed = null;
+
+        void HandleProgress(ReaderProgress progress) {
+            onProgress?.Invoke(progress);
+            if (progress.Kind == ReaderProgressEventKind.Completed) {
+                completed = progress;
+                return;
+            }
+            var progressPath = progress.Path;
+            if (string.IsNullOrWhiteSpace(progressPath)) return;
+            var filePath = progressPath!;
+
+            if (!files.TryGetValue(filePath, out var file)) {
+                file = new ReaderIngestFileResult {
+                    Path = filePath
+                };
+                files[filePath] = file;
+            }
+
+            file.SourceId = progress.SourceId ?? file.SourceId;
+            file.SourceHash = progress.SourceHash ?? file.SourceHash;
+            file.SourceLengthBytes = progress.CurrentFileBytes ?? file.SourceLengthBytes;
+            file.SourceLastWriteUtc = progress.CurrentFileLastWriteUtc ?? file.SourceLastWriteUtc;
+
+            if (progress.Kind == ReaderProgressEventKind.FileCompleted) {
+                file.Parsed = true;
+                file.ChunksProduced = progress.CurrentFileChunks ?? file.ChunksProduced;
+            } else if (progress.Kind == ReaderProgressEventKind.FileSkipped) {
+                file.Parsed = false;
+                if (!string.IsNullOrWhiteSpace(progress.Message)) {
+                    var list = file.Warnings?.ToList() ?? new List<string>();
+                    list.Add(progress.Message!);
+                    file.Warnings = list;
+                    warnings.Add(progress.Message!);
+                }
+            }
+        }
+
+        foreach (var chunk in ReadFolder(folderPath, folderOptions, options, HandleProgress, cancellationToken)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (includeChunks) {
+                chunks!.Add(chunk);
+            }
+            if (chunk.Warnings != null && chunk.Warnings.Count > 0) {
+                warnings.AddRange(chunk.Warnings);
+            }
+        }
+
+        var snapshot = completed ?? new ReaderProgress {
+            Kind = ReaderProgressEventKind.Completed,
+            FilesScanned = files.Count,
+            FilesParsed = files.Values.Count(f => f.Parsed),
+            FilesSkipped = files.Values.Count(f => !f.Parsed),
+            BytesRead = files.Values.Where(f => f.Parsed).Sum(f => f.SourceLengthBytes ?? 0),
+            ChunksProduced = includeChunks ? chunks!.Count : files.Values.Sum(f => f.ChunksProduced)
+        };
+
+        return new ReaderIngestResult {
+            Files = files.Values
+                .OrderBy(static f => f.Path, StringComparer.Ordinal)
+                .ToArray(),
+            Chunks = includeChunks ? chunks! : Array.Empty<ReaderChunk>(),
+            FilesScanned = snapshot.FilesScanned,
+            FilesParsed = snapshot.FilesParsed,
+            FilesSkipped = snapshot.FilesSkipped,
+            BytesRead = snapshot.BytesRead,
+            ChunksProduced = snapshot.ChunksProduced,
+            Warnings = warnings.Count > 0 ? warnings.ToArray() : null
+        };
     }
 
     /// <summary>
@@ -191,9 +428,10 @@ public static class DocumentReader {
 
         var opt = NormalizeOptions(options);
         EnforceStreamSize(stream, opt.MaxInputBytes);
+        var source = BuildSourceInfoFromStream(stream, sourceName, opt.ComputeHashes);
 
         var kind = string.IsNullOrWhiteSpace(sourceName) ? ReaderInputKind.Unknown : DetectKind(sourceName!);
-        return kind switch {
+        var raw = kind switch {
             ReaderInputKind.Word => ReadWord(stream, sourceName, opt, cancellationToken),
             ReaderInputKind.Excel => ReadExcel(stream, sourceName, opt, cancellationToken),
             ReaderInputKind.PowerPoint => ReadPowerPoint(stream, sourceName, opt, cancellationToken),
@@ -202,6 +440,11 @@ public static class DocumentReader {
             ReaderInputKind.Text => ReadText(stream, sourceName, opt, cancellationToken),
             _ => ReadUnknown(stream, sourceName, opt, cancellationToken)
         };
+
+        foreach (var chunk in raw) {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return EnrichChunk(chunk, source, opt.ComputeHashes);
+        }
     }
 
     /// <summary>
@@ -928,6 +1171,252 @@ public static class DocumentReader {
         };
     }
 
+    private static void NotifyProgress(
+        Action<ReaderProgress>? onProgress,
+        ReaderProgressEventKind kind,
+        FolderIngestState state,
+        SourceInfo? source,
+        string? message,
+        int? fileChunkCount) {
+        if (onProgress == null) return;
+
+        onProgress(new ReaderProgress {
+            Kind = kind,
+            Path = source?.Path,
+            SourceId = source?.SourceId,
+            SourceHash = source?.SourceHash,
+            FilesScanned = state.FilesScanned,
+            FilesParsed = state.FilesParsed,
+            FilesSkipped = state.FilesSkipped,
+            BytesRead = state.BytesRead,
+            ChunksProduced = state.ChunksProduced,
+            Message = message,
+            CurrentFileBytes = source?.LengthBytes,
+            CurrentFileChunks = fileChunkCount,
+            CurrentFileLastWriteUtc = source?.LastWriteUtc
+        });
+    }
+
+    private static ReaderSourceDocument BuildSourceDocument(
+        SourceInfo source,
+        bool parsed,
+        IReadOnlyList<ReaderChunk>? chunks,
+        IReadOnlyList<string>? sourceWarnings) {
+        var chunkList = chunks ?? Array.Empty<ReaderChunk>();
+        var warnings = new List<string>();
+        if (sourceWarnings != null) {
+            for (int i = 0; i < sourceWarnings.Count; i++) {
+                if (!string.IsNullOrWhiteSpace(sourceWarnings[i])) {
+                    warnings.Add(sourceWarnings[i]!);
+                }
+            }
+        }
+
+        int tokenEstimateTotal = 0;
+        for (int i = 0; i < chunkList.Count; i++) {
+            var chunk = chunkList[i];
+            tokenEstimateTotal += chunk.TokenEstimate ?? EstimateTokenCount(chunk.Text);
+
+            if (chunk.Warnings == null) continue;
+            for (int j = 0; j < chunk.Warnings.Count; j++) {
+                var warning = chunk.Warnings[j];
+                if (!string.IsNullOrWhiteSpace(warning)) {
+                    warnings.Add(warning!);
+                }
+            }
+        }
+
+        return new ReaderSourceDocument {
+            Path = source.Path,
+            SourceId = source.SourceId,
+            SourceHash = source.SourceHash,
+            SourceLastWriteUtc = source.LastWriteUtc,
+            SourceLengthBytes = source.LengthBytes,
+            Parsed = parsed,
+            ChunksProduced = chunkList.Count,
+            TokenEstimateTotal = tokenEstimateTotal,
+            Warnings = warnings.Count > 0 ? warnings : null,
+            Chunks = chunkList
+        };
+    }
+
+    private static ReaderChunk EnrichChunk(ReaderChunk chunk, SourceInfo source, bool computeHashes) {
+        if (chunk == null) throw new ArgumentNullException(nameof(chunk));
+        if (source == null) throw new ArgumentNullException(nameof(source));
+
+        chunk.SourceId ??= source.SourceId;
+        chunk.SourceHash ??= source.SourceHash;
+        chunk.SourceLastWriteUtc ??= source.LastWriteUtc;
+        chunk.SourceLengthBytes ??= source.LengthBytes;
+        if (!chunk.TokenEstimate.HasValue) {
+            chunk.TokenEstimate = EstimateTokenCount(chunk.Markdown ?? chunk.Text);
+        }
+        if (computeHashes && string.IsNullOrWhiteSpace(chunk.ChunkHash)) {
+            chunk.ChunkHash = ComputeChunkHash(chunk);
+        }
+        return chunk;
+    }
+
+    private static int EstimateTokenCount(string? text) {
+        var safeText = text ?? string.Empty;
+        if (safeText.Length == 0) return 0;
+        // Heuristic: roughly 4 characters per token for mixed English/code.
+        return Math.Max(1, (safeText.Length + 3) / 4);
+    }
+
+    private static string ComputeChunkHash(ReaderChunk chunk) {
+        var data = string.Join("|",
+            chunk.Kind.ToString(),
+            chunk.SourceId ?? string.Empty,
+            chunk.Location.Path ?? string.Empty,
+            chunk.Location.HeadingPath ?? string.Empty,
+            chunk.Location.Sheet ?? string.Empty,
+            chunk.Location.A1Range ?? string.Empty,
+            chunk.Location.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.Slide?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.StartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Text ?? string.Empty,
+            chunk.Markdown ?? string.Empty);
+        return ComputeSha256Hex(data);
+    }
+
+    private static SourceInfo BuildSourceInfoFromPath(string path, bool computeHash) {
+        string normalizedPath = NormalizePathForId(path);
+        string sourceId = BuildSourceId(normalizedPath);
+
+        DateTime? lastWriteUtc = null;
+        long? lengthBytes = null;
+        try {
+            var fi = new FileInfo(path);
+            if (fi.Exists) {
+                lastWriteUtc = fi.LastWriteTimeUtc;
+                lengthBytes = fi.Length;
+            }
+        } catch {
+            // Best-effort metadata; leave null on failure.
+        }
+
+        string? sourceHash = null;
+        if (computeHash) {
+            sourceHash = TryComputeFileSha256(path);
+        }
+
+        return new SourceInfo {
+            Path = path,
+            SourceId = sourceId,
+            SourceHash = sourceHash,
+            LastWriteUtc = lastWriteUtc,
+            LengthBytes = lengthBytes
+        };
+    }
+
+    private static SourceInfo BuildSourceInfoFromStream(Stream stream, string? sourceName, bool computeHash) {
+        string logicalName = "memory";
+        if (!string.IsNullOrWhiteSpace(sourceName)) {
+            logicalName = sourceName!.Trim();
+        }
+        string sourceId = BuildSourceId(logicalName);
+
+        long? lengthBytes = null;
+        try {
+            if (stream.CanSeek) {
+                lengthBytes = stream.Length;
+            }
+        } catch {
+            // Best-effort metadata.
+        }
+
+        string? sourceHash = null;
+        if (computeHash) {
+            sourceHash = TryComputeStreamSha256(stream);
+        }
+
+        return new SourceInfo {
+            Path = logicalName,
+            SourceId = sourceId,
+            SourceHash = sourceHash,
+            LastWriteUtc = null,
+            LengthBytes = lengthBytes
+        };
+    }
+
+    private static string? TryComputeFileSha256(string path) {
+        try {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            return ComputeSha256Hex(fs);
+        } catch {
+            return null;
+        }
+    }
+
+    private static string? TryComputeStreamSha256(Stream stream) {
+        if (stream == null || !stream.CanSeek) return null;
+        long position;
+        try {
+            position = stream.Position;
+        } catch {
+            return null;
+        }
+
+        try {
+            stream.Position = 0;
+            var hash = ComputeSha256Hex(stream);
+            stream.Position = position;
+            return hash;
+        } catch {
+            try {
+                stream.Position = position;
+            } catch {
+                // ignore
+            }
+            return null;
+        }
+    }
+
+    private static string ComputeSha256Hex(string value) {
+        using var sha = SHA256.Create();
+        var bytes = Encoding.UTF8.GetBytes(value ?? string.Empty);
+        var hash = sha.ComputeHash(bytes);
+        return ConvertToHexLower(hash);
+    }
+
+    private static string ComputeSha256Hex(Stream stream) {
+        using var sha = SHA256.Create();
+        var hash = sha.ComputeHash(stream);
+        return ConvertToHexLower(hash);
+    }
+
+    private static string ConvertToHexLower(byte[] bytes) {
+        var sb = new StringBuilder(bytes.Length * 2);
+        for (int i = 0; i < bytes.Length; i++) {
+            sb.Append(bytes[i].ToString("x2", CultureInfo.InvariantCulture));
+        }
+        return sb.ToString();
+    }
+
+    private static string BuildSourceId(string sourceKey) {
+        var normalized = sourceKey ?? string.Empty;
+        if (IsWindows()) {
+            normalized = normalized.ToLowerInvariant();
+        }
+        return "src:" + ComputeSha256Hex(normalized);
+    }
+
+    private static bool IsWindows() {
+        return Path.DirectorySeparatorChar == '\\';
+    }
+
+    private static string NormalizePathForId(string path) {
+        if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+        string full;
+        try {
+            full = Path.GetFullPath(path);
+        } catch {
+            full = path;
+        }
+        return full.Replace('\\', '/');
+    }
+
     private static bool TryParseAtxHeading(string line, out int level, out string text) {
         level = 0;
         text = string.Empty;
@@ -1036,7 +1525,8 @@ public static class DocumentReader {
             ExcelChunkRows = o?.ExcelChunkRows ?? 200,
             ExcelSheetName = o?.ExcelSheetName,
             ExcelA1Range = o?.ExcelA1Range,
-            MarkdownChunkByHeadings = o?.MarkdownChunkByHeadings ?? true
+            MarkdownChunkByHeadings = o?.MarkdownChunkByHeadings ?? true,
+            ComputeHashes = o?.ComputeHashes ?? true
         };
 
         if (clone.MaxChars < 256) clone.MaxChars = 256;
@@ -1045,6 +1535,24 @@ public static class DocumentReader {
         if (clone.OpenXmlMaxCharactersInPart.HasValue && clone.OpenXmlMaxCharactersInPart.Value < 1) clone.OpenXmlMaxCharactersInPart = null;
 
         return clone;
+    }
+
+    private static ReaderOptions CloneOptions(ReaderOptions options, bool? computeHashes = null) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        return new ReaderOptions {
+            MaxInputBytes = options.MaxInputBytes,
+            OpenXmlMaxCharactersInPart = options.OpenXmlMaxCharactersInPart,
+            MaxChars = options.MaxChars,
+            MaxTableRows = options.MaxTableRows,
+            IncludeWordFootnotes = options.IncludeWordFootnotes,
+            IncludePowerPointNotes = options.IncludePowerPointNotes,
+            ExcelHeadersInFirstRow = options.ExcelHeadersInFirstRow,
+            ExcelChunkRows = options.ExcelChunkRows,
+            ExcelSheetName = options.ExcelSheetName,
+            ExcelA1Range = options.ExcelA1Range,
+            MarkdownChunkByHeadings = options.MarkdownChunkByHeadings,
+            ComputeHashes = computeHashes ?? options.ComputeHashes
+        };
     }
 
     private static ReaderFolderOptions NormalizeFolderOptions(ReaderFolderOptions? folderOptions) {
@@ -1172,5 +1680,21 @@ public static class DocumentReader {
             if (sb.Length >= HardCapChars) break;
         }
         return sb.ToString();
+    }
+
+    private sealed class FolderIngestState {
+        public int FilesScanned { get; set; }
+        public int FilesParsed { get; set; }
+        public int FilesSkipped { get; set; }
+        public long BytesRead { get; set; }
+        public int ChunksProduced { get; set; }
+    }
+
+    private sealed class SourceInfo {
+        public string Path { get; set; } = string.Empty;
+        public string SourceId { get; set; } = string.Empty;
+        public string? SourceHash { get; set; }
+        public DateTime? LastWriteUtc { get; set; }
+        public long? LengthBytes { get; set; }
     }
 }
