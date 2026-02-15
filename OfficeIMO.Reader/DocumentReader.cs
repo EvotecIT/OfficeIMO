@@ -95,7 +95,7 @@ public static class DocumentReader {
     }
 
     /// <summary>
-    /// Enumerates a folder and ingests all supported files (best-effort).
+    /// Enumerates a folder and ingests all supported files (best-effort), emitting warning chunks for skipped files.
     /// </summary>
     /// <param name="folderPath">Folder path.</param>
     /// <param name="folderOptions">Folder enumeration options.</param>
@@ -110,6 +110,7 @@ public static class DocumentReader {
         var allowedExt = NormalizeExtensions(fo.Extensions);
         long total = 0;
         int count = 0;
+        int warningIndex = 0;
 
         foreach (var file in EnumerateFilesSafeDeterministic(folderPath, fo, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -120,35 +121,54 @@ public static class DocumentReader {
             if (!allowedExt.Contains(ext!)) continue;
 
             long length = 0;
+            string? statWarning = null;
             try {
                 length = new FileInfo(file).Length;
             } catch {
-                // Ignore files we can't stat.
+                statWarning = "Skipped file because metadata could not be read.";
+            }
+            if (statWarning != null) {
+                yield return BuildFolderWarningChunk(file, warningIndex++, statWarning);
                 continue;
             }
 
             if (fo.MaxTotalBytes.HasValue) {
-                if ((total + length) > fo.MaxTotalBytes.Value) yield break;
+                if ((total + length) > fo.MaxTotalBytes.Value) {
+                    yield return BuildFolderWarningChunk(
+                        file,
+                        warningIndex++,
+                        $"Stopped folder ingestion after reaching MaxTotalBytes ({fo.MaxTotalBytes.Value.ToString(CultureInfo.InvariantCulture)}).");
+                    yield break;
+                }
             }
             total += length;
 
             if (opt.MaxInputBytes.HasValue && length > opt.MaxInputBytes.Value) {
                 // Skip too-large files rather than failing the whole folder.
+                yield return BuildFolderWarningChunk(
+                    file,
+                    warningIndex++,
+                    $"Skipped file because it exceeds MaxInputBytes ({length.ToString(CultureInfo.InvariantCulture)} > {opt.MaxInputBytes.Value.ToString(CultureInfo.InvariantCulture)}).");
                 continue;
             }
 
             count++;
-            List<ReaderChunk> fileChunks;
+            List<ReaderChunk>? fileChunks = null;
+            string? readWarning = null;
             try {
                 fileChunks = Read(file, opt, cancellationToken).ToList();
             } catch (OperationCanceledException) {
                 throw;
-            } catch (Exception) {
+            } catch (Exception ex) {
                 // Keep folder ingestion best-effort; skip files that fail parsing.
+                readWarning = $"Skipped file due read error: {ex.GetType().Name}.";
+            }
+            if (readWarning != null) {
+                yield return BuildFolderWarningChunk(file, warningIndex++, readWarning);
                 continue;
             }
 
-            foreach (var chunk in fileChunks) {
+            foreach (var chunk in fileChunks!) {
                 cancellationToken.ThrowIfCancellationRequested();
                 yield return chunk;
             }
@@ -888,6 +908,23 @@ public static class DocumentReader {
             Text = string.Empty,
             Markdown = null,
             Warnings = new[] { "No extractable text found on this PDF page." }
+        };
+    }
+
+    private static ReaderChunk BuildFolderWarningChunk(string path, int warningIndex, string warning) {
+        var fileName = Path.GetFileName(path);
+        if (string.IsNullOrWhiteSpace(fileName)) fileName = "folder";
+
+        return new ReaderChunk {
+            Id = BuildStableId("warn", fileName, warningIndex, null),
+            Kind = ReaderInputKind.Unknown,
+            Location = new ReaderLocation {
+                Path = path,
+                BlockIndex = warningIndex
+            },
+            Text = string.Empty,
+            Markdown = null,
+            Warnings = new[] { warning }
         };
     }
 

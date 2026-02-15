@@ -160,6 +160,86 @@ public sealed class ReaderDocumentReaderTests {
 
             Assert.NotEmpty(chunks);
             Assert.Contains(chunks, c => c.Kind == ReaderInputKind.Markdown && (c.Text ?? string.Empty).Contains("Body", StringComparison.Ordinal));
+            Assert.Contains(chunks, c =>
+                c.Kind == ReaderInputKind.Unknown &&
+                string.Equals(c.Location.Path, badDocx, StringComparison.OrdinalIgnoreCase) &&
+                (c.Warnings?.Any(w => w.Contains("read error", StringComparison.OrdinalIgnoreCase)) ?? false));
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolder_RespectsRecursionAndExtensionFilter() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        var nested = Path.Combine(folder, "nested");
+        Directory.CreateDirectory(folder);
+        Directory.CreateDirectory(nested);
+
+        var rootMarkdown = Path.Combine(folder, "root.md");
+        var nestedMarkdown = Path.Combine(nested, "nested.md");
+        var nestedText = Path.Combine(nested, "ignored.txt");
+
+        try {
+            File.WriteAllText(rootMarkdown, "# Root");
+            File.WriteAllText(nestedMarkdown, "# Nested");
+            File.WriteAllText(nestedText, "Ignore me");
+
+            var noRecurse = DocumentReader.ReadFolder(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    Extensions = new[] { ".md" },
+                    DeterministicOrder = true
+                }).ToList();
+
+            Assert.Contains(noRecurse, c => string.Equals(c.Location.Path, rootMarkdown, StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(noRecurse, c => string.Equals(c.Location.Path, nestedMarkdown, StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(noRecurse, c => string.Equals(c.Location.Path, nestedText, StringComparison.OrdinalIgnoreCase));
+
+            var recurse = DocumentReader.ReadFolder(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = true,
+                    Extensions = new[] { ".md" },
+                    DeterministicOrder = true
+                }).ToList();
+
+            Assert.Contains(recurse, c => string.Equals(c.Location.Path, rootMarkdown, StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(recurse, c => string.Equals(c.Location.Path, nestedMarkdown, StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(recurse, c => string.Equals(c.Location.Path, nestedText, StringComparison.OrdinalIgnoreCase));
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolder_EmitsWarningWhenFileExceedsMaxInputBytes() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+
+        var smallMarkdown = Path.Combine(folder, "small.md");
+        var largeMarkdown = Path.Combine(folder, "large.md");
+
+        try {
+            File.WriteAllText(smallMarkdown, "# Small\n\nok");
+            File.WriteAllText(largeMarkdown, new string('x', 1024));
+
+            var chunks = DocumentReader.ReadFolder(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true
+                },
+                options: new ReaderOptions {
+                    MaxInputBytes = 128
+                }).ToList();
+
+            Assert.Contains(chunks, c => string.Equals(c.Location.Path, smallMarkdown, StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(chunks, c =>
+                c.Kind == ReaderInputKind.Unknown &&
+                string.Equals(c.Location.Path, largeMarkdown, StringComparison.OrdinalIgnoreCase) &&
+                (c.Warnings?.Any(w => w.Contains("MaxInputBytes", StringComparison.OrdinalIgnoreCase)) ?? false));
         } finally {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
