@@ -30,7 +30,11 @@ public enum ReaderInputKind {
     /// <summary>
     /// Generic text file.
     /// </summary>
-    Text
+    Text,
+    /// <summary>
+    /// PDF document.
+    /// </summary>
+    Pdf
 }
 
 /// <summary>
@@ -117,6 +121,11 @@ public sealed class ReaderLocation {
     /// Optional 1-based slide number (PowerPoint).
     /// </summary>
     public int? Slide { get; set; }
+
+    /// <summary>
+    /// Optional 1-based page number (PDF).
+    /// </summary>
+    public int? Page { get; set; }
 }
 
 /// <summary>

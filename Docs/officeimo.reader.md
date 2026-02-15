@@ -5,6 +5,7 @@
 - Excel (`.xlsx`, `.xlsm`) -> row/table chunks (+ optional Markdown previews)
 - PowerPoint (`.pptx`, `.pptm`) -> slide-aligned Markdown chunks (optionally including notes)
 - Markdown (`.md`, `.markdown`) -> heading-aware chunks
+- PDF (`.pdf`) -> page-aware text chunks
 
 It is designed to be deterministic and dependency-free (beyond OfficeIMO itself), so consumers (like IntelligenceX) can ingest content reliably.
 
@@ -79,7 +80,7 @@ var chunks = DocumentReader.Read(@"C:\Docs\Workbook.xlsx", options).ToList();
 
 Each chunk is returned as `ReaderChunk`:
 - `Id`: stable identifier (ASCII-only).
-- `Kind`: input kind (Word/Excel/PowerPoint/Markdown/Text/Unknown).
+- `Kind`: input kind (Word/Excel/PowerPoint/Markdown/PDF/Text/Unknown).
 - `Text`: plain text representation.
 - `Markdown`: optional Markdown representation (when available).
 - `Tables`: optional structured tables (Excel).
@@ -88,7 +89,7 @@ Each chunk is returned as `ReaderChunk`:
   - `BlockIndex`: emitted chunk index (0-based order from `DocumentReader`)
   - `SourceBlockIndex`: producer-defined index in the source document (when available)
   - `StartLine`: 1-based start line number (Markdown/text)
-  - `HeadingPath`, `Sheet`, `A1Range`, `Slide`
+  - `HeadingPath`, `Sheet`, `A1Range`, `Slide`, `Page`
 - `Warnings`: truncation/unsupported content warnings (best-effort).
 
 ## Notes / Limitations

@@ -1,4 +1,5 @@
 using OfficeIMO.Excel;
+using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Reader;
 using OfficeIMO.Word;
@@ -87,6 +88,24 @@ public sealed class ReaderDocumentReaderTests {
             var chunks = DocumentReader.Read(fs, "Notes.md").ToList();
             Assert.True(chunks.Count >= 2);
             Assert.Contains(chunks, c => c.Kind == ReaderInputKind.Markdown && (c.Location.HeadingPath?.Contains("Top", StringComparison.Ordinal) ?? false));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_CanReadPdf() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pdf");
+        try {
+            var pdf = PdfDoc.Create();
+            pdf.H1("PDF Title");
+            pdf.Paragraph(p => p.Text("This is a PDF body."));
+            pdf.Save(path);
+
+            var chunks = DocumentReader.Read(path).ToList();
+            Assert.NotEmpty(chunks);
+            Assert.Contains(chunks, c => c.Kind == ReaderInputKind.Pdf);
+            Assert.Contains(chunks, c => c.Location.Page.HasValue && c.Location.Page.Value >= 1);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }

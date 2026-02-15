@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Unified, read-only document extraction facade for OfficeIMO (Word/Excel/PowerPoint/Markdown) intended for AI ingestion.</Description>
+    <Description>Unified, read-only document extraction facade for OfficeIMO (Word/Excel/PowerPoint/Markdown/PDF) intended for AI ingestion.</Description>
     <AssemblyName>OfficeIMO.Reader</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader</AssemblyTitle>
     <VersionPrefix>0.1.0</VersionPrefix>
@@ -11,7 +11,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Reader</PackageId>
-    <PackageTags>reader;ingestion;rag;docx;xlsx;pptx;markdown;officeimo</PackageTags>
+    <PackageTags>reader;ingestion;rag;docx;xlsx;pptx;markdown;pdf;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
@@ -28,6 +28,7 @@
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown\OfficeIMO.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
   </ItemGroup>
 
   <ItemGroup>

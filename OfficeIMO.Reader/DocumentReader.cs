@@ -1,4 +1,5 @@
 using OfficeIMO.Excel;
+using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
@@ -27,6 +28,7 @@ public static class DocumentReader {
         ".xlsx", ".xlsm",
         ".pptx", ".pptm",
         ".md", ".markdown",
+        ".pdf",
         ".txt", ".log", ".csv", ".tsv", ".json", ".xml", ".yml", ".yaml"
     };
 
@@ -56,6 +58,7 @@ public static class DocumentReader {
             ".xlsx" or ".xlsm" => ReaderInputKind.Excel,
             ".pptx" or ".pptm" => ReaderInputKind.PowerPoint,
             ".md" or ".markdown" => ReaderInputKind.Markdown,
+            ".pdf" => ReaderInputKind.Pdf,
             ".txt" or ".log" or ".csv" or ".tsv" or ".json" or ".xml" or ".yml" or ".yaml" => ReaderInputKind.Text,
             ".doc" or ".xls" or ".ppt" => ReaderInputKind.Unknown, // Legacy binary formats are not supported.
             _ => ReaderInputKind.Unknown
@@ -85,6 +88,7 @@ public static class DocumentReader {
             ReaderInputKind.Excel => ReadExcel(path, opt, cancellationToken),
             ReaderInputKind.PowerPoint => ReadPowerPoint(path, opt, cancellationToken),
             ReaderInputKind.Markdown => ReadMarkdown(path, opt, cancellationToken),
+            ReaderInputKind.Pdf => ReadPdf(path, opt, cancellationToken),
             ReaderInputKind.Text => ReadText(path, opt, cancellationToken),
             _ => ReadUnknown(path, opt, cancellationToken)
         };
@@ -174,6 +178,7 @@ public static class DocumentReader {
             ReaderInputKind.Excel => ReadExcel(stream, sourceName, opt, cancellationToken),
             ReaderInputKind.PowerPoint => ReadPowerPoint(stream, sourceName, opt, cancellationToken),
             ReaderInputKind.Markdown => ReadMarkdown(stream, sourceName, opt, cancellationToken),
+            ReaderInputKind.Pdf => ReadPdf(stream, sourceName, opt, cancellationToken),
             ReaderInputKind.Text => ReadText(stream, sourceName, opt, cancellationToken),
             _ => ReadUnknown(stream, sourceName, opt, cancellationToken)
         };
@@ -418,6 +423,55 @@ public static class DocumentReader {
                 Warnings = c.Warnings
             };
             outIndex++;
+        }
+    }
+
+    private static IEnumerable<ReaderChunk> ReadPdf(string path, ReaderOptions opt, CancellationToken ct) {
+        var fileName = Path.GetFileName(path);
+        var doc = PdfReadDocument.Load(path);
+        int outIndex = 0;
+
+        for (int pageIndex = 0; pageIndex < doc.Pages.Count; pageIndex++) {
+            ct.ThrowIfCancellationRequested();
+
+            var pageNumber = pageIndex + 1;
+            var pageText = doc.Pages[pageIndex].ExtractText();
+            if (string.IsNullOrWhiteSpace(pageText)) {
+                yield return BuildPdfEmptyChunk(path, fileName, pageNumber, outIndex);
+                outIndex++;
+                continue;
+            }
+
+            var pageChunks = ChunkPdfText(path, fileName, pageNumber, pageText, opt, outIndex, ct, out var nextIndex);
+            outIndex = nextIndex;
+            foreach (var chunk in pageChunks) {
+                yield return chunk;
+            }
+        }
+    }
+
+    private static IEnumerable<ReaderChunk> ReadPdf(Stream stream, string? sourceName, ReaderOptions opt, CancellationToken ct) {
+        using var ms = CopyToMemory(stream, ct);
+        var fileName = string.IsNullOrWhiteSpace(sourceName) ? "memory.pdf" : Path.GetFileName(sourceName!.Trim());
+        var doc = PdfReadDocument.Load(ms.ToArray());
+        int outIndex = 0;
+
+        for (int pageIndex = 0; pageIndex < doc.Pages.Count; pageIndex++) {
+            ct.ThrowIfCancellationRequested();
+
+            var pageNumber = pageIndex + 1;
+            var pageText = doc.Pages[pageIndex].ExtractText();
+            if (string.IsNullOrWhiteSpace(pageText)) {
+                yield return BuildPdfEmptyChunk(sourceName ?? fileName, fileName, pageNumber, outIndex);
+                outIndex++;
+                continue;
+            }
+
+            var pageChunks = ChunkPdfText(sourceName ?? fileName, fileName, pageNumber, pageText, opt, outIndex, ct, out var nextIndex);
+            outIndex = nextIndex;
+            foreach (var chunk in pageChunks) {
+                yield return chunk;
+            }
         }
     }
 
@@ -691,6 +745,58 @@ public static class DocumentReader {
         }
     }
 
+    private static List<ReaderChunk> ChunkPdfText(
+        string path,
+        string fileName,
+        int pageNumber,
+        string text,
+        ReaderOptions opt,
+        int startChunkIndex,
+        CancellationToken ct,
+        out int nextChunkIndex) {
+        var list = new List<ReaderChunk>();
+        var current = new StringBuilder(capacity: Math.Min(opt.MaxChars, 16_384));
+        var outIndex = startChunkIndex;
+        int? firstLine = null;
+        var warnings = new List<string>(capacity: 2);
+        int lineNo = 0;
+
+        using var sr = new StringReader(text ?? string.Empty);
+        string? line;
+        while ((line = sr.ReadLine()) != null) {
+            ct.ThrowIfCancellationRequested();
+            lineNo++;
+
+            if (firstLine == null) firstLine = lineNo;
+
+            if (current.Length > 0 && current.Length >= (opt.MaxChars - 256) && string.IsNullOrWhiteSpace(line)) {
+                list.Add(BuildPdfChunk(path, fileName, pageNumber, outIndex, firstLine, current.ToString().TrimEnd(), warnings));
+                outIndex++;
+                current.Clear();
+                warnings.Clear();
+                firstLine = null;
+                continue;
+            }
+
+            if (WouldExceed(opt, current, line)) {
+                list.Add(BuildPdfChunk(path, fileName, pageNumber, outIndex, firstLine, current.ToString().TrimEnd(), warnings));
+                outIndex++;
+                current.Clear();
+                warnings.Clear();
+                firstLine = lineNo;
+            }
+
+            AppendLineCapped(opt, current, line, warnings);
+        }
+
+        if (current.Length > 0) {
+            list.Add(BuildPdfChunk(path, fileName, pageNumber, outIndex, firstLine, current.ToString().TrimEnd(), warnings));
+            outIndex++;
+        }
+        nextChunkIndex = outIndex;
+        return list;
+    }
+
     private static ReaderChunk BuildMarkdownChunk(
         string path,
         string fileName,
@@ -736,6 +842,52 @@ public static class DocumentReader {
             Text = text,
             Markdown = treatAsMarkdown ? text : null,
             Warnings = warnings.Count > 0 ? warnings.ToArray() : null
+        };
+    }
+
+    private static ReaderChunk BuildPdfChunk(
+        string path,
+        string fileName,
+        int pageNumber,
+        int chunkIndex,
+        int? firstLine,
+        string text,
+        List<string> warnings) {
+        var id = BuildStableId("pdf", fileName, chunkIndex, firstLine);
+        return new ReaderChunk {
+            Id = id,
+            Kind = ReaderInputKind.Pdf,
+            Location = new ReaderLocation {
+                Path = path,
+                Page = pageNumber,
+                BlockIndex = chunkIndex,
+                SourceBlockIndex = pageNumber - 1,
+                StartLine = firstLine
+            },
+            Text = text,
+            Markdown = null,
+            Warnings = warnings.Count > 0 ? warnings.ToArray() : null
+        };
+    }
+
+    private static ReaderChunk BuildPdfEmptyChunk(
+        string path,
+        string fileName,
+        int pageNumber,
+        int chunkIndex) {
+        var id = BuildStableId("pdf", fileName, chunkIndex, null);
+        return new ReaderChunk {
+            Id = id,
+            Kind = ReaderInputKind.Pdf,
+            Location = new ReaderLocation {
+                Path = path,
+                Page = pageNumber,
+                BlockIndex = chunkIndex,
+                SourceBlockIndex = pageNumber - 1
+            },
+            Text = string.Empty,
+            Markdown = null,
+            Warnings = new[] { "No extractable text found on this PDF page." }
         };
     }
 
