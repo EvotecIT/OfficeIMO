@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Text;
 
 namespace OfficeIMO.Markdown;
 
@@ -17,6 +18,20 @@ public sealed class MarkdownInputNormalizationOptions {
     /// Default: false.
     /// </summary>
     public bool NormalizeInlineCodeSpanLineBreaks { get; set; } = false;
+
+    /// <summary>
+    /// When true, converts escaped inline code spans (for example, <c>\`code\`</c>) into standard markdown code spans.
+    /// This helps chat/model outputs that over-escape backticks.
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeEscapedInlineCodeSpans { get; set; } = false;
+
+    /// <summary>
+    /// When true, inserts a missing space after a closing strong span when followed by a word character
+    /// (for example, <c>**Healthy**next</c> becomes <c>**Healthy** next</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeTightStrongBoundaries { get; set; } = false;
 }
 
 /// <summary>
@@ -29,6 +44,14 @@ public static class MarkdownInputNormalizer {
 
     private static readonly Regex SoftWrappedStrongRegex = new Regex(
         "\\*\\*(?<left>[^\\r\\n*]{1,80})\\r?\\n(?<right>[^\\r\\n*]{1,80})\\*\\*",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex EscapedInlineCodeSpanRegex = new Regex(
+        @"\\`(?<code>[^`\r\n]+?)\\`",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex TightStrongSuffixRegex = new Regex(
+        @"(\*\*[^*\r\n]+\*\*)(?=[\p{L}\p{N}])",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     /// <summary>
@@ -46,7 +69,7 @@ public static class MarkdownInputNormalizer {
         options ??= new MarkdownInputNormalizationOptions();
 
         if (options.NormalizeSoftWrappedStrongSpans) {
-            value = SoftWrappedStrongRegex.Replace(value, static match => {
+            value = ApplyRegexOutsideFencedCodeBlocks(value, SoftWrappedStrongRegex, static match => {
                 var left = match.Groups["left"].Value.Trim();
                 var right = match.Groups["right"].Value.Trim();
                 if (left.Length == 0 || right.Length == 0) {
@@ -57,8 +80,12 @@ public static class MarkdownInputNormalizer {
             });
         }
 
+        if (options.NormalizeTightStrongBoundaries) {
+            value = ApplyRegexOutsideFencedCodeBlocks(value, TightStrongSuffixRegex, static match => match.Groups[1].Value + " ");
+        }
+
         if (options.NormalizeInlineCodeSpanLineBreaks) {
-            value = InlineCodeSpanRegex.Replace(value, static match => {
+            value = ApplyRegexOutsideFencedCodeBlocks(value, InlineCodeSpanRegex, static match => {
                 var body = match.Groups[1].Value;
                 if (body.IndexOfAny(new[] { '\r', '\n' }) < 0) {
                     return match.Value;
@@ -72,6 +99,116 @@ public static class MarkdownInputNormalizer {
             });
         }
 
+        if (options.NormalizeEscapedInlineCodeSpans) {
+            value = ApplyRegexOutsideFencedCodeBlocks(value, EscapedInlineCodeSpanRegex, static match => {
+                var body = match.Groups["code"].Value;
+                return body.Length == 0 ? "``" : "`" + body + "`";
+            });
+        }
+
         return value;
+    }
+
+    private static string ApplyRegexOutsideFencedCodeBlocks(string input, Regex regex, MatchEvaluator evaluator) {
+        if (string.IsNullOrEmpty(input)) {
+            return input ?? string.Empty;
+        }
+
+        var output = new StringBuilder(input.Length);
+        var outsideSegment = new StringBuilder();
+        var inFence = false;
+        char fenceMarker = '\0';
+        var fenceRunLength = 0;
+
+        var index = 0;
+        while (index < input.Length) {
+            var lineStart = index;
+            while (index < input.Length && input[index] != '\r' && input[index] != '\n') {
+                index++;
+            }
+
+            var lineEnd = index;
+            if (index < input.Length && input[index] == '\r') {
+                index++;
+                if (index < input.Length && input[index] == '\n') {
+                    index++;
+                }
+            } else if (index < input.Length && input[index] == '\n') {
+                index++;
+            }
+
+            var line = input.Substring(lineStart, lineEnd - lineStart);
+            var lineWithNewline = input.Substring(lineStart, index - lineStart);
+
+            if (TryReadFenceRun(line, out var runMarker, out var runLength, out var runSuffix)) {
+                if (!inFence) {
+                    FlushOutsideSegment(output, outsideSegment, regex, evaluator);
+                    inFence = true;
+                    fenceMarker = runMarker;
+                    fenceRunLength = runLength;
+                    output.Append(lineWithNewline);
+                    continue;
+                }
+
+                if (runMarker == fenceMarker && runLength >= fenceRunLength && string.IsNullOrWhiteSpace(runSuffix)) {
+                    inFence = false;
+                    fenceMarker = '\0';
+                    fenceRunLength = 0;
+                    output.Append(lineWithNewline);
+                    continue;
+                }
+            }
+
+            if (inFence) {
+                output.Append(lineWithNewline);
+            } else {
+                outsideSegment.Append(lineWithNewline);
+            }
+        }
+
+        FlushOutsideSegment(output, outsideSegment, regex, evaluator);
+        return output.ToString();
+    }
+
+    private static void FlushOutsideSegment(StringBuilder output, StringBuilder outsideSegment, Regex regex, MatchEvaluator evaluator) {
+        if (outsideSegment.Length == 0) {
+            return;
+        }
+
+        output.Append(regex.Replace(outsideSegment.ToString(), evaluator));
+        outsideSegment.Clear();
+    }
+
+    private static bool TryReadFenceRun(string line, out char marker, out int runLength, out string suffix) {
+        marker = '\0';
+        runLength = 0;
+        suffix = string.Empty;
+        if (line is null) {
+            return false;
+        }
+
+        var trimmed = line.TrimStart();
+        if (trimmed.Length < 3) {
+            return false;
+        }
+
+        var first = trimmed[0];
+        if (first != '`' && first != '~') {
+            return false;
+        }
+
+        var i = 0;
+        while (i < trimmed.Length && trimmed[i] == first) {
+            i++;
+        }
+
+        if (i < 3) {
+            return false;
+        }
+
+        marker = first;
+        runLength = i;
+        suffix = trimmed.Substring(i);
+        return true;
     }
 }

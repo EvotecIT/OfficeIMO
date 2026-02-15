@@ -60,13 +60,13 @@ Presets
 - `MarkdownRendererPresets.CreateChatStrict(...)`: safe defaults for untrusted content and a compact chat-friendly theme (`HtmlStyle.ChatAuto`).
 - `MarkdownRendererPresets.CreateChatRelaxed(...)`: enables HTML parsing and sanitizes raw HTML blocks (still conservative).
 - `MarkdownRendererPresets.CreateChatStrictMinimal(...)`: strict, but disables Mermaid/Chart/Math/Prism and copy buttons.
-  - strict presets also enable chat-output normalization for short soft-wrapped `**bold**` labels and inline-code line breaks.
+  - strict presets also enable chat-output normalization for short soft-wrapped `**bold**` labels, inline-code line breaks, escaped inline-code spans (`\`code\``), and tight strong boundaries (`**bold**next`).
 
 Options (high level)
 
 - `MarkdownRendererOptions.ReaderOptions`: parsing behavior (HTML enabled/disabled, URL scheme restrictions, etc.).
 - `MarkdownRendererOptions.HtmlOptions`: HTML + CSS rendering (theme, Prism, link/image hardening, same-origin restrictions).
-- `MarkdownRendererOptions.NormalizeSoftWrappedStrongSpans` / `NormalizeInlineCodeSpanLineBreaks`: optional markdown text normalization before parsing.
+- `MarkdownRendererOptions.NormalizeSoftWrappedStrongSpans` / `NormalizeInlineCodeSpanLineBreaks` / `NormalizeEscapedInlineCodeSpans` / `NormalizeTightStrongBoundaries`: optional markdown text normalization before parsing.
 - `MarkdownRendererOptions.MarkdownPreProcessors`: custom markdown text transforms before parsing.
 - `MarkdownRendererOptions.Mermaid` / `Chart` / `Math`: optional client-side renderers for fenced blocks.
 - `MarkdownRendererOptions.HtmlPostProcessors`: last-mile HTML transformations (custom diagram types, host integration).

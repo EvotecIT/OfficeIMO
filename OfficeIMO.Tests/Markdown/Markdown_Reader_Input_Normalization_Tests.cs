@@ -31,4 +31,32 @@ public class Markdown_Reader_Input_Normalization_Tests {
 
         Assert.Contains("<code>a b</code>", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Reader_Can_Normalize_EscapedInlineCode_BeforeParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeEscapedInlineCodeSpans = true
+            }
+        };
+
+        var html = MarkdownReader.Parse(@"Use \`/act act_001\` now.", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<code>/act act_001</code>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reader_Can_Normalize_TightStrongBoundaries_BeforeParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeTightStrongBoundaries = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("Status **Healthy**next", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<strong>Healthy</strong> next", html, StringComparison.Ordinal);
+    }
 }

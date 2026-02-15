@@ -31,6 +31,8 @@ public static class MarkdownRendererPresets {
         o.ReaderOptions.AllowedUrlSchemes = new[] { "http", "https", "mailto" };
         o.NormalizeSoftWrappedStrongSpans = true;
         o.NormalizeInlineCodeSpanLineBreaks = true;
+        o.NormalizeEscapedInlineCodeSpans = true;
+        o.NormalizeTightStrongBoundaries = true;
 
         o.HtmlOptions.RawHtmlHandling = RawHtmlHandling.Strip;
         o.HtmlOptions.ExternalLinksTargetBlank = true;
