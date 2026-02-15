@@ -56,6 +56,30 @@ var chunks = DocumentReader.ReadFolder(
     }).ToList();
 ```
 
+## AI Ingestion Pattern (With Citations)
+
+```csharp
+using OfficeIMO.Reader;
+using System.Text;
+
+var chunks = DocumentReader.ReadFolder(
+    folderPath: @"C:\KnowledgeBase",
+    folderOptions: new ReaderFolderOptions { Recurse = true, DeterministicOrder = true },
+    options: new ReaderOptions { MaxChars = 4000 }).ToList();
+
+var context = new StringBuilder();
+foreach (var chunk in chunks) {
+    var source = chunk.Location.Path ?? "unknown";
+    var pointer = chunk.Location.Page.HasValue
+        ? $"page {chunk.Location.Page.Value}"
+        : chunk.Location.HeadingPath ?? $"block {chunk.Location.BlockIndex ?? 0}";
+
+    context.AppendLine($"[source: {source} | {pointer}]");
+    context.AppendLine(chunk.Markdown ?? chunk.Text);
+    context.AppendLine();
+}
+```
+
 ## Options
 
 ```csharp
@@ -95,4 +119,5 @@ Each chunk is returned as `ReaderChunk`:
 ## Notes / Limitations
 
 - Legacy binary formats (`.doc`, `.xls`, `.ppt`) are not supported (convert to OpenXML first).
-- This reader is best-effort and does not do OCR.
+- Folder ingestion is best-effort: unreadable/corrupt/oversized files emit warning chunks and processing continues.
+- This reader does not do OCR.
