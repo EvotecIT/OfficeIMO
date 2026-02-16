@@ -32,6 +32,13 @@ public sealed class MarkdownInputNormalizationOptions {
     /// Default: false.
     /// </summary>
     public bool NormalizeTightStrongBoundaries { get; set; } = false;
+
+    /// <summary>
+    /// When true, trims accidental whitespace immediately inside strong delimiters
+    /// (for example, <c>** Healthy**</c> or <c>**Healthy **</c> become <c>**Healthy**</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeLooseStrongDelimiters { get; set; } = false;
 }
 
 /// <summary>
@@ -52,6 +59,10 @@ public static class MarkdownInputNormalizer {
 
     private static readonly Regex TightStrongSuffixRegex = new Regex(
         @"(\*\*[^\s*\r\n](?:[^*\r\n]*[^\s*\r\n])?\*\*)(?=[\p{L}\p{N}])",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex LooseStrongDelimiterWhitespaceRegex = new Regex(
+        @"\*\*(?<inner>[^*\r\n]+)\*\*",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     /// <summary>
@@ -77,6 +88,18 @@ public static class MarkdownInputNormalizer {
                 }
 
                 return "**" + left + " " + right + "**";
+            });
+        }
+
+        if (options.NormalizeLooseStrongDelimiters) {
+            value = ApplyRegexOutsideFencedCodeBlocks(value, LooseStrongDelimiterWhitespaceRegex, static match => {
+                var inner = match.Groups["inner"].Value;
+                var trimmed = inner.Trim();
+                if (trimmed.Length == 0 || trimmed.Length == inner.Length) {
+                    return match.Value;
+                }
+
+                return "**" + trimmed + "**";
             });
         }
 

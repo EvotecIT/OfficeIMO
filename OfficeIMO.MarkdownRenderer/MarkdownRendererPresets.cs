@@ -33,6 +33,7 @@ public static class MarkdownRendererPresets {
         o.NormalizeInlineCodeSpanLineBreaks = true;
         o.NormalizeEscapedInlineCodeSpans = true;
         o.NormalizeTightStrongBoundaries = true;
+        o.NormalizeLooseStrongDelimiters = true;
 
         o.HtmlOptions.RawHtmlHandling = RawHtmlHandling.Strip;
         o.HtmlOptions.ExternalLinksTargetBlank = true;

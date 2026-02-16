@@ -53,6 +53,16 @@ public class Markdown_Input_Normalizer_Tests {
     }
 
     [Fact]
+    public void Normalize_LooseStrongDelimiters_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeLooseStrongDelimiters = true
+        };
+
+        var normalized = MarkdownInputNormalizer.Normalize("check ** LDAP/Kerberos health on all DCs** and **unresolved privileged SID targets ** now", options);
+        Assert.Equal("check **LDAP/Kerberos health on all DCs** and **unresolved privileged SID targets** now", normalized);
+    }
+
+    [Fact]
     public void Normalize_TightStrongBoundaries_DoesNotCorruptAdjacentStrongSpans() {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeTightStrongBoundaries = true
@@ -94,6 +104,22 @@ Status **Healthy**next
 Use \`/act act_001\`
 Status **Healthy**next
 ~~~
+""";
+
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+        Assert.Equal(markdown, normalized);
+    }
+
+    [Fact]
+    public void Normalize_LooseStrongDelimiters_DoesNotChangeFencedCodeBlocks() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeLooseStrongDelimiters = true
+        };
+
+        var markdown = """
+```text
+check ** LDAP/Kerberos health on all DCs** next
+```
 """;
 
         var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
