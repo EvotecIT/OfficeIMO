@@ -239,10 +239,12 @@ x^2 + 1
     [Fact]
     public void MarkdownRenderer_ChatStrictPreset_Enables_Text_Normalization() {
         var opts = MarkdownRendererPresets.CreateChatStrictMinimal();
-        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("**Status\nHEALTHY**\n\n`a\nb`", opts);
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("**Status\nHEALTHY**\n\n`a\nb`\n\nUse \\`/act act_001\\`.\n\nStatus **Healthy**next", opts);
 
         Assert.Contains("Status HEALTHY", htmlOut, StringComparison.Ordinal);
         Assert.Contains("a b", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("<code>/act act_001</code>", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("<strong>Healthy</strong> next", htmlOut, StringComparison.Ordinal);
     }
 
     [Fact]

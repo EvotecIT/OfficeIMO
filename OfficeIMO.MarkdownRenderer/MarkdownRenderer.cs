@@ -117,7 +117,9 @@ public static class MarkdownRenderer {
 
         value = MarkdownInputNormalizer.Normalize(value, new MarkdownInputNormalizationOptions {
             NormalizeSoftWrappedStrongSpans = options.NormalizeSoftWrappedStrongSpans,
-            NormalizeInlineCodeSpanLineBreaks = options.NormalizeInlineCodeSpanLineBreaks
+            NormalizeInlineCodeSpanLineBreaks = options.NormalizeInlineCodeSpanLineBreaks,
+            NormalizeEscapedInlineCodeSpans = options.NormalizeEscapedInlineCodeSpans,
+            NormalizeTightStrongBoundaries = options.NormalizeTightStrongBoundaries
         });
 
         var pre = options.MarkdownPreProcessors;

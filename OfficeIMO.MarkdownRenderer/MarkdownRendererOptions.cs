@@ -70,6 +70,20 @@ public sealed class MarkdownRendererOptions {
     public bool NormalizeInlineCodeSpanLineBreaks { get; set; } = false;
 
     /// <summary>
+    /// When true, converts escaped inline code spans (for example, <c>\`code\`</c>) into standard markdown code spans.
+    /// Useful for chat/model outputs that over-escape backticks.
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeEscapedInlineCodeSpans { get; set; } = false;
+
+    /// <summary>
+    /// When true, inserts a missing space after a closing strong span followed immediately by a word character
+    /// (for example, <c>**Healthy**next</c> becomes <c>**Healthy** next</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeTightStrongBoundaries { get; set; } = false;
+
+    /// <summary>
     /// Optional markdown pre-processors applied before parsing.
     /// These run after escaped newline normalization and after built-in text normalization.
     /// Default: none.

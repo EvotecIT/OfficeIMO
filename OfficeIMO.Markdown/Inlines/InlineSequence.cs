@@ -39,6 +39,19 @@ public sealed class InlineSequence : IMarkdownInline {
     // Internal escape hatch for the reader to attach richer inline nodes without expanding the public fluent API.
     internal InlineSequence AddRaw(object node) { if (node != null) _inlines.Add(node); return this; }
 
+    internal void ReplaceItems(IEnumerable<object> nodes) {
+        _inlines.Clear();
+        if (nodes == null) {
+            return;
+        }
+
+        foreach (var node in nodes) {
+            if (node != null) {
+                _inlines.Add(node);
+            }
+        }
+    }
+
     internal string RenderMarkdown() {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < _inlines.Count; i++) {
