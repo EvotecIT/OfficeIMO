@@ -61,6 +61,21 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
+    public void Reader_Can_Normalize_LooseStrongDelimiters_BeforeParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeLooseStrongDelimiters = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("check ** LDAP/Kerberos health on all DCs** next", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<strong>LDAP/Kerberos health on all DCs</strong> next", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("** LDAP/Kerberos health on all DCs**", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_Ast_Normalization_Propagates_To_Nested_Quote_Parsing() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {

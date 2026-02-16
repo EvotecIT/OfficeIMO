@@ -84,6 +84,13 @@ public sealed class MarkdownRendererOptions {
     public bool NormalizeTightStrongBoundaries { get; set; } = false;
 
     /// <summary>
+    /// When true, trims accidental whitespace immediately inside strong delimiters
+    /// (for example, <c>** Healthy**</c> or <c>**Healthy **</c> become <c>**Healthy**</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeLooseStrongDelimiters { get; set; } = false;
+
+    /// <summary>
     /// Optional markdown pre-processors applied before parsing.
     /// These run after escaped newline normalization and after built-in text normalization.
     /// Default: none.

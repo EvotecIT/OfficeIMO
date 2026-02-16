@@ -171,7 +171,8 @@ public static partial class MarkdownReader {
                 NormalizeSoftWrappedStrongSpans = source.InputNormalization?.NormalizeSoftWrappedStrongSpans ?? false,
                 NormalizeInlineCodeSpanLineBreaks = source.InputNormalization?.NormalizeInlineCodeSpanLineBreaks ?? false,
                 NormalizeEscapedInlineCodeSpans = source.InputNormalization?.NormalizeEscapedInlineCodeSpans ?? false,
-                NormalizeTightStrongBoundaries = source.InputNormalization?.NormalizeTightStrongBoundaries ?? false
+                NormalizeTightStrongBoundaries = source.InputNormalization?.NormalizeTightStrongBoundaries ?? false,
+                NormalizeLooseStrongDelimiters = source.InputNormalization?.NormalizeLooseStrongDelimiters ?? false
             }
         };
     }
@@ -179,14 +180,16 @@ public static partial class MarkdownReader {
     private static MarkdownInputNormalizationOptions? CreatePreParseNormalizationOptions(MarkdownInputNormalizationOptions? source) {
         bool normalizeSoftWrappedStrong = source?.NormalizeSoftWrappedStrongSpans ?? false;
         bool normalizeInlineCodeLineBreaks = source?.NormalizeInlineCodeSpanLineBreaks ?? false;
+        bool normalizeLooseStrongDelimiters = source?.NormalizeLooseStrongDelimiters ?? false;
 
-        if (!normalizeSoftWrappedStrong && !normalizeInlineCodeLineBreaks) {
+        if (!normalizeSoftWrappedStrong && !normalizeInlineCodeLineBreaks && !normalizeLooseStrongDelimiters) {
             return null;
         }
 
         return new MarkdownInputNormalizationOptions {
             NormalizeSoftWrappedStrongSpans = normalizeSoftWrappedStrong,
-            NormalizeInlineCodeSpanLineBreaks = normalizeInlineCodeLineBreaks
+            NormalizeInlineCodeSpanLineBreaks = normalizeInlineCodeLineBreaks,
+            NormalizeLooseStrongDelimiters = normalizeLooseStrongDelimiters
         };
     }
 
