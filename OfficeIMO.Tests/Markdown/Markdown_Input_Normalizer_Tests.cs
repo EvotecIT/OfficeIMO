@@ -53,6 +53,18 @@ public class Markdown_Input_Normalizer_Tests {
     }
 
     [Fact]
+    public void Normalize_TightStrongBoundaries_DoesNotCorruptAdjacentStrongSpans() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeTightStrongBoundaries = true
+        };
+
+        var markdown = "If you want, I can run a **“Top 8 high-signal security pack”** now, or list only **GPO-related** reports.";
+
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+        Assert.Equal(markdown, normalized);
+    }
+
+    [Fact]
     public void Normalize_DoesNotChangeFencedCodeBlocks_ForEscapedCodeAndStrongSpacing() {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeEscapedInlineCodeSpans = true,

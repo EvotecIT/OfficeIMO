@@ -51,7 +51,7 @@ public static class MarkdownInputNormalizer {
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex TightStrongSuffixRegex = new Regex(
-        @"(\*\*[^*\r\n]+\*\*)(?=[\p{L}\p{N}])",
+        @"(\*\*[^\s*\r\n](?:[^*\r\n]*[^\s*\r\n])?\*\*)(?=[\p{L}\p{N}])",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     /// <summary>
