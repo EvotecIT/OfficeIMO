@@ -69,4 +69,22 @@ Status **Healthy**next
         var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
         Assert.Equal(markdown, normalized);
     }
+
+    [Fact]
+    public void Normalize_DoesNotChangeTildeFencedCodeBlocks() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeEscapedInlineCodeSpans = true,
+            NormalizeTightStrongBoundaries = true
+        };
+
+        var markdown = """
+~~~text
+Use \`/act act_001\`
+Status **Healthy**next
+~~~
+""";
+
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+        Assert.Equal(markdown, normalized);
+    }
 }
