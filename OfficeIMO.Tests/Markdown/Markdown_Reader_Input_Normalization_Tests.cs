@@ -33,7 +33,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
-    public void Reader_Can_Normalize_EscapedInlineCode_BeforeParsing() {
+    public void Reader_Can_Normalize_EscapedInlineCode_Via_Ast() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeEscapedInlineCodeSpans = true
@@ -47,7 +47,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
-    public void Reader_Can_Normalize_TightStrongBoundaries_BeforeParsing() {
+    public void Reader_Can_Normalize_TightStrongBoundaries_Via_Ast() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeTightStrongBoundaries = true
@@ -58,5 +58,43 @@ public class Markdown_Reader_Input_Normalization_Tests {
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<strong>Healthy</strong> next", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reader_Ast_Normalization_Propagates_To_Nested_Quote_Parsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeEscapedInlineCodeSpans = true,
+                NormalizeTightStrongBoundaries = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("> Use \\`/act act_001\\` and **Healthy**next", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<code>/act act_001</code>", html, StringComparison.Ordinal);
+        Assert.Contains("<strong>Healthy</strong> next", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reader_Ast_Normalization_DoesNot_Change_Fenced_Code_Block_Content() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeEscapedInlineCodeSpans = true,
+                NormalizeTightStrongBoundaries = true
+            }
+        };
+
+        var markdown = """
+```text
+Use \`/act act_001\`
+Status **Healthy**next
+```
+""";
+
+        var parsed = MarkdownReader.Parse(markdown, options).ToMarkdown().Replace("\r\n", "\n");
+
+        Assert.Contains("Use \\`/act act_001\\`", parsed, StringComparison.Ordinal);
+        Assert.Contains("Status **Healthy**next", parsed, StringComparison.Ordinal);
     }
 }

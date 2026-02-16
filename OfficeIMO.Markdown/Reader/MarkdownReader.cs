@@ -35,7 +35,10 @@ public static partial class MarkdownReader {
             markdown = markdown.Substring(1);
         }
 
-        markdown = MarkdownInputNormalizer.Normalize(markdown, options.InputNormalization);
+        var preParseNormalization = CreatePreParseNormalizationOptions(options.InputNormalization);
+        if (preParseNormalization != null) {
+            markdown = MarkdownInputNormalizer.Normalize(markdown, preParseNormalization);
+        }
 
         // Normalize line endings and split. Keep empty lines significant for block boundaries.
         var text = markdown.Replace("\r\n", "\n").Replace('\r', '\n');
@@ -166,8 +169,24 @@ public static partial class MarkdownReader {
             AllowedUrlSchemes = source.AllowedUrlSchemes,
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeSoftWrappedStrongSpans = source.InputNormalization?.NormalizeSoftWrappedStrongSpans ?? false,
-                NormalizeInlineCodeSpanLineBreaks = source.InputNormalization?.NormalizeInlineCodeSpanLineBreaks ?? false
+                NormalizeInlineCodeSpanLineBreaks = source.InputNormalization?.NormalizeInlineCodeSpanLineBreaks ?? false,
+                NormalizeEscapedInlineCodeSpans = source.InputNormalization?.NormalizeEscapedInlineCodeSpans ?? false,
+                NormalizeTightStrongBoundaries = source.InputNormalization?.NormalizeTightStrongBoundaries ?? false
             }
+        };
+    }
+
+    private static MarkdownInputNormalizationOptions? CreatePreParseNormalizationOptions(MarkdownInputNormalizationOptions? source) {
+        bool normalizeSoftWrappedStrong = source?.NormalizeSoftWrappedStrongSpans ?? false;
+        bool normalizeInlineCodeLineBreaks = source?.NormalizeInlineCodeSpanLineBreaks ?? false;
+
+        if (!normalizeSoftWrappedStrong && !normalizeInlineCodeLineBreaks) {
+            return null;
+        }
+
+        return new MarkdownInputNormalizationOptions {
+            NormalizeSoftWrappedStrongSpans = normalizeSoftWrappedStrong,
+            NormalizeInlineCodeSpanLineBreaks = normalizeInlineCodeLineBreaks
         };
     }
 

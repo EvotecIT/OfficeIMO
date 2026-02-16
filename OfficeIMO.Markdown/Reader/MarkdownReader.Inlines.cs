@@ -5,7 +5,9 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public static partial class MarkdownReader {
     private static InlineSequence ParseInlines(string text, MarkdownReaderOptions options, MarkdownReaderState? state = null) {
-        return ParseInlinesInternal(text, options, state, allowLinks: true, allowImages: true);
+        var sequence = ParseInlinesInternal(text, options, state, allowLinks: true, allowImages: true);
+        NormalizeInlineSequenceInPlace(sequence, options.InputNormalization);
+        return sequence;
     }
 
     private static InlineSequence ParseInlinesInternal(string text, MarkdownReaderOptions options, MarkdownReaderState? state, bool allowLinks, bool allowImages) {
