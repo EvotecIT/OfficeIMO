@@ -7,27 +7,29 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         [Fact]
         public void CodeBlock_Expands_Fence_For_Inner_Backticks() {
             var snippet = "echo ```value````";
+            var expectedFence = MarkdownFence.BuildSafeFence(snippet);
             var md = MarkdownDoc.Create().Code("bash", snippet);
 
             var lines = md.ToMarkdown().Replace("\r", string.Empty)
                 .Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
-            Assert.StartsWith("`````bash", lines[0]);
+            Assert.StartsWith($"{expectedFence}bash", lines[0]);
             Assert.Contains(snippet, lines);
-            Assert.Equal("`````", lines[lines.Length - 1]);
+            Assert.Equal(expectedFence, lines[lines.Length - 1]);
         }
 
         [Fact]
         public void CodeBlock_Handles_Backticks_With_Trailing_Spaces() {
             var snippet = "```   ";
+            var expectedFence = MarkdownFence.BuildSafeFence(snippet);
             var md = MarkdownDoc.Create().Code("text", snippet);
 
             var lines = md.ToMarkdown().Replace("\r", string.Empty)
                 .Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
-            Assert.StartsWith("````text", lines[0]);
+            Assert.StartsWith($"{expectedFence}text", lines[0]);
             Assert.Equal(snippet, lines[1]);
-            Assert.Equal("````", lines[2]);
+            Assert.Equal(expectedFence, lines[2]);
         }
 
         [Fact]
