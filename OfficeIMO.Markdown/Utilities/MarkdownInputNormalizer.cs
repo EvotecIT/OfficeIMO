@@ -51,7 +51,7 @@ public static class MarkdownInputNormalizer {
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex TightStrongSuffixRegex = new Regex(
-        @"(\*\*[^*\r\n]+\*\*)(?=[\p{L}\p{N}])",
+        @"(\*\*[^\s*\r\n](?:[^*\r\n]*[^\s*\r\n])?\*\*)(?=[\p{L}\p{N}])",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     /// <summary>
@@ -140,7 +140,7 @@ public static class MarkdownInputNormalizer {
             var line = input.Substring(lineStart, lineEnd - lineStart);
             var lineWithNewline = input.Substring(lineStart, index - lineStart);
 
-            if (TryReadFenceRun(line, out var runMarker, out var runLength, out var runSuffix)) {
+            if (MarkdownFence.TryReadFenceRun(line, out var runMarker, out var runLength, out var runSuffix)) {
                 if (!inFence) {
                     FlushOutsideSegment(output, outsideSegment, regex, evaluator);
                     inFence = true;
@@ -177,38 +177,5 @@ public static class MarkdownInputNormalizer {
 
         output.Append(regex.Replace(outsideSegment.ToString(), evaluator));
         outsideSegment.Clear();
-    }
-
-    private static bool TryReadFenceRun(string line, out char marker, out int runLength, out string suffix) {
-        marker = '\0';
-        runLength = 0;
-        suffix = string.Empty;
-        if (line is null) {
-            return false;
-        }
-
-        var trimmed = line.TrimStart();
-        if (trimmed.Length < 3) {
-            return false;
-        }
-
-        var first = trimmed[0];
-        if (first != '`' && first != '~') {
-            return false;
-        }
-
-        var i = 0;
-        while (i < trimmed.Length && trimmed[i] == first) {
-            i++;
-        }
-
-        if (i < 3) {
-            return false;
-        }
-
-        marker = first;
-        runLength = i;
-        suffix = trimmed.Substring(i);
-        return true;
     }
 }

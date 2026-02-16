@@ -19,19 +19,7 @@ public sealed class CodeBlock : IMarkdownBlock, ICaptionable {
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() {
-        // Choose a fence with length > any run of backticks in the content to avoid premature closure.
-        int maxRun = 0;
-        int run = 0;
-        foreach (char c in Content) {
-            if (c == '`') {
-                run++;
-                if (run > maxRun) maxRun = run;
-            } else {
-                run = 0;
-            }
-        }
-
-        string fence = new string('`', Math.Max(3, maxRun + 1));
+        string fence = MarkdownFence.BuildSafeFence(Content);
 
         StringBuilder sb = new StringBuilder();
         sb.AppendLine($"{fence}{Language}");
