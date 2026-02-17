@@ -261,11 +261,11 @@ namespace OfficeIMO.Word.Html {
                         continue;
                     }
 
+                    // Still honor explicit line breaks even when the run carries no text
+                    if (run.Break != null && run.PageBreak == null) {
+                        nodes.Add(htmlDoc.CreateElement("br"));
+                    }
                     if (string.IsNullOrEmpty(run.Text)) {
-                        // Still honor explicit line breaks even when the run carries no text
-                        if (run.Break != null && run.PageBreak == null) {
-                            nodes.Add(htmlDoc.CreateElement("br"));
-                        }
                         continue;
                     }
 
@@ -370,6 +370,13 @@ namespace OfficeIMO.Word.Html {
                         }
                     }
 
+                    if (run.FontSize != null) {
+                        var span = htmlDoc.CreateElement("span");
+                        span.SetAttribute("style", $"font-size:{run.FontSize.Value}pt");
+                        span.AppendChild(node);
+                        node = span;
+                    }
+
                     // Caps / SmallCaps
                     if (run.CapsStyle == CapsStyle.SmallCaps) {
                         var span = htmlDoc.CreateElement("span");
@@ -419,11 +426,6 @@ namespace OfficeIMO.Word.Html {
                         quote.AppendChild(node);
                     } else {
                         nodes.Add(node);
-                    }
-
-                    // Preserve hard line breaks
-                    if (run.Break != null && run.PageBreak == null) {
-                        nodes.Add(htmlDoc.CreateElement("br"));
                     }
                 }
                 foreach (var node in nodes) {
