@@ -249,6 +249,21 @@ x^2 + 1
     }
 
     [Fact]
+    public void MarkdownRenderer_ChatStrictPreset_Normalizes_OrderedListMarkerSpacing() {
+        var opts = MarkdownRendererPresets.CreateChatStrictMinimal();
+        var markdown = """
+1. **Privilege hygiene sweep**(Domain Admins + other privileged groups)
+2.** Delegation risk audit**(unconstrained / constrained / protocol transition)
+3.** Replication + DC health snapshot** (stale links, failing partners)
+""";
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, opts);
+        Assert.Equal(3, Count(htmlOut, "<li"));
+        Assert.DoesNotContain("2.**", htmlOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("3.**", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Allows_SameOrigin_Absolute_Http_Images_When_BaseHref_Is_Set() {
         var opts = new MarkdownRendererOptions { BaseHref = "https://example.com/" };
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("![alt](https://example.com/a.png)", opts);
@@ -296,5 +311,18 @@ x^2 + 1
         Assert.Contains("contains-task-list", html, StringComparison.Ordinal);
         Assert.Contains("task-list-item", html, StringComparison.Ordinal);
         Assert.Contains("task-list-item-checkbox", html, StringComparison.Ordinal);
+    }
+
+    private static int Count(string value, string token) {
+        if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(token)) return 0;
+
+        int index = 0;
+        int count = 0;
+        while ((index = value.IndexOf(token, index, StringComparison.Ordinal)) >= 0) {
+            count++;
+            index += token.Length;
+        }
+
+        return count;
     }
 }

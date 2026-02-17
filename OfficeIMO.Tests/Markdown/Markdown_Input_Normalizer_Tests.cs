@@ -125,4 +125,57 @@ check ** LDAP/Kerberos health on all DCs** next
         var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
         Assert.Equal(markdown, normalized);
     }
+
+    [Fact]
+    public void Normalize_OrderedListMarkerSpacing_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeOrderedListMarkerSpacing = true
+        };
+
+        var markdown = """
+1. **Privilege hygiene sweep**(Domain Admins + other privileged groups)
+2.** Delegation risk audit**(unconstrained / constrained / protocol transition)
+3.** Replication + DC health snapshot** (stale links, failing partners)
+""";
+
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+        Assert.Contains("\n2. ** Delegation risk audit**", normalized, StringComparison.Ordinal);
+        Assert.Contains("\n3. ** Replication + DC health snapshot**", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Normalize_OrderedListMarkerSpacing_DoesNotChangeFencedCodeBlocks() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeOrderedListMarkerSpacing = true
+        };
+
+        var markdown = """
+```text
+2.** Delegation risk audit**
+3.** Replication + DC health snapshot**
+```
+""";
+
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+        Assert.Equal(markdown, normalized);
+    }
+
+    [Fact]
+    public void Normalize_SoftWrappedStrong_DoesNotCollapse_OrderedListBoundaries() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeSoftWrappedStrongSpans = true,
+            NormalizeOrderedListMarkerSpacing = true
+        };
+
+        var markdown = """
+1. **Privilege hygiene sweep**(Domain Admins + other privileged groups)
+2.** Delegation risk audit**(unconstrained / constrained / protocol transition)
+3.** Replication + DC health snapshot** (stale links, failing partners)
+""";
+
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+        Assert.Contains("\n2. ** Delegation risk audit**", normalized, StringComparison.Ordinal);
+        Assert.Contains("\n3. ** Replication + DC health snapshot**", normalized, StringComparison.Ordinal);
+        Assert.DoesNotContain("groups) 2.", normalized, StringComparison.Ordinal);
+    }
 }

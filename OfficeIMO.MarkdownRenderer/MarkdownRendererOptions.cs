@@ -91,6 +91,13 @@ public sealed class MarkdownRendererOptions {
     public bool NormalizeLooseStrongDelimiters { get; set; } = false;
 
     /// <summary>
+    /// When true, inserts a missing space after ordered list markers when list item content starts
+    /// immediately with emphasis delimiters (for example, <c>2.**Task**</c> -> <c>2. **Task**</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeOrderedListMarkerSpacing { get; set; } = false;
+
+    /// <summary>
     /// Optional markdown pre-processors applied before parsing.
     /// These run after escaped newline normalization and after built-in text normalization.
     /// Default: none.

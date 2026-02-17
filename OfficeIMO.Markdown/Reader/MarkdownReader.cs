@@ -172,7 +172,8 @@ public static partial class MarkdownReader {
                 NormalizeInlineCodeSpanLineBreaks = source.InputNormalization?.NormalizeInlineCodeSpanLineBreaks ?? false,
                 NormalizeEscapedInlineCodeSpans = source.InputNormalization?.NormalizeEscapedInlineCodeSpans ?? false,
                 NormalizeTightStrongBoundaries = source.InputNormalization?.NormalizeTightStrongBoundaries ?? false,
-                NormalizeLooseStrongDelimiters = source.InputNormalization?.NormalizeLooseStrongDelimiters ?? false
+                NormalizeLooseStrongDelimiters = source.InputNormalization?.NormalizeLooseStrongDelimiters ?? false,
+                NormalizeOrderedListMarkerSpacing = source.InputNormalization?.NormalizeOrderedListMarkerSpacing ?? false
             }
         };
     }
@@ -181,15 +182,17 @@ public static partial class MarkdownReader {
         bool normalizeSoftWrappedStrong = source?.NormalizeSoftWrappedStrongSpans ?? false;
         bool normalizeInlineCodeLineBreaks = source?.NormalizeInlineCodeSpanLineBreaks ?? false;
         bool normalizeLooseStrongDelimiters = source?.NormalizeLooseStrongDelimiters ?? false;
+        bool normalizeOrderedListMarkerSpacing = source?.NormalizeOrderedListMarkerSpacing ?? false;
 
-        if (!normalizeSoftWrappedStrong && !normalizeInlineCodeLineBreaks && !normalizeLooseStrongDelimiters) {
+        if (!normalizeSoftWrappedStrong && !normalizeInlineCodeLineBreaks && !normalizeLooseStrongDelimiters && !normalizeOrderedListMarkerSpacing) {
             return null;
         }
 
         return new MarkdownInputNormalizationOptions {
             NormalizeSoftWrappedStrongSpans = normalizeSoftWrappedStrong,
             NormalizeInlineCodeSpanLineBreaks = normalizeInlineCodeLineBreaks,
-            NormalizeLooseStrongDelimiters = normalizeLooseStrongDelimiters
+            NormalizeLooseStrongDelimiters = normalizeLooseStrongDelimiters,
+            NormalizeOrderedListMarkerSpacing = normalizeOrderedListMarkerSpacing
         };
     }
 

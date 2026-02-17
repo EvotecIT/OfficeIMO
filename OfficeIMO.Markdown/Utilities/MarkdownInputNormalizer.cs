@@ -39,6 +39,13 @@ public sealed class MarkdownInputNormalizationOptions {
     /// Default: false.
     /// </summary>
     public bool NormalizeLooseStrongDelimiters { get; set; } = false;
+
+    /// <summary>
+    /// When true, inserts a missing space after an ordered list marker when the content starts with
+    /// emphasis-like characters (for example, <c>2.**Task**</c> becomes <c>2. **Task**</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeOrderedListMarkerSpacing { get; set; } = false;
 }
 
 /// <summary>
@@ -65,6 +72,10 @@ public static class MarkdownInputNormalizer {
         @"\*\*(?<inner>[^*\r\n]+)\*\*",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+    private static readonly Regex OrderedListMarkerMissingSpaceRegex = new Regex(
+        @"^(?<prefix>[ \t]{0,3}\d+[.)])(?=[*_`\[])",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled | RegexOptions.Multiline);
+
     /// <summary>
     /// Normalizes markdown text based on <paramref name="options"/>.
     /// </summary>
@@ -87,6 +98,13 @@ public static class MarkdownInputNormalizer {
                     return match.Value;
                 }
 
+                // Avoid collapsing list boundaries such as:
+                // **First item text**
+                // 2.** Second item**
+                if (LooksLikeOrderedListMarkerFragment(right)) {
+                    return match.Value;
+                }
+
                 return "**" + left + " " + right + "**";
             });
         }
@@ -105,6 +123,10 @@ public static class MarkdownInputNormalizer {
 
         if (options.NormalizeTightStrongBoundaries) {
             value = ApplyRegexOutsideFencedCodeBlocks(value, TightStrongSuffixRegex, static match => match.Groups[1].Value + " ");
+        }
+
+        if (options.NormalizeOrderedListMarkerSpacing) {
+            value = ApplyRegexOutsideFencedCodeBlocks(value, OrderedListMarkerMissingSpaceRegex, static match => match.Groups["prefix"].Value + " ");
         }
 
         if (options.NormalizeInlineCodeSpanLineBreaks) {
@@ -130,6 +152,28 @@ public static class MarkdownInputNormalizer {
         }
 
         return value;
+    }
+
+    private static bool LooksLikeOrderedListMarkerFragment(string value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return false;
+        }
+
+        var trimmed = value.Trim();
+        if (trimmed.Length < 2) {
+            return false;
+        }
+
+        int index = 0;
+        while (index < trimmed.Length && char.IsDigit(trimmed[index])) {
+            index++;
+        }
+
+        if (index == 0 || index != trimmed.Length - 1) {
+            return false;
+        }
+
+        return trimmed[index] == '.' || trimmed[index] == ')';
     }
 
     private static string ApplyRegexOutsideFencedCodeBlocks(string input, Regex regex, MatchEvaluator evaluator) {

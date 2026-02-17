@@ -120,7 +120,8 @@ public static class MarkdownRenderer {
             NormalizeInlineCodeSpanLineBreaks = options.NormalizeInlineCodeSpanLineBreaks,
             NormalizeEscapedInlineCodeSpans = options.NormalizeEscapedInlineCodeSpans,
             NormalizeTightStrongBoundaries = options.NormalizeTightStrongBoundaries,
-            NormalizeLooseStrongDelimiters = options.NormalizeLooseStrongDelimiters
+            NormalizeLooseStrongDelimiters = options.NormalizeLooseStrongDelimiters,
+            NormalizeOrderedListMarkerSpacing = options.NormalizeOrderedListMarkerSpacing
         });
 
         var pre = options.MarkdownPreProcessors;
