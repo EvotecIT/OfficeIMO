@@ -112,4 +112,40 @@ Status **Healthy**next
         Assert.Contains("Use \\`/act act_001\\`", parsed, StringComparison.Ordinal);
         Assert.Contains("Status **Healthy**next", parsed, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Reader_Can_Normalize_OrderedListMarkerSpacing_BeforeParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeOrderedListMarkerSpacing = true,
+                NormalizeLooseStrongDelimiters = true
+            }
+        };
+
+        var markdown = """
+1. **Privilege hygiene sweep**(Domain Admins + other privileged groups)
+2.** Delegation risk audit**(unconstrained / constrained / protocol transition)
+3.** Replication + DC health snapshot** (stale links, failing partners)
+""";
+
+        var html = MarkdownReader.Parse(markdown, options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Equal(3, Count(html, "<li"));
+        Assert.Contains("<strong>Delegation risk audit</strong>", html, StringComparison.Ordinal);
+        Assert.Contains("<strong>Replication + DC health snapshot</strong>", html, StringComparison.Ordinal);
+    }
+
+    private static int Count(string value, string token) {
+        if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(token)) return 0;
+
+        int index = 0;
+        int count = 0;
+        while ((index = value.IndexOf(token, index, StringComparison.Ordinal)) >= 0) {
+            count++;
+            index += token.Length;
+        }
+
+        return count;
+    }
 }

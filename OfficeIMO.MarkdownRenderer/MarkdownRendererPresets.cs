@@ -34,6 +34,7 @@ public static class MarkdownRendererPresets {
         o.NormalizeEscapedInlineCodeSpans = true;
         o.NormalizeTightStrongBoundaries = true;
         o.NormalizeLooseStrongDelimiters = true;
+        o.NormalizeOrderedListMarkerSpacing = true;
 
         o.HtmlOptions.RawHtmlHandling = RawHtmlHandling.Strip;
         o.HtmlOptions.ExternalLinksTargetBlank = true;
