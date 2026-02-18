@@ -202,6 +202,20 @@ Top-IDs(AD1/AD2)
     }
 
     [Fact]
+    public void Normalize_TightParentheticalSpacing_DoesNotChangeInlineCodeSpans() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeTightParentheticalSpacing = true
+        };
+
+        var markdown = "Use `Get-ADUser(SIDHistory)` and **Deleted object remnants**(SID left in ACL path)";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Contains("`Get-ADUser(SIDHistory)`", normalized, StringComparison.Ordinal);
+        Assert.DoesNotContain("`Get-ADUser (SIDHistory)`", normalized, StringComparison.Ordinal);
+        Assert.Contains("**Deleted object remnants** (SID left in ACL path)", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Normalize_OrderedListParenAndParentheticalSpacing_DoesNotChangeFencedCodeBlocks() {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeOrderedListParenMarkers = true,

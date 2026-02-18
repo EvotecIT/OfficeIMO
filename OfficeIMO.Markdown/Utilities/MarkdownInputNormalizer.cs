@@ -185,7 +185,11 @@ public static class MarkdownInputNormalizer {
         }
 
         if (options.NormalizeTightParentheticalSpacing) {
-            value = ApplyRegexOutsideFencedCodeBlocks(value, TightParentheticalSpacingRegex, static _ => " (");
+            value = ApplyRegexOutsideFencedCodeBlocks(
+                value,
+                TightParentheticalSpacingRegex,
+                static _ => " (",
+                preserveInlineCodeSpans: true);
         }
 
         if (options.NormalizeInlineCodeSpanLineBreaks) {
@@ -255,7 +259,11 @@ public static class MarkdownInputNormalizer {
         return trimmed[index] == '.' || trimmed[index] == ')';
     }
 
-    private static string ApplyRegexOutsideFencedCodeBlocks(string input, Regex regex, MatchEvaluator evaluator) {
+    private static string ApplyRegexOutsideFencedCodeBlocks(
+        string input,
+        Regex regex,
+        MatchEvaluator evaluator,
+        bool preserveInlineCodeSpans = false) {
         if (string.IsNullOrEmpty(input)) {
             return input ?? string.Empty;
         }
@@ -288,7 +296,7 @@ public static class MarkdownInputNormalizer {
 
             if (MarkdownFence.TryReadFenceRun(line, out var runMarker, out var runLength, out var runSuffix)) {
                 if (!inFence) {
-                    FlushOutsideSegment(output, outsideSegment, regex, evaluator);
+                    FlushOutsideSegment(output, outsideSegment, regex, evaluator, preserveInlineCodeSpans);
                     inFence = true;
                     fenceMarker = runMarker;
                     fenceRunLength = runLength;
@@ -312,16 +320,53 @@ public static class MarkdownInputNormalizer {
             }
         }
 
-        FlushOutsideSegment(output, outsideSegment, regex, evaluator);
+        FlushOutsideSegment(output, outsideSegment, regex, evaluator, preserveInlineCodeSpans);
         return output.ToString();
     }
 
-    private static void FlushOutsideSegment(StringBuilder output, StringBuilder outsideSegment, Regex regex, MatchEvaluator evaluator) {
+    private static void FlushOutsideSegment(
+        StringBuilder output,
+        StringBuilder outsideSegment,
+        Regex regex,
+        MatchEvaluator evaluator,
+        bool preserveInlineCodeSpans) {
         if (outsideSegment.Length == 0) {
             return;
         }
 
-        output.Append(regex.Replace(outsideSegment.ToString(), evaluator));
+        var segment = outsideSegment.ToString();
+        output.Append(preserveInlineCodeSpans
+            ? ReplaceOutsideInlineCodeSpans(segment, regex, evaluator)
+            : regex.Replace(segment, evaluator));
         outsideSegment.Clear();
+    }
+
+    private static string ReplaceOutsideInlineCodeSpans(string value, Regex regex, MatchEvaluator evaluator) {
+        if (string.IsNullOrEmpty(value) || value.IndexOf('`') < 0) {
+            return regex.Replace(value ?? string.Empty, evaluator);
+        }
+
+        var matches = InlineCodeSpanRegex.Matches(value);
+        if (matches.Count == 0) {
+            return regex.Replace(value, evaluator);
+        }
+
+        var output = new StringBuilder(value.Length);
+        var cursor = 0;
+        for (var i = 0; i < matches.Count; i++) {
+            var code = matches[i];
+            if (code.Index > cursor) {
+                output.Append(regex.Replace(value.Substring(cursor, code.Index - cursor), evaluator));
+            }
+
+            output.Append(code.Value);
+            cursor = code.Index + code.Length;
+        }
+
+        if (cursor < value.Length) {
+            output.Append(regex.Replace(value.Substring(cursor), evaluator));
+        }
+
+        return output.ToString();
     }
 }

@@ -259,6 +259,18 @@ x^2 + 1
     }
 
     [Fact]
+    public void MarkdownRenderer_DoesNot_Normalize_TightParentheticalSpacing_InsideInlineCode() {
+        var opts = new MarkdownRendererOptions {
+            NormalizeTightParentheticalSpacing = true
+        };
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("Use `Get-ADUser(SIDHistory)` and **Deleted object remnants**(SID left in ACL path)", opts);
+        Assert.Contains("<code>Get-ADUser(SIDHistory)</code>", htmlOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("<code>Get-ADUser (SIDHistory)</code>", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("<strong>Deleted object remnants</strong> (SID left in ACL path)", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Can_Apply_Markdown_PreProcessors() {
         var opts = new MarkdownRendererOptions();
         opts.MarkdownPreProcessors.Add((markdown, _) => markdown.Replace("{{name}}", "IntelligenceX"));
@@ -270,7 +282,7 @@ x^2 + 1
     [Fact]
     public void MarkdownRenderer_ChatStrictPreset_Enables_Text_Normalization() {
         var opts = MarkdownRendererPresets.CreateChatStrictMinimal();
-        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("**Status\nHEALTHY**\n\n`a\nb`\n\nUse \\`/act act_001\\`.\n\nStatus **Healthy**next\n\ncheck ** LDAP/Kerberos health on all DCs** next\n\n- Signal **Current comparison used **System** log only.**\n\n1) First check\n2.^ **Delegation risk audit**\n3. **Deleted object remnants**(SID left in ACL path)", opts);
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("**Status\nHEALTHY**\n\n`a\nb`\n\nUse \\`/act act_001\\`.\n\nStatus **Healthy**next\n\ncheck ** LDAP/Kerberos health on all DCs** next\n\n- Signal **Current comparison used **System** log only.**\n\n1) First check\n2.^ **Delegation risk audit**\n3. **Deleted object remnants**(SID left in ACL path)\n\nCommand: `Get-ADUser(SIDHistory)`", opts);
 
         Assert.Contains("Status HEALTHY", htmlOut, StringComparison.Ordinal);
         Assert.Contains("a b", htmlOut, StringComparison.Ordinal);
@@ -281,6 +293,8 @@ x^2 + 1
         Assert.Contains("<li>First check</li>", htmlOut, StringComparison.Ordinal);
         Assert.Contains("<strong>Delegation risk audit</strong>", htmlOut, StringComparison.Ordinal);
         Assert.Contains("<strong>Deleted object remnants</strong> (SID left in ACL path)", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("<code>Get-ADUser(SIDHistory)</code>", htmlOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("<code>Get-ADUser (SIDHistory)</code>", htmlOut, StringComparison.Ordinal);
         Assert.DoesNotContain("used **System** log only.**", htmlOut, StringComparison.Ordinal);
     }
 
