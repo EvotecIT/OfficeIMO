@@ -4,7 +4,7 @@
     <Description>Zero‑dependency PDF builder for .NET with a fluent API inspired by OfficeIMO.Markdown. Generates basic PDF files using standard 14 fonts (no external libraries).</Description>
     <AssemblyName>OfficeIMO.Pdf</AssemblyName>
     <AssemblyTitle>OfficeIMO.Pdf</AssemblyTitle>
-    <VersionPrefix>0.1.4</VersionPrefix>
+    <VersionPrefix>0.1.5</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
