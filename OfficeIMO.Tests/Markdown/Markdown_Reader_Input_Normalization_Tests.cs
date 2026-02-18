@@ -173,6 +173,22 @@ Status **Healthy**next
     }
 
     [Fact]
+    public void Reader_DoesNot_Normalize_TightParentheticalSpacing_InsideInlineCode() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeTightParentheticalSpacing = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("Use `Get-ADUser(SIDHistory)` and **Deleted object remnants**(SID left in ACL path)", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<code>Get-ADUser(SIDHistory)</code>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<code>Get-ADUser (SIDHistory)</code>", html, StringComparison.Ordinal);
+        Assert.Contains("<strong>Deleted object remnants</strong> (SID left in ACL path)", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_Can_Normalize_NestedStrongDelimiters_BeforeParsing() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
