@@ -161,6 +161,67 @@ check ** LDAP/Kerberos health on all DCs** next
     }
 
     [Fact]
+    public void Normalize_OrderedListParenMarkers_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeOrderedListParenMarkers = true
+        };
+
+        var markdown = "1)First check\n2)   Second check";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal("1. First check\n2. Second check", normalized);
+    }
+
+    [Fact]
+    public void Normalize_OrderedListCaretArtifacts_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeOrderedListCaretArtifacts = true
+        };
+
+        var markdown = "1. ^ **Privilege hygiene sweep**\n2.^ **Delegation risk audit**";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal("1. **Privilege hygiene sweep**\n2. **Delegation risk audit**", normalized);
+    }
+
+    [Fact]
+    public void Normalize_TightParentheticalSpacing_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeTightParentheticalSpacing = true
+        };
+
+        var markdown = """
+1. **Deleted object remnants**(SID left in ACL path)
+Top-IDs(AD1/AD2)
+""";
+
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Contains("**Deleted object remnants** (SID left in ACL path)", normalized, StringComparison.Ordinal);
+        Assert.Contains("Top-IDs (AD1/AD2)", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Normalize_OrderedListParenAndParentheticalSpacing_DoesNotChangeFencedCodeBlocks() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeOrderedListParenMarkers = true,
+            NormalizeOrderedListCaretArtifacts = true,
+            NormalizeTightParentheticalSpacing = true
+        };
+
+        var markdown = """
+```text
+1)First check
+2.^ **Delegation risk audit**
+3. **Deleted object remnants**(SID left in ACL path)
+```
+""";
+
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+        Assert.Equal(markdown, normalized);
+    }
+
+    [Fact]
     public void Normalize_SoftWrappedStrong_DoesNotCollapse_OrderedListBoundaries() {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeSoftWrappedStrongSpans = true,
@@ -177,5 +238,33 @@ check ** LDAP/Kerberos health on all DCs** next
         Assert.Contains("\n2. ** Delegation risk audit**", normalized, StringComparison.Ordinal);
         Assert.Contains("\n3. ** Replication + DC health snapshot**", normalized, StringComparison.Ordinal);
         Assert.DoesNotContain("groups) 2.", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Normalize_NestedStrongDelimiters_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeNestedStrongDelimiters = true
+        };
+
+        var markdown = "- Signal **AD1 has very high `7034/7023` volume, mostly from **Service Control Manager**.**";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal("- Signal **AD1 has very high `7034/7023` volume, mostly from Service Control Manager.**", normalized);
+    }
+
+    [Fact]
+    public void Normalize_NestedStrongDelimiters_DoesNotChangeFencedCodeBlocks() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeNestedStrongDelimiters = true
+        };
+
+        var markdown = """
+```text
+- Signal **AD1 has very high `7034/7023` volume, mostly from **Service Control Manager**.**
+```
+""";
+
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+        Assert.Equal(markdown, normalized);
     }
 }

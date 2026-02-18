@@ -228,6 +228,37 @@ x^2 + 1
     }
 
     [Fact]
+    public void MarkdownRenderer_Normalizes_NestedStrongDelimiters_When_Enabled() {
+        var opts = new MarkdownRendererOptions {
+            NormalizeNestedStrongDelimiters = true
+        };
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("- Signal **Current comparison used **System** log only.**", opts);
+        Assert.Contains("<strong>Current comparison used System log only.</strong>", htmlOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("used **System** log only.**", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Normalizes_OrderedListParenCaretAndParentheticalSpacing_When_Enabled() {
+        var opts = new MarkdownRendererOptions {
+            NormalizeOrderedListParenMarkers = true,
+            NormalizeOrderedListCaretArtifacts = true,
+            NormalizeTightParentheticalSpacing = true
+        };
+
+        var markdown = """
+1) First check
+2.^ **Delegation risk audit**
+3. **Deleted object remnants**(SID left in ACL path)
+""";
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, opts);
+        Assert.Equal(3, Count(htmlOut, "<li"));
+        Assert.Contains("<strong>Delegation risk audit</strong>", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("<strong>Deleted object remnants</strong> (SID left in ACL path)", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Can_Apply_Markdown_PreProcessors() {
         var opts = new MarkdownRendererOptions();
         opts.MarkdownPreProcessors.Add((markdown, _) => markdown.Replace("{{name}}", "IntelligenceX"));
@@ -239,13 +270,18 @@ x^2 + 1
     [Fact]
     public void MarkdownRenderer_ChatStrictPreset_Enables_Text_Normalization() {
         var opts = MarkdownRendererPresets.CreateChatStrictMinimal();
-        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("**Status\nHEALTHY**\n\n`a\nb`\n\nUse \\`/act act_001\\`.\n\nStatus **Healthy**next\n\ncheck ** LDAP/Kerberos health on all DCs** next", opts);
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("**Status\nHEALTHY**\n\n`a\nb`\n\nUse \\`/act act_001\\`.\n\nStatus **Healthy**next\n\ncheck ** LDAP/Kerberos health on all DCs** next\n\n- Signal **Current comparison used **System** log only.**\n\n1) First check\n2.^ **Delegation risk audit**\n3. **Deleted object remnants**(SID left in ACL path)", opts);
 
         Assert.Contains("Status HEALTHY", htmlOut, StringComparison.Ordinal);
         Assert.Contains("a b", htmlOut, StringComparison.Ordinal);
         Assert.Contains("<code>/act act_001</code>", htmlOut, StringComparison.Ordinal);
         Assert.Contains("<strong>Healthy</strong> next", htmlOut, StringComparison.Ordinal);
         Assert.Contains("<strong>LDAP/Kerberos health on all DCs</strong> next", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("Current comparison used System log only.", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("<li>First check</li>", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("<strong>Delegation risk audit</strong>", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("<strong>Deleted object remnants</strong> (SID left in ACL path)", htmlOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("used **System** log only.**", htmlOut, StringComparison.Ordinal);
     }
 
     [Fact]

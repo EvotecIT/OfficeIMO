@@ -46,6 +46,33 @@ public sealed class MarkdownInputNormalizationOptions {
     /// Default: false.
     /// </summary>
     public bool NormalizeOrderedListMarkerSpacing { get; set; } = false;
+
+    /// <summary>
+    /// When true, converts ordered list markers in <c>1)</c> form to <c>1.</c> with normalized spacing.
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeOrderedListParenMarkers { get; set; } = false;
+
+    /// <summary>
+    /// When true, removes stray caret artifacts after ordered list markers
+    /// (for example, <c>2.^ **Task**</c> becomes <c>2. **Task**</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeOrderedListCaretArtifacts { get; set; } = false;
+
+    /// <summary>
+    /// When true, inserts a missing space before parenthetical phrases adjacent to prose or strong spans
+    /// (for example, <c>**Task**(detail)</c> becomes <c>**Task** (detail)</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeTightParentheticalSpacing { get; set; } = false;
+
+    /// <summary>
+    /// When true, flattens malformed nested strong delimiters emitted by some model outputs
+    /// (for example, <c>**from **Service Control Manager**.**</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeNestedStrongDelimiters { get; set; } = false;
 }
 
 /// <summary>
@@ -75,6 +102,22 @@ public static class MarkdownInputNormalizer {
     private static readonly Regex OrderedListMarkerMissingSpaceRegex = new Regex(
         @"^(?<prefix>[ \t]{0,3}\d+[.)])(?=[*_`\[])",
         RegexOptions.CultureInvariant | RegexOptions.Compiled | RegexOptions.Multiline);
+
+    private static readonly Regex OrderedListParenMarkerRegex = new Regex(
+        @"^(?<indent>[ \t]{0,3})(?<num>\d+)\)\s*(?=\S)",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled | RegexOptions.Multiline);
+
+    private static readonly Regex OrderedListCaretArtifactRegex = new Regex(
+        @"^(?<lead>[ \t]{0,3}\d+\.)\s*\^\s*",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled | RegexOptions.Multiline);
+
+    private static readonly Regex TightParentheticalSpacingRegex = new Regex(
+        @"(?:(?<=\*\*)|(?<=[\p{L}\p{N}\)]))\((?=[\p{L}][^\r\n)]*\))",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex NestedStrongSpanRegex = new Regex(
+        @"(?<!\S)\*\*(?<left>[^*\r\n]{6,}?\s)\*\*(?<inner>[A-Za-z0-9`][^*:\r\n]*?)\*\*(?<right>[^*\r\n]*?)\*\*",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     /// <summary>
     /// Normalizes markdown text based on <paramref name="options"/>.
@@ -109,6 +152,10 @@ public static class MarkdownInputNormalizer {
             });
         }
 
+        if (options.NormalizeNestedStrongDelimiters) {
+            value = FlattenNestedStrongSpansOutsideFencedCodeBlocks(value);
+        }
+
         if (options.NormalizeLooseStrongDelimiters) {
             value = ApplyRegexOutsideFencedCodeBlocks(value, LooseStrongDelimiterWhitespaceRegex, static match => {
                 var inner = match.Groups["inner"].Value;
@@ -127,6 +174,18 @@ public static class MarkdownInputNormalizer {
 
         if (options.NormalizeOrderedListMarkerSpacing) {
             value = ApplyRegexOutsideFencedCodeBlocks(value, OrderedListMarkerMissingSpaceRegex, static match => match.Groups["prefix"].Value + " ");
+        }
+
+        if (options.NormalizeOrderedListParenMarkers) {
+            value = ApplyRegexOutsideFencedCodeBlocks(value, OrderedListParenMarkerRegex, static match => match.Groups["indent"].Value + match.Groups["num"].Value + ". ");
+        }
+
+        if (options.NormalizeOrderedListCaretArtifacts) {
+            value = ApplyRegexOutsideFencedCodeBlocks(value, OrderedListCaretArtifactRegex, static match => match.Groups["lead"].Value + " ");
+        }
+
+        if (options.NormalizeTightParentheticalSpacing) {
+            value = ApplyRegexOutsideFencedCodeBlocks(value, TightParentheticalSpacingRegex, static _ => " (");
         }
 
         if (options.NormalizeInlineCodeSpanLineBreaks) {
@@ -152,6 +211,26 @@ public static class MarkdownInputNormalizer {
         }
 
         return value;
+    }
+
+    private static string FlattenNestedStrongSpansOutsideFencedCodeBlocks(string value) {
+        var current = value ?? string.Empty;
+        while (true) {
+            var flattened = ApplyRegexOutsideFencedCodeBlocks(
+                current,
+                NestedStrongSpanRegex,
+                static match =>
+                    "**"
+                    + match.Groups["left"].Value
+                    + match.Groups["inner"].Value
+                    + match.Groups["right"].Value
+                    + "**");
+            if (flattened == current) {
+                return flattened;
+            }
+
+            current = flattened;
+        }
     }
 
     private static bool LooksLikeOrderedListMarkerFragment(string value) {

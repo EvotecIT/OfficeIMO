@@ -35,6 +35,10 @@ public static class MarkdownRendererPresets {
         o.NormalizeTightStrongBoundaries = true;
         o.NormalizeLooseStrongDelimiters = true;
         o.NormalizeOrderedListMarkerSpacing = true;
+        o.NormalizeOrderedListParenMarkers = true;
+        o.NormalizeOrderedListCaretArtifacts = true;
+        o.NormalizeTightParentheticalSpacing = true;
+        o.NormalizeNestedStrongDelimiters = true;
 
         o.HtmlOptions.RawHtmlHandling = RawHtmlHandling.Strip;
         o.HtmlOptions.ExternalLinksTargetBlank = true;
