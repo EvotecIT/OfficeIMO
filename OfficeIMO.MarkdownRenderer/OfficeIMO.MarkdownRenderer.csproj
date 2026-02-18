@@ -4,7 +4,7 @@
     <Description>WebView-friendly Markdown rendering helpers (shell + incremental updates) built on OfficeIMO.Markdown.</Description>
     <AssemblyName>OfficeIMO.MarkdownRenderer</AssemblyName>
     <AssemblyTitle>OfficeIMO.MarkdownRenderer</AssemblyTitle>
-    <VersionPrefix>0.1.5</VersionPrefix>
+    <VersionPrefix>0.1.6</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
       $(TargetFrameworks);net472

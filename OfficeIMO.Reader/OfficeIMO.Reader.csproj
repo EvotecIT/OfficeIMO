@@ -3,7 +3,7 @@
     <Description>Unified, read-only document extraction facade for OfficeIMO (Word/Excel/PowerPoint/Markdown/PDF) intended for AI ingestion.</Description>
     <AssemblyName>OfficeIMO.Reader</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader</AssemblyTitle>
-    <VersionPrefix>0.1.3</VersionPrefix>
+    <VersionPrefix>0.1.4</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
