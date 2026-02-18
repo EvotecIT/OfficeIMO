@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFrameworks>net9.0;net8.0</TargetFrameworks>
+        <TargetFrameworks>net10.0;net8.0</TargetFrameworks>
         <LangVersion>Latest</LangVersion>
         <Nullable>enable</Nullable>
         <VersionPrefix>1.0.7</VersionPrefix>

@@ -42,9 +42,11 @@ jobs:
 
       - name: Setup .NET SDK
         if: matrix.build-mode == 'manual'
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x' # Change to '8.0.x' if targeting .NET 8
+          dotnet-version: |
+            8.0.x
+            10.0.x
 
       - name: Cache NuGet packages
         if: matrix.build-mode == 'manual'

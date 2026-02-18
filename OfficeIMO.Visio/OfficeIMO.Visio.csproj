@@ -7,7 +7,7 @@
         <AssemblyTitle>OfficeIMO.Visio</AssemblyTitle>
 
         <VersionPrefix>1.0.7</VersionPrefix>
-        <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
+        <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472</TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>

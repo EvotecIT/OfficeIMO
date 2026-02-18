@@ -20,8 +20,8 @@ on:
 
 env:
   DOTNET_VERSION: |
-    8.x
-    9.0.x
+    8.0.x
+    10.0.x
   BUILD_CONFIGURATION: 'Release'
   TEST_VERBOSITY: minimal # set to 'detailed' to restore full test output
   SUMMARIZE_FAILURES: true # set to 'false' to disable summarizing failing tests
@@ -171,7 +171,7 @@ jobs:
       - name: Run tests
         run: |
           dotnet test OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework net8.0 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
-          dotnet test OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework net9.0 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
+          dotnet test OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework net10.0 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
 
       - name: Summarize failing tests
         if: failure() && env.SUMMARIZE_FAILURES == 'true'
@@ -250,7 +250,7 @@ jobs:
       - name: Run tests
         run: |
           dotnet test OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework net8.0 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
-          dotnet test OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework net9.0 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
+          dotnet test OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework net10.0 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
 
       - name: Summarize failing tests
         if: failure() && env.SUMMARIZE_FAILURES == 'true'
@@ -326,6 +326,6 @@ jobs:
       - name: Run AOT/Trim analyzers (net8.0)
         run: dotnet build OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true -p:TargetFramework=net8.0
 
-      - name: Run AOT/Trim analyzers (net9.0)
-        run: dotnet build OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true -p:TargetFramework=net9.0
+      - name: Run AOT/Trim analyzers (net10.0)
+        run: dotnet build OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true -p:TargetFramework=net10.0
 

@@ -6,13 +6,13 @@
     <AssemblyTitle>OfficeIMO.CSV</AssemblyTitle>
 
     <VersionPrefix>0.1.10</VersionPrefix>
-    <TargetFrameworks>netstandard2.0;net8.0;net9.0;net472</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0;net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
 
     <PackageId>OfficeIMO.CSV</PackageId>
-    <PackageTags>csv;document;netstandard2.0;net8.0;net9.0;aot;fluent</PackageTags>
+    <PackageTags>csv;document;netstandard2.0;net8.0;net10.0;aot;fluent</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <DelaySign>False</DelaySign>
