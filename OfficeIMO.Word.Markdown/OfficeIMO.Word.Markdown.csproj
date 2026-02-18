@@ -4,13 +4,13 @@
     <AssemblyName>OfficeIMO.Word.Markdown</AssemblyName>
     <AssemblyTitle>OfficeIMO.Word.Markdown</AssemblyTitle>
     <VersionPrefix>1.0.4</VersionPrefix>
-    <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Word.Markdown</PackageId>
-    <PackageTags>markdown;openxml;office;docx;net472;net8.0;net9.0</PackageTags>
+    <PackageTags>markdown;openxml;office;docx;net472;net8.0;net10.0</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <DelaySign>False</DelaySign>
