@@ -323,6 +323,8 @@ namespace OfficeIMO.Word.Pdf {
                     EmbedFont(fam);
                     span = span.FontFamily(fam);
                 }
+                if (run.FontSize != null)
+                    span.FontSize(run.FontSize.Value);
                 if (!string.IsNullOrEmpty(run.ColorHex)) span = span.FontColor("#" + run.ColorHex);
                 var hl = MapHighlight(run.Highlight);
                 if (!string.IsNullOrEmpty(hl)) span = span.BackgroundColor(hl!);
