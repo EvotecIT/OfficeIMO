@@ -98,6 +98,33 @@ public sealed class MarkdownRendererOptions {
     public bool NormalizeOrderedListMarkerSpacing { get; set; } = false;
 
     /// <summary>
+    /// When true, converts ordered list markers in <c>1)</c> form to <c>1.</c> with normalized spacing.
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeOrderedListParenMarkers { get; set; } = false;
+
+    /// <summary>
+    /// When true, removes stray caret artifacts after ordered list markers
+    /// (for example, <c>2.^ **Task**</c> -> <c>2. **Task**</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeOrderedListCaretArtifacts { get; set; } = false;
+
+    /// <summary>
+    /// When true, inserts a missing space before parenthetical phrases adjacent to prose or strong spans
+    /// (for example, <c>**Task**(detail)</c> -> <c>**Task** (detail)</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeTightParentheticalSpacing { get; set; } = false;
+
+    /// <summary>
+    /// When true, flattens malformed nested strong delimiters emitted by some model outputs
+    /// (for example, <c>**from **Service Control Manager**.**</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeNestedStrongDelimiters { get; set; } = false;
+
+    /// <summary>
     /// Optional markdown pre-processors applied before parsing.
     /// These run after escaped newline normalization and after built-in text normalization.
     /// Default: none.

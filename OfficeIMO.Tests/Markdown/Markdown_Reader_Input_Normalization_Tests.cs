@@ -136,6 +136,57 @@ Status **Healthy**next
         Assert.Contains("<strong>Replication + DC health snapshot</strong>", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Reader_Can_Normalize_OrderedListParenAndCaretArtifacts_BeforeParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeOrderedListParenMarkers = true,
+                NormalizeOrderedListCaretArtifacts = true
+            }
+        };
+
+        var markdown = """
+1) First check
+2.^ **Delegation risk audit**
+""";
+
+        var html = MarkdownReader.Parse(markdown, options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Equal(2, Count(html, "<li"));
+        Assert.Contains("First check", html, StringComparison.Ordinal);
+        Assert.Contains("<strong>Delegation risk audit</strong>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reader_Can_Normalize_TightParentheticalSpacing_BeforeParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeTightParentheticalSpacing = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("1. **Deleted object remnants**(SID left in ACL path)", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<strong>Deleted object remnants</strong> (SID left in ACL path)", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reader_Can_Normalize_NestedStrongDelimiters_BeforeParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeNestedStrongDelimiters = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("- Signal **Current comparison used **System** log only.**", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<strong>Current comparison used System log only.</strong>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("used **System** log only.**", html, StringComparison.Ordinal);
+    }
+
     private static int Count(string value, string token) {
         if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(token)) return 0;
 
