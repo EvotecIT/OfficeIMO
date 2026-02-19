@@ -255,6 +255,23 @@ Top-IDs(AD1/AD2)
     }
 
     [Fact]
+    public void Normalize_SoftWrappedStrong_DoesNotCollapse_UnorderedListBoundaries() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeSoftWrappedStrongSpans = true
+        };
+
+        var markdown = """
+- **AD1:** 875 Events  
+- **AD2:** 353 Events
+""";
+
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+        Assert.Contains("- **AD1:** 875 Events", normalized, StringComparison.Ordinal);
+        Assert.Contains("\n- **AD2:** 353 Events", normalized, StringComparison.Ordinal);
+        Assert.DoesNotContain("Events -** AD2:**", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Normalize_NestedStrongDelimiters_WhenEnabled() {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeNestedStrongDelimiters = true
