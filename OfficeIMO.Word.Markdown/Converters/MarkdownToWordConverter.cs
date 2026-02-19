@@ -210,6 +210,37 @@ namespace OfficeIMO.Word.Markdown {
                 case Omd.HorizontalRuleBlock:
                     document.AddHorizontalLine();
                     break;
+                case Omd.DefinitionListBlock dl:
+                    foreach (var (term, definition) in dl.Items) {
+                        if (string.IsNullOrWhiteSpace(term) && string.IsNullOrWhiteSpace(definition)) {
+                            continue;
+                        }
+
+                        var para = document.AddParagraph(string.Empty);
+                        if (quoteDepth > 0) {
+                            para.IndentationBefore = IndentTwipsPerLevel * quoteDepth;
+                        }
+
+                        bool wroteTerm = false;
+                        if (!string.IsNullOrWhiteSpace(term)) {
+                            var termInlines = Omd.MarkdownReader.ParseInlineText(term);
+                            ProcessInlinesOmd(termInlines, para, options, document, _currentFootnotes);
+                            wroteTerm = true;
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(definition)) {
+                            if (wroteTerm) {
+                                var separator = para.AddText(": ");
+                                if (!string.IsNullOrEmpty(options.FontFamily)) {
+                                    separator.SetFontFamily(options.FontFamily!);
+                                }
+                            }
+
+                            var definitionInlines = Omd.MarkdownReader.ParseInlineText(definition);
+                            ProcessInlinesOmd(definitionInlines, para, options, document, _currentFootnotes);
+                        }
+                    }
+                    break;
                 case Omd.QuoteBlock qb:
                     foreach (var child in qb.Children) ProcessBlockOmd(child, document, options, null, 0, quoteDepth + 1);
                     break;
