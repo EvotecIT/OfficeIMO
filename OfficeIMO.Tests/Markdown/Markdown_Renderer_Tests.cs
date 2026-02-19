@@ -314,6 +314,24 @@ x^2 + 1
     }
 
     [Fact]
+    public void MarkdownRenderer_ChatStrictPreset_DoesNotCollapse_Adjacent_UnorderedListItems_WithStrongLabels() {
+        var opts = MarkdownRendererPresets.CreateChatStrictMinimal();
+        var markdown = """
+- **AD1:** 875 Events  
+- **AD2:** 353 Events
+
+Top-IDs:
+- **AD1:** `7034` (666), `7023` (97), `10010` (95)
+- **AD2:** `1801` (162), `36874` (67)
+""";
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, opts);
+        Assert.Equal(4, Count(htmlOut, "<li"));
+        Assert.DoesNotContain("-** AD2:**", htmlOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("<dl>", htmlOut, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Allows_SameOrigin_Absolute_Http_Images_When_BaseHref_Is_Set() {
         var opts = new MarkdownRendererOptions { BaseHref = "https://example.com/" };
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("![alt](https://example.com/a.png)", opts);

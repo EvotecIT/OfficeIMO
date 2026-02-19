@@ -144,7 +144,7 @@ public static class MarkdownInputNormalizer {
                 // Avoid collapsing list boundaries such as:
                 // **First item text**
                 // 2.** Second item**
-                if (LooksLikeOrderedListMarkerFragment(right)) {
+                if (LooksLikeListMarkerFragment(right)) {
                     return match.Value;
                 }
 
@@ -237,16 +237,35 @@ public static class MarkdownInputNormalizer {
         }
     }
 
-    private static bool LooksLikeOrderedListMarkerFragment(string value) {
+    private static bool LooksLikeListMarkerFragment(string value) {
         if (string.IsNullOrWhiteSpace(value)) {
             return false;
         }
 
-        var trimmed = value.Trim();
+        var leading = value.TrimStart();
+        if (leading.Length == 0) {
+            return false;
+        }
+
+        // Unordered list boundaries captured as right-side fragments after a newline.
+        // Example captured values: "- ", "-  ", "-".
+        if (leading[0] == '-' || leading[0] == '*' || leading[0] == '+') {
+            if (leading.Length == 1) {
+                return true;
+            }
+
+            var next = leading[1];
+            if (char.IsWhiteSpace(next) || next == '*' || next == '`') {
+                return true;
+            }
+        }
+
+        var trimmed = leading.Trim();
         if (trimmed.Length < 2) {
             return false;
         }
 
+        // Ordered list boundaries (for example, "2.** ...", "2) ...").
         int index = 0;
         while (index < trimmed.Length && char.IsDigit(trimmed[index])) {
             index++;

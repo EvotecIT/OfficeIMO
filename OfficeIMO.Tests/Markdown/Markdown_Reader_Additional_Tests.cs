@@ -211,6 +211,18 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Unordered_List_Item_With_Colon_Is_Not_Parsed_As_Definition_List() {
+            string md = """
+- **AD1**: starkes Muster (`7034/7023`).
+- **AD2**: eher Secure-Channel (`3210/1129`).
+""";
+
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Equal(2, list.Items.Count);
+        }
+
+        [Fact]
         public void Backslash_End_Of_Line_Produces_Hard_Break_In_Paragraph() {
             string md = "First\\\nSecond";
             var doc = MarkdownReader.Parse(md);
