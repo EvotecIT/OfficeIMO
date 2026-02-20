@@ -61,6 +61,48 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
+    public void Reader_Can_Normalize_TightArrowStrongBoundaries_BeforeParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeTightArrowStrongBoundaries = true
+            }
+        };
+
+        var markdown = MarkdownReader.Parse("- Signal ->**Why it matters:** coverage is thin", options)
+            .ToMarkdown();
+
+        Assert.Contains("-> **Why it matters:**", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reader_Can_Normalize_TightColonSpacing_Via_Ast() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeTightColonSpacing = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("- Signal **Point-in-time snapshot** -> Why it matters:missing evidence", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("Why it matters: missing evidence", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reader_DoesNot_Normalize_TightColonSpacing_InsideInlineCode() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeTightColonSpacing = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("Use `Why it matters:missing` in tests.", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<code>Why it matters:missing</code>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_Can_Normalize_LooseStrongDelimiters_BeforeParsing() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {

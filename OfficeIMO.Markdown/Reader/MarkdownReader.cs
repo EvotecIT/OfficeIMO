@@ -172,6 +172,8 @@ public static partial class MarkdownReader {
                 NormalizeInlineCodeSpanLineBreaks = source.InputNormalization?.NormalizeInlineCodeSpanLineBreaks ?? false,
                 NormalizeEscapedInlineCodeSpans = source.InputNormalization?.NormalizeEscapedInlineCodeSpans ?? false,
                 NormalizeTightStrongBoundaries = source.InputNormalization?.NormalizeTightStrongBoundaries ?? false,
+                NormalizeTightArrowStrongBoundaries = source.InputNormalization?.NormalizeTightArrowStrongBoundaries ?? false,
+                NormalizeTightColonSpacing = source.InputNormalization?.NormalizeTightColonSpacing ?? false,
                 NormalizeLooseStrongDelimiters = source.InputNormalization?.NormalizeLooseStrongDelimiters ?? false,
                 NormalizeOrderedListMarkerSpacing = source.InputNormalization?.NormalizeOrderedListMarkerSpacing ?? false,
                 NormalizeOrderedListParenMarkers = source.InputNormalization?.NormalizeOrderedListParenMarkers ?? false,
@@ -186,6 +188,7 @@ public static partial class MarkdownReader {
         bool normalizeSoftWrappedStrong = source?.NormalizeSoftWrappedStrongSpans ?? false;
         bool normalizeInlineCodeLineBreaks = source?.NormalizeInlineCodeSpanLineBreaks ?? false;
         bool normalizeLooseStrongDelimiters = source?.NormalizeLooseStrongDelimiters ?? false;
+        bool normalizeTightArrowStrongBoundaries = source?.NormalizeTightArrowStrongBoundaries ?? false;
         bool normalizeOrderedListMarkerSpacing = source?.NormalizeOrderedListMarkerSpacing ?? false;
         bool normalizeOrderedListParenMarkers = source?.NormalizeOrderedListParenMarkers ?? false;
         bool normalizeOrderedListCaretArtifacts = source?.NormalizeOrderedListCaretArtifacts ?? false;
@@ -195,6 +198,7 @@ public static partial class MarkdownReader {
         if (!normalizeSoftWrappedStrong
             && !normalizeInlineCodeLineBreaks
             && !normalizeLooseStrongDelimiters
+            && !normalizeTightArrowStrongBoundaries
             && !normalizeOrderedListMarkerSpacing
             && !normalizeOrderedListParenMarkers
             && !normalizeOrderedListCaretArtifacts
@@ -207,6 +211,7 @@ public static partial class MarkdownReader {
             NormalizeSoftWrappedStrongSpans = normalizeSoftWrappedStrong,
             NormalizeInlineCodeSpanLineBreaks = normalizeInlineCodeLineBreaks,
             NormalizeLooseStrongDelimiters = normalizeLooseStrongDelimiters,
+            NormalizeTightArrowStrongBoundaries = normalizeTightArrowStrongBoundaries,
             NormalizeOrderedListMarkerSpacing = normalizeOrderedListMarkerSpacing,
             NormalizeOrderedListParenMarkers = normalizeOrderedListParenMarkers,
             NormalizeOrderedListCaretArtifacts = normalizeOrderedListCaretArtifacts,

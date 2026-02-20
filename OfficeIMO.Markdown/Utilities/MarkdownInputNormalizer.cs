@@ -34,6 +34,21 @@ public sealed class MarkdownInputNormalizationOptions {
     public bool NormalizeTightStrongBoundaries { get; set; } = false;
 
     /// <summary>
+    /// When true, normalizes compact arrow-to-strong boundaries
+    /// (for example, <c>->**Why it matters:**</c> becomes <c>-> **Why it matters:**</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeTightArrowStrongBoundaries { get; set; } = false;
+
+    /// <summary>
+    /// When true, inserts a missing space after a colon in prose labels
+    /// (for example, <c>Why it matters:missing coverage</c> becomes <c>Why it matters: missing coverage</c>).
+    /// This is applied by AST-level inline normalization and intentionally skips inline code spans.
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeTightColonSpacing { get; set; } = false;
+
+    /// <summary>
     /// When true, trims accidental whitespace immediately inside strong delimiters
     /// (for example, <c>** Healthy**</c> or <c>**Healthy **</c> become <c>**Healthy**</c>).
     /// Default: false.
@@ -93,6 +108,10 @@ public static class MarkdownInputNormalizer {
 
     private static readonly Regex TightStrongSuffixRegex = new Regex(
         @"(\*\*[^\s*\r\n](?:[^*\r\n]*[^\s*\r\n])?\*\*)(?=[\p{L}\p{N}])",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex TightArrowStrongBoundaryRegex = new Regex(
+        @"->\s*(?=\*\*)",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex LooseStrongDelimiterWhitespaceRegex = new Regex(
@@ -170,6 +189,14 @@ public static class MarkdownInputNormalizer {
 
         if (options.NormalizeTightStrongBoundaries) {
             value = ApplyRegexOutsideFencedCodeBlocks(value, TightStrongSuffixRegex, static match => match.Groups[1].Value + " ");
+        }
+
+        if (options.NormalizeTightArrowStrongBoundaries) {
+            value = ApplyRegexOutsideFencedCodeBlocks(
+                value,
+                TightArrowStrongBoundaryRegex,
+                static _ => "-> ",
+                preserveInlineCodeSpans: true);
         }
 
         if (options.NormalizeOrderedListMarkerSpacing) {
