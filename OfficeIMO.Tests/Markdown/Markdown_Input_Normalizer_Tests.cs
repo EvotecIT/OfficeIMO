@@ -53,6 +53,16 @@ public class Markdown_Input_Normalizer_Tests {
     }
 
     [Fact]
+    public void Normalize_TightArrowStrongBoundaries_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeTightArrowStrongBoundaries = true
+        };
+
+        var normalized = MarkdownInputNormalizer.Normalize("Signal ->**Why it matters:**coverage", options);
+        Assert.Equal("Signal -> **Why it matters:**coverage", normalized);
+    }
+
+    [Fact]
     public void Normalize_LooseStrongDelimiters_WhenEnabled() {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeLooseStrongDelimiters = true
@@ -78,13 +88,15 @@ public class Markdown_Input_Normalizer_Tests {
     public void Normalize_DoesNotChangeFencedCodeBlocks_ForEscapedCodeAndStrongSpacing() {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeEscapedInlineCodeSpans = true,
-            NormalizeTightStrongBoundaries = true
+            NormalizeTightStrongBoundaries = true,
+            NormalizeTightArrowStrongBoundaries = true
         };
 
         var markdown = """
 ```text
 Use \`/act act_001\`
 Status **Healthy**next
+Signal ->**Why it matters:**coverage
 ```
 """;
 
