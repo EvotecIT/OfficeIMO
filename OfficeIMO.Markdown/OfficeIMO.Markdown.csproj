@@ -5,7 +5,7 @@
             output. No external dependencies.</Description>
         <AssemblyName>OfficeIMO.Markdown</AssemblyName>
         <AssemblyTitle>OfficeIMO.Markdown</AssemblyTitle>
-        <VersionPrefix>0.5.11</VersionPrefix>
+        <VersionPrefix>0.5.12</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472</TargetFrameworks>
