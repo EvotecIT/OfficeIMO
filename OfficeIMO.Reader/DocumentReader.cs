@@ -9,6 +9,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -33,6 +35,74 @@ public static class DocumentReader {
         ".txt", ".log", ".csv", ".tsv", ".json", ".xml", ".yml", ".yaml"
     };
 
+    private static readonly ReaderHandlerCapability[] BuiltInCapabilities = {
+        new ReaderHandlerCapability {
+            Id = "officeimo.reader.word",
+            DisplayName = "Word Reader",
+            Description = "Built-in Word (.docx/.docm) chunk extractor.",
+            Kind = ReaderInputKind.Word,
+            Extensions = new[] { ".docx", ".docm" },
+            IsBuiltIn = true,
+            SupportsPath = true,
+            SupportsStream = true
+        },
+        new ReaderHandlerCapability {
+            Id = "officeimo.reader.excel",
+            DisplayName = "Excel Reader",
+            Description = "Built-in Excel (.xlsx/.xlsm) table and markdown extractor.",
+            Kind = ReaderInputKind.Excel,
+            Extensions = new[] { ".xlsx", ".xlsm" },
+            IsBuiltIn = true,
+            SupportsPath = true,
+            SupportsStream = true
+        },
+        new ReaderHandlerCapability {
+            Id = "officeimo.reader.powerpoint",
+            DisplayName = "PowerPoint Reader",
+            Description = "Built-in PowerPoint (.pptx/.pptm) slide extractor.",
+            Kind = ReaderInputKind.PowerPoint,
+            Extensions = new[] { ".pptx", ".pptm" },
+            IsBuiltIn = true,
+            SupportsPath = true,
+            SupportsStream = true
+        },
+        new ReaderHandlerCapability {
+            Id = "officeimo.reader.markdown",
+            DisplayName = "Markdown Reader",
+            Description = "Built-in Markdown chunk extractor.",
+            Kind = ReaderInputKind.Markdown,
+            Extensions = new[] { ".md", ".markdown" },
+            IsBuiltIn = true,
+            SupportsPath = true,
+            SupportsStream = true
+        },
+        new ReaderHandlerCapability {
+            Id = "officeimo.reader.pdf",
+            DisplayName = "PDF Reader",
+            Description = "Built-in PDF page extractor.",
+            Kind = ReaderInputKind.Pdf,
+            Extensions = new[] { ".pdf" },
+            IsBuiltIn = true,
+            SupportsPath = true,
+            SupportsStream = true
+        },
+        new ReaderHandlerCapability {
+            Id = "officeimo.reader.text",
+            DisplayName = "Text Reader",
+            Description = "Built-in plain text reader for text-like formats.",
+            Kind = ReaderInputKind.Text,
+            Extensions = new[] { ".txt", ".log", ".csv", ".tsv", ".json", ".xml", ".yml", ".yaml" },
+            IsBuiltIn = true,
+            SupportsPath = true,
+            SupportsStream = true
+        }
+    };
+
+    private static readonly HashSet<string> BuiltInExtensions = BuildBuiltInExtensionSet();
+    private static readonly object HandlerRegistrySync = new object();
+    private static readonly Dictionary<string, CustomReaderHandler> CustomHandlersById = new Dictionary<string, CustomReaderHandler>(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, string> CustomHandlerIdByExtension = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
     private static string? TryGetExtension(string path) {
         if (path == null) return null;
         try {
@@ -45,6 +115,321 @@ public static class DocumentReader {
     }
 
     /// <summary>
+    /// Registers a custom handler for one or more file extensions.
+    /// </summary>
+    /// <param name="registration">Custom handler registration.</param>
+    /// <param name="replaceExisting">
+    /// When true, removes conflicting custom handlers and allows built-in extension overrides.
+    /// </param>
+    public static void RegisterHandler(ReaderHandlerRegistration registration, bool replaceExisting = false) {
+        if (registration == null) throw new ArgumentNullException(nameof(registration));
+
+        var id = (registration.Id ?? string.Empty).Trim();
+        if (id.Length == 0) throw new ArgumentException("Handler Id cannot be empty.", nameof(registration));
+
+        if (registration.ReadPath == null && registration.ReadStream == null) {
+            throw new ArgumentException("Handler must define ReadPath and/or ReadStream.", nameof(registration));
+        }
+        if (registration.DefaultMaxInputBytes.HasValue && registration.DefaultMaxInputBytes.Value < 1) {
+            throw new ArgumentException("DefaultMaxInputBytes must be greater than 0 when specified.", nameof(registration));
+        }
+
+        var normalizedExtensions = NormalizeRegistrationExtensions(registration.Extensions);
+        if (normalizedExtensions.Count == 0) {
+            throw new ArgumentException("Handler must define at least one extension.", nameof(registration));
+        }
+
+        lock (HandlerRegistrySync) {
+            if (!replaceExisting) {
+                if (CustomHandlersById.ContainsKey(id)) {
+                    throw new InvalidOperationException($"Handler '{id}' is already registered.");
+                }
+
+                foreach (var ext in normalizedExtensions) {
+                    if (BuiltInExtensions.Contains(ext)) {
+                        throw new InvalidOperationException($"Extension '{ext}' is handled by a built-in reader. Use replaceExisting=true to override.");
+                    }
+                    if (CustomHandlerIdByExtension.ContainsKey(ext)) {
+                        throw new InvalidOperationException($"Extension '{ext}' is already handled by a custom reader.");
+                    }
+                }
+            } else {
+                var toRemove = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (CustomHandlersById.ContainsKey(id)) {
+                    toRemove.Add(id);
+                }
+                foreach (var ext in normalizedExtensions) {
+                    if (CustomHandlerIdByExtension.TryGetValue(ext, out var existing)) {
+                        toRemove.Add(existing);
+                    }
+                }
+                foreach (var existingId in toRemove) {
+                    RemoveCustomHandlerUnsafe(existingId);
+                }
+            }
+
+            var custom = new CustomReaderHandler(
+                id: id,
+                displayName: string.IsNullOrWhiteSpace(registration.DisplayName) ? id : registration.DisplayName!.Trim(),
+                description: registration.Description,
+                kind: registration.Kind,
+                extensions: normalizedExtensions.ToArray(),
+                defaultMaxInputBytes: registration.DefaultMaxInputBytes,
+                warningBehavior: registration.WarningBehavior,
+                deterministicOutput: registration.DeterministicOutput,
+                readPath: registration.ReadPath,
+                readStream: registration.ReadStream);
+
+            CustomHandlersById[id] = custom;
+            foreach (var ext in custom.Extensions) {
+                CustomHandlerIdByExtension[ext] = custom.Id;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Unregisters a custom handler by identifier.
+    /// </summary>
+    public static bool UnregisterHandler(string handlerId) {
+        if (string.IsNullOrWhiteSpace(handlerId)) return false;
+        lock (HandlerRegistrySync) {
+            return RemoveCustomHandlerUnsafe(handlerId.Trim());
+        }
+    }
+
+    /// <summary>
+    /// Lists built-in and custom reader capabilities for host discovery.
+    /// </summary>
+    public static IReadOnlyList<ReaderHandlerCapability> GetCapabilities(bool includeBuiltIn = true, bool includeCustom = true) {
+        var list = new List<ReaderHandlerCapability>();
+
+        if (includeBuiltIn) {
+            list.AddRange(BuiltInCapabilities.Select(CloneCapability));
+        }
+
+        if (includeCustom) {
+            lock (HandlerRegistrySync) {
+                foreach (var custom in CustomHandlersById.Values.OrderBy(static c => c.Id, StringComparer.Ordinal)) {
+                    list.Add(custom.ToCapability());
+                }
+            }
+        }
+
+        return list
+            .OrderBy(static c => c.IsBuiltIn ? 0 : 1)
+            .ThenBy(static c => c.Id, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    /// <summary>
+    /// Builds a machine-readable capability manifest for host auto-discovery.
+    /// </summary>
+    public static ReaderCapabilityManifest GetCapabilityManifest(bool includeBuiltIn = true, bool includeCustom = true) {
+        var handlers = GetCapabilities(includeBuiltIn, includeCustom)
+            .Select(CloneCapability)
+            .ToArray();
+
+        return new ReaderCapabilityManifest {
+            SchemaId = ReaderCapabilitySchema.Id,
+            SchemaVersion = ReaderCapabilitySchema.Version,
+            Handlers = handlers
+        };
+    }
+
+    /// <summary>
+    /// Builds a JSON capability manifest payload for host auto-discovery.
+    /// </summary>
+    public static string GetCapabilityManifestJson(bool includeBuiltIn = true, bool includeCustom = true, bool indented = false) {
+        var manifest = GetCapabilityManifest(includeBuiltIn, includeCustom);
+        return ReaderCapabilityManifestJson.Serialize(manifest, indented);
+    }
+
+    /// <summary>
+    /// Discovers modular registrar methods in the provided assemblies.
+    /// </summary>
+    public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> DiscoverHandlerRegistrars(IEnumerable<Assembly> assemblies) {
+        var candidates = DiscoverHandlerRegistrarsCore(assemblies);
+        return candidates
+            .Select(static c => CloneRegistrarDescriptor(c.Descriptor))
+            .ToArray();
+    }
+
+    /// <summary>
+    /// Discovers modular registrar methods in the provided assemblies.
+    /// </summary>
+    public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> DiscoverHandlerRegistrars(params Assembly[] assemblies) {
+        return DiscoverHandlerRegistrars((IEnumerable<Assembly>)assemblies);
+    }
+
+    /// <summary>
+    /// Discovers modular registrar methods from currently loaded assemblies
+    /// whose simple name starts with <paramref name="assemblyNamePrefix"/>.
+    /// </summary>
+    /// <param name="assemblyNamePrefix">
+    /// Simple assembly-name prefix filter. Default: <c>OfficeIMO.Reader.</c>.
+    /// </param>
+    public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> DiscoverHandlerRegistrarsFromLoadedAssemblies(string assemblyNamePrefix = "OfficeIMO.Reader.") {
+        var assemblies = GetLoadedAssembliesByPrefix(assemblyNamePrefix);
+        return DiscoverHandlerRegistrars(assemblies);
+    }
+
+    /// <summary>
+    /// Registers modular handlers discovered in the provided assemblies.
+    /// </summary>
+    /// <param name="assemblies">Assemblies to scan for registrar methods.</param>
+    /// <param name="replaceExisting">
+    /// Passed to discovered registrar methods via their <c>replaceExisting</c> parameter when present.
+    /// </param>
+    public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> RegisterHandlersFromAssemblies(IEnumerable<Assembly> assemblies, bool replaceExisting = true) {
+        var candidates = DiscoverHandlerRegistrarsCore(assemblies);
+        var registered = new List<ReaderHandlerRegistrarDescriptor>(candidates.Count);
+
+        foreach (var candidate in candidates) {
+            var parameters = candidate.Method.GetParameters();
+            var args = new object?[parameters.Length];
+            for (int i = 0; i < parameters.Length; i++) {
+                var parameter = parameters[i];
+                if (parameter.ParameterType == typeof(bool) &&
+                    string.Equals(parameter.Name, "replaceExisting", StringComparison.OrdinalIgnoreCase)) {
+                    args[i] = replaceExisting;
+                } else if (parameter.IsOptional) {
+                    args[i] = Type.Missing;
+                } else {
+                    throw new InvalidOperationException(
+                        $"Registrar method '{candidate.Method.DeclaringType?.FullName}.{candidate.Method.Name}' has unsupported non-optional parameter '{parameter.Name}'.");
+                }
+            }
+
+            try {
+                candidate.Method.Invoke(obj: null, parameters: args);
+            } catch (TargetInvocationException ex) when (ex.InnerException != null) {
+                ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                throw;
+            }
+
+            registered.Add(CloneRegistrarDescriptor(candidate.Descriptor));
+        }
+
+        return registered.ToArray();
+    }
+
+    /// <summary>
+    /// Registers modular handlers discovered in the provided assemblies.
+    /// </summary>
+    public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> RegisterHandlersFromAssemblies(bool replaceExisting = true, params Assembly[] assemblies) {
+        return RegisterHandlersFromAssemblies((IEnumerable<Assembly>)assemblies, replaceExisting);
+    }
+
+    /// <summary>
+    /// Registers modular handlers discovered from currently loaded assemblies
+    /// whose simple name starts with <paramref name="assemblyNamePrefix"/>.
+    /// </summary>
+    /// <param name="replaceExisting">
+    /// Passed to discovered registrar methods via their <c>replaceExisting</c> parameter when present.
+    /// </param>
+    /// <param name="assemblyNamePrefix">
+    /// Simple assembly-name prefix filter. Default: <c>OfficeIMO.Reader.</c>.
+    /// </param>
+    public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> RegisterHandlersFromLoadedAssemblies(bool replaceExisting = true, string assemblyNamePrefix = "OfficeIMO.Reader.") {
+        var assemblies = GetLoadedAssembliesByPrefix(assemblyNamePrefix);
+        return RegisterHandlersFromAssemblies(assemblies, replaceExisting);
+    }
+
+    /// <summary>
+    /// Host bootstrap helper that registers modular handlers from the provided assemblies
+    /// and returns both typed and JSON capability manifests in one payload.
+    /// </summary>
+    /// <param name="assemblies">Assemblies to scan for registrar methods.</param>
+    /// <param name="options">Bootstrap options. When null, defaults are used.</param>
+    public static ReaderHostBootstrapResult BootstrapHostFromAssemblies(IEnumerable<Assembly> assemblies, ReaderHostBootstrapOptions? options = null) {
+        var normalizedOptions = NormalizeHostBootstrapOptions(options);
+        var registered = RegisterHandlersFromAssemblies(assemblies, replaceExisting: normalizedOptions.ReplaceExistingHandlers);
+        var manifest = GetCapabilityManifest(
+            includeBuiltIn: normalizedOptions.IncludeBuiltInCapabilities,
+            includeCustom: normalizedOptions.IncludeCustomCapabilities);
+
+        return new ReaderHostBootstrapResult {
+            ReplaceExistingHandlers = normalizedOptions.ReplaceExistingHandlers,
+            RegisteredHandlers = registered
+                .Select(static r => CloneRegistrarDescriptor(r))
+                .ToArray(),
+            Manifest = manifest,
+            ManifestJson = ReaderCapabilityManifestJson.Serialize(manifest, normalizedOptions.IndentedManifestJson)
+        };
+    }
+
+    /// <summary>
+    /// Host bootstrap helper that applies a preset profile, registers modular handlers from the provided
+    /// assemblies, and returns both typed and JSON capability manifests in one payload.
+    /// </summary>
+    /// <param name="assemblies">Assemblies to scan for registrar methods.</param>
+    /// <param name="profile">Bootstrap profile preset.</param>
+    /// <param name="indentedManifestJson">When true, indents the returned manifest JSON payload.</param>
+    public static ReaderHostBootstrapResult BootstrapHostFromAssemblies(
+        IEnumerable<Assembly> assemblies,
+        ReaderHostBootstrapProfile profile,
+        bool indentedManifestJson = false) {
+        var options = CreateHostBootstrapOptions(profile, indentedManifestJson);
+        var result = BootstrapHostFromAssemblies(assemblies, options);
+        result.Profile = profile;
+        return result;
+    }
+
+    /// <summary>
+    /// Host bootstrap helper that discovers and registers modular handlers from currently loaded assemblies
+    /// whose simple name starts with <paramref name="assemblyNamePrefix"/>, then returns both typed and
+    /// JSON capability manifests in one payload.
+    /// </summary>
+    /// <param name="assemblyNamePrefix">
+    /// Simple assembly-name prefix filter. Default: <c>OfficeIMO.Reader.</c>.
+    /// </param>
+    /// <param name="options">Bootstrap options. When null, defaults are used.</param>
+    public static ReaderHostBootstrapResult BootstrapHostFromLoadedAssemblies(
+        string assemblyNamePrefix = "OfficeIMO.Reader.",
+        ReaderHostBootstrapOptions? options = null) {
+        if (string.IsNullOrWhiteSpace(assemblyNamePrefix)) {
+            throw new ArgumentException("Assembly name prefix cannot be empty.", nameof(assemblyNamePrefix));
+        }
+
+        var normalizedOptions = NormalizeHostBootstrapOptions(options);
+        var registered = RegisterHandlersFromLoadedAssemblies(
+            replaceExisting: normalizedOptions.ReplaceExistingHandlers,
+            assemblyNamePrefix: assemblyNamePrefix);
+        var manifest = GetCapabilityManifest(
+            includeBuiltIn: normalizedOptions.IncludeBuiltInCapabilities,
+            includeCustom: normalizedOptions.IncludeCustomCapabilities);
+
+        return new ReaderHostBootstrapResult {
+            AssemblyNamePrefix = assemblyNamePrefix.Trim(),
+            ReplaceExistingHandlers = normalizedOptions.ReplaceExistingHandlers,
+            RegisteredHandlers = registered
+                .Select(static r => CloneRegistrarDescriptor(r))
+                .ToArray(),
+            Manifest = manifest,
+            ManifestJson = ReaderCapabilityManifestJson.Serialize(manifest, normalizedOptions.IndentedManifestJson)
+        };
+    }
+
+    /// <summary>
+    /// Host bootstrap helper that applies a preset profile, discovers and registers modular handlers from loaded
+    /// assemblies, and returns both typed and JSON capability manifests in one payload.
+    /// </summary>
+    /// <param name="profile">Bootstrap profile preset.</param>
+    /// <param name="assemblyNamePrefix">
+    /// Simple assembly-name prefix filter. Default: <c>OfficeIMO.Reader.</c>.
+    /// </param>
+    /// <param name="indentedManifestJson">When true, indents the returned manifest JSON payload.</param>
+    public static ReaderHostBootstrapResult BootstrapHostFromLoadedAssemblies(
+        ReaderHostBootstrapProfile profile,
+        string assemblyNamePrefix = "OfficeIMO.Reader.",
+        bool indentedManifestJson = false) {
+        var options = CreateHostBootstrapOptions(profile, indentedManifestJson);
+        var result = BootstrapHostFromLoadedAssemblies(assemblyNamePrefix, options);
+        result.Profile = profile;
+        return result;
+    }
+
+    /// <summary>
     /// Detects the input kind based on file extension.
     /// </summary>
     /// <param name="path">Source file path.</param>
@@ -52,7 +437,10 @@ public static class DocumentReader {
         if (path == null) throw new ArgumentNullException(nameof(path));
         if (path.Length == 0) throw new ArgumentException("Path cannot be empty.", nameof(path));
 
-        var extLower = (TryGetExtension(path) ?? string.Empty).ToLowerInvariant();
+        var extLower = NormalizeExtension(TryGetExtension(path));
+        if (extLower.Length > 0 && TryResolveCustomHandlerByExtension(extLower, out var custom)) {
+            return custom.Kind;
+        }
         if (extLower.Length == 0) return ReaderInputKind.Unknown;
         return extLower switch {
             ".docx" or ".docm" => ReaderInputKind.Word,
@@ -84,16 +472,21 @@ public static class DocumentReader {
         EnforceFileSize(path, opt.MaxInputBytes);
         var source = BuildSourceInfoFromPath(path, opt.ComputeHashes);
 
-        var kind = DetectKind(path);
-        var raw = kind switch {
-            ReaderInputKind.Word => ReadWord(path, opt, cancellationToken),
-            ReaderInputKind.Excel => ReadExcel(path, opt, cancellationToken),
-            ReaderInputKind.PowerPoint => ReadPowerPoint(path, opt, cancellationToken),
-            ReaderInputKind.Markdown => ReadMarkdown(path, opt, cancellationToken),
-            ReaderInputKind.Pdf => ReadPdf(path, opt, cancellationToken),
-            ReaderInputKind.Text => ReadText(path, opt, cancellationToken),
-            _ => ReadUnknown(path, opt, cancellationToken)
-        };
+        IEnumerable<ReaderChunk> raw;
+        if (TryResolveCustomHandlerByPath(path, out var customPathHandler) && customPathHandler.ReadPath != null) {
+            raw = customPathHandler.ReadPath(path, opt, cancellationToken);
+        } else {
+            var kind = DetectKind(path);
+            raw = kind switch {
+                ReaderInputKind.Word => ReadWord(path, opt, cancellationToken),
+                ReaderInputKind.Excel => ReadExcel(path, opt, cancellationToken),
+                ReaderInputKind.PowerPoint => ReadPowerPoint(path, opt, cancellationToken),
+                ReaderInputKind.Markdown => ReadMarkdown(path, opt, cancellationToken),
+                ReaderInputKind.Pdf => ReadPdf(path, opt, cancellationToken),
+                ReaderInputKind.Text => ReadText(path, opt, cancellationToken),
+                _ => ReadUnknown(path, opt, cancellationToken)
+            };
+        }
 
         foreach (var chunk in raw) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -430,16 +823,21 @@ public static class DocumentReader {
         EnforceStreamSize(stream, opt.MaxInputBytes);
         var source = BuildSourceInfoFromStream(stream, sourceName, opt.ComputeHashes);
 
-        var kind = string.IsNullOrWhiteSpace(sourceName) ? ReaderInputKind.Unknown : DetectKind(sourceName!);
-        var raw = kind switch {
-            ReaderInputKind.Word => ReadWord(stream, sourceName, opt, cancellationToken),
-            ReaderInputKind.Excel => ReadExcel(stream, sourceName, opt, cancellationToken),
-            ReaderInputKind.PowerPoint => ReadPowerPoint(stream, sourceName, opt, cancellationToken),
-            ReaderInputKind.Markdown => ReadMarkdown(stream, sourceName, opt, cancellationToken),
-            ReaderInputKind.Pdf => ReadPdf(stream, sourceName, opt, cancellationToken),
-            ReaderInputKind.Text => ReadText(stream, sourceName, opt, cancellationToken),
-            _ => ReadUnknown(stream, sourceName, opt, cancellationToken)
-        };
+        IEnumerable<ReaderChunk> raw;
+        if (TryResolveCustomHandlerBySourceName(sourceName, out var customStreamHandler) && customStreamHandler.ReadStream != null) {
+            raw = customStreamHandler.ReadStream(stream, sourceName, opt, cancellationToken);
+        } else {
+            var kind = string.IsNullOrWhiteSpace(sourceName) ? ReaderInputKind.Unknown : DetectKind(sourceName!);
+            raw = kind switch {
+                ReaderInputKind.Word => ReadWord(stream, sourceName, opt, cancellationToken),
+                ReaderInputKind.Excel => ReadExcel(stream, sourceName, opt, cancellationToken),
+                ReaderInputKind.PowerPoint => ReadPowerPoint(stream, sourceName, opt, cancellationToken),
+                ReaderInputKind.Markdown => ReadMarkdown(stream, sourceName, opt, cancellationToken),
+                ReaderInputKind.Pdf => ReadPdf(stream, sourceName, opt, cancellationToken),
+                ReaderInputKind.Text => ReadText(stream, sourceName, opt, cancellationToken),
+                _ => ReadUnknown(stream, sourceName, opt, cancellationToken)
+            };
+        }
 
         foreach (var chunk in raw) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -1511,6 +1909,256 @@ public static class DocumentReader {
         return ms;
     }
 
+    private static ReaderHandlerCapability CloneCapability(ReaderHandlerCapability capability) {
+        return new ReaderHandlerCapability {
+            Id = capability.Id,
+            DisplayName = capability.DisplayName,
+            Description = capability.Description,
+            Kind = capability.Kind,
+            Extensions = capability.Extensions.ToArray(),
+            IsBuiltIn = capability.IsBuiltIn,
+            SupportsPath = capability.SupportsPath,
+            SupportsStream = capability.SupportsStream,
+            SchemaId = capability.SchemaId,
+            SchemaVersion = capability.SchemaVersion,
+            DefaultMaxInputBytes = capability.DefaultMaxInputBytes,
+            WarningBehavior = capability.WarningBehavior,
+            DeterministicOutput = capability.DeterministicOutput
+        };
+    }
+
+    private static ReaderHandlerRegistrarDescriptor CloneRegistrarDescriptor(ReaderHandlerRegistrarDescriptor descriptor) {
+        return new ReaderHandlerRegistrarDescriptor {
+            HandlerId = descriptor.HandlerId,
+            AssemblyName = descriptor.AssemblyName,
+            TypeName = descriptor.TypeName,
+            MethodName = descriptor.MethodName
+        };
+    }
+
+    private static ReaderHostBootstrapOptions NormalizeHostBootstrapOptions(ReaderHostBootstrapOptions? options) {
+        if (options == null) {
+            return new ReaderHostBootstrapOptions();
+        }
+
+        return new ReaderHostBootstrapOptions {
+            ReplaceExistingHandlers = options.ReplaceExistingHandlers,
+            IncludeBuiltInCapabilities = options.IncludeBuiltInCapabilities,
+            IncludeCustomCapabilities = options.IncludeCustomCapabilities,
+            IndentedManifestJson = options.IndentedManifestJson
+        };
+    }
+
+    private static ReaderHostBootstrapOptions CreateHostBootstrapOptions(ReaderHostBootstrapProfile profile, bool indentedManifestJson) {
+        return profile switch {
+            ReaderHostBootstrapProfile.ServiceDefault => new ReaderHostBootstrapOptions {
+                ReplaceExistingHandlers = true,
+                IncludeBuiltInCapabilities = true,
+                IncludeCustomCapabilities = true,
+                IndentedManifestJson = indentedManifestJson
+            },
+            ReaderHostBootstrapProfile.ServiceCustomOnly => new ReaderHostBootstrapOptions {
+                ReplaceExistingHandlers = true,
+                IncludeBuiltInCapabilities = false,
+                IncludeCustomCapabilities = true,
+                IndentedManifestJson = indentedManifestJson
+            },
+            ReaderHostBootstrapProfile.ServiceBuiltInOnly => new ReaderHostBootstrapOptions {
+                ReplaceExistingHandlers = true,
+                IncludeBuiltInCapabilities = true,
+                IncludeCustomCapabilities = false,
+                IndentedManifestJson = indentedManifestJson
+            },
+            _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unknown bootstrap profile.")
+        };
+    }
+
+    private static List<RegistrarCandidate> DiscoverHandlerRegistrarsCore(IEnumerable<Assembly> assemblies) {
+        if (assemblies == null) throw new ArgumentNullException(nameof(assemblies));
+
+        var candidates = new List<RegistrarCandidate>();
+        var uniqueAssemblies = new Dictionary<string, Assembly>(StringComparer.Ordinal);
+        foreach (var assembly in assemblies) {
+            if (assembly == null) continue;
+            var key = assembly.FullName ?? assembly.GetName().Name ?? assembly.ManifestModule.Name;
+            if (!uniqueAssemblies.ContainsKey(key)) {
+                uniqueAssemblies.Add(key, assembly);
+            }
+        }
+
+        var dedupe = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var assembly in uniqueAssemblies.Values) {
+            foreach (var type in EnumerateLoadableTypes(assembly)) {
+                if (type == null) continue;
+                if (!type.IsClass || !type.IsAbstract || !type.IsSealed) continue; // static class
+
+                foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)) {
+                    if (!IsRegistrarMethod(method, out var handlerId)) continue;
+
+                    var descriptor = new ReaderHandlerRegistrarDescriptor {
+                        HandlerId = handlerId,
+                        AssemblyName = assembly.GetName().Name ?? string.Empty,
+                        TypeName = type.FullName ?? type.Name,
+                        MethodName = method.Name
+                    };
+
+                    var key = string.Concat(
+                        descriptor.AssemblyName, "|",
+                        descriptor.TypeName, "|",
+                        descriptor.MethodName, "|",
+                        descriptor.HandlerId);
+                    if (!dedupe.Add(key)) continue;
+
+                    candidates.Add(new RegistrarCandidate(method, descriptor));
+                }
+            }
+        }
+
+        candidates.Sort(static (a, b) => {
+            int cmp = string.CompareOrdinal(a.Descriptor.HandlerId, b.Descriptor.HandlerId);
+            if (cmp != 0) return cmp;
+            cmp = string.CompareOrdinal(a.Descriptor.AssemblyName, b.Descriptor.AssemblyName);
+            if (cmp != 0) return cmp;
+            cmp = string.CompareOrdinal(a.Descriptor.TypeName, b.Descriptor.TypeName);
+            if (cmp != 0) return cmp;
+            return string.CompareOrdinal(a.Descriptor.MethodName, b.Descriptor.MethodName);
+        });
+
+        return candidates;
+    }
+
+    private static IEnumerable<Type> EnumerateLoadableTypes(Assembly assembly) {
+        try {
+            return assembly.GetTypes();
+        } catch (ReflectionTypeLoadException ex) {
+            return ex.Types.Where(static t => t != null)!;
+        } catch {
+            return Array.Empty<Type>();
+        }
+    }
+
+    private static IReadOnlyList<Assembly> GetLoadedAssembliesByPrefix(string assemblyNamePrefix) {
+        if (assemblyNamePrefix == null) throw new ArgumentNullException(nameof(assemblyNamePrefix));
+
+        var prefix = assemblyNamePrefix.Trim();
+        if (prefix.Length == 0) {
+            throw new ArgumentException("Assembly name prefix cannot be empty.", nameof(assemblyNamePrefix));
+        }
+
+        return AppDomain.CurrentDomain.GetAssemblies()
+            .Where(static assembly => !assembly.IsDynamic)
+            .Where(assembly => (assembly.GetName().Name ?? string.Empty).StartsWith(prefix, StringComparison.Ordinal))
+            .OrderBy(static assembly => assembly.GetName().Name ?? string.Empty, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static bool IsRegistrarMethod(MethodInfo method, out string handlerId) {
+        handlerId = string.Empty;
+        if (method == null) return false;
+        if (method.IsGenericMethodDefinition) return false;
+        if (method.ReturnType != typeof(void)) return false;
+
+        var attribute = method.GetCustomAttribute<ReaderHandlerRegistrarAttribute>(inherit: false);
+        if (attribute == null) return false;
+
+        handlerId = (attribute.HandlerId ?? string.Empty).Trim();
+        if (handlerId.Length == 0) return false;
+
+        bool hasReplaceExisting = false;
+        foreach (var parameter in method.GetParameters()) {
+            if (parameter.ParameterType == typeof(bool) &&
+                string.Equals(parameter.Name, "replaceExisting", StringComparison.OrdinalIgnoreCase)) {
+                hasReplaceExisting = true;
+                continue;
+            }
+
+            if (!parameter.IsOptional) {
+                return false;
+            }
+        }
+
+        return hasReplaceExisting;
+    }
+
+    private static string NormalizeExtension(string? extension) {
+        var value = extension ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        var ext = value.Trim();
+        if (!ext.StartsWith(".", StringComparison.Ordinal)) {
+            ext = "." + ext;
+        }
+        return ext.ToLowerInvariant();
+    }
+
+    private static List<string> NormalizeRegistrationExtensions(IReadOnlyList<string>? extensions) {
+        var list = new List<string>();
+        if (extensions == null) return list;
+
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var ext in extensions) {
+            var normalized = NormalizeExtension(ext);
+            if (normalized.Length == 0) continue;
+            if (set.Add(normalized)) {
+                list.Add(normalized);
+            }
+        }
+
+        list.Sort(StringComparer.Ordinal);
+        return list;
+    }
+
+    private static HashSet<string> BuildBuiltInExtensionSet() {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var capability in BuiltInCapabilities) {
+            foreach (var ext in capability.Extensions) {
+                var normalized = NormalizeExtension(ext);
+                if (normalized.Length == 0) continue;
+                set.Add(normalized);
+            }
+        }
+        return set;
+    }
+
+    private static bool TryResolveCustomHandlerByPath(string path, out CustomReaderHandler handler) {
+        var ext = NormalizeExtension(TryGetExtension(path));
+        return TryResolveCustomHandlerByExtension(ext, out handler);
+    }
+
+    private static bool TryResolveCustomHandlerBySourceName(string? sourceName, out CustomReaderHandler handler) {
+        var ext = NormalizeExtension(TryGetExtension(sourceName ?? string.Empty));
+        return TryResolveCustomHandlerByExtension(ext, out handler);
+    }
+
+    private static bool TryResolveCustomHandlerByExtension(string ext, out CustomReaderHandler handler) {
+        handler = null!;
+        if (string.IsNullOrWhiteSpace(ext)) return false;
+
+        lock (HandlerRegistrySync) {
+            if (!CustomHandlerIdByExtension.TryGetValue(ext, out var handlerId)) {
+                return false;
+            }
+            if (!CustomHandlersById.TryGetValue(handlerId, out var resolved) || resolved == null) {
+                return false;
+            }
+            handler = resolved;
+            return true;
+        }
+    }
+
+    private static bool RemoveCustomHandlerUnsafe(string handlerId) {
+        if (!CustomHandlersById.TryGetValue(handlerId, out var existing)) return false;
+
+        CustomHandlersById.Remove(handlerId);
+        foreach (var ext in existing.Extensions) {
+            if (CustomHandlerIdByExtension.TryGetValue(ext, out var current) &&
+                string.Equals(current, handlerId, StringComparison.OrdinalIgnoreCase)) {
+                CustomHandlerIdByExtension.Remove(ext);
+            }
+        }
+
+        return true;
+    }
+
     private static ReaderOptions NormalizeOptions(ReaderOptions? options) {
         // Avoid mutating a caller-provided options instance.
         var o = options;
@@ -1574,7 +2222,7 @@ public static class DocumentReader {
     private static HashSet<string> NormalizeExtensions(IReadOnlyList<string>? configuredExtensions) {
         var allowedExt = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var source = (configuredExtensions == null || configuredExtensions.Count == 0)
-            ? DefaultFolderExtensions
+            ? GetDefaultAndRegisteredFolderExtensions()
             : configuredExtensions;
 
         foreach (var e in source) {
@@ -1584,6 +2232,25 @@ public static class DocumentReader {
         }
 
         return allowedExt;
+    }
+
+    private static IReadOnlyList<string> GetDefaultAndRegisteredFolderExtensions() {
+        lock (HandlerRegistrySync) {
+            if (CustomHandlerIdByExtension.Count == 0) {
+                return DefaultFolderExtensions;
+            }
+
+            var merged = new string[DefaultFolderExtensions.Length + CustomHandlerIdByExtension.Count];
+            Array.Copy(DefaultFolderExtensions, merged, DefaultFolderExtensions.Length);
+
+            int index = DefaultFolderExtensions.Length;
+            foreach (var extension in CustomHandlerIdByExtension.Keys) {
+                merged[index] = extension;
+                index++;
+            }
+
+            return merged;
+        }
     }
 
     private static IEnumerable<string> EnumerateFilesSafeDeterministic(string folderPath, ReaderFolderOptions options, CancellationToken cancellationToken) {
@@ -1680,6 +2347,70 @@ public static class DocumentReader {
             if (sb.Length >= HardCapChars) break;
         }
         return sb.ToString();
+    }
+
+    private sealed class RegistrarCandidate {
+        public RegistrarCandidate(MethodInfo method, ReaderHandlerRegistrarDescriptor descriptor) {
+            Method = method ?? throw new ArgumentNullException(nameof(method));
+            Descriptor = descriptor ?? throw new ArgumentNullException(nameof(descriptor));
+        }
+
+        public MethodInfo Method { get; }
+        public ReaderHandlerRegistrarDescriptor Descriptor { get; }
+    }
+
+    private sealed class CustomReaderHandler {
+        public CustomReaderHandler(
+            string id,
+            string displayName,
+            string? description,
+            ReaderInputKind kind,
+            IReadOnlyList<string> extensions,
+            long? defaultMaxInputBytes,
+            ReaderWarningBehavior warningBehavior,
+            bool deterministicOutput,
+            Func<string, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readPath,
+            Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readStream) {
+            Id = id;
+            DisplayName = displayName;
+            Description = description;
+            Kind = kind;
+            Extensions = extensions;
+            DefaultMaxInputBytes = defaultMaxInputBytes;
+            WarningBehavior = warningBehavior;
+            DeterministicOutput = deterministicOutput;
+            ReadPath = readPath;
+            ReadStream = readStream;
+        }
+
+        public string Id { get; }
+        public string DisplayName { get; }
+        public string? Description { get; }
+        public ReaderInputKind Kind { get; }
+        public IReadOnlyList<string> Extensions { get; }
+        public long? DefaultMaxInputBytes { get; }
+        public ReaderWarningBehavior WarningBehavior { get; }
+        public bool DeterministicOutput { get; }
+        public Func<string, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadPath { get; }
+        public Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadStream { get; }
+
+        public ReaderHandlerCapability ToCapability() {
+            return new ReaderHandlerCapability {
+                Id = Id,
+                DisplayName = DisplayName,
+                Description = Description,
+                Kind = Kind,
+                Extensions = Extensions.ToArray(),
+                IsBuiltIn = false,
+                SupportsPath = ReadPath != null,
+                SupportsStream = ReadStream != null,
+                SchemaId = ReaderCapabilitySchema.Id,
+                SchemaVersion = ReaderCapabilitySchema.Version,
+                DefaultMaxInputBytes = DefaultMaxInputBytes,
+                WarningBehavior = WarningBehavior,
+                DeterministicOutput = DeterministicOutput
+            };
+        }
     }
 
     private sealed class FolderIngestState {

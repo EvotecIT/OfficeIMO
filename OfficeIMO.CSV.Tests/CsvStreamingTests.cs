@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using OfficeIMO.CSV;
 using Xunit;
 
@@ -38,5 +39,96 @@ public class CsvStreamingTests
         var csv = "Id,Value\n1,A\n2,B\n";
         var doc = CsvDocument.Parse(csv, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
         Assert.Throws<InvalidOperationException>(() => doc.Filter(_ => true));
+    }
+
+    [Fact]
+    public void LoadFromStream_InMemoryMode_ParsesRows()
+    {
+        var bytes = Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n2,Bob\n");
+        using var stream = new MemoryStream(bytes, writable: false);
+
+        var doc = CsvDocument.Load(stream, new CsvLoadOptions { Mode = CsvLoadMode.InMemory }, leaveOpen: true);
+        var rows = doc.AsEnumerable().ToList();
+
+        Assert.Equal(2, rows.Count);
+        Assert.True(stream.CanRead);
+    }
+
+    [Fact]
+    public void LoadFromStream_StreamMode_CanReenumerateRows()
+    {
+        var bytes = Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n2,Bob\n");
+        using var stream = new MemoryStream(bytes, writable: false);
+
+        var doc = CsvDocument.Load(stream, new CsvLoadOptions { Mode = CsvLoadMode.Stream }, leaveOpen: true);
+        var firstPass = doc.AsEnumerable().Select(r => r.AsString("Name")).ToArray();
+        var secondPass = doc.AsEnumerable().Select(r => r.AsString("Name")).ToArray();
+
+        Assert.Equal(new[] { "Alice", "Bob" }, firstPass);
+        Assert.Equal(new[] { "Alice", "Bob" }, secondPass);
+        Assert.True(stream.CanRead);
+    }
+
+    [Fact]
+    public void LoadFromStream_StreamMode_WithLeaveOpenFalse_DisposesSource()
+    {
+        var bytes = Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n");
+        var stream = new MemoryStream(bytes, writable: false);
+
+        var doc = CsvDocument.Load(stream, new CsvLoadOptions { Mode = CsvLoadMode.Stream }, leaveOpen: false);
+        var rows = doc.AsEnumerable().ToList();
+
+        Assert.Single(rows);
+        Assert.Throws<ObjectDisposedException>(() => stream.ReadByte());
+    }
+
+    [Fact]
+    public void LoadFromStream_StreamMode_SupportsNonSeekableSource()
+    {
+        var bytes = Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n2,Bob\n");
+        using var stream = new NonSeekableReadStream(bytes);
+
+        var doc = CsvDocument.Load(stream, new CsvLoadOptions { Mode = CsvLoadMode.Stream }, leaveOpen: true);
+        var firstPass = doc.AsEnumerable().Select(r => r.AsString("Name")).ToArray();
+        var secondPass = doc.AsEnumerable().Select(r => r.AsString("Name")).ToArray();
+
+        Assert.Equal(new[] { "Alice", "Bob" }, firstPass);
+        Assert.Equal(new[] { "Alice", "Bob" }, secondPass);
+    }
+
+    private sealed class NonSeekableReadStream : Stream
+    {
+        private readonly Stream _inner;
+
+        public NonSeekableReadStream(byte[] bytes)
+        {
+            _inner = new MemoryStream(bytes, writable: false);
+        }
+
+        public override bool CanRead => _inner.CanRead;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush() => _inner.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _inner.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
     }
 }

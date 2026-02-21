@@ -141,6 +141,54 @@ public sealed class CsvDocument
     }
 
     /// <summary>
+    /// Loads a CSV document from a stream.
+    /// </summary>
+    /// <param name="stream">Source stream.</param>
+    /// <param name="options">Load options.</param>
+    /// <param name="leaveOpen">Whether to leave the source stream open after loading.</param>
+    public static CsvDocument Load(Stream stream, CsvLoadOptions? options = null, bool leaveOpen = true)
+    {
+        if (stream == null)
+        {
+            throw new ArgumentNullException(nameof(stream));
+        }
+
+        if (!stream.CanRead)
+        {
+            throw new ArgumentException("Stream must be readable.", nameof(stream));
+        }
+
+        options ??= new CsvLoadOptions();
+        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
+        if (options.Mode == CsvLoadMode.Stream)
+        {
+            // Streaming mode requires a re-openable source for subsequent enumerations.
+            // For arbitrary streams (including non-seekable), snapshot once into memory.
+            var snapshot = ReadAllBytes(stream, leaveOpen);
+            return LoadInternal(
+                () => new StreamReader(
+                    new MemoryStream(snapshot, writable: false),
+                    encoding,
+                    detectEncodingFromByteOrderMarks: true,
+                    bufferSize: 1024,
+                    leaveOpen: false),
+                options,
+                encoding);
+        }
+
+        return LoadInternal(
+            () => new StreamReader(
+                stream,
+                encoding,
+                detectEncodingFromByteOrderMarks: true,
+                bufferSize: 1024,
+                leaveOpen: leaveOpen),
+            options,
+            encoding);
+    }
+
+    /// <summary>
     /// Parses a CSV document from text.
     /// </summary>
     public static CsvDocument Parse(string text, CsvLoadOptions? options = null)
@@ -187,6 +235,23 @@ public sealed class CsvDocument
         }
 
         return document;
+    }
+
+    private static byte[] ReadAllBytes(Stream stream, bool leaveOpen)
+    {
+        try
+        {
+            using var ms = new MemoryStream();
+            stream.CopyTo(ms);
+            return ms.ToArray();
+        }
+        finally
+        {
+            if (!leaveOpen)
+            {
+                stream.Dispose();
+            }
+        }
     }
 
     /// <summary>

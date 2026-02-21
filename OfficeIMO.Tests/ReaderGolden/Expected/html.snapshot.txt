@@ -1,0 +1,12 @@
+count=1
+[chunk:0]
+id=html-0000
+kind=Html
+path=ReaderGolden/Inputs/sample.html
+block=0
+sourceBlock=
+heading=Golden Fixture
+text=# Golden Fixture\n\nReader HTML fixture body.
+markdown=# Golden Fixture\n\nReader HTML fixture body.
+warnings=
+tables=

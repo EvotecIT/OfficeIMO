@@ -52,10 +52,10 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Restore dependencies
-        run: dotnet restore OfficeImo.sln
+        run: dotnet restore OfficeIMO.sln
 
       - name: Build solution
-        run: dotnet build OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+        run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
   test-windows:
     name: 'Windows'
@@ -79,13 +79,13 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Restore dependencies
-        run: dotnet restore OfficeImo.sln
+        run: dotnet restore OfficeIMO.sln
 
       - name: Build solution
-        run: dotnet build OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+        run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: dotnet test OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
+        run: dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
 
       - name: Summarize failing tests
         if: failure() && env.SUMMARIZE_FAILURES == 'true'
@@ -163,15 +163,15 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Restore dependencies
-        run: dotnet restore OfficeImo.sln
+        run: dotnet restore OfficeIMO.sln
 
       - name: Build solution
-        run: dotnet build OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+        run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
         run: |
-          dotnet test OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework net8.0 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
-          dotnet test OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework net10.0 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
+          dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework net8.0 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
+          dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework net10.0 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
 
       - name: Summarize failing tests
         if: failure() && env.SUMMARIZE_FAILURES == 'true'
@@ -242,15 +242,15 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Restore dependencies
-        run: dotnet restore OfficeImo.sln
+        run: dotnet restore OfficeIMO.sln
 
       - name: Build solution
-        run: dotnet build OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+        run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
         run: |
-          dotnet test OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework net8.0 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
-          dotnet test OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework net10.0 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
+          dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework net8.0 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
+          dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework net10.0 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
 
       - name: Summarize failing tests
         if: failure() && env.SUMMARIZE_FAILURES == 'true'
@@ -321,11 +321,11 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Restore dependencies
-        run: dotnet restore OfficeImo.sln
+        run: dotnet restore OfficeIMO.sln
 
       - name: Run AOT/Trim analyzers (net8.0)
-        run: dotnet build OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true -p:TargetFramework=net8.0
+        run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true -p:TargetFramework=net8.0
 
       - name: Run AOT/Trim analyzers (net10.0)
-        run: dotnet build OfficeImo.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true -p:TargetFramework=net10.0
+        run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true -p:TargetFramework=net10.0
 

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <book id="b1">
+    <title>One</title>
+    <enabled>true</enabled>
+  </book>
+  <book id="b2">
+    <title>Two</title>
+    <enabled>false</enabled>
+  </book>
+</catalog>
