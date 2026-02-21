@@ -96,10 +96,37 @@ public sealed class ReaderZipModularTests {
         }
     }
 
+    [Fact]
+    public void DocumentReaderZip_ReadsFromNonSeekableStream() {
+        var zipBytes = BuildSimpleZipBytes();
+        using var stream = new NonSeekableReadStream(zipBytes);
+
+        var chunks = DocumentReaderZipExtensions.ReadZip(
+            stream,
+            sourceName: "nonseekable.zip",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 },
+            zipOptions: new ZipTraversalOptions { DeterministicOrder = true }).ToList();
+
+        Assert.NotEmpty(chunks);
+        Assert.Contains(chunks, c =>
+            c.Kind == ReaderInputKind.Markdown &&
+            (c.Location.Path?.Contains("nonseekable.zip::docs/readme.md", StringComparison.OrdinalIgnoreCase) ?? false) &&
+            (c.Text?.Contains("From non-seekable stream.", StringComparison.Ordinal) ?? false));
+    }
+
     private static byte[] BuildNestedZipBytes() {
         using var ms = new MemoryStream();
         using (var nestedArchive = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true)) {
             WriteTextEntry(nestedArchive, "nested.md", "# Nested\n\nBody");
+        }
+
+        return ms.ToArray();
+    }
+
+    private static byte[] BuildSimpleZipBytes() {
+        using var ms = new MemoryStream();
+        using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true)) {
+            WriteTextEntry(archive, "docs/readme.md", "# Stream\n\nFrom non-seekable stream.");
         }
 
         return ms.ToArray();
@@ -116,5 +143,36 @@ public sealed class ReaderZipModularTests {
         var entry = archive.CreateEntry(entryPath, CompressionLevel.Optimal);
         using var stream = entry.Open();
         stream.Write(bytes, 0, bytes.Length);
+    }
+
+    private sealed class NonSeekableReadStream : Stream {
+        private readonly Stream _inner;
+
+        public NonSeekableReadStream(byte[] bytes) {
+            _inner = new MemoryStream(bytes, writable: false);
+        }
+
+        public override bool CanRead => _inner.CanRead;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush() => _inner.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) {
+                _inner.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
     }
 }

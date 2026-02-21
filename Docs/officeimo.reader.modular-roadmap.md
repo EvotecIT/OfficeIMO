@@ -28,12 +28,14 @@ All scaffolded packages are currently excluded from publishing.
 - Add entry-level warning handling. (implemented in scaffold branch)
 - Support nested Office/text extraction from ZIP entries. (implemented in scaffold branch)
 - Add stream ingestion + registry stream dispatch. (implemented in scaffold branch)
+- Support non-seekable streams in adapter pipeline. (implemented in scaffold branch)
 
 2. EPUB path (low-medium)
 - Basic chapter extraction from XHTML/HTML entries.
 - Normalize into Reader chunks.
 - Add OPF/spine/nav-aware ordering in next pass. (implemented in scaffold branch)
 - Add stream ingestion + registry stream dispatch. (implemented in scaffold branch)
+- Support non-seekable streams in adapter pipeline. (implemented in scaffold branch)
 
 3. Structured text path (medium)
 - CSV semantic chunks with tables.

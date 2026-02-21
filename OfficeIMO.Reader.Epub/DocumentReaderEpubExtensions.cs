@@ -27,7 +27,16 @@ public static class DocumentReaderEpubExtensions {
         if (!epubStream.CanRead) throw new ArgumentException("EPUB stream must be readable.", nameof(epubStream));
 
         var options = readerOptions ?? new ReaderOptions();
-        var document = EpubReader.Read(epubStream, epubOptions);
+        var parseStream = EnsureSeekableReadStream(epubStream, cancellationToken, out var ownsParseStream);
+        EpubDocument document;
+        try {
+            document = EpubReader.Read(parseStream, epubOptions);
+        } finally {
+            if (ownsParseStream) {
+                parseStream.Dispose();
+            }
+        }
+
         var logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "document.epub" : sourceName!;
         return ReadEpubDocument(document, logicalSourceName, options, cancellationToken);
     }
@@ -156,5 +165,25 @@ public static class DocumentReaderEpubExtensions {
         }
 
         return sb.ToString().Trim('-');
+    }
+
+    private static Stream EnsureSeekableReadStream(Stream stream, CancellationToken cancellationToken, out bool ownsStream) {
+        if (stream.CanSeek) {
+            ownsStream = false;
+            return stream;
+        }
+
+        var buffer = new MemoryStream();
+        var chunk = new byte[64 * 1024];
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var read = stream.Read(chunk, 0, chunk.Length);
+            if (read <= 0) break;
+            buffer.Write(chunk, 0, read);
+        }
+
+        buffer.Position = 0;
+        ownsStream = true;
+        return buffer;
     }
 }

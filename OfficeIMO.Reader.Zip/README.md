@@ -8,6 +8,7 @@ Current scope:
 - warning chunks for skipped/error entries
 - bounded nested ZIP traversal with reusable `ReaderZipOptions`
 - path and stream dispatch via `DocumentReader` handler registration
+- non-seekable stream support (adapter snapshots input when required)
 
 Registration into `OfficeIMO.Reader`:
 

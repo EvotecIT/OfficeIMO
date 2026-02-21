@@ -9,6 +9,7 @@ Current scope:
 - warning chunks propagated from EPUB parser warnings
 - virtual source paths (`.epub::chapter.xhtml`) for traceability
 - path and stream dispatch via `DocumentReader` handler registration
+- non-seekable stream support (adapter snapshots input when required)
 
 Registration into `OfficeIMO.Reader`:
 

@@ -83,16 +83,23 @@ public static class DocumentReaderZipExtensions {
         var warningCounter = new WarningCounter();
         var logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "archive.zip" : sourceName!;
 
-        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read, leaveOpen: true);
-        foreach (var chunk in ReadZipArchive(
-                     archive,
-                     archivePath: logicalSourceName,
-                     readerOptions: effectiveReaderOptions,
-                     zipOptions: effectiveZipOptions,
-                     readerZipOptions: effectiveReaderZipOptions,
-                     warningCounter: warningCounter,
-                     cancellationToken: cancellationToken)) {
-            yield return chunk;
+        var archiveStream = EnsureSeekableReadStream(zipStream, cancellationToken, out var ownsArchiveStream);
+        try {
+            using var archive = new ZipArchive(archiveStream, ZipArchiveMode.Read, leaveOpen: true);
+            foreach (var chunk in ReadZipArchive(
+                         archive,
+                         archivePath: logicalSourceName,
+                         readerOptions: effectiveReaderOptions,
+                         zipOptions: effectiveZipOptions,
+                         readerZipOptions: effectiveReaderZipOptions,
+                         warningCounter: warningCounter,
+                         cancellationToken: cancellationToken)) {
+                yield return chunk;
+            }
+        } finally {
+            if (ownsArchiveStream) {
+                archiveStream.Dispose();
+            }
         }
     }
 
@@ -368,6 +375,26 @@ public static class DocumentReaderZipExtensions {
         }
 
         return ms.ToArray();
+    }
+
+    private static Stream EnsureSeekableReadStream(Stream stream, CancellationToken cancellationToken, out bool ownsStream) {
+        if (stream.CanSeek) {
+            ownsStream = false;
+            return stream;
+        }
+
+        var buffer = new MemoryStream();
+        var chunk = new byte[64 * 1024];
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var read = stream.Read(chunk, 0, chunk.Length);
+            if (read <= 0) break;
+            buffer.Write(chunk, 0, read);
+        }
+
+        buffer.Position = 0;
+        ownsStream = true;
+        return buffer;
     }
 
     private static bool TryReadAllBytes(ZipArchiveEntry entry, CancellationToken cancellationToken, out byte[]? bytes, out string? error) {
