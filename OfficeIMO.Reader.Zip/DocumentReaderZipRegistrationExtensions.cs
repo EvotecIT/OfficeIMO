@@ -26,7 +26,7 @@ public static class DocumentReaderZipRegistrationExtensions {
             Id = HandlerId,
             DisplayName = "ZIP Reader Adapter",
             Description = "Modular ZIP adapter that traverses archives and emits Reader chunks.",
-            Kind = ReaderInputKind.Unknown,
+            Kind = ReaderInputKind.Zip,
             Extensions = new[] { ".zip" },
             ReadPath = (path, readerOptions, ct) => DocumentReaderZipExtensions.ReadZip(
                 zipPath: path,

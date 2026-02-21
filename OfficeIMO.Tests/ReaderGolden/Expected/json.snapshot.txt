@@ -1,7 +1,7 @@
 count=2
 [chunk:0]
 id=json-0000
-kind=Text
+kind=Json
 path=ReaderGolden/Inputs/sample.json
 block=0
 sourceBlock=0
@@ -12,7 +12,7 @@ warnings=
 tables=t0:Path,Type,Value#4#4#truncated=false
 [chunk:1]
 id=json-0001
-kind=Text
+kind=Json
 path=ReaderGolden/Inputs/sample.json
 block=1
 sourceBlock=4

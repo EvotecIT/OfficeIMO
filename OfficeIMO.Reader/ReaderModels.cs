@@ -36,7 +36,31 @@ public enum ReaderInputKind {
     /// <summary>
     /// PDF document.
     /// </summary>
-    Pdf
+    Pdf,
+    /// <summary>
+    /// CSV/TSV structured text.
+    /// </summary>
+    Csv,
+    /// <summary>
+    /// JSON structured text.
+    /// </summary>
+    Json,
+    /// <summary>
+    /// XML structured text.
+    /// </summary>
+    Xml,
+    /// <summary>
+    /// HTML document.
+    /// </summary>
+    Html,
+    /// <summary>
+    /// ZIP archive.
+    /// </summary>
+    Zip,
+    /// <summary>
+    /// EPUB e-book archive.
+    /// </summary>
+    Epub
 }
 
 /// <summary>

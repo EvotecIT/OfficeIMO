@@ -24,7 +24,7 @@ public static class DocumentReaderCsvRegistrationExtensions {
             Id = HandlerId,
             DisplayName = "CSV Reader Adapter",
             Description = "Modular CSV/TSV parser with table-aware chunk output.",
-            Kind = ReaderInputKind.Text,
+            Kind = ReaderInputKind.Csv,
             Extensions = new[] { ".csv", ".tsv" },
             ReadPath = (path, readerOptions, ct) => DocumentReaderCsvExtensions.ReadCsv(
                 path: path,

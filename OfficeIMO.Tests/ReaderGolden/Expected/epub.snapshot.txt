@@ -1,7 +1,7 @@
 count=1
 [chunk:0]
 id=epub-golden-epub-ch0001-0000
-kind=Unknown
+kind=Epub
 path=golden.epub::OEBPS/chapter.xhtml
 block=0
 sourceBlock=

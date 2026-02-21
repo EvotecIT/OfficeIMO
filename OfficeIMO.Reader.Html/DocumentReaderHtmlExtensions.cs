@@ -104,7 +104,7 @@ public static class DocumentReaderHtmlExtensions {
 
             yield return new ReaderChunk {
                 Id = string.Concat("html-", chunkIndex.ToString("D4", CultureInfo.InvariantCulture)),
-                Kind = ReaderInputKind.Unknown,
+                Kind = ReaderInputKind.Html,
                 Location = new ReaderLocation {
                     Path = logicalSourceName,
                     BlockIndex = chunkIndex,
@@ -232,7 +232,7 @@ public static class DocumentReaderHtmlExtensions {
     private static ReaderChunk BuildWarningChunk(string sourceName, string id, string warning) {
         return new ReaderChunk {
             Id = id,
-            Kind = ReaderInputKind.Unknown,
+            Kind = ReaderInputKind.Html,
             Location = new ReaderLocation {
                 Path = sourceName,
                 BlockIndex = 0

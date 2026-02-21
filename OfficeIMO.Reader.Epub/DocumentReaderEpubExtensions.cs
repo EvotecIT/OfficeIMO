@@ -69,7 +69,7 @@ public static class DocumentReaderEpubExtensions {
 
                 yield return new ReaderChunk {
                     Id = chunkId,
-                    Kind = ReaderInputKind.Unknown,
+                    Kind = ReaderInputKind.Epub,
                     Location = new ReaderLocation {
                         Path = BuildVirtualPath(sourcePath, chapter.Path),
                         BlockIndex = blockIndex,
@@ -138,7 +138,7 @@ public static class DocumentReaderEpubExtensions {
     private static ReaderChunk BuildWarningChunk(string epubPath, string warning, int warningIndex) {
         return new ReaderChunk {
             Id = $"epub-warning-{warningIndex.ToString("D4", CultureInfo.InvariantCulture)}",
-            Kind = ReaderInputKind.Unknown,
+            Kind = ReaderInputKind.Epub,
             Location = new ReaderLocation {
                 Path = epubPath,
                 BlockIndex = warningIndex

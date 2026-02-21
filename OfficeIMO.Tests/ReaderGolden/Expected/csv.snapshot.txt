@@ -1,7 +1,7 @@
 count=1
 [chunk:0]
 id=csv-0000
-kind=Text
+kind=Csv
 path=ReaderGolden/Inputs/sample.csv
 block=0
 sourceBlock=0

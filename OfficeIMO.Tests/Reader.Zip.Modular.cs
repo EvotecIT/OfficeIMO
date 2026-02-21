@@ -89,7 +89,7 @@ public sealed class ReaderZipModularTests {
                 (c.Location.Path?.Contains("nested/archive.zip::nested.md", StringComparison.OrdinalIgnoreCase) ?? false));
 
             Assert.Contains(chunks, c =>
-                c.Kind == ReaderInputKind.Unknown &&
+                c.Kind == ReaderInputKind.Zip &&
                 (c.Warnings?.Any(w => w.Contains("MaxInputBytes", StringComparison.OrdinalIgnoreCase)) ?? false));
         } finally {
             if (File.Exists(zipPath)) File.Delete(zipPath);

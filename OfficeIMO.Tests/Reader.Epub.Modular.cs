@@ -59,11 +59,11 @@ public sealed class ReaderEpubModularTests {
 
             Assert.NotEmpty(chunks);
             Assert.Contains(chunks, c =>
-                c.Kind == ReaderInputKind.Unknown &&
+                c.Kind == ReaderInputKind.Epub &&
                 (c.Warnings?.Any(w => w.Contains("not valid XML", StringComparison.OrdinalIgnoreCase)) ?? false));
 
             Assert.Contains(chunks, c =>
-                c.Kind == ReaderInputKind.Unknown &&
+                c.Kind == ReaderInputKind.Epub &&
                 (c.Location.Path?.Contains("::OEBPS/good.xhtml", StringComparison.OrdinalIgnoreCase) ?? false) &&
                 (c.Text?.Contains("Good chapter body text.", StringComparison.Ordinal) ?? false));
         } finally {
@@ -87,7 +87,7 @@ public sealed class ReaderEpubModularTests {
 
             Assert.NotEmpty(chunks);
             Assert.Contains(chunks, c =>
-                c.Kind == ReaderInputKind.Unknown &&
+                c.Kind == ReaderInputKind.Epub &&
                 (c.Location.Path?.Contains("nonseekable.epub::OEBPS/chapter2.xhtml", StringComparison.OrdinalIgnoreCase) ?? false) &&
                 (c.Text?.Contains("Second chapter text.", StringComparison.Ordinal) ?? false));
         } finally {

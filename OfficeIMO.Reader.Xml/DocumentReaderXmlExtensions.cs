@@ -110,7 +110,7 @@ public static class DocumentReaderXmlExtensions {
 
             yield return new ReaderChunk {
                 Id = "xml-" + chunkIndex.ToString("D4", CultureInfo.InvariantCulture),
-                Kind = ReaderInputKind.Text,
+                Kind = ReaderInputKind.Xml,
                 Location = new ReaderLocation {
                     Path = path,
                     BlockIndex = chunkIndex,
@@ -163,7 +163,7 @@ public static class DocumentReaderXmlExtensions {
     private static ReaderChunk BuildWarningChunk(string path, string id, string warning) {
         return new ReaderChunk {
             Id = id,
-            Kind = ReaderInputKind.Unknown,
+            Kind = ReaderInputKind.Xml,
             Location = new ReaderLocation { Path = path },
             Text = warning,
             Warnings = new[] { warning }

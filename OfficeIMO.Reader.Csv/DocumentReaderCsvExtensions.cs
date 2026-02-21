@@ -118,7 +118,7 @@ public static class DocumentReaderCsvExtensions {
 
         return new ReaderChunk {
             Id = "csv-" + chunkIndex.ToString("D4", CultureInfo.InvariantCulture),
-            Kind = ReaderInputKind.Text,
+            Kind = ReaderInputKind.Csv,
             Location = new ReaderLocation {
                 Path = path,
                 BlockIndex = chunkIndex,

@@ -63,8 +63,7 @@ public sealed class ReaderRegistryTests {
 
         Assert.NotEmpty(chunks);
         Assert.DoesNotContain(chunks, c =>
-            c.Kind == ReaderInputKind.Unknown &&
-            (c.Warnings?.Any(w => w.Contains("JSON parse error", StringComparison.OrdinalIgnoreCase)) ?? false));
+            c.Warnings?.Any(w => w.Contains("JSON parse error", StringComparison.OrdinalIgnoreCase)) ?? false);
         Assert.Contains(chunks, c =>
             (c.Text?.Contains("$.schemaId", StringComparison.Ordinal) ?? false) &&
             (c.Text?.Contains("officeimo.reader.capability", StringComparison.Ordinal) ?? false));
@@ -216,10 +215,10 @@ public sealed class ReaderRegistryTests {
             Assert.Equal(ReaderWarningBehavior.Mixed, xmlCapability.WarningBehavior);
             Assert.True(xmlCapability.DeterministicOutput);
 
-            Assert.Equal(ReaderInputKind.Unknown, DocumentReader.DetectKind("book.epub"));
-            Assert.Equal(ReaderInputKind.Unknown, DocumentReader.DetectKind("archive.zip"));
-            Assert.Equal(ReaderInputKind.Unknown, DocumentReader.DetectKind("index.html"));
-            Assert.Equal(ReaderInputKind.Text, DocumentReader.DetectKind("data.json"));
+            Assert.Equal(ReaderInputKind.Epub, DocumentReader.DetectKind("book.epub"));
+            Assert.Equal(ReaderInputKind.Zip, DocumentReader.DetectKind("archive.zip"));
+            Assert.Equal(ReaderInputKind.Html, DocumentReader.DetectKind("index.html"));
+            Assert.Equal(ReaderInputKind.Json, DocumentReader.DetectKind("data.json"));
         } finally {
             DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
             DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
@@ -602,7 +601,7 @@ public sealed class ReaderRegistryTests {
             var chunks = DocumentReader.Read(stream, "book.epub").ToList();
 
             Assert.Contains(chunks, c =>
-                c.Kind == ReaderInputKind.Unknown &&
+                c.Kind == ReaderInputKind.Epub &&
                 (c.Location.Path?.Contains("book.epub::OEBPS/chapter.xhtml", StringComparison.OrdinalIgnoreCase) ?? false) &&
                 (c.Text?.Contains("EPUB stream body text.", StringComparison.Ordinal) ?? false));
         } finally {
@@ -620,7 +619,7 @@ public sealed class ReaderRegistryTests {
             var chunks = DocumentReader.Read(stream, "book.epub").ToList();
 
             Assert.Contains(chunks, c =>
-                c.Kind == ReaderInputKind.Unknown &&
+                c.Kind == ReaderInputKind.Epub &&
                 (c.Location.Path?.Contains("book.epub::OEBPS/chapter.xhtml", StringComparison.OrdinalIgnoreCase) ?? false) &&
                 (c.Text?.Contains("EPUB stream body text.", StringComparison.Ordinal) ?? false));
         } finally {
@@ -653,7 +652,7 @@ public sealed class ReaderRegistryTests {
             var chunks = DocumentReader.Read(stream, "config.json").ToList();
 
             Assert.NotEmpty(chunks);
-            Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Text, c.Kind));
+            Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Json, c.Kind));
             Assert.Contains(chunks, c =>
                 (c.Location.Path?.Contains("config.json", StringComparison.OrdinalIgnoreCase) ?? false) &&
                 (c.Text?.Contains("$.service.name", StringComparison.Ordinal) ?? false));
@@ -672,7 +671,7 @@ public sealed class ReaderRegistryTests {
             var chunks = DocumentReader.Read(stream, "users.csv").ToList();
 
             Assert.NotEmpty(chunks);
-            Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Text, c.Kind));
+            Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Csv, c.Kind));
             Assert.Contains(chunks, c =>
                 string.Equals(c.Location.Path, "users.csv", StringComparison.OrdinalIgnoreCase) &&
                 c.Tables != null &&

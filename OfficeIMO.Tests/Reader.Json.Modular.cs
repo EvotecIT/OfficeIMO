@@ -26,7 +26,7 @@ public sealed class ReaderJsonModularTests {
             }).ToList();
 
         Assert.NotEmpty(chunks);
-        Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Text, c.Kind));
+        Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Json, c.Kind));
         Assert.Contains(chunks, c => (c.Text ?? string.Empty).Contains("$.agent.name", StringComparison.Ordinal));
         Assert.Contains(chunks, c => c.Tables != null && c.Tables.Count > 0 && c.Tables[0].Columns.Contains("Path", StringComparer.Ordinal));
     }
@@ -63,7 +63,7 @@ public sealed class ReaderJsonModularTests {
 
             Assert.NotEmpty(chunks);
             Assert.Contains(chunks, c =>
-                c.Kind == ReaderInputKind.Unknown &&
+                c.Kind == ReaderInputKind.Json &&
                 (c.Warnings?.Any(w => w.Contains("JSON parse error", StringComparison.OrdinalIgnoreCase)) ?? false));
         } finally {
             if (File.Exists(path)) File.Delete(path);

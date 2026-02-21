@@ -22,7 +22,7 @@ public sealed class ReaderXmlModularTests {
                 }).ToList();
 
             Assert.NotEmpty(chunks);
-            Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Text, c.Kind));
+            Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Xml, c.Kind));
             Assert.Contains(chunks, c => (c.Text ?? string.Empty).Contains("catalog[1]/book[1]/@id", StringComparison.Ordinal));
             Assert.Contains(chunks, c => c.Tables != null && c.Tables.Count > 0 && c.Tables[0].Columns.Contains("Type", StringComparer.Ordinal));
         } finally {
@@ -59,7 +59,7 @@ public sealed class ReaderXmlModularTests {
 
             Assert.NotEmpty(chunks);
             Assert.Contains(chunks, c =>
-                c.Kind == ReaderInputKind.Unknown &&
+                c.Kind == ReaderInputKind.Xml &&
                 (c.Warnings?.Any(w => w.Contains("XML parse error", StringComparison.OrdinalIgnoreCase)) ?? false));
         } finally {
             if (File.Exists(path)) File.Delete(path);

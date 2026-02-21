@@ -24,7 +24,7 @@ public static class DocumentReaderXmlRegistrationExtensions {
             Id = HandlerId,
             DisplayName = "XML Reader Adapter",
             Description = "Modular XML tree parser with path/type/value chunk output.",
-            Kind = ReaderInputKind.Text,
+            Kind = ReaderInputKind.Xml,
             Extensions = new[] { ".xml" },
             ReadPath = (path, readerOptions, ct) => DocumentReaderXmlExtensions.ReadXml(
                 path: path,

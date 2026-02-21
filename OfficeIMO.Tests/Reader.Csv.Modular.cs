@@ -23,7 +23,7 @@ public sealed class ReaderCsvModularTests {
             }).ToList();
 
         Assert.NotEmpty(chunks);
-        Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Text, c.Kind));
+        Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Csv, c.Kind));
         Assert.Contains(chunks, c => (c.Location.Path ?? string.Empty).Contains("users.csv", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(chunks, c => c.Tables != null && c.Tables.Count > 0 && c.Tables[0].Columns.Contains("Name", StringComparer.Ordinal));
     }

@@ -18,7 +18,7 @@ public sealed class ReaderHtmlModularTests {
 
         Assert.NotEmpty(chunks);
         Assert.Contains(chunks, c =>
-            c.Kind == ReaderInputKind.Unknown &&
+            c.Kind == ReaderInputKind.Html &&
             string.Equals(c.Location.Path, "inline.html", StringComparison.OrdinalIgnoreCase) &&
             ((c.Markdown ?? c.Text).Contains("Hello HTML", StringComparison.Ordinal) ||
              (c.Markdown ?? c.Text).Contains("Body text.", StringComparison.Ordinal)));
@@ -65,7 +65,7 @@ public sealed class ReaderHtmlModularTests {
             readerOptions: new ReaderOptions { MaxChars = 128 }).ToList();
 
         Assert.True(chunks.Count > 1);
-        Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Unknown, c.Kind));
+        Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Html, c.Kind));
         Assert.Contains(chunks, c =>
             c.Warnings != null &&
             c.Warnings.Any(w => w.Contains("split due to MaxChars", StringComparison.OrdinalIgnoreCase)));
@@ -80,7 +80,7 @@ public sealed class ReaderHtmlModularTests {
         Assert.Single(chunks);
         var warning = chunks[0];
         Assert.Equal("html-warning-0000", warning.Id);
-        Assert.Equal(ReaderInputKind.Unknown, warning.Kind);
+        Assert.Equal(ReaderInputKind.Html, warning.Kind);
         Assert.Contains("no markdown text", warning.Text ?? string.Empty, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -95,7 +95,7 @@ public sealed class ReaderHtmlModularTests {
 
             Assert.NotEmpty(chunks);
             Assert.Contains(chunks, c =>
-                c.Kind == ReaderInputKind.Unknown &&
+                c.Kind == ReaderInputKind.Html &&
                 string.Equals(c.Location.Path, "registry.html", StringComparison.OrdinalIgnoreCase) &&
                 ((c.Markdown ?? c.Text).Contains("Registry HTML", StringComparison.Ordinal) ||
                  (c.Markdown ?? c.Text).Contains("From stream.", StringComparison.Ordinal)));

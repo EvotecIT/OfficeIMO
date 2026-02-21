@@ -1,7 +1,7 @@
 count=1
 [chunk:0]
 id=html-0000
-kind=Unknown
+kind=Html
 path=ReaderGolden/Inputs/sample.html
 block=0
 sourceBlock=

@@ -22,7 +22,7 @@ public static class DocumentReaderEpubRegistrationExtensions {
             Id = HandlerId,
             DisplayName = "EPUB Reader Adapter",
             Description = "Modular EPUB adapter that emits chapter-oriented Reader chunks.",
-            Kind = ReaderInputKind.Unknown,
+            Kind = ReaderInputKind.Epub,
             Extensions = new[] { ".epub" },
             ReadPath = (path, readerOptions, ct) => DocumentReaderEpubExtensions.ReadEpub(
                 epubPath: path,

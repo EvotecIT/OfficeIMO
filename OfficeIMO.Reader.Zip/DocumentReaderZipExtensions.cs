@@ -407,7 +407,7 @@ public static class DocumentReaderZipExtensions {
 
         return new ReaderChunk {
             Id = $"zip-warning-{warningIndex.ToString("D4", System.Globalization.CultureInfo.InvariantCulture)}",
-            Kind = ReaderInputKind.Unknown,
+            Kind = ReaderInputKind.Zip,
             Location = new ReaderLocation {
                 Path = warningPath,
                 BlockIndex = warningIndex

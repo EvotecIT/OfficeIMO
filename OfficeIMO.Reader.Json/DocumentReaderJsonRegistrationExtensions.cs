@@ -24,7 +24,7 @@ public static class DocumentReaderJsonRegistrationExtensions {
             Id = HandlerId,
             DisplayName = "JSON Reader Adapter",
             Description = "Modular JSON AST parser with path/type/value chunk output.",
-            Kind = ReaderInputKind.Text,
+            Kind = ReaderInputKind.Json,
             Extensions = new[] { ".json" },
             ReadPath = (path, readerOptions, ct) => DocumentReaderJsonExtensions.ReadJson(
                 path: path,
