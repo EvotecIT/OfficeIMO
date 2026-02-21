@@ -279,6 +279,24 @@ public sealed class ReaderRegistryTests {
         }
     }
 
+    [Fact]
+    public void DocumentReader_ModularRegistrationHelpers_DispatchesStructuredCsvNonSeekableStream_EnforcesMaxInputBytes() {
+        try {
+            DocumentReaderTextRegistrationExtensions.RegisterStructuredTextHandler(replaceExisting: true);
+
+            var payload = "Name,Role\nAlice,Admin\nBob,Ops\n";
+            using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(payload));
+            var ex = Assert.Throws<IOException>(() => DocumentReader.Read(
+                stream,
+                "users.csv",
+                new ReaderOptions { MaxInputBytes = 16 }).ToList());
+
+            Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
+        } finally {
+            DocumentReaderTextRegistrationExtensions.UnregisterStructuredTextHandler();
+        }
+    }
+
     private static byte[] BuildSimpleEpubBytes() {
         using var ms = new MemoryStream();
         using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true)) {

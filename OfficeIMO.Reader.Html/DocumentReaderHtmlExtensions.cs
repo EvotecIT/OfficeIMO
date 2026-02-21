@@ -28,10 +28,18 @@ public static class DocumentReaderHtmlExtensions {
         if (htmlStream == null) throw new ArgumentNullException(nameof(htmlStream));
         if (!htmlStream.CanRead) throw new ArgumentException("HTML stream must be readable.", nameof(htmlStream));
 
-        var html = ReadAllText(htmlStream, cancellationToken);
-        var logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "document.html" : sourceName!;
-        foreach (var chunk in ReadHtmlString(html, logicalSourceName, readerOptions, htmlOptions, cancellationToken)) {
-            yield return chunk;
+        var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
+        var parseStream = ReaderInputLimits.EnsureSeekableReadStream(htmlStream, effectiveReaderOptions.MaxInputBytes, cancellationToken, out var ownsParseStream);
+        try {
+            var html = ReadAllText(parseStream, cancellationToken);
+            var logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "document.html" : sourceName!;
+            foreach (var chunk in ReadHtmlString(html, logicalSourceName, effectiveReaderOptions, htmlOptions, cancellationToken)) {
+                yield return chunk;
+            }
+        } finally {
+            if (ownsParseStream) {
+                parseStream.Dispose();
+            }
         }
     }
 

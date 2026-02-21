@@ -35,7 +35,7 @@ public static class DocumentReaderZipExtensions {
         var effectiveZipOptions = zipOptions ?? new ZipTraversalOptions();
         var effectiveReaderZipOptions = Normalize(readerZipOptions);
         var warningCounter = new WarningCounter();
-        EnforceFileSize(zipPath, effectiveReaderOptions.MaxInputBytes);
+        ReaderInputLimits.EnforceFileSize(zipPath, effectiveReaderOptions.MaxInputBytes);
 
         using var fs = new FileStream(zipPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         using var archive = new ZipArchive(fs, ZipArchiveMode.Read, leaveOpen: false);
@@ -84,7 +84,7 @@ public static class DocumentReaderZipExtensions {
         var warningCounter = new WarningCounter();
         var logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "archive.zip" : sourceName!;
 
-        var archiveStream = EnsureSeekableReadStream(zipStream, effectiveReaderOptions.MaxInputBytes, cancellationToken, out var ownsArchiveStream);
+        var archiveStream = ReaderInputLimits.EnsureSeekableReadStream(zipStream, effectiveReaderOptions.MaxInputBytes, cancellationToken, out var ownsArchiveStream);
         try {
             using var archive = new ZipArchive(archiveStream, ZipArchiveMode.Read, leaveOpen: true);
             foreach (var chunk in ReadZipArchive(
@@ -376,61 +376,6 @@ public static class DocumentReaderZipExtensions {
         }
 
         return ms.ToArray();
-    }
-
-    private static Stream EnsureSeekableReadStream(Stream stream, long? maxInputBytes, CancellationToken cancellationToken, out bool ownsStream) {
-        if (stream.CanSeek) {
-            EnforceSeekableStreamSize(stream, maxInputBytes);
-            ownsStream = false;
-            return stream;
-        }
-
-        var buffer = new MemoryStream();
-        try {
-            var chunk = new byte[64 * 1024];
-            long totalBytes = 0;
-            while (true) {
-                cancellationToken.ThrowIfCancellationRequested();
-                var read = stream.Read(chunk, 0, chunk.Length);
-                if (read <= 0) break;
-                buffer.Write(chunk, 0, read);
-
-                totalBytes += read;
-                if (maxInputBytes.HasValue && totalBytes > maxInputBytes.Value) {
-                    throw new IOException(
-                        $"Input exceeds MaxInputBytes ({totalBytes.ToString(System.Globalization.CultureInfo.InvariantCulture)} > {maxInputBytes.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}).");
-                }
-            }
-        } catch {
-            buffer.Dispose();
-            throw;
-        }
-
-        buffer.Position = 0;
-        ownsStream = true;
-        return buffer;
-    }
-
-    private static void EnforceFileSize(string path, long? maxBytes) {
-        if (!maxBytes.HasValue) return;
-        var fi = new FileInfo(path);
-        if (fi.Length > maxBytes.Value) {
-            throw new IOException(
-                $"Input exceeds MaxInputBytes ({fi.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)} > {maxBytes.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}).");
-        }
-    }
-
-    private static void EnforceSeekableStreamSize(Stream stream, long? maxBytes) {
-        if (!maxBytes.HasValue) return;
-        if (!stream.CanSeek) return;
-        try {
-            if (stream.Length > maxBytes.Value) {
-                throw new IOException(
-                    $"Input exceeds MaxInputBytes ({stream.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)} > {maxBytes.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}).");
-            }
-        } catch (NotSupportedException) {
-            // ignore
-        }
     }
 
     private static bool TryReadAllBytes(ZipArchiveEntry entry, CancellationToken cancellationToken, out byte[]? bytes, out string? error) {

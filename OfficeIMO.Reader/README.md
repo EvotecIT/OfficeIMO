@@ -165,6 +165,22 @@ var capabilities = DocumentReader.GetCapabilities();
 
 Use `DocumentReader.UnregisterHandler("sample.custom")` to remove custom handlers.
 
+## Shared Input Guards For Adapter Authors
+
+Use `ReaderInputLimits` when building modular handlers so `MaxInputBytes` behavior stays consistent across adapters:
+
+```csharp
+using OfficeIMO.Reader;
+
+var parseStream = ReaderInputLimits.EnsureSeekableReadStream(
+    stream,
+    maxInputBytes: readerOptions?.MaxInputBytes,
+    cancellationToken: ct,
+    ownsStream: out var ownsParseStream);
+```
+
+You can also call `ReaderInputLimits.EnforceFileSize(path, maxBytes)` and `ReaderInputLimits.EnforceSeekableStreamSize(stream, maxBytes)` for path/seekable prechecks.
+
 ## Modular Adapter Registration (Optional Packages)
 
 Keep dependencies split by registering only adapters you need:

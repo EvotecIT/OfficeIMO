@@ -14,6 +14,8 @@ public static class DocumentReaderTextExtensions {
         if (path == null) throw new ArgumentNullException(nameof(path));
         if (path.Length == 0) throw new ArgumentException("Path cannot be empty.", nameof(path));
 
+        var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
+        ReaderInputLimits.EnforceFileSize(path, effectiveReaderOptions.MaxInputBytes);
         var options = Normalize(structuredOptions);
         var ext = GetNormalizedExtension(path);
 
@@ -41,7 +43,7 @@ public static class DocumentReaderTextExtensions {
             yield break;
         }
 
-        foreach (var chunk in DocumentReader.Read(path, readerOptions, cancellationToken)) {
+        foreach (var chunk in DocumentReader.Read(path, effectiveReaderOptions, cancellationToken)) {
             yield return chunk;
         }
     }
@@ -54,35 +56,43 @@ public static class DocumentReaderTextExtensions {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
+        var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         var options = Normalize(structuredOptions);
         var ext = GetNormalizedExtension(sourceName);
+        var parseStream = ReaderInputLimits.EnsureSeekableReadStream(stream, effectiveReaderOptions.MaxInputBytes, cancellationToken, out var ownsParseStream);
+        try {
+            if (ext == ".csv" || ext == ".tsv") {
+                foreach (var chunk in ReadCsv(parseStream, sourceName, ext, options, cancellationToken)) {
+                    yield return chunk;
+                }
 
-        if (ext == ".csv" || ext == ".tsv") {
-            foreach (var chunk in ReadCsv(stream, sourceName, ext, options, cancellationToken)) {
-                yield return chunk;
+                yield break;
             }
 
-            yield break;
-        }
+            if (ext == ".json") {
+                foreach (var chunk in ReadJson(parseStream, sourceName, options, cancellationToken)) {
+                    yield return chunk;
+                }
 
-        if (ext == ".json") {
-            foreach (var chunk in ReadJson(stream, sourceName, options, cancellationToken)) {
-                yield return chunk;
+                yield break;
             }
 
-            yield break;
-        }
+            if (ext == ".xml") {
+                foreach (var chunk in ReadXml(parseStream, sourceName, options, cancellationToken)) {
+                    yield return chunk;
+                }
 
-        if (ext == ".xml") {
-            foreach (var chunk in ReadXml(stream, sourceName, options, cancellationToken)) {
-                yield return chunk;
+                yield break;
             }
 
-            yield break;
-        }
+            foreach (var chunk in DocumentReader.Read(parseStream, sourceName, effectiveReaderOptions, cancellationToken)) {
+                yield return chunk;
+            }
+        } finally {
+            if (ownsParseStream) {
+                parseStream.Dispose();
+            }
 
-        foreach (var chunk in DocumentReader.Read(stream, sourceName, readerOptions, cancellationToken)) {
-            yield return chunk;
         }
     }
 

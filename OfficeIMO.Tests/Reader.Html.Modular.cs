@@ -74,6 +74,37 @@ public sealed class ReaderHtmlModularTests {
     }
 
     [Fact]
+    public void DocumentReaderHtml_ReadHtmlStream_NonSeekable_EnforcesMaxInputBytes() {
+        var html = "<html><body><h2>Registry HTML</h2><p>From stream.</p></body></html>";
+        using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(html));
+
+        var ex = Assert.Throws<IOException>(() => DocumentReaderHtmlExtensions.ReadHtml(
+            stream,
+            sourceName: "nonseekable.html",
+            readerOptions: new ReaderOptions { MaxInputBytes = 16 }).ToList());
+
+        Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_Registration_NonSeekableStream_EnforcesMaxInputBytes() {
+        try {
+            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+
+            var html = "<html><body><h2>Registry HTML</h2><p>From stream.</p></body></html>";
+            using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(html));
+            var ex = Assert.Throws<IOException>(() => DocumentReader.Read(
+                stream,
+                "registry.html",
+                new ReaderOptions { MaxInputBytes = 16 }).ToList());
+
+            Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
+        } finally {
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+        }
+    }
+
+    [Fact]
     public void DocumentReaderHtml_Registration_AppliesConfiguredMarkdownOptions() {
         try {
             DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(

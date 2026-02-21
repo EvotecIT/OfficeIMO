@@ -15,7 +15,7 @@ public static class DocumentReaderEpubExtensions {
         if (!File.Exists(epubPath)) throw new FileNotFoundException($"EPUB file '{epubPath}' doesn't exist.", epubPath);
 
         var options = readerOptions ?? new ReaderOptions();
-        EnforceFileSize(epubPath, options.MaxInputBytes);
+        ReaderInputLimits.EnforceFileSize(epubPath, options.MaxInputBytes);
         var document = EpubReader.Read(epubPath, epubOptions);
         return ReadEpubDocument(document, epubPath, options, cancellationToken);
     }
@@ -28,7 +28,7 @@ public static class DocumentReaderEpubExtensions {
         if (!epubStream.CanRead) throw new ArgumentException("EPUB stream must be readable.", nameof(epubStream));
 
         var options = readerOptions ?? new ReaderOptions();
-        var parseStream = EnsureSeekableReadStream(epubStream, options.MaxInputBytes, cancellationToken, out var ownsParseStream);
+        var parseStream = ReaderInputLimits.EnsureSeekableReadStream(epubStream, options.MaxInputBytes, cancellationToken, out var ownsParseStream);
         EpubDocument document;
         try {
             document = EpubReader.Read(parseStream, epubOptions);
@@ -168,58 +168,4 @@ public static class DocumentReaderEpubExtensions {
         return sb.ToString().Trim('-');
     }
 
-    private static Stream EnsureSeekableReadStream(Stream stream, long? maxInputBytes, CancellationToken cancellationToken, out bool ownsStream) {
-        if (stream.CanSeek) {
-            EnforceSeekableStreamSize(stream, maxInputBytes);
-            ownsStream = false;
-            return stream;
-        }
-
-        var buffer = new MemoryStream();
-        try {
-            var chunk = new byte[64 * 1024];
-            long totalBytes = 0;
-            while (true) {
-                cancellationToken.ThrowIfCancellationRequested();
-                var read = stream.Read(chunk, 0, chunk.Length);
-                if (read <= 0) break;
-                buffer.Write(chunk, 0, read);
-
-                totalBytes += read;
-                if (maxInputBytes.HasValue && totalBytes > maxInputBytes.Value) {
-                    throw new IOException(
-                        $"Input exceeds MaxInputBytes ({totalBytes.ToString(System.Globalization.CultureInfo.InvariantCulture)} > {maxInputBytes.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}).");
-                }
-            }
-        } catch {
-            buffer.Dispose();
-            throw;
-        }
-
-        buffer.Position = 0;
-        ownsStream = true;
-        return buffer;
-    }
-
-    private static void EnforceFileSize(string path, long? maxBytes) {
-        if (!maxBytes.HasValue) return;
-        var fi = new FileInfo(path);
-        if (fi.Length > maxBytes.Value) {
-            throw new IOException(
-                $"Input exceeds MaxInputBytes ({fi.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)} > {maxBytes.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}).");
-        }
-    }
-
-    private static void EnforceSeekableStreamSize(Stream stream, long? maxBytes) {
-        if (!maxBytes.HasValue) return;
-        if (!stream.CanSeek) return;
-        try {
-            if (stream.Length > maxBytes.Value) {
-                throw new IOException(
-                    $"Input exceeds MaxInputBytes ({stream.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)} > {maxBytes.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}).");
-            }
-        } catch (NotSupportedException) {
-            // ignore
-        }
-    }
 }

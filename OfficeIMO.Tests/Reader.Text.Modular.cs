@@ -107,6 +107,28 @@ public sealed class ReaderTextModularTests {
     }
 
     [Fact]
+    public void DocumentReaderText_ReadStructuredTextStream_NonSeekable_EnforcesMaxInputBytes() {
+        var json =
+            "{\n" +
+            "  \"agent\": {\n" +
+            "    \"name\": \"OfficeIMO\"\n" +
+            "  }\n" +
+            "}";
+        using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(json));
+
+        var ex = Assert.Throws<IOException>(() => DocumentReaderTextExtensions.ReadStructuredText(
+            stream,
+            sourceName: "agent.json",
+            readerOptions: new ReaderOptions { MaxInputBytes = 16 },
+            structuredOptions: new StructuredTextReadOptions {
+                JsonChunkRows = 2,
+                IncludeJsonMarkdown = true
+            }).ToList());
+
+        Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DocumentReaderText_ReadStructuredText_EmitsWarningForMalformedXml() {
         var path = Path.Combine(Path.GetTempPath(), "officeimo-bad-xml-" + Guid.NewGuid().ToString("N") + ".xml");
         try {
