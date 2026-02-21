@@ -1,7 +1,9 @@
 using OfficeIMO.Reader;
+using OfficeIMO.Reader.Csv;
 using OfficeIMO.Reader.Epub;
 using OfficeIMO.Reader.Html;
-using OfficeIMO.Reader.Text;
+using OfficeIMO.Reader.Json;
+using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Zip;
 using System.IO.Compression;
 using System.Text;
@@ -50,12 +52,12 @@ public sealed class ReaderRegistryTests {
         Assert.Equal(jsonA, jsonB);
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(jsonA));
-        var chunks = DocumentReaderTextExtensions.ReadStructuredText(
+        var chunks = DocumentReaderJsonExtensions.ReadJson(
             stream,
             sourceName: "capability-manifest.json",
-            structuredOptions: new StructuredTextReadOptions {
-                JsonChunkRows = 128,
-                IncludeJsonMarkdown = false
+            jsonOptions: new JsonReadOptions {
+                ChunkRows = 128,
+                IncludeMarkdown = false
             }).ToList();
 
         Assert.NotEmpty(chunks);
@@ -161,25 +163,37 @@ public sealed class ReaderRegistryTests {
     [Fact]
     public void DocumentReader_ModularRegistrationHelpers_RegisterAndUnregister() {
         try {
+            DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler(replaceExisting: true);
             DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler(replaceExisting: true);
             DocumentReaderZipRegistrationExtensions.RegisterZipHandler(replaceExisting: true);
             DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
-            DocumentReaderTextRegistrationExtensions.RegisterStructuredTextHandler(replaceExisting: true);
+            DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler(replaceExisting: true);
+            DocumentReaderXmlRegistrationExtensions.RegisterXmlHandler(replaceExisting: true);
 
             var capabilities = DocumentReader.GetCapabilities();
+            var csvCapability = Assert.Single(capabilities, c => c.Id == DocumentReaderCsvRegistrationExtensions.HandlerId);
             var epubCapability = Assert.Single(capabilities, c => c.Id == DocumentReaderEpubRegistrationExtensions.HandlerId);
             var zipCapability = Assert.Single(capabilities, c => c.Id == DocumentReaderZipRegistrationExtensions.HandlerId);
             var htmlCapability = Assert.Single(capabilities, c => c.Id == DocumentReaderHtmlRegistrationExtensions.HandlerId);
-            var textCapability = Assert.Single(capabilities, c => c.Id == DocumentReaderTextRegistrationExtensions.HandlerId);
+            var jsonCapability = Assert.Single(capabilities, c => c.Id == DocumentReaderJsonRegistrationExtensions.HandlerId);
+            var xmlCapability = Assert.Single(capabilities, c => c.Id == DocumentReaderXmlRegistrationExtensions.HandlerId);
 
+            Assert.True(csvCapability.SupportsPath);
+            Assert.True(csvCapability.SupportsStream);
             Assert.True(epubCapability.SupportsPath);
             Assert.True(epubCapability.SupportsStream);
             Assert.True(zipCapability.SupportsPath);
             Assert.True(zipCapability.SupportsStream);
             Assert.True(htmlCapability.SupportsPath);
             Assert.True(htmlCapability.SupportsStream);
-            Assert.True(textCapability.SupportsPath);
-            Assert.True(textCapability.SupportsStream);
+            Assert.True(jsonCapability.SupportsPath);
+            Assert.True(jsonCapability.SupportsStream);
+            Assert.True(xmlCapability.SupportsPath);
+            Assert.True(xmlCapability.SupportsStream);
+            Assert.Equal(ReaderCapabilitySchema.Id, csvCapability.SchemaId);
+            Assert.Equal(ReaderCapabilitySchema.Version, csvCapability.SchemaVersion);
+            Assert.Equal(ReaderWarningBehavior.Mixed, csvCapability.WarningBehavior);
+            Assert.True(csvCapability.DeterministicOutput);
             Assert.Equal(ReaderCapabilitySchema.Id, epubCapability.SchemaId);
             Assert.Equal(ReaderCapabilitySchema.Version, epubCapability.SchemaVersion);
             Assert.Equal(ReaderWarningBehavior.Mixed, epubCapability.WarningBehavior);
@@ -192,36 +206,46 @@ public sealed class ReaderRegistryTests {
             Assert.Equal(ReaderCapabilitySchema.Version, htmlCapability.SchemaVersion);
             Assert.Equal(ReaderWarningBehavior.Mixed, htmlCapability.WarningBehavior);
             Assert.True(htmlCapability.DeterministicOutput);
-            Assert.Equal(ReaderCapabilitySchema.Id, textCapability.SchemaId);
-            Assert.Equal(ReaderCapabilitySchema.Version, textCapability.SchemaVersion);
-            Assert.Equal(ReaderWarningBehavior.Mixed, textCapability.WarningBehavior);
-            Assert.True(textCapability.DeterministicOutput);
+            Assert.Equal(ReaderCapabilitySchema.Id, jsonCapability.SchemaId);
+            Assert.Equal(ReaderCapabilitySchema.Version, jsonCapability.SchemaVersion);
+            Assert.Equal(ReaderWarningBehavior.Mixed, jsonCapability.WarningBehavior);
+            Assert.True(jsonCapability.DeterministicOutput);
+            Assert.Equal(ReaderCapabilitySchema.Id, xmlCapability.SchemaId);
+            Assert.Equal(ReaderCapabilitySchema.Version, xmlCapability.SchemaVersion);
+            Assert.Equal(ReaderWarningBehavior.Mixed, xmlCapability.WarningBehavior);
+            Assert.True(xmlCapability.DeterministicOutput);
 
             Assert.Equal(ReaderInputKind.Unknown, DocumentReader.DetectKind("book.epub"));
             Assert.Equal(ReaderInputKind.Unknown, DocumentReader.DetectKind("archive.zip"));
             Assert.Equal(ReaderInputKind.Unknown, DocumentReader.DetectKind("index.html"));
             Assert.Equal(ReaderInputKind.Text, DocumentReader.DetectKind("data.json"));
         } finally {
+            DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
             DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
             DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
-            DocumentReaderTextRegistrationExtensions.UnregisterStructuredTextHandler();
+            DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
         }
     }
 
     [Fact]
     public void DocumentReader_DiscoverHandlerRegistrars_FindsModularRegistrars() {
         var registrars = DocumentReader.DiscoverHandlerRegistrars(
+            typeof(DocumentReaderCsvRegistrationExtensions).Assembly,
             typeof(DocumentReaderEpubRegistrationExtensions).Assembly,
             typeof(DocumentReaderZipRegistrationExtensions).Assembly,
             typeof(DocumentReaderHtmlRegistrationExtensions).Assembly,
-            typeof(DocumentReaderTextRegistrationExtensions).Assembly).ToList();
+            typeof(DocumentReaderJsonRegistrationExtensions).Assembly,
+            typeof(DocumentReaderXmlRegistrationExtensions).Assembly).ToList();
 
         Assert.NotEmpty(registrars);
+        Assert.Contains(registrars, r => r.HandlerId == DocumentReaderCsvRegistrationExtensions.HandlerId);
         Assert.Contains(registrars, r => r.HandlerId == DocumentReaderEpubRegistrationExtensions.HandlerId);
         Assert.Contains(registrars, r => r.HandlerId == DocumentReaderZipRegistrationExtensions.HandlerId);
         Assert.Contains(registrars, r => r.HandlerId == DocumentReaderHtmlRegistrationExtensions.HandlerId);
-        Assert.Contains(registrars, r => r.HandlerId == DocumentReaderTextRegistrationExtensions.HandlerId);
+        Assert.Contains(registrars, r => r.HandlerId == DocumentReaderJsonRegistrationExtensions.HandlerId);
+        Assert.Contains(registrars, r => r.HandlerId == DocumentReaderXmlRegistrationExtensions.HandlerId);
 
         var ordered = registrars
             .OrderBy(r => r.HandlerId, StringComparer.Ordinal)
@@ -237,34 +261,44 @@ public sealed class ReaderRegistryTests {
     [Fact]
     public void DocumentReader_RegisterHandlersFromAssemblies_RegistersModularHandlers() {
         try {
+            DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
             DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
             DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
-            DocumentReaderTextRegistrationExtensions.UnregisterStructuredTextHandler();
+            DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
 
             var registered = DocumentReader.RegisterHandlersFromAssemblies(
                 replaceExisting: true,
+                typeof(DocumentReaderCsvRegistrationExtensions).Assembly,
                 typeof(DocumentReaderEpubRegistrationExtensions).Assembly,
                 typeof(DocumentReaderZipRegistrationExtensions).Assembly,
                 typeof(DocumentReaderHtmlRegistrationExtensions).Assembly,
-                typeof(DocumentReaderTextRegistrationExtensions).Assembly).ToList();
+                typeof(DocumentReaderJsonRegistrationExtensions).Assembly,
+                typeof(DocumentReaderXmlRegistrationExtensions).Assembly).ToList();
 
             Assert.NotEmpty(registered);
+            Assert.Contains(registered, r => r.HandlerId == DocumentReaderCsvRegistrationExtensions.HandlerId);
             Assert.Contains(registered, r => r.HandlerId == DocumentReaderEpubRegistrationExtensions.HandlerId);
             Assert.Contains(registered, r => r.HandlerId == DocumentReaderZipRegistrationExtensions.HandlerId);
             Assert.Contains(registered, r => r.HandlerId == DocumentReaderHtmlRegistrationExtensions.HandlerId);
-            Assert.Contains(registered, r => r.HandlerId == DocumentReaderTextRegistrationExtensions.HandlerId);
+            Assert.Contains(registered, r => r.HandlerId == DocumentReaderJsonRegistrationExtensions.HandlerId);
+            Assert.Contains(registered, r => r.HandlerId == DocumentReaderXmlRegistrationExtensions.HandlerId);
 
             var capabilities = DocumentReader.GetCapabilities();
+            Assert.Contains(capabilities, c => c.Id == DocumentReaderCsvRegistrationExtensions.HandlerId);
             Assert.Contains(capabilities, c => c.Id == DocumentReaderEpubRegistrationExtensions.HandlerId);
             Assert.Contains(capabilities, c => c.Id == DocumentReaderZipRegistrationExtensions.HandlerId);
             Assert.Contains(capabilities, c => c.Id == DocumentReaderHtmlRegistrationExtensions.HandlerId);
-            Assert.Contains(capabilities, c => c.Id == DocumentReaderTextRegistrationExtensions.HandlerId);
+            Assert.Contains(capabilities, c => c.Id == DocumentReaderJsonRegistrationExtensions.HandlerId);
+            Assert.Contains(capabilities, c => c.Id == DocumentReaderXmlRegistrationExtensions.HandlerId);
         } finally {
+            DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
             DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
             DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
-            DocumentReaderTextRegistrationExtensions.UnregisterStructuredTextHandler();
+            DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
         }
     }
 
@@ -387,7 +421,7 @@ public sealed class ReaderRegistryTests {
     [Fact]
     public void DocumentReader_ModularRegistrationHelpers_DispatchesStructuredJsonStream() {
         try {
-            DocumentReaderTextRegistrationExtensions.RegisterStructuredTextHandler(replaceExisting: true);
+            DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler(replaceExisting: true);
 
             var payload = "{\"service\":{\"name\":\"IX\",\"enabled\":true,\"ports\":[443,8443]}}";
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(payload), writable: false);
@@ -399,14 +433,14 @@ public sealed class ReaderRegistryTests {
                 (c.Location.Path?.Contains("config.json", StringComparison.OrdinalIgnoreCase) ?? false) &&
                 (c.Text?.Contains("$.service.name", StringComparison.Ordinal) ?? false));
         } finally {
-            DocumentReaderTextRegistrationExtensions.UnregisterStructuredTextHandler();
+            DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
         }
     }
 
     [Fact]
     public void DocumentReader_ModularRegistrationHelpers_DispatchesStructuredCsvNonSeekableStream() {
         try {
-            DocumentReaderTextRegistrationExtensions.RegisterStructuredTextHandler(replaceExisting: true);
+            DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler(replaceExisting: true);
 
             var payload = "Name,Role\nAlice,Admin\nBob,Ops\n";
             using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(payload));
@@ -420,14 +454,14 @@ public sealed class ReaderRegistryTests {
                 c.Tables.Count > 0 &&
                 c.Tables[0].Columns.Contains("Name", StringComparer.Ordinal));
         } finally {
-            DocumentReaderTextRegistrationExtensions.UnregisterStructuredTextHandler();
+            DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
         }
     }
 
     [Fact]
     public void DocumentReader_ModularRegistrationHelpers_DispatchesStructuredCsvNonSeekableStream_EnforcesMaxInputBytes() {
         try {
-            DocumentReaderTextRegistrationExtensions.RegisterStructuredTextHandler(replaceExisting: true);
+            DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler(replaceExisting: true);
 
             var payload = "Name,Role\nAlice,Admin\nBob,Ops\n";
             using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(payload));
@@ -438,7 +472,7 @@ public sealed class ReaderRegistryTests {
 
             Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
         } finally {
-            DocumentReaderTextRegistrationExtensions.UnregisterStructuredTextHandler();
+            DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
         }
     }
 

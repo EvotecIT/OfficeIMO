@@ -45,6 +45,9 @@
         <ProjectReference Include="..\\OfficeIMO.Reader.Epub\\OfficeIMO.Reader.Epub.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Reader.Html\\OfficeIMO.Reader.Html.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Reader.Text\\OfficeIMO.Reader.Text.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Reader.Csv\\OfficeIMO.Reader.Csv.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Reader.Json\\OfficeIMO.Reader.Json.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Reader.Xml\\OfficeIMO.Reader.Xml.csproj" />
     </ItemGroup>
     <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
         <Reference Include="System.IO.Compression" />

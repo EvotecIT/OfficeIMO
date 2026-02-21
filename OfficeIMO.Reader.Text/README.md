@@ -1,11 +1,10 @@
 # OfficeIMO.Reader.Text (Preview)
 
-`OfficeIMO.Reader.Text` is a modular path for improving non-Office text ingestion:
-- CSV semantic chunking (table-aware, backed by `OfficeIMO.CSV` for path/stream inputs)
-- JSON AST chunking (path/type/value tables)
-- XML AST chunking (element/attribute path tables)
-- path and stream dispatch via `DocumentReader` handler registration
-- future structured text adapters
+`OfficeIMO.Reader.Text` is now a compatibility orchestrator for structured text adapters:
+- delegates `.csv`/`.tsv` to `OfficeIMO.Reader.Csv`
+- delegates `.json` to `OfficeIMO.Reader.Json`
+- delegates `.xml` to `OfficeIMO.Reader.Xml`
+- keeps a single legacy registration entry point for existing consumers
 
 Registration into `OfficeIMO.Reader`:
 
@@ -15,5 +14,10 @@ using OfficeIMO.Reader.Text;
 DocumentReaderTextRegistrationExtensions.RegisterStructuredTextHandler(replaceExisting: true);
 ```
 
+For new integrations, prefer dedicated handlers:
+- `DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler(...)`
+- `DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler(...)`
+- `DocumentReaderXmlRegistrationExtensions.RegisterXmlHandler(...)`
+
 Status:
-- scaffolded and intentionally non-packable/non-publishable
+- compatibility wrapper and intentionally non-packable/non-publishable

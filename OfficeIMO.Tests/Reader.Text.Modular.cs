@@ -144,4 +144,23 @@ public sealed class ReaderTextModularTests {
             if (File.Exists(path)) File.Delete(path);
         }
     }
+
+    [Fact]
+    public void DocumentReaderText_CompatibilityRegistration_DispatchesStructuredJsonStream() {
+        try {
+            DocumentReaderTextRegistrationExtensions.RegisterStructuredTextHandler(replaceExisting: true);
+
+            var payload = "{\"service\":{\"name\":\"IX\",\"enabled\":true,\"ports\":[443,8443]}}";
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(payload), writable: false);
+            var chunks = DocumentReader.Read(stream, "config.json").ToList();
+
+            Assert.NotEmpty(chunks);
+            Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Text, c.Kind));
+            Assert.Contains(chunks, c =>
+                (c.Location.Path?.Contains("config.json", StringComparison.OrdinalIgnoreCase) ?? false) &&
+                (c.Text?.Contains("$.service.name", StringComparison.Ordinal) ?? false));
+        } finally {
+            DocumentReaderTextRegistrationExtensions.UnregisterStructuredTextHandler();
+        }
+    }
 }

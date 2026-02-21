@@ -1,7 +1,9 @@
 using OfficeIMO.Reader;
+using OfficeIMO.Reader.Csv;
 using OfficeIMO.Reader.Epub;
 using OfficeIMO.Reader.Html;
-using OfficeIMO.Reader.Text;
+using OfficeIMO.Reader.Json;
+using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Zip;
 using OfficeIMO.Epub;
 using OfficeIMO.Zip;
@@ -15,11 +17,11 @@ public sealed class ReaderGoldenFixtureTests {
     [Fact]
     public void ReaderGolden_Csv_Path() {
         var inputPath = GetInputPath("sample.csv");
-        var chunks = DocumentReaderTextExtensions.ReadStructuredText(
+        var chunks = DocumentReaderCsvExtensions.ReadCsv(
             inputPath,
-            structuredOptions: new StructuredTextReadOptions {
-                CsvChunkRows = 2,
-                IncludeCsvMarkdown = true
+            csvOptions: new CsvReadOptions {
+                ChunkRows = 2,
+                IncludeMarkdown = true
             }).ToList();
 
         AssertGolden("csv", BuildSnapshot(chunks));
@@ -28,12 +30,12 @@ public sealed class ReaderGoldenFixtureTests {
     [Fact]
     public void ReaderGolden_Json_Path() {
         var inputPath = GetInputPath("sample.json");
-        var chunks = DocumentReaderTextExtensions.ReadStructuredText(
+        var chunks = DocumentReaderJsonExtensions.ReadJson(
             inputPath,
-            structuredOptions: new StructuredTextReadOptions {
-                JsonChunkRows = 4,
-                JsonMaxDepth = 16,
-                IncludeJsonMarkdown = true
+            jsonOptions: new JsonReadOptions {
+                ChunkRows = 4,
+                MaxDepth = 16,
+                IncludeMarkdown = true
             }).ToList();
 
         AssertGolden("json", BuildSnapshot(chunks));
@@ -42,11 +44,11 @@ public sealed class ReaderGoldenFixtureTests {
     [Fact]
     public void ReaderGolden_Xml_Path() {
         var inputPath = GetInputPath("sample.xml");
-        var chunks = DocumentReaderTextExtensions.ReadStructuredText(
+        var chunks = DocumentReaderXmlExtensions.ReadXml(
             inputPath,
-            structuredOptions: new StructuredTextReadOptions {
-                XmlChunkRows = 4,
-                IncludeXmlMarkdown = true
+            xmlOptions: new XmlReadOptions {
+                ChunkRows = 4,
+                IncludeMarkdown = true
             }).ToList();
 
         AssertGolden("xml", BuildSnapshot(chunks));

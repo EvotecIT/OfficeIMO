@@ -207,12 +207,20 @@ Keep dependencies split by registering only adapters you need:
 ```csharp
 using OfficeIMO.Reader.Epub;
 using OfficeIMO.Reader.Html;
+using OfficeIMO.Reader.Json;
+using OfficeIMO.Reader.Csv;
 using OfficeIMO.Reader.Text;
+using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Zip;
 
 DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler(replaceExisting: true);
 DocumentReaderZipRegistrationExtensions.RegisterZipHandler(replaceExisting: true);
 DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler(replaceExisting: true);
+DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler(replaceExisting: true);
+DocumentReaderXmlRegistrationExtensions.RegisterXmlHandler(replaceExisting: true);
+
+// Compatibility path for existing integrations:
 DocumentReaderTextRegistrationExtensions.RegisterStructuredTextHandler(replaceExisting: true);
 ```
 
@@ -222,23 +230,29 @@ For host-driven auto wiring (for example IX loading only present adapter assembl
 
 ```csharp
 using OfficeIMO.Reader;
+using OfficeIMO.Reader.Csv;
 using OfficeIMO.Reader.Epub;
 using OfficeIMO.Reader.Html;
-using OfficeIMO.Reader.Text;
+using OfficeIMO.Reader.Json;
+using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Zip;
 
 var registrars = DocumentReader.DiscoverHandlerRegistrars(
+    typeof(DocumentReaderCsvRegistrationExtensions).Assembly,
     typeof(DocumentReaderEpubRegistrationExtensions).Assembly,
     typeof(DocumentReaderZipRegistrationExtensions).Assembly,
     typeof(DocumentReaderHtmlRegistrationExtensions).Assembly,
-    typeof(DocumentReaderTextRegistrationExtensions).Assembly);
+    typeof(DocumentReaderJsonRegistrationExtensions).Assembly,
+    typeof(DocumentReaderXmlRegistrationExtensions).Assembly);
 
 DocumentReader.RegisterHandlersFromAssemblies(
     replaceExisting: true,
+    typeof(DocumentReaderCsvRegistrationExtensions).Assembly,
     typeof(DocumentReaderEpubRegistrationExtensions).Assembly,
     typeof(DocumentReaderZipRegistrationExtensions).Assembly,
     typeof(DocumentReaderHtmlRegistrationExtensions).Assembly,
-    typeof(DocumentReaderTextRegistrationExtensions).Assembly);
+    typeof(DocumentReaderJsonRegistrationExtensions).Assembly,
+    typeof(DocumentReaderXmlRegistrationExtensions).Assembly);
 ```
 
 ## Notes

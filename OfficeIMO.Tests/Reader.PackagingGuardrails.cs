@@ -9,6 +9,9 @@ public sealed class ReaderPackagingGuardrailTests {
     [InlineData("OfficeIMO.Reader.Epub/OfficeIMO.Reader.Epub.csproj")]
     [InlineData("OfficeIMO.Reader.Html/OfficeIMO.Reader.Html.csproj")]
     [InlineData("OfficeIMO.Reader.Text/OfficeIMO.Reader.Text.csproj")]
+    [InlineData("OfficeIMO.Reader.Csv/OfficeIMO.Reader.Csv.csproj")]
+    [InlineData("OfficeIMO.Reader.Json/OfficeIMO.Reader.Json.csproj")]
+    [InlineData("OfficeIMO.Reader.Xml/OfficeIMO.Reader.Xml.csproj")]
     public void ModularReaderProjects_RemainNonPackableAndNonPublishable(string relativeProjectPath) {
         var projectPath = Path.Combine(GetRepositoryRoot(), relativeProjectPath.Replace('/', Path.DirectorySeparatorChar));
         Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);

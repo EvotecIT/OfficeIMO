@@ -1,29 +1,28 @@
 namespace OfficeIMO.Reader.Text;
 
 /// <summary>
-/// Registration helpers for plugging structured text support into <see cref="DocumentReader"/>.
+/// Registration helpers for plugging structured text compatibility support into <see cref="DocumentReader"/>.
 /// </summary>
 public static class DocumentReaderTextRegistrationExtensions {
     /// <summary>
-    /// Stable handler identifier for structured text adapter registration.
+    /// Stable handler identifier for legacy structured text adapter registration.
     /// </summary>
     public const string HandlerId = "officeimo.reader.text.structured";
 
     /// <summary>
-    /// Registers structured CSV/JSON/XML ingestion into <see cref="DocumentReader"/>.
+    /// Registers structured CSV/JSON/XML ingestion into <see cref="DocumentReader"/> via the compatibility orchestrator.
     /// </summary>
     /// <param name="structuredOptions">Default structured parser options used by this handler.</param>
     /// <param name="replaceExisting">
     /// Defaults to true because these extensions are already handled by the built-in plain text path.
     /// </param>
-    [ReaderHandlerRegistrar(HandlerId)]
     public static void RegisterStructuredTextHandler(StructuredTextReadOptions? structuredOptions = null, bool replaceExisting = true) {
         var registered = Clone(structuredOptions);
 
         DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
             Id = HandlerId,
-            DisplayName = "Structured Text Reader Adapter",
-            Description = "Modular structured parser for CSV/JSON/XML with table-aware chunk output.",
+            DisplayName = "Structured Text Reader Compatibility Adapter",
+            Description = "Compatibility adapter that delegates CSV/JSON/XML to dedicated modular handlers.",
             Kind = ReaderInputKind.Text,
             Extensions = new[] { ".csv", ".tsv", ".json", ".xml" },
             ReadPath = (path, readerOptions, ct) => DocumentReaderTextExtensions.ReadStructuredText(
@@ -41,7 +40,7 @@ public static class DocumentReaderTextRegistrationExtensions {
     }
 
     /// <summary>
-    /// Unregisters structured text ingestion handler from <see cref="DocumentReader"/>.
+    /// Unregisters structured text compatibility handler from <see cref="DocumentReader"/>.
     /// </summary>
     public static bool UnregisterStructuredTextHandler() {
         return DocumentReader.UnregisterHandler(HandlerId);
