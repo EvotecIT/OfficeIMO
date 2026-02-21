@@ -10,13 +10,13 @@ public static class DocumentReaderHtmlExtensions {
     /// <summary>
     /// Reads an HTML file and emits normalized chunks.
     /// </summary>
-    public static IEnumerable<ReaderChunk> ReadHtmlFile(string htmlPath, ReaderOptions? readerOptions = null, CancellationToken cancellationToken = default) {
+    public static IEnumerable<ReaderChunk> ReadHtmlFile(string htmlPath, ReaderOptions? readerOptions = null, ReaderHtmlOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
         if (htmlPath == null) throw new ArgumentNullException(nameof(htmlPath));
         if (htmlPath.Length == 0) throw new ArgumentException("HTML path cannot be empty.", nameof(htmlPath));
         if (!File.Exists(htmlPath)) throw new FileNotFoundException($"HTML file '{htmlPath}' doesn't exist.", htmlPath);
 
         using var fs = new FileStream(htmlPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        foreach (var chunk in ReadHtml(fs, htmlPath, readerOptions, cancellationToken)) {
+        foreach (var chunk in ReadHtml(fs, htmlPath, readerOptions, htmlOptions, cancellationToken)) {
             yield return chunk;
         }
     }
@@ -24,13 +24,13 @@ public static class DocumentReaderHtmlExtensions {
     /// <summary>
     /// Reads an HTML stream and emits normalized chunks.
     /// </summary>
-    public static IEnumerable<ReaderChunk> ReadHtml(Stream htmlStream, string? sourceName = null, ReaderOptions? readerOptions = null, CancellationToken cancellationToken = default) {
+    public static IEnumerable<ReaderChunk> ReadHtml(Stream htmlStream, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderHtmlOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
         if (htmlStream == null) throw new ArgumentNullException(nameof(htmlStream));
         if (!htmlStream.CanRead) throw new ArgumentException("HTML stream must be readable.", nameof(htmlStream));
 
         var html = ReadAllText(htmlStream, cancellationToken);
         var logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "document.html" : sourceName!;
-        foreach (var chunk in ReadHtmlString(html, logicalSourceName, readerOptions, cancellationToken)) {
+        foreach (var chunk in ReadHtmlString(html, logicalSourceName, readerOptions, htmlOptions, cancellationToken)) {
             yield return chunk;
         }
     }
@@ -38,17 +38,18 @@ public static class DocumentReaderHtmlExtensions {
     /// <summary>
     /// Reads an HTML string and emits normalized chunks.
     /// </summary>
-    public static IEnumerable<ReaderChunk> ReadHtmlString(string html, string sourceName = "document.html", ReaderOptions? readerOptions = null, CancellationToken cancellationToken = default) {
+    public static IEnumerable<ReaderChunk> ReadHtmlString(string html, string sourceName = "document.html", ReaderOptions? readerOptions = null, ReaderHtmlOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
         if (html == null) throw new ArgumentNullException(nameof(html));
         if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
 
         var effective = readerOptions ?? new ReaderOptions();
+        var effectiveHtmlOptions = NormalizeOptions(htmlOptions);
         int maxChars = effective.MaxChars > 0 ? effective.MaxChars : 8_000;
         var logicalSourceName = sourceName.Trim().Length == 0 ? "document.html" : sourceName;
 
         string markdown;
-        using (var document = html.LoadFromHtml()) {
-            markdown = document.ToMarkdown();
+        using (var document = html.LoadFromHtml(effectiveHtmlOptions.HtmlToWordOptions)) {
+            markdown = document.ToMarkdown(effectiveHtmlOptions.MarkdownOptions);
         }
 
         if (string.IsNullOrWhiteSpace(markdown)) {
@@ -130,6 +131,61 @@ public static class DocumentReaderHtmlExtensions {
             },
             Text = warning,
             Warnings = new[] { warning }
+        };
+    }
+
+    private static ReaderHtmlOptions NormalizeOptions(ReaderHtmlOptions? options) {
+        return new ReaderHtmlOptions {
+            HtmlToWordOptions = CloneHtmlToWordOptions(options?.HtmlToWordOptions),
+            MarkdownOptions = CloneMarkdownOptions(options?.MarkdownOptions)
+        };
+    }
+
+    private static OfficeIMO.Word.Html.HtmlToWordOptions CloneHtmlToWordOptions(OfficeIMO.Word.Html.HtmlToWordOptions? options) {
+        var source = options ?? new OfficeIMO.Word.Html.HtmlToWordOptions();
+        var clone = new OfficeIMO.Word.Html.HtmlToWordOptions {
+            FontFamily = source.FontFamily,
+            QuotePrefix = source.QuotePrefix,
+            QuoteSuffix = source.QuoteSuffix,
+            DefaultPageSize = source.DefaultPageSize,
+            DefaultOrientation = source.DefaultOrientation,
+            IncludeListStyles = source.IncludeListStyles,
+            ContinueNumbering = source.ContinueNumbering,
+            SupportsHeadingNumbering = source.SupportsHeadingNumbering,
+            BasePath = source.BasePath,
+            NoteReferenceType = source.NoteReferenceType,
+            LinkNoteUrls = source.LinkNoteUrls,
+            ImageProcessing = source.ImageProcessing,
+            HttpClient = source.HttpClient,
+            ResourceTimeout = source.ResourceTimeout,
+            RenderPreAsTable = source.RenderPreAsTable,
+            TableCaptionPosition = source.TableCaptionPosition,
+            SectionTagHandling = source.SectionTagHandling
+        };
+
+        foreach (var item in source.ClassStyles) {
+            clone.ClassStyles[item.Key] = item.Value;
+        }
+
+        foreach (var stylesheetPath in source.StylesheetPaths) {
+            clone.StylesheetPaths.Add(stylesheetPath);
+        }
+
+        foreach (var stylesheet in source.StylesheetContents) {
+            clone.StylesheetContents.Add(stylesheet);
+        }
+
+        return clone;
+    }
+
+    private static WordToMarkdownOptions CloneMarkdownOptions(WordToMarkdownOptions? options) {
+        var source = options ?? new WordToMarkdownOptions();
+        return new WordToMarkdownOptions {
+            FontFamily = source.FontFamily,
+            EnableUnderline = source.EnableUnderline,
+            EnableHighlight = source.EnableHighlight,
+            ImageExportMode = source.ImageExportMode,
+            ImageDirectory = source.ImageDirectory
         };
     }
 }

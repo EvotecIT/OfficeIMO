@@ -17,5 +17,20 @@ using OfficeIMO.Reader.Html;
 DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler();
 ```
 
+With custom conversion options:
+
+```csharp
+using OfficeIMO.Reader.Html;
+using OfficeIMO.Word.Markdown;
+
+DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(
+    htmlOptions: new ReaderHtmlOptions {
+        MarkdownOptions = new WordToMarkdownOptions {
+            EnableUnderline = true
+        }
+    },
+    replaceExisting: true);
+```
+
 Status:
 - scaffolded and intentionally non-packable/non-publishable

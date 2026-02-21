@@ -47,6 +47,7 @@ All scaffolded packages are currently excluded from publishing.
 - Chunking and source/citation metadata.
 - Performance and fidelity tuning for large inputs.
 - Add stream ingestion + registry stream dispatch. (implemented in scaffold branch)
+- Add configurable HTML/Markdown conversion options for adapter registration. (implemented in scaffold branch)
 
 5. Reader core modularization (medium-high)
 - Replace hardcoded switch routing with handler registry. (implemented in scaffold branch)
