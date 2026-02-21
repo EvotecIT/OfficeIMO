@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -62,6 +63,102 @@ namespace OfficeIMO.Tests {
             Assert.Equal(image.Width, doc.Images[0].Width);
             Assert.Equal(image.Height, doc.Images[0].Height);
 
+        }
+
+        [Fact]
+        public void MarkdownToWord_FitsImageToPageContentWidthWhenEnabled() {
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            string md = $"![Local]({imagePath}){{width=1200 height=300}}";
+            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions {
+                AllowLocalImages = true,
+                FitImagesToPageContentWidth = true,
+                ImageLayout = {
+                    AllowUpscale = true
+                },
+                DefaultPageSize = WordPageSize.Letter
+            });
+
+            Assert.Single(doc.Images);
+            Assert.InRange(doc.Images[0].Width ?? 0, 623, 625);
+            Assert.InRange(doc.Images[0].Height ?? 0, 155, 157);
+        }
+
+        [Fact]
+        public void MarkdownToWord_AppliesConfiguredImageMaxWidthPixels() {
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            string md = $"![Local]({imagePath}){{width=1200 height=300}}";
+            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions {
+                AllowLocalImages = true,
+                MaxImageWidthPixels = 480
+            });
+
+            Assert.Single(doc.Images);
+            Assert.InRange(doc.Images[0].Width ?? 0, 479.5, 480.5);
+            Assert.InRange(doc.Images[0].Height ?? 0, 119.5, 120.5);
+        }
+
+        [Fact]
+        public void MarkdownToWord_AppliesConfiguredImageMaxWidthPercentOfContent() {
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            string md = $"![Local]({imagePath}){{width=1200 height=300}}";
+            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions {
+                AllowLocalImages = true,
+                DefaultPageSize = WordPageSize.Letter,
+                MaxImageWidthPercentOfContent = 50,
+                ImageLayout = {
+                    AllowUpscale = true
+                }
+            });
+
+            Assert.Single(doc.Images);
+            Assert.InRange(doc.Images[0].Width ?? 0, 311, 313);
+            Assert.InRange(doc.Images[0].Height ?? 0, 77, 79);
+        }
+
+        [Fact]
+        public void MarkdownToWord_AppliesConfiguredImageMaxHeightPixels() {
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            string md = $"![Local]({imagePath}){{width=1200 height=300}}";
+            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions {
+                AllowLocalImages = true,
+                MaxImageHeightPixels = 100
+            });
+
+            Assert.Single(doc.Images);
+            Assert.InRange(doc.Images[0].Height ?? 0, 99.5, 100.5);
+            Assert.InRange(doc.Images[0].Width ?? 0, 399.5, 400.5);
+        }
+
+        [Fact]
+        public void MarkdownToWord_EmitsImageLayoutDiagnosticsWhenScaled() {
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            string md = $"![Local]({imagePath}){{width=1200 height=300}}";
+            var diagnostics = new List<MarkdownImageLayoutDiagnostic>();
+
+            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions {
+                AllowLocalImages = true,
+                MaxImageWidthPixels = 480,
+                OnImageLayoutDiagnostic = diagnostics.Add
+            });
+
+            Assert.Single(doc.Images);
+            var diagnostic = Assert.Single(diagnostics);
+            Assert.True(diagnostic.ScaledByLayout);
+            Assert.Equal("block-local", diagnostic.Context);
+            Assert.Equal(1200, diagnostic.RequestedWidthPixels);
+            Assert.InRange(diagnostic.FinalWidthPixels ?? 0, 479.5, 480.5);
+        }
+
+        [Fact]
+        public void MarkdownToWord_FitImagesToPageContentWidth_ForcesPageMode() {
+            var options = new MarkdownToWordOptions();
+            options.FitImagesToContextWidth = true;
+
+            options.FitImagesToPageContentWidth = true;
+
+            Assert.True(options.FitImagesToPageContentWidth);
+            Assert.False(options.FitImagesToContextWidth);
+            Assert.Equal(MarkdownImageFitMode.PageContentWidth, options.ImageLayout.FitMode);
         }
 
         [Fact]

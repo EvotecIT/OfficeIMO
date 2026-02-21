@@ -12,6 +12,15 @@ namespace OfficeIMO.Word.Markdown {
     /// code, quotes, callouts, footnotes, etc.).
     /// </summary>
     internal partial class MarkdownToWordConverter {
+        private const int IndentTwipsPerLevel = 720; // 0.5 inch per level
+        private const double DefaultPageWidthTwips = 12240d;
+        private const double DefaultHorizontalMarginTwips = 1440d;
+        private const double TwipsPerInch = 1440d;
+        private const double PixelsPerInch = 96d;
+        private const double MinimumContentWidthPixels = 1d;
+        private static readonly TimeSpan DefaultRemoteImageDownloadTimeout = TimeSpan.FromSeconds(20);
+        private static readonly System.Net.Http.HttpClient SharedRemoteImageClient = CreateRemoteImageClient(DefaultRemoteImageDownloadTimeout);
+
         private static bool LocalPathAllowed(string path, MarkdownToWordOptions options) {
             if (!options.AllowLocalImages) return false;
             if (options.AllowedImageDirectories.Count == 0) return true;
@@ -24,6 +33,253 @@ namespace OfficeIMO.Word.Markdown {
             } catch { return false; }
             return false;
         }
+
+        private static double EstimatePageContentWidthPixels(WordDocument document) {
+            var section = document.Sections.FirstOrDefault();
+            var pageWidthTwips = (double?)section?.PageSettings?.Width?.Value ?? DefaultPageWidthTwips;
+            var leftMarginTwips = (double?)section?.Margins?.Left?.Value ?? DefaultHorizontalMarginTwips;
+            var rightMarginTwips = (double?)section?.Margins?.Right?.Value ?? DefaultHorizontalMarginTwips;
+            var contentTwips = pageWidthTwips - leftMarginTwips - rightMarginTwips;
+
+            if (contentTwips < MinimumContentWidthPixels) {
+                contentTwips = DefaultPageWidthTwips - (DefaultHorizontalMarginTwips * 2);
+            }
+
+            if (contentTwips < MinimumContentWidthPixels) {
+                return MinimumContentWidthPixels;
+            }
+
+            return contentTwips * PixelsPerInch / TwipsPerInch;
+        }
+
+        private static System.Net.Http.HttpClient CreateRemoteImageClient(TimeSpan timeout) {
+            var client = new System.Net.Http.HttpClient();
+            client.Timeout = timeout;
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("OfficeIMO.Word.Markdown");
+            return client;
+        }
+
+        private static TimeSpan ResolveRemoteImageTimeout(MarkdownToWordOptions options) {
+            if (options.RemoteImageDownloadTimeout <= TimeSpan.Zero) {
+                return DefaultRemoteImageDownloadTimeout;
+            }
+
+            return options.RemoteImageDownloadTimeout;
+        }
+
+        private static byte[] DownloadRemoteImageBytes(Uri uri, MarkdownToWordOptions options) {
+            var timeout = ResolveRemoteImageTimeout(options);
+            if (timeout == DefaultRemoteImageDownloadTimeout) {
+                return SharedRemoteImageClient.GetByteArrayAsync(uri).GetAwaiter().GetResult();
+            }
+
+            using var client = CreateRemoteImageClient(timeout);
+            return client.GetByteArrayAsync(uri).GetAwaiter().GetResult();
+        }
+
+        private static double? ResolveContextWidthLimitPixels(
+            MarkdownImageLayoutOptions layout,
+            double pageContentWidthPixels,
+            int listLevel,
+            int quoteDepth) {
+            if (layout.FitMode == MarkdownImageFitMode.None || pageContentWidthPixels <= 0) {
+                return null;
+            }
+
+            if (layout.FitMode == MarkdownImageFitMode.PageContentWidth) {
+                return pageContentWidthPixels;
+            }
+
+            var levels = Math.Max(0, listLevel) + Math.Max(0, quoteDepth);
+            if (levels == 0) {
+                return pageContentWidthPixels;
+            }
+
+            var indentPixels = levels * (IndentTwipsPerLevel * PixelsPerInch / TwipsPerInch);
+            return Math.Max(MinimumContentWidthPixels, pageContentWidthPixels - indentPixels);
+        }
+
+        private static bool TryGetImageDimensionsFromFile(string filePath, out double width, out double height) {
+            width = 0;
+            height = 0;
+            try {
+                using var image = SixLabors.ImageSharp.Image.Load(filePath, out _);
+                width = image.Width;
+                height = image.Height;
+                return width > 0 && height > 0;
+            } catch {
+                return false;
+            }
+        }
+
+        private static bool TryGetImageDimensionsFromBytes(byte[] data, out double width, out double height) {
+            width = 0;
+            height = 0;
+            try {
+                using var stream = new System.IO.MemoryStream(data, writable: false);
+                using var image = SixLabors.ImageSharp.Image.Load(stream, out _);
+                width = image.Width;
+                height = image.Height;
+                return width > 0 && height > 0;
+            } catch {
+                return false;
+            }
+        }
+
+        private static bool NormalizePositiveDimension(double? value, out double normalized) {
+            normalized = 0;
+            if (!value.HasValue || double.IsNaN(value.Value) || double.IsInfinity(value.Value)) {
+                return false;
+            }
+
+            if (value.Value <= 0) {
+                return false;
+            }
+
+            normalized = value.Value;
+            return true;
+        }
+
+        private static void ResolveImageDimensions(
+            MarkdownToWordOptions options,
+            string source,
+            string context,
+            double? requestedWidth,
+            double? requestedHeight,
+            double? naturalWidth,
+            double? naturalHeight,
+            double pageContentWidthPixels,
+            double? contextWidthLimitPixels,
+            out double? finalWidth,
+            out double? finalHeight,
+            out bool scaledByLayout) {
+            var layout = options.ImageLayout ?? new MarkdownImageLayoutOptions();
+            finalWidth = null;
+            finalHeight = null;
+            scaledByLayout = false;
+
+            var hasNaturalWidth = NormalizePositiveDimension(naturalWidth, out var naturalWidthPx);
+            var hasNaturalHeight = NormalizePositiveDimension(naturalHeight, out var naturalHeightPx);
+            var hasRequestedWidth = NormalizePositiveDimension(requestedWidth, out var requestedWidthPx);
+            var hasRequestedHeight = NormalizePositiveDimension(requestedHeight, out var requestedHeightPx);
+
+            if (layout.HintPrecedence == MarkdownImageHintPrecedence.LayoutThenMarkdown) {
+                if (hasNaturalWidth) {
+                    finalWidth = naturalWidthPx;
+                }
+                if (hasNaturalHeight) {
+                    finalHeight = naturalHeightPx;
+                }
+
+                if (hasRequestedWidth) {
+                    finalWidth = requestedWidthPx;
+                }
+                if (hasRequestedHeight) {
+                    finalHeight = requestedHeightPx;
+                }
+            } else {
+                if (hasRequestedWidth) {
+                    finalWidth = requestedWidthPx;
+                } else if (hasNaturalWidth) {
+                    finalWidth = naturalWidthPx;
+                }
+
+                if (hasRequestedHeight) {
+                    finalHeight = requestedHeightPx;
+                } else if (hasNaturalHeight) {
+                    finalHeight = naturalHeightPx;
+                }
+            }
+
+            if (finalWidth.HasValue && !finalHeight.HasValue && hasNaturalWidth && hasNaturalHeight) {
+                finalHeight = naturalHeightPx * (finalWidth.Value / naturalWidthPx);
+            } else if (!finalWidth.HasValue && finalHeight.HasValue && hasNaturalWidth && hasNaturalHeight) {
+                finalWidth = naturalWidthPx * (finalHeight.Value / naturalHeightPx);
+            }
+
+            double? effectiveMaxWidth = null;
+            double? effectiveMaxHeight = null;
+
+            if (NormalizePositiveDimension(layout.MaxWidthPixels, out var maxWidth)) {
+                effectiveMaxWidth = maxWidth;
+            }
+            if (NormalizePositiveDimension(layout.MaxHeightPixels, out var maxHeight)) {
+                effectiveMaxHeight = maxHeight;
+            }
+            if (NormalizePositiveDimension(layout.MaxWidthPercentOfContent, out var maxWidthPercent)) {
+                var widthBaseline = NormalizePositiveDimension(contextWidthLimitPixels, out var contextWidth)
+                    ? contextWidth
+                    : (pageContentWidthPixels > 0 ? pageContentWidthPixels : 0);
+                if (widthBaseline > 0) {
+                    var percentCapWidth = widthBaseline * (maxWidthPercent / 100d);
+                    if (percentCapWidth > 0) {
+                        effectiveMaxWidth = effectiveMaxWidth.HasValue
+                            ? Math.Min(effectiveMaxWidth.Value, percentCapWidth)
+                            : percentCapWidth;
+                    }
+                }
+            }
+            if (NormalizePositiveDimension(contextWidthLimitPixels, out var contextMaxWidth)) {
+                effectiveMaxWidth = effectiveMaxWidth.HasValue ? Math.Min(effectiveMaxWidth.Value, contextMaxWidth) : contextMaxWidth;
+            }
+
+            if (!layout.AllowUpscale) {
+                if (hasNaturalWidth) {
+                    effectiveMaxWidth = effectiveMaxWidth.HasValue ? Math.Min(effectiveMaxWidth.Value, naturalWidthPx) : naturalWidthPx;
+                }
+                if (hasNaturalHeight) {
+                    effectiveMaxHeight = effectiveMaxHeight.HasValue ? Math.Min(effectiveMaxHeight.Value, naturalHeightPx) : naturalHeightPx;
+                }
+            }
+
+            if (finalWidth.HasValue && finalHeight.HasValue) {
+                var scale = 1d;
+                if (effectiveMaxWidth.HasValue && finalWidth.Value > effectiveMaxWidth.Value) {
+                    scale = Math.Min(scale, effectiveMaxWidth.Value / finalWidth.Value);
+                }
+                if (effectiveMaxHeight.HasValue && finalHeight.Value > effectiveMaxHeight.Value) {
+                    scale = Math.Min(scale, effectiveMaxHeight.Value / finalHeight.Value);
+                }
+                if (scale < 1d) {
+                    finalWidth *= scale;
+                    finalHeight *= scale;
+                    scaledByLayout = true;
+                }
+            } else {
+                if (finalWidth.HasValue && effectiveMaxWidth.HasValue && finalWidth.Value > effectiveMaxWidth.Value) {
+                    finalWidth = effectiveMaxWidth.Value;
+                    scaledByLayout = true;
+                }
+                if (finalHeight.HasValue && effectiveMaxHeight.HasValue && finalHeight.Value > effectiveMaxHeight.Value) {
+                    finalHeight = effectiveMaxHeight.Value;
+                    scaledByLayout = true;
+                }
+            }
+
+            if (finalWidth.HasValue && finalWidth.Value <= 0) {
+                finalWidth = null;
+            }
+            if (finalHeight.HasValue && finalHeight.Value <= 0) {
+                finalHeight = null;
+            }
+
+            if (options.OnImageLayoutDiagnostic != null) {
+                options.OnImageLayoutDiagnostic(new MarkdownImageLayoutDiagnostic {
+                    Source = source,
+                    Context = context,
+                    RequestedWidthPixels = hasRequestedWidth ? requestedWidthPx : null,
+                    RequestedHeightPixels = hasRequestedHeight ? requestedHeightPx : null,
+                    NaturalWidthPixels = hasNaturalWidth ? naturalWidthPx : null,
+                    NaturalHeightPixels = hasNaturalHeight ? naturalHeightPx : null,
+                    EffectiveMaxWidthPixels = effectiveMaxWidth,
+                    EffectiveMaxHeightPixels = effectiveMaxHeight,
+                    FinalWidthPixels = finalWidth,
+                    FinalHeightPixels = finalHeight,
+                    ScaledByLayout = scaledByLayout
+                });
+            }
+        }
+
         public WordDocument Convert(string markdown, MarkdownToWordOptions options) {
             return ConvertAsync(markdown, options).GetAwaiter().GetResult();
         }
@@ -37,9 +293,13 @@ namespace OfficeIMO.Word.Markdown {
 
             var document = WordDocument.Create();
             options.ApplyDefaults(document);
+            var pageContentWidthPixels = EstimatePageContentWidthPixels(document);
 
             // Parse using OfficeIMO.Markdown reader.
-            var readerOptions = new Omd.MarkdownReaderOptions { BaseUri = options.BaseUri };
+            var readerOptions = new Omd.MarkdownReaderOptions {
+                BaseUri = options.BaseUri,
+                DefinitionLists = !options.PreferNarrativeSingleLineDefinitions
+            };
             var omd = Omd.MarkdownReader.Parse(markdown, readerOptions);
             var blocks = omd.Blocks;
             // Build footnote definitions map for this document
@@ -52,18 +312,21 @@ namespace OfficeIMO.Word.Markdown {
 
             foreach (var block in blocks ?? Array.Empty<Omd.IMarkdownBlock>()) {
                 cancellationToken.ThrowIfCancellationRequested();
-                ProcessBlockOmd(block, document, options, quoteDepth: 0);
+                ProcessBlockOmd(block, document, options, quoteDepth: 0, pageContentWidthPixels: pageContentWidthPixels);
             }
 
             return Task.FromResult(document);
         }
 
         //
-
-        // New OfficeIMO.Markdown path
-        private const int IndentTwipsPerLevel = 720; // 0.5 inch per level
-
-        private static void ProcessBlockOmd(Omd.IMarkdownBlock block, WordDocument document, MarkdownToWordOptions options, WordList? currentList = null, int listLevel = 0, int quoteDepth = 0) {
+        private static void ProcessBlockOmd(
+            Omd.IMarkdownBlock block,
+            WordDocument document,
+            MarkdownToWordOptions options,
+            WordList? currentList = null,
+            int listLevel = 0,
+            int quoteDepth = 0,
+            double pageContentWidthPixels = 0) {
             switch (block) {
                 case Omd.HeadingBlock h:
                     var headingParagraph = document.AddParagraph(h.Text ?? string.Empty);
@@ -84,14 +347,32 @@ namespace OfficeIMO.Word.Markdown {
                 case Omd.ImageBlock img: {
                         var par = document.AddParagraph(string.Empty);
                         var pathOrUrl = img.Path ?? string.Empty;
-                        double? w = img.Width;
-                        double? h = img.Height;
+                        var contextWidthLimit = ResolveContextWidthLimitPixels(options.ImageLayout, pageContentWidthPixels, listLevel, quoteDepth);
+
                         if (System.IO.File.Exists(pathOrUrl)) {
                             if (options.AllowLocalImages && LocalPathAllowed(pathOrUrl, options)) {
-                                if (w == null || h == null) {
-                                    try { using var image = SixLabors.ImageSharp.Image.Load(pathOrUrl, out _); w ??= image.Width; h ??= image.Height; } catch { /* ignore size probe */ }
+                                double? naturalW = null;
+                                double? naturalH = null;
+                                if (TryGetImageDimensionsFromFile(pathOrUrl, out var fileW, out var fileH)) {
+                                    naturalW = fileW;
+                                    naturalH = fileH;
                                 }
-                                par.AddImage(pathOrUrl, w, h, description: img.Alt ?? string.Empty);
+
+                                ResolveImageDimensions(
+                                    options,
+                                    source: pathOrUrl,
+                                    context: "block-local",
+                                    requestedWidth: img.Width,
+                                    requestedHeight: img.Height,
+                                    naturalWidth: naturalW,
+                                    naturalHeight: naturalH,
+                                    pageContentWidthPixels: pageContentWidthPixels,
+                                    contextWidthLimitPixels: contextWidthLimit,
+                                    out var finalW,
+                                    out var finalH,
+                                    out _);
+
+                                par.AddImage(pathOrUrl, finalW, finalH, description: img.Alt ?? string.Empty);
                             } else {
                                 // Not allowed: insert as text/link
                                 var t1 = par.AddText(img.Alt ?? System.IO.Path.GetFileName(pathOrUrl));
@@ -101,8 +382,42 @@ namespace OfficeIMO.Word.Markdown {
                             if (options.AllowedImageSchemes.Contains(uri.Scheme) &&
                                 (options.ImageUrlValidator == null || options.ImageUrlValidator(uri))) {
                                 if (options.AllowRemoteImages) {
-                                    // This call is synchronous inside OfficeIMO.Word; users can choose to disable remote downloads.
-                                    document.AddImageFromUrl(uri.ToString(), w, h).Description = img.Alt ?? string.Empty;
+                                    try {
+                                        var bytes = DownloadRemoteImageBytes(uri, options);
+                                        var fileName = System.IO.Path.GetFileName(uri.LocalPath);
+                                        if (string.IsNullOrWhiteSpace(fileName)) {
+                                            fileName = "image";
+                                        }
+
+                                        double? naturalW = null;
+                                        double? naturalH = null;
+                                        if (TryGetImageDimensionsFromBytes(bytes, out var remoteW, out var remoteH)) {
+                                            naturalW = remoteW;
+                                            naturalH = remoteH;
+                                        }
+
+                                        ResolveImageDimensions(
+                                            options,
+                                            source: uri.ToString(),
+                                            context: "block-remote",
+                                            requestedWidth: img.Width,
+                                            requestedHeight: img.Height,
+                                            naturalWidth: naturalW,
+                                            naturalHeight: naturalH,
+                                            pageContentWidthPixels: pageContentWidthPixels,
+                                            contextWidthLimitPixels: contextWidthLimit,
+                                            out var finalW,
+                                            out var finalH,
+                                            out _);
+
+                                        using var stream = new System.IO.MemoryStream(bytes, writable: false);
+                                        par.AddImage(stream, fileName, finalW, finalH, description: img.Alt ?? string.Empty);
+                                    } catch (Exception ex) {
+                                        options.OnWarning?.Invoke($"Remote image '{uri}' could not be downloaded. {ex.Message}");
+                                        if (options.FallbackRemoteImagesToHyperlinks) {
+                                            par.AddHyperLink(img.Alt ?? uri.ToString(), uri);
+                                        }
+                                    }
                                 } else if (options.FallbackRemoteImagesToHyperlinks) {
                                     par.AddHyperLink(img.Alt ?? uri.ToString(), uri);
                                 }
@@ -168,7 +483,7 @@ namespace OfficeIMO.Word.Markdown {
                             // Nested blocks inside list items (mixed ordered/unordered lists, code blocks, etc.).
                             if (item.Children != null && item.Children.Count > 0) {
                                 foreach (var child in item.Children) {
-                                    ProcessBlockOmd(child, document, options, null, effectiveLevel + 1, quoteDepth);
+                                    ProcessBlockOmd(child, document, options, null, effectiveLevel + 1, quoteDepth, pageContentWidthPixels);
                                 }
                             }
                         }
@@ -192,7 +507,7 @@ namespace OfficeIMO.Word.Markdown {
 
                             if (item.Children != null && item.Children.Count > 0) {
                                 foreach (var child in item.Children) {
-                                    ProcessBlockOmd(child, document, options, null, effectiveLevel + 1, quoteDepth);
+                                    ProcessBlockOmd(child, document, options, null, effectiveLevel + 1, quoteDepth, pageContentWidthPixels);
                                 }
                             }
                         }
@@ -242,7 +557,7 @@ namespace OfficeIMO.Word.Markdown {
                     }
                     break;
                 case Omd.QuoteBlock qb:
-                    foreach (var child in qb.Children) ProcessBlockOmd(child, document, options, null, 0, quoteDepth + 1);
+                    foreach (var child in qb.Children) ProcessBlockOmd(child, document, options, null, 0, quoteDepth + 1, pageContentWidthPixels);
                     break;
                 case Omd.CalloutBlock callout:
                     // Render as a simple bold title followed by body paragraphs
