@@ -319,6 +319,22 @@ public sealed class ReaderRegistryTests {
         Assert.DoesNotContain(registrars, r => r.HandlerId == DocumentReaderTextRegistrationExtensions.HandlerId);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("   ")]
+    public void DocumentReader_DiscoverHandlerRegistrarsFromLoadedAssemblies_EmptyPrefix_Throws(string prefix) {
+        Assert.Throws<ArgumentException>(() => DocumentReader.DiscoverHandlerRegistrarsFromLoadedAssemblies(prefix));
+    }
+
+    [Fact]
+    public void DocumentReader_DiscoverHandlerRegistrarsFromLoadedAssemblies_NoMatches_ReturnsEmpty() {
+        EnsureModularReaderAssembliesLoaded();
+
+        var registrars = DocumentReader.DiscoverHandlerRegistrarsFromLoadedAssemblies("OfficeIMO.Reader.DoesNotExist.");
+        Assert.Empty(registrars);
+    }
+
     [Fact]
     public void DocumentReader_RegisterHandlersFromLoadedAssemblies_RegistersModularHandlers() {
         EnsureModularReaderAssembliesLoaded();
@@ -356,6 +372,14 @@ public sealed class ReaderRegistryTests {
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
         }
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("   ")]
+    public void DocumentReader_RegisterHandlersFromLoadedAssemblies_EmptyPrefix_Throws(string prefix) {
+        Assert.Throws<ArgumentException>(() => DocumentReader.RegisterHandlersFromLoadedAssemblies(replaceExisting: true, assemblyNamePrefix: prefix));
     }
 
     [Fact]
