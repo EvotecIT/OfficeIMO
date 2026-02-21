@@ -142,6 +142,22 @@ public sealed class ReaderRegistryTests {
             Assert.True(htmlCapability.SupportsStream);
             Assert.True(textCapability.SupportsPath);
             Assert.True(textCapability.SupportsStream);
+            Assert.Equal(ReaderCapabilitySchema.Id, epubCapability.SchemaId);
+            Assert.Equal(ReaderCapabilitySchema.Version, epubCapability.SchemaVersion);
+            Assert.Equal(ReaderWarningBehavior.Mixed, epubCapability.WarningBehavior);
+            Assert.True(epubCapability.DeterministicOutput);
+            Assert.Equal(ReaderCapabilitySchema.Id, zipCapability.SchemaId);
+            Assert.Equal(ReaderCapabilitySchema.Version, zipCapability.SchemaVersion);
+            Assert.Equal(ReaderWarningBehavior.Mixed, zipCapability.WarningBehavior);
+            Assert.True(zipCapability.DeterministicOutput);
+            Assert.Equal(ReaderCapabilitySchema.Id, htmlCapability.SchemaId);
+            Assert.Equal(ReaderCapabilitySchema.Version, htmlCapability.SchemaVersion);
+            Assert.Equal(ReaderWarningBehavior.Mixed, htmlCapability.WarningBehavior);
+            Assert.True(htmlCapability.DeterministicOutput);
+            Assert.Equal(ReaderCapabilitySchema.Id, textCapability.SchemaId);
+            Assert.Equal(ReaderCapabilitySchema.Version, textCapability.SchemaVersion);
+            Assert.Equal(ReaderWarningBehavior.Mixed, textCapability.WarningBehavior);
+            Assert.True(textCapability.DeterministicOutput);
 
             Assert.Equal(ReaderInputKind.Unknown, DocumentReader.DetectKind("book.epub"));
             Assert.Equal(ReaderInputKind.Unknown, DocumentReader.DetectKind("archive.zip"));

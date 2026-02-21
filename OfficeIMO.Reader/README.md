@@ -150,6 +150,9 @@ DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
     DisplayName = "Sample Custom Reader",
     Kind = ReaderInputKind.Text,
     Extensions = new[] { ".sample" },
+    DefaultMaxInputBytes = 5 * 1024 * 1024,
+    WarningBehavior = ReaderWarningBehavior.WarningChunksOnly,
+    DeterministicOutput = true,
     ReadPath = (path, opts, ct) => new[] {
         new ReaderChunk {
             Id = "sample-0001",
