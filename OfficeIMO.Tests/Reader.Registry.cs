@@ -517,6 +517,7 @@ public sealed class ReaderRegistryTests {
             });
 
             Assert.NotNull(result);
+            Assert.Null(result.Profile);
             Assert.Equal("OfficeIMO.Reader.", result.AssemblyNamePrefix);
             Assert.True(result.ReplaceExistingHandlers);
             Assert.NotEmpty(result.RegisteredHandlers);
@@ -574,6 +575,7 @@ public sealed class ReaderRegistryTests {
                 indentedManifestJson: false);
 
             Assert.NotNull(result);
+            Assert.Equal(ReaderHostBootstrapProfile.ServiceDefault, result.Profile);
             Assert.True(result.ReplaceExistingHandlers);
             Assert.Contains(result.Manifest.Handlers, c => c.IsBuiltIn && c.Id == "officeimo.reader.word");
             Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderCsvRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Csv);
@@ -615,6 +617,7 @@ public sealed class ReaderRegistryTests {
                 indentedManifestJson: true);
 
             Assert.NotNull(result);
+            Assert.Equal(ReaderHostBootstrapProfile.ServiceCustomOnly, result.Profile);
             Assert.NotEmpty(result.RegisteredHandlers);
             Assert.DoesNotContain(result.Manifest.Handlers, c => c.IsBuiltIn);
             Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderCsvRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Csv);
@@ -628,6 +631,59 @@ public sealed class ReaderRegistryTests {
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
         }
+    }
+
+    [Fact]
+    public void DocumentReader_BootstrapHostFromLoadedAssemblies_ProfileServiceBuiltInOnly_ExcludesCustom() {
+        EnsureModularReaderAssembliesLoaded();
+
+        try {
+            DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
+            DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+            DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+
+            var result = DocumentReader.BootstrapHostFromLoadedAssemblies(
+                profile: ReaderHostBootstrapProfile.ServiceBuiltInOnly,
+                indentedManifestJson: false);
+
+            Assert.NotNull(result);
+            Assert.Equal(ReaderHostBootstrapProfile.ServiceBuiltInOnly, result.Profile);
+            Assert.NotEmpty(result.RegisteredHandlers);
+            Assert.Contains(result.Manifest.Handlers, c => c.IsBuiltIn && c.Id == "officeimo.reader.word");
+            Assert.DoesNotContain(result.Manifest.Handlers, c => c.Id == DocumentReaderCsvRegistrationExtensions.HandlerId);
+            Assert.DoesNotContain(result.Manifest.Handlers, c => c.Id == DocumentReaderEpubRegistrationExtensions.HandlerId);
+            Assert.DoesNotContain(result.Manifest.Handlers, c => c.Id == DocumentReaderZipRegistrationExtensions.HandlerId);
+            Assert.DoesNotContain(result.Manifest.Handlers, c => c.Id == DocumentReaderHtmlRegistrationExtensions.HandlerId);
+            Assert.DoesNotContain(result.Manifest.Handlers, c => c.Id == DocumentReaderJsonRegistrationExtensions.HandlerId);
+            Assert.DoesNotContain(result.Manifest.Handlers, c => c.Id == DocumentReaderXmlRegistrationExtensions.HandlerId);
+        } finally {
+            DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
+            DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+            DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_BootstrapHostFromAssemblies_UnknownProfile_Throws() {
+        var profile = (ReaderHostBootstrapProfile)999;
+        Assert.Throws<ArgumentOutOfRangeException>(() => DocumentReader.BootstrapHostFromAssemblies(
+            assemblies: new[] { typeof(DocumentReaderCsvRegistrationExtensions).Assembly },
+            profile: profile,
+            indentedManifestJson: false));
+    }
+
+    [Fact]
+    public void DocumentReader_BootstrapHostFromLoadedAssemblies_UnknownProfile_Throws() {
+        var profile = (ReaderHostBootstrapProfile)999;
+        Assert.Throws<ArgumentOutOfRangeException>(() => DocumentReader.BootstrapHostFromLoadedAssemblies(
+            profile: profile,
+            indentedManifestJson: false));
     }
 
     [Fact]

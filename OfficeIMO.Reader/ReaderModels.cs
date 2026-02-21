@@ -426,6 +426,12 @@ public sealed class ReaderHostBootstrapOptions {
 /// </summary>
 public sealed class ReaderHostBootstrapResult {
     /// <summary>
+    /// Applied bootstrap profile when a profile-based overload was used.
+    /// Null when explicit option-based overloads were used.
+    /// </summary>
+    public ReaderHostBootstrapProfile? Profile { get; set; }
+
+    /// <summary>
     /// Prefix used for loaded-assembly bootstrap discovery, when applicable.
     /// </summary>
     public string? AssemblyNamePrefix { get; set; }

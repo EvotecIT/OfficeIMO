@@ -284,6 +284,8 @@ var bootstrap = DocumentReader.BootstrapHostFromLoadedAssemblies(
     profile: ReaderHostBootstrapProfile.ServiceDefault,
     assemblyNamePrefix: "OfficeIMO.Reader.",
     indentedManifestJson: false);
+
+var appliedProfile = bootstrap.Profile;
 ```
 
 ## Notes

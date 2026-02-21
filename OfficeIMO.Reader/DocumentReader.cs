@@ -370,7 +370,9 @@ public static class DocumentReader {
         ReaderHostBootstrapProfile profile,
         bool indentedManifestJson = false) {
         var options = CreateHostBootstrapOptions(profile, indentedManifestJson);
-        return BootstrapHostFromAssemblies(assemblies, options);
+        var result = BootstrapHostFromAssemblies(assemblies, options);
+        result.Profile = profile;
+        return result;
     }
 
     /// <summary>
@@ -422,7 +424,9 @@ public static class DocumentReader {
         string assemblyNamePrefix = "OfficeIMO.Reader.",
         bool indentedManifestJson = false) {
         var options = CreateHostBootstrapOptions(profile, indentedManifestJson);
-        return BootstrapHostFromLoadedAssemblies(assemblyNamePrefix, options);
+        var result = BootstrapHostFromLoadedAssemblies(assemblyNamePrefix, options);
+        result.Profile = profile;
+        return result;
     }
 
     /// <summary>
