@@ -146,12 +146,53 @@ public sealed class ReaderRegistryTests {
     }
 
     [Fact]
+    public void DocumentReader_ModularRegistrationHelpers_DispatchesZipNonSeekableStream() {
+        try {
+            DocumentReaderZipRegistrationExtensions.RegisterZipHandler(replaceExisting: true);
+
+            using var zipBuffer = new MemoryStream();
+            using (var archive = new ZipArchive(zipBuffer, ZipArchiveMode.Create, leaveOpen: true)) {
+                WriteTextEntry(archive, "docs/readme.md", "# Stream ZIP" + Environment.NewLine + Environment.NewLine + "Body from non-seekable stream.");
+            }
+
+            var bytes = zipBuffer.ToArray();
+            using var stream = new NonSeekableReadStream(bytes);
+            var chunks = DocumentReader.Read(stream, "bundle.zip").ToList();
+
+            Assert.Contains(chunks, c =>
+                c.Kind == ReaderInputKind.Markdown &&
+                (c.Location.Path?.Contains("bundle.zip::docs/readme.md", StringComparison.OrdinalIgnoreCase) ?? false) &&
+                (c.Text?.Contains("Body from non-seekable stream.", StringComparison.Ordinal) ?? false));
+        } finally {
+            DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
+        }
+    }
+
+    [Fact]
     public void DocumentReader_ModularRegistrationHelpers_DispatchesEpubStream() {
         try {
             DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler(replaceExisting: true);
 
             var bytes = BuildSimpleEpubBytes();
             using var stream = new MemoryStream(bytes, writable: false);
+            var chunks = DocumentReader.Read(stream, "book.epub").ToList();
+
+            Assert.Contains(chunks, c =>
+                c.Kind == ReaderInputKind.Unknown &&
+                (c.Location.Path?.Contains("book.epub::OEBPS/chapter.xhtml", StringComparison.OrdinalIgnoreCase) ?? false) &&
+                (c.Text?.Contains("EPUB stream body text.", StringComparison.Ordinal) ?? false));
+        } finally {
+            DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ModularRegistrationHelpers_DispatchesEpubNonSeekableStream() {
+        try {
+            DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler(replaceExisting: true);
+
+            var bytes = BuildSimpleEpubBytes();
+            using var stream = new NonSeekableReadStream(bytes);
             var chunks = DocumentReader.Read(stream, "book.epub").ToList();
 
             Assert.Contains(chunks, c =>
@@ -212,5 +253,36 @@ public sealed class ReaderRegistryTests {
         using var stream = entry.Open();
         using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), 4096, leaveOpen: false);
         writer.Write(content);
+    }
+
+    private sealed class NonSeekableReadStream : Stream {
+        private readonly Stream _inner;
+
+        public NonSeekableReadStream(byte[] bytes) {
+            _inner = new MemoryStream(bytes, writable: false);
+        }
+
+        public override bool CanRead => _inner.CanRead;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush() => _inner.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) {
+                _inner.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
     }
 }
