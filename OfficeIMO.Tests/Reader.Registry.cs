@@ -19,6 +19,10 @@ public sealed class ReaderRegistryTests {
         var capabilities = DocumentReader.GetCapabilities();
 
         Assert.NotEmpty(capabilities);
+        Assert.All(capabilities, capability => {
+            Assert.Equal(ReaderCapabilitySchema.Id, capability.SchemaId);
+            Assert.Equal(ReaderCapabilitySchema.Version, capability.SchemaVersion);
+        });
         Assert.Contains(capabilities, c => c.IsBuiltIn && c.Id == "officeimo.reader.word");
         Assert.Contains(capabilities, c => c.IsBuiltIn && c.Id == "officeimo.reader.excel");
         Assert.Contains(capabilities, c => c.IsBuiltIn && c.Id == "officeimo.reader.powerpoint");
@@ -41,6 +45,9 @@ public sealed class ReaderRegistryTests {
                 DisplayName = "Test custom handler",
                 Kind = ReaderInputKind.Text,
                 Extensions = new[] { extension },
+                DefaultMaxInputBytes = 4096,
+                WarningBehavior = ReaderWarningBehavior.WarningChunksOnly,
+                DeterministicOutput = false,
                 ReadPath = (path, options, ct) => new[] {
                     new ReaderChunk {
                         Id = "custom-0001",
@@ -64,10 +71,35 @@ public sealed class ReaderRegistryTests {
             Assert.Equal("custom-handler-output", chunks[0].Text);
 
             var customCapabilities = DocumentReader.GetCapabilities(includeBuiltIn: false, includeCustom: true);
-            Assert.Contains(customCapabilities, c => c.Id == handlerId && c.Extensions.Contains(extension, StringComparer.OrdinalIgnoreCase));
+            Assert.Contains(customCapabilities, c =>
+                c.Id == handlerId &&
+                c.Extensions.Contains(extension, StringComparer.OrdinalIgnoreCase) &&
+                c.DefaultMaxInputBytes == 4096 &&
+                c.WarningBehavior == ReaderWarningBehavior.WarningChunksOnly &&
+                c.DeterministicOutput == false &&
+                c.SchemaId == ReaderCapabilitySchema.Id &&
+                c.SchemaVersion == ReaderCapabilitySchema.Version);
         } finally {
             DocumentReader.UnregisterHandler(handlerId);
             if (File.Exists(file)) File.Delete(file);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_RegisterHandler_RejectsInvalidAdvertisedDefaultMaxInputBytes() {
+        const string handlerId = "officeimo.tests.custom.invalidmax";
+        DocumentReader.UnregisterHandler(handlerId);
+
+        try {
+            Assert.Throws<ArgumentException>(() => DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+                Id = handlerId,
+                Extensions = new[] { ".invalidmax" },
+                Kind = ReaderInputKind.Unknown,
+                DefaultMaxInputBytes = 0,
+                ReadPath = (path, options, ct) => Array.Empty<ReaderChunk>()
+            }));
+        } finally {
+            DocumentReader.UnregisterHandler(handlerId);
         }
     }
 

@@ -165,6 +165,13 @@ var capabilities = DocumentReader.GetCapabilities();
 
 Use `DocumentReader.UnregisterHandler("sample.custom")` to remove custom handlers.
 
+`GetCapabilities()` exposes a stable contract surface for hosts:
+- `SchemaId` = `officeimo.reader.capability`
+- `SchemaVersion` = `1`
+- stream/path support flags
+- advertised warning behavior and deterministic output flag
+- optional `DefaultMaxInputBytes` metadata for handler defaults
+
 ## Shared Input Guards For Adapter Authors
 
 Use `ReaderInputLimits` when building modular handlers so `MaxInputBytes` behavior stays consistent across adapters:

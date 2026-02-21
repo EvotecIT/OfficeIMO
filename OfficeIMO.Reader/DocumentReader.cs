@@ -128,6 +128,9 @@ public static class DocumentReader {
         if (registration.ReadPath == null && registration.ReadStream == null) {
             throw new ArgumentException("Handler must define ReadPath and/or ReadStream.", nameof(registration));
         }
+        if (registration.DefaultMaxInputBytes.HasValue && registration.DefaultMaxInputBytes.Value < 1) {
+            throw new ArgumentException("DefaultMaxInputBytes must be greater than 0 when specified.", nameof(registration));
+        }
 
         var normalizedExtensions = NormalizeRegistrationExtensions(registration.Extensions);
         if (normalizedExtensions.Count == 0) {
@@ -169,6 +172,9 @@ public static class DocumentReader {
                 description: registration.Description,
                 kind: registration.Kind,
                 extensions: normalizedExtensions.ToArray(),
+                defaultMaxInputBytes: registration.DefaultMaxInputBytes,
+                warningBehavior: registration.WarningBehavior,
+                deterministicOutput: registration.DeterministicOutput,
                 readPath: registration.ReadPath,
                 readStream: registration.ReadStream);
 
@@ -1702,7 +1708,12 @@ public static class DocumentReader {
             Extensions = capability.Extensions.ToArray(),
             IsBuiltIn = capability.IsBuiltIn,
             SupportsPath = capability.SupportsPath,
-            SupportsStream = capability.SupportsStream
+            SupportsStream = capability.SupportsStream,
+            SchemaId = capability.SchemaId,
+            SchemaVersion = capability.SchemaVersion,
+            DefaultMaxInputBytes = capability.DefaultMaxInputBytes,
+            WarningBehavior = capability.WarningBehavior,
+            DeterministicOutput = capability.DeterministicOutput
         };
     }
 
@@ -1963,6 +1974,9 @@ public static class DocumentReader {
             string? description,
             ReaderInputKind kind,
             IReadOnlyList<string> extensions,
+            long? defaultMaxInputBytes,
+            ReaderWarningBehavior warningBehavior,
+            bool deterministicOutput,
             Func<string, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readPath,
             Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readStream) {
             Id = id;
@@ -1970,6 +1984,9 @@ public static class DocumentReader {
             Description = description;
             Kind = kind;
             Extensions = extensions;
+            DefaultMaxInputBytes = defaultMaxInputBytes;
+            WarningBehavior = warningBehavior;
+            DeterministicOutput = deterministicOutput;
             ReadPath = readPath;
             ReadStream = readStream;
         }
@@ -1979,6 +1996,9 @@ public static class DocumentReader {
         public string? Description { get; }
         public ReaderInputKind Kind { get; }
         public IReadOnlyList<string> Extensions { get; }
+        public long? DefaultMaxInputBytes { get; }
+        public ReaderWarningBehavior WarningBehavior { get; }
+        public bool DeterministicOutput { get; }
         public Func<string, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadPath { get; }
         public Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadStream { get; }
 
@@ -1991,7 +2011,12 @@ public static class DocumentReader {
                 Extensions = Extensions.ToArray(),
                 IsBuiltIn = false,
                 SupportsPath = ReadPath != null,
-                SupportsStream = ReadStream != null
+                SupportsStream = ReadStream != null,
+                SchemaId = ReaderCapabilitySchema.Id,
+                SchemaVersion = ReaderCapabilitySchema.Version,
+                DefaultMaxInputBytes = DefaultMaxInputBytes,
+                WarningBehavior = WarningBehavior,
+                DeterministicOutput = DeterministicOutput
             };
         }
     }

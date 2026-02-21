@@ -229,6 +229,22 @@ public sealed class ReaderHandlerRegistration {
     /// Stream-based reader delegate.
     /// </summary>
     public Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadStream { get; set; }
+
+    /// <summary>
+    /// Optional advertised default max input bytes for this handler.
+    /// Null means "no handler-specific default advertised".
+    /// </summary>
+    public long? DefaultMaxInputBytes { get; set; }
+
+    /// <summary>
+    /// Advertised warning model for this handler.
+    /// </summary>
+    public ReaderWarningBehavior WarningBehavior { get; set; } = ReaderWarningBehavior.Mixed;
+
+    /// <summary>
+    /// True when this handler advertises deterministic chunk ordering/output for identical input.
+    /// </summary>
+    public bool DeterministicOutput { get; set; } = true;
 }
 
 /// <summary>
@@ -274,6 +290,65 @@ public sealed class ReaderHandlerCapability {
     /// True when stream-based read delegate is available.
     /// </summary>
     public bool SupportsStream { get; set; }
+
+    /// <summary>
+    /// Capability schema identifier for host integration contracts.
+    /// </summary>
+    public string SchemaId { get; set; } = ReaderCapabilitySchema.Id;
+
+    /// <summary>
+    /// Capability schema version for host integration contracts.
+    /// </summary>
+    public int SchemaVersion { get; set; } = ReaderCapabilitySchema.Version;
+
+    /// <summary>
+    /// Optional advertised default max input bytes for this handler.
+    /// Null means no handler-specific default is advertised.
+    /// </summary>
+    public long? DefaultMaxInputBytes { get; set; }
+
+    /// <summary>
+    /// Advertised warning model for this handler.
+    /// </summary>
+    public ReaderWarningBehavior WarningBehavior { get; set; } = ReaderWarningBehavior.Mixed;
+
+    /// <summary>
+    /// True when this handler advertises deterministic chunk ordering/output for identical input.
+    /// </summary>
+    public bool DeterministicOutput { get; set; } = true;
+}
+
+/// <summary>
+/// Stable capability schema contract values exposed by <see cref="DocumentReader.GetCapabilities(bool, bool)"/>.
+/// </summary>
+public static class ReaderCapabilitySchema {
+    /// <summary>
+    /// Stable schema identifier.
+    /// </summary>
+    public const string Id = "officeimo.reader.capability";
+
+    /// <summary>
+    /// Current schema version.
+    /// </summary>
+    public const int Version = 1;
+}
+
+/// <summary>
+/// Advertised warning behavior model for reader handlers.
+/// </summary>
+public enum ReaderWarningBehavior {
+    /// <summary>
+    /// Handler may both emit warning chunks and throw exceptions, depending on scenario.
+    /// </summary>
+    Mixed = 0,
+    /// <summary>
+    /// Handler prefers warning chunks over throwing for recoverable issues.
+    /// </summary>
+    WarningChunksOnly = 1,
+    /// <summary>
+    /// Handler prefers exception-based signaling for issues.
+    /// </summary>
+    ExceptionsOnly = 2
 }
 
 /// <summary>
