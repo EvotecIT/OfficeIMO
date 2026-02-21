@@ -220,6 +220,29 @@ public static class DocumentReader {
     }
 
     /// <summary>
+    /// Builds a machine-readable capability manifest for host auto-discovery.
+    /// </summary>
+    public static ReaderCapabilityManifest GetCapabilityManifest(bool includeBuiltIn = true, bool includeCustom = true) {
+        var handlers = GetCapabilities(includeBuiltIn, includeCustom)
+            .Select(CloneCapability)
+            .ToArray();
+
+        return new ReaderCapabilityManifest {
+            SchemaId = ReaderCapabilitySchema.Id,
+            SchemaVersion = ReaderCapabilitySchema.Version,
+            Handlers = handlers
+        };
+    }
+
+    /// <summary>
+    /// Builds a JSON capability manifest payload for host auto-discovery.
+    /// </summary>
+    public static string GetCapabilityManifestJson(bool includeBuiltIn = true, bool includeCustom = true, bool indented = false) {
+        var manifest = GetCapabilityManifest(includeBuiltIn, includeCustom);
+        return ReaderCapabilityManifestJson.Serialize(manifest, indented);
+    }
+
+    /// <summary>
     /// Detects the input kind based on file extension.
     /// </summary>
     /// <param name="path">Source file path.</param>

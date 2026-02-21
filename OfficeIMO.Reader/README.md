@@ -175,6 +175,15 @@ Use `DocumentReader.UnregisterHandler("sample.custom")` to remove custom handler
 - advertised warning behavior and deterministic output flag
 - optional `DefaultMaxInputBytes` metadata for handler defaults
 
+For one-shot host bootstrap/discovery payloads:
+
+```csharp
+using OfficeIMO.Reader;
+
+var manifest = DocumentReader.GetCapabilityManifest();
+var json = DocumentReader.GetCapabilityManifestJson(indented: false);
+```
+
 ## Shared Input Guards For Adapter Authors
 
 Use `ReaderInputLimits` when building modular handlers so `MaxInputBytes` behavior stays consistent across adapters:

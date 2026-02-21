@@ -32,6 +32,44 @@ public sealed class ReaderRegistryTests {
     }
 
     [Fact]
+    public void DocumentReader_GetCapabilityManifest_ReflectsCapabilities() {
+        var manifest = DocumentReader.GetCapabilityManifest();
+        var capabilities = DocumentReader.GetCapabilities();
+
+        Assert.NotNull(manifest);
+        Assert.Equal(ReaderCapabilitySchema.Id, manifest.SchemaId);
+        Assert.Equal(ReaderCapabilitySchema.Version, manifest.SchemaVersion);
+        Assert.Equal(capabilities.Count, manifest.Handlers.Count);
+        Assert.Contains(manifest.Handlers, c => c.Id == "officeimo.reader.word");
+    }
+
+    [Fact]
+    public void DocumentReader_GetCapabilityManifestJson_IsDeterministicAndValidJson() {
+        var jsonA = DocumentReader.GetCapabilityManifestJson(indented: false);
+        var jsonB = DocumentReader.GetCapabilityManifestJson(indented: false);
+        Assert.Equal(jsonA, jsonB);
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(jsonA));
+        var chunks = DocumentReaderTextExtensions.ReadStructuredText(
+            stream,
+            sourceName: "capability-manifest.json",
+            structuredOptions: new StructuredTextReadOptions {
+                JsonChunkRows = 128,
+                IncludeJsonMarkdown = false
+            }).ToList();
+
+        Assert.NotEmpty(chunks);
+        Assert.DoesNotContain(chunks, c =>
+            c.Kind == ReaderInputKind.Unknown &&
+            (c.Warnings?.Any(w => w.Contains("JSON parse error", StringComparison.OrdinalIgnoreCase)) ?? false));
+        Assert.Contains(chunks, c =>
+            (c.Text?.Contains("$.schemaId", StringComparison.Ordinal) ?? false) &&
+            (c.Text?.Contains("officeimo.reader.capability", StringComparison.Ordinal) ?? false));
+        Assert.Contains(chunks, c =>
+            (c.Text?.Contains("$.handlers[0].id", StringComparison.Ordinal) ?? false));
+    }
+
+    [Fact]
     public void DocumentReader_RegisterHandler_UsesCustomPathReader() {
         const string handlerId = "officeimo.tests.custom.demo";
         const string extension = ".demoix";

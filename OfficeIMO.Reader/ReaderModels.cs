@@ -352,6 +352,26 @@ public enum ReaderWarningBehavior {
 }
 
 /// <summary>
+/// Machine-readable capability manifest for host discovery/integration.
+/// </summary>
+public sealed class ReaderCapabilityManifest {
+    /// <summary>
+    /// Capability schema identifier.
+    /// </summary>
+    public string SchemaId { get; set; } = ReaderCapabilitySchema.Id;
+
+    /// <summary>
+    /// Capability schema version.
+    /// </summary>
+    public int SchemaVersion { get; set; } = ReaderCapabilitySchema.Version;
+
+    /// <summary>
+    /// Discovered handler capabilities included in this manifest.
+    /// </summary>
+    public IReadOnlyList<ReaderHandlerCapability> Handlers { get; set; } = Array.Empty<ReaderHandlerCapability>();
+}
+
+/// <summary>
 /// Options controlling extraction behavior for <see cref="DocumentReader"/>.
 /// </summary>
 public sealed class ReaderOptions {
