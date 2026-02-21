@@ -165,6 +165,24 @@ var capabilities = DocumentReader.GetCapabilities();
 
 Use `DocumentReader.UnregisterHandler("sample.custom")` to remove custom handlers.
 
+## Modular Adapter Registration (Optional Packages)
+
+Keep dependencies split by registering only adapters you need:
+
+```csharp
+using OfficeIMO.Reader.Epub;
+using OfficeIMO.Reader.Html;
+using OfficeIMO.Reader.Text;
+using OfficeIMO.Reader.Zip;
+
+DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler(replaceExisting: true);
+DocumentReaderZipRegistrationExtensions.RegisterZipHandler(replaceExisting: true);
+DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+DocumentReaderTextRegistrationExtensions.RegisterStructuredTextHandler(replaceExisting: true);
+```
+
+These adapters support both path and stream dispatch via `DocumentReader.Read(...)`.
+
 ## Notes
 - `DocumentReader.Read(...)` is synchronous and streaming (returns `IEnumerable<T>`).
 - `DocumentReader.ReadFolder(...)` is best-effort: unreadable/corrupt/oversized files emit warning chunks and ingestion continues.
