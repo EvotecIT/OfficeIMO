@@ -8,5 +8,13 @@ Current scope:
 - warning chunks for skipped/error entries
 - bounded nested ZIP traversal with reusable `ReaderZipOptions`
 
+Registration into `OfficeIMO.Reader`:
+
+```csharp
+using OfficeIMO.Reader.Zip;
+
+DocumentReaderZipRegistrationExtensions.RegisterZipHandler();
+```
+
 Status:
 - scaffolded and intentionally non-packable/non-publishable

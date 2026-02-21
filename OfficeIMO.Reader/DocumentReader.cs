@@ -33,6 +33,74 @@ public static class DocumentReader {
         ".txt", ".log", ".csv", ".tsv", ".json", ".xml", ".yml", ".yaml"
     };
 
+    private static readonly ReaderHandlerCapability[] BuiltInCapabilities = {
+        new ReaderHandlerCapability {
+            Id = "officeimo.reader.word",
+            DisplayName = "Word Reader",
+            Description = "Built-in Word (.docx/.docm) chunk extractor.",
+            Kind = ReaderInputKind.Word,
+            Extensions = new[] { ".docx", ".docm" },
+            IsBuiltIn = true,
+            SupportsPath = true,
+            SupportsStream = true
+        },
+        new ReaderHandlerCapability {
+            Id = "officeimo.reader.excel",
+            DisplayName = "Excel Reader",
+            Description = "Built-in Excel (.xlsx/.xlsm) table and markdown extractor.",
+            Kind = ReaderInputKind.Excel,
+            Extensions = new[] { ".xlsx", ".xlsm" },
+            IsBuiltIn = true,
+            SupportsPath = true,
+            SupportsStream = true
+        },
+        new ReaderHandlerCapability {
+            Id = "officeimo.reader.powerpoint",
+            DisplayName = "PowerPoint Reader",
+            Description = "Built-in PowerPoint (.pptx/.pptm) slide extractor.",
+            Kind = ReaderInputKind.PowerPoint,
+            Extensions = new[] { ".pptx", ".pptm" },
+            IsBuiltIn = true,
+            SupportsPath = true,
+            SupportsStream = true
+        },
+        new ReaderHandlerCapability {
+            Id = "officeimo.reader.markdown",
+            DisplayName = "Markdown Reader",
+            Description = "Built-in Markdown chunk extractor.",
+            Kind = ReaderInputKind.Markdown,
+            Extensions = new[] { ".md", ".markdown" },
+            IsBuiltIn = true,
+            SupportsPath = true,
+            SupportsStream = true
+        },
+        new ReaderHandlerCapability {
+            Id = "officeimo.reader.pdf",
+            DisplayName = "PDF Reader",
+            Description = "Built-in PDF page extractor.",
+            Kind = ReaderInputKind.Pdf,
+            Extensions = new[] { ".pdf" },
+            IsBuiltIn = true,
+            SupportsPath = true,
+            SupportsStream = true
+        },
+        new ReaderHandlerCapability {
+            Id = "officeimo.reader.text",
+            DisplayName = "Text Reader",
+            Description = "Built-in plain text reader for text-like formats.",
+            Kind = ReaderInputKind.Text,
+            Extensions = new[] { ".txt", ".log", ".csv", ".tsv", ".json", ".xml", ".yml", ".yaml" },
+            IsBuiltIn = true,
+            SupportsPath = true,
+            SupportsStream = true
+        }
+    };
+
+    private static readonly HashSet<string> BuiltInExtensions = BuildBuiltInExtensionSet();
+    private static readonly object HandlerRegistrySync = new object();
+    private static readonly Dictionary<string, CustomReaderHandler> CustomHandlersById = new Dictionary<string, CustomReaderHandler>(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, string> CustomHandlerIdByExtension = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
     private static string? TryGetExtension(string path) {
         if (path == null) return null;
         try {
@@ -45,6 +113,107 @@ public static class DocumentReader {
     }
 
     /// <summary>
+    /// Registers a custom handler for one or more file extensions.
+    /// </summary>
+    /// <param name="registration">Custom handler registration.</param>
+    /// <param name="replaceExisting">
+    /// When true, removes conflicting custom handlers and allows built-in extension overrides.
+    /// </param>
+    public static void RegisterHandler(ReaderHandlerRegistration registration, bool replaceExisting = false) {
+        if (registration == null) throw new ArgumentNullException(nameof(registration));
+
+        var id = (registration.Id ?? string.Empty).Trim();
+        if (id.Length == 0) throw new ArgumentException("Handler Id cannot be empty.", nameof(registration));
+
+        if (registration.ReadPath == null && registration.ReadStream == null) {
+            throw new ArgumentException("Handler must define ReadPath and/or ReadStream.", nameof(registration));
+        }
+
+        var normalizedExtensions = NormalizeRegistrationExtensions(registration.Extensions);
+        if (normalizedExtensions.Count == 0) {
+            throw new ArgumentException("Handler must define at least one extension.", nameof(registration));
+        }
+
+        lock (HandlerRegistrySync) {
+            if (!replaceExisting) {
+                if (CustomHandlersById.ContainsKey(id)) {
+                    throw new InvalidOperationException($"Handler '{id}' is already registered.");
+                }
+
+                foreach (var ext in normalizedExtensions) {
+                    if (BuiltInExtensions.Contains(ext)) {
+                        throw new InvalidOperationException($"Extension '{ext}' is handled by a built-in reader. Use replaceExisting=true to override.");
+                    }
+                    if (CustomHandlerIdByExtension.ContainsKey(ext)) {
+                        throw new InvalidOperationException($"Extension '{ext}' is already handled by a custom reader.");
+                    }
+                }
+            } else {
+                var toRemove = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (CustomHandlersById.ContainsKey(id)) {
+                    toRemove.Add(id);
+                }
+                foreach (var ext in normalizedExtensions) {
+                    if (CustomHandlerIdByExtension.TryGetValue(ext, out var existing)) {
+                        toRemove.Add(existing);
+                    }
+                }
+                foreach (var existingId in toRemove) {
+                    RemoveCustomHandlerUnsafe(existingId);
+                }
+            }
+
+            var custom = new CustomReaderHandler(
+                id: id,
+                displayName: string.IsNullOrWhiteSpace(registration.DisplayName) ? id : registration.DisplayName!.Trim(),
+                description: registration.Description,
+                kind: registration.Kind,
+                extensions: normalizedExtensions.ToArray(),
+                readPath: registration.ReadPath,
+                readStream: registration.ReadStream);
+
+            CustomHandlersById[id] = custom;
+            foreach (var ext in custom.Extensions) {
+                CustomHandlerIdByExtension[ext] = custom.Id;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Unregisters a custom handler by identifier.
+    /// </summary>
+    public static bool UnregisterHandler(string handlerId) {
+        if (string.IsNullOrWhiteSpace(handlerId)) return false;
+        lock (HandlerRegistrySync) {
+            return RemoveCustomHandlerUnsafe(handlerId.Trim());
+        }
+    }
+
+    /// <summary>
+    /// Lists built-in and custom reader capabilities for host discovery.
+    /// </summary>
+    public static IReadOnlyList<ReaderHandlerCapability> GetCapabilities(bool includeBuiltIn = true, bool includeCustom = true) {
+        var list = new List<ReaderHandlerCapability>();
+
+        if (includeBuiltIn) {
+            list.AddRange(BuiltInCapabilities.Select(CloneCapability));
+        }
+
+        if (includeCustom) {
+            lock (HandlerRegistrySync) {
+                foreach (var custom in CustomHandlersById.Values.OrderBy(static c => c.Id, StringComparer.Ordinal)) {
+                    list.Add(custom.ToCapability());
+                }
+            }
+        }
+
+        return list
+            .OrderBy(static c => c.IsBuiltIn ? 0 : 1)
+            .ThenBy(static c => c.Id, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    /// <summary>
     /// Detects the input kind based on file extension.
     /// </summary>
     /// <param name="path">Source file path.</param>
@@ -52,7 +221,10 @@ public static class DocumentReader {
         if (path == null) throw new ArgumentNullException(nameof(path));
         if (path.Length == 0) throw new ArgumentException("Path cannot be empty.", nameof(path));
 
-        var extLower = (TryGetExtension(path) ?? string.Empty).ToLowerInvariant();
+        var extLower = NormalizeExtension(TryGetExtension(path));
+        if (extLower.Length > 0 && TryResolveCustomHandlerByExtension(extLower, out var custom)) {
+            return custom.Kind;
+        }
         if (extLower.Length == 0) return ReaderInputKind.Unknown;
         return extLower switch {
             ".docx" or ".docm" => ReaderInputKind.Word,
@@ -84,16 +256,21 @@ public static class DocumentReader {
         EnforceFileSize(path, opt.MaxInputBytes);
         var source = BuildSourceInfoFromPath(path, opt.ComputeHashes);
 
-        var kind = DetectKind(path);
-        var raw = kind switch {
-            ReaderInputKind.Word => ReadWord(path, opt, cancellationToken),
-            ReaderInputKind.Excel => ReadExcel(path, opt, cancellationToken),
-            ReaderInputKind.PowerPoint => ReadPowerPoint(path, opt, cancellationToken),
-            ReaderInputKind.Markdown => ReadMarkdown(path, opt, cancellationToken),
-            ReaderInputKind.Pdf => ReadPdf(path, opt, cancellationToken),
-            ReaderInputKind.Text => ReadText(path, opt, cancellationToken),
-            _ => ReadUnknown(path, opt, cancellationToken)
-        };
+        IEnumerable<ReaderChunk> raw;
+        if (TryResolveCustomHandlerByPath(path, out var customPathHandler) && customPathHandler.ReadPath != null) {
+            raw = customPathHandler.ReadPath(path, opt, cancellationToken);
+        } else {
+            var kind = DetectKind(path);
+            raw = kind switch {
+                ReaderInputKind.Word => ReadWord(path, opt, cancellationToken),
+                ReaderInputKind.Excel => ReadExcel(path, opt, cancellationToken),
+                ReaderInputKind.PowerPoint => ReadPowerPoint(path, opt, cancellationToken),
+                ReaderInputKind.Markdown => ReadMarkdown(path, opt, cancellationToken),
+                ReaderInputKind.Pdf => ReadPdf(path, opt, cancellationToken),
+                ReaderInputKind.Text => ReadText(path, opt, cancellationToken),
+                _ => ReadUnknown(path, opt, cancellationToken)
+            };
+        }
 
         foreach (var chunk in raw) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -430,16 +607,21 @@ public static class DocumentReader {
         EnforceStreamSize(stream, opt.MaxInputBytes);
         var source = BuildSourceInfoFromStream(stream, sourceName, opt.ComputeHashes);
 
-        var kind = string.IsNullOrWhiteSpace(sourceName) ? ReaderInputKind.Unknown : DetectKind(sourceName!);
-        var raw = kind switch {
-            ReaderInputKind.Word => ReadWord(stream, sourceName, opt, cancellationToken),
-            ReaderInputKind.Excel => ReadExcel(stream, sourceName, opt, cancellationToken),
-            ReaderInputKind.PowerPoint => ReadPowerPoint(stream, sourceName, opt, cancellationToken),
-            ReaderInputKind.Markdown => ReadMarkdown(stream, sourceName, opt, cancellationToken),
-            ReaderInputKind.Pdf => ReadPdf(stream, sourceName, opt, cancellationToken),
-            ReaderInputKind.Text => ReadText(stream, sourceName, opt, cancellationToken),
-            _ => ReadUnknown(stream, sourceName, opt, cancellationToken)
-        };
+        IEnumerable<ReaderChunk> raw;
+        if (TryResolveCustomHandlerBySourceName(sourceName, out var customStreamHandler) && customStreamHandler.ReadStream != null) {
+            raw = customStreamHandler.ReadStream(stream, sourceName, opt, cancellationToken);
+        } else {
+            var kind = string.IsNullOrWhiteSpace(sourceName) ? ReaderInputKind.Unknown : DetectKind(sourceName!);
+            raw = kind switch {
+                ReaderInputKind.Word => ReadWord(stream, sourceName, opt, cancellationToken),
+                ReaderInputKind.Excel => ReadExcel(stream, sourceName, opt, cancellationToken),
+                ReaderInputKind.PowerPoint => ReadPowerPoint(stream, sourceName, opt, cancellationToken),
+                ReaderInputKind.Markdown => ReadMarkdown(stream, sourceName, opt, cancellationToken),
+                ReaderInputKind.Pdf => ReadPdf(stream, sourceName, opt, cancellationToken),
+                ReaderInputKind.Text => ReadText(stream, sourceName, opt, cancellationToken),
+                _ => ReadUnknown(stream, sourceName, opt, cancellationToken)
+            };
+        }
 
         foreach (var chunk in raw) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -1511,6 +1693,98 @@ public static class DocumentReader {
         return ms;
     }
 
+    private static ReaderHandlerCapability CloneCapability(ReaderHandlerCapability capability) {
+        return new ReaderHandlerCapability {
+            Id = capability.Id,
+            DisplayName = capability.DisplayName,
+            Description = capability.Description,
+            Kind = capability.Kind,
+            Extensions = capability.Extensions.ToArray(),
+            IsBuiltIn = capability.IsBuiltIn,
+            SupportsPath = capability.SupportsPath,
+            SupportsStream = capability.SupportsStream
+        };
+    }
+
+    private static string NormalizeExtension(string? extension) {
+        var value = extension ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        var ext = value.Trim();
+        if (!ext.StartsWith(".", StringComparison.Ordinal)) {
+            ext = "." + ext;
+        }
+        return ext.ToLowerInvariant();
+    }
+
+    private static List<string> NormalizeRegistrationExtensions(IReadOnlyList<string>? extensions) {
+        var list = new List<string>();
+        if (extensions == null) return list;
+
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var ext in extensions) {
+            var normalized = NormalizeExtension(ext);
+            if (normalized.Length == 0) continue;
+            if (set.Add(normalized)) {
+                list.Add(normalized);
+            }
+        }
+
+        list.Sort(StringComparer.Ordinal);
+        return list;
+    }
+
+    private static HashSet<string> BuildBuiltInExtensionSet() {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var capability in BuiltInCapabilities) {
+            foreach (var ext in capability.Extensions) {
+                var normalized = NormalizeExtension(ext);
+                if (normalized.Length == 0) continue;
+                set.Add(normalized);
+            }
+        }
+        return set;
+    }
+
+    private static bool TryResolveCustomHandlerByPath(string path, out CustomReaderHandler handler) {
+        var ext = NormalizeExtension(TryGetExtension(path));
+        return TryResolveCustomHandlerByExtension(ext, out handler);
+    }
+
+    private static bool TryResolveCustomHandlerBySourceName(string? sourceName, out CustomReaderHandler handler) {
+        var ext = NormalizeExtension(TryGetExtension(sourceName ?? string.Empty));
+        return TryResolveCustomHandlerByExtension(ext, out handler);
+    }
+
+    private static bool TryResolveCustomHandlerByExtension(string ext, out CustomReaderHandler handler) {
+        handler = null!;
+        if (string.IsNullOrWhiteSpace(ext)) return false;
+
+        lock (HandlerRegistrySync) {
+            if (!CustomHandlerIdByExtension.TryGetValue(ext, out var handlerId)) {
+                return false;
+            }
+            if (!CustomHandlersById.TryGetValue(handlerId, out var resolved) || resolved == null) {
+                return false;
+            }
+            handler = resolved;
+            return true;
+        }
+    }
+
+    private static bool RemoveCustomHandlerUnsafe(string handlerId) {
+        if (!CustomHandlersById.TryGetValue(handlerId, out var existing)) return false;
+
+        CustomHandlersById.Remove(handlerId);
+        foreach (var ext in existing.Extensions) {
+            if (CustomHandlerIdByExtension.TryGetValue(ext, out var current) &&
+                string.Equals(current, handlerId, StringComparison.OrdinalIgnoreCase)) {
+                CustomHandlerIdByExtension.Remove(ext);
+            }
+        }
+
+        return true;
+    }
+
     private static ReaderOptions NormalizeOptions(ReaderOptions? options) {
         // Avoid mutating a caller-provided options instance.
         var o = options;
@@ -1680,6 +1954,46 @@ public static class DocumentReader {
             if (sb.Length >= HardCapChars) break;
         }
         return sb.ToString();
+    }
+
+    private sealed class CustomReaderHandler {
+        public CustomReaderHandler(
+            string id,
+            string displayName,
+            string? description,
+            ReaderInputKind kind,
+            IReadOnlyList<string> extensions,
+            Func<string, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readPath,
+            Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readStream) {
+            Id = id;
+            DisplayName = displayName;
+            Description = description;
+            Kind = kind;
+            Extensions = extensions;
+            ReadPath = readPath;
+            ReadStream = readStream;
+        }
+
+        public string Id { get; }
+        public string DisplayName { get; }
+        public string? Description { get; }
+        public ReaderInputKind Kind { get; }
+        public IReadOnlyList<string> Extensions { get; }
+        public Func<string, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadPath { get; }
+        public Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadStream { get; }
+
+        public ReaderHandlerCapability ToCapability() {
+            return new ReaderHandlerCapability {
+                Id = Id,
+                DisplayName = DisplayName,
+                Description = Description,
+                Kind = Kind,
+                Extensions = Extensions.ToArray(),
+                IsBuiltIn = false,
+                SupportsPath = ReadPath != null,
+                SupportsStream = ReadStream != null
+            };
+        }
     }
 
     private sealed class FolderIngestState {

@@ -138,6 +138,33 @@ var options = new ReaderOptions {
 var chunks = DocumentReader.Read(@"C:\Docs\Workbook.xlsx", options).ToList();
 ```
 
+## Pluggable Handlers
+
+`DocumentReader` now supports extension-based handler registration for modular packages.
+
+```csharp
+using OfficeIMO.Reader;
+
+DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+    Id = "sample.custom",
+    DisplayName = "Sample Custom Reader",
+    Kind = ReaderInputKind.Text,
+    Extensions = new[] { ".sample" },
+    ReadPath = (path, opts, ct) => new[] {
+        new ReaderChunk {
+            Id = "sample-0001",
+            Kind = ReaderInputKind.Text,
+            Location = new ReaderLocation { Path = path, BlockIndex = 0 },
+            Text = "custom output"
+        }
+    }
+});
+
+var capabilities = DocumentReader.GetCapabilities();
+```
+
+Use `DocumentReader.UnregisterHandler("sample.custom")` to remove custom handlers.
+
 ## Notes
 - `DocumentReader.Read(...)` is synchronous and streaming (returns `IEnumerable<T>`).
 - `DocumentReader.ReadFolder(...)` is best-effort: unreadable/corrupt/oversized files emit warning chunks and ingestion continues.

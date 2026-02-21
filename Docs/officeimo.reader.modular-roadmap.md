@@ -44,8 +44,8 @@ All scaffolded packages are currently excluded from publishing.
 - Performance and fidelity tuning for large inputs.
 
 5. Reader core modularization (medium-high)
-- Replace hardcoded switch routing with handler registry.
-- Add capability discovery for host apps.
+- Replace hardcoded switch routing with handler registry. (implemented in scaffold branch)
+- Add capability discovery for host apps. (implemented in scaffold branch)
 - Keep existing `DocumentReader.Read*` API behavior stable.
 
 6. Optional heavy paths (high)

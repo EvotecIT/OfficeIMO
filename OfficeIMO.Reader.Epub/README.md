@@ -9,5 +9,13 @@ Current scope:
 - warning chunks propagated from EPUB parser warnings
 - virtual source paths (`.epub::chapter.xhtml`) for traceability
 
+Registration into `OfficeIMO.Reader`:
+
+```csharp
+using OfficeIMO.Reader.Epub;
+
+DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler();
+```
+
 Status:
 - scaffolded and intentionally non-packable/non-publishable

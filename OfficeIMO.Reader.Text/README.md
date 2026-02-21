@@ -6,5 +6,13 @@
 - XML AST chunking (element/attribute path tables)
 - future structured text adapters
 
+Registration into `OfficeIMO.Reader`:
+
+```csharp
+using OfficeIMO.Reader.Text;
+
+DocumentReaderTextRegistrationExtensions.RegisterStructuredTextHandler(replaceExisting: true);
+```
+
 Status:
 - scaffolded and intentionally non-packable/non-publishable
