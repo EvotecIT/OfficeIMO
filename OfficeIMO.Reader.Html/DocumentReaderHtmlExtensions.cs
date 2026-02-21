@@ -65,53 +65,153 @@ public static class DocumentReaderHtmlExtensions {
             yield break;
         }
 
-        var wasSplit = markdown.Length > maxChars;
+        var parts = SplitMarkdown(
+            markdown,
+            maxChars,
+            chunkByHeadings: effective.MarkdownChunkByHeadings,
+            cancellationToken);
+
+        var wasSplit = parts.Count > 1;
         int chunkIndex = 0;
-        foreach (var part in SplitText(markdown, maxChars)) {
+        foreach (var part in parts) {
             cancellationToken.ThrowIfCancellationRequested();
+
+            IReadOnlyList<string>? warnings = null;
+            if (wasSplit || (part.Warnings?.Count > 0)) {
+                var warningList = new List<string>(4);
+                if (wasSplit) {
+                    warningList.Add("HTML content was split due to MaxChars.");
+                }
+
+                if (part.Warnings != null) {
+                    foreach (var warning in part.Warnings) {
+                        bool exists = false;
+                        for (int i = 0; i < warningList.Count; i++) {
+                            if (string.Equals(warningList[i], warning, StringComparison.Ordinal)) {
+                                exists = true;
+                                break;
+                            }
+                        }
+
+                        if (!exists) {
+                            warningList.Add(warning);
+                        }
+                    }
+                }
+
+                warnings = warningList.ToArray();
+            }
 
             yield return new ReaderChunk {
                 Id = string.Concat("html-", chunkIndex.ToString("D4", CultureInfo.InvariantCulture)),
                 Kind = ReaderInputKind.Unknown,
                 Location = new ReaderLocation {
                     Path = logicalSourceName,
-                    BlockIndex = chunkIndex
+                    BlockIndex = chunkIndex,
+                    StartLine = part.StartLine,
+                    HeadingPath = part.HeadingPath
                 },
-                Text = part,
-                Markdown = part,
-                Warnings = wasSplit ? new[] { "HTML content was split due to MaxChars." } : null
+                Text = part.Text,
+                Markdown = part.Text,
+                Warnings = warnings
             };
 
             chunkIndex++;
         }
     }
 
-    private static IEnumerable<string> SplitText(string text, int maxChars) {
-        if (string.IsNullOrWhiteSpace(text)) yield break;
-        if (text.Length <= maxChars) {
-            yield return text;
-            yield break;
-        }
+    private static IReadOnlyList<MarkdownPart> SplitMarkdown(string markdown, int maxChars, bool chunkByHeadings, CancellationToken cancellationToken) {
+        if (string.IsNullOrWhiteSpace(markdown)) return Array.Empty<MarkdownPart>();
 
-        int index = 0;
-        while (index < text.Length) {
-            int remaining = text.Length - index;
-            int take = Math.Min(maxChars, remaining);
-            int end = index + take;
+        var normalized = markdown
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n');
+        var lines = normalized.Split('\n');
 
-            if (end < text.Length) {
-                int split = text.LastIndexOf('\n', end - 1, take);
-                if (split > index + 64) {
-                    end = split;
-                }
+        var parts = new List<MarkdownPart>(capacity: Math.Max(1, lines.Length / 16));
+        var headingStack = new List<(int Level, string Text)>();
+        var currentText = new StringBuilder(Math.Min(maxChars, 4 * 1024));
+        var currentWarnings = new List<string>(2);
+        int currentStartLine = 1;
+        string? currentHeadingPath = null;
+
+        void FlushCurrent() {
+            if (currentText.Length == 0) return;
+
+            var text = currentText.ToString().TrimEnd();
+            if (text.Length > 0) {
+                parts.Add(new MarkdownPart(
+                    text,
+                    currentStartLine,
+                    currentHeadingPath,
+                    currentWarnings.Count == 0 ? null : currentWarnings.ToArray()));
             }
 
-            var part = text.Substring(index, end - index).Trim();
-            if (part.Length > 0) yield return part;
-
-            index = end;
-            while (index < text.Length && char.IsWhiteSpace(text[index])) index++;
+            currentText.Clear();
+            currentWarnings.Clear();
         }
+
+        for (int i = 0; i < lines.Length; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var line = lines[i];
+            int lineNo = i + 1;
+
+            int headingLevel = 0;
+            string headingText = string.Empty;
+            bool isHeading = false;
+            if (chunkByHeadings) {
+                isHeading = TryParseAtxHeading(line, out headingLevel, out headingText);
+            }
+
+            if (isHeading && currentText.Length > 0) {
+                FlushCurrent();
+            }
+
+            if (isHeading) {
+                UpdateHeadingStack(headingStack, headingLevel, headingText);
+            }
+
+            if (currentText.Length == 0) {
+                currentStartLine = lineNo;
+                currentHeadingPath = chunkByHeadings ? BuildHeadingPath(headingStack) : null;
+            }
+
+            if (line.Length > maxChars) {
+                if (currentText.Length > 0) {
+                    FlushCurrent();
+                }
+
+                int segmentIndex = 0;
+                while (segmentIndex < line.Length) {
+                    if (currentText.Length == 0) {
+                        currentStartLine = lineNo;
+                        currentHeadingPath = chunkByHeadings ? BuildHeadingPath(headingStack) : null;
+                    }
+
+                    int take = Math.Min(maxChars, line.Length - segmentIndex);
+                    currentText.Append(line, segmentIndex, take);
+                    segmentIndex += take;
+
+                    if (segmentIndex < line.Length) {
+                        FlushCurrent();
+                    }
+                }
+
+                continue;
+            }
+
+            if (WouldExceed(maxChars, currentText, line)) {
+                FlushCurrent();
+                currentStartLine = lineNo;
+                currentHeadingPath = chunkByHeadings ? BuildHeadingPath(headingStack) : null;
+            }
+
+            AppendLine(currentText, line);
+        }
+
+        FlushCurrent();
+        return parts;
     }
 
     private static string ReadAllText(Stream stream, CancellationToken cancellationToken) {
@@ -140,5 +240,90 @@ public static class DocumentReaderHtmlExtensions {
             Text = warning,
             Warnings = new[] { warning }
         };
+    }
+
+    private static bool TryParseAtxHeading(string line, out int level, out string text) {
+        level = 0;
+        text = string.Empty;
+        if (line == null) return false;
+
+        int i = 0;
+        while (i < line.Length && line[i] == '#') i++;
+        if (i < 1 || i > 6) return false;
+        if (i >= line.Length) return false;
+        if (line[i] != ' ' && line[i] != '\t') return false;
+
+        level = i;
+        text = line.Substring(i).Trim();
+        if (text.Length == 0) text = "Heading " + level.ToString(CultureInfo.InvariantCulture);
+        return true;
+    }
+
+    private static void UpdateHeadingStack(List<(int Level, string Text)> stack, int level, string text) {
+        if (level < 1) return;
+        if (string.IsNullOrWhiteSpace(text)) text = "Heading " + level.ToString(CultureInfo.InvariantCulture);
+
+        for (int i = stack.Count - 1; i >= 0; i--) {
+            if (stack[i].Level >= level) stack.RemoveAt(i);
+        }
+        stack.Add((level, CollapseWhitespace(text)));
+    }
+
+    private static string? BuildHeadingPath(List<(int Level, string Text)> stack) {
+        if (stack.Count == 0) return null;
+
+        var sb = new StringBuilder();
+        for (int i = 0; i < stack.Count; i++) {
+            if (i > 0) sb.Append(" > ");
+            sb.Append(stack[i].Text);
+        }
+
+        var value = sb.ToString().Trim();
+        return value.Length == 0 ? null : value;
+    }
+
+    private static bool WouldExceed(int maxChars, StringBuilder current, string nextLine) {
+        int nextLength = nextLine?.Length ?? 0;
+        int extra = (current.Length == 0 ? 0 : 1) + nextLength;
+        return current.Length > 0 && (current.Length + extra) > maxChars;
+    }
+
+    private static void AppendLine(StringBuilder builder, string line) {
+        if (builder.Length > 0) builder.AppendLine();
+        builder.Append(line ?? string.Empty);
+    }
+
+    private static string CollapseWhitespace(string value) {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+
+        var sb = new StringBuilder(value.Length);
+        bool previousWhitespace = false;
+        for (int i = 0; i < value.Length; i++) {
+            var ch = value[i];
+            bool isWhitespace = char.IsWhiteSpace(ch);
+            if (isWhitespace) {
+                if (!previousWhitespace) sb.Append(' ');
+                previousWhitespace = true;
+            } else {
+                sb.Append(ch);
+                previousWhitespace = false;
+            }
+        }
+
+        return sb.ToString().Trim();
+    }
+
+    private sealed class MarkdownPart {
+        public MarkdownPart(string text, int startLine, string? headingPath, IReadOnlyList<string>? warnings) {
+            Text = text;
+            StartLine = startLine;
+            HeadingPath = headingPath;
+            Warnings = warnings;
+        }
+
+        public string Text { get; }
+        public int StartLine { get; }
+        public string? HeadingPath { get; }
+        public IReadOnlyList<string>? Warnings { get; }
     }
 }

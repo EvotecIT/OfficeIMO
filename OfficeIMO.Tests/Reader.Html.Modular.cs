@@ -25,6 +25,37 @@ public sealed class ReaderHtmlModularTests {
     }
 
     [Fact]
+    public void DocumentReaderHtml_ReadHtmlString_UsesHeadingAwareLocations() {
+        var html = "<html><body><h1>Hello HTML</h1><p>Body text.</p><h2>Second</h2><p>More.</p></body></html>";
+
+        var chunks = DocumentReaderHtmlExtensions.ReadHtmlString(
+            html: html,
+            sourceName: "headings.html",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList();
+
+        Assert.NotEmpty(chunks);
+        Assert.Contains(chunks, c => !string.IsNullOrWhiteSpace(c.Location.HeadingPath));
+        Assert.All(chunks, c => Assert.True(c.Location.StartLine.GetValueOrDefault() >= 1));
+        Assert.Contains(chunks, c => (c.Location.HeadingPath ?? string.Empty).Contains("Hello HTML", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_ReadHtmlString_CanDisableHeadingChunking() {
+        var html = "<html><body><h1>Hello HTML</h1><p>Body text.</p><h2>Second</h2><p>More.</p></body></html>";
+
+        var chunks = DocumentReaderHtmlExtensions.ReadHtmlString(
+            html: html,
+            sourceName: "headings-disabled.html",
+            readerOptions: new ReaderOptions {
+                MaxChars = 8_000,
+                MarkdownChunkByHeadings = false
+            }).ToList();
+
+        Assert.NotEmpty(chunks);
+        Assert.DoesNotContain(chunks, c => !string.IsNullOrWhiteSpace(c.Location.HeadingPath));
+    }
+
+    [Fact]
     public void DocumentReaderHtml_ReadHtmlString_SplitsByMaxChars() {
         var largeHtml = "<html><body><p>" + new string('a', 2048) + "</p></body></html>";
 
