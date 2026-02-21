@@ -7,22 +7,43 @@ namespace OfficeIMO.Reader.Epub;
 /// </summary>
 public static class DocumentReaderEpubExtensions {
     /// <summary>
-    /// Reads EPUB content and emits normalized chunks.
+    /// Reads EPUB content from a file path and emits normalized chunks.
     /// </summary>
     public static IEnumerable<ReaderChunk> ReadEpub(string epubPath, ReaderOptions? readerOptions = null, EpubReadOptions? epubOptions = null, CancellationToken cancellationToken = default) {
         if (epubPath == null) throw new ArgumentNullException(nameof(epubPath));
         if (epubPath.Length == 0) throw new ArgumentException("EPUB path cannot be empty.", nameof(epubPath));
+        if (!File.Exists(epubPath)) throw new FileNotFoundException($"EPUB file '{epubPath}' doesn't exist.", epubPath);
 
         var options = readerOptions ?? new ReaderOptions();
-        int maxChars = options.MaxChars > 0 ? options.MaxChars : 8_000;
-
         var document = EpubReader.Read(epubPath, epubOptions);
-        var fileName = Path.GetFileName(epubPath);
+        return ReadEpubDocument(document, epubPath, options, cancellationToken);
+    }
+
+    /// <summary>
+    /// Reads EPUB content from a stream and emits normalized chunks.
+    /// </summary>
+    public static IEnumerable<ReaderChunk> ReadEpub(Stream epubStream, string? sourceName = null, ReaderOptions? readerOptions = null, EpubReadOptions? epubOptions = null, CancellationToken cancellationToken = default) {
+        if (epubStream == null) throw new ArgumentNullException(nameof(epubStream));
+        if (!epubStream.CanRead) throw new ArgumentException("EPUB stream must be readable.", nameof(epubStream));
+
+        var options = readerOptions ?? new ReaderOptions();
+        var document = EpubReader.Read(epubStream, epubOptions);
+        var logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "document.epub" : sourceName!;
+        return ReadEpubDocument(document, logicalSourceName, options, cancellationToken);
+    }
+
+    private static IEnumerable<ReaderChunk> ReadEpubDocument(EpubDocument document, string sourcePath, ReaderOptions options, CancellationToken cancellationToken) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        if (sourcePath == null) throw new ArgumentNullException(nameof(sourcePath));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+
+        int maxChars = options.MaxChars > 0 ? options.MaxChars : 8_000;
+        var fileName = Path.GetFileName(sourcePath);
 
         int warningIndex = 0;
         foreach (var warning in document.Warnings) {
             cancellationToken.ThrowIfCancellationRequested();
-            yield return BuildWarningChunk(epubPath, warning, warningIndex++);
+            yield return BuildWarningChunk(sourcePath, warning, warningIndex++);
         }
 
         int blockIndex = 0;
@@ -40,7 +61,7 @@ public static class DocumentReaderEpubExtensions {
                     Id = chunkId,
                     Kind = ReaderInputKind.Unknown,
                     Location = new ReaderLocation {
-                        Path = BuildVirtualPath(epubPath, chapter.Path),
+                        Path = BuildVirtualPath(sourcePath, chapter.Path),
                         BlockIndex = blockIndex,
                         HeadingPath = chapter.Title
                     },

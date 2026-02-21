@@ -32,6 +32,13 @@ public static class DocumentReaderZipRegistrationExtensions {
                 readerOptions: readerOptions,
                 zipOptions: Clone(registeredZipOptions),
                 readerZipOptions: Clone(registeredReaderZipOptions),
+                cancellationToken: ct),
+            ReadStream = (stream, sourceName, readerOptions, ct) => DocumentReaderZipExtensions.ReadZip(
+                zipStream: stream,
+                sourceName: sourceName,
+                readerOptions: readerOptions,
+                zipOptions: Clone(registeredZipOptions),
+                readerZipOptions: Clone(registeredReaderZipOptions),
                 cancellationToken: ct)
         }, replaceExisting);
     }

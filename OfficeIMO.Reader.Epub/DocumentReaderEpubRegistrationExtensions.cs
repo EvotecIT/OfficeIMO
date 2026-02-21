@@ -27,6 +27,12 @@ public static class DocumentReaderEpubRegistrationExtensions {
                 epubPath: path,
                 readerOptions: readerOptions,
                 epubOptions: Clone(registeredOptions),
+                cancellationToken: ct),
+            ReadStream = (stream, sourceName, readerOptions, ct) => DocumentReaderEpubExtensions.ReadEpub(
+                epubStream: stream,
+                sourceName: sourceName,
+                readerOptions: readerOptions,
+                epubOptions: Clone(registeredOptions),
                 cancellationToken: ct)
         }, replaceExisting);
     }

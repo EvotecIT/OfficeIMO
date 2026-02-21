@@ -7,6 +7,7 @@ Current scope:
 - best-effort entry extraction into `ReaderChunk`
 - warning chunks for skipped/error entries
 - bounded nested ZIP traversal with reusable `ReaderZipOptions`
+- path and stream dispatch via `DocumentReader` handler registration
 
 Registration into `OfficeIMO.Reader`:
 

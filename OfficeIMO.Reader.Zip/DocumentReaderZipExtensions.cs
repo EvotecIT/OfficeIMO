@@ -38,14 +38,79 @@ public static class DocumentReaderZipExtensions {
 
         using var fs = new FileStream(zipPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         using var archive = new ZipArchive(fs, ZipArchiveMode.Read, leaveOpen: false);
-
-        foreach (var chunk in ReadArchive(
+        foreach (var chunk in ReadZipArchive(
                      archive,
                      archivePath: zipPath,
-                     nestedDepth: 0,
                      readerOptions: effectiveReaderOptions,
                      zipOptions: effectiveZipOptions,
                      readerZipOptions: effectiveReaderZipOptions,
+                     warningCounter: warningCounter,
+                     cancellationToken: cancellationToken)) {
+            yield return chunk;
+        }
+    }
+
+    /// <summary>
+    /// Reads supported files from a ZIP archive stream and emits normalized chunks.
+    /// Supports bounded nested ZIP traversal.
+    /// </summary>
+    public static IEnumerable<ReaderChunk> ReadZip(
+        Stream zipStream,
+        string? sourceName = null,
+        ReaderOptions? readerOptions = null,
+        ZipTraversalOptions? zipOptions = null,
+        CancellationToken cancellationToken = default) {
+        return ReadZip(zipStream, sourceName, readerOptions, zipOptions, readerZipOptions: null, cancellationToken);
+    }
+
+    /// <summary>
+    /// Reads supported files from a ZIP archive stream and emits normalized chunks.
+    /// Supports bounded nested ZIP traversal.
+    /// </summary>
+    public static IEnumerable<ReaderChunk> ReadZip(
+        Stream zipStream,
+        string? sourceName,
+        ReaderOptions? readerOptions,
+        ZipTraversalOptions? zipOptions,
+        ReaderZipOptions? readerZipOptions,
+        CancellationToken cancellationToken = default) {
+        if (zipStream == null) throw new ArgumentNullException(nameof(zipStream));
+        if (!zipStream.CanRead) throw new ArgumentException("ZIP stream must be readable.", nameof(zipStream));
+
+        var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
+        var effectiveZipOptions = zipOptions ?? new ZipTraversalOptions();
+        var effectiveReaderZipOptions = Normalize(readerZipOptions);
+        var warningCounter = new WarningCounter();
+        var logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "archive.zip" : sourceName!;
+
+        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read, leaveOpen: true);
+        foreach (var chunk in ReadZipArchive(
+                     archive,
+                     archivePath: logicalSourceName,
+                     readerOptions: effectiveReaderOptions,
+                     zipOptions: effectiveZipOptions,
+                     readerZipOptions: effectiveReaderZipOptions,
+                     warningCounter: warningCounter,
+                     cancellationToken: cancellationToken)) {
+            yield return chunk;
+        }
+    }
+
+    private static IEnumerable<ReaderChunk> ReadZipArchive(
+        ZipArchive archive,
+        string archivePath,
+        ReaderOptions readerOptions,
+        ZipTraversalOptions zipOptions,
+        ReaderZipOptions readerZipOptions,
+        WarningCounter warningCounter,
+        CancellationToken cancellationToken) {
+        foreach (var chunk in ReadArchive(
+                     archive,
+                     archivePath: archivePath,
+                     nestedDepth: 0,
+                     readerOptions: readerOptions,
+                     zipOptions: zipOptions,
+                     readerZipOptions: readerZipOptions,
                      warningCounter: warningCounter,
                      cancellationToken: cancellationToken)) {
             yield return chunk;
