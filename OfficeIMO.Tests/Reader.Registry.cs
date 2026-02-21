@@ -223,6 +223,27 @@ public sealed class ReaderRegistryTests {
         }
     }
 
+    [Fact]
+    public void DocumentReader_ModularRegistrationHelpers_DispatchesStructuredCsvNonSeekableStream() {
+        try {
+            DocumentReaderTextRegistrationExtensions.RegisterStructuredTextHandler(replaceExisting: true);
+
+            var payload = "Name,Role\nAlice,Admin\nBob,Ops\n";
+            using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(payload));
+            var chunks = DocumentReader.Read(stream, "users.csv").ToList();
+
+            Assert.NotEmpty(chunks);
+            Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Text, c.Kind));
+            Assert.Contains(chunks, c =>
+                string.Equals(c.Location.Path, "users.csv", StringComparison.OrdinalIgnoreCase) &&
+                c.Tables != null &&
+                c.Tables.Count > 0 &&
+                c.Tables[0].Columns.Contains("Name", StringComparer.Ordinal));
+        } finally {
+            DocumentReaderTextRegistrationExtensions.UnregisterStructuredTextHandler();
+        }
+    }
+
     private static byte[] BuildSimpleEpubBytes() {
         using var ms = new MemoryStream();
         using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true)) {
