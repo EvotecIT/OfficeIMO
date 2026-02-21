@@ -62,15 +62,67 @@ namespace OfficeIMO.Word.Markdown {
         public bool FallbackRemoteImagesToHyperlinks { get; set; } = true;
 
         /// <summary>
-        /// Optional hard cap (pixels) applied to rendered markdown image width.
-        /// When set, images wider than this value are proportionally scaled down.
+        /// Optional callback receiving per-image layout diagnostics.
         /// </summary>
-        public double? MaxImageWidthPixels { get; set; }
+        public Action<MarkdownImageLayoutDiagnostic>? OnImageLayoutDiagnostic { get; set; }
 
         /// <summary>
-        /// When enabled, markdown images are constrained to the current section content width
+        /// Image sizing and fitting behavior for markdown conversion.
+        /// </summary>
+        public MarkdownImageLayoutOptions ImageLayout { get; } = new MarkdownImageLayoutOptions();
+
+        /// <summary>
+        /// When enabled, markdown parser definition-list detection is disabled so
+        /// <c>Label: value</c> lines are kept as narrative paragraphs.
+        /// </summary>
+        public bool PreferNarrativeSingleLineDefinitions { get; set; }
+
+        /// <summary>
+        /// Optional hard cap (pixels) applied to rendered markdown image width.
+        /// </summary>
+        public double? MaxImageWidthPixels {
+            get => ImageLayout.MaxWidthPixels;
+            set => ImageLayout.MaxWidthPixels = value;
+        }
+
+        /// <summary>
+        /// Optional hard cap (pixels) applied to rendered markdown image height.
+        /// </summary>
+        public double? MaxImageHeightPixels {
+            get => ImageLayout.MaxHeightPixels;
+            set => ImageLayout.MaxHeightPixels = value;
+        }
+
+        /// <summary>
+        /// When enabled, markdown images are constrained to section content width
         /// (page width minus left/right margins).
         /// </summary>
-        public bool FitImagesToPageContentWidth { get; set; }
+        public bool FitImagesToPageContentWidth {
+            get => ImageLayout.FitMode == MarkdownImageFitMode.PageContentWidth || ImageLayout.FitMode == MarkdownImageFitMode.ContextContentWidth;
+            set {
+                if (value) {
+                    if (ImageLayout.FitMode == MarkdownImageFitMode.None) {
+                        ImageLayout.FitMode = MarkdownImageFitMode.PageContentWidth;
+                    }
+                } else if (ImageLayout.FitMode == MarkdownImageFitMode.PageContentWidth || ImageLayout.FitMode == MarkdownImageFitMode.ContextContentWidth) {
+                    ImageLayout.FitMode = MarkdownImageFitMode.None;
+                }
+            }
+        }
+
+        /// <summary>
+        /// When enabled, markdown images are constrained to context width
+        /// (section content width minus list/quote indentation).
+        /// </summary>
+        public bool FitImagesToContextWidth {
+            get => ImageLayout.FitMode == MarkdownImageFitMode.ContextContentWidth;
+            set {
+                if (value) {
+                    ImageLayout.FitMode = MarkdownImageFitMode.ContextContentWidth;
+                } else if (ImageLayout.FitMode == MarkdownImageFitMode.ContextContentWidth) {
+                    ImageLayout.FitMode = MarkdownImageFitMode.None;
+                }
+            }
+        }
     }
 }
