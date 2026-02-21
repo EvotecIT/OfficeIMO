@@ -1,0 +1,139 @@
+using OfficeIMO.Epub;
+
+namespace OfficeIMO.Reader.Epub;
+
+/// <summary>
+/// EPUB ingestion adapter for <see cref="DocumentReader"/>.
+/// </summary>
+public static class DocumentReaderEpubExtensions {
+    /// <summary>
+    /// Reads EPUB content and emits normalized chunks.
+    /// </summary>
+    public static IEnumerable<ReaderChunk> ReadEpub(string epubPath, ReaderOptions? readerOptions = null, EpubReadOptions? epubOptions = null, CancellationToken cancellationToken = default) {
+        if (epubPath == null) throw new ArgumentNullException(nameof(epubPath));
+        if (epubPath.Length == 0) throw new ArgumentException("EPUB path cannot be empty.", nameof(epubPath));
+
+        var options = readerOptions ?? new ReaderOptions();
+        int maxChars = options.MaxChars > 0 ? options.MaxChars : 8_000;
+
+        var document = EpubReader.Read(epubPath, epubOptions);
+        var fileName = Path.GetFileName(epubPath);
+
+        int warningIndex = 0;
+        foreach (var warning in document.Warnings) {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return BuildWarningChunk(epubPath, warning, warningIndex++);
+        }
+
+        int blockIndex = 0;
+        foreach (var chapter in document.Chapters) {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            int chunkPart = 0;
+            foreach (var piece in SplitText(chapter.Text, maxChars)) {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var chunkId = BuildId(fileName, chapter.Order, chunkPart);
+                var wasSplit = chapter.Text.Length > maxChars;
+
+                yield return new ReaderChunk {
+                    Id = chunkId,
+                    Kind = ReaderInputKind.Unknown,
+                    Location = new ReaderLocation {
+                        Path = BuildVirtualPath(epubPath, chapter.Path),
+                        BlockIndex = blockIndex,
+                        HeadingPath = chapter.Title
+                    },
+                    Text = piece,
+                    Markdown = BuildMarkdown(chapter.Title, piece),
+                    Warnings = wasSplit ? new[] { "Chapter content was split due to MaxChars." } : null
+                };
+
+                blockIndex++;
+                chunkPart++;
+            }
+        }
+    }
+
+    private static string BuildMarkdown(string? title, string text) {
+        var heading = title;
+        if (heading == null) return text;
+
+        var headingTrimmed = heading.Trim();
+        if (headingTrimmed.Length == 0) return text;
+
+        return "## " + headingTrimmed + Environment.NewLine + Environment.NewLine + text;
+    }
+
+    private static IEnumerable<string> SplitText(string text, int maxChars) {
+        if (string.IsNullOrWhiteSpace(text)) yield break;
+        if (text.Length <= maxChars) {
+            yield return text;
+            yield break;
+        }
+
+        int index = 0;
+        while (index < text.Length) {
+            int remaining = text.Length - index;
+            int take = Math.Min(maxChars, remaining);
+            int end = index + take;
+
+            if (end < text.Length) {
+                int split = text.LastIndexOf(' ', end - 1, take);
+                if (split > index + 128) {
+                    end = split;
+                }
+            }
+
+            var piece = text.Substring(index, end - index).Trim();
+            if (piece.Length > 0) yield return piece;
+
+            index = end;
+            while (index < text.Length && char.IsWhiteSpace(text[index])) index++;
+        }
+    }
+
+    private static string BuildId(string fileName, int chapterOrder, int chunkPart) {
+        var safeFile = Sanitize(fileName);
+        return string.Concat(
+            "epub-",
+            safeFile,
+            "-ch",
+            chapterOrder.ToString("D4", CultureInfo.InvariantCulture),
+            "-",
+            chunkPart.ToString("D4", CultureInfo.InvariantCulture));
+    }
+
+    private static ReaderChunk BuildWarningChunk(string epubPath, string warning, int warningIndex) {
+        return new ReaderChunk {
+            Id = $"epub-warning-{warningIndex.ToString("D4", CultureInfo.InvariantCulture)}",
+            Kind = ReaderInputKind.Unknown,
+            Location = new ReaderLocation {
+                Path = epubPath,
+                BlockIndex = warningIndex
+            },
+            Text = warning,
+            Warnings = new[] { warning }
+        };
+    }
+
+    private static string BuildVirtualPath(string epubPath, string chapterPath) {
+        if (string.IsNullOrWhiteSpace(chapterPath)) return epubPath;
+        return epubPath + "::" + chapterPath.Replace('\\', '/');
+    }
+
+    private static string Sanitize(string value) {
+        if (string.IsNullOrWhiteSpace(value)) return "document";
+
+        var sb = new StringBuilder(value.Length);
+        foreach (var ch in value) {
+            if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9')) {
+                sb.Append(char.ToLowerInvariant(ch));
+            } else {
+                sb.Append('-');
+            }
+        }
+
+        return sb.ToString().Trim('-');
+    }
+}

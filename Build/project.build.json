@@ -19,7 +19,13 @@
   "ExpectedVersionMapUseWildcards": false,
   "ExcludeProjects": [
     "OfficeIMO.Visio",
-    "OfficeIMO.Project"
+    "OfficeIMO.Project",
+    "OfficeIMO.Zip",
+    "OfficeIMO.Epub",
+    "OfficeIMO.Reader.Zip",
+    "OfficeIMO.Reader.Epub",
+    "OfficeIMO.Reader.Text",
+    "OfficeIMO.Reader.Html"
   ],
   "NugetSource": [],
   "IncludePrerelease": false,
