@@ -583,7 +583,8 @@ public sealed class ReaderFolderOptions {
     public long? MaxTotalBytes { get; set; }
 
     /// <summary>
-    /// Optional allowed extensions (lower/upper insensitive). When null, a default set is used.
+    /// Optional allowed extensions (lower/upper insensitive). When null, a default set plus
+    /// currently registered custom handler extensions is used.
     /// Examples: ".docx", ".xlsx", ".pptx", ".md".
     /// </summary>
     public IReadOnlyList<string>? Extensions { get; set; }

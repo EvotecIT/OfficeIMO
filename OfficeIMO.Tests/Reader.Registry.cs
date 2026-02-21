@@ -230,6 +230,41 @@ public sealed class ReaderRegistryTests {
     }
 
     [Fact]
+    public void DocumentReader_ReadFolder_DefaultExtensions_IncludeRegisteredCustomHandlers() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-folder-" + Guid.NewGuid().ToString("N"));
+        var htmlPath = Path.Combine(folder, "index.html");
+
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(htmlPath, "<html><body><h1>Folder HTML</h1><p>Body</p></body></html>");
+
+        try {
+            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+
+            var chunks = DocumentReader.ReadFolder(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    MaxFiles = 10
+                },
+                options: new ReaderOptions {
+                    MaxChars = 8_000
+                }).ToList();
+
+            Assert.NotEmpty(chunks);
+            Assert.Contains(chunks, c =>
+                c.Kind == ReaderInputKind.Html &&
+                string.Equals(c.Location.Path, htmlPath, StringComparison.OrdinalIgnoreCase) &&
+                ((c.Markdown ?? c.Text).Contains("Folder HTML", StringComparison.Ordinal) ||
+                 (c.Markdown ?? c.Text).Contains("Body", StringComparison.Ordinal)));
+        } finally {
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            if (Directory.Exists(folder)) {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void DocumentReader_DiscoverHandlerRegistrars_FindsModularRegistrars() {
         var registrars = DocumentReader.DiscoverHandlerRegistrars(
             typeof(DocumentReaderCsvRegistrationExtensions).Assembly,

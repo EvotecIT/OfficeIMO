@@ -2162,7 +2162,7 @@ public static class DocumentReader {
     private static HashSet<string> NormalizeExtensions(IReadOnlyList<string>? configuredExtensions) {
         var allowedExt = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var source = (configuredExtensions == null || configuredExtensions.Count == 0)
-            ? DefaultFolderExtensions
+            ? GetDefaultAndRegisteredFolderExtensions()
             : configuredExtensions;
 
         foreach (var e in source) {
@@ -2172,6 +2172,25 @@ public static class DocumentReader {
         }
 
         return allowedExt;
+    }
+
+    private static IReadOnlyList<string> GetDefaultAndRegisteredFolderExtensions() {
+        lock (HandlerRegistrySync) {
+            if (CustomHandlerIdByExtension.Count == 0) {
+                return DefaultFolderExtensions;
+            }
+
+            var merged = new string[DefaultFolderExtensions.Length + CustomHandlerIdByExtension.Count];
+            Array.Copy(DefaultFolderExtensions, merged, DefaultFolderExtensions.Length);
+
+            int index = DefaultFolderExtensions.Length;
+            foreach (var extension in CustomHandlerIdByExtension.Keys) {
+                merged[index] = extension;
+                index++;
+            }
+
+            return merged;
+        }
     }
 
     private static IEnumerable<string> EnumerateFilesSafeDeterministic(string folderPath, ReaderFolderOptions options, CancellationToken cancellationToken) {
