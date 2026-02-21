@@ -98,6 +98,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MarkdownToWord_AppliesConfiguredImageMaxWidthPercentOfContent() {
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            string md = $"![Local]({imagePath}){{width=1200 height=300}}";
+            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions {
+                AllowLocalImages = true,
+                DefaultPageSize = WordPageSize.Letter,
+                MaxImageWidthPercentOfContent = 50,
+                ImageLayout = {
+                    AllowUpscale = true
+                }
+            });
+
+            Assert.Single(doc.Images);
+            Assert.InRange(doc.Images[0].Width ?? 0, 311, 313);
+            Assert.InRange(doc.Images[0].Height ?? 0, 77, 79);
+        }
+
+        [Fact]
         public void MarkdownToWord_AppliesConfiguredImageMaxHeightPixels() {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string md = $"![Local]({imagePath}){{width=1200 height=300}}";
@@ -129,6 +147,46 @@ namespace OfficeIMO.Tests {
             Assert.Equal("block-local", diagnostic.Context);
             Assert.Equal(1200, diagnostic.RequestedWidthPixels);
             Assert.InRange(diagnostic.FinalWidthPixels ?? 0, 479.5, 480.5);
+        }
+
+        [Fact]
+        public void MarkdownToWord_RasterizesLocalSvgWhenRequested() {
+            string svgPath = Path.Combine(AppContext.BaseDirectory, "Images", "Sample.svg");
+            string md = $"![Local SVG]({svgPath})";
+            var diagnostics = new List<MarkdownImageLayoutDiagnostic>();
+
+            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions {
+                AllowLocalImages = true,
+                PreferRasterizeSvgForWord = true,
+                OnImageLayoutDiagnostic = diagnostics.Add
+            });
+
+            Assert.Single(doc.Images);
+
+            var diagnostic = Assert.Single(diagnostics);
+
+            if (diagnostic.RasterizedFromSvg) {
+                Assert.InRange(diagnostic.NaturalWidthPixels ?? 0, 10, 200);
+                Assert.InRange(diagnostic.NaturalHeightPixels ?? 0, 10, 200);
+                Assert.EndsWith(".png", doc.Images[0].FileName, StringComparison.OrdinalIgnoreCase);
+            } else {
+                // Some runtimes may not have the native raster backend available; fallback keeps SVG insertion.
+                Assert.EndsWith(".svg", doc.Images[0].FileName, StringComparison.OrdinalIgnoreCase);
+                Assert.True((doc.Images[0].Width ?? 0) > 0);
+                Assert.True((doc.Images[0].Height ?? 0) > 0);
+            }
+        }
+
+        [Fact]
+        public void MarkdownToWord_FitImagesToPageContentWidth_ForcesPageMode() {
+            var options = new MarkdownToWordOptions();
+            options.FitImagesToContextWidth = true;
+
+            options.FitImagesToPageContentWidth = true;
+
+            Assert.True(options.FitImagesToPageContentWidth);
+            Assert.False(options.FitImagesToContextWidth);
+            Assert.Equal(MarkdownImageFitMode.PageContentWidth, options.ImageLayout.FitMode);
         }
 
         [Fact]

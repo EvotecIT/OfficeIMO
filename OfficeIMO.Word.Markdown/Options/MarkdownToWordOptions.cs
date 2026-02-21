@@ -60,6 +60,8 @@ namespace OfficeIMO.Word.Markdown {
         public Func<System.Uri, bool>? ImageUrlValidator { get; set; }
         /// <summary>When remote images are not allowed or validation fails, insert a hyperlink instead of image. Default: true.</summary>
         public bool FallbackRemoteImagesToHyperlinks { get; set; } = true;
+        /// <summary>Timeout applied to remote image downloads. Default: 20 seconds.</summary>
+        public TimeSpan RemoteImageDownloadTimeout { get; set; } = TimeSpan.FromSeconds(20);
 
         /// <summary>
         /// Optional callback receiving per-image layout diagnostics.
@@ -94,17 +96,39 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         /// <summary>
+        /// Optional hard cap expressed as percent of available content width (for example 100, 85, 50).
+        /// </summary>
+        public double? MaxImageWidthPercentOfContent {
+            get => ImageLayout.MaxWidthPercentOfContent;
+            set => ImageLayout.MaxWidthPercentOfContent = value;
+        }
+
+        /// <summary>
+        /// When enabled, SVG sources are rasterized to PNG before insertion.
+        /// </summary>
+        public bool PreferRasterizeSvgForWord {
+            get => ImageLayout.PreferRasterizeSvgForWord;
+            set => ImageLayout.PreferRasterizeSvgForWord = value;
+        }
+
+        /// <summary>
+        /// Rasterization DPI applied to SVG sources when rasterization is enabled.
+        /// </summary>
+        public int SvgRasterizationDpi {
+            get => ImageLayout.SvgRasterizationDpi;
+            set => ImageLayout.SvgRasterizationDpi = value;
+        }
+
+        /// <summary>
         /// When enabled, markdown images are constrained to section content width
         /// (page width minus left/right margins).
         /// </summary>
         public bool FitImagesToPageContentWidth {
-            get => ImageLayout.FitMode == MarkdownImageFitMode.PageContentWidth || ImageLayout.FitMode == MarkdownImageFitMode.ContextContentWidth;
+            get => ImageLayout.FitMode == MarkdownImageFitMode.PageContentWidth;
             set {
                 if (value) {
-                    if (ImageLayout.FitMode == MarkdownImageFitMode.None) {
-                        ImageLayout.FitMode = MarkdownImageFitMode.PageContentWidth;
-                    }
-                } else if (ImageLayout.FitMode == MarkdownImageFitMode.PageContentWidth || ImageLayout.FitMode == MarkdownImageFitMode.ContextContentWidth) {
+                    ImageLayout.FitMode = MarkdownImageFitMode.PageContentWidth;
+                } else if (ImageLayout.FitMode == MarkdownImageFitMode.PageContentWidth) {
                     ImageLayout.FitMode = MarkdownImageFitMode.None;
                 }
             }

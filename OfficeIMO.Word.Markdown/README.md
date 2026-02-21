@@ -38,6 +38,24 @@ doc.SaveAsHtmlViaMarkdown("report.html", new HtmlOptions { Style = HtmlStyle.Git
   Parameterized form: `[TOC min=2 max=3 layout=sidebar-right sticky=true scrollspy=true title="On this page"]`.
 - Table cells: inline markdown (code/links/emphasis/images) is supported and `<br>` becomes a real line break in HTML.
 
+### Markdown -> Word image layout options
+
+```csharp
+var options = new MarkdownToWordOptions {
+    AllowLocalImages = true,
+    FitImagesToPageContentWidth = true,           // page width minus margins
+    MaxImageWidthPercentOfContent = 85,           // optional percent-based cap
+    PreferRasterizeSvgForWord = true,             // rasterize SVG sources to PNG
+    SvgRasterizationDpi = 144                      // optional raster DPI
+};
+
+using var doc = markdown.LoadFromMarkdown(options);
+```
+
+- Typed contract is available via `MarkdownToWordOptions.ImageLayout`.
+- `PreferNarrativeSingleLineDefinitions = true` disables definition-list parsing for `Label: value` narrative lines.
+- `OnImageLayoutDiagnostic` can be used to inspect final width/height and whether SVG rasterization was applied.
+
 ## Supported features (core)
 
 - Headings 1–6, paragraphs, hard breaks

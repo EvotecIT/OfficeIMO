@@ -1,5 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.Html;
+using SkiaSharp;
+using Svg.Skia;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,6 +19,11 @@ namespace OfficeIMO.Word.Markdown {
         private const double DefaultHorizontalMarginTwips = 1440d;
         private const double TwipsPerInch = 1440d;
         private const double PixelsPerInch = 96d;
+        private const double MinimumContentWidthPixels = 1d;
+        private const int DefaultSvgRasterSizePixels = 1024;
+        private const int MaximumSvgRasterSizePixels = 4096;
+        private static readonly TimeSpan DefaultRemoteImageDownloadTimeout = TimeSpan.FromSeconds(20);
+        private static readonly System.Net.Http.HttpClient SharedRemoteImageClient = CreateRemoteImageClient(DefaultRemoteImageDownloadTimeout);
 
         private static bool LocalPathAllowed(string path, MarkdownToWordOptions options) {
             if (!options.AllowLocalImages) return false;
@@ -38,15 +45,150 @@ namespace OfficeIMO.Word.Markdown {
             var rightMarginTwips = (double?)section?.Margins?.Right?.Value ?? DefaultHorizontalMarginTwips;
             var contentTwips = pageWidthTwips - leftMarginTwips - rightMarginTwips;
 
-            if (contentTwips < 1) {
+            if (contentTwips < MinimumContentWidthPixels) {
                 contentTwips = DefaultPageWidthTwips - (DefaultHorizontalMarginTwips * 2);
             }
 
-            if (contentTwips < 1) {
-                return 1;
+            if (contentTwips < MinimumContentWidthPixels) {
+                return MinimumContentWidthPixels;
             }
 
             return contentTwips * PixelsPerInch / TwipsPerInch;
+        }
+
+        private static System.Net.Http.HttpClient CreateRemoteImageClient(TimeSpan timeout) {
+            var client = new System.Net.Http.HttpClient();
+            client.Timeout = timeout;
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("OfficeIMO.Word.Markdown");
+            return client;
+        }
+
+        private static TimeSpan ResolveRemoteImageTimeout(MarkdownToWordOptions options) {
+            if (options.RemoteImageDownloadTimeout <= TimeSpan.Zero) {
+                return DefaultRemoteImageDownloadTimeout;
+            }
+
+            return options.RemoteImageDownloadTimeout;
+        }
+
+        private static byte[] DownloadRemoteImageBytes(Uri uri, MarkdownToWordOptions options) {
+            var timeout = ResolveRemoteImageTimeout(options);
+            if (timeout == DefaultRemoteImageDownloadTimeout) {
+                return SharedRemoteImageClient.GetByteArrayAsync(uri).GetAwaiter().GetResult();
+            }
+
+            using var client = CreateRemoteImageClient(timeout);
+            return client.GetByteArrayAsync(uri).GetAwaiter().GetResult();
+        }
+
+        private static bool IsSvgPath(string pathOrFileName) {
+            if (string.IsNullOrWhiteSpace(pathOrFileName)) {
+                return false;
+            }
+
+            return string.Equals(
+                System.IO.Path.GetExtension(pathOrFileName),
+                ".svg",
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool LooksLikeSvgPayload(byte[] payload) {
+            if (payload.Length == 0) {
+                return false;
+            }
+
+            var sampleLength = Math.Min(payload.Length, 4096);
+            var text = Encoding.UTF8.GetString(payload, 0, sampleLength).TrimStart('\uFEFF', ' ', '\t', '\r', '\n');
+            if (text.StartsWith("<svg", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+
+            if (text.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase)) {
+                return text.IndexOf("<svg", StringComparison.OrdinalIgnoreCase) >= 0;
+            }
+
+            return false;
+        }
+
+        private static int ClampRasterDimension(double value) {
+            if (value <= 0 || double.IsNaN(value) || double.IsInfinity(value)) {
+                return DefaultSvgRasterSizePixels;
+            }
+
+            var rounded = (int)Math.Round(value);
+            if (rounded < 1) {
+                return 1;
+            }
+            if (rounded > MaximumSvgRasterSizePixels) {
+                return MaximumSvgRasterSizePixels;
+            }
+
+            return rounded;
+        }
+
+        private static string GetRasterizedSvgFileName(string sourcePathOrName) {
+            var stem = System.IO.Path.GetFileNameWithoutExtension(sourcePathOrName);
+            if (string.IsNullOrWhiteSpace(stem)) {
+                stem = "image";
+            }
+
+            return stem + ".png";
+        }
+
+        private static bool TryRasterizeSvgToPng(
+            byte[] svgBytes,
+            int dpi,
+            out byte[] pngBytes,
+            out double widthPixels,
+            out double heightPixels) {
+            pngBytes = [];
+            widthPixels = 0;
+            heightPixels = 0;
+
+            try {
+                using var svgStream = new System.IO.MemoryStream(svgBytes, writable: false);
+                var svg = new SKSvg();
+                var picture = svg.Load(svgStream);
+                if (picture == null) {
+                    return false;
+                }
+
+                var sourceWidth = (double)picture.CullRect.Width;
+                var sourceHeight = (double)picture.CullRect.Height;
+                if (sourceWidth <= 0 || sourceHeight <= 0) {
+                    sourceWidth = DefaultSvgRasterSizePixels;
+                    sourceHeight = DefaultSvgRasterSizePixels;
+                }
+
+                if (sourceWidth <= 0 || sourceHeight <= 0) {
+                    return false;
+                }
+
+                var effectiveDpi = dpi <= 0 ? 144d : dpi;
+                var rasterScale = effectiveDpi / PixelsPerInch;
+                var targetWidth = ClampRasterDimension(sourceWidth * rasterScale);
+                var targetHeight = ClampRasterDimension(sourceHeight * rasterScale);
+
+                using var surface = SKSurface.Create(new SKImageInfo(targetWidth, targetHeight, SKColorType.Rgba8888, SKAlphaType.Premul));
+                var canvas = surface.Canvas;
+                canvas.Clear(SKColors.Transparent);
+                canvas.Scale((float)(targetWidth / sourceWidth), (float)(targetHeight / sourceHeight));
+                canvas.DrawPicture(picture);
+                canvas.Flush();
+
+                using var image = surface.Snapshot();
+                using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+                if (data == null || data.Size == 0) {
+                    return false;
+                }
+
+                pngBytes = data.ToArray();
+                widthPixels = targetWidth;
+                heightPixels = targetHeight;
+                return true;
+            } catch {
+                return false;
+            }
         }
 
         private static double? ResolveContextWidthLimitPixels(
@@ -68,7 +210,7 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             var indentPixels = levels * (IndentTwipsPerLevel * PixelsPerInch / TwipsPerInch);
-            return Math.Max(1, pageContentWidthPixels - indentPixels);
+            return Math.Max(MinimumContentWidthPixels, pageContentWidthPixels - indentPixels);
         }
 
         private static bool TryGetImageDimensionsFromFile(string filePath, out double width, out double height) {
@@ -120,7 +262,9 @@ namespace OfficeIMO.Word.Markdown {
             double? requestedHeight,
             double? naturalWidth,
             double? naturalHeight,
+            double pageContentWidthPixels,
             double? contextWidthLimitPixels,
+            bool rasterizedFromSvg,
             out double? finalWidth,
             out double? finalHeight,
             out bool scaledByLayout) {
@@ -176,6 +320,19 @@ namespace OfficeIMO.Word.Markdown {
             }
             if (NormalizePositiveDimension(layout.MaxHeightPixels, out var maxHeight)) {
                 effectiveMaxHeight = maxHeight;
+            }
+            if (NormalizePositiveDimension(layout.MaxWidthPercentOfContent, out var maxWidthPercent)) {
+                var widthBaseline = NormalizePositiveDimension(contextWidthLimitPixels, out var contextWidth)
+                    ? contextWidth
+                    : (pageContentWidthPixels > 0 ? pageContentWidthPixels : 0);
+                if (widthBaseline > 0) {
+                    var percentCapWidth = widthBaseline * (maxWidthPercent / 100d);
+                    if (percentCapWidth > 0) {
+                        effectiveMaxWidth = effectiveMaxWidth.HasValue
+                            ? Math.Min(effectiveMaxWidth.Value, percentCapWidth)
+                            : percentCapWidth;
+                    }
+                }
             }
             if (NormalizePositiveDimension(contextWidthLimitPixels, out var contextMaxWidth)) {
                 effectiveMaxWidth = effectiveMaxWidth.HasValue ? Math.Min(effectiveMaxWidth.Value, contextMaxWidth) : contextMaxWidth;
@@ -233,7 +390,8 @@ namespace OfficeIMO.Word.Markdown {
                     EffectiveMaxHeightPixels = effectiveMaxHeight,
                     FinalWidthPixels = finalWidth,
                     FinalHeightPixels = finalHeight,
-                    ScaledByLayout = scaledByLayout
+                    ScaledByLayout = scaledByLayout,
+                    RasterizedFromSvg = rasterizedFromSvg
                 });
             }
         }
@@ -311,25 +469,64 @@ namespace OfficeIMO.Word.Markdown {
                             if (options.AllowLocalImages && LocalPathAllowed(pathOrUrl, options)) {
                                 double? naturalW = null;
                                 double? naturalH = null;
-                                if (TryGetImageDimensionsFromFile(pathOrUrl, out var fileW, out var fileH)) {
-                                    naturalW = fileW;
-                                    naturalH = fileH;
+                                var rasterizedFromSvg = false;
+
+                                if (options.PreferRasterizeSvgForWord && IsSvgPath(pathOrUrl)) {
+                                    try {
+                                        var svgBytes = System.IO.File.ReadAllBytes(pathOrUrl);
+                                        if (TryRasterizeSvgToPng(svgBytes, options.SvgRasterizationDpi, out var pngBytes, out var svgRasterWidth, out var svgRasterHeight)) {
+                                            naturalW = svgRasterWidth;
+                                            naturalH = svgRasterHeight;
+                                            rasterizedFromSvg = true;
+
+                                            ResolveImageDimensions(
+                                                options,
+                                                source: pathOrUrl,
+                                                context: "block-local",
+                                                requestedWidth: img.Width,
+                                                requestedHeight: img.Height,
+                                                naturalWidth: naturalW,
+                                                naturalHeight: naturalH,
+                                                pageContentWidthPixels: pageContentWidthPixels,
+                                                contextWidthLimitPixels: contextWidthLimit,
+                                                rasterizedFromSvg: rasterizedFromSvg,
+                                                out var rasterFinalW,
+                                                out var rasterFinalH,
+                                                out _);
+
+                                            using var rasterStream = new System.IO.MemoryStream(pngBytes, writable: false);
+                                            par.AddImage(rasterStream, GetRasterizedSvgFileName(pathOrUrl), rasterFinalW, rasterFinalH, description: img.Alt ?? string.Empty);
+                                        } else {
+                                            options.OnWarning?.Invoke($"SVG '{pathOrUrl}' could not be rasterized - falling back to native SVG insertion.");
+                                        }
+                                    } catch (Exception ex) {
+                                        options.OnWarning?.Invoke($"SVG '{pathOrUrl}' could not be rasterized. {ex.Message}");
+                                    }
                                 }
 
-                                ResolveImageDimensions(
-                                    options,
-                                    source: pathOrUrl,
-                                    context: "block-local",
-                                    requestedWidth: img.Width,
-                                    requestedHeight: img.Height,
-                                    naturalWidth: naturalW,
-                                    naturalHeight: naturalH,
-                                    contextWidthLimitPixels: contextWidthLimit,
-                                    out var finalW,
-                                    out var finalH,
-                                    out _);
+                                if (!rasterizedFromSvg) {
+                                    if (TryGetImageDimensionsFromFile(pathOrUrl, out var fileW, out var fileH)) {
+                                        naturalW = fileW;
+                                        naturalH = fileH;
+                                    }
 
-                                par.AddImage(pathOrUrl, finalW, finalH, description: img.Alt ?? string.Empty);
+                                    ResolveImageDimensions(
+                                        options,
+                                        source: pathOrUrl,
+                                        context: "block-local",
+                                        requestedWidth: img.Width,
+                                        requestedHeight: img.Height,
+                                        naturalWidth: naturalW,
+                                        naturalHeight: naturalH,
+                                        pageContentWidthPixels: pageContentWidthPixels,
+                                        contextWidthLimitPixels: contextWidthLimit,
+                                        rasterizedFromSvg: false,
+                                        out var finalW,
+                                        out var finalH,
+                                        out _);
+
+                                    par.AddImage(pathOrUrl, finalW, finalH, description: img.Alt ?? string.Empty);
+                                }
                             } else {
                                 // Not allowed: insert as text/link
                                 var t1 = par.AddText(img.Alt ?? System.IO.Path.GetFileName(pathOrUrl));
@@ -340,8 +537,7 @@ namespace OfficeIMO.Word.Markdown {
                                 (options.ImageUrlValidator == null || options.ImageUrlValidator(uri))) {
                                 if (options.AllowRemoteImages) {
                                     try {
-                                        using var client = new System.Net.Http.HttpClient();
-                                        var bytes = client.GetByteArrayAsync(uri).GetAwaiter().GetResult();
+                                        var bytes = DownloadRemoteImageBytes(uri, options);
                                         var fileName = System.IO.Path.GetFileName(uri.LocalPath);
                                         if (string.IsNullOrWhiteSpace(fileName)) {
                                             fileName = "image";
@@ -349,7 +545,21 @@ namespace OfficeIMO.Word.Markdown {
 
                                         double? naturalW = null;
                                         double? naturalH = null;
-                                        if (TryGetImageDimensionsFromBytes(bytes, out var remoteW, out var remoteH)) {
+                                        var rasterizedFromSvg = false;
+
+                                        if (options.PreferRasterizeSvgForWord && (IsSvgPath(fileName) || LooksLikeSvgPayload(bytes))) {
+                                            if (TryRasterizeSvgToPng(bytes, options.SvgRasterizationDpi, out var rasterizedBytes, out var svgRasterWidth, out var svgRasterHeight)) {
+                                                bytes = rasterizedBytes;
+                                                naturalW = svgRasterWidth;
+                                                naturalH = svgRasterHeight;
+                                                rasterizedFromSvg = true;
+                                                fileName = GetRasterizedSvgFileName(fileName);
+                                            } else {
+                                                options.OnWarning?.Invoke($"Remote SVG '{uri}' could not be rasterized - falling back to native SVG insertion.");
+                                            }
+                                        }
+
+                                        if (!rasterizedFromSvg && TryGetImageDimensionsFromBytes(bytes, out var remoteW, out var remoteH)) {
                                             naturalW = remoteW;
                                             naturalH = remoteH;
                                         }
@@ -362,7 +572,9 @@ namespace OfficeIMO.Word.Markdown {
                                             requestedHeight: img.Height,
                                             naturalWidth: naturalW,
                                             naturalHeight: naturalH,
+                                            pageContentWidthPixels: pageContentWidthPixels,
                                             contextWidthLimitPixels: contextWidthLimit,
+                                            rasterizedFromSvg: rasterizedFromSvg,
                                             out var finalW,
                                             out var finalH,
                                             out _);
