@@ -65,6 +65,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MarkdownToWord_FitsImageToPageContentWidthWhenEnabled() {
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            string md = $"![Local]({imagePath}){{width=1200 height=300}}";
+            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions {
+                AllowLocalImages = true,
+                FitImagesToPageContentWidth = true,
+                DefaultPageSize = WordPageSize.Letter
+            });
+
+            Assert.Single(doc.Images);
+            Assert.InRange(doc.Images[0].Width ?? 0, 623, 625);
+            Assert.InRange(doc.Images[0].Height ?? 0, 155, 157);
+        }
+
+        [Fact]
+        public void MarkdownToWord_AppliesConfiguredImageMaxWidthPixels() {
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            string md = $"![Local]({imagePath}){{width=1200 height=300}}";
+            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions {
+                AllowLocalImages = true,
+                MaxImageWidthPixels = 480
+            });
+
+            Assert.Single(doc.Images);
+            Assert.InRange(doc.Images[0].Width ?? 0, 479.5, 480.5);
+            Assert.InRange(doc.Images[0].Height ?? 0, 119.5, 120.5);
+        }
+
+        [Fact]
         public void WordToMarkdown_WritesImageDescription() {
             using var doc = WordDocument.Create();
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));

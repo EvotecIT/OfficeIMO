@@ -60,5 +60,17 @@ namespace OfficeIMO.Word.Markdown {
         public Func<System.Uri, bool>? ImageUrlValidator { get; set; }
         /// <summary>When remote images are not allowed or validation fails, insert a hyperlink instead of image. Default: true.</summary>
         public bool FallbackRemoteImagesToHyperlinks { get; set; } = true;
+
+        /// <summary>
+        /// Optional hard cap (pixels) applied to rendered markdown image width.
+        /// When set, images wider than this value are proportionally scaled down.
+        /// </summary>
+        public double? MaxImageWidthPixels { get; set; }
+
+        /// <summary>
+        /// When enabled, markdown images are constrained to the current section content width
+        /// (page width minus left/right margins).
+        /// </summary>
+        public bool FitImagesToPageContentWidth { get; set; }
     }
 }

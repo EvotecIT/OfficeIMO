@@ -12,6 +12,11 @@ namespace OfficeIMO.Word.Markdown {
     /// code, quotes, callouts, footnotes, etc.).
     /// </summary>
     internal partial class MarkdownToWordConverter {
+        private const double DefaultPageWidthTwips = 12240d;
+        private const double DefaultHorizontalMarginTwips = 1440d;
+        private const double TwipsPerInch = 1440d;
+        private const double PixelsPerInch = 96d;
+
         private static bool LocalPathAllowed(string path, MarkdownToWordOptions options) {
             if (!options.AllowLocalImages) return false;
             if (options.AllowedImageDirectories.Count == 0) return true;
@@ -24,6 +29,66 @@ namespace OfficeIMO.Word.Markdown {
             } catch { return false; }
             return false;
         }
+
+        private static double? ResolveImageWidthLimitPixels(WordDocument document, MarkdownToWordOptions options) {
+            var configuredMax = options.MaxImageWidthPixels;
+            if (configuredMax.HasValue && configuredMax.Value <= 0) {
+                configuredMax = null;
+            }
+
+            if (!options.FitImagesToPageContentWidth) {
+                return configuredMax;
+            }
+
+            var contentWidth = EstimateContentWidthPixels(document);
+            if (contentWidth <= 0) {
+                return configuredMax;
+            }
+
+            return configuredMax.HasValue
+                ? Math.Min(configuredMax.Value, contentWidth)
+                : contentWidth;
+        }
+
+        private static double EstimateContentWidthPixels(WordDocument document) {
+            var section = document.Sections.FirstOrDefault();
+            var pageWidthTwips = (double?)section?.PageSettings?.Width?.Value ?? DefaultPageWidthTwips;
+            var leftMarginTwips = (double?)section?.Margins?.Left?.Value ?? DefaultHorizontalMarginTwips;
+            var rightMarginTwips = (double?)section?.Margins?.Right?.Value ?? DefaultHorizontalMarginTwips;
+            var contentTwips = pageWidthTwips - leftMarginTwips - rightMarginTwips;
+
+            if (contentTwips < 1) {
+                contentTwips = DefaultPageWidthTwips - (DefaultHorizontalMarginTwips * 2);
+            }
+
+            if (contentTwips < 1) {
+                return 1;
+            }
+
+            return contentTwips * PixelsPerInch / TwipsPerInch;
+        }
+
+        private static void ConstrainImageDimensions(ref double? width, ref double? height, double? maxWidthPixels) {
+            if (!maxWidthPixels.HasValue || maxWidthPixels.Value <= 0) {
+                return;
+            }
+
+            if (!width.HasValue || width.Value <= 0) {
+                return;
+            }
+
+            if (width.Value <= maxWidthPixels.Value) {
+                return;
+            }
+
+            var scale = maxWidthPixels.Value / width.Value;
+            width = maxWidthPixels.Value;
+
+            if (height.HasValue && height.Value > 0) {
+                height = Math.Max(1, height.Value * scale);
+            }
+        }
+
         public WordDocument Convert(string markdown, MarkdownToWordOptions options) {
             return ConvertAsync(markdown, options).GetAwaiter().GetResult();
         }
@@ -37,6 +102,7 @@ namespace OfficeIMO.Word.Markdown {
 
             var document = WordDocument.Create();
             options.ApplyDefaults(document);
+            var imageWidthLimitPixels = ResolveImageWidthLimitPixels(document, options);
 
             // Parse using OfficeIMO.Markdown reader.
             var readerOptions = new Omd.MarkdownReaderOptions { BaseUri = options.BaseUri };
@@ -52,7 +118,7 @@ namespace OfficeIMO.Word.Markdown {
 
             foreach (var block in blocks ?? Array.Empty<Omd.IMarkdownBlock>()) {
                 cancellationToken.ThrowIfCancellationRequested();
-                ProcessBlockOmd(block, document, options, quoteDepth: 0);
+                ProcessBlockOmd(block, document, options, quoteDepth: 0, imageWidthLimitPixels: imageWidthLimitPixels);
             }
 
             return Task.FromResult(document);
@@ -63,7 +129,14 @@ namespace OfficeIMO.Word.Markdown {
         // New OfficeIMO.Markdown path
         private const int IndentTwipsPerLevel = 720; // 0.5 inch per level
 
-        private static void ProcessBlockOmd(Omd.IMarkdownBlock block, WordDocument document, MarkdownToWordOptions options, WordList? currentList = null, int listLevel = 0, int quoteDepth = 0) {
+        private static void ProcessBlockOmd(
+            Omd.IMarkdownBlock block,
+            WordDocument document,
+            MarkdownToWordOptions options,
+            WordList? currentList = null,
+            int listLevel = 0,
+            int quoteDepth = 0,
+            double? imageWidthLimitPixels = null) {
             switch (block) {
                 case Omd.HeadingBlock h:
                     var headingParagraph = document.AddParagraph(h.Text ?? string.Empty);
@@ -91,6 +164,8 @@ namespace OfficeIMO.Word.Markdown {
                                 if (w == null || h == null) {
                                     try { using var image = SixLabors.ImageSharp.Image.Load(pathOrUrl, out _); w ??= image.Width; h ??= image.Height; } catch { /* ignore size probe */ }
                                 }
+
+                                ConstrainImageDimensions(ref w, ref h, imageWidthLimitPixels);
                                 par.AddImage(pathOrUrl, w, h, description: img.Alt ?? string.Empty);
                             } else {
                                 // Not allowed: insert as text/link
@@ -102,6 +177,7 @@ namespace OfficeIMO.Word.Markdown {
                                 (options.ImageUrlValidator == null || options.ImageUrlValidator(uri))) {
                                 if (options.AllowRemoteImages) {
                                     // This call is synchronous inside OfficeIMO.Word; users can choose to disable remote downloads.
+                                    ConstrainImageDimensions(ref w, ref h, imageWidthLimitPixels);
                                     document.AddImageFromUrl(uri.ToString(), w, h).Description = img.Alt ?? string.Empty;
                                 } else if (options.FallbackRemoteImagesToHyperlinks) {
                                     par.AddHyperLink(img.Alt ?? uri.ToString(), uri);
@@ -168,7 +244,7 @@ namespace OfficeIMO.Word.Markdown {
                             // Nested blocks inside list items (mixed ordered/unordered lists, code blocks, etc.).
                             if (item.Children != null && item.Children.Count > 0) {
                                 foreach (var child in item.Children) {
-                                    ProcessBlockOmd(child, document, options, null, effectiveLevel + 1, quoteDepth);
+                                    ProcessBlockOmd(child, document, options, null, effectiveLevel + 1, quoteDepth, imageWidthLimitPixels);
                                 }
                             }
                         }
@@ -192,7 +268,7 @@ namespace OfficeIMO.Word.Markdown {
 
                             if (item.Children != null && item.Children.Count > 0) {
                                 foreach (var child in item.Children) {
-                                    ProcessBlockOmd(child, document, options, null, effectiveLevel + 1, quoteDepth);
+                                    ProcessBlockOmd(child, document, options, null, effectiveLevel + 1, quoteDepth, imageWidthLimitPixels);
                                 }
                             }
                         }
@@ -242,7 +318,7 @@ namespace OfficeIMO.Word.Markdown {
                     }
                     break;
                 case Omd.QuoteBlock qb:
-                    foreach (var child in qb.Children) ProcessBlockOmd(child, document, options, null, 0, quoteDepth + 1);
+                    foreach (var child in qb.Children) ProcessBlockOmd(child, document, options, null, 0, quoteDepth + 1, imageWidthLimitPixels);
                     break;
                 case Omd.CalloutBlock callout:
                     // Render as a simple bold title followed by body paragraphs
