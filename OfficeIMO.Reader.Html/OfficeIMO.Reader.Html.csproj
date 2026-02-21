@@ -31,6 +31,10 @@
     <ProjectReference Include="..\OfficeIMO.Word.Markdown\OfficeIMO.Word.Markdown.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
   <ItemGroup>
     <None Include="README.md">
       <Pack>True</Pack>
