@@ -1,0 +1,23 @@
+count=2
+[chunk:0]
+id=json-0000
+kind=Text
+path=ReaderGolden/Inputs/sample.json
+block=0
+sourceBlock=0
+heading=
+text=Path | Type | Value\n$.service.name | string | IntelligenceX\n$.service.enabled | boolean | true\n$.service.ports[0] | number | 443\n$.service.ports[1] | number | 8443
+markdown=| Path | Type | Value |\n| --- | --- | --- |\n| $.service.name | string | IntelligenceX |\n| $.service.enabled | boolean | true |\n| $.service.ports[0] | number | 443 |\n| $.service.ports[1] | number | 8443 |
+warnings=
+tables=t0:Path,Type,Value#4#4#truncated=false
+[chunk:1]
+id=json-0001
+kind=Text
+path=ReaderGolden/Inputs/sample.json
+block=1
+sourceBlock=4
+heading=
+text=Path | Type | Value\n$.service.owner.team | string | Platform\n$.service.owner.region | string | us-east
+markdown=| Path | Type | Value |\n| --- | --- | --- |\n| $.service.owner.team | string | Platform |\n| $.service.owner.region | string | us-east |
+warnings=
+tables=t0:Path,Type,Value#2#2#truncated=false

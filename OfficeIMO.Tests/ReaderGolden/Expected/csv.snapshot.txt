@@ -1,0 +1,12 @@
+count=1
+[chunk:0]
+id=csv-0000
+kind=Text
+path=ReaderGolden/Inputs/sample.csv
+block=0
+sourceBlock=0
+heading=
+text=Name | Role | Enabled\nAlice | Admin | true\nBob | Ops | false
+markdown=| Name | Role | Enabled |\n| --- | --- | --- |\n| Alice | Admin | true |\n| Bob | Ops | false |
+warnings=
+tables=t0:Name,Role,Enabled#2#2#truncated=false

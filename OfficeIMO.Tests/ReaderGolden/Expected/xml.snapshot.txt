@@ -1,0 +1,34 @@
+count=3
+[chunk:0]
+id=xml-0000
+kind=Text
+path=ReaderGolden/Inputs/sample.xml
+block=0
+sourceBlock=0
+heading=
+text=Path | Type | Value\ncatalog[1] | element | \ncatalog[1]/book[1] | element | \ncatalog[1]/book[1]/@id | attribute | b1\ncatalog[1]/book[1]/title[1] | element | One
+markdown=| Path | Type | Value |\n| --- | --- | --- |\n| catalog[1] | element |  |\n| catalog[1]/book[1] | element |  |\n| catalog[1]/book[1]/@id | attribute | b1 |\n| catalog[1]/book[1]/title[1] | element | One |
+warnings=
+tables=t0:Path,Type,Value#4#4#truncated=false
+[chunk:1]
+id=xml-0001
+kind=Text
+path=ReaderGolden/Inputs/sample.xml
+block=1
+sourceBlock=4
+heading=
+text=Path | Type | Value\ncatalog[1]/book[1]/enabled[1] | element | true\ncatalog[1]/book[2] | element | \ncatalog[1]/book[2]/@id | attribute | b2\ncatalog[1]/book[2]/title[1] | element | Two
+markdown=| Path | Type | Value |\n| --- | --- | --- |\n| catalog[1]/book[1]/enabled[1] | element | true |\n| catalog[1]/book[2] | element |  |\n| catalog[1]/book[2]/@id | attribute | b2 |\n| catalog[1]/book[2]/title[1] | element | Two
+warnings=
+tables=t0:Path,Type,Value#4#4#truncated=false
+[chunk:2]
+id=xml-0002
+kind=Text
+path=ReaderGolden/Inputs/sample.xml
+block=2
+sourceBlock=8
+heading=
+text=Path | Type | Value\ncatalog[1]/book[2]/enabled[1] | element | false
+markdown=| Path | Type | Value |\n| --- | --- | --- |\n| catalog[1]/book[2]/enabled[1] | element | false |
+warnings=
+tables=t0:Path,Type,Value#1#1#truncated=false
