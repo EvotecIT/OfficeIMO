@@ -85,6 +85,28 @@ public sealed class ReaderTextModularTests {
     }
 
     [Fact]
+    public void DocumentReaderText_ReadStructuredTextStream_ParsesCsvIntoStructuredChunks() {
+        var csv =
+            "Name,Role\n" +
+            "Alice,Admin\n" +
+            "Bob,Ops\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv), writable: false);
+
+        var chunks = DocumentReaderTextExtensions.ReadStructuredText(
+            stream,
+            sourceName: "users.csv",
+            structuredOptions: new StructuredTextReadOptions {
+                CsvChunkRows = 1,
+                IncludeCsvMarkdown = true
+            }).ToList();
+
+        Assert.NotEmpty(chunks);
+        Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Text, c.Kind));
+        Assert.Contains(chunks, c => (c.Location.Path ?? string.Empty).Contains("users.csv", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(chunks, c => c.Tables != null && c.Tables.Count > 0 && c.Tables[0].Columns.Contains("Name", StringComparer.Ordinal));
+    }
+
+    [Fact]
     public void DocumentReaderText_ReadStructuredText_EmitsWarningForMalformedXml() {
         var path = Path.Combine(Path.GetTempPath(), "officeimo-bad-xml-" + Guid.NewGuid().ToString("N") + ".xml");
         try {

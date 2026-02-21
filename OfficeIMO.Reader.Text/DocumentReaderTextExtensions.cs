@@ -102,12 +102,11 @@ public static class DocumentReaderTextExtensions {
     private static IEnumerable<ReaderChunk> ReadCsv(Stream stream, string? sourceName, string extension, StructuredTextReadOptions options, CancellationToken cancellationToken) {
         var sourcePath = BuildLogicalSourcePath(sourceName, extension == ".tsv" ? "document.tsv" : "document.csv");
         var delimiter = extension == ".tsv" ? '\t' : ',';
-        var text = ReadAllText(stream, cancellationToken);
-        var csv = CsvDocument.Parse(text, new CsvLoadOptions {
+        var csv = CsvDocument.Load(stream, new CsvLoadOptions {
             Delimiter = delimiter,
             HasHeaderRow = options.CsvHeadersInFirstRow,
             Mode = CsvLoadMode.Stream
-        });
+        }, leaveOpen: true);
 
         foreach (var chunk in ReadCsvDocument(csv, sourcePath, options, cancellationToken)) {
             yield return chunk;
@@ -236,21 +235,6 @@ public static class DocumentReaderTextExtensions {
     private static string BuildLogicalSourcePath(string? sourceName, string defaultName) {
         if (!string.IsNullOrWhiteSpace(sourceName)) return sourceName!;
         return defaultName;
-    }
-
-    private static string ReadAllText(Stream stream, CancellationToken cancellationToken) {
-        var sb = new StringBuilder();
-        var buffer = new char[16 * 1024];
-        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 16 * 1024, leaveOpen: true);
-
-        while (true) {
-            cancellationToken.ThrowIfCancellationRequested();
-            var read = reader.Read(buffer, 0, buffer.Length);
-            if (read <= 0) break;
-            sb.Append(buffer, 0, read);
-        }
-
-        return sb.ToString();
     }
 
     private static void TraverseJson(

@@ -1,7 +1,7 @@
 # OfficeIMO.Reader.Text (Preview)
 
 `OfficeIMO.Reader.Text` is a modular path for improving non-Office text ingestion:
-- CSV semantic chunking (table-aware)
+- CSV semantic chunking (table-aware, backed by `OfficeIMO.CSV` for path/stream inputs)
 - JSON AST chunking (path/type/value tables)
 - XML AST chunking (element/attribute path tables)
 - path and stream dispatch via `DocumentReader` handler registration
