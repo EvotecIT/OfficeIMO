@@ -33,7 +33,10 @@ public sealed class ReaderPackagingGuardrailTests {
     private static string GetRepositoryRoot() {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory != null) {
-            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln"))) {
+            if (
+                File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln")) ||
+                File.Exists(Path.Combine(directory.FullName, "OfficeImo.sln"))
+            ) {
                 return directory.FullName;
             }
 
