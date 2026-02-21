@@ -18,4 +18,29 @@ public sealed class StructuredTextReadOptions {
     /// CSV: include markdown table previews in emitted chunks.
     /// </summary>
     public bool IncludeCsvMarkdown { get; set; } = true;
+
+    /// <summary>
+    /// JSON: rows per emitted chunk.
+    /// </summary>
+    public int JsonChunkRows { get; set; } = 200;
+
+    /// <summary>
+    /// JSON: maximum traversal depth.
+    /// </summary>
+    public int JsonMaxDepth { get; set; } = 32;
+
+    /// <summary>
+    /// JSON: include markdown table previews in emitted chunks.
+    /// </summary>
+    public bool IncludeJsonMarkdown { get; set; } = true;
+
+    /// <summary>
+    /// XML: rows per emitted chunk.
+    /// </summary>
+    public int XmlChunkRows { get; set; } = 200;
+
+    /// <summary>
+    /// XML: include markdown table previews in emitted chunks.
+    /// </summary>
+    public bool IncludeXmlMarkdown { get; set; } = true;
 }

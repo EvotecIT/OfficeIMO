@@ -35,7 +35,7 @@ All scaffolded packages are currently excluded from publishing.
 
 3. Structured text path (medium)
 - CSV semantic chunks with tables.
-- JSON/XML structural chunkers.
+- JSON/XML structural chunkers. (implemented in scaffold branch)
 - Stable markdown previews and table metadata.
 
 4. HTML path (medium)

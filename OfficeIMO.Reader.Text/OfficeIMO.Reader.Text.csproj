@@ -29,6 +29,10 @@
     <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
+    <PackageReference Include="System.Text.Json" Version="[8.0.5,9.0.0)" />
+  </ItemGroup>
+
   <ItemGroup>
     <None Include="README.md">
       <Pack>True</Pack>
@@ -43,6 +47,9 @@
     <Using Include="System.IO" />
     <Using Include="System.Linq" />
     <Using Include="System.Text" />
+    <Using Include="System.Text.Json" />
     <Using Include="System.Threading" />
+    <Using Include="System.Xml" />
+    <Using Include="System.Xml.Linq" />
   </ItemGroup>
 </Project>

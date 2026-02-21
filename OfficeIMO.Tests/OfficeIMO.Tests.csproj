@@ -43,6 +43,7 @@
         <ProjectReference Include="..\\OfficeIMO.Epub\\OfficeIMO.Epub.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Reader.Zip\\OfficeIMO.Reader.Zip.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Reader.Epub\\OfficeIMO.Reader.Epub.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Reader.Text\\OfficeIMO.Reader.Text.csproj" />
     </ItemGroup>
     <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
         <Reference Include="System.IO.Compression" />
