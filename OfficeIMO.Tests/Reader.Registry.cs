@@ -190,6 +190,12 @@ public sealed class ReaderRegistryTests {
             Assert.True(jsonCapability.SupportsStream);
             Assert.True(xmlCapability.SupportsPath);
             Assert.True(xmlCapability.SupportsStream);
+            Assert.Equal(ReaderInputKind.Csv, csvCapability.Kind);
+            Assert.Equal(ReaderInputKind.Epub, epubCapability.Kind);
+            Assert.Equal(ReaderInputKind.Zip, zipCapability.Kind);
+            Assert.Equal(ReaderInputKind.Html, htmlCapability.Kind);
+            Assert.Equal(ReaderInputKind.Json, jsonCapability.Kind);
+            Assert.Equal(ReaderInputKind.Xml, xmlCapability.Kind);
             Assert.Equal(ReaderCapabilitySchema.Id, csvCapability.SchemaId);
             Assert.Equal(ReaderCapabilitySchema.Version, csvCapability.SchemaVersion);
             Assert.Equal(ReaderWarningBehavior.Mixed, csvCapability.WarningBehavior);
@@ -449,12 +455,12 @@ public sealed class ReaderRegistryTests {
             Assert.Equal(ReaderCapabilitySchema.Id, result.Manifest.SchemaId);
             Assert.Equal(ReaderCapabilitySchema.Version, result.Manifest.SchemaVersion);
             Assert.Contains(result.Manifest.Handlers, c => c.Id == "officeimo.reader.word");
-            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderCsvRegistrationExtensions.HandlerId);
-            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderEpubRegistrationExtensions.HandlerId);
-            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderZipRegistrationExtensions.HandlerId);
-            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderHtmlRegistrationExtensions.HandlerId);
-            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderJsonRegistrationExtensions.HandlerId);
-            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderXmlRegistrationExtensions.HandlerId);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderCsvRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Csv);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderEpubRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Epub);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderZipRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Zip);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderHtmlRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Html);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderJsonRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Json);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderXmlRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Xml);
 
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(result.ManifestJson));
             var jsonChunks = DocumentReaderJsonExtensions.ReadJson(
