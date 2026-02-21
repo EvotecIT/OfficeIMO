@@ -33,18 +33,6 @@ namespace OfficeIMO.Word.Markdown {
         /// When <c>false</c>, explicit markdown hints larger than natural dimensions are clamped down.
         /// </summary>
         public bool AllowUpscale { get; set; }
-
-        /// <summary>
-        /// When enabled, SVG sources are rasterized to PNG before insertion to improve downstream compatibility
-        /// (for example external viewers and conversion pipelines that do not fully support inline SVG).
-        /// </summary>
-        public bool PreferRasterizeSvgForWord { get; set; }
-
-        /// <summary>
-        /// Target rasterization DPI used when <see cref="PreferRasterizeSvgForWord"/> is enabled.
-        /// Default is 144 DPI for better readability than 96 DPI while keeping file sizes moderate.
-        /// </summary>
-        public int SvgRasterizationDpi { get; set; } = 144;
     }
 
     /// <summary>
@@ -137,10 +125,5 @@ namespace OfficeIMO.Word.Markdown {
         /// Indicates that at least one layout constraint changed the dimensions.
         /// </summary>
         public bool ScaledByLayout { get; set; }
-
-        /// <summary>
-        /// Indicates that the source image was SVG and was rasterized before insertion.
-        /// </summary>
-        public bool RasterizedFromSvg { get; set; }
     }
 }

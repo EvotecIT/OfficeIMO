@@ -44,9 +44,7 @@ doc.SaveAsHtmlViaMarkdown("report.html", new HtmlOptions { Style = HtmlStyle.Git
 var options = new MarkdownToWordOptions {
     AllowLocalImages = true,
     FitImagesToPageContentWidth = true,           // page width minus margins
-    MaxImageWidthPercentOfContent = 85,           // optional percent-based cap
-    PreferRasterizeSvgForWord = true,             // rasterize SVG sources to PNG
-    SvgRasterizationDpi = 144                      // optional raster DPI
+    MaxImageWidthPercentOfContent = 85            // optional percent-based cap
 };
 
 using var doc = markdown.LoadFromMarkdown(options);
@@ -54,7 +52,7 @@ using var doc = markdown.LoadFromMarkdown(options);
 
 - Typed contract is available via `MarkdownToWordOptions.ImageLayout`.
 - `PreferNarrativeSingleLineDefinitions = true` disables definition-list parsing for `Label: value` narrative lines.
-- `OnImageLayoutDiagnostic` can be used to inspect final width/height and whether SVG rasterization was applied.
+- `OnImageLayoutDiagnostic` can be used to inspect final width/height and applied layout constraints.
 
 ## Supported features (core)
 

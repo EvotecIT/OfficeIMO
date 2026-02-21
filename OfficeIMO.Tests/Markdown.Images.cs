@@ -150,34 +150,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void MarkdownToWord_RasterizesLocalSvgWhenRequested() {
-            string svgPath = Path.Combine(AppContext.BaseDirectory, "Images", "Sample.svg");
-            string md = $"![Local SVG]({svgPath})";
-            var diagnostics = new List<MarkdownImageLayoutDiagnostic>();
-
-            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions {
-                AllowLocalImages = true,
-                PreferRasterizeSvgForWord = true,
-                OnImageLayoutDiagnostic = diagnostics.Add
-            });
-
-            Assert.Single(doc.Images);
-
-            var diagnostic = Assert.Single(diagnostics);
-
-            if (diagnostic.RasterizedFromSvg) {
-                Assert.InRange(diagnostic.NaturalWidthPixels ?? 0, 10, 200);
-                Assert.InRange(diagnostic.NaturalHeightPixels ?? 0, 10, 200);
-                Assert.EndsWith(".png", doc.Images[0].FileName, StringComparison.OrdinalIgnoreCase);
-            } else {
-                // Some runtimes may not have the native raster backend available; fallback keeps SVG insertion.
-                Assert.EndsWith(".svg", doc.Images[0].FileName, StringComparison.OrdinalIgnoreCase);
-                Assert.True((doc.Images[0].Width ?? 0) > 0);
-                Assert.True((doc.Images[0].Height ?? 0) > 0);
-            }
-        }
-
-        [Fact]
         public void MarkdownToWord_FitImagesToPageContentWidth_ForcesPageMode() {
             var options = new MarkdownToWordOptions();
             options.FitImagesToContextWidth = true;

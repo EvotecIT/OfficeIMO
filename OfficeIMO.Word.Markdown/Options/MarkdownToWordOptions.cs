@@ -104,22 +104,6 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         /// <summary>
-        /// When enabled, SVG sources are rasterized to PNG before insertion.
-        /// </summary>
-        public bool PreferRasterizeSvgForWord {
-            get => ImageLayout.PreferRasterizeSvgForWord;
-            set => ImageLayout.PreferRasterizeSvgForWord = value;
-        }
-
-        /// <summary>
-        /// Rasterization DPI applied to SVG sources when rasterization is enabled.
-        /// </summary>
-        public int SvgRasterizationDpi {
-            get => ImageLayout.SvgRasterizationDpi;
-            set => ImageLayout.SvgRasterizationDpi = value;
-        }
-
-        /// <summary>
         /// When enabled, markdown images are constrained to section content width
         /// (page width minus left/right margins).
         /// </summary>
