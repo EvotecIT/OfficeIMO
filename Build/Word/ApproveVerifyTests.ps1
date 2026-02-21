@@ -3,7 +3,7 @@ param (
 )
 
 $ErrorActionPreference = 'Stop'
-$SolutionPath = [io.path]::Combine($SolutionRoot, 'OfficeImo.sln')
+$SolutionPath = [io.path]::Combine($SolutionRoot, 'OfficeIMO.sln')
 Write-Host "Searching for solution at $SolutionPath" -ForegroundColor Cyan
 if ($SolutionRoot -and (Test-Path -Path $SolutionPath)) {
     Write-Host "Solution found at $($SolutionPath). Processing files..." -ForegroundColor Green
