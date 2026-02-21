@@ -169,6 +169,26 @@ public sealed class ReaderRegistryTests {
     }
 
     [Fact]
+    public void DocumentReader_ModularRegistrationHelpers_DispatchesZipNonSeekableStream_EnforcesMaxInputBytes() {
+        try {
+            DocumentReaderZipRegistrationExtensions.RegisterZipHandler(replaceExisting: true);
+
+            using var zipBuffer = new MemoryStream();
+            using (var archive = new ZipArchive(zipBuffer, ZipArchiveMode.Create, leaveOpen: true)) {
+                WriteTextEntry(archive, "docs/readme.md", "# Stream ZIP" + Environment.NewLine + Environment.NewLine + "Body from non-seekable stream.");
+            }
+
+            var bytes = zipBuffer.ToArray();
+            using var stream = new NonSeekableReadStream(bytes);
+            var ex = Assert.Throws<IOException>(() => DocumentReader.Read(stream, "bundle.zip", new ReaderOptions { MaxInputBytes = 16 }).ToList());
+
+            Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
+        } finally {
+            DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
+        }
+    }
+
+    [Fact]
     public void DocumentReader_ModularRegistrationHelpers_DispatchesEpubStream() {
         try {
             DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler(replaceExisting: true);
@@ -199,6 +219,21 @@ public sealed class ReaderRegistryTests {
                 c.Kind == ReaderInputKind.Unknown &&
                 (c.Location.Path?.Contains("book.epub::OEBPS/chapter.xhtml", StringComparison.OrdinalIgnoreCase) ?? false) &&
                 (c.Text?.Contains("EPUB stream body text.", StringComparison.Ordinal) ?? false));
+        } finally {
+            DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ModularRegistrationHelpers_DispatchesEpubNonSeekableStream_EnforcesMaxInputBytes() {
+        try {
+            DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler(replaceExisting: true);
+
+            var bytes = BuildSimpleEpubBytes();
+            using var stream = new NonSeekableReadStream(bytes);
+            var ex = Assert.Throws<IOException>(() => DocumentReader.Read(stream, "book.epub", new ReaderOptions { MaxInputBytes = 16 }).ToList());
+
+            Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
         } finally {
             DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
         }

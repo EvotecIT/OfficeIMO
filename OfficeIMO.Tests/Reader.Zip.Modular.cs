@@ -110,8 +110,22 @@ public sealed class ReaderZipModularTests {
         Assert.NotEmpty(chunks);
         Assert.Contains(chunks, c =>
             c.Kind == ReaderInputKind.Markdown &&
-            (c.Location.Path?.Contains("nonseekable.zip::docs/readme.md", StringComparison.OrdinalIgnoreCase) ?? false) &&
-            (c.Text?.Contains("From non-seekable stream.", StringComparison.Ordinal) ?? false));
+                (c.Location.Path?.Contains("nonseekable.zip::docs/readme.md", StringComparison.OrdinalIgnoreCase) ?? false) &&
+                (c.Text?.Contains("From non-seekable stream.", StringComparison.Ordinal) ?? false));
+    }
+
+    [Fact]
+    public void DocumentReaderZip_ReadsFromNonSeekableStream_EnforcesMaxInputBytes() {
+        var zipBytes = BuildSimpleZipBytes();
+        using var stream = new NonSeekableReadStream(zipBytes);
+
+        var ex = Assert.Throws<IOException>(() => DocumentReaderZipExtensions.ReadZip(
+            stream,
+            sourceName: "nonseekable.zip",
+            readerOptions: new ReaderOptions { MaxInputBytes = 16, MaxChars = 8_000 },
+            zipOptions: new ZipTraversalOptions { DeterministicOrder = true }).ToList());
+
+        Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
     }
 
     private static byte[] BuildNestedZipBytes() {

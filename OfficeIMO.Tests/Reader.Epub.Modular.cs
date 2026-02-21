@@ -95,6 +95,26 @@ public sealed class ReaderEpubModularTests {
         }
     }
 
+    [Fact]
+    public void DocumentReaderEpub_ReadsFromNonSeekableStream_EnforcesMaxInputBytes() {
+        var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
+        try {
+            BuildEpubWithSpine(epubPath);
+            var bytes = File.ReadAllBytes(epubPath);
+
+            using var stream = new NonSeekableReadStream(bytes);
+            var ex = Assert.Throws<IOException>(() => DocumentReaderEpubExtensions.ReadEpub(
+                stream,
+                sourceName: "nonseekable.epub",
+                readerOptions: new ReaderOptions { MaxInputBytes = 16, MaxChars = 4_000 },
+                epubOptions: new EpubReadOptions { PreferSpineOrder = true }).ToList());
+
+            Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(epubPath)) File.Delete(epubPath);
+        }
+    }
+
     private static void BuildEpubWithSpine(string epubPath) {
         using var fs = new FileStream(epubPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
         using var archive = new ZipArchive(fs, ZipArchiveMode.Create, leaveOpen: false);
