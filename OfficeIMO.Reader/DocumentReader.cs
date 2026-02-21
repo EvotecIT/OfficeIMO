@@ -359,6 +359,21 @@ public static class DocumentReader {
     }
 
     /// <summary>
+    /// Host bootstrap helper that applies a preset profile, registers modular handlers from the provided
+    /// assemblies, and returns both typed and JSON capability manifests in one payload.
+    /// </summary>
+    /// <param name="assemblies">Assemblies to scan for registrar methods.</param>
+    /// <param name="profile">Bootstrap profile preset.</param>
+    /// <param name="indentedManifestJson">When true, indents the returned manifest JSON payload.</param>
+    public static ReaderHostBootstrapResult BootstrapHostFromAssemblies(
+        IEnumerable<Assembly> assemblies,
+        ReaderHostBootstrapProfile profile,
+        bool indentedManifestJson = false) {
+        var options = CreateHostBootstrapOptions(profile, indentedManifestJson);
+        return BootstrapHostFromAssemblies(assemblies, options);
+    }
+
+    /// <summary>
     /// Host bootstrap helper that discovers and registers modular handlers from currently loaded assemblies
     /// whose simple name starts with <paramref name="assemblyNamePrefix"/>, then returns both typed and
     /// JSON capability manifests in one payload.
@@ -391,6 +406,23 @@ public static class DocumentReader {
             Manifest = manifest,
             ManifestJson = ReaderCapabilityManifestJson.Serialize(manifest, normalizedOptions.IndentedManifestJson)
         };
+    }
+
+    /// <summary>
+    /// Host bootstrap helper that applies a preset profile, discovers and registers modular handlers from loaded
+    /// assemblies, and returns both typed and JSON capability manifests in one payload.
+    /// </summary>
+    /// <param name="profile">Bootstrap profile preset.</param>
+    /// <param name="assemblyNamePrefix">
+    /// Simple assembly-name prefix filter. Default: <c>OfficeIMO.Reader.</c>.
+    /// </param>
+    /// <param name="indentedManifestJson">When true, indents the returned manifest JSON payload.</param>
+    public static ReaderHostBootstrapResult BootstrapHostFromLoadedAssemblies(
+        ReaderHostBootstrapProfile profile,
+        string assemblyNamePrefix = "OfficeIMO.Reader.",
+        bool indentedManifestJson = false) {
+        var options = CreateHostBootstrapOptions(profile, indentedManifestJson);
+        return BootstrapHostFromLoadedAssemblies(assemblyNamePrefix, options);
     }
 
     /// <summary>
@@ -1910,6 +1942,30 @@ public static class DocumentReader {
             IncludeBuiltInCapabilities = options.IncludeBuiltInCapabilities,
             IncludeCustomCapabilities = options.IncludeCustomCapabilities,
             IndentedManifestJson = options.IndentedManifestJson
+        };
+    }
+
+    private static ReaderHostBootstrapOptions CreateHostBootstrapOptions(ReaderHostBootstrapProfile profile, bool indentedManifestJson) {
+        return profile switch {
+            ReaderHostBootstrapProfile.ServiceDefault => new ReaderHostBootstrapOptions {
+                ReplaceExistingHandlers = true,
+                IncludeBuiltInCapabilities = true,
+                IncludeCustomCapabilities = true,
+                IndentedManifestJson = indentedManifestJson
+            },
+            ReaderHostBootstrapProfile.ServiceCustomOnly => new ReaderHostBootstrapOptions {
+                ReplaceExistingHandlers = true,
+                IncludeBuiltInCapabilities = false,
+                IncludeCustomCapabilities = true,
+                IndentedManifestJson = indentedManifestJson
+            },
+            ReaderHostBootstrapProfile.ServiceBuiltInOnly => new ReaderHostBootstrapOptions {
+                ReplaceExistingHandlers = true,
+                IncludeBuiltInCapabilities = true,
+                IncludeCustomCapabilities = false,
+                IndentedManifestJson = indentedManifestJson
+            },
+            _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unknown bootstrap profile.")
         };
     }
 

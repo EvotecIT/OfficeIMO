@@ -271,6 +271,81 @@ public sealed class ReaderRegistryTests {
     }
 
     [Fact]
+    public void DocumentReader_ReadFolderDocuments_DefaultExtensions_IncludeRegisteredCustomHandlers() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-folder-docs-" + Guid.NewGuid().ToString("N"));
+        var htmlPath = Path.Combine(folder, "index.html");
+
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(htmlPath, "<html><body><h1>Folder Docs HTML</h1><p>Body</p></body></html>");
+
+        try {
+            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+
+            var docs = DocumentReader.ReadFolderDocuments(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    MaxFiles = 10
+                },
+                options: new ReaderOptions {
+                    MaxChars = 8_000,
+                    ComputeHashes = true
+                }).ToList();
+
+            Assert.NotEmpty(docs);
+            var doc = Assert.Single(docs, d => string.Equals(d.Path, htmlPath, StringComparison.OrdinalIgnoreCase));
+            Assert.True(doc.Parsed);
+            Assert.True(doc.ChunksProduced > 0);
+            Assert.NotEmpty(doc.Chunks);
+            Assert.Contains(doc.Chunks, c => c.Kind == ReaderInputKind.Html);
+        } finally {
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            if (Directory.Exists(folder)) {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolderDetailed_DefaultExtensions_IncludeRegisteredCustomHandlers() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-folder-detailed-" + Guid.NewGuid().ToString("N"));
+        var htmlPath = Path.Combine(folder, "index.html");
+
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(htmlPath, "<html><body><h1>Folder Detailed HTML</h1><p>Body</p></body></html>");
+
+        try {
+            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+
+            var result = DocumentReader.ReadFolderDetailed(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    MaxFiles = 10
+                },
+                options: new ReaderOptions {
+                    MaxChars = 8_000,
+                    ComputeHashes = true
+                },
+                includeChunks: true);
+
+            Assert.NotNull(result);
+            Assert.NotEmpty(result.Files);
+            Assert.NotEmpty(result.Chunks);
+            Assert.Contains(result.Chunks, c => c.Kind == ReaderInputKind.Html);
+
+            var file = Assert.Single(result.Files, f => string.Equals(f.Path, htmlPath, StringComparison.OrdinalIgnoreCase));
+            Assert.True(file.Parsed);
+            Assert.True(file.ChunksProduced > 0);
+        } finally {
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            if (Directory.Exists(folder)) {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void DocumentReader_DiscoverHandlerRegistrars_FindsModularRegistrars() {
         var registrars = DocumentReader.DiscoverHandlerRegistrars(
             typeof(DocumentReaderCsvRegistrationExtensions).Assembly,
@@ -472,6 +547,79 @@ public sealed class ReaderRegistryTests {
                 }).ToList();
             Assert.NotEmpty(jsonChunks);
             Assert.Contains(jsonChunks, c => (c.Text?.Contains("officeimo.reader.csv", StringComparison.Ordinal) ?? false));
+        } finally {
+            DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
+            DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+            DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_BootstrapHostFromLoadedAssemblies_ProfileServiceDefault_RegistersHandlersAndIncludesBuiltIn() {
+        EnsureModularReaderAssembliesLoaded();
+
+        try {
+            DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
+            DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+            DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+
+            var result = DocumentReader.BootstrapHostFromLoadedAssemblies(
+                profile: ReaderHostBootstrapProfile.ServiceDefault,
+                indentedManifestJson: false);
+
+            Assert.NotNull(result);
+            Assert.True(result.ReplaceExistingHandlers);
+            Assert.Contains(result.Manifest.Handlers, c => c.IsBuiltIn && c.Id == "officeimo.reader.word");
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderCsvRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Csv);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderEpubRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Epub);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderZipRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Zip);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderHtmlRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Html);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderJsonRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Json);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderXmlRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Xml);
+        } finally {
+            DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
+            DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+            DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_BootstrapHostFromAssemblies_ProfileServiceCustomOnly_ExcludesBuiltIn() {
+        try {
+            DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
+            DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+            DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+
+            var result = DocumentReader.BootstrapHostFromAssemblies(
+                assemblies: new[] {
+                    typeof(DocumentReaderCsvRegistrationExtensions).Assembly,
+                    typeof(DocumentReaderEpubRegistrationExtensions).Assembly,
+                    typeof(DocumentReaderZipRegistrationExtensions).Assembly,
+                    typeof(DocumentReaderHtmlRegistrationExtensions).Assembly,
+                    typeof(DocumentReaderJsonRegistrationExtensions).Assembly,
+                    typeof(DocumentReaderXmlRegistrationExtensions).Assembly
+                },
+                profile: ReaderHostBootstrapProfile.ServiceCustomOnly,
+                indentedManifestJson: true);
+
+            Assert.NotNull(result);
+            Assert.NotEmpty(result.RegisteredHandlers);
+            Assert.DoesNotContain(result.Manifest.Handlers, c => c.IsBuiltIn);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderCsvRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Csv);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderEpubRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Epub);
+            Assert.Contains(Environment.NewLine, result.ManifestJson, StringComparison.Ordinal);
         } finally {
             DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
             DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();

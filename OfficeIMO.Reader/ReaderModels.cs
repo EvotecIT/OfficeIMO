@@ -452,6 +452,26 @@ public sealed class ReaderHostBootstrapResult {
 }
 
 /// <summary>
+/// Preset profiles for host bootstrap behavior.
+/// </summary>
+public enum ReaderHostBootstrapProfile {
+    /// <summary>
+    /// Includes built-in and custom handlers in manifest output.
+    /// </summary>
+    ServiceDefault = 0,
+
+    /// <summary>
+    /// Includes only custom handlers in manifest output.
+    /// </summary>
+    ServiceCustomOnly = 1,
+
+    /// <summary>
+    /// Includes only built-in handlers in manifest output.
+    /// </summary>
+    ServiceBuiltInOnly = 2
+}
+
+/// <summary>
 /// Descriptor for a discoverable modular handler registrar method.
 /// </summary>
 public sealed class ReaderHandlerRegistrarDescriptor {

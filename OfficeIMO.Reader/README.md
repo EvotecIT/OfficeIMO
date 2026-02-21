@@ -275,6 +275,17 @@ var manifest = bootstrap.Manifest;
 var manifestJson = bootstrap.ManifestJson;
 ```
 
+For service hosts that prefer preset integration profiles (for example IX startup), use profile overloads:
+
+```csharp
+using OfficeIMO.Reader;
+
+var bootstrap = DocumentReader.BootstrapHostFromLoadedAssemblies(
+    profile: ReaderHostBootstrapProfile.ServiceDefault,
+    assemblyNamePrefix: "OfficeIMO.Reader.",
+    indentedManifestJson: false);
+```
+
 ## Notes
 - `DocumentReader.Read(...)` is synchronous and streaming (returns `IEnumerable<T>`).
 - `DocumentReader.ReadFolder(...)` is best-effort: unreadable/corrupt/oversized files emit warning chunks and ingestion continues.
