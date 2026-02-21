@@ -15,7 +15,7 @@ public static class DocumentReaderTextExtensions {
         if (path.Length == 0) throw new ArgumentException("Path cannot be empty.", nameof(path));
 
         var options = Normalize(structuredOptions);
-        var ext = Path.GetExtension(path).ToLowerInvariant();
+        var ext = GetNormalizedExtension(path);
 
         if (ext == ".csv" || ext == ".tsv") {
             foreach (var chunk in ReadCsv(path, ext, options, cancellationToken)) {
@@ -46,6 +46,46 @@ public static class DocumentReaderTextExtensions {
         }
     }
 
+    /// <summary>
+    /// Reads structured text content from a stream with CSV/JSON/XML-aware chunking.
+    /// Other inputs fallback to <see cref="DocumentReader.Read(Stream, string?, ReaderOptions?, CancellationToken)"/>.
+    /// </summary>
+    public static IEnumerable<ReaderChunk> ReadStructuredText(Stream stream, string? sourceName = null, ReaderOptions? readerOptions = null, StructuredTextReadOptions? structuredOptions = null, CancellationToken cancellationToken = default) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+        var options = Normalize(structuredOptions);
+        var ext = GetNormalizedExtension(sourceName);
+
+        if (ext == ".csv" || ext == ".tsv") {
+            foreach (var chunk in ReadCsv(stream, sourceName, ext, options, cancellationToken)) {
+                yield return chunk;
+            }
+
+            yield break;
+        }
+
+        if (ext == ".json") {
+            foreach (var chunk in ReadJson(stream, sourceName, options, cancellationToken)) {
+                yield return chunk;
+            }
+
+            yield break;
+        }
+
+        if (ext == ".xml") {
+            foreach (var chunk in ReadXml(stream, sourceName, options, cancellationToken)) {
+                yield return chunk;
+            }
+
+            yield break;
+        }
+
+        foreach (var chunk in DocumentReader.Read(stream, sourceName, readerOptions, cancellationToken)) {
+            yield return chunk;
+        }
+    }
+
     private static IEnumerable<ReaderChunk> ReadCsv(string path, string extension, StructuredTextReadOptions options, CancellationToken cancellationToken) {
         var delimiter = extension == ".tsv" ? '\t' : ',';
         var csv = CsvDocument.Load(path, new CsvLoadOptions {
@@ -54,6 +94,27 @@ public static class DocumentReaderTextExtensions {
             Mode = CsvLoadMode.Stream
         });
 
+        foreach (var chunk in ReadCsvDocument(csv, path, options, cancellationToken)) {
+            yield return chunk;
+        }
+    }
+
+    private static IEnumerable<ReaderChunk> ReadCsv(Stream stream, string? sourceName, string extension, StructuredTextReadOptions options, CancellationToken cancellationToken) {
+        var sourcePath = BuildLogicalSourcePath(sourceName, extension == ".tsv" ? "document.tsv" : "document.csv");
+        var delimiter = extension == ".tsv" ? '\t' : ',';
+        var text = ReadAllText(stream, cancellationToken);
+        var csv = CsvDocument.Parse(text, new CsvLoadOptions {
+            Delimiter = delimiter,
+            HasHeaderRow = options.CsvHeadersInFirstRow,
+            Mode = CsvLoadMode.Stream
+        });
+
+        foreach (var chunk in ReadCsvDocument(csv, sourcePath, options, cancellationToken)) {
+            yield return chunk;
+        }
+    }
+
+    private static IEnumerable<ReaderChunk> ReadCsvDocument(CsvDocument csv, string sourcePath, StructuredTextReadOptions options, CancellationToken cancellationToken) {
         var headers = csv.Header.Count > 0
             ? csv.Header.ToArray()
             : new[] { "Column1" };
@@ -76,24 +137,31 @@ public static class DocumentReaderTextExtensions {
             rowIndex++;
 
             if (rows.Count >= options.CsvChunkRows) {
-                yield return BuildCsvChunk(path, headers, rows, chunkIndex, rowIndex - rows.Count, options.IncludeCsvMarkdown);
+                yield return BuildCsvChunk(sourcePath, headers, rows, chunkIndex, rowIndex - rows.Count, options.IncludeCsvMarkdown);
                 rows = new List<IReadOnlyList<string>>(capacity: options.CsvChunkRows);
                 chunkIndex++;
             }
         }
 
         if (rows.Count > 0) {
-            yield return BuildCsvChunk(path, headers, rows, chunkIndex, rowIndex - rows.Count, options.IncludeCsvMarkdown);
+            yield return BuildCsvChunk(sourcePath, headers, rows, chunkIndex, rowIndex - rows.Count, options.IncludeCsvMarkdown);
         }
     }
 
     private static IEnumerable<ReaderChunk> ReadJson(string path, StructuredTextReadOptions options, CancellationToken cancellationToken) {
+        using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        foreach (var chunk in ReadJson(fs, path, options, cancellationToken)) {
+            yield return chunk;
+        }
+    }
+
+    private static IEnumerable<ReaderChunk> ReadJson(Stream stream, string? sourceName, StructuredTextReadOptions options, CancellationToken cancellationToken) {
+        var sourcePath = BuildLogicalSourcePath(sourceName, "document.json");
         JsonDocument? doc = null;
         string? parseError = null;
 
         try {
-            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-            doc = JsonDocument.Parse(fs, new JsonDocumentOptions {
+            doc = JsonDocument.Parse(stream, new JsonDocumentOptions {
                 AllowTrailingCommas = true,
                 CommentHandling = JsonCommentHandling.Skip,
                 MaxDepth = options.JsonMaxDepth
@@ -103,7 +171,7 @@ public static class DocumentReaderTextExtensions {
         }
 
         if (parseError != null) {
-            yield return BuildWarningChunk(path, "json-warning-0000", parseError);
+            yield return BuildWarningChunk(sourcePath, "json-warning-0000", parseError);
             yield break;
         }
 
@@ -111,13 +179,21 @@ public static class DocumentReaderTextExtensions {
             var rows = new List<StructuredRow>(capacity: 1024);
             TraverseJson(doc!.RootElement, "$", depth: 0, maxDepth: options.JsonMaxDepth, rows, cancellationToken);
 
-            foreach (var chunk in BuildStructuredChunks(path, "json", rows, options.JsonChunkRows, options.IncludeJsonMarkdown, cancellationToken)) {
+            foreach (var chunk in BuildStructuredChunks(sourcePath, "json", rows, options.JsonChunkRows, options.IncludeJsonMarkdown, cancellationToken)) {
                 yield return chunk;
             }
         }
     }
 
     private static IEnumerable<ReaderChunk> ReadXml(string path, StructuredTextReadOptions options, CancellationToken cancellationToken) {
+        using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        foreach (var chunk in ReadXml(fs, path, options, cancellationToken)) {
+            yield return chunk;
+        }
+    }
+
+    private static IEnumerable<ReaderChunk> ReadXml(Stream stream, string? sourceName, StructuredTextReadOptions options, CancellationToken cancellationToken) {
+        var sourcePath = BuildLogicalSourcePath(sourceName, "document.xml");
         XDocument? doc = null;
         string? parseError = null;
 
@@ -127,30 +203,54 @@ public static class DocumentReaderTextExtensions {
                 XmlResolver = null
             };
 
-            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-            using var reader = XmlReader.Create(fs, settings);
+            using var reader = XmlReader.Create(stream, settings);
             doc = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
         } catch (Exception ex) when (ex is not OperationCanceledException) {
             parseError = $"XML parse error: {ex.GetType().Name}.";
         }
 
         if (parseError != null) {
-            yield return BuildWarningChunk(path, "xml-warning-0000", parseError);
+            yield return BuildWarningChunk(sourcePath, "xml-warning-0000", parseError);
             yield break;
         }
 
         var root = doc!.Root;
         if (root == null) {
-            yield return BuildWarningChunk(path, "xml-warning-0001", "XML document does not contain a root element.");
+            yield return BuildWarningChunk(sourcePath, "xml-warning-0001", "XML document does not contain a root element.");
             yield break;
         }
 
         var rows = new List<StructuredRow>(capacity: 1024);
         TraverseXml(root, parentPath: string.Empty, rows, cancellationToken);
 
-        foreach (var chunk in BuildStructuredChunks(path, "xml", rows, options.XmlChunkRows, options.IncludeXmlMarkdown, cancellationToken)) {
+        foreach (var chunk in BuildStructuredChunks(sourcePath, "xml", rows, options.XmlChunkRows, options.IncludeXmlMarkdown, cancellationToken)) {
             yield return chunk;
         }
+    }
+
+    private static string GetNormalizedExtension(string? sourceName) {
+        var ext = Path.GetExtension(sourceName ?? string.Empty);
+        return ext.ToLowerInvariant();
+    }
+
+    private static string BuildLogicalSourcePath(string? sourceName, string defaultName) {
+        if (!string.IsNullOrWhiteSpace(sourceName)) return sourceName!;
+        return defaultName;
+    }
+
+    private static string ReadAllText(Stream stream, CancellationToken cancellationToken) {
+        var sb = new StringBuilder();
+        var buffer = new char[16 * 1024];
+        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 16 * 1024, leaveOpen: true);
+
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var read = reader.Read(buffer, 0, buffer.Length);
+            if (read <= 0) break;
+            sb.Append(buffer, 0, read);
+        }
+
+        return sb.ToString();
     }
 
     private static void TraverseJson(

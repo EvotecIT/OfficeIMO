@@ -4,6 +4,7 @@
 - CSV semantic chunking (table-aware)
 - JSON AST chunking (path/type/value tables)
 - XML AST chunking (element/attribute path tables)
+- path and stream dispatch via `DocumentReader` handler registration
 - future structured text adapters
 
 Registration into `OfficeIMO.Reader`:

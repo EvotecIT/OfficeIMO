@@ -1,6 +1,7 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Epub;
 using OfficeIMO.Reader.Html;
+using OfficeIMO.Reader.Text;
 using OfficeIMO.Reader.Zip;
 using System.IO.Compression;
 using System.Text;
@@ -93,11 +94,13 @@ public sealed class ReaderRegistryTests {
             DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler(replaceExisting: true);
             DocumentReaderZipRegistrationExtensions.RegisterZipHandler(replaceExisting: true);
             DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+            DocumentReaderTextRegistrationExtensions.RegisterStructuredTextHandler(replaceExisting: true);
 
             var capabilities = DocumentReader.GetCapabilities();
             var epubCapability = Assert.Single(capabilities, c => c.Id == DocumentReaderEpubRegistrationExtensions.HandlerId);
             var zipCapability = Assert.Single(capabilities, c => c.Id == DocumentReaderZipRegistrationExtensions.HandlerId);
             var htmlCapability = Assert.Single(capabilities, c => c.Id == DocumentReaderHtmlRegistrationExtensions.HandlerId);
+            var textCapability = Assert.Single(capabilities, c => c.Id == DocumentReaderTextRegistrationExtensions.HandlerId);
 
             Assert.True(epubCapability.SupportsPath);
             Assert.True(epubCapability.SupportsStream);
@@ -105,14 +108,18 @@ public sealed class ReaderRegistryTests {
             Assert.True(zipCapability.SupportsStream);
             Assert.True(htmlCapability.SupportsPath);
             Assert.True(htmlCapability.SupportsStream);
+            Assert.True(textCapability.SupportsPath);
+            Assert.True(textCapability.SupportsStream);
 
             Assert.Equal(ReaderInputKind.Unknown, DocumentReader.DetectKind("book.epub"));
             Assert.Equal(ReaderInputKind.Unknown, DocumentReader.DetectKind("archive.zip"));
             Assert.Equal(ReaderInputKind.Unknown, DocumentReader.DetectKind("index.html"));
+            Assert.Equal(ReaderInputKind.Text, DocumentReader.DetectKind("data.json"));
         } finally {
             DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
             DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            DocumentReaderTextRegistrationExtensions.UnregisterStructuredTextHandler();
         }
     }
 
@@ -153,6 +160,25 @@ public sealed class ReaderRegistryTests {
                 (c.Text?.Contains("EPUB stream body text.", StringComparison.Ordinal) ?? false));
         } finally {
             DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ModularRegistrationHelpers_DispatchesStructuredJsonStream() {
+        try {
+            DocumentReaderTextRegistrationExtensions.RegisterStructuredTextHandler(replaceExisting: true);
+
+            var payload = "{\"service\":{\"name\":\"IX\",\"enabled\":true,\"ports\":[443,8443]}}";
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(payload), writable: false);
+            var chunks = DocumentReader.Read(stream, "config.json").ToList();
+
+            Assert.NotEmpty(chunks);
+            Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Text, c.Kind));
+            Assert.Contains(chunks, c =>
+                (c.Location.Path?.Contains("config.json", StringComparison.OrdinalIgnoreCase) ?? false) &&
+                (c.Text?.Contains("$.service.name", StringComparison.Ordinal) ?? false));
+        } finally {
+            DocumentReaderTextRegistrationExtensions.UnregisterStructuredTextHandler();
         }
     }
 

@@ -29,6 +29,12 @@ public static class DocumentReaderTextRegistrationExtensions {
                 path: path,
                 readerOptions: readerOptions,
                 structuredOptions: Clone(registered),
+                cancellationToken: ct),
+            ReadStream = (stream, sourceName, readerOptions, ct) => DocumentReaderTextExtensions.ReadStructuredText(
+                stream: stream,
+                sourceName: sourceName,
+                readerOptions: readerOptions,
+                structuredOptions: Clone(registered),
                 cancellationToken: ct)
         }, replaceExisting);
     }

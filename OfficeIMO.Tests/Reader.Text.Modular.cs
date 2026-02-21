@@ -1,5 +1,6 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Text;
+using System.Text;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -56,6 +57,31 @@ public sealed class ReaderTextModularTests {
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void DocumentReaderText_ReadStructuredTextStream_ParsesJsonIntoStructuredChunks() {
+        var json =
+            "{\n" +
+            "  \"agent\": {\n" +
+            "    \"name\": \"OfficeIMO\",\n" +
+            "    \"version\": 1\n" +
+            "  }\n" +
+            "}";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json), writable: false);
+
+        var chunks = DocumentReaderTextExtensions.ReadStructuredText(
+            stream,
+            sourceName: "agent.json",
+            structuredOptions: new StructuredTextReadOptions {
+                JsonChunkRows = 2,
+                IncludeJsonMarkdown = true
+            }).ToList();
+
+        Assert.NotEmpty(chunks);
+        Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Text, c.Kind));
+        Assert.Contains(chunks, c => (c.Text ?? string.Empty).Contains("$.agent.name", StringComparison.Ordinal));
+        Assert.Contains(chunks, c => c.Tables != null && c.Tables.Count > 0 && c.Tables[0].Columns.Contains("Path", StringComparer.Ordinal));
     }
 
     [Fact]
