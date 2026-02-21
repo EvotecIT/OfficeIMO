@@ -16,6 +16,7 @@ public static class DocumentReaderTextRegistrationExtensions {
     /// <param name="replaceExisting">
     /// Defaults to true because these extensions are already handled by the built-in plain text path.
     /// </param>
+    [ReaderHandlerRegistrar(HandlerId)]
     public static void RegisterStructuredTextHandler(StructuredTextReadOptions? structuredOptions = null, bool replaceExisting = true) {
         var registered = Clone(structuredOptions);
 

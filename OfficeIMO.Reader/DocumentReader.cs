@@ -9,6 +9,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -240,6 +242,70 @@ public static class DocumentReader {
     public static string GetCapabilityManifestJson(bool includeBuiltIn = true, bool includeCustom = true, bool indented = false) {
         var manifest = GetCapabilityManifest(includeBuiltIn, includeCustom);
         return ReaderCapabilityManifestJson.Serialize(manifest, indented);
+    }
+
+    /// <summary>
+    /// Discovers modular registrar methods in the provided assemblies.
+    /// </summary>
+    public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> DiscoverHandlerRegistrars(IEnumerable<Assembly> assemblies) {
+        var candidates = DiscoverHandlerRegistrarsCore(assemblies);
+        return candidates
+            .Select(static c => CloneRegistrarDescriptor(c.Descriptor))
+            .ToArray();
+    }
+
+    /// <summary>
+    /// Discovers modular registrar methods in the provided assemblies.
+    /// </summary>
+    public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> DiscoverHandlerRegistrars(params Assembly[] assemblies) {
+        return DiscoverHandlerRegistrars((IEnumerable<Assembly>)assemblies);
+    }
+
+    /// <summary>
+    /// Registers modular handlers discovered in the provided assemblies.
+    /// </summary>
+    /// <param name="assemblies">Assemblies to scan for registrar methods.</param>
+    /// <param name="replaceExisting">
+    /// Passed to discovered registrar methods via their <c>replaceExisting</c> parameter when present.
+    /// </param>
+    public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> RegisterHandlersFromAssemblies(IEnumerable<Assembly> assemblies, bool replaceExisting = true) {
+        var candidates = DiscoverHandlerRegistrarsCore(assemblies);
+        var registered = new List<ReaderHandlerRegistrarDescriptor>(candidates.Count);
+
+        foreach (var candidate in candidates) {
+            var parameters = candidate.Method.GetParameters();
+            var args = new object?[parameters.Length];
+            for (int i = 0; i < parameters.Length; i++) {
+                var parameter = parameters[i];
+                if (parameter.ParameterType == typeof(bool) &&
+                    string.Equals(parameter.Name, "replaceExisting", StringComparison.OrdinalIgnoreCase)) {
+                    args[i] = replaceExisting;
+                } else if (parameter.IsOptional) {
+                    args[i] = Type.Missing;
+                } else {
+                    throw new InvalidOperationException(
+                        $"Registrar method '{candidate.Method.DeclaringType?.FullName}.{candidate.Method.Name}' has unsupported non-optional parameter '{parameter.Name}'.");
+                }
+            }
+
+            try {
+                candidate.Method.Invoke(obj: null, parameters: args);
+            } catch (TargetInvocationException ex) when (ex.InnerException != null) {
+                ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                throw;
+            }
+
+            registered.Add(CloneRegistrarDescriptor(candidate.Descriptor));
+        }
+
+        return registered.ToArray();
+    }
+
+    /// <summary>
+    /// Registers modular handlers discovered in the provided assemblies.
+    /// </summary>
+    public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> RegisterHandlersFromAssemblies(bool replaceExisting = true, params Assembly[] assemblies) {
+        return RegisterHandlersFromAssemblies((IEnumerable<Assembly>)assemblies, replaceExisting);
     }
 
     /// <summary>
@@ -1740,6 +1806,107 @@ public static class DocumentReader {
         };
     }
 
+    private static ReaderHandlerRegistrarDescriptor CloneRegistrarDescriptor(ReaderHandlerRegistrarDescriptor descriptor) {
+        return new ReaderHandlerRegistrarDescriptor {
+            HandlerId = descriptor.HandlerId,
+            AssemblyName = descriptor.AssemblyName,
+            TypeName = descriptor.TypeName,
+            MethodName = descriptor.MethodName
+        };
+    }
+
+    private static List<RegistrarCandidate> DiscoverHandlerRegistrarsCore(IEnumerable<Assembly> assemblies) {
+        if (assemblies == null) throw new ArgumentNullException(nameof(assemblies));
+
+        var candidates = new List<RegistrarCandidate>();
+        var uniqueAssemblies = new Dictionary<string, Assembly>(StringComparer.Ordinal);
+        foreach (var assembly in assemblies) {
+            if (assembly == null) continue;
+            var key = assembly.FullName ?? assembly.GetName().Name ?? assembly.ManifestModule.Name;
+            if (!uniqueAssemblies.ContainsKey(key)) {
+                uniqueAssemblies.Add(key, assembly);
+            }
+        }
+
+        var dedupe = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var assembly in uniqueAssemblies.Values) {
+            foreach (var type in EnumerateLoadableTypes(assembly)) {
+                if (type == null) continue;
+                if (!type.IsClass || !type.IsAbstract || !type.IsSealed) continue; // static class
+
+                foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)) {
+                    if (!IsRegistrarMethod(method, out var handlerId)) continue;
+
+                    var descriptor = new ReaderHandlerRegistrarDescriptor {
+                        HandlerId = handlerId,
+                        AssemblyName = assembly.GetName().Name ?? string.Empty,
+                        TypeName = type.FullName ?? type.Name,
+                        MethodName = method.Name
+                    };
+
+                    var key = string.Concat(
+                        descriptor.AssemblyName, "|",
+                        descriptor.TypeName, "|",
+                        descriptor.MethodName, "|",
+                        descriptor.HandlerId);
+                    if (!dedupe.Add(key)) continue;
+
+                    candidates.Add(new RegistrarCandidate(method, descriptor));
+                }
+            }
+        }
+
+        candidates.Sort(static (a, b) => {
+            int cmp = string.CompareOrdinal(a.Descriptor.HandlerId, b.Descriptor.HandlerId);
+            if (cmp != 0) return cmp;
+            cmp = string.CompareOrdinal(a.Descriptor.AssemblyName, b.Descriptor.AssemblyName);
+            if (cmp != 0) return cmp;
+            cmp = string.CompareOrdinal(a.Descriptor.TypeName, b.Descriptor.TypeName);
+            if (cmp != 0) return cmp;
+            return string.CompareOrdinal(a.Descriptor.MethodName, b.Descriptor.MethodName);
+        });
+
+        return candidates;
+    }
+
+    private static IEnumerable<Type> EnumerateLoadableTypes(Assembly assembly) {
+        try {
+            return assembly.GetTypes();
+        } catch (ReflectionTypeLoadException ex) {
+            return ex.Types.Where(static t => t != null)!;
+        } catch {
+            return Array.Empty<Type>();
+        }
+    }
+
+    private static bool IsRegistrarMethod(MethodInfo method, out string handlerId) {
+        handlerId = string.Empty;
+        if (method == null) return false;
+        if (method.IsGenericMethodDefinition) return false;
+        if (method.ReturnType != typeof(void)) return false;
+
+        var attribute = method.GetCustomAttribute<ReaderHandlerRegistrarAttribute>(inherit: false);
+        if (attribute == null) return false;
+
+        handlerId = (attribute.HandlerId ?? string.Empty).Trim();
+        if (handlerId.Length == 0) return false;
+
+        bool hasReplaceExisting = false;
+        foreach (var parameter in method.GetParameters()) {
+            if (parameter.ParameterType == typeof(bool) &&
+                string.Equals(parameter.Name, "replaceExisting", StringComparison.OrdinalIgnoreCase)) {
+                hasReplaceExisting = true;
+                continue;
+            }
+
+            if (!parameter.IsOptional) {
+                return false;
+            }
+        }
+
+        return hasReplaceExisting;
+    }
+
     private static string NormalizeExtension(string? extension) {
         var value = extension ?? string.Empty;
         if (string.IsNullOrWhiteSpace(value)) return string.Empty;
@@ -1988,6 +2155,16 @@ public static class DocumentReader {
             if (sb.Length >= HardCapChars) break;
         }
         return sb.ToString();
+    }
+
+    private sealed class RegistrarCandidate {
+        public RegistrarCandidate(MethodInfo method, ReaderHandlerRegistrarDescriptor descriptor) {
+            Method = method ?? throw new ArgumentNullException(nameof(method));
+            Descriptor = descriptor ?? throw new ArgumentNullException(nameof(descriptor));
+        }
+
+        public MethodInfo Method { get; }
+        public ReaderHandlerRegistrarDescriptor Descriptor { get; }
     }
 
     private sealed class CustomReaderHandler {

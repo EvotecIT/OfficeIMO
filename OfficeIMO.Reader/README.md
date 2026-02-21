@@ -218,6 +218,29 @@ DocumentReaderTextRegistrationExtensions.RegisterStructuredTextHandler(replaceEx
 
 These adapters support both path and stream dispatch via `DocumentReader.Read(...)`.
 
+For host-driven auto wiring (for example IX loading only present adapter assemblies), use registrar discovery:
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Epub;
+using OfficeIMO.Reader.Html;
+using OfficeIMO.Reader.Text;
+using OfficeIMO.Reader.Zip;
+
+var registrars = DocumentReader.DiscoverHandlerRegistrars(
+    typeof(DocumentReaderEpubRegistrationExtensions).Assembly,
+    typeof(DocumentReaderZipRegistrationExtensions).Assembly,
+    typeof(DocumentReaderHtmlRegistrationExtensions).Assembly,
+    typeof(DocumentReaderTextRegistrationExtensions).Assembly);
+
+DocumentReader.RegisterHandlersFromAssemblies(
+    replaceExisting: true,
+    typeof(DocumentReaderEpubRegistrationExtensions).Assembly,
+    typeof(DocumentReaderZipRegistrationExtensions).Assembly,
+    typeof(DocumentReaderHtmlRegistrationExtensions).Assembly,
+    typeof(DocumentReaderTextRegistrationExtensions).Assembly);
+```
+
 ## Notes
 - `DocumentReader.Read(...)` is synchronous and streaming (returns `IEnumerable<T>`).
 - `DocumentReader.ReadFolder(...)` is best-effort: unreadable/corrupt/oversized files emit warning chunks and ingestion continues.

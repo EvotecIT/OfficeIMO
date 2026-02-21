@@ -14,6 +14,7 @@ public static class DocumentReaderZipRegistrationExtensions {
     /// <summary>
     /// Registers ZIP ingestion into <see cref="DocumentReader"/> for the <c>.zip</c> extension.
     /// </summary>
+    [ReaderHandlerRegistrar(HandlerId)]
     public static void RegisterZipHandler(
         ZipTraversalOptions? zipOptions = null,
         ReaderZipOptions? readerZipOptions = null,

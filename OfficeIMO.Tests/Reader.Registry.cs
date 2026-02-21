@@ -210,6 +210,65 @@ public sealed class ReaderRegistryTests {
     }
 
     [Fact]
+    public void DocumentReader_DiscoverHandlerRegistrars_FindsModularRegistrars() {
+        var registrars = DocumentReader.DiscoverHandlerRegistrars(
+            typeof(DocumentReaderEpubRegistrationExtensions).Assembly,
+            typeof(DocumentReaderZipRegistrationExtensions).Assembly,
+            typeof(DocumentReaderHtmlRegistrationExtensions).Assembly,
+            typeof(DocumentReaderTextRegistrationExtensions).Assembly).ToList();
+
+        Assert.NotEmpty(registrars);
+        Assert.Contains(registrars, r => r.HandlerId == DocumentReaderEpubRegistrationExtensions.HandlerId);
+        Assert.Contains(registrars, r => r.HandlerId == DocumentReaderZipRegistrationExtensions.HandlerId);
+        Assert.Contains(registrars, r => r.HandlerId == DocumentReaderHtmlRegistrationExtensions.HandlerId);
+        Assert.Contains(registrars, r => r.HandlerId == DocumentReaderTextRegistrationExtensions.HandlerId);
+
+        var ordered = registrars
+            .OrderBy(r => r.HandlerId, StringComparer.Ordinal)
+            .ThenBy(r => r.AssemblyName, StringComparer.Ordinal)
+            .ThenBy(r => r.TypeName, StringComparer.Ordinal)
+            .ThenBy(r => r.MethodName, StringComparer.Ordinal)
+            .ToList();
+        Assert.Equal(
+            ordered.Select(static r => r.HandlerId).ToArray(),
+            registrars.Select(static r => r.HandlerId).ToArray());
+    }
+
+    [Fact]
+    public void DocumentReader_RegisterHandlersFromAssemblies_RegistersModularHandlers() {
+        try {
+            DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+            DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            DocumentReaderTextRegistrationExtensions.UnregisterStructuredTextHandler();
+
+            var registered = DocumentReader.RegisterHandlersFromAssemblies(
+                replaceExisting: true,
+                typeof(DocumentReaderEpubRegistrationExtensions).Assembly,
+                typeof(DocumentReaderZipRegistrationExtensions).Assembly,
+                typeof(DocumentReaderHtmlRegistrationExtensions).Assembly,
+                typeof(DocumentReaderTextRegistrationExtensions).Assembly).ToList();
+
+            Assert.NotEmpty(registered);
+            Assert.Contains(registered, r => r.HandlerId == DocumentReaderEpubRegistrationExtensions.HandlerId);
+            Assert.Contains(registered, r => r.HandlerId == DocumentReaderZipRegistrationExtensions.HandlerId);
+            Assert.Contains(registered, r => r.HandlerId == DocumentReaderHtmlRegistrationExtensions.HandlerId);
+            Assert.Contains(registered, r => r.HandlerId == DocumentReaderTextRegistrationExtensions.HandlerId);
+
+            var capabilities = DocumentReader.GetCapabilities();
+            Assert.Contains(capabilities, c => c.Id == DocumentReaderEpubRegistrationExtensions.HandlerId);
+            Assert.Contains(capabilities, c => c.Id == DocumentReaderZipRegistrationExtensions.HandlerId);
+            Assert.Contains(capabilities, c => c.Id == DocumentReaderHtmlRegistrationExtensions.HandlerId);
+            Assert.Contains(capabilities, c => c.Id == DocumentReaderTextRegistrationExtensions.HandlerId);
+        } finally {
+            DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+            DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            DocumentReaderTextRegistrationExtensions.UnregisterStructuredTextHandler();
+        }
+    }
+
+    [Fact]
     public void DocumentReader_ModularRegistrationHelpers_DispatchesZipStream() {
         try {
             DocumentReaderZipRegistrationExtensions.RegisterZipHandler(replaceExisting: true);

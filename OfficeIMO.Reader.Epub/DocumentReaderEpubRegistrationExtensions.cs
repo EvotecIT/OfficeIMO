@@ -14,6 +14,7 @@ public static class DocumentReaderEpubRegistrationExtensions {
     /// <summary>
     /// Registers EPUB ingestion into <see cref="DocumentReader"/> for the <c>.epub</c> extension.
     /// </summary>
+    [ReaderHandlerRegistrar(HandlerId)]
     public static void RegisterEpubHandler(EpubReadOptions? epubOptions = null, bool replaceExisting = false) {
         var registeredOptions = Clone(epubOptions);
 

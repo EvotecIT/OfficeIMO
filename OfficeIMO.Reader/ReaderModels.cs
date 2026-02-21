@@ -372,6 +372,50 @@ public sealed class ReaderCapabilityManifest {
 }
 
 /// <summary>
+/// Descriptor for a discoverable modular handler registrar method.
+/// </summary>
+public sealed class ReaderHandlerRegistrarDescriptor {
+    /// <summary>
+    /// Handler identifier declared by the registrar.
+    /// </summary>
+    public string HandlerId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Assembly name containing the registrar method.
+    /// </summary>
+    public string AssemblyName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Fully qualified type name containing the registrar method.
+    /// </summary>
+    public string TypeName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Registrar method name.
+    /// </summary>
+    public string MethodName { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Marks a static registration method that can be discovered by
+/// <see cref="DocumentReader.DiscoverHandlerRegistrars(IEnumerable{System.Reflection.Assembly})"/>.
+/// </summary>
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+public sealed class ReaderHandlerRegistrarAttribute : Attribute {
+    /// <summary>
+    /// Creates a registrar attribute for the specified handler identifier.
+    /// </summary>
+    public ReaderHandlerRegistrarAttribute(string handlerId) {
+        HandlerId = handlerId;
+    }
+
+    /// <summary>
+    /// Handler identifier exposed by the registrar.
+    /// </summary>
+    public string HandlerId { get; }
+}
+
+/// <summary>
 /// Options controlling extraction behavior for <see cref="DocumentReader"/>.
 /// </summary>
 public sealed class ReaderOptions {

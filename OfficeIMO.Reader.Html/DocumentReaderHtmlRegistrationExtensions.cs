@@ -12,6 +12,7 @@ public static class DocumentReaderHtmlRegistrationExtensions {
     /// <summary>
     /// Registers HTML ingestion into <see cref="DocumentReader"/> for <c>.html</c> and <c>.htm</c>.
     /// </summary>
+    [ReaderHandlerRegistrar(HandlerId)]
     public static void RegisterHtmlHandler(ReaderHtmlOptions? htmlOptions = null, bool replaceExisting = false) {
         var registeredOptions = ReaderHtmlOptionsCloner.CloneNullable(htmlOptions);
 
