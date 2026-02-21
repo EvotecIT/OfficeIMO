@@ -336,6 +336,64 @@ public static class DocumentReader {
     }
 
     /// <summary>
+    /// Host bootstrap helper that registers modular handlers from the provided assemblies
+    /// and returns both typed and JSON capability manifests in one payload.
+    /// </summary>
+    /// <param name="assemblies">Assemblies to scan for registrar methods.</param>
+    /// <param name="options">Bootstrap options. When null, defaults are used.</param>
+    public static ReaderHostBootstrapResult BootstrapHostFromAssemblies(IEnumerable<Assembly> assemblies, ReaderHostBootstrapOptions? options = null) {
+        var normalizedOptions = NormalizeHostBootstrapOptions(options);
+        var registered = RegisterHandlersFromAssemblies(assemblies, replaceExisting: normalizedOptions.ReplaceExistingHandlers);
+        var manifest = GetCapabilityManifest(
+            includeBuiltIn: normalizedOptions.IncludeBuiltInCapabilities,
+            includeCustom: normalizedOptions.IncludeCustomCapabilities);
+
+        return new ReaderHostBootstrapResult {
+            ReplaceExistingHandlers = normalizedOptions.ReplaceExistingHandlers,
+            RegisteredHandlers = registered
+                .Select(static r => CloneRegistrarDescriptor(r))
+                .ToArray(),
+            Manifest = manifest,
+            ManifestJson = ReaderCapabilityManifestJson.Serialize(manifest, normalizedOptions.IndentedManifestJson)
+        };
+    }
+
+    /// <summary>
+    /// Host bootstrap helper that discovers and registers modular handlers from currently loaded assemblies
+    /// whose simple name starts with <paramref name="assemblyNamePrefix"/>, then returns both typed and
+    /// JSON capability manifests in one payload.
+    /// </summary>
+    /// <param name="assemblyNamePrefix">
+    /// Simple assembly-name prefix filter. Default: <c>OfficeIMO.Reader.</c>.
+    /// </param>
+    /// <param name="options">Bootstrap options. When null, defaults are used.</param>
+    public static ReaderHostBootstrapResult BootstrapHostFromLoadedAssemblies(
+        string assemblyNamePrefix = "OfficeIMO.Reader.",
+        ReaderHostBootstrapOptions? options = null) {
+        if (string.IsNullOrWhiteSpace(assemblyNamePrefix)) {
+            throw new ArgumentException("Assembly name prefix cannot be empty.", nameof(assemblyNamePrefix));
+        }
+
+        var normalizedOptions = NormalizeHostBootstrapOptions(options);
+        var registered = RegisterHandlersFromLoadedAssemblies(
+            replaceExisting: normalizedOptions.ReplaceExistingHandlers,
+            assemblyNamePrefix: assemblyNamePrefix);
+        var manifest = GetCapabilityManifest(
+            includeBuiltIn: normalizedOptions.IncludeBuiltInCapabilities,
+            includeCustom: normalizedOptions.IncludeCustomCapabilities);
+
+        return new ReaderHostBootstrapResult {
+            AssemblyNamePrefix = assemblyNamePrefix.Trim(),
+            ReplaceExistingHandlers = normalizedOptions.ReplaceExistingHandlers,
+            RegisteredHandlers = registered
+                .Select(static r => CloneRegistrarDescriptor(r))
+                .ToArray(),
+            Manifest = manifest,
+            ManifestJson = ReaderCapabilityManifestJson.Serialize(manifest, normalizedOptions.IndentedManifestJson)
+        };
+    }
+
+    /// <summary>
     /// Detects the input kind based on file extension.
     /// </summary>
     /// <param name="path">Source file path.</param>
@@ -1839,6 +1897,19 @@ public static class DocumentReader {
             AssemblyName = descriptor.AssemblyName,
             TypeName = descriptor.TypeName,
             MethodName = descriptor.MethodName
+        };
+    }
+
+    private static ReaderHostBootstrapOptions NormalizeHostBootstrapOptions(ReaderHostBootstrapOptions? options) {
+        if (options == null) {
+            return new ReaderHostBootstrapOptions();
+        }
+
+        return new ReaderHostBootstrapOptions {
+            ReplaceExistingHandlers = options.ReplaceExistingHandlers,
+            IncludeBuiltInCapabilities = options.IncludeBuiltInCapabilities,
+            IncludeCustomCapabilities = options.IncludeCustomCapabilities,
+            IndentedManifestJson = options.IndentedManifestJson
         };
     }
 

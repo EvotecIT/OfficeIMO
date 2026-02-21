@@ -383,6 +383,151 @@ public sealed class ReaderRegistryTests {
     }
 
     [Fact]
+    public void DocumentReader_BootstrapHostFromLoadedAssemblies_RegistersHandlersAndBuildsManifestPayload() {
+        EnsureModularReaderAssembliesLoaded();
+
+        try {
+            DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
+            DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+            DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+
+            var result = DocumentReader.BootstrapHostFromLoadedAssemblies(options: new ReaderHostBootstrapOptions {
+                ReplaceExistingHandlers = true,
+                IncludeBuiltInCapabilities = true,
+                IncludeCustomCapabilities = true,
+                IndentedManifestJson = false
+            });
+
+            Assert.NotNull(result);
+            Assert.Equal("OfficeIMO.Reader.", result.AssemblyNamePrefix);
+            Assert.True(result.ReplaceExistingHandlers);
+            Assert.NotEmpty(result.RegisteredHandlers);
+            Assert.Contains(result.RegisteredHandlers, r => r.HandlerId == DocumentReaderCsvRegistrationExtensions.HandlerId);
+            Assert.Contains(result.RegisteredHandlers, r => r.HandlerId == DocumentReaderEpubRegistrationExtensions.HandlerId);
+            Assert.Contains(result.RegisteredHandlers, r => r.HandlerId == DocumentReaderZipRegistrationExtensions.HandlerId);
+            Assert.Contains(result.RegisteredHandlers, r => r.HandlerId == DocumentReaderHtmlRegistrationExtensions.HandlerId);
+            Assert.Contains(result.RegisteredHandlers, r => r.HandlerId == DocumentReaderJsonRegistrationExtensions.HandlerId);
+            Assert.Contains(result.RegisteredHandlers, r => r.HandlerId == DocumentReaderXmlRegistrationExtensions.HandlerId);
+
+            Assert.Equal(ReaderCapabilitySchema.Id, result.Manifest.SchemaId);
+            Assert.Equal(ReaderCapabilitySchema.Version, result.Manifest.SchemaVersion);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == "officeimo.reader.word");
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderCsvRegistrationExtensions.HandlerId);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderEpubRegistrationExtensions.HandlerId);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderZipRegistrationExtensions.HandlerId);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderHtmlRegistrationExtensions.HandlerId);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderJsonRegistrationExtensions.HandlerId);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderXmlRegistrationExtensions.HandlerId);
+
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(result.ManifestJson));
+            var jsonChunks = DocumentReaderJsonExtensions.ReadJson(
+                stream,
+                sourceName: "bootstrap-manifest.json",
+                jsonOptions: new JsonReadOptions {
+                    ChunkRows = 256,
+                    IncludeMarkdown = false
+                }).ToList();
+            Assert.NotEmpty(jsonChunks);
+            Assert.Contains(jsonChunks, c => (c.Text?.Contains("officeimo.reader.csv", StringComparison.Ordinal) ?? false));
+        } finally {
+            DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
+            DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+            DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_BootstrapHostFromLoadedAssemblies_NoMatches_ReturnsBuiltInManifest() {
+        EnsureModularReaderAssembliesLoaded();
+
+        try {
+            DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
+            DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+            DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+
+            var result = DocumentReader.BootstrapHostFromLoadedAssemblies(
+                assemblyNamePrefix: "OfficeIMO.Reader.DoesNotExist.",
+                options: new ReaderHostBootstrapOptions {
+                    IncludeBuiltInCapabilities = true,
+                    IncludeCustomCapabilities = true
+                });
+
+            Assert.NotNull(result);
+            Assert.Equal("OfficeIMO.Reader.DoesNotExist.", result.AssemblyNamePrefix);
+            Assert.Empty(result.RegisteredHandlers);
+            Assert.Contains(result.Manifest.Handlers, c => c.IsBuiltIn && c.Id == "officeimo.reader.word");
+            Assert.DoesNotContain(result.Manifest.Handlers, c => c.Id == DocumentReaderCsvRegistrationExtensions.HandlerId);
+        } finally {
+            DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
+            DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+            DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_BootstrapHostFromAssemblies_CanReturnCustomOnlyManifest() {
+        try {
+            DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
+            DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+            DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+
+            var result = DocumentReader.BootstrapHostFromAssemblies(
+                new[] {
+                    typeof(DocumentReaderCsvRegistrationExtensions).Assembly,
+                    typeof(DocumentReaderEpubRegistrationExtensions).Assembly,
+                    typeof(DocumentReaderZipRegistrationExtensions).Assembly,
+                    typeof(DocumentReaderHtmlRegistrationExtensions).Assembly,
+                    typeof(DocumentReaderJsonRegistrationExtensions).Assembly,
+                    typeof(DocumentReaderXmlRegistrationExtensions).Assembly
+                },
+                new ReaderHostBootstrapOptions {
+                    ReplaceExistingHandlers = true,
+                    IncludeBuiltInCapabilities = false,
+                    IncludeCustomCapabilities = true,
+                    IndentedManifestJson = true
+                });
+
+            Assert.NotNull(result);
+            Assert.Null(result.AssemblyNamePrefix);
+            Assert.True(result.ReplaceExistingHandlers);
+            Assert.NotEmpty(result.RegisteredHandlers);
+            Assert.DoesNotContain(result.Manifest.Handlers, c => c.IsBuiltIn);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderCsvRegistrationExtensions.HandlerId);
+            Assert.Contains(Environment.NewLine, result.ManifestJson, StringComparison.Ordinal);
+        } finally {
+            DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
+            DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+            DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+        }
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("   ")]
+    public void DocumentReader_BootstrapHostFromLoadedAssemblies_EmptyPrefix_Throws(string prefix) {
+        Assert.Throws<ArgumentException>(() => DocumentReader.BootstrapHostFromLoadedAssemblies(prefix));
+    }
+
+    [Fact]
     public void DocumentReader_ModularRegistrationHelpers_DispatchesZipStream() {
         try {
             DocumentReaderZipRegistrationExtensions.RegisterZipHandler(replaceExisting: true);

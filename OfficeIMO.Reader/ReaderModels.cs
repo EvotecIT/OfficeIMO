@@ -372,6 +372,62 @@ public sealed class ReaderCapabilityManifest {
 }
 
 /// <summary>
+/// Options for host bootstrap workflows that auto-register modular handlers and emit capability manifests.
+/// </summary>
+public sealed class ReaderHostBootstrapOptions {
+    /// <summary>
+    /// When true, discovered modular registrars can replace conflicting existing custom handlers.
+    /// Default: true.
+    /// </summary>
+    public bool ReplaceExistingHandlers { get; set; } = true;
+
+    /// <summary>
+    /// When true, include built-in handlers in the returned capability manifest. Default: true.
+    /// </summary>
+    public bool IncludeBuiltInCapabilities { get; set; } = true;
+
+    /// <summary>
+    /// When true, include custom handlers in the returned capability manifest. Default: true.
+    /// </summary>
+    public bool IncludeCustomCapabilities { get; set; } = true;
+
+    /// <summary>
+    /// When true, indents the returned manifest JSON payload. Default: false.
+    /// </summary>
+    public bool IndentedManifestJson { get; set; }
+}
+
+/// <summary>
+/// Output payload for host bootstrap workflows.
+/// </summary>
+public sealed class ReaderHostBootstrapResult {
+    /// <summary>
+    /// Prefix used for loaded-assembly bootstrap discovery, when applicable.
+    /// </summary>
+    public string? AssemblyNamePrefix { get; set; }
+
+    /// <summary>
+    /// Effective replace-existing behavior used for registrar invocation.
+    /// </summary>
+    public bool ReplaceExistingHandlers { get; set; }
+
+    /// <summary>
+    /// Registrars that were discovered and invoked during bootstrap.
+    /// </summary>
+    public IReadOnlyList<ReaderHandlerRegistrarDescriptor> RegisteredHandlers { get; set; } = Array.Empty<ReaderHandlerRegistrarDescriptor>();
+
+    /// <summary>
+    /// Capability manifest produced after registration.
+    /// </summary>
+    public ReaderCapabilityManifest Manifest { get; set; } = new ReaderCapabilityManifest();
+
+    /// <summary>
+    /// JSON representation of <see cref="Manifest"/> for host transport.
+    /// </summary>
+    public string ManifestJson { get; set; } = "{}";
+}
+
+/// <summary>
 /// Descriptor for a discoverable modular handler registrar method.
 /// </summary>
 public sealed class ReaderHandlerRegistrarDescriptor {

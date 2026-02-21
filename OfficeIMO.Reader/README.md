@@ -260,8 +260,19 @@ For host bootstrap where adapter assemblies are already loaded, you can avoid ha
 ```csharp
 using OfficeIMO.Reader;
 
-var discovered = DocumentReader.DiscoverHandlerRegistrarsFromLoadedAssemblies();
-var registered = DocumentReader.RegisterHandlersFromLoadedAssemblies(replaceExisting: true);
+var bootstrap = DocumentReader.BootstrapHostFromLoadedAssemblies(
+    options: new ReaderHostBootstrapOptions {
+        ReplaceExistingHandlers = true,
+        IncludeBuiltInCapabilities = true,
+        IncludeCustomCapabilities = true,
+        IndentedManifestJson = false
+    });
+
+// Typed manifest
+var manifest = bootstrap.Manifest;
+
+// Transport-safe JSON payload for host/service boundaries
+var manifestJson = bootstrap.ManifestJson;
 ```
 
 ## Notes
