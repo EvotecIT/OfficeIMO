@@ -255,6 +255,15 @@ DocumentReader.RegisterHandlersFromAssemblies(
     typeof(DocumentReaderXmlRegistrationExtensions).Assembly);
 ```
 
+For host bootstrap where adapter assemblies are already loaded, you can avoid hardcoded type lists:
+
+```csharp
+using OfficeIMO.Reader;
+
+var discovered = DocumentReader.DiscoverHandlerRegistrarsFromLoadedAssemblies();
+var registered = DocumentReader.RegisterHandlersFromLoadedAssemblies(replaceExisting: true);
+```
+
 ## Notes
 - `DocumentReader.Read(...)` is synchronous and streaming (returns `IEnumerable<T>`).
 - `DocumentReader.ReadFolder(...)` is best-effort: unreadable/corrupt/oversized files emit warning chunks and ingestion continues.

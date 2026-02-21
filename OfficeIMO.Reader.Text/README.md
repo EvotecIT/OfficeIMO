@@ -19,5 +19,8 @@ For new integrations, prefer dedicated handlers:
 - `DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler(...)`
 - `DocumentReaderXmlRegistrationExtensions.RegisterXmlHandler(...)`
 
+Compatibility note:
+- `RegisterStructuredTextHandler(...)` is intentionally manual-only and not included in registrar auto-discovery.
+
 Status:
 - compatibility wrapper and intentionally non-packable/non-publishable

@@ -262,6 +262,18 @@ public static class DocumentReader {
     }
 
     /// <summary>
+    /// Discovers modular registrar methods from currently loaded assemblies
+    /// whose simple name starts with <paramref name="assemblyNamePrefix"/>.
+    /// </summary>
+    /// <param name="assemblyNamePrefix">
+    /// Simple assembly-name prefix filter. Default: <c>OfficeIMO.Reader.</c>.
+    /// </param>
+    public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> DiscoverHandlerRegistrarsFromLoadedAssemblies(string assemblyNamePrefix = "OfficeIMO.Reader.") {
+        var assemblies = GetLoadedAssembliesByPrefix(assemblyNamePrefix);
+        return DiscoverHandlerRegistrars(assemblies);
+    }
+
+    /// <summary>
     /// Registers modular handlers discovered in the provided assemblies.
     /// </summary>
     /// <param name="assemblies">Assemblies to scan for registrar methods.</param>
@@ -306,6 +318,21 @@ public static class DocumentReader {
     /// </summary>
     public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> RegisterHandlersFromAssemblies(bool replaceExisting = true, params Assembly[] assemblies) {
         return RegisterHandlersFromAssemblies((IEnumerable<Assembly>)assemblies, replaceExisting);
+    }
+
+    /// <summary>
+    /// Registers modular handlers discovered from currently loaded assemblies
+    /// whose simple name starts with <paramref name="assemblyNamePrefix"/>.
+    /// </summary>
+    /// <param name="replaceExisting">
+    /// Passed to discovered registrar methods via their <c>replaceExisting</c> parameter when present.
+    /// </param>
+    /// <param name="assemblyNamePrefix">
+    /// Simple assembly-name prefix filter. Default: <c>OfficeIMO.Reader.</c>.
+    /// </param>
+    public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> RegisterHandlersFromLoadedAssemblies(bool replaceExisting = true, string assemblyNamePrefix = "OfficeIMO.Reader.") {
+        var assemblies = GetLoadedAssembliesByPrefix(assemblyNamePrefix);
+        return RegisterHandlersFromAssemblies(assemblies, replaceExisting);
     }
 
     /// <summary>
@@ -1877,6 +1904,21 @@ public static class DocumentReader {
         } catch {
             return Array.Empty<Type>();
         }
+    }
+
+    private static IReadOnlyList<Assembly> GetLoadedAssembliesByPrefix(string assemblyNamePrefix) {
+        if (assemblyNamePrefix == null) throw new ArgumentNullException(nameof(assemblyNamePrefix));
+
+        var prefix = assemblyNamePrefix.Trim();
+        if (prefix.Length == 0) {
+            throw new ArgumentException("Assembly name prefix cannot be empty.", nameof(assemblyNamePrefix));
+        }
+
+        return AppDomain.CurrentDomain.GetAssemblies()
+            .Where(static assembly => !assembly.IsDynamic)
+            .Where(assembly => (assembly.GetName().Name ?? string.Empty).StartsWith(prefix, StringComparison.Ordinal))
+            .OrderBy(static assembly => assembly.GetName().Name ?? string.Empty, StringComparer.Ordinal)
+            .ToArray();
     }
 
     private static bool IsRegistrarMethod(MethodInfo method, out string handlerId) {
