@@ -15,8 +15,22 @@ public static class DocumentReaderHtmlExtensions {
         if (htmlPath.Length == 0) throw new ArgumentException("HTML path cannot be empty.", nameof(htmlPath));
         if (!File.Exists(htmlPath)) throw new FileNotFoundException($"HTML file '{htmlPath}' doesn't exist.", htmlPath);
 
-        var html = File.ReadAllText(htmlPath, Encoding.UTF8);
-        foreach (var chunk in ReadHtmlString(html, htmlPath, readerOptions, cancellationToken)) {
+        using var fs = new FileStream(htmlPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        foreach (var chunk in ReadHtml(fs, htmlPath, readerOptions, cancellationToken)) {
+            yield return chunk;
+        }
+    }
+
+    /// <summary>
+    /// Reads an HTML stream and emits normalized chunks.
+    /// </summary>
+    public static IEnumerable<ReaderChunk> ReadHtml(Stream htmlStream, string? sourceName = null, ReaderOptions? readerOptions = null, CancellationToken cancellationToken = default) {
+        if (htmlStream == null) throw new ArgumentNullException(nameof(htmlStream));
+        if (!htmlStream.CanRead) throw new ArgumentException("HTML stream must be readable.", nameof(htmlStream));
+
+        var html = ReadAllText(htmlStream, cancellationToken);
+        var logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "document.html" : sourceName!;
+        foreach (var chunk in ReadHtmlString(html, logicalSourceName, readerOptions, cancellationToken)) {
             yield return chunk;
         }
     }
@@ -30,12 +44,19 @@ public static class DocumentReaderHtmlExtensions {
 
         var effective = readerOptions ?? new ReaderOptions();
         int maxChars = effective.MaxChars > 0 ? effective.MaxChars : 8_000;
+        var logicalSourceName = sourceName.Trim().Length == 0 ? "document.html" : sourceName;
 
         string markdown;
         using (var document = html.LoadFromHtml()) {
             markdown = document.ToMarkdown();
         }
 
+        if (string.IsNullOrWhiteSpace(markdown)) {
+            yield return BuildWarningChunk(logicalSourceName, "html-warning-0000", "HTML content produced no markdown text.");
+            yield break;
+        }
+
+        var wasSplit = markdown.Length > maxChars;
         int chunkIndex = 0;
         foreach (var part in SplitText(markdown, maxChars)) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -44,12 +65,12 @@ public static class DocumentReaderHtmlExtensions {
                 Id = string.Concat("html-", chunkIndex.ToString("D4", CultureInfo.InvariantCulture)),
                 Kind = ReaderInputKind.Unknown,
                 Location = new ReaderLocation {
-                    Path = sourceName,
+                    Path = logicalSourceName,
                     BlockIndex = chunkIndex
                 },
                 Text = part,
                 Markdown = part,
-                Warnings = markdown.Length > maxChars ? new[] { "HTML content was split due to MaxChars." } : null
+                Warnings = wasSplit ? new[] { "HTML content was split due to MaxChars." } : null
             };
 
             chunkIndex++;
@@ -82,5 +103,33 @@ public static class DocumentReaderHtmlExtensions {
             index = end;
             while (index < text.Length && char.IsWhiteSpace(text[index])) index++;
         }
+    }
+
+    private static string ReadAllText(Stream stream, CancellationToken cancellationToken) {
+        var sb = new StringBuilder();
+        var buffer = new char[16 * 1024];
+        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 16 * 1024, leaveOpen: true);
+
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var read = reader.Read(buffer, 0, buffer.Length);
+            if (read <= 0) break;
+            sb.Append(buffer, 0, read);
+        }
+
+        return sb.ToString();
+    }
+
+    private static ReaderChunk BuildWarningChunk(string sourceName, string id, string warning) {
+        return new ReaderChunk {
+            Id = id,
+            Kind = ReaderInputKind.Unknown,
+            Location = new ReaderLocation {
+                Path = sourceName,
+                BlockIndex = 0
+            },
+            Text = warning,
+            Warnings = new[] { warning }
+        };
     }
 }

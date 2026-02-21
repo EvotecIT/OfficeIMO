@@ -23,7 +23,11 @@ public static class DocumentReaderHtmlRegistrationExtensions {
                 htmlPath: path,
                 readerOptions: readerOptions,
                 cancellationToken: ct),
-            ReadStream = (stream, sourceName, readerOptions, ct) => ReadHtmlStream(stream, sourceName, readerOptions, ct)
+            ReadStream = (stream, sourceName, readerOptions, ct) => DocumentReaderHtmlExtensions.ReadHtml(
+                htmlStream: stream,
+                sourceName: sourceName,
+                readerOptions: readerOptions,
+                cancellationToken: ct)
         }, replaceExisting);
     }
 
@@ -32,28 +36,5 @@ public static class DocumentReaderHtmlRegistrationExtensions {
     /// </summary>
     public static bool UnregisterHtmlHandler() {
         return DocumentReader.UnregisterHandler(HandlerId);
-    }
-
-    private static IEnumerable<ReaderChunk> ReadHtmlStream(Stream stream, string? sourceName, ReaderOptions options, CancellationToken ct) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
-        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-
-        var sb = new StringBuilder();
-        var buffer = new char[16 * 1024];
-        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 16 * 1024, leaveOpen: true);
-
-        while (true) {
-            ct.ThrowIfCancellationRequested();
-            var read = reader.Read(buffer, 0, buffer.Length);
-            if (read <= 0) break;
-            sb.Append(buffer, 0, read);
-        }
-
-        var name = string.IsNullOrWhiteSpace(sourceName) ? "document.html" : sourceName!;
-        return DocumentReaderHtmlExtensions.ReadHtmlString(
-            html: sb.ToString(),
-            sourceName: name,
-            readerOptions: options,
-            cancellationToken: ct);
     }
 }
