@@ -43,6 +43,12 @@ var doc = CsvDocument.Load("input.csv", new CsvLoadOptions { Delimiter = ';' });
 var doc2 = CsvDocument.Parse(csvText);
 ```
 
+Load from stream:
+```csharp
+using var stream = File.OpenRead("input.csv");
+var doc3 = CsvDocument.Load(stream, new CsvLoadOptions { Mode = CsvLoadMode.Stream }, leaveOpen: true);
+```
+
 ## Transformations
 - `AddRow`, `AddColumn(name, row => ...)`, `RemoveColumn(name)`
 - `SortBy("Age")`, `SortBy<TKey>(r => r.Get<int>("Age"), descending: true)`
