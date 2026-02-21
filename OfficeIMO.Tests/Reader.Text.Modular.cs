@@ -27,7 +27,7 @@ public sealed class ReaderTextModularTests {
                 }).ToList();
 
             Assert.NotEmpty(chunks);
-            Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Text, c.Kind));
+            Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Json, c.Kind));
             Assert.Contains(chunks, c => (c.Text ?? string.Empty).Contains("$.user.name", StringComparison.Ordinal));
             Assert.Contains(chunks, c => c.Tables != null && c.Tables.Count > 0 && c.Tables[0].Columns.Contains("Path", StringComparer.Ordinal));
         } finally {
@@ -51,7 +51,7 @@ public sealed class ReaderTextModularTests {
                 }).ToList();
 
             Assert.NotEmpty(chunks);
-            Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Text, c.Kind));
+            Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Xml, c.Kind));
             Assert.Contains(chunks, c => (c.Text ?? string.Empty).Contains("catalog[1]/book[1]/@id", StringComparison.Ordinal));
             Assert.Contains(chunks, c => c.Tables != null && c.Tables.Count > 0 && c.Tables[0].Columns.Contains("Type", StringComparer.Ordinal));
         } finally {
@@ -79,7 +79,7 @@ public sealed class ReaderTextModularTests {
             }).ToList();
 
         Assert.NotEmpty(chunks);
-        Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Text, c.Kind));
+        Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Json, c.Kind));
         Assert.Contains(chunks, c => (c.Text ?? string.Empty).Contains("$.agent.name", StringComparison.Ordinal));
         Assert.Contains(chunks, c => c.Tables != null && c.Tables.Count > 0 && c.Tables[0].Columns.Contains("Path", StringComparer.Ordinal));
     }
@@ -101,7 +101,7 @@ public sealed class ReaderTextModularTests {
             }).ToList();
 
         Assert.NotEmpty(chunks);
-        Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Text, c.Kind));
+        Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Csv, c.Kind));
         Assert.Contains(chunks, c => (c.Location.Path ?? string.Empty).Contains("users.csv", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(chunks, c => c.Tables != null && c.Tables.Count > 0 && c.Tables[0].Columns.Contains("Name", StringComparer.Ordinal));
     }
@@ -138,7 +138,7 @@ public sealed class ReaderTextModularTests {
 
             Assert.NotEmpty(chunks);
             Assert.Contains(chunks, c =>
-                c.Kind == ReaderInputKind.Unknown &&
+                c.Kind == ReaderInputKind.Xml &&
                 (c.Warnings?.Any(w => w.Contains("XML parse error", StringComparison.OrdinalIgnoreCase)) ?? false));
         } finally {
             if (File.Exists(path)) File.Delete(path);
@@ -155,7 +155,7 @@ public sealed class ReaderTextModularTests {
             var chunks = DocumentReader.Read(stream, "config.json").ToList();
 
             Assert.NotEmpty(chunks);
-            Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Text, c.Kind));
+            Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Json, c.Kind));
             Assert.Contains(chunks, c =>
                 (c.Location.Path?.Contains("config.json", StringComparison.OrdinalIgnoreCase) ?? false) &&
                 (c.Text?.Contains("$.service.name", StringComparison.Ordinal) ?? false));
