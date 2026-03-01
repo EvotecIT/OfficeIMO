@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>EPUB adapter for OfficeIMO.Reader modular ingestion.</Description>
+    <AssemblyName>OfficeIMO.Reader.Epub</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Reader.Epub</AssemblyTitle>
+    <VersionPrefix>0.0.1</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <IsPackable>false</IsPackable>
+    <IsPublishable>false</IsPublishable>
+
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageId>OfficeIMO.Reader.Epub</PackageId>
+    <PackageTags>reader;epub;ingestion;officeimo</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md">
+      <Pack>True</Pack>
+      <PackagePath>README.md</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System" />
+    <Using Include="System.Collections.Generic" />
+    <Using Include="System.Globalization" />
+    <Using Include="System.IO" />
+    <Using Include="System.Text" />
+    <Using Include="System.Threading" />
+  </ItemGroup>
+</Project>

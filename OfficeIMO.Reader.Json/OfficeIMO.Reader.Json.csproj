@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>JSON adapter extensions for OfficeIMO.Reader.</Description>
+    <AssemblyName>OfficeIMO.Reader.Json</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Reader.Json</AssemblyTitle>
+    <VersionPrefix>0.0.1</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <IsPackable>false</IsPackable>
+    <IsPublishable>false</IsPublishable>
+
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageId>OfficeIMO.Reader.Json</PackageId>
+    <PackageTags>reader;json;ingestion;officeimo</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
+    <PackageReference Include="System.Text.Json" Version="[8.0.5,9.0.0)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md">
+      <Pack>True</Pack>
+      <PackagePath>README.md</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System" />
+    <Using Include="System.Collections.Generic" />
+    <Using Include="System.Globalization" />
+    <Using Include="System.IO" />
+    <Using Include="System.Linq" />
+    <Using Include="System.Text" />
+    <Using Include="System.Text.Json" />
+    <Using Include="System.Threading" />
+  </ItemGroup>
+</Project>

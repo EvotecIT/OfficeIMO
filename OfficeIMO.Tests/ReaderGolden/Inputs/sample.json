@@ -1,0 +1,11 @@
+{
+  "service": {
+    "name": "IntelligenceX",
+    "enabled": true,
+    "ports": [443, 8443],
+    "owner": {
+      "team": "Platform",
+      "region": "us-east"
+    }
+  }
+}

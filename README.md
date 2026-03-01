@@ -35,6 +35,14 @@ Each project ships as its own NuGet package under the MIT license.
   - `OfficeIMO.Word.Pdf` — PDF export for Word
 - Reader:
   - `OfficeIMO.Reader` — unified, read-only extraction facade for AI ingestion (Word/Excel/PowerPoint/Markdown/PDF)
+- Modular reader preview (internal, not published yet):
+  - `OfficeIMO.Zip` — safe ZIP traversal primitives
+  - `OfficeIMO.Epub` — reusable EPUB extraction primitives
+  - `OfficeIMO.Reader.Zip` — ZIP adapter into `ReaderChunk`
+  - `OfficeIMO.Reader.Epub` — EPUB adapter into `ReaderChunk`
+  - `OfficeIMO.Reader.Text` — structured text path (CSV/JSON/XML)
+  - `OfficeIMO.Reader.Html` — HTML adapter (HTML -> Word -> Markdown)
+  - roadmap: `Docs/officeimo.reader.modular-roadmap.md`
 
 ## Targets
 
