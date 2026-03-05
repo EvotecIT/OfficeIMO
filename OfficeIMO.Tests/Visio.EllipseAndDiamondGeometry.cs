@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             XDocument pageDoc = XDocument.Load(pagePart.GetStream());
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
             XElement shape = pageDoc.Root!.Element(ns + "Shapes")!.Elements(ns + "Shape")
-                .First(e => e.Attribute("ID")?.Value == "E1");
+                .First(e => e.Attribute("NameU")?.Value == "Ellipse");
             var geom = shape.Elements(ns + "Section").FirstOrDefault(s => s.Attribute("N")?.Value == "Geometry");
             Assert.NotNull(geom);
             var rows = geom!.Elements(ns + "Row").ToArray();
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
             XDocument pageDoc = XDocument.Load(pagePart.GetStream());
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
             XElement shape = pageDoc.Root!.Element(ns + "Shapes")!.Elements(ns + "Shape")
-                .First(e => e.Attribute("ID")?.Value == "D1");
+                .First(e => e.Attribute("NameU")?.Value == "Diamond");
             var geom = shape.Elements(ns + "Section").FirstOrDefault(s => s.Attribute("N")?.Value == "Geometry");
             Assert.NotNull(geom);
             var rows = geom!.Elements(ns + "Row").ToArray();

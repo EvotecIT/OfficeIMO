@@ -50,6 +50,11 @@ namespace OfficeIMO.Visio {
         public string Id { get; }
 
         /// <summary>
+        /// Identifier stored in the package when different from <see cref="Id"/>.
+        /// </summary>
+        internal string? PersistedId { get; set; }
+
+        /// <summary>
         /// Gets or sets the shape name.
         /// </summary>
         public string? Name { get; set; }
@@ -201,6 +206,51 @@ namespace OfficeIMO.Visio {
             ConnectionPoints.Add(new VisioConnectionPoint(Width,   Height / 2, -1, 0));   // Right
             ConnectionPoints.Add(new VisioConnectionPoint(Width/2, 0,           0, 1));   // Bottom
             ConnectionPoints.Add(new VisioConnectionPoint(Width/2, Height,      0,-1));   // Top
+        }
+
+        internal VisioConnectionPoint EnsureSideConnectionPoint(VisioSide side) {
+            foreach (VisioConnectionPoint point in ConnectionPoints) {
+                if (MatchesSide(point, side)) {
+                    return point;
+                }
+            }
+
+            VisioConnectionPoint created = side switch {
+                VisioSide.Left => new VisioConnectionPoint(0, Height / 2, 1, 0),
+                VisioSide.Right => new VisioConnectionPoint(Width, Height / 2, -1, 0),
+                VisioSide.Bottom => new VisioConnectionPoint(Width / 2, 0, 0, 1),
+                VisioSide.Top => new VisioConnectionPoint(Width / 2, Height, 0, -1),
+                _ => throw new ArgumentOutOfRangeException(nameof(side))
+            };
+            ConnectionPoints.Add(created);
+            return created;
+        }
+
+        private bool MatchesSide(VisioConnectionPoint point, VisioSide side) {
+            const double tolerance = 1e-9;
+            return side switch {
+                VisioSide.Left =>
+                    Math.Abs(point.X) <= tolerance &&
+                    Math.Abs(point.Y - Height / 2) <= tolerance &&
+                    Math.Abs(point.DirX - 1) <= tolerance &&
+                    Math.Abs(point.DirY) <= tolerance,
+                VisioSide.Right =>
+                    Math.Abs(point.X - Width) <= tolerance &&
+                    Math.Abs(point.Y - Height / 2) <= tolerance &&
+                    Math.Abs(point.DirX + 1) <= tolerance &&
+                    Math.Abs(point.DirY) <= tolerance,
+                VisioSide.Bottom =>
+                    Math.Abs(point.X - Width / 2) <= tolerance &&
+                    Math.Abs(point.Y) <= tolerance &&
+                    Math.Abs(point.DirX) <= tolerance &&
+                    Math.Abs(point.DirY - 1) <= tolerance,
+                VisioSide.Top =>
+                    Math.Abs(point.X - Width / 2) <= tolerance &&
+                    Math.Abs(point.Y - Height) <= tolerance &&
+                    Math.Abs(point.DirX) <= tolerance &&
+                    Math.Abs(point.DirY + 1) <= tolerance,
+                _ => false
+            };
         }
 
         /// <summary>

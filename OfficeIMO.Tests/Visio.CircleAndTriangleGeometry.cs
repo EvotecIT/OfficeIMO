@@ -24,10 +24,10 @@ namespace OfficeIMO.Tests {
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
             var shapes = pageDoc.Root!.Element(ns + "Shapes")!.Elements(ns + "Shape").ToArray();
             Assert.Equal(2, shapes.Length);
-            var circleGeom = shapes.First(s => (string?)s.Attribute("ID") == "C1").Elements(ns + "Section").FirstOrDefault(e => (string?)e.Attribute("N") == "Geometry");
+            var circleGeom = shapes.First(s => (string?)s.Attribute("NameU") == "Circle").Elements(ns + "Section").FirstOrDefault(e => (string?)e.Attribute("N") == "Geometry");
             Assert.NotNull(circleGeom);
             Assert.Contains(circleGeom!.Elements(ns + "Row"), r => (string?)r.Attribute("T") == "EllipticalArcTo");
-            var triGeom = shapes.First(s => (string?)s.Attribute("ID") == "T1").Elements(ns + "Section").FirstOrDefault(e => (string?)e.Attribute("N") == "Geometry");
+            var triGeom = shapes.First(s => (string?)s.Attribute("NameU") == "Triangle").Elements(ns + "Section").FirstOrDefault(e => (string?)e.Attribute("N") == "Geometry");
             Assert.NotNull(triGeom);
             Assert.True(triGeom!.Elements(ns + "Row").Count(r => (string?)r.Attribute("T") == "LineTo") >= 3);
         }

@@ -42,5 +42,22 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2d, rtShape2.Width);
             Assert.Equal(3d, rtShape2.Height);
         }
+
+        [Fact]
+        public void MasterBackedShapeRotationRoundTripsInDeltaMode() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            document.UseMastersByDefault = true;
+            document.WriteMasterDeltasOnly = true;
+            VisioPage page = document.AddPage("Page-1");
+            VisioShape shape = page.AddRectangle(2, 2, 2, 1, "Rotated");
+            shape.Angle = Math.PI / 6;
+            document.Save();
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioShape loadedShape = Assert.Single(loaded.Pages[0].Shapes);
+            Assert.Equal(Math.PI / 6, loadedShape.Angle, 5);
+        }
     }
 }

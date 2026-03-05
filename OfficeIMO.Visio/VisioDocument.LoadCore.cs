@@ -90,13 +90,15 @@ namespace OfficeIMO.Visio {
                 } else {
                     page.ViewScale = parsedViewScale;
                 }
-                page.ViewCenterX = ParseDouble(pageRef.Attribute("ViewCenterX")?.Value);
-                page.ViewCenterY = ParseDouble(pageRef.Attribute("ViewCenterY")?.Value);
+                double viewCenterX = ParseDouble(pageRef.Attribute("ViewCenterX")?.Value);
+                double viewCenterY = ParseDouble(pageRef.Attribute("ViewCenterY")?.Value);
 
                 XElement? pageSheet = pageRef.Element(vNs + "PageSheet");
                 VisioMeasurementUnit? detectedScaleUnit = null;
                 VisioScaleSetting? pendingDrawingScale = null;
                 bool pageScaleApplied = false;
+                double? pageWidthInches = null;
+                double? pageHeightInches = null;
                 if (pageSheet != null) {
                     foreach (XElement cell in pageSheet.Elements(vNs + "Cell")) {
                         string? cellName = cell.Attribute("N")?.Value;
@@ -107,10 +109,20 @@ namespace OfficeIMO.Visio {
                                 if (!detectedScaleUnit.HasValue) {
                                     detectedScaleUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, page.ScaleMeasurementUnit);
                                 }
+                                double parsedPageWidth = ParseDouble(valueAttr);
+                                if (!double.IsNaN(parsedPageWidth) && !double.IsInfinity(parsedPageWidth) && parsedPageWidth > 0) {
+                                    VisioMeasurementUnit pageWidthUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, detectedScaleUnit ?? page.ScaleMeasurementUnit);
+                                    pageWidthInches = parsedPageWidth.ToInches(pageWidthUnit);
+                                }
                                 break;
                             case "PageHeight":
                                 if (!detectedScaleUnit.HasValue) {
                                     detectedScaleUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, page.ScaleMeasurementUnit);
+                                }
+                                double parsedPageHeight = ParseDouble(valueAttr);
+                                if (!double.IsNaN(parsedPageHeight) && !double.IsInfinity(parsedPageHeight) && parsedPageHeight > 0) {
+                                    VisioMeasurementUnit pageHeightUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, detectedScaleUnit ?? page.ScaleMeasurementUnit);
+                                    pageHeightInches = parsedPageHeight.ToInches(pageHeightUnit);
                                 }
                                 break;
                             case "PageScale":
@@ -152,6 +164,15 @@ namespace OfficeIMO.Visio {
                     page.ApplyLoadedDrawingScale(pendingDrawingScale.Value);
                 }
 
+                if (pageWidthInches.HasValue && pageWidthInches.Value > 0) {
+                    page.Width = pageWidthInches.Value;
+                }
+                if (pageHeightInches.HasValue && pageHeightInches.Value > 0) {
+                    page.Height = pageHeightInches.Value;
+                }
+                page.ViewCenterX = viewCenterX;
+                page.ViewCenterY = viewCenterY;
+
                 string? relIdValue = pageRef.Element(vNs + "Rel")?.Attribute(relNs + "id")?.Value;
                 if (string.IsNullOrEmpty(relIdValue)) {
                     continue;
@@ -167,8 +188,7 @@ namespace OfficeIMO.Visio {
                 Dictionary<string, VisioShape> shapeMap = new();
                 List<XElement> connectorElements = new();
                 foreach (XElement shapeElement in shapesRoot?.Elements(vNs + "Shape") ?? Enumerable.Empty<XElement>()) {
-                    string? nameU = shapeElement.Attribute("NameU")?.Value;
-                    if (string.Equals(nameU, "Connector", StringComparison.OrdinalIgnoreCase)) {
+                    if (IsConnectorShape(shapeElement, masters)) {
                         connectorElements.Add(shapeElement);
                         continue;
                     }
@@ -180,28 +200,32 @@ namespace OfficeIMO.Visio {
                     RegisterShapeHierarchy(shape, shapeMap);
                 }
 
-                Dictionary<string, (string? fromId, string? toId)> connectionMap = new();
+                Dictionary<string, (string? fromId, string? fromCell, string? toId, string? toCell)> connectionMap = new();
                 foreach (XElement connectElement in pageDoc.Root?.Element(vNs + "Connects")?.Elements(vNs + "Connect") ?? Enumerable.Empty<XElement>()) {
                     string? connectorId = connectElement.Attribute("FromSheet")?.Value;
                     string? fromCell = connectElement.Attribute("FromCell")?.Value;
                     string? toSheet = connectElement.Attribute("ToSheet")?.Value;
+                    string? toCell = connectElement.Attribute("ToCell")?.Value;
                     if (connectorId == null || fromCell == null || toSheet == null) {
                         continue;
                     }
-                    var info = connectionMap.TryGetValue(connectorId, out var existing) ? existing : (null, null);
+                    var info = connectionMap.TryGetValue(connectorId, out var existing) ? existing : (null, null, null, null);
                     if (fromCell == "BeginX") {
                         info.fromId = toSheet;
+                        info.fromCell = toCell;
                     } else if (fromCell == "EndX") {
                         info.toId = toSheet;
+                        info.toCell = toCell;
                     }
                     connectionMap[connectorId] = info;
                 }
 
                 foreach (XElement connectorElement in connectorElements) {
-                    string id = connectorElement.Attribute("ID")?.Value ?? string.Empty;
-                    if (!connectionMap.TryGetValue(id, out var ids) || ids.fromId == null || ids.toId == null) {
+                    string persistedId = connectorElement.Attribute("ID")?.Value ?? string.Empty;
+                    if (!connectionMap.TryGetValue(persistedId, out var ids) || ids.fromId == null || ids.toId == null) {
                         continue;
                     }
+                    string id = GetOriginalId(connectorElement, vNs) ?? persistedId;
                     string fromId = ids.fromId!;
                     string toId = ids.toId!;
                     if (!shapeMap.TryGetValue(fromId, out VisioShape? fromShape) || !shapeMap.TryGetValue(toId, out VisioShape? toShape)) {
@@ -243,6 +267,8 @@ namespace OfficeIMO.Visio {
                         connector.Kind = ConnectorKind.Dynamic;
                     }
 
+                    connector.FromConnectionPoint = ResolveConnectionPoint(fromShape, ids.fromCell);
+                    connector.ToConnectionPoint = ResolveConnectionPoint(toShape, ids.toCell);
                     connector.Label = connectorElement.Element(vNs + "Text")?.Value;
                     page.Connectors.Add(connector);
                 }
@@ -274,13 +300,15 @@ namespace OfficeIMO.Visio {
         }
 
         private static VisioShape ParseShapeBasics(XElement shapeElement, XNamespace ns) {
-            string id = shapeElement.Attribute("ID")?.Value ?? string.Empty;
+            string persistedId = shapeElement.Attribute("ID")?.Value ?? string.Empty;
+            string id = GetOriginalId(shapeElement, ns) ?? persistedId;
             VisioShape shape = new(id) {
                 Name = shapeElement.Attribute("Name")?.Value,
                 NameU = shapeElement.Attribute("NameU")?.Value,
                 Text = shapeElement.Element(ns + "Text")?.Value
             };
 
+            shape.PersistedId = persistedId;
             shape.Type = shapeElement.Attribute("Type")?.Value;
             shape.MasterShapeId = shapeElement.Attribute("MasterShape")?.Value;
 
@@ -462,12 +490,26 @@ namespace OfficeIMO.Visio {
                     string? key = row.Attribute("N")?.Value;
                     XElement? valueCell = row.Elements(ns + "Cell").FirstOrDefault(c => c.Attribute("N")?.Value == "Value");
                     string? value = valueCell?.Attribute("V")?.Value;
-                    if (!string.IsNullOrEmpty(key) && value != null) {
+                    if (!string.IsNullOrEmpty(key) && value != null && !string.Equals(key, OriginalIdPropName, StringComparison.Ordinal)) {
                         string keyNonNull = key!;
                         shape.Data[keyNonNull] = value;
                     }
                 }
             }
+        }
+
+        private static string? GetOriginalId(XElement shapeElement, XNamespace ns) {
+            XElement? propSection = shapeElement.Elements(ns + "Section")
+                .FirstOrDefault(e => e.Attribute("N")?.Value == "Prop");
+            if (propSection == null) {
+                return null;
+            }
+
+            XElement? originalIdRow = propSection.Elements(ns + "Row")
+                .FirstOrDefault(row => string.Equals(row.Attribute("N")?.Value, OriginalIdPropName, StringComparison.Ordinal));
+            return originalIdRow?.Elements(ns + "Cell")
+                .FirstOrDefault(c => c.Attribute("N")?.Value == "Value")
+                ?.Attribute("V")?.Value;
         }
 
         private static void ParseChildShapes(VisioShape shape, XElement shapeElement, XNamespace ns, int depth) {
@@ -533,9 +575,49 @@ namespace OfficeIMO.Visio {
 
         private static void RegisterShapeHierarchy(VisioShape shape, Dictionary<string, VisioShape> shapeMap) {
             shapeMap[shape.Id] = shape;
+            if (!string.IsNullOrEmpty(shape.PersistedId)) {
+                shapeMap[shape.PersistedId!] = shape;
+            }
             foreach (VisioShape child in shape.Children) {
                 RegisterShapeHierarchy(child, shapeMap);
             }
+        }
+
+        private static bool IsConnectorShape(XElement shapeElement, IReadOnlyDictionary<string, VisioMaster> masters) {
+            string? nameU = shapeElement.Attribute("NameU")?.Value;
+            if (string.Equals(nameU, "Connector", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(nameU, "Dynamic connector", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+
+            string? masterId = shapeElement.Attribute("Master")?.Value;
+            if (!string.IsNullOrEmpty(masterId) &&
+                masters.TryGetValue(masterId!, out VisioMaster? master) &&
+                string.Equals(master.NameU, "Dynamic connector", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+            
+            return false;
+        }
+
+        private static VisioConnectionPoint? ResolveConnectionPoint(VisioShape shape, string? connectionCell) {
+            if (string.IsNullOrWhiteSpace(connectionCell) || string.Equals(connectionCell, "PinX", StringComparison.OrdinalIgnoreCase)) {
+                return null;
+            }
+
+            const string prefix = "Connections.X";
+            string resolvedConnectionCell = connectionCell!;
+            if (!resolvedConnectionCell.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) {
+                return null;
+            }
+
+            string suffix = resolvedConnectionCell.Substring(prefix.Length);
+            if (!int.TryParse(suffix, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index)) {
+                return null;
+            }
+
+            index -= 1;
+            return index >= 0 && index < shape.ConnectionPoints.Count ? shape.ConnectionPoints[index] : null;
         }
     }
 }

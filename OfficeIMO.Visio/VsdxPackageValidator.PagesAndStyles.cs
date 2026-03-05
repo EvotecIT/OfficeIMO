@@ -161,7 +161,7 @@ namespace OfficeIMO.Visio {
                             new XAttribute("FillStyle", 0),
                             new XAttribute("TextStyle", 0)),
                         new XElement(nsCore + "Rel",
-                            new XAttribute(nsPkgRel + "id", "rId1")))));
+                            new XAttribute(nsDocRel + "id", "rId1")))));
             SaveXml(doc, path);
         }
 

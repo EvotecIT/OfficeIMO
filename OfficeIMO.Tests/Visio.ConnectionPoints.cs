@@ -55,5 +55,35 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Connections.X1", connectRows[0].Attribute("ToCell")?.Value);
             Assert.Equal("Connections.X1", connectRows[1].Attribute("ToCell")?.Value);
         }
+
+        [Fact]
+        public void ConnectionPointGlueRoundTripsThroughLoad() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Page-1");
+
+            VisioShape from = new("1", 2, 2, 2, 2, "From");
+            from.ConnectionPoints.Add(new VisioConnectionPoint(2, 1, 1, 0));
+            page.Shapes.Add(from);
+
+            VisioShape to = new("2", 6, 2, 2, 2, "To");
+            to.ConnectionPoints.Add(new VisioConnectionPoint(0, 1, -1, 0));
+            page.Shapes.Add(to);
+
+            VisioConnector connector = new(from, to) {
+                FromConnectionPoint = from.ConnectionPoints[0],
+                ToConnectionPoint = to.ConnectionPoints[0]
+            };
+            page.Connectors.Add(connector);
+            document.Save();
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioConnector loadedConnector = Assert.Single(loaded.Pages[0].Connectors);
+            Assert.NotNull(loadedConnector.FromConnectionPoint);
+            Assert.NotNull(loadedConnector.ToConnectionPoint);
+            Assert.Same(loaded.Pages[0].Shapes[0].ConnectionPoints[0], loadedConnector.FromConnectionPoint);
+            Assert.Same(loaded.Pages[0].Shapes[1].ConnectionPoints[0], loadedConnector.ToConnectionPoint);
+        }
     }
 }

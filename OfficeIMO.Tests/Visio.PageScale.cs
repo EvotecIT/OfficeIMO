@@ -111,6 +111,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CustomPageSizeAndDefaultUnitPersistAcrossSaveAndLoad() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Metric", 10, 15, VisioMeasurementUnit.Centimeters);
+            document.Save();
+
+            VisioDocument reloaded = VisioDocument.Load(filePath);
+            VisioPage reloadedPage = reloaded.Pages[0];
+
+            Assert.Equal(VisioMeasurementUnit.Centimeters, reloadedPage.DefaultUnit);
+            Assert.Equal(10, reloadedPage.WidthCentimeters, 5);
+            Assert.Equal(15, reloadedPage.HeightCentimeters, 5);
+        }
+
+        [Fact]
         public void ChangingScaleMeasurementUnitConvertsMatchingOverrides() {
             VisioPage page = new("Demo");
             page.ScaleMeasurementUnit = VisioMeasurementUnit.Centimeters;

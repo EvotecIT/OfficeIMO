@@ -33,14 +33,26 @@ namespace OfficeIMO.Tests {
             // First four are 2D shapes
             foreach (var s in shapes.Take(4)) {
                 Assert.NotNull(s.Attribute("Master"));
-                // Minimal delta: allow PinX/PinY, maybe Width/Height if size differs; no explicit Geometry
-                Assert.Null(s.Element(ns + "Section"));
+                // Minimal delta: allow PinX/PinY, maybe Width/Height if size differs,
+                // and a single reserved Prop row when the public shape id is non-numeric.
+                var sections = s.Elements(ns + "Section").ToList();
+                Assert.DoesNotContain(sections, section => (string?)section.Attribute("N") == "Geometry");
+                foreach (var section in sections) {
+                    Assert.Equal("Prop", (string?)section.Attribute("N"));
+                    var rows = section.Elements(ns + "Row").ToList();
+                    Assert.Single(rows);
+                    Assert.Equal("OfficeIMOOriginalId", (string?)rows[0].Attribute("N"));
+                }
             }
             // Last ones are connectors; dynamic has Master, others don't
             var dyn = shapes.Last();
             Assert.Equal("Dynamic connector", (string?)dyn.Attribute("NameU"));
             Assert.NotNull(dyn.Attribute("Master"));
             Assert.NotNull(dyn.Element(ns + "XForm1D"));
+
+            var reloaded = VisioDocument.Load(target);
+            Assert.Equal(new[] { "R1", "S1", "C1", "D1" }, reloaded.Pages[0].Shapes.Select(shape => shape.Id));
+            Assert.Single(reloaded.Pages[0].Connectors);
         }
     }
 }

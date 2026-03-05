@@ -33,48 +33,42 @@ namespace OfficeIMO.Visio.Fluent {
 
         /// <summary>Adds a rectangle shape with inline geometry.</summary>
         public VisioFluentPage Rect(string id, double x, double y, double width, double height, string? text = null) {
-            var shape = new VisioShape(id, x, y, width, height, text ?? string.Empty) { NameU = "Rectangle" };
-            _page.Shapes.Add(shape);
+            var shape = CreateShape(id, "Rectangle", x, y, width, height, text);
             _byId[id] = shape;
             return this;
         }
 
         /// <summary>Adds a square shape (width = height = size).</summary>
         public VisioFluentPage Square(string id, double x, double y, double size, string? text = null) {
-            var shape = new VisioShape(id, x, y, size, size, text ?? string.Empty) { NameU = "Square" };
-            _page.Shapes.Add(shape);
+            var shape = CreateShape(id, "Square", x, y, size, size, text);
             _byId[id] = shape;
             return this;
         }
 
         /// <summary>Adds an ellipse shape with explicit width/height.</summary>
         public VisioFluentPage Ellipse(string id, double x, double y, double width, double height, string? text = null) {
-            var shape = new VisioShape(id, x, y, width, height, text ?? string.Empty) { NameU = "Ellipse" };
-            _page.Shapes.Add(shape);
+            var shape = CreateShape(id, "Ellipse", x, y, width, height, text);
             _byId[id] = shape;
             return this;
         }
 
         /// <summary>Adds a diamond (rhombus) shape.</summary>
         public VisioFluentPage Diamond(string id, double x, double y, double width, double height, string? text = null) {
-            var shape = new VisioShape(id, x, y, width, height, text ?? string.Empty) { NameU = "Diamond" };
-            _page.Shapes.Add(shape);
+            var shape = CreateShape(id, "Diamond", x, y, width, height, text);
             _byId[id] = shape;
             return this;
         }
 
         /// <summary>Adds a circle by diameter.</summary>
         public VisioFluentPage Circle(string id, double x, double y, double diameter, string? text = null) {
-            var shape = new VisioShape(id, x, y, diameter, diameter, text ?? string.Empty) { NameU = "Circle" };
-            _page.Shapes.Add(shape);
+            var shape = CreateShape(id, "Circle", x, y, diameter, diameter, text);
             _byId[id] = shape;
             return this;
         }
 
         /// <summary>Adds an isosceles triangle with explicit width and height.</summary>
         public VisioFluentPage Triangle(string id, double x, double y, double width, double height, string? text = null) {
-            var shape = new VisioShape(id, x, y, width, height, text ?? string.Empty) { NameU = "Triangle" };
-            _page.Shapes.Add(shape);
+            var shape = CreateShape(id, "Triangle", x, y, width, height, text);
             _byId[id] = shape;
             return this;
         }
@@ -96,7 +90,30 @@ namespace OfficeIMO.Visio.Fluent {
             return this;
         }
 
+        /// <summary>Connects two shapes by id and preselects connector sides.</summary>
+        public VisioFluentPage Connect(string fromId, string toId, VisioSide fromSide, VisioSide toSide, Action<VisioFluentConnector>? configure = null) {
+            if (!_byId.TryGetValue(fromId, out var from)) throw new ArgumentException($"Unknown shape id '{fromId}'", nameof(fromId));
+            if (!_byId.TryGetValue(toId, out var to)) throw new ArgumentException($"Unknown shape id '{toId}'", nameof(toId));
+            var conn = new VisioConnector(from, to);
+            _page.Connectors.Add(conn);
+            var builder = new VisioFluentConnector(conn).Sides(fromSide, toSide);
+            configure?.Invoke(builder);
+            return this;
+        }
+
         /// <summary>Returns to the document-level fluent builder for chaining.</summary>
         public VisioFluentDocument EndPage() => _fluent;
+
+        private VisioShape CreateShape(string id, string nameU, double x, double y, double width, double height, string? text) {
+            VisioMeasurementUnit unit = _page.DefaultUnit;
+            x = x.ToInches(unit);
+            y = y.ToInches(unit);
+            width = width.ToInches(unit);
+            height = height.ToInches(unit);
+
+            var shape = new VisioShape(id, x, y, width, height, text ?? string.Empty) { NameU = nameU };
+            _page.Shapes.Add(shape);
+            return shape;
+        }
     }
 }
