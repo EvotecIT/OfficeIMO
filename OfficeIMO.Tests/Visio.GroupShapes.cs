@@ -39,6 +39,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GroupedShapesSurviveLoadSaveRoundTrip() {
+            string template = Path.Combine(AssetsPath, "VisioTemplates", "DrawingWithJenkinsDiagram.vsdx");
+            string output = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Load(template);
+            document.Save(output);
+            VisioDocument reloaded = VisioDocument.Load(output);
+
+            VisioShape? groupShape = reloaded.Pages
+                .SelectMany(page => page.Shapes)
+                .FirstOrDefault(shape => string.Equals(shape.Type, "Group", StringComparison.OrdinalIgnoreCase) || shape.Children.Count > 0);
+
+            Assert.NotNull(groupShape);
+            Assert.NotEmpty(groupShape!.Children);
+        }
+
+        [Fact]
         public void ParseGroupWithoutChildren_AllowsEmptyGroups() {
             XElement groupElement = new XElement(VisioNs + "Shape",
                 new XAttribute("ID", "1"),

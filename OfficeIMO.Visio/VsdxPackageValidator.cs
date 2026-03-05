@@ -90,6 +90,12 @@ namespace OfficeIMO.Visio {
             var tempPath = ExtractToTemp(inputPath);
             try {
                 ValidateAndFix(tempPath);
+                _errors.Clear();
+                _warnings.Clear();
+                ValidatePackageStructure(tempPath);
+                if (_errors.Count > 0) {
+                    return false;
+                }
 
                 if (File.Exists(outputPath)) {
                     File.Delete(outputPath);
@@ -301,72 +307,90 @@ namespace OfficeIMO.Visio {
             if (!string.IsNullOrEmpty(outDir) && !Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
             if (File.Exists(outputPath)) File.Delete(outputPath);
 
-            using ZipArchive src = ZipFile.OpenRead(inputPath);
-            using ZipArchive dst = ZipFile.Open(outputPath, ZipArchiveMode.Create);
-
-            // Copy all entries except those we will recreate
-            var skip = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
-                "[Content_Types].xml",
-                "_rels/.rels",
-                "visio/_rels/document.xml.rels",
-                "visio/pages/_rels/pages.xml.rels",
-            };
-            foreach (var e in src.Entries) {
-                string name = e.FullName.Replace('\\', '/');
-                if (skip.Contains(name)) continue;
-                var ne = dst.CreateEntry(name, CompressionLevel.Optimal);
-                using var s = e.Open();
-                using var t = ne.Open();
-                s.CopyTo(t);
-            }
-
-            // Build and write [Content_Types].xml
-            var ct = BuildOrUpdateContentTypes(src);
-            SaveZipXml(dst, "[Content_Types].xml", ct);
-            _fixes.Add("Updated [Content_Types].xml");
-
-            // _rels/.rels with a single document relationship
-            XNamespace relNs = nsPkgRel;
-            var pkgRels = new XDocument(new XElement(relNs + "Relationships",
-                new XElement(relNs + "Relationship",
-                    new XAttribute("Id", "rIdDoc"),
-                    new XAttribute("Type", RT_Document),
-                    new XAttribute("Target", "visio/document.xml"))));
-            SaveZipXml(dst, "_rels/.rels", pkgRels);
-            _fixes.Add("Rebuilt /_rels/.rels");
-
-            // visio/_rels/document.xml.rels -> pages
-            var docRels = new XDocument(new XElement(relNs + "Relationships",
-                new XElement(relNs + "Relationship",
-                    new XAttribute("Id", "rIdPages"),
-                    new XAttribute("Type", RT_Pages),
-                    new XAttribute("Target", "pages/pages.xml"))));
-            SaveZipXml(dst, "visio/_rels/document.xml.rels", docRels);
-            _fixes.Add("Rebuilt /visio/_rels/document.xml.rels");
-
-            // visio/pages/_rels/pages.xml.rels -> enumerate page parts
-            var pages = new List<string>();
-            foreach (var e in src.Entries) {
-                string n = e.FullName.Replace('\\', '/');
-                if (n.StartsWith("visio/pages/", StringComparison.OrdinalIgnoreCase)
-                    && n.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)
-                    && !n.EndsWith("pages.xml", StringComparison.OrdinalIgnoreCase)
-                    && n.IndexOf("/_rels/", StringComparison.Ordinal) < 0) {
-                    pages.Add(n.Substring("visio/pages/".Length));
+            using (ZipArchive src = ZipFile.OpenRead(inputPath))
+            using (ZipArchive dst = ZipFile.Open(outputPath, ZipArchiveMode.Create)) {
+                // Copy all entries except those we will recreate
+                var skip = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+                    "[Content_Types].xml",
+                    "_rels/.rels",
+                    "visio/_rels/document.xml.rels",
+                    "visio/pages/_rels/pages.xml.rels",
+                };
+                foreach (var e in src.Entries) {
+                    string name = e.FullName.Replace('\\', '/');
+                    if (skip.Contains(name)) continue;
+                    var ne = dst.CreateEntry(name, CompressionLevel.Optimal);
+                    using var s = e.Open();
+                    using var t = ne.Open();
+                    s.CopyTo(t);
                 }
-            }
-            pages.Sort(StringComparer.OrdinalIgnoreCase);
 
-            var relsRoot = new XElement(relNs + "Relationships");
-            for (int i = 0; i < pages.Count; i++) {
-                relsRoot.Add(new XElement(relNs + "Relationship",
-                    new XAttribute("Id", $"rId{i + 1}"),
-                    new XAttribute("Type", RT_Page),
-                    new XAttribute("Target", pages[i])));
+                // Build and write [Content_Types].xml
+                var ct = BuildOrUpdateContentTypes(src);
+                SaveZipXml(dst, "[Content_Types].xml", ct);
+                _fixes.Add("Updated [Content_Types].xml");
+
+                // _rels/.rels with a single document relationship
+                XNamespace relNs = nsPkgRel;
+                var pkgRels = new XDocument(new XElement(relNs + "Relationships",
+                    new XElement(relNs + "Relationship",
+                        new XAttribute("Id", "rIdDoc"),
+                        new XAttribute("Type", RT_Document),
+                        new XAttribute("Target", "visio/document.xml"))));
+                SaveZipXml(dst, "_rels/.rels", pkgRels);
+                _fixes.Add("Rebuilt /_rels/.rels");
+
+                // visio/_rels/document.xml.rels -> preserve non-page relationships and ensure pages exist
+                var sourceDocRels = LoadZipXml(src, "visio/_rels/document.xml.rels");
+                var docRelsRoot = new XElement(relNs + "Relationships");
+                string pagesRelationshipId = "rIdPages";
+                if (sourceDocRels?.Root != null) {
+                    foreach (var rel in sourceDocRels.Root.Elements(relNs + "Relationship")) {
+                        string? type = (string?)rel.Attribute("Type");
+                        if (string.Equals(type, RT_Pages, StringComparison.Ordinal)) {
+                            pagesRelationshipId = (string?)rel.Attribute("Id") ?? pagesRelationshipId;
+                            continue;
+                        }
+
+                        docRelsRoot.Add(new XElement(rel));
+                    }
+                }
+                if (docRelsRoot.Elements(relNs + "Relationship")
+                    .Any(r => string.Equals((string?)r.Attribute("Id"), pagesRelationshipId, StringComparison.Ordinal))) {
+                    pagesRelationshipId = "rIdPages";
+                }
+                docRelsRoot.Add(new XElement(relNs + "Relationship",
+                    new XAttribute("Id", pagesRelationshipId),
+                    new XAttribute("Type", RT_Pages),
+                    new XAttribute("Target", "pages/pages.xml")));
+                var docRels = new XDocument(docRelsRoot);
+                SaveZipXml(dst, "visio/_rels/document.xml.rels", docRels);
+                _fixes.Add("Rebuilt /visio/_rels/document.xml.rels");
+
+                // visio/pages/_rels/pages.xml.rels -> enumerate page parts
+                var pages = new List<string>();
+                foreach (var e in src.Entries) {
+                    string n = e.FullName.Replace('\\', '/');
+                    if (n.StartsWith("visio/pages/", StringComparison.OrdinalIgnoreCase)
+                        && n.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)
+                        && !n.EndsWith("pages.xml", StringComparison.OrdinalIgnoreCase)
+                        && n.IndexOf("/_rels/", StringComparison.Ordinal) < 0) {
+                        pages.Add(n.Substring("visio/pages/".Length));
+                    }
+                }
+                pages.Sort(StringComparer.OrdinalIgnoreCase);
+
+                var relsRoot = new XElement(relNs + "Relationships");
+                for (int i = 0; i < pages.Count; i++) {
+                    relsRoot.Add(new XElement(relNs + "Relationship",
+                        new XAttribute("Id", $"rId{i + 1}"),
+                        new XAttribute("Type", RT_Page),
+                        new XAttribute("Target", pages[i])));
+                }
+                var pagesRels = new XDocument(relsRoot);
+                SaveZipXml(dst, "visio/pages/_rels/pages.xml.rels", pagesRels);
+                _fixes.Add("Rebuilt /visio/pages/_rels/pages.xml.rels");
             }
-            var pagesRels = new XDocument(relsRoot);
-            SaveZipXml(dst, "visio/pages/_rels/pages.xml.rels", pagesRels);
-            _fixes.Add("Rebuilt /visio/pages/_rels/pages.xml.rels");
 
             // Run streaming validation on the output
             return ValidateFileStreaming(outputPath);

@@ -37,6 +37,26 @@ namespace OfficeIMO.Tests {
             Assert.Contains(relsXml.Root!.Elements(pr + "Relationship"), e => ((string?)e.Attribute("Type"))?.EndsWith("/master") == true);
         }
 
+        [Fact]
+        public void DynamicConnectorRoundTripsWhenUsingMastersByDefault() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            var doc = VisioDocument.Create(filePath);
+            doc.UseMastersByDefault = true;
+            var page = doc.AddPage("Page-1", 8.5, 11);
+            var s1 = page.AddRectangle(1, 1, 1.5, 1, "A");
+            var s2 = page.AddRectangle(4, 1, 1.5, 1, "B");
+            page.AddConnector(s1, s2, ConnectorKind.Dynamic);
+            doc.Save();
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioPage loadedPage = loaded.Pages[0];
+
+            Assert.Equal(2, loadedPage.Shapes.Count);
+            VisioConnector connector = Assert.Single(loadedPage.Connectors);
+            Assert.Equal(ConnectorKind.Dynamic, connector.Kind);
+        }
+
         private static XDocument LoadXml(ZipArchive zip, string path) {
             var e = zip.GetEntry(path);
             Assert.NotNull(e);

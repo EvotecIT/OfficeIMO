@@ -2,8 +2,8 @@
 
 OfficeIMO.Visio provides helpers for creating and editing .vsdx drawings with Open XML.
 
-- Targets: netstandard2.0, net472, net8.0, net9.0
-- License: TBD (not MIT yet)
+- Targets: netstandard2.0, net472 (Windows), net8.0, net10.0
+- License: MIT
 - NuGet: `OfficeIMO.Visio`
 - Dependencies: SixLabors.ImageSharp, System.IO.Packaging (Windows), Microsoft.Bcl.AsyncInterfaces (net472)
 
@@ -23,11 +23,13 @@ var vsd = VisioDocument.Create("diagram.vsdx");
 vsd.AsFluent()
    .Info(i => i.Title("Demo").Author("You"))
    .Page("Page-1", p => p
-       .Rect("S1", 1, 1, 2, 1, "Start")
-       .Diamond("D1", 4, 1.5, 2, 2, "Decision")
-       .Ellipse("E1", 7, 1.5, 2, 1, "End")
-       .Connect("S1", "D1", c => c.RightAngle().ArrowEnd(EndArrow.Triangle))
-       .Connect("D1", "E1", c => c.RightAngle().ArrowEnd(EndArrow.Triangle).Label("Yes")))
+       .Rect("start", 1, 1, 2, 1, "Start")
+       .Diamond("decision", 4, 1.5, 2, 2, "Decision")
+       .Ellipse("end", 7, 1.5, 2, 1, "End")
+       .Connect("start", "decision", VisioSide.Right, VisioSide.Left,
+           c => c.RightAngle().ArrowEnd(EndArrow.Triangle))
+       .Connect("decision", "end", VisioSide.Right, VisioSide.Left,
+           c => c.RightAngle().ArrowEnd(EndArrow.Triangle).Label("Yes")))
    .End();
 vsd.Save();
 ```
@@ -44,7 +46,7 @@ See `OfficeIMO.Examples/Visio/*` for more.
 
 Pages now remember a `DefaultUnit` (inches by default). When you create a page
 with centimeters or millimeters, shape-adding overloads use that unit implicitly,
-so you don't need helper conversions:
+and the fluent shape builders follow that page unit as well, so you don't need helper conversions:
 
 ```
 var page = doc.AddPage("A4 landscape", 29.7, 21.0, VisioMeasurementUnit.Centimeters);

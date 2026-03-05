@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.IO.Packaging;
 using System.Linq;
@@ -374,11 +375,13 @@ namespace OfficeIMO.Visio {
                         writer.WriteAttributeString("FillStyle", "0");
                         writer.WriteAttributeString("TextStyle", "0");
 
-                        bool useUnits = page.Width != 8.26771653543307 || page.Height != 11.69291338582677;
+                        bool useUnits = page.DefaultUnit != VisioMeasurementUnit.Inches ||
+                                        page.Width != 8.26771653543307 ||
+                                        page.Height != 11.69291338582677;
                         if (useUnits) {
-                            // Match asset semantics: write inch values but mark as MM for page size and shadow offsets
-                            WritePageCell(writer, ns, "PageWidth", page.Width, "MM");
-                            WritePageCell(writer, ns, "PageHeight", page.Height, "MM");
+                            string pageUnitCode = page.DefaultUnit.ToVisioUnitCode();
+                            WritePageCell(writer, ns, "PageWidth", page.Width.FromInches(page.DefaultUnit), pageUnitCode);
+                            WritePageCell(writer, ns, "PageHeight", page.Height.FromInches(page.DefaultUnit), pageUnitCode);
                             WritePageCell(writer, ns, "ShdwOffsetX", 0.1181102362204724, "MM");
                             WritePageCell(writer, ns, "ShdwOffsetY", -0.1181102362204724, "MM");
                         } else {
@@ -442,6 +445,7 @@ namespace OfficeIMO.Visio {
 
                 foreach ((VisioPage page, PackagePart pagePart, _) in pageParts) {
                     using (XmlWriter writer = XmlWriter.Create(pagePart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
+                        Dictionary<string, string> persistedIds = BuildPersistedIdMap(page);
                         writer.WriteStartDocument();
                         writer.WriteStartElement("PageContents", ns);
                         writer.WriteAttributeString("xmlns", "r", null, "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
@@ -450,123 +454,12 @@ namespace OfficeIMO.Visio {
                             writer.WriteStartElement("Shapes", ns);
 
                             foreach (VisioShape shape in page.Shapes) {
-                                writer.WriteStartElement("Shape", ns);
-                                writer.WriteAttributeString("ID", shape.Id);
-                                string shapeName = shape.Name ?? shape.NameU ?? $"Shape{shape.Id}";
-                                writer.WriteAttributeString("Name", shapeName);
-                                writer.WriteAttributeString("NameU", shape.NameU ?? shape.Master?.NameU ?? shapeName);
-                                writer.WriteAttributeString("Type", "Shape");
-                                // Always include explicit style attributes to maximize compatibility across Visio versions
-                                writer.WriteAttributeString("LineStyle", "0");
-                                writer.WriteAttributeString("FillStyle", "0");
-                                writer.WriteAttributeString("TextStyle", "0");
-                                if (shape.Master != null) {
-                                    writer.WriteAttributeString("Master", shape.Master.Id);
-                                    if (WriteMasterDeltasOnly) {
-                                        // Compare instance size to master to decide whether to emit XForm cells
-                                        double mW = shape.Master.Shape.Width > 0 ? shape.Master.Shape.Width : 1;
-                                        double mH = shape.Master.Shape.Height > 0 ? shape.Master.Shape.Height : 1;
-                                        bool hasW = shape.Width > 0;
-                                        bool hasH = shape.Height > 0;
-                                        bool sizeDiffers = (hasW && Math.Abs(shape.Width - mW) > 1e-12) || (hasH && Math.Abs(shape.Height - mH) > 1e-12);
-
-                                        if (sizeDiffers) {
-                                            double w = hasW ? shape.Width : mW;
-                                            double h = hasH ? shape.Height : mH;
-                                            if (Math.Abs(shape.LocPinX) < double.Epsilon) shape.LocPinX = w / 2;
-                                            if (Math.Abs(shape.LocPinY) < double.Epsilon) shape.LocPinY = h / 2;
-                                            WriteXForm(writer, ns, shape, w, h);
-                                        } else {
-                                            // Minimal pins only when identical to master
-                                            WriteCell(writer, ns, "PinX", shape.PinX);
-                                            WriteCell(writer, ns, "PinY", shape.PinY);
-                                        }
-                                        // Deltas for instances: ensure 2D semantics and allow style overrides
-                                        WriteCell(writer, ns, "ObjType", 1);
-                                        // Respect explicit styling if provided (so examples do not look blank)
-                                        WriteCell(writer, ns, "LineWeight", shape.LineWeight);
-                                        WriteCell(writer, ns, "LinePattern", shape.LinePattern);
-                                        WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
-                                        WriteCell(writer, ns, "FillPattern", shape.FillPattern);
-                                        WriteCellValue(writer, ns, "FillForegnd", shape.FillColor.ToVisioHex());
-                                        WriteConnectionSection(writer, ns, shape.ConnectionPoints);
-                                        WriteDataSection(writer, ns, shape.Data);
-                                        WriteTextElement(writer, ns, shape.Text);
-                                    } else {
-                                        double width = shape.Width;
-                                        if (width <= 0 && shape.Master.Shape.Width > 0) {
-                                            width = shape.Master.Shape.Width;
-                                        }
-                                        if (width <= 0) {
-                                            width = 1;
-                                        }
-                                        double height = shape.Height;
-                                        if (height <= 0 && shape.Master.Shape.Height > 0) {
-                                            height = shape.Master.Shape.Height;
-                                        }
-                                        if (height <= 0) {
-                                            height = 1;
-                                        }
-                                        shape.Width = width;
-                                        shape.Height = height;
-                                        if (Math.Abs(shape.LocPinX) < double.Epsilon) {
-                                            shape.LocPinX = width / 2;
-                                        }
-                                        if (Math.Abs(shape.LocPinY) < double.Epsilon) {
-                                            shape.LocPinY = height / 2;
-                                        }
-                                        WriteXForm(writer, ns, shape, width, height);
-                                        // Include styles when not in delta mode
-                                        WriteCell(writer, ns, "LineWeight", shape.LineWeight);
-                                        WriteCell(writer, ns, "LinePattern", shape.LinePattern);
-                                        WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
-                                        WriteCell(writer, ns, "FillPattern", shape.FillPattern);
-                                        WriteCellValue(writer, ns, "FillForegnd", shape.FillColor.ToVisioHex());
-                                        // Do NOT duplicate geometry when a master is present; rely on the master for shape outline.
-                                        WriteConnectionSection(writer, ns, shape.ConnectionPoints);
-                                        WriteDataSection(writer, ns, shape.Data);
-                                        WriteTextElement(writer, ns, shape.Text);
-                                    }
-                                } else {
-                                    double width = shape.Width > 0 ? shape.Width : 1;
-                                    double height = shape.Height > 0 ? shape.Height : 1;
-                                    shape.Width = width;
-                                    shape.Height = height;
-                                    if (Math.Abs(shape.LocPinX) < double.Epsilon) {
-                                        shape.LocPinX = width / 2;
-                                    }
-                                    if (Math.Abs(shape.LocPinY) < double.Epsilon) {
-                                        shape.LocPinY = height / 2;
-                                    }
-                                    WriteXForm(writer, ns, shape, width, height);
-                                    // Always include line weight to avoid invisible shapes
-                                    WriteCell(writer, ns, "LineWeight", shape.LineWeight);
-                                    WriteCell(writer, ns, "LinePattern", shape.LinePattern);
-                                    WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
-                                    WriteCell(writer, ns, "FillPattern", shape.FillPattern);
-                                    WriteCellValue(writer, ns, "FillForegnd", shape.FillColor.ToVisioHex());
-                                    // Mark as 2D object for compatibility across Visio versions
-                                    WriteCell(writer, ns, "ObjType", 1);
-                                    string? kind = shape.NameU?.Trim();
-                                    if (string.Equals(kind, "Ellipse", StringComparison.OrdinalIgnoreCase) || string.Equals(kind, "Circle", StringComparison.OrdinalIgnoreCase)) {
-                                        WriteEllipseGeometry(writer, ns, width, height);
-                                    } else if (string.Equals(kind, "Diamond", StringComparison.OrdinalIgnoreCase)) {
-                                        WriteDiamondGeometry(writer, ns, width, height);
-                                    } else if (string.Equals(kind, "Triangle", StringComparison.OrdinalIgnoreCase)) {
-                                        WriteTriangleGeometry(writer, ns, width, height);
-                                    } else {
-                                        WriteRectangleGeometry(writer, ns, width, height);
-                                    }
-                                    WriteConnectionSection(writer, ns, shape.ConnectionPoints);
-                                    WriteDataSection(writer, ns, shape.Data);
-                                    WriteTextElement(writer, ns, shape.Text);
-                                }
-                                writer.WriteEndElement();
+                                WriteShapeElement(writer, ns, shape, persistedIds);
                             }
 
                             foreach (VisioConnector connector in page.Connectors) {
                                 writer.WriteStartElement("Shape", ns);
-                                writer.WriteAttributeString("ID", connector.Id);
+                                writer.WriteAttributeString("ID", GetPersistedId(persistedIds, connector.Id));
                                 bool isDynamic = connector.Kind == ConnectorKind.Dynamic;
                                 string connName = (isDynamic && UseMastersByDefault) ? "Dynamic connector" : "Connector";
                                 writer.WriteAttributeString("Name", connName);
@@ -657,6 +550,8 @@ namespace OfficeIMO.Visio {
                                     writer.WriteEndElement();
                                 }
 
+                                KeyValuePair<string, string>? connectorOriginalId = GetOriginalIdEntry(persistedIds, connector.Id);
+                                WriteDataSection(writer, ns, new Dictionary<string, string>(), connectorOriginalId);
                                 WriteTextElement(writer, ns, connector.Label);
                                 writer.WriteEndElement();
                             }
@@ -667,15 +562,15 @@ namespace OfficeIMO.Visio {
                                 writer.WriteStartElement("Connects", ns);
                                 foreach (VisioConnector connector in page.Connectors) {
                                     writer.WriteStartElement("Connect", ns);
-                                    writer.WriteAttributeString("FromSheet", connector.Id);
+                                    writer.WriteAttributeString("FromSheet", GetPersistedId(persistedIds, connector.Id));
                                     writer.WriteAttributeString("FromCell", "BeginX");
-                                    writer.WriteAttributeString("ToSheet", connector.From.Id);
+                                    writer.WriteAttributeString("ToSheet", GetPersistedId(persistedIds, connector.From.Id));
                                     writer.WriteAttributeString("ToCell", GetConnectionCell(connector.From, connector.FromConnectionPoint));
                                     writer.WriteEndElement();
                                     writer.WriteStartElement("Connect", ns);
-                                    writer.WriteAttributeString("FromSheet", connector.Id);
+                                    writer.WriteAttributeString("FromSheet", GetPersistedId(persistedIds, connector.Id));
                                     writer.WriteAttributeString("FromCell", "EndX");
-                                    writer.WriteAttributeString("ToSheet", connector.To.Id);
+                                    writer.WriteAttributeString("ToSheet", GetPersistedId(persistedIds, connector.To.Id));
                                     writer.WriteAttributeString("ToCell", GetConnectionCell(connector.To, connector.ToConnectionPoint));
                                     writer.WriteEndElement();
                                 }
@@ -694,6 +589,207 @@ namespace OfficeIMO.Visio {
                     .Distinct(StringComparer.OrdinalIgnoreCase));
 
             return masterCount;
+        }
+
+        private void WriteShapeElement(XmlWriter writer, string ns, VisioShape shape, IReadOnlyDictionary<string, string> persistedIds) {
+            writer.WriteStartElement("Shape", ns);
+            writer.WriteAttributeString("ID", GetPersistedId(persistedIds, shape.Id));
+            string shapeName = shape.Name ?? shape.NameU ?? $"Shape{shape.Id}";
+            writer.WriteAttributeString("Name", shapeName);
+            writer.WriteAttributeString("NameU", shape.NameU ?? shape.Master?.NameU ?? shapeName);
+
+            bool isGroup = string.Equals(shape.Type, "Group", StringComparison.OrdinalIgnoreCase) || shape.Children.Count > 0;
+            writer.WriteAttributeString("Type", isGroup ? "Group" : "Shape");
+            writer.WriteAttributeString("LineStyle", "0");
+            writer.WriteAttributeString("FillStyle", "0");
+            writer.WriteAttributeString("TextStyle", "0");
+
+            if (shape.Master != null) {
+                writer.WriteAttributeString("Master", shape.Master.Id);
+            }
+
+            KeyValuePair<string, string>? originalIdEntry = GetOriginalIdEntry(persistedIds, shape.Id);
+            if (shape.Master != null && !isGroup) {
+                WriteMasterBackedShapeBody(writer, ns, shape, originalIdEntry);
+            } else {
+                WriteStandaloneShapeBody(writer, ns, shape, isGroup, originalIdEntry);
+            }
+
+            if (isGroup && shape.Children.Count > 0) {
+                writer.WriteStartElement("Shapes", ns);
+                foreach (VisioShape child in shape.Children) {
+                    WriteShapeElement(writer, ns, child, persistedIds);
+                }
+                writer.WriteEndElement();
+            }
+
+            writer.WriteEndElement();
+        }
+
+        private void WriteMasterBackedShapeBody(XmlWriter writer, string ns, VisioShape shape, KeyValuePair<string, string>? originalIdEntry) {
+            if (WriteMasterDeltasOnly) {
+                double masterWidth = shape.Master!.Shape.Width > 0 ? shape.Master.Shape.Width : 1;
+                double masterHeight = shape.Master.Shape.Height > 0 ? shape.Master.Shape.Height : 1;
+                bool hasWidth = shape.Width > 0;
+                bool hasHeight = shape.Height > 0;
+                bool sizeDiffers = (hasWidth && Math.Abs(shape.Width - masterWidth) > 1e-12) ||
+                                   (hasHeight && Math.Abs(shape.Height - masterHeight) > 1e-12);
+
+                if (sizeDiffers) {
+                    double width = hasWidth ? shape.Width : masterWidth;
+                    double height = hasHeight ? shape.Height : masterHeight;
+                    if (Math.Abs(shape.LocPinX) < double.Epsilon) shape.LocPinX = width / 2;
+                    if (Math.Abs(shape.LocPinY) < double.Epsilon) shape.LocPinY = height / 2;
+                    WriteXForm(writer, ns, shape, width, height);
+                } else {
+                    WriteCell(writer, ns, "PinX", shape.PinX);
+                    WriteCell(writer, ns, "PinY", shape.PinY);
+
+                    double masterLocPinX = Math.Abs(shape.Master.Shape.LocPinX) > double.Epsilon ? shape.Master.Shape.LocPinX : masterWidth / 2;
+                    double masterLocPinY = Math.Abs(shape.Master.Shape.LocPinY) > double.Epsilon ? shape.Master.Shape.LocPinY : masterHeight / 2;
+                    if (Math.Abs(shape.LocPinX) > double.Epsilon && Math.Abs(shape.LocPinX - masterLocPinX) > 1e-12) {
+                        WriteCell(writer, ns, "LocPinX", shape.LocPinX);
+                    }
+                    if (Math.Abs(shape.LocPinY) > double.Epsilon && Math.Abs(shape.LocPinY - masterLocPinY) > 1e-12) {
+                        WriteCell(writer, ns, "LocPinY", shape.LocPinY);
+                    }
+                    if (Math.Abs(shape.Angle - shape.Master.Shape.Angle) > 1e-12) {
+                        WriteCell(writer, ns, "Angle", shape.Angle);
+                    }
+                }
+
+                WriteCell(writer, ns, "ObjType", 1);
+                WriteCell(writer, ns, "LineWeight", shape.LineWeight);
+                WriteCell(writer, ns, "LinePattern", shape.LinePattern);
+                WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
+                WriteCell(writer, ns, "FillPattern", shape.FillPattern);
+                WriteCellValue(writer, ns, "FillForegnd", shape.FillColor.ToVisioHex());
+                WriteConnectionSection(writer, ns, shape.ConnectionPoints);
+                WriteDataSection(writer, ns, shape.Data, originalIdEntry);
+                WriteTextElement(writer, ns, shape.Text);
+                return;
+            }
+
+            double widthValue = shape.Width;
+            if (widthValue <= 0 && shape.Master!.Shape.Width > 0) {
+                widthValue = shape.Master.Shape.Width;
+            }
+            if (widthValue <= 0) {
+                widthValue = 1;
+            }
+
+            double heightValue = shape.Height;
+            if (heightValue <= 0 && shape.Master!.Shape.Height > 0) {
+                heightValue = shape.Master.Shape.Height;
+            }
+            if (heightValue <= 0) {
+                heightValue = 1;
+            }
+
+            shape.Width = widthValue;
+            shape.Height = heightValue;
+            if (Math.Abs(shape.LocPinX) < double.Epsilon) {
+                shape.LocPinX = widthValue / 2;
+            }
+            if (Math.Abs(shape.LocPinY) < double.Epsilon) {
+                shape.LocPinY = heightValue / 2;
+            }
+
+            WriteXForm(writer, ns, shape, widthValue, heightValue);
+            WriteCell(writer, ns, "LineWeight", shape.LineWeight);
+            WriteCell(writer, ns, "LinePattern", shape.LinePattern);
+            WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
+            WriteCell(writer, ns, "FillPattern", shape.FillPattern);
+            WriteCellValue(writer, ns, "FillForegnd", shape.FillColor.ToVisioHex());
+            WriteConnectionSection(writer, ns, shape.ConnectionPoints);
+            WriteDataSection(writer, ns, shape.Data, originalIdEntry);
+            WriteTextElement(writer, ns, shape.Text);
+        }
+
+        private static void WriteStandaloneShapeBody(XmlWriter writer, string ns, VisioShape shape, bool isGroup, KeyValuePair<string, string>? originalIdEntry) {
+            double width = shape.Width > 0 ? shape.Width : 1;
+            double height = shape.Height > 0 ? shape.Height : 1;
+            shape.Width = width;
+            shape.Height = height;
+            if (Math.Abs(shape.LocPinX) < double.Epsilon) {
+                shape.LocPinX = width / 2;
+            }
+            if (Math.Abs(shape.LocPinY) < double.Epsilon) {
+                shape.LocPinY = height / 2;
+            }
+
+            WriteXForm(writer, ns, shape, width, height);
+            WriteCell(writer, ns, "LineWeight", shape.LineWeight);
+            WriteCell(writer, ns, "LinePattern", shape.LinePattern);
+            WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
+            WriteCell(writer, ns, "FillPattern", shape.FillPattern);
+            WriteCellValue(writer, ns, "FillForegnd", shape.FillColor.ToVisioHex());
+            if (!isGroup) {
+                WriteCell(writer, ns, "ObjType", 1);
+                string? kind = shape.NameU?.Trim();
+                if (string.Equals(kind, "Ellipse", StringComparison.OrdinalIgnoreCase) || string.Equals(kind, "Circle", StringComparison.OrdinalIgnoreCase)) {
+                    WriteEllipseGeometry(writer, ns, width, height);
+                } else if (string.Equals(kind, "Diamond", StringComparison.OrdinalIgnoreCase)) {
+                    WriteDiamondGeometry(writer, ns, width, height);
+                } else if (string.Equals(kind, "Triangle", StringComparison.OrdinalIgnoreCase)) {
+                    WriteTriangleGeometry(writer, ns, width, height);
+                } else {
+                    WriteRectangleGeometry(writer, ns, width, height);
+                }
+            }
+            WriteConnectionSection(writer, ns, shape.ConnectionPoints);
+            WriteDataSection(writer, ns, shape.Data, originalIdEntry);
+            WriteTextElement(writer, ns, shape.Text);
+        }
+
+        private static Dictionary<string, string> BuildPersistedIdMap(VisioPage page) {
+            Dictionary<string, string> map = new(StringComparer.Ordinal);
+            HashSet<int> usedIds = new();
+
+            void Reserve(string originalId) {
+                if (map.ContainsKey(originalId)) {
+                    return;
+                }
+
+                if (int.TryParse(originalId, out int numericId) && numericId >= 0 && usedIds.Add(numericId)) {
+                    map[originalId] = originalId;
+                    return;
+                }
+
+                int nextId = 1;
+                while (usedIds.Contains(nextId)) {
+                    nextId++;
+                }
+                usedIds.Add(nextId);
+                map[originalId] = nextId.ToString(CultureInfo.InvariantCulture);
+            }
+
+            void VisitShape(VisioShape shape) {
+                Reserve(shape.Id);
+                foreach (VisioShape child in shape.Children) {
+                    VisitShape(child);
+                }
+            }
+
+            foreach (VisioShape shape in page.Shapes) {
+                VisitShape(shape);
+            }
+            foreach (VisioConnector connector in page.Connectors) {
+                Reserve(connector.Id);
+            }
+
+            return map;
+        }
+
+        private static string GetPersistedId(IReadOnlyDictionary<string, string> persistedIds, string originalId) {
+            return persistedIds.TryGetValue(originalId, out string? persistedId) ? persistedId : originalId;
+        }
+
+        private static KeyValuePair<string, string>? GetOriginalIdEntry(IReadOnlyDictionary<string, string> persistedIds, string originalId) {
+            string persistedId = GetPersistedId(persistedIds, originalId);
+            return string.Equals(persistedId, originalId, StringComparison.Ordinal)
+                ? null
+                : new KeyValuePair<string, string>(OriginalIdPropName, originalId);
         }
     }
 }

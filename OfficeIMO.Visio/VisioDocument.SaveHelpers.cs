@@ -253,8 +253,8 @@ namespace OfficeIMO.Visio {
             writer.WriteEndElement();
         }
 
-        private static void WriteDataSection(XmlWriter writer, string ns, IDictionary<string, string> data) {
-            if (data.Count == 0) return;
+        private static void WriteDataSection(XmlWriter writer, string ns, IDictionary<string, string> data, KeyValuePair<string, string>? additionalEntry = null) {
+            if (data.Count == 0 && additionalEntry == null) return;
             writer.WriteStartElement("Section", ns);
             writer.WriteAttributeString("N", "Prop");
             foreach (var kv in data) {
@@ -263,6 +263,16 @@ namespace OfficeIMO.Visio {
                 writer.WriteStartElement("Cell", ns);
                 writer.WriteAttributeString("N", "Value");
                 writer.WriteAttributeString("V", kv.Value);
+                writer.WriteEndElement();
+                writer.WriteEndElement();
+            }
+            if (additionalEntry.HasValue) {
+                KeyValuePair<string, string> extra = additionalEntry.Value;
+                writer.WriteStartElement("Row", ns);
+                writer.WriteAttributeString("N", extra.Key);
+                writer.WriteStartElement("Cell", ns);
+                writer.WriteAttributeString("N", "Value");
+                writer.WriteAttributeString("V", extra.Value);
                 writer.WriteEndElement();
                 writer.WriteEndElement();
             }

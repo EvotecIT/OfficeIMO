@@ -51,7 +51,9 @@ namespace OfficeIMO.Visio {
             // Normalize path
             string norm = entryPath.Replace('\\', '/');
             // Remove if exists
-            zip.GetEntry(norm)?.Delete();
+            if (zip.Mode != ZipArchiveMode.Create) {
+                zip.GetEntry(norm)?.Delete();
+            }
             var entry = zip.CreateEntry(norm, CompressionLevel.Optimal);
             var settings = new XmlWriterSettings { Indent = false, Encoding = new UTF8Encoding(false), OmitXmlDeclaration = false };
             using var s = entry.Open();

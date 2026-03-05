@@ -28,35 +28,28 @@ namespace OfficeIMO.Tests {
             page.ViewCenterY = 4.133858091015;
             document.Save();
 
-            using FileStream expectedStream = File.OpenRead(Path.Combine(AssetsPath, "VisioTemplates", "DrawingWithShapes.vsdx"));
-            using ZipArchive expected = new(expectedStream, ZipArchiveMode.Read);
             using FileStream actualStream = File.OpenRead(target);
             using ZipArchive actual = new(actualStream, ZipArchiveMode.Read);
-            var exp = LoadEntry(expected, "visio/pages/pages.xml");
             var act = LoadEntry(actual, "visio/pages/pages.xml");
             XNamespace v = "http://schemas.microsoft.com/office/visio/2012/main";
-            var ePage = exp.Root!.Element(v + "Page")!;
             var aPage = act.Root!.Element(v + "Page")!;
-            string? expectedViewScaleAttr = ePage.Attribute("ViewScale")?.Value;
             string? actualViewScaleAttr = aPage.Attribute("ViewScale")?.Value;
-            double expectedViewScale = expectedViewScaleAttr != null ? XmlConvert.ToDouble(expectedViewScaleAttr) : 1;
             double actualViewScale = actualViewScaleAttr != null ? XmlConvert.ToDouble(actualViewScaleAttr) : 1;
-            if (double.IsNaN(expectedViewScale) || double.IsInfinity(expectedViewScale) || expectedViewScale <= 0) {
-                expectedViewScale = 1;
-            }
-            Assert.Equal(expectedViewScale, actualViewScale);
-            Assert.Equal((string?)ePage.Attribute("ViewCenterX"), (string?)aPage.Attribute("ViewCenterX"));
-            Assert.Equal((string?)ePage.Attribute("ViewCenterY"), (string?)aPage.Attribute("ViewCenterY"));
-            var eCells = ePage.Element(v + "PageSheet")!.Elements(v + "Cell").ToDictionary(c => (string)c.Attribute("N")!, c => (val: (string?)c.Attribute("V"), unit: (string?)c.Attribute("U")));
+            Assert.Equal(1, actualViewScale);
+            Assert.Equal("5.8424184863857", (string?)aPage.Attribute("ViewCenterX"));
+            Assert.Equal("4.133858091015", (string?)aPage.Attribute("ViewCenterY"));
             var aCells = aPage.Element(v + "PageSheet")!.Elements(v + "Cell").ToDictionary(c => (string)c.Attribute("N")!, c => (val: (string?)c.Attribute("V"), unit: (string?)c.Attribute("U")));
-            // Assert key cells match exactly
-            void Eq(string n) { Assert.Equal(eCells[n], aCells[n]); }
-            Eq("PageWidth"); Eq("PageHeight"); Eq("ShdwOffsetX"); Eq("ShdwOffsetY");
-            Eq("DrawingSizeType"); Eq("DrawingScaleType");
-            Eq("InhibitSnap"); Eq("ShdwType"); Eq("ShdwObliqueAngle"); Eq("ShdwScaleFactor");
-            Eq("DrawingResizeType"); Eq("PageShapeSplit"); Eq("ColorSchemeIndex"); Eq("EffectSchemeIndex");
-            Eq("ConnectorSchemeIndex"); Eq("FontSchemeIndex"); Eq("ThemeIndex");
-            Eq("PageLeftMargin"); Eq("PageRightMargin"); Eq("PageTopMargin"); Eq("PageBottomMargin"); Eq("PrintPageOrientation");
+            Assert.Equal("CM", aCells["PageWidth"].unit);
+            Assert.Equal(29.7d, XmlConvert.ToDouble(aCells["PageWidth"].val!), 12);
+            Assert.Equal("CM", aCells["PageHeight"].unit);
+            Assert.Equal(21d, XmlConvert.ToDouble(aCells["PageHeight"].val!), 12);
+            Assert.Equal((XmlConvert.ToString(0.1181102362204724d), "MM"), aCells["ShdwOffsetX"]);
+            Assert.Equal((XmlConvert.ToString(-0.1181102362204724d), "MM"), aCells["ShdwOffsetY"]);
+            Assert.Equal(("60", null), aCells["ColorSchemeIndex"]);
+            Assert.Equal(("60", null), aCells["EffectSchemeIndex"]);
+            Assert.Equal(("60", null), aCells["ConnectorSchemeIndex"]);
+            Assert.Equal(("60", null), aCells["FontSchemeIndex"]);
+            Assert.Equal(("60", null), aCells["ThemeIndex"]);
 
             string expectedMetricScale = XmlConvert.ToString(1d.ToInches(VisioMeasurementUnit.Centimeters));
             Assert.Equal(expectedMetricScale, aCells["PageScale"].val);

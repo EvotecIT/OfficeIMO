@@ -27,6 +27,7 @@ namespace OfficeIMO.Visio {
         private const string PageContentType = "application/vnd.ms-visio.page+xml";
         private const string MastersRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/masters";
         private const string MasterRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/master";
+        private const string OriginalIdPropName = "OfficeIMOOriginalId";
 
         /// <summary>
         /// Gets the collection of pages in the document.

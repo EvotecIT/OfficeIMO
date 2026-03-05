@@ -432,14 +432,6 @@ namespace OfficeIMO.Visio {
         public VisioShape AddTriangle(double x, double y, double width, double height, string? text = null) =>
             AddTriangle(x, y, width, height, text, DefaultUnit);
 
-        private static int SideToIndex(VisioSide side) => side switch {
-            VisioSide.Left => 0,
-            VisioSide.Right => 1,
-            VisioSide.Bottom => 2,
-            VisioSide.Top => 3,
-            _ => -1
-        };
-
         /// <summary>
         /// Adds a connector between two shapes, optionally specifying side connection points.
         /// </summary>
@@ -451,12 +443,8 @@ namespace OfficeIMO.Visio {
         /// <returns>The created connector.</returns>
         public VisioConnector AddConnector(VisioShape from, VisioShape to, ConnectorKind kind = ConnectorKind.Straight, VisioSide fromSide = VisioSide.Auto, VisioSide toSide = VisioSide.Auto) {
             var conn = new VisioConnector(NextId(), from, to) { Kind = kind };
-            // ensure side CPs when sides requested
-            if (fromSide != VisioSide.Auto) from.EnsureSideConnectionPoints();
-            if (toSide   != VisioSide.Auto) to.EnsureSideConnectionPoints();
-            int fi = SideToIndex(fromSide), ti = SideToIndex(toSide);
-            if (fi >= 0) conn.FromConnectionPoint = from.ConnectionPoints[fi];
-            if (ti >= 0) conn.ToConnectionPoint   = to.ConnectionPoints[ti];
+            if (fromSide != VisioSide.Auto) conn.FromConnectionPoint = from.EnsureSideConnectionPoint(fromSide);
+            if (toSide != VisioSide.Auto) conn.ToConnectionPoint = to.EnsureSideConnectionPoint(toSide);
             _connectors.Add(conn);
             return conn;
         }
