@@ -94,6 +94,57 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
+    public void DocumentReader_MarkdownChunking_DoesNotSplitOnHeadingsInsideFencedCode() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path, """
+# Top
+
+```markdown
+# Not a heading
+```
+
+Body line.
+""");
+
+            var chunks = DocumentReader.Read(path).ToList();
+
+            Assert.Single(chunks);
+            Assert.Contains("# Not a heading", chunks[0].Markdown ?? chunks[0].Text, StringComparison.Ordinal);
+            Assert.Equal("Top", chunks[0].Location.HeadingPath);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_MarkdownChunking_RecognizesSetextHeadings() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path, """
+Top
+===
+
+Paragraph one.
+
+Child
+-----
+
+Paragraph two.
+""");
+
+            var chunks = DocumentReader.Read(path).ToList();
+
+            Assert.True(chunks.Count >= 2);
+            Assert.Equal("Top", chunks[0].Location.HeadingPath);
+            Assert.Contains("Top", chunks[0].Markdown ?? chunks[0].Text, StringComparison.Ordinal);
+            Assert.Contains(chunks, c => string.Equals(c.Location.HeadingPath, "Top > Child", StringComparison.Ordinal));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_CanReadPdf() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pdf");
         try {

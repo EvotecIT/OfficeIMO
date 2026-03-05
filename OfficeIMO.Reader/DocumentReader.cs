@@ -1137,7 +1137,6 @@ public static class DocumentReader {
     }
 
     private static IEnumerable<ReaderChunk> ReadMarkdown(string path, ReaderOptions opt, CancellationToken ct) {
-        // Keep it simple: chunk by headings (ATX, best-effort), with size cap.
         if (!opt.MarkdownChunkByHeadings) {
             foreach (var c in ChunkPlainTextByParagraphs(path, opt, ReaderInputKind.Markdown, ct, treatAsMarkdown: true))
                 yield return c;
@@ -1145,58 +1144,8 @@ public static class DocumentReader {
         }
 
         var fileName = Path.GetFileName(path);
-        var headingStack = new List<(int Level, string Text)>();
-
-        var current = new StringBuilder(capacity: Math.Min(opt.MaxChars, 16_384));
-        int chunkIndex = 0;
-        int? firstLine = null;
-        string? firstHeadingPath = null;
-        var warnings = new List<string>(capacity: 2);
-
-        int lineNo = 0;
-        foreach (var line in File.ReadLines(path)) {
-            ct.ThrowIfCancellationRequested();
-            lineNo++;
-
-            if (TryParseAtxHeading(line, out var level, out var headingText)) {
-                // Flush current section before starting a new heading section.
-                if (current.Length > 0) {
-                    yield return BuildMarkdownChunk(path, fileName, chunkIndex, firstLine, firstHeadingPath, current.ToString().TrimEnd(), warnings);
-                    chunkIndex++;
-                    current.Clear();
-                    warnings.Clear();
-                    firstLine = null;
-                    firstHeadingPath = null;
-                }
-
-                UpdateHeadingStack(headingStack, level, headingText);
-                var headingPath = BuildHeadingPath(headingStack);
-                firstHeadingPath = headingPath;
-                firstLine = lineNo;
-
-                // Keep the heading line as part of the new chunk content.
-                AppendLineCapped(opt, current, line, warnings);
-                continue;
-            }
-
-            if (firstLine == null) firstLine = lineNo;
-            if (firstHeadingPath == null) firstHeadingPath = BuildHeadingPath(headingStack);
-
-            // If adding this line would exceed MaxChars, flush a chunk boundary.
-            if (WouldExceed(opt, current, line)) {
-                yield return BuildMarkdownChunk(path, fileName, chunkIndex, firstLine, firstHeadingPath, current.ToString().TrimEnd(), warnings);
-                chunkIndex++;
-                current.Clear();
-                warnings.Clear();
-                firstLine = lineNo;
-                firstHeadingPath = BuildHeadingPath(headingStack);
-            }
-
-            AppendLineCapped(opt, current, line, warnings);
-        }
-
-        if (current.Length > 0) {
-            yield return BuildMarkdownChunk(path, fileName, chunkIndex, firstLine, firstHeadingPath, current.ToString().TrimEnd(), warnings);
+        foreach (var c in ChunkMarkdownLines(File.ReadLines(path).ToList(), path, fileName, opt, ct)) {
+            yield return c;
         }
     }
 
@@ -1353,23 +1302,66 @@ public static class DocumentReader {
             yield break;
         }
 
+        var lines = ReadLines(text);
+        foreach (var c in ChunkMarkdownLines(lines, sourceName ?? fileName, fileName, opt, ct)) {
+            yield return c;
+        }
+    }
+
+    private static IEnumerable<ReaderChunk> ChunkMarkdownLines(
+        IReadOnlyList<string> lines,
+        string path,
+        string fileName,
+        ReaderOptions opt,
+        CancellationToken ct) {
         var headingStack = new List<(int Level, string Text)>();
         var current = new StringBuilder(capacity: Math.Min(opt.MaxChars, 16_384));
-        int chunkIndex = 0;
+        var warnings = new List<string>(capacity: 2);
+        var chunkIndex = 0;
         int? firstLine = null;
         string? firstHeadingPath = null;
-        var warnings = new List<string>(capacity: 2);
+        bool inFence = false;
+        char fenceMarker = '\0';
+        int fenceLength = 0;
 
-        int lineNo = 0;
-        using var sr = new StringReader(text ?? string.Empty);
-        string? line;
-        while ((line = sr.ReadLine()) != null) {
+        for (var lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
             ct.ThrowIfCancellationRequested();
-            lineNo++;
 
-            if (TryParseAtxHeading(line, out var level, out var headingText)) {
+            var line = lines[lineIndex] ?? string.Empty;
+            var lineNo = lineIndex + 1;
+
+            if (!inFence && TryParseSetextHeading(lines, lineIndex, out var setextLevel, out var setextHeadingText)) {
                 if (current.Length > 0) {
-                    yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstLine, firstHeadingPath, current.ToString().TrimEnd(), warnings);
+                    yield return BuildMarkdownChunk(path, fileName, chunkIndex, firstLine, firstHeadingPath, current.ToString().TrimEnd(), warnings);
+                    chunkIndex++;
+                    current.Clear();
+                    warnings.Clear();
+                    firstLine = null;
+                    firstHeadingPath = null;
+                }
+
+                UpdateHeadingStack(headingStack, setextLevel, setextHeadingText);
+                firstHeadingPath = BuildHeadingPath(headingStack);
+                firstLine = lineNo;
+
+                AppendLineCapped(opt, current, line, warnings);
+                var underline = lines[lineIndex + 1] ?? string.Empty;
+                if (WouldExceed(opt, current, underline)) {
+                    yield return BuildMarkdownChunk(path, fileName, chunkIndex, firstLine, firstHeadingPath, current.ToString().TrimEnd(), warnings);
+                    chunkIndex++;
+                    current.Clear();
+                    warnings.Clear();
+                    firstLine = lineNo + 1;
+                    firstHeadingPath = BuildHeadingPath(headingStack);
+                }
+                AppendLineCapped(opt, current, underline, warnings);
+                lineIndex++;
+                continue;
+            }
+
+            if (!inFence && TryParseAtxHeading(line, out var level, out var headingText)) {
+                if (current.Length > 0) {
+                    yield return BuildMarkdownChunk(path, fileName, chunkIndex, firstLine, firstHeadingPath, current.ToString().TrimEnd(), warnings);
                     chunkIndex++;
                     current.Clear();
                     warnings.Clear();
@@ -1378,10 +1370,8 @@ public static class DocumentReader {
                 }
 
                 UpdateHeadingStack(headingStack, level, headingText);
-                var headingPath = BuildHeadingPath(headingStack);
-                firstHeadingPath = headingPath;
+                firstHeadingPath = BuildHeadingPath(headingStack);
                 firstLine = lineNo;
-
                 AppendLineCapped(opt, current, line, warnings);
                 continue;
             }
@@ -1390,7 +1380,7 @@ public static class DocumentReader {
             if (firstHeadingPath == null) firstHeadingPath = BuildHeadingPath(headingStack);
 
             if (WouldExceed(opt, current, line)) {
-                yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstLine, firstHeadingPath, current.ToString().TrimEnd(), warnings);
+                yield return BuildMarkdownChunk(path, fileName, chunkIndex, firstLine, firstHeadingPath, current.ToString().TrimEnd(), warnings);
                 chunkIndex++;
                 current.Clear();
                 warnings.Clear();
@@ -1399,10 +1389,11 @@ public static class DocumentReader {
             }
 
             AppendLineCapped(opt, current, line, warnings);
+            UpdateMarkdownFenceState(line, ref inFence, ref fenceMarker, ref fenceLength);
         }
 
         if (current.Length > 0) {
-            yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstLine, firstHeadingPath, current.ToString().TrimEnd(), warnings);
+            yield return BuildMarkdownChunk(path, fileName, chunkIndex, firstLine, firstHeadingPath, current.ToString().TrimEnd(), warnings);
         }
     }
 
@@ -1832,6 +1823,117 @@ public static class DocumentReader {
         return true;
     }
 
+    private static bool TryParseSetextHeading(IReadOnlyList<string> lines, int index, out int level, out string text) {
+        level = 0;
+        text = string.Empty;
+        if (lines == null || index < 0 || index + 1 >= lines.Count) {
+            return false;
+        }
+
+        var headingLine = lines[index] ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(headingLine)) {
+            return false;
+        }
+
+        if (TryReadMarkdownFenceRun(headingLine, out _, out _, out _)) {
+            return false;
+        }
+
+        if (!TryParseSetextUnderline(lines[index + 1], out level)) {
+            return false;
+        }
+
+        text = CollapseWhitespace(headingLine.Trim());
+        if (text.Length == 0) {
+            text = $"Heading {level}";
+        }
+
+        return true;
+    }
+
+    private static bool TryParseSetextUnderline(string? line, out int level) {
+        level = 0;
+        if (string.IsNullOrWhiteSpace(line)) {
+            return false;
+        }
+
+        var trimmed = line!.Trim();
+        if (trimmed.Length < 3) {
+            return false;
+        }
+
+        char marker = trimmed[0];
+        if (marker != '=' && marker != '-') {
+            return false;
+        }
+
+        for (var i = 1; i < trimmed.Length; i++) {
+            if (trimmed[i] != marker) {
+                return false;
+            }
+        }
+
+        level = marker == '=' ? 1 : 2;
+        return true;
+    }
+
+    private static void UpdateMarkdownFenceState(string line, ref bool inFence, ref char fenceMarker, ref int fenceLength) {
+        if (!TryReadMarkdownFenceRun(line, out var runMarker, out var runLength, out var runSuffix)) {
+            return;
+        }
+
+        if (!inFence) {
+            inFence = true;
+            fenceMarker = runMarker;
+            fenceLength = runLength;
+            return;
+        }
+
+        if (runMarker == fenceMarker && runLength >= fenceLength && string.IsNullOrWhiteSpace(runSuffix)) {
+            inFence = false;
+            fenceMarker = '\0';
+            fenceLength = 0;
+        }
+    }
+
+    private static bool TryReadMarkdownFenceRun(string? line, out char marker, out int runLength, out string suffix) {
+        marker = '\0';
+        runLength = 0;
+        suffix = string.Empty;
+        if (line == null) {
+            return false;
+        }
+
+        var i = 0;
+        while (i < line.Length && line[i] == ' ' && i < 4) {
+            i++;
+        }
+
+        if (i > 3 || i >= line.Length) {
+            return false;
+        }
+
+        marker = line[i];
+        if (marker != '`' && marker != '~') {
+            marker = '\0';
+            return false;
+        }
+
+        while (i < line.Length && line[i] == marker) {
+            runLength++;
+            i++;
+        }
+
+        if (runLength < 3) {
+            marker = '\0';
+            runLength = 0;
+            return false;
+        }
+
+        suffix = line.Substring(i);
+        return true;
+    }
+
     private static void UpdateHeadingStack(List<(int Level, string Text)> stack, int level, string text) {
         if (level < 1) return;
         if (string.IsNullOrWhiteSpace(text)) text = $"Heading {level}";
@@ -1851,6 +1953,16 @@ public static class DocumentReader {
         }
         var s = sb.ToString().Trim();
         return s.Length == 0 ? null : s;
+    }
+
+    private static List<string> ReadLines(string? text) {
+        var lines = new List<string>();
+        using var sr = new StringReader(text ?? string.Empty);
+        string? line;
+        while ((line = sr.ReadLine()) != null) {
+            lines.Add(line);
+        }
+        return lines;
     }
 
     private static bool WouldExceed(ReaderOptions opt, StringBuilder current, string nextLine) {

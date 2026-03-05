@@ -84,6 +84,20 @@ public sealed class MarkdownRendererOptions {
     public bool NormalizeTightStrongBoundaries { get; set; } = false;
 
     /// <summary>
+    /// When true, normalizes compact arrow-to-strong boundaries
+    /// (for example, <c>->**Why it matters:**</c> becomes <c>-> **Why it matters:**</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeTightArrowStrongBoundaries { get; set; } = false;
+
+    /// <summary>
+    /// When true, inserts a missing space after prose labels that end with a colon
+    /// (for example, <c>Why it matters:missing evidence</c> becomes <c>Why it matters: missing evidence</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeTightColonSpacing { get; set; } = false;
+
+    /// <summary>
     /// When true, trims accidental whitespace immediately inside strong delimiters
     /// (for example, <c>** Healthy**</c> or <c>**Healthy **</c> become <c>**Healthy**</c>).
     /// Default: false.

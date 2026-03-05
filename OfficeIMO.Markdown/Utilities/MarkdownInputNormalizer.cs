@@ -114,6 +114,10 @@ public static class MarkdownInputNormalizer {
         @"->\s*(?=\*\*)",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+    private static readonly Regex TightColonSpacingRegex = new Regex(
+        @"(?<label>\b[\p{L}][\p{L}\p{N} /_()\-]{0,80}:)(?<value>[\p{L}\p{N}])",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
     private static readonly Regex LooseStrongDelimiterWhitespaceRegex = new Regex(
         @"\*\*(?<inner>[^*\r\n]+)\*\*",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
@@ -196,6 +200,14 @@ public static class MarkdownInputNormalizer {
                 value,
                 TightArrowStrongBoundaryRegex,
                 static _ => "-> ",
+                preserveInlineCodeSpans: true);
+        }
+
+        if (options.NormalizeTightColonSpacing) {
+            value = ApplyRegexOutsideFencedCodeBlocks(
+                value,
+                TightColonSpacingRegex,
+                static match => match.Groups["label"].Value + " " + match.Groups["value"].Value,
                 preserveInlineCodeSpans: true);
         }
 

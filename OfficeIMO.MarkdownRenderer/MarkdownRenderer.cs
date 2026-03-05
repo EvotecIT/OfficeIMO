@@ -120,6 +120,8 @@ public static class MarkdownRenderer {
             NormalizeInlineCodeSpanLineBreaks = options.NormalizeInlineCodeSpanLineBreaks,
             NormalizeEscapedInlineCodeSpans = options.NormalizeEscapedInlineCodeSpans,
             NormalizeTightStrongBoundaries = options.NormalizeTightStrongBoundaries,
+            NormalizeTightArrowStrongBoundaries = options.NormalizeTightArrowStrongBoundaries,
+            NormalizeTightColonSpacing = options.NormalizeTightColonSpacing,
             NormalizeLooseStrongDelimiters = options.NormalizeLooseStrongDelimiters,
             NormalizeOrderedListMarkerSpacing = options.NormalizeOrderedListMarkerSpacing,
             NormalizeOrderedListParenMarkers = options.NormalizeOrderedListParenMarkers,

@@ -20,6 +20,7 @@ namespace OfficeIMO.Word.Markdown {
         private const double MinimumContentWidthPixels = 1d;
         private static readonly TimeSpan DefaultRemoteImageDownloadTimeout = TimeSpan.FromSeconds(20);
         private static readonly System.Net.Http.HttpClient SharedRemoteImageClient = CreateRemoteImageClient(DefaultRemoteImageDownloadTimeout);
+        private IReadOnlyDictionary<string, string>? _currentFootnotes;
 
         private static bool LocalPathAllowed(string path, MarkdownToWordOptions options) {
             if (!options.AllowLocalImages) return false;
@@ -319,7 +320,7 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         //
-        private static void ProcessBlockOmd(
+        private void ProcessBlockOmd(
             Omd.IMarkdownBlock block,
             WordDocument document,
             MarkdownToWordOptions options,
@@ -575,9 +576,6 @@ namespace OfficeIMO.Word.Markdown {
                     break;
             }
         }
-
-        // Current footnote definitions map; built per-document on ConvertAsync
-        private static IReadOnlyDictionary<string, string>? _currentFootnotes;
 
         private static void ApplyAlignment(Omd.ColumnAlignment align, WordParagraph para) {
             switch (align) {
