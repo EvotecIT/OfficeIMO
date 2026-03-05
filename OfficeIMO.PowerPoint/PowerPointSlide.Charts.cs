@@ -12,14 +12,14 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a basic clustered column chart with default data.
         /// </summary>
         public PowerPointChart AddChart() {
-            return AddChartInternal(null, 0L, 0L, 5486400L, 3200400L);
+            return AddChartInternal(PowerPointChartKind.ClusteredColumn, null, 0L, 0L, 5486400L, 3200400L);
         }
 
         /// <summary>
         ///     Adds a basic clustered column chart with default data at a specific position.
         /// </summary>
         public PowerPointChart AddChart(long left, long top, long width, long height) {
-            return AddChartInternal(null, left, top, width, height);
+            return AddChartInternal(PowerPointChartKind.ClusteredColumn, null, left, top, width, height);
         }
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentNullException(nameof(data));
             }
 
-            return AddChartInternal(data, left, top, width, height);
+            return AddChartInternal(PowerPointChartKind.ClusteredColumn, data, left, top, width, height);
         }
 
         /// <summary>
@@ -161,10 +161,120 @@ namespace OfficeIMO.PowerPoint {
             long left, long top, long width, long height,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             var data = PowerPointChartData.From(items, categorySelector, seriesDefinitions);
-            return AddChartInternal(data, left, top, width, height);
+            return AddChartInternal(PowerPointChartKind.ClusteredColumn, data, left, top, width, height);
         }
 
-        private PowerPointChart AddChartInternal(PowerPointChartData? data, long left, long top, long width, long height) {
+        /// <summary>
+        ///     Adds a pie chart with default data.
+        /// </summary>
+        public PowerPointChart AddPieChart() {
+            return AddChartInternal(PowerPointChartKind.Pie, null, 0L, 0L, 5486400L, 3200400L);
+        }
+
+        /// <summary>
+        ///     Adds a pie chart with default data at a specific position.
+        /// </summary>
+        public PowerPointChart AddPieChart(long left, long top, long width, long height) {
+            return AddChartInternal(PowerPointChartKind.Pie, null, left, top, width, height);
+        }
+
+        /// <summary>
+        ///     Adds a pie chart with default data using centimeter measurements.
+        /// </summary>
+        public PowerPointChart AddPieChartCm(double leftCm, double topCm, double widthCm, double heightCm) {
+            return AddPieChart(
+                PowerPointUnits.FromCentimeters(leftCm),
+                PowerPointUnits.FromCentimeters(topCm),
+                PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm));
+        }
+
+        /// <summary>
+        ///     Adds a pie chart using the supplied data.
+        /// </summary>
+        public PowerPointChart AddPieChart(PowerPointChartData data, long left = 0L, long top = 0L, long width = 5486400L,
+            long height = 3200400L) {
+            if (data == null) {
+                throw new ArgumentNullException(nameof(data));
+            }
+
+            return AddChartInternal(PowerPointChartKind.Pie, data, left, top, width, height);
+        }
+
+        /// <summary>
+        ///     Adds a pie chart using object data selectors.
+        /// </summary>
+        public PowerPointChart AddPieChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+            params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            return AddPieChart(items, categorySelector, 0L, 0L, 5486400L, 3200400L, seriesDefinitions);
+        }
+
+        /// <summary>
+        ///     Adds a pie chart using object data selectors at a specific position.
+        /// </summary>
+        public PowerPointChart AddPieChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+            long left, long top, long width, long height,
+            params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            var data = PowerPointChartData.From(items, categorySelector, seriesDefinitions);
+            return AddChartInternal(PowerPointChartKind.Pie, data, left, top, width, height);
+        }
+
+        /// <summary>
+        ///     Adds a doughnut chart with default data.
+        /// </summary>
+        public PowerPointChart AddDoughnutChart() {
+            return AddChartInternal(PowerPointChartKind.Doughnut, null, 0L, 0L, 5486400L, 3200400L);
+        }
+
+        /// <summary>
+        ///     Adds a doughnut chart with default data at a specific position.
+        /// </summary>
+        public PowerPointChart AddDoughnutChart(long left, long top, long width, long height) {
+            return AddChartInternal(PowerPointChartKind.Doughnut, null, left, top, width, height);
+        }
+
+        /// <summary>
+        ///     Adds a doughnut chart with default data using centimeter measurements.
+        /// </summary>
+        public PowerPointChart AddDoughnutChartCm(double leftCm, double topCm, double widthCm, double heightCm) {
+            return AddDoughnutChart(
+                PowerPointUnits.FromCentimeters(leftCm),
+                PowerPointUnits.FromCentimeters(topCm),
+                PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm));
+        }
+
+        /// <summary>
+        ///     Adds a doughnut chart using the supplied data.
+        /// </summary>
+        public PowerPointChart AddDoughnutChart(PowerPointChartData data, long left = 0L, long top = 0L, long width = 5486400L,
+            long height = 3200400L) {
+            if (data == null) {
+                throw new ArgumentNullException(nameof(data));
+            }
+
+            return AddChartInternal(PowerPointChartKind.Doughnut, data, left, top, width, height);
+        }
+
+        /// <summary>
+        ///     Adds a doughnut chart using object data selectors.
+        /// </summary>
+        public PowerPointChart AddDoughnutChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+            params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            return AddDoughnutChart(items, categorySelector, 0L, 0L, 5486400L, 3200400L, seriesDefinitions);
+        }
+
+        /// <summary>
+        ///     Adds a doughnut chart using object data selectors at a specific position.
+        /// </summary>
+        public PowerPointChart AddDoughnutChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+            long left, long top, long width, long height,
+            params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            var data = PowerPointChartData.From(items, categorySelector, seriesDefinitions);
+            return AddChartInternal(PowerPointChartKind.Doughnut, data, left, top, width, height);
+        }
+
+        private PowerPointChart AddChartInternal(PowerPointChartKind chartKind, PowerPointChartData? data, long left, long top, long width, long height) {
             PowerPointChartData chartData = data ?? PowerPointChartData.CreateDefault();
             string chartPartUri = PowerPointPartFactory.GetIndexedPartUri(
                 _slidePart.OpenXmlPackage,
@@ -218,7 +328,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             string embeddedRelId = chartPart.GetIdOfPart(embedded);
-            PowerPointUtils.PopulateChart(chartPart, embeddedRelId, chartData);
+            PowerPointUtils.PopulateChart(chartPart, embeddedRelId, chartData, chartKind);
 
             string name = GenerateUniqueName("Chart");
             GraphicFrame frame = new(

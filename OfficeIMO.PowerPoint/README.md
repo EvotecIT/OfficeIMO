@@ -324,6 +324,21 @@ chart.SetTitle("Sales Trend")
      .SetSeriesMarker(0, C.MarkerStyleValues.Circle, size: 6, fillColor: "FFFFFF", lineColor: "4472C4");
 ```
 
+### Pie and doughnut charts
+```csharp
+var chartData = new PowerPointChartData(
+    new[] { "North", "South", "West" },
+    new[] { new PowerPointChartSeries("Revenue", new[] { 10d, 20d, 30d }) });
+
+slide.AddPieChart(chartData)
+    .SetTitle("Revenue Share")
+    .SetDataLabels(showValue: true, showPercent: true);
+
+slide.AddDoughnutChart(chartData, PowerPointUnits.Cm(10), PowerPointUnits.Cm(2),
+    PowerPointUnits.Cm(8), PowerPointUnits.Cm(5))
+    .SetTitle("Revenue Mix");
+```
+
 ### Layouts and notes (fluent)
 ```csharp
 using OfficeIMO.PowerPoint.Fluent;
@@ -464,7 +479,7 @@ var sections = ppt.GetSections();
 - 📋 Tables
   - ⚠️ Basic styling + merged cells
 - 📊 Charts
-  - ✅ Add charts; ✅ title/legend/labels; ✅ axis formatting; ✅ series fill/line/markers
+  - ✅ Add clustered column, pie, and doughnut charts; ✅ title/legend/labels; ✅ axis formatting; ✅ series fill/line/markers
 - ✨ Themes/Transitions
   - ✅ Default theme + full table styles; ✅ slide transitions (fade/wipe/push/etc.)
 

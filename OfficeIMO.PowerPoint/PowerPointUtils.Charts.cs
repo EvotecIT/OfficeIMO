@@ -9,6 +9,12 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 using S = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.PowerPoint {
+    internal enum PowerPointChartKind {
+        ClusteredColumn,
+        Pie,
+        Doughnut
+    }
+
     internal static partial class PowerPointUtils {
         private static readonly Lazy<byte[]> ChartStyle251Bytes =
             new(() => LoadEmbeddedResource("OfficeIMO.PowerPoint.Resources.chart-style-251.xml"));
@@ -38,7 +44,8 @@ namespace OfficeIMO.PowerPoint {
             colorStylePart.FeedData(stream);
         }
 
-        internal static void PopulateChart(ChartPart chartPart, string embeddedRelId, PowerPointChartData data) {
+        internal static void PopulateChart(ChartPart chartPart, string embeddedRelId, PowerPointChartData data,
+            PowerPointChartKind chartKind = PowerPointChartKind.ClusteredColumn) {
             if (chartPart == null) {
                 throw new ArgumentNullException(nameof(chartPart));
             }
@@ -61,12 +68,7 @@ namespace OfficeIMO.PowerPoint {
             C.PlotArea plotArea = new();
             plotArea.Append(new C.Layout());
 
-            uint categoryAxisId;
-            uint valueAxisId;
-            C.BarChart barChart = CreateBarChart(data, out categoryAxisId, out valueAxisId);
-            plotArea.Append(barChart);
-            plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
-            plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+            AppendChartContent(plotArea, data, chartKind);
 
             chart.Append(plotArea);
             chart.Append(new C.Legend(
@@ -87,6 +89,27 @@ namespace OfficeIMO.PowerPoint {
             }
 
             chartPart.ChartSpace = chartSpace;
+        }
+
+        private static void AppendChartContent(C.PlotArea plotArea, PowerPointChartData data, PowerPointChartKind chartKind) {
+            switch (chartKind) {
+                case PowerPointChartKind.ClusteredColumn:
+                    uint categoryAxisId;
+                    uint valueAxisId;
+                    C.BarChart barChart = CreateBarChart(data, out categoryAxisId, out valueAxisId);
+                    plotArea.Append(barChart);
+                    plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                    plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                    return;
+                case PowerPointChartKind.Pie:
+                    plotArea.Append(CreatePieChart(data));
+                    return;
+                case PowerPointChartKind.Doughnut:
+                    plotArea.Append(CreateDoughnutChart(data));
+                    return;
+                default:
+                    throw new NotSupportedException($"Chart kind {chartKind} is not supported.");
+            }
         }
 
         internal static void UpdateChartData(ChartPart chartPart, PowerPointChartData data) {
@@ -225,6 +248,51 @@ namespace OfficeIMO.PowerPoint {
                 new C.Order { Val = (uint)seriesIndex },
                 new C.SeriesText(CreateStringReference(seriesNameRef, new[] { series.Name })),
                 new C.InvertIfNegative { Val = false },
+                new C.CategoryAxisData(CreateStringReference(categoriesRef, categories)),
+                new C.Values(CreateNumberReference(valuesRef, series.Values))
+            );
+
+            return seriesElement;
+        }
+
+        private static C.PieChart CreatePieChart(PowerPointChartData data) {
+            C.PieChart pieChart = new(
+                new C.VaryColors { Val = true });
+
+            for (int i = 0; i < data.Series.Count; i++) {
+                pieChart.Append(CreatePieChartSeries(i, data.Series[i], data.Categories));
+            }
+
+            pieChart.Append(CreateDefaultDataLabels());
+            pieChart.Append(new C.FirstSliceAngle { Val = (UInt16Value)0U });
+            return pieChart;
+        }
+
+        private static C.DoughnutChart CreateDoughnutChart(PowerPointChartData data) {
+            C.DoughnutChart doughnutChart = new(
+                new C.VaryColors { Val = true });
+
+            for (int i = 0; i < data.Series.Count; i++) {
+                doughnutChart.Append(CreatePieChartSeries(i, data.Series[i], data.Categories));
+            }
+
+            doughnutChart.Append(CreateDefaultDataLabels());
+            doughnutChart.Append(new C.FirstSliceAngle { Val = (UInt16Value)0U });
+            doughnutChart.Append(new C.HoleSize { Val = (ByteValue)50 });
+            return doughnutChart;
+        }
+
+        private static C.PieChartSeries CreatePieChartSeries(int seriesIndex, PowerPointChartSeries series, IReadOnlyList<string> categories) {
+            int lastRow = categories.Count + 1;
+            string seriesColumn = ColumnLetter(seriesIndex + 2);
+            string seriesNameRef = $"Sheet1!${seriesColumn}$1";
+            string categoriesRef = $"Sheet1!$A$2:$A${lastRow}";
+            string valuesRef = $"Sheet1!${seriesColumn}$2:${seriesColumn}${lastRow}";
+
+            C.PieChartSeries seriesElement = new(
+                new C.Index { Val = (uint)seriesIndex },
+                new C.Order { Val = (uint)seriesIndex },
+                new C.SeriesText(CreateStringReference(seriesNameRef, new[] { series.Name })),
                 new C.CategoryAxisData(CreateStringReference(categoriesRef, categories)),
                 new C.Values(CreateNumberReference(valuesRef, series.Values))
             );
