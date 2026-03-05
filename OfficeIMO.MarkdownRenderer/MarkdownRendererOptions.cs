@@ -137,6 +137,9 @@ public sealed class MarkdownRendererOptions {
     /// <summary>Chart.js support options.</summary>
     public ChartOptions Chart { get; } = new ChartOptions();
 
+    /// <summary>vis-network support options.</summary>
+    public NetworkOptions Network { get; } = new NetworkOptions();
+
     /// <summary>Math (KaTeX) support options.</summary>
     public MathOptions Math { get; } = new MathOptions();
 

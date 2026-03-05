@@ -117,12 +117,46 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_Converts_IxChart_Code_Fences_When_Enabled() {
+        var md = "```ix-chart\n{\"type\":\"line\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}\n```";
+        var opts = new MarkdownRendererOptions();
+        opts.Chart.Enabled = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+        Assert.Contains("class=\"omd-chart\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-chart-config-b64", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("language-ix-chart", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Converts_IxNetwork_Code_Fences_When_Enabled() {
+        var md = "```ix-network\n{\"nodes\":[{\"id\":\"A\",\"label\":\"User\"}],\"edges\":[{\"from\":\"A\",\"to\":\"A\",\"label\":\"self\"}]}\n```";
+        var opts = new MarkdownRendererOptions();
+        opts.Network.Enabled = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+        Assert.Contains("class=\"omd-network\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-network-config-b64", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("language-ix-network", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Shell_Contains_ChartJs_When_Enabled() {
         var opts = new MarkdownRendererOptions();
         opts.Chart.Enabled = true;
 
         var shell = MarkdownRenderer.MarkdownRenderer.BuildShellHtml("Chat", opts);
         Assert.Contains("chart.umd", shell, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Shell_Contains_VisNetwork_When_Enabled() {
+        var opts = new MarkdownRendererOptions();
+        opts.Network.Enabled = true;
+
+        var shell = MarkdownRenderer.MarkdownRenderer.BuildShellHtml("Chat", opts);
+        Assert.Contains("vis-network", shell, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(".omd-network:not([data-network-rendered])", shell, StringComparison.Ordinal);
     }
 
     [Fact]

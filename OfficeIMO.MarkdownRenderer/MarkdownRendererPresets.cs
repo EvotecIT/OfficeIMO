@@ -68,7 +68,7 @@ public static class MarkdownRendererPresets {
 
     /// <summary>
     /// Strict preset for untrusted chat messages, with optional client-side renderers disabled.
-    /// This disables Mermaid/Chart/Math/Prism and the copy-button UX helpers to minimize script usage in the shell.
+    /// This disables Mermaid/Chart/Network/Math/Prism and the copy-button UX helpers to minimize script usage in the shell.
     /// </summary>
     public static MarkdownRendererOptions CreateChatStrictMinimal(string? baseHref = null) {
         var o = CreateChatStrict(baseHref);
@@ -77,6 +77,7 @@ public static class MarkdownRendererPresets {
 
         o.Mermaid.Enabled = false;
         o.Chart.Enabled = false;
+        o.Network.Enabled = false;
         o.Math.Enabled = false;
         if (o.HtmlOptions.Prism != null) o.HtmlOptions.Prism.Enabled = false;
 

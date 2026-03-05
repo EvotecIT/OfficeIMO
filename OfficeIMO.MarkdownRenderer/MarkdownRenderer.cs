@@ -14,7 +14,11 @@ public static class MarkdownRenderer {
         RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex ChartPreCodeBlockRegex = new Regex(
-        "(<pre[^>]*>)\\s*<code\\s+class=\"language-chart\"[^>]*>([\\s\\S]*?)</code>\\s*</pre>",
+        "(<pre[^>]*>)\\s*<code\\s+class=\"language-(?:ix-chart|chart)\"[^>]*>([\\s\\S]*?)</code>\\s*</pre>",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex NetworkPreCodeBlockRegex = new Regex(
+        "(<pre[^>]*>)\\s*<code\\s+class=\"language-(?:ix-network|visnetwork|network)\"[^>]*>([\\s\\S]*?)</code>\\s*</pre>",
         RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex MathPreCodeBlockRegex = new Regex(
@@ -68,6 +72,10 @@ public static class MarkdownRenderer {
 
         if (options.Chart?.Enabled == true) {
             html = ConvertChartCodeBlocks(html);
+        }
+
+        if (options.Network?.Enabled == true) {
+            html = ConvertNetworkCodeBlocks(html);
         }
 
         if (options.Math?.Enabled == true && options.Math.EnableFencedMathBlocks) {
@@ -200,6 +208,10 @@ public static class MarkdownRenderer {
             sb.Append(BuildChartBootstrap(options.Chart, assetMode));
         }
 
+        if (options.Network?.Enabled == true) {
+            sb.Append(BuildNetworkBootstrap(options.Network, assetMode));
+        }
+
         sb.Append("</head><body>");
         sb.Append("<div id=\"omdRoot\"></div>");
         sb.Append("<script>\n").Append(BuildIncrementalUpdateScript(options)).Append("\n</script>");
@@ -272,8 +284,9 @@ public static class MarkdownRenderer {
 
     private static string ConvertChartCodeBlocks(string html) {
         if (string.IsNullOrEmpty(html)) return html;
-        if (html.IndexOf("language-chart", StringComparison.OrdinalIgnoreCase) < 0) return html;
-        // Charts are authored as fenced code blocks named `chart` with JSON config. Convert
+        if (html.IndexOf("language-chart", StringComparison.OrdinalIgnoreCase) < 0 &&
+            html.IndexOf("language-ix-chart", StringComparison.OrdinalIgnoreCase) < 0) return html;
+        // Charts are authored as fenced code blocks named `chart` / `ix-chart` with JSON config. Convert
         // <pre><code class="language-chart">..</code></pre> into a <canvas> annotated with base64 config.
         return ChartPreCodeBlockRegex.Replace(html, m => {
             var encoded = m.Groups[2].Value ?? string.Empty;
@@ -281,6 +294,22 @@ public static class MarkdownRenderer {
             var b64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawJson ?? string.Empty));
             var hash = ComputeShortHash(encoded);
             return $"<canvas class=\"omd-chart\" data-chart-hash=\"{hash}\" data-chart-config-b64=\"{System.Net.WebUtility.HtmlEncode(b64)}\"></canvas>";
+        });
+    }
+
+    private static string ConvertNetworkCodeBlocks(string html) {
+        if (string.IsNullOrEmpty(html)) return html;
+        if (html.IndexOf("language-ix-network", StringComparison.OrdinalIgnoreCase) < 0 &&
+            html.IndexOf("language-network", StringComparison.OrdinalIgnoreCase) < 0 &&
+            html.IndexOf("language-visnetwork", StringComparison.OrdinalIgnoreCase) < 0) return html;
+        // Networks are authored as fenced code blocks named `ix-network` / `network` / `visnetwork`
+        // with JSON config. Convert them into a host div annotated with base64 config.
+        return NetworkPreCodeBlockRegex.Replace(html, m => {
+            var encoded = m.Groups[2].Value ?? string.Empty;
+            var rawJson = System.Net.WebUtility.HtmlDecode(encoded);
+            var b64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawJson ?? string.Empty));
+            var hash = ComputeShortHash(encoded);
+            return $"<div class=\"omd-network\" data-network-hash=\"{hash}\" data-network-config-b64=\"{System.Net.WebUtility.HtmlEncode(b64)}\"></div>";
         });
     }
 
@@ -393,6 +422,16 @@ mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-col
     }
 
     private static string BuildChartBootstrap(ChartOptions o, AssetMode assetMode) {
+        string url = (o?.ScriptUrl ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(url)) return string.Empty;
+
+        string src = assetMode == AssetMode.Offline ? BuildBundledScriptSrc(url, mime: "application/javascript") : string.Empty;
+        if (string.IsNullOrEmpty(src)) src = url;
+        src = System.Net.WebUtility.HtmlEncode(src);
+        return $"\n<script defer src=\"{src}\"></script>\n";
+    }
+
+    private static string BuildNetworkBootstrap(NetworkOptions o, AssetMode assetMode) {
         string url = (o?.ScriptUrl ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(url)) return string.Empty;
 
@@ -520,6 +559,7 @@ mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-col
     private static string BuildIncrementalUpdateScript(MarkdownRendererOptions options) {
         bool mermaid = options.Mermaid?.Enabled == true;
         bool chart = options.Chart?.Enabled == true;
+        bool network = options.Network?.Enabled == true;
         var mathOptions = options.Math;
         bool codeCopy = options.EnableCodeCopyButtons;
         bool tableCopy = options.EnableTableCopyButtons;
@@ -551,6 +591,18 @@ async function updateContent(newBodyHtml) {
   } catch(e) { /* best-effort */ }
 """);
 
+        if (chart || network) {
+            sb.Append("""
+  function b64ToUtf8(b64) {
+    try {
+      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      if (window.TextDecoder) return new TextDecoder('utf-8').decode(bytes);
+      return decodeURIComponent(escape(String.fromCharCode.apply(null, Array.from(bytes))));
+    } catch(e) { return ''; }
+  }
+""");
+        }
+
         if (chart) {
             sb.Append("""
   // Destroy existing Chart.js instances before replacing DOM to avoid leaks.
@@ -558,6 +610,22 @@ async function updateContent(newBodyHtml) {
     if (window.Chart && typeof Chart.getChart === 'function') {
       root.querySelectorAll('canvas.omd-chart').forEach(c => {
         try { const inst = Chart.getChart(c); if (inst) inst.destroy(); } catch(e) { /* ignore */ }
+      });
+    }
+  } catch(e) { /* ignore */ }
+""");
+        }
+
+        if (network) {
+            sb.Append("""
+  // Destroy existing vis-network instances before replacing DOM to avoid leaks.
+  try {
+    if (window.vis && typeof window.vis.Network === 'function') {
+      root.querySelectorAll('.omd-network[data-network-rendered]').forEach(host => {
+        try {
+          if (host.__omdNetwork && typeof host.__omdNetwork.destroy === 'function') host.__omdNetwork.destroy();
+        } catch(e) { /* ignore */ }
+        host.__omdNetwork = null;
       });
     }
   } catch(e) { /* ignore */ }
@@ -767,14 +835,6 @@ async function updateContent(newBodyHtml) {
             sb.Append("""
   // Chart.js rendering (optional).
   try {
-    function b64ToUtf8(b64) {
-      try {
-        const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-        if (window.TextDecoder) return new TextDecoder('utf-8').decode(bytes);
-        // Fallback for older engines.
-        return decodeURIComponent(escape(String.fromCharCode.apply(null, Array.from(bytes))));
-      } catch(e) { return ''; }
-    }
     if (window.Chart) {
       root.querySelectorAll('canvas.omd-chart:not([data-chart-rendered])').forEach(c => {
         const b64 = c.getAttribute('data-chart-config-b64');
@@ -789,6 +849,43 @@ async function updateContent(newBodyHtml) {
           new Chart(ctx, cfg);
           c.setAttribute('data-chart-rendered', 'true');
         } catch(e) { console.warn('Chart render error:', e); }
+      });
+    }
+  } catch(e) { /* ignore */ }
+""");
+        }
+
+        if (network) {
+            sb.Append("""
+  // vis-network rendering (optional).
+  try {
+    if (window.vis && typeof window.vis.Network === 'function') {
+      root.querySelectorAll('.omd-network:not([data-network-rendered])').forEach(host => {
+        const b64 = host.getAttribute('data-network-config-b64');
+        if (!b64) return;
+        const jsonText = b64ToUtf8(b64);
+        if (!jsonText) return;
+        let cfg = null;
+        try { cfg = JSON.parse(jsonText); } catch(e) { console.warn('Network config JSON parse error:', e); return; }
+        try {
+          const canvas = document.createElement('div');
+          canvas.className = 'omd-network-canvas';
+          canvas.style.width = '100%';
+          canvas.style.minHeight = '360px';
+          const rawOptions = cfg && typeof cfg.options === 'object' && cfg.options ? cfg.options : {};
+          const opts = Object.assign({}, rawOptions);
+          if (!opts.height) opts.height = '360px';
+          host.innerHTML = '';
+          host.style.width = '100%';
+          host.appendChild(canvas);
+          const network = new window.vis.Network(canvas, {
+            nodes: Array.isArray(cfg && cfg.nodes) ? cfg.nodes : [],
+            edges: Array.isArray(cfg && cfg.edges) ? cfg.edges : []
+          }, opts);
+          host.__omdNetwork = network;
+          host.setAttribute('data-network-rendered', 'true');
+          try { network.fit({ animation: false }); } catch(e) { /* ignore */ }
+        } catch(e) { console.warn('Network render error:', e); }
       });
     }
   } catch(e) { /* ignore */ }
