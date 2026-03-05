@@ -165,6 +165,162 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Adds a line chart with default data.
+        /// </summary>
+        public PowerPointChart AddLineChart() {
+            return AddChartInternal(PowerPointChartKind.Line, null, 0L, 0L, 5486400L, 3200400L);
+        }
+
+        /// <summary>
+        ///     Adds a line chart with default data at a specific position.
+        /// </summary>
+        public PowerPointChart AddLineChart(long left, long top, long width, long height) {
+            return AddChartInternal(PowerPointChartKind.Line, null, left, top, width, height);
+        }
+
+        /// <summary>
+        ///     Adds a line chart with default data using centimeter measurements.
+        /// </summary>
+        public PowerPointChart AddLineChartCm(double leftCm, double topCm, double widthCm, double heightCm) {
+            return AddLineChart(
+                PowerPointUnits.FromCentimeters(leftCm),
+                PowerPointUnits.FromCentimeters(topCm),
+                PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm));
+        }
+
+        /// <summary>
+        ///     Adds a line chart with default data using inch measurements.
+        /// </summary>
+        public PowerPointChart AddLineChartInches(double leftInches, double topInches, double widthInches,
+            double heightInches) {
+            return AddLineChart(
+                PowerPointUnits.FromInches(leftInches),
+                PowerPointUnits.FromInches(topInches),
+                PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches));
+        }
+
+        /// <summary>
+        ///     Adds a line chart with default data using point measurements.
+        /// </summary>
+        public PowerPointChart AddLineChartPoints(double leftPoints, double topPoints, double widthPoints,
+            double heightPoints) {
+            return AddLineChart(
+                PowerPointUnits.FromPoints(leftPoints),
+                PowerPointUnits.FromPoints(topPoints),
+                PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints));
+        }
+
+        /// <summary>
+        ///     Adds a line chart using the supplied data.
+        /// </summary>
+        public PowerPointChart AddLineChart(PowerPointChartData data, long left = 0L, long top = 0L, long width = 5486400L,
+            long height = 3200400L) {
+            if (data == null) {
+                throw new ArgumentNullException(nameof(data));
+            }
+
+            return AddChartInternal(PowerPointChartKind.Line, data, left, top, width, height);
+        }
+
+        /// <summary>
+        ///     Adds a line chart using the supplied data with centimeter measurements.
+        /// </summary>
+        public PowerPointChart AddLineChartCm(PowerPointChartData data, double leftCm, double topCm, double widthCm,
+            double heightCm) {
+            return AddLineChart(data,
+                PowerPointUnits.FromCentimeters(leftCm),
+                PowerPointUnits.FromCentimeters(topCm),
+                PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm));
+        }
+
+        /// <summary>
+        ///     Adds a line chart using the supplied data with inch measurements.
+        /// </summary>
+        public PowerPointChart AddLineChartInches(PowerPointChartData data, double leftInches, double topInches,
+            double widthInches, double heightInches) {
+            return AddLineChart(data,
+                PowerPointUnits.FromInches(leftInches),
+                PowerPointUnits.FromInches(topInches),
+                PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches));
+        }
+
+        /// <summary>
+        ///     Adds a line chart using the supplied data with point measurements.
+        /// </summary>
+        public PowerPointChart AddLineChartPoints(PowerPointChartData data, double leftPoints, double topPoints,
+            double widthPoints, double heightPoints) {
+            return AddLineChart(data,
+                PowerPointUnits.FromPoints(leftPoints),
+                PowerPointUnits.FromPoints(topPoints),
+                PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints));
+        }
+
+        /// <summary>
+        ///     Adds a line chart using object data selectors.
+        /// </summary>
+        public PowerPointChart AddLineChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+            params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            return AddLineChart(items, categorySelector, 0L, 0L, 5486400L, 3200400L, seriesDefinitions);
+        }
+
+        /// <summary>
+        ///     Adds a line chart using object data selectors (centimeters).
+        /// </summary>
+        public PowerPointChart AddLineChartCm<T>(IEnumerable<T> items, Func<T, string> categorySelector, double leftCm,
+            double topCm, double widthCm, double heightCm, params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            return AddLineChart(items, categorySelector,
+                PowerPointUnits.FromCentimeters(leftCm),
+                PowerPointUnits.FromCentimeters(topCm),
+                PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm),
+                seriesDefinitions);
+        }
+
+        /// <summary>
+        ///     Adds a line chart using object data selectors (inches).
+        /// </summary>
+        public PowerPointChart AddLineChartInches<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+            double leftInches, double topInches, double widthInches, double heightInches,
+            params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            return AddLineChart(items, categorySelector,
+                PowerPointUnits.FromInches(leftInches),
+                PowerPointUnits.FromInches(topInches),
+                PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches),
+                seriesDefinitions);
+        }
+
+        /// <summary>
+        ///     Adds a line chart using object data selectors (points).
+        /// </summary>
+        public PowerPointChart AddLineChartPoints<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+            double leftPoints, double topPoints, double widthPoints, double heightPoints,
+            params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            return AddLineChart(items, categorySelector,
+                PowerPointUnits.FromPoints(leftPoints),
+                PowerPointUnits.FromPoints(topPoints),
+                PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints),
+                seriesDefinitions);
+        }
+
+        /// <summary>
+        ///     Adds a line chart using object data selectors at a specific position.
+        /// </summary>
+        public PowerPointChart AddLineChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+            long left, long top, long width, long height,
+            params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            var data = PowerPointChartData.From(items, categorySelector, seriesDefinitions);
+            return AddChartInternal(PowerPointChartKind.Line, data, left, top, width, height);
+        }
+
+        /// <summary>
         ///     Adds a pie chart with default data.
         /// </summary>
         public PowerPointChart AddPieChart() {

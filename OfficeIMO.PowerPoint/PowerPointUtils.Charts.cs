@@ -11,6 +11,7 @@ using S = DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.PowerPoint {
     internal enum PowerPointChartKind {
         ClusteredColumn,
+        Line,
         Pie,
         Doughnut
     }
@@ -100,6 +101,14 @@ namespace OfficeIMO.PowerPoint {
                     plotArea.Append(barChart);
                     plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                     plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                    return;
+                case PowerPointChartKind.Line:
+                    uint lineCategoryAxisId;
+                    uint lineValueAxisId;
+                    C.LineChart lineChart = CreateLineChart(data, out lineCategoryAxisId, out lineValueAxisId);
+                    plotArea.Append(lineChart);
+                    plotArea.Append(CreateCategoryAxis(lineCategoryAxisId, lineValueAxisId));
+                    plotArea.Append(CreateValueAxis(lineValueAxisId, lineCategoryAxisId));
                     return;
                 case PowerPointChartKind.Pie:
                     plotArea.Append(CreatePieChart(data));
@@ -248,6 +257,42 @@ namespace OfficeIMO.PowerPoint {
                 new C.Order { Val = (uint)seriesIndex },
                 new C.SeriesText(CreateStringReference(seriesNameRef, new[] { series.Name })),
                 new C.InvertIfNegative { Val = false },
+                new C.CategoryAxisData(CreateStringReference(categoriesRef, categories)),
+                new C.Values(CreateNumberReference(valuesRef, series.Values))
+            );
+
+            return seriesElement;
+        }
+
+        private static C.LineChart CreateLineChart(PowerPointChartData data, out uint categoryAxisId, out uint valueAxisId) {
+            categoryAxisId = PowerPointChartAxisIdGenerator.GetNextId();
+            valueAxisId = PowerPointChartAxisIdGenerator.GetNextId();
+
+            C.LineChart lineChart = new(
+                new C.Grouping { Val = C.GroupingValues.Standard },
+                new C.VaryColors { Val = false });
+
+            for (int i = 0; i < data.Series.Count; i++) {
+                lineChart.Append(CreateLineChartSeries(i, data.Series[i], data.Categories));
+            }
+
+            lineChart.Append(CreateDefaultDataLabels());
+            lineChart.Append(new C.AxisId { Val = categoryAxisId });
+            lineChart.Append(new C.AxisId { Val = valueAxisId });
+            return lineChart;
+        }
+
+        private static C.LineChartSeries CreateLineChartSeries(int seriesIndex, PowerPointChartSeries series, IReadOnlyList<string> categories) {
+            int lastRow = categories.Count + 1;
+            string seriesColumn = ColumnLetter(seriesIndex + 2);
+            string seriesNameRef = $"Sheet1!${seriesColumn}$1";
+            string categoriesRef = $"Sheet1!$A$2:$A${lastRow}";
+            string valuesRef = $"Sheet1!${seriesColumn}$2:${seriesColumn}${lastRow}";
+
+            C.LineChartSeries seriesElement = new(
+                new C.Index { Val = (uint)seriesIndex },
+                new C.Order { Val = (uint)seriesIndex },
+                new C.SeriesText(CreateStringReference(seriesNameRef, new[] { series.Name })),
                 new C.CategoryAxisData(CreateStringReference(categoriesRef, categories)),
                 new C.Values(CreateNumberReference(valuesRef, series.Values))
             );

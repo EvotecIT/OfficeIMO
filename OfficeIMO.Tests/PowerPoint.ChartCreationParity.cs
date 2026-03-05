@@ -84,5 +84,81 @@ namespace OfficeIMO.Tests {
                 }
             }
         }
+
+        [Fact]
+        public void CanCreateLineCharts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            var data = new PowerPointChartData(
+                new[] { "Jan", "Feb", "Mar" },
+                new[] { new PowerPointChartSeries("Revenue", new[] { 12d, 18d, 15d }) });
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddLineChart(data);
+
+                    chart.SetTitle("Monthly Revenue")
+                        .SetDataLabels(showValue: true)
+                        .SetSeriesLineColor(0, "ED7D31", 2.5)
+                        .SetSeriesMarker(0, C.MarkerStyleValues.Circle, size: 9, fillColor: "ED7D31", lineColor: "A64D13");
+
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    C.Chart chart = chartPart.ChartSpace!.GetFirstChild<C.Chart>()!;
+                    C.PlotArea plotArea = chart.PlotArea!;
+
+                    Assert.Null(plotArea.GetFirstChild<C.BarChart>());
+                    Assert.Null(plotArea.GetFirstChild<C.PieChart>());
+                    Assert.Null(plotArea.GetFirstChild<C.DoughnutChart>());
+                    Assert.Single(plotArea.Elements<C.CategoryAxis>());
+                    Assert.Single(plotArea.Elements<C.ValueAxis>());
+
+                    C.LineChart lineChart = plotArea.GetFirstChild<C.LineChart>()!;
+                    C.LineChartSeries series = lineChart.Elements<C.LineChartSeries>().Single();
+
+                    string[] categories = series.GetFirstChild<C.CategoryAxisData>()?
+                        .GetFirstChild<C.StringReference>()?
+                        .GetFirstChild<C.StringCache>()?
+                        .Elements<C.StringPoint>()
+                        .Select(point => point.NumericValue?.Text ?? string.Empty)
+                        .ToArray() ?? Array.Empty<string>();
+                    Assert.Equal(new[] { "Jan", "Feb", "Mar" }, categories);
+
+                    double[] values = series.GetFirstChild<C.Values>()?
+                        .GetFirstChild<C.NumberReference>()?
+                        .GetFirstChild<C.NumberingCache>()?
+                        .Elements<C.NumericPoint>()
+                        .Select(point => double.Parse(point.NumericValue?.Text ?? "0", CultureInfo.InvariantCulture))
+                        .ToArray() ?? Array.Empty<double>();
+                    Assert.Equal(new[] { 12d, 18d, 15d }, values);
+
+                    var marker = series.GetFirstChild<C.Marker>();
+                    Assert.NotNull(marker);
+                    Assert.Equal(C.MarkerStyleValues.Circle, marker!.Symbol?.Val?.Value);
+                    Assert.Equal((byte)9, marker.Size?.Val?.Value);
+
+                    string? markerFillColor = marker.GetFirstChild<C.ChartShapeProperties>()?
+                        .GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()?
+                        .GetFirstChild<DocumentFormat.OpenXml.Drawing.RgbColorModelHex>()?
+                        .Val?.Value;
+                    Assert.Equal("ED7D31", markerFillColor);
+
+                    string? lineColor = series.GetFirstChild<C.ChartShapeProperties>()?
+                        .GetFirstChild<DocumentFormat.OpenXml.Drawing.Outline>()?
+                        .GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()?
+                        .GetFirstChild<DocumentFormat.OpenXml.Drawing.RgbColorModelHex>()?
+                        .Val?.Value;
+                    Assert.Equal("ED7D31", lineColor);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
     }
 }
