@@ -139,7 +139,6 @@ namespace OfficeIMO.PowerPoint {
 
             chartPart.ChartSpace = chartSpace;
         }
-
         private static void AppendChartContent(C.PlotArea plotArea, PowerPointChartData data, PowerPointChartKind chartKind) {
             switch (chartKind) {
                 case PowerPointChartKind.ClusteredColumn:
@@ -183,7 +182,6 @@ namespace OfficeIMO.PowerPoint {
                     throw new NotSupportedException($"Chart kind {chartKind} is not supported for scatter data.");
             }
         }
-
         internal static void UpdateChartData(ChartPart chartPart, PowerPointChartData data) {
             if (chartPart == null) {
                 throw new ArgumentNullException(nameof(chartPart));
@@ -509,7 +507,6 @@ namespace OfficeIMO.PowerPoint {
 
             return seriesElement;
         }
-
         private static C.PieChart CreatePieChart(PowerPointChartData data) {
             C.PieChart pieChart = new(
                 new C.VaryColors { Val = true });
