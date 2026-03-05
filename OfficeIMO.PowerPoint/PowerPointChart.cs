@@ -44,11 +44,42 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Updates scatter chart data (series X/Y values).
+        /// </summary>
+        public PowerPointChart UpdateData(PowerPointScatterChartData data) {
+            if (data == null) {
+                throw new ArgumentNullException(nameof(data));
+            }
+
+            ChartPart chartPart = GetChartPart();
+            PowerPointUtils.UpdateChartData(chartPart, data);
+
+            EmbeddedPackagePart? embedded = chartPart.GetPartsOfType<EmbeddedPackagePart>().FirstOrDefault();
+            if (embedded != null) {
+                byte[] workbookBytes = PowerPointUtils.BuildChartWorkbook(data);
+                using var stream = new MemoryStream(workbookBytes);
+                embedded.FeedData(stream);
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
         ///     Updates the chart data using selectors.
         /// </summary>
         public PowerPointChart UpdateData<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             PowerPointChartData data = PowerPointChartData.From(items, categorySelector, seriesDefinitions);
+            return UpdateData(data);
+        }
+
+        /// <summary>
+        ///     Updates scatter chart data using selectors.
+        /// </summary>
+        public PowerPointChart UpdateData<T>(IEnumerable<T> items, Func<T, double> xSelector,
+            params PowerPointScatterChartSeriesDefinition<T>[] seriesDefinitions) {
+            PowerPointScatterChartData data = PowerPointScatterChartData.From(items, xSelector, seriesDefinitions);
             return UpdateData(data);
         }
 
@@ -160,6 +191,10 @@ namespace OfficeIMO.PowerPoint {
 
             foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
                 ApplyDataLabels(doughnutChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent);
+            }
+
+            foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
+                ApplyDataLabels(scatterChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent);
             }
 
             Save();

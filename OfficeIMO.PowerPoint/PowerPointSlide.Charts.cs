@@ -321,6 +321,162 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Adds a scatter chart with default data.
+        /// </summary>
+        public PowerPointChart AddScatterChart() {
+            return AddScatterChartInternal(null, 0L, 0L, 5486400L, 3200400L);
+        }
+
+        /// <summary>
+        ///     Adds a scatter chart with default data at a specific position.
+        /// </summary>
+        public PowerPointChart AddScatterChart(long left, long top, long width, long height) {
+            return AddScatterChartInternal(null, left, top, width, height);
+        }
+
+        /// <summary>
+        ///     Adds a scatter chart with default data using centimeter measurements.
+        /// </summary>
+        public PowerPointChart AddScatterChartCm(double leftCm, double topCm, double widthCm, double heightCm) {
+            return AddScatterChart(
+                PowerPointUnits.FromCentimeters(leftCm),
+                PowerPointUnits.FromCentimeters(topCm),
+                PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm));
+        }
+
+        /// <summary>
+        ///     Adds a scatter chart with default data using inch measurements.
+        /// </summary>
+        public PowerPointChart AddScatterChartInches(double leftInches, double topInches, double widthInches,
+            double heightInches) {
+            return AddScatterChart(
+                PowerPointUnits.FromInches(leftInches),
+                PowerPointUnits.FromInches(topInches),
+                PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches));
+        }
+
+        /// <summary>
+        ///     Adds a scatter chart with default data using point measurements.
+        /// </summary>
+        public PowerPointChart AddScatterChartPoints(double leftPoints, double topPoints, double widthPoints,
+            double heightPoints) {
+            return AddScatterChart(
+                PowerPointUnits.FromPoints(leftPoints),
+                PowerPointUnits.FromPoints(topPoints),
+                PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints));
+        }
+
+        /// <summary>
+        ///     Adds a scatter chart using the supplied data.
+        /// </summary>
+        public PowerPointChart AddScatterChart(PowerPointScatterChartData data, long left = 0L, long top = 0L,
+            long width = 5486400L, long height = 3200400L) {
+            if (data == null) {
+                throw new ArgumentNullException(nameof(data));
+            }
+
+            return AddScatterChartInternal(data, left, top, width, height);
+        }
+
+        /// <summary>
+        ///     Adds a scatter chart using the supplied data with centimeter measurements.
+        /// </summary>
+        public PowerPointChart AddScatterChartCm(PowerPointScatterChartData data, double leftCm, double topCm, double widthCm,
+            double heightCm) {
+            return AddScatterChart(data,
+                PowerPointUnits.FromCentimeters(leftCm),
+                PowerPointUnits.FromCentimeters(topCm),
+                PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm));
+        }
+
+        /// <summary>
+        ///     Adds a scatter chart using the supplied data with inch measurements.
+        /// </summary>
+        public PowerPointChart AddScatterChartInches(PowerPointScatterChartData data, double leftInches, double topInches,
+            double widthInches, double heightInches) {
+            return AddScatterChart(data,
+                PowerPointUnits.FromInches(leftInches),
+                PowerPointUnits.FromInches(topInches),
+                PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches));
+        }
+
+        /// <summary>
+        ///     Adds a scatter chart using the supplied data with point measurements.
+        /// </summary>
+        public PowerPointChart AddScatterChartPoints(PowerPointScatterChartData data, double leftPoints, double topPoints,
+            double widthPoints, double heightPoints) {
+            return AddScatterChart(data,
+                PowerPointUnits.FromPoints(leftPoints),
+                PowerPointUnits.FromPoints(topPoints),
+                PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints));
+        }
+
+        /// <summary>
+        ///     Adds a scatter chart using object data selectors.
+        /// </summary>
+        public PowerPointChart AddScatterChart<T>(IEnumerable<T> items, Func<T, double> xSelector,
+            params PowerPointScatterChartSeriesDefinition<T>[] seriesDefinitions) {
+            return AddScatterChart(items, xSelector, 0L, 0L, 5486400L, 3200400L, seriesDefinitions);
+        }
+
+        /// <summary>
+        ///     Adds a scatter chart using object data selectors (centimeters).
+        /// </summary>
+        public PowerPointChart AddScatterChartCm<T>(IEnumerable<T> items, Func<T, double> xSelector, double leftCm,
+            double topCm, double widthCm, double heightCm, params PowerPointScatterChartSeriesDefinition<T>[] seriesDefinitions) {
+            return AddScatterChart(items, xSelector,
+                PowerPointUnits.FromCentimeters(leftCm),
+                PowerPointUnits.FromCentimeters(topCm),
+                PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm),
+                seriesDefinitions);
+        }
+
+        /// <summary>
+        ///     Adds a scatter chart using object data selectors (inches).
+        /// </summary>
+        public PowerPointChart AddScatterChartInches<T>(IEnumerable<T> items, Func<T, double> xSelector,
+            double leftInches, double topInches, double widthInches, double heightInches,
+            params PowerPointScatterChartSeriesDefinition<T>[] seriesDefinitions) {
+            return AddScatterChart(items, xSelector,
+                PowerPointUnits.FromInches(leftInches),
+                PowerPointUnits.FromInches(topInches),
+                PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches),
+                seriesDefinitions);
+        }
+
+        /// <summary>
+        ///     Adds a scatter chart using object data selectors (points).
+        /// </summary>
+        public PowerPointChart AddScatterChartPoints<T>(IEnumerable<T> items, Func<T, double> xSelector,
+            double leftPoints, double topPoints, double widthPoints, double heightPoints,
+            params PowerPointScatterChartSeriesDefinition<T>[] seriesDefinitions) {
+            return AddScatterChart(items, xSelector,
+                PowerPointUnits.FromPoints(leftPoints),
+                PowerPointUnits.FromPoints(topPoints),
+                PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints),
+                seriesDefinitions);
+        }
+
+        /// <summary>
+        ///     Adds a scatter chart using object data selectors at a specific position.
+        /// </summary>
+        public PowerPointChart AddScatterChart<T>(IEnumerable<T> items, Func<T, double> xSelector,
+            long left, long top, long width, long height,
+            params PowerPointScatterChartSeriesDefinition<T>[] seriesDefinitions) {
+            var data = PowerPointScatterChartData.From(items, xSelector, seriesDefinitions);
+            return AddScatterChartInternal(data, left, top, width, height);
+        }
+
+        /// <summary>
         ///     Adds a pie chart with default data.
         /// </summary>
         public PowerPointChart AddPieChart() {
@@ -432,6 +588,22 @@ namespace OfficeIMO.PowerPoint {
 
         private PowerPointChart AddChartInternal(PowerPointChartKind chartKind, PowerPointChartData? data, long left, long top, long width, long height) {
             PowerPointChartData chartData = data ?? PowerPointChartData.CreateDefault();
+            byte[] workbookBytes = PowerPointUtils.BuildChartWorkbook(chartData);
+            return AddChartInternal(workbookBytes,
+                (chartPart, embeddedRelId) => PowerPointUtils.PopulateChart(chartPart, embeddedRelId, chartData, chartKind),
+                left, top, width, height);
+        }
+
+        private PowerPointChart AddScatterChartInternal(PowerPointScatterChartData? data, long left, long top, long width, long height) {
+            PowerPointScatterChartData chartData = data ?? PowerPointScatterChartData.CreateDefault();
+            byte[] workbookBytes = PowerPointUtils.BuildChartWorkbook(chartData);
+            return AddChartInternal(workbookBytes,
+                (chartPart, embeddedRelId) => PowerPointUtils.PopulateChart(chartPart, embeddedRelId, chartData, PowerPointChartKind.Scatter),
+                left, top, width, height);
+        }
+
+        private PowerPointChart AddChartInternal(byte[] workbookBytes, Action<ChartPart, string> populateChart,
+            long left, long top, long width, long height) {
             string chartPartUri = PowerPointPartFactory.GetIndexedPartUri(
                 _slidePart.OpenXmlPackage,
                 "ppt/charts",
@@ -478,13 +650,12 @@ namespace OfficeIMO.PowerPoint {
                 chartPart,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 embeddedPartUri);
-            byte[] workbookBytes = PowerPointUtils.BuildChartWorkbook(chartData);
             using (var ms = new MemoryStream(workbookBytes)) {
                 embedded.FeedData(ms);
             }
 
             string embeddedRelId = chartPart.GetIdOfPart(embedded);
-            PowerPointUtils.PopulateChart(chartPart, embeddedRelId, chartData, chartKind);
+            populateChart(chartPart, embeddedRelId);
 
             string name = GenerateUniqueName("Chart");
             GraphicFrame frame = new(

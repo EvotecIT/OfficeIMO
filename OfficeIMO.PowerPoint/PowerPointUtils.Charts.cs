@@ -12,6 +12,7 @@ namespace OfficeIMO.PowerPoint {
     internal enum PowerPointChartKind {
         ClusteredColumn,
         Line,
+        Scatter,
         Pie,
         Doughnut
     }
@@ -92,6 +93,53 @@ namespace OfficeIMO.PowerPoint {
             chartPart.ChartSpace = chartSpace;
         }
 
+        internal static void PopulateChart(ChartPart chartPart, string embeddedRelId, PowerPointScatterChartData data,
+            PowerPointChartKind chartKind = PowerPointChartKind.Scatter) {
+            if (chartPart == null) {
+                throw new ArgumentNullException(nameof(chartPart));
+            }
+            if (data == null) {
+                throw new ArgumentNullException(nameof(data));
+            }
+
+            C.ChartSpace chartSpace = new();
+            chartSpace.AddNamespaceDeclaration("c", ChartNamespace);
+            chartSpace.AddNamespaceDeclaration("a", DrawingNamespace);
+            chartSpace.AddNamespaceDeclaration("r", RelationshipNamespace);
+
+            chartSpace.Append(new C.Date1904 { Val = false });
+            chartSpace.Append(new C.EditingLanguage { Val = "en-US" });
+            chartSpace.Append(new C.RoundedCorners { Val = false });
+
+            C.Chart chart = new();
+            chart.Append(new C.AutoTitleDeleted { Val = false });
+
+            C.PlotArea plotArea = new();
+            plotArea.Append(new C.Layout());
+
+            AppendChartContent(plotArea, data, chartKind);
+
+            chart.Append(plotArea);
+            chart.Append(new C.Legend(
+                new C.LegendPosition { Val = C.LegendPositionValues.Bottom },
+                new C.Layout(),
+                new C.Overlay { Val = false }));
+            chart.Append(new C.PlotVisibleOnly { Val = true });
+            chart.Append(new C.DisplayBlanksAs { Val = C.DisplayBlanksAsValues.Gap });
+            chart.Append(new C.ShowDataLabelsOverMaximum { Val = false });
+
+            chartSpace.Append(chart);
+
+            if (!string.IsNullOrWhiteSpace(embeddedRelId)) {
+                chartSpace.Append(new C.ExternalData {
+                    Id = embeddedRelId,
+                    AutoUpdate = new C.AutoUpdate { Val = false }
+                });
+            }
+
+            chartPart.ChartSpace = chartSpace;
+        }
+
         private static void AppendChartContent(C.PlotArea plotArea, PowerPointChartData data, PowerPointChartKind chartKind) {
             switch (chartKind) {
                 case PowerPointChartKind.ClusteredColumn:
@@ -118,6 +166,21 @@ namespace OfficeIMO.PowerPoint {
                     return;
                 default:
                     throw new NotSupportedException($"Chart kind {chartKind} is not supported.");
+            }
+        }
+
+        private static void AppendChartContent(C.PlotArea plotArea, PowerPointScatterChartData data, PowerPointChartKind chartKind) {
+            switch (chartKind) {
+                case PowerPointChartKind.Scatter:
+                    uint xAxisId;
+                    uint yAxisId;
+                    C.ScatterChart scatterChart = CreateScatterChart(data, out xAxisId, out yAxisId);
+                    plotArea.Append(scatterChart);
+                    plotArea.Append(CreateValueAxis(xAxisId, yAxisId, C.AxisPositionValues.Bottom));
+                    plotArea.Append(CreateValueAxis(yAxisId, xAxisId, C.AxisPositionValues.Left));
+                    return;
+                default:
+                    throw new NotSupportedException($"Chart kind {chartKind} is not supported for scatter data.");
             }
         }
 
@@ -152,6 +215,29 @@ namespace OfficeIMO.PowerPoint {
             }
 
             throw new NotSupportedException("Chart type is not supported for data updates.");
+        }
+
+        internal static void UpdateChartData(ChartPart chartPart, PowerPointScatterChartData data) {
+            if (chartPart == null) {
+                throw new ArgumentNullException(nameof(chartPart));
+            }
+            if (data == null) {
+                throw new ArgumentNullException(nameof(data));
+            }
+
+            C.ChartSpace? chartSpace = chartPart.ChartSpace;
+            C.Chart? chart = chartSpace?.GetFirstChild<C.Chart>();
+            C.PlotArea? plotArea = chart?.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                throw new InvalidOperationException("Chart plot area not found.");
+            }
+
+            if (plotArea.GetFirstChild<C.ScatterChart>() is C.ScatterChart scatterChart) {
+                UpdateScatterChartSeries(scatterChart, data);
+                return;
+            }
+
+            throw new NotSupportedException("Chart type is not supported for scatter data updates.");
         }
 
         internal static byte[] BuildChartWorkbook(PowerPointChartData data) {
@@ -206,6 +292,86 @@ namespace OfficeIMO.PowerPoint {
                         double value = data.Series[seriesIndex].Values[rowIndex];
                         row.Append(CreateNumberCell(cellRef, value));
                     }
+                    sheetData.Append(row);
+                }
+
+                var sheets = wbPart.Workbook.AppendChild(new S.Sheets());
+                sheets.Append(new S.Sheet {
+                    Id = wbPart.GetIdOfPart(wsPart),
+                    SheetId = 1U,
+                    Name = "Sheet1"
+                });
+
+                sharedStringsPart.SharedStringTable.Save();
+                wsPart.Worksheet.Save();
+                wbPart.Workbook.Save();
+            }
+
+            return ms.ToArray();
+        }
+
+        internal static byte[] BuildChartWorkbook(PowerPointScatterChartData data) {
+            using MemoryStream ms = new();
+            using (SpreadsheetDocument doc = SpreadsheetDocument.Create(ms, SpreadsheetDocumentType.Workbook)) {
+                WorkbookPart wbPart = doc.AddWorkbookPart();
+                wbPart.Workbook = new S.Workbook();
+
+                WorksheetPart wsPart = wbPart.AddNewPart<WorksheetPart>();
+                var sheetData = new S.SheetData();
+
+                int seriesCount = data.Series.Count;
+                int totalColumns = seriesCount * 2;
+                int maxPoints = data.Series.Max(series => series.XValues.Count);
+                int totalRows = maxPoints + 1;
+                string lastColumn = ColumnLetter(totalColumns);
+                string dimensionRef = $"A1:{lastColumn}{totalRows}";
+
+                wsPart.Worksheet = new S.Worksheet(
+                    new S.SheetDimension { Reference = dimensionRef },
+                    sheetData);
+
+                var sharedStringsPart = wbPart.AddNewPart<SharedStringTablePart>();
+                sharedStringsPart.SharedStringTable = new S.SharedStringTable();
+
+                var stringIndex = new Dictionary<string, int>(StringComparer.Ordinal);
+                int GetStringIndex(string value) {
+                    if (!stringIndex.TryGetValue(value, out int idx)) {
+                        idx = stringIndex.Count;
+                        stringIndex[value] = idx;
+                        sharedStringsPart.SharedStringTable.AppendChild(new S.SharedStringItem(new S.Text(value)));
+                    }
+                    return idx;
+                }
+
+                var headerRow = new S.Row { RowIndex = 1U, Spans = new ListValue<StringValue> { InnerText = $"1:{totalColumns}" } };
+                for (int i = 0; i < seriesCount; i++) {
+                    int xColumnIndex = (i * 2) + 1;
+                    int yColumnIndex = xColumnIndex + 1;
+                    string xHeaderRef = $"{ColumnLetter(xColumnIndex)}1";
+                    string yHeaderRef = $"{ColumnLetter(yColumnIndex)}1";
+
+                    headerRow.Append(CreateSharedStringCell(xHeaderRef, GetStringIndex($"{data.Series[i].Name} X")));
+                    headerRow.Append(CreateSharedStringCell(yHeaderRef, GetStringIndex(data.Series[i].Name)));
+                }
+                sheetData.Append(headerRow);
+
+                for (int pointIndex = 0; pointIndex < maxPoints; pointIndex++) {
+                    uint excelRow = (uint)(pointIndex + 2);
+                    var row = new S.Row { RowIndex = excelRow, Spans = new ListValue<StringValue> { InnerText = $"1:{totalColumns}" } };
+
+                    for (int seriesIndex = 0; seriesIndex < seriesCount; seriesIndex++) {
+                        PowerPointScatterChartSeries series = data.Series[seriesIndex];
+                        int xColumnIndex = (seriesIndex * 2) + 1;
+                        int yColumnIndex = xColumnIndex + 1;
+
+                        if (pointIndex < series.XValues.Count) {
+                            row.Append(CreateNumberCell($"{ColumnLetter(xColumnIndex)}{excelRow}", series.XValues[pointIndex]));
+                        }
+                        if (pointIndex < series.YValues.Count) {
+                            row.Append(CreateNumberCell($"{ColumnLetter(yColumnIndex)}{excelRow}", series.YValues[pointIndex]));
+                        }
+                    }
+
                     sheetData.Append(row);
                 }
 
@@ -295,6 +461,40 @@ namespace OfficeIMO.PowerPoint {
                 new C.SeriesText(CreateStringReference(seriesNameRef, new[] { series.Name })),
                 new C.CategoryAxisData(CreateStringReference(categoriesRef, categories)),
                 new C.Values(CreateNumberReference(valuesRef, series.Values))
+            );
+
+            return seriesElement;
+        }
+
+        private static C.ScatterChart CreateScatterChart(PowerPointScatterChartData data, out uint xAxisId, out uint yAxisId) {
+            xAxisId = PowerPointChartAxisIdGenerator.GetNextId();
+            yAxisId = PowerPointChartAxisIdGenerator.GetNextId();
+
+            C.ScatterChart scatterChart = new(
+                new C.ScatterStyle { Val = C.ScatterStyleValues.LineMarker },
+                new C.VaryColors { Val = false });
+
+            for (int i = 0; i < data.Series.Count; i++) {
+                scatterChart.Append(CreateScatterChartSeries(i, data.Series[i]));
+            }
+
+            scatterChart.Append(CreateDefaultDataLabels());
+            scatterChart.Append(new C.AxisId { Val = xAxisId });
+            scatterChart.Append(new C.AxisId { Val = yAxisId });
+            return scatterChart;
+        }
+
+        private static C.ScatterChartSeries CreateScatterChartSeries(int seriesIndex, PowerPointScatterChartSeries series) {
+            string seriesNameRef = GetScatterSeriesNameReference(seriesIndex);
+            string xValuesRef = GetScatterXValuesReference(seriesIndex, series.XValues.Count);
+            string yValuesRef = GetScatterYValuesReference(seriesIndex, series.YValues.Count);
+
+            C.ScatterChartSeries seriesElement = new(
+                new C.Index { Val = (uint)seriesIndex },
+                new C.Order { Val = (uint)seriesIndex },
+                new C.SeriesText(CreateStringReference(seriesNameRef, new[] { series.Name })),
+                new C.XValues(CreateNumberReference(xValuesRef, series.XValues)),
+                new C.YValues(CreateNumberReference(yValuesRef, series.YValues))
             );
 
             return seriesElement;
@@ -444,6 +644,32 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        private static void UpdateScatterChartSeries(C.ScatterChart scatterChart, PowerPointScatterChartData data) {
+            List<C.ScatterChartSeries> existingSeries = scatterChart.Elements<C.ScatterChartSeries>().ToList();
+            C.ScatterChartSeries? template = existingSeries.LastOrDefault();
+
+            int seriesCount = data.Series.Count;
+            for (int i = 0; i < seriesCount; i++) {
+                C.ScatterChartSeries seriesElement;
+                if (i < existingSeries.Count) {
+                    seriesElement = existingSeries[i];
+                } else {
+                    seriesElement = template != null ? (C.ScatterChartSeries)template.CloneNode(true) : new C.ScatterChartSeries();
+                    InsertSeries(scatterChart, seriesElement);
+                    existingSeries.Add(seriesElement);
+                }
+
+                UpdateSeriesIndexOrder(seriesElement, i);
+                UpdateScatterSeriesText(seriesElement, i, data.Series[i].Name);
+                UpdateXValues(seriesElement, i, data.Series[i].XValues);
+                UpdateYValues(seriesElement, i, data.Series[i].YValues);
+            }
+
+            for (int i = existingSeries.Count - 1; i >= seriesCount; i--) {
+                existingSeries[i].Remove();
+            }
+        }
+
         private static void UpdateSeriesIndexOrder(OpenXmlCompositeElement series, int index) {
             C.Index idx = series.GetFirstChild<C.Index>() ?? new C.Index();
             idx.Val = (uint)index;
@@ -490,6 +716,24 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        private static void UpdateScatterSeriesText(C.ScatterChartSeries series, int seriesIndex, string seriesName) {
+            string seriesNameRef = GetScatterSeriesNameReference(seriesIndex);
+            C.SeriesText seriesText = series.GetFirstChild<C.SeriesText>() ?? new C.SeriesText();
+            seriesText.RemoveAllChildren<C.StringReference>();
+            seriesText.RemoveAllChildren<C.StringLiteral>();
+            seriesText.Append(CreateStringReference(seriesNameRef, new[] { seriesName }));
+
+            if (seriesText.Parent == null) {
+                OpenXmlElement? insertAfter = series.GetFirstChild<C.Order>();
+                insertAfter ??= series.GetFirstChild<C.Index>();
+                if (insertAfter != null) {
+                    series.InsertAfter(seriesText, insertAfter);
+                } else {
+                    series.PrependChild(seriesText);
+                }
+            }
+        }
+
         private static void UpdateValues(OpenXmlCompositeElement series, int seriesIndex, IReadOnlyList<double> values) {
             int lastRow = values.Count + 1;
             string seriesColumn = ColumnLetter(seriesIndex + 2);
@@ -501,6 +745,30 @@ namespace OfficeIMO.PowerPoint {
 
             if (valueElement.Parent == null) {
                 series.Append(valueElement);
+            }
+        }
+
+        private static void UpdateXValues(C.ScatterChartSeries series, int seriesIndex, IReadOnlyList<double> values) {
+            string valuesRef = GetScatterXValuesReference(seriesIndex, values.Count);
+            C.XValues xValueElement = series.GetFirstChild<C.XValues>() ?? new C.XValues();
+            xValueElement.RemoveAllChildren<C.NumberReference>();
+            xValueElement.RemoveAllChildren<C.NumberLiteral>();
+            xValueElement.Append(CreateNumberReference(valuesRef, values));
+
+            if (xValueElement.Parent == null) {
+                series.Append(xValueElement);
+            }
+        }
+
+        private static void UpdateYValues(C.ScatterChartSeries series, int seriesIndex, IReadOnlyList<double> values) {
+            string valuesRef = GetScatterYValuesReference(seriesIndex, values.Count);
+            C.YValues yValueElement = series.GetFirstChild<C.YValues>() ?? new C.YValues();
+            yValueElement.RemoveAllChildren<C.NumberReference>();
+            yValueElement.RemoveAllChildren<C.NumberLiteral>();
+            yValueElement.Append(CreateNumberReference(valuesRef, values));
+
+            if (yValueElement.Parent == null) {
+                series.Append(yValueElement);
             }
         }
 
@@ -521,12 +789,34 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        private static string GetScatterSeriesNameReference(int seriesIndex) {
+            string yColumn = ColumnLetter((seriesIndex * 2) + 2);
+            return $"Sheet1!${yColumn}$1";
+        }
+
+        private static string GetScatterXValuesReference(int seriesIndex, int pointCount) {
+            string xColumn = ColumnLetter((seriesIndex * 2) + 1);
+            int lastRow = pointCount + 1;
+            return $"Sheet1!${xColumn}$2:${xColumn}${lastRow}";
+        }
+
+        private static string GetScatterYValuesReference(int seriesIndex, int pointCount) {
+            string yColumn = ColumnLetter((seriesIndex * 2) + 2);
+            int lastRow = pointCount + 1;
+            return $"Sheet1!${yColumn}$2:${yColumn}${lastRow}";
+        }
+
         private static C.ValueAxis CreateValueAxis(uint axisId, uint crossingAxisId) {
+            return CreateValueAxis(axisId, crossingAxisId, C.AxisPositionValues.Left);
+        }
+
+        private static C.ValueAxis CreateValueAxis(uint axisId, uint crossingAxisId,
+            C.AxisPositionValues axisPosition) {
             C.ValueAxis axis = new(
                 new C.AxisId { Val = axisId },
                 new C.Scaling(new C.Orientation { Val = C.OrientationValues.MinMax }),
                 new C.Delete { Val = false },
-                new C.AxisPosition { Val = C.AxisPositionValues.Left },
+                new C.AxisPosition { Val = axisPosition },
                 new C.MajorGridlines(),
                 new C.NumberingFormat { FormatCode = "General", SourceLinked = true },
                 new C.MajorTickMark { Val = C.TickMarkValues.None },
