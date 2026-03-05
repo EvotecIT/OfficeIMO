@@ -62,6 +62,8 @@ public static class MarkdownRenderer {
         var doc = MarkdownReader.Parse(markdown, readerOptions);
         string html = doc.ToHtmlFragment(htmlOptions) ?? string.Empty;
 
+        html = ConvertCustomCodeBlocks(html, options);
+
         if (options.Mermaid?.Enabled == true) {
             html = ConvertMermaidCodeBlocks(html, enableHashCaching: options.Mermaid.EnableHashCaching);
         }
@@ -200,6 +202,8 @@ public static class MarkdownRenderer {
             sb.Append(BuildChartBootstrap(options.Chart, assetMode));
         }
 
+        AppendCustomShellHeadHtml(sb, options, assetMode);
+
         sb.Append("</head><body>");
         sb.Append("<div id=\"omdRoot\"></div>");
         sb.Append("<script>\n").Append(BuildIncrementalUpdateScript(options)).Append("\n</script>");
@@ -268,6 +272,86 @@ public static class MarkdownRenderer {
             }
             return $"<pre class=\"mermaid\"{hashAttr}>{content}</pre>";
         });
+    }
+
+    private static string ConvertCustomCodeBlocks(string html, MarkdownRendererOptions options) {
+        if (string.IsNullOrEmpty(html)) {
+            return html;
+        }
+
+        var renderers = options.FencedCodeBlockRenderers;
+        if (renderers == null || renderers.Count == 0) {
+            return html;
+        }
+
+        var value = html;
+        for (int i = 0; i < renderers.Count; i++) {
+            var renderer = renderers[i];
+            if (renderer == null) {
+                continue;
+            }
+
+            value = ConvertCustomCodeBlocks(value, renderer, options);
+        }
+
+        return value;
+    }
+
+    private static string ConvertCustomCodeBlocks(string html, MarkdownFencedCodeBlockRenderer renderer, MarkdownRendererOptions options) {
+        if (string.IsNullOrEmpty(html)) {
+            return html;
+        }
+
+        var languages = renderer.Languages;
+        if (languages == null || languages.Count == 0) {
+            return html;
+        }
+
+        bool mightMatch = false;
+        for (int i = 0; i < languages.Count; i++) {
+            var lang = languages[i];
+            if (string.IsNullOrWhiteSpace(lang)) {
+                continue;
+            }
+
+            if (html.IndexOf("language-" + lang, StringComparison.OrdinalIgnoreCase) >= 0) {
+                mightMatch = true;
+                break;
+            }
+        }
+
+        if (!mightMatch) {
+            return html;
+        }
+
+        var regex = BuildCustomCodeBlockRegex(languages);
+        return regex.Replace(html, m => {
+            var language = m.Groups[2].Value ?? string.Empty;
+            var encoded = m.Groups[3].Value ?? string.Empty;
+            var raw = System.Net.WebUtility.HtmlDecode(encoded) ?? string.Empty;
+            var match = new MarkdownFencedCodeBlockMatch(language, encoded, raw, m.Value);
+            var replacement = renderer.RenderHtml(match, options);
+            return replacement ?? m.Value;
+        });
+    }
+
+    private static Regex BuildCustomCodeBlockRegex(IReadOnlyList<string> languages) {
+        var aliases = new List<string>();
+        for (int i = 0; i < languages.Count; i++) {
+            var lang = (languages[i] ?? string.Empty).Trim();
+            if (lang.Length == 0) {
+                continue;
+            }
+
+            aliases.Add(Regex.Escape(lang));
+        }
+
+        if (aliases.Count == 0) {
+            return new Regex("$a", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        }
+
+        var pattern = "(<pre[^>]*>)\\s*<code\\s+class=\"language-(" + string.Join("|", aliases) + ")\"[^>]*>([\\s\\S]*?)</code>\\s*</pre>";
+        return new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
     }
 
     private static string ConvertChartCodeBlocks(string html) {
@@ -425,6 +509,55 @@ mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-col
         return $"\n<link rel=\"stylesheet\" href=\"{cssHref}\">\n<script defer src=\"{jsSrc}\"></script>\n<script defer src=\"{arSrc}\"></script>\n";
     }
 
+    private static void AppendCustomShellHeadHtml(StringBuilder sb, MarkdownRendererOptions options, AssetMode assetMode) {
+        var renderers = options.FencedCodeBlockRenderers;
+        if (renderers == null || renderers.Count == 0) {
+            return;
+        }
+
+        for (int i = 0; i < renderers.Count; i++) {
+            var renderer = renderers[i];
+            if (renderer?.BuildShellHeadHtml == null) {
+                continue;
+            }
+
+            var fragment = renderer.BuildShellHeadHtml(options, assetMode);
+            if (!string.IsNullOrWhiteSpace(fragment)) {
+                sb.Append(fragment);
+            }
+        }
+    }
+
+    private static void AppendCustomUpdateScripts(StringBuilder sb, MarkdownRendererOptions options, bool beforeReplace) {
+        var renderers = options.FencedCodeBlockRenderers;
+        if (renderers == null || renderers.Count == 0) {
+            return;
+        }
+
+        for (int i = 0; i < renderers.Count; i++) {
+            var renderer = renderers[i];
+            if (renderer == null) {
+                continue;
+            }
+
+            var builder = beforeReplace
+                ? renderer.BuildBeforeContentReplaceScript
+                : renderer.BuildAfterContentReplaceScript;
+            if (builder == null) {
+                continue;
+            }
+
+            var fragment = builder(options);
+            if (string.IsNullOrWhiteSpace(fragment)) {
+                continue;
+            }
+
+            sb.Append('\n')
+              .Append(ReplaceScriptCloseSequence(fragment))
+              .Append('\n');
+        }
+    }
+
     private static string BuildBundledScriptSrc(string hrefOrPath, string mime) {
         // Only used by shell building logic. This should never throw.
         try {
@@ -575,6 +708,8 @@ async function updateContent(newBodyHtml) {
   });
 """);
         }
+
+        AppendCustomUpdateScripts(sb, options, beforeReplace: true);
 
         sb.Append("""
   // Replace rendered contents.
@@ -794,6 +929,8 @@ async function updateContent(newBodyHtml) {
   } catch(e) { /* ignore */ }
 """);
         }
+
+        AppendCustomUpdateScripts(sb, options, beforeReplace: false);
 
         if (codeCopy || tableCopy) {
             sb.Append("""

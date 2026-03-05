@@ -30,5 +30,17 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain("class=\"omd-math\"", html);
         }
+
+        [Fact]
+        public void CustomRenderer_NoMatchingFence_DoesNotInjectCustomNodes() {
+            var options = new MarkdownRendererOptions();
+            options.FencedCodeBlockRenderers.Add(new MarkdownFencedCodeBlockRenderer(
+                "Callout",
+                new[] { "ix-callout" },
+                (_, _) => "<div class=\"ix-callout\"></div>"));
+            var html = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("# Title\n\nJust text.", options);
+
+            Assert.DoesNotContain("class=\"ix-callout\"", html);
+        }
     }
 }

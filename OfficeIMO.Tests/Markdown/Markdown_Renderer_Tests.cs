@@ -117,6 +117,45 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_Can_Apply_Custom_Fenced_Code_Block_Renderers() {
+        var md = "```ix-note\nhello <world>\n```";
+        var opts = new MarkdownRendererOptions();
+        opts.FencedCodeBlockRenderers.Add(new MarkdownFencedCodeBlockRenderer(
+            "IX note",
+            new[] { "ix-note" },
+            (match, _) => $"<aside class=\"ix-note\" data-lang=\"{match.Language}\">{System.Net.WebUtility.HtmlEncode(match.RawContent)}</aside>") {
+            BuildShellHeadHtml = (_, _) => "<style>.ix-note{border-left:4px solid #0a84ff;padding-left:12px;}</style>",
+            BuildBeforeContentReplaceScript = _ => "window.__ixNoteBefore = (window.__ixNoteBefore || 0) + 1;",
+            BuildAfterContentReplaceScript = _ => "window.__ixNoteAfter = (window.__ixNoteAfter || 0) + 1;"
+        });
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+        var shell = MarkdownRenderer.MarkdownRenderer.BuildShellHtml("Chat", opts);
+
+        Assert.Contains("class=\"ix-note\"", html, StringComparison.Ordinal);
+        Assert.Contains("hello &lt;world&gt;", html, StringComparison.Ordinal);
+        Assert.Contains(".ix-note", shell, StringComparison.Ordinal);
+        Assert.Contains("__ixNoteBefore", shell, StringComparison.Ordinal);
+        Assert.Contains("__ixNoteAfter", shell, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Custom_Fenced_Code_Block_Renderers_Can_Override_BuiltIn_Aliases() {
+        var md = "```chart\n{\"type\":\"bar\"}\n```";
+        var opts = new MarkdownRendererOptions();
+        opts.Chart.Enabled = true;
+        opts.FencedCodeBlockRenderers.Add(new MarkdownFencedCodeBlockRenderer(
+            "Chart override",
+            new[] { "chart" },
+            (_, _) => "<div class=\"custom-chart\">override</div>"));
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+
+        Assert.Contains("class=\"custom-chart\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("class=\"omd-chart\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Shell_Contains_ChartJs_When_Enabled() {
         var opts = new MarkdownRendererOptions();
         opts.Chart.Enabled = true;
