@@ -38,6 +38,109 @@ namespace OfficeIMO.Word.Markdown {
             return run;
         }
 
+        private static WordParagraph CreateDetachedRun(WordDocument document, string? text, InlineFormatState fmt, string? defaultFont, bool forceMonospace = false) {
+            var paragraph = new Paragraph();
+            var run = new Run(new Text(text ?? string.Empty) {
+                Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve
+            });
+            paragraph.Append(run);
+
+            var wrapper = new WordParagraph(document, paragraph, run);
+            if (fmt.Bold) wrapper.SetBold();
+            if (fmt.Italic) wrapper.SetItalic();
+            if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) wrapper.SetUnderline(fmt.Underline.Value);
+            if (fmt.Strike) wrapper.SetStrike();
+            if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) wrapper.SetHighlight(fmt.Highlight.Value);
+
+            if (forceMonospace) {
+                wrapper.SetFontFamily(FontResolver.Resolve("monospace") ?? "Consolas");
+            } else if (!string.IsNullOrEmpty(defaultFont)) {
+                wrapper.SetFontFamily(defaultFont!);
+            }
+
+            return wrapper;
+        }
+
+        private static List<WordParagraph> BuildLinkLabelRunsOmd(
+            IEnumerable<object> nodes,
+            WordDocument document,
+            InlineFormatState fmt,
+            string? defaultFont) {
+            var runs = new List<WordParagraph>();
+            AppendLinkLabelRunsOmd(nodes, document, runs, fmt, defaultFont);
+            return runs;
+        }
+
+        private static void AppendLinkLabelRunsOmd(
+            IEnumerable<object> nodes,
+            WordDocument document,
+            List<WordParagraph> runs,
+            InlineFormatState fmt,
+            string? defaultFont) {
+            foreach (var node in nodes) {
+                switch (node) {
+                    case null:
+                        break;
+                    case Omd.TextRun t:
+                        runs.Add(CreateDetachedRun(document, t.Text, fmt, defaultFont));
+                        break;
+                    case Omd.HardBreakInline:
+                        runs.Add(CreateDetachedRun(document, " ", fmt, defaultFont));
+                        break;
+                    case Omd.CodeSpanInline cs:
+                        runs.Add(CreateDetachedRun(document, cs.Text, fmt, defaultFont, forceMonospace: true));
+                        break;
+                    case Omd.LinkInline l:
+                        runs.Add(CreateDetachedRun(document, l.Text, fmt, defaultFont));
+                        break;
+                    case Omd.ImageInline im:
+                        runs.Add(CreateDetachedRun(document, im.Alt ?? string.Empty, fmt, defaultFont));
+                        break;
+                    case Omd.ImageLinkInline il:
+                        runs.Add(CreateDetachedRun(document, il.Alt ?? il.ImageUrl ?? il.LinkUrl ?? string.Empty, fmt, defaultFont));
+                        break;
+                    case Omd.FootnoteRefInline fn:
+                        runs.Add(CreateDetachedRun(document, "[^" + fn.Label + "]", fmt, defaultFont));
+                        break;
+                    case Omd.BoldInline b:
+                        runs.Add(CreateDetachedRun(document, b.Text, fmt.WithBold(), defaultFont));
+                        break;
+                    case Omd.ItalicInline it:
+                        runs.Add(CreateDetachedRun(document, it.Text, fmt.WithItalic(), defaultFont));
+                        break;
+                    case Omd.BoldItalicInline bi:
+                        runs.Add(CreateDetachedRun(document, bi.Text, fmt.WithBold().WithItalic(), defaultFont));
+                        break;
+                    case Omd.StrikethroughInline st:
+                        runs.Add(CreateDetachedRun(document, st.Text, fmt.WithStrike(), defaultFont));
+                        break;
+                    case Omd.HighlightInline hi:
+                        runs.Add(CreateDetachedRun(document, hi.Text, fmt.WithHighlight(HighlightColorValues.Yellow), defaultFont));
+                        break;
+                    case Omd.UnderlineInline un:
+                        runs.Add(CreateDetachedRun(document, un.Text, fmt.WithUnderline(UnderlineValues.Single), defaultFont));
+                        break;
+                    case Omd.BoldSequenceInline bs:
+                        AppendLinkLabelRunsOmd(bs.Inlines.Items ?? Array.Empty<object>(), document, runs, fmt.WithBold(), defaultFont);
+                        break;
+                    case Omd.ItalicSequenceInline iseq:
+                        AppendLinkLabelRunsOmd(iseq.Inlines.Items ?? Array.Empty<object>(), document, runs, fmt.WithItalic(), defaultFont);
+                        break;
+                    case Omd.BoldItalicSequenceInline bis:
+                        AppendLinkLabelRunsOmd(bis.Inlines.Items ?? Array.Empty<object>(), document, runs, fmt.WithBold().WithItalic(), defaultFont);
+                        break;
+                    case Omd.StrikethroughSequenceInline sts:
+                        AppendLinkLabelRunsOmd(sts.Inlines.Items ?? Array.Empty<object>(), document, runs, fmt.WithStrike(), defaultFont);
+                        break;
+                    case Omd.HighlightSequenceInline hs:
+                        AppendLinkLabelRunsOmd(hs.Inlines.Items ?? Array.Empty<object>(), document, runs, fmt.WithHighlight(HighlightColorValues.Yellow), defaultFont);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
         /// <summary>
         /// Processes OfficeIMO.Markdown inline sequence into Word runs.
         /// </summary>
@@ -93,6 +196,14 @@ namespace OfficeIMO.Word.Markdown {
                     case Omd.LinkInline l: {
                             try {
                                 var uri = new Uri(l.Url, UriKind.RelativeOrAbsolute);
+                                if (l.LabelInlines != null && (l.LabelInlines.Items?.Count ?? 0) > 0) {
+                                    var labelRuns = BuildLinkLabelRunsOmd(l.LabelInlines.Items ?? Array.Empty<object>(), document, fmt, defaultFont);
+                                    if (labelRuns.Count > 0) {
+                                        WordHyperLink.AddHyperLink(paragraph, labelRuns, uri);
+                                        break;
+                                    }
+                                }
+
                                 var hl = paragraph.AddHyperLink(l.Text, uri);
 
                                 // Best-effort: apply formatting to the hyperlink run.
@@ -100,10 +211,15 @@ namespace OfficeIMO.Word.Markdown {
                                 if (fmt.Italic) hl.SetItalic();
                                 if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) hl.SetUnderline(fmt.Underline.Value);
                                 if (fmt.Strike) hl.SetStrike();
+                                if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) hl.SetHighlight(fmt.Highlight.Value);
                                 if (!string.IsNullOrEmpty(defaultFont)) hl.SetFontFamily(defaultFont!);
                             } catch (UriFormatException ex) {
                                 options.OnWarning?.Invoke($"Invalid URI '{l.Url}' - emitting as text. {ex.Message}");
-                                AddRun(paragraph, l.Text, fmt, defaultFont);
+                                if (l.LabelInlines != null && (l.LabelInlines.Items?.Count ?? 0) > 0) {
+                                    ProcessInlineNodesOmd(l.LabelInlines.Items ?? Array.Empty<object>(), paragraph, options, document, footnoteDefs, fmt, defaultFont);
+                                } else {
+                                    AddRun(paragraph, l.Text, fmt, defaultFont);
+                                }
                             }
                             break;
                         }

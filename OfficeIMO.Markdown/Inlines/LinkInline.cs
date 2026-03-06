@@ -13,7 +13,11 @@ public sealed class LinkInline {
 
     // Optional richer label representation (produced by the reader). When present, RenderHtml/RenderMarkdown
     // uses it instead of the plain Text property.
-    internal InlineSequence? LabelInlines { get; }
+    /// <summary>
+    /// Optional richer inline representation of the link label when the reader parsed nested formatting.
+    /// When present, renderers and converters can preserve label formatting instead of flattening to plain text.
+    /// </summary>
+    public InlineSequence? LabelInlines { get; }
     /// <summary>Creates a hyperlink inline.</summary>
     public LinkInline(string text, string url, string? title) { Text = text ?? string.Empty; Url = url ?? string.Empty; Title = title; }
 
