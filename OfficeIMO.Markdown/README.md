@@ -71,6 +71,7 @@ Blocks
 Inlines
 - Text, bold `**..**`, italic `*..*`, bold+italic `***..***`
 - Strikethrough `~~..~~`
+- Highlight `==..==`
 - Underline via `<u>text</u>`
 - Code spans: backtick‑delimited; supports multi‑backtick fences when content contains backticks
 - Links: inline `[text](url "title")`, autolinks (`http(s)://...`, `www.*`, plain emails), and reference‑style `[text][label]` with separate definitions

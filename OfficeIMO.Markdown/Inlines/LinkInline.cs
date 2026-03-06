@@ -40,8 +40,10 @@ public sealed class LinkInline {
             else if (node is BoldSequenceInline b) AppendPlainText(sb, b.Inlines);
             else if (node is BoldItalicSequenceInline bi) AppendPlainText(sb, bi.Inlines);
             else if (node is StrikethroughSequenceInline st) AppendPlainText(sb, st.Inlines);
+            else if (node is HighlightSequenceInline hi) AppendPlainText(sb, hi.Inlines);
             else if (node is HardBreakInline) sb.Append(' ');
             else if (node is UnderlineInline u) sb.Append(u.Text);
+            else if (node is HighlightInline h) sb.Append(h.Text);
             else if (node is FootnoteRefInline fn) sb.Append(fn.Label);
             // Links/images inside link labels are not expected when produced by our reader (they're disabled),
             // but if they occur, keep their plain text parts.

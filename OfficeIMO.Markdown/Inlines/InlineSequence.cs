@@ -27,6 +27,8 @@ public sealed class InlineSequence : IMarkdownInline {
     public InlineSequence FootnoteRef(string label) { _inlines.Add(new FootnoteRefInline(label)); return this; }
     /// <summary>Adds strikethrough text.</summary>
     public InlineSequence Strike(string text) { _inlines.Add(new StrikethroughInline(text)); return this; }
+    /// <summary>Adds highlighted text rendered as <c>==text==</c>.</summary>
+    public InlineSequence Highlight(string text) { _inlines.Add(new HighlightInline(text)); return this; }
     /// <summary>Adds underlined text (HTML-only in Markdown).</summary>
     public InlineSequence Underline(string text) { _inlines.Add(new UnderlineInline(text)); return this; }
     /// <summary>Adds a linked image (useful for badges).</summary>
@@ -70,6 +72,7 @@ public sealed class InlineSequence : IMarkdownInline {
             else if (node is ImageLinkInline il) sb.Append(il.RenderMarkdown());
             else if (node is ImageInline im) sb.Append(im.RenderMarkdown());
             else if (node is StrikethroughInline st) sb.Append(st.RenderMarkdown());
+            else if (node is HighlightInline hi) sb.Append(hi.RenderMarkdown());
             else if (node is UnderlineInline un) sb.Append(un.RenderMarkdown());
             else if (node is FootnoteRefInline fn) sb.Append(fn.RenderMarkdown());
             else if (node is HardBreakInline hb) sb.Append(hb.RenderMarkdown());
@@ -77,6 +80,7 @@ public sealed class InlineSequence : IMarkdownInline {
             else if (node is ItalicSequenceInline es) sb.Append(es.RenderMarkdown());
             else if (node is BoldItalicSequenceInline bis) sb.Append(bis.RenderMarkdown());
             else if (node is StrikethroughSequenceInline sts) sb.Append(sts.RenderMarkdown());
+            else if (node is HighlightSequenceInline hs) sb.Append(hs.RenderMarkdown());
         }
         return sb.ToString();
     }
@@ -99,6 +103,7 @@ public sealed class InlineSequence : IMarkdownInline {
             else if (node is ImageLinkInline il) sb.Append(il.RenderHtml());
             else if (node is ImageInline im) sb.Append(im.RenderHtml());
             else if (node is StrikethroughInline st) sb.Append(st.RenderHtml());
+            else if (node is HighlightInline hi) sb.Append(hi.RenderHtml());
             else if (node is UnderlineInline un) sb.Append(un.RenderHtml());
             else if (node is FootnoteRefInline fn) sb.Append(fn.RenderHtml());
             else if (node is HardBreakInline hb) sb.Append(hb.RenderHtml());
@@ -106,6 +111,7 @@ public sealed class InlineSequence : IMarkdownInline {
             else if (node is ItalicSequenceInline es) sb.Append(es.RenderHtml());
             else if (node is BoldItalicSequenceInline bis) sb.Append(bis.RenderHtml());
             else if (node is StrikethroughSequenceInline sts) sb.Append(sts.RenderHtml());
+            else if (node is HighlightSequenceInline hs) sb.Append(hs.RenderHtml());
         }
         return sb.ToString();
     }
