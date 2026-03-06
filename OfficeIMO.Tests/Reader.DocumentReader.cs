@@ -94,6 +94,86 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
+    public void DocumentReader_MarkdownChunking_RecognizesSetextHeadings() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path, "Top\r\n===\r\n\r\nPara 1.\r\n\r\nChild\r\n---\r\n\r\nPara 2.\r\n");
+
+            var chunks = DocumentReader.Read(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
+
+            Assert.True(chunks.Count >= 2);
+            Assert.Contains(chunks, c => string.Equals(c.Location.HeadingPath, "Top", StringComparison.Ordinal));
+            Assert.Contains(chunks, c => string.Equals(c.Location.HeadingPath, "Top > Child", StringComparison.Ordinal));
+            Assert.Contains(chunks, c => (c.Markdown ?? string.Empty).Contains("# Top", StringComparison.Ordinal));
+            Assert.Contains(chunks, c => (c.Markdown ?? string.Empty).Contains("## Child", StringComparison.Ordinal));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_MarkdownChunking_DoesNotTreatCodeFenceContentAsHeading() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path,
+                "# Top\n\n```text\n# not a heading\nline 2\n```\n\nAfter fence.\n\n## Child\n\nDone.\n");
+
+            var chunks = DocumentReader.Read(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
+
+            Assert.Equal(2, chunks.Count);
+            Assert.Equal("Top", chunks[0].Location.HeadingPath);
+            Assert.Contains("```text", chunks[0].Markdown ?? string.Empty, StringComparison.Ordinal);
+            Assert.Contains("# not a heading", chunks[0].Markdown ?? string.Empty, StringComparison.Ordinal);
+            Assert.Equal("Top > Child", chunks[1].Location.HeadingPath);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_MarkdownChunking_PreservesWholeBlocksWhenTheyExceedMaxChars() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            var largePayload = new string('x', 320);
+            File.WriteAllText(path,
+                "# Top\n\nIntro paragraph.\n\n```text\n" + largePayload + "\n```\n\nTail paragraph.\n");
+
+            var chunks = DocumentReader.Read(path, new ReaderOptions { MaxChars = 256 }).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
+
+            Assert.True(chunks.Count >= 3);
+            Assert.Contains(chunks, c => (c.Warnings?.Any(w => w.Contains("single markdown block exceeded MaxChars", StringComparison.OrdinalIgnoreCase)) ?? false));
+
+            var codeChunk = chunks.Single(c => (c.Markdown ?? string.Empty).Contains("```text", StringComparison.Ordinal));
+            Assert.Contains(largePayload, codeChunk.Markdown ?? string.Empty, StringComparison.Ordinal);
+            Assert.Contains("```", codeChunk.Markdown ?? string.Empty, StringComparison.Ordinal);
+            Assert.Equal("Top", codeChunk.Location.HeadingPath);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_MarkdownChunking_ExtractsMarkdownTables() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path,
+                "# Data\n\n| Name | Value |\n| --- | ---: |\n| A | 1 |\n| B | 2 |\n");
+
+            var chunk = DocumentReader.Read(path).Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
+
+            Assert.Equal("Data", chunk.Location.HeadingPath);
+            Assert.NotNull(chunk.Tables);
+            Assert.Single(chunk.Tables!);
+            Assert.Equal(new[] { "Name", "Value" }, chunk.Tables![0].Columns);
+            Assert.Equal(2, chunk.Tables[0].TotalRowCount);
+            Assert.Equal("A", chunk.Tables[0].Rows[0][0]);
+            Assert.Equal("2", chunk.Tables[0].Rows[1][1]);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_CanReadPdf() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pdf");
         try {
