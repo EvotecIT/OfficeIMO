@@ -230,6 +230,102 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets the category axis orientation (normal or reversed order).
+        /// </summary>
+        public PowerPointChart SetCategoryAxisReverseOrder(bool reverseOrder = true) {
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            C.CategoryAxis? axis = plotArea.Elements<C.CategoryAxis>().FirstOrDefault();
+            if (axis == null) {
+                return this;
+            }
+
+            C.Scaling scaling = EnsureScaling(axis);
+            ReplaceChild(scaling, new C.Orientation {
+                Val = reverseOrder ? C.OrientationValues.MaxMin : C.OrientationValues.MinMax
+            });
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets value axis scale parameters.
+        /// </summary>
+        public PowerPointChart SetValueAxisScale(double? minimum = null, double? maximum = null,
+            double? majorUnit = null, double? minorUnit = null, double? logBase = null,
+            bool? reverseOrder = null, bool? logScale = null) {
+            ValidateAxisScale(minimum, maximum, majorUnit, minorUnit, logScale, logBase);
+
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            C.ValueAxis? axis = plotArea.Elements<C.ValueAxis>().FirstOrDefault();
+            if (axis == null) {
+                return this;
+            }
+
+            ApplyAxisScale(axis, minimum, maximum, majorUnit, minorUnit, reverseOrder, logScale, logBase);
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets where the category axis crosses the value axis.
+        /// </summary>
+        public PowerPointChart SetCategoryAxisCrossing(C.CrossesValues crosses, double? crossesAt = null) {
+            if (crossesAt != null && (double.IsNaN(crossesAt.Value) || double.IsInfinity(crossesAt.Value))) {
+                throw new ArgumentOutOfRangeException(nameof(crossesAt));
+            }
+
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            C.CategoryAxis? axis = plotArea.Elements<C.CategoryAxis>().FirstOrDefault();
+            if (axis == null) {
+                return this;
+            }
+
+            ApplyAxisCrossing(axis, crosses, crossesAt);
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets where the value axis crosses the category axis.
+        /// </summary>
+        public PowerPointChart SetValueAxisCrossing(C.CrossesValues crosses, double? crossesAt = null) {
+            if (crossesAt != null && (double.IsNaN(crossesAt.Value) || double.IsInfinity(crossesAt.Value))) {
+                throw new ArgumentOutOfRangeException(nameof(crossesAt));
+            }
+
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            C.ValueAxis? axis = plotArea.Elements<C.ValueAxis>().FirstOrDefault();
+            if (axis == null) {
+                return this;
+            }
+
+            ValidateCrossesAtForAxis(axis, crossesAt);
+            ApplyAxisCrossing(axis, crosses, crossesAt);
+            Save();
+            return this;
+        }
+
+        /// <summary>
         ///     Sets the fill color for a chart series by index.
         /// </summary>
         public PowerPointChart SetSeriesFillColor(int seriesIndex, string color) {
@@ -431,6 +527,147 @@ namespace OfficeIMO.PowerPoint {
 
             Save();
             return this;
+        }
+
+        private static void ValidateAxisScale(double? minimum, double? maximum, double? majorUnit, double? minorUnit,
+            bool? logScale, double? logBase) {
+            if (minimum != null && double.IsNaN(minimum.Value)) {
+                throw new ArgumentOutOfRangeException(nameof(minimum));
+            }
+            if (maximum != null && double.IsNaN(maximum.Value)) {
+                throw new ArgumentOutOfRangeException(nameof(maximum));
+            }
+            if (minimum != null && maximum != null && minimum.Value >= maximum.Value) {
+                throw new ArgumentException("Minimum must be less than maximum.");
+            }
+            if (majorUnit != null && majorUnit.Value <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(majorUnit));
+            }
+            if (minorUnit != null && minorUnit.Value <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(minorUnit));
+            }
+            if (logScale == false && logBase != null) {
+                throw new ArgumentException("Log base requires logScale to be enabled.", nameof(logBase));
+            }
+
+            bool effectiveLog = logScale == true || logBase != null;
+            if (effectiveLog) {
+                double baseValue = logBase ?? 10d;
+                if (baseValue <= 1d) {
+                    throw new ArgumentOutOfRangeException(nameof(logBase), "Log base must be greater than 1.");
+                }
+                if (minimum != null && minimum.Value <= 0) {
+                    throw new ArgumentException("Minimum must be greater than 0 for log scale.", nameof(minimum));
+                }
+                if (maximum != null && maximum.Value <= 0) {
+                    throw new ArgumentException("Maximum must be greater than 0 for log scale.", nameof(maximum));
+                }
+            }
+        }
+
+        private static void ValidateCrossesAtForAxis(OpenXmlCompositeElement axis, double? crossesAt) {
+            if (crossesAt == null) {
+                return;
+            }
+
+            C.Scaling? scaling = axis.GetFirstChild<C.Scaling>();
+            if (scaling?.GetFirstChild<C.LogBase>() != null && crossesAt.Value <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(crossesAt), "Crosses-at value must be greater than 0 for log scale.");
+            }
+        }
+
+        private static void ApplyAxisScale(OpenXmlCompositeElement axis, double? minimum, double? maximum,
+            double? majorUnit, double? minorUnit, bool? reverseOrder, bool? logScale, double? logBase) {
+            if (reverseOrder != null || minimum != null || maximum != null || logScale != null || logBase != null) {
+                C.Scaling scaling = EnsureScaling(axis);
+                if (reverseOrder != null) {
+                    ReplaceChild(scaling, new C.Orientation {
+                        Val = reverseOrder.Value ? C.OrientationValues.MaxMin : C.OrientationValues.MinMax
+                    });
+                }
+                if (minimum != null) {
+                    ReplaceChild(scaling, new C.MinAxisValue { Val = minimum.Value });
+                }
+                if (maximum != null) {
+                    ReplaceChild(scaling, new C.MaxAxisValue { Val = maximum.Value });
+                }
+
+                bool effectiveLog = logScale == true || logBase != null;
+                if (effectiveLog) {
+                    double baseValue = logBase ?? 10d;
+                    ReplaceChild(scaling, new C.LogBase { Val = baseValue });
+                } else if (logScale == false) {
+                    scaling.GetFirstChild<C.LogBase>()?.Remove();
+                }
+
+                NormalizeScalingOrder(scaling);
+            }
+
+            if (majorUnit != null) {
+                ReplaceChild(axis, new C.MajorUnit { Val = majorUnit.Value });
+            }
+            if (minorUnit != null) {
+                ReplaceChild(axis, new C.MinorUnit { Val = minorUnit.Value });
+            }
+        }
+
+        private static C.Scaling EnsureScaling(OpenXmlCompositeElement axis) {
+            C.Scaling scaling = axis.GetFirstChild<C.Scaling>() ?? new C.Scaling();
+            if (scaling.Parent == null) {
+                C.AxisId? axisId = axis.GetFirstChild<C.AxisId>();
+                if (axisId != null) {
+                    axis.InsertAfter(scaling, axisId);
+                } else {
+                    axis.PrependChild(scaling);
+                }
+            }
+
+            if (scaling.GetFirstChild<C.Orientation>() == null) {
+                scaling.PrependChild(new C.Orientation { Val = C.OrientationValues.MinMax });
+            }
+
+            return scaling;
+        }
+
+        private static void NormalizeScalingOrder(C.Scaling scaling) {
+            C.Orientation? orientation = scaling.GetFirstChild<C.Orientation>();
+            C.MaxAxisValue? maxAxisValue = scaling.GetFirstChild<C.MaxAxisValue>();
+            C.MinAxisValue? minAxisValue = scaling.GetFirstChild<C.MinAxisValue>();
+            C.LogBase? logBase = scaling.GetFirstChild<C.LogBase>();
+
+            orientation?.Remove();
+            maxAxisValue?.Remove();
+            minAxisValue?.Remove();
+            logBase?.Remove();
+
+            if (logBase != null) {
+                scaling.Append(logBase);
+            }
+            if (orientation != null) {
+                scaling.Append(orientation);
+            }
+            if (maxAxisValue != null) {
+                scaling.Append(maxAxisValue);
+            }
+            if (minAxisValue != null) {
+                scaling.Append(minAxisValue);
+            }
+        }
+
+        private static void ApplyAxisCrossing(OpenXmlCompositeElement axis, C.CrossesValues crosses, double? crossesAt) {
+            axis.GetFirstChild<C.Crosses>()?.Remove();
+            axis.GetFirstChild<C.CrossesAt>()?.Remove();
+
+            OpenXmlElement crossing = crossesAt != null
+                ? new C.CrossesAt { Val = crossesAt.Value }
+                : new C.Crosses { Val = crosses };
+
+            C.CrossingAxis? crossAxis = axis.GetFirstChild<C.CrossingAxis>();
+            if (crossAxis != null) {
+                axis.InsertAfter(crossing, crossAxis);
+            } else {
+                axis.Append(crossing);
+            }
         }
 
         private static void ApplyDataLabels(OpenXmlCompositeElement chartElement, bool showLegendKey, bool showValue,
