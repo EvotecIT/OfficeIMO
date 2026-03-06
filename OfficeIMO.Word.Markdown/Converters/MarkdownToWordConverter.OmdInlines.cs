@@ -6,22 +6,25 @@ using Omd = OfficeIMO.Markdown;
 namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
         private readonly struct InlineFormatState {
-            public InlineFormatState(bool bold, bool italic, bool strike, UnderlineValues? underline) {
+            public InlineFormatState(bool bold, bool italic, bool strike, UnderlineValues? underline, HighlightColorValues? highlight) {
                 Bold = bold;
                 Italic = italic;
                 Strike = strike;
                 Underline = underline;
+                Highlight = highlight;
             }
 
             public bool Bold { get; }
             public bool Italic { get; }
             public bool Strike { get; }
             public UnderlineValues? Underline { get; }
+            public HighlightColorValues? Highlight { get; }
 
-            public InlineFormatState WithBold() => new InlineFormatState(bold: true, italic: Italic, strike: Strike, underline: Underline);
-            public InlineFormatState WithItalic() => new InlineFormatState(bold: Bold, italic: true, strike: Strike, underline: Underline);
-            public InlineFormatState WithStrike() => new InlineFormatState(bold: Bold, italic: Italic, strike: true, underline: Underline);
-            public InlineFormatState WithUnderline(UnderlineValues underline) => new InlineFormatState(bold: Bold, italic: Italic, strike: Strike, underline: underline);
+            public InlineFormatState WithBold() => new InlineFormatState(bold: true, italic: Italic, strike: Strike, underline: Underline, highlight: Highlight);
+            public InlineFormatState WithItalic() => new InlineFormatState(bold: Bold, italic: true, strike: Strike, underline: Underline, highlight: Highlight);
+            public InlineFormatState WithStrike() => new InlineFormatState(bold: Bold, italic: Italic, strike: true, underline: Underline, highlight: Highlight);
+            public InlineFormatState WithUnderline(UnderlineValues underline) => new InlineFormatState(bold: Bold, italic: Italic, strike: Strike, underline: underline, highlight: Highlight);
+            public InlineFormatState WithHighlight(HighlightColorValues highlight) => new InlineFormatState(bold: Bold, italic: Italic, strike: Strike, underline: Underline, highlight: highlight);
         }
 
         private static WordParagraph AddRun(WordParagraph paragraph, string? text, InlineFormatState fmt, string? defaultFont) {
@@ -30,6 +33,7 @@ namespace OfficeIMO.Word.Markdown {
             if (fmt.Italic) run.SetItalic();
             if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) run.SetUnderline(fmt.Underline.Value);
             if (fmt.Strike) run.SetStrike();
+            if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) run.SetHighlight(fmt.Highlight.Value);
             if (!string.IsNullOrEmpty(defaultFont)) run.SetFontFamily(defaultFont!);
             return run;
         }
@@ -55,7 +59,7 @@ namespace OfficeIMO.Word.Markdown {
                 options: options,
                 document: document,
                 footnoteDefs: footnoteDefs,
-                fmt: new InlineFormatState(bold: false, italic: false, strike: false, underline: null),
+                fmt: new InlineFormatState(bold: false, italic: false, strike: false, underline: null, highlight: null),
                 defaultFont: defaultFont
             );
         }
@@ -151,6 +155,9 @@ namespace OfficeIMO.Word.Markdown {
                     case Omd.StrikethroughInline st:
                         AddRun(paragraph, st.Text, fmt.WithStrike(), defaultFont);
                         break;
+                    case Omd.HighlightInline hi:
+                        AddRun(paragraph, hi.Text, fmt.WithHighlight(HighlightColorValues.Yellow), defaultFont);
+                        break;
                     case Omd.UnderlineInline un:
                         AddRun(paragraph, un.Text, fmt.WithUnderline(UnderlineValues.Single), defaultFont);
                         break;
@@ -167,6 +174,9 @@ namespace OfficeIMO.Word.Markdown {
                         break;
                     case Omd.StrikethroughSequenceInline sts:
                         ProcessInlineNodesOmd(sts.Inlines.Items ?? Array.Empty<object>(), paragraph, options, document, footnoteDefs, fmt.WithStrike(), defaultFont);
+                        break;
+                    case Omd.HighlightSequenceInline hs:
+                        ProcessInlineNodesOmd(hs.Inlines.Items ?? Array.Empty<object>(), paragraph, options, document, footnoteDefs, fmt.WithHighlight(HighlightColorValues.Yellow), defaultFont);
                         break;
 
                     default:

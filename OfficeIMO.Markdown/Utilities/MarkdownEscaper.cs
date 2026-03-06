@@ -12,10 +12,12 @@ internal static class MarkdownEscaper {
     // Allows: "Use <u>underline</u> for emphasis" -> "Use <u>underline</u> for emphasis"
     // Escapes: "Text [link](url)" -> "Text \\[link\\]\(url\)"
     private static readonly char[] GeneralReserved = ['\\', '[', ']', '(', ')', '|', '*', '_'];
+    private static readonly char[] HighlightReserved = ['\\', '[', ']', '(', ')', '|', '*', '_', '='];
     private static readonly char[] UrlReserved = ['\\', '(', ')', '[', ']', '|'];
 
     internal static string EscapeText(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeEmphasis(string? text) => Escape(text, GeneralReserved);
+    internal static string EscapeHighlightText(string? text) => Escape(text, HighlightReserved);
     internal static string EscapeLinkText(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeLinkUrl(string? text) => Escape(text, UrlReserved);
     internal static string EscapeImageAlt(string? text) => Escape(text, GeneralReserved);

@@ -234,15 +234,15 @@ public static partial class MarkdownReader {
                 }
             }
 
-            // Emphasis / strong / strike using delimiter-run rules + an open-frame stack.
-            if (text[pos] == '*' || text[pos] == '_' || text[pos] == '~') {
+            // Emphasis / strong / strike / highlight using delimiter-run rules + an open-frame stack.
+            if (text[pos] == '*' || text[pos] == '_' || text[pos] == '~' || text[pos] == '=') {
                 char marker = text[pos];
                 int runLen = 1;
                 while (pos + runLen < text.Length && text[pos + runLen] == marker) runLen++;
 
-                // Only "~~" opens/closes strikethrough.
-                if (marker == '~' && runLen < 2) {
-                    Current().Text("~");
+                // Only "~~" and "==" open/close paired formatting.
+                if ((marker == '~' || marker == '=') && runLen < 2) {
+                    Current().Text(marker.ToString());
                     pos++;
                     continue;
                 }
@@ -263,6 +263,15 @@ public static partial class MarkdownReader {
                         if (marker == '~') {
                             if (remaining >= 2) {
                                 stack.Push(new InlineFrame(FrameKind.Strike, marker, 2, new InlineSequence { AutoSpacing = false }));
+                                remaining -= 2;
+                                continue;
+                            }
+                            break;
+                        }
+
+                        if (marker == '=') {
+                            if (remaining >= 2) {
+                                stack.Push(new InlineFrame(FrameKind.Highlight, marker, 2, new InlineSequence { AutoSpacing = false }));
                                 remaining -= 2;
                                 continue;
                             }
@@ -332,6 +341,7 @@ public static partial class MarkdownReader {
         Italic,
         Bold,
         Strike,
+        Highlight,
     }
 
     private sealed class InlineFrame {
@@ -376,6 +386,13 @@ public static partial class MarkdownReader {
             consumed = 2;
             return true;
         }
+        if (top.Kind == FrameKind.Highlight && remaining >= 2) {
+            stack.Pop();
+            var node = new HighlightSequenceInline(top.Seq);
+            stack.Peek().Seq.AddRaw(node);
+            consumed = 2;
+            return true;
+        }
         return false;
     }
 
@@ -400,6 +417,13 @@ public static partial class MarkdownReader {
             // Pragmatic GFM-like: "~~" opens/closes when not adjacent to whitespace on the relevant side.
             canOpen = !nextWs;
             canClose = !prevWs;
+            return;
+        }
+
+        if (marker == '=') {
+            // Pragmatic mark/highlight handling: "==" opens/closes when it hugs non-whitespace text.
+            canOpen = runLen >= 2 && !nextWs;
+            canClose = runLen >= 2 && !prevWs;
             return;
         }
 
@@ -638,6 +662,7 @@ public static partial class MarkdownReader {
         lookup['*'] = true;
         lookup['_'] = true;
         lookup['~'] = true;
+        lookup['='] = true;
         return lookup;
     }
 
@@ -662,6 +687,7 @@ public static partial class MarkdownReader {
             '!' => true,
             '|' => true,
             '>' => true,
+            '=' => true,
             _ => false
         };
     }

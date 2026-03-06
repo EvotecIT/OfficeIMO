@@ -53,6 +53,7 @@ public static partial class MarkdownReader {
         if (node is ItalicSequenceInline italic) return NormalizeInlineSequenceInPlace(italic.Inlines, options);
         if (node is BoldItalicSequenceInline boldItalic) return NormalizeInlineSequenceInPlace(boldItalic.Inlines, options);
         if (node is StrikethroughSequenceInline strike) return NormalizeInlineSequenceInPlace(strike.Inlines, options);
+        if (node is HighlightSequenceInline highlight) return NormalizeInlineSequenceInPlace(highlight.Inlines, options);
         if (node is LinkInline link && link.LabelInlines != null) return NormalizeInlineSequenceInPlace(link.LabelInlines, options);
         return false;
     }
