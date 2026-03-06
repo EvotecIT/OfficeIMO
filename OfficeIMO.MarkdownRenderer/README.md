@@ -74,6 +74,31 @@ Options (high level)
 
 Normalization is backed by `OfficeIMO.Markdown.MarkdownInputNormalizer`, so the same behavior is available directly via `MarkdownReaderOptions.InputNormalization` when parsing outside the renderer.
 
+Custom fenced block example
+
+You can register host-owned fenced block renderers without modifying `OfficeIMO.MarkdownRenderer` itself:
+
+```csharp
+using System.Security.Cryptography;
+using System.Text;
+using OfficeIMO.MarkdownRenderer;
+
+var options = MarkdownRendererPresets.CreateChatStrictMinimal();
+
+options.FencedCodeBlockRenderers.Add(new MarkdownFencedCodeBlockRenderer(
+    "IX chart",
+    new[] { "ix-chart" },
+    (match, _) => {
+        var raw = match.RawContent ?? string.Empty;
+        var b64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(raw));
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw))).ToLowerInvariant().Substring(0, 16);
+        return $"<canvas class=\"omd-chart\" data-chart-hash=\"{hash}\" data-chart-config-b64=\"{System.Net.WebUtility.HtmlEncode(b64)}\"></canvas>";
+    }));
+```
+
+That pattern is useful when your host wants to keep ownership of fence names such as `ix-chart` / `ix-network`,
+while still reusing the OfficeIMO markdown parser + renderer shell.
+
 Offline assets (no network at runtime)
 
 If your host runs with limited or no network access (or you want deterministic rendering), set:
