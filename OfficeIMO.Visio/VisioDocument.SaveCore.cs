@@ -139,14 +139,25 @@ namespace OfficeIMO.Visio {
                 const string ns = VisioNamespace;
 
                 if (themePart != null && Theme != null) {
-                    using (XmlWriter writer = XmlWriter.Create(themePart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
-                        writer.WriteStartDocument();
-                        writer.WriteStartElement("a", "theme", "http://schemas.openxmlformats.org/drawingml/2006/main");
-                        if (!string.IsNullOrEmpty(Theme.Name)) {
-                            writer.WriteAttributeString("name", Theme.Name);
+                    if (Theme.TemplateXml != null) {
+                        XDocument themeXml = new(Theme.TemplateXml);
+                        if (themeXml.Root != null) {
+                            themeXml.Root.SetAttributeValue("name", Theme.Name);
                         }
-                        writer.WriteEndElement();
-                        writer.WriteEndDocument();
+
+                        using Stream s = themePart.GetStream(FileMode.Create, FileAccess.Write);
+                        using StreamWriter sw = new(s, new UTF8Encoding(false));
+                        sw.Write(themeXml.Declaration + Environment.NewLine + themeXml.ToString(SaveOptions.DisableFormatting));
+                    } else {
+                        using (XmlWriter writer = XmlWriter.Create(themePart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
+                            writer.WriteStartDocument();
+                            writer.WriteStartElement("a", "theme", "http://schemas.openxmlformats.org/drawingml/2006/main");
+                            if (!string.IsNullOrEmpty(Theme.Name)) {
+                                writer.WriteAttributeString("name", Theme.Name);
+                            }
+                            writer.WriteEndElement();
+                            writer.WriteEndDocument();
+                        }
                     }
                 }
 
@@ -175,47 +186,25 @@ namespace OfficeIMO.Visio {
                     sw.Write(winXml.Declaration + Environment.NewLine + winXml.ToString(SaveOptions.DisableFormatting));
                 }
 
-                // Auto-attach built-in masters for known shapes if requested
-                if (UseMastersByDefault) {
-                    foreach (var p in pagesToSave) {
-                        foreach (var s in p.Shapes) {
-                            if (s.Master == null && !string.IsNullOrEmpty(s.NameU)) {
-                                switch (s.NameU!.Trim()) {
-                                    case "Rectangle":
-                                    case "Square":
-                                    case "Ellipse":
-                                    case "Diamond":
-                                    case "Triangle":
-                                    case "Circle":
-                                        s.Master = EnsureBuiltinMaster(s.NameU!);
-                                        break;
-                                }
+                ValidatePagesForSave(pagesToSave);
+
+                Dictionary<VisioPage, Dictionary<string, VisioMaster>> effectivePageMasters = new();
+                List<VisioMaster> masterCandidates = new();
+                foreach (VisioPage page in pagesToSave) {
+                    Dictionary<string, VisioMaster> pageMasters = BuildEffectiveShapeMasterMap(page);
+                    effectivePageMasters[page] = pageMasters;
+                    AddMastersInShapeOrder(page.Shapes, pageMasters, masterCandidates);
+
+                    if (UseMastersByDefault) {
+                        foreach (VisioConnector connector in page.Connectors) {
+                            if (connector.Kind == ConnectorKind.Dynamic) {
+                                masterCandidates.Add(EnsureBuiltinMaster("Dynamic connector"));
                             }
                         }
                     }
                 }
 
-                // Identify extra masters required by connectors (e.g., Dynamic connector)
-                List<VisioMaster> connectorMasters = new();
-                if (UseMastersByDefault) {
-                    foreach (var p in pagesToSave) {
-                        foreach (var c in p.Connectors) {
-                            if (c.Kind == ConnectorKind.Dynamic) {
-                                connectorMasters.Add(EnsureBuiltinMaster("Dynamic connector"));
-                            }
-                        }
-                    }
-                }
-
-                List<VisioMaster> masters = pagesToSave.SelectMany(p => p.Shapes)
-                    .Where(s => s.Master != null)
-                    .Select(s => s.Master!)
-                    .GroupBy(m => m.Id)
-                    .Select(g => g.First())
-                    .Concat(connectorMasters.GroupBy(m => m.Id).Select(g => g.First()))
-                    .GroupBy(m => m.Id)
-                    .Select(g => g.First())
-                    .ToList();
+                List<PackageMasterEntry> masters = CreatePackageMasterEntries(masterCandidates);
 
                 PackagePart? mastersPart = null;
                 if (masters.Count > 0) {
@@ -224,91 +213,78 @@ namespace OfficeIMO.Visio {
                     documentPart.CreateRelationship(new Uri("masters/masters.xml", UriKind.Relative), TargetMode.Internal, MastersRelationshipType, "rId4");
 
                     for (int i = 0; i < masters.Count; i++) {
-                        VisioMaster master = masters[i];
-                        Uri masterUri = new($"/visio/masters/master{i + 1}.xml", UriKind.Relative);
+                        PackageMasterEntry entry = masters[i];
+                        VisioMaster master = entry.Master;
+                        Uri masterUri = new($"/visio/masters/master{entry.PartNumber}.xml", UriKind.Relative);
                         PackagePart masterPart = package.CreatePart(masterUri, "application/vnd.ms-visio.master+xml");
-                        mastersPart.CreateRelationship(new Uri($"master{i + 1}.xml", UriKind.Relative), TargetMode.Internal, MasterRelationshipType, $"rId{i + 1}");
+                        mastersPart.CreateRelationship(new Uri($"master{entry.PartNumber}.xml", UriKind.Relative), TargetMode.Internal, MasterRelationshipType, $"rId{entry.PartNumber}");
                         foreach ((_, PackagePart part, _) in pageParts) {
-                            part.CreateRelationship(new Uri($"../masters/master{i + 1}.xml", UriKind.Relative), TargetMode.Internal, MasterRelationshipType, $"rId{i + 1}");
+                            part.CreateRelationship(new Uri($"../masters/master{entry.PartNumber}.xml", UriKind.Relative), TargetMode.Internal, MasterRelationshipType, $"rId{entry.PartNumber}");
                         }
 
-                        // If master has a canonical template XML, write it verbatim for 1:1 fidelity
-                        if (master.TemplateXml != null) {
-                            using var s = masterPart.GetStream(FileMode.Create, FileAccess.Write);
-                            using var sw = new StreamWriter(s, new UTF8Encoding(false));
-                            sw.Write(master.TemplateXml.Declaration + Environment.NewLine + master.TemplateXml.ToString(SaveOptions.DisableFormatting));
-                        } else {
-                            using (XmlWriter writer = XmlWriter.Create(masterPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
-                                writer.WriteStartDocument();
-                                writer.WriteStartElement("MasterContents", ns);
-                                writer.WriteStartElement("Shapes", ns);
-                                VisioShape s = master.Shape;
-                                double masterWidth = s.Width > 0 ? s.Width : 1;
-                                double masterHeight = s.Height > 0 ? s.Height : 1;
-                                s.Width = masterWidth;
-                                s.Height = masterHeight;
-                                if (Math.Abs(s.LocPinX) < double.Epsilon) {
-                                    s.LocPinX = masterWidth / 2;
+                        using (XmlWriter writer = XmlWriter.Create(masterPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
+                            writer.WriteStartDocument();
+                            writer.WriteStartElement("MasterContents", ns);
+                            writer.WriteAttributeString("xmlns", "r", null, "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+                            writer.WriteAttributeString("xml", "space", "http://www.w3.org/XML/1998/namespace", "preserve");
+                            writer.WriteStartElement("Shapes", ns);
+                            VisioShape s = master.Shape;
+                            double masterWidth = s.Width > 0 ? s.Width : 1;
+                            double masterHeight = s.Height > 0 ? s.Height : 1;
+                            double masterLocPinX = Math.Abs(s.LocPinX) < double.Epsilon ? masterWidth / 2 : s.LocPinX;
+                            double masterLocPinY = Math.Abs(s.LocPinY) < double.Epsilon ? masterHeight / 2 : s.LocPinY;
+                            TryGetBuiltinMasterDefinition(master.NameU, out var masterDefinition);
+                            writer.WriteStartElement("Shape", ns);
+                            writer.WriteAttributeString("ID", "1");
+                            string masterShapeName = s.Name ?? s.NameU ?? "MasterShape";
+                            writer.WriteAttributeString("Name", masterShapeName);
+                            writer.WriteAttributeString("NameU", master.NameU);
+                            writer.WriteAttributeString("Type", "Shape");
+                            writer.WriteAttributeString("LineStyle", "0");
+                            writer.WriteAttributeString("FillStyle", "0");
+                            writer.WriteAttributeString("TextStyle", "0");
+                            if (masterDefinition?.GeometryKind == BuiltinGeometryKind.DynamicConnector) {
+                                WriteXForm1D(writer, ns, 0, 0, 1, 0);
+                                WriteCell(writer, ns, "OneD", 1);
+                                WriteCell(writer, ns, "ObjType", 2);
+                                WriteCell(writer, ns, "LineWeight", s.LineWeight);
+                                WriteCell(writer, ns, "LinePattern", s.LinePattern);
+                                WriteCellValue(writer, ns, "LineColor", s.LineColor.ToVisioHex());
+                                WriteCell(writer, ns, "FillPattern", 0);
+                                WriteCellValue(writer, ns, "FillForegnd", Color.Transparent.ToVisioHex());
+                                WriteCell(writer, ns, "LockHeight", 1);
+                                WriteCell(writer, ns, "LockCalcWH", 1);
+                                WriteCell(writer, ns, "GlueType", 2);
+                                WriteCell(writer, ns, "NoAlignBox", 1);
+                                WriteCell(writer, ns, "DynFeedback", 2);
+                                WriteCell(writer, ns, "ShapeSplittable", 1);
+                                WriteCell(writer, ns, "LayerMember", 0);
+                                WriteConnectorControlSection(writer, ns, masterHeight);
+                            } else {
+                                WriteXForm(writer, ns, s.PinX, s.PinY, masterWidth, masterHeight, masterLocPinX, masterLocPinY, s.Angle);
+                                WriteCell(writer, ns, "ObjType", 1);
+                                if (masterDefinition?.LockAspect == true) {
+                                    WriteCell(writer, ns, "LockAspect", 1);
                                 }
-                                if (Math.Abs(s.LocPinY) < double.Epsilon) {
-                                    s.LocPinY = masterHeight / 2;
-                                }
-                                writer.WriteStartElement("Shape", ns);
-                                writer.WriteAttributeString("ID", "1");
-                                string masterShapeName = s.Name ?? s.NameU ?? "MasterShape";
-                                writer.WriteAttributeString("Name", masterShapeName);
-                                writer.WriteAttributeString("NameU", master.NameU);
-                                writer.WriteAttributeString("Type", "Shape");
-                                writer.WriteAttributeString("LineStyle", "0");
-                                writer.WriteAttributeString("FillStyle", "0");
-                                writer.WriteAttributeString("TextStyle", "0");
-                                if (string.Equals(master.NameU, "Dynamic connector", StringComparison.OrdinalIgnoreCase)) {
-                                    // Minimal connector shape blueprint
-                                    WriteXForm1D(writer, ns, 0, 0, 1, 0);
-                                    WriteCell(writer, ns, "OneD", 1);
-                                    WriteCell(writer, ns, "ObjType", 1);
-                                    WriteCell(writer, ns, "LineWeight", s.LineWeight);
-                                    WriteCell(writer, ns, "LinePattern", s.LinePattern);
-                                    WriteCellValue(writer, ns, "LineColor", s.LineColor.ToVisioHex());
-                                    WriteCell(writer, ns, "FillPattern", 0);
-                                    WriteCellValue(writer, ns, "FillForegnd", Color.Transparent.ToVisioHex());
-                                } else {
-                                    WriteXForm(writer, ns, s, masterWidth, masterHeight);
-                                    // Always specify line weight so that shapes are visible
-                                    WriteCell(writer, ns, "ObjType", 1);
-                                    // Keep aspect for square/circle-like masters
-                                    string? masterKind = master.NameU;
-                                    if (!string.IsNullOrEmpty(masterKind) &&
-                                        (string.Equals(masterKind, "Circle", StringComparison.OrdinalIgnoreCase) ||
-                                         string.Equals(masterKind, "Square", StringComparison.OrdinalIgnoreCase))) {
-                                        WriteCell(writer, ns, "LockAspect", 1);
-                                    }
-                                    WriteCell(writer, ns, "LineWeight", s.LineWeight);
-                                    WriteCell(writer, ns, "LinePattern", s.LinePattern);
-                                    WriteCellValue(writer, ns, "LineColor", s.LineColor.ToVisioHex());
-                                    WriteCell(writer, ns, "FillPattern", s.FillPattern);
-                                    WriteCellValue(writer, ns, "FillForegnd", s.FillColor.ToVisioHex());
-                                    // Geometry based on master name
-                                    string? nU = master.NameU;
-                                    if (!string.IsNullOrEmpty(nU) && (nU.Equals("Ellipse", StringComparison.OrdinalIgnoreCase) || nU.Equals("Circle", StringComparison.OrdinalIgnoreCase))) {
-                                        WriteEllipseGeometry(writer, ns, masterWidth, masterHeight);
-                                    } else if (!string.IsNullOrEmpty(nU) && nU.Equals("Diamond", StringComparison.OrdinalIgnoreCase)) {
-                                        WriteDiamondGeometry(writer, ns, masterWidth, masterHeight);
-                                    } else if (!string.IsNullOrEmpty(nU) && nU.Equals("Triangle", StringComparison.OrdinalIgnoreCase)) {
-                                        WriteTriangleGeometry(writer, ns, masterWidth, masterHeight);
-                                    } else {
-                                        // Rectangle and Square
-                                        WriteRectangleGeometry(writer, ns, masterWidth, masterHeight);
-                                    }
-                                }
-                                WriteConnectionSection(writer, ns, s.ConnectionPoints);
-                                WriteDataSection(writer, ns, s.Data);
-                                WriteTextElement(writer, ns, s.Text);
-                                writer.WriteEndElement();
-                                writer.WriteEndElement(); // Shapes
-                                writer.WriteEndElement(); // MasterContents
-                                writer.WriteEndDocument();
+                                WriteCell(writer, ns, "LineWeight", s.LineWeight);
+                                WriteCell(writer, ns, "LinePattern", s.LinePattern);
+                                WriteCellValue(writer, ns, "LineColor", s.LineColor.ToVisioHex());
+                                WriteCell(writer, ns, "FillPattern", s.FillPattern);
+                                WriteCellValue(writer, ns, "FillForegnd", s.FillColor.ToVisioHex());
+                                WriteMasterGeometry(writer, ns, master.NameU, masterWidth, masterHeight);
+                                WriteDefaultTextBlock(writer, ns, masterWidth, masterHeight);
                             }
+                            WriteCell(writer, ns, "ShapeSplit", 1);
+                            WriteCell(writer, ns, "QuickStyleType", 2);
+                            WriteConnectionSection(writer, ns, s.ConnectionPoints);
+                            WriteMasterUserSection(writer, ns);
+                            WriteMasterCharacterSection(writer, ns);
+                            WriteDataSection(writer, ns, s.Data);
+                            WriteTextElement(writer, ns, s.Text);
+                            writer.WriteEndElement();
+                            writer.WriteEndElement();
+                            writer.WriteEndElement();
+                            writer.WriteEndDocument();
                         }
                     }
 
@@ -318,33 +294,30 @@ namespace OfficeIMO.Visio {
                         writer.WriteStartElement("Masters", ns);
                         writer.WriteAttributeString("xmlns", "r", null, "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
                         for (int i = 0; i < masters.Count; i++) {
-                            VisioMaster m = masters[i];
-                            if (m.TemplateMasterElement != null) {
-                                // Clone and adjust r:id and ID to our numbering
-                                var clone = new System.Xml.Linq.XElement(m.TemplateMasterElement);
-                                clone.SetAttributeValue("ID", m.Id);
-                                var relElem = clone.Element(System.Xml.Linq.XName.Get("Rel", ns));
-                                if (relElem != null) {
-                                    var ridName = System.Xml.Linq.XName.Get("id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
-                                    relElem.SetAttributeValue(ridName, $"rId{i + 1}");
-                                } else {
-                                    // Ensure a Rel element exists
-                                    var rel = new System.Xml.Linq.XElement(System.Xml.Linq.XName.Get("Rel", ns));
-                                    rel.SetAttributeValue(System.Xml.Linq.XName.Get("id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships"), $"rId{i + 1}");
-                                    clone.Add(rel);
-                                }
-                                // Write the adjusted element verbatim
-                                using var reader = clone.CreateReader();
-                                writer.WriteNode(reader, false);
-                            } else {
-                                writer.WriteStartElement("Master", ns);
-                                writer.WriteAttributeString("ID", m.Id);
-                                writer.WriteAttributeString("NameU", m.NameU);
-                                writer.WriteStartElement("Rel", ns);
-                                writer.WriteAttributeString("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", $"rId{i + 1}");
-                                writer.WriteEndElement();
-                                writer.WriteEndElement();
-                            }
+                            PackageMasterEntry entry = masters[i];
+                            VisioMaster m = entry.Master;
+                            TryGetBuiltinMasterDefinition(m.NameU, out var masterDefinition);
+                            writer.WriteStartElement("Master", ns);
+                            writer.WriteAttributeString("ID", entry.PackageId);
+                            writer.WriteAttributeString("Name", m.NameU);
+                            writer.WriteAttributeString("NameU", m.NameU);
+                            writer.WriteAttributeString("IsCustomNameU", "1");
+                            writer.WriteAttributeString("IsCustomName", "1");
+                            writer.WriteAttributeString("Prompt", masterDefinition?.Prompt ?? "Drag onto the page.");
+                            writer.WriteAttributeString("IconSize", "1");
+                            writer.WriteAttributeString("AlignName", "2");
+                            writer.WriteAttributeString("MatchByName", masterDefinition?.MatchByName == true ? "1" : "0");
+                            writer.WriteAttributeString("IconUpdate", masterDefinition?.IconUpdate == false ? "0" : "1");
+                            writer.WriteAttributeString("UniqueID", masterDefinition?.UniqueId ?? Guid.Empty.ToString("B").ToUpperInvariant());
+                            writer.WriteAttributeString("BaseID", masterDefinition?.BaseId ?? Guid.Empty.ToString("B").ToUpperInvariant());
+                            writer.WriteAttributeString("PatternFlags", "0");
+                            writer.WriteAttributeString("Hidden", "0");
+                            writer.WriteAttributeString("MasterType", XmlConvert.ToString(masterDefinition?.MasterType ?? 2));
+                            WriteMasterPageSheet(writer, ns, masterDefinition);
+                            writer.WriteStartElement("Rel", ns);
+                            writer.WriteAttributeString("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", $"rId{entry.PartNumber}");
+                            writer.WriteEndElement();
+                            writer.WriteEndElement();
                         }
                         writer.WriteEndElement();
                         writer.WriteEndDocument();
@@ -446,6 +419,7 @@ namespace OfficeIMO.Visio {
                 foreach ((VisioPage page, PackagePart pagePart, _) in pageParts) {
                     using (XmlWriter writer = XmlWriter.Create(pagePart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
                         Dictionary<string, string> persistedIds = BuildPersistedIdMap(page);
+                        Dictionary<string, VisioMaster> pageMasters = effectivePageMasters[page];
                         writer.WriteStartDocument();
                         writer.WriteStartElement("PageContents", ns);
                         writer.WriteAttributeString("xmlns", "r", null, "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
@@ -454,7 +428,7 @@ namespace OfficeIMO.Visio {
                             writer.WriteStartElement("Shapes", ns);
 
                             foreach (VisioShape shape in page.Shapes) {
-                                WriteShapeElement(writer, ns, shape, persistedIds);
+                                WriteShapeElement(writer, ns, shape, persistedIds, pageMasters, masters);
                             }
 
                             foreach (VisioConnector connector in page.Connectors) {
@@ -469,7 +443,7 @@ namespace OfficeIMO.Visio {
                                 writer.WriteAttributeString("TextStyle", "0");
                                 if (isDynamic && UseMastersByDefault) {
                                     var m = EnsureBuiltinMaster("Dynamic connector");
-                                    writer.WriteAttributeString("Master", m.Id);
+                                    writer.WriteAttributeString("Master", GetPackageMasterId(masters, m));
                                 }
                                 double startX, startY, endX, endY;
                                 if (connector.FromConnectionPoint != null) {
@@ -511,44 +485,7 @@ namespace OfficeIMO.Visio {
                                     WriteCell(writer, ns, "EndArrow", (int)connector.EndArrow.Value);
                                 }
 
-                                if (connector.Kind != ConnectorKind.Dynamic) {
-                                    writer.WriteStartElement("Section", ns);
-                                    writer.WriteAttributeString("N", "Geometry");
-                                    writer.WriteAttributeString("IX", "0");
-
-                                    writer.WriteStartElement("Row", ns);
-                                    writer.WriteAttributeString("T", "MoveTo");
-                                    WriteCell(writer, ns, "X", startX);
-                                    WriteCell(writer, ns, "Y", startY);
-                                    writer.WriteEndElement();
-
-                                    switch (connector.Kind) {
-                                        case ConnectorKind.RightAngle:
-                                            writer.WriteStartElement("Row", ns);
-                                            writer.WriteAttributeString("T", "LineTo");
-                                            WriteCell(writer, ns, "X", startX);
-                                            WriteCell(writer, ns, "Y", endY);
-                                            writer.WriteEndElement();
-
-                                            writer.WriteStartElement("Row", ns);
-                                            writer.WriteAttributeString("T", "LineTo");
-                                            WriteCell(writer, ns, "X", endX);
-                                            WriteCell(writer, ns, "Y", endY);
-                                            writer.WriteEndElement();
-                                            break;
-                                        case ConnectorKind.Curved:
-                                        case ConnectorKind.Straight:
-                                        default:
-                                            writer.WriteStartElement("Row", ns);
-                                            writer.WriteAttributeString("T", "LineTo");
-                                            WriteCell(writer, ns, "X", endX);
-                                            WriteCell(writer, ns, "Y", endY);
-                                            writer.WriteEndElement();
-                                            break;
-                                    }
-
-                                    writer.WriteEndElement();
-                                }
+                                WriteConnectorGeometry(writer, ns, connector, startX, startY, endX, endY);
 
                                 KeyValuePair<string, string>? connectorOriginalId = GetOriginalIdEntry(persistedIds, connector.Id);
                                 WriteDataSection(writer, ns, new Dictionary<string, string>(), connectorOriginalId);
@@ -591,12 +528,13 @@ namespace OfficeIMO.Visio {
             return masterCount;
         }
 
-        private void WriteShapeElement(XmlWriter writer, string ns, VisioShape shape, IReadOnlyDictionary<string, string> persistedIds) {
+        private void WriteShapeElement(XmlWriter writer, string ns, VisioShape shape, IReadOnlyDictionary<string, string> persistedIds, IReadOnlyDictionary<string, VisioMaster> effectiveMasters, IReadOnlyList<PackageMasterEntry> packageMasters) {
             writer.WriteStartElement("Shape", ns);
             writer.WriteAttributeString("ID", GetPersistedId(persistedIds, shape.Id));
             string shapeName = shape.Name ?? shape.NameU ?? $"Shape{shape.Id}";
             writer.WriteAttributeString("Name", shapeName);
-            writer.WriteAttributeString("NameU", shape.NameU ?? shape.Master?.NameU ?? shapeName);
+            VisioMaster? effectiveMaster = TryGetEffectiveMaster(effectiveMasters, shape);
+            writer.WriteAttributeString("NameU", shape.NameU ?? effectiveMaster?.NameU ?? shapeName);
 
             bool isGroup = string.Equals(shape.Type, "Group", StringComparison.OrdinalIgnoreCase) || shape.Children.Count > 0;
             writer.WriteAttributeString("Type", isGroup ? "Group" : "Shape");
@@ -604,13 +542,13 @@ namespace OfficeIMO.Visio {
             writer.WriteAttributeString("FillStyle", "0");
             writer.WriteAttributeString("TextStyle", "0");
 
-            if (shape.Master != null) {
-                writer.WriteAttributeString("Master", shape.Master.Id);
+            if (effectiveMaster != null) {
+                writer.WriteAttributeString("Master", GetPackageMasterId(packageMasters, effectiveMaster));
             }
 
             KeyValuePair<string, string>? originalIdEntry = GetOriginalIdEntry(persistedIds, shape.Id);
-            if (shape.Master != null && !isGroup) {
-                WriteMasterBackedShapeBody(writer, ns, shape, originalIdEntry);
+            if (effectiveMaster != null && !isGroup) {
+                WriteMasterBackedShapeBody(writer, ns, shape, effectiveMaster, originalIdEntry);
             } else {
                 WriteStandaloneShapeBody(writer, ns, shape, isGroup, originalIdEntry);
             }
@@ -618,7 +556,7 @@ namespace OfficeIMO.Visio {
             if (isGroup && shape.Children.Count > 0) {
                 writer.WriteStartElement("Shapes", ns);
                 foreach (VisioShape child in shape.Children) {
-                    WriteShapeElement(writer, ns, child, persistedIds);
+                    WriteShapeElement(writer, ns, child, persistedIds, effectiveMasters, packageMasters);
                 }
                 writer.WriteEndElement();
             }
@@ -626,10 +564,10 @@ namespace OfficeIMO.Visio {
             writer.WriteEndElement();
         }
 
-        private void WriteMasterBackedShapeBody(XmlWriter writer, string ns, VisioShape shape, KeyValuePair<string, string>? originalIdEntry) {
+        private void WriteMasterBackedShapeBody(XmlWriter writer, string ns, VisioShape shape, VisioMaster master, KeyValuePair<string, string>? originalIdEntry) {
             if (WriteMasterDeltasOnly) {
-                double masterWidth = shape.Master!.Shape.Width > 0 ? shape.Master.Shape.Width : 1;
-                double masterHeight = shape.Master.Shape.Height > 0 ? shape.Master.Shape.Height : 1;
+                double masterWidth = master.Shape.Width > 0 ? master.Shape.Width : 1;
+                double masterHeight = master.Shape.Height > 0 ? master.Shape.Height : 1;
                 bool hasWidth = shape.Width > 0;
                 bool hasHeight = shape.Height > 0;
                 bool sizeDiffers = (hasWidth && Math.Abs(shape.Width - masterWidth) > 1e-12) ||
@@ -638,22 +576,22 @@ namespace OfficeIMO.Visio {
                 if (sizeDiffers) {
                     double width = hasWidth ? shape.Width : masterWidth;
                     double height = hasHeight ? shape.Height : masterHeight;
-                    if (Math.Abs(shape.LocPinX) < double.Epsilon) shape.LocPinX = width / 2;
-                    if (Math.Abs(shape.LocPinY) < double.Epsilon) shape.LocPinY = height / 2;
-                    WriteXForm(writer, ns, shape, width, height);
+                    double locPinX = Math.Abs(shape.LocPinX) < double.Epsilon ? width / 2 : shape.LocPinX;
+                    double locPinY = Math.Abs(shape.LocPinY) < double.Epsilon ? height / 2 : shape.LocPinY;
+                    WriteXForm(writer, ns, shape.PinX, shape.PinY, width, height, locPinX, locPinY, shape.Angle);
                 } else {
                     WriteCell(writer, ns, "PinX", shape.PinX);
                     WriteCell(writer, ns, "PinY", shape.PinY);
 
-                    double masterLocPinX = Math.Abs(shape.Master.Shape.LocPinX) > double.Epsilon ? shape.Master.Shape.LocPinX : masterWidth / 2;
-                    double masterLocPinY = Math.Abs(shape.Master.Shape.LocPinY) > double.Epsilon ? shape.Master.Shape.LocPinY : masterHeight / 2;
+                    double masterLocPinX = Math.Abs(master.Shape.LocPinX) > double.Epsilon ? master.Shape.LocPinX : masterWidth / 2;
+                    double masterLocPinY = Math.Abs(master.Shape.LocPinY) > double.Epsilon ? master.Shape.LocPinY : masterHeight / 2;
                     if (Math.Abs(shape.LocPinX) > double.Epsilon && Math.Abs(shape.LocPinX - masterLocPinX) > 1e-12) {
                         WriteCell(writer, ns, "LocPinX", shape.LocPinX);
                     }
                     if (Math.Abs(shape.LocPinY) > double.Epsilon && Math.Abs(shape.LocPinY - masterLocPinY) > 1e-12) {
                         WriteCell(writer, ns, "LocPinY", shape.LocPinY);
                     }
-                    if (Math.Abs(shape.Angle - shape.Master.Shape.Angle) > 1e-12) {
+                    if (Math.Abs(shape.Angle - master.Shape.Angle) > 1e-12) {
                         WriteCell(writer, ns, "Angle", shape.Angle);
                     }
                 }
@@ -671,31 +609,25 @@ namespace OfficeIMO.Visio {
             }
 
             double widthValue = shape.Width;
-            if (widthValue <= 0 && shape.Master!.Shape.Width > 0) {
-                widthValue = shape.Master.Shape.Width;
+            if (widthValue <= 0 && master.Shape.Width > 0) {
+                widthValue = master.Shape.Width;
             }
             if (widthValue <= 0) {
                 widthValue = 1;
             }
 
             double heightValue = shape.Height;
-            if (heightValue <= 0 && shape.Master!.Shape.Height > 0) {
-                heightValue = shape.Master.Shape.Height;
+            if (heightValue <= 0 && master.Shape.Height > 0) {
+                heightValue = master.Shape.Height;
             }
             if (heightValue <= 0) {
                 heightValue = 1;
             }
 
-            shape.Width = widthValue;
-            shape.Height = heightValue;
-            if (Math.Abs(shape.LocPinX) < double.Epsilon) {
-                shape.LocPinX = widthValue / 2;
-            }
-            if (Math.Abs(shape.LocPinY) < double.Epsilon) {
-                shape.LocPinY = heightValue / 2;
-            }
+            double locPinXValue = Math.Abs(shape.LocPinX) < double.Epsilon ? widthValue / 2 : shape.LocPinX;
+            double locPinYValue = Math.Abs(shape.LocPinY) < double.Epsilon ? heightValue / 2 : shape.LocPinY;
 
-            WriteXForm(writer, ns, shape, widthValue, heightValue);
+            WriteXForm(writer, ns, shape.PinX, shape.PinY, widthValue, heightValue, locPinXValue, locPinYValue, shape.Angle);
             WriteCell(writer, ns, "LineWeight", shape.LineWeight);
             WriteCell(writer, ns, "LinePattern", shape.LinePattern);
             WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
@@ -709,34 +641,19 @@ namespace OfficeIMO.Visio {
         private static void WriteStandaloneShapeBody(XmlWriter writer, string ns, VisioShape shape, bool isGroup, KeyValuePair<string, string>? originalIdEntry) {
             double width = shape.Width > 0 ? shape.Width : 1;
             double height = shape.Height > 0 ? shape.Height : 1;
-            shape.Width = width;
-            shape.Height = height;
-            if (Math.Abs(shape.LocPinX) < double.Epsilon) {
-                shape.LocPinX = width / 2;
-            }
-            if (Math.Abs(shape.LocPinY) < double.Epsilon) {
-                shape.LocPinY = height / 2;
-            }
+            double locPinX = Math.Abs(shape.LocPinX) < double.Epsilon ? width / 2 : shape.LocPinX;
+            double locPinY = Math.Abs(shape.LocPinY) < double.Epsilon ? height / 2 : shape.LocPinY;
 
-            WriteXForm(writer, ns, shape, width, height);
+            WriteXForm(writer, ns, shape.PinX, shape.PinY, width, height, locPinX, locPinY, shape.Angle);
             WriteCell(writer, ns, "LineWeight", shape.LineWeight);
             WriteCell(writer, ns, "LinePattern", shape.LinePattern);
             WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
             WriteCell(writer, ns, "FillPattern", shape.FillPattern);
             WriteCellValue(writer, ns, "FillForegnd", shape.FillColor.ToVisioHex());
-            if (!isGroup) {
-                WriteCell(writer, ns, "ObjType", 1);
-                string? kind = shape.NameU?.Trim();
-                if (string.Equals(kind, "Ellipse", StringComparison.OrdinalIgnoreCase) || string.Equals(kind, "Circle", StringComparison.OrdinalIgnoreCase)) {
-                    WriteEllipseGeometry(writer, ns, width, height);
-                } else if (string.Equals(kind, "Diamond", StringComparison.OrdinalIgnoreCase)) {
-                    WriteDiamondGeometry(writer, ns, width, height);
-                } else if (string.Equals(kind, "Triangle", StringComparison.OrdinalIgnoreCase)) {
-                    WriteTriangleGeometry(writer, ns, width, height);
-                } else {
-                    WriteRectangleGeometry(writer, ns, width, height);
-                }
-            }
+              if (!isGroup) {
+                  WriteCell(writer, ns, "ObjType", 1);
+                 WriteMasterGeometry(writer, ns, shape.NameU, width, height);
+              }
             WriteConnectionSection(writer, ns, shape.ConnectionPoints);
             WriteDataSection(writer, ns, shape.Data, originalIdEntry);
             WriteTextElement(writer, ns, shape.Text);
@@ -790,6 +707,314 @@ namespace OfficeIMO.Visio {
             return string.Equals(persistedId, originalId, StringComparison.Ordinal)
                 ? null
                 : new KeyValuePair<string, string>(OriginalIdPropName, originalId);
+        }
+
+        private static void WriteConnectorGeometry(XmlWriter writer, string ns, VisioConnector connector, double startX, double startY, double endX, double endY) {
+            if (connector.Kind == ConnectorKind.Dynamic) {
+                return;
+            }
+
+            if (connector.PreservedGeometrySections.Count > 0) {
+                foreach (XElement section in connector.PreservedGeometrySections) {
+                    XElement clone = new(section);
+                    using var reader = clone.CreateReader();
+                    writer.WriteNode(reader, false);
+                }
+                return;
+            }
+
+            writer.WriteStartElement("Section", ns);
+            writer.WriteAttributeString("N", "Geometry");
+            writer.WriteAttributeString("IX", "0");
+
+            writer.WriteStartElement("Row", ns);
+            writer.WriteAttributeString("T", "MoveTo");
+            WriteCell(writer, ns, "X", startX);
+            WriteCell(writer, ns, "Y", startY);
+            writer.WriteEndElement();
+
+            switch (connector.Kind) {
+                case ConnectorKind.RightAngle:
+                    writer.WriteStartElement("Row", ns);
+                    writer.WriteAttributeString("T", "LineTo");
+                    WriteCell(writer, ns, "X", startX);
+                    WriteCell(writer, ns, "Y", endY);
+                    writer.WriteEndElement();
+
+                    writer.WriteStartElement("Row", ns);
+                    writer.WriteAttributeString("T", "LineTo");
+                    WriteCell(writer, ns, "X", endX);
+                    WriteCell(writer, ns, "Y", endY);
+                    writer.WriteEndElement();
+                    break;
+                case ConnectorKind.Curved:
+                case ConnectorKind.Straight:
+                default:
+                    writer.WriteStartElement("Row", ns);
+                    writer.WriteAttributeString("T", "LineTo");
+                    WriteCell(writer, ns, "X", endX);
+                    WriteCell(writer, ns, "Y", endY);
+                    writer.WriteEndElement();
+                    break;
+            }
+
+            writer.WriteEndElement();
+        }
+
+        private static void ValidatePagesForSave(IEnumerable<VisioPage> pages) {
+            foreach (VisioPage page in pages) {
+                HashSet<string> ids = new(StringComparer.Ordinal);
+
+                void Reserve(string id, string kind) {
+                    if (string.IsNullOrWhiteSpace(id)) {
+                        throw new InvalidOperationException($"{kind} id cannot be null or whitespace on page '{page.Name}'.");
+                    }
+
+                    if (!ids.Add(id)) {
+                        throw new InvalidOperationException($"Duplicate {kind.ToLowerInvariant()} id '{id}' found on page '{page.Name}'.");
+                    }
+                }
+
+                void VisitShape(VisioShape shape) {
+                    Reserve(shape.Id, "Shape");
+                    foreach (VisioShape child in shape.Children) {
+                        VisitShape(child);
+                    }
+                }
+
+                foreach (VisioShape shape in page.Shapes) {
+                    VisitShape(shape);
+                }
+
+                foreach (VisioConnector connector in page.Connectors) {
+                    Reserve(connector.Id, "Connector");
+                }
+            }
+        }
+
+        private Dictionary<string, VisioMaster> BuildEffectiveShapeMasterMap(VisioPage page) {
+            Dictionary<string, VisioMaster> map = new(StringComparer.Ordinal);
+
+            void Visit(VisioShape shape) {
+                VisioMaster? effectiveMaster = ResolveEffectiveMaster(shape);
+                if (effectiveMaster != null) {
+                    map[shape.Id] = effectiveMaster;
+                }
+
+                foreach (VisioShape child in shape.Children) {
+                    Visit(child);
+                }
+            }
+
+            foreach (VisioShape shape in page.Shapes) {
+                Visit(shape);
+            }
+
+            return map;
+        }
+
+        private static void AddMastersInShapeOrder(IEnumerable<VisioShape> shapes, IReadOnlyDictionary<string, VisioMaster> pageMasters, IList<VisioMaster> masterCandidates) {
+            foreach (VisioShape shape in shapes) {
+                if (pageMasters.TryGetValue(shape.Id, out VisioMaster? master)) {
+                    masterCandidates.Add(master);
+                }
+
+                if (shape.Children.Count > 0) {
+                    AddMastersInShapeOrder(shape.Children, pageMasters, masterCandidates);
+                }
+            }
+        }
+
+        private VisioMaster? ResolveEffectiveMaster(VisioShape shape) {
+            if (shape.Master != null) {
+                return shape.Master;
+            }
+
+            if (!UseMastersByDefault) {
+                return null;
+            }
+
+            string shapeNameU = shape.NameU?.Trim() ?? string.Empty;
+            if (shapeNameU.Length == 0) {
+                return null;
+            }
+
+            return TryEnsureBuiltinMaster(shapeNameU, out VisioMaster? master) ? master : null;
+        }
+
+        private static List<PackageMasterEntry> CreatePackageMasterEntries(IEnumerable<VisioMaster> masters) {
+            List<PackageMasterEntry> entries = new();
+            HashSet<int> usedIds = new();
+
+            foreach (VisioMaster master in masters) {
+                if (entries.Any(entry => ReferenceEquals(entry.Master, master))) {
+                    continue;
+                }
+
+                int packageId;
+                if (int.TryParse(master.Id, NumberStyles.Integer, CultureInfo.InvariantCulture, out int suggestedId) &&
+                    suggestedId > 0 &&
+                    usedIds.Add(suggestedId)) {
+                    packageId = suggestedId;
+                } else {
+                    packageId = usedIds.Count == 0 ? 1 : usedIds.Max() + 1;
+                    while (!usedIds.Add(packageId)) {
+                        packageId++;
+                    }
+                }
+
+                entries.Add(new PackageMasterEntry {
+                    Master = master,
+                    PackageId = packageId.ToString(CultureInfo.InvariantCulture),
+                    PartNumber = entries.Count + 1
+                });
+            }
+
+            return entries;
+        }
+
+        private static string GetPackageMasterId(IReadOnlyList<PackageMasterEntry> packageMasters, VisioMaster master) {
+            foreach (PackageMasterEntry entry in packageMasters) {
+                if (ReferenceEquals(entry.Master, master)) {
+                    return entry.PackageId;
+                }
+            }
+
+            throw new InvalidOperationException($"Master '{master.NameU}' is not registered in the package.");
+        }
+
+        private static VisioMaster? TryGetEffectiveMaster(IReadOnlyDictionary<string, VisioMaster> effectiveMasters, VisioShape shape) {
+            return effectiveMasters.TryGetValue(shape.Id, out VisioMaster? master) ? master : null;
+        }
+
+        private static void WriteMasterGeometry(XmlWriter writer, string ns, string? masterNameU, double width, double height) {
+            if (TryGetBuiltinMasterDefinition(masterNameU, out BuiltinMasterDefinition? definition) && definition != null) {
+                 switch (definition.GeometryKind) {
+                     case BuiltinGeometryKind.Ellipse:
+                         WriteEllipseGeometry(writer, ns, width, height);
+                         return;
+                     case BuiltinGeometryKind.Diamond:
+                         WriteDiamondGeometry(writer, ns, width, height);
+                         return;
+                     case BuiltinGeometryKind.Triangle:
+                         WriteTriangleGeometry(writer, ns, width, height);
+                         return;
+                     case BuiltinGeometryKind.Parallelogram:
+                         WriteParallelogramGeometry(writer, ns, width, height);
+                         return;
+                     case BuiltinGeometryKind.Hexagon:
+                         WriteHexagonGeometry(writer, ns, width, height);
+                         return;
+                     case BuiltinGeometryKind.Trapezoid:
+                         WriteTrapezoidGeometry(writer, ns, width, height);
+                         return;
+                     case BuiltinGeometryKind.OffPageReference:
+                         WriteOffPageReferenceGeometry(writer, ns, width, height);
+                         return;
+                 }
+             }
+
+            WriteRectangleGeometry(writer, ns, width, height);
+        }
+
+        private static void WriteMasterPageSheet(XmlWriter writer, string ns, BuiltinMasterDefinition? definition) {
+            writer.WriteStartElement("PageSheet", ns);
+            writer.WriteAttributeString("LineStyle", "0");
+            writer.WriteAttributeString("FillStyle", "0");
+            writer.WriteAttributeString("TextStyle", "0");
+            WritePageCell(writer, ns, "PageWidth", 3.937007874015748, "MM");
+            WritePageCell(writer, ns, "PageHeight", 3.937007874015748, "MM");
+            WritePageCell(writer, ns, "ShdwOffsetX", 0.1181102362204724);
+            WritePageCell(writer, ns, "ShdwOffsetY", -0.1181102362204724);
+            WritePageCell(writer, ns, "PageScale", 0.03937007874015748, "MM");
+            WritePageCell(writer, ns, "DrawingScale", 0.03937007874015748, "MM");
+            WritePageCell(writer, ns, "DrawingSizeType", definition?.GeometryKind == BuiltinGeometryKind.DynamicConnector ? 4 : 0);
+            WritePageCell(writer, ns, "DrawingScaleType", 0);
+            WritePageCell(writer, ns, "InhibitSnap", 0);
+            WritePageCell(writer, ns, "PageLockReplace", 0, "BOOL");
+            WritePageCell(writer, ns, "PageLockDuplicate", 0, "BOOL");
+            WritePageCell(writer, ns, "UIVisibility", 0);
+            WritePageCell(writer, ns, "ShdwType", 0);
+            WritePageCell(writer, ns, "ShdwObliqueAngle", 0);
+            WritePageCell(writer, ns, "ShdwScaleFactor", 1);
+            WritePageCell(writer, ns, "DrawingResizeType", definition?.GeometryKind == BuiltinGeometryKind.DynamicConnector ? 0 : 1);
+            string? shapeKeywords = definition?.ShapeKeywords;
+            if (!string.IsNullOrWhiteSpace(shapeKeywords)) {
+                WriteStringCell(writer, ns, "ShapeKeywords", shapeKeywords!);
+            }
+            if (definition?.AddConnectorLayer == true) {
+                writer.WriteStartElement("Section", ns);
+                writer.WriteAttributeString("N", "Layer");
+                writer.WriteStartElement("Row", ns);
+                writer.WriteAttributeString("IX", "0");
+                WriteStringCell(writer, ns, "Name", "Connector");
+                WriteCell(writer, ns, "Color", 255);
+                WriteCell(writer, ns, "Status", 0);
+                WriteCell(writer, ns, "Visible", 1);
+                WriteCell(writer, ns, "Print", 1);
+                WriteCell(writer, ns, "Active", 0);
+                WriteCell(writer, ns, "Lock", 0);
+                WriteCell(writer, ns, "Snap", 1);
+                WriteCell(writer, ns, "Glue", 1);
+                WriteStringCell(writer, ns, "NameUniv", "Connector");
+                WriteCell(writer, ns, "ColorTrans", 0);
+                writer.WriteEndElement();
+                writer.WriteEndElement();
+            }
+            writer.WriteEndElement();
+        }
+
+        private static void WriteMasterUserSection(XmlWriter writer, string ns) {
+            writer.WriteStartElement("Section", ns);
+            writer.WriteAttributeString("N", "User");
+            writer.WriteStartElement("Row", ns);
+            writer.WriteAttributeString("N", "visVersion");
+            WriteCell(writer, ns, "Value", 15);
+            writer.WriteEndElement();
+            writer.WriteEndElement();
+        }
+
+        private static void WriteMasterCharacterSection(XmlWriter writer, string ns) {
+            writer.WriteStartElement("Section", ns);
+            writer.WriteAttributeString("N", "Character");
+            writer.WriteStartElement("Row", ns);
+            writer.WriteAttributeString("IX", "0");
+            WriteCell(writer, ns, "Size", 0.1388888888888889, "PT", null);
+            writer.WriteEndElement();
+            writer.WriteEndElement();
+        }
+
+        private static void WriteDefaultTextBlock(XmlWriter writer, string ns, double width, double height) {
+            WriteCell(writer, ns, "TxtPinX", width / 2.0, "MM", "Width*0.5");
+            WriteCell(writer, ns, "TxtPinY", height / 2.0, "MM", "Height*0.5");
+            WriteCell(writer, ns, "TxtWidth", width * 0.875, "MM", "Width*0.875");
+            WriteCell(writer, ns, "TxtHeight", height * 0.75, "MM", "Height*0.75");
+            WriteCell(writer, ns, "TxtLocPinX", width * 0.4375, "MM", "TxtWidth*0.5");
+            WriteCell(writer, ns, "TxtLocPinY", height * 0.375, "MM", "TxtHeight*0.5");
+            WriteCell(writer, ns, "TxtAngle", 0);
+        }
+
+        private static void WriteConnectorControlSection(XmlWriter writer, string ns, double height) {
+            writer.WriteStartElement("Section", ns);
+            writer.WriteAttributeString("N", "Control");
+            writer.WriteStartElement("Row", ns);
+            writer.WriteAttributeString("N", "TextPosition");
+            WriteCell(writer, ns, "X", 0);
+            WriteCell(writer, ns, "Y", -height, null, "Controls.TextPosition.Y");
+            WriteCell(writer, ns, "XDyn", 0, null, "Controls.TextPosition");
+            WriteCell(writer, ns, "YDyn", -height, null, "Controls.TextPosition.Y");
+            WriteCell(writer, ns, "XCon", 5);
+            WriteCell(writer, ns, "YCon", 0);
+            WriteCell(writer, ns, "CanGlue", 0);
+            WriteStringCell(writer, ns, "Prompt", "Reposition Text");
+            writer.WriteEndElement();
+            writer.WriteEndElement();
+        }
+
+        private sealed class PackageMasterEntry {
+            public VisioMaster Master { get; set; } = null!;
+            public string PackageId { get; set; } = string.Empty;
+            public int PartNumber { get; set; }
         }
     }
 }

@@ -38,7 +38,10 @@ namespace OfficeIMO.Visio {
                 Uri themeUri = PackUriHelper.ResolvePartUri(documentPart.Uri, themeRel.TargetUri);
                 PackagePart themePart = package.GetPart(themeUri);
                 XDocument themeDoc = XDocument.Load(themePart.GetStream());
-                document.Theme = new VisioTheme { Name = themeDoc.Root?.Attribute("name")?.Value };
+                document.Theme = new VisioTheme {
+                    Name = themeDoc.Root?.Attribute("name")?.Value,
+                    TemplateXml = new XDocument(themeDoc)
+                };
             }
 
             PackageRelationship pagesRel = documentPart.GetRelationshipsByType(PagesRelationshipType).Single();
@@ -255,16 +258,10 @@ namespace OfficeIMO.Visio {
                         }
                     }
 
-                    XElement? geometry = connectorElement.Elements(vNs + "Section").FirstOrDefault(e => e.Attribute("N")?.Value == "Geometry");
-                    if (geometry != null) {
-                        int rowCount = geometry.Elements(vNs + "Row").Count();
-                        connector.Kind = rowCount switch {
-                            2 => ConnectorKind.Straight,
-                            3 => ConnectorKind.RightAngle,
-                            _ => ConnectorKind.Curved
-                        };
-                    } else {
-                        connector.Kind = ConnectorKind.Dynamic;
+                    connector.Kind = DetermineConnectorKind(connectorElement, vNs, masters);
+                    foreach (XElement geometrySection in connectorElement.Elements(vNs + "Section")
+                                 .Where(section => string.Equals(section.Attribute("N")?.Value, "Geometry", StringComparison.OrdinalIgnoreCase))) {
+                        connector.PreservedGeometrySections.Add(new XElement(geometrySection));
                     }
 
                     connector.FromConnectionPoint = ResolveConnectionPoint(fromShape, ids.fromCell);
@@ -598,6 +595,91 @@ namespace OfficeIMO.Visio {
             }
             
             return false;
+        }
+
+        private static ConnectorKind DetermineConnectorKind(XElement connectorElement, XNamespace ns, IReadOnlyDictionary<string, VisioMaster> masters) {
+            if (HasDynamicConnectorIdentity(connectorElement, masters)) {
+                return ConnectorKind.Dynamic;
+            }
+
+            XElement? geometrySection = connectorElement.Elements(ns + "Section")
+                .FirstOrDefault(e => e.Attribute("N")?.Value == "Geometry");
+            if (geometrySection == null) {
+                return ConnectorKind.Dynamic;
+            }
+
+            List<XElement> rows = geometrySection.Elements(ns + "Row").ToList();
+            List<XElement> drawableRows = rows
+                .Where(row => !string.Equals(row.Attribute("T")?.Value, "Geometry", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (drawableRows.Count == 0) {
+                return ConnectorKind.Dynamic;
+            }
+
+            if (drawableRows.Any(IsCurvedGeometryRow)) {
+                return ConnectorKind.Curved;
+            }
+
+            List<(double X, double Y)> points = new();
+            foreach (XElement row in drawableRows) {
+                string? type = row.Attribute("T")?.Value;
+                if (!string.Equals(type, "MoveTo", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(type, "LineTo", StringComparison.OrdinalIgnoreCase)) {
+                    return ConnectorKind.Curved;
+                }
+
+                points.Add((GetCellValue(row, ns, "X"), GetCellValue(row, ns, "Y")));
+            }
+
+            if (points.Count <= 2) {
+                return ConnectorKind.Straight;
+            }
+
+            bool allOrthogonal = true;
+            for (int i = 1; i < points.Count; i++) {
+                (double previousX, double previousY) = points[i - 1];
+                (double currentX, double currentY) = points[i];
+                bool sameX = Math.Abs(previousX - currentX) <= 1e-9;
+                bool sameY = Math.Abs(previousY - currentY) <= 1e-9;
+                if (!sameX && !sameY) {
+                    allOrthogonal = false;
+                    break;
+                }
+            }
+
+            return allOrthogonal ? ConnectorKind.RightAngle : ConnectorKind.Curved;
+        }
+
+        private static bool HasDynamicConnectorIdentity(XElement connectorElement, IReadOnlyDictionary<string, VisioMaster> masters) {
+            string? nameU = connectorElement.Attribute("NameU")?.Value;
+            if (string.Equals(nameU, "Dynamic connector", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+
+            string? masterId = connectorElement.Attribute("Master")?.Value;
+            return !string.IsNullOrEmpty(masterId) &&
+                   masters.TryGetValue(masterId!, out VisioMaster? master) &&
+                   string.Equals(master.NameU, "Dynamic connector", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsCurvedGeometryRow(XElement row) {
+            string? type = row.Attribute("T")?.Value;
+            if (string.IsNullOrEmpty(type)) {
+                return false;
+            }
+
+            string rowType = type!;
+            return rowType.IndexOf("Arc", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   rowType.IndexOf("Spline", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   rowType.IndexOf("Bezier", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   rowType.IndexOf("NURBS", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   rowType.IndexOf("Curve", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static double GetCellValue(XElement row, XNamespace ns, string cellName) {
+            return ParseDouble(row.Elements(ns + "Cell")
+                .FirstOrDefault(cell => string.Equals(cell.Attribute("N")?.Value, cellName, StringComparison.OrdinalIgnoreCase))
+                ?.Attribute("V")?.Value);
         }
 
         private static VisioConnectionPoint? ResolveConnectionPoint(VisioShape shape, string? connectionCell) {

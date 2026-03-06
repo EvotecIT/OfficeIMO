@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Xml.Linq;
 using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Visio {
@@ -91,6 +93,11 @@ namespace OfficeIMO.Visio {
         /// Line pattern (0=None, 1=Solid, 2=Dashed, etc.).
         /// </summary>
         public int LinePattern { get; set; }
+
+        /// <summary>
+        /// Geometry sections captured from a loaded package so custom connector paths can be preserved on save.
+        /// </summary>
+        internal IList<XElement> PreservedGeometrySections { get; } = new List<XElement>();
 
         private static string GetNextId(VisioShape from, VisioShape to) {
             int fromId = int.TryParse(from.Id, out int fi) ? fi : 0;

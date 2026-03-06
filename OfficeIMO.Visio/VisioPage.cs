@@ -45,6 +45,8 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public int Id { get; internal set; }
 
+        internal VisioDocument? OwnerDocument { get; set; }
+
         /// <summary>
         /// Gets the page name.
         /// </summary>
@@ -291,6 +293,28 @@ namespace OfficeIMO.Visio {
             AddRectangle(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
+        /// Adds a flowchart process shape.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the process box.</param>
+        /// <param name="height">Height of the process box.</param>
+        /// <param name="text">Optional text.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created process shape.</returns>
+        public VisioShape AddProcess(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            var s = AddRectangle(x, y, width, height, text, unit);
+            s.NameU = "Process";
+            return s;
+        }
+
+        /// <summary>
+        /// Adds a flowchart process shape using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        public VisioShape AddProcess(double x, double y, double width, double height, string? text = null) =>
+            AddProcess(x, y, width, height, text, DefaultUnit);
+
+        /// <summary>
         /// Adds a square shape.
         /// </summary>
         /// <param name="x">X coordinate.</param>
@@ -404,8 +428,122 @@ namespace OfficeIMO.Visio {
             AddDiamond(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
-        /// Adds a triangle shape.
+        /// Adds a flowchart decision shape.
         /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the decision shape.</param>
+        /// <param name="height">Height of the decision shape.</param>
+        /// <param name="text">Optional text.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created decision shape.</returns>
+        public VisioShape AddDecision(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            var s = AddDiamond(x, y, width, height, text, unit);
+            s.NameU = "Decision";
+            return s;
+        }
+
+        /// <summary>
+        /// Adds a flowchart decision shape using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        public VisioShape AddDecision(double x, double y, double width, double height, string? text = null) =>
+            AddDecision(x, y, width, height, text, DefaultUnit);
+
+        /// <summary>
+        /// Adds a flowchart data shape.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the data shape.</param>
+        /// <param name="height">Height of the data shape.</param>
+        /// <param name="text">Optional text.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created data shape.</returns>
+        public VisioShape AddData(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            ApplyUnits(ref x, ref y, ref width, ref height, unit);
+            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Data" };
+            _shapes.Add(s);
+            return s;
+        }
+
+        /// <summary>
+        /// Adds a flowchart data shape using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        public VisioShape AddData(double x, double y, double width, double height, string? text = null) =>
+            AddData(x, y, width, height, text, DefaultUnit);
+
+        /// <summary>
+        /// Adds a flowchart preparation shape.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the preparation shape.</param>
+        /// <param name="height">Height of the preparation shape.</param>
+        /// <param name="text">Optional text.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created preparation shape.</returns>
+        public VisioShape AddPreparation(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            ApplyUnits(ref x, ref y, ref width, ref height, unit);
+            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Preparation" };
+            _shapes.Add(s);
+            return s;
+        }
+
+        /// <summary>
+        /// Adds a flowchart preparation shape using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        public VisioShape AddPreparation(double x, double y, double width, double height, string? text = null) =>
+            AddPreparation(x, y, width, height, text, DefaultUnit);
+
+        /// <summary>
+        /// Adds a flowchart manual operation shape.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the manual operation shape.</param>
+        /// <param name="height">Height of the manual operation shape.</param>
+        /// <param name="text">Optional text.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created manual operation shape.</returns>
+        public VisioShape AddManualOperation(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            ApplyUnits(ref x, ref y, ref width, ref height, unit);
+            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Manual operation" };
+            _shapes.Add(s);
+            return s;
+        }
+
+        /// <summary>
+        /// Adds a flowchart manual operation shape using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        public VisioShape AddManualOperation(double x, double y, double width, double height, string? text = null) =>
+            AddManualOperation(x, y, width, height, text, DefaultUnit);
+
+        /// <summary>
+        /// Adds a flowchart off-page reference shape.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the off-page reference shape.</param>
+        /// <param name="height">Height of the off-page reference shape.</param>
+        /// <param name="text">Optional text.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created off-page reference shape.</returns>
+        public VisioShape AddOffPageReference(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            ApplyUnits(ref x, ref y, ref width, ref height, unit);
+            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Off-page reference" };
+            _shapes.Add(s);
+            return s;
+        }
+
+        /// <summary>
+        /// Adds a flowchart off-page reference shape using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        public VisioShape AddOffPageReference(double x, double y, double width, double height, string? text = null) =>
+            AddOffPageReference(x, y, width, height, text, DefaultUnit);
+
+        /// <summary>
+         /// Adds a triangle shape.
+         /// </summary>
         /// <param name="x">X coordinate.</param>
         /// <param name="y">Y coordinate.</param>
         /// <param name="width">Width of the triangle's bounding box.</param>
@@ -441,7 +579,7 @@ namespace OfficeIMO.Visio {
         /// <param name="fromSide">Preferred side on the source shape.</param>
         /// <param name="toSide">Preferred side on the target shape.</param>
         /// <returns>The created connector.</returns>
-        public VisioConnector AddConnector(VisioShape from, VisioShape to, ConnectorKind kind = ConnectorKind.Straight, VisioSide fromSide = VisioSide.Auto, VisioSide toSide = VisioSide.Auto) {
+        public VisioConnector AddConnector(VisioShape from, VisioShape to, ConnectorKind kind = ConnectorKind.Dynamic, VisioSide fromSide = VisioSide.Auto, VisioSide toSide = VisioSide.Auto) {
             var conn = new VisioConnector(NextId(), from, to) { Kind = kind };
             if (fromSide != VisioSide.Auto) conn.FromConnectionPoint = from.EnsureSideConnectionPoint(fromSide);
             if (toSide != VisioSide.Auto) conn.ToConnectionPoint = to.EnsureSideConnectionPoint(toSide);
@@ -490,6 +628,43 @@ namespace OfficeIMO.Visio {
             _shapes.Add(shape);
             return shape;
         }
+
+        /// <summary>
+        /// Adds a shape using a document-registered master by its NameU.
+        /// </summary>
+        /// <param name="id">Identifier of the shape.</param>
+        /// <param name="masterNameU">Registered master universal name.</param>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="w">Width.</param>
+        /// <param name="h">Height.</param>
+        /// <param name="text">Optional text.</param>
+        /// <param name="unit">Measurement unit for the provided values.</param>
+        /// <returns>The created shape.</returns>
+        public VisioShape AddShape(string id, string masterNameU, double x, double y, double w, double h, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            if (OwnerDocument == null) {
+                throw new InvalidOperationException("This page is not attached to a VisioDocument, so master lookup by name is unavailable.");
+            }
+
+            VisioMaster master = OwnerDocument.GetMaster(masterNameU);
+            x = x.ToInches(unit);
+            y = y.ToInches(unit);
+            w = w.ToInches(unit);
+            h = h.ToInches(unit);
+
+            VisioShape shape = new VisioShape(id, x, y, w, h, text ?? string.Empty) {
+                Master = master,
+                NameU = master.NameU
+            };
+            _shapes.Add(shape);
+            return shape;
+        }
+
+        /// <summary>
+        /// Adds a shape using the page <see cref="DefaultUnit"/> and a document-registered master.
+        /// </summary>
+        public VisioShape AddShape(string id, string masterNameU, double x, double y, double w, double h, string? text = null) =>
+            AddShape(id, masterNameU, x, y, w, h, text, DefaultUnit);
 
         /// <summary>
         /// Adds a connector between two shapes.
