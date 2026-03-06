@@ -1,18 +1,77 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Represents a Visio document containing pages.
     /// </summary>
     public partial class VisioDocument {
+        private enum BuiltinGeometryKind {
+            Rectangle,
+            Ellipse,
+            Diamond,
+            Triangle,
+            Parallelogram,
+            Hexagon,
+            Trapezoid,
+            OffPageReference,
+            DynamicConnector
+        }
+
+        private sealed class BuiltinMasterDefinition {
+            public BuiltinMasterDefinition(
+                string id,
+                BuiltinGeometryKind geometryKind,
+                bool lockAspect,
+                string prompt,
+                bool matchByName,
+                bool iconUpdate,
+                int masterType,
+                string shapeKeywords,
+                bool addConnectorLayer = false) {
+                Id = id;
+                GeometryKind = geometryKind;
+                LockAspect = lockAspect;
+                Prompt = prompt;
+                MatchByName = matchByName;
+                IconUpdate = iconUpdate;
+                MasterType = masterType;
+                ShapeKeywords = shapeKeywords;
+                AddConnectorLayer = addConnectorLayer;
+            }
+
+            public string Id { get; }
+
+            public BuiltinGeometryKind GeometryKind { get; }
+
+            public bool LockAspect { get; }
+
+            public string Prompt { get; }
+
+            public bool MatchByName { get; }
+
+            public bool IconUpdate { get; }
+
+            public int MasterType { get; }
+
+            public string ShapeKeywords { get; }
+
+            public bool AddConnectorLayer { get; }
+
+            public string BaseId { get; set; } = string.Empty;
+
+            public string UniqueId { get; set; } = string.Empty;
+        }
+
         private readonly List<VisioPage> _pages = new();
         private bool _requestRecalcOnOpen;
         private string? _filePath;
         private Stream? _sourceStream;
         private readonly Dictionary<string, VisioMaster> _builtinMasters = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, (string Id, System.Xml.Linq.XDocument Xml, System.Xml.Linq.XElement MasterElement)> _templateMasters = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly IReadOnlyDictionary<string, BuiltinMasterDefinition> BuiltinMasterDefinitions = CreateBuiltinMasterDefinitions();
 
         private const string DocumentRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/document";
         private const string DocumentContentType = "application/vnd.ms-visio.drawing.main+xml";
@@ -33,6 +92,11 @@ namespace OfficeIMO.Visio {
         /// Gets the collection of pages in the document.
         /// </summary>
         public IReadOnlyList<VisioPage> Pages => _pages;
+
+        /// <summary>
+        /// Gets the masters currently registered on the document, keyed by <see cref="VisioMaster.NameU"/>.
+        /// </summary>
+        public IReadOnlyCollection<VisioMaster> Masters => _builtinMasters.Values.ToList().AsReadOnly();
 
         /// <summary>
         /// Gets or sets the theme applied to the document.
@@ -71,21 +135,33 @@ namespace OfficeIMO.Visio {
         public static IReadOnlyList<VisioAssets.MasterInfo> ListMastersIn(string vsdxPath) => VisioAssets.ListMasters(vsdxPath);
 
         /// <summary>
-        /// Imports masters from a VSDX file into this document's template catalog so that
-        /// shapes can reference them by NameU when <see cref="UseMastersByDefault"/> is enabled.
-        /// If <paramref name="names"/> is null or empty, all masters are imported.
+        /// Imports master names from a VSDX file and registers only the library-supported
+        /// generated equivalents so shapes can reference them by NameU. If <paramref name="names"/>
+        /// is null or empty, all discoverable supported masters are registered.
         /// </summary>
         public void ImportMasters(string vsdxPath, IEnumerable<string>? names = null) {
-            var packs = VisioAssets.LoadMasterContents(vsdxPath, names);
-            foreach (var m in packs) {
-                var bpTemplate = new VisioShape("1") { NameU = m.NameU, Width = 1, Height = 1 };
-                var templated = new VisioMaster(m.Id, m.NameU, bpTemplate) {
-                    TemplateXml = m.MasterXml,
-                    TemplateMasterElement = new System.Xml.Linq.XElement(m.MasterElement)
-                };
-                _templateMasters[m.NameU] = (templated.Id, templated.TemplateXml!, templated.TemplateMasterElement!);
-                _builtinMasters[m.NameU] = templated;
+            ImportMastersAndGet(vsdxPath, names);
+        }
+
+        /// <summary>
+        /// Imports master names from a VSDX file and returns the registered generated masters
+        /// that are natively implemented by the library.
+        /// </summary>
+        public IReadOnlyList<VisioMaster> ImportMastersAndGet(string vsdxPath, IEnumerable<string>? names = null) {
+            HashSet<string>? filter = names != null ? new HashSet<string>(names, StringComparer.OrdinalIgnoreCase) : null;
+            IReadOnlyList<VisioAssets.MasterInfo> discovered = VisioAssets.ListMasters(vsdxPath);
+            List<VisioMaster> imported = new();
+            foreach (VisioAssets.MasterInfo masterInfo in discovered) {
+                if (filter != null && !filter.Contains(masterInfo.NameU)) {
+                    continue;
+                }
+
+                if (TryEnsureBuiltinMaster(masterInfo.NameU, out VisioMaster? importedMaster) && importedMaster != null) {
+                    imported.Add(importedMaster);
+                }
             }
+
+            return imported.AsReadOnly();
         }
 
         /// <summary>
@@ -100,6 +176,7 @@ namespace OfficeIMO.Visio {
             double widthInches = width.ToInches(unit);
             double heightInches = height.ToInches(unit);
             VisioPage page = new(name, widthInches, heightInches) { Id = id ?? _pages.Count };
+            page.OwnerDocument = this;
             page.DefaultUnit = unit; // remember authoring unit for this page
             page.ScaleMeasurementUnit = unit;
             _pages.Add(page);
@@ -132,42 +209,69 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
-        /// Loads masters from a template VSDX and makes them available when <see cref="EnsureBuiltinMaster"/>
-        /// is called (mapped by NameU).
+        /// Learns the available master names from a template VSDX and registers generated
+        /// library equivalents for those names.
         /// </summary>
         /// <param name="vsdxPath">Path to a VSDX file that contains canonical masters.</param>
         public void UseMastersFromTemplate(string vsdxPath) {
-            using var zip = System.IO.Compression.ZipFile.OpenRead(vsdxPath);
-            var mastersList = zip.GetEntry("visio/masters/masters.xml");
-            if (mastersList == null) return;
-            using var mastersStream = mastersList.Open();
-            var mastersDoc = System.Xml.Linq.XDocument.Load(mastersStream);
-            var ns = System.Xml.Linq.XNamespace.Get(VisioNamespace);
-            var relNs = System.Xml.Linq.XNamespace.Get("http://schemas.openxmlformats.org/officeDocument/2006/relationships");
-            foreach (var m in mastersDoc.Root!.Elements(ns + "Master")) {
-                string id = (string?)m.Attribute("ID") ?? string.Empty;
-                string nameU = (string?)m.Attribute("NameU") ?? string.Empty;
-                string relId = (string?)m.Element(ns + "Rel")?.Attribute(relNs + "id") ?? string.Empty;
-                if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(nameU) || string.IsNullOrEmpty(relId)) continue;
-                // Resolve relationship to master*.xml
-                var mastersRels = zip.GetEntry("visio/masters/_rels/masters.xml.rels");
-                if (mastersRels == null) continue;
-                using var relsStream = mastersRels.Open();
-                var relsDoc = System.Xml.Linq.XDocument.Load(relsStream);
-                var rNs = System.Xml.Linq.XNamespace.Get("http://schemas.openxmlformats.org/package/2006/relationships");
-                var rel = relsDoc.Root!.Elements(rNs + "Relationship").FirstOrDefault(e => (string?)e.Attribute("Id") == relId);
-                if (rel == null) continue;
-                string target = (string?)rel.Attribute("Target") ?? string.Empty;
-                if (string.IsNullOrEmpty(target)) continue;
-                string partPath = "visio/masters/" + target;
-                var part = zip.GetEntry(partPath);
-                if (part == null) continue;
-                using var partStream = part.Open();
-                var partDoc = System.Xml.Linq.XDocument.Load(partStream);
-                // Capture the canonical <Master> element to mirror attributes/PageSheet/Icon
-                var masterElem = m; // already an XElement from masters.xml
-                _templateMasters[nameU] = (id, partDoc, masterElem);
+            ImportMasters(vsdxPath);
+        }
+
+        /// <summary>
+        /// Returns the built-in master names that this library can generate natively.
+        /// </summary>
+        public static IReadOnlyCollection<string> SupportedBuiltinMasters =>
+            BuiltinMasterDefinitions.Keys.ToList().AsReadOnly();
+
+        /// <summary>
+        /// Registers a master on the document so it can be reused by name.
+        /// </summary>
+        public VisioMaster RegisterMaster(VisioMaster master) {
+            if (master == null) throw new ArgumentNullException(nameof(master));
+            if (string.IsNullOrWhiteSpace(master.NameU)) throw new ArgumentException("Master NameU cannot be null or whitespace.", nameof(master));
+
+            _builtinMasters[master.NameU] = master;
+            return master;
+        }
+
+        /// <summary>
+        /// Registers a master blueprint under a NameU and returns the registered master.
+        /// </summary>
+        public VisioMaster RegisterMaster(string nameU, VisioShape shape, string? id = null) {
+            if (string.IsNullOrWhiteSpace(nameU)) throw new ArgumentException("Master NameU cannot be null or whitespace.", nameof(nameU));
+            if (shape == null) throw new ArgumentNullException(nameof(shape));
+
+            VisioMaster master = new(id ?? Guid.NewGuid().ToString("N"), nameU, shape);
+            return RegisterMaster(master);
+        }
+
+        /// <summary>
+        /// Attempts to find a registered master by NameU.
+        /// </summary>
+        public bool TryGetMaster(string nameU, out VisioMaster? master) {
+            if (string.IsNullOrWhiteSpace(nameU)) {
+                master = null;
+                return false;
             }
+
+            if (_builtinMasters.TryGetValue(nameU, out VisioMaster? existing)) {
+                master = existing;
+                return true;
+            }
+
+            master = null;
+            return false;
+        }
+
+        /// <summary>
+        /// Gets a registered master by NameU.
+        /// </summary>
+        public VisioMaster GetMaster(string nameU) {
+            if (TryGetMaster(nameU, out VisioMaster? master) && master != null) {
+                return master;
+            }
+
+            throw new KeyNotFoundException($"Master '{nameU}' is not registered on this document.");
         }
 
         /// <summary>
@@ -177,38 +281,89 @@ namespace OfficeIMO.Visio {
         internal VisioMaster EnsureBuiltinMaster(string nameU) {
             if (_builtinMasters.TryGetValue(nameU, out var existing)) return existing;
 
-            // If template masters are available, prefer them to ensure exact fidelity
-            if (_templateMasters.TryGetValue(nameU, out var t)) {
-                var bpTemplate = new VisioShape("1") { NameU = nameU, Width = 1, Height = 1 };
-                var templated = new VisioMaster(t.Id, nameU, bpTemplate) { TemplateXml = t.Xml, TemplateMasterElement = new System.Xml.Linq.XElement(t.MasterElement) };
-                _builtinMasters[nameU] = templated;
-                return templated;
+            if (!TryGetBuiltinMasterDefinition(nameU, out BuiltinMasterDefinition? definition)) {
+                VisioMaster fallbackMaster = new("10", nameU, CreateMasterBlueprint(nameU, null));
+                _builtinMasters[nameU] = fallbackMaster;
+                return fallbackMaster;
             }
 
-            // Stable IDs inspired by common basic shapes; Rectangle uses 2 to match asset sample.
-            string id = nameU.Equals("Rectangle", StringComparison.OrdinalIgnoreCase) ? "2" : nameU switch {
-                "Ellipse" => "3",
-                "Square" => "4",
-                "Circle" => "5",
-                "Diamond" => "7",
-                "Triangle" => "8",
-                "Dynamic connector" => "6", // matches DrawingWithShapes.vsdx
-                _ => "10" // fallback stable id bucket
+            VisioMaster builtInMaster = new(definition!.Id, nameU, CreateMasterBlueprint(nameU, definition));
+            _builtinMasters[nameU] = builtInMaster;
+            return builtInMaster;
+        }
+
+        internal bool TryEnsureBuiltinMaster(string nameU, out VisioMaster? master) {
+            if (_builtinMasters.TryGetValue(nameU, out VisioMaster? existing)) {
+                master = existing;
+                return true;
+            }
+
+            if (!TryGetBuiltinMasterDefinition(nameU, out BuiltinMasterDefinition? _)) {
+                master = null;
+                return false;
+            }
+
+            master = EnsureBuiltinMaster(nameU);
+            return true;
+        }
+
+        private static bool TryGetBuiltinMasterDefinition(string? nameU, out BuiltinMasterDefinition? definition) {
+            if (nameU != null && BuiltinMasterDefinitions.TryGetValue(nameU, out BuiltinMasterDefinition? builtIn)) {
+                definition = builtIn;
+                return true;
+            }
+
+            definition = null;
+            return false;
+        }
+
+        private static VisioShape CreateMasterBlueprint(string nameU, BuiltinMasterDefinition? definition) {
+            VisioShape blueprint = new("1") {
+                NameU = nameU,
+                Width = 1,
+                Height = 1
             };
 
-            // Minimal blueprint; MasterContents will be written from this shape (rectangle geometry by default).
-            var blueprint = new VisioShape("1") { NameU = nameU, Width = 1, Height = 1 };
-            // Provide default connection points for 2D shapes so connectors snap to sides.
-            if (!nameU.Equals("Dynamic connector", StringComparison.OrdinalIgnoreCase)) {
-                // Left, Right, Bottom, Top (Dir vectors point outward)
+            if (definition?.GeometryKind != BuiltinGeometryKind.DynamicConnector) {
                 blueprint.ConnectionPoints.Add(new VisioConnectionPoint(0.0, 0.5, 1, 0));
                 blueprint.ConnectionPoints.Add(new VisioConnectionPoint(1.0, 0.5, -1, 0));
                 blueprint.ConnectionPoints.Add(new VisioConnectionPoint(0.5, 0.0, 0, 1));
                 blueprint.ConnectionPoints.Add(new VisioConnectionPoint(0.5, 1.0, 0, -1));
             }
-            var master = new VisioMaster(id, nameU, blueprint);
-            _builtinMasters[nameU] = master;
-            return master;
+
+            return blueprint;
+        }
+
+        private static IReadOnlyDictionary<string, BuiltinMasterDefinition> CreateBuiltinMasterDefinitions() {
+            Dictionary<string, BuiltinMasterDefinition> definitions = new(StringComparer.OrdinalIgnoreCase) {
+                ["Rectangle"] = new("2", BuiltinGeometryKind.Rectangle, false, "Drag onto the page.", false, true, 2, "basic,shape,geometry,polygon,rectangle,right,angle,four-sided"),
+                ["Ellipse"] = new("3", BuiltinGeometryKind.Ellipse, false, "Drag onto the page.", false, true, 2, "basic,shape,geometry,round,ellipse,oval"),
+                ["Square"] = new("4", BuiltinGeometryKind.Rectangle, true, "Drag onto the page.", false, true, 2, "basic,shape,geometry,polygon,rectangle,right,angle,four-sided"),
+                ["Circle"] = new("5", BuiltinGeometryKind.Ellipse, true, "Drag onto the page.", false, true, 2, "basic,shape,geometry,circular,round"),
+                ["Dynamic connector"] = new("6", BuiltinGeometryKind.DynamicConnector, false, "This connector automatically routes between the shapes it connects.", true, false, 0, string.Empty, addConnectorLayer: true),
+                ["Diamond"] = new("7", BuiltinGeometryKind.Diamond, false, "Drag onto the page.", false, true, 2, "basic,shape,geometry,decision,diamond,rhombus"),
+                ["Triangle"] = new("8", BuiltinGeometryKind.Triangle, false, "Drag onto the page.", false, true, 2, "basic,shape,geometry,polygon,triangle"),
+                ["Process"] = new("9", BuiltinGeometryKind.Rectangle, false, "Drag onto the page.", false, true, 2, "flowchart,process,step,task,operation"),
+                ["Decision"] = new("11", BuiltinGeometryKind.Diamond, false, "Drag onto the page.", false, true, 2, "flowchart,decision,branch,diamond"),
+                ["Data"] = new("12", BuiltinGeometryKind.Parallelogram, false, "Drag onto the page.", false, true, 2, "flowchart,data,input,output,parallelogram"),
+                ["Preparation"] = new("13", BuiltinGeometryKind.Hexagon, false, "Drag onto the page.", false, true, 2, "flowchart,preparation,setup,hexagon"),
+                ["Manual operation"] = new("14", BuiltinGeometryKind.Trapezoid, false, "Drag onto the page.", false, true, 2, "flowchart,manual,operation,trapezoid"),
+                ["Off-page reference"] = new("15", BuiltinGeometryKind.OffPageReference, false, "Drag onto the page.", false, true, 2, "flowchart,reference,off-page,pentagon"),
+            };
+
+            foreach (KeyValuePair<string, BuiltinMasterDefinition> entry in definitions) {
+                entry.Value.BaseId = CreateDeterministicGuid("Base", entry.Key);
+                entry.Value.UniqueId = CreateDeterministicGuid("Unique", entry.Key, entry.Value.Id);
+            }
+
+            return definitions;
+        }
+
+        private static string CreateDeterministicGuid(params string[] segments) {
+            string payload = string.Join("|", segments);
+            using MD5 md5 = MD5.Create();
+            byte[] hash = md5.ComputeHash(Encoding.UTF8.GetBytes(payload));
+            return new Guid(hash).ToString("B").ToUpperInvariant();
         }
     }
 }

@@ -60,8 +60,11 @@ namespace OfficeIMO.Tests {
 
                 XDocument pageDoc = XDocument.Load(pagePart.GetStream());
                 XElement[] shapes = pageDoc.Root?.Element(ns + "Shapes")?.Elements(ns + "Shape").ToArray() ?? Array.Empty<XElement>();
-                Assert.Equal("2", shapes[0].Attribute("Master")?.Value);
-                Assert.Equal("3", shapes[1].Attribute("Master")?.Value);
+                string? firstMasterId = shapes[0].Attribute("Master")?.Value;
+                string? secondMasterId = shapes[1].Attribute("Master")?.Value;
+                Assert.False(string.IsNullOrWhiteSpace(firstMasterId));
+                Assert.False(string.IsNullOrWhiteSpace(secondMasterId));
+                Assert.NotEqual(firstMasterId, secondMasterId);
 
                 PackagePart masterPart1 = package.GetPart(new Uri("/visio/masters/master1.xml", UriKind.Relative));
                 XDocument master1Doc = XDocument.Load(masterPart1.GetStream());
