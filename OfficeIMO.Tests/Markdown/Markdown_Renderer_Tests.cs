@@ -114,10 +114,13 @@ public class Markdown_Renderer_Tests {
 
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
         Assert.Contains("canvas", html, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("class=\"omd-chart\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"omd-visual omd-chart\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-contract=\"v1\"", html, StringComparison.Ordinal);
         Assert.Contains("data-omd-visual-kind=\"chart\"", html, StringComparison.Ordinal);
         Assert.Contains($"data-omd-fence-language=\"{language}\"", html, StringComparison.Ordinal);
         Assert.Contains("data-omd-visual-hash", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-config-format=\"json\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-config-encoding=\"base64-utf8\"", html, StringComparison.Ordinal);
         Assert.Contains("data-omd-config-b64", html, StringComparison.Ordinal);
         Assert.Contains("data-chart-config-b64", html, StringComparison.Ordinal);
     }
@@ -132,10 +135,13 @@ public class Markdown_Renderer_Tests {
         opts.Network.Enabled = true;
 
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
-        Assert.Contains("class=\"omd-network\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"omd-visual omd-network\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-contract=\"v1\"", html, StringComparison.Ordinal);
         Assert.Contains("data-omd-visual-kind=\"network\"", html, StringComparison.Ordinal);
         Assert.Contains($"data-omd-fence-language=\"{language}\"", html, StringComparison.Ordinal);
         Assert.Contains("data-omd-visual-hash", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-config-format=\"json\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-config-encoding=\"base64-utf8\"", html, StringComparison.Ordinal);
         Assert.Contains("data-omd-config-b64", html, StringComparison.Ordinal);
         Assert.Contains("data-network-config-b64", html, StringComparison.Ordinal);
     }
@@ -197,6 +203,7 @@ public class Markdown_Renderer_Tests {
         Assert.Contains("vis-network.min.js", shell, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("vis-network.min.css", shell, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(".omd-network-canvas", shell, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-rendered", shell, StringComparison.Ordinal);
         Assert.Contains("data-network-rendered", shell, StringComparison.Ordinal);
     }
 

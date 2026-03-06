@@ -39,11 +39,12 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
         var raw = rawContent ?? string.Empty;
         var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(raw));
         var hash = MarkdownRenderer.ComputeShortHash(raw);
+        var encodedClass = System.Net.WebUtility.HtmlEncode("omd-visual " + (cssClass ?? string.Empty).Trim());
         var encodedKind = System.Net.WebUtility.HtmlEncode(visualKind ?? string.Empty);
         var encodedLanguage = System.Net.WebUtility.HtmlEncode(language ?? string.Empty);
         var encodedHash = System.Net.WebUtility.HtmlEncode(hash);
         var encodedBase64 = System.Net.WebUtility.HtmlEncode(base64);
-        return $"<{elementName} class=\"{cssClass}\" data-omd-visual-kind=\"{encodedKind}\" data-omd-fence-language=\"{encodedLanguage}\" data-omd-visual-hash=\"{encodedHash}\" data-omd-config-b64=\"{encodedBase64}\" {hashAttribute}=\"{encodedHash}\" {configAttribute}=\"{encodedBase64}\"></{elementName}>";
+        return $"<{elementName} class=\"{encodedClass}\" data-omd-visual-contract=\"v1\" data-omd-visual-kind=\"{encodedKind}\" data-omd-fence-language=\"{encodedLanguage}\" data-omd-visual-hash=\"{encodedHash}\" data-omd-config-format=\"json\" data-omd-config-encoding=\"base64-utf8\" data-omd-config-b64=\"{encodedBase64}\" {hashAttribute}=\"{encodedHash}\" {configAttribute}=\"{encodedBase64}\"></{elementName}>";
     }
 
     private static string? BuildNetworkShellHeadHtml(MarkdownRendererOptions options, AssetMode assetMode) {
@@ -102,6 +103,7 @@ try {
     } catch(e) { /* ignore */ }
 
     try { delete host.__omdVisNetwork; } catch(_) { host.__omdVisNetwork = null; }
+    host.removeAttribute('data-omd-visual-rendered');
     host.removeAttribute('data-network-rendered');
   });
 } catch(e) { /* ignore */ }
@@ -148,6 +150,7 @@ try {
 
         const network = new window.vis.Network(canvas, { nodes: nodes, edges: edges }, netOptions);
         host.__omdVisNetwork = network;
+        host.setAttribute('data-omd-visual-rendered', 'true');
         host.setAttribute('data-network-rendered', 'true');
 
         setTimeout(() => {

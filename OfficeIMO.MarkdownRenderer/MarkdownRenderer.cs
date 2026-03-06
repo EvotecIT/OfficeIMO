@@ -922,6 +922,7 @@ async function updateContent(newBodyHtml) {
           const ctx = c.getContext && c.getContext('2d');
           if (!ctx) return;
           new Chart(ctx, cfg);
+          c.setAttribute('data-omd-visual-rendered', 'true');
           c.setAttribute('data-chart-rendered', 'true');
         } catch(e) { console.warn('Chart render error:', e); }
       });

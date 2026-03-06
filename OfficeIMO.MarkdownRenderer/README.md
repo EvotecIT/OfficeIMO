@@ -80,7 +80,13 @@ attributes and a small shared metadata contract:
 - `data-omd-visual-kind`
 - `data-omd-fence-language`
 - `data-omd-visual-hash`
+- `data-omd-visual-contract`
+- `data-omd-config-format`
+- `data-omd-config-encoding`
 - `data-omd-config-b64`
+
+Native OfficeIMO visuals also carry the shared `omd-visual` class, and rendered shells mark hydrated visuals with
+`data-omd-visual-rendered="true"`.
 
 This makes it easier for hosts to integrate future visual types without hard-coding every renderer-specific attribute name.
 
