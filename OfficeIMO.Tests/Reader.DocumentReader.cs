@@ -198,6 +198,75 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
+    public void DocumentReader_MarkdownChunking_EmitsLineRangesAndBlockKinds() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path,
+                "# Top\n\nPara 1.\n\n## Child\n\nPara 2.\n");
+
+            var chunks = DocumentReader.Read(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
+
+            var topChunk = chunks.Single(c => string.Equals(c.Location.HeadingPath, "Top", StringComparison.Ordinal));
+            Assert.Null(topChunk.Location.StartLine);
+            Assert.Null(topChunk.Location.EndLine);
+            Assert.Equal(1, topChunk.Location.NormalizedStartLine);
+            Assert.Equal(3, topChunk.Location.NormalizedEndLine);
+            Assert.Equal("top", topChunk.Location.HeadingSlug);
+            Assert.Equal("heading", topChunk.Location.SourceBlockKind);
+            Assert.Equal(0, topChunk.Location.SourceBlockIndex);
+
+            var childChunk = chunks.Single(c => string.Equals(c.Location.HeadingPath, "Top > Child", StringComparison.Ordinal));
+            Assert.Null(childChunk.Location.StartLine);
+            Assert.Null(childChunk.Location.EndLine);
+            Assert.Equal(5, childChunk.Location.NormalizedStartLine);
+            Assert.Equal(7, childChunk.Location.NormalizedEndLine);
+            Assert.Equal("child", childChunk.Location.HeadingSlug);
+            Assert.Equal("heading", childChunk.Location.SourceBlockKind);
+            Assert.Equal(2, childChunk.Location.SourceBlockIndex);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_MarkdownChunking_AssignsUniqueHeadingSlugsForDuplicateHeadings() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path,
+                "# Repeat\n\nOne.\n\n## Child\n\nA.\n\n# Repeat\n\nTwo.\n");
+
+            var chunks = DocumentReader.Read(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
+
+            Assert.Contains(chunks, c => string.Equals(c.Location.HeadingPath, "Repeat", StringComparison.Ordinal) && string.Equals(c.Location.HeadingSlug, "repeat", StringComparison.Ordinal));
+            Assert.Contains(chunks, c => string.Equals(c.Location.HeadingPath, "Repeat > Child", StringComparison.Ordinal) && string.Equals(c.Location.HeadingSlug, "child", StringComparison.Ordinal));
+            Assert.Contains(chunks, c => string.Equals(c.Location.HeadingPath, "Repeat", StringComparison.Ordinal) && string.Equals(c.Location.HeadingSlug, "repeat-1", StringComparison.Ordinal));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_MarkdownChunking_AssignsDeterministicSlugsForNonAsciiHeadings() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path,
+                "# !!!\n\nOne.\n\n# !!!\n\nTwo.\n\n# ążźć\n\nThree.\n");
+
+            var chunks = DocumentReader.Read(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
+
+            var punctuationChunks = chunks.Where(c => string.Equals(c.Location.HeadingPath, "!!!", StringComparison.Ordinal)).ToList();
+            Assert.Equal(2, punctuationChunks.Count);
+            Assert.All(punctuationChunks, c => Assert.StartsWith("heading-", c.Location.HeadingSlug ?? string.Empty, StringComparison.Ordinal));
+            Assert.NotEqual(punctuationChunks[0].Location.HeadingSlug, punctuationChunks[1].Location.HeadingSlug);
+
+            var nonAsciiChunk = chunks.Single(c => string.Equals(c.Location.HeadingPath, "ążźć", StringComparison.Ordinal));
+            Assert.StartsWith("heading-", nonAsciiChunk.Location.HeadingSlug ?? string.Empty, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_CanReadPdf() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pdf");
         try {

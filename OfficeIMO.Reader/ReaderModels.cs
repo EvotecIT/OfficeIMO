@@ -155,14 +155,39 @@ public sealed class ReaderLocation {
     public int? SourceBlockIndex { get; set; }
 
     /// <summary>
-    /// Optional 1-based start line number (Markdown/text inputs).
+    /// Optional 1-based source start line number when the reader can map it accurately.
     /// </summary>
     public int? StartLine { get; set; }
+
+    /// <summary>
+    /// Optional 1-based source end line number when the reader can map it accurately.
+    /// </summary>
+    public int? EndLine { get; set; }
+
+    /// <summary>
+    /// Optional 1-based normalized markdown start line used for parser-aware markdown provenance.
+    /// </summary>
+    public int? NormalizedStartLine { get; set; }
+
+    /// <summary>
+    /// Optional 1-based normalized markdown end line used for parser-aware markdown provenance.
+    /// </summary>
+    public int? NormalizedEndLine { get; set; }
 
     /// <summary>
     /// Optional heading path label (for example "H1 &gt; H2").
     /// </summary>
     public string? HeadingPath { get; set; }
+
+    /// <summary>
+    /// Optional unique slug/anchor for the active heading section.
+    /// </summary>
+    public string? HeadingSlug { get; set; }
+
+    /// <summary>
+    /// Optional source block kind label (for example "heading", "paragraph", "code").
+    /// </summary>
+    public string? SourceBlockKind { get; set; }
 
     /// <summary>
     /// Optional sheet name (Excel).
