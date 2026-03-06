@@ -347,11 +347,11 @@ public static class MarkdownRenderer {
         }
 
         if (aliases.Count == 0) {
-            return new Regex("$a", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+            return new Regex("$a", RegexOptions.CultureInvariant);
         }
 
         var pattern = "(<pre[^>]*>)\\s*<code\\s+class=\"language-(" + string.Join("|", aliases) + ")\"[^>]*>([\\s\\S]*?)</code>\\s*</pre>";
-        return new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        return new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     }
 
     private static string ConvertChartCodeBlocks(string html) {
