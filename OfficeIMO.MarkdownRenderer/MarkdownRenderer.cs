@@ -363,8 +363,10 @@ public static class MarkdownRenderer {
             var encoded = m.Groups[2].Value ?? string.Empty;
             var rawJson = System.Net.WebUtility.HtmlDecode(encoded);
             var b64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawJson ?? string.Empty));
-            var hash = ComputeShortHash(encoded);
-            return $"<canvas class=\"omd-chart\" data-chart-hash=\"{hash}\" data-chart-config-b64=\"{System.Net.WebUtility.HtmlEncode(b64)}\"></canvas>";
+            var hash = ComputeShortHash(rawJson ?? string.Empty);
+            var encodedHash = System.Net.WebUtility.HtmlEncode(hash);
+            var encodedBase64 = System.Net.WebUtility.HtmlEncode(b64);
+            return $"<canvas class=\"omd-visual omd-chart\" data-omd-visual-contract=\"v1\" data-omd-visual-kind=\"chart\" data-omd-fence-language=\"chart\" data-omd-visual-hash=\"{encodedHash}\" data-omd-config-format=\"json\" data-omd-config-encoding=\"base64-utf8\" data-omd-config-b64=\"{encodedBase64}\" data-chart-hash=\"{encodedHash}\" data-chart-config-b64=\"{encodedBase64}\"></canvas>";
         });
     }
 

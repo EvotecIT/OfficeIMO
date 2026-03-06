@@ -1,3 +1,4 @@
+using System.Text;
 using OfficeIMO.Markdown;
 using OfficeIMO.MarkdownRenderer;
 using Xunit;
@@ -108,7 +109,8 @@ public class Markdown_Renderer_Tests {
     [InlineData("chart")]
     [InlineData("ix-chart")]
     public void MarkdownRenderer_Converts_Chart_Code_Fences_When_Enabled(string language) {
-        var md = $"```{language}\n{{\"type\":\"bar\",\"data\":{{\"labels\":[\"A\"],\"datasets\":[{{\"label\":\"Count\",\"data\":[1]}}]}}}}\n```";
+        var configJson = "{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}";
+        var md = $"```{language}\n{configJson}\n```";
         var opts = new MarkdownRendererOptions();
         opts.Chart.Enabled = true;
 
@@ -123,6 +125,7 @@ public class Markdown_Renderer_Tests {
         Assert.Contains("data-omd-config-encoding=\"base64-utf8\"", html, StringComparison.Ordinal);
         Assert.Contains("data-omd-config-b64", html, StringComparison.Ordinal);
         Assert.Contains("data-chart-config-b64", html, StringComparison.Ordinal);
+        Assert.Equal(configJson, DecodeBase64Attribute(html, "data-omd-config-b64"));
     }
 
     [Theory]
@@ -144,6 +147,22 @@ public class Markdown_Renderer_Tests {
         Assert.Contains("data-omd-config-encoding=\"base64-utf8\"", html, StringComparison.Ordinal);
         Assert.Contains("data-omd-config-b64", html, StringComparison.Ordinal);
         Assert.Contains("data-network-config-b64", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Chart_Fallback_Uses_Shared_Native_Visual_Metadata() {
+        var configJson = "{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}";
+        var opts = new MarkdownRendererOptions();
+        opts.Chart.Enabled = true;
+        opts.FencedCodeBlockRenderers.Clear();
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml($"```chart\n{configJson}\n```", opts);
+
+        Assert.Contains("class=\"omd-visual omd-chart\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-contract=\"v1\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-kind=\"chart\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-chart-config-b64", html, StringComparison.Ordinal);
+        Assert.Equal(configJson, DecodeBase64Attribute(html, "data-omd-config-b64"));
     }
 
     [Fact]
@@ -192,6 +211,8 @@ public class Markdown_Renderer_Tests {
 
         var shell = MarkdownRenderer.MarkdownRenderer.BuildShellHtml("Chat", opts);
         Assert.Contains("chart.umd", shell, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("data-omd-visual-rendered", shell, StringComparison.Ordinal);
+        Assert.Contains("data-chart-rendered", shell, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -474,5 +495,19 @@ Top-IDs:
         }
 
         return count;
+    }
+
+    private static string DecodeBase64Attribute(string html, string attributeName) {
+        var marker = attributeName + "=\"";
+        var start = html.IndexOf(marker, StringComparison.Ordinal);
+        Assert.True(start >= 0, $"Expected attribute {attributeName} in HTML.");
+
+        start += marker.Length;
+        var end = html.IndexOf('"', start);
+        Assert.True(end >= start, $"Expected closing quote for attribute {attributeName}.");
+
+        var encoded = html.Substring(start, end - start);
+        var bytes = Convert.FromBase64String(System.Net.WebUtility.HtmlDecode(encoded));
+        return Encoding.UTF8.GetString(bytes);
     }
 }
