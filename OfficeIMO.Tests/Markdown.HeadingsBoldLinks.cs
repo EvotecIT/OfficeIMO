@@ -19,5 +19,29 @@ namespace OfficeIMO.Tests {
             Assert.Single(doc.HyperLinks);
             Assert.Equal(new Uri("https://example.com"), doc.HyperLinks[0].Uri);
         }
+
+        [Fact]
+        public void MarkdownToWord_PreservesFormattingInsideLinkLabels() {
+            string md = "This is [**bold link**](https://example.com) and [==highlighted==](https://example.org).";
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+
+            var hyperlinkRuns = doc.Paragraphs[0].GetRuns().Where(r => r.IsHyperLink).ToList();
+
+            Assert.Contains(hyperlinkRuns, r =>
+                string.Equals(r.Text, "bold link", StringComparison.Ordinal) &&
+                r.Bold &&
+                string.Equals(r.Hyperlink?.Uri?.ToString(), "https://example.com/", StringComparison.Ordinal));
+
+            Assert.Contains(hyperlinkRuns, r =>
+                string.Equals(r.Text, "highlighted", StringComparison.Ordinal) &&
+                r.Highlight == DocumentFormat.OpenXml.Wordprocessing.HighlightColorValues.Yellow &&
+                string.Equals(r.Hyperlink?.Uri?.ToString(), "https://example.org/", StringComparison.Ordinal));
+
+            string roundTrip = doc.ToMarkdown(new WordToMarkdownOptions { EnableHighlight = true });
+
+            Assert.Matches("\\[\\*\\*bold link\\*\\*\\]\\(https://example\\.com/?\\)", roundTrip);
+            Assert.Matches("\\[==highlighted==\\]\\(https://example\\.org/?\\)", roundTrip);
+        }
     }
 }
