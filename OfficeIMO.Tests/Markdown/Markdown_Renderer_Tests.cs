@@ -104,9 +104,11 @@ public class Markdown_Renderer_Tests {
         Assert.Contains("data-mermaid-hash", html, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void MarkdownRenderer_Converts_Chart_Code_Fences_When_Enabled() {
-        var md = "```chart\n{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}\n```";
+    [Theory]
+    [InlineData("chart")]
+    [InlineData("ix-chart")]
+    public void MarkdownRenderer_Converts_Chart_Code_Fences_When_Enabled(string language) {
+        var md = $"```{language}\n{{\"type\":\"bar\",\"data\":{{\"labels\":[\"A\"],\"datasets\":[{{\"label\":\"Count\",\"data\":[1]}}]}}}}\n```";
         var opts = new MarkdownRendererOptions();
         opts.Chart.Enabled = true;
 
@@ -114,6 +116,20 @@ public class Markdown_Renderer_Tests {
         Assert.Contains("canvas", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("class=\"omd-chart\"", html, StringComparison.Ordinal);
         Assert.Contains("data-chart-config-b64", html, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("ix-network")]
+    [InlineData("network")]
+    [InlineData("visnetwork")]
+    public void MarkdownRenderer_Converts_Network_Code_Fences_When_Enabled(string language) {
+        var md = $"```{language}\n{{\"nodes\":[{{\"id\":\"A\",\"label\":\"User\"}},{{\"id\":\"B\",\"label\":\"Group\"}}],\"edges\":[{{\"from\":\"A\",\"to\":\"B\",\"label\":\"memberOf\"}}]}}\n```";
+        var opts = new MarkdownRendererOptions();
+        opts.Network.Enabled = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+        Assert.Contains("class=\"omd-network\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-network-config-b64", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -162,6 +178,18 @@ public class Markdown_Renderer_Tests {
 
         var shell = MarkdownRenderer.MarkdownRenderer.BuildShellHtml("Chat", opts);
         Assert.Contains("chart.umd", shell, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Shell_Contains_VisNetwork_When_Enabled() {
+        var opts = new MarkdownRendererOptions();
+        opts.Network.Enabled = true;
+
+        var shell = MarkdownRenderer.MarkdownRenderer.BuildShellHtml("Chat", opts);
+        Assert.Contains("vis-network.min.js", shell, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("vis-network.min.css", shell, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(".omd-network-canvas", shell, StringComparison.Ordinal);
+        Assert.Contains("data-network-rendered", shell, StringComparison.Ordinal);
     }
 
     [Fact]

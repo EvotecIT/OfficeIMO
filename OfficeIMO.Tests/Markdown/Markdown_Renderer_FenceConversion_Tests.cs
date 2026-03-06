@@ -22,6 +22,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NetworkEnabled_NoNetworkFence_DoesNotInjectNetworkNodes() {
+            var options = new MarkdownRendererOptions();
+            options.Network.Enabled = true;
+            var html = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("# Title\n\nJust text.", options);
+
+            Assert.DoesNotContain("class=\"omd-network\"", html);
+        }
+
+        [Fact]
         public void MathEnabled_NoMathFence_DoesNotInjectMathWrapperNodes() {
             var options = new MarkdownRendererOptions();
             options.Math.Enabled = true;

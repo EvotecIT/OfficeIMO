@@ -68,7 +68,7 @@ Options (high level)
 - `MarkdownRendererOptions.HtmlOptions`: HTML + CSS rendering (theme, Prism, link/image hardening, same-origin restrictions).
 - `MarkdownRendererOptions.NormalizeSoftWrappedStrongSpans` / `NormalizeInlineCodeSpanLineBreaks` / `NormalizeEscapedInlineCodeSpans` / `NormalizeTightStrongBoundaries` / `NormalizeLooseStrongDelimiters`: optional markdown text normalization before parsing.
 - `MarkdownRendererOptions.MarkdownPreProcessors`: custom markdown text transforms before parsing.
-- `MarkdownRendererOptions.Mermaid` / `Chart` / `Math`: optional client-side renderers for fenced blocks.
+- `MarkdownRendererOptions.Mermaid` / `Chart` / `Network` / `Math`: optional client-side renderers for fenced blocks.
 - `MarkdownRendererOptions.FencedCodeBlockRenderers`: optional registry for host-specific fenced block conversions plus shell head / update hooks.
 - `MarkdownRendererOptions.HtmlPostProcessors`: last-mile HTML transformations (custom diagram types, host integration).
 
@@ -187,11 +187,24 @@ Charts (Chart.js)
 To enable Chart.js rendering:
 - set `opts.Chart.Enabled = true`
 
-Write charts in fenced code blocks named `chart` containing JSON:
+Write charts in fenced code blocks named `chart` or `ix-chart` containing JSON:
 
 ```markdown
 ~~~chart
 {"type":"bar","data":{"labels":["A","B"],"datasets":[{"label":"Count","data":[3,7]}]}}
+~~~
+```
+
+Networks (vis-network)
+
+To enable vis-network rendering:
+- set `opts.Network.Enabled = true`
+
+Write network diagrams in fenced code blocks named `ix-network`, `network`, or `visnetwork` containing JSON:
+
+```markdown
+~~~ix-network
+{"nodes":[{"id":"A","label":"User"},{"id":"B","label":"Group"}],"edges":[{"from":"A","to":"B","label":"memberOf"}]}
 ~~~
 ```
 

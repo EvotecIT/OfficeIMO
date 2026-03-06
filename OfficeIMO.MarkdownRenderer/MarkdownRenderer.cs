@@ -285,7 +285,7 @@ public static class MarkdownRenderer {
         }
 
         var value = html;
-        for (int i = 0; i < renderers.Count; i++) {
+        for (int i = renderers.Count - 1; i >= 0; i--) {
             var renderer = renderers[i];
             if (renderer == null) {
                 continue;
@@ -401,7 +401,7 @@ public static class MarkdownRenderer {
         return false;
     }
 
-    private static string ComputeShortHash(string input) {
+    internal static string ComputeShortHash(string input) {
         var data = Encoding.UTF8.GetBytes(input ?? string.Empty);
         byte[] hash;
 #if NET8_0_OR_GREATER
@@ -558,7 +558,7 @@ mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-col
         }
     }
 
-    private static string BuildBundledScriptSrc(string hrefOrPath, string mime) {
+    internal static string BuildBundledScriptSrc(string hrefOrPath, string mime) {
         // Only used by shell building logic. This should never throw.
         try {
             var text = TryLoadTextAsset(hrefOrPath);
@@ -569,7 +569,7 @@ mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-col
         } catch { return string.Empty; }
     }
 
-    private static string BuildBundledCssHref(string hrefOrPath) {
+    internal static string BuildBundledCssHref(string hrefOrPath) {
         try {
             var text = TryLoadTextAsset(hrefOrPath);
             if (string.IsNullOrEmpty(text)) return string.Empty;
