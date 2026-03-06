@@ -371,6 +371,20 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets the scatter chart X-axis title.
+        /// </summary>
+        public PowerPointChart SetScatterXAxisTitle(string title) {
+            return SetAxisTitle<C.ValueAxis>(title, axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+        }
+
+        /// <summary>
+        ///     Sets the scatter chart Y-axis title.
+        /// </summary>
+        public PowerPointChart SetScatterYAxisTitle(string title) {
+            return SetAxisTitle<C.ValueAxis>(title, axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+        }
+
+        /// <summary>
         ///     Sets the category axis number format.
         /// </summary>
         public PowerPointChart SetCategoryAxisNumberFormat(string formatCode, bool sourceLinked = false) {
@@ -382,6 +396,22 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetValueAxisNumberFormat(string formatCode, bool sourceLinked = false) {
             return SetAxisNumberFormat<C.ValueAxis>(formatCode, sourceLinked);
+        }
+
+        /// <summary>
+        ///     Sets the scatter chart X-axis number format.
+        /// </summary>
+        public PowerPointChart SetScatterXAxisNumberFormat(string formatCode, bool sourceLinked = false) {
+            return SetAxisNumberFormat<C.ValueAxis>(formatCode, sourceLinked,
+                axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+        }
+
+        /// <summary>
+        ///     Sets the scatter chart Y-axis number format.
+        /// </summary>
+        public PowerPointChart SetScatterYAxisNumberFormat(string formatCode, bool sourceLinked = false) {
+            return SetAxisNumberFormat<C.ValueAxis>(formatCode, sourceLinked,
+                axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
         }
 
         /// <summary>
@@ -634,7 +664,7 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
-        private PowerPointChart SetAxisTitle<TAxis>(string title) where TAxis : OpenXmlCompositeElement {
+        private PowerPointChart SetAxisTitle<TAxis>(string title, Func<TAxis, bool>? predicate = null) where TAxis : OpenXmlCompositeElement {
             if (title == null) {
                 throw new ArgumentNullException(nameof(title));
             }
@@ -645,7 +675,9 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            TAxis? axis = plotArea.Elements<TAxis>().FirstOrDefault();
+            TAxis? axis = predicate == null
+                ? plotArea.Elements<TAxis>().FirstOrDefault()
+                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
             if (axis == null) {
                 return this;
             }
@@ -686,7 +718,7 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
-        private PowerPointChart SetAxisNumberFormat<TAxis>(string formatCode, bool sourceLinked)
+        private PowerPointChart SetAxisNumberFormat<TAxis>(string formatCode, bool sourceLinked, Func<TAxis, bool>? predicate = null)
             where TAxis : OpenXmlCompositeElement {
             if (string.IsNullOrWhiteSpace(formatCode)) {
                 throw new ArgumentException("Format code cannot be null or empty.", nameof(formatCode));
@@ -698,7 +730,9 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            TAxis? axis = plotArea.Elements<TAxis>().FirstOrDefault();
+            TAxis? axis = predicate == null
+                ? plotArea.Elements<TAxis>().FirstOrDefault()
+                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
             if (axis == null) {
                 return this;
             }
@@ -853,6 +887,10 @@ namespace OfficeIMO.PowerPoint {
             } else {
                 axis.Append(crossing);
             }
+        }
+
+        private static bool HasAxisPosition(C.ValueAxis axis, C.AxisPositionValues position) {
+            return axis.GetFirstChild<C.AxisPosition>()?.Val?.Value == position;
         }
 
         private static void ApplyDataLabels(OpenXmlCompositeElement chartElement, bool showLegendKey, bool showValue,

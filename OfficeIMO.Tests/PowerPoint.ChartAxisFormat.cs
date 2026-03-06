@@ -162,5 +162,226 @@ namespace OfficeIMO.Tests {
                 }
             }
         }
+
+        [Fact]
+        public void CanSetScatterAxisTitlesAndFormats() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddScatterChart();
+                    chart.SetScatterXAxisTitle("Month")
+                        .SetScatterYAxisTitle("Revenue")
+                        .SetScatterXAxisNumberFormat("0.0")
+                        .SetScatterYAxisNumberFormat("#,##0.00");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+
+                    C.ValueAxis[] axes = chart.PlotArea!
+                        .Elements<C.ValueAxis>()
+                        .ToArray();
+                    Assert.Equal(2, axes.Length);
+
+                    C.ValueAxis xAxis = axes.Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Bottom);
+                    C.ValueAxis yAxis = axes.Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Left);
+
+                    string? xAxisTitle = xAxis.GetFirstChild<C.Title>()?
+                        .GetFirstChild<C.ChartText>()?
+                        .GetFirstChild<C.RichText>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.Run>()?
+                        .GetFirstChild<A.Text>()?
+                        .Text;
+                    Assert.Equal("Month", xAxisTitle);
+
+                    string? yAxisTitle = yAxis.GetFirstChild<C.Title>()?
+                        .GetFirstChild<C.ChartText>()?
+                        .GetFirstChild<C.RichText>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.Run>()?
+                        .GetFirstChild<A.Text>()?
+                        .Text;
+                    Assert.Equal("Revenue", yAxisTitle);
+
+                    C.NumberingFormat? xAxisFormat = xAxis.GetFirstChild<C.NumberingFormat>();
+                    Assert.NotNull(xAxisFormat);
+                    Assert.Equal("0.0", xAxisFormat!.FormatCode!.Value);
+                    Assert.False(xAxisFormat.SourceLinked!.Value);
+
+                    C.NumberingFormat? yAxisFormat = yAxis.GetFirstChild<C.NumberingFormat>();
+                    Assert.NotNull(yAxisFormat);
+                    Assert.Equal("#,##0.00", yAxisFormat!.FormatCode!.Value);
+                    Assert.False(yAxisFormat.SourceLinked!.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void ScatterAxisTitlesAndFormats_AreIgnoredForNonScatterCharts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddChart();
+                    chart.SetScatterXAxisTitle("Ignored X")
+                        .SetScatterYAxisTitle("Ignored Y")
+                        .SetScatterXAxisNumberFormat("0.0")
+                        .SetScatterYAxisNumberFormat("#,##0.00");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+                    C.PlotArea plotArea = chart.PlotArea!;
+
+                    Assert.Null(plotArea.GetFirstChild<C.CategoryAxis>()?.GetFirstChild<C.Title>());
+
+                    C.ValueAxis valueAxis = plotArea.GetFirstChild<C.ValueAxis>()!;
+                    Assert.Null(valueAxis.GetFirstChild<C.Title>());
+                    C.NumberingFormat? valueAxisFormat = valueAxis.GetFirstChild<C.NumberingFormat>();
+                    Assert.False(valueAxisFormat?.FormatCode?.Value == "#,##0.00" && valueAxisFormat.SourceLinked?.Value == false);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void CanSetScatterAxisScale() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddScatterChart();
+                    chart.SetScatterXAxisScale(minimum: 1, maximum: 10, majorUnit: 1, logScale: true)
+                        .SetScatterYAxisScale(minimum: 0, maximum: 6, majorUnit: 1);
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+                    C.PlotArea plotArea = chart.PlotArea!;
+
+                    C.ValueAxis xAxis = plotArea.Elements<C.ValueAxis>()
+                        .Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Bottom);
+                    C.Scaling? xScaling = xAxis.GetFirstChild<C.Scaling>();
+                    Assert.Equal(1d, (double?)xScaling?.GetFirstChild<C.MinAxisValue>()?.Val?.Value);
+                    Assert.Equal(10d, (double?)xScaling?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value);
+                    Assert.Equal(10d, (double?)xScaling?.GetFirstChild<C.LogBase>()?.Val?.Value);
+                    Assert.Equal(1d, (double?)xAxis.GetFirstChild<C.MajorUnit>()?.Val?.Value);
+
+                    C.ValueAxis yAxis = plotArea.Elements<C.ValueAxis>()
+                        .Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Left);
+                    C.Scaling? yScaling = yAxis.GetFirstChild<C.Scaling>();
+                    Assert.Equal(0d, (double?)yScaling?.GetFirstChild<C.MinAxisValue>()?.Val?.Value);
+                    Assert.Equal(6d, (double?)yScaling?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value);
+                    Assert.Equal(1d, (double?)yAxis.GetFirstChild<C.MajorUnit>()?.Val?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void ScatterAxisScale_RejectsNonFiniteValues() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddScatterChart();
+
+                    Assert.Throws<ArgumentOutOfRangeException>(() =>
+                        chart.SetScatterXAxisScale(minimum: double.PositiveInfinity));
+                    Assert.Throws<ArgumentOutOfRangeException>(() =>
+                        chart.SetScatterXAxisScale(majorUnit: double.NaN));
+                    Assert.Throws<ArgumentOutOfRangeException>(() =>
+                        chart.SetScatterYAxisScale(minorUnit: double.PositiveInfinity));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void ScatterAxisScale_RejectsContradictorySequentialBounds() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddScatterChart();
+                    chart.SetScatterXAxisScale(maximum: 5);
+
+                    Assert.Throws<ArgumentException>(() =>
+                        chart.SetScatterXAxisScale(minimum: 10));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void ScatterXAxisCrossing_RejectsNonPositiveOnLogScale() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddScatterChart();
+                    chart.SetScatterXAxisScale(minimum: 1, maximum: 10, logScale: true);
+
+                    Assert.Throws<ArgumentOutOfRangeException>(() =>
+                        chart.SetScatterXAxisCrossing(C.CrossesValues.AutoZero, crossesAt: 0));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void CanSetScatterYAxisCrossing() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddScatterChart();
+                    chart.SetScatterYAxisCrossing(crossesAt: 2d);
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+                    C.PlotArea plotArea = chart.PlotArea!;
+
+                    C.ValueAxis yAxis = plotArea.Elements<C.ValueAxis>()
+                        .Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Left);
+                    Assert.Equal(2d, (double?)yAxis.GetFirstChild<C.CrossesAt>()?.Val?.Value);
+                    Assert.Null(yAxis.GetFirstChild<C.Crosses>());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
     }
 }
