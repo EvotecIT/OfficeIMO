@@ -327,7 +327,9 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 var chart = slide.AddChart();
 chart.SetTitle("Sales Trend")
+     .SetTitleTextStyle(fontSizePoints: 18, bold: true, color: "1F4E79", fontName: "Calibri")
      .SetLegend(C.LegendPositionValues.Right)
+     .SetLegendTextStyle(fontSizePoints: 9, italic: true, color: "404040", fontName: "Calibri")
      .SetDataLabels(showValue: true)
      .SetDataLabelPosition(C.DataLabelPositionValues.OutsideEnd)
      .SetDataLabelNumberFormat("#,##0.0", sourceLinked: false)
