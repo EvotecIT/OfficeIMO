@@ -18,7 +18,7 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
             "Built-in Chart.js",
             new[] { "chart", "ix-chart" },
             (match, options) => options.Chart?.Enabled == true
-                ? BuildNativeVisualHtml("canvas", "omd-chart", "data-chart-hash", "data-chart-config-b64", match.RawContent)
+                ? BuildNativeVisualHtml("canvas", "omd-chart", "chart", match.Language, "data-chart-hash", "data-chart-config-b64", match.RawContent)
                 : null);
     }
 
@@ -27,7 +27,7 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
             "Built-in vis-network",
             new[] { "ix-network", "network", "visnetwork" },
             (match, options) => options.Network?.Enabled == true
-                ? BuildNativeVisualHtml("div", "omd-network", "data-network-hash", "data-network-config-b64", match.RawContent)
+                ? BuildNativeVisualHtml("div", "omd-network", "network", match.Language, "data-network-hash", "data-network-config-b64", match.RawContent)
                 : null) {
             BuildShellHeadHtml = BuildNetworkShellHeadHtml,
             BuildBeforeContentReplaceScript = BuildNetworkBeforeReplaceScript,
@@ -35,11 +35,15 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
         };
     }
 
-    private static string BuildNativeVisualHtml(string elementName, string cssClass, string hashAttribute, string configAttribute, string rawContent) {
+    private static string BuildNativeVisualHtml(string elementName, string cssClass, string visualKind, string language, string hashAttribute, string configAttribute, string rawContent) {
         var raw = rawContent ?? string.Empty;
         var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(raw));
         var hash = MarkdownRenderer.ComputeShortHash(raw);
-        return $"<{elementName} class=\"{cssClass}\" {hashAttribute}=\"{hash}\" {configAttribute}=\"{System.Net.WebUtility.HtmlEncode(base64)}\"></{elementName}>";
+        var encodedKind = System.Net.WebUtility.HtmlEncode(visualKind ?? string.Empty);
+        var encodedLanguage = System.Net.WebUtility.HtmlEncode(language ?? string.Empty);
+        var encodedHash = System.Net.WebUtility.HtmlEncode(hash);
+        var encodedBase64 = System.Net.WebUtility.HtmlEncode(base64);
+        return $"<{elementName} class=\"{cssClass}\" data-omd-visual-kind=\"{encodedKind}\" data-omd-fence-language=\"{encodedLanguage}\" data-omd-visual-hash=\"{encodedHash}\" data-omd-config-b64=\"{encodedBase64}\" {hashAttribute}=\"{encodedHash}\" {configAttribute}=\"{encodedBase64}\"></{elementName}>";
     }
 
     private static string? BuildNetworkShellHeadHtml(MarkdownRendererOptions options, AssetMode assetMode) {

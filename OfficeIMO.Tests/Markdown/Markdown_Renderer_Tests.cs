@@ -115,6 +115,10 @@ public class Markdown_Renderer_Tests {
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
         Assert.Contains("canvas", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("class=\"omd-chart\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-kind=\"chart\"", html, StringComparison.Ordinal);
+        Assert.Contains($"data-omd-fence-language=\"{language}\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-hash", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-config-b64", html, StringComparison.Ordinal);
         Assert.Contains("data-chart-config-b64", html, StringComparison.Ordinal);
     }
 
@@ -129,6 +133,10 @@ public class Markdown_Renderer_Tests {
 
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
         Assert.Contains("class=\"omd-network\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-kind=\"network\"", html, StringComparison.Ordinal);
+        Assert.Contains($"data-omd-fence-language=\"{language}\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-hash", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-config-b64", html, StringComparison.Ordinal);
         Assert.Contains("data-network-config-b64", html, StringComparison.Ordinal);
     }
 
