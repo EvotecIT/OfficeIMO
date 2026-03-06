@@ -202,6 +202,104 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets the shared data label position for all supported chart types.
+        /// </summary>
+        public PowerPointChart SetDataLabelPosition(C.DataLabelPositionValues position) {
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
+                ReplaceChild(EnsureDataLabels(barChart), new C.DataLabelPosition { Val = position });
+            }
+
+            foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
+                ReplaceChild(EnsureDataLabels(lineChart), new C.DataLabelPosition { Val = position });
+            }
+
+            foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
+                ReplaceChild(EnsureDataLabels(areaChart), new C.DataLabelPosition { Val = position });
+            }
+
+            foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
+                ReplaceChild(EnsureDataLabels(pieChart), new C.DataLabelPosition { Val = position });
+            }
+
+            foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
+                ReplaceChild(EnsureDataLabels(doughnutChart), new C.DataLabelPosition { Val = position });
+            }
+
+            foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
+                ReplaceChild(EnsureDataLabels(scatterChart), new C.DataLabelPosition { Val = position });
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets the shared data label number format for all supported chart types.
+        /// </summary>
+        public PowerPointChart SetDataLabelNumberFormat(string formatCode, bool sourceLinked = false) {
+            if (string.IsNullOrWhiteSpace(formatCode)) {
+                throw new ArgumentException("Format code cannot be null or empty.", nameof(formatCode));
+            }
+
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
+                ReplaceChild(EnsureDataLabels(barChart), new C.NumberingFormat {
+                    FormatCode = formatCode,
+                    SourceLinked = sourceLinked
+                });
+            }
+
+            foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
+                ReplaceChild(EnsureDataLabels(lineChart), new C.NumberingFormat {
+                    FormatCode = formatCode,
+                    SourceLinked = sourceLinked
+                });
+            }
+
+            foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
+                ReplaceChild(EnsureDataLabels(areaChart), new C.NumberingFormat {
+                    FormatCode = formatCode,
+                    SourceLinked = sourceLinked
+                });
+            }
+
+            foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
+                ReplaceChild(EnsureDataLabels(pieChart), new C.NumberingFormat {
+                    FormatCode = formatCode,
+                    SourceLinked = sourceLinked
+                });
+            }
+
+            foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
+                ReplaceChild(EnsureDataLabels(doughnutChart), new C.NumberingFormat {
+                    FormatCode = formatCode,
+                    SourceLinked = sourceLinked
+                });
+            }
+
+            foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
+                ReplaceChild(EnsureDataLabels(scatterChart), new C.NumberingFormat {
+                    FormatCode = formatCode,
+                    SourceLinked = sourceLinked
+                });
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
         ///     Sets the category axis title.
         /// </summary>
         public PowerPointChart SetCategoryAxisTitle(string title) {
@@ -672,16 +770,117 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ApplyDataLabels(OpenXmlCompositeElement chartElement, bool showLegendKey, bool showValue,
             bool showCategoryName, bool showSeriesName, bool showPercent) {
-            C.DataLabels labels = chartElement.GetFirstChild<C.DataLabels>() ?? new C.DataLabels();
+            C.DataLabels labels = EnsureDataLabels(chartElement);
             ReplaceChild(labels, new C.ShowLegendKey { Val = showLegendKey });
             ReplaceChild(labels, new C.ShowValue { Val = showValue });
             ReplaceChild(labels, new C.ShowCategoryName { Val = showCategoryName });
             ReplaceChild(labels, new C.ShowSeriesName { Val = showSeriesName });
             ReplaceChild(labels, new C.ShowPercent { Val = showPercent });
             ReplaceChild(labels, new C.ShowBubbleSize { Val = false });
+            NormalizeDataLabelsOrder(labels);
+        }
 
-            if (chartElement.GetFirstChild<C.DataLabels>() == null) {
+        private static C.DataLabels EnsureDataLabels(OpenXmlCompositeElement chartElement) {
+            C.DataLabels labels = chartElement.GetFirstChild<C.DataLabels>() ?? new C.DataLabels();
+            if (labels.Parent == null) {
                 chartElement.Append(labels);
+            }
+
+            return labels;
+        }
+
+        private static void NormalizeDataLabelsOrder(C.DataLabels labels) {
+            List<C.DataLabel> overrides = labels.Elements<C.DataLabel>().ToList();
+            C.Delete? delete = labels.GetFirstChild<C.Delete>();
+            C.NumberingFormat? numFmt = labels.GetFirstChild<C.NumberingFormat>();
+            C.ChartShapeProperties? shapeProps = labels.GetFirstChild<C.ChartShapeProperties>();
+            C.TextProperties? textProps = labels.GetFirstChild<C.TextProperties>();
+            C.DataLabelPosition? position = labels.GetFirstChild<C.DataLabelPosition>();
+            C.ShowLegendKey? showLegendKey = labels.GetFirstChild<C.ShowLegendKey>();
+            C.ShowValue? showValue = labels.GetFirstChild<C.ShowValue>();
+            C.ShowCategoryName? showCategoryName = labels.GetFirstChild<C.ShowCategoryName>();
+            C.ShowSeriesName? showSeriesName = labels.GetFirstChild<C.ShowSeriesName>();
+            C.ShowPercent? showPercent = labels.GetFirstChild<C.ShowPercent>();
+            C.ShowBubbleSize? showBubbleSize = labels.GetFirstChild<C.ShowBubbleSize>();
+            C.Separator? separator = labels.GetFirstChild<C.Separator>();
+            C.ShowLeaderLines? showLeaderLines = labels.GetFirstChild<C.ShowLeaderLines>();
+            C.LeaderLines? leaderLines = labels.GetFirstChild<C.LeaderLines>();
+            C.ExtensionList? extLst = labels.GetFirstChild<C.ExtensionList>();
+
+            List<OpenXmlElement> otherChildren = labels.ChildElements
+                .Where(child => child is not C.DataLabel
+                                && child is not C.Delete
+                                && child is not C.NumberingFormat
+                                && child is not C.ChartShapeProperties
+                                && child is not C.TextProperties
+                                && child is not C.DataLabelPosition
+                                && child is not C.ShowLegendKey
+                                && child is not C.ShowValue
+                                && child is not C.ShowCategoryName
+                                && child is not C.ShowSeriesName
+                                && child is not C.ShowPercent
+                                && child is not C.ShowBubbleSize
+                                && child is not C.Separator
+                                && child is not C.ShowLeaderLines
+                                && child is not C.LeaderLines
+                                && child is not C.ExtensionList)
+                .ToList();
+
+            labels.RemoveAllChildren();
+
+            if (delete != null) {
+                labels.Append(delete);
+            }
+            if (numFmt != null) {
+                labels.Append(numFmt);
+            }
+            if (shapeProps != null) {
+                labels.Append(shapeProps);
+            }
+            if (textProps != null) {
+                labels.Append(textProps);
+            }
+            if (position != null) {
+                labels.Append(position);
+            }
+            if (showLegendKey != null) {
+                labels.Append(showLegendKey);
+            }
+            if (showValue != null) {
+                labels.Append(showValue);
+            }
+            if (showCategoryName != null) {
+                labels.Append(showCategoryName);
+            }
+            if (showSeriesName != null) {
+                labels.Append(showSeriesName);
+            }
+            if (showPercent != null) {
+                labels.Append(showPercent);
+            }
+            if (showBubbleSize != null) {
+                labels.Append(showBubbleSize);
+            }
+            if (separator != null) {
+                labels.Append(separator);
+            }
+            if (showLeaderLines != null) {
+                labels.Append(showLeaderLines);
+            }
+            if (leaderLines != null) {
+                labels.Append(leaderLines);
+            }
+
+            foreach (C.DataLabel dataLabel in overrides) {
+                labels.Append(dataLabel);
+            }
+
+            foreach (OpenXmlElement otherChild in otherChildren) {
+                labels.Append(otherChild);
+            }
+
+            if (extLst != null) {
+                labels.Append(extLst);
             }
         }
 

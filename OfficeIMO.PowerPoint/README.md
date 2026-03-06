@@ -329,6 +329,8 @@ var chart = slide.AddChart();
 chart.SetTitle("Sales Trend")
      .SetLegend(C.LegendPositionValues.Right)
      .SetDataLabels(showValue: true)
+     .SetDataLabelPosition(C.DataLabelPositionValues.OutsideEnd)
+     .SetDataLabelNumberFormat("#,##0.0", sourceLinked: false)
      .SetCategoryAxisTitle("Quarter")
      .SetValueAxisTitle("Revenue")
      .SetValueAxisNumberFormat("#,##0.00")

@@ -29,6 +29,8 @@ namespace OfficeIMO.Tests {
 
                     chart.SetTitle(doughnut ? "Revenue Doughnut" : "Revenue Pie")
                         .SetDataLabels(showValue: true, showPercent: true)
+                        .SetDataLabelPosition(C.DataLabelPositionValues.BestFit)
+                        .SetDataLabelNumberFormat("0.0%", sourceLinked: false)
                         .SetSeriesFillColor(0, "4472C4");
 
                     presentation.Save();
@@ -71,6 +73,10 @@ namespace OfficeIMO.Tests {
                         .GetFirstChild<C.ShowPercent>()?
                         .Val?.Value;
                     Assert.True(showPercent);
+                    Assert.Equal(C.DataLabelPositionValues.BestFit,
+                        chartElement.GetFirstChild<C.DataLabels>()?.GetFirstChild<C.DataLabelPosition>()?.Val?.Value);
+                    Assert.Equal("0.0%",
+                        chartElement.GetFirstChild<C.DataLabels>()?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value);
 
                     string? fillColor = series.GetFirstChild<C.ChartShapeProperties>()?
                         .GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()?
@@ -182,6 +188,8 @@ namespace OfficeIMO.Tests {
                     chart.UpdateData(updatedData)
                         .SetTitle("Revenue Scatter")
                         .SetDataLabels(showValue: true)
+                        .SetDataLabelPosition(C.DataLabelPositionValues.Right)
+                        .SetDataLabelNumberFormat("0.00", sourceLinked: false)
                         .SetSeriesLineColor("Revenue", "5B9BD5", 2)
                         .SetSeriesMarker("Forecast", C.MarkerStyleValues.Diamond, size: 8, fillColor: "ED7D31", lineColor: "A64D13");
 
@@ -230,6 +238,10 @@ namespace OfficeIMO.Tests {
                         .GetFirstChild<C.ShowValue>()?
                         .Val?.Value;
                     Assert.True(showValue);
+                    Assert.Equal(C.DataLabelPositionValues.Right,
+                        scatterChart.GetFirstChild<C.DataLabels>()?.GetFirstChild<C.DataLabelPosition>()?.Val?.Value);
+                    Assert.Equal("0.00",
+                        scatterChart.GetFirstChild<C.DataLabels>()?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value);
 
                     string? lineColor = series[0].GetFirstChild<C.ChartShapeProperties>()?
                         .GetFirstChild<DocumentFormat.OpenXml.Drawing.Outline>()?
