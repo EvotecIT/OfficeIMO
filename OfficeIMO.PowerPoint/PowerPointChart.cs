@@ -355,6 +355,22 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets the category axis title text style.
+        /// </summary>
+        public PowerPointChart SetCategoryAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null,
+            bool? italic = null, string? color = null, string? fontName = null) {
+            return SetAxisTitleTextStyle<C.CategoryAxis>(fontSizePoints, bold, italic, color, fontName);
+        }
+
+        /// <summary>
+        ///     Sets the value axis title text style.
+        /// </summary>
+        public PowerPointChart SetValueAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null,
+            bool? italic = null, string? color = null, string? fontName = null) {
+            return SetAxisTitleTextStyle<C.ValueAxis>(fontSizePoints, bold, italic, color, fontName);
+        }
+
+        /// <summary>
         ///     Sets the category axis number format.
         /// </summary>
         public PowerPointChart SetCategoryAxisNumberFormat(string formatCode, bool sourceLinked = false) {
@@ -636,6 +652,36 @@ namespace OfficeIMO.PowerPoint {
 
             axis.RemoveAllChildren<C.Title>();
             axis.Append(CreateAxisTitle(title));
+            Save();
+            return this;
+        }
+
+        private PowerPointChart SetAxisTitleTextStyle<TAxis>(double? fontSizePoints, bool? bold, bool? italic,
+            string? color, string? fontName) where TAxis : OpenXmlCompositeElement {
+            ValidateTextStyle(fontSizePoints, color, fontName);
+
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            TAxis? axis = plotArea.Elements<TAxis>().FirstOrDefault();
+            if (axis == null) {
+                return this;
+            }
+
+            C.Title? title = axis.GetFirstChild<C.Title>();
+            if (title == null) {
+                return this;
+            }
+
+            C.ChartText? chartText = title.GetFirstChild<C.ChartText>();
+            if (chartText == null) {
+                return this;
+            }
+
+            ApplyTextStyle(EnsureChartTextRunProperties(chartText), fontSizePoints, bold, italic, color, fontName);
             Save();
             return this;
         }
@@ -1035,7 +1081,6 @@ namespace OfficeIMO.PowerPoint {
 
             return runProps;
         }
-
         private static A.RunProperties EnsureChartTextRunProperties(C.ChartText chartText) {
             C.RichText richText = chartText.GetFirstChild<C.RichText>() ?? new C.RichText();
             if (richText.GetFirstChild<A.BodyProperties>() == null) {
