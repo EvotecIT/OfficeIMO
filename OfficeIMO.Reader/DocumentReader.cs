@@ -1340,6 +1340,7 @@ public static class DocumentReader {
         string? firstHeadingPath = null;
         string? firstHeadingSlug = null;
         string? firstSourceBlockKind = null;
+        string? firstBlockAnchor = null;
         var warnings = new List<string>(capacity: 2);
         bool oversizeBlockWarningAdded = false;
         List<ReaderTable>? tables = null;
@@ -1348,7 +1349,7 @@ public static class DocumentReader {
             ct.ThrowIfCancellationRequested();
 
             if (block.StartsHeading && current.Length > 0) {
-                yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstLine, lastLine, firstSourceBlockIndex, firstHeadingPath, firstHeadingSlug, firstSourceBlockKind, current.ToString().TrimEnd(), warnings, tables);
+                yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstLine, lastLine, firstSourceBlockIndex, firstHeadingPath, firstHeadingSlug, firstSourceBlockKind, firstBlockAnchor, current.ToString().TrimEnd(), warnings, tables);
                 chunkIndex++;
                 current.Clear();
                 warnings.Clear();
@@ -1360,10 +1361,11 @@ public static class DocumentReader {
                 firstHeadingPath = null;
                 firstHeadingSlug = null;
                 firstSourceBlockKind = null;
+                firstBlockAnchor = null;
             }
 
             if (WouldExceedMarkdownBlock(opt, current, block.Markdown)) {
-                yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstLine, lastLine, firstSourceBlockIndex, firstHeadingPath, firstHeadingSlug, firstSourceBlockKind, current.ToString().TrimEnd(), warnings, tables);
+                yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstLine, lastLine, firstSourceBlockIndex, firstHeadingPath, firstHeadingSlug, firstSourceBlockKind, firstBlockAnchor, current.ToString().TrimEnd(), warnings, tables);
                 chunkIndex++;
                 current.Clear();
                 warnings.Clear();
@@ -1375,6 +1377,7 @@ public static class DocumentReader {
                 firstHeadingPath = null;
                 firstHeadingSlug = null;
                 firstSourceBlockKind = null;
+                firstBlockAnchor = null;
             }
 
             if (firstLine == null) firstLine = block.StartLine;
@@ -1382,6 +1385,7 @@ public static class DocumentReader {
             if (firstHeadingPath == null) firstHeadingPath = block.HeadingPath;
             if (firstHeadingSlug == null) firstHeadingSlug = block.HeadingSlug;
             if (firstSourceBlockKind == null) firstSourceBlockKind = block.BlockKind;
+            if (firstBlockAnchor == null) firstBlockAnchor = block.BlockAnchor;
             lastLine = block.EndLine;
 
             AppendMarkdownBlock(current, block.Markdown);
@@ -1397,7 +1401,7 @@ public static class DocumentReader {
         }
 
         if (current.Length > 0) {
-            yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstLine, lastLine, firstSourceBlockIndex, firstHeadingPath, firstHeadingSlug, firstSourceBlockKind, current.ToString().TrimEnd(), warnings, tables);
+            yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstLine, lastLine, firstSourceBlockIndex, firstHeadingPath, firstHeadingSlug, firstSourceBlockKind, firstBlockAnchor, current.ToString().TrimEnd(), warnings, tables);
         }
     }
 
@@ -1463,6 +1467,7 @@ public static class DocumentReader {
         string? headingPath,
         string? headingSlug,
         string? sourceBlockKind,
+        string? blockAnchor,
         string markdown,
         List<string> warnings,
         List<ReaderTable>? tables) {
@@ -1477,6 +1482,7 @@ public static class DocumentReader {
                 HeadingPath = headingPath,
                 HeadingSlug = headingSlug,
                 SourceBlockKind = sourceBlockKind,
+                BlockAnchor = blockAnchor,
                 NormalizedStartLine = firstLine,
                 NormalizedEndLine = lastLine
             },
@@ -1673,11 +1679,16 @@ public static class DocumentReader {
             chunk.SourceId ?? string.Empty,
             chunk.Location.Path ?? string.Empty,
             chunk.Location.HeadingPath ?? string.Empty,
+            chunk.Location.HeadingSlug ?? string.Empty,
+            chunk.Location.SourceBlockKind ?? string.Empty,
+            chunk.Location.BlockAnchor ?? string.Empty,
             chunk.Location.Sheet ?? string.Empty,
             chunk.Location.A1Range ?? string.Empty,
             chunk.Location.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
             chunk.Location.Slide?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
             chunk.Location.StartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.NormalizedStartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.NormalizedEndLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
             chunk.Text ?? string.Empty,
             chunk.Markdown ?? string.Empty);
         return ComputeSha256Hex(data);
@@ -1917,6 +1928,7 @@ public static class DocumentReader {
                 headingPath: BuildHeadingPath(headingStack),
                 headingSlug: BuildHeadingSlug(headingStack),
                 blockKind: GetMarkdownBlockKind(block),
+                blockAnchor: BuildMarkdownBlockAnchor(BuildHeadingSlug(headingStack), GetMarkdownBlockKind(block), i, startsHeading),
                 markdown: markdown,
                 startsHeading: startsHeading,
                 tables: ExtractTables(block, opt)));
@@ -1997,6 +2009,27 @@ public static class DocumentReader {
         }
 
         return name.ToLowerInvariant();
+    }
+
+    private static string BuildMarkdownBlockAnchor(string? headingSlug, string blockKind, int blockIndex, bool startsHeading) {
+        var normalizedBlockKind = string.IsNullOrWhiteSpace(blockKind) ? "block" : blockKind.Trim().ToLowerInvariant();
+        if (startsHeading && !string.IsNullOrWhiteSpace(headingSlug)) {
+            return headingSlug!;
+        }
+
+        if (!string.IsNullOrWhiteSpace(headingSlug)) {
+            return string.Concat(
+                headingSlug!.Trim(),
+                "--",
+                normalizedBlockKind,
+                "-",
+                blockIndex.ToString(CultureInfo.InvariantCulture));
+        }
+
+        return string.Concat(
+            normalizedBlockKind,
+            "-",
+            blockIndex.ToString(CultureInfo.InvariantCulture));
     }
 
     private static string BuildMarkdownHeadingSlug(string text, IDictionary<string, int> registry) {
@@ -2591,13 +2624,14 @@ public static class DocumentReader {
     }
 
     private sealed class MarkdownChunkBlock {
-        public MarkdownChunkBlock(int blockIndex, int startLine, int endLine, string? headingPath, string? headingSlug, string blockKind, string markdown, bool startsHeading, IReadOnlyList<ReaderTable> tables) {
+        public MarkdownChunkBlock(int blockIndex, int startLine, int endLine, string? headingPath, string? headingSlug, string blockKind, string blockAnchor, string markdown, bool startsHeading, IReadOnlyList<ReaderTable> tables) {
             BlockIndex = blockIndex;
             StartLine = startLine;
             EndLine = endLine;
             HeadingPath = headingPath;
             HeadingSlug = headingSlug;
             BlockKind = string.IsNullOrWhiteSpace(blockKind) ? "unknown" : blockKind;
+            BlockAnchor = string.IsNullOrWhiteSpace(blockAnchor) ? "block-" + blockIndex.ToString(CultureInfo.InvariantCulture) : blockAnchor;
             Markdown = markdown ?? string.Empty;
             StartsHeading = startsHeading;
             Tables = tables ?? Array.Empty<ReaderTable>();
@@ -2609,6 +2643,7 @@ public static class DocumentReader {
         public string? HeadingPath { get; }
         public string? HeadingSlug { get; }
         public string BlockKind { get; }
+        public string BlockAnchor { get; }
         public string Markdown { get; }
         public bool StartsHeading { get; }
         public IReadOnlyList<ReaderTable> Tables { get; }

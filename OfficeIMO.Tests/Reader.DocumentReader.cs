@@ -213,6 +213,7 @@ public sealed class ReaderDocumentReaderTests {
             Assert.Equal(3, topChunk.Location.NormalizedEndLine);
             Assert.Equal("top", topChunk.Location.HeadingSlug);
             Assert.Equal("heading", topChunk.Location.SourceBlockKind);
+            Assert.Equal("top", topChunk.Location.BlockAnchor);
             Assert.Equal(0, topChunk.Location.SourceBlockIndex);
 
             var childChunk = chunks.Single(c => string.Equals(c.Location.HeadingPath, "Top > Child", StringComparison.Ordinal));
@@ -222,7 +223,39 @@ public sealed class ReaderDocumentReaderTests {
             Assert.Equal(7, childChunk.Location.NormalizedEndLine);
             Assert.Equal("child", childChunk.Location.HeadingSlug);
             Assert.Equal("heading", childChunk.Location.SourceBlockKind);
+            Assert.Equal("child", childChunk.Location.BlockAnchor);
             Assert.Equal(2, childChunk.Location.SourceBlockIndex);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_MarkdownChunking_AssignsSubBlockAnchorsWhenChunksSplitWithinAHeading() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            var largePayload = new string('x', 320);
+            File.WriteAllText(path,
+                "# Top\n\nIntro paragraph.\n\n```text\n" + largePayload + "\n```\n\nTail paragraph.\n");
+
+            var chunks = DocumentReader.Read(path, new ReaderOptions { MaxChars = 256 })
+                .Where(static c => c.Kind == ReaderInputKind.Markdown)
+                .ToList();
+
+            Assert.True(chunks.Count >= 3);
+
+            var headingChunk = chunks.Single(c => string.Equals(c.Location.BlockAnchor, "top", StringComparison.Ordinal));
+            Assert.Contains("# Top", headingChunk.Markdown ?? string.Empty, StringComparison.Ordinal);
+
+            var codeChunk = chunks.Single(c => string.Equals(c.Location.BlockAnchor, "top--code-2", StringComparison.Ordinal));
+            Assert.Equal("code", codeChunk.Location.SourceBlockKind);
+            Assert.Equal("top", codeChunk.Location.HeadingSlug);
+            Assert.Contains("```text", codeChunk.Markdown ?? string.Empty, StringComparison.Ordinal);
+
+            var trailingParagraphChunk = chunks.Single(c => string.Equals(c.Location.BlockAnchor, "top--paragraph-3", StringComparison.Ordinal));
+            Assert.Equal("paragraph", trailingParagraphChunk.Location.SourceBlockKind);
+            Assert.Equal("top", trailingParagraphChunk.Location.HeadingSlug);
+            Assert.Contains("Tail paragraph.", trailingParagraphChunk.Markdown ?? string.Empty, StringComparison.Ordinal);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
