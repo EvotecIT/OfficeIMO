@@ -2,7 +2,7 @@ namespace OfficeIMO.MarkdownRenderer;
 
 /// <summary>
 /// Options controlling Chart.js rendering when used in a WebView/browser context.
-/// Charts are authored as fenced code blocks named <c>chart</c> containing JSON.
+/// Charts are authored as fenced code blocks named <c>chart</c> or <c>ix-chart</c> containing JSON.
 /// </summary>
 public sealed class ChartOptions {
     /// <summary>Enable Chart.js support. Default: false.</summary>

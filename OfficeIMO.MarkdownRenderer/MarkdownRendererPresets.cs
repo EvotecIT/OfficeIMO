@@ -77,6 +77,7 @@ public static class MarkdownRendererPresets {
 
         o.Mermaid.Enabled = false;
         o.Chart.Enabled = false;
+        o.Network.Enabled = false;
         o.Math.Enabled = false;
         if (o.HtmlOptions.Prism != null) o.HtmlOptions.Prism.Enabled = false;
 
