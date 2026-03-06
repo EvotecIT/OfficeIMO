@@ -83,6 +83,19 @@ slide.AddPicture(logoStream, ImagePartType.Png,
     PowerPointUnits.Cm(23), PowerPointUnits.Cm(1.2), PowerPointUnits.Cm(5), PowerPointUnits.Cm(2));
 ```
 
+### Create and edit with streams
+```csharp
+using var stream = new MemoryStream();
+
+using (var ppt = PowerPointPresentation.Create(stream)) {
+    ppt.AddSlide().AddTitle("Created in memory");
+}
+
+using (var ppt = PowerPointPresentation.Open(stream, readOnly: false, autoSave: true)) {
+    ppt.AddSlide().AddTitle("Updated from the same stream");
+}
+```
+
 ### Background image
 ```csharp
 slide.SetBackgroundImage("hero.png");
