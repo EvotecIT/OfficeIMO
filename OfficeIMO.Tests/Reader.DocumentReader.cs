@@ -88,6 +88,7 @@ public sealed class ReaderDocumentReaderTests {
             var chunks = DocumentReader.Read(fs, "Notes.md").ToList();
             Assert.True(chunks.Count >= 2);
             Assert.Contains(chunks, c => c.Kind == ReaderInputKind.Markdown && (c.Location.HeadingPath?.Contains("Top", StringComparison.Ordinal) ?? false));
+            Assert.All(chunks.Where(static c => c.Kind == ReaderInputKind.Markdown), c => Assert.Null(c.Location.StartLine));
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -166,6 +167,29 @@ public sealed class ReaderDocumentReaderTests {
             Assert.Single(chunk.Tables!);
             Assert.Equal(new[] { "Name", "Value" }, chunk.Tables![0].Columns);
             Assert.Equal(2, chunk.Tables[0].TotalRowCount);
+            Assert.Equal("A", chunk.Tables[0].Rows[0][0]);
+            Assert.Equal("2", chunk.Tables[0].Rows[1][1]);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_MarkdownChunking_RespectsTableRowCapsAndFallbackHeaders() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path,
+                "# Data\n\n| A | 1 |\n| B | 2 |\n| C | 3 |\n");
+
+            var chunk = DocumentReader.Read(path, new ReaderOptions { MaxTableRows = 2 })
+                .Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
+
+            Assert.NotNull(chunk.Tables);
+            Assert.Single(chunk.Tables!);
+            Assert.Equal(new[] { "Column1", "Column2" }, chunk.Tables![0].Columns);
+            Assert.Equal(3, chunk.Tables[0].TotalRowCount);
+            Assert.True(chunk.Tables[0].Truncated);
+            Assert.Equal(2, chunk.Tables[0].Rows.Count);
             Assert.Equal("A", chunk.Tables[0].Rows[0][0]);
             Assert.Equal("2", chunk.Tables[0].Rows[1][1]);
         } finally {
