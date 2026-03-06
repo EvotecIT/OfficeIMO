@@ -20,6 +20,8 @@ namespace OfficeIMO.Tests {
                     chart.SetTitle("Sales Trend")
                         .SetLegend(C.LegendPositionValues.Right)
                         .SetDataLabels(showValue: true)
+                        .SetDataLabelPosition(C.DataLabelPositionValues.OutsideEnd)
+                        .SetDataLabelNumberFormat("#,##0.0", sourceLinked: false)
                         .SetCategoryAxisTitle("Quarter")
                         .SetValueAxisTitle("Revenue");
                     presentation.Save();
@@ -43,8 +45,12 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(C.LegendPositionValues.Right, legendPosition);
 
                     C.BarChart barChart = chart.PlotArea!.GetFirstChild<C.BarChart>()!;
-                    bool? showValue = barChart.GetFirstChild<C.DataLabels>()?.GetFirstChild<C.ShowValue>()?.Val?.Value;
+                    C.DataLabels? dataLabels = barChart.GetFirstChild<C.DataLabels>();
+                    bool? showValue = dataLabels?.GetFirstChild<C.ShowValue>()?.Val?.Value;
                     Assert.True(showValue);
+                    Assert.Equal(C.DataLabelPositionValues.OutsideEnd, dataLabels?.GetFirstChild<C.DataLabelPosition>()?.Val?.Value);
+                    Assert.Equal("#,##0.0", dataLabels?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value);
+                    Assert.False(dataLabels?.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value);
 
                     string? categoryTitle = chart.PlotArea!
                         .GetFirstChild<C.CategoryAxis>()?
