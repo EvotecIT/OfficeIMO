@@ -72,6 +72,18 @@ Options (high level)
 - `MarkdownRendererOptions.FencedCodeBlockRenderers`: optional registry for host-specific fenced block conversions plus shell head / update hooks.
 - `MarkdownRendererOptions.HtmlPostProcessors`: last-mile HTML transformations (custom diagram types, host integration).
 
+Built-in visual metadata
+
+When Chart.js / vis-network built-ins convert fenced blocks into native host nodes, they emit both type-specific
+attributes and a small shared metadata contract:
+
+- `data-omd-visual-kind`
+- `data-omd-fence-language`
+- `data-omd-visual-hash`
+- `data-omd-config-b64`
+
+This makes it easier for hosts to integrate future visual types without hard-coding every renderer-specific attribute name.
+
 Normalization is backed by `OfficeIMO.Markdown.MarkdownInputNormalizer`, so the same behavior is available directly via `MarkdownReaderOptions.InputNormalization` when parsing outside the renderer.
 
 Offline assets (no network at runtime)
