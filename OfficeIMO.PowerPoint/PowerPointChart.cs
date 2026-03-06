@@ -112,6 +112,29 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets the chart title text style.
+        /// </summary>
+        public PowerPointChart SetTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null,
+            string? color = null, string? fontName = null) {
+            ValidateTextStyle(fontSizePoints, color, fontName);
+
+            C.Chart chart = GetChart();
+            C.Title? title = chart.GetFirstChild<C.Title>();
+            if (title == null) {
+                return this;
+            }
+
+            C.ChartText? chartText = title.GetFirstChild<C.ChartText>();
+            if (chartText == null) {
+                return this;
+            }
+
+            ApplyTextStyle(EnsureChartTextRunProperties(chartText), fontSizePoints, bold, italic, color, fontName);
+            Save();
+            return this;
+        }
+
+        /// <summary>
         ///     Removes the chart title.
         /// </summary>
         public PowerPointChart ClearTitle() {
@@ -148,6 +171,24 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets the legend text style.
+        /// </summary>
+        public PowerPointChart SetLegendTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null,
+            string? color = null, string? fontName = null) {
+            ValidateTextStyle(fontSizePoints, color, fontName);
+
+            C.Chart chart = GetChart();
+            C.Legend? legend = chart.GetFirstChild<C.Legend>();
+            if (legend == null) {
+                return this;
+            }
+
+            ApplyTextStyle(EnsureTextPropertiesRunProperties(legend), fontSizePoints, bold, italic, color, fontName);
             Save();
             return this;
         }
@@ -884,6 +925,38 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        private static void ApplyTextStyle(A.TextCharacterPropertiesType runProps, double? fontSizePoints, bool? bold,
+            bool? italic, string? color, string? fontName) {
+            if (fontSizePoints != null) {
+                runProps.FontSize = (int)Math.Round(fontSizePoints.Value * 100);
+            }
+            if (bold != null) {
+                runProps.Bold = bold.Value;
+            }
+            if (italic != null) {
+                runProps.Italic = italic.Value;
+            }
+            if (fontName != null) {
+                runProps.RemoveAllChildren<A.LatinFont>();
+                runProps.Append(new A.LatinFont { Typeface = fontName });
+            }
+            if (color != null) {
+                ApplySolidFill(runProps, color);
+            }
+        }
+
+        private static void ValidateTextStyle(double? fontSizePoints, string? color, string? fontName) {
+            if (fontSizePoints != null && fontSizePoints <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(fontSizePoints));
+            }
+            if (color != null && string.IsNullOrWhiteSpace(color)) {
+                throw new ArgumentException("Color cannot be empty.", nameof(color));
+            }
+            if (fontName != null && string.IsNullOrWhiteSpace(fontName)) {
+                throw new ArgumentException("Font name cannot be empty.", nameof(fontName));
+            }
+        }
+
         private static C.ChartShapeProperties EnsureChartShapeProperties(OpenXmlCompositeElement series) {
             C.ChartShapeProperties props = series.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
             if (props.Parent == null) {
@@ -930,6 +1003,71 @@ namespace OfficeIMO.PowerPoint {
             if (outline.Parent == null) {
                 props.Append(outline);
             }
+        }
+
+        private static A.DefaultRunProperties EnsureTextPropertiesRunProperties(OpenXmlCompositeElement parent) {
+            C.TextProperties textProps = parent.GetFirstChild<C.TextProperties>() ?? new C.TextProperties();
+            if (textProps.GetFirstChild<A.BodyProperties>() == null) {
+                textProps.Append(new A.BodyProperties());
+            }
+            if (textProps.GetFirstChild<A.ListStyle>() == null) {
+                textProps.Append(new A.ListStyle());
+            }
+
+            A.Paragraph paragraph = textProps.GetFirstChild<A.Paragraph>() ?? new A.Paragraph();
+            if (paragraph.Parent == null) {
+                textProps.Append(paragraph);
+            }
+
+            A.ParagraphProperties paragraphProps = paragraph.GetFirstChild<A.ParagraphProperties>() ?? new A.ParagraphProperties();
+            if (paragraphProps.Parent == null) {
+                paragraph.Append(paragraphProps);
+            }
+
+            A.DefaultRunProperties runProps = paragraphProps.GetFirstChild<A.DefaultRunProperties>() ?? new A.DefaultRunProperties();
+            if (runProps.Parent == null) {
+                paragraphProps.Append(runProps);
+            }
+
+            if (textProps.Parent == null) {
+                parent.Append(textProps);
+            }
+
+            return runProps;
+        }
+
+        private static A.RunProperties EnsureChartTextRunProperties(C.ChartText chartText) {
+            C.RichText richText = chartText.GetFirstChild<C.RichText>() ?? new C.RichText();
+            if (richText.GetFirstChild<A.BodyProperties>() == null) {
+                richText.Append(new A.BodyProperties());
+            }
+            if (richText.GetFirstChild<A.ListStyle>() == null) {
+                richText.Append(new A.ListStyle());
+            }
+
+            A.Paragraph paragraph = richText.GetFirstChild<A.Paragraph>() ?? new A.Paragraph();
+            if (paragraph.Parent == null) {
+                richText.Append(paragraph);
+            }
+
+            A.Run run = paragraph.GetFirstChild<A.Run>() ?? new A.Run();
+            if (run.Parent == null) {
+                paragraph.Append(run);
+            }
+
+            A.RunProperties runProps = run.GetFirstChild<A.RunProperties>() ?? new A.RunProperties();
+            if (runProps.Parent == null) {
+                run.InsertAt(runProps, 0);
+            } else if (runProps != run.FirstChild) {
+                runProps.Remove();
+                run.InsertAt(runProps, 0);
+            }
+
+            if (richText.Parent == null) {
+                chartText.Append(richText);
+            }
+
+            return runProps;
         }
 
         private static void ApplyMarker(C.Marker marker, C.MarkerStyleValues style, int? size, string? fillColor, string? lineColor, double? lineWidthPoints) {
