@@ -553,7 +553,7 @@ mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-col
             }
 
             sb.Append('\n')
-              .Append(ReplaceScriptCloseSequence(fragment))
+              .Append(ReplaceScriptCloseSequence(fragment ?? string.Empty))
               .Append('\n');
         }
     }
