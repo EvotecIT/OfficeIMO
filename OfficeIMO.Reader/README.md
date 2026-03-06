@@ -138,7 +138,7 @@ var options = new ReaderOptions {
 var chunks = DocumentReader.Read(@"C:\Docs\Workbook.xlsx", options).ToList();
 ```
 
-When `MarkdownChunkByHeadings` is enabled, markdown inputs are chunked from parsed OfficeIMO markdown blocks instead of raw line heuristics. That means setext headings are recognized, fenced code blocks are not split by `#` inside the fence, oversize markdown blocks stay intact with a warning, and markdown tables are exposed through `ReaderChunk.Tables`. Parser-aware markdown chunks keep `SourceBlockIndex`/`HeadingPath` for stable citations, and can also expose normalized markdown provenance through `NormalizedStartLine`/`NormalizedEndLine`, `HeadingSlug`, and `SourceBlockKind` without claiming those are exact source offsets.
+When `MarkdownChunkByHeadings` is enabled, markdown inputs are chunked from parsed OfficeIMO markdown blocks instead of raw line heuristics. That means setext headings are recognized, fenced code blocks are not split by `#` inside the fence, oversize markdown blocks stay intact with a warning, and markdown tables are exposed through `ReaderChunk.Tables`. Parser-aware markdown chunks keep `SourceBlockIndex`/`HeadingPath` for stable citations, and can also expose normalized markdown provenance through `NormalizedStartLine`/`NormalizedEndLine`, `HeadingSlug`, `SourceBlockKind`, and `BlockAnchor` without claiming those are exact source offsets. `BlockAnchor` identifies the first logical markdown block in the chunk, so hosts can point at a sub-block inside a heading section when chunk splitting occurs.
 
 ## Pluggable Handlers
 

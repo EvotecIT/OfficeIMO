@@ -190,6 +190,12 @@ public sealed class ReaderLocation {
     public string? SourceBlockKind { get; set; }
 
     /// <summary>
+    /// Optional deterministic anchor for the first logical block included in the chunk.
+    /// For markdown this can identify a heading section or a sub-block within that section.
+    /// </summary>
+    public string? BlockAnchor { get; set; }
+
+    /// <summary>
     /// Optional sheet name (Excel).
     /// </summary>
     public string? Sheet { get; set; }
