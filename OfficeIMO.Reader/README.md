@@ -4,7 +4,7 @@
 - Word (`.docx`, `.docm`) -> Markdown chunks
 - Excel (`.xlsx`, `.xlsm`) -> table chunks + optional Markdown table previews
 - PowerPoint (`.pptx`, `.pptm`) -> slide-aligned Markdown chunks (optionally including notes)
-- Markdown (`.md`, `.markdown`) -> heading-aware text chunks
+- Markdown (`.md`, `.markdown`) -> parser-aware heading chunks with preserved fenced/table blocks
 - PDF (`.pdf`) -> page-aware text chunks
 
 The goal is to make it easy for tools like chat bots to ingest content deterministically.
@@ -137,6 +137,8 @@ var options = new ReaderOptions {
 
 var chunks = DocumentReader.Read(@"C:\Docs\Workbook.xlsx", options).ToList();
 ```
+
+When `MarkdownChunkByHeadings` is enabled, markdown inputs are chunked from parsed OfficeIMO markdown blocks instead of raw line heuristics. That means setext headings are recognized, fenced code blocks are not split by `#` inside the fence, oversize markdown blocks stay intact with a warning, and markdown tables are exposed through `ReaderChunk.Tables`. Parser-aware markdown chunks keep `SourceBlockIndex`/`HeadingPath` for stable citations; exact source line numbers remain unset until the reader can expose them accurately.
 
 ## Pluggable Handlers
 

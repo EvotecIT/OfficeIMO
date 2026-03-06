@@ -1,4 +1,5 @@
 using OfficeIMO.Excel;
+using OfficeIMO.Markdown;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
@@ -1137,7 +1138,6 @@ public static class DocumentReader {
     }
 
     private static IEnumerable<ReaderChunk> ReadMarkdown(string path, ReaderOptions opt, CancellationToken ct) {
-        // Keep it simple: chunk by headings (ATX, best-effort), with size cap.
         if (!opt.MarkdownChunkByHeadings) {
             foreach (var c in ChunkPlainTextByParagraphs(path, opt, ReaderInputKind.Markdown, ct, treatAsMarkdown: true))
                 yield return c;
@@ -1145,64 +1145,16 @@ public static class DocumentReader {
         }
 
         var fileName = Path.GetFileName(path);
-        var headingStack = new List<(int Level, string Text)>();
-
-        var current = new StringBuilder(capacity: Math.Min(opt.MaxChars, 16_384));
-        int chunkIndex = 0;
-        int? firstLine = null;
-        string? firstHeadingPath = null;
-        var warnings = new List<string>(capacity: 2);
-
-        int lineNo = 0;
-        foreach (var line in File.ReadLines(path)) {
-            ct.ThrowIfCancellationRequested();
-            lineNo++;
-
-            if (TryParseAtxHeading(line, out var level, out var headingText)) {
-                // Flush current section before starting a new heading section.
-                if (current.Length > 0) {
-                    yield return BuildMarkdownChunk(path, fileName, chunkIndex, firstLine, firstHeadingPath, current.ToString().TrimEnd(), warnings);
-                    chunkIndex++;
-                    current.Clear();
-                    warnings.Clear();
-                    firstLine = null;
-                    firstHeadingPath = null;
-                }
-
-                UpdateHeadingStack(headingStack, level, headingText);
-                var headingPath = BuildHeadingPath(headingStack);
-                firstHeadingPath = headingPath;
-                firstLine = lineNo;
-
-                // Keep the heading line as part of the new chunk content.
-                AppendLineCapped(opt, current, line, warnings);
-                continue;
-            }
-
-            if (firstLine == null) firstLine = lineNo;
-            if (firstHeadingPath == null) firstHeadingPath = BuildHeadingPath(headingStack);
-
-            // If adding this line would exceed MaxChars, flush a chunk boundary.
-            if (WouldExceed(opt, current, line)) {
-                yield return BuildMarkdownChunk(path, fileName, chunkIndex, firstLine, firstHeadingPath, current.ToString().TrimEnd(), warnings);
-                chunkIndex++;
-                current.Clear();
-                warnings.Clear();
-                firstLine = lineNo;
-                firstHeadingPath = BuildHeadingPath(headingStack);
-            }
-
-            AppendLineCapped(opt, current, line, warnings);
-        }
-
-        if (current.Length > 0) {
-            yield return BuildMarkdownChunk(path, fileName, chunkIndex, firstLine, firstHeadingPath, current.ToString().TrimEnd(), warnings);
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        var text = ReadAllText(stream, ct, hardCapChars: null);
+        foreach (var chunk in ChunkMarkdownFromText(text, path, fileName, opt, ct)) {
+            yield return chunk;
         }
     }
 
     private static IEnumerable<ReaderChunk> ReadMarkdown(Stream stream, string? sourceName, ReaderOptions opt, CancellationToken ct) {
         var fileName = string.IsNullOrWhiteSpace(sourceName) ? "memory.md" : Path.GetFileName(sourceName!.Trim());
-        var text = ReadAllText(stream, ct);
+        var text = ReadAllText(stream, ct, hardCapChars: null);
         foreach (var c in ChunkMarkdownFromText(text, sourceName, fileName, opt, ct))
             yield return c;
     }
@@ -1251,6 +1203,33 @@ public static class DocumentReader {
             Rows = t.Rows,
             TotalRowCount = t.TotalRowCount,
             Truncated = t.Truncated
+        };
+    }
+
+    private static ReaderTable MapTable(TableBlock t, ReaderOptions opt) {
+        var totalRowCount = t.Rows.Count;
+        var rows = t.Rows;
+        bool truncatedByOptions = false;
+
+        if (opt.MaxTableRows > 0 && rows.Count > opt.MaxTableRows) {
+            rows = rows.Take(opt.MaxTableRows).ToList();
+            truncatedByOptions = true;
+        }
+
+        int columnCount = Math.Max(t.Headers.Count, rows.Count == 0 ? 0 : rows.Max(static row => row?.Count ?? 0));
+        var columns = t.Headers.Count > 0
+            ? EnsureMarkdownTableColumns(t.Headers, columnCount)
+            : BuildMarkdownTableFallbackColumns(columnCount);
+
+        var normalizedRows = rows
+            .Select(row => NormalizeMarkdownTableRow(row, columnCount))
+            .ToArray();
+
+        return new ReaderTable {
+            Columns = columns,
+            Rows = normalizedRows,
+            TotalRowCount = totalRowCount,
+            Truncated = truncatedByOptions || t.SkippedRowCount > 0 || t.SkippedColumnCount > 0
         };
     }
 
@@ -1353,56 +1332,60 @@ public static class DocumentReader {
             yield break;
         }
 
-        var headingStack = new List<(int Level, string Text)>();
         var current = new StringBuilder(capacity: Math.Min(opt.MaxChars, 16_384));
         int chunkIndex = 0;
         int? firstLine = null;
+        int? firstSourceBlockIndex = null;
         string? firstHeadingPath = null;
         var warnings = new List<string>(capacity: 2);
+        bool oversizeBlockWarningAdded = false;
+        List<ReaderTable>? tables = null;
 
-        int lineNo = 0;
-        using var sr = new StringReader(text ?? string.Empty);
-        string? line;
-        while ((line = sr.ReadLine()) != null) {
+        foreach (var block in ParseMarkdownBlocksForChunking(text, opt, ct)) {
             ct.ThrowIfCancellationRequested();
-            lineNo++;
 
-            if (TryParseAtxHeading(line, out var level, out var headingText)) {
-                if (current.Length > 0) {
-                    yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstLine, firstHeadingPath, current.ToString().TrimEnd(), warnings);
-                    chunkIndex++;
-                    current.Clear();
-                    warnings.Clear();
-                    firstLine = null;
-                    firstHeadingPath = null;
-                }
-
-                UpdateHeadingStack(headingStack, level, headingText);
-                var headingPath = BuildHeadingPath(headingStack);
-                firstHeadingPath = headingPath;
-                firstLine = lineNo;
-
-                AppendLineCapped(opt, current, line, warnings);
-                continue;
-            }
-
-            if (firstLine == null) firstLine = lineNo;
-            if (firstHeadingPath == null) firstHeadingPath = BuildHeadingPath(headingStack);
-
-            if (WouldExceed(opt, current, line)) {
-                yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstLine, firstHeadingPath, current.ToString().TrimEnd(), warnings);
+            if (block.StartsHeading && current.Length > 0) {
+                yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstLine, firstSourceBlockIndex, firstHeadingPath, current.ToString().TrimEnd(), warnings, tables);
                 chunkIndex++;
                 current.Clear();
                 warnings.Clear();
-                firstLine = lineNo;
-                firstHeadingPath = BuildHeadingPath(headingStack);
+                oversizeBlockWarningAdded = false;
+                tables = null;
+                firstLine = null;
+                firstSourceBlockIndex = null;
+                firstHeadingPath = null;
             }
 
-            AppendLineCapped(opt, current, line, warnings);
+            if (WouldExceedMarkdownBlock(opt, current, block.Markdown)) {
+                yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstLine, firstSourceBlockIndex, firstHeadingPath, current.ToString().TrimEnd(), warnings, tables);
+                chunkIndex++;
+                current.Clear();
+                warnings.Clear();
+                oversizeBlockWarningAdded = false;
+                tables = null;
+                firstLine = null;
+                firstSourceBlockIndex = null;
+                firstHeadingPath = null;
+            }
+
+            if (firstLine == null) firstLine = block.StartLine;
+            if (firstSourceBlockIndex == null) firstSourceBlockIndex = block.BlockIndex;
+            if (firstHeadingPath == null) firstHeadingPath = block.HeadingPath;
+
+            AppendMarkdownBlock(current, block.Markdown);
+            if (block.Markdown.Length > opt.MaxChars && !oversizeBlockWarningAdded) {
+                warnings.Add("A single markdown block exceeded MaxChars and was preserved as one chunk.");
+                oversizeBlockWarningAdded = true;
+            }
+
+            if (block.Tables.Count > 0) {
+                tables ??= new List<ReaderTable>(capacity: block.Tables.Count);
+                tables.AddRange(block.Tables);
+            }
         }
 
         if (current.Length > 0) {
-            yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstLine, firstHeadingPath, current.ToString().TrimEnd(), warnings);
+            yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstLine, firstSourceBlockIndex, firstHeadingPath, current.ToString().TrimEnd(), warnings, tables);
         }
     }
 
@@ -1463,21 +1446,24 @@ public static class DocumentReader {
         string fileName,
         int chunkIndex,
         int? firstLine,
+        int? firstSourceBlockIndex,
         string? headingPath,
         string markdown,
-        List<string> warnings) {
-        var id = BuildStableId("md", fileName, chunkIndex, firstLine);
+        List<string> warnings,
+        List<ReaderTable>? tables) {
+        var id = BuildStableId("md", fileName, chunkIndex, firstSourceBlockIndex ?? firstLine);
         return new ReaderChunk {
             Id = id,
             Kind = ReaderInputKind.Markdown,
             Location = new ReaderLocation {
                 Path = path,
                 BlockIndex = chunkIndex,
-                StartLine = firstLine,
+                SourceBlockIndex = firstSourceBlockIndex,
                 HeadingPath = headingPath
             },
             Text = markdown,
             Markdown = markdown,
+            Tables = tables != null && tables.Count > 0 ? tables.ToArray() : null,
             Warnings = warnings.Count > 0 ? warnings.ToArray() : null
         };
     }
@@ -1815,23 +1801,6 @@ public static class DocumentReader {
         return full.Replace('\\', '/');
     }
 
-    private static bool TryParseAtxHeading(string line, out int level, out string text) {
-        level = 0;
-        text = string.Empty;
-        if (line == null) return false;
-
-        int i = 0;
-        while (i < line.Length && line[i] == '#') i++;
-        if (i < 1 || i > 6) return false;
-        if (i >= line.Length) return false;
-        if (line[i] != ' ' && line[i] != '\t') return false;
-
-        level = i;
-        text = line.Substring(i).Trim();
-        if (text.Length == 0) text = $"Heading {level}";
-        return true;
-    }
-
     private static void UpdateHeadingStack(List<(int Level, string Text)> stack, int level, string text) {
         if (level < 1) return;
         if (string.IsNullOrWhiteSpace(text)) text = $"Heading {level}";
@@ -1860,6 +1829,12 @@ public static class DocumentReader {
         return current.Length > 0 && (current.Length + extra) > opt.MaxChars;
     }
 
+    private static bool WouldExceedMarkdownBlock(ReaderOptions opt, StringBuilder current, string nextBlockMarkdown) {
+        int nextLen = nextBlockMarkdown?.Length ?? 0;
+        int extra = current.Length == 0 ? 0 : 2 + nextLen;
+        return current.Length > 0 && (current.Length + extra) > opt.MaxChars;
+    }
+
     private static void AppendLineCapped(ReaderOptions opt, StringBuilder sb, string line, List<string> warnings) {
         if (sb.Length > 0) sb.AppendLine();
 
@@ -1870,6 +1845,116 @@ public static class DocumentReader {
             warnings.Add("A single line exceeded MaxChars and was truncated.");
         }
         sb.Append(s);
+    }
+
+    private static void AppendMarkdownBlock(StringBuilder sb, string markdown) {
+        if (sb.Length > 0) {
+            sb.AppendLine();
+            sb.AppendLine();
+        }
+        sb.Append(NormalizeMarkdownLineEndings(markdown).TrimEnd());
+    }
+
+    private static List<MarkdownChunkBlock> ParseMarkdownBlocksForChunking(string text, ReaderOptions opt, CancellationToken ct) {
+        var doc = MarkdownReader.Parse(text ?? string.Empty);
+        var blocks = new List<MarkdownChunkBlock>(doc.Blocks.Count);
+        var headingStack = new List<(int Level, string Text)>();
+        int nextStartLine = 1;
+        bool firstEmittedBlock = true;
+
+        for (int i = 0; i < doc.Blocks.Count; i++) {
+            ct.ThrowIfCancellationRequested();
+
+            var block = doc.Blocks[i];
+            var markdown = NormalizeMarkdownLineEndings(block.RenderMarkdown()).TrimEnd();
+            if (string.IsNullOrWhiteSpace(markdown)) {
+                continue;
+            }
+
+            if (!firstEmittedBlock) {
+                nextStartLine++;
+            }
+
+            int startLine = nextStartLine;
+            bool startsHeading = false;
+            if (block is HeadingBlock heading) {
+                UpdateHeadingStack(headingStack, heading.Level, heading.Text);
+                startsHeading = true;
+            }
+
+            blocks.Add(new MarkdownChunkBlock(
+                blockIndex: i,
+                startLine: startLine,
+                headingPath: BuildHeadingPath(headingStack),
+                markdown: markdown,
+                startsHeading: startsHeading,
+                tables: ExtractTables(block, opt)));
+
+            nextStartLine += CountLogicalLines(markdown);
+            firstEmittedBlock = false;
+        }
+
+        return blocks;
+    }
+
+    private static IReadOnlyList<ReaderTable> ExtractTables(IMarkdownBlock block, ReaderOptions opt) {
+        if (block is TableBlock table) {
+            return new[] { MapTable(table, opt) };
+        }
+
+        return Array.Empty<ReaderTable>();
+    }
+
+    private static IReadOnlyList<string> EnsureMarkdownTableColumns(IReadOnlyList<string> headers, int columnCount) {
+        if (columnCount <= 0) return Array.Empty<string>();
+
+        var columns = new string[columnCount];
+        for (int i = 0; i < columnCount; i++) {
+            if (i < headers.Count && !string.IsNullOrWhiteSpace(headers[i])) {
+                columns[i] = headers[i];
+            } else {
+                columns[i] = "Column" + (i + 1).ToString(CultureInfo.InvariantCulture);
+            }
+        }
+
+        return columns;
+    }
+
+    private static IReadOnlyList<string> BuildMarkdownTableFallbackColumns(int columnCount) {
+        if (columnCount <= 0) return Array.Empty<string>();
+
+        var columns = new string[columnCount];
+        for (int i = 0; i < columnCount; i++) {
+            columns[i] = "Column" + (i + 1).ToString(CultureInfo.InvariantCulture);
+        }
+
+        return columns;
+    }
+
+    private static IReadOnlyList<string> NormalizeMarkdownTableRow(IReadOnlyList<string> row, int columnCount) {
+        if (columnCount <= 0) return Array.Empty<string>();
+
+        var values = new string[columnCount];
+        for (int i = 0; i < columnCount; i++) {
+            values[i] = i < row.Count ? row[i] ?? string.Empty : string.Empty;
+        }
+
+        return values;
+    }
+
+    private static string NormalizeMarkdownLineEndings(string? markdown) {
+        if (string.IsNullOrEmpty(markdown)) return string.Empty;
+        return markdown!.Replace("\r\n", "\n").Replace('\r', '\n');
+    }
+
+    private static int CountLogicalLines(string markdown) {
+        if (string.IsNullOrEmpty(markdown)) return 0;
+
+        int count = 1;
+        for (int i = 0; i < markdown.Length; i++) {
+            if (markdown[i] == '\n') count++;
+        }
+        return count;
     }
 
     private static string CollapseWhitespace(string text) {
@@ -2334,17 +2419,16 @@ public static class DocumentReader {
         }
     }
 
-    private static string ReadAllText(Stream stream, CancellationToken ct) {
+    private static string ReadAllText(Stream stream, CancellationToken ct, int? hardCapChars = 50_000_000) {
         ct.ThrowIfCancellationRequested();
         using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 16 * 1024, leaveOpen: true);
         var sb = new StringBuilder();
         var buffer = new char[16 * 1024];
-        const int HardCapChars = 50_000_000; // Defensive: avoid runaway memory usage on huge "text" streams.
         int read;
         while ((read = reader.Read(buffer, 0, buffer.Length)) > 0) {
             ct.ThrowIfCancellationRequested();
             sb.Append(buffer, 0, read);
-            if (sb.Length >= HardCapChars) break;
+            if (hardCapChars.HasValue && sb.Length >= hardCapChars.Value) break;
         }
         return sb.ToString();
     }
@@ -2419,6 +2503,24 @@ public static class DocumentReader {
         public int FilesSkipped { get; set; }
         public long BytesRead { get; set; }
         public int ChunksProduced { get; set; }
+    }
+
+    private sealed class MarkdownChunkBlock {
+        public MarkdownChunkBlock(int blockIndex, int startLine, string? headingPath, string markdown, bool startsHeading, IReadOnlyList<ReaderTable> tables) {
+            BlockIndex = blockIndex;
+            StartLine = startLine;
+            HeadingPath = headingPath;
+            Markdown = markdown ?? string.Empty;
+            StartsHeading = startsHeading;
+            Tables = tables ?? Array.Empty<ReaderTable>();
+        }
+
+        public int BlockIndex { get; }
+        public int StartLine { get; }
+        public string? HeadingPath { get; }
+        public string Markdown { get; }
+        public bool StartsHeading { get; }
+        public IReadOnlyList<ReaderTable> Tables { get; }
     }
 
     private sealed class SourceInfo {
