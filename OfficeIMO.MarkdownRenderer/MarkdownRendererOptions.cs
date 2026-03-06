@@ -141,6 +141,16 @@ public sealed class MarkdownRendererOptions {
     public MathOptions Math { get; } = new MathOptions();
 
     /// <summary>
+    /// Optional custom fenced code block renderers applied before built-in Mermaid/Chart/Math conversions.
+    /// These can replace rendered <c>&lt;pre&gt;&lt;code class="language-..."&gt;</c> blocks with host-specific HTML
+    /// and optionally contribute shell head/update fragments through <see cref="MarkdownFencedCodeBlockRenderer.BuildShellHeadHtml"/>,
+    /// <see cref="MarkdownFencedCodeBlockRenderer.BuildBeforeContentReplaceScript"/>, and
+    /// <see cref="MarkdownFencedCodeBlockRenderer.BuildAfterContentReplaceScript"/>.
+    /// Default: none.
+    /// </summary>
+    public List<MarkdownFencedCodeBlockRenderer> FencedCodeBlockRenderers { get; } = new List<MarkdownFencedCodeBlockRenderer>();
+
+    /// <summary>
     /// Optional post-processors applied to the HTML fragment produced by <see cref="MarkdownRenderer.RenderBodyHtml"/>.
     /// These run after built-in conversions (Mermaid/Chart/Math) and after BaseHref injection.
     /// Default: none.

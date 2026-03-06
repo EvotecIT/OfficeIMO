@@ -69,6 +69,7 @@ Options (high level)
 - `MarkdownRendererOptions.NormalizeSoftWrappedStrongSpans` / `NormalizeInlineCodeSpanLineBreaks` / `NormalizeEscapedInlineCodeSpans` / `NormalizeTightStrongBoundaries` / `NormalizeLooseStrongDelimiters`: optional markdown text normalization before parsing.
 - `MarkdownRendererOptions.MarkdownPreProcessors`: custom markdown text transforms before parsing.
 - `MarkdownRendererOptions.Mermaid` / `Chart` / `Math`: optional client-side renderers for fenced blocks.
+- `MarkdownRendererOptions.FencedCodeBlockRenderers`: optional registry for host-specific fenced block conversions plus shell head / update hooks.
 - `MarkdownRendererOptions.HtmlPostProcessors`: last-mile HTML transformations (custom diagram types, host integration).
 
 Normalization is backed by `OfficeIMO.Markdown.MarkdownInputNormalizer`, so the same behavior is available directly via `MarkdownReaderOptions.InputNormalization` when parsing outside the renderer.
