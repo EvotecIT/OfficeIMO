@@ -88,6 +88,9 @@ attributes and a small shared metadata contract:
 Native OfficeIMO visuals also carry the shared `omd-visual` class, and rendered shells mark hydrated visuals with
 `data-omd-visual-rendered="true"`.
 
+Treat the shared `data-omd-*` attributes as the canonical host contract. The older `data-chart-*` / `data-network-*`
+attributes remain as compatibility aliases for hosts that still depend on the renderer-specific names.
+
 This makes it easier for hosts to integrate future visual types without hard-coding every renderer-specific attribute name.
 
 Normalization is backed by `OfficeIMO.Markdown.MarkdownInputNormalizer`, so the same behavior is available directly via `MarkdownReaderOptions.InputNormalization` when parsing outside the renderer.
