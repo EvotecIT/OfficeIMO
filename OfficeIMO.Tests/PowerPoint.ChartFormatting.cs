@@ -210,6 +210,79 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CanStyleSeriesDataLabels() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                var data = new PowerPointChartData(
+                    new[] { "Jan", "Feb", "Mar" },
+                    new[] {
+                        new PowerPointChartSeries("Revenue", new[] { 10d, 12d, 14d }),
+                        new PowerPointChartSeries("Forecast", new[] { 11d, 13d, 15d })
+                    });
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddLineChart(data);
+                    chart.SetDataLabels(showValue: true)
+                        .SetSeriesDataLabelTextStyle("Forecast", fontSizePoints: 11, bold: true, color: "C00000", fontName: "Calibri")
+                        .SetSeriesDataLabelShapeStyle(1, fillColor: "FFF2CC", lineColor: "C00000", lineWidthPoints: 0.75)
+                        .SetSeriesDataLabelLeaderLines("Forecast", showLeaderLines: true, lineColor: "C00000", lineWidthPoints: 0.75)
+                        .SetSeriesDataLabelSeparator(1, " / ");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator();
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.LineChartSeries[] series = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
+                        .GetFirstChild<C.PlotArea>()!
+                        .GetFirstChild<C.LineChart>()!
+                        .Elements<C.LineChartSeries>()
+                        .ToArray();
+
+                    Assert.Equal(2, series.Length);
+                    Assert.Null(series[0].GetFirstChild<C.DataLabels>());
+
+                    C.DataLabels labels = series[1].GetFirstChild<C.DataLabels>()!;
+                    var children = series[1].ChildElements.ToList();
+                    Assert.True(children.IndexOf(labels) < children.IndexOf(series[1].GetFirstChild<C.CategoryAxisData>()!));
+
+                    A.DefaultRunProperties? runProps = labels.GetFirstChild<C.TextProperties>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.ParagraphProperties>()?
+                        .GetFirstChild<A.DefaultRunProperties>();
+                    Assert.Equal(1100, runProps?.FontSize?.Value);
+                    Assert.True(runProps?.Bold?.Value);
+                    Assert.Equal("Calibri", runProps?.GetFirstChild<A.LatinFont>()?.Typeface?.Value);
+                    Assert.Equal("C00000", runProps?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+
+                    C.ChartShapeProperties? shapeProps = labels.GetFirstChild<C.ChartShapeProperties>();
+                    Assert.NotNull(shapeProps);
+                    Assert.Equal("FFF2CC", shapeProps!.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                    A.Outline? outline = shapeProps.GetFirstChild<A.Outline>();
+                    Assert.Equal("C00000", outline?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                    Assert.Equal((int)Math.Round(0.75d * 12700d), outline?.Width?.Value);
+
+                    Assert.Equal(" / ", labels.GetFirstChild<C.Separator>()?.Text);
+                    Assert.True(labels.GetFirstChild<C.ShowLeaderLines>()?.Val?.Value);
+
+                    A.Outline? leaderLineOutline = labels.GetFirstChild<C.LeaderLines>()?
+                        .GetFirstChild<C.ChartShapeProperties>()?
+                        .GetFirstChild<A.Outline>();
+                    Assert.Equal("C00000", leaderLineOutline?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                    Assert.Equal((int)Math.Round(0.75d * 12700d), leaderLineOutline?.Width?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void CanAddSeriesTrendlineToLineChart() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
