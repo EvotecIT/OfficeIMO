@@ -884,6 +884,93 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
+        /// <summary>
+        ///     Adds or replaces a trendline for a chart series by index.
+        /// </summary>
+        public PowerPointChart SetSeriesTrendline(int seriesIndex, C.TrendlineValues type,
+            int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null,
+            bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, double? lineWidthPoints = null) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidthPoints);
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                ApplyTrendline(series, type, order, period, forward, backward, intercept, displayEquation, displayRSquared, lineColor, lineWidthPoints);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Adds or replaces a trendline for a chart series by name.
+        /// </summary>
+        public PowerPointChart SetSeriesTrendline(string seriesName, C.TrendlineValues type,
+            int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null,
+            bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, double? lineWidthPoints = null,
+            bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+            ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidthPoints);
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                ApplyTrendline(series, type, order, period, forward, backward, intercept, displayEquation, displayRSquared, lineColor, lineWidthPoints);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Removes trendlines from a chart series by index.
+        /// </summary>
+        public PowerPointChart ClearSeriesTrendline(int seriesIndex) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                series.RemoveAllChildren<C.Trendline>();
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Removes trendlines from a chart series by name.
+        /// </summary>
+        public PowerPointChart ClearSeriesTrendline(string seriesName, bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                series.RemoveAllChildren<C.Trendline>();
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
         private PowerPointChart ClearValueAxisDisplayUnits(Func<C.ValueAxis, bool>? predicate) {
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -1852,6 +1939,43 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        private static void ValidateTrendline(C.TrendlineValues type, int? order, int? period,
+            double? forward, double? backward, string? lineColor, double? lineWidthPoints) {
+            if (order != null && (order <= 0 || order > byte.MaxValue)) {
+                throw new ArgumentOutOfRangeException(nameof(order));
+            }
+            if (period != null && period <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(period));
+            }
+            if (forward != null && forward < 0) {
+                throw new ArgumentOutOfRangeException(nameof(forward));
+            }
+            if (backward != null && backward < 0) {
+                throw new ArgumentOutOfRangeException(nameof(backward));
+            }
+            if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
+                throw new ArgumentException("Trendline color cannot be empty.", nameof(lineColor));
+            }
+            if (lineWidthPoints != null && lineWidthPoints <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(lineWidthPoints));
+            }
+
+            bool isPolynomial = type.Equals(C.TrendlineValues.Polynomial);
+            bool isMovingAverage = type.Equals(C.TrendlineValues.MovingAverage);
+            if (isPolynomial && order == null) {
+                throw new ArgumentException("Polynomial trendlines require an order.", nameof(order));
+            }
+            if (!isPolynomial && order != null) {
+                throw new ArgumentException("Order is only valid for polynomial trendlines.", nameof(order));
+            }
+            if (isMovingAverage && period == null) {
+                throw new ArgumentException("Moving average trendlines require a period.", nameof(period));
+            }
+            if (!isMovingAverage && period != null) {
+                throw new ArgumentException("Period is only valid for moving average trendlines.", nameof(period));
+            }
+        }
+
         private static C.ChartShapeProperties EnsureChartShapeProperties(OpenXmlCompositeElement series) {
             C.ChartShapeProperties props = series.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
             if (props.Parent == null) {
@@ -1961,6 +2085,49 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        private static void ApplyTrendline(OpenXmlCompositeElement series, C.TrendlineValues type, int? order, int? period,
+            double? forward, double? backward, double? intercept, bool displayEquation, bool displayRSquared,
+            string? lineColor, double? lineWidthPoints) {
+            if (!IsTrendlineSupportedSeries(series)) {
+                throw new InvalidOperationException("Trendlines are only supported for line, bar/column, area, and scatter series.");
+            }
+
+            series.RemoveAllChildren<C.Trendline>();
+            C.Trendline trendline = new C.Trendline();
+
+            if (lineColor != null || lineWidthPoints != null) {
+                C.ChartShapeProperties props = new C.ChartShapeProperties();
+                ApplyOptionalLine(props, lineColor, lineWidthPoints);
+                trendline.Append(props);
+            }
+
+            trendline.Append(new C.TrendlineType { Val = type });
+
+            if (type.Equals(C.TrendlineValues.Polynomial) && order != null) {
+                trendline.Append(new C.PolynomialOrder { Val = (byte)order.Value });
+            }
+            if (type.Equals(C.TrendlineValues.MovingAverage) && period != null) {
+                trendline.Append(new C.Period { Val = (uint)period.Value });
+            }
+            if (forward != null) {
+                trendline.Append(new C.Forward { Val = forward.Value });
+            }
+            if (backward != null) {
+                trendline.Append(new C.Backward { Val = backward.Value });
+            }
+            if (intercept != null) {
+                trendline.Append(new C.Intercept { Val = intercept.Value });
+            }
+            if (displayRSquared) {
+                trendline.Append(new C.DisplayRSquaredValue { Val = displayRSquared });
+            }
+            if (displayEquation) {
+                trendline.Append(new C.DisplayEquation { Val = displayEquation });
+            }
+
+            InsertTrendline(series, trendline);
+        }
+
         private static void InsertChartSpaceShapeProperties(C.ChartSpace chartSpace, C.ShapeProperties props) {
             OpenXmlElement? insertBefore = chartSpace.GetFirstChild<C.TextProperties>();
             insertBefore ??= chartSpace.GetFirstChild<C.ExternalData>();
@@ -1981,6 +2148,50 @@ namespace OfficeIMO.PowerPoint {
                 plotArea.InsertBefore(props, insertBefore);
             } else {
                 plotArea.Append(props);
+            }
+        }
+
+        private static bool IsTrendlineSupportedSeries(OpenXmlCompositeElement series) {
+            return series is C.LineChartSeries
+                   || series is C.BarChartSeries
+                   || series is C.AreaChartSeries
+                   || series is C.ScatterChartSeries;
+        }
+
+        private static void InsertTrendline(OpenXmlCompositeElement series, C.Trendline trendline) {
+            OpenXmlElement? insertBefore = series.GetFirstChild<C.ErrorBars>();
+            insertBefore ??= series.GetFirstChild<C.CategoryAxisData>();
+            insertBefore ??= series.GetFirstChild<C.Values>();
+            insertBefore ??= series.GetFirstChild<C.XValues>();
+            insertBefore ??= series.GetFirstChild<C.YValues>();
+            insertBefore ??= series.GetFirstChild<C.BubbleSize>();
+            insertBefore ??= series.GetFirstChild<C.Smooth>();
+            insertBefore ??= series.GetFirstChild<C.ExtensionList>();
+
+            if (insertBefore != null) {
+                series.InsertBefore(trendline, insertBefore);
+            } else {
+                series.Append(trendline);
+            }
+        }
+
+        private static void InsertSeriesMarker(OpenXmlCompositeElement series, C.Marker marker) {
+            OpenXmlElement? insertBefore = series.GetFirstChild<C.DataPoint>();
+            insertBefore ??= series.GetFirstChild<C.DataLabels>();
+            insertBefore ??= series.GetFirstChild<C.Trendline>();
+            insertBefore ??= series.GetFirstChild<C.ErrorBars>();
+            insertBefore ??= series.GetFirstChild<C.CategoryAxisData>();
+            insertBefore ??= series.GetFirstChild<C.Values>();
+            insertBefore ??= series.GetFirstChild<C.XValues>();
+            insertBefore ??= series.GetFirstChild<C.YValues>();
+            insertBefore ??= series.GetFirstChild<C.BubbleSize>();
+            insertBefore ??= series.GetFirstChild<C.Smooth>();
+            insertBefore ??= series.GetFirstChild<C.ExtensionList>();
+
+            if (insertBefore != null) {
+                series.InsertBefore(marker, insertBefore);
+            } else {
+                series.Append(marker);
             }
         }
 
@@ -2183,7 +2394,7 @@ namespace OfficeIMO.PowerPoint {
                 C.Marker marker = seriesElement.GetFirstChild<C.Marker>() ?? new C.Marker();
                 apply(marker);
                 if (marker.Parent == null) {
-                    seriesElement.Append(marker);
+                    InsertSeriesMarker(seriesElement, marker);
                 }
                 return true;
             }
@@ -2200,7 +2411,7 @@ namespace OfficeIMO.PowerPoint {
                         C.Marker marker = series.GetFirstChild<C.Marker>() ?? new C.Marker();
                         apply(marker);
                         if (marker.Parent == null) {
-                            series.Append(marker);
+                            InsertSeriesMarker(series, marker);
                         }
                         return true;
                     }

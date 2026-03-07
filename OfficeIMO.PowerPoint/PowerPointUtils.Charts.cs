@@ -584,6 +584,7 @@ namespace OfficeIMO.PowerPoint {
                     seriesElement = existingSeries[i];
                 } else {
                     seriesElement = template != null ? (C.BarChartSeries)template.CloneNode(true) : new C.BarChartSeries();
+                    seriesElement.RemoveAllChildren<C.Trendline>();
                     InsertSeries(barChart, seriesElement);
                     existingSeries.Add(seriesElement);
                 }
@@ -610,6 +611,7 @@ namespace OfficeIMO.PowerPoint {
                     seriesElement = existingSeries[i];
                 } else {
                     seriesElement = template != null ? (C.LineChartSeries)template.CloneNode(true) : new C.LineChartSeries();
+                    seriesElement.RemoveAllChildren<C.Trendline>();
                     InsertSeries(lineChart, seriesElement);
                     existingSeries.Add(seriesElement);
                 }
@@ -636,6 +638,7 @@ namespace OfficeIMO.PowerPoint {
                     seriesElement = existingSeries[i];
                 } else {
                     seriesElement = template != null ? (C.AreaChartSeries)template.CloneNode(true) : new C.AreaChartSeries();
+                    seriesElement.RemoveAllChildren<C.Trendline>();
                     InsertSeries(areaChart, seriesElement);
                     existingSeries.Add(seriesElement);
                 }
@@ -662,6 +665,7 @@ namespace OfficeIMO.PowerPoint {
                     seriesElement = existingSeries[i];
                 } else {
                     seriesElement = template != null ? (C.ScatterChartSeries)template.CloneNode(true) : new C.ScatterChartSeries();
+                    seriesElement.RemoveAllChildren<C.Trendline>();
                     InsertSeries(scatterChart, seriesElement);
                     existingSeries.Add(seriesElement);
                 }
