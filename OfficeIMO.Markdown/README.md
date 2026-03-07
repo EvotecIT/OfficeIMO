@@ -181,6 +181,12 @@ foreach (var h2 in doc.Blocks.OfType<HeadingBlock>().Where(h => h.Level == 2)) {
 // Feature toggles align with OfficeIMO blocks/inlines
 var parsed = MarkdownReader.Parse(markdown, new MarkdownReaderOptions { Tables = true, Callouts = true });
 
+// Opt into a lightweight syntax tree with top-level source spans.
+var detailed = MarkdownReader.ParseWithSyntaxTree(markdown);
+foreach (var node in detailed.SyntaxTree.Children) {
+    Console.WriteLine($"{node.Kind} @ {node.SourceSpan}");
+}
+
 // TOC placeholders in Markdown are recognized and rendered:
 // [TOC] or [[TOC]] or {:toc} or <!-- TOC -->
 // Parameterized form: [TOC min=2 max=3 layout=sidebar-right sticky=true scrollspy=true title="On this page"]
