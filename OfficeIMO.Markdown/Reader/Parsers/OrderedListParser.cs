@@ -43,6 +43,7 @@ public static partial class MarkdownReader {
                 for (int p = 1; p < firstParas.Count; p++) first.AdditionalParagraphs.Add(firstParas[p]);
             }
             first.Level = 0;
+            AddListItemLeadSyntaxNodes(first, firstLines, i, options, state);
             ol.Items.Add(first);
 
             ConsumeNestedBlocksForListItem(lines, ref j, lvl0Abs, firstContinuationIndent, options, state, first, allowNestedOrdered: true, allowNestedUnordered: true);
@@ -62,6 +63,7 @@ public static partial class MarkdownReader {
                     for (int p = 1; p < paras.Count; p++) li.AdditionalParagraphs.Add(paras[p]);
                 }
                 li.Level = lvlAbs - lvl0Abs;
+                AddListItemLeadSyntaxNodes(li, itemLines, j, options, state);
                 ol.Items.Add(li);
                 j = next;
 

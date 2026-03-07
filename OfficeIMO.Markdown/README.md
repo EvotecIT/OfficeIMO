@@ -186,6 +186,7 @@ var detailed = MarkdownReader.ParseWithSyntaxTree(markdown);
 foreach (var node in detailed.SyntaxTree.Children) {
     Console.WriteLine($"{node.Kind} @ {node.SourceSpan}");
 }
+// Nested quote/callout content and list-item child blocks also carry source spans when available.
 
 // TOC placeholders in Markdown are recognized and rendered:
 // [TOC] or [[TOC]] or {:toc} or <!-- TOC -->

@@ -21,6 +21,7 @@ public static partial class MarkdownReader {
                 for (int p = 1; p < firstParas.Count; p++) first.AdditionalParagraphs.Add(firstParas[p]);
             }
             first.Level = 0;
+            AddListItemLeadSyntaxNodes(first, firstLines, i, options, state);
             ul.Items.Add(first);
 
             // Allow both same-type and mixed nested lists under the current item.
@@ -41,6 +42,7 @@ public static partial class MarkdownReader {
                     for (int p = 1; p < paras.Count; p++) li.AdditionalParagraphs.Add(paras[p]);
                 }
                 li.Level = lvlAbs - level0Abs;
+                AddListItemLeadSyntaxNodes(li, itemLines, j, options, state);
                 ul.Items.Add(li);
                 j = next;
 

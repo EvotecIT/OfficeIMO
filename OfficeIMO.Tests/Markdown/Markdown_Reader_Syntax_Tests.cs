@@ -63,6 +63,81 @@ Paragraph text
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_ListItem_Child_Spans() {
+        var markdown = """
+- lead
+  continued
+
+  > quoted
+  > second
+
+  trailing para
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var list = Assert.Single(result.SyntaxTree.Children);
+        var item = Assert.Single(list.Children);
+        Assert.Equal(MarkdownSyntaxKind.ListItem, item.Kind);
+        Assert.Equal(3, item.Children.Count);
+
+        var leadParagraph = item.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, leadParagraph.Kind);
+        Assert.NotNull(leadParagraph.SourceSpan);
+        Assert.Equal(1, leadParagraph.SourceSpan!.Value.StartLine);
+        Assert.Equal(2, leadParagraph.SourceSpan!.Value.EndLine);
+        Assert.Equal("lead continued", leadParagraph.Literal);
+
+        var quote = item.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.Quote, quote.Kind);
+        Assert.NotNull(quote.SourceSpan);
+        Assert.Equal(4, quote.SourceSpan!.Value.StartLine);
+        Assert.Equal(5, quote.SourceSpan!.Value.EndLine);
+        var quoteParagraph = Assert.Single(quote.Children);
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, quoteParagraph.Kind);
+        Assert.NotNull(quoteParagraph.SourceSpan);
+        Assert.Equal(4, quoteParagraph.SourceSpan!.Value.StartLine);
+        Assert.Equal(5, quoteParagraph.SourceSpan!.Value.EndLine);
+
+        var trailingParagraph = item.Children[2];
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, trailingParagraph.Kind);
+        Assert.NotNull(trailingParagraph.SourceSpan);
+        Assert.Equal(7, trailingParagraph.SourceSpan!.Value.StartLine);
+        Assert.Equal(7, trailingParagraph.SourceSpan!.Value.EndLine);
+        Assert.Equal("trailing para", trailingParagraph.Literal);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Captures_Setext_Headings_Inside_List_Items() {
+        var markdown = """
+- Item title
+  ----------
+
+  body
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var list = Assert.Single(result.SyntaxTree.Children);
+        var item = Assert.Single(list.Children);
+        Assert.Equal(2, item.Children.Count);
+
+        var heading = item.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
+        Assert.NotNull(heading.SourceSpan);
+        Assert.Equal(1, heading.SourceSpan!.Value.StartLine);
+        Assert.Equal(2, heading.SourceSpan!.Value.EndLine);
+        Assert.Equal("Item title", heading.Literal);
+
+        var paragraph = item.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
+        Assert.NotNull(paragraph.SourceSpan);
+        Assert.Equal(4, paragraph.SourceSpan!.Value.StartLine);
+        Assert.Equal(4, paragraph.SourceSpan!.Value.EndLine);
+        Assert.Equal("body", paragraph.Literal);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Nested_Quote_Child_Spans() {
         var markdown = """
 > quoted

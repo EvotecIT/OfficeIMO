@@ -6,4 +6,5 @@ namespace OfficeIMO.Markdown;
 public sealed class MarkdownReaderState {
     /// <summary>Reference-style link definitions collected while parsing.</summary>
     public Dictionary<string, (string Url, string? Title)> LinkRefs { get; } = new Dictionary<string, (string, string?)>(System.StringComparer.OrdinalIgnoreCase);
+    internal int SourceLineOffset { get; set; }
 }

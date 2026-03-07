@@ -18,6 +18,7 @@ public sealed class ListItem {
     public int Level { get; set; }
     /// <summary>Forces paragraph-wrapped loose rendering even when only the first paragraph and child blocks exist.</summary>
     public bool ForceLoose { get; set; }
+    internal List<MarkdownSyntaxNode> SyntaxChildren { get; } = new List<MarkdownSyntaxNode>();
 
     /// <summary>Creates a plain list item.</summary>
     public ListItem(InlineSequence content) { Content = content; }

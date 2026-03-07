@@ -108,14 +108,18 @@ public static partial class MarkdownReader {
 
     private static MarkdownSyntaxNode BuildListItemSyntaxNode(ListItem item, MarkdownSyntaxNode? nestedList) {
         var children = new List<MarkdownSyntaxNode>();
-        if (item.Content.Items.Count > 0 || (item.AdditionalParagraphs.Count == 0 && item.Children.Count == 0)) {
-            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: item.Content.RenderMarkdown()));
-        }
-        for (int i = 0; i < item.AdditionalParagraphs.Count; i++) {
-            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: item.AdditionalParagraphs[i].RenderMarkdown()));
-        }
-        for (int i = 0; i < item.Children.Count; i++) {
-            children.Add(BuildSyntaxNode(item.Children[i]));
+        if (item.SyntaxChildren.Count > 0) {
+            children.AddRange(item.SyntaxChildren);
+        } else {
+            if (item.Content.Items.Count > 0 || (item.AdditionalParagraphs.Count == 0 && item.Children.Count == 0)) {
+                children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: item.Content.RenderMarkdown()));
+            }
+            for (int i = 0; i < item.AdditionalParagraphs.Count; i++) {
+                children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: item.AdditionalParagraphs[i].RenderMarkdown()));
+            }
+            for (int i = 0; i < item.Children.Count; i++) {
+                children.Add(BuildSyntaxNode(item.Children[i]));
+            }
         }
         if (nestedList != null) children.Add(nestedList);
 
