@@ -712,6 +712,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CanClearPointLevelDataLabelOverrides() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                var data = new PowerPointChartData(
+                    new[] { "North", "South", "West" },
+                    new[] { new PowerPointChartSeries("Sales", new[] { 42d, 31d, 27d }) });
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddPieChart(data);
+                    chart.SetSeriesDataLabels(0, showValue: true, position: C.DataLabelPositionValues.BestFit, numberFormat: "0.0", sourceLinked: false)
+                        .SetSeriesDataLabelTemplateForPoint(0, 1, new PowerPointChartDataLabelTemplate {
+                            ShowValue = true,
+                            ShowCategoryName = true,
+                            Position = C.DataLabelPositionValues.OutsideEnd,
+                            NumberFormat = "0.00",
+                            Separator = " | ",
+                            FontSizePoints = 11,
+                            Bold = true,
+                            FontName = "Calibri",
+                            TextColor = "C00000",
+                            FillColor = "FFF2CC",
+                            LineColor = "C00000",
+                            LineWidthPoints = 0.75
+                        })
+                        .ClearSeriesDataLabelForPoint(0, 1);
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator();
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.DataLabels labels = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
+                        .GetFirstChild<C.PlotArea>()!
+                        .GetFirstChild<C.PieChart>()!
+                        .Elements<C.PieChartSeries>()
+                        .Single()
+                        .GetFirstChild<C.DataLabels>()!;
+
+                    Assert.True(labels.GetFirstChild<C.ShowValue>()?.Val?.Value);
+                    Assert.Equal(C.DataLabelPositionValues.BestFit, labels.GetFirstChild<C.DataLabelPosition>()?.Val?.Value);
+                    Assert.Equal("0.0", labels.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value);
+                    Assert.False(labels.Elements<C.DataLabel>().Any());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void CanAddSeriesTrendlineToLineChart() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 

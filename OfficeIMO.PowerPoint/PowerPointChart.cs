@@ -784,6 +784,52 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Removes point-level data label overrides for a specific point by series index.
+        /// </summary>
+        public PowerPointChart ClearSeriesDataLabelForPoint(int seriesIndex, int pointIndex) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            if (pointIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(pointIndex));
+            }
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                ClearDataLabel(series, pointIndex);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Removes point-level data label overrides for a specific point by series name.
+        /// </summary>
+        public PowerPointChart ClearSeriesDataLabelForPoint(string seriesName, int pointIndex, bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+            if (pointIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(pointIndex));
+            }
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                ClearDataLabel(series, pointIndex);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
         ///     Configures a single data label point by series index and point index.
         /// </summary>
         public PowerPointChart SetSeriesDataLabelForPoint(int seriesIndex, int pointIndex, bool? showValue = null,
@@ -2779,6 +2825,23 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return label;
+        }
+
+        private static void ClearDataLabel(OpenXmlCompositeElement series, int pointIndex) {
+            C.DataLabels? labels = series.GetFirstChild<C.DataLabels>();
+            if (labels == null) {
+                return;
+            }
+
+            uint index = (uint)pointIndex;
+            C.DataLabel? label = labels.Elements<C.DataLabel>()
+                .FirstOrDefault(item => item.GetFirstChild<C.Index>()?.Val?.Value == index);
+            if (label == null) {
+                return;
+            }
+
+            label.Remove();
+            NormalizeDataLabelsOrder(labels);
         }
 
         private static C.ChartShapeProperties EnsureDataLabelShapeProperties(OpenXmlCompositeElement labels) {
