@@ -519,6 +519,17 @@ c | d
             Assert.Contains("first line second line", html);
         }
 
+        [Theory]
+        [InlineData("- item\n  heading\n  -------", "<ul><li><h2", ">item heading</h2></li></ul>")]
+        [InlineData("1. item\n   heading\n   -------", "<ol><li><h2", ">item heading</h2></li></ol>")]
+        public void List_Item_Can_Render_Setext_Heading(string md, string expectedPrefix, string expectedSuffix) {
+            var doc = MarkdownReader.Parse(md);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains(expectedPrefix, html, StringComparison.Ordinal);
+            Assert.Contains(expectedSuffix, html, StringComparison.Ordinal);
+        }
+
         [Fact]
         public void List_Item_Does_Not_Break_Continuation_On_Pipe_Text() {
             string md = """

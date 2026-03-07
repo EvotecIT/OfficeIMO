@@ -36,6 +36,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "unordered-list-indented-code-then-paragraph", "- item\n\n      code\n\n  after" };
         yield return new object[] { "ordered-list-nested-blockquote-then-code", "1. item\n   > quote\n\n      code" };
         yield return new object[] { "setext-heading-before-list", "Heading\n-------\n- item" };
+        yield return new object[] { "list-setext-heading", "- item\n  heading\n  -------" };
     }
 
     [Theory]
