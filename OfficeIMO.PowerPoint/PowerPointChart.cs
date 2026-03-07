@@ -838,6 +838,43 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Enables callout-style labels for a specific point by series index.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelCalloutsForPoint(int seriesIndex, int pointIndex, bool enabled = true,
+            C.DataLabelPositionValues? position = null) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            if (pointIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(pointIndex));
+            }
+
+            C.DataLabelPositionValues? resolvedPosition = enabled ? position ?? C.DataLabelPositionValues.OutsideEnd : position;
+            return SetSeriesDataLabelForPoint(seriesIndex, pointIndex, showValue: enabled, showCategoryName: false,
+                showSeriesName: false, showLegendKey: false, showPercent: false, position: resolvedPosition,
+                numberFormat: null, sourceLinked: false);
+        }
+
+        /// <summary>
+        ///     Enables callout-style labels for a specific point by series name.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelCalloutsForPoint(string seriesName, int pointIndex, bool enabled = true,
+            C.DataLabelPositionValues? position = null,
+            bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+            if (pointIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(pointIndex));
+            }
+
+            C.DataLabelPositionValues? resolvedPosition = enabled ? position ?? C.DataLabelPositionValues.OutsideEnd : position;
+            return SetSeriesDataLabelForPoint(seriesName, pointIndex, showValue: enabled, showCategoryName: false,
+                showSeriesName: false, showLegendKey: false, showPercent: false, position: resolvedPosition,
+                numberFormat: null, sourceLinked: false, ignoreCase: ignoreCase);
+        }
+
+        /// <summary>
         ///     Sets the data label separator for a specific point by series index.
         /// </summary>
         public PowerPointChart SetSeriesDataLabelSeparatorForPoint(int seriesIndex, int pointIndex, string? separator) {
