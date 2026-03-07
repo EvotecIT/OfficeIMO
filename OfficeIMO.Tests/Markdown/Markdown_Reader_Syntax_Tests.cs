@@ -340,7 +340,7 @@ Lead[^1]
 
         var result = MarkdownReader.ParseWithSyntaxTree(markdown);
 
-        var footnote = Assert.Single(result.SyntaxTree.Children.Where(node => node.Kind == MarkdownSyntaxKind.FootnoteDefinition));
+        var footnote = Assert.Single(result.SyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.FootnoteDefinition);
         Assert.NotNull(footnote.SourceSpan);
         Assert.Equal(3, footnote.SourceSpan!.Value.StartLine);
         Assert.Equal(6, footnote.SourceSpan!.Value.EndLine);
@@ -538,6 +538,31 @@ Paragraph
 
         Assert.Null(result.FindDeepestNodeContainingSpan(new MarkdownSourceSpan(50, 51)));
         Assert.Empty(result.FindNodePathContainingSpan(new MarkdownSourceSpan(50, 51)));
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Finds_Deepest_Node_By_Overlapping_Span() {
+        var markdown = """
+# Title
+
+Paragraph text
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var deepest = result.FindDeepestNodeOverlappingSpan(new MarkdownSourceSpan(1, 2));
+        Assert.NotNull(deepest);
+        Assert.Equal(MarkdownSyntaxKind.Heading, deepest!.Kind);
+        Assert.Equal("Title", deepest.Literal);
+
+        var path = result.FindNodePathOverlappingSpan(new MarkdownSourceSpan(2, 3)).Select(node => node.Kind).ToArray();
+        Assert.Equal(new[] {
+            MarkdownSyntaxKind.Document,
+            MarkdownSyntaxKind.Paragraph
+        }, path);
+
+        Assert.Null(result.FindDeepestNodeOverlappingSpan(new MarkdownSourceSpan(50, 51)));
+        Assert.Empty(result.FindNodePathOverlappingSpan(new MarkdownSourceSpan(50, 51)));
     }
 
     [Fact]
