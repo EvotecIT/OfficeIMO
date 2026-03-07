@@ -121,6 +121,20 @@ public sealed class MarkdownRendererOptions {
     public bool NormalizeCompactStrongLabelListBoundaries { get; set; } = false;
 
     /// <summary>
+    /// When true, inserts a missing newline before compact ATX headings emitted directly after prose or symbols
+    /// on the same line (for example, <c>unexpected### Reason</c> becomes <c>unexpected\n### Reason</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeCompactHeadingBoundaries { get; set; } = false;
+
+    /// <summary>
+    /// When true, inserts a missing newline between a colon and an immediately-following unordered list marker
+    /// on the same line (for example, <c>Next step:- **Item**</c> becomes <c>Next step:\n- **Item**</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeColonListBoundaries { get; set; } = false;
+
+    /// <summary>
     /// When true, trims accidental whitespace immediately inside strong delimiters
     /// (for example, <c>** Healthy**</c> or <c>**Healthy **</c> become <c>**Healthy**</c>).
     /// Default: false.

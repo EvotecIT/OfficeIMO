@@ -263,6 +263,29 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
+    public void DocumentReader_MarkdownChunking_CanApply_BlockBoundaryNormalization() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path, "previous shutdown was unexpected### Reason- **Unplanned / unexpected reboot**");
+
+            var chunks = DocumentReader.Read(path, new ReaderOptions {
+                MarkdownInputNormalization = new MarkdownInputNormalizationOptions {
+                    NormalizeCompactHeadingBoundaries = true,
+                    NormalizeHeadingListBoundaries = true,
+                    NormalizeCompactStrongLabelListBoundaries = true
+                }
+            }).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
+
+            Assert.Equal(2, chunks.Count);
+            Assert.Equal("Reason", chunks[1].Location.HeadingPath);
+            Assert.Contains("### Reason", chunks[1].Markdown ?? string.Empty, StringComparison.Ordinal);
+            Assert.Contains("- **Unplanned / unexpected reboot**", chunks[1].Markdown ?? string.Empty, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_MarkdownChunking_AssignsSubBlockAnchorsWhenChunksSplitWithinAHeading() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
         try {

@@ -2453,6 +2453,8 @@ public static class DocumentReader {
             NormalizeTightColonSpacing = options.NormalizeTightColonSpacing,
             NormalizeHeadingListBoundaries = options.NormalizeHeadingListBoundaries,
             NormalizeCompactStrongLabelListBoundaries = options.NormalizeCompactStrongLabelListBoundaries,
+            NormalizeCompactHeadingBoundaries = options.NormalizeCompactHeadingBoundaries,
+            NormalizeColonListBoundaries = options.NormalizeColonListBoundaries,
             NormalizeLooseStrongDelimiters = options.NormalizeLooseStrongDelimiters,
             NormalizeOrderedListMarkerSpacing = options.NormalizeOrderedListMarkerSpacing,
             NormalizeOrderedListParenMarkers = options.NormalizeOrderedListParenMarkers,

@@ -108,6 +108,38 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
+    public void Reader_Can_Normalize_CompactHeadingBoundaries_BeforeParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeCompactHeadingBoundaries = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("previous shutdown was unexpected### Reason", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<p>previous shutdown was unexpected</p>", html, StringComparison.Ordinal);
+        Assert.Contains("<h3", html, StringComparison.Ordinal);
+        Assert.Contains("Reason", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reader_Can_Normalize_ColonListBoundaries_BeforeParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeColonListBoundaries = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("Następny najlepszy krok:- **`ad_domain_controller_facts`**", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<p>Następny najlepszy krok:</p>", html, StringComparison.Ordinal);
+        Assert.Equal(1, Count(html, "<li"));
+        Assert.Contains("ad_domain_controller_facts", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_DoesNot_Normalize_TightColonSpacing_InsideInlineCode() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
