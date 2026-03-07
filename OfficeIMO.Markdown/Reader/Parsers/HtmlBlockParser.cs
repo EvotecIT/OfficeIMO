@@ -112,7 +112,7 @@ public static partial class MarkdownReader {
 
             string htmlContent = string.Join("\n", segments);
             if (string.Equals(blockState.PrimaryTagName, "details", StringComparison.OrdinalIgnoreCase) &&
-                TryParseDetails(htmlContent, options, state, out var details)) {
+                TryParseDetails(htmlContent, i, options, state, out var details)) {
                 doc.Add(details!);
             } else if (blockState.Kind == HtmlBlockKind.Type2) {
                 doc.Add(new HtmlCommentBlock(htmlContent));
@@ -123,7 +123,7 @@ public static partial class MarkdownReader {
             return true;
         }
 
-        private static bool TryParseDetails(string htmlContent, MarkdownReaderOptions options, MarkdownReaderState state, out DetailsBlock? block) {
+        private static bool TryParseDetails(string htmlContent, int startLineIndex, MarkdownReaderOptions options, MarkdownReaderState state, out DetailsBlock? block) {
             block = null;
             if (string.IsNullOrWhiteSpace(htmlContent)) return false;
 
@@ -159,12 +159,26 @@ public static partial class MarkdownReader {
             string body = inner.Substring(bodyStart);
             var nestedOptions = CloneOptionsWithoutFrontMatter(options);
             var nestedState = CloneState(state);
-            var nestedDoc = ParseInternal(body, nestedOptions, nestedState, allowFrontMatter: false);
+            var syntaxChildren = new List<MarkdownSyntaxNode>();
+            int bodyLineOffset = state.SourceLineOffset + startLineIndex + CountNewLines(htmlContent, 0, tagEnd + 1) + CountNewLines(inner, 0, bodyStart);
+            var nestedDoc = ParseInternal(body, nestedOptions, nestedState, allowFrontMatter: false, syntaxChildren, lineOffset: bodyLineOffset);
             block = new DetailsBlock(summary, nestedDoc.Blocks, isOpen) {
                 InsertBlankLineAfterSummary = body.StartsWith("\n\n", StringComparison.Ordinal),
                 InsertBlankLineBeforeClosing = body.EndsWith("\n\n", StringComparison.Ordinal)
             };
+            block.SyntaxChildren = syntaxChildren;
             return true;
+        }
+
+        private static int CountNewLines(string text, int start, int length) {
+            if (string.IsNullOrEmpty(text) || length <= 0 || start >= text.Length) return 0;
+
+            int end = Math.Min(text.Length, start + length);
+            int count = 0;
+            for (int i = start; i < end; i++) {
+                if (text[i] == '\n') count++;
+            }
+            return count;
         }
 
         private static bool TryGetHtmlBlockState(string trimmedLine, out HtmlBlockState state) {

@@ -288,6 +288,40 @@ Other: Another
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Details_Body_Child_Spans() {
+        var markdown = """
+<details>
+<summary>Summary</summary>
+
+- item
+  continued
+
+</details>
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var details = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.Details, details.Kind);
+        Assert.Equal(2, details.Children.Count);
+
+        var summary = details.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.Summary, summary.Kind);
+
+        var list = details.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.UnorderedList, list.Kind);
+        Assert.NotNull(list.SourceSpan);
+        Assert.Equal(4, list.SourceSpan!.Value.StartLine);
+        Assert.Equal(5, list.SourceSpan!.Value.EndLine);
+
+        var item = Assert.Single(list.Children);
+        Assert.Equal(MarkdownSyntaxKind.ListItem, item.Kind);
+        Assert.NotNull(item.SourceSpan);
+        Assert.Equal(4, item.SourceSpan!.Value.StartLine);
+        Assert.Equal(5, item.SourceSpan!.Value.EndLine);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Preserves_Existing_Object_Model_Output() {
         var markdown = """
 > quote
