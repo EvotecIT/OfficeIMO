@@ -14,6 +14,7 @@ namespace OfficeIMO.Visio {
             Ellipse,
             Diamond,
             Triangle,
+            Pentagon,
             Parallelogram,
             Hexagon,
             Trapezoid,
@@ -349,6 +350,10 @@ namespace OfficeIMO.Visio {
                 ["Preparation"] = new("13", BuiltinGeometryKind.Hexagon, false, "Drag onto the page.", false, true, 2, "flowchart,preparation,setup,hexagon"),
                 ["Manual operation"] = new("14", BuiltinGeometryKind.Trapezoid, false, "Drag onto the page.", false, true, 2, "flowchart,manual,operation,trapezoid"),
                 ["Off-page reference"] = new("15", BuiltinGeometryKind.OffPageReference, false, "Drag onto the page.", false, true, 2, "flowchart,reference,off-page,pentagon"),
+                ["Parallelogram"] = new("16", BuiltinGeometryKind.Parallelogram, false, "Drag onto the page.", false, true, 2, "basic,shape,geometry,parallelogram,quadrilateral"),
+                ["Hexagon"] = new("17", BuiltinGeometryKind.Hexagon, false, "Drag onto the page.", false, true, 2, "basic,shape,geometry,hexagon,polygon"),
+                ["Trapezoid"] = new("18", BuiltinGeometryKind.Trapezoid, false, "Drag onto the page.", false, true, 2, "basic,shape,geometry,trapezoid,polygon"),
+                ["Pentagon"] = new("19", BuiltinGeometryKind.Pentagon, false, "Drag onto the page.", false, true, 2, "basic,shape,geometry,pentagon,polygon"),
             };
 
             foreach (KeyValuePair<string, BuiltinMasterDefinition> entry in definitions) {
