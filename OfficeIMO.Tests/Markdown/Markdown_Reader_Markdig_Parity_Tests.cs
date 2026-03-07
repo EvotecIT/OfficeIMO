@@ -22,6 +22,14 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "loose-list-followed-by-paragraph", "- item\n\n  second paragraph" };
         yield return new object[] { "autolink-trailing-punctuation", "Visit https://example.com/path_(x))." };
         yield return new object[] { "quoted-indented-code", "> para\n>\n>     code" };
+        yield return new object[] { "quoted-blank-line-then-list", "> intro\n>\n> - item" };
+        yield return new object[] { "list-item-fenced-code", "- item\n\n  ```js\n  let x = 1;\n  ```" };
+        yield return new object[] { "blockquote-ends-before-nonquoted-paragraph", "> quote\n\noutside" };
+        yield return new object[] { "blockquote-ends-before-nonquoted-list", "> quote\n- outside" };
+        yield return new object[] { "list-blank-line-then-quote-then-paragraph", "- item\n\n  > quote\n\n  after" };
+        yield return new object[] { "ordered-list-fenced-code-followed-by-paragraph", "1. item\n\n   ```txt\n   code\n   ```\n\n   after" };
+        yield return new object[] { "autolink-balanced-parens-then-comma", "Visit https://example.com/path_(x), ok" };
+        yield return new object[] { "autolink-www-balanced-parens-then-dot", "Visit www.example.com/path_(x)." };
     }
 
     [Theory]
