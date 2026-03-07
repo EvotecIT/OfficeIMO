@@ -747,22 +747,34 @@ public static partial class MarkdownReader {
 
         while (index < lines.Length) {
             int k = index;
+            bool sawBlankLine = false;
 
             // Skip blank lines only when they are followed by nested content.
             while (k < lines.Length && string.IsNullOrWhiteSpace(lines[k])) {
+                sawBlankLine = true;
                 int peek = k + 1;
                 if (peek >= lines.Length) return;
                 var next = lines[peek] ?? string.Empty;
-                if (!IsListNestedBlockStart(next, continuationIndent, itemLevelAbs, allowNestedOrdered, allowNestedUnordered, options)) return;
-                k++;
+                if (string.IsNullOrWhiteSpace(next)) {
+                    k = peek;
+                    continue;
+                }
+                if (CountLeadingSpaces(next) < continuationIndent) return;
+                if (!IsListNestedBlockStart(next, continuationIndent, itemLevelAbs, allowNestedOrdered, allowNestedUnordered, options)) {
+                    k = peek;
+                    break;
+                }
+                k = peek;
             }
 
             if (k >= lines.Length) { index = k; return; }
+            if (!sawBlankLine && k > 0 && string.IsNullOrWhiteSpace(lines[k - 1])) sawBlankLine = true;
 
             // Nested fenced code block
             int tmp = k;
             if (TryParseNestedFencedCodeBlock(lines, ref tmp, continuationIndent, options, out var code) && code != null) {
                 item.Children.Add(code);
+                if (sawBlankLine) item.ForceLoose = true;
                 index = tmp;
                 continue;
             }
@@ -771,6 +783,7 @@ public static partial class MarkdownReader {
             tmp = k;
             if (TryParseNestedIndentedCodeBlock(lines, ref tmp, continuationIndent, options, out var indented) && indented != null) {
                 item.Children.Add(indented);
+                if (sawBlankLine) item.ForceLoose = true;
                 index = tmp;
                 continue;
             }
@@ -779,6 +792,7 @@ public static partial class MarkdownReader {
             tmp = k;
             if (TryParseNestedQuoteBlock(lines, ref tmp, continuationIndent, options, state, out var quote) && quote != null) {
                 item.Children.Add(quote);
+                if (sawBlankLine) item.ForceLoose = true;
                 index = tmp;
                 continue;
             }
@@ -787,6 +801,7 @@ public static partial class MarkdownReader {
             tmp = k;
             if (TryParseNestedTableBlock(lines, ref tmp, continuationIndent, options, state, out var table) && table != null) {
                 item.Children.Add(table);
+                if (sawBlankLine) item.ForceLoose = true;
                 index = tmp;
                 continue;
             }
@@ -795,6 +810,7 @@ public static partial class MarkdownReader {
             tmp = k;
             if (TryParseNestedHtmlBlock(lines, ref tmp, continuationIndent, options, state, out var htmlBlock) && htmlBlock != null) {
                 item.Children.Add(htmlBlock);
+                if (sawBlankLine) item.ForceLoose = true;
                 index = tmp;
                 continue;
             }
@@ -806,6 +822,7 @@ public static partial class MarkdownReader {
                 var parser = new OrderedListParser();
                 if (parser.TryParse(lines, ref idx, options, tempDoc, state) && tempDoc.Blocks.Count == 1 && tempDoc.Blocks[0] is OrderedListBlock ol) {
                     item.Children.Add(ol);
+                    if (sawBlankLine) item.ForceLoose = true;
                     index = idx;
                     continue;
                 }
@@ -818,15 +835,58 @@ public static partial class MarkdownReader {
                 var parser = new UnorderedListParser();
                 if (parser.TryParse(lines, ref idx, options, tempDoc, state) && tempDoc.Blocks.Count == 1 && tempDoc.Blocks[0] is UnorderedListBlock ul) {
                     item.Children.Add(ul);
+                    if (sawBlankLine) item.ForceLoose = true;
                     index = idx;
                     continue;
                 }
+            }
+
+            tmp = k;
+            if (TryParseTrailingParagraphsForListItem(lines, ref tmp, itemLevelAbs, continuationIndent, options, state, out var trailingParagraphs) && trailingParagraphs.Count > 0) {
+                foreach (var paragraph in trailingParagraphs) {
+                    item.Children.Add(paragraph);
+                }
+                if (sawBlankLine || item.Children.Count > 0) item.ForceLoose = true;
+                index = tmp;
+                continue;
             }
 
             // Nothing nested to consume.
             index = k;
             return;
         }
+    }
+
+    private static bool TryParseTrailingParagraphsForListItem(
+        string[] lines,
+        ref int index,
+        int itemLevelAbs,
+        int continuationIndent,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state,
+        out List<ParagraphBlock> paragraphs) {
+
+        paragraphs = new List<ParagraphBlock>();
+        if (lines == null || index < 0 || index >= lines.Length) return false;
+
+        string line = lines[index] ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(line)) return false;
+        if (CountLeadingSpaces(line) < continuationIndent) return false;
+        if (IsListNestedBlockStart(line, continuationIndent, itemLevelAbs, allowNestedOrdered: true, allowNestedUnordered: true, options)) return false;
+        if (IsUnorderedListLine(line, out _, out _, out _, out _) || IsOrderedListLine(line, out _, out _, out _)) return false;
+
+        string firstContent = line.Length >= continuationIndent ? line.Substring(continuationIndent) : string.Empty;
+        firstContent = firstContent.TrimStart();
+
+        int next = index + 1;
+        var paragraphLines = ConsumeListContinuationLines(lines, ref next, itemLevelAbs, firstContent, options);
+        var paragraphInlines = ParseParagraphsFromLines(paragraphLines, options, state);
+        for (int i = 0; i < paragraphInlines.Count; i++) {
+            paragraphs.Add(new ParagraphBlock(paragraphInlines[i]));
+        }
+
+        index = next;
+        return paragraphs.Count > 0;
     }
 
     private static bool IsListNestedBlockStart(

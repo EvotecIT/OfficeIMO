@@ -299,9 +299,10 @@ c | d
             Assert.Equal(2, list.Items.Count);
             Assert.Single(list.Items[0].Children);
             Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
+            Assert.True(list.Items[0].ForceLoose);
 
             var html = doc.ToHtmlFragment();
-            Assert.Contains("<li>outer<blockquote>", html);
+            Assert.Contains("<li><p>outer</p><blockquote>", html, StringComparison.Ordinal);
             Assert.Contains("quote 1", html);
         }
 
@@ -396,9 +397,10 @@ c | d
             Assert.Single(list.Items[0].Children);
             var table = Assert.IsType<TableBlock>(list.Items[0].Children[0]);
             Assert.Equal(2, table.Headers.Count);
+            Assert.True(list.Items[0].ForceLoose);
 
             var html = doc.ToHtmlFragment();
-            Assert.Contains("<li>outer<table>", html);
+            Assert.Contains("<li><p>outer</p><table>", html, StringComparison.Ordinal);
             Assert.Contains(">A<", html);
         }
 
@@ -417,10 +419,52 @@ c | d
             Assert.Single(list.Items[0].Children);
             var code = Assert.IsType<CodeBlock>(list.Items[0].Children[0]);
             Assert.Contains("line1", code.Content);
+            Assert.True(list.Items[0].ForceLoose);
 
             var html = doc.ToHtmlFragment();
-            Assert.Contains("<li>outer<pre><code>", html);
+            Assert.Contains("<li><p>outer</p><pre><code>", html, StringComparison.Ordinal);
             Assert.Contains("line1", html);
+        }
+
+        [Fact]
+        public void List_Item_Keeps_Trailing_Paragraph_After_Nested_Blockquote() {
+            string md = """
+- item
+  > quote
+
+  trailing
+""";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Single(list.Items);
+            Assert.Equal(2, list.Items[0].Children.Count);
+            Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
+            Assert.IsType<ParagraphBlock>(list.Items[0].Children[1]);
+            Assert.True(list.Items[0].ForceLoose);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("<li><p>item</p><blockquote><p>quote</p></blockquote><p>trailing</p></li>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void List_Item_Keeps_Trailing_Paragraph_After_BlankLine_Separated_Nested_Blockquote() {
+            string md = """
+- item
+
+  > quote
+
+  trailing
+""";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Single(list.Items);
+            Assert.Equal(2, list.Items[0].Children.Count);
+            Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
+            Assert.IsType<ParagraphBlock>(list.Items[0].Children[1]);
+            Assert.True(list.Items[0].ForceLoose);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("<li><p>item</p><blockquote><p>quote</p></blockquote><p>trailing</p></li>", html, StringComparison.Ordinal);
         }
 
         [Fact]
