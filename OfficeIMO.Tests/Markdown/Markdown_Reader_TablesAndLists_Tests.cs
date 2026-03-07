@@ -548,6 +548,22 @@ c | d
         }
 
         [Fact]
+        public void NonOne_Ordered_Marker_Does_Not_Interrupt_List_Item_Paragraph() {
+            string md = """
+- outer
+  10. item
+      continuation
+""";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Single(list.Items);
+            Assert.Empty(list.Items[0].Children);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<ul><li>outer 10. item continuation</li></ul>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void List_Item_Does_Not_Break_Continuation_On_Pipe_Text() {
             string md = """
 - outer
