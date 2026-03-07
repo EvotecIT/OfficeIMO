@@ -429,6 +429,58 @@ Lead[^1]
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Fenced_Code_Block_Structure() {
+        var markdown = """
+```csharp
+Console.WriteLine("hi");
+```
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var code = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.CodeBlock, code.Kind);
+        Assert.NotNull(code.SourceSpan);
+        Assert.Equal(1, code.SourceSpan!.Value.StartLine);
+        Assert.Equal(3, code.SourceSpan!.Value.EndLine);
+        Assert.Equal(2, code.Children.Count);
+
+        var info = code.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.CodeFenceInfo, info.Kind);
+        Assert.NotNull(info.SourceSpan);
+        Assert.Equal(1, info.SourceSpan!.Value.StartLine);
+        Assert.Equal("csharp", info.Literal);
+
+        var content = code.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.CodeContent, content.Kind);
+        Assert.NotNull(content.SourceSpan);
+        Assert.Equal(2, content.SourceSpan!.Value.StartLine);
+        Assert.Equal(2, content.SourceSpan!.Value.EndLine);
+        Assert.Equal("Console.WriteLine(\"hi\");", content.Literal);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Captures_Indented_Code_Block_Structure() {
+        var markdown = """
+    line 1
+    line 2
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var code = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.CodeBlock, code.Kind);
+        Assert.Single(code.Children);
+
+        var content = code.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.CodeContent, content.Kind);
+        Assert.NotNull(content.SourceSpan);
+        Assert.Equal(1, content.SourceSpan!.Value.StartLine);
+        Assert.Equal(2, content.SourceSpan!.Value.EndLine);
+        Assert.Equal("line 1\nline 2", content.Literal);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Finds_Deepest_Node_By_Line() {
         var markdown = """
 # Title

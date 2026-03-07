@@ -10,11 +10,16 @@ public sealed class CodeBlock : IMarkdownBlock, ICaptionable {
     public string Content { get; }
     /// <summary>Optional caption shown under the block.</summary>
     public string? Caption { get; set; }
+    internal bool IsFenced { get; }
 
     /// <summary>Create a code block with a language hint.</summary>
-    public CodeBlock(string language, string content) {
+    public CodeBlock(string language, string content) : this(language, content, isFenced: true) {
+    }
+
+    internal CodeBlock(string language, string content, bool isFenced) {
         Language = language ?? string.Empty;
         Content = content ?? string.Empty;
+        IsFenced = isFenced;
     }
 
     /// <inheritdoc />

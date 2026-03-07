@@ -47,7 +47,7 @@ public static partial class MarkdownReader {
 
             // Keep content as-is (minus the last newline we appended via AppendLine).
             string content = sb.ToString().TrimEnd('\r', '\n');
-            doc.Add(new CodeBlock(string.Empty, content));
+            doc.Add(new CodeBlock(string.Empty, content, isFenced: false));
             i = j;
             return true;
         }
