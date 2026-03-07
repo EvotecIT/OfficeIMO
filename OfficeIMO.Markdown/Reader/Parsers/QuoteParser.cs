@@ -53,7 +53,7 @@ public static partial class MarkdownReader {
             var nestedOptions = CloneOptionsWithoutFrontMatter(options);
             var nestedState = CloneState(state);
             var syntaxChildren = new System.Collections.Generic.List<MarkdownSyntaxNode>();
-            var innerDoc = ParseInternal(string.Join("\n", inner), nestedOptions, nestedState, allowFrontMatter: false, syntaxChildren, lineOffset: i);
+            var innerDoc = ParseInternal(string.Join("\n", inner), nestedOptions, nestedState, allowFrontMatter: false, syntaxChildren, lineOffset: state.SourceLineOffset + i);
             var qb = new QuoteBlock();
             foreach (var b in innerDoc.Blocks) qb.Children.Add(b);
             qb.SyntaxChildren = syntaxChildren;
