@@ -97,7 +97,7 @@ public static partial class MarkdownReader {
             if (index < items.Count && items[index].Level > level) {
                 var nestedLevel = items[index].Level;
                 var nestedItems = BuildListItemSyntaxNodes(items, listKind, ref index, nestedLevel);
-                nestedList = new MarkdownSyntaxNode(listKind, children: nestedItems);
+                nestedList = new MarkdownSyntaxNode(listKind, GetAggregateSpan(nestedItems), children: nestedItems);
             }
 
             nodes.Add(BuildListItemSyntaxNode(item, nestedList));
@@ -127,7 +127,7 @@ public static partial class MarkdownReader {
             ? (item.Checked ? "[x]" : "[ ]")
             : null;
 
-        return new MarkdownSyntaxNode(MarkdownSyntaxKind.ListItem, literal: literal, children: children);
+        return new MarkdownSyntaxNode(MarkdownSyntaxKind.ListItem, GetAggregateSpan(children), literal, children);
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> BuildDefinitionItemSyntaxNodes(DefinitionListBlock definitionList) {
@@ -157,5 +157,22 @@ public static partial class MarkdownReader {
             nodes.Add(BuildSyntaxNode(details.Children[i]));
         }
         return nodes;
+    }
+
+    private static MarkdownSourceSpan? GetAggregateSpan(IReadOnlyList<MarkdownSyntaxNode> nodes) {
+        if (nodes == null || nodes.Count == 0) return null;
+
+        int? start = null;
+        int? end = null;
+        for (int i = 0; i < nodes.Count; i++) {
+            var span = nodes[i].SourceSpan;
+            if (!span.HasValue) continue;
+
+            if (!start.HasValue || span.Value.StartLine < start.Value) start = span.Value.StartLine;
+            if (!end.HasValue || span.Value.EndLine > end.Value) end = span.Value.EndLine;
+        }
+
+        if (!start.HasValue || !end.HasValue) return null;
+        return new MarkdownSourceSpan(start.Value, end.Value);
     }
 }
