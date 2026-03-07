@@ -388,6 +388,8 @@ chart.SetTitle("Sales Trend")
      .SetSeriesLineColor("Series 2", "ED7D31", widthPoints: 1)
      .SetSeriesMarker(0, C.MarkerStyleValues.Circle, size: 6, fillColor: "FFFFFF", lineColor: "4472C4");
 
+chart.ClearDataLabels();
+chart.ClearSeriesDataLabels(0);
 chart.ClearSeriesDataLabelForPoint(0, 1);
 ```
 

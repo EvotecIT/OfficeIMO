@@ -243,6 +243,44 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Removes shared data label settings from all supported chart types in the current plot area.
+        /// </summary>
+        public PowerPointChart ClearDataLabels() {
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
+                RemoveDataLabels(barChart);
+            }
+
+            foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
+                RemoveDataLabels(lineChart);
+            }
+
+            foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
+                RemoveDataLabels(areaChart);
+            }
+
+            foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
+                RemoveDataLabels(pieChart);
+            }
+
+            foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
+                RemoveDataLabels(doughnutChart);
+            }
+
+            foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
+                RemoveDataLabels(scatterChart);
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
         ///     Sets the shared data label position for all supported chart types.
         /// </summary>
         public PowerPointChart SetDataLabelPosition(C.DataLabelPositionValues position) {
@@ -718,6 +756,42 @@ namespace OfficeIMO.PowerPoint {
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 ApplyDataLabelTemplate(series, template);
             });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Removes series-level data label settings by series index.
+        /// </summary>
+        public PowerPointChart ClearSeriesDataLabels(int seriesIndex) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+
+            bool applied = ApplySeriesByIndex(seriesIndex, RemoveDataLabels);
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Removes series-level data label settings by series name.
+        /// </summary>
+        public PowerPointChart ClearSeriesDataLabels(string seriesName, bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, RemoveDataLabels);
 
             if (!applied) {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
@@ -2825,6 +2899,10 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return label;
+        }
+
+        private static void RemoveDataLabels(OpenXmlCompositeElement chartElement) {
+            chartElement.GetFirstChild<C.DataLabels>()?.Remove();
         }
 
         private static void ClearDataLabel(OpenXmlCompositeElement series, int pointIndex) {

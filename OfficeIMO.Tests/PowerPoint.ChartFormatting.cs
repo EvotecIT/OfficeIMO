@@ -287,6 +287,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CanClearChartLevelDataLabels() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddPieChart();
+                    chart.SetDataLabels(showValue: true)
+                        .SetDataLabelTemplate(new PowerPointChartDataLabelTemplate {
+                            ShowValue = true,
+                            ShowCategoryName = true,
+                            Position = C.DataLabelPositionValues.OutsideEnd,
+                            Separator = " - ",
+                            TextColor = "1F4E79"
+                        })
+                        .ClearDataLabels();
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator();
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.PieChart pieChart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
+                        .GetFirstChild<C.PlotArea>()!
+                        .GetFirstChild<C.PieChart>()!;
+                    Assert.Null(pieChart.GetFirstChild<C.DataLabels>());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void CanConfigureChartDataLabelCallouts() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
@@ -406,6 +443,58 @@ namespace OfficeIMO.Tests {
                         .GetFirstChild<A.Outline>();
                     Assert.Equal("C00000", leaderLineOutline?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
                     Assert.Equal((int)Math.Round(0.75d * 12700d), leaderLineOutline?.Width?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void CanClearSeriesLevelDataLabels() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                var data = new PowerPointChartData(
+                    new[] { "Jan", "Feb", "Mar" },
+                    new[] {
+                        new PowerPointChartSeries("Revenue", new[] { 10d, 12d, 14d }),
+                        new PowerPointChartSeries("Forecast", new[] { 11d, 13d, 15d })
+                    });
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddLineChart(data);
+                    chart.SetDataLabels(showValue: true)
+                        .SetSeriesDataLabelTemplate("Forecast", new PowerPointChartDataLabelTemplate {
+                            ShowValue = true,
+                            ShowCategoryName = true,
+                            Position = C.DataLabelPositionValues.Top,
+                            Separator = " / ",
+                            TextColor = "C00000",
+                            FontName = "Calibri",
+                            FontSizePoints = 11,
+                            Bold = true
+                        })
+                        .ClearSeriesDataLabels("Forecast");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator();
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.LineChart lineChart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
+                        .GetFirstChild<C.PlotArea>()!
+                        .GetFirstChild<C.LineChart>()!;
+                    Assert.NotNull(lineChart.GetFirstChild<C.DataLabels>());
+
+                    C.LineChartSeries[] series = lineChart.Elements<C.LineChartSeries>().ToArray();
+                    Assert.Equal(2, series.Length);
+                    Assert.Null(series[0].GetFirstChild<C.DataLabels>());
+                    Assert.Null(series[1].GetFirstChild<C.DataLabels>());
                 }
             } finally {
                 if (File.Exists(filePath)) {
