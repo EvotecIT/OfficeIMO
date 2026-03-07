@@ -685,6 +685,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CanClearAxisGridlines() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddChart();
+                    chart.SetCategoryAxisGridlines(showMajor: true, lineColor: "D9D9D9", lineWidthPoints: 0.5)
+                        .SetValueAxisGridlines(showMajor: true, showMinor: true, lineColor: "C0C0C0", lineWidthPoints: 0.75)
+                        .ClearCategoryAxisGridlines()
+                        .ClearValueAxisGridlines();
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+                    C.CategoryAxis categoryAxis = chart.PlotArea!.GetFirstChild<C.CategoryAxis>()!;
+                    C.ValueAxis valueAxis = chart.PlotArea.GetFirstChild<C.ValueAxis>()!;
+
+                    Assert.Null(categoryAxis.GetFirstChild<C.MajorGridlines>());
+                    Assert.Null(categoryAxis.GetFirstChild<C.MinorGridlines>());
+                    Assert.Null(valueAxis.GetFirstChild<C.MajorGridlines>());
+                    Assert.Null(valueAxis.GetFirstChild<C.MinorGridlines>());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void CanSetScatterAxisLabelRotationAndTickPositions() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
@@ -1018,6 +1053,45 @@ namespace OfficeIMO.Tests {
                         .Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Left);
                     Assert.Equal(2d, (double?)yAxis.GetFirstChild<C.CrossesAt>()?.Val?.Value);
                     Assert.Null(yAxis.GetFirstChild<C.Crosses>());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void CanClearScatterAxisGridlines() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddScatterChart();
+                    chart.SetScatterXAxisGridlines(showMajor: true, lineColor: "D9D9D9", lineWidthPoints: 0.5)
+                        .SetScatterYAxisGridlines(showMajor: true, showMinor: true, lineColor: "C0C0C0", lineWidthPoints: 0.75)
+                        .ClearScatterXAxisGridlines()
+                        .ClearScatterYAxisGridlines();
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+                    C.ValueAxis[] axes = chart.PlotArea!
+                        .Elements<C.ValueAxis>()
+                        .ToArray();
+
+                    C.ValueAxis xAxis = axes.Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Bottom);
+                    Assert.Null(xAxis.GetFirstChild<C.MajorGridlines>());
+                    Assert.Null(xAxis.GetFirstChild<C.MinorGridlines>());
+
+                    C.ValueAxis yAxis = axes.Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Left);
+                    Assert.Null(yAxis.GetFirstChild<C.MajorGridlines>());
+                    Assert.Null(yAxis.GetFirstChild<C.MinorGridlines>());
                 }
             } finally {
                 if (File.Exists(filePath)) {
