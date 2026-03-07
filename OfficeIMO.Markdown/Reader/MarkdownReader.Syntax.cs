@@ -131,6 +131,8 @@ public static partial class MarkdownReader {
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> BuildDefinitionItemSyntaxNodes(DefinitionListBlock definitionList) {
+        if (definitionList.SyntaxItems.Count > 0) return definitionList.SyntaxItems;
+
         var nodes = new List<MarkdownSyntaxNode>();
         foreach (var (term, definition) in definitionList.Items) {
             nodes.Add(new MarkdownSyntaxNode(

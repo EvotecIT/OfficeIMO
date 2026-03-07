@@ -256,6 +256,38 @@ Paragraph text
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Definition_List_Item_Spans() {
+        var markdown = """
+Term: Definition
+Other: Another
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var definitionList = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.DefinitionList, definitionList.Kind);
+        Assert.NotNull(definitionList.SourceSpan);
+        Assert.Equal(1, definitionList.SourceSpan!.Value.StartLine);
+        Assert.Equal(2, definitionList.SourceSpan!.Value.EndLine);
+
+        Assert.Equal(2, definitionList.Children.Count);
+
+        var firstItem = definitionList.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.DefinitionItem, firstItem.Kind);
+        Assert.NotNull(firstItem.SourceSpan);
+        Assert.Equal(1, firstItem.SourceSpan!.Value.StartLine);
+        Assert.Equal(1, firstItem.SourceSpan!.Value.EndLine);
+        Assert.Equal("Term", firstItem.Literal);
+
+        var firstDefinition = Assert.Single(firstItem.Children);
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, firstDefinition.Kind);
+        Assert.NotNull(firstDefinition.SourceSpan);
+        Assert.Equal(1, firstDefinition.SourceSpan!.Value.StartLine);
+        Assert.Equal(1, firstDefinition.SourceSpan!.Value.EndLine);
+        Assert.Equal("Definition", firstDefinition.Literal);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Preserves_Existing_Object_Model_Output() {
         var markdown = """
 > quote

@@ -24,7 +24,18 @@ public static partial class MarkdownReader {
                 if (!TryGetDefinitionSeparator(lines[j], out var idx)) break;
                 var term = lines[j].Substring(0, idx).Trim();
                 var def = lines[j].Substring(idx + 1).TrimStart();
-                dl.Items.Add((term, def)); j++;
+                dl.Items.Add((term, def));
+
+                int lineNumber = state.SourceLineOffset + j + 1;
+                var lineSpan = new MarkdownSourceSpan(lineNumber, lineNumber);
+                dl.SyntaxItems.Add(new MarkdownSyntaxNode(
+                    MarkdownSyntaxKind.DefinitionItem,
+                    lineSpan,
+                    term,
+                    new[] {
+                        new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, lineSpan, def)
+                    }));
+                j++;
             }
             doc.Add(dl); i = j; return true;
         }

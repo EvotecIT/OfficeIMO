@@ -7,6 +7,7 @@ namespace OfficeIMO.Markdown;
 public sealed class DefinitionListBlock : IMarkdownBlock {
     /// <summary>List of (term, definition) pairs.</summary>
     public List<(string Term, string Definition)> Items { get; } = new List<(string, string)>();
+    internal List<MarkdownSyntaxNode> SyntaxItems { get; } = new List<MarkdownSyntaxNode>();
     internal MarkdownReaderOptions? ReaderOptions { get; private set; }
     internal MarkdownReaderState? ReaderState { get; private set; }
 
