@@ -80,9 +80,23 @@ namespace OfficeIMO.Visio.Fluent {
             return this;
         }
 
+        /// <summary>Adds a parallelogram shape.</summary>
+        public VisioFluentPage Parallelogram(string id, double x, double y, double width, double height, string? text = null) {
+            var shape = CreateShape(id, "Parallelogram", x, y, width, height, text);
+            RegisterShape(shape);
+            return this;
+        }
+
         /// <summary>Adds a flowchart preparation shape.</summary>
         public VisioFluentPage Preparation(string id, double x, double y, double width, double height, string? text = null) {
             var shape = CreateShape(id, "Preparation", x, y, width, height, text);
+            RegisterShape(shape);
+            return this;
+        }
+
+        /// <summary>Adds a hexagon shape.</summary>
+        public VisioFluentPage Hexagon(string id, double x, double y, double width, double height, string? text = null) {
+            var shape = CreateShape(id, "Hexagon", x, y, width, height, text);
             RegisterShape(shape);
             return this;
         }
@@ -94,9 +108,23 @@ namespace OfficeIMO.Visio.Fluent {
             return this;
         }
 
+        /// <summary>Adds a trapezoid shape.</summary>
+        public VisioFluentPage Trapezoid(string id, double x, double y, double width, double height, string? text = null) {
+            var shape = CreateShape(id, "Trapezoid", x, y, width, height, text);
+            RegisterShape(shape);
+            return this;
+        }
+
         /// <summary>Adds a flowchart off-page reference shape.</summary>
         public VisioFluentPage OffPageReference(string id, double x, double y, double width, double height, string? text = null) {
             var shape = CreateShape(id, "Off-page reference", x, y, width, height, text);
+            RegisterShape(shape);
+            return this;
+        }
+
+        /// <summary>Adds a pentagon shape.</summary>
+        public VisioFluentPage Pentagon(string id, double x, double y, double width, double height, string? text = null) {
+            var shape = CreateShape(id, "Pentagon", x, y, width, height, text);
             RegisterShape(shape);
             return this;
         }

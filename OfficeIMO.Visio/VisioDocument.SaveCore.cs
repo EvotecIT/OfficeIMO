@@ -899,6 +899,9 @@ namespace OfficeIMO.Visio {
                      case BuiltinGeometryKind.Triangle:
                          WriteTriangleGeometry(writer, ns, width, height);
                          return;
+                     case BuiltinGeometryKind.Pentagon:
+                         WritePentagonGeometry(writer, ns, width, height);
+                         return;
                      case BuiltinGeometryKind.Parallelogram:
                          WriteParallelogramGeometry(writer, ns, width, height);
                          return;

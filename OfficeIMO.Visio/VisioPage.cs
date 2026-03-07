@@ -496,8 +496,100 @@ namespace OfficeIMO.Visio {
             AddPreparation(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
-        /// Adds a flowchart manual operation shape.
+        /// Adds a parallelogram shape.
         /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the parallelogram.</param>
+        /// <param name="height">Height of the parallelogram.</param>
+        /// <param name="text">Optional text.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created parallelogram shape.</returns>
+        public VisioShape AddParallelogram(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            ApplyUnits(ref x, ref y, ref width, ref height, unit);
+            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Parallelogram" };
+            _shapes.Add(s);
+            return s;
+        }
+
+        /// <summary>
+        /// Adds a parallelogram shape using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        public VisioShape AddParallelogram(double x, double y, double width, double height, string? text = null) =>
+            AddParallelogram(x, y, width, height, text, DefaultUnit);
+
+        /// <summary>
+        /// Adds a hexagon shape.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the hexagon.</param>
+        /// <param name="height">Height of the hexagon.</param>
+        /// <param name="text">Optional text.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created hexagon shape.</returns>
+        public VisioShape AddHexagon(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            ApplyUnits(ref x, ref y, ref width, ref height, unit);
+            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Hexagon" };
+            _shapes.Add(s);
+            return s;
+        }
+
+        /// <summary>
+        /// Adds a hexagon shape using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        public VisioShape AddHexagon(double x, double y, double width, double height, string? text = null) =>
+            AddHexagon(x, y, width, height, text, DefaultUnit);
+
+        /// <summary>
+        /// Adds a trapezoid shape.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the trapezoid.</param>
+        /// <param name="height">Height of the trapezoid.</param>
+        /// <param name="text">Optional text.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created trapezoid shape.</returns>
+        public VisioShape AddTrapezoid(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            ApplyUnits(ref x, ref y, ref width, ref height, unit);
+            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Trapezoid" };
+            _shapes.Add(s);
+            return s;
+        }
+
+        /// <summary>
+        /// Adds a trapezoid shape using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        public VisioShape AddTrapezoid(double x, double y, double width, double height, string? text = null) =>
+            AddTrapezoid(x, y, width, height, text, DefaultUnit);
+
+        /// <summary>
+        /// Adds a pentagon shape.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the pentagon.</param>
+        /// <param name="height">Height of the pentagon.</param>
+        /// <param name="text">Optional text.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created pentagon shape.</returns>
+        public VisioShape AddPentagon(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            ApplyUnits(ref x, ref y, ref width, ref height, unit);
+            var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Pentagon" };
+            _shapes.Add(s);
+            return s;
+        }
+
+        /// <summary>
+        /// Adds a pentagon shape using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        public VisioShape AddPentagon(double x, double y, double width, double height, string? text = null) =>
+            AddPentagon(x, y, width, height, text, DefaultUnit);
+
+        /// <summary>
+         /// Adds a flowchart manual operation shape.
+         /// </summary>
         /// <param name="x">X coordinate.</param>
         /// <param name="y">Y coordinate.</param>
         /// <param name="width">Width of the manual operation shape.</param>

@@ -244,6 +244,54 @@ namespace OfficeIMO.Visio {
             writer.WriteEndElement();
         }
 
+        private static void WritePentagonGeometry(XmlWriter writer, string ns, double width, double height) {
+            double midX = width / 2.0;
+            double shoulderY = height * 0.62;
+            double lowerInset = width * 0.2;
+            writer.WriteStartElement("Section", ns);
+            writer.WriteAttributeString("N", "Geometry");
+            writer.WriteAttributeString("IX", "0");
+            WriteGeometryHeaderRow(writer, ns);
+
+            writer.WriteStartElement("Row", ns);
+            writer.WriteAttributeString("T", "MoveTo");
+            WriteCell(writer, ns, "X", midX);
+            WriteCell(writer, ns, "Y", height);
+            writer.WriteEndElement();
+
+            writer.WriteStartElement("Row", ns);
+            writer.WriteAttributeString("T", "LineTo");
+            WriteCell(writer, ns, "X", width);
+            WriteCell(writer, ns, "Y", shoulderY);
+            writer.WriteEndElement();
+
+            writer.WriteStartElement("Row", ns);
+            writer.WriteAttributeString("T", "LineTo");
+            WriteCell(writer, ns, "X", width - lowerInset);
+            WriteCell(writer, ns, "Y", 0);
+            writer.WriteEndElement();
+
+            writer.WriteStartElement("Row", ns);
+            writer.WriteAttributeString("T", "LineTo");
+            WriteCell(writer, ns, "X", lowerInset);
+            WriteCell(writer, ns, "Y", 0);
+            writer.WriteEndElement();
+
+            writer.WriteStartElement("Row", ns);
+            writer.WriteAttributeString("T", "LineTo");
+            WriteCell(writer, ns, "X", 0);
+            WriteCell(writer, ns, "Y", shoulderY);
+            writer.WriteEndElement();
+
+            writer.WriteStartElement("Row", ns);
+            writer.WriteAttributeString("T", "LineTo");
+            WriteCell(writer, ns, "X", midX);
+            WriteCell(writer, ns, "Y", height);
+            writer.WriteEndElement();
+
+            writer.WriteEndElement();
+        }
+
         private static void WriteParallelogramGeometry(XmlWriter writer, string ns, double width, double height) {
             double offset = Math.Min(width / 4.0, Math.Max(width / 10.0, height / 3.0));
             writer.WriteStartElement("Section", ns);
