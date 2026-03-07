@@ -34,6 +34,12 @@ public enum MarkdownSyntaxKind {
     HorizontalRule,
     /// <summary>Image block.</summary>
     Image,
+    /// <summary>Image alternative text.</summary>
+    ImageAlt,
+    /// <summary>Image source path or URL.</summary>
+    ImageSource,
+    /// <summary>Image title attribute.</summary>
+    ImageTitle,
     /// <summary>Callout or admonition block.</summary>
     Callout,
     /// <summary>Definition list block.</summary>
