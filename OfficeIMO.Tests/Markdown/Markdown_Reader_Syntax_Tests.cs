@@ -363,6 +363,72 @@ Lead[^1]
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Table_Row_Spans() {
+        var markdown = """
+| Name | Value |
+| --- | ---: |
+| One | 1 |
+| Two | 2 |
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var table = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.Table, table.Kind);
+        Assert.NotNull(table.SourceSpan);
+        Assert.Equal(1, table.SourceSpan!.Value.StartLine);
+        Assert.Equal(4, table.SourceSpan!.Value.EndLine);
+        Assert.Equal(3, table.Children.Count);
+
+        var header = table.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.TableHeader, header.Kind);
+        Assert.NotNull(header.SourceSpan);
+        Assert.Equal(1, header.SourceSpan!.Value.StartLine);
+        Assert.Equal(1, header.SourceSpan!.Value.EndLine);
+        Assert.Equal("Name | Value", header.Literal);
+
+        var firstRow = table.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.TableRow, firstRow.Kind);
+        Assert.NotNull(firstRow.SourceSpan);
+        Assert.Equal(3, firstRow.SourceSpan!.Value.StartLine);
+        Assert.Equal(3, firstRow.SourceSpan!.Value.EndLine);
+        Assert.Equal("One | 1", firstRow.Literal);
+
+        var secondRow = table.Children[2];
+        Assert.Equal(MarkdownSyntaxKind.TableRow, secondRow.Kind);
+        Assert.NotNull(secondRow.SourceSpan);
+        Assert.Equal(4, secondRow.SourceSpan!.Value.StartLine);
+        Assert.Equal(4, secondRow.SourceSpan!.Value.EndLine);
+        Assert.Equal("Two | 2", secondRow.Literal);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Captures_Headerless_Table_Row_Spans() {
+        var markdown = """
+| One | 1 |
+| Two | 2 |
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var table = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.Table, table.Kind);
+        Assert.Equal(2, table.Children.Count);
+
+        var firstRow = table.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.TableRow, firstRow.Kind);
+        Assert.NotNull(firstRow.SourceSpan);
+        Assert.Equal(1, firstRow.SourceSpan!.Value.StartLine);
+        Assert.Equal("One | 1", firstRow.Literal);
+
+        var secondRow = table.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.TableRow, secondRow.Kind);
+        Assert.NotNull(secondRow.SourceSpan);
+        Assert.Equal(2, secondRow.SourceSpan!.Value.StartLine);
+        Assert.Equal("Two | 2", secondRow.Literal);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Finds_Deepest_Node_By_Line() {
         var markdown = """
 # Title

@@ -22,6 +22,10 @@ public enum MarkdownSyntaxKind {
     CodeBlock,
     /// <summary>Markdown table block.</summary>
     Table,
+    /// <summary>Header row inside a markdown table.</summary>
+    TableHeader,
+    /// <summary>Body row inside a markdown table.</summary>
+    TableRow,
     /// <summary>Horizontal rule block.</summary>
     HorizontalRule,
     /// <summary>Image block.</summary>
