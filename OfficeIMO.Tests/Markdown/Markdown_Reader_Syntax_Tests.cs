@@ -15,6 +15,9 @@ Paragraph text
         var result = MarkdownReader.ParseWithSyntaxTree(markdown);
 
         Assert.Equal(MarkdownSyntaxKind.Document, result.SyntaxTree.Kind);
+        Assert.NotNull(result.SyntaxTree.SourceSpan);
+        Assert.Equal(1, result.SyntaxTree.SourceSpan!.Value.StartLine);
+        Assert.Equal(3, result.SyntaxTree.SourceSpan!.Value.EndLine);
         Assert.Equal(2, result.SyntaxTree.Children.Count);
 
         var heading = result.SyntaxTree.Children[0];
@@ -422,6 +425,25 @@ Paragraph
         }, path);
 
         Assert.Empty(result.SyntaxTree.FindNodePathAtLine(99));
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Result_Provides_Line_Lookup_Helpers() {
+        var markdown = """
+# Title
+
+Paragraph
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var deepest = result.FindDeepestNodeAtLine(3);
+        Assert.NotNull(deepest);
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, deepest!.Kind);
+        Assert.Equal("Paragraph", deepest.Literal);
+
+        var path = result.FindNodePathAtLine(1).Select(node => node.Kind).ToArray();
+        Assert.Equal(new[] { MarkdownSyntaxKind.Document, MarkdownSyntaxKind.Heading }, path);
     }
 
     [Fact]
