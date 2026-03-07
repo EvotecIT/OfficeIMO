@@ -38,7 +38,7 @@ public static partial class MarkdownReader {
             for (int p = 1; p < firstParas.Count; p++) first.AdditionalParagraphs.Add(firstParas[p]);
             ol.Items.Add(first);
 
-            ConsumeNestedBlocksForListItem(lines, ref j, lvl0Abs, options, state, first, allowNestedOrdered: false, allowNestedUnordered: true);
+            ConsumeNestedBlocksForListItem(lines, ref j, lvl0Abs, options, state, first, allowNestedOrdered: true, allowNestedUnordered: true);
 
             while (j < lines.Length && IsOrderedListLine(lines[j], out var lvlAbs, out _, out var content) && lvlAbs >= lvl0Abs) {
                 int next = j + 1;
@@ -51,7 +51,7 @@ public static partial class MarkdownReader {
                 ol.Items.Add(li);
                 j = next;
 
-                ConsumeNestedBlocksForListItem(lines, ref j, lvlAbs, options, state, li, allowNestedOrdered: false, allowNestedUnordered: true);
+                ConsumeNestedBlocksForListItem(lines, ref j, lvlAbs, options, state, li, allowNestedOrdered: true, allowNestedUnordered: true);
             }
             doc.Add(ol); i = j; return true;
         }

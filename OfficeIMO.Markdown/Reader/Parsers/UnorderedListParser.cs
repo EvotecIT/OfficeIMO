@@ -16,8 +16,8 @@ public static partial class MarkdownReader {
             first.Level = 0;
             ul.Items.Add(first);
 
-            // Mixed nesting: allow an indented ordered list or fenced code block to be attached to the current item.
-            ConsumeNestedBlocksForListItem(lines, ref j, level0Abs, options, state, first, allowNestedOrdered: true, allowNestedUnordered: false);
+            // Allow both same-type and mixed nested lists under the current item.
+            ConsumeNestedBlocksForListItem(lines, ref j, level0Abs, options, state, first, allowNestedOrdered: true, allowNestedUnordered: true);
 
             while (j < lines.Length && IsUnorderedListLine(lines[j], out var lvlAbs, out var isTask2, out var done2, out var content2) && lvlAbs >= level0Abs) {
                 int next = j + 1;
@@ -30,7 +30,7 @@ public static partial class MarkdownReader {
                 ul.Items.Add(li);
                 j = next;
 
-                ConsumeNestedBlocksForListItem(lines, ref j, lvlAbs, options, state, li, allowNestedOrdered: true, allowNestedUnordered: false);
+                ConsumeNestedBlocksForListItem(lines, ref j, lvlAbs, options, state, li, allowNestedOrdered: true, allowNestedUnordered: true);
             }
             doc.Add(ul); i = j; return true;
         }
