@@ -148,6 +148,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CanSetAxisLabelRotationAndTickPositions() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddChart();
+                    chart.SetCategoryAxisLabelRotation(45)
+                        .SetCategoryAxisTickLabelPosition(C.TickLabelPositionValues.High)
+                        .SetValueAxisTickLabelPosition(C.TickLabelPositionValues.Low);
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+                    C.PlotArea plotArea = chart.PlotArea!;
+
+                    C.CategoryAxis categoryAxis = plotArea.GetFirstChild<C.CategoryAxis>()!;
+                    int? rotation = categoryAxis.GetFirstChild<C.TextProperties>()?
+                        .GetFirstChild<A.BodyProperties>()?
+                        .Rotation?.Value;
+                    Assert.Equal(2700000, rotation);
+                    Assert.Equal(C.TickLabelPositionValues.High, categoryAxis.GetFirstChild<C.TickLabelPosition>()?.Val?.Value);
+
+                    C.ValueAxis valueAxis = plotArea.GetFirstChild<C.ValueAxis>()!;
+                    Assert.Equal(C.TickLabelPositionValues.Low, valueAxis.GetFirstChild<C.TickLabelPosition>()?.Val?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void CanSetAxisScaleAndCrossing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
@@ -257,6 +295,50 @@ namespace OfficeIMO.Tests {
                     Assert.True(yAxisRunProps?.Italic?.Value);
                     Assert.Equal("Arial", yAxisRunProps?.GetFirstChild<A.LatinFont>()?.Typeface?.Value);
                     Assert.Equal("1F4E79", yAxisRunProps?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void CanSetScatterAxisLabelRotationAndTickPositions() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddScatterChart();
+                    chart.SetScatterXAxisLabelRotation(45)
+                        .SetScatterYAxisLabelRotation(-30)
+                        .SetScatterXAxisTickLabelPosition(C.TickLabelPositionValues.Low)
+                        .SetScatterYAxisTickLabelPosition(C.TickLabelPositionValues.High);
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+                    C.ValueAxis[] axes = chart.PlotArea!
+                        .Elements<C.ValueAxis>()
+                        .ToArray();
+                    Assert.Equal(2, axes.Length);
+
+                    C.ValueAxis xAxis = axes.Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Bottom);
+                    Assert.Equal(2700000, xAxis.GetFirstChild<C.TextProperties>()?
+                        .GetFirstChild<A.BodyProperties>()?
+                        .Rotation?.Value);
+                    Assert.Equal(C.TickLabelPositionValues.Low, xAxis.GetFirstChild<C.TickLabelPosition>()?.Val?.Value);
+
+                    C.ValueAxis yAxis = axes.Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Left);
+                    Assert.Equal(-1800000, yAxis.GetFirstChild<C.TextProperties>()?
+                        .GetFirstChild<A.BodyProperties>()?
+                        .Rotation?.Value);
+                    Assert.Equal(C.TickLabelPositionValues.High, yAxis.GetFirstChild<C.TickLabelPosition>()?.Val?.Value);
                 }
             } finally {
                 if (File.Exists(filePath)) {
