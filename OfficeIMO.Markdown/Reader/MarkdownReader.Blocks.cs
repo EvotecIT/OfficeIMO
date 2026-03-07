@@ -505,7 +505,7 @@ public static partial class MarkdownReader {
             j++;
         }
 
-        block = new CodeBlock(string.Empty, sb.ToString().TrimEnd('\r', '\n'));
+        block = new CodeBlock(string.Empty, sb.ToString().TrimEnd('\r', '\n'), isFenced: false);
         index = j;
         return true;
     }

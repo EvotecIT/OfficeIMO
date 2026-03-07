@@ -20,6 +20,10 @@ public enum MarkdownSyntaxKind {
     ListItem,
     /// <summary>Fenced or indented code block.</summary>
     CodeBlock,
+    /// <summary>Fenced code block info string / language hint.</summary>
+    CodeFenceInfo,
+    /// <summary>Code block content payload.</summary>
+    CodeContent,
     /// <summary>Markdown table block.</summary>
     Table,
     /// <summary>Header row inside a markdown table.</summary>

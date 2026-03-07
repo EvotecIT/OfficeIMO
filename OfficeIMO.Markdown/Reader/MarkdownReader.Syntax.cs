@@ -23,7 +23,7 @@ public static partial class MarkdownReader {
             case HorizontalRuleBlock:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.HorizontalRule, span, "---");
             case CodeBlock code:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.CodeBlock, span, code.Content);
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.CodeBlock, span, NormalizeSyntaxLiteralLineEndings(code.Content), BuildCodeBlockChildren(code, span));
             case ImageBlock image:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.Image, span, ((IMarkdownBlock)image).RenderMarkdown());
             case TableBlock table:
@@ -177,6 +177,30 @@ public static partial class MarkdownReader {
         return nodes;
     }
 
+    private static IReadOnlyList<MarkdownSyntaxNode> BuildCodeBlockChildren(CodeBlock code, MarkdownSourceSpan? span) {
+        if (!span.HasValue) return Array.Empty<MarkdownSyntaxNode>();
+
+        var nodes = new List<MarkdownSyntaxNode>();
+        if (code.IsFenced && !string.IsNullOrEmpty(code.Language)) {
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.CodeFenceInfo,
+                new MarkdownSourceSpan(span.Value.StartLine, span.Value.StartLine),
+                code.Language));
+        }
+
+        MarkdownSourceSpan? contentSpan;
+        if (code.IsFenced) {
+            contentSpan = span.Value.EndLine > span.Value.StartLine + 1
+                ? new MarkdownSourceSpan(span.Value.StartLine + 1, span.Value.EndLine - 1)
+                : null;
+        } else {
+            contentSpan = span.Value;
+        }
+
+        nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.CodeContent, contentSpan, NormalizeSyntaxLiteralLineEndings(code.Content)));
+        return nodes;
+    }
+
     private static IReadOnlyList<MarkdownSyntaxNode> BuildTableChildren(TableBlock table, MarkdownSourceSpan? span) {
         if (!span.HasValue) return Array.Empty<MarkdownSyntaxNode>();
 
@@ -202,6 +226,12 @@ public static partial class MarkdownReader {
         }
 
         return nodes;
+    }
+
+    private static string NormalizeSyntaxLiteralLineEndings(string? value) {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        string normalized = value!;
+        return normalized.Replace("\r\n", "\n").Replace('\r', '\n');
     }
 
     private static MarkdownSourceSpan? GetAggregateSpan(IReadOnlyList<MarkdownSyntaxNode> nodes) {
