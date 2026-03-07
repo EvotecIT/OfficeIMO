@@ -76,6 +76,26 @@ public class Markdown_Input_Normalizer_Tests {
     }
 
     [Fact]
+    public void Normalize_CompactHeadingBoundaries_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeCompactHeadingBoundaries = true
+        };
+
+        var normalized = MarkdownInputNormalizer.Normalize("previous shutdown was unexpected### Reason", options);
+        Assert.Equal("previous shutdown was unexpected\n### Reason", normalized);
+    }
+
+    [Fact]
+    public void Normalize_ColonListBoundaries_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeColonListBoundaries = true
+        };
+
+        var normalized = MarkdownInputNormalizer.Normalize("Następny najlepszy krok:- **`ad_domain_controller_facts`**", options);
+        Assert.Equal("Następny najlepszy krok:\n- **`ad_domain_controller_facts`**", normalized);
+    }
+
+    [Fact]
     public void Normalize_LooseStrongDelimiters_WhenEnabled() {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeLooseStrongDelimiters = true
@@ -104,7 +124,9 @@ public class Markdown_Input_Normalizer_Tests {
             NormalizeTightStrongBoundaries = true,
             NormalizeTightArrowStrongBoundaries = true,
             NormalizeHeadingListBoundaries = true,
-            NormalizeCompactStrongLabelListBoundaries = true
+            NormalizeCompactStrongLabelListBoundaries = true,
+            NormalizeCompactHeadingBoundaries = true,
+            NormalizeColonListBoundaries = true
         };
 
         var markdown = """
@@ -113,6 +135,8 @@ Use \`/act act_001\`
 Status **Healthy**next
 Signal ->**Why it matters:**coverage
 ## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK
+unexpected### Reason
+Następny najlepszy krok:- **`ad_domain_controller_facts`**
 ```
 """;
 

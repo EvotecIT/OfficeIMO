@@ -65,6 +65,20 @@ public sealed class MarkdownInputNormalizationOptions {
     public bool NormalizeCompactStrongLabelListBoundaries { get; set; } = false;
 
     /// <summary>
+    /// When true, inserts a missing newline before compact ATX headings emitted directly after prose or symbols
+    /// on the same line (for example, <c>unexpected### Reason</c> becomes <c>unexpected\n### Reason</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeCompactHeadingBoundaries { get; set; } = false;
+
+    /// <summary>
+    /// When true, inserts a missing newline between a colon and an immediately-following unordered list marker
+    /// on the same line (for example, <c>Next step:- **Item**</c> becomes <c>Next step:\n- **Item**</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeColonListBoundaries { get; set; } = false;
+
+    /// <summary>
     /// When true, trims accidental whitespace immediately inside strong delimiters
     /// (for example, <c>** Healthy**</c> or <c>**Healthy **</c> become <c>**Healthy**</c>).
     /// Default: false.
@@ -136,6 +150,14 @@ public static class MarkdownInputNormalizer {
 
     private static readonly Regex CompactStrongLabelListBoundaryRegex = new Regex(
         @"(?<=[\p{P}\p{S}\)])(?<marker>[-+*])\s+(?=\*\*)",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex CompactHeadingBoundaryRegex = new Regex(
+        @"(?<=[^\s\r\n])(?<marker>#{2,6})\s+(?=\S)",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex ColonListBoundaryRegex = new Regex(
+        @":\s*(?<marker>[-+*])\s+(?=(\*\*|`|\[|\p{L}|\p{N}))",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex LooseStrongDelimiterWhitespaceRegex = new Regex(
@@ -223,6 +245,14 @@ public static class MarkdownInputNormalizer {
                 preserveInlineCodeSpans: true);
         }
 
+        if (options.NormalizeCompactHeadingBoundaries) {
+            value = ApplyRegexOutsideFencedCodeBlocks(
+                value,
+                CompactHeadingBoundaryRegex,
+                static match => "\n" + match.Groups["marker"].Value + " ",
+                preserveInlineCodeSpans: true);
+        }
+
         if (options.NormalizeHeadingListBoundaries) {
             value = ApplyRegexOutsideFencedCodeBlocks(
                 value,
@@ -236,6 +266,14 @@ public static class MarkdownInputNormalizer {
                 value,
                 CompactStrongLabelListBoundaryRegex,
                 static match => "\n" + match.Groups["marker"].Value + " ",
+                preserveInlineCodeSpans: true);
+        }
+
+        if (options.NormalizeColonListBoundaries) {
+            value = ApplyRegexOutsideFencedCodeBlocks(
+                value,
+                ColonListBoundaryRegex,
+                static match => ":\n" + match.Groups["marker"].Value + " ",
                 preserveInlineCodeSpans: true);
         }
 

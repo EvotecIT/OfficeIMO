@@ -37,6 +37,8 @@ public static class MarkdownRendererPresets {
         o.NormalizeTightColonSpacing = true;
         o.NormalizeHeadingListBoundaries = true;
         o.NormalizeCompactStrongLabelListBoundaries = true;
+        o.NormalizeCompactHeadingBoundaries = true;
+        o.NormalizeColonListBoundaries = true;
         o.NormalizeLooseStrongDelimiters = true;
         o.NormalizeOrderedListMarkerSpacing = true;
         o.NormalizeOrderedListParenMarkers = true;
