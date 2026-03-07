@@ -340,7 +340,7 @@ Lead[^1]
 
         var result = MarkdownReader.ParseWithSyntaxTree(markdown);
 
-        var footnote = Assert.Single(result.SyntaxTree.Children.Where(node => node.Kind == MarkdownSyntaxKind.FootnoteDefinition));
+        var footnote = Assert.Single(result.SyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.FootnoteDefinition);
         Assert.NotNull(footnote.SourceSpan);
         Assert.Equal(3, footnote.SourceSpan!.Value.StartLine);
         Assert.Equal(6, footnote.SourceSpan!.Value.EndLine);
