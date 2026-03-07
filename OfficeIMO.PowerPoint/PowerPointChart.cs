@@ -896,19 +896,19 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ValidateAxisScale(double? minimum, double? maximum, double? majorUnit, double? minorUnit,
             bool? logScale, double? logBase) {
-            if (minimum != null && !double.IsFinite(minimum.Value)) {
+            if (minimum != null && !IsFinite(minimum.Value)) {
                 throw new ArgumentOutOfRangeException(nameof(minimum));
             }
-            if (maximum != null && !double.IsFinite(maximum.Value)) {
+            if (maximum != null && !IsFinite(maximum.Value)) {
                 throw new ArgumentOutOfRangeException(nameof(maximum));
             }
             if (minimum != null && maximum != null && minimum.Value >= maximum.Value) {
                 throw new ArgumentException("Minimum must be less than maximum.");
             }
-            if (majorUnit != null && (!double.IsFinite(majorUnit.Value) || majorUnit.Value <= 0)) {
+            if (majorUnit != null && (!IsFinite(majorUnit.Value) || majorUnit.Value <= 0)) {
                 throw new ArgumentOutOfRangeException(nameof(majorUnit));
             }
-            if (minorUnit != null && (!double.IsFinite(minorUnit.Value) || minorUnit.Value <= 0)) {
+            if (minorUnit != null && (!IsFinite(minorUnit.Value) || minorUnit.Value <= 0)) {
                 throw new ArgumentOutOfRangeException(nameof(minorUnit));
             }
             if (logScale == false && logBase != null) {
@@ -918,7 +918,7 @@ namespace OfficeIMO.PowerPoint {
             bool effectiveLog = logScale == true || logBase != null;
             if (effectiveLog) {
                 double baseValue = logBase ?? 10d;
-                if (!double.IsFinite(baseValue) || baseValue <= 1d) {
+                if (!IsFinite(baseValue) || baseValue <= 1d) {
                     throw new ArgumentOutOfRangeException(nameof(logBase), "Log base must be greater than 1.");
                 }
                 if (minimum != null && minimum.Value <= 0) {
@@ -928,6 +928,10 @@ namespace OfficeIMO.PowerPoint {
                     throw new ArgumentException("Maximum must be greater than 0 for log scale.", nameof(maximum));
                 }
             }
+        }
+
+        private static bool IsFinite(double value) {
+            return !double.IsNaN(value) && !double.IsInfinity(value);
         }
 
         private static void ValidateCrossesAtForAxis(OpenXmlCompositeElement axis, double? crossesAt) {
@@ -1057,17 +1061,6 @@ namespace OfficeIMO.PowerPoint {
                 axis.InsertAfter(crossing, crossAxis);
             } else {
                 axis.Append(crossing);
-            }
-        }
-
-        private static void ValidateCrossesAtForAxis(OpenXmlCompositeElement axis, double? crossesAt) {
-            if (crossesAt == null) {
-                return;
-            }
-
-            C.Scaling? scaling = axis.GetFirstChild<C.Scaling>();
-            if (scaling?.GetFirstChild<C.LogBase>() != null && crossesAt.Value <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(crossesAt), "Crosses-at value must be greater than 0 for log scale.");
             }
         }
 
