@@ -20,13 +20,24 @@ public static partial class MarkdownReader {
         return ParseInternal(markdown, options, state, allowFrontMatter: true);
     }
 
+    /// <summary>
+    /// Parses Markdown text into both the object model and a lightweight syntax tree with source spans.
+    /// </summary>
+    public static MarkdownParseResult ParseWithSyntaxTree(string markdown, MarkdownReaderOptions? options = null) {
+        options ??= new MarkdownReaderOptions();
+        var state = new MarkdownReaderState();
+        var syntaxNodes = new List<MarkdownSyntaxNode>();
+        var document = ParseInternal(markdown, options, state, allowFrontMatter: true, syntaxNodes);
+        return new MarkdownParseResult(document, BuildDocumentSyntaxTree(syntaxNodes));
+    }
+
     /// <summary>Parses a Markdown file path into a <see cref="MarkdownDoc"/>.</summary>
     public static MarkdownDoc ParseFile(string path, MarkdownReaderOptions? options = null) {
         string text = File.ReadAllText(path, Encoding.UTF8);
         return Parse(text, options);
     }
 
-    private static MarkdownDoc ParseInternal(string markdown, MarkdownReaderOptions options, MarkdownReaderState state, bool allowFrontMatter) {
+    private static MarkdownDoc ParseInternal(string markdown, MarkdownReaderOptions options, MarkdownReaderState state, bool allowFrontMatter, List<MarkdownSyntaxNode>? syntaxNodes = null) {
         var doc = MarkdownDoc.Create();
         if (string.IsNullOrEmpty(markdown)) return doc;
 
@@ -66,8 +77,16 @@ public static partial class MarkdownReader {
             if (string.IsNullOrWhiteSpace(lines[i])) { i++; continue; }
             bool matched = false;
             var parsers = pipeline.Parsers;
+            int previousBlockCount = doc.Blocks.Count;
+            int startLine = i;
             for (int p = 0; p < parsers.Count; p++) {
-                if (parsers[p].TryParse(lines, ref i, options, doc, state)) { matched = true; break; }
+                if (parsers[p].TryParse(lines, ref i, options, doc, state)) {
+                    matched = true;
+                    if (syntaxNodes != null && doc.Blocks.Count > previousBlockCount) {
+                        CaptureSyntaxNodes(doc, previousBlockCount, startLine, i, syntaxNodes);
+                    }
+                    break;
+                }
             }
             if (!matched) i++; // defensive: avoid infinite loop
         }

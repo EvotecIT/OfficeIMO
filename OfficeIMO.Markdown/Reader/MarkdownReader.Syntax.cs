@@ -1,0 +1,150 @@
+namespace OfficeIMO.Markdown;
+
+public static partial class MarkdownReader {
+    private static MarkdownSyntaxNode BuildDocumentSyntaxTree(IReadOnlyList<MarkdownSyntaxNode> children) =>
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.Document, children: children);
+
+    private static void CaptureSyntaxNodes(MarkdownDoc doc, int previousBlockCount, int startLine, int endExclusiveLine, List<MarkdownSyntaxNode> nodes) {
+        int start = startLine + 1;
+        int end = Math.Max(start, endExclusiveLine);
+        var span = new MarkdownSourceSpan(start, end);
+
+        for (int blockIndex = previousBlockCount; blockIndex < doc.Blocks.Count; blockIndex++) {
+            nodes.Add(BuildSyntaxNode(doc.Blocks[blockIndex], span));
+        }
+    }
+
+    private static MarkdownSyntaxNode BuildSyntaxNode(IMarkdownBlock block, MarkdownSourceSpan? span = null) {
+        switch (block) {
+            case HeadingBlock heading:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Heading, span, heading.Text);
+            case ParagraphBlock paragraph:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, span, paragraph.Inlines.RenderMarkdown());
+            case HorizontalRuleBlock:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.HorizontalRule, span, "---");
+            case CodeBlock code:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.CodeBlock, span, code.Content);
+            case ImageBlock image:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Image, span, ((IMarkdownBlock)image).RenderMarkdown());
+            case TableBlock table:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Table, span, ((IMarkdownBlock)table).RenderMarkdown());
+            case QuoteBlock quote:
+                return new MarkdownSyntaxNode(
+                    MarkdownSyntaxKind.Quote,
+                    span,
+                    quote.Children.Count == 0 ? string.Join("\n", quote.Lines) : null,
+                    BuildChildSyntaxNodes(quote.Children));
+            case UnorderedListBlock unordered:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.UnorderedList, span, children: BuildListItemSyntaxNodes(unordered.Items, MarkdownSyntaxKind.UnorderedList));
+            case OrderedListBlock ordered:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.OrderedList, span, ordered.Start.ToString(System.Globalization.CultureInfo.InvariantCulture), BuildListItemSyntaxNodes(ordered.Items, MarkdownSyntaxKind.OrderedList));
+            case DefinitionListBlock definitionList:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.DefinitionList, span, children: BuildDefinitionItemSyntaxNodes(definitionList));
+            case CalloutBlock callout:
+                return new MarkdownSyntaxNode(
+                    MarkdownSyntaxKind.Callout,
+                    span,
+                    string.IsNullOrWhiteSpace(callout.Title) ? callout.Kind : callout.Kind + ":" + callout.Title,
+                    callout.Children != null ? BuildChildSyntaxNodes(callout.Children) : Array.Empty<MarkdownSyntaxNode>());
+            case DetailsBlock details:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Details, span, details.Open ? "open" : null, BuildDetailsChildren(details));
+            case SummaryBlock summary:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Summary, span, summary.Inlines.RenderMarkdown());
+            case FootnoteDefinitionBlock footnote:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.FootnoteDefinition, span, footnote.Label + ":" + footnote.Text);
+            case FrontMatterBlock frontMatter:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatter, span, frontMatter.Render());
+            case HtmlCommentBlock comment:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.HtmlComment, span, comment.Comment);
+            case HtmlRawBlock rawHtml:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.HtmlRaw, span, rawHtml.Html);
+            case TocBlock toc:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Toc, span, ((IMarkdownBlock)toc).RenderMarkdown());
+            case TocPlaceholderBlock:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.TocPlaceholder, span);
+            default:
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Unknown, span, block.RenderMarkdown());
+        }
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> BuildChildSyntaxNodes(IEnumerable<IMarkdownBlock> children) {
+        var nodes = new List<MarkdownSyntaxNode>();
+        foreach (var child in children) {
+            if (child == null) continue;
+            nodes.Add(BuildSyntaxNode(child));
+        }
+        return nodes;
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> BuildListItemSyntaxNodes(IReadOnlyList<ListItem> items, MarkdownSyntaxKind listKind) {
+        int index = 0;
+        return BuildListItemSyntaxNodes(items, listKind, ref index, 0);
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> BuildListItemSyntaxNodes(IReadOnlyList<ListItem> items, MarkdownSyntaxKind listKind, ref int index, int level) {
+        var nodes = new List<MarkdownSyntaxNode>();
+        while (index < items.Count) {
+            var item = items[index];
+            if (item.Level < level) break;
+            if (item.Level > level) {
+                index++;
+                continue;
+            }
+
+            index++;
+
+            MarkdownSyntaxNode? nestedList = null;
+            if (index < items.Count && items[index].Level > level) {
+                var nestedLevel = items[index].Level;
+                var nestedItems = BuildListItemSyntaxNodes(items, listKind, ref index, nestedLevel);
+                nestedList = new MarkdownSyntaxNode(listKind, children: nestedItems);
+            }
+
+            nodes.Add(BuildListItemSyntaxNode(item, nestedList));
+        }
+
+        return nodes;
+    }
+
+    private static MarkdownSyntaxNode BuildListItemSyntaxNode(ListItem item, MarkdownSyntaxNode? nestedList) {
+        var children = new List<MarkdownSyntaxNode>();
+        if (item.Content.Items.Count > 0 || (item.AdditionalParagraphs.Count == 0 && item.Children.Count == 0)) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: item.Content.RenderMarkdown()));
+        }
+        for (int i = 0; i < item.AdditionalParagraphs.Count; i++) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: item.AdditionalParagraphs[i].RenderMarkdown()));
+        }
+        for (int i = 0; i < item.Children.Count; i++) {
+            children.Add(BuildSyntaxNode(item.Children[i]));
+        }
+        if (nestedList != null) children.Add(nestedList);
+
+        string? literal = item.IsTask
+            ? (item.Checked ? "[x]" : "[ ]")
+            : null;
+
+        return new MarkdownSyntaxNode(MarkdownSyntaxKind.ListItem, literal: literal, children: children);
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> BuildDefinitionItemSyntaxNodes(DefinitionListBlock definitionList) {
+        var nodes = new List<MarkdownSyntaxNode>();
+        foreach (var (term, definition) in definitionList.Items) {
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.DefinitionItem,
+                literal: term,
+                children: new[] {
+                    new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: definition)
+                }));
+        }
+        return nodes;
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> BuildDetailsChildren(DetailsBlock details) {
+        var nodes = new List<MarkdownSyntaxNode>();
+        if (details.Summary != null) nodes.Add(BuildSyntaxNode(details.Summary));
+        for (int i = 0; i < details.Children.Count; i++) {
+            nodes.Add(BuildSyntaxNode(details.Children[i]));
+        }
+        return nodes;
+    }
+}
