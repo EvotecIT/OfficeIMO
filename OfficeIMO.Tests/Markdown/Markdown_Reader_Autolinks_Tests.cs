@@ -75,6 +75,27 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Angle_Autolinks_Explicit_Mailto_Are_Supported() {
+        var doc = MarkdownReader.Parse("Contact <mailto:user@example.com>.");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<a href=\"mailto:user@example.com\">mailto:user@example.com</a>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Angle_Autolinks_Explicit_Mailto_Respect_Url_Policy() {
+        var options = new MarkdownReaderOptions {
+            RestrictUrlSchemes = true,
+            AllowedUrlSchemes = new[] { "http", "https" }
+        };
+        var doc = MarkdownReader.Parse("Contact <mailto:user@example.com>.", options);
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("&lt;mailto:user@example.com&gt;", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Autolinks_Work_In_Tables_And_Lists() {
         var md = """
 | Link |
