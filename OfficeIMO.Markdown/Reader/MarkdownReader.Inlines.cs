@@ -1182,10 +1182,11 @@ public static partial class MarkdownReader {
         if (start > 0 && char.IsLetterOrDigit(text[start - 1])) return false;
         var rem = text.Substring(start);
         if (!(rem.StartsWith("http://") || rem.StartsWith("https://"))) return false;
-        int i = ConsumeLiteralUrl(text, start);
-        if (ShouldRejectAmbiguousTrailingParen(text, start, i)) return false;
+        int rawEnd = ConsumeLiteralUrl(text, start);
+        int i = rawEnd;
         // Trim trailing punctuation commonly outside URLs
         while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
+        if (ShouldRejectAmbiguousTrailingParen(text, start, rawEnd, i)) return false;
         end = i; return end > start + 7;
     }
 
@@ -1195,10 +1196,11 @@ public static partial class MarkdownReader {
         if (start > 0 && char.IsLetterOrDigit(text[start - 1])) return false;
         if (!(text.Substring(start).StartsWith("www.", StringComparison.OrdinalIgnoreCase))) return false;
 
-        int i = ConsumeLiteralUrl(text, start);
-        if (ShouldRejectAmbiguousTrailingParen(text, start, i)) return false;
-        int scanEnd = i;
+        int rawEnd = ConsumeLiteralUrl(text, start);
+        int i = rawEnd;
+        int scanEnd = rawEnd;
         while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
+        if (ShouldRejectAmbiguousTrailingParen(text, start, rawEnd, i)) return false;
 
         // Must include at least one dot after the www.
         var token = text.Substring(start, i - start);
@@ -1236,13 +1238,16 @@ public static partial class MarkdownReader {
         return i;
     }
 
-    private static bool ShouldRejectAmbiguousTrailingParen(string text, int start, int end) {
-        if (string.IsNullOrEmpty(text) || start < 0 || end <= start || end >= text.Length) return false;
-        if (text[end] != ')') return false;
+    private static bool ShouldRejectAmbiguousTrailingParen(string text, int start, int rawEnd, int trimmedEnd) {
+        if (string.IsNullOrEmpty(text) || start < 0 || trimmedEnd <= start) return false;
+
+        bool extraClosingParenOutsideUrl = rawEnd < text.Length && text[rawEnd] == ')';
+        bool trailingPunctuationTrimmedAfterBalancedParen = rawEnd > trimmedEnd && text[trimmedEnd - 1] == ')';
+        if (!extraClosingParenOutsideUrl && !trailingPunctuationTrimmedAfterBalancedParen) return false;
         if (start > 0 && text[start - 1] == '(') return false;
 
         bool sawOpenParen = false;
-        for (int i = start; i < end; i++) {
+        for (int i = start; i < trimmedEnd - 1; i++) {
             if (text[i] == '(') {
                 sawOpenParen = true;
                 break;
