@@ -49,14 +49,23 @@ Paragraph text
 
         var parentItem = Assert.Single(list.Children);
         Assert.Equal(MarkdownSyntaxKind.ListItem, parentItem.Kind);
+        Assert.NotNull(parentItem.SourceSpan);
+        Assert.Equal(1, parentItem.SourceSpan!.Value.StartLine);
+        Assert.Equal(2, parentItem.SourceSpan!.Value.EndLine);
         Assert.Equal(2, parentItem.Children.Count);
         Assert.Equal(MarkdownSyntaxKind.Paragraph, parentItem.Children[0].Kind);
         Assert.Equal("parent", parentItem.Children[0].Literal);
 
         var nestedList = parentItem.Children[1];
         Assert.Equal(MarkdownSyntaxKind.UnorderedList, nestedList.Kind);
+        Assert.NotNull(nestedList.SourceSpan);
+        Assert.Equal(2, nestedList.SourceSpan!.Value.StartLine);
+        Assert.Equal(2, nestedList.SourceSpan!.Value.EndLine);
         var nestedItem = Assert.Single(nestedList.Children);
         Assert.Equal(MarkdownSyntaxKind.ListItem, nestedItem.Kind);
+        Assert.NotNull(nestedItem.SourceSpan);
+        Assert.Equal(2, nestedItem.SourceSpan!.Value.StartLine);
+        Assert.Equal(2, nestedItem.SourceSpan!.Value.EndLine);
         var nestedParagraph = Assert.Single(nestedItem.Children);
         Assert.Equal(MarkdownSyntaxKind.Paragraph, nestedParagraph.Kind);
         Assert.Equal("child", nestedParagraph.Literal);
@@ -79,6 +88,9 @@ Paragraph text
         var list = Assert.Single(result.SyntaxTree.Children);
         var item = Assert.Single(list.Children);
         Assert.Equal(MarkdownSyntaxKind.ListItem, item.Kind);
+        Assert.NotNull(item.SourceSpan);
+        Assert.Equal(1, item.SourceSpan!.Value.StartLine);
+        Assert.Equal(7, item.SourceSpan!.Value.EndLine);
         Assert.Equal(3, item.Children.Count);
 
         var leadParagraph = item.Children[0];
