@@ -376,7 +376,7 @@ slide.AddScatterChart(scatterData)
     .SetScatterYAxisNumberFormat("#,##0.00")
     .SetScatterXAxisScale(minimum: 1, maximum: 12, majorUnit: 1)
     .SetScatterYAxisScale(minimum: 0, maximum: 20, majorUnit: 5)
-    .SetScatterYAxisCrossing(C.CrossesValues.Minimum, crossesAt: 2d);
+    .SetScatterYAxisCrossing(crossesAt: 2d);
 ```
 
 ### Layouts and notes (fluent)
