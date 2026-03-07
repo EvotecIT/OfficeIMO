@@ -43,4 +43,23 @@ public sealed class MarkdownSyntaxNode {
 
         return SourceSpan.HasValue ? this : null;
     }
+
+    /// <summary>Finds the node path from this node to the deepest node whose source span contains the given 1-based line number.</summary>
+    public IReadOnlyList<MarkdownSyntaxNode> FindNodePathAtLine(int lineNumber) {
+        var path = new List<MarkdownSyntaxNode>();
+        if (!TryBuildNodePathAtLine(lineNumber, path)) return Array.Empty<MarkdownSyntaxNode>();
+        return path;
+    }
+
+    private bool TryBuildNodePathAtLine(int lineNumber, List<MarkdownSyntaxNode> path) {
+        if (!SourceSpan.HasValue && Children.Count == 0) return false;
+        if (SourceSpan.HasValue && !SourceSpan.Value.ContainsLine(lineNumber)) return false;
+
+        path.Add(this);
+        for (int i = 0; i < Children.Count; i++) {
+            if (Children[i].TryBuildNodePathAtLine(lineNumber, path)) return true;
+        }
+
+        return SourceSpan.HasValue;
+    }
 }

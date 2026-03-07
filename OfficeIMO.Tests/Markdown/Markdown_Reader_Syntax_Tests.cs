@@ -368,6 +368,28 @@ Paragraph
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Finds_Node_Path_By_Line() {
+        var markdown = """
+> [!TIP] Title
+> - item
+>   continued
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var path = result.SyntaxTree.FindNodePathAtLine(3).Select(node => node.Kind).ToArray();
+
+        Assert.Equal(new[] {
+            MarkdownSyntaxKind.Document,
+            MarkdownSyntaxKind.Callout,
+            MarkdownSyntaxKind.UnorderedList,
+            MarkdownSyntaxKind.ListItem,
+            MarkdownSyntaxKind.Paragraph
+        }, path);
+
+        Assert.Empty(result.SyntaxTree.FindNodePathAtLine(99));
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Preserves_Existing_Object_Model_Output() {
         var markdown = """
 > quote
