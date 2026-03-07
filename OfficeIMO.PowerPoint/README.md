@@ -387,6 +387,8 @@ chart.SetTitle("Sales Trend")
      .SetSeriesFillColor(0, "4472C4")
      .SetSeriesLineColor("Series 2", "ED7D31", widthPoints: 1)
      .SetSeriesMarker(0, C.MarkerStyleValues.Circle, size: 6, fillColor: "FFFFFF", lineColor: "4472C4");
+
+chart.ClearSeriesDataLabelForPoint(0, 1);
 ```
 
 ### Pie and doughnut charts
