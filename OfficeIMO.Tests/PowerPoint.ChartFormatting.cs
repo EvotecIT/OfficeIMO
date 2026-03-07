@@ -150,5 +150,97 @@ namespace OfficeIMO.Tests {
                 }
             }
         }
+
+        [Fact]
+        public void CanAddSeriesTrendlineToLineChart() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                var data = new PowerPointChartData(
+                    new[] { "Jan", "Feb", "Mar" },
+                    new[] { new PowerPointChartSeries("Revenue", new[] { 12d, 18d, 15d }) });
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddLineChart(data);
+                    chart.SetSeriesTrendline(0, C.TrendlineValues.Polynomial, order: 2, forward: 1.5, backward: 0.5,
+                            intercept: 10, displayEquation: true, displayRSquared: true, lineColor: "ED7D31", lineWidthPoints: 1.5)
+                        .SetSeriesMarker(0, C.MarkerStyleValues.Circle, size: 7, fillColor: "FFFFFF", lineColor: "ED7D31");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator();
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.LineChartSeries series = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
+                        .GetFirstChild<C.PlotArea>()!
+                        .GetFirstChild<C.LineChart>()!
+                        .Elements<C.LineChartSeries>()
+                        .Single();
+
+                    C.Marker? marker = series.GetFirstChild<C.Marker>();
+                    C.Trendline? trendline = series.GetFirstChild<C.Trendline>();
+                    Assert.NotNull(marker);
+                    Assert.NotNull(trendline);
+                    var children = series.ChildElements.ToList();
+                    Assert.True(children.IndexOf(marker!) < children.IndexOf(trendline!));
+
+                    Assert.Equal(C.TrendlineValues.Polynomial, trendline!.GetFirstChild<C.TrendlineType>()?.Val?.Value);
+                    Assert.Equal((byte)2, trendline.GetFirstChild<C.PolynomialOrder>()?.Val?.Value);
+                    Assert.Equal(1.5d, trendline.GetFirstChild<C.Forward>()?.Val?.Value);
+                    Assert.Equal(0.5d, trendline.GetFirstChild<C.Backward>()?.Val?.Value);
+                    Assert.Equal(10d, trendline.GetFirstChild<C.Intercept>()?.Val?.Value);
+                    Assert.True(trendline.GetFirstChild<C.DisplayEquation>()?.Val?.Value);
+                    Assert.True(trendline.GetFirstChild<C.DisplayRSquaredValue>()?.Val?.Value);
+
+                    A.Outline? outline = trendline.GetFirstChild<C.ChartShapeProperties>()?.GetFirstChild<A.Outline>();
+                    Assert.Equal("ED7D31", outline?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                    Assert.Equal((int)Math.Round(1.5d * 12700d), outline?.Width?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void CanClearSeriesTrendlineByName() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                var data = new PowerPointScatterChartData(new[] {
+                    new PowerPointScatterChartSeries("Revenue", new[] { 1d, 2d, 3d }, new[] { 10d, 15d, 12d })
+                });
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddScatterChart(data);
+                    chart.SetSeriesTrendline("Revenue", C.TrendlineValues.Linear, lineColor: "5B9BD5", lineWidthPoints: 2)
+                        .ClearSeriesTrendline("Revenue");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator();
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.ScatterChartSeries series = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
+                        .GetFirstChild<C.PlotArea>()!
+                        .GetFirstChild<C.ScatterChart>()!
+                        .Elements<C.ScatterChartSeries>()
+                        .Single();
+
+                    Assert.Null(series.GetFirstChild<C.Trendline>());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
     }
 }

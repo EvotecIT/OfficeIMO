@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
 using Xunit;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
@@ -69,6 +70,51 @@ namespace OfficeIMO.Tests {
                         .Select(point => double.Parse(point.NumericValue?.Text ?? "0", CultureInfo.InvariantCulture))
                         .ToArray() ?? Array.Empty<double>();
                     Assert.Equal(new[] { 10d, 20d, 30d }, values);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void CanUpdateLineChartDataWithoutCloningTrendlines() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            var initialData = new PowerPointChartData(
+                new[] { "Jan", "Feb", "Mar" },
+                new[] { new PowerPointChartSeries("Revenue", new[] { 12d, 18d, 15d }) });
+            var updatedData = new PowerPointChartData(
+                new[] { "Apr", "May", "Jun" },
+                new[] {
+                    new PowerPointChartSeries("Revenue", new[] { 20d, 22d, 24d }),
+                    new PowerPointChartSeries("Forecast", new[] { 18d, 19d, 21d })
+                });
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddLineChart(initialData);
+                    chart.SetSeriesTrendline(0, C.TrendlineValues.Linear, lineColor: "ED7D31", lineWidthPoints: 1.25)
+                        .UpdateData(updatedData);
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator();
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.LineChartSeries[] series = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
+                        .GetFirstChild<C.PlotArea>()!
+                        .GetFirstChild<C.LineChart>()!
+                        .Elements<C.LineChartSeries>()
+                        .ToArray();
+
+                    Assert.Equal(2, series.Length);
+                    Assert.NotNull(series[0].GetFirstChild<C.Trendline>());
+                    Assert.Null(series[1].GetFirstChild<C.Trendline>());
                 }
             } finally {
                 if (File.Exists(filePath)) {
