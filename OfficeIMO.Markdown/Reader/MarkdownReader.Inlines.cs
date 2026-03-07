@@ -500,6 +500,14 @@ public static partial class MarkdownReader {
             return true;
         }
 
+        if (TryGetScheme(inner, out var scheme) &&
+            inner.IndexOf("://", StringComparison.Ordinal) == scheme.Length) {
+            label = inner;
+            href = inner;
+            consumed = gt - start + 1;
+            return true;
+        }
+
         // Email form
         if (LooksLikeEmail(inner)) {
             label = inner;
