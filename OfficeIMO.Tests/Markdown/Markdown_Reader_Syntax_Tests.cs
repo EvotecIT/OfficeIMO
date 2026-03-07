@@ -541,6 +541,31 @@ Paragraph
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Finds_Deepest_Node_By_Overlapping_Span() {
+        var markdown = """
+# Title
+
+Paragraph text
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var deepest = result.FindDeepestNodeOverlappingSpan(new MarkdownSourceSpan(1, 2));
+        Assert.NotNull(deepest);
+        Assert.Equal(MarkdownSyntaxKind.Heading, deepest!.Kind);
+        Assert.Equal("Title", deepest.Literal);
+
+        var path = result.FindNodePathOverlappingSpan(new MarkdownSourceSpan(2, 3)).Select(node => node.Kind).ToArray();
+        Assert.Equal(new[] {
+            MarkdownSyntaxKind.Document,
+            MarkdownSyntaxKind.Paragraph
+        }, path);
+
+        Assert.Null(result.FindDeepestNodeOverlappingSpan(new MarkdownSourceSpan(50, 51)));
+        Assert.Empty(result.FindNodePathOverlappingSpan(new MarkdownSourceSpan(50, 51)));
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Preserves_Existing_Object_Model_Output() {
         var markdown = """
 > quote

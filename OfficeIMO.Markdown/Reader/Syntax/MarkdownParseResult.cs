@@ -25,4 +25,10 @@ public sealed class MarkdownParseResult {
 
     /// <summary>Finds the syntax node path from the document root to the deepest node whose source span fully contains the given span.</summary>
     public IReadOnlyList<MarkdownSyntaxNode> FindNodePathContainingSpan(MarkdownSourceSpan span) => SyntaxTree.FindNodePathContainingSpan(span);
+
+    /// <summary>Finds the deepest syntax node whose source span overlaps the given span.</summary>
+    public MarkdownSyntaxNode? FindDeepestNodeOverlappingSpan(MarkdownSourceSpan span) => SyntaxTree.FindDeepestNodeOverlappingSpan(span);
+
+    /// <summary>Finds the syntax node path from the document root to the deepest node whose source span overlaps the given span.</summary>
+    public IReadOnlyList<MarkdownSyntaxNode> FindNodePathOverlappingSpan(MarkdownSourceSpan span) => SyntaxTree.FindNodePathOverlappingSpan(span);
 }
