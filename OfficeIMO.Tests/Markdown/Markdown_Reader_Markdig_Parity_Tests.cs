@@ -77,14 +77,14 @@ public class Markdown_Reader_Markdig_Parity_Tests {
             sb.Append(ch);
         }
 
-        var normalized = sb.ToString().Replace("> <", "><", StringComparison.Ordinal);
+        var normalized = sb.ToString().Replace("> <", "><");
         normalized = normalized
-            .Replace(" <ul", "<ul", StringComparison.Ordinal)
-            .Replace(" <ol", "<ol", StringComparison.Ordinal)
-            .Replace(" <blockquote", "<blockquote", StringComparison.Ordinal)
-            .Replace(" <pre", "<pre", StringComparison.Ordinal)
-            .Replace(" <table", "<table", StringComparison.Ordinal)
-            .Replace(" <p", "<p", StringComparison.Ordinal);
+            .Replace(" <ul", "<ul")
+            .Replace(" <ol", "<ol")
+            .Replace(" <blockquote", "<blockquote")
+            .Replace(" <pre", "<pre")
+            .Replace(" <table", "<table")
+            .Replace(" <p", "<p");
 
         return normalized.Trim();
     }
