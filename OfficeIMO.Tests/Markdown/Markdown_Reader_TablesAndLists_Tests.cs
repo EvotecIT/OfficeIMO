@@ -305,6 +305,47 @@ c | d
         }
 
         [Fact]
+        public void List_Item_Can_Keep_Paragraph_After_Nested_Blockquote_Inside_Tight_List() {
+            string md = """
+- item
+  > quote
+  continuation
+
+  paragraph
+""";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Single(list.Items);
+            Assert.Contains(list.Items[0].Children, b => b is QuoteBlock);
+            Assert.Contains(list.Items[0].Children, b => b is ParagraphBlock);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("<blockquote><p>quote continuation</p></blockquote><p>paragraph</p>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("</ul><p>  paragraph</p>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void List_Item_Can_Keep_Paragraph_After_Nested_Blockquote_Inside_Loose_List() {
+            string md = """
+- item
+
+  > quote
+  continuation
+
+  paragraph
+""";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Single(list.Items);
+            Assert.Contains(list.Items[0].Children, b => b is QuoteBlock);
+            Assert.Contains(list.Items[0].Children, b => b is ParagraphBlock);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("<blockquote><p>quote continuation</p></blockquote><p>paragraph</p>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("</ul><p>  paragraph</p>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void List_Item_Can_Contain_Nested_Table() {
             string md = """
 - outer

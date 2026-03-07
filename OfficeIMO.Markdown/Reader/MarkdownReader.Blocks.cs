@@ -745,12 +745,16 @@ public static partial class MarkdownReader {
         while (index < lines.Length) {
             int k = index;
 
-            // Skip blank lines only when they are followed by nested content.
+            // Skip blank lines only when they are followed by nested content or a paragraph that still belongs
+            // to the current list item after a child block.
             while (k < lines.Length && string.IsNullOrWhiteSpace(lines[k])) {
                 int peek = k + 1;
                 if (peek >= lines.Length) return;
                 var next = lines[peek] ?? string.Empty;
-                if (!IsListNestedBlockStart(next, continuationIndent, itemLevelAbs, allowNestedOrdered, allowNestedUnordered, options)) return;
+                if (!IsListNestedBlockStart(next, continuationIndent, itemLevelAbs, allowNestedOrdered, allowNestedUnordered, options) &&
+                    !IsListNestedParagraphStart(next, continuationIndent, itemLevelAbs, allowNestedOrdered, allowNestedUnordered, options)) {
+                    return;
+                }
                 k++;
             }
 
@@ -820,6 +824,14 @@ public static partial class MarkdownReader {
                 }
             }
 
+            // Paragraph continuation after a child block in the same list item.
+            tmp = k;
+            if (TryParseNestedParagraphBlocks(lines, ref tmp, continuationIndent, itemLevelAbs, allowNestedOrdered, allowNestedUnordered, options, state, out var paragraphs) && paragraphs != null) {
+                for (int p = 0; p < paragraphs.Count; p++) item.Children.Add(paragraphs[p]);
+                index = tmp;
+                continue;
+            }
+
             // Nothing nested to consume.
             index = k;
             return;
@@ -865,6 +877,75 @@ public static partial class MarkdownReader {
         }
 
         return false;
+    }
+
+    private static bool IsListNestedParagraphStart(
+        string line,
+        int continuationIndent,
+        int itemLevelAbs,
+        bool allowNestedOrdered,
+        bool allowNestedUnordered,
+        MarkdownReaderOptions options) {
+
+        if (string.IsNullOrEmpty(line)) return false;
+        if (IsListNestedBlockStart(line, continuationIndent, itemLevelAbs, allowNestedOrdered, allowNestedUnordered, options)) return false;
+
+        int spaces = CountLeadingSpaces(line);
+        if (spaces < continuationIndent) return false;
+
+        var slice = line.Length >= continuationIndent ? line.Substring(continuationIndent) : line.TrimStart();
+        return !string.IsNullOrWhiteSpace(slice);
+    }
+
+    private static bool TryParseNestedParagraphBlocks(
+        string[] lines,
+        ref int index,
+        int continuationIndent,
+        int itemLevelAbs,
+        bool allowNestedOrdered,
+        bool allowNestedUnordered,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state,
+        out List<ParagraphBlock>? paragraphs) {
+
+        paragraphs = null;
+        if (lines == null || index < 0 || index >= lines.Length) return false;
+        if (!IsListNestedParagraphStart(lines[index] ?? string.Empty, continuationIndent, itemLevelAbs, allowNestedOrdered, allowNestedUnordered, options)) return false;
+
+        int j = index;
+        var collected = new List<string>();
+        while (j < lines.Length) {
+            string raw = lines[j] ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(raw)) {
+                int peek = j + 1;
+                if (peek >= lines.Length) break;
+
+                var next = lines[peek] ?? string.Empty;
+                if (IsListNestedBlockStart(next, continuationIndent, itemLevelAbs, allowNestedOrdered, allowNestedUnordered, options)) break;
+                if (!IsListNestedParagraphStart(next, continuationIndent, itemLevelAbs, allowNestedOrdered, allowNestedUnordered, options)) break;
+
+                collected.Add(string.Empty);
+                j++;
+                continue;
+            }
+
+            if (!IsListNestedParagraphStart(raw, continuationIndent, itemLevelAbs, allowNestedOrdered, allowNestedUnordered, options)) break;
+
+            string slice = raw.Length >= continuationIndent ? raw.Substring(continuationIndent) : raw.TrimStart();
+            collected.Add(slice.TrimStart());
+            j++;
+        }
+
+        if (collected.Count == 0) return false;
+
+        var parsed = ParseParagraphsFromLines(collected, options, state);
+        if (parsed.Count == 0) return false;
+
+        paragraphs = new List<ParagraphBlock>(parsed.Count);
+        for (int i = 0; i < parsed.Count; i++) paragraphs.Add(new ParagraphBlock(parsed[i]));
+        index = j;
+        return true;
     }
 
     private static bool IsDefinitionLine(string line) {
