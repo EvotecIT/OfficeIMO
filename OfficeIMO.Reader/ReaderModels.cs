@@ -226,6 +226,7 @@ public sealed class ReaderTable {
     /// </summary>
     public string? Title { get; set; }
 
+    /// <summary>
     /// Optional source-specific table kind/classification.
     /// </summary>
     public string? Kind { get; set; }
