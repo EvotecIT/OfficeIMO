@@ -135,6 +135,25 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Clears custom chart title text styling while preserving the title text.
+        /// </summary>
+        public PowerPointChart ClearTitleTextStyle() {
+            C.Chart chart = GetChart();
+            C.Title? title = chart.GetFirstChild<C.Title>();
+            C.ChartText? chartText = title?.GetFirstChild<C.ChartText>();
+            if (chartText == null) {
+                return this;
+            }
+
+            foreach (A.RunProperties runProps in chartText.Descendants<A.RunProperties>()) {
+                ClearTextStyle(runProps);
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
         ///     Removes the chart title.
         /// </summary>
         public PowerPointChart ClearTitle() {
@@ -189,6 +208,26 @@ namespace OfficeIMO.PowerPoint {
             }
 
             ApplyTextStyle(EnsureTextPropertiesRunProperties(legend), fontSizePoints, bold, italic, color, fontName);
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Clears custom legend text styling while preserving the legend.
+        /// </summary>
+        public PowerPointChart ClearLegendTextStyle() {
+            C.Chart chart = GetChart();
+            C.Legend? legend = chart.GetFirstChild<C.Legend>();
+            A.DefaultRunProperties? runProps = legend?
+                .GetFirstChild<C.TextProperties>()?
+                .GetFirstChild<A.Paragraph>()?
+                .GetFirstChild<A.ParagraphProperties>()?
+                .GetFirstChild<A.DefaultRunProperties>();
+            if (runProps == null) {
+                return this;
+            }
+
+            ClearTextStyle(runProps);
             Save();
             return this;
         }
@@ -3150,6 +3189,14 @@ namespace OfficeIMO.PowerPoint {
             } else if (color != null && existingLatinFont != null) {
                 runProps.Append(existingLatinFont);
             }
+        }
+
+        private static void ClearTextStyle(A.TextCharacterPropertiesType runProps) {
+            runProps.FontSize = null;
+            runProps.Bold = null;
+            runProps.Italic = null;
+            runProps.RemoveAllChildren<A.SolidFill>();
+            runProps.RemoveAllChildren<A.LatinFont>();
         }
 
         private static void ValidateTextStyle(double? fontSizePoints, string? color, string? fontName) {
