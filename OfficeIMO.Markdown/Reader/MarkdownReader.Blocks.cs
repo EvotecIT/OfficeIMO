@@ -339,6 +339,24 @@ public static partial class MarkdownReader {
         return i;
     }
 
+    private static bool IsParagraphInterruptingOrderedListLine(string line) {
+        if (!IsOrderedListLine(line, out _, out int number, out _)) return false;
+        return number == 1;
+    }
+
+    private static bool LastCollectedLinePreservesIndentedContinuation(List<string> collected) {
+        if (collected == null || collected.Count == 0) return false;
+
+        for (int i = collected.Count - 1; i >= 0; i--) {
+            var line = collected[i];
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            if (!IsOrderedListLine(line, out _, out int number, out _)) return false;
+            return number != 1;
+        }
+
+        return false;
+    }
+
     private static List<string> ConsumeListContinuationLines(string[] lines, ref int nextIndex, int continuationIndent, string initialContent, MarkdownReaderOptions options) {
         if (lines == null) return new List<string> { initialContent ?? string.Empty };
         if (nextIndex < 0) nextIndex = 0;
@@ -351,7 +369,7 @@ public static partial class MarkdownReader {
 
             // Stop before the next list item (including nested items).
             if (IsUnorderedListLine(line, out _, out _, out _, out _) ||
-                IsOrderedListLine(line, out _, out _, out _)) {
+                IsParagraphInterruptingOrderedListLine(line)) {
                 break;
             }
 
@@ -370,7 +388,7 @@ public static partial class MarkdownReader {
                 // Indented code block inside list item: continuationIndent + 4 spaces.
                 if (options.IndentedCodeBlocks) {
                     int spacesIndent = CountLeadingSpaces(line);
-                    if (spacesIndent >= continuationIndent + 4) break;
+                    if (spacesIndent >= continuationIndent + 4 && !LastCollectedLinePreservesIndentedContinuation(collected)) break;
                 }
 
                 // Table inside list item: a pipe row followed by an alignment/row.

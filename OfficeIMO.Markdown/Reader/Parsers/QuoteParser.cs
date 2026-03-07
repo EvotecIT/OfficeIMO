@@ -72,7 +72,7 @@ public static partial class MarkdownReader {
         if (IsCodeFenceOpen(t, out _, out _, out _)) return false;
         if (LooksLikeTableRow(t)) return false;
         if (IsUnorderedListLine(t, out _, out _, out _)) return false;
-        if (IsOrderedListLine(t, out _, out _)) return false;
+        if (IsParagraphInterruptingOrderedListLine(t)) return false;
         if (IsDefinitionLine(t)) return false;
         if (IsCalloutHeader("> " + t, out _, out _)) return false; // callout marker is quote-prefixed in source
 
@@ -103,7 +103,7 @@ public static partial class MarkdownReader {
         if (IsDefinitionLine(trimmed)) return false;
         if (IsCalloutHeader("> " + trimmed, out _, out _)) return false;
 
-        if (IsUnorderedListLine(trimmed, out _, out _, out _) || IsOrderedListLine(trimmed, out _, out _)) {
+        if (IsUnorderedListLine(trimmed, out _, out _, out _) || IsParagraphInterruptingOrderedListLine(trimmed)) {
             normalized = "\\" + trimmed;
             return true;
         }

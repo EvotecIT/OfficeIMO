@@ -22,7 +22,7 @@ public static partial class MarkdownReader {
                    !IsCodeFenceOpen(lines[j], out _, out _, out _) &&
                    !StartsTable(lines, j) &&
                    !IsUnorderedListLine(lines[j], out _, out _, out _) &&
-                   !IsOrderedListLine(lines[j], out _, out _) &&
+                   !IsParagraphInterruptingOrderedListLine(lines[j]) &&
                    !IsCalloutHeader(lines[j], out _, out _) &&
                    !IsQuoteStarter(lines[j]) &&
                    !IsImageLine(lines[j])) {
