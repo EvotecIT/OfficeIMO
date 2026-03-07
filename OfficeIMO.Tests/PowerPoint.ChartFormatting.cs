@@ -283,6 +283,66 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CanConfigureSeriesDataLabelsAndCallouts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                var data = new PowerPointChartData(
+                    new[] { "Jan", "Feb", "Mar" },
+                    new[] {
+                        new PowerPointChartSeries("Revenue", new[] { 10d, 12d, 14d }),
+                        new PowerPointChartSeries("Forecast", new[] { 11d, 13d, 15d })
+                    });
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddLineChart(data);
+                    chart.SetSeriesDataLabels("Forecast", showValue: true, showCategoryName: true, position: C.DataLabelPositionValues.Top,
+                            numberFormat: "0.0", sourceLinked: false)
+                        .SetSeriesDataLabelCallouts(0, enabled: true, lineColor: "C00000", lineWidthPoints: 0.75);
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator();
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.LineChartSeries[] series = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
+                        .GetFirstChild<C.PlotArea>()!
+                        .GetFirstChild<C.LineChart>()!
+                        .Elements<C.LineChartSeries>()
+                        .ToArray();
+
+                    Assert.Equal(2, series.Length);
+
+                    C.DataLabels revenueLabels = series[0].GetFirstChild<C.DataLabels>()!;
+                    Assert.True(revenueLabels.GetFirstChild<C.ShowValue>()?.Val?.Value);
+                    Assert.False(revenueLabels.GetFirstChild<C.ShowCategoryName>()?.Val?.Value);
+                    Assert.Equal(C.DataLabelPositionValues.OutsideEnd, revenueLabels.GetFirstChild<C.DataLabelPosition>()?.Val?.Value);
+                    Assert.True(revenueLabels.GetFirstChild<C.ShowLeaderLines>()?.Val?.Value);
+                    A.Outline? revenueLeaderOutline = revenueLabels.GetFirstChild<C.LeaderLines>()?
+                        .GetFirstChild<C.ChartShapeProperties>()?
+                        .GetFirstChild<A.Outline>();
+                    Assert.Equal("C00000", revenueLeaderOutline?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                    Assert.Equal((int)Math.Round(0.75d * 12700d), revenueLeaderOutline?.Width?.Value);
+
+                    C.DataLabels forecastLabels = series[1].GetFirstChild<C.DataLabels>()!;
+                    Assert.True(forecastLabels.GetFirstChild<C.ShowValue>()?.Val?.Value);
+                    Assert.True(forecastLabels.GetFirstChild<C.ShowCategoryName>()?.Val?.Value);
+                    Assert.False(forecastLabels.GetFirstChild<C.ShowSeriesName>()?.Val?.Value);
+                    Assert.Equal(C.DataLabelPositionValues.Top, forecastLabels.GetFirstChild<C.DataLabelPosition>()?.Val?.Value);
+                    Assert.Equal("0.0", forecastLabels.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value);
+                    Assert.False(forecastLabels.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void CanAddSeriesTrendlineToLineChart() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
