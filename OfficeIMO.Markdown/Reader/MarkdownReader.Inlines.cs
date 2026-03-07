@@ -156,7 +156,7 @@ public static partial class MarkdownReader {
                 }
             }
 
-            // Angle-bracket autolinks: <https://example.com> and <user@example.com>
+            // Angle-bracket autolinks: <https://example.com>, <mailto:user@example.com>, <tel:+123>, <user@example.com>
             if (text[pos] == '<' && TryParseAngleAutolink(text, pos, out int consumedAngle, out var labelAngle, out var hrefAngle)) {
                 var resolved = ResolveUrl(hrefAngle, options);
                 if (string.IsNullOrEmpty(resolved)) {
@@ -500,8 +500,7 @@ public static partial class MarkdownReader {
             return true;
         }
 
-        if (TryGetScheme(inner, out var scheme) &&
-            inner.IndexOf("://", StringComparison.Ordinal) == scheme.Length) {
+        if (TryGetScheme(inner, out var scheme) && IsUriAngleAutolink(inner, scheme)) {
             label = inner;
             href = inner;
             consumed = gt - start + 1;
@@ -517,6 +516,22 @@ public static partial class MarkdownReader {
         }
 
         return false;
+    }
+
+    private static bool IsUriAngleAutolink(string inner, string scheme) {
+        if (string.IsNullOrEmpty(inner) || string.IsNullOrEmpty(scheme)) return false;
+
+        // Match CommonMark-style absolute URI autolinks instead of limiting support to scheme://...
+        // This keeps tel:, urn:, xmpp:, etc. on the same policy-controlled path as http(s)/mailto.
+        if (scheme.Length < 2 || scheme.Length > 32) return false;
+        if (inner.Length <= scheme.Length + 1) return false;
+
+        for (int i = scheme.Length + 1; i < inner.Length; i++) {
+            char c = inner[i];
+            if (char.IsWhiteSpace(c) || char.IsControl(c) || c == '<' || c == '>') return false;
+        }
+
+        return true;
     }
 
     private static bool LooksLikeEmail(string s) {
