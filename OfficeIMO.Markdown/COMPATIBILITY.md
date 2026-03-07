@@ -72,7 +72,7 @@ These are the main reasons you will see differences compared to typical CommonMa
 - Inline emphasis rules
   - Delimiter-run rules (nesting, intraword `_`, etc.) are simplified and can differ from CommonMark output.
 - Autolinks
-  - Literal autolinks cover common cases (`http(s)://...`, `www.*`, and plain emails) but do not aim for full spec coverage.
+  - Literal autolinks cover common cases (`http(s)://...`, `www.*`, plain emails, and angle-bracket absolute URIs like `mailto:`, `ftp://`, `tel:`, and `urn:`) but do not aim for full spec coverage.
 - Code blocks
   - Some CommonMark edge cases around indentation and list nesting are not fully covered (fenced code is the most reliable form).
 - HTML
