@@ -210,6 +210,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CanConfigureChartDataLabelCallouts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                var data = new PowerPointChartData(
+                    new[] { "North", "South", "West" },
+                    new[] { new PowerPointChartSeries("Sales", new[] { 42d, 31d, 27d }) });
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddPieChart(data);
+                    chart.SetDataLabelCallouts(enabled: true, lineColor: "C00000", lineWidthPoints: 0.75);
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator();
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.DataLabels labels = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
+                        .GetFirstChild<C.PlotArea>()!
+                        .GetFirstChild<C.PieChart>()!
+                        .GetFirstChild<C.DataLabels>()!;
+
+                    Assert.True(labels.GetFirstChild<C.ShowValue>()?.Val?.Value);
+                    Assert.False(labels.GetFirstChild<C.ShowCategoryName>()?.Val?.Value);
+                    Assert.False(labels.GetFirstChild<C.ShowSeriesName>()?.Val?.Value);
+                    Assert.False(labels.GetFirstChild<C.ShowPercent>()?.Val?.Value);
+                    Assert.Equal(C.DataLabelPositionValues.OutsideEnd, labels.GetFirstChild<C.DataLabelPosition>()?.Val?.Value);
+                    Assert.True(labels.GetFirstChild<C.ShowLeaderLines>()?.Val?.Value);
+
+                    A.Outline? leaderLineOutline = labels.GetFirstChild<C.LeaderLines>()?
+                        .GetFirstChild<C.ChartShapeProperties>()?
+                        .GetFirstChild<A.Outline>();
+                    Assert.Equal("C00000", leaderLineOutline?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                    Assert.Equal((int)Math.Round(0.75d * 12700d), leaderLineOutline?.Width?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void CanStyleSeriesDataLabels() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
