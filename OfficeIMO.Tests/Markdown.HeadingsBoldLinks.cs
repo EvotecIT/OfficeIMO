@@ -51,9 +51,9 @@ namespace OfficeIMO.Tests {
             using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
 
             var hyperlinkRuns = doc.Paragraphs[0].GetRuns().Where(r => r.IsHyperLink).ToList();
-            var boldRun = Assert.Single(hyperlinkRuns.Where(r => string.Equals(r.Text, "bold", StringComparison.Ordinal)));
-            var plainRun = Assert.Single(hyperlinkRuns.Where(r => string.Equals(r.Text, " plain ", StringComparison.Ordinal)));
-            var highlightRun = Assert.Single(hyperlinkRuns.Where(r => string.Equals(r.Text, "highlight", StringComparison.Ordinal)));
+            var boldRun = Assert.Single(hyperlinkRuns, r => string.Equals(r.Text, "bold", StringComparison.Ordinal));
+            var plainRun = Assert.Single(hyperlinkRuns, r => string.Equals(r.Text, " plain ", StringComparison.Ordinal));
+            var highlightRun = Assert.Single(hyperlinkRuns, r => string.Equals(r.Text, "highlight", StringComparison.Ordinal));
 
             Assert.True(boldRun.Bold);
             Assert.False(boldRun.Italic);
