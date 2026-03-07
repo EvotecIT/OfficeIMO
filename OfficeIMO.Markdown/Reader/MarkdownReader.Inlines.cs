@@ -261,6 +261,12 @@ public static partial class MarkdownReader {
 
                 GetDelimiterFlags(text, pos, marker, runLen, out bool canOpen, out bool canClose);
 
+                if (ShouldTreatMixedSingleMarkerAsLiteral(text, pos, marker, runLen, canOpen, canClose, stack)) {
+                    Current().Text(marker.ToString());
+                    pos++;
+                    continue;
+                }
+
                 int remaining = runLen;
                 if (canClose) {
                     while (remaining > 0) {
@@ -536,6 +542,43 @@ public static partial class MarkdownReader {
         }
 
         return false;
+    }
+
+    private static bool ShouldTreatMixedSingleMarkerAsLiteral(string text, int start, char marker, int runLen, bool canOpen, bool canClose, Stack<InlineFrame> stack) {
+        if (!canOpen || canClose) return false;
+        if (runLen != 1) return false;
+        if (marker != '*' && marker != '_') return false;
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
+        if (stack == null || stack.Count <= 1) return false;
+
+        var top = stack.Peek();
+        if (top.Kind != FrameKind.Italic || top.OpenLen != 1) return false;
+        if (top.Marker == marker) return false;
+
+        int outerClose = FindNextClosingDelimiterIndex(text, start + 1, top.Marker, minimumRunLength: 1);
+        if (outerClose < 0) return false;
+
+        int innerClose = FindNextClosingDelimiterIndex(text, start + 1, marker, minimumRunLength: 1);
+        return innerClose < 0 || outerClose < innerClose;
+    }
+
+    private static int FindNextClosingDelimiterIndex(string text, int start, char marker, int minimumRunLength) {
+        if (string.IsNullOrEmpty(text)) return -1;
+        if (minimumRunLength <= 0) minimumRunLength = 1;
+
+        for (int i = Math.Max(0, start); i < text.Length; i++) {
+            if (text[i] != marker) continue;
+
+            int runLen = 1;
+            while (i + runLen < text.Length && text[i + runLen] == marker) runLen++;
+
+            GetDelimiterFlags(text, i, marker, runLen, out _, out bool canClose);
+            if (canClose && runLen >= minimumRunLength) return i;
+
+            i += runLen - 1;
+        }
+
+        return -1;
     }
 
     private static void GetDelimiterFlags(string text, int start, char marker, int runLen, out bool canOpen, out bool canClose) {

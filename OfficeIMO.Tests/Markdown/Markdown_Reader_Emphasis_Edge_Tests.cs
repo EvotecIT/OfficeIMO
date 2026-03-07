@@ -105,5 +105,39 @@ public class Markdown_Reader_Emphasis_Edge_Tests {
         Assert.Contains("<strong>foo</strong> bar_", html, StringComparison.Ordinal);
         Assert.DoesNotContain("_<em>foo__ bar</em>", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Single_Underscore_Inside_Star_Italic_Can_Remain_Literal_When_Outer_Closer_Comes_First() {
+        var md = "*a _b* c_";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<em>a _b</em> c_", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("*a <em>b* c</em>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Single_Star_Inside_Underscore_Italic_Can_Remain_Literal_When_Outer_Closer_Comes_First() {
+        var md = "_a *b_ c*";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<em>a *b</em> c*", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("_a <em>b_ c</em>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Mixed_Markers_Can_Still_Nest_When_Inner_Closer_Comes_First() {
+        var md = "*a _b_ c*";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<em>a <em>b</em> c</em>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Mixed_Markers_Can_Still_Nest_In_Reverse_Order_When_Inner_Closer_Comes_First() {
+        var md = "_a *b* c_";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<em>a <em>b</em> c</em>", html, StringComparison.Ordinal);
+    }
 }
 
