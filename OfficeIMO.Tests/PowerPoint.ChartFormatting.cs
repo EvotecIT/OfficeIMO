@@ -402,6 +402,8 @@ namespace OfficeIMO.Tests {
                     PowerPointChart chart = slide.AddPieChart(data);
                     chart.SetSeriesDataLabels(0, showValue: true, position: C.DataLabelPositionValues.BestFit, numberFormat: "0.0", sourceLinked: false)
                         .SetSeriesDataLabelSeparator(0, " - ")
+                        .SetSeriesDataLabelLeaderLines(0, showLeaderLines: true, lineColor: "C00000", lineWidthPoints: 0.75)
+                        .SetSeriesDataLabelCalloutsForPoint(0, 1, enabled: true)
                         .SetSeriesDataLabelForPoint(0, 1, showValue: true, showCategoryName: true, position: C.DataLabelPositionValues.OutsideEnd,
                             numberFormat: "0.00", sourceLinked: false)
                         .SetSeriesDataLabelSeparatorForPoint(0, 1, " | ")
@@ -426,6 +428,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(C.DataLabelPositionValues.BestFit, labels.GetFirstChild<C.DataLabelPosition>()?.Val?.Value);
                     Assert.Equal("0.0", labels.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value);
                     Assert.Equal(" - ", labels.GetFirstChild<C.Separator>()?.Text);
+                    Assert.True(labels.GetFirstChild<C.ShowLeaderLines>()?.Val?.Value);
 
                     C.DataLabel? pointLabel = labels.Elements<C.DataLabel>()
                         .FirstOrDefault(item => item.GetFirstChild<C.Index>()?.Val?.Value == 1U);
@@ -450,6 +453,12 @@ namespace OfficeIMO.Tests {
                     A.Outline? outline = shapeProps?.GetFirstChild<A.Outline>();
                     Assert.Equal("C00000", outline?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
                     Assert.Equal((int)Math.Round(0.75d * 12700d), outline?.Width?.Value);
+
+                    A.Outline? leaderLineOutline = labels.GetFirstChild<C.LeaderLines>()?
+                        .GetFirstChild<C.ChartShapeProperties>()?
+                        .GetFirstChild<A.Outline>();
+                    Assert.Equal("C00000", leaderLineOutline?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                    Assert.Equal((int)Math.Round(0.75d * 12700d), leaderLineOutline?.Width?.Value);
                 }
             } finally {
                 if (File.Exists(filePath)) {
