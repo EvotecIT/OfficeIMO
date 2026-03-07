@@ -428,6 +428,19 @@ x^2 + 1
     }
 
     [Fact]
+    public void MarkdownRenderer_Normalizes_CompactMermaidFenceBodyBoundary_When_Enabled() {
+        var opts = new MarkdownRendererOptions {
+            NormalizeCompactFenceBodyBoundaries = true
+        };
+        opts.Mermaid.Enabled = true;
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("```mermaidflowchart LR A-->B\n```", opts);
+
+        Assert.Contains("class=\"mermaid\"", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("flowchart LR A--&gt;B", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Normalizes_OrderedListParenCaretAndParentheticalSpacing_When_Enabled() {
         var opts = new MarkdownRendererOptions {
             NormalizeOrderedListParenMarkers = true,
@@ -494,6 +507,16 @@ x^2 + 1
         Assert.Contains("<code>Get-ADUser(SIDHistory)</code>", htmlOut, StringComparison.Ordinal);
         Assert.DoesNotContain("<code>Get-ADUser (SIDHistory)</code>", htmlOut, StringComparison.Ordinal);
         Assert.DoesNotContain("used **System** log only.**", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_ChatStrictPreset_Normalizes_CompactMermaidFenceBodies() {
+        var opts = MarkdownRendererPresets.CreateChatStrict();
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("```mermaidflowchart LR A-->B\n```", opts);
+
+        Assert.Contains("class=\"mermaid\"", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("flowchart LR", htmlOut, StringComparison.Ordinal);
     }
 
     [Fact]

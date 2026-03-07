@@ -252,6 +252,29 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
+    public void DocumentReader_MarkdownChunking_CanNormalize_CompactIxDataViewFenceBodies() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path,
+                "# Visual\n\n```ix-dataview{\"kind\":\"ix_tool_dataview_v1\",\"rows\":[[\"Server\",\"Fails\"],[\"AD0\",\"0\"]]}\n```\n");
+
+            var chunk = DocumentReader.Read(path, new ReaderOptions {
+                MarkdownInputNormalization = new MarkdownInputNormalizationOptions {
+                    NormalizeCompactFenceBodyBoundaries = true
+                }
+            }).Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
+
+            Assert.NotNull(chunk.Tables);
+            Assert.Single(chunk.Tables!);
+            Assert.Equal("ix_tool_dataview_v1", chunk.Tables![0].Title);
+            Assert.Equal(new[] { "Server", "Fails" }, chunk.Tables[0].Columns);
+            Assert.Equal("AD0", chunk.Tables[0].Rows[0][0]);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_MarkdownChunking_EmitsLineRangesAndBlockKinds() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
         try {

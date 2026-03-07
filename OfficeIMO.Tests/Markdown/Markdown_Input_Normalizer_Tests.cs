@@ -96,6 +96,30 @@ public class Markdown_Input_Normalizer_Tests {
     }
 
     [Fact]
+    public void Normalize_CompactJsonFenceBodyBoundary_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeCompactFenceBodyBoundaries = true
+        };
+
+        var markdown = "```json{\"log_name\":\"System\"}\n```";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal("```json\n{\"log_name\":\"System\"}\n```", normalized);
+    }
+
+    [Fact]
+    public void Normalize_CompactMermaidFenceBodyBoundary_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeCompactFenceBodyBoundaries = true
+        };
+
+        var markdown = "```mermaidflowchart LR A-->B\n```";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal("```mermaid\nflowchart LR A-->B\n```", normalized);
+    }
+
+    [Fact]
     public void Normalize_LooseStrongDelimiters_WhenEnabled() {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeLooseStrongDelimiters = true
@@ -126,7 +150,8 @@ public class Markdown_Input_Normalizer_Tests {
             NormalizeHeadingListBoundaries = true,
             NormalizeCompactStrongLabelListBoundaries = true,
             NormalizeCompactHeadingBoundaries = true,
-            NormalizeColonListBoundaries = true
+            NormalizeColonListBoundaries = true,
+            NormalizeCompactFenceBodyBoundaries = true
         };
 
         var markdown = """

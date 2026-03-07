@@ -140,6 +140,21 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
+    public void Reader_Can_Normalize_CompactMermaidFenceBodyBoundary_BeforeParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeCompactFenceBodyBoundaries = true
+            }
+        };
+
+        var markdown = MarkdownReader.Parse("```mermaidflowchart LR A-->B\n```", options)
+            .ToMarkdown()
+            .Replace("\r\n", "\n");
+
+        Assert.Contains("```mermaid\nflowchart LR A-->B\n```", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_DoesNot_Normalize_TightColonSpacing_InsideInlineCode() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
