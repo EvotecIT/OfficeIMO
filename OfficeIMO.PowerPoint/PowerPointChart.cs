@@ -390,6 +390,21 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Enables callout-style labels by positioning labels outside with leader lines.
+        /// </summary>
+        public PowerPointChart SetDataLabelCallouts(bool enabled = true, C.DataLabelPositionValues? position = null,
+            string? lineColor = null, double? lineWidthPoints = null) {
+            C.DataLabelPositionValues? resolvedPosition = enabled ? position ?? C.DataLabelPositionValues.OutsideEnd : position;
+            SetDataLabels(showValue: enabled, showCategoryName: false, showSeriesName: false, showLegendKey: false,
+                showPercent: false);
+            if (resolvedPosition != null) {
+                SetDataLabelPosition(resolvedPosition.Value);
+            }
+
+            return SetDataLabelLeaderLines(enabled, lineColor, lineWidthPoints);
+        }
+
+        /// <summary>
         ///     Configures data labels for a single series by index.
         /// </summary>
         public PowerPointChart SetSeriesDataLabels(int seriesIndex, bool showValue = true, bool showCategoryName = false,
