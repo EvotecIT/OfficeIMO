@@ -387,6 +387,34 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets the category axis label rotation in degrees (-90..90).
+        /// </summary>
+        public PowerPointChart SetCategoryAxisLabelRotation(double rotationDegrees) {
+            return SetAxisLabelRotation<C.CategoryAxis>(rotationDegrees);
+        }
+
+        /// <summary>
+        ///     Sets the value axis label rotation in degrees (-90..90).
+        /// </summary>
+        public PowerPointChart SetValueAxisLabelRotation(double rotationDegrees) {
+            return SetAxisLabelRotation<C.ValueAxis>(rotationDegrees);
+        }
+
+        /// <summary>
+        ///     Sets the category axis tick label position.
+        /// </summary>
+        public PowerPointChart SetCategoryAxisTickLabelPosition(C.TickLabelPositionValues position) {
+            return SetAxisTickLabelPosition<C.CategoryAxis>(position);
+        }
+
+        /// <summary>
+        ///     Sets the value axis tick label position.
+        /// </summary>
+        public PowerPointChart SetValueAxisTickLabelPosition(C.TickLabelPositionValues position) {
+            return SetAxisTickLabelPosition<C.ValueAxis>(position);
+        }
+
+        /// <summary>
         ///     Sets the scatter chart X-axis title.
         /// </summary>
         public PowerPointChart SetScatterXAxisTitle(string title) {
@@ -432,6 +460,50 @@ namespace OfficeIMO.PowerPoint {
 
             return SetAxisLabelTextStyle<C.ValueAxis>(fontSizePoints, bold, italic, color, fontName,
                 axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+        }
+
+        /// <summary>
+        ///     Sets the scatter chart X-axis label rotation in degrees (-90..90).
+        /// </summary>
+        public PowerPointChart SetScatterXAxisLabelRotation(double rotationDegrees) {
+            if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
+                return this;
+            }
+
+            return SetAxisLabelRotation<C.ValueAxis>(rotationDegrees, axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+        }
+
+        /// <summary>
+        ///     Sets the scatter chart Y-axis label rotation in degrees (-90..90).
+        /// </summary>
+        public PowerPointChart SetScatterYAxisLabelRotation(double rotationDegrees) {
+            if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
+                return this;
+            }
+
+            return SetAxisLabelRotation<C.ValueAxis>(rotationDegrees, axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+        }
+
+        /// <summary>
+        ///     Sets the scatter chart X-axis tick label position.
+        /// </summary>
+        public PowerPointChart SetScatterXAxisTickLabelPosition(C.TickLabelPositionValues position) {
+            if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
+                return this;
+            }
+
+            return SetAxisTickLabelPosition<C.ValueAxis>(position, axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+        }
+
+        /// <summary>
+        ///     Sets the scatter chart Y-axis tick label position.
+        /// </summary>
+        public PowerPointChart SetScatterYAxisTickLabelPosition(C.TickLabelPositionValues position) {
+            if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
+                return this;
+            }
+
+            return SetAxisTickLabelPosition<C.ValueAxis>(position, axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
         }
 
         /// <summary>
@@ -896,6 +968,57 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
+        private PowerPointChart SetAxisLabelRotation<TAxis>(double rotationDegrees, Func<TAxis, bool>? predicate = null)
+            where TAxis : OpenXmlCompositeElement {
+            ValidateAxisLabelRotation(rotationDegrees);
+
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            TAxis? axis = predicate == null
+                ? plotArea.Elements<TAxis>().FirstOrDefault()
+                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
+            if (axis == null) {
+                return this;
+            }
+
+            EnsureTextPropertiesRunProperties(axis);
+            C.TextProperties? textProps = axis.GetFirstChild<C.TextProperties>();
+            if (textProps != null) {
+                A.BodyProperties body = textProps.GetFirstChild<A.BodyProperties>() ?? new A.BodyProperties();
+                body.Rotation = (int)Math.Round(rotationDegrees * 60000d);
+                if (body.Parent == null) {
+                    textProps.Append(body);
+                }
+            }
+
+            Save();
+            return this;
+        }
+
+        private PowerPointChart SetAxisTickLabelPosition<TAxis>(C.TickLabelPositionValues position, Func<TAxis, bool>? predicate = null)
+            where TAxis : OpenXmlCompositeElement {
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            TAxis? axis = predicate == null
+                ? plotArea.Elements<TAxis>().FirstOrDefault()
+                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
+            if (axis == null) {
+                return this;
+            }
+
+            ReplaceAxisChild(axis, new C.TickLabelPosition { Val = position });
+            Save();
+            return this;
+        }
+
         private PowerPointChart SetAxisNumberFormat<TAxis>(string formatCode, bool sourceLinked, Func<TAxis, bool>? predicate = null)
             where TAxis : OpenXmlCompositeElement {
             if (string.IsNullOrWhiteSpace(formatCode)) {
@@ -1280,6 +1403,15 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        private static void ValidateAxisLabelRotation(double rotationDegrees) {
+            if (double.IsNaN(rotationDegrees) || double.IsInfinity(rotationDegrees)) {
+                throw new ArgumentOutOfRangeException(nameof(rotationDegrees));
+            }
+            if (rotationDegrees < -90d || rotationDegrees > 90d) {
+                throw new ArgumentOutOfRangeException(nameof(rotationDegrees), "Rotation must be between -90 and 90 degrees.");
+            }
+        }
+
         private static C.ChartShapeProperties EnsureChartShapeProperties(OpenXmlCompositeElement series) {
             C.ChartShapeProperties props = series.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
             if (props.Parent == null) {
@@ -1642,6 +1774,31 @@ namespace OfficeIMO.PowerPoint {
         private static void ReplaceChild<T>(OpenXmlCompositeElement parent, T child) where T : OpenXmlElement {
             parent.GetFirstChild<T>()?.Remove();
             parent.Append(child);
+        }
+
+        private static void ReplaceAxisChild<T>(OpenXmlCompositeElement axis, T child) where T : OpenXmlElement {
+            axis.GetFirstChild<T>()?.Remove();
+
+            OpenXmlElement? insertBefore = axis.GetFirstChild<C.ShapeProperties>();
+            insertBefore ??= axis.GetFirstChild<C.TextProperties>();
+            insertBefore ??= axis.GetFirstChild<C.CrossingAxis>();
+            insertBefore ??= axis.GetFirstChild<C.Crosses>();
+            insertBefore ??= axis.GetFirstChild<C.CrossesAt>();
+            insertBefore ??= axis.GetFirstChild<C.AutoLabeled>();
+            insertBefore ??= axis.GetFirstChild<C.LabelAlignment>();
+            insertBefore ??= axis.GetFirstChild<C.LabelOffset>();
+            insertBefore ??= axis.GetFirstChild<C.NoMultiLevelLabels>();
+            insertBefore ??= axis.GetFirstChild<C.CrossBetween>();
+            insertBefore ??= axis.GetFirstChild<C.MajorUnit>();
+            insertBefore ??= axis.GetFirstChild<C.MinorUnit>();
+            insertBefore ??= axis.GetFirstChild<C.DisplayUnits>();
+            insertBefore ??= axis.GetFirstChild<C.ExtensionList>();
+
+            if (insertBefore != null) {
+                axis.InsertBefore(child, insertBefore);
+            } else {
+                axis.Append(child);
+            }
         }
 
         private C.Chart GetChart() {
