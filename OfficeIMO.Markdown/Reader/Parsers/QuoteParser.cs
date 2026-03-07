@@ -37,8 +37,9 @@ public static partial class MarkdownReader {
                         continue;
                     }
 
-                    // Only continue lazily when the previous inner line looks like paragraph content.
-                    if (inner.Count == 0 || !LooksLikeParagraphLine(inner[inner.Count - 1])) break;
+                    // Only continue lazily when both sides look like paragraph content.
+                    // A non-quoted list/item/code starter should end the blockquote instead of being swallowed into it.
+                    if (inner.Count == 0 || !LooksLikeParagraphLine(inner[inner.Count - 1]) || !LooksLikeParagraphLine(ln)) break;
 
                     inner.Add(ln);
                     j++;
@@ -59,10 +60,12 @@ public static partial class MarkdownReader {
 
     private static bool LooksLikeParagraphLine(string line) {
         if (string.IsNullOrWhiteSpace(line)) return false;
+        if (CountLeadingSpaces(line) >= 4) return false;
 
         var t = line.TrimStart();
 
         // Block starters we do not want to lazily continue after.
+        if (t.StartsWith(">")) return false;
         if (IsAtxHeading(t, out _, out _)) return false;
         if (LooksLikeHr(t)) return false;
         if (IsCodeFenceOpen(t, out _, out _, out _)) return false;
