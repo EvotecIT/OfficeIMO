@@ -19,6 +19,9 @@ namespace OfficeIMO.Tests {
             var data = new PowerPointChartData(
                 new[] { "North", "South", "West" },
                 new[] { new PowerPointChartSeries("Revenue", new[] { 10d, 20d, 30d }) });
+            var updatedData = new PowerPointChartData(
+                new[] { "Central", "East", "West" },
+                new[] { new PowerPointChartSeries("Updated Revenue", new[] { 15d, 25d, 35d }) });
 
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
@@ -32,6 +35,7 @@ namespace OfficeIMO.Tests {
                         .SetDataLabelPosition(C.DataLabelPositionValues.BestFit)
                         .SetDataLabelNumberFormat("0.0%", sourceLinked: false)
                         .SetSeriesFillColor(0, "4472C4");
+                    chart.UpdateData(updatedData);
 
                     presentation.Save();
                 }
@@ -59,7 +63,7 @@ namespace OfficeIMO.Tests {
                         .Elements<C.StringPoint>()
                         .Select(point => point.NumericValue?.Text ?? string.Empty)
                         .ToArray() ?? Array.Empty<string>();
-                    Assert.Equal(new[] { "North", "South", "West" }, categories);
+                    Assert.Equal(new[] { "Central", "East", "West" }, categories);
 
                     double[] values = series.GetFirstChild<C.Values>()?
                         .GetFirstChild<C.NumberReference>()?
@@ -67,7 +71,7 @@ namespace OfficeIMO.Tests {
                         .Elements<C.NumericPoint>()
                         .Select(point => double.Parse(point.NumericValue?.Text ?? "0", CultureInfo.InvariantCulture))
                         .ToArray() ?? Array.Empty<double>();
-                    Assert.Equal(new[] { 10d, 20d, 30d }, values);
+                    Assert.Equal(new[] { 15d, 25d, 35d }, values);
 
                     bool? showPercent = chartElement.GetFirstChild<C.DataLabels>()?
                         .GetFirstChild<C.ShowPercent>()?
