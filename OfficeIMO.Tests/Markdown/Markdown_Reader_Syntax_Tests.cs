@@ -307,6 +307,9 @@ Other: Another
 
         var summary = details.Children[0];
         Assert.Equal(MarkdownSyntaxKind.Summary, summary.Kind);
+        Assert.NotNull(summary.SourceSpan);
+        Assert.Equal(2, summary.SourceSpan!.Value.StartLine);
+        Assert.Equal(2, summary.SourceSpan!.Value.EndLine);
 
         var list = details.Children[1];
         Assert.Equal(MarkdownSyntaxKind.UnorderedList, list.Kind);

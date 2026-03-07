@@ -153,6 +153,9 @@ public static partial class MarkdownReader {
                 var decoded = System.Net.WebUtility.HtmlDecode(summaryInner);
                 var inlines = ParseInlines(decoded, options, state);
                 summary = new SummaryBlock(inlines);
+                int summaryStartLine = state.SourceLineOffset + startLineIndex + CountNewLines(htmlContent, 0, tagEnd + 1) + CountNewLines(inner, 0, summaryStart) + 1;
+                int summaryEndLine = summaryStartLine + CountNewLines(inner, summaryStart, summaryClose + "</summary>".Length - summaryStart);
+                summary.SyntaxSpan = new MarkdownSourceSpan(summaryStartLine, summaryEndLine);
                 bodyStart = summaryClose + "</summary>".Length;
             }
 
