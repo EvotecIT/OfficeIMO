@@ -30,6 +30,15 @@ public class Markdown_Reader_Emphasis_Edge_Tests {
     }
 
     [Fact]
+    public void Single_Star_Inside_Bold_Can_Remain_Literal_When_Only_Bold_Closer_Remains() {
+        var md = "**foo*bar**";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<strong>foo*bar</strong>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("**foo<em>bar</em>*", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unclosed_Emphasis_Is_Literal() {
         var md = "*not closed";
         var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
