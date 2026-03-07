@@ -281,8 +281,23 @@ Other: Another
         Assert.Equal(1, firstItem.SourceSpan!.Value.StartLine);
         Assert.Equal(1, firstItem.SourceSpan!.Value.EndLine);
         Assert.Equal("Term", firstItem.Literal);
+        Assert.Equal(2, firstItem.Children.Count);
 
-        var firstDefinition = Assert.Single(firstItem.Children);
+        var firstTerm = firstItem.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.DefinitionTerm, firstTerm.Kind);
+        Assert.NotNull(firstTerm.SourceSpan);
+        Assert.Equal(1, firstTerm.SourceSpan!.Value.StartLine);
+        Assert.Equal(1, firstTerm.SourceSpan!.Value.EndLine);
+        Assert.Equal("Term", firstTerm.Literal);
+
+        var firstValue = firstItem.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.DefinitionValue, firstValue.Kind);
+        Assert.NotNull(firstValue.SourceSpan);
+        Assert.Equal(1, firstValue.SourceSpan!.Value.StartLine);
+        Assert.Equal(1, firstValue.SourceSpan!.Value.EndLine);
+        Assert.Equal("Definition", firstValue.Literal);
+
+        var firstDefinition = Assert.Single(firstValue.Children);
         Assert.Equal(MarkdownSyntaxKind.Paragraph, firstDefinition.Kind);
         Assert.NotNull(firstDefinition.SourceSpan);
         Assert.Equal(1, firstDefinition.SourceSpan!.Value.StartLine);

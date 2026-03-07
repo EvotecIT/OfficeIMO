@@ -143,7 +143,13 @@ public static partial class MarkdownReader {
                 MarkdownSyntaxKind.DefinitionItem,
                 literal: term,
                 children: new[] {
-                    new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: definition)
+                    new MarkdownSyntaxNode(MarkdownSyntaxKind.DefinitionTerm, literal: term),
+                    new MarkdownSyntaxNode(
+                        MarkdownSyntaxKind.DefinitionValue,
+                        literal: definition,
+                        children: new[] {
+                            new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: definition)
+                        })
                 }));
         }
         return nodes;
