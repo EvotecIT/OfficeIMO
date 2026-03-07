@@ -507,6 +507,8 @@ public static partial class MarkdownReader {
 
         int j = index;
         var collected = new List<string>();
+        bool sawQuotedLine = false;
+        string? lastQuoteContent = null;
         while (j < lines.Length) {
             string raw = lines[j] ?? string.Empty;
             if (string.IsNullOrWhiteSpace(raw)) {
@@ -536,8 +538,19 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            if (!part.TrimStart().StartsWith(">")) break;
-            collected.Add(part);
+            if (part.TrimStart().StartsWith(">")) {
+                collected.Add(part);
+                sawQuotedLine = true;
+                lastQuoteContent = StripSingleQuoteMarker(part);
+                j++;
+                continue;
+            }
+
+            // Match the top-level quote parser's lazy continuation behavior inside list items too.
+            if (!sawQuotedLine || string.IsNullOrEmpty(lastQuoteContent) || !LooksLikeParagraphLine(lastQuoteContent) || !LooksLikeParagraphLine(part)) break;
+
+            collected.Add("> " + part);
+            lastQuoteContent = part;
             j++;
         }
 
@@ -550,6 +563,13 @@ public static partial class MarkdownReader {
             return true;
         }
         return false;
+    }
+
+    private static string StripSingleQuoteMarker(string line) {
+        if (string.IsNullOrEmpty(line)) return string.Empty;
+        var trimmed = line.TrimStart();
+        if (!trimmed.StartsWith(">")) return trimmed;
+        return trimmed.Length >= 2 && trimmed[1] == ' ' ? trimmed.Substring(2) : trimmed.Substring(1);
     }
 
     private static bool TryParseNestedTableBlock(string[] lines, ref int index, int continuationIndent, MarkdownReaderOptions options, MarkdownReaderState state, out TableBlock? table) {

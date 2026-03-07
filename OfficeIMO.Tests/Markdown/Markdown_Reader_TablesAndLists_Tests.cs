@@ -270,6 +270,41 @@ c | d
         }
 
         [Fact]
+        public void List_Item_Nested_Blockquote_Can_Lazily_Continue_Within_Tight_List() {
+            string md = """
+- item
+  > quote
+  continuation
+""";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Single(list.Items);
+            var quote = Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("<li>item<blockquote><p>quote continuation</p></blockquote></li>", html, StringComparison.Ordinal);
+            Assert.Single(quote.Children);
+        }
+
+        [Fact]
+        public void List_Item_Nested_Blockquote_Can_Lazily_Continue_Within_Loose_List() {
+            string md = """
+- item
+
+  > quote
+  continuation
+""";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Single(list.Items);
+            var quote = Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("<blockquote><p>quote continuation</p></blockquote>", html, StringComparison.Ordinal);
+            Assert.Single(quote.Children);
+        }
+
+        [Fact]
         public void List_Item_Can_Contain_Nested_Table() {
             string md = """
 - outer
