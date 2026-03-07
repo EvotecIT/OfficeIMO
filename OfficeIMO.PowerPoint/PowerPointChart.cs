@@ -838,6 +838,52 @@ namespace OfficeIMO.PowerPoint {
             return ClearValueAxisDisplayUnits(null);
         }
 
+        /// <summary>
+        ///     Sets chart area fill/line styling.
+        /// </summary>
+        public PowerPointChart SetChartAreaStyle(string? fillColor = null, string? lineColor = null,
+            double? lineWidthPoints = null, bool noFill = false, bool noLine = false) {
+            ValidateAreaStyle(fillColor, lineColor, lineWidthPoints, noFill, noLine);
+
+            ChartPart chartPart = GetChartPart();
+            C.ChartSpace? chartSpace = chartPart.ChartSpace;
+            if (chartSpace == null) {
+                return this;
+            }
+
+            C.ShapeProperties props = chartSpace.GetFirstChild<C.ShapeProperties>() ?? new C.ShapeProperties();
+            ApplyAreaStyle(props, fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            if (props.Parent == null) {
+                InsertChartSpaceShapeProperties(chartSpace, props);
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets plot area fill/line styling.
+        /// </summary>
+        public PowerPointChart SetPlotAreaStyle(string? fillColor = null, string? lineColor = null,
+            double? lineWidthPoints = null, bool noFill = false, bool noLine = false) {
+            ValidateAreaStyle(fillColor, lineColor, lineWidthPoints, noFill, noLine);
+
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            C.ShapeProperties props = plotArea.GetFirstChild<C.ShapeProperties>() ?? new C.ShapeProperties();
+            ApplyAreaStyle(props, fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            if (props.Parent == null) {
+                InsertPlotAreaShapeProperties(plotArea, props);
+            }
+
+            Save();
+            return this;
+        }
+
         private PowerPointChart ClearValueAxisDisplayUnits(Func<C.ValueAxis, bool>? predicate) {
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -1787,6 +1833,25 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        private static void ValidateAreaStyle(string? fillColor, string? lineColor, double? lineWidthPoints,
+            bool noFill, bool noLine) {
+            if (fillColor != null && string.IsNullOrWhiteSpace(fillColor)) {
+                throw new ArgumentException("Fill color cannot be empty.", nameof(fillColor));
+            }
+            if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
+                throw new ArgumentException("Line color cannot be empty.", nameof(lineColor));
+            }
+            if (lineWidthPoints != null && lineWidthPoints <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(lineWidthPoints));
+            }
+            if (noFill && fillColor != null) {
+                throw new ArgumentException("Cannot set both fill color and noFill.", nameof(noFill));
+            }
+            if (noLine && (lineColor != null || lineWidthPoints != null)) {
+                throw new ArgumentException("Cannot set line color/width when noLine is true.", nameof(noLine));
+            }
+        }
+
         private static C.ChartShapeProperties EnsureChartShapeProperties(OpenXmlCompositeElement series) {
             C.ChartShapeProperties props = series.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
             if (props.Parent == null) {
@@ -1801,6 +1866,24 @@ namespace OfficeIMO.PowerPoint {
             props.RemoveAllChildren<A.GradientFill>();
             props.RemoveAllChildren<A.PatternFill>();
             props.Append(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
+        }
+
+        private static void ApplyNoFill(OpenXmlCompositeElement props) {
+            props.RemoveAllChildren<A.SolidFill>();
+            props.RemoveAllChildren<A.GradientFill>();
+            props.RemoveAllChildren<A.PatternFill>();
+            props.RemoveAllChildren<A.NoFill>();
+            props.Append(new A.NoFill());
+        }
+
+        private static void ApplyNoLine(OpenXmlCompositeElement props) {
+            A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
+            outline.RemoveAllChildren<A.SolidFill>();
+            outline.RemoveAllChildren<A.NoFill>();
+            outline.Append(new A.NoFill());
+            if (outline.Parent == null) {
+                props.Append(outline);
+            }
         }
 
         private static void ApplyLine(OpenXmlCompositeElement props, string color, double? widthPoints) {
@@ -1841,6 +1924,21 @@ namespace OfficeIMO.PowerPoint {
             ApplyGridline<C.MinorGridlines>(axis, showMinor, lineColor, lineWidthPoints);
         }
 
+        private static void ApplyAreaStyle(OpenXmlCompositeElement props, string? fillColor, string? lineColor,
+            double? lineWidthPoints, bool noFill, bool noLine) {
+            if (noFill) {
+                ApplyNoFill(props);
+            } else if (fillColor != null) {
+                ApplySolidFill(props, fillColor);
+            }
+
+            if (noLine) {
+                ApplyNoLine(props);
+            } else if (lineColor != null || lineWidthPoints != null) {
+                ApplyOptionalLine(props, lineColor, lineWidthPoints);
+            }
+        }
+
         private static void ApplyGridline<TGridlines>(OpenXmlCompositeElement axis, bool show,
             string? lineColor, double? lineWidthPoints) where TGridlines : OpenXmlCompositeElement, new() {
             TGridlines? gridlines = axis.GetFirstChild<TGridlines>();
@@ -1860,6 +1958,29 @@ namespace OfficeIMO.PowerPoint {
 
             if (gridlines.Parent == null) {
                 InsertAxisGridlines(axis, gridlines);
+            }
+        }
+
+        private static void InsertChartSpaceShapeProperties(C.ChartSpace chartSpace, C.ShapeProperties props) {
+            OpenXmlElement? insertBefore = chartSpace.GetFirstChild<C.TextProperties>();
+            insertBefore ??= chartSpace.GetFirstChild<C.ExternalData>();
+            insertBefore ??= chartSpace.GetFirstChild<C.PrintSettings>();
+            insertBefore ??= chartSpace.GetFirstChild<C.UserShapesReference>();
+            insertBefore ??= chartSpace.GetFirstChild<C.ExtensionList>();
+
+            if (insertBefore != null) {
+                chartSpace.InsertBefore(props, insertBefore);
+            } else {
+                chartSpace.Append(props);
+            }
+        }
+
+        private static void InsertPlotAreaShapeProperties(C.PlotArea plotArea, C.ShapeProperties props) {
+            OpenXmlElement? insertBefore = plotArea.GetFirstChild<C.ExtensionList>();
+            if (insertBefore != null) {
+                plotArea.InsertBefore(props, insertBefore);
+            } else {
+                plotArea.Append(props);
             }
         }
 

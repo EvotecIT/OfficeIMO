@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -98,6 +99,50 @@ namespace OfficeIMO.Tests {
                         .GetFirstChild<A.Text>()?
                         .Text;
                     Assert.Equal("Revenue", valueTitle);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void CanStyleChartAndPlotArea() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddChart();
+                    chart.SetChartAreaStyle(fillColor: "F2F2F2", lineColor: "404040", lineWidthPoints: 1.25)
+                        .SetPlotAreaStyle(fillColor: "FFFFFF", lineColor: "00B0F0", lineWidthPoints: 0.5);
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator();
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.ChartSpace chartSpace = chartPart.ChartSpace;
+
+                    C.ShapeProperties? chartProps = chartSpace.GetFirstChild<C.ShapeProperties>();
+                    Assert.NotNull(chartProps);
+                    A.SolidFill? chartFill = chartProps!.GetFirstChild<A.SolidFill>();
+                    A.Outline? chartOutline = chartProps.GetFirstChild<A.Outline>();
+                    Assert.Equal("F2F2F2", chartFill?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                    Assert.Equal("404040", chartOutline?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                    Assert.Equal((int)Math.Round(1.25d * 12700d), chartOutline?.Width?.Value);
+
+                    C.PlotArea plotArea = chartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+                    C.ShapeProperties? plotProps = plotArea.GetFirstChild<C.ShapeProperties>();
+                    Assert.NotNull(plotProps);
+                    A.SolidFill? plotFill = plotProps!.GetFirstChild<A.SolidFill>();
+                    A.Outline? plotOutline = plotProps.GetFirstChild<A.Outline>();
+                    Assert.Equal("FFFFFF", plotFill?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                    Assert.Equal("00B0F0", plotOutline?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                    Assert.Equal((int)Math.Round(0.5d * 12700d), plotOutline?.Width?.Value);
                 }
             } finally {
                 if (File.Exists(filePath)) {
