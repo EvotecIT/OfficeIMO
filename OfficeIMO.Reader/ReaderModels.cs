@@ -227,6 +227,21 @@ public sealed class ReaderTable {
     public string? Title { get; set; }
 
     /// <summary>
+    /// Optional source-specific table kind/classification.
+    /// </summary>
+    public string? Kind { get; set; }
+
+    /// <summary>
+    /// Optional source-specific call or correlation identifier.
+    /// </summary>
+    public string? CallId { get; set; }
+
+    /// <summary>
+    /// Optional short descriptive summary.
+    /// </summary>
+    public string? Summary { get; set; }
+
+    /// <summary>
     /// Column headers.
     /// </summary>
     public IReadOnlyList<string> Columns { get; set; } = Array.Empty<string>();

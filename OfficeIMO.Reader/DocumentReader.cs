@@ -2041,7 +2041,10 @@ public static class DocumentReader {
                 .ToArray();
 
             table = new ReaderTable {
-                Title = root.TryGetProperty("kind", out var kindElement) ? kindElement.GetString() : null,
+                Title = TryReadJsonString(root, "title") ?? TryReadJsonString(root, "kind"),
+                Kind = TryReadJsonString(root, "kind"),
+                CallId = TryReadJsonString(root, "call_id"),
+                Summary = TryReadJsonString(root, "summary"),
                 Columns = columns,
                 Rows = normalizedRows,
                 TotalRowCount = totalRowCount,
@@ -2062,6 +2065,16 @@ public static class DocumentReader {
             JsonValueKind.Null => string.Empty,
             _ => element.GetRawText()
         };
+    }
+
+    private static string? TryReadJsonString(JsonElement root, string propertyName) {
+        if (!root.TryGetProperty(propertyName, out var element) || element.ValueKind == JsonValueKind.Null) {
+            return null;
+        }
+
+        return element.ValueKind == JsonValueKind.String
+            ? element.GetString()
+            : element.GetRawText();
     }
 
     private static IReadOnlyList<string> EnsureMarkdownTableColumns(IReadOnlyList<string> headers, int columnCount) {

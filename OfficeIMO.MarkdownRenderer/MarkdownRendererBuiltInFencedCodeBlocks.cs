@@ -91,18 +91,32 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
                 return null;
             }
 
-            var kind = root.TryGetProperty("kind", out var kindElement) ? kindElement.GetString() : null;
-            var callId = root.TryGetProperty("call_id", out var callIdElement) ? callIdElement.GetString() : null;
+            var title = TryReadJsonString(root, "title");
+            var summary = TryReadJsonString(root, "summary");
+            var kind = TryReadJsonString(root, "kind");
+            var callId = TryReadJsonString(root, "call_id");
 
-            return BuildDataViewHtml(rows, kind, callId);
+            return BuildDataViewHtml(rows, title, summary, kind, callId);
         } catch (JsonException) {
             return null;
         }
     }
 
-    private static string BuildDataViewHtml(IReadOnlyList<IReadOnlyList<string>> rows, string? kind, string? callId) {
+    private static string BuildDataViewHtml(IReadOnlyList<IReadOnlyList<string>> rows, string? title, string? summary, string? kind, string? callId) {
         var sb = new StringBuilder();
+        var headers = rows[0];
+        var bodyRowCount = Math.Max(0, rows.Count - 1);
         sb.Append("<div class=\"omd-dataview\"");
+        if (!string.IsNullOrWhiteSpace(title)) {
+            sb.Append(" data-ix-title=\"")
+              .Append(System.Net.WebUtility.HtmlEncode(title))
+              .Append('"');
+        }
+        if (!string.IsNullOrWhiteSpace(summary)) {
+            sb.Append(" data-ix-summary=\"")
+              .Append(System.Net.WebUtility.HtmlEncode(summary))
+              .Append('"');
+        }
         if (!string.IsNullOrWhiteSpace(kind)) {
             sb.Append(" data-ix-kind=\"")
               .Append(System.Net.WebUtility.HtmlEncode(kind))
@@ -113,9 +127,26 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
               .Append(System.Net.WebUtility.HtmlEncode(callId))
               .Append('"');
         }
-        sb.Append("><table class=\"omd-dataview-table\">");
+        sb.Append(" data-ix-column-count=\"")
+          .Append(headers.Count.ToString(System.Globalization.CultureInfo.InvariantCulture))
+          .Append('"')
+          .Append(" data-ix-row-count=\"")
+          .Append(bodyRowCount.ToString(System.Globalization.CultureInfo.InvariantCulture))
+          .Append("\">");
 
-        var headers = rows[0];
+        if (!string.IsNullOrWhiteSpace(summary)) {
+            sb.Append("<p class=\"omd-dataview-summary\">")
+              .Append(System.Net.WebUtility.HtmlEncode(summary))
+              .Append("</p>");
+        }
+
+        sb.Append("<table class=\"omd-dataview-table\">");
+        if (!string.IsNullOrWhiteSpace(title)) {
+            sb.Append("<caption>")
+              .Append(System.Net.WebUtility.HtmlEncode(title))
+              .Append("</caption>");
+        }
+
         sb.Append("<thead><tr>");
         for (int i = 0; i < headers.Count; i++) {
             sb.Append("<th>")
@@ -153,6 +184,16 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
             JsonValueKind.Null => string.Empty,
             _ => element.GetRawText()
         };
+    }
+
+    private static string? TryReadJsonString(JsonElement root, string propertyName) {
+        if (!root.TryGetProperty(propertyName, out var element) || element.ValueKind == JsonValueKind.Null) {
+            return null;
+        }
+
+        return element.ValueKind == JsonValueKind.String
+            ? element.GetString()
+            : element.GetRawText();
     }
 
     private static string? BuildNetworkShellHeadHtml(MarkdownRendererOptions options, AssetMode assetMode) {
