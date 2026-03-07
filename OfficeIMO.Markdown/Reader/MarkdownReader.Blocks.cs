@@ -1009,12 +1009,70 @@ public static partial class MarkdownReader {
             int pos = line.IndexOf(':', start);
             if (pos < 0) return false;
             if (pos > 0 && pos + 1 < line.Length && line[pos + 1] == ' ') {
-                idx = pos;
-                return true;
+                var term = line.Substring(0, pos).Trim();
+                if (LooksLikeDefinitionTerm(term)) {
+                    idx = pos;
+                    return true;
+                }
             }
             start = pos + 1;
         }
         return false;
+    }
+
+    private static bool LooksLikeDefinitionTerm(string term) {
+        if (string.IsNullOrWhiteSpace(term)) return false;
+        return !ContainsLiteralAutolinkLikeToken(term);
+    }
+
+    private static bool ContainsLiteralAutolinkLikeToken(string text) {
+        foreach (var rawToken in text.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries)) {
+            if (LooksLikeMarkdownLinkToken(rawToken)) continue;
+
+            var token = rawToken
+                .TrimStart('(', '[', '{', '"', '\'')
+                .TrimEnd(')', ']', '}', '"', '\'', '.', ',', ';', '!', '?');
+            if (string.IsNullOrWhiteSpace(token)) continue;
+
+            if (token[0] == '<' &&
+                TryParseAngleAutolink(token, 0, out int angleConsumed, out _, out _) &&
+                angleConsumed == token.Length) {
+                return true;
+            }
+
+            if ((token[0] == 'h' || token[0] == 'H') &&
+                StartsWithHttp(token, 0, out int httpEnd) &&
+                httpEnd == token.Length) {
+                return true;
+            }
+
+            if ((token[0] == 'w' || token[0] == 'W') &&
+                StartsWithWww(token, 0, out int wwwEnd) &&
+                wwwEnd == token.Length) {
+                return true;
+            }
+
+            if (IsEmailStartChar(token[0]) &&
+                TryConsumePlainEmail(token, 0, out int emailEnd, out _) &&
+                emailEnd == token.Length) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool LooksLikeMarkdownLinkToken(string token) {
+        if (string.IsNullOrWhiteSpace(token)) return false;
+
+        int start = token[0] == '!' ? 1 : 0;
+        if (start >= token.Length || token[start] != '[') return false;
+
+        int closeLabel = token.IndexOf(']', start + 1);
+        if (closeLabel < 0 || closeLabel + 1 >= token.Length) return false;
+
+        return (token[closeLabel + 1] == '(' && token[token.Length - 1] == ')') ||
+               (token[closeLabel + 1] == '[' && token[token.Length - 1] == ']');
     }
 
     private static bool IsOrderedListLine(string line, out int number, out string content) {
