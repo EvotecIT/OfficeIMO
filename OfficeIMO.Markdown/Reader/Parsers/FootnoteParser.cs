@@ -47,8 +47,10 @@ public static partial class MarkdownReader {
 
             string content = string.Join("\n", contentLines);
             var paragraphs = ParseParagraphsFromLines(contentLines, options, state);
+            var syntaxChildren = new List<MarkdownSyntaxNode>();
+            AddParagraphSyntaxNodes(syntaxChildren, contentLines, i, options, state);
 
-            doc.Add(new FootnoteDefinitionBlock(label, content, paragraphs));
+            doc.Add(new FootnoteDefinitionBlock(label, content, paragraphs, syntaxChildren));
             i = j; return true;
         }
     }

@@ -325,6 +325,41 @@ Other: Another
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Footnote_Paragraph_Spans() {
+        var markdown = """
+Lead[^1]
+
+[^1]: first line
+  continued
+
+  second paragraph
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var footnote = Assert.Single(result.SyntaxTree.Children.Where(node => node.Kind == MarkdownSyntaxKind.FootnoteDefinition));
+        Assert.NotNull(footnote.SourceSpan);
+        Assert.Equal(3, footnote.SourceSpan!.Value.StartLine);
+        Assert.Equal(6, footnote.SourceSpan!.Value.EndLine);
+        Assert.Equal("1", footnote.Literal);
+        Assert.Equal(2, footnote.Children.Count);
+
+        var firstParagraph = footnote.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, firstParagraph.Kind);
+        Assert.NotNull(firstParagraph.SourceSpan);
+        Assert.Equal(3, firstParagraph.SourceSpan!.Value.StartLine);
+        Assert.Equal(4, firstParagraph.SourceSpan!.Value.EndLine);
+        Assert.Equal("first line continued", firstParagraph.Literal);
+
+        var secondParagraph = footnote.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, secondParagraph.Kind);
+        Assert.NotNull(secondParagraph.SourceSpan);
+        Assert.Equal(6, secondParagraph.SourceSpan!.Value.StartLine);
+        Assert.Equal(6, secondParagraph.SourceSpan!.Value.EndLine);
+        Assert.Equal("second paragraph", secondParagraph.Literal);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Finds_Deepest_Node_By_Line() {
         var markdown = """
 # Title

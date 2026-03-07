@@ -51,7 +51,11 @@ public static partial class MarkdownReader {
             case SummaryBlock summary:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.Summary, span ?? summary.SyntaxSpan, summary.Inlines.RenderMarkdown());
             case FootnoteDefinitionBlock footnote:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.FootnoteDefinition, span, footnote.Label + ":" + footnote.Text);
+                return new MarkdownSyntaxNode(
+                    MarkdownSyntaxKind.FootnoteDefinition,
+                    span,
+                    footnote.Label,
+                    BuildFootnoteChildren(footnote));
             case FrontMatterBlock frontMatter:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatter, span, frontMatter.Render());
             case HtmlCommentBlock comment:
@@ -157,6 +161,18 @@ public static partial class MarkdownReader {
         if (details.Summary != null) nodes.Add(BuildSyntaxNode(details.Summary));
         for (int i = 0; i < details.Children.Count; i++) {
             nodes.Add(BuildSyntaxNode(details.Children[i]));
+        }
+        return nodes;
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> BuildFootnoteChildren(FootnoteDefinitionBlock footnote) {
+        if (footnote.SyntaxChildren != null && footnote.SyntaxChildren.Count > 0) return footnote.SyntaxChildren;
+
+        if (footnote.Paragraphs.Count == 0) return Array.Empty<MarkdownSyntaxNode>();
+
+        var nodes = new List<MarkdownSyntaxNode>(footnote.Paragraphs.Count);
+        for (int i = 0; i < footnote.Paragraphs.Count; i++) {
+            nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: footnote.Paragraphs[i].RenderMarkdown()));
         }
         return nodes;
     }
