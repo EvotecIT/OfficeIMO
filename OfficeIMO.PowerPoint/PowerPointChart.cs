@@ -1315,11 +1315,25 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Clears category axis gridlines.
+        /// </summary>
+        public PowerPointChart ClearCategoryAxisGridlines() {
+            return ClearAxisGridlines<C.CategoryAxis>();
+        }
+
+        /// <summary>
         ///     Sets value axis gridlines visibility and optional styling.
         /// </summary>
         public PowerPointChart SetValueAxisGridlines(bool showMajor = true, bool showMinor = false,
             string? lineColor = null, double? lineWidthPoints = null) {
             return SetAxisGridlines<C.ValueAxis>(showMajor, showMinor, lineColor, lineWidthPoints);
+        }
+
+        /// <summary>
+        ///     Clears value axis gridlines.
+        /// </summary>
+        public PowerPointChart ClearValueAxisGridlines() {
+            return ClearAxisGridlines<C.ValueAxis>();
         }
 
         /// <summary>
@@ -1336,6 +1350,17 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Clears scatter chart X-axis gridlines.
+        /// </summary>
+        public PowerPointChart ClearScatterXAxisGridlines() {
+            if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
+                return this;
+            }
+
+            return ClearAxisGridlines<C.ValueAxis>(axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+        }
+
+        /// <summary>
         ///     Sets scatter chart Y-axis gridlines visibility and optional styling.
         /// </summary>
         public PowerPointChart SetScatterYAxisGridlines(bool showMajor = true, bool showMinor = false,
@@ -1346,6 +1371,17 @@ namespace OfficeIMO.PowerPoint {
 
             return SetAxisGridlines<C.ValueAxis>(showMajor, showMinor, lineColor, lineWidthPoints,
                 axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+        }
+
+        /// <summary>
+        ///     Clears scatter chart Y-axis gridlines.
+        /// </summary>
+        public PowerPointChart ClearScatterYAxisGridlines() {
+            if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
+                return this;
+            }
+
+            return ClearAxisGridlines<C.ValueAxis>(axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
         }
 
         /// <summary>
@@ -2539,6 +2575,27 @@ namespace OfficeIMO.PowerPoint {
             }
 
             ApplyGridlines(axis, showMajor, showMinor, lineColor, lineWidthPoints);
+            Save();
+            return this;
+        }
+
+        private PowerPointChart ClearAxisGridlines<TAxis>(Func<TAxis, bool>? predicate = null)
+            where TAxis : OpenXmlCompositeElement {
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            TAxis? axis = predicate == null
+                ? plotArea.Elements<TAxis>().FirstOrDefault()
+                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
+            if (axis == null) {
+                return this;
+            }
+
+            axis.RemoveAllChildren<C.MajorGridlines>();
+            axis.RemoveAllChildren<C.MinorGridlines>();
             Save();
             return this;
         }
