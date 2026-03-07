@@ -33,7 +33,14 @@ public static partial class MarkdownReader {
                     lineSpan,
                     term,
                     new[] {
-                        new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, lineSpan, def)
+                        new MarkdownSyntaxNode(MarkdownSyntaxKind.DefinitionTerm, lineSpan, term),
+                        new MarkdownSyntaxNode(
+                            MarkdownSyntaxKind.DefinitionValue,
+                            lineSpan,
+                            def,
+                            new[] {
+                                new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, lineSpan, def)
+                            })
                     }));
                 j++;
             }

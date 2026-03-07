@@ -40,6 +40,10 @@ public enum MarkdownSyntaxKind {
     DefinitionList,
     /// <summary>Single definition list item.</summary>
     DefinitionItem,
+    /// <summary>Definition list term node.</summary>
+    DefinitionTerm,
+    /// <summary>Definition list definition/content node.</summary>
+    DefinitionValue,
     /// <summary>Footnote definition block.</summary>
     FootnoteDefinition,
     /// <summary>Details/disclosure block.</summary>
