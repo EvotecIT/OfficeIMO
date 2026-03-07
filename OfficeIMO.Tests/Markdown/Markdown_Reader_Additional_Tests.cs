@@ -37,13 +37,30 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
-        public void Blockquote_Lazy_Continuation_Does_Not_Swallow_Following_Indented_Code() {
+        public void Blockquote_Lazy_Continuation_Keeps_Indented_Text_Inside_Quote() {
             string md = "> Quote line 1\n    outside code";
             var doc = MarkdownReader.Parse(md);
 
-            Assert.IsType<QuoteBlock>(doc.Blocks[0]);
-            var code = Assert.IsType<CodeBlock>(doc.Blocks[1]);
-            Assert.Contains("outside code", code.Content);
+            var quote = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
+            Assert.Single(doc.Blocks);
+            var paragraph = Assert.IsType<ParagraphBlock>(quote.Children[0]);
+            var html = ((IMarkdownBlock)paragraph).RenderHtml();
+            Assert.Contains("Quote line 1 outside code", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("Quote line 1  outside code", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Blockquote_Lazy_Continuation_Keeps_Indented_List_Like_Text_Inside_Quote() {
+            string md = "> Quote line 1\n    - nested";
+            var doc = MarkdownReader.Parse(md);
+
+            var quote = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
+            Assert.Single(doc.Blocks);
+            Assert.Single(quote.Children);
+            var paragraph = Assert.IsType<ParagraphBlock>(quote.Children[0]);
+            var html = ((IMarkdownBlock)paragraph).RenderHtml();
+            Assert.Contains("Quote line 1 - nested", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("<ul>", html, StringComparison.Ordinal);
         }
 
         [Fact]
