@@ -24,6 +24,29 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Blockquote_Lazy_Continuation_Does_Not_Swallow_Following_List() {
+            string md = "> Quote line 1\n- outside item";
+            var doc = MarkdownReader.Parse(md);
+
+            Assert.IsType<QuoteBlock>(doc.Blocks[0]);
+            Assert.IsType<UnorderedListBlock>(doc.Blocks[1]);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("<blockquote><p>Quote line 1</p></blockquote>", html, StringComparison.Ordinal);
+            Assert.Contains("<ul><li>outside item</li></ul>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Blockquote_Lazy_Continuation_Does_Not_Swallow_Following_Indented_Code() {
+            string md = "> Quote line 1\n    outside code";
+            var doc = MarkdownReader.Parse(md);
+
+            Assert.IsType<QuoteBlock>(doc.Blocks[0]);
+            var code = Assert.IsType<CodeBlock>(doc.Blocks[1]);
+            Assert.Contains("outside code", code.Content);
+        }
+
+        [Fact]
         public void Blockquote_Resolves_Reference_Links_From_Outer_Document() {
             string md = """
 > [x][r]
