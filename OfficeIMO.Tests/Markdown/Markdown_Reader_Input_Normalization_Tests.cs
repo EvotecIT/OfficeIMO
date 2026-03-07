@@ -89,6 +89,25 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
+    public void Reader_Can_Normalize_CompactHeadingAndStrongLabelListBoundaries_BeforeParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeHeadingListBoundaries = true,
+                NormalizeCompactStrongLabelListBoundaries = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<h2", html, StringComparison.Ordinal);
+        Assert.Contains("Wynik og", html, StringComparison.Ordinal);
+        Assert.Equal(2, Count(html, "<li"));
+        Assert.Contains("<strong>Replication:</strong>", html, StringComparison.Ordinal);
+        Assert.Contains("<strong>FSMO:</strong>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_DoesNot_Normalize_TightColonSpacing_InsideInlineCode() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {

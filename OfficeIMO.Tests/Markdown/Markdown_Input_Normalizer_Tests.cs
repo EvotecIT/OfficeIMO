@@ -63,6 +63,19 @@ public class Markdown_Input_Normalizer_Tests {
     }
 
     [Fact]
+    public void Normalize_CompactHeadingAndStrongLabelListBoundaries_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeHeadingListBoundaries = true,
+            NormalizeCompactStrongLabelListBoundaries = true
+        };
+
+        var markdown = "## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal("## Wynik ogólny\n- **Replication:** wcześniej zdrowa ✅\n- **FSMO:** technicznie OK", normalized);
+    }
+
+    [Fact]
     public void Normalize_LooseStrongDelimiters_WhenEnabled() {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeLooseStrongDelimiters = true
@@ -89,7 +102,9 @@ public class Markdown_Input_Normalizer_Tests {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeEscapedInlineCodeSpans = true,
             NormalizeTightStrongBoundaries = true,
-            NormalizeTightArrowStrongBoundaries = true
+            NormalizeTightArrowStrongBoundaries = true,
+            NormalizeHeadingListBoundaries = true,
+            NormalizeCompactStrongLabelListBoundaries = true
         };
 
         var markdown = """
@@ -97,6 +112,7 @@ public class Markdown_Input_Normalizer_Tests {
 Use \`/act act_001\`
 Status **Healthy**next
 Signal ->**Why it matters:**coverage
+## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK
 ```
 """;
 

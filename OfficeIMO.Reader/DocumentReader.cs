@@ -1904,7 +1904,10 @@ public static class DocumentReader {
     }
 
     private static List<MarkdownChunkBlock> ParseMarkdownBlocksForChunking(string text, ReaderOptions opt, CancellationToken ct) {
-        var parseResult = MarkdownReader.ParseWithSyntaxTree(text ?? string.Empty);
+        var markdownReaderOptions = CreateMarkdownReaderOptions(opt);
+        var parseResult = markdownReaderOptions == null
+            ? MarkdownReader.ParseWithSyntaxTree(text ?? string.Empty)
+            : MarkdownReader.ParseWithSyntaxTree(text ?? string.Empty, markdownReaderOptions);
         var doc = parseResult.Document;
         var syntaxBlocks = parseResult.SyntaxTree.Children;
         var blocks = new List<MarkdownChunkBlock>(doc.Blocks.Count);
@@ -1955,6 +1958,17 @@ public static class DocumentReader {
         }
 
         return blocks;
+    }
+
+    private static MarkdownReaderOptions? CreateMarkdownReaderOptions(ReaderOptions opt) {
+        var inputNormalization = CloneMarkdownInputNormalization(opt.MarkdownInputNormalization);
+        if (inputNormalization == null) {
+            return null;
+        }
+
+        return new MarkdownReaderOptions {
+            InputNormalization = inputNormalization
+        };
     }
 
     private static IReadOnlyList<ReaderTable> ExtractTables(IMarkdownBlock block, ReaderOptions opt) {
@@ -2394,6 +2408,7 @@ public static class DocumentReader {
             ExcelSheetName = o?.ExcelSheetName,
             ExcelA1Range = o?.ExcelA1Range,
             MarkdownChunkByHeadings = o?.MarkdownChunkByHeadings ?? true,
+            MarkdownInputNormalization = CloneMarkdownInputNormalization(o?.MarkdownInputNormalization),
             ComputeHashes = o?.ComputeHashes ?? true
         };
 
@@ -2419,7 +2434,31 @@ public static class DocumentReader {
             ExcelSheetName = options.ExcelSheetName,
             ExcelA1Range = options.ExcelA1Range,
             MarkdownChunkByHeadings = options.MarkdownChunkByHeadings,
+            MarkdownInputNormalization = CloneMarkdownInputNormalization(options.MarkdownInputNormalization),
             ComputeHashes = computeHashes ?? options.ComputeHashes
+        };
+    }
+
+    private static MarkdownInputNormalizationOptions? CloneMarkdownInputNormalization(MarkdownInputNormalizationOptions? options) {
+        if (options == null) {
+            return null;
+        }
+
+        return new MarkdownInputNormalizationOptions {
+            NormalizeSoftWrappedStrongSpans = options.NormalizeSoftWrappedStrongSpans,
+            NormalizeInlineCodeSpanLineBreaks = options.NormalizeInlineCodeSpanLineBreaks,
+            NormalizeEscapedInlineCodeSpans = options.NormalizeEscapedInlineCodeSpans,
+            NormalizeTightStrongBoundaries = options.NormalizeTightStrongBoundaries,
+            NormalizeTightArrowStrongBoundaries = options.NormalizeTightArrowStrongBoundaries,
+            NormalizeTightColonSpacing = options.NormalizeTightColonSpacing,
+            NormalizeHeadingListBoundaries = options.NormalizeHeadingListBoundaries,
+            NormalizeCompactStrongLabelListBoundaries = options.NormalizeCompactStrongLabelListBoundaries,
+            NormalizeLooseStrongDelimiters = options.NormalizeLooseStrongDelimiters,
+            NormalizeOrderedListMarkerSpacing = options.NormalizeOrderedListMarkerSpacing,
+            NormalizeOrderedListParenMarkers = options.NormalizeOrderedListParenMarkers,
+            NormalizeOrderedListCaretArtifacts = options.NormalizeOrderedListCaretArtifacts,
+            NormalizeTightParentheticalSpacing = options.NormalizeTightParentheticalSpacing,
+            NormalizeNestedStrongDelimiters = options.NormalizeNestedStrongDelimiters
         };
     }
 
