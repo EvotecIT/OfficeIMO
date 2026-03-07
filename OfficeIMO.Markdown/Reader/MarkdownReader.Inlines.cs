@@ -272,6 +272,11 @@ public static partial class MarkdownReader {
                 int remaining = runLen;
                 if (canClose) {
                     while (remaining > 0) {
+                        if (TryRebalanceParentBoldWithInnerItalicIntoDualItalic(text, pos, stack, marker, remaining, out int dualItalicRebalanced)) {
+                            remaining -= dualItalicRebalanced;
+                            continue;
+                        }
+
                         if (!TryRebalanceLeadingBoldInsideItalic(stack, marker, remaining, out int rebalanced)) break;
                         remaining -= rebalanced;
                     }
@@ -450,6 +455,12 @@ public static partial class MarkdownReader {
         var top = stack.Peek();
         if (top.Kind != FrameKind.Bold || top.Marker != marker || top.OpenLen != 2) return false;
 
+        int nextDoubleClose = FindNextClosingDelimiterRunIndex(text, start + 1, marker, requiredRunLength: 2);
+        if (nextDoubleClose >= 0) {
+            int trailingSingleClose = FindNextClosingDelimiterRunIndex(text, nextDoubleClose + 2, marker, requiredRunLength: 1);
+            if (trailingSingleClose >= 0) return false;
+        }
+
         int nextRun = FindNextDelimiterRunLength(text, start + 1, marker);
         return nextRun == 2;
     }
@@ -469,6 +480,11 @@ public static partial class MarkdownReader {
             var parent = frames[1];
             // Keep the leading triple-delimiter path available for rebalancing into <em><strong>... later.
             if (parent.Kind == FrameKind.Bold && parent.Marker == marker && parent.OpenLen == 2 && parent.Seq.Items.Count == 0) return false;
+
+            if (parent.Kind == FrameKind.Bold && parent.Marker == marker && parent.OpenLen == 2 && parent.Seq.Items.Count > 0) {
+                int trailingSingleClose = FindNextClosingDelimiterRunIndex(text, start + 2, marker, requiredRunLength: 1);
+                if (trailingSingleClose >= 0) return false;
+            }
         }
 
         if (splitDoubleRunIntoDualItalic) return false;
@@ -511,6 +527,40 @@ public static partial class MarkdownReader {
         var italic = new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false });
         italic.Seq.AddRaw(new BoldSequenceInline(top.Seq));
         stack.Push(italic);
+        consumed = 2;
+        return true;
+    }
+
+    private static bool TryRebalanceParentBoldWithInnerItalicIntoDualItalic(string text, int start, Stack<InlineFrame> stack, char marker, int remaining, out int consumed) {
+        consumed = 0;
+        if (remaining != 2) return false;
+        if (marker != '*' && marker != '_') return false;
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
+        if (stack == null || stack.Count < 3) return false;
+
+        var frames = stack.ToArray();
+        var top = frames[0];
+        var parent = frames[1];
+        if (top.Kind != FrameKind.Italic || top.Marker != marker || top.OpenLen != 1) return false;
+        if (parent.Kind != FrameKind.Bold || parent.Marker != marker || parent.OpenLen != 2) return false;
+        if (parent.Seq.Items.Count == 0) return false;
+
+        int trailingSingleClose = FindNextClosingDelimiterRunIndex(text, start + 2, marker, requiredRunLength: 1);
+        if (trailingSingleClose < 0) return false;
+
+        stack.Pop();
+        stack.Pop();
+
+        var middle = new InlineSequence { AutoSpacing = false };
+        foreach (var node in parent.Seq.Items) {
+            middle.AddRaw(node);
+        }
+
+        middle.AddRaw(new ItalicSequenceInline(top.Seq));
+
+        var outer = new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false });
+        outer.Seq.AddRaw(new ItalicSequenceInline(middle));
+        stack.Push(outer);
         consumed = 2;
         return true;
     }
