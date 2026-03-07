@@ -1,5 +1,6 @@
 using OfficeIMO.Markdown;
 using MarkdigMarkdown = Markdig.Markdown;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace OfficeIMO.Tests.MarkdownSuite;
@@ -30,6 +31,11 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "ordered-list-fenced-code-followed-by-paragraph", "1. item\n\n   ```txt\n   code\n   ```\n\n   after" };
         yield return new object[] { "autolink-balanced-parens-then-comma", "Visit https://example.com/path_(x), ok" };
         yield return new object[] { "autolink-www-balanced-parens-then-dot", "Visit www.example.com/path_(x)." };
+        yield return new object[] { "angle-autolink-http", "<https://example.com>" };
+        yield return new object[] { "quote-blank-paragraph-then-paragraph", "> one\n>\n> \n> two" };
+        yield return new object[] { "unordered-list-indented-code-then-paragraph", "- item\n\n      code\n\n  after" };
+        yield return new object[] { "ordered-list-nested-blockquote-then-code", "1. item\n   > quote\n\n      code" };
+        yield return new object[] { "setext-heading-before-list", "Heading\n-------\n- item" };
     }
 
     [Theory]
@@ -93,6 +99,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         }
 
         var normalized = sb.ToString().Replace("> <", "><");
+        normalized = Regex.Replace(normalized, "<h([1-6])\\s+id=\"[^\"]*\">", "<h$1>", RegexOptions.CultureInvariant);
         normalized = normalized
             .Replace(" <ul", "<ul")
             .Replace(" <ol", "<ol")
