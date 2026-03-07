@@ -668,6 +668,53 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Applies a reusable data label template to a series by index.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelTemplate(int seriesIndex, PowerPointChartDataLabelTemplate template) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            if (template == null) {
+                throw new ArgumentNullException(nameof(template));
+            }
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                ApplyDataLabelTemplate(series, template);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Applies a reusable data label template to a series by name.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelTemplate(string seriesName, PowerPointChartDataLabelTemplate template,
+            bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+            if (template == null) {
+                throw new ArgumentNullException(nameof(template));
+            }
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                ApplyDataLabelTemplate(series, template);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
         ///     Configures a single data label point by series index and point index.
         /// </summary>
         public PowerPointChart SetSeriesDataLabelForPoint(int seriesIndex, int pointIndex, bool? showValue = null,
@@ -2491,6 +2538,62 @@ namespace OfficeIMO.PowerPoint {
                 NormalizeDataLabelsOrder(allDataLabels);
             } else if (label is C.DataLabel dataLabel) {
                 NormalizeDataLabelOrder(dataLabel);
+            }
+        }
+
+        private static void ApplyDataLabelTemplate(OpenXmlCompositeElement series, PowerPointChartDataLabelTemplate template) {
+            if (template.NumberFormat != null && string.IsNullOrWhiteSpace(template.NumberFormat)) {
+                throw new ArgumentException("Number format cannot be empty.", nameof(template.NumberFormat));
+            }
+            if (template.Separator != null && string.IsNullOrWhiteSpace(template.Separator)) {
+                throw new ArgumentException("Separator cannot be empty.", nameof(template.Separator));
+            }
+
+            bool applyTextStyle = template.FontSizePoints != null
+                || template.Bold != null
+                || template.Italic != null
+                || template.TextColor != null
+                || template.FontName != null;
+            bool applyShapeStyle = template.NoFill
+                || template.NoLine
+                || template.FillColor != null
+                || template.LineColor != null
+                || template.LineWidthPoints != null;
+            bool applyLeaderLines = template.ShowLeaderLines != null
+                || template.LeaderLineColor != null
+                || template.LeaderLineWidthPoints != null;
+
+            if (applyTextStyle) {
+                ValidateTextStyle(template.FontSizePoints, template.TextColor, template.FontName);
+            }
+            if (applyShapeStyle) {
+                ValidateAreaStyle(template.FillColor, template.LineColor, template.LineWidthPoints,
+                    template.NoFill, template.NoLine);
+            }
+            if (applyLeaderLines) {
+                ValidateDataLabelLeaderLines(template.LeaderLineColor, template.LeaderLineWidthPoints);
+            }
+
+            C.DataLabels labels = EnsureDataLabels(series);
+            ApplyDataLabelOverrides(labels, template.ShowLegendKey, template.ShowValue, template.ShowCategoryName,
+                template.ShowSeriesName, template.ShowPercent, template.Position, template.NumberFormat,
+                template.SourceLinked);
+
+            if (template.Separator != null) {
+                ApplyDataLabelSeparator(labels, template.Separator);
+            }
+            if (applyTextStyle) {
+                ApplyDataLabelTextStyle(labels, template.FontSizePoints, template.Bold, template.Italic,
+                    template.TextColor, template.FontName);
+            }
+            if (applyShapeStyle) {
+                ApplyDataLabelShapeStyle(labels, template.FillColor, template.LineColor, template.LineWidthPoints,
+                    template.NoFill, template.NoLine);
+            }
+            if (applyLeaderLines) {
+                bool showLeaderLines = template.ShowLeaderLines ?? true;
+                ApplyDataLabelLeaderLines(labels, showLeaderLines, template.LeaderLineColor,
+                    template.LeaderLineWidthPoints);
             }
         }
 
