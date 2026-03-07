@@ -236,7 +236,11 @@ public static partial class MarkdownReader {
                 int j = i + 1;
                 while (j < t.Length && t[j] == '`') { run++; j++; }
 
-                if (codeFenceLen == 0) codeFenceLen = run;
+                if (codeFenceLen == 0) {
+                    if (HasClosingBacktickRun(t, j, run)) {
+                        codeFenceLen = run;
+                    }
+                }
                 else if (run == codeFenceLen) codeFenceLen = 0;
 
                 sb.Append(t, i, run);
@@ -280,7 +284,11 @@ public static partial class MarkdownReader {
                 int j = i + 1;
                 while (j < value.Length && value[j] == '`') { run++; j++; }
 
-                if (codeFenceLen == 0) codeFenceLen = run;
+                if (codeFenceLen == 0) {
+                    if (HasClosingBacktickRun(value, j, run)) {
+                        codeFenceLen = run;
+                    }
+                }
                 else if (run == codeFenceLen) codeFenceLen = 0;
 
                 sb.Append(value, i, run);
@@ -302,6 +310,26 @@ public static partial class MarkdownReader {
         }
 
         return sb.ToString();
+    }
+
+    private static bool HasClosingBacktickRun(string text, int start, int runLength) {
+        if (string.IsNullOrEmpty(text) || start >= text.Length) return false;
+
+        for (int i = start; i < text.Length; i++) {
+            if (text[i] != '`') continue;
+
+            int run = 1;
+            int j = i + 1;
+            while (j < text.Length && text[j] == '`') {
+                run++;
+                j++;
+            }
+
+            if (run == runLength) return true;
+            i = j - 1;
+        }
+
+        return false;
     }
 
     private static int CountLeadingSpaces(string line) {
