@@ -33,5 +33,14 @@ public class Markdown_Reader_Emphasis_Edge_Tests {
         var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         Assert.Contains("<em>a <del>b</del> c</em>", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Double_Star_Inside_Italic_Opens_Inner_Bold() {
+        var md = "*foo**bar**baz*";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<em>foo<strong>bar</strong>baz</em>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<em>foo</em><em>bar</em><em>baz</em>", html, StringComparison.Ordinal);
+    }
 }
 
