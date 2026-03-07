@@ -412,6 +412,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CanSetScatterAxisGridlines() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddScatterChart();
+                    chart.SetScatterXAxisGridlines(showMajor: true, showMinor: false, lineColor: "D9D9D9", lineWidthPoints: 0.5)
+                        .SetScatterYAxisGridlines(showMajor: true, showMinor: true, lineColor: "C0C0C0", lineWidthPoints: 0.75);
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+                    C.ValueAxis[] axes = chart.PlotArea!
+                        .Elements<C.ValueAxis>()
+                        .ToArray();
+
+                    C.ValueAxis xAxis = axes.Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Bottom);
+                    Assert.NotNull(xAxis.GetFirstChild<C.MajorGridlines>());
+                    Assert.Null(xAxis.GetFirstChild<C.MinorGridlines>());
+
+                    C.ValueAxis yAxis = axes.Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Left);
+                    C.MajorGridlines? yMajor = yAxis.GetFirstChild<C.MajorGridlines>();
+                    C.MinorGridlines? yMinor = yAxis.GetFirstChild<C.MinorGridlines>();
+                    Assert.NotNull(yMajor);
+                    Assert.NotNull(yMinor);
+
+                    A.Outline? yMajorOutline = yMajor!.GetFirstChild<C.ChartShapeProperties>()?
+                        .GetFirstChild<A.Outline>();
+                    Assert.Equal("C0C0C0", yMajorOutline?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                    Assert.Equal(9525, yMajorOutline?.Width?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void CanSetScatterAxisLabelRotationAndTickPositions() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
@@ -447,6 +491,83 @@ namespace OfficeIMO.Tests {
                         .GetFirstChild<A.BodyProperties>()?
                         .Rotation?.Value);
                     Assert.Equal(C.TickLabelPositionValues.High, yAxis.GetFirstChild<C.TickLabelPosition>()?.Val?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void CanSetScatterAxisDisplayUnits() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddScatterChart();
+                    chart.SetScatterXAxisDisplayUnits(C.BuiltInUnitValues.Hundreds, "Hundreds X", showLabel: true)
+                        .SetScatterYAxisDisplayUnits(1000d, "Thousands Y", showLabel: true);
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+                    C.ValueAxis[] axes = chart.PlotArea!
+                        .Elements<C.ValueAxis>()
+                        .ToArray();
+
+                    C.ValueAxis xAxis = axes.Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Bottom);
+                    C.DisplayUnits? xDisplayUnits = xAxis.GetFirstChild<C.DisplayUnits>();
+                    Assert.NotNull(xDisplayUnits);
+                    Assert.Equal(C.BuiltInUnitValues.Hundreds, xDisplayUnits!.GetFirstChild<C.BuiltInUnit>()?.Val?.Value);
+                    Assert.Equal("Hundreds X", xDisplayUnits.GetFirstChild<C.DisplayUnitsLabel>()?.GetFirstChild<C.ChartText>()?.InnerText);
+
+                    C.ValueAxis yAxis = axes.Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Left);
+                    C.DisplayUnits? yDisplayUnits = yAxis.GetFirstChild<C.DisplayUnits>();
+                    Assert.NotNull(yDisplayUnits);
+                    Assert.Equal(1000d, (double?)yDisplayUnits!.GetFirstChild<C.CustomDisplayUnit>()?.Val?.Value);
+                    Assert.Equal("Thousands Y", yDisplayUnits.GetFirstChild<C.DisplayUnitsLabel>()?.GetFirstChild<C.ChartText>()?.InnerText);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void CanClearScatterAxisDisplayUnits() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddScatterChart();
+                    chart.SetScatterXAxisDisplayUnits(C.BuiltInUnitValues.Hundreds, "Hundreds X", showLabel: true)
+                        .SetScatterYAxisDisplayUnits(C.BuiltInUnitValues.Thousands, "Thousands Y", showLabel: true)
+                        .ClearScatterXAxisDisplayUnits()
+                        .ClearScatterYAxisDisplayUnits();
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+                    C.ValueAxis[] axes = chart.PlotArea!
+                        .Elements<C.ValueAxis>()
+                        .ToArray();
+
+                    Assert.Null(axes.Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Bottom)
+                        .GetFirstChild<C.DisplayUnits>());
+                    Assert.Null(axes.Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Left)
+                        .GetFirstChild<C.DisplayUnits>());
                 }
             } finally {
                 if (File.Exists(filePath)) {
