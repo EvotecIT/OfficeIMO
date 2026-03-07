@@ -20,15 +20,24 @@ public sealed class MarkdownParseResult {
     /// <summary>Finds the syntax node path from the document root to the deepest node containing the given 1-based line number.</summary>
     public IReadOnlyList<MarkdownSyntaxNode> FindNodePathAtLine(int lineNumber) => SyntaxTree.FindNodePathAtLine(lineNumber);
 
+    /// <summary>Finds the nearest block-like syntax node whose source span contains the given 1-based line number.</summary>
+    public MarkdownSyntaxNode? FindNearestBlockAtLine(int lineNumber) => SyntaxTree.FindNearestBlockAtLine(lineNumber);
+
     /// <summary>Finds the deepest syntax node whose source span fully contains the given span.</summary>
     public MarkdownSyntaxNode? FindDeepestNodeContainingSpan(MarkdownSourceSpan span) => SyntaxTree.FindDeepestNodeContainingSpan(span);
 
     /// <summary>Finds the syntax node path from the document root to the deepest node whose source span fully contains the given span.</summary>
     public IReadOnlyList<MarkdownSyntaxNode> FindNodePathContainingSpan(MarkdownSourceSpan span) => SyntaxTree.FindNodePathContainingSpan(span);
 
+    /// <summary>Finds the nearest block-like syntax node whose source span fully contains the given span.</summary>
+    public MarkdownSyntaxNode? FindNearestBlockContainingSpan(MarkdownSourceSpan span) => SyntaxTree.FindNearestBlockContainingSpan(span);
+
     /// <summary>Finds the deepest syntax node whose source span overlaps the given span.</summary>
     public MarkdownSyntaxNode? FindDeepestNodeOverlappingSpan(MarkdownSourceSpan span) => SyntaxTree.FindDeepestNodeOverlappingSpan(span);
 
     /// <summary>Finds the syntax node path from the document root to the deepest node whose source span overlaps the given span.</summary>
     public IReadOnlyList<MarkdownSyntaxNode> FindNodePathOverlappingSpan(MarkdownSourceSpan span) => SyntaxTree.FindNodePathOverlappingSpan(span);
+
+    /// <summary>Finds the nearest block-like syntax node whose source span overlaps the given span.</summary>
+    public MarkdownSyntaxNode? FindNearestBlockOverlappingSpan(MarkdownSourceSpan span) => SyntaxTree.FindNearestBlockOverlappingSpan(span);
 }

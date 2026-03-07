@@ -36,6 +36,32 @@ Paragraph text
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Heading_Structure() {
+        var markdown = """
+Heading Title
+-------------
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var heading = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
+        Assert.Equal("Heading Title", heading.Literal);
+
+        var level = heading.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.HeadingLevel, level.Kind);
+        Assert.Equal("2", level.Literal);
+        Assert.Null(level.SourceSpan);
+
+        var text = heading.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.HeadingText, text.Kind);
+        Assert.Equal("Heading Title", text.Literal);
+        Assert.NotNull(text.SourceSpan);
+        Assert.Equal(1, text.SourceSpan!.Value.StartLine);
+        Assert.Equal(1, text.SourceSpan!.Value.EndLine);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Reconstructs_SameType_Nested_Lists() {
         var markdown = """
 - parent
@@ -538,7 +564,7 @@ Console.WriteLine("hi");
 
         var titleNode = result.SyntaxTree.FindDeepestNodeAtLine(1);
         Assert.NotNull(titleNode);
-        Assert.Equal(MarkdownSyntaxKind.Heading, titleNode!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.HeadingText, titleNode!.Kind);
         Assert.Equal("Title", titleNode.Literal);
 
         var leadNode = result.SyntaxTree.FindDeepestNodeAtLine(3);
@@ -589,6 +615,37 @@ Paragraph
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Finds_Nearest_Block_By_Line() {
+        var markdown = """
+```csharp
+Console.WriteLine();
+```
+
+![Alt](image.png "Image title")
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var codeDeepest = result.FindDeepestNodeAtLine(1);
+        Assert.NotNull(codeDeepest);
+        Assert.Equal(MarkdownSyntaxKind.CodeFenceInfo, codeDeepest!.Kind);
+
+        var codeBlock = result.FindNearestBlockAtLine(1);
+        Assert.NotNull(codeBlock);
+        Assert.Equal(MarkdownSyntaxKind.CodeBlock, codeBlock!.Kind);
+
+        var imageDeepest = result.FindDeepestNodeAtLine(5);
+        Assert.NotNull(imageDeepest);
+        Assert.Equal(MarkdownSyntaxKind.ImageAlt, imageDeepest!.Kind);
+
+        var imageBlock = result.FindNearestBlockAtLine(5);
+        Assert.NotNull(imageBlock);
+        Assert.Equal(MarkdownSyntaxKind.Image, imageBlock!.Kind);
+
+        Assert.Null(result.FindNearestBlockAtLine(99));
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Result_Provides_Line_Lookup_Helpers() {
         var markdown = """
 # Title
@@ -604,7 +661,11 @@ Paragraph
         Assert.Equal("Paragraph", deepest.Literal);
 
         var path = result.FindNodePathAtLine(1).Select(node => node.Kind).ToArray();
-        Assert.Equal(new[] { MarkdownSyntaxKind.Document, MarkdownSyntaxKind.Heading }, path);
+        Assert.Equal(new[] { MarkdownSyntaxKind.Document, MarkdownSyntaxKind.Heading, MarkdownSyntaxKind.HeadingText }, path);
+
+        var nearest = result.FindNearestBlockAtLine(1);
+        Assert.NotNull(nearest);
+        Assert.Equal(MarkdownSyntaxKind.Heading, nearest!.Kind);
     }
 
     [Fact]
@@ -647,7 +708,7 @@ Paragraph text
 
         var deepest = result.FindDeepestNodeOverlappingSpan(new MarkdownSourceSpan(1, 2));
         Assert.NotNull(deepest);
-        Assert.Equal(MarkdownSyntaxKind.Heading, deepest!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.HeadingText, deepest!.Kind);
         Assert.Equal("Title", deepest.Literal);
 
         var path = result.FindNodePathOverlappingSpan(new MarkdownSourceSpan(2, 3)).Select(node => node.Kind).ToArray();
@@ -658,6 +719,30 @@ Paragraph text
 
         Assert.Null(result.FindDeepestNodeOverlappingSpan(new MarkdownSourceSpan(50, 51)));
         Assert.Empty(result.FindNodePathOverlappingSpan(new MarkdownSourceSpan(50, 51)));
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Finds_Nearest_Block_By_Span() {
+        var markdown = """
+```csharp
+Console.WriteLine();
+```
+
+![Alt](image.png "Image title")
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var codeBlock = result.FindNearestBlockContainingSpan(new MarkdownSourceSpan(1, 1));
+        Assert.NotNull(codeBlock);
+        Assert.Equal(MarkdownSyntaxKind.CodeBlock, codeBlock!.Kind);
+
+        var imageBlock = result.FindNearestBlockOverlappingSpan(new MarkdownSourceSpan(5, 5));
+        Assert.NotNull(imageBlock);
+        Assert.Equal(MarkdownSyntaxKind.Image, imageBlock!.Kind);
+
+        Assert.Null(result.FindNearestBlockContainingSpan(new MarkdownSourceSpan(50, 51)));
+        Assert.Null(result.FindNearestBlockOverlappingSpan(new MarkdownSourceSpan(50, 51)));
     }
 
     [Fact]
