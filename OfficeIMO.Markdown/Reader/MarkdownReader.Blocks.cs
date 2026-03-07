@@ -339,13 +339,9 @@ public static partial class MarkdownReader {
         return i;
     }
 
-    private static List<string> ConsumeListContinuationLines(string[] lines, ref int nextIndex, int itemLevel, string initialContent, MarkdownReaderOptions options) {
+    private static List<string> ConsumeListContinuationLines(string[] lines, ref int nextIndex, int continuationIndent, string initialContent, MarkdownReaderOptions options) {
         if (lines == null) return new List<string> { initialContent ?? string.Empty };
         if (nextIndex < 0) nextIndex = 0;
-
-        // Heuristic: list item content begins after marker; our parsers model indentation levels as 2 spaces per level.
-        int baseIndent = Math.Max(0, itemLevel) * 2;
-        int continuationIndent = baseIndent + 2;
 
         var collected = new List<string> { initialContent ?? string.Empty };
         int k = nextIndex;
@@ -734,6 +730,7 @@ public static partial class MarkdownReader {
         string[] lines,
         ref int index,
         int itemLevelAbs,
+        int continuationIndent,
         MarkdownReaderOptions options,
         MarkdownReaderState state,
         ListItem item,
@@ -741,9 +738,6 @@ public static partial class MarkdownReader {
         bool allowNestedUnordered) {
 
         if (lines == null || item == null) return;
-
-        int baseIndent = Math.Max(0, itemLevelAbs) * 2;
-        int continuationIndent = baseIndent + 2;
 
         while (index < lines.Length) {
             int k = index;
@@ -1028,6 +1022,26 @@ public static partial class MarkdownReader {
         title = t.Substring(close + 1).TrimStart();
         // Title is optional: "> [!NOTE]" is valid and should produce a callout with the default title for the kind.
         return true;
+    }
+
+    private static int GetListContinuationIndent(string line) {
+        if (string.IsNullOrEmpty(line)) return 0;
+
+        int spaces = CountLeadingSpaces(line);
+        int i = spaces;
+        while (i < line.Length && char.IsDigit(line[i])) i++;
+        if (i > spaces && i + 1 < line.Length && (line[i] == '.' || line[i] == ')') && line[i + 1] == ' ') {
+            return i + 2;
+        }
+
+        if (spaces + 1 < line.Length) {
+            char marker = line[spaces];
+            if ((marker == '-' || marker == '*' || marker == '+') && line[spaces + 1] == ' ') {
+                return spaces + 2;
+            }
+        }
+
+        return spaces + 2;
     }
 
     private static Dictionary<string, object?> ParseFrontMatter(string[] lines, int start, int end) {

@@ -6,9 +6,10 @@ public static partial class MarkdownReader {
             if (!options.UnorderedLists) return false;
             if (!IsUnorderedListLine(lines[i], out int level0Abs, out var isTask, out var done, out var firstContent)) return false;
             var ul = new UnorderedListBlock();
+            int firstContinuationIndent = GetListContinuationIndent(lines[i]);
 
             int j = i + 1;
-            var firstLines = ConsumeListContinuationLines(lines, ref j, level0Abs, firstContent, options);
+            var firstLines = ConsumeListContinuationLines(lines, ref j, firstContinuationIndent, firstContent, options);
             var firstParas = ParseParagraphsFromLines(firstLines, options, state);
             var firstInline = firstParas[0];
             var first = isTask ? ListItem.TaskInlines(firstInline, done) : new ListItem(firstInline);
@@ -17,11 +18,12 @@ public static partial class MarkdownReader {
             ul.Items.Add(first);
 
             // Allow both same-type and mixed nested lists under the current item.
-            ConsumeNestedBlocksForListItem(lines, ref j, level0Abs, options, state, first, allowNestedOrdered: true, allowNestedUnordered: true);
+            ConsumeNestedBlocksForListItem(lines, ref j, level0Abs, firstContinuationIndent, options, state, first, allowNestedOrdered: true, allowNestedUnordered: true);
 
             while (j < lines.Length && IsUnorderedListLine(lines[j], out var lvlAbs, out var isTask2, out var done2, out var content2) && lvlAbs >= level0Abs) {
+                int continuationIndent = GetListContinuationIndent(lines[j]);
                 int next = j + 1;
-                var itemLines = ConsumeListContinuationLines(lines, ref next, lvlAbs, content2, options);
+                var itemLines = ConsumeListContinuationLines(lines, ref next, continuationIndent, content2, options);
                 var paras = ParseParagraphsFromLines(itemLines, options, state);
                 var inline = paras[0];
                 var li = isTask2 ? ListItem.TaskInlines(inline, done2) : new ListItem(inline);
@@ -30,7 +32,7 @@ public static partial class MarkdownReader {
                 ul.Items.Add(li);
                 j = next;
 
-                ConsumeNestedBlocksForListItem(lines, ref j, lvlAbs, options, state, li, allowNestedOrdered: true, allowNestedUnordered: true);
+                ConsumeNestedBlocksForListItem(lines, ref j, lvlAbs, continuationIndent, options, state, li, allowNestedOrdered: true, allowNestedUnordered: true);
             }
             doc.Add(ul); i = j; return true;
         }
