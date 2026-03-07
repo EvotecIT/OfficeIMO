@@ -668,6 +668,231 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Configures a single data label point by series index and point index.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelForPoint(int seriesIndex, int pointIndex, bool? showValue = null,
+            bool? showCategoryName = null, bool? showSeriesName = null, bool? showLegendKey = null,
+            bool? showPercent = null, C.DataLabelPositionValues? position = null, string? numberFormat = null,
+            bool sourceLinked = false) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            if (pointIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(pointIndex));
+            }
+            if (numberFormat != null && string.IsNullOrWhiteSpace(numberFormat)) {
+                throw new ArgumentException("Number format cannot be empty.", nameof(numberFormat));
+            }
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                ApplyDataLabelOverrides(label, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
+                    position, numberFormat, sourceLinked);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Configures a single data label point by series name and point index.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelForPoint(string seriesName, int pointIndex, bool? showValue = null,
+            bool? showCategoryName = null, bool? showSeriesName = null, bool? showLegendKey = null,
+            bool? showPercent = null, C.DataLabelPositionValues? position = null, string? numberFormat = null,
+            bool sourceLinked = false, bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+            if (pointIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(pointIndex));
+            }
+            if (numberFormat != null && string.IsNullOrWhiteSpace(numberFormat)) {
+                throw new ArgumentException("Number format cannot be empty.", nameof(numberFormat));
+            }
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                ApplyDataLabelOverrides(label, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
+                    position, numberFormat, sourceLinked);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets data label text style for a specific point by series index.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelTextStyleForPoint(int seriesIndex, int pointIndex,
+            double? fontSizePoints = null, bool? bold = null, bool? italic = null,
+            string? color = null, string? fontName = null) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            if (pointIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(pointIndex));
+            }
+            ValidateTextStyle(fontSizePoints, color, fontName);
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                ApplyDataLabelTextStyle(label, fontSizePoints, bold, italic, color, fontName);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets data label text style for a specific point by series name.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelTextStyleForPoint(string seriesName, int pointIndex,
+            double? fontSizePoints = null, bool? bold = null, bool? italic = null,
+            string? color = null, string? fontName = null, bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+            if (pointIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(pointIndex));
+            }
+            ValidateTextStyle(fontSizePoints, color, fontName);
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                ApplyDataLabelTextStyle(label, fontSizePoints, bold, italic, color, fontName);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets data label shape styling for a specific point by series index.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelShapeStyleForPoint(int seriesIndex, int pointIndex,
+            string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null,
+            bool noFill = false, bool noLine = false) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            if (pointIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(pointIndex));
+            }
+            ValidateAreaStyle(fillColor, lineColor, lineWidthPoints, noFill, noLine);
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                ApplyDataLabelShapeStyle(label, fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets data label shape styling for a specific point by series name.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelShapeStyleForPoint(string seriesName, int pointIndex,
+            string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null,
+            bool noFill = false, bool noLine = false, bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+            if (pointIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(pointIndex));
+            }
+            ValidateAreaStyle(fillColor, lineColor, lineWidthPoints, noFill, noLine);
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                ApplyDataLabelShapeStyle(label, fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets the data label separator for a specific point by series index.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelSeparatorForPoint(int seriesIndex, int pointIndex, string? separator) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            if (pointIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(pointIndex));
+            }
+            if (separator != null && string.IsNullOrWhiteSpace(separator)) {
+                throw new ArgumentException("Separator cannot be empty.", nameof(separator));
+            }
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                ApplyDataLabelSeparator(label, separator);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets the data label separator for a specific point by series name.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelSeparatorForPoint(string seriesName, int pointIndex, string? separator,
+            bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+            if (pointIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(pointIndex));
+            }
+            if (separator != null && string.IsNullOrWhiteSpace(separator)) {
+                throw new ArgumentException("Separator cannot be empty.", nameof(separator));
+            }
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                ApplyDataLabelSeparator(label, separator);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
         ///     Sets the category axis title.
         /// </summary>
         public PowerPointChart SetCategoryAxisTitle(string title) {
@@ -2124,45 +2349,53 @@ namespace OfficeIMO.PowerPoint {
             NormalizeDataLabelsOrder(labels);
         }
 
-        private static void ApplyDataLabelOverrides(C.DataLabels labels, bool? showLegendKey, bool? showValue,
+        private static void ApplyDataLabelOverrides(OpenXmlCompositeElement label, bool? showLegendKey, bool? showValue,
             bool? showCategoryName, bool? showSeriesName, bool? showPercent,
             C.DataLabelPositionValues? position, string? numberFormat, bool sourceLinked) {
             if (showLegendKey != null) {
-                ReplaceChild(labels, new C.ShowLegendKey { Val = showLegendKey.Value });
+                ReplaceChild(label, new C.ShowLegendKey { Val = showLegendKey.Value });
             }
             if (showValue != null) {
-                ReplaceChild(labels, new C.ShowValue { Val = showValue.Value });
+                ReplaceChild(label, new C.ShowValue { Val = showValue.Value });
             }
             if (showCategoryName != null) {
-                ReplaceChild(labels, new C.ShowCategoryName { Val = showCategoryName.Value });
+                ReplaceChild(label, new C.ShowCategoryName { Val = showCategoryName.Value });
             }
             if (showSeriesName != null) {
-                ReplaceChild(labels, new C.ShowSeriesName { Val = showSeriesName.Value });
+                ReplaceChild(label, new C.ShowSeriesName { Val = showSeriesName.Value });
             }
             if (showPercent != null) {
-                ReplaceChild(labels, new C.ShowPercent { Val = showPercent.Value });
+                ReplaceChild(label, new C.ShowPercent { Val = showPercent.Value });
             }
-            ReplaceChild(labels, new C.ShowBubbleSize { Val = false });
+            ReplaceChild(label, new C.ShowBubbleSize { Val = false });
             if (position != null) {
-                ReplaceChild(labels, new C.DataLabelPosition { Val = position.Value });
+                ReplaceChild(label, new C.DataLabelPosition { Val = position.Value });
             }
             if (numberFormat != null) {
-                ReplaceChild(labels, new C.NumberingFormat {
+                ReplaceChild(label, new C.NumberingFormat {
                     FormatCode = numberFormat,
                     SourceLinked = sourceLinked
                 });
             }
 
-            NormalizeDataLabelsOrder(labels);
+            if (label is C.DataLabels dataLabels) {
+                NormalizeDataLabelsOrder(dataLabels);
+            } else if (label is C.DataLabel dataLabel) {
+                NormalizeDataLabelOrder(dataLabel);
+            }
         }
 
-        private static void ApplyDataLabelTextStyle(C.DataLabels labels, double? fontSizePoints, bool? bold,
+        private static void ApplyDataLabelTextStyle(OpenXmlCompositeElement labels, double? fontSizePoints, bool? bold,
             bool? italic, string? color, string? fontName) {
             ApplyTextStyle(EnsureTextPropertiesRunProperties(labels), fontSizePoints, bold, italic, color, fontName);
-            NormalizeDataLabelsOrder(labels);
+            if (labels is C.DataLabels dataLabels) {
+                NormalizeDataLabelsOrder(dataLabels);
+            } else if (labels is C.DataLabel dataLabel) {
+                NormalizeDataLabelOrder(dataLabel);
+            }
         }
 
-        private static void ApplyDataLabelShapeStyle(C.DataLabels labels, string? fillColor, string? lineColor,
+        private static void ApplyDataLabelShapeStyle(OpenXmlCompositeElement labels, string? fillColor, string? lineColor,
             double? lineWidthPoints, bool noFill, bool noLine) {
             C.ChartShapeProperties props = EnsureDataLabelShapeProperties(labels);
             if (noFill) {
@@ -2177,7 +2410,11 @@ namespace OfficeIMO.PowerPoint {
                 ApplyOptionalLine(props, lineColor, lineWidthPoints);
             }
 
-            NormalizeDataLabelsOrder(labels);
+            if (labels is C.DataLabels dataLabels) {
+                NormalizeDataLabelsOrder(dataLabels);
+            } else if (labels is C.DataLabel dataLabel) {
+                NormalizeDataLabelOrder(dataLabel);
+            }
         }
 
         private static void ApplyDataLabelLeaderLines(C.DataLabels labels, bool showLeaderLines, string? lineColor,
@@ -2199,17 +2436,25 @@ namespace OfficeIMO.PowerPoint {
             NormalizeDataLabelsOrder(labels);
         }
 
-        private static void ApplyDataLabelSeparator(C.DataLabels labels, string? separator) {
-            C.Separator? existing = labels.GetFirstChild<C.Separator>();
+        private static void ApplyDataLabelSeparator(OpenXmlCompositeElement label, string? separator) {
+            C.Separator? existing = label.GetFirstChild<C.Separator>();
             if (separator == null) {
                 existing?.Remove();
-                NormalizeDataLabelsOrder(labels);
+                if (label is C.DataLabels dataLabels) {
+                    NormalizeDataLabelsOrder(dataLabels);
+                } else if (label is C.DataLabel dataLabel) {
+                    NormalizeDataLabelOrder(dataLabel);
+                }
                 return;
             }
 
             existing?.Remove();
-            labels.Append(new C.Separator { Text = separator });
-            NormalizeDataLabelsOrder(labels);
+            label.Append(new C.Separator { Text = separator });
+            if (label is C.DataLabels allDataLabels) {
+                NormalizeDataLabelsOrder(allDataLabels);
+            } else if (label is C.DataLabel dataLabel) {
+                NormalizeDataLabelOrder(dataLabel);
+            }
         }
 
         private static C.DataLabels EnsureDataLabels(OpenXmlCompositeElement chartElement) {
@@ -2248,7 +2493,26 @@ namespace OfficeIMO.PowerPoint {
             return labels;
         }
 
-        private static C.ChartShapeProperties EnsureDataLabelShapeProperties(C.DataLabels labels) {
+        private static C.DataLabel EnsureDataLabel(OpenXmlCompositeElement series, int pointIndex) {
+            C.DataLabels labels = EnsureDataLabels(series);
+            uint index = (uint)pointIndex;
+            C.DataLabel? label = labels.Elements<C.DataLabel>()
+                .FirstOrDefault(item => item.GetFirstChild<C.Index>()?.Val?.Value == index);
+
+            if (label == null) {
+                label = new C.DataLabel(new C.Index { Val = index });
+                OpenXmlElement? insertBefore = labels.ChildElements.FirstOrDefault(child => child is not C.DataLabel);
+                if (insertBefore != null) {
+                    labels.InsertBefore(label, insertBefore);
+                } else {
+                    labels.Append(label);
+                }
+            }
+
+            return label;
+        }
+
+        private static C.ChartShapeProperties EnsureDataLabelShapeProperties(OpenXmlCompositeElement labels) {
             C.ChartShapeProperties props = labels.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
             if (props.Parent == null) {
                 labels.Append(props);
@@ -2296,6 +2560,9 @@ namespace OfficeIMO.PowerPoint {
 
             labels.RemoveAllChildren();
 
+            foreach (C.DataLabel dataLabel in overrides) {
+                labels.Append(dataLabel);
+            }
             if (delete != null) {
                 labels.Append(delete);
             }
@@ -2339,16 +2606,115 @@ namespace OfficeIMO.PowerPoint {
                 labels.Append(leaderLines);
             }
 
-            foreach (C.DataLabel dataLabel in overrides) {
-                labels.Append(dataLabel);
-            }
-
             foreach (OpenXmlElement otherChild in otherChildren) {
                 labels.Append(otherChild);
             }
 
             if (extLst != null) {
                 labels.Append(extLst);
+            }
+        }
+
+        private static void NormalizeDataLabelOrder(C.DataLabel label) {
+            C.Index? index = label.GetFirstChild<C.Index>();
+            if (index == null) {
+                return;
+            }
+
+            C.Delete? delete = label.GetFirstChild<C.Delete>();
+            C.Layout? layout = label.GetFirstChild<C.Layout>();
+            C.ChartText? chartText = label.GetFirstChild<C.ChartText>();
+            C.NumberingFormat? numFmt = label.GetFirstChild<C.NumberingFormat>();
+            C.ChartShapeProperties? shapeProps = label.GetFirstChild<C.ChartShapeProperties>();
+            C.TextProperties? textProps = label.GetFirstChild<C.TextProperties>();
+            C.DataLabelPosition? position = label.GetFirstChild<C.DataLabelPosition>();
+            C.ShowLegendKey? showLegendKey = label.GetFirstChild<C.ShowLegendKey>();
+            C.ShowValue? showValue = label.GetFirstChild<C.ShowValue>();
+            C.ShowCategoryName? showCategoryName = label.GetFirstChild<C.ShowCategoryName>();
+            C.ShowSeriesName? showSeriesName = label.GetFirstChild<C.ShowSeriesName>();
+            C.ShowPercent? showPercent = label.GetFirstChild<C.ShowPercent>();
+            C.ShowBubbleSize? showBubbleSize = label.GetFirstChild<C.ShowBubbleSize>();
+            C.Separator? separator = label.GetFirstChild<C.Separator>();
+            C.ShowLeaderLines? showLeaderLines = label.GetFirstChild<C.ShowLeaderLines>();
+            C.LeaderLines? leaderLines = label.GetFirstChild<C.LeaderLines>();
+            C.ExtensionList? extLst = label.GetFirstChild<C.ExtensionList>();
+
+            List<OpenXmlElement> otherChildren = label.ChildElements
+                .Where(child => child is not C.Index
+                                && child is not C.Delete
+                                && child is not C.Layout
+                                && child is not C.ChartText
+                                && child is not C.NumberingFormat
+                                && child is not C.ChartShapeProperties
+                                && child is not C.TextProperties
+                                && child is not C.DataLabelPosition
+                                && child is not C.ShowLegendKey
+                                && child is not C.ShowValue
+                                && child is not C.ShowCategoryName
+                                && child is not C.ShowSeriesName
+                                && child is not C.ShowPercent
+                                && child is not C.ShowBubbleSize
+                                && child is not C.Separator
+                                && child is not C.ShowLeaderLines
+                                && child is not C.LeaderLines
+                                && child is not C.ExtensionList)
+                .ToList();
+
+            label.RemoveAllChildren();
+            label.Append(index);
+            if (delete != null) {
+                label.Append(delete);
+            }
+            if (layout != null) {
+                label.Append(layout);
+            }
+            if (chartText != null) {
+                label.Append(chartText);
+            }
+            if (numFmt != null) {
+                label.Append(numFmt);
+            }
+            if (shapeProps != null) {
+                label.Append(shapeProps);
+            }
+            if (textProps != null) {
+                label.Append(textProps);
+            }
+            if (position != null) {
+                label.Append(position);
+            }
+            if (showLegendKey != null) {
+                label.Append(showLegendKey);
+            }
+            if (showValue != null) {
+                label.Append(showValue);
+            }
+            if (showCategoryName != null) {
+                label.Append(showCategoryName);
+            }
+            if (showSeriesName != null) {
+                label.Append(showSeriesName);
+            }
+            if (showPercent != null) {
+                label.Append(showPercent);
+            }
+            if (showBubbleSize != null) {
+                label.Append(showBubbleSize);
+            }
+            if (separator != null) {
+                label.Append(separator);
+            }
+            if (showLeaderLines != null) {
+                label.Append(showLeaderLines);
+            }
+            if (leaderLines != null) {
+                label.Append(leaderLines);
+            }
+            foreach (OpenXmlElement otherChild in otherChildren) {
+                label.Append(otherChild);
+            }
+            if (extLst != null) {
+                label.Append(extLst);
             }
         }
 
