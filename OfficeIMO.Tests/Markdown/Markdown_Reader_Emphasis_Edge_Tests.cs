@@ -139,5 +139,41 @@ public class Markdown_Reader_Emphasis_Edge_Tests {
 
         Assert.Contains("<em>a <em>b</em> c</em>", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Double_Star_Inside_Italic_Can_Rebalance_Into_Dual_Italic_When_Single_Close_Comes_First() {
+        var md = "*a **b* c**";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<em>a <em><em>b</em> c</em></em>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<em>a **b</em> c**", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Double_Underscore_Inside_Italic_Can_Rebalance_Into_Dual_Italic_When_Single_Close_Comes_First() {
+        var md = "_a __b_ c__";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<em>a <em><em>b</em> c</em></em>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<em>a __b</em> c__", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Double_Star_Parent_Bold_With_Inner_Italic_Can_Rebalance_Into_Dual_Italic() {
+        var md = "**a *b** c*";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<em><em>a <em>b</em></em> c</em>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<strong>a *b</strong> c*", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Double_Underscore_Parent_Bold_With_Inner_Italic_Can_Rebalance_Into_Dual_Italic() {
+        var md = "__a _b__ c_";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<em><em>a <em>b</em></em> c</em>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<strong>a _b</strong> c_", html, StringComparison.Ordinal);
+    }
 }
 
