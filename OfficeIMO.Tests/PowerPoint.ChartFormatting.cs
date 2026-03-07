@@ -108,6 +108,73 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CanClearChartTitleAndLegendTextStyle() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddChart();
+                    chart.SetTitle("Sales Trend")
+                        .SetTitleTextStyle(fontSizePoints: 18, bold: true, color: "1F4E79", fontName: "Calibri")
+                        .SetLegend(C.LegendPositionValues.Right)
+                        .SetLegendTextStyle(fontSizePoints: 9, italic: true, color: "404040", fontName: "Calibri")
+                        .ClearTitleTextStyle()
+                        .ClearLegendTextStyle();
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator();
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+
+                    string? titleText = chart
+                        .GetFirstChild<C.Title>()?
+                        .GetFirstChild<C.ChartText>()?
+                        .GetFirstChild<C.RichText>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.Run>()?
+                        .GetFirstChild<A.Text>()?
+                        .Text;
+                    Assert.Equal("Sales Trend", titleText);
+
+                    A.RunProperties? titleRunProps = chart
+                        .GetFirstChild<C.Title>()?
+                        .GetFirstChild<C.ChartText>()?
+                        .GetFirstChild<C.RichText>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.Run>()?
+                        .GetFirstChild<A.RunProperties>();
+                    Assert.Null(titleRunProps?.FontSize?.Value);
+                    Assert.Null(titleRunProps?.Bold?.Value);
+                    Assert.Null(titleRunProps?.GetFirstChild<A.LatinFont>());
+                    Assert.Null(titleRunProps?.GetFirstChild<A.SolidFill>());
+
+                    C.Legend? legend = chart.GetFirstChild<C.Legend>();
+                    Assert.NotNull(legend);
+                    Assert.Equal(C.LegendPositionValues.Right, legend!.LegendPosition?.Val?.Value);
+
+                    A.DefaultRunProperties? legendRunProps = legend
+                        .GetFirstChild<C.TextProperties>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.ParagraphProperties>()?
+                        .GetFirstChild<A.DefaultRunProperties>();
+                    Assert.Null(legendRunProps?.FontSize?.Value);
+                    Assert.Null(legendRunProps?.Italic?.Value);
+                    Assert.Null(legendRunProps?.GetFirstChild<A.LatinFont>());
+                    Assert.Null(legendRunProps?.GetFirstChild<A.SolidFill>());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void CanStyleChartAndPlotArea() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
