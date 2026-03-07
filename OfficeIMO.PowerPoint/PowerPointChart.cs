@@ -341,6 +341,55 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets data label text style for all chart labels.
+        /// </summary>
+        public PowerPointChart SetDataLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null,
+            string? color = null, string? fontName = null) {
+            ValidateTextStyle(fontSizePoints, color, fontName);
+
+            return ApplyToAllDataLabels(labels => {
+                ApplyDataLabelTextStyle(labels, fontSizePoints, bold, italic, color, fontName);
+            });
+        }
+
+        /// <summary>
+        ///     Sets data label shape styling for all chart labels.
+        /// </summary>
+        public PowerPointChart SetDataLabelShapeStyle(string? fillColor = null, string? lineColor = null,
+            double? lineWidthPoints = null, bool noFill = false, bool noLine = false) {
+            ValidateAreaStyle(fillColor, lineColor, lineWidthPoints, noFill, noLine);
+
+            return ApplyToAllDataLabels(labels => {
+                ApplyDataLabelShapeStyle(labels, fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            });
+        }
+
+        /// <summary>
+        ///     Configures data label leader lines for all chart labels.
+        /// </summary>
+        public PowerPointChart SetDataLabelLeaderLines(bool showLeaderLines = true, string? lineColor = null,
+            double? lineWidthPoints = null) {
+            ValidateDataLabelLeaderLines(lineColor, lineWidthPoints);
+
+            return ApplyToAllDataLabels(labels => {
+                ApplyDataLabelLeaderLines(labels, showLeaderLines, lineColor, lineWidthPoints);
+            });
+        }
+
+        /// <summary>
+        ///     Sets the data label separator for all chart labels.
+        /// </summary>
+        public PowerPointChart SetDataLabelSeparator(string? separator) {
+            if (separator != null && string.IsNullOrWhiteSpace(separator)) {
+                throw new ArgumentException("Separator cannot be empty.", nameof(separator));
+            }
+
+            return ApplyToAllDataLabels(labels => {
+                ApplyDataLabelSeparator(labels, separator);
+            });
+        }
+
+        /// <summary>
         ///     Sets the category axis title.
         /// </summary>
         public PowerPointChart SetCategoryAxisTitle(string title) {
@@ -986,6 +1035,41 @@ namespace OfficeIMO.PowerPoint {
             }
 
             axis.GetFirstChild<C.DisplayUnits>()?.Remove();
+            Save();
+            return this;
+        }
+
+        private PowerPointChart ApplyToAllDataLabels(Action<C.DataLabels> apply) {
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
+                apply(EnsureDataLabels(barChart));
+            }
+
+            foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
+                apply(EnsureDataLabels(lineChart));
+            }
+
+            foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
+                apply(EnsureDataLabels(areaChart));
+            }
+
+            foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
+                apply(EnsureDataLabels(pieChart));
+            }
+
+            foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
+                apply(EnsureDataLabels(doughnutChart));
+            }
+
+            foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
+                apply(EnsureDataLabels(scatterChart));
+            }
+
             Save();
             return this;
         }
@@ -1762,6 +1846,62 @@ namespace OfficeIMO.PowerPoint {
             NormalizeDataLabelsOrder(labels);
         }
 
+        private static void ApplyDataLabelTextStyle(C.DataLabels labels, double? fontSizePoints, bool? bold,
+            bool? italic, string? color, string? fontName) {
+            ApplyTextStyle(EnsureTextPropertiesRunProperties(labels), fontSizePoints, bold, italic, color, fontName);
+            NormalizeDataLabelsOrder(labels);
+        }
+
+        private static void ApplyDataLabelShapeStyle(C.DataLabels labels, string? fillColor, string? lineColor,
+            double? lineWidthPoints, bool noFill, bool noLine) {
+            C.ChartShapeProperties props = EnsureDataLabelShapeProperties(labels);
+            if (noFill) {
+                ApplyNoFill(props);
+            } else if (fillColor != null) {
+                ApplySolidFill(props, fillColor);
+            }
+
+            if (noLine) {
+                ApplyNoLine(props);
+            } else if (lineColor != null || lineWidthPoints != null) {
+                ApplyOptionalLine(props, lineColor, lineWidthPoints);
+            }
+
+            NormalizeDataLabelsOrder(labels);
+        }
+
+        private static void ApplyDataLabelLeaderLines(C.DataLabels labels, bool showLeaderLines, string? lineColor,
+            double? lineWidthPoints) {
+            ReplaceChild(labels, new C.ShowLeaderLines { Val = showLeaderLines });
+
+            if (lineColor != null || lineWidthPoints != null) {
+                C.LeaderLines leaderLines = labels.GetFirstChild<C.LeaderLines>() ?? new C.LeaderLines();
+                C.ChartShapeProperties props = leaderLines.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
+                ApplyOptionalLine(props, lineColor, lineWidthPoints);
+                if (props.Parent == null) {
+                    leaderLines.Append(props);
+                }
+                if (leaderLines.Parent == null) {
+                    labels.Append(leaderLines);
+                }
+            }
+
+            NormalizeDataLabelsOrder(labels);
+        }
+
+        private static void ApplyDataLabelSeparator(C.DataLabels labels, string? separator) {
+            C.Separator? existing = labels.GetFirstChild<C.Separator>();
+            if (separator == null) {
+                existing?.Remove();
+                NormalizeDataLabelsOrder(labels);
+                return;
+            }
+
+            existing?.Remove();
+            labels.Append(new C.Separator { Text = separator });
+            NormalizeDataLabelsOrder(labels);
+        }
+
         private static C.DataLabels EnsureDataLabels(OpenXmlCompositeElement chartElement) {
             C.DataLabels labels = chartElement.GetFirstChild<C.DataLabels>() ?? new C.DataLabels();
             if (labels.Parent == null) {
@@ -1769,6 +1909,15 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return labels;
+        }
+
+        private static C.ChartShapeProperties EnsureDataLabelShapeProperties(C.DataLabels labels) {
+            C.ChartShapeProperties props = labels.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
+            if (props.Parent == null) {
+                labels.Append(props);
+            }
+
+            return props;
         }
 
         private static void NormalizeDataLabelsOrder(C.DataLabels labels) {
@@ -1914,6 +2063,15 @@ namespace OfficeIMO.PowerPoint {
         private static void ValidateAxisGridlinesStyle(string? lineColor, double? lineWidthPoints) {
             if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
                 throw new ArgumentException("Gridline color cannot be empty.", nameof(lineColor));
+            }
+            if (lineWidthPoints != null && lineWidthPoints <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(lineWidthPoints));
+            }
+        }
+
+        private static void ValidateDataLabelLeaderLines(string? lineColor, double? lineWidthPoints) {
+            if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
+                throw new ArgumentException("Leader line color cannot be empty.", nameof(lineColor));
             }
             if (lineWidthPoints != null && lineWidthPoints <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(lineWidthPoints));
