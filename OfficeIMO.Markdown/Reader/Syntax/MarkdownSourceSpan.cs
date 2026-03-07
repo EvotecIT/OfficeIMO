@@ -17,6 +17,12 @@ public readonly struct MarkdownSourceSpan {
         EndLine = endLine;
     }
 
+    /// <summary>Returns true when the span contains the given 1-based line number.</summary>
+    public bool ContainsLine(int lineNumber) {
+        if (lineNumber < 1) return false;
+        return lineNumber >= StartLine && lineNumber <= EndLine;
+    }
+
     /// <inheritdoc />
     public override string ToString() => StartLine == EndLine
         ? $"L{StartLine}"

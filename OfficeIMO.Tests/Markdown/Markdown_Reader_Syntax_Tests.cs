@@ -325,6 +325,49 @@ Other: Another
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Finds_Deepest_Node_By_Line() {
+        var markdown = """
+# Title
+
+- lead
+  continued
+
+  > quoted
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var titleNode = result.SyntaxTree.FindDeepestNodeAtLine(1);
+        Assert.NotNull(titleNode);
+        Assert.Equal(MarkdownSyntaxKind.Heading, titleNode!.Kind);
+        Assert.Equal("Title", titleNode.Literal);
+
+        var leadNode = result.SyntaxTree.FindDeepestNodeAtLine(3);
+        Assert.NotNull(leadNode);
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, leadNode!.Kind);
+        Assert.Equal("lead continued", leadNode.Literal);
+
+        var quoteNode = result.SyntaxTree.FindDeepestNodeAtLine(6);
+        Assert.NotNull(quoteNode);
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, quoteNode!.Kind);
+        Assert.Equal("quoted", quoteNode.Literal);
+
+        Assert.Null(result.SyntaxTree.FindDeepestNodeAtLine(99));
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Enumerates_Descendants_And_Self() {
+        var markdown = """
+Paragraph
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var kinds = result.SyntaxTree.DescendantsAndSelf().Select(node => node.Kind).ToArray();
+
+        Assert.Equal(new[] { MarkdownSyntaxKind.Document, MarkdownSyntaxKind.Paragraph }, kinds);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Preserves_Existing_Object_Model_Output() {
         var markdown = """
 > quote

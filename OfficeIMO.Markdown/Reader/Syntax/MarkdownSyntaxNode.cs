@@ -20,4 +20,27 @@ public sealed class MarkdownSyntaxNode {
         Literal = literal;
         Children = children ?? Array.Empty<MarkdownSyntaxNode>();
     }
+
+    /// <summary>Returns this node and all descendant nodes in depth-first order.</summary>
+    public IEnumerable<MarkdownSyntaxNode> DescendantsAndSelf() {
+        yield return this;
+        for (int i = 0; i < Children.Count; i++) {
+            foreach (var descendant in Children[i].DescendantsAndSelf()) {
+                yield return descendant;
+            }
+        }
+    }
+
+    /// <summary>Finds the deepest node whose source span contains the given 1-based line number.</summary>
+    public MarkdownSyntaxNode? FindDeepestNodeAtLine(int lineNumber) {
+        if (!SourceSpan.HasValue && Children.Count == 0) return null;
+        if (SourceSpan.HasValue && !SourceSpan.Value.ContainsLine(lineNumber)) return null;
+
+        for (int i = 0; i < Children.Count; i++) {
+            var match = Children[i].FindDeepestNodeAtLine(lineNumber);
+            if (match != null) return match;
+        }
+
+        return SourceSpan.HasValue ? this : null;
+    }
 }
