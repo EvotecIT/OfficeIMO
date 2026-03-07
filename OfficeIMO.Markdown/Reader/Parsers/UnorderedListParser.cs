@@ -12,6 +12,7 @@ public static partial class MarkdownReader {
             var firstParas = ParseParagraphsFromLines(firstLines, options, state);
             var firstInline = firstParas[0];
             var first = isTask ? ListItem.TaskInlines(firstInline, done) : new ListItem(firstInline);
+            first.IsLoose = firstLines.Contains(string.Empty);
             for (int p = 1; p < firstParas.Count; p++) first.AdditionalParagraphs.Add(firstParas[p]);
             first.Level = 0;
             ul.Items.Add(first);
@@ -25,6 +26,7 @@ public static partial class MarkdownReader {
                 var paras = ParseParagraphsFromLines(itemLines, options, state);
                 var inline = paras[0];
                 var li = isTask2 ? ListItem.TaskInlines(inline, done2) : new ListItem(inline);
+                li.IsLoose = itemLines.Contains(string.Empty);
                 for (int p = 1; p < paras.Count; p++) li.AdditionalParagraphs.Add(paras[p]);
                 li.Level = lvlAbs - level0Abs;
                 ul.Items.Add(li);

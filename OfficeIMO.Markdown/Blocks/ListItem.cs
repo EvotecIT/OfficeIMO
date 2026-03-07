@@ -16,6 +16,8 @@ public sealed class ListItem {
     public bool Checked { get; }
     /// <summary>Indentation level (0 = top-level). Used for nested lists.</summary>
     public int Level { get; set; }
+    /// <summary>When true, render the item's paragraph content as block paragraphs even if there is only one paragraph.</summary>
+    public bool IsLoose { get; set; }
 
     /// <summary>Creates a plain list item.</summary>
     public ListItem(InlineSequence content) { Content = content; }
@@ -46,12 +48,14 @@ public sealed class ListItem {
 
     internal string RenderHtml() {
         string checkbox = IsTask ? "<input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled" + (Checked ? " checked" : string.Empty) + "> " : string.Empty;
-        if (AdditionalParagraphs.Count == 0 && Children.Count == 0) {
+        bool renderParagraphBlocks = IsLoose || AdditionalParagraphs.Count > 0;
+
+        if (!renderParagraphBlocks && Children.Count == 0) {
             return checkbox + Content.RenderHtml();
         }
 
         // Tight list behavior: when there is exactly one paragraph, keep it inline even if child blocks exist.
-        if (AdditionalParagraphs.Count == 0) {
+        if (!renderParagraphBlocks) {
             var sbTight = new StringBuilder();
             sbTight.Append(checkbox).Append(Content.RenderHtml());
             for (int i = 0; i < Children.Count; i++) {
@@ -60,7 +64,7 @@ public sealed class ListItem {
             return sbTight.ToString();
         }
 
-        // When multiple paragraphs exist, wrap paragraph content in <p> tags.
+        // Loose list behavior: wrap paragraph content in <p> tags.
         var sb = new StringBuilder();
         bool first = true;
         foreach (var p in Paragraphs()) {

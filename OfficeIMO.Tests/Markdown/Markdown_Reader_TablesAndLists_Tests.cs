@@ -265,7 +265,7 @@ c | d
             Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
 
             var html = doc.ToHtmlFragment();
-            Assert.Contains("<li>outer<blockquote>", html);
+            Assert.Contains("<li><p>outer</p><blockquote>", html, StringComparison.Ordinal);
             Assert.Contains("quote 1", html);
         }
 
@@ -300,6 +300,7 @@ c | d
             var quote = Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
 
             var html = doc.ToHtmlFragment();
+            Assert.Contains("<li><p>item</p>", html, StringComparison.Ordinal);
             Assert.Contains("<blockquote><p>quote continuation</p></blockquote>", html, StringComparison.Ordinal);
             Assert.Single(quote.Children);
         }
@@ -343,7 +344,7 @@ c | d
             Assert.Equal(2, table.Headers.Count);
 
             var html = doc.ToHtmlFragment();
-            Assert.Contains("<li>outer<table>", html);
+            Assert.Contains("<li><p>outer</p><table>", html, StringComparison.Ordinal);
             Assert.Contains(">A<", html);
         }
 
@@ -364,7 +365,7 @@ c | d
             Assert.Contains("line1", code.Content);
 
             var html = doc.ToHtmlFragment();
-            Assert.Contains("<li>outer<pre><code>", html);
+            Assert.Contains("<li><p>outer</p><pre><code>", html, StringComparison.Ordinal);
             Assert.Contains("line1", html);
         }
 

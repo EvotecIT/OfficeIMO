@@ -34,6 +34,7 @@ public static partial class MarkdownReader {
             var firstLines = ConsumeListContinuationLines(lines, ref j, lvl0Abs, strippedFirst, options);
             var firstParas = ParseParagraphsFromLines(firstLines, options, state);
             var first = firstIsTask ? ListItem.TaskInlines(firstParas[0], firstDone) : new ListItem(firstParas[0]);
+            first.IsLoose = firstLines.Contains(string.Empty);
             first.Level = 0;
             for (int p = 1; p < firstParas.Count; p++) first.AdditionalParagraphs.Add(firstParas[p]);
             ol.Items.Add(first);
@@ -46,6 +47,7 @@ public static partial class MarkdownReader {
                 var itemLines = ConsumeListContinuationLines(lines, ref next, lvlAbs, stripped, options);
                 var paras = ParseParagraphsFromLines(itemLines, options, state);
                 var li = isTask ? ListItem.TaskInlines(paras[0], done) : new ListItem(paras[0]);
+                li.IsLoose = itemLines.Contains(string.Empty);
                 li.Level = lvlAbs - lvl0Abs;
                 for (int p = 1; p < paras.Count; p++) li.AdditionalParagraphs.Add(paras[p]);
                 ol.Items.Add(li);
