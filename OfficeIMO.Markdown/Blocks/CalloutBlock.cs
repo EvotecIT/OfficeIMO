@@ -17,6 +17,7 @@ public sealed class CalloutBlock : IMarkdownBlock {
     /// HTML/Markdown rendering uses these blocks instead of the raw <see cref="Body"/> string.
     /// </summary>
     internal IReadOnlyList<IMarkdownBlock>? Children { get; }
+    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; }
 
     /// <summary>Creates a callout with the specified kind, title and body.</summary>
     public CalloutBlock(string kind, string title, string body) {
@@ -25,11 +26,12 @@ public sealed class CalloutBlock : IMarkdownBlock {
         Body = body ?? string.Empty;
     }
 
-    internal CalloutBlock(string kind, string title, IReadOnlyList<IMarkdownBlock> children) {
+    internal CalloutBlock(string kind, string title, IReadOnlyList<IMarkdownBlock> children, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren = null) {
         Kind = (kind ?? "info").Trim();
         Title = title ?? string.Empty;
         Body = string.Empty;
         Children = children;
+        SyntaxChildren = syntaxChildren;
     }
 
     /// <inheritdoc />

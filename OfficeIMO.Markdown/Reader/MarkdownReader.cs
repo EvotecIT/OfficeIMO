@@ -27,7 +27,7 @@ public static partial class MarkdownReader {
         options ??= new MarkdownReaderOptions();
         var state = new MarkdownReaderState();
         var syntaxNodes = new List<MarkdownSyntaxNode>();
-        var document = ParseInternal(markdown, options, state, allowFrontMatter: true, syntaxNodes);
+        var document = ParseInternal(markdown, options, state, allowFrontMatter: true, syntaxNodes, lineOffset: 0);
         return new MarkdownParseResult(document, BuildDocumentSyntaxTree(syntaxNodes));
     }
 
@@ -37,7 +37,7 @@ public static partial class MarkdownReader {
         return Parse(text, options);
     }
 
-    private static MarkdownDoc ParseInternal(string markdown, MarkdownReaderOptions options, MarkdownReaderState state, bool allowFrontMatter, List<MarkdownSyntaxNode>? syntaxNodes = null) {
+    private static MarkdownDoc ParseInternal(string markdown, MarkdownReaderOptions options, MarkdownReaderState state, bool allowFrontMatter, List<MarkdownSyntaxNode>? syntaxNodes = null, int lineOffset = 0) {
         var doc = MarkdownDoc.Create();
         if (string.IsNullOrEmpty(markdown)) return doc;
 
@@ -78,12 +78,12 @@ public static partial class MarkdownReader {
             bool matched = false;
             var parsers = pipeline.Parsers;
             int previousBlockCount = doc.Blocks.Count;
-            int startLine = i;
+            int startLine = lineOffset + i;
             for (int p = 0; p < parsers.Count; p++) {
                 if (parsers[p].TryParse(lines, ref i, options, doc, state)) {
                     matched = true;
                     if (syntaxNodes != null && doc.Blocks.Count > previousBlockCount) {
-                        CaptureSyntaxNodes(doc, previousBlockCount, startLine, i, syntaxNodes);
+                        CaptureSyntaxNodes(doc, previousBlockCount, startLine, lineOffset + i, syntaxNodes);
                     }
                     break;
                 }
