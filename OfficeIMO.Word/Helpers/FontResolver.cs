@@ -79,7 +79,9 @@ public static class FontResolver {
 
     private static string ResolvePlatform(string fontFamily, Dictionary<string, string> genericFonts, IEnumerable<string> fallbackFonts) {
         if (genericFonts.TryGetValue(fontFamily, out string? value) && !string.IsNullOrEmpty(value)) {
-            fontFamily = value;
+            // Generic CSS-style families should resolve deterministically to the
+            // platform default instead of depending on font file name heuristics.
+            return value;
         }
 
         bool installed = IsFontInstalled(fontFamily);

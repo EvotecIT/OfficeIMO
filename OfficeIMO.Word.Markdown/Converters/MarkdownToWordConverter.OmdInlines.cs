@@ -153,7 +153,7 @@ namespace OfficeIMO.Word.Markdown {
         ) {
             if (inlines == null) return;
 
-            string? defaultFont = options.FontFamily;
+            string? defaultFont = ResolveDefaultFontFamily(options);
             var list = inlines.Items ?? Array.Empty<object>();
 
             ProcessInlineNodesOmd(

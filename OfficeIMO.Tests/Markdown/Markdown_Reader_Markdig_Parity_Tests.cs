@@ -11,6 +11,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "blockquote-lazy-continuation", "> Quote line 1\nQuote line 2" };
         yield return new object[] { "blockquote-blank-line", "> Quote\n>\n> Continued line" };
         yield return new object[] { "blockquote-nested-list", "> - List item\n>   - Nested" };
+        yield return new object[] { "blockquote-indented-lazy-text", "> Quote line 1\n    indented continuation" };
+        yield return new object[] { "blockquote-indented-lazy-listlike", "> Quote line 1\n    - nested text" };
+        yield return new object[] { "list-quote-then-nested-list", "- item\n  > quote\n  continuation\n  - nested" };
+        yield return new object[] { "list-quote-trailing-paragraph", "- item\n\n  > quote\n\n  trailing" };
     }
 
     [Theory]
