@@ -493,6 +493,13 @@ public static partial class MarkdownReader {
             return true;
         }
 
+        if (inner.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase)) {
+            label = inner;
+            href = inner;
+            consumed = gt - start + 1;
+            return true;
+        }
+
         // Email form
         if (LooksLikeEmail(inner)) {
             label = inner;
