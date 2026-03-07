@@ -371,6 +371,22 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets the category axis label text style.
+        /// </summary>
+        public PowerPointChart SetCategoryAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null,
+            bool? italic = null, string? color = null, string? fontName = null) {
+            return SetAxisLabelTextStyle<C.CategoryAxis>(fontSizePoints, bold, italic, color, fontName);
+        }
+
+        /// <summary>
+        ///     Sets the value axis label text style.
+        /// </summary>
+        public PowerPointChart SetValueAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null,
+            bool? italic = null, string? color = null, string? fontName = null) {
+            return SetAxisLabelTextStyle<C.ValueAxis>(fontSizePoints, bold, italic, color, fontName);
+        }
+
+        /// <summary>
         ///     Sets the scatter chart X-axis title.
         /// </summary>
         public PowerPointChart SetScatterXAxisTitle(string title) {
@@ -390,6 +406,32 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return SetAxisTitle<C.ValueAxis>(title, axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+        }
+
+        /// <summary>
+        ///     Sets the scatter chart X-axis label text style.
+        /// </summary>
+        public PowerPointChart SetScatterXAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null,
+            bool? italic = null, string? color = null, string? fontName = null) {
+            if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
+                return this;
+            }
+
+            return SetAxisLabelTextStyle<C.ValueAxis>(fontSizePoints, bold, italic, color, fontName,
+                axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+        }
+
+        /// <summary>
+        ///     Sets the scatter chart Y-axis label text style.
+        /// </summary>
+        public PowerPointChart SetScatterYAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null,
+            bool? italic = null, string? color = null, string? fontName = null) {
+            if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
+                return this;
+            }
+
+            return SetAxisLabelTextStyle<C.ValueAxis>(fontSizePoints, bold, italic, color, fontName,
+                axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
         }
 
         /// <summary>
@@ -832,6 +874,28 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
+        private PowerPointChart SetAxisLabelTextStyle<TAxis>(double? fontSizePoints, bool? bold, bool? italic,
+            string? color, string? fontName, Func<TAxis, bool>? predicate = null) where TAxis : OpenXmlCompositeElement {
+            ValidateTextStyle(fontSizePoints, color, fontName);
+
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            TAxis? axis = predicate == null
+                ? plotArea.Elements<TAxis>().FirstOrDefault()
+                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
+            if (axis == null) {
+                return this;
+            }
+
+            ApplyTextStyle(EnsureTextPropertiesRunProperties(axis), fontSizePoints, bold, italic, color, fontName);
+            Save();
+            return this;
+        }
+
         private PowerPointChart SetAxisNumberFormat<TAxis>(string formatCode, bool sourceLinked, Func<TAxis, bool>? predicate = null)
             where TAxis : OpenXmlCompositeElement {
             if (string.IsNullOrWhiteSpace(formatCode)) {
@@ -1191,12 +1255,16 @@ namespace OfficeIMO.PowerPoint {
             if (italic != null) {
                 runProps.Italic = italic.Value;
             }
+            A.LatinFont? existingLatinFont = runProps.GetFirstChild<A.LatinFont>()?.CloneNode(true) as A.LatinFont;
+            if (color != null) {
+                runProps.RemoveAllChildren<A.LatinFont>();
+                ApplySolidFill(runProps, color);
+            }
             if (fontName != null) {
                 runProps.RemoveAllChildren<A.LatinFont>();
                 runProps.Append(new A.LatinFont { Typeface = fontName });
-            }
-            if (color != null) {
-                ApplySolidFill(runProps, color);
+            } else if (color != null && existingLatinFont != null) {
+                runProps.Append(existingLatinFont);
             }
         }
 
@@ -1285,7 +1353,27 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (textProps.Parent == null) {
-                parent.Append(textProps);
+                if (parent is C.CategoryAxis || parent is C.ValueAxis) {
+                    OpenXmlElement? insertBefore = parent.GetFirstChild<C.CrossingAxis>();
+                    insertBefore ??= parent.GetFirstChild<C.Crosses>();
+                    insertBefore ??= parent.GetFirstChild<C.CrossesAt>();
+                    insertBefore ??= parent.GetFirstChild<C.AutoLabeled>();
+                    insertBefore ??= parent.GetFirstChild<C.LabelAlignment>();
+                    insertBefore ??= parent.GetFirstChild<C.LabelOffset>();
+                    insertBefore ??= parent.GetFirstChild<C.NoMultiLevelLabels>();
+                    insertBefore ??= parent.GetFirstChild<C.CrossBetween>();
+                    insertBefore ??= parent.GetFirstChild<C.MajorUnit>();
+                    insertBefore ??= parent.GetFirstChild<C.MinorUnit>();
+                    insertBefore ??= parent.GetFirstChild<C.DisplayUnits>();
+                    insertBefore ??= parent.GetFirstChild<C.ExtensionList>();
+                    if (insertBefore != null) {
+                        parent.InsertBefore(textProps, insertBefore);
+                    } else {
+                        parent.Append(textProps);
+                    }
+                } else {
+                    parent.Append(textProps);
+                }
             }
 
             return runProps;

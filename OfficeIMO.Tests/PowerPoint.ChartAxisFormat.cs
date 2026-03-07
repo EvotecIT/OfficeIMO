@@ -1,7 +1,9 @@
 using System;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -98,6 +100,54 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CanStyleAxisLabels() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddChart();
+                    chart.SetCategoryAxisLabelTextStyle(fontSizePoints: 9, bold: true, color: "404040", fontName: "Calibri")
+                        .SetValueAxisLabelTextStyle(fontSizePoints: 10, italic: true, color: "1F4E79", fontName: "Arial");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+
+                    A.DefaultRunProperties? categoryRunProps = chart.PlotArea!
+                        .GetFirstChild<C.CategoryAxis>()?
+                        .GetFirstChild<C.TextProperties>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.ParagraphProperties>()?
+                        .GetFirstChild<A.DefaultRunProperties>();
+                    Assert.Equal(900, categoryRunProps?.FontSize?.Value);
+                    Assert.True(categoryRunProps?.Bold?.Value);
+                    Assert.Equal("Calibri", categoryRunProps?.GetFirstChild<A.LatinFont>()?.Typeface?.Value);
+                    Assert.Equal("404040", categoryRunProps?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+
+                    A.DefaultRunProperties? valueRunProps = chart.PlotArea!
+                        .GetFirstChild<C.ValueAxis>()?
+                        .GetFirstChild<C.TextProperties>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.ParagraphProperties>()?
+                        .GetFirstChild<A.DefaultRunProperties>();
+                    Assert.Equal(1000, valueRunProps?.FontSize?.Value);
+                    Assert.True(valueRunProps?.Italic?.Value);
+                    Assert.Equal("Arial", valueRunProps?.GetFirstChild<A.LatinFont>()?.Typeface?.Value);
+                    Assert.Equal("1F4E79", valueRunProps?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void CanSetAxisScaleAndCrossing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
@@ -155,6 +205,58 @@ namespace OfficeIMO.Tests {
 
                     Assert.Equal(2.5d, (double?)valueAxis.GetFirstChild<C.CrossesAt>()?.Val?.Value);
                     Assert.Null(valueAxis.GetFirstChild<C.Crosses>());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void CanStyleScatterAxisLabels() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddScatterChart();
+                    chart.SetScatterXAxisLabelTextStyle(fontSizePoints: 9, bold: true, color: "404040", fontName: "Calibri")
+                        .SetScatterYAxisLabelTextStyle(fontSizePoints: 10, italic: true, color: "1F4E79", fontName: "Arial");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+                    C.ValueAxis[] axes = chart.PlotArea!
+                        .Elements<C.ValueAxis>()
+                        .ToArray();
+                    Assert.Equal(2, axes.Length);
+
+                    C.ValueAxis xAxis = axes.Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Bottom);
+                    A.DefaultRunProperties? xAxisRunProps = xAxis
+                        .GetFirstChild<C.TextProperties>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.ParagraphProperties>()?
+                        .GetFirstChild<A.DefaultRunProperties>();
+                    Assert.Equal(900, xAxisRunProps?.FontSize?.Value);
+                    Assert.True(xAxisRunProps?.Bold?.Value);
+                    Assert.Equal("Calibri", xAxisRunProps?.GetFirstChild<A.LatinFont>()?.Typeface?.Value);
+                    Assert.Equal("404040", xAxisRunProps?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+
+                    C.ValueAxis yAxis = axes.Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Left);
+                    A.DefaultRunProperties? yAxisRunProps = yAxis
+                        .GetFirstChild<C.TextProperties>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.ParagraphProperties>()?
+                        .GetFirstChild<A.DefaultRunProperties>();
+                    Assert.Equal(1000, yAxisRunProps?.FontSize?.Value);
+                    Assert.True(yAxisRunProps?.Italic?.Value);
+                    Assert.Equal("Arial", yAxisRunProps?.GetFirstChild<A.LatinFont>()?.Typeface?.Value);
+                    Assert.Equal("1F4E79", yAxisRunProps?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
                 }
             } finally {
                 if (File.Exists(filePath)) {
