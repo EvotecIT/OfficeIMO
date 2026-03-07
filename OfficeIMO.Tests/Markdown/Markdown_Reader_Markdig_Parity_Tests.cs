@@ -47,6 +47,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "blockquote-heading-then-nonone-list-text", "> Heading\n> -------\n>\n> 10. item" };
         yield return new object[] { "nonone-ordered-marker-with-indented-continuation", "alpha\n10. beta\n    gamma" };
         yield return new object[] { "list-quote-lazy-after-setext-heading", "- outer\n  heading\n  -------\n  > quote\n  continuation" };
+        yield return new object[] { "literal-url-colon-stays-paragraph", "Visit https://example.com/path_(x): now" };
     }
 
     [Theory]

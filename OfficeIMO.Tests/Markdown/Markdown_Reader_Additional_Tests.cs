@@ -251,6 +251,18 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Definition_List_Does_Not_Consume_Literal_Url_Paragraphs() {
+            string md = "Visit https://example.com/path_(x): now";
+            var doc = MarkdownReader.Parse(md);
+
+            Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.DoesNotContain("<dl>", html, StringComparison.Ordinal);
+            Assert.Contains("<p>Visit https://example.com/path_(x): now</p>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Unordered_List_Item_With_Colon_Is_Not_Parsed_As_Definition_List() {
             string md = """
 - **AD1**: starkes Muster (`7034/7023`).
