@@ -547,7 +547,10 @@ public static partial class MarkdownReader {
             }
 
             // Match the top-level quote parser's lazy continuation behavior inside list items too.
-            if (!sawQuotedLine || string.IsNullOrEmpty(lastQuoteContent) || !LooksLikeParagraphLine(lastQuoteContent) || !LooksLikeParagraphLine(part)) break;
+            if (!sawQuotedLine) break;
+            var previousQuoteContent = lastQuoteContent;
+            if (previousQuoteContent == null || previousQuoteContent.Length == 0) break;
+            if (!LooksLikeParagraphLine(previousQuoteContent) || !LooksLikeParagraphLine(part)) break;
 
             collected.Add("> " + part);
             lastQuoteContent = part;

@@ -78,5 +78,32 @@ public class Markdown_Reader_Emphasis_Edge_Tests {
         Assert.Contains("<em>foo<strong>bar</strong>baz</em>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<em>foo</em><em>bar</em><em>baz</em>", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Double_Underscore_At_Start_Can_Degrade_To_Literal_Then_Italic() {
+        var md = "__foo_bar_";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("_<em>foo_bar</em>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("__foo_bar_", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Double_Underscore_At_Start_Can_Degrade_When_Only_Single_Closer_Is_Valid() {
+        var md = "__foo__bar_";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("_<em>foo__bar</em>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("__foo__bar_", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Double_Underscore_Still_Forms_Bold_When_A_Valid_Double_Closer_Exists() {
+        var md = "__foo__ bar_";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<strong>foo</strong> bar_", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("_<em>foo__ bar</em>", html, StringComparison.Ordinal);
+    }
 }
 

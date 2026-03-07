@@ -270,6 +270,7 @@ public static partial class MarkdownReader {
                 }
 
                 bool preferInnerBold = ShouldPreferInnerBold(stack, marker, remaining, canOpen, canClose);
+                bool splitDoubleUnderscoreOpener = ShouldSplitDoubleUnderscoreToLiteralAndItalic(text, pos, remaining, canOpen, canClose);
 
                 if (canClose && !preferInnerBold) {
                     while (remaining > 0) {
@@ -281,6 +282,12 @@ public static partial class MarkdownReader {
                 if (canOpen) {
                     if (preferInnerBold) {
                         stack.Push(new InlineFrame(FrameKind.Bold, marker, 2, new InlineSequence { AutoSpacing = false }));
+                        remaining -= 2;
+                    }
+
+                    if (splitDoubleUnderscoreOpener) {
+                        Current().Text("_");
+                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }));
                         remaining -= 2;
                     }
 
@@ -500,6 +507,35 @@ public static partial class MarkdownReader {
 
         var top = stack.Peek();
         return top.Marker == marker && top.Kind == FrameKind.Italic;
+    }
+
+    private static bool ShouldSplitDoubleUnderscoreToLiteralAndItalic(string text, int start, int runLen, bool canOpen, bool canClose) {
+        if (!canOpen || canClose) return false;
+        if (runLen != 2) return false;
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
+        if (text[start] != '_') return false;
+
+        return !HasFutureClosingDelimiterRun(text, start + 2, '_', minimumRunLength: 2) &&
+               HasFutureClosingDelimiterRun(text, start + 2, '_', minimumRunLength: 1);
+    }
+
+    private static bool HasFutureClosingDelimiterRun(string text, int start, char marker, int minimumRunLength) {
+        if (string.IsNullOrEmpty(text)) return false;
+        if (minimumRunLength <= 0) minimumRunLength = 1;
+
+        for (int i = Math.Max(0, start); i < text.Length; i++) {
+            if (text[i] != marker) continue;
+
+            int runLen = 1;
+            while (i + runLen < text.Length && text[i + runLen] == marker) runLen++;
+
+            GetDelimiterFlags(text, i, marker, runLen, out _, out bool canClose);
+            if (canClose && runLen >= minimumRunLength) return true;
+
+            i += runLen - 1;
+        }
+
+        return false;
     }
 
     private static void GetDelimiterFlags(string text, int start, char marker, int runLen, out bool canOpen, out bool canClose) {
