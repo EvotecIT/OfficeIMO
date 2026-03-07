@@ -1,3 +1,4 @@
+using OfficeIMO.Markdown;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -612,6 +613,12 @@ public sealed class ReaderOptions {
     /// Markdown: when true, chunk by headings where possible. Default: true.
     /// </summary>
     public bool MarkdownChunkByHeadings { get; set; } = true;
+
+    /// <summary>
+    /// Markdown: optional input normalization applied before parser-aware chunking.
+    /// This is intended for compact AI/chat markdown fixes while preserving default strict behavior when null.
+    /// </summary>
+    public MarkdownInputNormalizationOptions? MarkdownInputNormalization { get; set; }
 
     /// <summary>
     /// When true, computes source/chunk hashes for incremental indexing workflows. Default: true.

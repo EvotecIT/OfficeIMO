@@ -105,6 +105,22 @@ public sealed class MarkdownRendererOptions {
     public bool NormalizeTightColonSpacing { get; set; } = false;
 
     /// <summary>
+    /// When true, inserts a missing newline between an ATX heading and an immediately-following
+    /// unordered strong-label list marker on the same line
+    /// (for example, <c>## Summary- **Item:** value</c> becomes <c>## Summary\n- **Item:** value</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeHeadingListBoundaries { get; set; } = false;
+
+    /// <summary>
+    /// When true, inserts a missing newline before compact unordered strong-label list markers
+    /// that were emitted inline after punctuation or symbol characters
+    /// (for example, <c>✅- **FSMO:** ok</c> becomes <c>✅\n- **FSMO:** ok</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeCompactStrongLabelListBoundaries { get; set; } = false;
+
+    /// <summary>
     /// When true, trims accidental whitespace immediately inside strong delimiters
     /// (for example, <c>** Healthy**</c> or <c>**Healthy **</c> become <c>**Healthy**</c>).
     /// Default: false.

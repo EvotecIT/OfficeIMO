@@ -49,6 +49,22 @@ public sealed class MarkdownInputNormalizationOptions {
     public bool NormalizeTightColonSpacing { get; set; } = false;
 
     /// <summary>
+    /// When true, inserts a missing newline between an ATX heading and an immediately-following
+    /// unordered strong-label list marker on the same line
+    /// (for example, <c>## Summary- **Item:** value</c> becomes <c>## Summary\n- **Item:** value</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeHeadingListBoundaries { get; set; } = false;
+
+    /// <summary>
+    /// When true, inserts a missing newline before compact unordered strong-label list markers
+    /// that were emitted inline after punctuation or symbol characters
+    /// (for example, <c>✅- **FSMO:** ok</c> becomes <c>✅\n- **FSMO:** ok</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeCompactStrongLabelListBoundaries { get; set; } = false;
+
+    /// <summary>
     /// When true, trims accidental whitespace immediately inside strong delimiters
     /// (for example, <c>** Healthy**</c> or <c>**Healthy **</c> become <c>**Healthy**</c>).
     /// Default: false.
@@ -112,6 +128,14 @@ public static class MarkdownInputNormalizer {
 
     private static readonly Regex TightArrowStrongBoundaryRegex = new Regex(
         @"->\s*(?=\*\*)",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex HeadingListBoundaryRegex = new Regex(
+        @"^(?<heading>[ \t]{0,3}#{1,6}[ \t]+[^\r\n]+?)(?<!\s)(?<marker>[-+*])\s+(?=\*\*)",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled | RegexOptions.Multiline);
+
+    private static readonly Regex CompactStrongLabelListBoundaryRegex = new Regex(
+        @"(?<=[\p{P}\p{S}\)])(?<marker>[-+*])\s+(?=\*\*)",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex LooseStrongDelimiterWhitespaceRegex = new Regex(
@@ -196,6 +220,22 @@ public static class MarkdownInputNormalizer {
                 value,
                 TightArrowStrongBoundaryRegex,
                 static _ => "-> ",
+                preserveInlineCodeSpans: true);
+        }
+
+        if (options.NormalizeHeadingListBoundaries) {
+            value = ApplyRegexOutsideFencedCodeBlocks(
+                value,
+                HeadingListBoundaryRegex,
+                static match => match.Groups["heading"].Value.TrimEnd() + "\n" + match.Groups["marker"].Value + " ",
+                preserveInlineCodeSpans: true);
+        }
+
+        if (options.NormalizeCompactStrongLabelListBoundaries) {
+            value = ApplyRegexOutsideFencedCodeBlocks(
+                value,
+                CompactStrongLabelListBoundaryRegex,
+                static match => "\n" + match.Groups["marker"].Value + " ",
                 preserveInlineCodeSpans: true);
         }
 

@@ -1,4 +1,5 @@
 using OfficeIMO.Excel;
+using OfficeIMO.Markdown;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Reader;
@@ -233,6 +234,29 @@ public sealed class ReaderDocumentReaderTests {
             Assert.Equal("heading", childChunk.Location.SourceBlockKind);
             Assert.Equal("child", childChunk.Location.BlockAnchor);
             Assert.Equal(2, childChunk.Location.SourceBlockIndex);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_MarkdownChunking_CanApply_InputNormalization() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path, "## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK");
+
+            var chunks = DocumentReader.Read(path, new ReaderOptions {
+                MarkdownInputNormalization = new MarkdownInputNormalizationOptions {
+                    NormalizeHeadingListBoundaries = true,
+                    NormalizeCompactStrongLabelListBoundaries = true
+                }
+            }).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
+
+            var chunk = Assert.Single(chunks);
+            Assert.Equal("Wynik ogólny", chunk.Location.HeadingPath);
+            Assert.Contains("## Wynik ogólny", chunk.Markdown ?? string.Empty, StringComparison.Ordinal);
+            Assert.Contains("- **Replication:**", chunk.Markdown ?? string.Empty, StringComparison.Ordinal);
+            Assert.Contains("- **FSMO:**", chunk.Markdown ?? string.Empty, StringComparison.Ordinal);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
