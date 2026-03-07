@@ -250,6 +250,13 @@ public static partial class MarkdownReader {
                 GetDelimiterFlags(text, pos, marker, runLen, out bool canOpen, out bool canClose);
 
                 int remaining = runLen;
+                if (canClose) {
+                    while (remaining > 0) {
+                        if (!TryRebalanceLeadingBoldInsideItalic(stack, marker, remaining, out int rebalanced)) break;
+                        remaining -= rebalanced;
+                    }
+                }
+
                 bool preferInnerBold = ShouldPreferInnerBold(stack, marker, remaining, canOpen, canClose);
 
                 if (canClose && !preferInnerBold) {
@@ -400,6 +407,29 @@ public static partial class MarkdownReader {
             return true;
         }
         return false;
+    }
+
+    private static bool TryRebalanceLeadingBoldInsideItalic(Stack<InlineFrame> stack, char marker, int remaining, out int consumed) {
+        consumed = 0;
+        if (remaining < 2) return false;
+        if (marker != '*' && marker != '_') return false;
+        if (stack == null || stack.Count < 3) return false;
+
+        var frames = stack.ToArray();
+        var top = frames[0];
+        var parent = frames[1];
+        if (top.Kind != FrameKind.Italic || top.Marker != marker || top.OpenLen != 1) return false;
+        if (parent.Kind != FrameKind.Bold || parent.Marker != marker || parent.OpenLen != 2) return false;
+        if (parent.Seq.Items.Count != 0) return false;
+
+        stack.Pop();
+        stack.Pop();
+
+        var italic = new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false });
+        italic.Seq.AddRaw(new BoldSequenceInline(top.Seq));
+        stack.Push(italic);
+        consumed = 2;
+        return true;
     }
 
     private static bool ShouldPreferInnerBold(Stack<InlineFrame> stack, char marker, int remaining, bool canOpen, bool canClose) {
