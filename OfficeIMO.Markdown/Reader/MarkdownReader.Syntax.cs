@@ -33,7 +33,7 @@ public static partial class MarkdownReader {
                     MarkdownSyntaxKind.Quote,
                     span,
                     quote.Children.Count == 0 ? string.Join("\n", quote.Lines) : null,
-                    BuildChildSyntaxNodes(quote.Children));
+                    quote.SyntaxChildren ?? BuildChildSyntaxNodes(quote.Children));
             case UnorderedListBlock unordered:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.UnorderedList, span, children: BuildListItemSyntaxNodes(unordered.Items, MarkdownSyntaxKind.UnorderedList));
             case OrderedListBlock ordered:
@@ -45,7 +45,7 @@ public static partial class MarkdownReader {
                     MarkdownSyntaxKind.Callout,
                     span,
                     string.IsNullOrWhiteSpace(callout.Title) ? callout.Kind : callout.Kind + ":" + callout.Title,
-                    callout.Children != null ? BuildChildSyntaxNodes(callout.Children) : Array.Empty<MarkdownSyntaxNode>());
+                    callout.SyntaxChildren ?? (callout.Children != null ? BuildChildSyntaxNodes(callout.Children) : Array.Empty<MarkdownSyntaxNode>()));
             case DetailsBlock details:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.Details, span, details.Open ? "open" : null, BuildDetailsChildren(details));
             case SummaryBlock summary:
@@ -140,6 +140,13 @@ public static partial class MarkdownReader {
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> BuildDetailsChildren(DetailsBlock details) {
+        if (details.SyntaxChildren != null && details.SyntaxChildren.Count > 0) {
+            var nodesWithSummary = new List<MarkdownSyntaxNode>();
+            if (details.Summary != null) nodesWithSummary.Add(BuildSyntaxNode(details.Summary));
+            for (int i = 0; i < details.SyntaxChildren.Count; i++) nodesWithSummary.Add(details.SyntaxChildren[i]);
+            return nodesWithSummary;
+        }
+
         var nodes = new List<MarkdownSyntaxNode>();
         if (details.Summary != null) nodes.Add(BuildSyntaxNode(details.Summary));
         for (int i = 0; i < details.Children.Count; i++) {

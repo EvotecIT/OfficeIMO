@@ -63,6 +63,45 @@ Paragraph text
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Nested_Quote_Child_Spans() {
+        var markdown = """
+> quoted
+> second
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var quote = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.Quote, quote.Kind);
+        var paragraph = Assert.Single(quote.Children);
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
+        Assert.NotNull(paragraph.SourceSpan);
+        Assert.Equal(1, paragraph.SourceSpan!.Value.StartLine);
+        Assert.Equal(2, paragraph.SourceSpan!.Value.EndLine);
+        Assert.Equal("quoted second", paragraph.Literal);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Captures_Nested_Callout_Child_Spans() {
+        var markdown = """
+> [!NOTE] Title
+> body
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var callout = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.Callout, callout.Kind);
+        Assert.Equal("note:Title", callout.Literal);
+        var paragraph = Assert.Single(callout.Children);
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
+        Assert.NotNull(paragraph.SourceSpan);
+        Assert.Equal(2, paragraph.SourceSpan!.Value.StartLine);
+        Assert.Equal(2, paragraph.SourceSpan!.Value.EndLine);
+        Assert.Equal("body", paragraph.Literal);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Preserves_Existing_Object_Model_Output() {
         var markdown = """
 > quote

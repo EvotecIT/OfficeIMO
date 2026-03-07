@@ -22,8 +22,9 @@ public static partial class MarkdownReader {
             // Parse callout body as Markdown so lists/code/etc work inside callouts.
             var nestedOptions = CloneOptionsWithoutFrontMatter(options);
             var nestedState = CloneState(state);
-            var innerDoc = ParseInternal(string.Join("\n", inner), nestedOptions, nestedState, allowFrontMatter: false);
-            doc.Add(new CalloutBlock(kind, title, innerDoc.Blocks));
+            var syntaxChildren = new System.Collections.Generic.List<MarkdownSyntaxNode>();
+            var innerDoc = ParseInternal(string.Join("\n", inner), nestedOptions, nestedState, allowFrontMatter: false, syntaxChildren, lineOffset: i + 1);
+            doc.Add(new CalloutBlock(kind, title, innerDoc.Blocks, syntaxChildren));
 
             i = j;
             return true;

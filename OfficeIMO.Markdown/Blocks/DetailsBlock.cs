@@ -9,6 +9,8 @@ public sealed class DetailsBlock : IMarkdownBlock {
 
     /// <summary>Nested blocks rendered inside the details body.</summary>
     public System.Collections.Generic.List<IMarkdownBlock> Children { get; } = new System.Collections.Generic.List<IMarkdownBlock>();
+    /// <summary>Nested syntax nodes captured during parsing, when available.</summary>
+    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; set; }
 
     /// <summary>Whether to emit a blank line between the summary and the first child block.</summary>
     public bool InsertBlankLineAfterSummary { get; set; } = true;

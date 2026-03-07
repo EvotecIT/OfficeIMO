@@ -8,6 +8,8 @@ public sealed class QuoteBlock : IMarkdownBlock {
     public System.Collections.Generic.List<string> Lines { get; } = new System.Collections.Generic.List<string>();
     /// <summary>Nested blocks rendered inside the quote.</summary>
     public System.Collections.Generic.List<IMarkdownBlock> Children { get; } = new System.Collections.Generic.List<IMarkdownBlock>();
+    /// <summary>Nested syntax nodes captured during parsing, when available.</summary>
+    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; set; }
     /// <summary>Create an empty quote block.</summary>
     public QuoteBlock() { }
     /// <summary>Create a quote block with initial lines.</summary>
