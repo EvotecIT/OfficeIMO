@@ -390,6 +390,19 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Applies a reusable data label template to all supported chart labels.
+        /// </summary>
+        public PowerPointChart SetDataLabelTemplate(PowerPointChartDataLabelTemplate template) {
+            if (template == null) {
+                throw new ArgumentNullException(nameof(template));
+            }
+
+            return ApplyToAllDataLabels(labels => {
+                ApplyDataLabelTemplate(labels, template);
+            });
+        }
+
+        /// <summary>
         ///     Enables callout-style labels by positioning labels outside with leader lines.
         /// </summary>
         public PowerPointChart SetDataLabelCallouts(bool enabled = true, C.DataLabelPositionValues? position = null,
@@ -2549,6 +2562,10 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("Separator cannot be empty.", nameof(template.Separator));
             }
 
+            ApplyDataLabelTemplate(EnsureDataLabels(series), template);
+        }
+
+        private static void ApplyDataLabelTemplate(C.DataLabels labels, PowerPointChartDataLabelTemplate template) {
             bool applyTextStyle = template.FontSizePoints != null
                 || template.Bold != null
                 || template.Italic != null
@@ -2574,7 +2591,6 @@ namespace OfficeIMO.PowerPoint {
                 ValidateDataLabelLeaderLines(template.LeaderLineColor, template.LeaderLineWidthPoints);
             }
 
-            C.DataLabels labels = EnsureDataLabels(series);
             ApplyDataLabelOverrides(labels, template.ShowLegendKey, template.ShowValue, template.ShowCategoryName,
                 template.ShowSeriesName, template.ShowPercent, template.Position, template.NumberFormat,
                 template.SourceLinked);
