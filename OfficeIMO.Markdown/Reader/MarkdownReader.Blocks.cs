@@ -702,18 +702,7 @@ public static partial class MarkdownReader {
                 int peek = k + 1;
                 if (peek >= lines.Length) return;
                 var next = lines[peek] ?? string.Empty;
-                int nextSpaces = CountLeadingSpaces(next);
-                if (nextSpaces < continuationIndent) return;
-
-                bool nestedStart = false;
-                if (allowNestedOrdered && options.OrderedLists && IsOrderedListLine(next, out int lvlAbsO, out _, out _) && lvlAbsO >= itemLevelAbs + 1) nestedStart = true;
-                if (allowNestedUnordered && options.UnorderedLists && IsUnorderedListLine(next, out int lvlAbsU, out _, out _, out _) && lvlAbsU >= itemLevelAbs + 1) nestedStart = true;
-                if (options.FencedCode) {
-                    var slice = next.Length >= continuationIndent ? next.Substring(continuationIndent) : next.TrimStart();
-                    if (IsCodeFenceOpen(slice, out _, out _, out _)) nestedStart = true;
-                }
-
-                if (!nestedStart) return;
+                if (!IsListNestedBlockStart(next, continuationIndent, itemLevelAbs, allowNestedOrdered, allowNestedUnordered, options)) return;
                 k++;
             }
 
@@ -787,6 +776,47 @@ public static partial class MarkdownReader {
             index = k;
             return;
         }
+    }
+
+    private static bool IsListNestedBlockStart(
+        string line,
+        int continuationIndent,
+        int itemLevelAbs,
+        bool allowNestedOrdered,
+        bool allowNestedUnordered,
+        MarkdownReaderOptions options) {
+
+        if (string.IsNullOrEmpty(line)) return false;
+
+        int nextSpaces = CountLeadingSpaces(line);
+        if (nextSpaces < continuationIndent) return false;
+
+        if (allowNestedOrdered && options.OrderedLists &&
+            IsOrderedListLine(line, out int lvlAbsO, out _, out _) &&
+            lvlAbsO >= itemLevelAbs + 1) {
+            return true;
+        }
+
+        if (allowNestedUnordered && options.UnorderedLists &&
+            IsUnorderedListLine(line, out int lvlAbsU, out _, out _, out _) &&
+            lvlAbsU >= itemLevelAbs + 1) {
+            return true;
+        }
+
+        var slice = line.Length >= continuationIndent ? line.Substring(continuationIndent) : line.TrimStart();
+        var sliceTrim = slice.TrimStart();
+
+        if (options.FencedCode && IsCodeFenceOpen(slice, out _, out _, out _)) return true;
+        if (options.IndentedCodeBlocks && nextSpaces >= continuationIndent + 4 && !string.IsNullOrWhiteSpace(slice)) return true;
+        if (sliceTrim.StartsWith(">")) return true;
+
+        if (options.Tables && LooksLikeTableRow(sliceTrim)) return true;
+
+        if (options.HtmlBlocks && sliceTrim.StartsWith("<") && !TryParseAngleAutolink(sliceTrim, 0, out _, out _, out _)) {
+            return true;
+        }
+
+        return false;
     }
 
     private static bool IsDefinitionLine(string line) {

@@ -212,6 +212,26 @@ c | d
         }
 
         [Fact]
+        public void List_Item_Can_Contain_BlankLine_Separated_Nested_Blockquote() {
+            string md = """
+- outer
+
+  > quote 1
+  > quote 2
+- next
+""";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Equal(2, list.Items.Count);
+            Assert.Single(list.Items[0].Children);
+            Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("<li>outer<blockquote>", html);
+            Assert.Contains("quote 1", html);
+        }
+
+        [Fact]
         public void List_Item_Can_Contain_Nested_Table() {
             string md = """
 - outer
@@ -230,6 +250,49 @@ c | d
             var html = doc.ToHtmlFragment();
             Assert.Contains("<table>", html);
             Assert.Contains(">A<", html);
+        }
+
+        [Fact]
+        public void List_Item_Can_Contain_BlankLine_Separated_Nested_Table() {
+            string md = """
+- outer
+
+  | A | B |
+  | --- | ---: |
+  | 1 | 2 |
+- next
+""";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Equal(2, list.Items.Count);
+            Assert.Single(list.Items[0].Children);
+            var table = Assert.IsType<TableBlock>(list.Items[0].Children[0]);
+            Assert.Equal(2, table.Headers.Count);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("<li>outer<table>", html);
+            Assert.Contains(">A<", html);
+        }
+
+        [Fact]
+        public void List_Item_Can_Contain_BlankLine_Separated_Nested_Indented_Code_Block() {
+            string md = """
+- outer
+
+      line1
+      line2
+- next
+""";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Equal(2, list.Items.Count);
+            Assert.Single(list.Items[0].Children);
+            var code = Assert.IsType<CodeBlock>(list.Items[0].Children[0]);
+            Assert.Contains("line1", code.Content);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("<li>outer<pre><code>", html);
+            Assert.Contains("line1", html);
         }
 
         [Fact]
