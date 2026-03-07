@@ -8,6 +8,10 @@ public enum MarkdownSyntaxKind {
     Document,
     /// <summary>ATX or Setext heading block.</summary>
     Heading,
+    /// <summary>Heading level metadata.</summary>
+    HeadingLevel,
+    /// <summary>Heading text payload.</summary>
+    HeadingText,
     /// <summary>Paragraph block.</summary>
     Paragraph,
     /// <summary>Blockquote block.</summary>

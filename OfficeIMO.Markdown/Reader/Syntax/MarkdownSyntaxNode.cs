@@ -91,6 +91,15 @@ public sealed class MarkdownSyntaxNode {
         return path;
     }
 
+    /// <summary>Finds the nearest block-like syntax node whose source span contains the given 1-based line number.</summary>
+    public MarkdownSyntaxNode? FindNearestBlockAtLine(int lineNumber) => FindNearestBlock(FindNodePathAtLine(lineNumber));
+
+    /// <summary>Finds the nearest block-like syntax node whose source span fully contains the given span.</summary>
+    public MarkdownSyntaxNode? FindNearestBlockContainingSpan(MarkdownSourceSpan span) => FindNearestBlock(FindNodePathContainingSpan(span));
+
+    /// <summary>Finds the nearest block-like syntax node whose source span overlaps the given span.</summary>
+    public MarkdownSyntaxNode? FindNearestBlockOverlappingSpan(MarkdownSourceSpan span) => FindNearestBlock(FindNodePathOverlappingSpan(span));
+
     private bool TryBuildNodePathAtLine(int lineNumber, List<MarkdownSyntaxNode> path) {
         if (!SourceSpan.HasValue && Children.Count == 0) return false;
         if (SourceSpan.HasValue && !SourceSpan.Value.ContainsLine(lineNumber)) return false;
@@ -125,5 +134,46 @@ public sealed class MarkdownSyntaxNode {
         }
 
         return SourceSpan.HasValue;
+    }
+
+    private static MarkdownSyntaxNode? FindNearestBlock(IReadOnlyList<MarkdownSyntaxNode> path) {
+        for (int i = path.Count - 1; i >= 0; i--) {
+            if (IsBlockLikeKind(path[i].Kind)) return path[i];
+        }
+
+        return null;
+    }
+
+    private static bool IsBlockLikeKind(MarkdownSyntaxKind kind) {
+        switch (kind) {
+            case MarkdownSyntaxKind.Document:
+            case MarkdownSyntaxKind.Heading:
+            case MarkdownSyntaxKind.Paragraph:
+            case MarkdownSyntaxKind.Quote:
+            case MarkdownSyntaxKind.UnorderedList:
+            case MarkdownSyntaxKind.OrderedList:
+            case MarkdownSyntaxKind.ListItem:
+            case MarkdownSyntaxKind.CodeBlock:
+            case MarkdownSyntaxKind.Table:
+            case MarkdownSyntaxKind.TableHeader:
+            case MarkdownSyntaxKind.TableRow:
+            case MarkdownSyntaxKind.HorizontalRule:
+            case MarkdownSyntaxKind.Image:
+            case MarkdownSyntaxKind.Callout:
+            case MarkdownSyntaxKind.DefinitionList:
+            case MarkdownSyntaxKind.DefinitionItem:
+            case MarkdownSyntaxKind.FootnoteDefinition:
+            case MarkdownSyntaxKind.Details:
+            case MarkdownSyntaxKind.Summary:
+            case MarkdownSyntaxKind.FrontMatter:
+            case MarkdownSyntaxKind.HtmlRaw:
+            case MarkdownSyntaxKind.HtmlComment:
+            case MarkdownSyntaxKind.Toc:
+            case MarkdownSyntaxKind.TocPlaceholder:
+            case MarkdownSyntaxKind.Unknown:
+                return true;
+            default:
+                return false;
+        }
     }
 }
