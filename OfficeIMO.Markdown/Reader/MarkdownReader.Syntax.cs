@@ -25,7 +25,7 @@ public static partial class MarkdownReader {
             case CodeBlock code:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.CodeBlock, span, NormalizeSyntaxLiteralLineEndings(code.Content), BuildCodeBlockChildren(code, span));
             case ImageBlock image:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Image, span, ((IMarkdownBlock)image).RenderMarkdown());
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Image, span, ((IMarkdownBlock)image).RenderMarkdown(), BuildImageChildren(image, span));
             case TableBlock table:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.Table, span, ((IMarkdownBlock)table).RenderMarkdown(), BuildTableChildren(table, span));
             case QuoteBlock quote:
@@ -204,6 +204,24 @@ public static partial class MarkdownReader {
         }
 
         nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.CodeContent, contentSpan, NormalizeSyntaxLiteralLineEndings(code.Content)));
+        return nodes;
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> BuildImageChildren(ImageBlock image, MarkdownSourceSpan? span) {
+        if (!span.HasValue) return Array.Empty<MarkdownSyntaxNode>();
+
+        var nodes = new List<MarkdownSyntaxNode> {
+            new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageSource, span, image.Path)
+        };
+
+        if (!string.IsNullOrEmpty(image.Alt)) {
+            nodes.Insert(0, new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageAlt, span, image.Alt));
+        }
+
+        if (!string.IsNullOrEmpty(image.Title)) {
+            nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageTitle, span, image.Title));
+        }
+
         return nodes;
     }
 

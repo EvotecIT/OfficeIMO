@@ -496,6 +496,34 @@ Console.WriteLine("hi");
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Image_Structure() {
+        var markdown = """
+![Alt text](https://example.com/image.png "Image title")
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var image = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.Image, image.Kind);
+        Assert.NotNull(image.SourceSpan);
+        Assert.Equal(1, image.SourceSpan!.Value.StartLine);
+        Assert.Equal(1, image.SourceSpan!.Value.EndLine);
+        Assert.Equal(3, image.Children.Count);
+
+        var alt = image.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.ImageAlt, alt.Kind);
+        Assert.Equal("Alt text", alt.Literal);
+
+        var source = image.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.ImageSource, source.Kind);
+        Assert.Equal("https://example.com/image.png", source.Literal);
+
+        var title = image.Children[2];
+        Assert.Equal(MarkdownSyntaxKind.ImageTitle, title.Kind);
+        Assert.Equal("Image title", title.Literal);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Finds_Deepest_Node_By_Line() {
         var markdown = """
 # Title
