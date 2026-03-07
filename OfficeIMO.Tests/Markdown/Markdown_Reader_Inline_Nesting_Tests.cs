@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var outMd = doc.ToMarkdown().Trim();
             Assert.Equal("***Both***", outMd);
             var html = doc.ToHtml().Trim();
-            Assert.Contains("<strong><em>Both</em></strong>", html);
+            Assert.Contains("<em><strong>Both</strong></em>", html);
         }
 
         [Fact]

@@ -12,6 +12,24 @@ public class Markdown_Reader_Emphasis_Edge_Tests {
     }
 
     [Fact]
+    public void Triple_Marker_Run_Can_Render_Italic_With_Inner_Bold() {
+        var md = "***foo***";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<em><strong>foo</strong></em>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<strong><em>foo</em></strong>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Triple_Marker_Run_Can_Keep_Italic_Open_After_Inner_Bold_Closes() {
+        var md = "***foo** bar*";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<em><strong>foo</strong> bar</em>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("**<em>foo</em>* bar*", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unclosed_Emphasis_Is_Literal() {
         var md = "*not closed";
         var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
