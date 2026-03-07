@@ -240,6 +240,12 @@ public static partial class MarkdownReader {
                 int runLen = 1;
                 while (pos + runLen < text.Length && text[pos + runLen] == marker) runLen++;
 
+                if (ShouldTreatDelimiterRunAsLiteral(text, pos, marker, runLen, stack, out int literalRunLength)) {
+                    Current().Text(new string(marker, literalRunLength));
+                    pos += literalRunLength;
+                    continue;
+                }
+
                 if (ShouldTreatSingleMarkerAsLiteralInsideBold(text, pos, marker, runLen, stack)) {
                     Current().Text(marker.ToString());
                     pos++;
@@ -426,6 +432,30 @@ public static partial class MarkdownReader {
 
         int nextRun = FindNextDelimiterRunLength(text, start + 1, marker);
         return nextRun == 2;
+    }
+
+    private static bool ShouldTreatDelimiterRunAsLiteral(string text, int start, char marker, int runLen, Stack<InlineFrame> stack, out int literalRunLength) {
+        literalRunLength = 0;
+        if (runLen != 2) return false;
+        if (marker != '*' && marker != '_') return false;
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
+        if (stack == null || stack.Count <= 1) return false;
+
+        var top = stack.Peek();
+        if (top.Kind != FrameKind.Italic || top.Marker != marker || top.OpenLen != 1) return false;
+
+        var frames = stack.ToArray();
+        if (frames.Length >= 2) {
+            var parent = frames[1];
+            // Keep the leading triple-delimiter path available for rebalancing into <em><strong>... later.
+            if (parent.Kind == FrameKind.Bold && parent.Marker == marker && parent.OpenLen == 2 && parent.Seq.Items.Count == 0) return false;
+        }
+
+        int nextRun = FindNextDelimiterRunLength(text, start + 2, marker);
+        if (nextRun != 1) return false;
+
+        literalRunLength = 2;
+        return true;
     }
 
     private static int FindNextDelimiterRunLength(string text, int start, char marker) {
