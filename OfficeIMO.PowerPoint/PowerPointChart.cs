@@ -390,6 +390,91 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Configures data labels for a single series by index.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabels(int seriesIndex, bool showValue = true, bool showCategoryName = false,
+            bool showSeriesName = false, bool showLegendKey = false, bool showPercent = false,
+            C.DataLabelPositionValues? position = null, string? numberFormat = null, bool sourceLinked = false) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            if (numberFormat != null && string.IsNullOrWhiteSpace(numberFormat)) {
+                throw new ArgumentException("Number format cannot be empty.", nameof(numberFormat));
+            }
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                ApplyDataLabelOverrides(EnsureDataLabels(series), showLegendKey, showValue, showCategoryName, showSeriesName,
+                    showPercent, position, numberFormat, sourceLinked);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Configures data labels for a single series by name.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabels(string seriesName, bool showValue = true, bool showCategoryName = false,
+            bool showSeriesName = false, bool showLegendKey = false, bool showPercent = false,
+            C.DataLabelPositionValues? position = null, string? numberFormat = null, bool sourceLinked = false,
+            bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+            if (numberFormat != null && string.IsNullOrWhiteSpace(numberFormat)) {
+                throw new ArgumentException("Number format cannot be empty.", nameof(numberFormat));
+            }
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                ApplyDataLabelOverrides(EnsureDataLabels(series), showLegendKey, showValue, showCategoryName, showSeriesName,
+                    showPercent, position, numberFormat, sourceLinked);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Enables callout-style labels for a series by index.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelCallouts(int seriesIndex, bool enabled = true,
+            C.DataLabelPositionValues? position = null, string? lineColor = null, double? lineWidthPoints = null) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+
+            C.DataLabelPositionValues? resolvedPosition = enabled ? position ?? C.DataLabelPositionValues.OutsideEnd : position;
+            SetSeriesDataLabels(seriesIndex, showValue: enabled, showCategoryName: false, showSeriesName: false,
+                showLegendKey: false, showPercent: false, position: resolvedPosition, numberFormat: null, sourceLinked: false);
+            return SetSeriesDataLabelLeaderLines(seriesIndex, enabled, lineColor, lineWidthPoints);
+        }
+
+        /// <summary>
+        ///     Enables callout-style labels for a series by name.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelCallouts(string seriesName, bool enabled = true,
+            C.DataLabelPositionValues? position = null, string? lineColor = null, double? lineWidthPoints = null,
+            bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+
+            C.DataLabelPositionValues? resolvedPosition = enabled ? position ?? C.DataLabelPositionValues.OutsideEnd : position;
+            SetSeriesDataLabels(seriesName, showValue: enabled, showCategoryName: false, showSeriesName: false,
+                showLegendKey: false, showPercent: false, position: resolvedPosition, numberFormat: null, sourceLinked: false,
+                ignoreCase: ignoreCase);
+            return SetSeriesDataLabelLeaderLines(seriesName, enabled, lineColor, lineWidthPoints, ignoreCase);
+        }
+
+        /// <summary>
         ///     Sets data label text style for a series by index.
         /// </summary>
         public PowerPointChart SetSeriesDataLabelTextStyle(int seriesIndex, double? fontSizePoints = null, bool? bold = null,
@@ -2021,6 +2106,38 @@ namespace OfficeIMO.PowerPoint {
             ReplaceChild(labels, new C.ShowSeriesName { Val = showSeriesName });
             ReplaceChild(labels, new C.ShowPercent { Val = showPercent });
             ReplaceChild(labels, new C.ShowBubbleSize { Val = false });
+            NormalizeDataLabelsOrder(labels);
+        }
+
+        private static void ApplyDataLabelOverrides(C.DataLabels labels, bool? showLegendKey, bool? showValue,
+            bool? showCategoryName, bool? showSeriesName, bool? showPercent,
+            C.DataLabelPositionValues? position, string? numberFormat, bool sourceLinked) {
+            if (showLegendKey != null) {
+                ReplaceChild(labels, new C.ShowLegendKey { Val = showLegendKey.Value });
+            }
+            if (showValue != null) {
+                ReplaceChild(labels, new C.ShowValue { Val = showValue.Value });
+            }
+            if (showCategoryName != null) {
+                ReplaceChild(labels, new C.ShowCategoryName { Val = showCategoryName.Value });
+            }
+            if (showSeriesName != null) {
+                ReplaceChild(labels, new C.ShowSeriesName { Val = showSeriesName.Value });
+            }
+            if (showPercent != null) {
+                ReplaceChild(labels, new C.ShowPercent { Val = showPercent.Value });
+            }
+            ReplaceChild(labels, new C.ShowBubbleSize { Val = false });
+            if (position != null) {
+                ReplaceChild(labels, new C.DataLabelPosition { Val = position.Value });
+            }
+            if (numberFormat != null) {
+                ReplaceChild(labels, new C.NumberingFormat {
+                    FormatCode = numberFormat,
+                    SourceLinked = sourceLinked
+                });
+            }
+
             NormalizeDataLabelsOrder(labels);
         }
 
