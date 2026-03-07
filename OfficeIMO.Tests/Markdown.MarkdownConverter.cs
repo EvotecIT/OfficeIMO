@@ -9,7 +9,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Markdown {
-        [Fact(Skip = "TODO: Implement additional Markdown to Word scenarios with OfficeIMO.Markdown reader")]
+        [Fact]
         public void Test_Markdown_RoundTrip() {
             string md = "# Heading 1\n\nHello **world** and *universe*.";
 
@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("*universe*", roundTrip, StringComparison.OrdinalIgnoreCase);
         }
 
-        [Fact(Skip = "TODO: Implement Markdown list parsing and conversion to WordList")]
+        [Fact]
         public void Test_Markdown_Lists_RoundTrip() {
             string md = "- Item 1\n- Item 2\n\n1. First\n1. Second";
 
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("1. First", roundTrip, StringComparison.OrdinalIgnoreCase);
         }
 
-        [Fact(Skip = "TODO: Implement font family resolution for Markdown")]
+        [Fact]
         public void Test_Markdown_FontResolver() {
             string md = "Hello";
             using MemoryStream ms = new MemoryStream();
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(FontResolver.Resolve("monospace"), fonts.Ascii);
         }
 
-        [Fact(Skip = "TODO: Implement automatic URL detection in Markdown text")]
+        [Fact]
         public void Test_Markdown_Urls_CreateHyperlinks() {
             string md = "Visit http://example.com";
             using MemoryStream ms = new MemoryStream();

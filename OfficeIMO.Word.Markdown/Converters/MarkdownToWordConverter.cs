@@ -59,6 +59,14 @@ namespace OfficeIMO.Word.Markdown {
             return client;
         }
 
+        private static string? ResolveDefaultFontFamily(MarkdownToWordOptions options) {
+            if (options == null) {
+                return null;
+            }
+
+            return FontResolver.Resolve(options.FontFamily) ?? options.FontFamily;
+        }
+
         private static TimeSpan ResolveRemoteImageTimeout(MarkdownToWordOptions options) {
             if (options.RemoteImageDownloadTimeout <= TimeSpan.Zero) {
                 return DefaultRemoteImageDownloadTimeout;
@@ -376,7 +384,8 @@ namespace OfficeIMO.Word.Markdown {
                             } else {
                                 // Not allowed: insert as text/link
                                 var t1 = par.AddText(img.Alt ?? System.IO.Path.GetFileName(pathOrUrl));
-                                if (!string.IsNullOrEmpty(options.FontFamily)) t1.SetFontFamily(options.FontFamily!);
+                                var defaultFont = ResolveDefaultFontFamily(options);
+                                if (!string.IsNullOrEmpty(defaultFont)) t1.SetFontFamily(defaultFont!);
                             }
                         } else if (System.Uri.TryCreate(pathOrUrl, System.UriKind.Absolute, out var uri)) {
                             if (options.AllowedImageSchemes.Contains(uri.Scheme) &&
@@ -427,7 +436,8 @@ namespace OfficeIMO.Word.Markdown {
                         } else {
                             // Not a file or valid URL → insert as text
                             var t2 = par.AddText(img.Alt ?? pathOrUrl);
-                            if (!string.IsNullOrEmpty(options.FontFamily)) t2.SetFontFamily(options.FontFamily!);
+                            var defaultFont = ResolveDefaultFontFamily(options);
+                            if (!string.IsNullOrEmpty(defaultFont)) t2.SetFontFamily(defaultFont!);
                         }
                         if (!string.IsNullOrWhiteSpace(img.Caption)) document.AddParagraph(img.Caption!);
                         break;
@@ -546,8 +556,9 @@ namespace OfficeIMO.Word.Markdown {
                         if (!string.IsNullOrWhiteSpace(definition)) {
                             if (wroteTerm) {
                                 var separator = para.AddText(": ");
-                                if (!string.IsNullOrEmpty(options.FontFamily)) {
-                                    separator.SetFontFamily(options.FontFamily!);
+                                var defaultFont = ResolveDefaultFontFamily(options);
+                                if (!string.IsNullOrEmpty(defaultFont)) {
+                                    separator.SetFontFamily(defaultFont!);
                                 }
                             }
 

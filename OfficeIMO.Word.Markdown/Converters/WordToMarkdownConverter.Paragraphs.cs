@@ -5,11 +5,11 @@ namespace OfficeIMO.Word.Markdown {
         internal string ConvertParagraph(WordParagraph paragraph, WordToMarkdownOptions options, bool? hasCheckboxOverride = null, bool checkboxCheckedOverride = false) {
             const string codeLangPrefix = "CodeLang_";
             string? styleId = paragraph.StyleId;
-            string? codeFont = options.FontFamily ?? FontResolver.Resolve("monospace");
-            if (styleId is { Length: > 0 } sid && sid.StartsWith(codeLangPrefix, StringComparison.Ordinal) && !string.IsNullOrEmpty(codeFont)) {
-                var codeFontValue = codeFont!;
-                var runs = paragraph.GetRuns().ToList();
-                if (runs.Count > 0 && runs.All(r => string.Equals(r.FontFamily ?? string.Empty, codeFontValue, StringComparison.OrdinalIgnoreCase))) {
+            if (styleId is { Length: > 0 } sid && sid.StartsWith(codeLangPrefix, StringComparison.Ordinal)) {
+                var runs = paragraph.GetRuns()
+                    .Where(r => !string.IsNullOrEmpty(r.Text))
+                    .ToList();
+                if (runs.Count > 0) {
                     string language = sid.Substring(codeLangPrefix.Length);
                     string code = string.Concat(runs.Select(r => r.Text));
                     return $"```{language}\n{code}\n```";
@@ -54,10 +54,33 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private static readonly System.Collections.Generic.HashSet<string> KnownMonospaceFonts = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase) {
-            "Consolas", "Courier New", "Lucida Console", "DejaVu Sans Mono",
+            "Consolas", "Courier", "Courier New", "Lucida Console", "DejaVu Sans Mono",
             "Menlo", "Monaco", "Inconsolata", "Source Code Pro", "Fira Code",
             "Cascadia Mono", "Cascadia Code", "JetBrains Mono"
         };
+
+        private static string? ResolveConfiguredCodeFont(string? configuredFontFamily) {
+            if (string.IsNullOrWhiteSpace(configuredFontFamily)) {
+                return null;
+            }
+
+            return FontResolver.Resolve(configuredFontFamily) ?? configuredFontFamily;
+        }
+
+        private static string? ResolveImplicitCodeFont() {
+            var font = FontResolver.Resolve("monospace");
+            if (string.IsNullOrWhiteSpace(font)) {
+                return null;
+            }
+
+            var fontValue = font!;
+
+            if (KnownMonospaceFonts.Contains(fontValue) || fontValue.IndexOf("Mono", StringComparison.OrdinalIgnoreCase) >= 0) {
+                return fontValue;
+            }
+
+            return null;
+        }
 
         internal string RenderRuns(WordParagraph paragraph, WordToMarkdownOptions options) {
             var sb = new StringBuilder();
@@ -65,8 +88,8 @@ namespace OfficeIMO.Word.Markdown {
             // 1) If caller specifies options.FontFamily, treat runs with that font as code
             // 2) Else, treat runs with the platform monospace (FontResolver.Resolve("monospace")) as code
             // 3) Else, fallback to a conservative known-monospace allowlist or names containing "Mono"
-            string? preferredCodeFont = options.FontFamily;
-            string? platformMono = FontResolver.Resolve("monospace");
+            string? preferredCodeFont = ResolveConfiguredCodeFont(options.FontFamily);
+            string? implicitCodeFont = ResolveImplicitCodeFont();
             foreach (var run in paragraph.GetRuns()) {
                 // Respect explicit line breaks embedded in runs (non-page breaks)
                 if (run.Break != null && run.PageBreak == null) {
@@ -116,8 +139,8 @@ namespace OfficeIMO.Word.Markdown {
                     if (!string.IsNullOrEmpty(preferredCodeFont)) {
                         code = string.Equals(runFont, preferredCodeFont, StringComparison.OrdinalIgnoreCase);
                     }
-                    if (!code && !string.IsNullOrEmpty(platformMono)) {
-                        code = string.Equals(runFont, platformMono, StringComparison.OrdinalIgnoreCase);
+                    if (!code && !string.IsNullOrEmpty(implicitCodeFont)) {
+                        code = string.Equals(runFont, implicitCodeFont, StringComparison.OrdinalIgnoreCase);
                     }
                     if (!code) {
                         code = KnownMonospaceFonts.Contains(runFont!) || runFont!.IndexOf("Mono", StringComparison.OrdinalIgnoreCase) >= 0;
