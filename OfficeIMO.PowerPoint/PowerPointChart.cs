@@ -728,6 +728,62 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Applies a reusable data label template to a specific point by series index.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelTemplateForPoint(int seriesIndex, int pointIndex,
+            PowerPointChartDataLabelTemplate template) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            if (pointIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(pointIndex));
+            }
+            if (template == null) {
+                throw new ArgumentNullException(nameof(template));
+            }
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                ApplySeriesLeaderLineTemplate(series, template);
+                ApplyDataLabelTemplate(EnsureDataLabel(series, pointIndex), template);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Applies a reusable data label template to a specific point by series name.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelTemplateForPoint(string seriesName, int pointIndex,
+            PowerPointChartDataLabelTemplate template, bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+            if (pointIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(pointIndex));
+            }
+            if (template == null) {
+                throw new ArgumentNullException(nameof(template));
+            }
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                ApplySeriesLeaderLineTemplate(series, template);
+                ApplyDataLabelTemplate(EnsureDataLabel(series, pointIndex), template);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
         ///     Configures a single data label point by series index and point index.
         /// </summary>
         public PowerPointChart SetSeriesDataLabelForPoint(int seriesIndex, int pointIndex, bool? showValue = null,
@@ -2611,6 +2667,63 @@ namespace OfficeIMO.PowerPoint {
                 ApplyDataLabelLeaderLines(labels, showLeaderLines, template.LeaderLineColor,
                     template.LeaderLineWidthPoints);
             }
+        }
+
+        private static void ApplyDataLabelTemplate(C.DataLabel label, PowerPointChartDataLabelTemplate template) {
+            bool applyTextStyle = template.FontSizePoints != null
+                || template.Bold != null
+                || template.Italic != null
+                || template.TextColor != null
+                || template.FontName != null;
+            bool applyShapeStyle = template.NoFill
+                || template.NoLine
+                || template.FillColor != null
+                || template.LineColor != null
+                || template.LineWidthPoints != null;
+
+            if (template.NumberFormat != null && string.IsNullOrWhiteSpace(template.NumberFormat)) {
+                throw new ArgumentException("Number format cannot be empty.", nameof(template.NumberFormat));
+            }
+            if (template.Separator != null && string.IsNullOrWhiteSpace(template.Separator)) {
+                throw new ArgumentException("Separator cannot be empty.", nameof(template.Separator));
+            }
+            if (applyTextStyle) {
+                ValidateTextStyle(template.FontSizePoints, template.TextColor, template.FontName);
+            }
+            if (applyShapeStyle) {
+                ValidateAreaStyle(template.FillColor, template.LineColor, template.LineWidthPoints,
+                    template.NoFill, template.NoLine);
+            }
+
+            ApplyDataLabelOverrides(label, template.ShowLegendKey, template.ShowValue, template.ShowCategoryName,
+                template.ShowSeriesName, template.ShowPercent, template.Position, template.NumberFormat,
+                template.SourceLinked);
+
+            if (template.Separator != null) {
+                ApplyDataLabelSeparator(label, template.Separator);
+            }
+            if (applyTextStyle) {
+                ApplyDataLabelTextStyle(label, template.FontSizePoints, template.Bold, template.Italic,
+                    template.TextColor, template.FontName);
+            }
+            if (applyShapeStyle) {
+                ApplyDataLabelShapeStyle(label, template.FillColor, template.LineColor, template.LineWidthPoints,
+                    template.NoFill, template.NoLine);
+            }
+        }
+
+        private static void ApplySeriesLeaderLineTemplate(OpenXmlCompositeElement series,
+            PowerPointChartDataLabelTemplate template) {
+            bool applyLeaderLines = template.ShowLeaderLines == true
+                || template.LeaderLineColor != null
+                || template.LeaderLineWidthPoints != null;
+            if (!applyLeaderLines) {
+                return;
+            }
+
+            ValidateDataLabelLeaderLines(template.LeaderLineColor, template.LeaderLineWidthPoints);
+            ApplyDataLabelLeaderLines(EnsureDataLabels(series), template.ShowLeaderLines ?? true,
+                template.LeaderLineColor, template.LeaderLineWidthPoints);
         }
 
         private static C.DataLabels EnsureDataLabels(OpenXmlCompositeElement chartElement) {

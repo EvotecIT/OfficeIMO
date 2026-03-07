@@ -627,6 +627,91 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CanApplyPointLevelDataLabelTemplate() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                var data = new PowerPointChartData(
+                    new[] { "North", "South", "West" },
+                    new[] { new PowerPointChartSeries("Sales", new[] { 42d, 31d, 27d }) });
+                var template = new PowerPointChartDataLabelTemplate {
+                    ShowValue = true,
+                    ShowCategoryName = true,
+                    Position = C.DataLabelPositionValues.OutsideEnd,
+                    NumberFormat = "0.00",
+                    Separator = " | ",
+                    SourceLinked = false,
+                    ShowLeaderLines = true,
+                    LeaderLineColor = "C00000",
+                    LeaderLineWidthPoints = 0.75,
+                    FontSizePoints = 11,
+                    Bold = true,
+                    FontName = "Calibri",
+                    TextColor = "C00000",
+                    FillColor = "FFF2CC",
+                    LineColor = "C00000",
+                    LineWidthPoints = 0.75
+                };
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddPieChart(data);
+                    chart.SetSeriesDataLabelTemplateForPoint(0, 1, template);
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator();
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.DataLabels labels = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
+                        .GetFirstChild<C.PlotArea>()!
+                        .GetFirstChild<C.PieChart>()!
+                        .Elements<C.PieChartSeries>()
+                        .Single()
+                        .GetFirstChild<C.DataLabels>()!;
+
+                    Assert.True(labels.GetFirstChild<C.ShowLeaderLines>()?.Val?.Value);
+                    A.Outline? leaderLineOutline = labels.GetFirstChild<C.LeaderLines>()?
+                        .GetFirstChild<C.ChartShapeProperties>()?
+                        .GetFirstChild<A.Outline>();
+                    Assert.Equal("C00000", leaderLineOutline?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                    Assert.Equal((int)Math.Round(0.75d * 12700d), leaderLineOutline?.Width?.Value);
+
+                    C.DataLabel? pointLabel = labels.Elements<C.DataLabel>()
+                        .FirstOrDefault(item => item.GetFirstChild<C.Index>()?.Val?.Value == 1U);
+                    Assert.NotNull(pointLabel);
+                    Assert.True(pointLabel!.GetFirstChild<C.ShowValue>()?.Val?.Value);
+                    Assert.True(pointLabel.GetFirstChild<C.ShowCategoryName>()?.Val?.Value);
+                    Assert.Equal(C.DataLabelPositionValues.OutsideEnd, pointLabel.GetFirstChild<C.DataLabelPosition>()?.Val?.Value);
+                    Assert.Equal("0.00", pointLabel.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value);
+                    Assert.False(pointLabel.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value);
+                    Assert.Equal(" | ", pointLabel.GetFirstChild<C.Separator>()?.Text);
+
+                    A.DefaultRunProperties? runProps = pointLabel.GetFirstChild<C.TextProperties>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.ParagraphProperties>()?
+                        .GetFirstChild<A.DefaultRunProperties>();
+                    Assert.Equal(1100, runProps?.FontSize?.Value);
+                    Assert.True(runProps?.Bold?.Value);
+                    Assert.Equal("Calibri", runProps?.GetFirstChild<A.LatinFont>()?.Typeface?.Value);
+                    Assert.Equal("C00000", runProps?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+
+                    C.ChartShapeProperties? shapeProps = pointLabel.GetFirstChild<C.ChartShapeProperties>();
+                    Assert.Equal("FFF2CC", shapeProps?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                    A.Outline? outline = shapeProps?.GetFirstChild<A.Outline>();
+                    Assert.Equal("C00000", outline?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                    Assert.Equal((int)Math.Round(0.75d * 12700d), outline?.Width?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void CanAddSeriesTrendlineToLineChart() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
