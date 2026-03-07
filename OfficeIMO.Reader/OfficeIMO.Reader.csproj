@@ -32,6 +32,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="[8.0.5,9.0.0)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="README.md">
       <Pack>True</Pack>
       <PackagePath>README.md</PackagePath>

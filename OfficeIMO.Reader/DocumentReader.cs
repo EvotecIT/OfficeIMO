@@ -14,6 +14,7 @@ using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 
 namespace OfficeIMO.Reader;
@@ -1976,7 +1977,91 @@ public static class DocumentReader {
             return new[] { MapTable(table, opt) };
         }
 
+        if (block is CodeBlock code &&
+            string.Equals(code.Language, "ix-dataview", StringComparison.OrdinalIgnoreCase) &&
+            TryMapIxDataViewTable(code.Content, opt, out var dataViewTable) &&
+            dataViewTable != null) {
+            return new[] { dataViewTable };
+        }
+
         return Array.Empty<ReaderTable>();
+    }
+
+    private static bool TryMapIxDataViewTable(string? rawContent, ReaderOptions opt, out ReaderTable? table) {
+        table = null;
+        if (string.IsNullOrWhiteSpace(rawContent)) {
+            return false;
+        }
+
+        try {
+            using var document = JsonDocument.Parse(rawContent!);
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object) {
+                return false;
+            }
+
+            if (!root.TryGetProperty("rows", out var rowsElement) || rowsElement.ValueKind != JsonValueKind.Array) {
+                return false;
+            }
+
+            var rawRows = new List<IReadOnlyList<string>>();
+            foreach (var rowElement in rowsElement.EnumerateArray()) {
+                if (rowElement.ValueKind != JsonValueKind.Array) {
+                    return false;
+                }
+
+                var row = new List<string>();
+                foreach (var cellElement in rowElement.EnumerateArray()) {
+                    row.Add(ReadIxDataViewScalar(cellElement));
+                }
+
+                rawRows.Add(row);
+            }
+
+            if (rawRows.Count == 0) {
+                return false;
+            }
+
+            var headers = rawRows[0];
+            var bodyRows = rawRows.Count > 1 ? rawRows.Skip(1).ToList() : new List<IReadOnlyList<string>>();
+            int totalRowCount = bodyRows.Count;
+
+            bool truncated = false;
+            if (opt.MaxTableRows > 0 && bodyRows.Count > opt.MaxTableRows) {
+                bodyRows = bodyRows.Take(opt.MaxTableRows).ToList();
+                truncated = true;
+            }
+
+            int columnCount = Math.Max(headers.Count, bodyRows.Count == 0 ? 0 : bodyRows.Max(static row => row?.Count ?? 0));
+            var columns = headers.Count > 0
+                ? EnsureMarkdownTableColumns(headers, columnCount)
+                : BuildMarkdownTableFallbackColumns(columnCount);
+            var normalizedRows = bodyRows
+                .Select(row => NormalizeMarkdownTableRow(row, columnCount))
+                .ToArray();
+
+            table = new ReaderTable {
+                Title = root.TryGetProperty("kind", out var kindElement) ? kindElement.GetString() : null,
+                Columns = columns,
+                Rows = normalizedRows,
+                TotalRowCount = totalRowCount,
+                Truncated = truncated
+            };
+            return true;
+        } catch (JsonException) {
+            return false;
+        }
+    }
+
+    private static string ReadIxDataViewScalar(JsonElement element) {
+        return element.ValueKind switch {
+            JsonValueKind.String => element.GetString() ?? string.Empty,
+            JsonValueKind.Number => element.GetRawText(),
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            JsonValueKind.Null => string.Empty,
+            _ => element.GetRawText()
+        };
     }
 
     private static IReadOnlyList<string> EnsureMarkdownTableColumns(IReadOnlyList<string> headers, int columnCount) {
