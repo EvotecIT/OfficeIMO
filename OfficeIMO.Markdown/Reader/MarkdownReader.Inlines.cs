@@ -250,8 +250,9 @@ public static partial class MarkdownReader {
                 GetDelimiterFlags(text, pos, marker, runLen, out bool canOpen, out bool canClose);
 
                 int remaining = runLen;
+                bool preferInnerBold = ShouldPreferInnerBold(stack, marker, remaining, canOpen, canClose);
 
-                if (canClose) {
+                if (canClose && !preferInnerBold) {
                     while (remaining > 0) {
                         if (!TryCloseFrame(stack, marker, remaining, out int consumedClose)) break;
                         remaining -= consumedClose;
@@ -259,6 +260,11 @@ public static partial class MarkdownReader {
                 }
 
                 if (canOpen) {
+                    if (preferInnerBold) {
+                        stack.Push(new InlineFrame(FrameKind.Bold, marker, 2, new InlineSequence { AutoSpacing = false }));
+                        remaining -= 2;
+                    }
+
                     while (remaining > 0) {
                         if (marker == '~') {
                             if (remaining >= 2) {
@@ -394,6 +400,15 @@ public static partial class MarkdownReader {
             return true;
         }
         return false;
+    }
+
+    private static bool ShouldPreferInnerBold(Stack<InlineFrame> stack, char marker, int remaining, bool canOpen, bool canClose) {
+        if (!canOpen || !canClose || remaining != 2) return false;
+        if (marker != '*' && marker != '_') return false;
+        if (stack == null || stack.Count <= 1) return false;
+
+        var top = stack.Peek();
+        return top.Marker == marker && top.Kind == FrameKind.Italic;
     }
 
     private static void GetDelimiterFlags(string text, int start, char marker, int runLen, out bool canOpen, out bool canClose) {
