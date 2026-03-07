@@ -135,6 +135,14 @@ public sealed class MarkdownRendererOptions {
     public bool NormalizeColonListBoundaries { get; set; } = false;
 
     /// <summary>
+    /// When true, inserts a missing newline between a fenced code block language token and inline body content
+    /// for compact malformed transcript output
+    /// (for example, <c>```json{"x":1}</c> or <c>```mermaidflowchart LR A--&gt;B</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeCompactFenceBodyBoundaries { get; set; } = false;
+
+    /// <summary>
     /// When true, trims accidental whitespace immediately inside strong delimiters
     /// (for example, <c>** Healthy**</c> or <c>**Healthy **</c> become <c>**Healthy**</c>).
     /// Default: false.

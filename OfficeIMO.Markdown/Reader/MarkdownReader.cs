@@ -203,6 +203,7 @@ public static partial class MarkdownReader {
                 NormalizeCompactStrongLabelListBoundaries = source.InputNormalization?.NormalizeCompactStrongLabelListBoundaries ?? false,
                 NormalizeCompactHeadingBoundaries = source.InputNormalization?.NormalizeCompactHeadingBoundaries ?? false,
                 NormalizeColonListBoundaries = source.InputNormalization?.NormalizeColonListBoundaries ?? false,
+                NormalizeCompactFenceBodyBoundaries = source.InputNormalization?.NormalizeCompactFenceBodyBoundaries ?? false,
                 NormalizeLooseStrongDelimiters = source.InputNormalization?.NormalizeLooseStrongDelimiters ?? false,
                 NormalizeOrderedListMarkerSpacing = source.InputNormalization?.NormalizeOrderedListMarkerSpacing ?? false,
                 NormalizeOrderedListParenMarkers = source.InputNormalization?.NormalizeOrderedListParenMarkers ?? false,
@@ -222,6 +223,7 @@ public static partial class MarkdownReader {
         bool normalizeCompactStrongLabelListBoundaries = source?.NormalizeCompactStrongLabelListBoundaries ?? false;
         bool normalizeCompactHeadingBoundaries = source?.NormalizeCompactHeadingBoundaries ?? false;
         bool normalizeColonListBoundaries = source?.NormalizeColonListBoundaries ?? false;
+        bool normalizeCompactFenceBodyBoundaries = source?.NormalizeCompactFenceBodyBoundaries ?? false;
         bool normalizeOrderedListMarkerSpacing = source?.NormalizeOrderedListMarkerSpacing ?? false;
         bool normalizeOrderedListParenMarkers = source?.NormalizeOrderedListParenMarkers ?? false;
         bool normalizeOrderedListCaretArtifacts = source?.NormalizeOrderedListCaretArtifacts ?? false;
@@ -236,6 +238,7 @@ public static partial class MarkdownReader {
             && !normalizeCompactStrongLabelListBoundaries
             && !normalizeCompactHeadingBoundaries
             && !normalizeColonListBoundaries
+            && !normalizeCompactFenceBodyBoundaries
             && !normalizeOrderedListMarkerSpacing
             && !normalizeOrderedListParenMarkers
             && !normalizeOrderedListCaretArtifacts
@@ -253,6 +256,7 @@ public static partial class MarkdownReader {
             NormalizeCompactStrongLabelListBoundaries = normalizeCompactStrongLabelListBoundaries,
             NormalizeCompactHeadingBoundaries = normalizeCompactHeadingBoundaries,
             NormalizeColonListBoundaries = normalizeColonListBoundaries,
+            NormalizeCompactFenceBodyBoundaries = normalizeCompactFenceBodyBoundaries,
             NormalizeOrderedListMarkerSpacing = normalizeOrderedListMarkerSpacing,
             NormalizeOrderedListParenMarkers = normalizeOrderedListParenMarkers,
             NormalizeOrderedListCaretArtifacts = normalizeOrderedListCaretArtifacts,
