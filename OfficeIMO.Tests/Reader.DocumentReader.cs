@@ -211,14 +211,17 @@ public sealed class ReaderDocumentReaderTests {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
         try {
             File.WriteAllText(path,
-                "# Visual\n\n```ix-dataview\n{\"kind\":\"ix_tool_dataview_v1\",\"call_id\":\"call_123\",\"rows\":[[\"Server\",\"Fails\"],[\"AD0\",\"0\"],[\"AD1\",\"1\"]]}\n```\n");
+                "# Visual\n\n```ix-dataview\n{\"title\":\"Replication Summary\",\"summary\":\"Latest replication posture\",\"kind\":\"ix_tool_dataview_v1\",\"call_id\":\"call_123\",\"rows\":[[\"Server\",\"Fails\"],[\"AD0\",\"0\"],[\"AD1\",\"1\"]]}\n```\n");
 
             var chunk = DocumentReader.Read(path).Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
 
             Assert.Equal("Visual", chunk.Location.HeadingPath);
             Assert.NotNull(chunk.Tables);
             Assert.Single(chunk.Tables!);
-            Assert.Equal("ix_tool_dataview_v1", chunk.Tables![0].Title);
+            Assert.Equal("Replication Summary", chunk.Tables![0].Title);
+            Assert.Equal("ix_tool_dataview_v1", chunk.Tables[0].Kind);
+            Assert.Equal("call_123", chunk.Tables[0].CallId);
+            Assert.Equal("Latest replication posture", chunk.Tables[0].Summary);
             Assert.Equal(new[] { "Server", "Fails" }, chunk.Tables[0].Columns);
             Assert.Equal(2, chunk.Tables[0].TotalRowCount);
             Assert.Equal("AD0", chunk.Tables[0].Rows[0][0]);

@@ -192,7 +192,7 @@ public class Markdown_Renderer_Tests {
     public void MarkdownRenderer_Converts_IxDataview_Fences_To_Static_Table_Html() {
         var md = """
 ```ix-dataview
-{"kind":"ix_tool_dataview_v1","call_id":"call_123","rows":[["Server","Fails"],["AD0","0"],["AD1","1"]]}
+{"title":"Replication Summary","summary":"Latest replication posture","kind":"ix_tool_dataview_v1","call_id":"call_123","rows":[["Server","Fails"],["AD0","0"],["AD1","1"]]}
 ```
 """;
 
@@ -200,8 +200,14 @@ public class Markdown_Renderer_Tests {
 
         Assert.Contains("class=\"omd-dataview\"", html, StringComparison.Ordinal);
         Assert.Contains("class=\"omd-dataview-table\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-ix-title=\"Replication Summary\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-ix-summary=\"Latest replication posture\"", html, StringComparison.Ordinal);
         Assert.Contains("data-ix-kind=\"ix_tool_dataview_v1\"", html, StringComparison.Ordinal);
         Assert.Contains("data-ix-call-id=\"call_123\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-ix-column-count=\"2\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-ix-row-count=\"2\"", html, StringComparison.Ordinal);
+        Assert.Contains("<caption>Replication Summary</caption>", html, StringComparison.Ordinal);
+        Assert.Contains("<p class=\"omd-dataview-summary\">Latest replication posture</p>", html, StringComparison.Ordinal);
         Assert.Contains("<th>Server</th>", html, StringComparison.Ordinal);
         Assert.Contains("<th>Fails</th>", html, StringComparison.Ordinal);
         Assert.Contains("<td>AD0</td>", html, StringComparison.Ordinal);
