@@ -870,13 +870,7 @@ public static partial class MarkdownReader {
         if (start > 0 && char.IsLetterOrDigit(text[start - 1])) return false;
         var rem = text.Substring(start);
         if (!(rem.StartsWith("http://") || rem.StartsWith("https://"))) return false;
-        int i = start;
-        while (i < text.Length) {
-            char c = text[i];
-            if (char.IsWhiteSpace(c)) break;
-            if (c == ')' || c == ']' || c == '<') break;
-            i++;
-        }
+        int i = ConsumeLiteralUrl(text, start);
         // Trim trailing punctuation commonly outside URLs
         while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
         end = i; return end > start + 7;
@@ -888,13 +882,7 @@ public static partial class MarkdownReader {
         if (start > 0 && char.IsLetterOrDigit(text[start - 1])) return false;
         if (!(text.Substring(start).StartsWith("www.", StringComparison.OrdinalIgnoreCase))) return false;
 
-        int i = start;
-        while (i < text.Length) {
-            char c = text[i];
-            if (char.IsWhiteSpace(c)) break;
-            if (c == ')' || c == ']' || c == '<') break;
-            i++;
-        }
+        int i = ConsumeLiteralUrl(text, start);
         int scanEnd = i;
         while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
 
@@ -908,6 +896,30 @@ public static partial class MarkdownReader {
 
         end = i;
         return end > start + 4;
+    }
+
+    private static int ConsumeLiteralUrl(string text, int start) {
+        int i = start;
+        int parenDepth = 0;
+        while (i < text.Length) {
+            char c = text[i];
+            if (char.IsWhiteSpace(c)) break;
+            if (c == ']' || c == '<') break;
+            if (c == '(') {
+                parenDepth++;
+                i++;
+                continue;
+            }
+            if (c == ')') {
+                if (parenDepth == 0) break;
+                parenDepth--;
+                i++;
+                continue;
+            }
+            i++;
+        }
+
+        return i;
     }
 
     private static bool TryConsumePlainEmail(string text, int start, out int end, out string email) {

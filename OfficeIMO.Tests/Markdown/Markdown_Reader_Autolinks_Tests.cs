@@ -25,11 +25,45 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Autolinks_Keep_Balanced_Parentheses_In_Http_Urls() {
+        var doc = MarkdownReader.Parse("See https://en.wikipedia.org/wiki/Function_(mathematics) and continue.");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains(
+            "<a href=\"https://en.wikipedia.org/wiki/Function_(mathematics)\">https://en.wikipedia.org/wiki/Function_(mathematics)</a>",
+            html,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_Trim_Unmatched_Closing_Paren_After_Http_Url() {
+        var doc = MarkdownReader.Parse("See (https://en.wikipedia.org/wiki/Function_(mathematics)) now.");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains(
+            "(<a href=\"https://en.wikipedia.org/wiki/Function_(mathematics)\">https://en.wikipedia.org/wiki/Function_(mathematics)</a>)",
+            html,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("mathematics))</a>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Autolinks_Www_Inside_Text() {
         var doc = MarkdownReader.Parse("See www.example.com, thanks.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<a href=\"https://www.example.com\">www.example.com</a>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_Keep_Balanced_Parentheses_In_Www_Urls() {
+        var doc = MarkdownReader.Parse("See www.example.com/path_(demo) next.");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains(
+            "<a href=\"https://www.example.com/path_(demo)\">www.example.com/path_(demo)</a>",
+            html,
+            StringComparison.Ordinal);
     }
 
     [Fact]
