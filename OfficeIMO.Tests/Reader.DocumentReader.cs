@@ -88,7 +88,15 @@ public sealed class ReaderDocumentReaderTests {
             var chunks = DocumentReader.Read(fs, "Notes.md").ToList();
             Assert.True(chunks.Count >= 2);
             Assert.Contains(chunks, c => c.Kind == ReaderInputKind.Markdown && (c.Location.HeadingPath?.Contains("Top", StringComparison.Ordinal) ?? false));
-            Assert.All(chunks.Where(static c => c.Kind == ReaderInputKind.Markdown), c => Assert.Null(c.Location.StartLine));
+            var markdownChunks = chunks.Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
+            Assert.Collection(
+                markdownChunks.Select(c => c.Location.StartLine),
+                line => Assert.Equal(1, line),
+                line => Assert.Equal(5, line));
+            Assert.Collection(
+                markdownChunks.Select(c => c.Location.EndLine),
+                line => Assert.Equal(3, line),
+                line => Assert.Equal(7, line));
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -207,8 +215,8 @@ public sealed class ReaderDocumentReaderTests {
             var chunks = DocumentReader.Read(path).Where(static c => c.Kind == ReaderInputKind.Markdown).ToList();
 
             var topChunk = chunks.Single(c => string.Equals(c.Location.HeadingPath, "Top", StringComparison.Ordinal));
-            Assert.Null(topChunk.Location.StartLine);
-            Assert.Null(topChunk.Location.EndLine);
+            Assert.Equal(1, topChunk.Location.StartLine);
+            Assert.Equal(3, topChunk.Location.EndLine);
             Assert.Equal(1, topChunk.Location.NormalizedStartLine);
             Assert.Equal(3, topChunk.Location.NormalizedEndLine);
             Assert.Equal("top", topChunk.Location.HeadingSlug);
@@ -217,8 +225,8 @@ public sealed class ReaderDocumentReaderTests {
             Assert.Equal(0, topChunk.Location.SourceBlockIndex);
 
             var childChunk = chunks.Single(c => string.Equals(c.Location.HeadingPath, "Top > Child", StringComparison.Ordinal));
-            Assert.Null(childChunk.Location.StartLine);
-            Assert.Null(childChunk.Location.EndLine);
+            Assert.Equal(5, childChunk.Location.StartLine);
+            Assert.Equal(7, childChunk.Location.EndLine);
             Assert.Equal(5, childChunk.Location.NormalizedStartLine);
             Assert.Equal(7, childChunk.Location.NormalizedEndLine);
             Assert.Equal("child", childChunk.Location.HeadingSlug);

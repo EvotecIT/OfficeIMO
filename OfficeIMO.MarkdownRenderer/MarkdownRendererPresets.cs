@@ -33,6 +33,8 @@ public static class MarkdownRendererPresets {
         o.NormalizeInlineCodeSpanLineBreaks = true;
         o.NormalizeEscapedInlineCodeSpans = true;
         o.NormalizeTightStrongBoundaries = true;
+        o.NormalizeTightArrowStrongBoundaries = true;
+        o.NormalizeTightColonSpacing = true;
         o.NormalizeLooseStrongDelimiters = true;
         o.NormalizeOrderedListMarkerSpacing = true;
         o.NormalizeOrderedListParenMarkers = true;

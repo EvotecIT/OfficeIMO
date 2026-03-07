@@ -1336,6 +1336,8 @@ public static class DocumentReader {
         int chunkIndex = 0;
         int? firstLine = null;
         int? lastLine = null;
+        int? firstSourceStartLine = null;
+        int? lastSourceEndLine = null;
         int? firstSourceBlockIndex = null;
         string? firstHeadingPath = null;
         string? firstHeadingSlug = null;
@@ -1349,7 +1351,7 @@ public static class DocumentReader {
             ct.ThrowIfCancellationRequested();
 
             if (block.StartsHeading && current.Length > 0) {
-                yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstLine, lastLine, firstSourceBlockIndex, firstHeadingPath, firstHeadingSlug, firstSourceBlockKind, firstBlockAnchor, current.ToString().TrimEnd(), warnings, tables);
+                yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstSourceStartLine, lastSourceEndLine, firstLine, lastLine, firstSourceBlockIndex, firstHeadingPath, firstHeadingSlug, firstSourceBlockKind, firstBlockAnchor, current.ToString().TrimEnd(), warnings, tables);
                 chunkIndex++;
                 current.Clear();
                 warnings.Clear();
@@ -1357,6 +1359,8 @@ public static class DocumentReader {
                 tables = null;
                 firstLine = null;
                 lastLine = null;
+                firstSourceStartLine = null;
+                lastSourceEndLine = null;
                 firstSourceBlockIndex = null;
                 firstHeadingPath = null;
                 firstHeadingSlug = null;
@@ -1365,7 +1369,7 @@ public static class DocumentReader {
             }
 
             if (WouldExceedMarkdownBlock(opt, current, block.Markdown)) {
-                yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstLine, lastLine, firstSourceBlockIndex, firstHeadingPath, firstHeadingSlug, firstSourceBlockKind, firstBlockAnchor, current.ToString().TrimEnd(), warnings, tables);
+                yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstSourceStartLine, lastSourceEndLine, firstLine, lastLine, firstSourceBlockIndex, firstHeadingPath, firstHeadingSlug, firstSourceBlockKind, firstBlockAnchor, current.ToString().TrimEnd(), warnings, tables);
                 chunkIndex++;
                 current.Clear();
                 warnings.Clear();
@@ -1373,6 +1377,8 @@ public static class DocumentReader {
                 tables = null;
                 firstLine = null;
                 lastLine = null;
+                firstSourceStartLine = null;
+                lastSourceEndLine = null;
                 firstSourceBlockIndex = null;
                 firstHeadingPath = null;
                 firstHeadingSlug = null;
@@ -1381,12 +1387,14 @@ public static class DocumentReader {
             }
 
             if (firstLine == null) firstLine = block.StartLine;
+            if (firstSourceStartLine == null) firstSourceStartLine = block.SourceStartLine;
             if (firstSourceBlockIndex == null) firstSourceBlockIndex = block.BlockIndex;
             if (firstHeadingPath == null) firstHeadingPath = block.HeadingPath;
             if (firstHeadingSlug == null) firstHeadingSlug = block.HeadingSlug;
             if (firstSourceBlockKind == null) firstSourceBlockKind = block.BlockKind;
             if (firstBlockAnchor == null) firstBlockAnchor = block.BlockAnchor;
             lastLine = block.EndLine;
+            lastSourceEndLine = block.SourceEndLine;
 
             AppendMarkdownBlock(current, block.Markdown);
             if (block.Markdown.Length > opt.MaxChars && !oversizeBlockWarningAdded) {
@@ -1401,7 +1409,7 @@ public static class DocumentReader {
         }
 
         if (current.Length > 0) {
-            yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstLine, lastLine, firstSourceBlockIndex, firstHeadingPath, firstHeadingSlug, firstSourceBlockKind, firstBlockAnchor, current.ToString().TrimEnd(), warnings, tables);
+            yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstSourceStartLine, lastSourceEndLine, firstLine, lastLine, firstSourceBlockIndex, firstHeadingPath, firstHeadingSlug, firstSourceBlockKind, firstBlockAnchor, current.ToString().TrimEnd(), warnings, tables);
         }
     }
 
@@ -1461,6 +1469,8 @@ public static class DocumentReader {
         string path,
         string fileName,
         int chunkIndex,
+        int? sourceStartLine,
+        int? sourceEndLine,
         int? firstLine,
         int? lastLine,
         int? firstSourceBlockIndex,
@@ -1479,6 +1489,8 @@ public static class DocumentReader {
                 Path = path,
                 BlockIndex = chunkIndex,
                 SourceBlockIndex = firstSourceBlockIndex,
+                StartLine = sourceStartLine,
+                EndLine = sourceEndLine,
                 HeadingPath = headingPath,
                 HeadingSlug = headingSlug,
                 SourceBlockKind = sourceBlockKind,
@@ -1892,7 +1904,9 @@ public static class DocumentReader {
     }
 
     private static List<MarkdownChunkBlock> ParseMarkdownBlocksForChunking(string text, ReaderOptions opt, CancellationToken ct) {
-        var doc = MarkdownReader.Parse(text ?? string.Empty);
+        var parseResult = MarkdownReader.ParseWithSyntaxTree(text ?? string.Empty);
+        var doc = parseResult.Document;
+        var syntaxBlocks = parseResult.SyntaxTree.Children;
         var blocks = new List<MarkdownChunkBlock>(doc.Blocks.Count);
         var headingStack = new List<MarkdownHeadingState>();
         var headingSlugRegistry = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -1903,6 +1917,7 @@ public static class DocumentReader {
             ct.ThrowIfCancellationRequested();
 
             var block = doc.Blocks[i];
+            var syntaxBlock = i < syntaxBlocks.Count ? syntaxBlocks[i] : null;
             var markdown = NormalizeMarkdownLineEndings(block.RenderMarkdown()).TrimEnd();
             if (string.IsNullOrWhiteSpace(markdown)) {
                 continue;
@@ -1925,6 +1940,8 @@ public static class DocumentReader {
                 blockIndex: i,
                 startLine: startLine,
                 endLine: endLine,
+                sourceStartLine: syntaxBlock?.SourceSpan?.StartLine ?? startLine,
+                sourceEndLine: syntaxBlock?.SourceSpan?.EndLine ?? endLine,
                 headingPath: BuildHeadingPath(headingStack),
                 headingSlug: BuildHeadingSlug(headingStack),
                 blockKind: GetMarkdownBlockKind(block),
@@ -2624,10 +2641,12 @@ public static class DocumentReader {
     }
 
     private sealed class MarkdownChunkBlock {
-        public MarkdownChunkBlock(int blockIndex, int startLine, int endLine, string? headingPath, string? headingSlug, string blockKind, string blockAnchor, string markdown, bool startsHeading, IReadOnlyList<ReaderTable> tables) {
+        public MarkdownChunkBlock(int blockIndex, int startLine, int endLine, int sourceStartLine, int sourceEndLine, string? headingPath, string? headingSlug, string blockKind, string blockAnchor, string markdown, bool startsHeading, IReadOnlyList<ReaderTable> tables) {
             BlockIndex = blockIndex;
             StartLine = startLine;
             EndLine = endLine;
+            SourceStartLine = sourceStartLine;
+            SourceEndLine = sourceEndLine;
             HeadingPath = headingPath;
             HeadingSlug = headingSlug;
             BlockKind = string.IsNullOrWhiteSpace(blockKind) ? "unknown" : blockKind;
@@ -2640,6 +2659,8 @@ public static class DocumentReader {
         public int BlockIndex { get; }
         public int StartLine { get; }
         public int EndLine { get; }
+        public int SourceStartLine { get; }
+        public int SourceEndLine { get; }
         public string? HeadingPath { get; }
         public string? HeadingSlug { get; }
         public string BlockKind { get; }
