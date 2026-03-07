@@ -40,6 +40,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "list-setext-heading-then-quote", "- item\n  heading\n  -------\n\n  > quote" };
         yield return new object[] { "paragraph-then-nonone-ordered-marker", "alpha\n10. beta" };
         yield return new object[] { "list-continuation-then-nonone-ordered-marker", "- outer\n  10. item\n      continuation" };
+        yield return new object[] { "list-quote-lazy-nonone-ordered-continued", "- outer\n  > alpha\n  10. beta\n      gamma" };
     }
 
     [Theory]

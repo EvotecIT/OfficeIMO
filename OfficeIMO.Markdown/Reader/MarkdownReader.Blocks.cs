@@ -564,10 +564,10 @@ public static partial class MarkdownReader {
             if (!sawQuotedLine) break;
             var previousQuoteContent = lastQuoteContent;
             if (previousQuoteContent == null || previousQuoteContent.Length == 0) break;
-            if (!LooksLikeParagraphLine(previousQuoteContent) || !LooksLikeParagraphLine(part)) break;
+            if (!LooksLikeParagraphLine(previousQuoteContent) || !TryNormalizeQuoteLazyContinuationLine(part, out var normalizedLazyLine)) break;
 
-            collected.Add("> " + part);
-            lastQuoteContent = part;
+            collected.Add("> " + normalizedLazyLine);
+            lastQuoteContent = normalizedLazyLine;
             j++;
         }
 

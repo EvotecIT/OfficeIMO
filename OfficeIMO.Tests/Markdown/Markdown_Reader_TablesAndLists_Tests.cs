@@ -564,6 +564,25 @@ c | d
         }
 
         [Fact]
+        public void List_Item_Nested_Blockquote_Keeps_Lazy_NonOne_Ordered_Continuation_As_Paragraph() {
+            string md = """
+- outer
+  > alpha
+  10. beta
+      gamma
+""";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Single(list.Items);
+            var quote = Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<blockquote><p>alpha 10. beta gamma</p></blockquote>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("<pre><code>", html, StringComparison.Ordinal);
+            Assert.Single(quote.Children);
+        }
+
+        [Fact]
         public void List_Item_Does_Not_Break_Continuation_On_Pipe_Text() {
             string md = """
 - outer
