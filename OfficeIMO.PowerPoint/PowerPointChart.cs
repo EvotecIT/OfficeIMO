@@ -431,6 +431,32 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets scatter chart X-axis gridlines visibility and optional styling.
+        /// </summary>
+        public PowerPointChart SetScatterXAxisGridlines(bool showMajor = true, bool showMinor = false,
+            string? lineColor = null, double? lineWidthPoints = null) {
+            if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
+                return this;
+            }
+
+            return SetAxisGridlines<C.ValueAxis>(showMajor, showMinor, lineColor, lineWidthPoints,
+                axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+        }
+
+        /// <summary>
+        ///     Sets scatter chart Y-axis gridlines visibility and optional styling.
+        /// </summary>
+        public PowerPointChart SetScatterYAxisGridlines(bool showMajor = true, bool showMinor = false,
+            string? lineColor = null, double? lineWidthPoints = null) {
+            if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
+                return this;
+            }
+
+            return SetAxisGridlines<C.ValueAxis>(showMajor, showMinor, lineColor, lineWidthPoints,
+                axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+        }
+
+        /// <summary>
         ///     Sets the scatter chart X-axis title.
         /// </summary>
         public PowerPointChart SetScatterXAxisTitle(string title) {
@@ -581,6 +607,172 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets display units for the scatter chart X-axis.
+        /// </summary>
+        public PowerPointChart SetScatterXAxisDisplayUnits(C.BuiltInUnitValues unit, bool showLabel = true) {
+            if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
+                return this;
+            }
+
+            return SetValueAxisDisplayUnitsCore(displayUnits => {
+                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
+                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
+                displayUnits.Append(new C.BuiltInUnit { Val = unit });
+            }, showLabel, null, axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+        }
+
+        /// <summary>
+        ///     Sets display units for the scatter chart X-axis with custom label text.
+        /// </summary>
+        public PowerPointChart SetScatterXAxisDisplayUnits(C.BuiltInUnitValues unit, string labelText, bool showLabel = true) {
+            if (string.IsNullOrWhiteSpace(labelText)) {
+                throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
+            }
+            if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
+                return this;
+            }
+
+            return SetValueAxisDisplayUnitsCore(displayUnits => {
+                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
+                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
+                displayUnits.Append(new C.BuiltInUnit { Val = unit });
+            }, showLabel, labelText, axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+        }
+
+        /// <summary>
+        ///     Sets custom display units for the scatter chart X-axis.
+        /// </summary>
+        public PowerPointChart SetScatterXAxisDisplayUnits(double customUnit, bool showLabel = true) {
+            if (!IsFinite(customUnit) || customUnit <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(customUnit));
+            }
+            if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
+                return this;
+            }
+
+            return SetValueAxisDisplayUnitsCore(displayUnits => {
+                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
+                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
+                displayUnits.Append(new C.CustomDisplayUnit { Val = customUnit });
+            }, showLabel, null, axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+        }
+
+        /// <summary>
+        ///     Sets custom display units for the scatter chart X-axis with custom label text.
+        /// </summary>
+        public PowerPointChart SetScatterXAxisDisplayUnits(double customUnit, string labelText, bool showLabel = true) {
+            if (!IsFinite(customUnit) || customUnit <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(customUnit));
+            }
+            if (string.IsNullOrWhiteSpace(labelText)) {
+                throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
+            }
+            if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
+                return this;
+            }
+
+            return SetValueAxisDisplayUnitsCore(displayUnits => {
+                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
+                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
+                displayUnits.Append(new C.CustomDisplayUnit { Val = customUnit });
+            }, showLabel, labelText, axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+        }
+
+        /// <summary>
+        ///     Clears display units from the scatter chart X-axis.
+        /// </summary>
+        public PowerPointChart ClearScatterXAxisDisplayUnits() {
+            if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
+                return this;
+            }
+
+            return ClearValueAxisDisplayUnits(axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+        }
+
+        /// <summary>
+        ///     Sets display units for the scatter chart Y-axis.
+        /// </summary>
+        public PowerPointChart SetScatterYAxisDisplayUnits(C.BuiltInUnitValues unit, bool showLabel = true) {
+            if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
+                return this;
+            }
+
+            return SetValueAxisDisplayUnitsCore(displayUnits => {
+                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
+                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
+                displayUnits.Append(new C.BuiltInUnit { Val = unit });
+            }, showLabel, null, axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+        }
+
+        /// <summary>
+        ///     Sets display units for the scatter chart Y-axis with custom label text.
+        /// </summary>
+        public PowerPointChart SetScatterYAxisDisplayUnits(C.BuiltInUnitValues unit, string labelText, bool showLabel = true) {
+            if (string.IsNullOrWhiteSpace(labelText)) {
+                throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
+            }
+            if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
+                return this;
+            }
+
+            return SetValueAxisDisplayUnitsCore(displayUnits => {
+                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
+                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
+                displayUnits.Append(new C.BuiltInUnit { Val = unit });
+            }, showLabel, labelText, axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+        }
+
+        /// <summary>
+        ///     Sets custom display units for the scatter chart Y-axis.
+        /// </summary>
+        public PowerPointChart SetScatterYAxisDisplayUnits(double customUnit, bool showLabel = true) {
+            if (!IsFinite(customUnit) || customUnit <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(customUnit));
+            }
+            if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
+                return this;
+            }
+
+            return SetValueAxisDisplayUnitsCore(displayUnits => {
+                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
+                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
+                displayUnits.Append(new C.CustomDisplayUnit { Val = customUnit });
+            }, showLabel, null, axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+        }
+
+        /// <summary>
+        ///     Sets custom display units for the scatter chart Y-axis with custom label text.
+        /// </summary>
+        public PowerPointChart SetScatterYAxisDisplayUnits(double customUnit, string labelText, bool showLabel = true) {
+            if (!IsFinite(customUnit) || customUnit <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(customUnit));
+            }
+            if (string.IsNullOrWhiteSpace(labelText)) {
+                throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
+            }
+            if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
+                return this;
+            }
+
+            return SetValueAxisDisplayUnitsCore(displayUnits => {
+                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
+                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
+                displayUnits.Append(new C.CustomDisplayUnit { Val = customUnit });
+            }, showLabel, labelText, axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+        }
+
+        /// <summary>
+        ///     Clears display units from the scatter chart Y-axis.
+        /// </summary>
+        public PowerPointChart ClearScatterYAxisDisplayUnits() {
+            if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
+                return this;
+            }
+
+            return ClearValueAxisDisplayUnits(axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+        }
+
+        /// <summary>
         ///     Sets display units for the value axis.
         /// </summary>
         public PowerPointChart SetValueAxisDisplayUnits(C.BuiltInUnitValues unit, bool showLabel = true) {
@@ -643,13 +835,19 @@ namespace OfficeIMO.PowerPoint {
         ///     Clears display units from the value axis.
         /// </summary>
         public PowerPointChart ClearValueAxisDisplayUnits() {
+            return ClearValueAxisDisplayUnits(null);
+        }
+
+        private PowerPointChart ClearValueAxisDisplayUnits(Func<C.ValueAxis, bool>? predicate) {
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
             if (plotArea == null) {
                 return this;
             }
 
-            C.ValueAxis? axis = plotArea.Elements<C.ValueAxis>().FirstOrDefault();
+            C.ValueAxis? axis = predicate == null
+                ? plotArea.Elements<C.ValueAxis>().FirstOrDefault()
+                : plotArea.Elements<C.ValueAxis>().FirstOrDefault(predicate);
             if (axis == null) {
                 return this;
             }
@@ -1135,7 +1333,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private PowerPointChart SetAxisGridlines<TAxis>(bool showMajor, bool showMinor, string? lineColor,
-            double? lineWidthPoints) where TAxis : OpenXmlCompositeElement {
+            double? lineWidthPoints, Func<TAxis, bool>? predicate = null) where TAxis : OpenXmlCompositeElement {
             ValidateAxisGridlinesStyle(lineColor, lineWidthPoints);
 
             C.Chart chart = GetChart();
@@ -1144,7 +1342,9 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            TAxis? axis = plotArea.Elements<TAxis>().FirstOrDefault();
+            TAxis? axis = predicate == null
+                ? plotArea.Elements<TAxis>().FirstOrDefault()
+                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
             if (axis == null) {
                 return this;
             }
@@ -1155,14 +1355,16 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private PowerPointChart SetValueAxisDisplayUnitsCore(Action<C.DisplayUnits> configureUnits, bool showLabel,
-            string? labelText = null) {
+            string? labelText = null, Func<C.ValueAxis, bool>? predicate = null) {
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
             if (plotArea == null) {
                 return this;
             }
 
-            C.ValueAxis? axis = plotArea.Elements<C.ValueAxis>().FirstOrDefault();
+            C.ValueAxis? axis = predicate == null
+                ? plotArea.Elements<C.ValueAxis>().FirstOrDefault()
+                : plotArea.Elements<C.ValueAxis>().FirstOrDefault(predicate);
             if (axis == null) {
                 return this;
             }
