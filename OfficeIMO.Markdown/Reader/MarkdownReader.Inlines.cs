@@ -1183,6 +1183,7 @@ public static partial class MarkdownReader {
         var rem = text.Substring(start);
         if (!(rem.StartsWith("http://") || rem.StartsWith("https://"))) return false;
         int i = ConsumeLiteralUrl(text, start);
+        if (ShouldRejectAmbiguousTrailingParen(text, start, i)) return false;
         // Trim trailing punctuation commonly outside URLs
         while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
         end = i; return end > start + 7;
@@ -1195,6 +1196,7 @@ public static partial class MarkdownReader {
         if (!(text.Substring(start).StartsWith("www.", StringComparison.OrdinalIgnoreCase))) return false;
 
         int i = ConsumeLiteralUrl(text, start);
+        if (ShouldRejectAmbiguousTrailingParen(text, start, i)) return false;
         int scanEnd = i;
         while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
 
@@ -1232,6 +1234,22 @@ public static partial class MarkdownReader {
         }
 
         return i;
+    }
+
+    private static bool ShouldRejectAmbiguousTrailingParen(string text, int start, int end) {
+        if (string.IsNullOrEmpty(text) || start < 0 || end <= start || end >= text.Length) return false;
+        if (text[end] != ')') return false;
+        if (start > 0 && text[start - 1] == '(') return false;
+
+        bool sawOpenParen = false;
+        for (int i = start; i < end; i++) {
+            if (text[i] == '(') {
+                sawOpenParen = true;
+                break;
+            }
+        }
+
+        return sawOpenParen;
     }
 
     private static bool TryConsumePlainEmail(string text, int start, out int end, out string email) {

@@ -48,6 +48,15 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Autolinks_DoNot_Link_Ambiguous_Paren_Suffixed_Urls() {
+        var doc = MarkdownReader.Parse("Visit https://example.com/path_(x)).");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://example.com/path_(x)\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Visit https://example.com/path_(x)).</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Autolinks_Www_Inside_Text() {
         var doc = MarkdownReader.Parse("See www.example.com, thanks.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });

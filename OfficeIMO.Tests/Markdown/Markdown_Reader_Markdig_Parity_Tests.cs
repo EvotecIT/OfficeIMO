@@ -19,6 +19,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "quote-fenced-code", "> ```\n> code\n> ```" };
         yield return new object[] { "ordered-same-type-nesting", "1. item\n   1. nested" };
         yield return new object[] { "list-quote-then-fence", "- item\n  > quote\n\n    code" };
+        yield return new object[] { "loose-list-followed-by-paragraph", "- item\n\n  second paragraph" };
+        yield return new object[] { "autolink-trailing-punctuation", "Visit https://example.com/path_(x))." };
+        yield return new object[] { "quoted-indented-code", "> para\n>\n>     code" };
     }
 
     [Theory]
