@@ -226,7 +226,6 @@ public sealed class ReaderTable {
     /// </summary>
     public string? Title { get; set; }
 
-    /// <summary>
     /// Optional source-specific table kind/classification.
     /// </summary>
     public string? Kind { get; set; }
@@ -240,6 +239,11 @@ public sealed class ReaderTable {
     /// Optional short descriptive summary.
     /// </summary>
     public string? Summary { get; set; }
+
+    /// <summary>
+    /// Optional stable short hash derived from the source payload.
+    /// </summary>
+    public string? PayloadHash { get; set; }
 
     /// <summary>
     /// Column headers.

@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using OfficeIMO.Markdown;
 using OfficeIMO.MarkdownRenderer;
@@ -190,6 +192,7 @@ public class Markdown_Renderer_Tests {
 
     [Fact]
     public void MarkdownRenderer_Converts_IxDataview_Fences_To_Static_Table_Html() {
+        var raw = "{\"kind\":\"ix_tool_dataview_v1\",\"call_id\":\"call_123\",\"rows\":[[\"Server\",\"Fails\"],[\"AD0\",\"0\"],[\"AD1\",\"1\"]]}";
         var md = """
 ```ix-dataview
 {"title":"Replication Summary","summary":"Latest replication posture","kind":"ix_tool_dataview_v1","call_id":"call_123","rows":[["Server","Fails"],["AD0","0"],["AD1","1"]]}
@@ -197,6 +200,7 @@ public class Markdown_Renderer_Tests {
 """;
 
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md);
+        var payloadHash = ComputeShortHash(raw);
 
         Assert.Contains("class=\"omd-dataview\"", html, StringComparison.Ordinal);
         Assert.Contains("class=\"omd-dataview-table\"", html, StringComparison.Ordinal);
@@ -208,6 +212,7 @@ public class Markdown_Renderer_Tests {
         Assert.Contains("data-ix-row-count=\"2\"", html, StringComparison.Ordinal);
         Assert.Contains("<caption>Replication Summary</caption>", html, StringComparison.Ordinal);
         Assert.Contains("<p class=\"omd-dataview-summary\">Latest replication posture</p>", html, StringComparison.Ordinal);
+        Assert.Contains($"data-ix-payload-hash=\"{payloadHash}\"", html, StringComparison.Ordinal);
         Assert.Contains("<th>Server</th>", html, StringComparison.Ordinal);
         Assert.Contains("<th>Fails</th>", html, StringComparison.Ordinal);
         Assert.Contains("<td>AD0</td>", html, StringComparison.Ordinal);
@@ -633,5 +638,16 @@ Top-IDs:
         var encoded = html.Substring(start, end - start);
         var bytes = Convert.FromBase64String(System.Net.WebUtility.HtmlDecode(encoded));
         return Encoding.UTF8.GetString(bytes).TrimEnd('\r', '\n');
+    }
+
+    private static string ComputeShortHash(string input) {
+        var data = Encoding.UTF8.GetBytes(input ?? string.Empty);
+        var hash = SHA256.HashData(data);
+        var sb = new StringBuilder(16);
+        for (int i = 0; i < 8 && i < hash.Length; i++) {
+            sb.Append(hash[i].ToString("x2", CultureInfo.InvariantCulture));
+        }
+
+        return sb.ToString();
     }
 }

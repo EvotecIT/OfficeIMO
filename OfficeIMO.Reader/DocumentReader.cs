@@ -2045,6 +2045,7 @@ public static class DocumentReader {
                 Kind = TryReadJsonString(root, "kind"),
                 CallId = TryReadJsonString(root, "call_id"),
                 Summary = TryReadJsonString(root, "summary"),
+                PayloadHash = ComputeShortHash(rawContent ?? string.Empty),
                 Columns = columns,
                 Rows = normalizedRows,
                 TotalRowCount = totalRowCount,
@@ -2075,6 +2076,35 @@ public static class DocumentReader {
         return element.ValueKind == JsonValueKind.String
             ? element.GetString()
             : element.GetRawText();
+    }
+
+    private static string ComputeShortHash(string input) {
+        var normalized = (input ?? string.Empty).TrimEnd('\r', '\n');
+        var data = Encoding.UTF8.GetBytes(normalized);
+        byte[] hash;
+#if NET8_0_OR_GREATER
+        hash = SHA256.HashData(data);
+#else
+        using (var sha = SHA256.Create()) {
+            hash = sha.ComputeHash(data);
+        }
+#endif
+
+        return ToHex(hash, 8);
+    }
+
+    private static string ToHex(byte[] bytes, int take) {
+        if (bytes == null || bytes.Length == 0) {
+            return string.Empty;
+        }
+
+        int len = Math.Min(take, bytes.Length);
+        var sb = new StringBuilder(len * 2);
+        for (int i = 0; i < len; i++) {
+            sb.Append(bytes[i].ToString("x2", CultureInfo.InvariantCulture));
+        }
+
+        return sb.ToString();
     }
 
     private static IReadOnlyList<string> EnsureMarkdownTableColumns(IReadOnlyList<string> headers, int columnCount) {
