@@ -37,7 +37,9 @@ public sealed class ListItem {
     public static ListItem TaskInlines(InlineSequence content, bool done = false) => new ListItem(content ?? new InlineSequence(), true, done);
 
     internal IEnumerable<InlineSequence> Paragraphs() {
-        yield return Content;
+        if (Content.Items.Count > 0 || (AdditionalParagraphs.Count == 0 && Children.Count == 0)) {
+            yield return Content;
+        }
         for (int i = 0; i < AdditionalParagraphs.Count; i++) yield return AdditionalParagraphs[i];
     }
 

@@ -716,6 +716,8 @@ public static partial class MarkdownReader {
         if (firstBlank < 0) return true;
 
         var trailingLines = lines.GetRange(firstBlank + 1, lines.Count - firstBlank - 1);
+        if (trailingLines.TrueForAll(string.IsNullOrWhiteSpace)) return true;
+
         var paragraphs = ParseParagraphsFromLines(trailingLines, options, state);
         for (int i = 0; i < paragraphs.Count; i++) {
             blocks.Add(new ParagraphBlock(paragraphs[i]));

@@ -531,6 +531,23 @@ c | d
         }
 
         [Fact]
+        public void List_Item_Setext_Heading_Does_Not_Emit_Empty_Paragraphs_Before_Nested_Blocks() {
+            string md = """
+- item
+  heading
+  -------
+
+  > quote
+""";
+            var doc = MarkdownReader.Parse(md);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<li><h2", html, StringComparison.Ordinal);
+            Assert.Contains("<blockquote><p>quote</p></blockquote>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("<p></p>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void List_Item_Does_Not_Break_Continuation_On_Pipe_Text() {
             string md = """
 - outer
