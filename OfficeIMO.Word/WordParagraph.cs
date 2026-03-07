@@ -787,7 +787,7 @@ namespace OfficeIMO.Word {
         /// Gets the hyperlink contained in this paragraph, if present.
         /// </summary>
         public WordHyperLink? Hyperlink =>
-            _hyperlink is not null ? new WordHyperLink(_document, _paragraph, _hyperlink) : null;
+            _hyperlink is not null ? new WordHyperLink(_document, _paragraph, _hyperlink, _run) : null;
 
         /// <summary>
         /// Gets the footnote associated with this paragraph, if any.

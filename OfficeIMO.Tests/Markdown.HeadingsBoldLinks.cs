@@ -43,5 +43,30 @@ namespace OfficeIMO.Tests {
             Assert.Matches("\\[\\*\\*bold link\\*\\*\\]\\(https://example\\.com/?\\)", roundTrip);
             Assert.Matches("\\[==highlighted==\\]\\(https://example\\.org/?\\)", roundTrip);
         }
+
+        [Fact]
+        public void MarkdownToWord_MixedHyperlinkRuns_UsePerRunFormatting() {
+            string md = "See [**bold** plain ==highlight==](https://example.com).";
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+
+            var hyperlinkRuns = doc.Paragraphs[0].GetRuns().Where(r => r.IsHyperLink).ToList();
+            var boldRun = Assert.Single(hyperlinkRuns.Where(r => string.Equals(r.Text, "bold", StringComparison.Ordinal)));
+            var plainRun = Assert.Single(hyperlinkRuns.Where(r => string.Equals(r.Text, " plain ", StringComparison.Ordinal)));
+            var highlightRun = Assert.Single(hyperlinkRuns.Where(r => string.Equals(r.Text, "highlight", StringComparison.Ordinal)));
+
+            Assert.True(boldRun.Bold);
+            Assert.False(boldRun.Italic);
+            Assert.False(plainRun.Bold);
+            Assert.Null(plainRun.Highlight);
+            Assert.Equal(DocumentFormat.OpenXml.Wordprocessing.HighlightColorValues.Yellow, highlightRun.Highlight);
+            Assert.False(highlightRun.Bold);
+
+            highlightRun.Italic = true;
+
+            Assert.True(highlightRun.Italic);
+            Assert.False(boldRun.Italic);
+            Assert.False(plainRun.Italic);
+        }
     }
 }

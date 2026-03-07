@@ -36,6 +36,7 @@ namespace OfficeIMO.Word {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
         internal readonly Hyperlink _hyperlink;
+        private readonly Run? _activeRun;
 
         /// <summary>
         /// Gets or sets the URI of the hyperlink.
@@ -73,13 +74,17 @@ namespace OfficeIMO.Word {
 
         internal Run? _run {
             get {
+                if (_activeRun != null && _activeRun.Parent == _hyperlink) {
+                    return _activeRun;
+                }
+
                 return _hyperlink.Descendants<Run>().FirstOrDefault();
             }
         }
 
         internal RunProperties? _runProperties {
             get {
-                return _hyperlink.Descendants<RunProperties>().FirstOrDefault();
+                return _run?.RunProperties;
             }
         }
 
@@ -217,6 +222,13 @@ namespace OfficeIMO.Word {
             _document = document;
             _paragraph = paragraph;
             _hyperlink = hyperlink;
+        }
+
+        internal WordHyperLink(WordDocument document, Paragraph paragraph, Hyperlink hyperlink, Run? activeRun) {
+            _document = document;
+            _paragraph = paragraph;
+            _hyperlink = hyperlink;
+            _activeRun = activeRun;
         }
 
         /// <summary>
