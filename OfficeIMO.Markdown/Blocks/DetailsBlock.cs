@@ -73,6 +73,7 @@ public sealed class DetailsBlock : IMarkdownBlock {
 public sealed class SummaryBlock : IMarkdownBlock {
     /// <summary>Inline content inside the &lt;summary&gt; element.</summary>
     public InlineSequence Inlines { get; }
+    internal MarkdownSourceSpan? SyntaxSpan { get; set; }
 
     /// <summary>Create a summary block from an inline sequence.</summary>
     public SummaryBlock(InlineSequence inlines) {

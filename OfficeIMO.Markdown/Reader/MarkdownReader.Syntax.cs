@@ -49,7 +49,7 @@ public static partial class MarkdownReader {
             case DetailsBlock details:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.Details, span, details.Open ? "open" : null, BuildDetailsChildren(details));
             case SummaryBlock summary:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Summary, span, summary.Inlines.RenderMarkdown());
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Summary, span ?? summary.SyntaxSpan, summary.Inlines.RenderMarkdown());
             case FootnoteDefinitionBlock footnote:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.FootnoteDefinition, span, footnote.Label + ":" + footnote.Text);
             case FrontMatterBlock frontMatter:
