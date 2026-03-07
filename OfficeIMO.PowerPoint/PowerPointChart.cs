@@ -371,6 +371,28 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets the scatter chart X-axis title.
+        /// </summary>
+        public PowerPointChart SetScatterXAxisTitle(string title) {
+            if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
+                return this;
+            }
+
+            return SetAxisTitle<C.ValueAxis>(title, axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+        }
+
+        /// <summary>
+        ///     Sets the scatter chart Y-axis title.
+        /// </summary>
+        public PowerPointChart SetScatterYAxisTitle(string title) {
+            if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
+                return this;
+            }
+
+            return SetAxisTitle<C.ValueAxis>(title, axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+        }
+
+        /// <summary>
         ///     Sets the category axis number format.
         /// </summary>
         public PowerPointChart SetCategoryAxisNumberFormat(string formatCode, bool sourceLinked = false) {
@@ -382,6 +404,30 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetValueAxisNumberFormat(string formatCode, bool sourceLinked = false) {
             return SetAxisNumberFormat<C.ValueAxis>(formatCode, sourceLinked);
+        }
+
+        /// <summary>
+        ///     Sets the scatter chart X-axis number format.
+        /// </summary>
+        public PowerPointChart SetScatterXAxisNumberFormat(string formatCode, bool sourceLinked = false) {
+            if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
+                return this;
+            }
+
+            return SetAxisNumberFormat<C.ValueAxis>(formatCode, sourceLinked,
+                axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+        }
+
+        /// <summary>
+        ///     Sets the scatter chart Y-axis number format.
+        /// </summary>
+        public PowerPointChart SetScatterYAxisNumberFormat(string formatCode, bool sourceLinked = false) {
+            if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
+                return this;
+            }
+
+            return SetAxisNumberFormat<C.ValueAxis>(formatCode, sourceLinked,
+                axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
         }
 
         /// <summary>
@@ -476,6 +522,104 @@ namespace OfficeIMO.PowerPoint {
 
             ValidateCrossesAtForAxis(axis, crossesAt);
             ApplyAxisCrossing(axis, crosses, crossesAt);
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets scatter chart X-axis scale (bottom value axis).
+        /// </summary>
+        public PowerPointChart SetScatterXAxisScale(double? minimum = null, double? maximum = null,
+            double? majorUnit = null, double? minorUnit = null, bool? reverseOrder = null,
+            bool? logScale = null, double? logBase = null) {
+            ValidateAxisScale(minimum, maximum, majorUnit, minorUnit, logScale, logBase);
+
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            C.ValueAxis? axis = ResolveScatterXAxis(plotArea);
+            if (axis == null) {
+                return this;
+            }
+
+            ApplyAxisScale(axis, minimum, maximum, majorUnit, minorUnit, reverseOrder, logScale, logBase);
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets scatter chart Y-axis scale (left value axis).
+        /// </summary>
+        public PowerPointChart SetScatterYAxisScale(double? minimum = null, double? maximum = null,
+            double? majorUnit = null, double? minorUnit = null, bool? reverseOrder = null,
+            bool? logScale = null, double? logBase = null) {
+            ValidateAxisScale(minimum, maximum, majorUnit, minorUnit, logScale, logBase);
+
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            C.ValueAxis? axis = ResolveScatterYAxis(plotArea);
+            if (axis == null) {
+                return this;
+            }
+
+            ApplyAxisScale(axis, minimum, maximum, majorUnit, minorUnit, reverseOrder, logScale, logBase);
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets where the scatter X-axis crosses the Y-axis.
+        /// </summary>
+        public PowerPointChart SetScatterXAxisCrossing(C.CrossesValues? crosses = null, double? crossesAt = null) {
+            if (crossesAt != null && (double.IsNaN(crossesAt.Value) || double.IsInfinity(crossesAt.Value))) {
+                throw new ArgumentOutOfRangeException(nameof(crossesAt));
+            }
+
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            C.ValueAxis? axis = ResolveScatterXAxis(plotArea);
+            if (axis == null) {
+                return this;
+            }
+
+            ValidateCrossesAtForAxis(axis, crossesAt);
+            ApplyAxisCrossing(axis, crosses ?? C.CrossesValues.AutoZero, crossesAt);
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets where the scatter Y-axis crosses the X-axis.
+        /// </summary>
+        public PowerPointChart SetScatterYAxisCrossing(C.CrossesValues? crosses = null, double? crossesAt = null) {
+            if (crossesAt != null && (double.IsNaN(crossesAt.Value) || double.IsInfinity(crossesAt.Value))) {
+                throw new ArgumentOutOfRangeException(nameof(crossesAt));
+            }
+
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            C.ValueAxis? axis = ResolveScatterYAxis(plotArea);
+            if (axis == null) {
+                return this;
+            }
+
+            ValidateCrossesAtForAxis(axis, crossesAt);
+            ApplyAxisCrossing(axis, crosses ?? C.CrossesValues.AutoZero, crossesAt);
             Save();
             return this;
         }
@@ -634,7 +778,7 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
-        private PowerPointChart SetAxisTitle<TAxis>(string title) where TAxis : OpenXmlCompositeElement {
+        private PowerPointChart SetAxisTitle<TAxis>(string title, Func<TAxis, bool>? predicate = null) where TAxis : OpenXmlCompositeElement {
             if (title == null) {
                 throw new ArgumentNullException(nameof(title));
             }
@@ -645,7 +789,9 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            TAxis? axis = plotArea.Elements<TAxis>().FirstOrDefault();
+            TAxis? axis = predicate == null
+                ? plotArea.Elements<TAxis>().FirstOrDefault()
+                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
             if (axis == null) {
                 return this;
             }
@@ -686,7 +832,7 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
-        private PowerPointChart SetAxisNumberFormat<TAxis>(string formatCode, bool sourceLinked)
+        private PowerPointChart SetAxisNumberFormat<TAxis>(string formatCode, bool sourceLinked, Func<TAxis, bool>? predicate = null)
             where TAxis : OpenXmlCompositeElement {
             if (string.IsNullOrWhiteSpace(formatCode)) {
                 throw new ArgumentException("Format code cannot be null or empty.", nameof(formatCode));
@@ -698,7 +844,9 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            TAxis? axis = plotArea.Elements<TAxis>().FirstOrDefault();
+            TAxis? axis = predicate == null
+                ? plotArea.Elements<TAxis>().FirstOrDefault()
+                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
             if (axis == null) {
                 return this;
             }
@@ -714,21 +862,53 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
+        private static bool HasAxisPosition(C.ValueAxis axis, C.AxisPositionValues position) {
+            return axis.GetFirstChild<C.AxisPosition>()?.Val?.Value == position;
+        }
+
+        private bool CanResolveScatterAxis(Func<C.PlotArea, C.ValueAxis?> resolver) {
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return false;
+            }
+
+            return resolver(plotArea) != null;
+        }
+
+        private static C.ValueAxis? ResolveScatterXAxis(C.PlotArea plotArea) {
+            if (plotArea.Elements<C.CategoryAxis>().Any()) {
+                return null;
+            }
+
+            return plotArea.Elements<C.ValueAxis>()
+                .FirstOrDefault(axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+        }
+
+        private static C.ValueAxis? ResolveScatterYAxis(C.PlotArea plotArea) {
+            if (plotArea.Elements<C.CategoryAxis>().Any()) {
+                return null;
+            }
+
+            return plotArea.Elements<C.ValueAxis>()
+                .FirstOrDefault(axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+        }
+
         private static void ValidateAxisScale(double? minimum, double? maximum, double? majorUnit, double? minorUnit,
             bool? logScale, double? logBase) {
-            if (minimum != null && double.IsNaN(minimum.Value)) {
+            if (minimum != null && !IsFinite(minimum.Value)) {
                 throw new ArgumentOutOfRangeException(nameof(minimum));
             }
-            if (maximum != null && double.IsNaN(maximum.Value)) {
+            if (maximum != null && !IsFinite(maximum.Value)) {
                 throw new ArgumentOutOfRangeException(nameof(maximum));
             }
             if (minimum != null && maximum != null && minimum.Value >= maximum.Value) {
                 throw new ArgumentException("Minimum must be less than maximum.");
             }
-            if (majorUnit != null && majorUnit.Value <= 0) {
+            if (majorUnit != null && (!IsFinite(majorUnit.Value) || majorUnit.Value <= 0)) {
                 throw new ArgumentOutOfRangeException(nameof(majorUnit));
             }
-            if (minorUnit != null && minorUnit.Value <= 0) {
+            if (minorUnit != null && (!IsFinite(minorUnit.Value) || minorUnit.Value <= 0)) {
                 throw new ArgumentOutOfRangeException(nameof(minorUnit));
             }
             if (logScale == false && logBase != null) {
@@ -738,7 +918,7 @@ namespace OfficeIMO.PowerPoint {
             bool effectiveLog = logScale == true || logBase != null;
             if (effectiveLog) {
                 double baseValue = logBase ?? 10d;
-                if (baseValue <= 1d) {
+                if (!IsFinite(baseValue) || baseValue <= 1d) {
                     throw new ArgumentOutOfRangeException(nameof(logBase), "Log base must be greater than 1.");
                 }
                 if (minimum != null && minimum.Value <= 0) {
@@ -748,6 +928,10 @@ namespace OfficeIMO.PowerPoint {
                     throw new ArgumentException("Maximum must be greater than 0 for log scale.", nameof(maximum));
                 }
             }
+        }
+
+        private static bool IsFinite(double value) {
+            return !double.IsNaN(value) && !double.IsInfinity(value);
         }
 
         private static void ValidateCrossesAtForAxis(OpenXmlCompositeElement axis, double? crossesAt) {
@@ -765,6 +949,7 @@ namespace OfficeIMO.PowerPoint {
             double? majorUnit, double? minorUnit, bool? reverseOrder, bool? logScale, double? logBase) {
             if (reverseOrder != null || minimum != null || maximum != null || logScale != null || logBase != null) {
                 C.Scaling scaling = EnsureScaling(axis);
+                ValidateEffectiveAxisScale(scaling, minimum, maximum, logScale, logBase);
                 if (reverseOrder != null) {
                     ReplaceChild(scaling, new C.Orientation {
                         Val = reverseOrder.Value ? C.OrientationValues.MaxMin : C.OrientationValues.MinMax
@@ -793,6 +978,30 @@ namespace OfficeIMO.PowerPoint {
             }
             if (minorUnit != null) {
                 ReplaceChild(axis, new C.MinorUnit { Val = minorUnit.Value });
+            }
+        }
+
+        private static void ValidateEffectiveAxisScale(C.Scaling scaling, double? minimum, double? maximum, bool? logScale, double? logBase) {
+            double? effectiveMinimum = minimum ?? scaling.GetFirstChild<C.MinAxisValue>()?.Val?.Value;
+            double? effectiveMaximum = maximum ?? scaling.GetFirstChild<C.MaxAxisValue>()?.Val?.Value;
+            if (effectiveMinimum != null && effectiveMaximum != null && effectiveMinimum.Value >= effectiveMaximum.Value) {
+                throw new ArgumentException("Minimum must be less than maximum.");
+            }
+
+            bool effectiveLog = logScale == true || logBase != null;
+            if (!effectiveLog && logScale != false) {
+                effectiveLog = scaling.GetFirstChild<C.LogBase>() != null;
+            }
+
+            if (!effectiveLog) {
+                return;
+            }
+
+            if (effectiveMinimum != null && effectiveMinimum.Value <= 0) {
+                throw new ArgumentException("Minimum must be greater than 0 for log scale.", nameof(minimum));
+            }
+            if (effectiveMaximum != null && effectiveMaximum.Value <= 0) {
+                throw new ArgumentException("Maximum must be greater than 0 for log scale.", nameof(maximum));
             }
         }
 

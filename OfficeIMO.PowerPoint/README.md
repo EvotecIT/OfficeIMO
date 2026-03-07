@@ -362,6 +362,23 @@ slide.AddDoughnutChart(chartData, PowerPointUnits.Cm(10), PowerPointUnits.Cm(2),
     .SetTitle("Revenue Mix");
 ```
 
+### Scatter chart axes
+```csharp
+var scatterData = new PowerPointScatterChartData(new[] {
+    new PowerPointScatterChartSeries("Revenue", new[] { 1d, 2d, 3d, 4d }, new[] { 10d, 15d, 12d, 18d })
+});
+
+slide.AddScatterChart(scatterData)
+    .SetTitle("Revenue Scatter")
+    .SetScatterXAxisTitle("Month")
+    .SetScatterYAxisTitle("Revenue")
+    .SetScatterXAxisNumberFormat("0.0")
+    .SetScatterYAxisNumberFormat("#,##0.00")
+    .SetScatterXAxisScale(minimum: 1, maximum: 12, majorUnit: 1)
+    .SetScatterYAxisScale(minimum: 0, maximum: 20, majorUnit: 5)
+    .SetScatterYAxisCrossing(crossesAt: 2d);
+```
+
 ### Layouts and notes (fluent)
 ```csharp
 using OfficeIMO.PowerPoint.Fluent;
