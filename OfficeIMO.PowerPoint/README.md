@@ -326,6 +326,18 @@ imported.AddTextBox("Imported content");
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 var chart = slide.AddChart();
+var labelTemplate = new PowerPointChartDataLabelTemplate {
+    ShowValue = true,
+    ShowCategoryName = true,
+    Position = C.DataLabelPositionValues.OutsideEnd,
+    NumberFormat = "0.0",
+    Separator = " - ",
+    TextColor = "1F4E79",
+    FillColor = "FFFFFF",
+    LineColor = "1F4E79",
+    LineWidthPoints = 0.5
+};
+
 chart.SetTitle("Sales Trend")
      .SetChartAreaStyle(fillColor: "F2F2F2", lineColor: "404040", lineWidthPoints: 1.25)
      .SetPlotAreaStyle(fillColor: "FFFFFF", lineColor: "00B0F0", lineWidthPoints: 0.5)
@@ -340,6 +352,7 @@ chart.SetTitle("Sales Trend")
      .SetDataLabelLeaderLines(showLeaderLines: true, lineColor: "1F4E79", lineWidthPoints: 0.5)
      .SetDataLabelSeparator(" | ")
      .SetDataLabelCallouts(enabled: true, lineColor: "1F4E79", lineWidthPoints: 0.5)
+     .SetSeriesDataLabelTemplate(0, labelTemplate)
      .SetSeriesDataLabelTextStyle(0, bold: true, color: "C00000")
      .SetSeriesDataLabelSeparator(0, " / ")
      .SetSeriesDataLabels(0, showValue: true, showCategoryName: true, position: C.DataLabelPositionValues.Top, numberFormat: "0.0")
