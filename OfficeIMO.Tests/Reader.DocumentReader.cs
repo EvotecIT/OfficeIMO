@@ -238,7 +238,11 @@ public sealed class ReaderDocumentReaderTests {
 
     private static string ComputeShortHash(string input) {
         var data = Encoding.UTF8.GetBytes(input ?? string.Empty);
-        var hash = SHA256.HashData(data);
+        byte[] hash;
+        using (var sha = SHA256.Create()) {
+            hash = sha.ComputeHash(data);
+        }
+
         var sb = new StringBuilder(16);
         for (int i = 0; i < 8 && i < hash.Length; i++) {
             sb.Append(hash[i].ToString("x2", CultureInfo.InvariantCulture));
