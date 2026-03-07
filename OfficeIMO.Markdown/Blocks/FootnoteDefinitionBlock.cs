@@ -13,6 +13,7 @@ public sealed class FootnoteDefinitionBlock : IMarkdownBlock {
     /// When empty, renderers may fall back to parsing <see cref="Text"/> as a single inline sequence.
     /// </summary>
     public IReadOnlyList<InlineSequence> Paragraphs { get; }
+    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; }
     /// <summary>Create a new footnote definition.</summary>
     /// <param name="label">Identifier used by references.</param>
     /// <param name="text">Definition text.</param>
@@ -26,6 +27,14 @@ public sealed class FootnoteDefinitionBlock : IMarkdownBlock {
         Label = label ?? string.Empty;
         Text = text ?? string.Empty;
         Paragraphs = paragraphs ?? new List<InlineSequence>();
+        SyntaxChildren = null;
+    }
+
+    internal FootnoteDefinitionBlock(string label, string text, IReadOnlyList<InlineSequence> paragraphs, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren) {
+        Label = label ?? string.Empty;
+        Text = text ?? string.Empty;
+        Paragraphs = paragraphs ?? new List<InlineSequence>();
+        SyntaxChildren = syntaxChildren;
     }
     string IMarkdownBlock.RenderMarkdown() => $"[^{Label}]: {Text}";
     string IMarkdownBlock.RenderHtml() {
