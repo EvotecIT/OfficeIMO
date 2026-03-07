@@ -39,6 +39,15 @@ public class Markdown_Reader_Emphasis_Edge_Tests {
     }
 
     [Fact]
+    public void Double_Star_Inside_Italic_Can_Remain_Literal_When_Only_Italic_Closer_Remains() {
+        var md = "*foo**bar*baz**";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<em>foo**bar</em>baz**", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("*foo<strong>bar*baz</strong>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Unclosed_Emphasis_Is_Literal() {
         var md = "*not closed";
         var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
