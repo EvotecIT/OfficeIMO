@@ -169,6 +169,48 @@ Paragraph text
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_ListItem_Spans_Inside_Quotes() {
+        var markdown = """
+> intro
+>
+> - item
+>   continued
+>
+>   trailing
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var quote = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.Quote, quote.Kind);
+        Assert.Equal(2, quote.Children.Count);
+
+        var list = Assert.IsType<MarkdownSyntaxNode>(quote.Children[1]);
+        Assert.Equal(MarkdownSyntaxKind.UnorderedList, list.Kind);
+        Assert.NotNull(list.SourceSpan);
+        Assert.Equal(3, list.SourceSpan!.Value.StartLine);
+        Assert.Equal(6, list.SourceSpan!.Value.EndLine);
+
+        var item = Assert.Single(list.Children);
+        Assert.Equal(MarkdownSyntaxKind.ListItem, item.Kind);
+        Assert.NotNull(item.SourceSpan);
+        Assert.Equal(3, item.SourceSpan!.Value.StartLine);
+        Assert.Equal(6, item.SourceSpan!.Value.EndLine);
+
+        var lead = item.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, lead.Kind);
+        Assert.NotNull(lead.SourceSpan);
+        Assert.Equal(3, lead.SourceSpan!.Value.StartLine);
+        Assert.Equal(4, lead.SourceSpan!.Value.EndLine);
+
+        var trailing = item.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, trailing.Kind);
+        Assert.NotNull(trailing.SourceSpan);
+        Assert.Equal(6, trailing.SourceSpan!.Value.StartLine);
+        Assert.Equal(6, trailing.SourceSpan!.Value.EndLine);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Nested_Callout_Child_Spans() {
         var markdown = """
 > [!NOTE] Title
@@ -186,6 +228,31 @@ Paragraph text
         Assert.Equal(2, paragraph.SourceSpan!.Value.StartLine);
         Assert.Equal(2, paragraph.SourceSpan!.Value.EndLine);
         Assert.Equal("body", paragraph.Literal);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Captures_ListItem_Spans_Inside_Callouts() {
+        var markdown = """
+> [!TIP] Title
+> - item
+>   continued
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var callout = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.Callout, callout.Kind);
+        var list = Assert.Single(callout.Children);
+        Assert.Equal(MarkdownSyntaxKind.UnorderedList, list.Kind);
+        Assert.NotNull(list.SourceSpan);
+        Assert.Equal(2, list.SourceSpan!.Value.StartLine);
+        Assert.Equal(3, list.SourceSpan!.Value.EndLine);
+
+        var item = Assert.Single(list.Children);
+        Assert.Equal(MarkdownSyntaxKind.ListItem, item.Kind);
+        Assert.NotNull(item.SourceSpan);
+        Assert.Equal(2, item.SourceSpan!.Value.StartLine);
+        Assert.Equal(3, item.SourceSpan!.Value.EndLine);
     }
 
     [Fact]

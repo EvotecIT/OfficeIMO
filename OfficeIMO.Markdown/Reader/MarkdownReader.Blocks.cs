@@ -734,11 +734,12 @@ public static partial class MarkdownReader {
 
     private static void AddListItemLeadSyntaxNodes(ListItem item, List<string> lines, int lineOffset, MarkdownReaderOptions options, MarkdownReaderState? state) {
         if (item == null || lines == null || lines.Count == 0) return;
+        int absoluteLineOffset = (state?.SourceLineOffset ?? 0) + lineOffset;
 
         if (TryParseSetextHeadingParagraphLines(lines, options, out int level, out string headingText)) {
             item.SyntaxChildren.Add(new MarkdownSyntaxNode(
                 MarkdownSyntaxKind.Heading,
-                new MarkdownSourceSpan(lineOffset + 1, lineOffset + lines.Count),
+                new MarkdownSourceSpan(absoluteLineOffset + 1, absoluteLineOffset + lines.Count),
                 headingText));
             return;
         }
@@ -750,17 +751,17 @@ public static partial class MarkdownReader {
             if (TryParseSetextHeadingParagraphLines(headingLines, options, out level, out headingText)) {
                 item.SyntaxChildren.Add(new MarkdownSyntaxNode(
                     MarkdownSyntaxKind.Heading,
-                    new MarkdownSourceSpan(lineOffset + 1, lineOffset + groupLength),
+                    new MarkdownSourceSpan(absoluteLineOffset + 1, absoluteLineOffset + groupLength),
                     headingText));
 
                 if (firstBlank >= 0 && firstBlank + 1 < lines.Count) {
-                    AddParagraphSyntaxNodes(item.SyntaxChildren, lines.GetRange(firstBlank + 1, lines.Count - firstBlank - 1), lineOffset + firstBlank + 1, options, state);
+                    AddParagraphSyntaxNodes(item.SyntaxChildren, lines.GetRange(firstBlank + 1, lines.Count - firstBlank - 1), absoluteLineOffset + firstBlank + 1, options, state);
                 }
                 return;
             }
         }
 
-        AddParagraphSyntaxNodes(item.SyntaxChildren, lines, lineOffset, options, state);
+        AddParagraphSyntaxNodes(item.SyntaxChildren, lines, absoluteLineOffset, options, state);
     }
 
     private static void AddParagraphSyntaxNodes(List<MarkdownSyntaxNode> nodes, List<string> lines, int lineOffset, MarkdownReaderOptions options, MarkdownReaderState? state) {
@@ -795,9 +796,11 @@ public static partial class MarkdownReader {
             literal));
     }
 
-    private static void AddListItemChildSyntaxNode(ListItem item, IMarkdownBlock block, int startLineIndex, int endExclusiveLineIndex) {
+    private static void AddListItemChildSyntaxNode(ListItem item, IMarkdownBlock block, int startLineIndex, int endExclusiveLineIndex, MarkdownReaderState? state) {
         if (item == null || block == null) return;
-        item.SyntaxChildren.Add(BuildSyntaxNode(block, new MarkdownSourceSpan(startLineIndex + 1, Math.Max(startLineIndex + 1, endExclusiveLineIndex))));
+        int absoluteStart = (state?.SourceLineOffset ?? 0) + startLineIndex;
+        int absoluteEndExclusive = (state?.SourceLineOffset ?? 0) + endExclusiveLineIndex;
+        item.SyntaxChildren.Add(BuildSyntaxNode(block, new MarkdownSourceSpan(absoluteStart + 1, Math.Max(absoluteStart + 1, absoluteEndExclusive))));
     }
 
     private static bool TryParseListItemLeadSetextBlocks(List<string> lines, MarkdownReaderOptions options, MarkdownReaderState? state, out List<IMarkdownBlock> blocks) {
@@ -918,7 +921,7 @@ public static partial class MarkdownReader {
             int tmp = k;
             if (TryParseNestedFencedCodeBlock(lines, ref tmp, continuationIndent, options, out var code) && code != null) {
                 item.Children.Add(code);
-                AddListItemChildSyntaxNode(item, code, k, tmp);
+                AddListItemChildSyntaxNode(item, code, k, tmp, state);
                 if (sawBlankLine) item.ForceLoose = true;
                 index = tmp;
                 continue;
@@ -928,7 +931,7 @@ public static partial class MarkdownReader {
             tmp = k;
             if (TryParseNestedIndentedCodeBlock(lines, ref tmp, continuationIndent, options, out var indented) && indented != null) {
                 item.Children.Add(indented);
-                AddListItemChildSyntaxNode(item, indented, k, tmp);
+                AddListItemChildSyntaxNode(item, indented, k, tmp, state);
                 if (sawBlankLine) item.ForceLoose = true;
                 index = tmp;
                 continue;
@@ -938,7 +941,7 @@ public static partial class MarkdownReader {
             tmp = k;
             if (TryParseNestedQuoteBlock(lines, ref tmp, continuationIndent, options, state, out var quote) && quote != null) {
                 item.Children.Add(quote);
-                AddListItemChildSyntaxNode(item, quote, k, tmp);
+                AddListItemChildSyntaxNode(item, quote, k, tmp, state);
                 if (sawBlankLine) item.ForceLoose = true;
                 index = tmp;
                 continue;
@@ -948,7 +951,7 @@ public static partial class MarkdownReader {
             tmp = k;
             if (TryParseNestedTableBlock(lines, ref tmp, continuationIndent, options, state, out var table) && table != null) {
                 item.Children.Add(table);
-                AddListItemChildSyntaxNode(item, table, k, tmp);
+                AddListItemChildSyntaxNode(item, table, k, tmp, state);
                 if (sawBlankLine) item.ForceLoose = true;
                 index = tmp;
                 continue;
@@ -958,7 +961,7 @@ public static partial class MarkdownReader {
             tmp = k;
             if (TryParseNestedHtmlBlock(lines, ref tmp, continuationIndent, options, state, out var htmlBlock) && htmlBlock != null) {
                 item.Children.Add(htmlBlock);
-                AddListItemChildSyntaxNode(item, htmlBlock, k, tmp);
+                AddListItemChildSyntaxNode(item, htmlBlock, k, tmp, state);
                 if (sawBlankLine) item.ForceLoose = true;
                 index = tmp;
                 continue;
@@ -971,7 +974,7 @@ public static partial class MarkdownReader {
                 var parser = new OrderedListParser();
                 if (parser.TryParse(lines, ref idx, options, tempDoc, state) && tempDoc.Blocks.Count == 1 && tempDoc.Blocks[0] is OrderedListBlock ol) {
                     item.Children.Add(ol);
-                    AddListItemChildSyntaxNode(item, ol, k, idx);
+                    AddListItemChildSyntaxNode(item, ol, k, idx, state);
                     if (sawBlankLine) item.ForceLoose = true;
                     index = idx;
                     continue;
@@ -985,7 +988,7 @@ public static partial class MarkdownReader {
                 var parser = new UnorderedListParser();
                 if (parser.TryParse(lines, ref idx, options, tempDoc, state) && tempDoc.Blocks.Count == 1 && tempDoc.Blocks[0] is UnorderedListBlock ul) {
                     item.Children.Add(ul);
-                    AddListItemChildSyntaxNode(item, ul, k, idx);
+                    AddListItemChildSyntaxNode(item, ul, k, idx, state);
                     if (sawBlankLine) item.ForceLoose = true;
                     index = idx;
                     continue;
