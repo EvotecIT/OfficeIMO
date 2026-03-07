@@ -27,7 +27,7 @@ public static partial class MarkdownReader {
             case ImageBlock image:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.Image, span, ((IMarkdownBlock)image).RenderMarkdown());
             case TableBlock table:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Table, span, ((IMarkdownBlock)table).RenderMarkdown());
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Table, span, ((IMarkdownBlock)table).RenderMarkdown(), BuildTableChildren(table, span));
             case QuoteBlock quote:
                 return new MarkdownSyntaxNode(
                     MarkdownSyntaxKind.Quote,
@@ -174,6 +174,33 @@ public static partial class MarkdownReader {
         for (int i = 0; i < footnote.Paragraphs.Count; i++) {
             nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: footnote.Paragraphs[i].RenderMarkdown()));
         }
+        return nodes;
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> BuildTableChildren(TableBlock table, MarkdownSourceSpan? span) {
+        if (!span.HasValue) return Array.Empty<MarkdownSyntaxNode>();
+
+        var nodes = new List<MarkdownSyntaxNode>();
+        int line = span.Value.StartLine;
+
+        if (table.Headers.Count > 0) {
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.TableHeader,
+                new MarkdownSourceSpan(line, line),
+                string.Join(" | ", table.Headers)));
+            line += 2; // Skip the alignment row.
+        }
+
+        for (int i = 0; i < table.Rows.Count; i++) {
+            if (line > span.Value.EndLine) break;
+
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.TableRow,
+                new MarkdownSourceSpan(line, line),
+                string.Join(" | ", table.Rows[i])));
+            line++;
+        }
+
         return nodes;
     }
 
