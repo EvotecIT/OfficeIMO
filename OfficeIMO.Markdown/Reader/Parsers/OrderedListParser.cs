@@ -33,10 +33,16 @@ public static partial class MarkdownReader {
             int j = i + 1;
             bool firstIsTask = TryStripTaskMarker(firstContent, out _, out bool firstDone, out var strippedFirst);
             var firstLines = ConsumeListContinuationLines(lines, ref j, firstContinuationIndent, strippedFirst, options);
-            var firstParas = ParseParagraphsFromLines(firstLines, options, state);
-            var first = firstIsTask ? ListItem.TaskInlines(firstParas[0], firstDone) : new ListItem(firstParas[0]);
+            ListItem first;
+            if (TryParseListItemLeadSetextBlocks(firstLines, options, state, out var firstBlocks)) {
+                first = firstIsTask ? ListItem.TaskInlines(new InlineSequence(), firstDone) : new ListItem(new InlineSequence());
+                for (int p = 0; p < firstBlocks.Count; p++) first.Children.Add(firstBlocks[p]);
+            } else {
+                var firstParas = ParseParagraphsFromLines(firstLines, options, state);
+                first = firstIsTask ? ListItem.TaskInlines(firstParas[0], firstDone) : new ListItem(firstParas[0]);
+                for (int p = 1; p < firstParas.Count; p++) first.AdditionalParagraphs.Add(firstParas[p]);
+            }
             first.Level = 0;
-            for (int p = 1; p < firstParas.Count; p++) first.AdditionalParagraphs.Add(firstParas[p]);
             ol.Items.Add(first);
 
             ConsumeNestedBlocksForListItem(lines, ref j, lvl0Abs, firstContinuationIndent, options, state, first, allowNestedOrdered: true, allowNestedUnordered: true);
@@ -46,10 +52,16 @@ public static partial class MarkdownReader {
                 int next = j + 1;
                 bool isTask = TryStripTaskMarker(content, out _, out bool done, out var stripped);
                 var itemLines = ConsumeListContinuationLines(lines, ref next, continuationIndent, stripped, options);
-                var paras = ParseParagraphsFromLines(itemLines, options, state);
-                var li = isTask ? ListItem.TaskInlines(paras[0], done) : new ListItem(paras[0]);
+                ListItem li;
+                if (TryParseListItemLeadSetextBlocks(itemLines, options, state, out var itemBlocks)) {
+                    li = isTask ? ListItem.TaskInlines(new InlineSequence(), done) : new ListItem(new InlineSequence());
+                    for (int p = 0; p < itemBlocks.Count; p++) li.Children.Add(itemBlocks[p]);
+                } else {
+                    var paras = ParseParagraphsFromLines(itemLines, options, state);
+                    li = isTask ? ListItem.TaskInlines(paras[0], done) : new ListItem(paras[0]);
+                    for (int p = 1; p < paras.Count; p++) li.AdditionalParagraphs.Add(paras[p]);
+                }
                 li.Level = lvlAbs - lvl0Abs;
-                for (int p = 1; p < paras.Count; p++) li.AdditionalParagraphs.Add(paras[p]);
                 ol.Items.Add(li);
                 j = next;
 

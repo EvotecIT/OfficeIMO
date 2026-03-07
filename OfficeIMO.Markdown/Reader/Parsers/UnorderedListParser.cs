@@ -10,10 +10,16 @@ public static partial class MarkdownReader {
 
             int j = i + 1;
             var firstLines = ConsumeListContinuationLines(lines, ref j, firstContinuationIndent, firstContent, options);
-            var firstParas = ParseParagraphsFromLines(firstLines, options, state);
-            var firstInline = firstParas[0];
-            var first = isTask ? ListItem.TaskInlines(firstInline, done) : new ListItem(firstInline);
-            for (int p = 1; p < firstParas.Count; p++) first.AdditionalParagraphs.Add(firstParas[p]);
+            ListItem first;
+            if (TryParseListItemLeadSetextBlocks(firstLines, options, state, out var firstBlocks)) {
+                first = isTask ? ListItem.TaskInlines(new InlineSequence(), done) : new ListItem(new InlineSequence());
+                for (int p = 0; p < firstBlocks.Count; p++) first.Children.Add(firstBlocks[p]);
+            } else {
+                var firstParas = ParseParagraphsFromLines(firstLines, options, state);
+                var firstInline = firstParas[0];
+                first = isTask ? ListItem.TaskInlines(firstInline, done) : new ListItem(firstInline);
+                for (int p = 1; p < firstParas.Count; p++) first.AdditionalParagraphs.Add(firstParas[p]);
+            }
             first.Level = 0;
             ul.Items.Add(first);
 
@@ -24,10 +30,16 @@ public static partial class MarkdownReader {
                 int continuationIndent = GetListContinuationIndent(lines[j]);
                 int next = j + 1;
                 var itemLines = ConsumeListContinuationLines(lines, ref next, continuationIndent, content2, options);
-                var paras = ParseParagraphsFromLines(itemLines, options, state);
-                var inline = paras[0];
-                var li = isTask2 ? ListItem.TaskInlines(inline, done2) : new ListItem(inline);
-                for (int p = 1; p < paras.Count; p++) li.AdditionalParagraphs.Add(paras[p]);
+                ListItem li;
+                if (TryParseListItemLeadSetextBlocks(itemLines, options, state, out var itemBlocks)) {
+                    li = isTask2 ? ListItem.TaskInlines(new InlineSequence(), done2) : new ListItem(new InlineSequence());
+                    for (int p = 0; p < itemBlocks.Count; p++) li.Children.Add(itemBlocks[p]);
+                } else {
+                    var paras = ParseParagraphsFromLines(itemLines, options, state);
+                    var inline = paras[0];
+                    li = isTask2 ? ListItem.TaskInlines(inline, done2) : new ListItem(inline);
+                    for (int p = 1; p < paras.Count; p++) li.AdditionalParagraphs.Add(paras[p]);
+                }
                 li.Level = lvlAbs - level0Abs;
                 ul.Items.Add(li);
                 j = next;

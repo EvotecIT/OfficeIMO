@@ -700,6 +700,54 @@ public static partial class MarkdownReader {
         return paragraphs;
     }
 
+    private static bool TryParseListItemLeadSetextBlocks(List<string> lines, MarkdownReaderOptions options, MarkdownReaderState? state, out List<IMarkdownBlock> blocks) {
+        blocks = new List<IMarkdownBlock>();
+        if (lines == null || lines.Count == 0 || options == null || !options.Headings) return false;
+
+        int firstBlank = lines.FindIndex(static line => line.Length == 0);
+        int groupLength = firstBlank >= 0 ? firstBlank : lines.Count;
+        if (groupLength < 2) return false;
+
+        var headingLines = lines.GetRange(0, groupLength);
+        if (!TryParseSetextHeadingParagraphLines(headingLines, options, out int level, out string headingText)) return false;
+
+        blocks.Add(new HeadingBlock(level, headingText));
+
+        if (firstBlank < 0) return true;
+
+        var trailingLines = lines.GetRange(firstBlank + 1, lines.Count - firstBlank - 1);
+        var paragraphs = ParseParagraphsFromLines(trailingLines, options, state);
+        for (int i = 0; i < paragraphs.Count; i++) {
+            blocks.Add(new ParagraphBlock(paragraphs[i]));
+        }
+
+        return true;
+    }
+
+    private static bool TryParseSetextHeadingParagraphLines(List<string> lines, MarkdownReaderOptions options, out int level, out string headingText) {
+        level = 0;
+        headingText = string.Empty;
+        if (lines == null || lines.Count < 2 || options == null || !options.Headings) return false;
+
+        var underline = lines[lines.Count - 1]?.Trim() ?? string.Empty;
+        if (underline.Length < 3) return false;
+
+        char marker = '\0';
+        for (int i = 0; i < underline.Length; i++) {
+            char ch = underline[i];
+            if (ch != '=' && ch != '-') return false;
+            if (marker == '\0') marker = ch;
+            else if (ch != marker) return false;
+        }
+
+        var contentLines = lines.GetRange(0, lines.Count - 1);
+        if (contentLines.Count == 0 || contentLines.TrueForAll(string.IsNullOrWhiteSpace)) return false;
+
+        level = marker == '=' ? 1 : 2;
+        headingText = JoinParagraphLines(contentLines, options).Trim();
+        return headingText.Length > 0;
+    }
+
     private static string JoinParagraphLines(List<string> lines, MarkdownReaderOptions options) {
         var sb = new StringBuilder();
         bool prevHard = false;

@@ -508,6 +508,6 @@ Top-IDs:
 
         var encoded = html.Substring(start, end - start);
         var bytes = Convert.FromBase64String(System.Net.WebUtility.HtmlDecode(encoded));
-        return Encoding.UTF8.GetString(bytes);
+        return Encoding.UTF8.GetString(bytes).TrimEnd('\r', '\n');
     }
 }
