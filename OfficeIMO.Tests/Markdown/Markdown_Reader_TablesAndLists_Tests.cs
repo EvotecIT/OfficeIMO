@@ -36,6 +36,44 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Table_Parsing_Does_Not_Treat_Unmatched_Single_Backticks_As_Code_Spans() {
+            string md = """
+| Col1 | Col2 |
+| --- | --- |
+| `a | b |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
+            Assert.Equal(2, table.Headers.Count);
+            Assert.Single(table.Rows);
+            Assert.Equal(2, table.Rows[0].Count);
+            Assert.Equal("`a", table.Rows[0][0]);
+            Assert.Equal("b", table.Rows[0][1]);
+
+            var html = doc.ToHtmlFragment();
+            Assert.DoesNotContain("<code>`a</code>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Table_Parsing_Does_Not_Treat_Unmatched_Multi_Backticks_As_Code_Spans() {
+            string md = """
+| Col1 | Col2 |
+| --- | --- |
+| ``a | b |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
+            Assert.Equal(2, table.Headers.Count);
+            Assert.Single(table.Rows);
+            Assert.Equal(2, table.Rows[0].Count);
+            Assert.Equal("``a", table.Rows[0][0]);
+            Assert.Equal("b", table.Rows[0][1]);
+
+            var html = doc.ToHtmlFragment();
+            Assert.DoesNotContain("<code>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Table_Headers_Render_Inline_Markup() {
             string md = """
 | **H** | `C` |
