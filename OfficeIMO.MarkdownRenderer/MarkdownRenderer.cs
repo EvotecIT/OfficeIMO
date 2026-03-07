@@ -27,7 +27,7 @@ public static class MarkdownRenderer {
     /// </summary>
     public static string RenderBodyHtml(string markdown, MarkdownRendererOptions? options = null) {
         options ??= new MarkdownRendererOptions();
-        var readerOptions = options.ReaderOptions ?? new MarkdownReaderOptions();
+        var readerOptions = CreateEffectiveReaderOptions(options);
         var htmlOptions = options.HtmlOptions ?? new HtmlOptions { Kind = HtmlKind.Fragment };
 
         if (options.NormalizeEscapedNewlines && !string.IsNullOrEmpty(markdown)) {
@@ -122,6 +122,8 @@ public static class MarkdownRenderer {
             NormalizeInlineCodeSpanLineBreaks = options.NormalizeInlineCodeSpanLineBreaks,
             NormalizeEscapedInlineCodeSpans = options.NormalizeEscapedInlineCodeSpans,
             NormalizeTightStrongBoundaries = options.NormalizeTightStrongBoundaries,
+            NormalizeTightArrowStrongBoundaries = options.NormalizeTightArrowStrongBoundaries,
+            NormalizeTightColonSpacing = options.NormalizeTightColonSpacing,
             NormalizeLooseStrongDelimiters = options.NormalizeLooseStrongDelimiters,
             NormalizeOrderedListMarkerSpacing = options.NormalizeOrderedListMarkerSpacing,
             NormalizeOrderedListParenMarkers = options.NormalizeOrderedListParenMarkers,
@@ -140,6 +142,52 @@ public static class MarkdownRenderer {
         }
 
         return value;
+    }
+
+    private static MarkdownReaderOptions CreateEffectiveReaderOptions(MarkdownRendererOptions options) {
+        var source = options.ReaderOptions ?? new MarkdownReaderOptions();
+        return new MarkdownReaderOptions {
+            FrontMatter = source.FrontMatter,
+            Callouts = source.Callouts,
+            Headings = source.Headings,
+            FencedCode = source.FencedCode,
+            IndentedCodeBlocks = source.IndentedCodeBlocks,
+            Images = source.Images,
+            UnorderedLists = source.UnorderedLists,
+            OrderedLists = source.OrderedLists,
+            Tables = source.Tables,
+            DefinitionLists = source.DefinitionLists,
+            HtmlBlocks = source.HtmlBlocks,
+            Paragraphs = source.Paragraphs,
+            AutolinkUrls = source.AutolinkUrls,
+            AutolinkWwwUrls = source.AutolinkWwwUrls,
+            AutolinkWwwScheme = source.AutolinkWwwScheme,
+            AutolinkEmails = source.AutolinkEmails,
+            BackslashHardBreaks = source.BackslashHardBreaks,
+            InlineHtml = source.InlineHtml,
+            BaseUri = source.BaseUri,
+            DisallowScriptUrls = source.DisallowScriptUrls,
+            DisallowFileUrls = source.DisallowFileUrls,
+            AllowMailtoUrls = source.AllowMailtoUrls,
+            AllowDataUrls = source.AllowDataUrls,
+            AllowProtocolRelativeUrls = source.AllowProtocolRelativeUrls,
+            RestrictUrlSchemes = source.RestrictUrlSchemes,
+            AllowedUrlSchemes = source.AllowedUrlSchemes,
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeSoftWrappedStrongSpans = source.InputNormalization?.NormalizeSoftWrappedStrongSpans ?? options.NormalizeSoftWrappedStrongSpans,
+                NormalizeInlineCodeSpanLineBreaks = source.InputNormalization?.NormalizeInlineCodeSpanLineBreaks ?? options.NormalizeInlineCodeSpanLineBreaks,
+                NormalizeEscapedInlineCodeSpans = source.InputNormalization?.NormalizeEscapedInlineCodeSpans ?? options.NormalizeEscapedInlineCodeSpans,
+                NormalizeTightStrongBoundaries = source.InputNormalization?.NormalizeTightStrongBoundaries ?? options.NormalizeTightStrongBoundaries,
+                NormalizeTightArrowStrongBoundaries = source.InputNormalization?.NormalizeTightArrowStrongBoundaries ?? options.NormalizeTightArrowStrongBoundaries,
+                NormalizeTightColonSpacing = source.InputNormalization?.NormalizeTightColonSpacing ?? options.NormalizeTightColonSpacing,
+                NormalizeLooseStrongDelimiters = source.InputNormalization?.NormalizeLooseStrongDelimiters ?? options.NormalizeLooseStrongDelimiters,
+                NormalizeOrderedListMarkerSpacing = source.InputNormalization?.NormalizeOrderedListMarkerSpacing ?? options.NormalizeOrderedListMarkerSpacing,
+                NormalizeOrderedListParenMarkers = source.InputNormalization?.NormalizeOrderedListParenMarkers ?? options.NormalizeOrderedListParenMarkers,
+                NormalizeOrderedListCaretArtifacts = source.InputNormalization?.NormalizeOrderedListCaretArtifacts ?? options.NormalizeOrderedListCaretArtifacts,
+                NormalizeTightParentheticalSpacing = source.InputNormalization?.NormalizeTightParentheticalSpacing ?? options.NormalizeTightParentheticalSpacing,
+                NormalizeNestedStrongDelimiters = source.InputNormalization?.NormalizeNestedStrongDelimiters ?? options.NormalizeNestedStrongDelimiters
+            }
+        };
     }
 
     private static string BuildOverflowBodyHtml(HtmlOptions htmlOptions, string message) {
