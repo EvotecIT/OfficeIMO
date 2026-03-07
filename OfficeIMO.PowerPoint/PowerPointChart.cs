@@ -415,6 +415,22 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets category axis gridlines visibility and optional styling.
+        /// </summary>
+        public PowerPointChart SetCategoryAxisGridlines(bool showMajor = true, bool showMinor = false,
+            string? lineColor = null, double? lineWidthPoints = null) {
+            return SetAxisGridlines<C.CategoryAxis>(showMajor, showMinor, lineColor, lineWidthPoints);
+        }
+
+        /// <summary>
+        ///     Sets value axis gridlines visibility and optional styling.
+        /// </summary>
+        public PowerPointChart SetValueAxisGridlines(bool showMajor = true, bool showMinor = false,
+            string? lineColor = null, double? lineWidthPoints = null) {
+            return SetAxisGridlines<C.ValueAxis>(showMajor, showMinor, lineColor, lineWidthPoints);
+        }
+
+        /// <summary>
         ///     Sets the scatter chart X-axis title.
         /// </summary>
         public PowerPointChart SetScatterXAxisTitle(string title) {
@@ -507,6 +523,26 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets how the value axis crosses between categories.
+        /// </summary>
+        public PowerPointChart SetValueAxisCrossBetween(C.CrossBetweenValues between) {
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            C.ValueAxis? axis = plotArea.Elements<C.ValueAxis>().FirstOrDefault();
+            if (axis == null) {
+                return this;
+            }
+
+            ReplaceValueAxisCrossBetween(axis, new C.CrossBetween { Val = between });
+            Save();
+            return this;
+        }
+
+        /// <summary>
         ///     Sets the category axis number format.
         /// </summary>
         public PowerPointChart SetCategoryAxisNumberFormat(string formatCode, bool sourceLinked = false) {
@@ -542,6 +578,85 @@ namespace OfficeIMO.PowerPoint {
 
             return SetAxisNumberFormat<C.ValueAxis>(formatCode, sourceLinked,
                 axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+        }
+
+        /// <summary>
+        ///     Sets display units for the value axis.
+        /// </summary>
+        public PowerPointChart SetValueAxisDisplayUnits(C.BuiltInUnitValues unit, bool showLabel = true) {
+            return SetValueAxisDisplayUnitsCore(displayUnits => {
+                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
+                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
+                displayUnits.Append(new C.BuiltInUnit { Val = unit });
+            }, showLabel);
+        }
+
+        /// <summary>
+        ///     Sets display units for the value axis with custom label text.
+        /// </summary>
+        public PowerPointChart SetValueAxisDisplayUnits(C.BuiltInUnitValues unit, string labelText, bool showLabel = true) {
+            if (string.IsNullOrWhiteSpace(labelText)) {
+                throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
+            }
+
+            return SetValueAxisDisplayUnitsCore(displayUnits => {
+                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
+                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
+                displayUnits.Append(new C.BuiltInUnit { Val = unit });
+            }, showLabel, labelText);
+        }
+
+        /// <summary>
+        ///     Sets custom display units for the value axis.
+        /// </summary>
+        public PowerPointChart SetValueAxisDisplayUnits(double customUnit, bool showLabel = true) {
+            if (!IsFinite(customUnit) || customUnit <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(customUnit));
+            }
+
+            return SetValueAxisDisplayUnitsCore(displayUnits => {
+                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
+                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
+                displayUnits.Append(new C.CustomDisplayUnit { Val = customUnit });
+            }, showLabel);
+        }
+
+        /// <summary>
+        ///     Sets custom display units for the value axis with custom label text.
+        /// </summary>
+        public PowerPointChart SetValueAxisDisplayUnits(double customUnit, string labelText, bool showLabel = true) {
+            if (!IsFinite(customUnit) || customUnit <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(customUnit));
+            }
+            if (string.IsNullOrWhiteSpace(labelText)) {
+                throw new ArgumentException("Label text cannot be empty.", nameof(labelText));
+            }
+
+            return SetValueAxisDisplayUnitsCore(displayUnits => {
+                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
+                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
+                displayUnits.Append(new C.CustomDisplayUnit { Val = customUnit });
+            }, showLabel, labelText);
+        }
+
+        /// <summary>
+        ///     Clears display units from the value axis.
+        /// </summary>
+        public PowerPointChart ClearValueAxisDisplayUnits() {
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            C.ValueAxis? axis = plotArea.Elements<C.ValueAxis>().FirstOrDefault();
+            if (axis == null) {
+                return this;
+            }
+
+            axis.GetFirstChild<C.DisplayUnits>()?.Remove();
+            Save();
+            return this;
         }
 
         /// <summary>
@@ -1019,6 +1134,55 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
+        private PowerPointChart SetAxisGridlines<TAxis>(bool showMajor, bool showMinor, string? lineColor,
+            double? lineWidthPoints) where TAxis : OpenXmlCompositeElement {
+            ValidateAxisGridlinesStyle(lineColor, lineWidthPoints);
+
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            TAxis? axis = plotArea.Elements<TAxis>().FirstOrDefault();
+            if (axis == null) {
+                return this;
+            }
+
+            ApplyGridlines(axis, showMajor, showMinor, lineColor, lineWidthPoints);
+            Save();
+            return this;
+        }
+
+        private PowerPointChart SetValueAxisDisplayUnitsCore(Action<C.DisplayUnits> configureUnits, bool showLabel,
+            string? labelText = null) {
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            C.ValueAxis? axis = plotArea.Elements<C.ValueAxis>().FirstOrDefault();
+            if (axis == null) {
+                return this;
+            }
+
+            C.DisplayUnits displayUnits = axis.GetFirstChild<C.DisplayUnits>() ?? new C.DisplayUnits();
+            configureUnits(displayUnits);
+            ApplyDisplayUnitsLabel(displayUnits, showLabel, labelText);
+            if (displayUnits.Parent == null) {
+                OpenXmlElement? insertBefore = axis.GetFirstChild<C.ExtensionList>();
+                if (insertBefore != null) {
+                    axis.InsertBefore(displayUnits, insertBefore);
+                } else {
+                    axis.Append(displayUnits);
+                }
+            }
+
+            Save();
+            return this;
+        }
+
         private PowerPointChart SetAxisNumberFormat<TAxis>(string formatCode, bool sourceLinked, Func<TAxis, bool>? predicate = null)
             where TAxis : OpenXmlCompositeElement {
             if (string.IsNullOrWhiteSpace(formatCode)) {
@@ -1412,6 +1576,15 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        private static void ValidateAxisGridlinesStyle(string? lineColor, double? lineWidthPoints) {
+            if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
+                throw new ArgumentException("Gridline color cannot be empty.", nameof(lineColor));
+            }
+            if (lineWidthPoints != null && lineWidthPoints <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(lineWidthPoints));
+            }
+        }
+
         private static C.ChartShapeProperties EnsureChartShapeProperties(OpenXmlCompositeElement series) {
             C.ChartShapeProperties props = series.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
             if (props.Parent == null) {
@@ -1457,6 +1630,53 @@ namespace OfficeIMO.PowerPoint {
 
             if (outline.Parent == null) {
                 props.Append(outline);
+            }
+        }
+
+        private static void ApplyGridlines(OpenXmlCompositeElement axis, bool showMajor, bool showMinor,
+            string? lineColor, double? lineWidthPoints) {
+            ApplyGridline<C.MajorGridlines>(axis, showMajor, lineColor, lineWidthPoints);
+            ApplyGridline<C.MinorGridlines>(axis, showMinor, lineColor, lineWidthPoints);
+        }
+
+        private static void ApplyGridline<TGridlines>(OpenXmlCompositeElement axis, bool show,
+            string? lineColor, double? lineWidthPoints) where TGridlines : OpenXmlCompositeElement, new() {
+            TGridlines? gridlines = axis.GetFirstChild<TGridlines>();
+            if (!show) {
+                gridlines?.Remove();
+                return;
+            }
+
+            gridlines ??= new TGridlines();
+            if (lineColor != null || lineWidthPoints != null) {
+                C.ChartShapeProperties props = gridlines.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
+                ApplyOptionalLine(props, lineColor, lineWidthPoints);
+                if (props.Parent == null) {
+                    gridlines.Append(props);
+                }
+            }
+
+            if (gridlines.Parent == null) {
+                InsertAxisGridlines(axis, gridlines);
+            }
+        }
+
+        private static void ApplyDisplayUnitsLabel(C.DisplayUnits displayUnits, bool showLabel, string? labelText = null) {
+            if (!showLabel) {
+                displayUnits.GetFirstChild<C.DisplayUnitsLabel>()?.Remove();
+                return;
+            }
+
+            C.DisplayUnitsLabel label = displayUnits.GetFirstChild<C.DisplayUnitsLabel>() ?? new C.DisplayUnitsLabel();
+            if (label.GetFirstChild<C.Layout>() == null) {
+                label.Append(new C.Layout());
+            }
+            if (labelText != null) {
+                label.RemoveAllChildren<C.ChartText>();
+                label.Append(CreateChartText(labelText));
+            }
+            if (label.Parent == null) {
+                displayUnits.Append(label);
             }
         }
 
@@ -1798,6 +2018,53 @@ namespace OfficeIMO.PowerPoint {
                 axis.InsertBefore(child, insertBefore);
             } else {
                 axis.Append(child);
+            }
+        }
+
+        private static void InsertAxisGridlines<TGridlines>(OpenXmlCompositeElement axis, TGridlines gridlines)
+            where TGridlines : OpenXmlCompositeElement {
+            OpenXmlElement? insertBefore = typeof(TGridlines) == typeof(C.MajorGridlines)
+                ? axis.GetFirstChild<C.MinorGridlines>()
+                : null;
+            insertBefore ??= axis.GetFirstChild<C.Title>();
+            insertBefore ??= axis.GetFirstChild<C.NumberingFormat>();
+            insertBefore ??= axis.GetFirstChild<C.MajorTickMark>();
+            insertBefore ??= axis.GetFirstChild<C.MinorTickMark>();
+            insertBefore ??= axis.GetFirstChild<C.TickLabelPosition>();
+            insertBefore ??= axis.GetFirstChild<C.ShapeProperties>();
+            insertBefore ??= axis.GetFirstChild<C.TextProperties>();
+            insertBefore ??= axis.GetFirstChild<C.CrossingAxis>();
+            insertBefore ??= axis.GetFirstChild<C.Crosses>();
+            insertBefore ??= axis.GetFirstChild<C.CrossesAt>();
+            insertBefore ??= axis.GetFirstChild<C.AutoLabeled>();
+            insertBefore ??= axis.GetFirstChild<C.LabelAlignment>();
+            insertBefore ??= axis.GetFirstChild<C.LabelOffset>();
+            insertBefore ??= axis.GetFirstChild<C.NoMultiLevelLabels>();
+            insertBefore ??= axis.GetFirstChild<C.CrossBetween>();
+            insertBefore ??= axis.GetFirstChild<C.MajorUnit>();
+            insertBefore ??= axis.GetFirstChild<C.MinorUnit>();
+            insertBefore ??= axis.GetFirstChild<C.DisplayUnits>();
+            insertBefore ??= axis.GetFirstChild<C.ExtensionList>();
+
+            if (insertBefore != null) {
+                axis.InsertBefore(gridlines, insertBefore);
+            } else {
+                axis.Append(gridlines);
+            }
+        }
+
+        private static void ReplaceValueAxisCrossBetween(C.ValueAxis axis, C.CrossBetween crossBetween) {
+            axis.GetFirstChild<C.CrossBetween>()?.Remove();
+
+            OpenXmlElement? insertBefore = axis.GetFirstChild<C.MajorUnit>();
+            insertBefore ??= axis.GetFirstChild<C.MinorUnit>();
+            insertBefore ??= axis.GetFirstChild<C.DisplayUnits>();
+            insertBefore ??= axis.GetFirstChild<C.ExtensionList>();
+
+            if (insertBefore != null) {
+                axis.InsertBefore(crossBetween, insertBefore);
+            } else {
+                axis.Append(crossBetween);
             }
         }
 

@@ -186,6 +186,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CanSetAxisGridlines() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddChart();
+                    chart.SetCategoryAxisGridlines(showMajor: true, showMinor: false, lineColor: "D9D9D9", lineWidthPoints: 0.5)
+                        .SetValueAxisGridlines(showMajor: true, showMinor: true, lineColor: "C0C0C0", lineWidthPoints: 0.75);
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+                    C.PlotArea plotArea = chart.PlotArea!;
+
+                    C.CategoryAxis categoryAxis = plotArea.GetFirstChild<C.CategoryAxis>()!;
+                    C.MajorGridlines? categoryMajor = categoryAxis.GetFirstChild<C.MajorGridlines>();
+                    Assert.NotNull(categoryMajor);
+                    Assert.Null(categoryAxis.GetFirstChild<C.MinorGridlines>());
+
+                    C.ValueAxis valueAxis = plotArea.GetFirstChild<C.ValueAxis>()!;
+                    C.MajorGridlines? major = valueAxis.GetFirstChild<C.MajorGridlines>();
+                    C.MinorGridlines? minor = valueAxis.GetFirstChild<C.MinorGridlines>();
+                    Assert.NotNull(major);
+                    Assert.NotNull(minor);
+
+                    A.Outline? majorOutline = major!.GetFirstChild<C.ChartShapeProperties>()?
+                        .GetFirstChild<A.Outline>();
+                    Assert.Equal("C0C0C0", majorOutline?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                    Assert.Equal(9525, majorOutline?.Width?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void CanSetAxisScaleAndCrossing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
@@ -295,6 +338,71 @@ namespace OfficeIMO.Tests {
                     Assert.True(yAxisRunProps?.Italic?.Value);
                     Assert.Equal("Arial", yAxisRunProps?.GetFirstChild<A.LatinFont>()?.Typeface?.Value);
                     Assert.Equal("1F4E79", yAxisRunProps?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void CanSetValueAxisCrossBetweenAndDisplayUnits() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddChart();
+                    chart.SetValueAxisCrossBetween(C.CrossBetweenValues.Between)
+                        .SetValueAxisDisplayUnits(C.BuiltInUnitValues.Thousands, "Thousands USD", showLabel: true);
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+                    C.ValueAxis valueAxis = chart.PlotArea!.GetFirstChild<C.ValueAxis>()!;
+
+                    Assert.Equal(C.CrossBetweenValues.Between, valueAxis.GetFirstChild<C.CrossBetween>()?.Val?.Value);
+
+                    C.DisplayUnits? displayUnits = valueAxis.GetFirstChild<C.DisplayUnits>();
+                    Assert.NotNull(displayUnits);
+                    Assert.Equal(C.BuiltInUnitValues.Thousands, displayUnits!.GetFirstChild<C.BuiltInUnit>()?.Val?.Value);
+
+                    C.DisplayUnitsLabel? displayLabel = displayUnits.GetFirstChild<C.DisplayUnitsLabel>();
+                    Assert.NotNull(displayLabel);
+                    Assert.Equal("Thousands USD", displayLabel!.GetFirstChild<C.ChartText>()?.InnerText);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void CanClearValueAxisDisplayUnits() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddChart();
+                    chart.SetValueAxisDisplayUnits(C.BuiltInUnitValues.Thousands, "Thousands USD", showLabel: true)
+                        .ClearValueAxisDisplayUnits();
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+                    C.ValueAxis valueAxis = chart.PlotArea!.GetFirstChild<C.ValueAxis>()!;
+                    Assert.Null(valueAxis.GetFirstChild<C.DisplayUnits>());
                 }
             } finally {
                 if (File.Exists(filePath)) {
