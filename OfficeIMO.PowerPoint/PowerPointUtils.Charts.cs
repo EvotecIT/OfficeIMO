@@ -215,12 +215,12 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (plotArea.GetFirstChild<C.PieChart>() is C.PieChart pieChart) {
-                UpdatePieChartSeries(pieChart, data);
+                UpdatePieLikeChartSeries(pieChart, data);
                 return;
             }
 
             if (plotArea.GetFirstChild<C.DoughnutChart>() is C.DoughnutChart doughnutChart) {
-                UpdateDoughnutChartSeries(doughnutChart, data);
+                UpdatePieLikeChartSeries(doughnutChart, data);
                 return;
             }
 
@@ -680,8 +680,8 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void UpdatePieChartSeries(C.PieChart pieChart, PowerPointChartData data) {
-            List<C.PieChartSeries> existingSeries = pieChart.Elements<C.PieChartSeries>().ToList();
+        private static void UpdatePieLikeChartSeries(OpenXmlCompositeElement chart, PowerPointChartData data) {
+            List<C.PieChartSeries> existingSeries = chart.Elements<C.PieChartSeries>().ToList();
             C.PieChartSeries? template = existingSeries.LastOrDefault();
 
             int seriesCount = data.Series.Count;
@@ -691,33 +691,7 @@ namespace OfficeIMO.PowerPoint {
                     seriesElement = existingSeries[i];
                 } else {
                     seriesElement = template != null ? (C.PieChartSeries)template.CloneNode(true) : new C.PieChartSeries();
-                    InsertSeries(pieChart, seriesElement);
-                    existingSeries.Add(seriesElement);
-                }
-
-                UpdateSeriesIndexOrder(seriesElement, i);
-                UpdateSeriesText(seriesElement, i, data.Series[i].Name);
-                UpdateCategoryAxisData(seriesElement, data.Categories);
-                UpdateValues(seriesElement, i, data.Series[i].Values);
-            }
-
-            for (int i = existingSeries.Count - 1; i >= seriesCount; i--) {
-                existingSeries[i].Remove();
-            }
-        }
-
-        private static void UpdateDoughnutChartSeries(C.DoughnutChart doughnutChart, PowerPointChartData data) {
-            List<C.PieChartSeries> existingSeries = doughnutChart.Elements<C.PieChartSeries>().ToList();
-            C.PieChartSeries? template = existingSeries.LastOrDefault();
-
-            int seriesCount = data.Series.Count;
-            for (int i = 0; i < seriesCount; i++) {
-                C.PieChartSeries seriesElement;
-                if (i < existingSeries.Count) {
-                    seriesElement = existingSeries[i];
-                } else {
-                    seriesElement = template != null ? (C.PieChartSeries)template.CloneNode(true) : new C.PieChartSeries();
-                    InsertSeries(doughnutChart, seriesElement);
+                    InsertSeries(chart, seriesElement);
                     existingSeries.Add(seriesElement);
                 }
 

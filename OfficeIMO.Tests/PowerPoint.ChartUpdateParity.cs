@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
             C.BarChart barChart = plotArea.GetFirstChild<C.BarChart>()!;
 
             OpenXmlCompositeElement replacementChart = doughnut
-                ? new C.DoughnutChart(new C.VaryColors { Val = true }, new C.HoleSize { Val = 50 })
+                ? new C.DoughnutChart(new C.VaryColors { Val = true })
                 : new C.PieChart(new C.VaryColors { Val = true });
 
             foreach (C.BarChartSeries barSeries in barChart.Elements<C.BarChartSeries>()) {
@@ -93,6 +93,10 @@ namespace OfficeIMO.Tests {
 
             if (barChart.GetFirstChild<C.DataLabels>() is C.DataLabels labels) {
                 replacementChart.Append(labels.CloneNode(true));
+            }
+
+            if (doughnut) {
+                replacementChart.Append(new C.HoleSize { Val = 50 });
             }
 
             barChart.Remove();
