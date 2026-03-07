@@ -51,6 +51,26 @@ public sealed class MarkdownSyntaxNode {
         return path;
     }
 
+    /// <summary>Finds the deepest node whose source span fully contains the given span.</summary>
+    public MarkdownSyntaxNode? FindDeepestNodeContainingSpan(MarkdownSourceSpan span) {
+        if (!SourceSpan.HasValue && Children.Count == 0) return null;
+        if (SourceSpan.HasValue && !SourceSpan.Value.Contains(span)) return null;
+
+        for (int i = 0; i < Children.Count; i++) {
+            var match = Children[i].FindDeepestNodeContainingSpan(span);
+            if (match != null) return match;
+        }
+
+        return SourceSpan.HasValue ? this : null;
+    }
+
+    /// <summary>Finds the node path from this node to the deepest node whose source span fully contains the given span.</summary>
+    public IReadOnlyList<MarkdownSyntaxNode> FindNodePathContainingSpan(MarkdownSourceSpan span) {
+        var path = new List<MarkdownSyntaxNode>();
+        if (!TryBuildNodePathContainingSpan(span, path)) return Array.Empty<MarkdownSyntaxNode>();
+        return path;
+    }
+
     private bool TryBuildNodePathAtLine(int lineNumber, List<MarkdownSyntaxNode> path) {
         if (!SourceSpan.HasValue && Children.Count == 0) return false;
         if (SourceSpan.HasValue && !SourceSpan.Value.ContainsLine(lineNumber)) return false;
@@ -58,6 +78,18 @@ public sealed class MarkdownSyntaxNode {
         path.Add(this);
         for (int i = 0; i < Children.Count; i++) {
             if (Children[i].TryBuildNodePathAtLine(lineNumber, path)) return true;
+        }
+
+        return SourceSpan.HasValue;
+    }
+
+    private bool TryBuildNodePathContainingSpan(MarkdownSourceSpan span, List<MarkdownSyntaxNode> path) {
+        if (!SourceSpan.HasValue && Children.Count == 0) return false;
+        if (SourceSpan.HasValue && !SourceSpan.Value.Contains(span)) return false;
+
+        path.Add(this);
+        for (int i = 0; i < Children.Count; i++) {
+            if (Children[i].TryBuildNodePathContainingSpan(span, path)) return true;
         }
 
         return SourceSpan.HasValue;
