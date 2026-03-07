@@ -189,6 +189,42 @@ c | d
         }
 
         [Fact]
+        public void List_Item_Can_Contain_Nested_Unordered_List() {
+            string md = """
+- outer
+  - one
+  - two
+- next
+""";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Equal(2, list.Items.Count);
+            Assert.Single(list.Items[0].Children);
+            Assert.IsType<UnorderedListBlock>(list.Items[0].Children[0]);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("<li>outer<ul><li>one</li><li>two</li></ul></li>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Ordered_List_Item_Can_Contain_Nested_Ordered_List() {
+            string md = """
+1. outer
+   1. one
+   2. two
+2. next
+""";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<OrderedListBlock>(doc.Blocks[0]);
+            Assert.Equal(2, list.Items.Count);
+            Assert.Single(list.Items[0].Children);
+            Assert.IsType<OrderedListBlock>(list.Items[0].Children[0]);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("<li>outer<ol><li>one</li><li>two</li></ol></li>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void List_Item_Can_Contain_Nested_Fenced_Code_Block() {
             string md = """
 - outer
@@ -267,6 +303,25 @@ c | d
             var html = doc.ToHtmlFragment();
             Assert.Contains("<li>outer<blockquote>", html);
             Assert.Contains("quote 1", html);
+        }
+
+        [Fact]
+        public void List_Item_Can_Contain_Nested_Unordered_List_After_Nested_Blockquote() {
+            string md = """
+- item
+  > quote
+  continuation
+  - nested
+""";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Single(list.Items);
+            Assert.Contains(list.Items[0].Children, b => b is QuoteBlock);
+            Assert.Contains(list.Items[0].Children, b => b is UnorderedListBlock);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("<blockquote><p>quote continuation</p></blockquote><ul><li>nested</li></ul>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("<p>- nested</p>", html, StringComparison.Ordinal);
         }
 
         [Fact]
