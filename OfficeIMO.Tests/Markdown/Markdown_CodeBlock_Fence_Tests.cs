@@ -46,5 +46,14 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Equal(snippet, code.Content);
             Assert.Equal(markdown, parsed.ToMarkdown());
         }
+
+        [Fact]
+        public void CodeBlock_RenderHtml_Preserves_Block_Terminating_Newline() {
+            var block = new CodeBlock("text", "line 1\nline 2");
+
+            var html = ((IMarkdownBlock)block).RenderHtml();
+
+            Assert.Contains("<pre><code class=\"language-text\">line 1\nline 2\n</code></pre>", html, StringComparison.Ordinal);
+        }
     }
 }

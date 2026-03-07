@@ -33,6 +33,11 @@ public sealed class CodeBlock : IMarkdownBlock, ICaptionable {
     string IMarkdownBlock.RenderHtml() {
         string lang = string.IsNullOrEmpty(Language) ? string.Empty : $" class=\"language-{System.Net.WebUtility.HtmlEncode(Language)}\"";
         string code = System.Net.WebUtility.HtmlEncode(Content);
+        if (code.Length > 0) {
+            // CommonMark/Markdig-style HTML keeps the terminating line break inside <code>
+            // for multi-line block code, even though the stored model content does not.
+            code += "\n";
+        }
         string caption = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{System.Net.WebUtility.HtmlEncode(Caption!)}</div>";
         return $"<pre><code{lang}>{code}</code></pre>{caption}";
     }
