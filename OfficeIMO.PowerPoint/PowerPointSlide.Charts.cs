@@ -502,6 +502,30 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Adds a pie chart with default data using inch measurements.
+        /// </summary>
+        public PowerPointChart AddPieChartInches(double leftInches, double topInches, double widthInches,
+            double heightInches) {
+            return AddPieChart(
+                PowerPointUnits.FromInches(leftInches),
+                PowerPointUnits.FromInches(topInches),
+                PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches));
+        }
+
+        /// <summary>
+        ///     Adds a pie chart with default data using point measurements.
+        /// </summary>
+        public PowerPointChart AddPieChartPoints(double leftPoints, double topPoints, double widthPoints,
+            double heightPoints) {
+            return AddPieChart(
+                PowerPointUnits.FromPoints(leftPoints),
+                PowerPointUnits.FromPoints(topPoints),
+                PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints));
+        }
+
+        /// <summary>
         ///     Adds a pie chart using the supplied data.
         /// </summary>
         public PowerPointChart AddPieChart(PowerPointChartData data, long left = 0L, long top = 0L, long width = 5486400L,
@@ -514,11 +538,88 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Adds a pie chart using the supplied data with centimeter measurements.
+        /// </summary>
+        public PowerPointChart AddPieChartCm(PowerPointChartData data, double leftCm, double topCm, double widthCm,
+            double heightCm) {
+            return AddPieChart(data,
+                PowerPointUnits.FromCentimeters(leftCm),
+                PowerPointUnits.FromCentimeters(topCm),
+                PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm));
+        }
+
+        /// <summary>
+        ///     Adds a pie chart using the supplied data with inch measurements.
+        /// </summary>
+        public PowerPointChart AddPieChartInches(PowerPointChartData data, double leftInches, double topInches,
+            double widthInches, double heightInches) {
+            return AddPieChart(data,
+                PowerPointUnits.FromInches(leftInches),
+                PowerPointUnits.FromInches(topInches),
+                PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches));
+        }
+
+        /// <summary>
+        ///     Adds a pie chart using the supplied data with point measurements.
+        /// </summary>
+        public PowerPointChart AddPieChartPoints(PowerPointChartData data, double leftPoints, double topPoints,
+            double widthPoints, double heightPoints) {
+            return AddPieChart(data,
+                PowerPointUnits.FromPoints(leftPoints),
+                PowerPointUnits.FromPoints(topPoints),
+                PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints));
+        }
+
+        /// <summary>
         ///     Adds a pie chart using object data selectors.
         /// </summary>
         public PowerPointChart AddPieChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddPieChart(items, categorySelector, 0L, 0L, 5486400L, 3200400L, seriesDefinitions);
+        }
+
+        /// <summary>
+        ///     Adds a pie chart using object data selectors (centimeters).
+        /// </summary>
+        public PowerPointChart AddPieChartCm<T>(IEnumerable<T> items, Func<T, string> categorySelector, double leftCm,
+            double topCm, double widthCm, double heightCm, params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            return AddPieChart(items, categorySelector,
+                PowerPointUnits.FromCentimeters(leftCm),
+                PowerPointUnits.FromCentimeters(topCm),
+                PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm),
+                seriesDefinitions);
+        }
+
+        /// <summary>
+        ///     Adds a pie chart using object data selectors (inches).
+        /// </summary>
+        public PowerPointChart AddPieChartInches<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+            double leftInches, double topInches, double widthInches, double heightInches,
+            params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            return AddPieChart(items, categorySelector,
+                PowerPointUnits.FromInches(leftInches),
+                PowerPointUnits.FromInches(topInches),
+                PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches),
+                seriesDefinitions);
+        }
+
+        /// <summary>
+        ///     Adds a pie chart using object data selectors (points).
+        /// </summary>
+        public PowerPointChart AddPieChartPoints<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+            double leftPoints, double topPoints, double widthPoints, double heightPoints,
+            params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            return AddPieChart(items, categorySelector,
+                PowerPointUnits.FromPoints(leftPoints),
+                PowerPointUnits.FromPoints(topPoints),
+                PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints),
+                seriesDefinitions);
         }
 
         /// <summary>
@@ -557,6 +658,30 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Adds a doughnut chart with default data using inch measurements.
+        /// </summary>
+        public PowerPointChart AddDoughnutChartInches(double leftInches, double topInches, double widthInches,
+            double heightInches) {
+            return AddDoughnutChart(
+                PowerPointUnits.FromInches(leftInches),
+                PowerPointUnits.FromInches(topInches),
+                PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches));
+        }
+
+        /// <summary>
+        ///     Adds a doughnut chart with default data using point measurements.
+        /// </summary>
+        public PowerPointChart AddDoughnutChartPoints(double leftPoints, double topPoints, double widthPoints,
+            double heightPoints) {
+            return AddDoughnutChart(
+                PowerPointUnits.FromPoints(leftPoints),
+                PowerPointUnits.FromPoints(topPoints),
+                PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints));
+        }
+
+        /// <summary>
         ///     Adds a doughnut chart using the supplied data.
         /// </summary>
         public PowerPointChart AddDoughnutChart(PowerPointChartData data, long left = 0L, long top = 0L, long width = 5486400L,
@@ -569,11 +694,88 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Adds a doughnut chart using the supplied data with centimeter measurements.
+        /// </summary>
+        public PowerPointChart AddDoughnutChartCm(PowerPointChartData data, double leftCm, double topCm, double widthCm,
+            double heightCm) {
+            return AddDoughnutChart(data,
+                PowerPointUnits.FromCentimeters(leftCm),
+                PowerPointUnits.FromCentimeters(topCm),
+                PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm));
+        }
+
+        /// <summary>
+        ///     Adds a doughnut chart using the supplied data with inch measurements.
+        /// </summary>
+        public PowerPointChart AddDoughnutChartInches(PowerPointChartData data, double leftInches, double topInches,
+            double widthInches, double heightInches) {
+            return AddDoughnutChart(data,
+                PowerPointUnits.FromInches(leftInches),
+                PowerPointUnits.FromInches(topInches),
+                PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches));
+        }
+
+        /// <summary>
+        ///     Adds a doughnut chart using the supplied data with point measurements.
+        /// </summary>
+        public PowerPointChart AddDoughnutChartPoints(PowerPointChartData data, double leftPoints, double topPoints,
+            double widthPoints, double heightPoints) {
+            return AddDoughnutChart(data,
+                PowerPointUnits.FromPoints(leftPoints),
+                PowerPointUnits.FromPoints(topPoints),
+                PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints));
+        }
+
+        /// <summary>
         ///     Adds a doughnut chart using object data selectors.
         /// </summary>
         public PowerPointChart AddDoughnutChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddDoughnutChart(items, categorySelector, 0L, 0L, 5486400L, 3200400L, seriesDefinitions);
+        }
+
+        /// <summary>
+        ///     Adds a doughnut chart using object data selectors (centimeters).
+        /// </summary>
+        public PowerPointChart AddDoughnutChartCm<T>(IEnumerable<T> items, Func<T, string> categorySelector, double leftCm,
+            double topCm, double widthCm, double heightCm, params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            return AddDoughnutChart(items, categorySelector,
+                PowerPointUnits.FromCentimeters(leftCm),
+                PowerPointUnits.FromCentimeters(topCm),
+                PowerPointUnits.FromCentimeters(widthCm),
+                PowerPointUnits.FromCentimeters(heightCm),
+                seriesDefinitions);
+        }
+
+        /// <summary>
+        ///     Adds a doughnut chart using object data selectors (inches).
+        /// </summary>
+        public PowerPointChart AddDoughnutChartInches<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+            double leftInches, double topInches, double widthInches, double heightInches,
+            params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            return AddDoughnutChart(items, categorySelector,
+                PowerPointUnits.FromInches(leftInches),
+                PowerPointUnits.FromInches(topInches),
+                PowerPointUnits.FromInches(widthInches),
+                PowerPointUnits.FromInches(heightInches),
+                seriesDefinitions);
+        }
+
+        /// <summary>
+        ///     Adds a doughnut chart using object data selectors (points).
+        /// </summary>
+        public PowerPointChart AddDoughnutChartPoints<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+            double leftPoints, double topPoints, double widthPoints, double heightPoints,
+            params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
+            return AddDoughnutChart(items, categorySelector,
+                PowerPointUnits.FromPoints(leftPoints),
+                PowerPointUnits.FromPoints(topPoints),
+                PowerPointUnits.FromPoints(widthPoints),
+                PowerPointUnits.FromPoints(heightPoints),
+                seriesDefinitions);
         }
 
         /// <summary>

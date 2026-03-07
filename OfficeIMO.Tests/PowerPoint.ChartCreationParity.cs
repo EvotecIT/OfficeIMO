@@ -24,8 +24,8 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = doughnut
-                        ? slide.AddDoughnutChart(data)
-                        : slide.AddPieChart(data);
+                        ? slide.AddDoughnutChartInches(data, 1, 1, 4, 3)
+                        : slide.AddPieChartPoints(data, 72, 72, 288, 216);
 
                     chart.SetTitle(doughnut ? "Revenue Doughnut" : "Revenue Pie")
                         .SetDataLabels(showValue: true, showPercent: true)
