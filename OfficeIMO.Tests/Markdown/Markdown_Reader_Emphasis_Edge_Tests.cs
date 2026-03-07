@@ -78,5 +78,23 @@ public class Markdown_Reader_Emphasis_Edge_Tests {
         Assert.Contains("<em>foo<strong>bar</strong>baz</em>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<em>foo</em><em>bar</em><em>baz</em>", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Double_Star_Inside_Italic_Can_Rebalance_Into_Dual_Italic_When_Single_Close_Comes_First() {
+        var md = "*a **b* c**";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<em>a <em><em>b</em> c</em></em>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<em>a **b</em> c**", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Double_Underscore_Inside_Italic_Can_Rebalance_Into_Dual_Italic_When_Single_Close_Comes_First() {
+        var md = "_a __b_ c__";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<em>a <em><em>b</em> c</em></em>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<em>a __b</em> c__", html, StringComparison.Ordinal);
+    }
 }
 

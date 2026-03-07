@@ -240,7 +240,9 @@ public static partial class MarkdownReader {
                 int runLen = 1;
                 while (pos + runLen < text.Length && text[pos + runLen] == marker) runLen++;
 
-                if (ShouldTreatDelimiterRunAsLiteral(text, pos, marker, runLen, stack, out int literalRunLength)) {
+                bool splitDoubleRunIntoDualItalic = ShouldSplitDoubleRunIntoDualItalic(text, pos, marker, runLen, stack);
+
+                if (ShouldTreatDelimiterRunAsLiteral(text, pos, marker, runLen, stack, splitDoubleRunIntoDualItalic, out int literalRunLength)) {
                     Current().Text(new string(marker, literalRunLength));
                     pos += literalRunLength;
                     continue;
@@ -279,7 +281,12 @@ public static partial class MarkdownReader {
                 }
 
                 if (canOpen) {
-                    if (preferInnerBold) {
+                    if (splitDoubleRunIntoDualItalic) {
+                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }));
+                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }));
+                        remaining -= 2;
+                    }
+                    else if (preferInnerBold) {
                         stack.Push(new InlineFrame(FrameKind.Bold, marker, 2, new InlineSequence { AutoSpacing = false }));
                         remaining -= 2;
                     }
@@ -434,7 +441,7 @@ public static partial class MarkdownReader {
         return nextRun == 2;
     }
 
-    private static bool ShouldTreatDelimiterRunAsLiteral(string text, int start, char marker, int runLen, Stack<InlineFrame> stack, out int literalRunLength) {
+    private static bool ShouldTreatDelimiterRunAsLiteral(string text, int start, char marker, int runLen, Stack<InlineFrame> stack, bool splitDoubleRunIntoDualItalic, out int literalRunLength) {
         literalRunLength = 0;
         if (runLen != 2) return false;
         if (marker != '*' && marker != '_') return false;
@@ -450,6 +457,8 @@ public static partial class MarkdownReader {
             // Keep the leading triple-delimiter path available for rebalancing into <em><strong>... later.
             if (parent.Kind == FrameKind.Bold && parent.Marker == marker && parent.OpenLen == 2 && parent.Seq.Items.Count == 0) return false;
         }
+
+        if (splitDoubleRunIntoDualItalic) return false;
 
         int nextRun = FindNextDelimiterRunLength(text, start + 2, marker);
         if (nextRun != 1) return false;
@@ -500,6 +509,44 @@ public static partial class MarkdownReader {
 
         var top = stack.Peek();
         return top.Marker == marker && top.Kind == FrameKind.Italic;
+    }
+
+    private static bool ShouldSplitDoubleRunIntoDualItalic(string text, int start, char marker, int runLen, Stack<InlineFrame> stack) {
+        if (runLen != 2) return false;
+        if (marker != '*' && marker != '_') return false;
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
+        if (stack == null || stack.Count <= 1) return false;
+
+        var top = stack.Peek();
+        if (top.Kind != FrameKind.Italic || top.Marker != marker || top.OpenLen != 1) return false;
+
+        int singleClose = FindNextClosingDelimiterRunIndex(text, start + 2, marker, requiredRunLength: 1);
+        if (singleClose < 0) return false;
+
+        int doubleClose = FindNextClosingDelimiterRunIndex(text, singleClose + 1, marker, requiredRunLength: 2);
+        if (doubleClose < 0) return false;
+
+        int afterSingle = singleClose + 1;
+        return afterSingle < text.Length && char.IsWhiteSpace(text[afterSingle]);
+    }
+
+    private static int FindNextClosingDelimiterRunIndex(string text, int start, char marker, int requiredRunLength) {
+        if (string.IsNullOrEmpty(text)) return -1;
+        if (requiredRunLength <= 0) requiredRunLength = 1;
+
+        for (int i = Math.Max(0, start); i < text.Length; i++) {
+            if (text[i] != marker) continue;
+
+            int runLen = 1;
+            while (i + runLen < text.Length && text[i + runLen] == marker) runLen++;
+
+            GetDelimiterFlags(text, i, marker, runLen, out _, out bool canClose);
+            if (canClose && runLen == requiredRunLength) return i;
+
+            i += runLen - 1;
+        }
+
+        return -1;
     }
 
     private static void GetDelimiterFlags(string text, int start, char marker, int runLen, out bool canOpen, out bool canClose) {
