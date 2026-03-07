@@ -43,7 +43,7 @@ Inline:
 - Strikethrough (`~~text~~`)
 - Inline code spans (single or multi-backtick)
 - Hard breaks (from explicit line breaks / `<br>` when inline HTML is enabled)
-- Angle-bracket autolinks (`<https://...>` and `<user@example.com>`)
+- Angle-bracket autolinks (`<https://...>`, `<ftp://...>`, `<mailto:user@example.com>`, and `<user@example.com>`)
 - Literal autolinks in text: `http(s)://...`, `www.example.com`, `user@example.com` (configurable via `MarkdownReaderOptions`)
 
 Lists note:
