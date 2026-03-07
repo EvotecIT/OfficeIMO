@@ -46,6 +46,7 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
         public void CanStyleAxisTitles() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
