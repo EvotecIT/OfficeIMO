@@ -240,6 +240,12 @@ public static partial class MarkdownReader {
                 int runLen = 1;
                 while (pos + runLen < text.Length && text[pos + runLen] == marker) runLen++;
 
+                if (ShouldTreatSingleMarkerAsLiteralInsideBold(text, pos, marker, runLen, stack)) {
+                    Current().Text(marker.ToString());
+                    pos++;
+                    continue;
+                }
+
                 // Only "~~" and "==" open/close paired formatting.
                 if ((marker == '~' || marker == '=') && runLen < 2) {
                     Current().Text(marker.ToString());
@@ -407,6 +413,31 @@ public static partial class MarkdownReader {
             return true;
         }
         return false;
+    }
+
+    private static bool ShouldTreatSingleMarkerAsLiteralInsideBold(string text, int start, char marker, int runLen, Stack<InlineFrame> stack) {
+        if (runLen != 1) return false;
+        if (marker != '*' && marker != '_') return false;
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
+        if (stack == null || stack.Count <= 1) return false;
+
+        var top = stack.Peek();
+        if (top.Kind != FrameKind.Bold || top.Marker != marker || top.OpenLen != 2) return false;
+
+        int nextRun = FindNextDelimiterRunLength(text, start + 1, marker);
+        return nextRun == 2;
+    }
+
+    private static int FindNextDelimiterRunLength(string text, int start, char marker) {
+        if (string.IsNullOrEmpty(text)) return 0;
+        for (int i = Math.Max(0, start); i < text.Length; i++) {
+            if (text[i] != marker) continue;
+
+            int run = 1;
+            while (i + run < text.Length && text[i + run] == marker) run++;
+            return run;
+        }
+        return 0;
     }
 
     private static bool TryRebalanceLeadingBoldInsideItalic(Stack<InlineFrame> stack, char marker, int remaining, out int consumed) {
