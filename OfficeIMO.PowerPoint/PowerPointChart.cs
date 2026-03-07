@@ -390,6 +390,184 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets data label text style for a series by index.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelTextStyle(int seriesIndex, double? fontSizePoints = null, bool? bold = null,
+            bool? italic = null, string? color = null, string? fontName = null) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            ValidateTextStyle(fontSizePoints, color, fontName);
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                ApplyDataLabelTextStyle(EnsureDataLabels(series), fontSizePoints, bold, italic, color, fontName);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets data label text style for a series by name.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelTextStyle(string seriesName, double? fontSizePoints = null, bool? bold = null,
+            bool? italic = null, string? color = null, string? fontName = null, bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+            ValidateTextStyle(fontSizePoints, color, fontName);
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                ApplyDataLabelTextStyle(EnsureDataLabels(series), fontSizePoints, bold, italic, color, fontName);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets data label shape styling for a series by index.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelShapeStyle(int seriesIndex, string? fillColor = null, string? lineColor = null,
+            double? lineWidthPoints = null, bool noFill = false, bool noLine = false) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            ValidateAreaStyle(fillColor, lineColor, lineWidthPoints, noFill, noLine);
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                ApplyDataLabelShapeStyle(EnsureDataLabels(series), fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets data label shape styling for a series by name.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelShapeStyle(string seriesName, string? fillColor = null, string? lineColor = null,
+            double? lineWidthPoints = null, bool noFill = false, bool noLine = false, bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+            ValidateAreaStyle(fillColor, lineColor, lineWidthPoints, noFill, noLine);
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                ApplyDataLabelShapeStyle(EnsureDataLabels(series), fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Configures data label leader lines for a series by index.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelLeaderLines(int seriesIndex, bool showLeaderLines = true, string? lineColor = null,
+            double? lineWidthPoints = null) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            ValidateDataLabelLeaderLines(lineColor, lineWidthPoints);
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                ApplyDataLabelLeaderLines(EnsureDataLabels(series), showLeaderLines, lineColor, lineWidthPoints);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Configures data label leader lines for a series by name.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelLeaderLines(string seriesName, bool showLeaderLines = true, string? lineColor = null,
+            double? lineWidthPoints = null, bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+            ValidateDataLabelLeaderLines(lineColor, lineWidthPoints);
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                ApplyDataLabelLeaderLines(EnsureDataLabels(series), showLeaderLines, lineColor, lineWidthPoints);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets the data label separator for a series by index.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelSeparator(int seriesIndex, string? separator) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            if (separator != null && string.IsNullOrWhiteSpace(separator)) {
+                throw new ArgumentException("Separator cannot be empty.", nameof(separator));
+            }
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                ApplyDataLabelSeparator(EnsureDataLabels(series), separator);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets the data label separator for a series by name.
+        /// </summary>
+        public PowerPointChart SetSeriesDataLabelSeparator(string seriesName, string? separator, bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+            if (separator != null && string.IsNullOrWhiteSpace(separator)) {
+                throw new ArgumentException("Separator cannot be empty.", nameof(separator));
+            }
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                ApplyDataLabelSeparator(EnsureDataLabels(series), separator);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
         ///     Sets the category axis title.
         /// </summary>
         public PowerPointChart SetCategoryAxisTitle(string title) {
@@ -1904,7 +2082,34 @@ namespace OfficeIMO.PowerPoint {
 
         private static C.DataLabels EnsureDataLabels(OpenXmlCompositeElement chartElement) {
             C.DataLabels labels = chartElement.GetFirstChild<C.DataLabels>() ?? new C.DataLabels();
-            if (labels.Parent == null) {
+            if (labels.Parent != null) {
+                return labels;
+            }
+
+            OpenXmlElement? insertBefore;
+            if (IsSeriesElement(chartElement)) {
+                insertBefore = chartElement.GetFirstChild<C.Trendline>();
+                insertBefore ??= chartElement.GetFirstChild<C.ErrorBars>();
+                insertBefore ??= chartElement.GetFirstChild<C.CategoryAxisData>();
+                insertBefore ??= chartElement.GetFirstChild<C.Values>();
+                insertBefore ??= chartElement.GetFirstChild<C.XValues>();
+                insertBefore ??= chartElement.GetFirstChild<C.YValues>();
+                insertBefore ??= chartElement.GetFirstChild<C.BubbleSize>();
+                insertBefore ??= chartElement.GetFirstChild<C.Smooth>();
+                insertBefore ??= chartElement.GetFirstChild<C.ExtensionList>();
+            } else {
+                insertBefore = chartElement.GetFirstChild<C.GapWidth>();
+                insertBefore ??= chartElement.GetFirstChild<C.Overlap>();
+                insertBefore ??= chartElement.GetFirstChild<C.BubbleScale>();
+                insertBefore ??= chartElement.GetFirstChild<C.ShowNegativeBubbles>();
+                insertBefore ??= chartElement.GetFirstChild<C.SizeRepresents>();
+                insertBefore ??= chartElement.GetFirstChild<C.AxisId>();
+                insertBefore ??= chartElement.GetFirstChild<C.ExtensionList>();
+            }
+
+            if (insertBefore != null) {
+                chartElement.InsertBefore(labels, insertBefore);
+            } else {
                 chartElement.Append(labels);
             }
 
