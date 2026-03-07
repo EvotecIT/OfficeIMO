@@ -1227,11 +1227,25 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Clears the category axis title text style.
+        /// </summary>
+        public PowerPointChart ClearCategoryAxisTitleTextStyle() {
+            return ClearAxisTitleTextStyle<C.CategoryAxis>();
+        }
+
+        /// <summary>
         ///     Sets the value axis title text style.
         /// </summary>
         public PowerPointChart SetValueAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null,
             bool? italic = null, string? color = null, string? fontName = null) {
             return SetAxisTitleTextStyle<C.ValueAxis>(fontSizePoints, bold, italic, color, fontName);
+        }
+
+        /// <summary>
+        ///     Clears the value axis title text style.
+        /// </summary>
+        public PowerPointChart ClearValueAxisTitleTextStyle() {
+            return ClearAxisTitleTextStyle<C.ValueAxis>();
         }
 
         /// <summary>
@@ -1243,11 +1257,25 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Clears the category axis label text style.
+        /// </summary>
+        public PowerPointChart ClearCategoryAxisLabelTextStyle() {
+            return ClearAxisLabelTextStyle<C.CategoryAxis>();
+        }
+
+        /// <summary>
         ///     Sets the value axis label text style.
         /// </summary>
         public PowerPointChart SetValueAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null,
             bool? italic = null, string? color = null, string? fontName = null) {
             return SetAxisLabelTextStyle<C.ValueAxis>(fontSizePoints, bold, italic, color, fontName);
+        }
+
+        /// <summary>
+        ///     Clears the value axis label text style.
+        /// </summary>
+        public PowerPointChart ClearValueAxisLabelTextStyle() {
+            return ClearAxisLabelTextStyle<C.ValueAxis>();
         }
 
         /// <summary>
@@ -1343,6 +1371,54 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets the scatter chart X-axis title text style.
+        /// </summary>
+        public PowerPointChart SetScatterXAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null,
+            bool? italic = null, string? color = null, string? fontName = null) {
+            if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
+                return this;
+            }
+
+            return SetAxisTitleTextStyle<C.ValueAxis>(fontSizePoints, bold, italic, color, fontName,
+                axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+        }
+
+        /// <summary>
+        ///     Sets the scatter chart Y-axis title text style.
+        /// </summary>
+        public PowerPointChart SetScatterYAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null,
+            bool? italic = null, string? color = null, string? fontName = null) {
+            if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
+                return this;
+            }
+
+            return SetAxisTitleTextStyle<C.ValueAxis>(fontSizePoints, bold, italic, color, fontName,
+                axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+        }
+
+        /// <summary>
+        ///     Clears the scatter chart X-axis title text style.
+        /// </summary>
+        public PowerPointChart ClearScatterXAxisTitleTextStyle() {
+            if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
+                return this;
+            }
+
+            return ClearAxisTitleTextStyle<C.ValueAxis>(axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+        }
+
+        /// <summary>
+        ///     Clears the scatter chart Y-axis title text style.
+        /// </summary>
+        public PowerPointChart ClearScatterYAxisTitleTextStyle() {
+            if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
+                return this;
+            }
+
+            return ClearAxisTitleTextStyle<C.ValueAxis>(axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+        }
+
+        /// <summary>
         ///     Sets the scatter chart X-axis label text style.
         /// </summary>
         public PowerPointChart SetScatterXAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null,
@@ -1356,6 +1432,17 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Clears the scatter chart X-axis label text style.
+        /// </summary>
+        public PowerPointChart ClearScatterXAxisLabelTextStyle() {
+            if (!CanResolveScatterAxis(ResolveScatterXAxis)) {
+                return this;
+            }
+
+            return ClearAxisLabelTextStyle<C.ValueAxis>(axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+        }
+
+        /// <summary>
         ///     Sets the scatter chart Y-axis label text style.
         /// </summary>
         public PowerPointChart SetScatterYAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null,
@@ -1366,6 +1453,17 @@ namespace OfficeIMO.PowerPoint {
 
             return SetAxisLabelTextStyle<C.ValueAxis>(fontSizePoints, bold, italic, color, fontName,
                 axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+        }
+
+        /// <summary>
+        ///     Clears the scatter chart Y-axis label text style.
+        /// </summary>
+        public PowerPointChart ClearScatterYAxisLabelTextStyle() {
+            if (!CanResolveScatterAxis(ResolveScatterYAxis)) {
+                return this;
+            }
+
+            return ClearAxisLabelTextStyle<C.ValueAxis>(axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
         }
 
         /// <summary>
@@ -2256,13 +2354,13 @@ namespace OfficeIMO.PowerPoint {
             }
 
             axis.RemoveAllChildren<C.Title>();
-            axis.Append(CreateAxisTitle(title));
+            InsertAxisTitle(axis, CreateAxisTitle(title));
             Save();
             return this;
         }
 
         private PowerPointChart SetAxisTitleTextStyle<TAxis>(double? fontSizePoints, bool? bold, bool? italic,
-            string? color, string? fontName) where TAxis : OpenXmlCompositeElement {
+            string? color, string? fontName, Func<TAxis, bool>? predicate = null) where TAxis : OpenXmlCompositeElement {
             ValidateTextStyle(fontSizePoints, color, fontName);
 
             C.Chart chart = GetChart();
@@ -2271,7 +2369,9 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            TAxis? axis = plotArea.Elements<TAxis>().FirstOrDefault();
+            TAxis? axis = predicate == null
+                ? plotArea.Elements<TAxis>().FirstOrDefault()
+                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
             if (axis == null) {
                 return this;
             }
@@ -2287,6 +2387,34 @@ namespace OfficeIMO.PowerPoint {
             }
 
             ApplyTextStyle(EnsureChartTextRunProperties(chartText), fontSizePoints, bold, italic, color, fontName);
+            Save();
+            return this;
+        }
+
+        private PowerPointChart ClearAxisTitleTextStyle<TAxis>(Func<TAxis, bool>? predicate = null)
+            where TAxis : OpenXmlCompositeElement {
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            TAxis? axis = predicate == null
+                ? plotArea.Elements<TAxis>().FirstOrDefault()
+                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
+            if (axis == null) {
+                return this;
+            }
+
+            C.ChartText? chartText = axis.GetFirstChild<C.Title>()?.GetFirstChild<C.ChartText>();
+            if (chartText == null) {
+                return this;
+            }
+
+            foreach (A.RunProperties runProps in chartText.Descendants<A.RunProperties>()) {
+                ClearTextStyle(runProps);
+            }
+
             Save();
             return this;
         }
@@ -2309,6 +2437,35 @@ namespace OfficeIMO.PowerPoint {
             }
 
             ApplyTextStyle(EnsureTextPropertiesRunProperties(axis), fontSizePoints, bold, italic, color, fontName);
+            Save();
+            return this;
+        }
+
+        private PowerPointChart ClearAxisLabelTextStyle<TAxis>(Func<TAxis, bool>? predicate = null)
+            where TAxis : OpenXmlCompositeElement {
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            TAxis? axis = predicate == null
+                ? plotArea.Elements<TAxis>().FirstOrDefault()
+                : plotArea.Elements<TAxis>().FirstOrDefault(predicate);
+            if (axis == null) {
+                return this;
+            }
+
+            A.DefaultRunProperties? runProps = axis
+                .GetFirstChild<C.TextProperties>()?
+                .GetFirstChild<A.Paragraph>()?
+                .GetFirstChild<A.ParagraphProperties>()?
+                .GetFirstChild<A.DefaultRunProperties>();
+            if (runProps == null) {
+                return this;
+            }
+
+            ClearTextStyle(runProps);
             Save();
             return this;
         }
@@ -3582,6 +3739,34 @@ namespace OfficeIMO.PowerPoint {
 
             return runProps;
         }
+
+        private static void InsertAxisTitle(OpenXmlCompositeElement axis, C.Title title) {
+            OpenXmlElement? insertBefore = axis.GetFirstChild<C.NumberingFormat>();
+            insertBefore ??= axis.GetFirstChild<C.MajorTickMark>();
+            insertBefore ??= axis.GetFirstChild<C.MinorTickMark>();
+            insertBefore ??= axis.GetFirstChild<C.TickLabelPosition>();
+            insertBefore ??= axis.GetFirstChild<C.ChartShapeProperties>();
+            insertBefore ??= axis.GetFirstChild<C.TextProperties>();
+            insertBefore ??= axis.GetFirstChild<C.CrossingAxis>();
+            insertBefore ??= axis.GetFirstChild<C.Crosses>();
+            insertBefore ??= axis.GetFirstChild<C.CrossesAt>();
+            insertBefore ??= axis.GetFirstChild<C.AutoLabeled>();
+            insertBefore ??= axis.GetFirstChild<C.LabelAlignment>();
+            insertBefore ??= axis.GetFirstChild<C.LabelOffset>();
+            insertBefore ??= axis.GetFirstChild<C.NoMultiLevelLabels>();
+            insertBefore ??= axis.GetFirstChild<C.CrossBetween>();
+            insertBefore ??= axis.GetFirstChild<C.MajorUnit>();
+            insertBefore ??= axis.GetFirstChild<C.MinorUnit>();
+            insertBefore ??= axis.GetFirstChild<C.DisplayUnits>();
+            insertBefore ??= axis.GetFirstChild<C.ExtensionList>();
+
+            if (insertBefore != null) {
+                axis.InsertBefore(title, insertBefore);
+            } else {
+                axis.Append(title);
+            }
+        }
+
         private static A.RunProperties EnsureChartTextRunProperties(C.ChartText chartText) {
             C.RichText richText = chartText.GetFirstChild<C.RichText>() ?? new C.RichText();
             if (richText.GetFirstChild<A.BodyProperties>() == null) {

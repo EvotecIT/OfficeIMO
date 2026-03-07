@@ -100,6 +100,84 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CanClearAxisTitleStyles() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddChart();
+                    chart.SetCategoryAxisTitle("Quarter")
+                        .SetCategoryAxisTitleTextStyle(fontSizePoints: 11, bold: true, color: "1F4E79", fontName: "Calibri")
+                        .SetValueAxisTitle("Revenue")
+                        .SetValueAxisTitleTextStyle(fontSizePoints: 10, italic: true, color: "C55A11", fontName: "Arial")
+                        .ClearCategoryAxisTitleTextStyle()
+                        .ClearValueAxisTitleTextStyle();
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+
+                    string? categoryTitle = chart.PlotArea!
+                        .GetFirstChild<C.CategoryAxis>()?
+                        .GetFirstChild<C.Title>()?
+                        .GetFirstChild<C.ChartText>()?
+                        .GetFirstChild<C.RichText>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.Run>()?
+                        .GetFirstChild<A.Text>()?
+                        .Text;
+                    Assert.Equal("Quarter", categoryTitle);
+
+                    A.RunProperties? categoryRunProps = chart.PlotArea!
+                        .GetFirstChild<C.CategoryAxis>()?
+                        .GetFirstChild<C.Title>()?
+                        .GetFirstChild<C.ChartText>()?
+                        .GetFirstChild<C.RichText>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.Run>()?
+                        .GetFirstChild<A.RunProperties>();
+                    Assert.Null(categoryRunProps?.FontSize?.Value);
+                    Assert.Null(categoryRunProps?.Bold?.Value);
+                    Assert.Null(categoryRunProps?.GetFirstChild<A.LatinFont>());
+                    Assert.Null(categoryRunProps?.GetFirstChild<A.SolidFill>());
+
+                    string? valueTitle = chart.PlotArea!
+                        .GetFirstChild<C.ValueAxis>()?
+                        .GetFirstChild<C.Title>()?
+                        .GetFirstChild<C.ChartText>()?
+                        .GetFirstChild<C.RichText>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.Run>()?
+                        .GetFirstChild<A.Text>()?
+                        .Text;
+                    Assert.Equal("Revenue", valueTitle);
+
+                    A.RunProperties? valueRunProps = chart.PlotArea!
+                        .GetFirstChild<C.ValueAxis>()?
+                        .GetFirstChild<C.Title>()?
+                        .GetFirstChild<C.ChartText>()?
+                        .GetFirstChild<C.RichText>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.Run>()?
+                        .GetFirstChild<A.RunProperties>();
+                    Assert.Null(valueRunProps?.FontSize?.Value);
+                    Assert.Null(valueRunProps?.Italic?.Value);
+                    Assert.Null(valueRunProps?.GetFirstChild<A.LatinFont>());
+                    Assert.Null(valueRunProps?.GetFirstChild<A.SolidFill>());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void CanStyleAxisLabels() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
@@ -139,6 +217,56 @@ namespace OfficeIMO.Tests {
                     Assert.True(valueRunProps?.Italic?.Value);
                     Assert.Equal("Arial", valueRunProps?.GetFirstChild<A.LatinFont>()?.Typeface?.Value);
                     Assert.Equal("1F4E79", valueRunProps?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void CanClearAxisLabelStyles() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddChart();
+                    chart.SetCategoryAxisLabelTextStyle(fontSizePoints: 9, bold: true, color: "404040", fontName: "Calibri")
+                        .SetValueAxisLabelTextStyle(fontSizePoints: 10, italic: true, color: "1F4E79", fontName: "Arial")
+                        .ClearCategoryAxisLabelTextStyle()
+                        .ClearValueAxisLabelTextStyle();
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+
+                    A.DefaultRunProperties? categoryRunProps = chart.PlotArea!
+                        .GetFirstChild<C.CategoryAxis>()?
+                        .GetFirstChild<C.TextProperties>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.ParagraphProperties>()?
+                        .GetFirstChild<A.DefaultRunProperties>();
+                    Assert.Null(categoryRunProps?.FontSize?.Value);
+                    Assert.Null(categoryRunProps?.Bold?.Value);
+                    Assert.Null(categoryRunProps?.GetFirstChild<A.LatinFont>());
+                    Assert.Null(categoryRunProps?.GetFirstChild<A.SolidFill>());
+
+                    A.DefaultRunProperties? valueRunProps = chart.PlotArea!
+                        .GetFirstChild<C.ValueAxis>()?
+                        .GetFirstChild<C.TextProperties>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.ParagraphProperties>()?
+                        .GetFirstChild<A.DefaultRunProperties>();
+                    Assert.Null(valueRunProps?.FontSize?.Value);
+                    Assert.Null(valueRunProps?.Italic?.Value);
+                    Assert.Null(valueRunProps?.GetFirstChild<A.LatinFont>());
+                    Assert.Null(valueRunProps?.GetFirstChild<A.SolidFill>());
                 }
             } finally {
                 if (File.Exists(filePath)) {
@@ -338,6 +466,107 @@ namespace OfficeIMO.Tests {
                     Assert.True(yAxisRunProps?.Italic?.Value);
                     Assert.Equal("Arial", yAxisRunProps?.GetFirstChild<A.LatinFont>()?.Typeface?.Value);
                     Assert.Equal("1F4E79", yAxisRunProps?.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void CanStyleAndClearScatterAxisText() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddScatterChart();
+                    chart.SetScatterXAxisTitle("Month")
+                        .SetScatterYAxisTitle("Revenue")
+                        .SetScatterXAxisTitleTextStyle(fontSizePoints: 11, bold: true, color: "1F4E79", fontName: "Calibri")
+                        .SetScatterYAxisTitleTextStyle(fontSizePoints: 10, italic: true, color: "C55A11", fontName: "Arial")
+                        .SetScatterXAxisLabelTextStyle(fontSizePoints: 9, bold: true, color: "404040", fontName: "Calibri")
+                        .SetScatterYAxisLabelTextStyle(fontSizePoints: 10, italic: true, color: "1F4E79", fontName: "Arial")
+                        .ClearScatterXAxisTitleTextStyle()
+                        .ClearScatterYAxisTitleTextStyle()
+                        .ClearScatterXAxisLabelTextStyle()
+                        .ClearScatterYAxisLabelTextStyle();
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.Chart chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+                    C.ValueAxis[] axes = chart.PlotArea!
+                        .Elements<C.ValueAxis>()
+                        .ToArray();
+                    Assert.Equal(2, axes.Length);
+
+                    C.ValueAxis xAxis = axes.Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Bottom);
+                    C.ValueAxis yAxis = axes.Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Left);
+
+                    string? xAxisTitle = xAxis.GetFirstChild<C.Title>()?
+                        .GetFirstChild<C.ChartText>()?
+                        .GetFirstChild<C.RichText>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.Run>()?
+                        .GetFirstChild<A.Text>()?
+                        .Text;
+                    Assert.Equal("Month", xAxisTitle);
+
+                    A.RunProperties? xAxisTitleRunProps = xAxis.GetFirstChild<C.Title>()?
+                        .GetFirstChild<C.ChartText>()?
+                        .GetFirstChild<C.RichText>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.Run>()?
+                        .GetFirstChild<A.RunProperties>();
+                    Assert.Null(xAxisTitleRunProps?.FontSize?.Value);
+                    Assert.Null(xAxisTitleRunProps?.Bold?.Value);
+                    Assert.Null(xAxisTitleRunProps?.GetFirstChild<A.LatinFont>());
+                    Assert.Null(xAxisTitleRunProps?.GetFirstChild<A.SolidFill>());
+
+                    string? yAxisTitle = yAxis.GetFirstChild<C.Title>()?
+                        .GetFirstChild<C.ChartText>()?
+                        .GetFirstChild<C.RichText>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.Run>()?
+                        .GetFirstChild<A.Text>()?
+                        .Text;
+                    Assert.Equal("Revenue", yAxisTitle);
+
+                    A.RunProperties? yAxisTitleRunProps = yAxis.GetFirstChild<C.Title>()?
+                        .GetFirstChild<C.ChartText>()?
+                        .GetFirstChild<C.RichText>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.Run>()?
+                        .GetFirstChild<A.RunProperties>();
+                    Assert.Null(yAxisTitleRunProps?.FontSize?.Value);
+                    Assert.Null(yAxisTitleRunProps?.Italic?.Value);
+                    Assert.Null(yAxisTitleRunProps?.GetFirstChild<A.LatinFont>());
+                    Assert.Null(yAxisTitleRunProps?.GetFirstChild<A.SolidFill>());
+
+                    A.DefaultRunProperties? xAxisLabelRunProps = xAxis
+                        .GetFirstChild<C.TextProperties>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.ParagraphProperties>()?
+                        .GetFirstChild<A.DefaultRunProperties>();
+                    Assert.Null(xAxisLabelRunProps?.FontSize?.Value);
+                    Assert.Null(xAxisLabelRunProps?.Bold?.Value);
+                    Assert.Null(xAxisLabelRunProps?.GetFirstChild<A.LatinFont>());
+                    Assert.Null(xAxisLabelRunProps?.GetFirstChild<A.SolidFill>());
+
+                    A.DefaultRunProperties? yAxisLabelRunProps = yAxis
+                        .GetFirstChild<C.TextProperties>()?
+                        .GetFirstChild<A.Paragraph>()?
+                        .GetFirstChild<A.ParagraphProperties>()?
+                        .GetFirstChild<A.DefaultRunProperties>();
+                    Assert.Null(yAxisLabelRunProps?.FontSize?.Value);
+                    Assert.Null(yAxisLabelRunProps?.Italic?.Value);
+                    Assert.Null(yAxisLabelRunProps?.GetFirstChild<A.LatinFont>());
+                    Assert.Null(yAxisLabelRunProps?.GetFirstChild<A.SolidFill>());
                 }
             } finally {
                 if (File.Exists(filePath)) {
