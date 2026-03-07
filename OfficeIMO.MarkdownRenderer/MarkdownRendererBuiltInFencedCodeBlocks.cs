@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text;
 using OfficeIMO.Markdown;
 
@@ -11,6 +12,7 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
 
         options.FencedCodeBlockRenderers.Add(CreateChartRenderer());
         options.FencedCodeBlockRenderers.Add(CreateNetworkRenderer());
+        options.FencedCodeBlockRenderers.Add(CreateDataViewRenderer());
     }
 
     private static MarkdownFencedCodeBlockRenderer CreateChartRenderer() {
@@ -35,6 +37,13 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
         };
     }
 
+    private static MarkdownFencedCodeBlockRenderer CreateDataViewRenderer() {
+        return new MarkdownFencedCodeBlockRenderer(
+            "Built-in IX dataview",
+            new[] { "ix-dataview" },
+            (match, _) => TryBuildDataViewHtml(match.RawContent));
+    }
+
     private static string BuildNativeVisualHtml(string elementName, string cssClass, string visualKind, string language, string hashAttribute, string configAttribute, string rawContent) {
         var raw = rawContent ?? string.Empty;
         var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(raw));
@@ -45,6 +54,105 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
         var encodedHash = System.Net.WebUtility.HtmlEncode(hash);
         var encodedBase64 = System.Net.WebUtility.HtmlEncode(base64);
         return $"<{elementName} class=\"{encodedClass}\" data-omd-visual-contract=\"v1\" data-omd-visual-kind=\"{encodedKind}\" data-omd-fence-language=\"{encodedLanguage}\" data-omd-visual-hash=\"{encodedHash}\" data-omd-config-format=\"json\" data-omd-config-encoding=\"base64-utf8\" data-omd-config-b64=\"{encodedBase64}\" {hashAttribute}=\"{encodedHash}\" {configAttribute}=\"{encodedBase64}\"></{elementName}>";
+    }
+
+    private static string? TryBuildDataViewHtml(string? rawContent) {
+        if (string.IsNullOrWhiteSpace(rawContent)) {
+            return null;
+        }
+
+        try {
+            var raw = rawContent!;
+            using var doc = JsonDocument.Parse(raw);
+            var root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object) {
+                return null;
+            }
+
+            if (!root.TryGetProperty("rows", out var rowsElement) || rowsElement.ValueKind != JsonValueKind.Array) {
+                return null;
+            }
+
+            var rows = new List<IReadOnlyList<string>>();
+            foreach (var rowElement in rowsElement.EnumerateArray()) {
+                if (rowElement.ValueKind != JsonValueKind.Array) {
+                    return null;
+                }
+
+                var row = new List<string>();
+                foreach (var cellElement in rowElement.EnumerateArray()) {
+                    row.Add(ReadJsonScalar(cellElement));
+                }
+
+                rows.Add(row);
+            }
+
+            if (rows.Count == 0) {
+                return null;
+            }
+
+            var kind = root.TryGetProperty("kind", out var kindElement) ? kindElement.GetString() : null;
+            var callId = root.TryGetProperty("call_id", out var callIdElement) ? callIdElement.GetString() : null;
+
+            return BuildDataViewHtml(rows, kind, callId);
+        } catch (JsonException) {
+            return null;
+        }
+    }
+
+    private static string BuildDataViewHtml(IReadOnlyList<IReadOnlyList<string>> rows, string? kind, string? callId) {
+        var sb = new StringBuilder();
+        sb.Append("<div class=\"omd-dataview\"");
+        if (!string.IsNullOrWhiteSpace(kind)) {
+            sb.Append(" data-ix-kind=\"")
+              .Append(System.Net.WebUtility.HtmlEncode(kind))
+              .Append('"');
+        }
+        if (!string.IsNullOrWhiteSpace(callId)) {
+            sb.Append(" data-ix-call-id=\"")
+              .Append(System.Net.WebUtility.HtmlEncode(callId))
+              .Append('"');
+        }
+        sb.Append("><table class=\"omd-dataview-table\">");
+
+        var headers = rows[0];
+        sb.Append("<thead><tr>");
+        for (int i = 0; i < headers.Count; i++) {
+            sb.Append("<th>")
+              .Append(System.Net.WebUtility.HtmlEncode(headers[i] ?? string.Empty))
+              .Append("</th>");
+        }
+        sb.Append("</tr></thead>");
+
+        if (rows.Count > 1) {
+            sb.Append("<tbody>");
+            for (int rowIndex = 1; rowIndex < rows.Count; rowIndex++) {
+                var row = rows[rowIndex];
+                sb.Append("<tr>");
+                for (int cellIndex = 0; cellIndex < headers.Count; cellIndex++) {
+                    var cellValue = cellIndex < row.Count ? row[cellIndex] : string.Empty;
+                    sb.Append("<td>")
+                      .Append(System.Net.WebUtility.HtmlEncode(cellValue ?? string.Empty))
+                      .Append("</td>");
+                }
+                sb.Append("</tr>");
+            }
+            sb.Append("</tbody>");
+        }
+
+        sb.Append("</table></div>");
+        return sb.ToString();
+    }
+
+    private static string ReadJsonScalar(JsonElement element) {
+        return element.ValueKind switch {
+            JsonValueKind.String => element.GetString() ?? string.Empty,
+            JsonValueKind.Number => element.GetRawText(),
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            JsonValueKind.Null => string.Empty,
+            _ => element.GetRawText()
+        };
     }
 
     private static string? BuildNetworkShellHeadHtml(MarkdownRendererOptions options, AssetMode assetMode) {
