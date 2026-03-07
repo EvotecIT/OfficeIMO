@@ -23,6 +23,14 @@ public readonly struct MarkdownSourceSpan {
         return lineNumber >= StartLine && lineNumber <= EndLine;
     }
 
+    /// <summary>Returns true when this span fully contains the given span.</summary>
+    public bool Contains(MarkdownSourceSpan other) =>
+        other.StartLine >= StartLine && other.EndLine <= EndLine;
+
+    /// <summary>Returns true when this span overlaps the given span.</summary>
+    public bool Overlaps(MarkdownSourceSpan other) =>
+        other.EndLine >= StartLine && other.StartLine <= EndLine;
+
     /// <inheritdoc />
     public override string ToString() => StartLine == EndLine
         ? $"L{StartLine}"

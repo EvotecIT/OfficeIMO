@@ -19,4 +19,10 @@ public sealed class MarkdownParseResult {
 
     /// <summary>Finds the syntax node path from the document root to the deepest node containing the given 1-based line number.</summary>
     public IReadOnlyList<MarkdownSyntaxNode> FindNodePathAtLine(int lineNumber) => SyntaxTree.FindNodePathAtLine(lineNumber);
+
+    /// <summary>Finds the deepest syntax node whose source span fully contains the given span.</summary>
+    public MarkdownSyntaxNode? FindDeepestNodeContainingSpan(MarkdownSourceSpan span) => SyntaxTree.FindDeepestNodeContainingSpan(span);
+
+    /// <summary>Finds the syntax node path from the document root to the deepest node whose source span fully contains the given span.</summary>
+    public IReadOnlyList<MarkdownSyntaxNode> FindNodePathContainingSpan(MarkdownSourceSpan span) => SyntaxTree.FindNodePathContainingSpan(span);
 }

@@ -513,6 +513,34 @@ Paragraph
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Finds_Deepest_Node_By_Span() {
+        var markdown = """
+> [!TIP] Title
+> - item
+>   continued
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var deepest = result.FindDeepestNodeContainingSpan(new MarkdownSourceSpan(2, 3));
+        Assert.NotNull(deepest);
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, deepest!.Kind);
+        Assert.Equal("item continued", deepest.Literal);
+
+        var path = result.FindNodePathContainingSpan(new MarkdownSourceSpan(2, 3)).Select(node => node.Kind).ToArray();
+        Assert.Equal(new[] {
+            MarkdownSyntaxKind.Document,
+            MarkdownSyntaxKind.Callout,
+            MarkdownSyntaxKind.UnorderedList,
+            MarkdownSyntaxKind.ListItem,
+            MarkdownSyntaxKind.Paragraph
+        }, path);
+
+        Assert.Null(result.FindDeepestNodeContainingSpan(new MarkdownSourceSpan(50, 51)));
+        Assert.Empty(result.FindNodePathContainingSpan(new MarkdownSourceSpan(50, 51)));
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Preserves_Existing_Object_Model_Output() {
         var markdown = """
 > quote
