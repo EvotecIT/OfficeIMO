@@ -13,4 +13,10 @@ public sealed class MarkdownParseResult {
         Document = document;
         SyntaxTree = syntaxTree;
     }
+
+    /// <summary>Finds the deepest syntax node whose source span contains the given 1-based line number.</summary>
+    public MarkdownSyntaxNode? FindDeepestNodeAtLine(int lineNumber) => SyntaxTree.FindDeepestNodeAtLine(lineNumber);
+
+    /// <summary>Finds the syntax node path from the document root to the deepest node containing the given 1-based line number.</summary>
+    public IReadOnlyList<MarkdownSyntaxNode> FindNodePathAtLine(int lineNumber) => SyntaxTree.FindNodePathAtLine(lineNumber);
 }

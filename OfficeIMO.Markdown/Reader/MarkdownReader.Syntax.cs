@@ -2,7 +2,7 @@ namespace OfficeIMO.Markdown;
 
 public static partial class MarkdownReader {
     private static MarkdownSyntaxNode BuildDocumentSyntaxTree(IReadOnlyList<MarkdownSyntaxNode> children) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.Document, children: children);
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.Document, GetAggregateSpan(children), children: children);
 
     private static void CaptureSyntaxNodes(MarkdownDoc doc, int previousBlockCount, int startLine, int endExclusiveLine, List<MarkdownSyntaxNode> nodes) {
         int start = startLine + 1;
