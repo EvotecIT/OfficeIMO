@@ -80,6 +80,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void InternalLink_LocationString_ResolvesExistingSanitizedSheetName() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                var main = doc.AddWorkSheet("Main");
+                var target = doc.AddWorkSheet("Summary??");
+
+                main.SetInternalLink(1, 1, "Summary??!A1", style: false);
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(main)!;
+                var links = wsPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
+                Assert.NotNull(links);
+                var hl = links!.Elements<Hyperlink>().Single();
+                Assert.Equal($"'{target.Name}'!A1", hl.Location!.Value);
+            }
+            File.Delete(path);
+        }
+
+        [Fact]
+        public void InternalLink_LocationString_PreservesExternalWorkbookReference() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                var main = doc.AddWorkSheet("Main");
+
+                main.SetInternalLink(1, 1, "'[Other.xlsx]Summary'!A1", style: false);
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(main)!;
+                var links = wsPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
+                Assert.NotNull(links);
+                var hl = links!.Elements<Hyperlink>().Single();
+                Assert.Equal("'[Other.xlsx]Summary'!A1", hl.Location!.Value);
+            }
+            File.Delete(path);
+        }
+
+        [Fact]
         public void LinkCellsToInternalSheets_EscapesSpacesAndQuotes() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {

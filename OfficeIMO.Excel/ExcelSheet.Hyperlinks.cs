@@ -73,8 +73,9 @@ namespace OfficeIMO.Excel {
         /// <param name="style">When true, applies hyperlink styling (blue + underline).</param>
         public void SetInternalLink(int row, int column, string location, string? display = null, bool style = true) {
             if (string.IsNullOrWhiteSpace(location)) throw new ArgumentNullException(nameof(location));
+            string normalizedLocation = SheetNameLookup.NormalizeExistingInternalLocation(_excelDocument.Sheets, location);
             WriteLock(() => {
-                string text = string.IsNullOrEmpty(display) ? location : display!;
+                string text = string.IsNullOrEmpty(display) ? normalizedLocation : display!;
                 CellValueCore(row, column, text);
                 var reference = GetColumnName(column) + row.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 var ws = _worksheetPart.Worksheet;
@@ -86,7 +87,7 @@ namespace OfficeIMO.Excel {
                 } else {
                     RemoveHyperlinksByReference(hyperlinks, reference);
                 }
-                var hl = new Hyperlink { Reference = reference, Location = location };
+                var hl = new Hyperlink { Reference = reference, Location = normalizedLocation };
                 hyperlinks.Append(hl);
                 // Defer save to caller; final document Save() will persist
                 var cell = GetCell(row, column);
