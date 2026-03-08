@@ -267,7 +267,9 @@ namespace OfficeIMO.Visio {
                                 connector.LineWeight = ParseDouble(v);
                                 break;
                             case "LinePattern":
-                                if (int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out int cpat)) connector.LinePattern = cpat;
+                                if (TryParseCellIntValue(v, out int connectorLinePattern)) {
+                                    connector.LinePattern = connectorLinePattern;
+                                }
                                 break;
                             case "LineColor":
                                 if (!string.IsNullOrEmpty(v)) connector.LineColor = VisioHelpers.FromVisioColor(v!);
@@ -382,13 +384,13 @@ namespace OfficeIMO.Visio {
                         lineWeightFound = true;
                         break;
                     case "LinePattern":
-                        if (int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out int lp)) {
-                            shape.LinePattern = lp;
+                        if (TryParseCellIntValue(v, out int linePattern)) {
+                            shape.LinePattern = linePattern;
                         }
                         break;
                     case "FillPattern":
-                        if (int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out int fp)) {
-                            shape.FillPattern = fp;
+                        if (TryParseCellIntValue(v, out int fillPattern)) {
+                            shape.FillPattern = fillPattern;
                         }
                         break;
                     case "LineColor":
