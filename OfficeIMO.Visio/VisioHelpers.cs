@@ -33,6 +33,13 @@ namespace OfficeIMO.Visio {
         public static Color FromVisioColor(string value) {
             if (string.IsNullOrWhiteSpace(value)) return Color.Black;
             value = value.Trim();
+            if (int.TryParse(value, out int paletteIndex)) {
+                return paletteIndex switch {
+                    0 => Color.Black,
+                    1 => Color.White,
+                    _ => Color.Black
+                };
+            }
             if (value.StartsWith("#") && value.Length == 7) {
                 var r = System.Convert.ToByte(value.Substring(1, 2), 16);
                 var g = System.Convert.ToByte(value.Substring(3, 2), 16);
