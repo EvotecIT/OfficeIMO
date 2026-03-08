@@ -740,7 +740,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double numericValue)) {
-                int integerValue = Convert.ToInt32(numericValue, CultureInfo.InvariantCulture);
+                int integerValue = Convert.ToInt32(numericValue);
                 if (Math.Abs(numericValue - integerValue) <= 1e-9) {
                     result = integerValue;
                     return true;
@@ -760,7 +760,6 @@ namespace OfficeIMO.Visio {
             if (normalized.Length == 0) {
                 return null;
             }
-
             while (normalized.StartsWith("GUARD(", StringComparison.OrdinalIgnoreCase) && normalized.EndsWith(")", StringComparison.Ordinal)) {
                 normalized = normalized.Substring(6, normalized.Length - 7).Trim();
             }
