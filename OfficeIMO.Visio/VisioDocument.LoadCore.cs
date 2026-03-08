@@ -272,7 +272,7 @@ namespace OfficeIMO.Visio {
                                 }
                                 break;
                             case "LineColor":
-                                if (!string.IsNullOrEmpty(v)) connector.LineColor = VisioHelpers.FromVisioColor(v!);
+                                connector.LineColor = ParseColor(v, connector.LineColor);
                                 break;
                         }
                     }
@@ -299,6 +299,11 @@ namespace OfficeIMO.Visio {
         private static double ParseDouble(string? value) {
             string? normalized = NormalizeCellLiteral(value);
             return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0;
+        }
+
+        private static SixLabors.ImageSharp.Color ParseColor(string? value, SixLabors.ImageSharp.Color fallback) {
+            string? normalized = NormalizeCellLiteral(value);
+            return string.IsNullOrWhiteSpace(normalized) ? fallback : VisioHelpers.FromVisioColor(normalized!);
         }
 
         private static VisioShape ParseShape(XElement shapeElement, XNamespace ns, VisioShape? parent = null, int depth = 0) {
@@ -394,14 +399,10 @@ namespace OfficeIMO.Visio {
                         }
                         break;
                     case "LineColor":
-                        if (!string.IsNullOrEmpty(v)) {
-                            shape.LineColor = VisioHelpers.FromVisioColor(v!);
-                        }
+                        shape.LineColor = ParseColor(v, shape.LineColor);
                         break;
                     case "FillForegnd":
-                        if (!string.IsNullOrEmpty(v)) {
-                            shape.FillColor = VisioHelpers.FromVisioColor(v!);
-                        }
+                        shape.FillColor = ParseColor(v, shape.FillColor);
                         break;
                 }
             }
