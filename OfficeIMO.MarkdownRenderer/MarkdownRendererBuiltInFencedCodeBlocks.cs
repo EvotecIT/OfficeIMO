@@ -62,9 +62,10 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
         }
 
         try {
-            using var document = JsonDocument.Parse(rawContent!);
+            var raw = rawContent!;
+            using var document = JsonDocument.Parse(raw);
             var root = document.RootElement;
-            var payloadHash = MarkdownRenderer.ComputeShortHash(rawContent.TrimEnd('\r', '\n'));
+            var payloadHash = MarkdownRenderer.ComputeShortHash(raw.TrimEnd('\r', '\n'));
             if (root.ValueKind != JsonValueKind.Object) {
                 return null;
             }
