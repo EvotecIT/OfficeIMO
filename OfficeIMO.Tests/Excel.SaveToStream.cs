@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_Save_ToLockedPath_PreservesExistingFile_AndKeepsDocumentUsable() {
+        public void Test_Save_ToReadOnlyPath_PreservesExistingFile_AndKeepsDocumentUsable() {
             string sourcePath = Path.Combine(_directoryWithFiles, "SaveToLockedPath.Source.xlsx");
             string destinationPath = Path.Combine(_directoryWithFiles, "SaveToLockedPath.Destination.xlsx");
 
@@ -135,12 +135,14 @@ namespace OfficeIMO.Tests {
                     existing.Save(destinationPath, openExcel: false);
                 }
 
+                var destinationFile = new FileInfo(destinationPath);
+                destinationFile.IsReadOnly = true;
+
                 using var document = ExcelDocument.Create(sourcePath);
                 document.AddWorkSheet("Updated");
 
-                using (var lockedDestination = new FileStream(destinationPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) {
-                    Assert.Throws<IOException>(() => document.Save(destinationPath, openExcel: false));
-                }
+                var exception = Assert.Throws<IOException>(() => document.Save(destinationPath, openExcel: false));
+                Assert.Contains("read-only", exception.Message, StringComparison.OrdinalIgnoreCase);
 
                 using (var spreadsheet = SpreadsheetDocument.Open(destinationPath, false)) {
                     var sheets = spreadsheet.WorkbookPart!.Workbook!.Sheets!.OfType<Sheet>().ToList();
@@ -166,6 +168,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 if (File.Exists(destinationPath)) {
+                    new FileInfo(destinationPath).IsReadOnly = false;
                     File.Delete(destinationPath);
                 }
             }
