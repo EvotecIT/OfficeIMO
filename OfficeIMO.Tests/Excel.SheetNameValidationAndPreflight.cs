@@ -39,6 +39,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GetOrCreateSheet_Sanitize_ReusesExistingSanitizedSheet() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                var created = doc.AddWorkSheet("Data??");
+                var resolved = doc.GetOrCreateSheet("Data??", SheetNameValidationMode.Sanitize);
+
+                Assert.Single(doc.Sheets);
+                Assert.Equal(created.Name, resolved.Name);
+                Assert.Equal("Data", resolved.Name);
+            }
+            File.Delete(path);
+        }
+
+        [Fact]
         public void AddWorkSheet_Sanitize_InvalidCharsAndDuplicate() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
