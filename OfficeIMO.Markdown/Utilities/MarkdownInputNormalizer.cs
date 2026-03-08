@@ -41,6 +41,15 @@ public sealed class MarkdownInputNormalizationOptions {
     public bool NormalizeTightArrowStrongBoundaries { get; set; } = false;
 
     /// <summary>
+    /// When true, repairs malformed strong spans that are missing the closing delimiter
+    /// immediately before an arrow-led strong label
+    /// (for example, <c>**No current failures -&gt; **Why it matters:**</c> becomes
+    /// <c>**No current failures** -&gt; **Why it matters:**</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeBrokenStrongArrowLabels { get; set; } = false;
+
+    /// <summary>
     /// When true, inserts a missing space after a colon in prose labels
     /// (for example, <c>Why it matters:missing coverage</c> becomes <c>Why it matters: missing coverage</c>).
     /// This is applied by AST-level inline normalization and intentionally skips inline code spans.
@@ -151,6 +160,10 @@ public static class MarkdownInputNormalizer {
 
     private static readonly Regex TightArrowStrongBoundaryRegex = new Regex(
         @"->\s*(?=\*\*)",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex BrokenStrongArrowLabelRegex = new Regex(
+        @"\*\*(?<left>[^*\r\n]{1,200}?)\s*->\s*\*\*(?<label>[^*\r\n]{1,120}?):\*\*",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex HeadingListBoundaryRegex = new Regex(
@@ -289,6 +302,22 @@ public static class MarkdownInputNormalizer {
                 value,
                 TightArrowStrongBoundaryRegex,
                 static _ => "-> ",
+                preserveInlineCodeSpans: true);
+        }
+
+        if (options.NormalizeBrokenStrongArrowLabels) {
+            value = ApplyRegexOutsideFencedCodeBlocks(
+                value,
+                BrokenStrongArrowLabelRegex,
+                static match => {
+                    var left = match.Groups["left"].Value.Trim();
+                    var label = match.Groups["label"].Value.Trim();
+                    if (left.Length == 0 || label.Length == 0) {
+                        return match.Value;
+                    }
+
+                    return "**" + left + "** -> **" + label + ":**";
+                },
                 preserveInlineCodeSpans: true);
         }
 

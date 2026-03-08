@@ -63,6 +63,16 @@ public class Markdown_Input_Normalizer_Tests {
     }
 
     [Fact]
+    public void Normalize_BrokenStrongArrowLabels_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeBrokenStrongArrowLabels = true
+        };
+
+        var normalized = MarkdownInputNormalizer.Normalize("- Signal **No current failures -> **Why it matters:** transport/auth issues", options);
+        Assert.Equal("- Signal **No current failures** -> **Why it matters:** transport/auth issues", normalized);
+    }
+
+    [Fact]
     public void Normalize_CompactHeadingAndStrongLabelListBoundaries_WhenEnabled() {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeHeadingListBoundaries = true,
@@ -147,6 +157,7 @@ public class Markdown_Input_Normalizer_Tests {
             NormalizeEscapedInlineCodeSpans = true,
             NormalizeTightStrongBoundaries = true,
             NormalizeTightArrowStrongBoundaries = true,
+            NormalizeBrokenStrongArrowLabels = true,
             NormalizeHeadingListBoundaries = true,
             NormalizeCompactStrongLabelListBoundaries = true,
             NormalizeCompactHeadingBoundaries = true,
@@ -159,6 +170,7 @@ public class Markdown_Input_Normalizer_Tests {
 Use \`/act act_001\`
 Status **Healthy**next
 Signal ->**Why it matters:**coverage
+- Signal **No current failures -> **Why it matters:** transport/auth issues
 ## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK
 unexpected### Reason
 Następny najlepszy krok:- **`ad_domain_controller_facts`**

@@ -198,6 +198,7 @@ public static partial class MarkdownReader {
                 NormalizeEscapedInlineCodeSpans = source.InputNormalization?.NormalizeEscapedInlineCodeSpans ?? false,
                 NormalizeTightStrongBoundaries = source.InputNormalization?.NormalizeTightStrongBoundaries ?? false,
                 NormalizeTightArrowStrongBoundaries = source.InputNormalization?.NormalizeTightArrowStrongBoundaries ?? false,
+                NormalizeBrokenStrongArrowLabels = source.InputNormalization?.NormalizeBrokenStrongArrowLabels ?? false,
                 NormalizeTightColonSpacing = source.InputNormalization?.NormalizeTightColonSpacing ?? false,
                 NormalizeHeadingListBoundaries = source.InputNormalization?.NormalizeHeadingListBoundaries ?? false,
                 NormalizeCompactStrongLabelListBoundaries = source.InputNormalization?.NormalizeCompactStrongLabelListBoundaries ?? false,
@@ -219,6 +220,7 @@ public static partial class MarkdownReader {
         bool normalizeInlineCodeLineBreaks = source?.NormalizeInlineCodeSpanLineBreaks ?? false;
         bool normalizeLooseStrongDelimiters = source?.NormalizeLooseStrongDelimiters ?? false;
         bool normalizeTightArrowStrongBoundaries = source?.NormalizeTightArrowStrongBoundaries ?? false;
+        bool normalizeBrokenStrongArrowLabels = source?.NormalizeBrokenStrongArrowLabels ?? false;
         bool normalizeHeadingListBoundaries = source?.NormalizeHeadingListBoundaries ?? false;
         bool normalizeCompactStrongLabelListBoundaries = source?.NormalizeCompactStrongLabelListBoundaries ?? false;
         bool normalizeCompactHeadingBoundaries = source?.NormalizeCompactHeadingBoundaries ?? false;
@@ -234,6 +236,7 @@ public static partial class MarkdownReader {
             && !normalizeInlineCodeLineBreaks
             && !normalizeLooseStrongDelimiters
             && !normalizeTightArrowStrongBoundaries
+            && !normalizeBrokenStrongArrowLabels
             && !normalizeHeadingListBoundaries
             && !normalizeCompactStrongLabelListBoundaries
             && !normalizeCompactHeadingBoundaries
@@ -252,6 +255,7 @@ public static partial class MarkdownReader {
             NormalizeInlineCodeSpanLineBreaks = normalizeInlineCodeLineBreaks,
             NormalizeLooseStrongDelimiters = normalizeLooseStrongDelimiters,
             NormalizeTightArrowStrongBoundaries = normalizeTightArrowStrongBoundaries,
+            NormalizeBrokenStrongArrowLabels = normalizeBrokenStrongArrowLabels,
             NormalizeHeadingListBoundaries = normalizeHeadingListBoundaries,
             NormalizeCompactStrongLabelListBoundaries = normalizeCompactStrongLabelListBoundaries,
             NormalizeCompactHeadingBoundaries = normalizeCompactHeadingBoundaries,

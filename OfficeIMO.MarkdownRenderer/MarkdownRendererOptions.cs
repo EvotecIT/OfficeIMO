@@ -98,6 +98,15 @@ public sealed class MarkdownRendererOptions {
     public bool NormalizeTightArrowStrongBoundaries { get; set; } = false;
 
     /// <summary>
+    /// When true, repairs malformed strong spans that are missing the closing delimiter
+    /// immediately before an arrow-led strong label
+    /// (for example, <c>**No current failures -&gt; **Why it matters:**</c> becomes
+    /// <c>**No current failures** -&gt; **Why it matters:**</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeBrokenStrongArrowLabels { get; set; } = false;
+
+    /// <summary>
     /// When true, inserts a missing space after a colon in prose labels
     /// (for example, <c>Why it matters:missing coverage</c> becomes <c>Why it matters: missing coverage</c>).
     /// Default: false.
