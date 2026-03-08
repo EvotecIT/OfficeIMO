@@ -1347,17 +1347,19 @@ public static class DocumentReader {
         var warnings = new List<string>(capacity: 2);
         bool oversizeBlockWarningAdded = false;
         List<ReaderTable>? tables = null;
+        List<ReaderVisual>? visuals = null;
 
         foreach (var block in ParseMarkdownBlocksForChunking(text, opt, ct)) {
             ct.ThrowIfCancellationRequested();
 
             if (block.StartsHeading && current.Length > 0) {
-                yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstSourceStartLine, lastSourceEndLine, firstLine, lastLine, firstSourceBlockIndex, firstHeadingPath, firstHeadingSlug, firstSourceBlockKind, firstBlockAnchor, current.ToString().TrimEnd(), warnings, tables);
+                yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstSourceStartLine, lastSourceEndLine, firstLine, lastLine, firstSourceBlockIndex, firstHeadingPath, firstHeadingSlug, firstSourceBlockKind, firstBlockAnchor, current.ToString().TrimEnd(), warnings, tables, visuals);
                 chunkIndex++;
                 current.Clear();
                 warnings.Clear();
                 oversizeBlockWarningAdded = false;
                 tables = null;
+                visuals = null;
                 firstLine = null;
                 lastLine = null;
                 firstSourceStartLine = null;
@@ -1370,12 +1372,13 @@ public static class DocumentReader {
             }
 
             if (WouldExceedMarkdownBlock(opt, current, block.Markdown)) {
-                yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstSourceStartLine, lastSourceEndLine, firstLine, lastLine, firstSourceBlockIndex, firstHeadingPath, firstHeadingSlug, firstSourceBlockKind, firstBlockAnchor, current.ToString().TrimEnd(), warnings, tables);
+                yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstSourceStartLine, lastSourceEndLine, firstLine, lastLine, firstSourceBlockIndex, firstHeadingPath, firstHeadingSlug, firstSourceBlockKind, firstBlockAnchor, current.ToString().TrimEnd(), warnings, tables, visuals);
                 chunkIndex++;
                 current.Clear();
                 warnings.Clear();
                 oversizeBlockWarningAdded = false;
                 tables = null;
+                visuals = null;
                 firstLine = null;
                 lastLine = null;
                 firstSourceStartLine = null;
@@ -1407,10 +1410,15 @@ public static class DocumentReader {
                 tables ??= new List<ReaderTable>(capacity: block.Tables.Count);
                 tables.AddRange(block.Tables);
             }
+
+            if (block.Visuals.Count > 0) {
+                visuals ??= new List<ReaderVisual>(capacity: block.Visuals.Count);
+                visuals.AddRange(block.Visuals);
+            }
         }
 
         if (current.Length > 0) {
-            yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstSourceStartLine, lastSourceEndLine, firstLine, lastLine, firstSourceBlockIndex, firstHeadingPath, firstHeadingSlug, firstSourceBlockKind, firstBlockAnchor, current.ToString().TrimEnd(), warnings, tables);
+            yield return BuildMarkdownChunk(sourceName ?? fileName, fileName, chunkIndex, firstSourceStartLine, lastSourceEndLine, firstLine, lastLine, firstSourceBlockIndex, firstHeadingPath, firstHeadingSlug, firstSourceBlockKind, firstBlockAnchor, current.ToString().TrimEnd(), warnings, tables, visuals);
         }
     }
 
@@ -1481,7 +1489,8 @@ public static class DocumentReader {
         string? blockAnchor,
         string markdown,
         List<string> warnings,
-        List<ReaderTable>? tables) {
+        List<ReaderTable>? tables,
+        List<ReaderVisual>? visuals) {
         var id = BuildStableId("md", fileName, chunkIndex, firstSourceBlockIndex ?? firstLine);
         return new ReaderChunk {
             Id = id,
@@ -1502,6 +1511,7 @@ public static class DocumentReader {
             Text = markdown,
             Markdown = markdown,
             Tables = tables != null && tables.Count > 0 ? tables.ToArray() : null,
+            Visuals = visuals != null && visuals.Count > 0 ? visuals.ToArray() : null,
             Warnings = warnings.Count > 0 ? warnings.ToArray() : null
         };
     }
@@ -1952,7 +1962,8 @@ public static class DocumentReader {
                 blockAnchor: BuildMarkdownBlockAnchor(BuildHeadingSlug(headingStack), GetMarkdownBlockKind(block), i, startsHeading),
                 markdown: markdown,
                 startsHeading: startsHeading,
-                tables: ExtractTables(block, opt)));
+                tables: ExtractTables(block, opt),
+                visuals: ExtractVisuals(block)));
 
             nextStartLine += CountLogicalLines(markdown);
             firstEmittedBlock = false;
@@ -1985,6 +1996,58 @@ public static class DocumentReader {
         }
 
         return Array.Empty<ReaderTable>();
+    }
+
+    private static IReadOnlyList<ReaderVisual> ExtractVisuals(IMarkdownBlock block) {
+        if (block is CodeBlock code &&
+            TryMapVisual(code, out var visual) &&
+            visual != null) {
+            return new[] { visual };
+        }
+
+        return Array.Empty<ReaderVisual>();
+    }
+
+    private static bool TryMapVisual(CodeBlock code, out ReaderVisual? visual) {
+        visual = null;
+        if (code == null) {
+            return false;
+        }
+
+        var language = (code.Language ?? string.Empty).Trim();
+        if (language.Length == 0) {
+            return false;
+        }
+
+        var normalizedKind = TryNormalizeVisualKind(language);
+        if (normalizedKind == null) {
+            return false;
+        }
+
+        var content = code.Content ?? string.Empty;
+        visual = new ReaderVisual {
+            Kind = normalizedKind,
+            Language = language,
+            Content = content,
+            PayloadHash = ComputeShortHash(content)
+        };
+        return true;
+    }
+
+    private static string? TryNormalizeVisualKind(string language) {
+        if (string.IsNullOrWhiteSpace(language)) {
+            return null;
+        }
+
+        return language.Trim().ToLowerInvariant() switch {
+            "mermaid" => "mermaid",
+            "chart" => "chart",
+            "ix-chart" => "chart",
+            "network" => "network",
+            "ix-network" => "network",
+            "visnetwork" => "network",
+            _ => null
+        };
     }
 
     private static bool TryMapIxDataViewTable(string? rawContent, ReaderOptions opt, out ReaderTable? table) {
@@ -2811,7 +2874,7 @@ public static class DocumentReader {
     }
 
     private sealed class MarkdownChunkBlock {
-        public MarkdownChunkBlock(int blockIndex, int startLine, int endLine, int sourceStartLine, int sourceEndLine, string? headingPath, string? headingSlug, string blockKind, string blockAnchor, string markdown, bool startsHeading, IReadOnlyList<ReaderTable> tables) {
+        public MarkdownChunkBlock(int blockIndex, int startLine, int endLine, int sourceStartLine, int sourceEndLine, string? headingPath, string? headingSlug, string blockKind, string blockAnchor, string markdown, bool startsHeading, IReadOnlyList<ReaderTable> tables, IReadOnlyList<ReaderVisual> visuals) {
             BlockIndex = blockIndex;
             StartLine = startLine;
             EndLine = endLine;
@@ -2824,6 +2887,7 @@ public static class DocumentReader {
             Markdown = markdown ?? string.Empty;
             StartsHeading = startsHeading;
             Tables = tables ?? Array.Empty<ReaderTable>();
+            Visuals = visuals ?? Array.Empty<ReaderVisual>();
         }
 
         public int BlockIndex { get; }
@@ -2838,6 +2902,7 @@ public static class DocumentReader {
         public string Markdown { get; }
         public bool StartsHeading { get; }
         public IReadOnlyList<ReaderTable> Tables { get; }
+        public IReadOnlyList<ReaderVisual> Visuals { get; }
     }
 
     private sealed class MarkdownHeadingState {
