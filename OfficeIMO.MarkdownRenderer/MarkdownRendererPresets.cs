@@ -34,6 +34,7 @@ public static class MarkdownRendererPresets {
         o.NormalizeEscapedInlineCodeSpans = true;
         o.NormalizeTightStrongBoundaries = true;
         o.NormalizeTightArrowStrongBoundaries = true;
+        o.NormalizeBrokenStrongArrowLabels = true;
         o.NormalizeTightColonSpacing = true;
         o.NormalizeHeadingListBoundaries = true;
         o.NormalizeCompactStrongLabelListBoundaries = true;

@@ -395,6 +395,16 @@ x^2 + 1
     }
 
     [Fact]
+    public void MarkdownRenderer_Normalizes_BrokenStrongArrowLabels_When_Enabled() {
+        var opts = new MarkdownRendererOptions {
+            NormalizeBrokenStrongArrowLabels = true
+        };
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("- Signal **No current failures -> **Why it matters:** transport/auth issues", opts);
+        Assert.Contains("<strong>No current failures</strong> -&gt; <strong>Why it matters:</strong> transport/auth issues", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Normalizes_CompactHeadingAndStrongLabelListBoundaries_When_Enabled() {
         var opts = new MarkdownRendererOptions {
             NormalizeHeadingListBoundaries = true,
@@ -490,7 +500,7 @@ x^2 + 1
     [Fact]
     public void MarkdownRenderer_ChatStrictPreset_Enables_Text_Normalization() {
         var opts = MarkdownRendererPresets.CreateChatStrictMinimal();
-        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("**Status\nHEALTHY**\n\n`a\nb`\n\nUse \\`/act act_001\\`.\n\nStatus **Healthy**next\n\ncheck ** LDAP/Kerberos health on all DCs** next\n\n- Signal **Current comparison used **System** log only.**\n- Signal **Healthy baseline exists now** ->**Why it matters:**missing coverage\n\n## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK\n\nprevious shutdown was unexpected### Reason\n\nNastępny najlepszy krok:- **`ad_domain_controller_facts`**\n\n1) First check\n2.^ **Delegation risk audit**\n3. **Deleted object remnants**(SID left in ACL path)\n\nCommand: `Get-ADUser(SIDHistory)`", opts);
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("**Status\nHEALTHY**\n\n`a\nb`\n\nUse \\`/act act_001\\`.\n\nStatus **Healthy**next\n\ncheck ** LDAP/Kerberos health on all DCs** next\n\n- Signal **Current comparison used **System** log only.**\n- Signal **Healthy baseline exists now** ->**Why it matters:**missing coverage\n- Signal **No current failures -> **Why it matters:** transport/auth issues\n\n## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK\n\nprevious shutdown was unexpected### Reason\n\nNastępny najlepszy krok:- **`ad_domain_controller_facts`**\n\n1) First check\n2.^ **Delegation risk audit**\n3. **Deleted object remnants**(SID left in ACL path)\n\nCommand: `Get-ADUser(SIDHistory)`", opts);
 
         Assert.Contains("Status HEALTHY", htmlOut, StringComparison.Ordinal);
         Assert.Contains("a b", htmlOut, StringComparison.Ordinal);
@@ -499,6 +509,7 @@ x^2 + 1
         Assert.Contains("<strong>LDAP/Kerberos health on all DCs</strong> next", htmlOut, StringComparison.Ordinal);
         Assert.Contains("Current comparison used System log only.", htmlOut, StringComparison.Ordinal);
         Assert.Contains("-&gt; <strong>Why it matters:</strong> missing coverage", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("<strong>No current failures</strong> -&gt; <strong>Why it matters:</strong> transport/auth issues", htmlOut, StringComparison.Ordinal);
         Assert.Contains("<h2", htmlOut, StringComparison.Ordinal);
         Assert.Contains("Wynik og", htmlOut, StringComparison.Ordinal);
         Assert.Contains("<strong>Replication:</strong>", htmlOut, StringComparison.Ordinal);

@@ -334,6 +334,24 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
+    public void DocumentReader_MarkdownChunking_CanRepair_BrokenStrongArrowLabels() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path, "# Summary\n\n- Signal **No current failures -> **Why it matters:** transport/auth issues");
+
+            var chunk = DocumentReader.Read(path, new ReaderOptions {
+                MarkdownInputNormalization = new MarkdownInputNormalizationOptions {
+                    NormalizeBrokenStrongArrowLabels = true
+                }
+            }).Single(c => c.Kind == ReaderInputKind.Markdown);
+
+            Assert.Contains("**No current failures** -> **Why it matters:**", chunk.Markdown ?? string.Empty, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_MarkdownChunking_CanApply_BlockBoundaryNormalization() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
         try {
