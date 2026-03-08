@@ -224,6 +224,10 @@ public static class MarkdownInputNormalizer {
         @"\*\*(?<inner>[^*\r\n]+)\*\*",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+    private static readonly Regex RepeatedStrongDelimiterRunRegex = new Regex(
+        @"(?<!\*)(?<left>\*{4,})(?<inner>[^*\r\n]+?)(?<right>\*{4,})(?!\*)",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
     private static readonly Regex OrderedListMarkerMissingSpaceRegex = new Regex(
         @"^(?<prefix>[ \t]{0,3}\d+[.)])(?=[*_`\[])",
         RegexOptions.CultureInvariant | RegexOptions.Compiled | RegexOptions.Multiline);
@@ -282,6 +286,22 @@ public static class MarkdownInputNormalizer {
         }
 
         if (options.NormalizeLooseStrongDelimiters) {
+            value = ApplyRegexOutsideFencedCodeBlocks(value, RepeatedStrongDelimiterRunRegex, static match => {
+                var leftLength = match.Groups["left"].Value.Length;
+                var rightLength = match.Groups["right"].Value.Length;
+                if (leftLength != rightLength || leftLength % 2 != 0) {
+                    return match.Value;
+                }
+
+                var inner = match.Groups["inner"].Value;
+                var trimmed = inner.Trim();
+                if (trimmed.Length == 0) {
+                    return match.Value;
+                }
+
+                return "**" + trimmed + "**";
+            });
+
             value = ApplyRegexOutsideFencedCodeBlocks(value, LooseStrongDelimiterWhitespaceRegex, static match => {
                 var inner = match.Groups["inner"].Value;
                 var trimmed = inner.Trim();

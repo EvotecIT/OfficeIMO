@@ -271,7 +271,7 @@ namespace OfficeIMO.Visio {
                                 WriteCellValue(writer, ns, "LineColor", s.LineColor.ToVisioHex());
                                 WriteCell(writer, ns, "FillPattern", s.FillPattern);
                                 WriteCellValue(writer, ns, "FillForegnd", s.FillColor.ToVisioHex());
-                                WriteMasterGeometry(writer, ns, master.NameU, masterWidth, masterHeight);
+                                WriteShapeGeometry(writer, ns, s.PreservedGeometrySections, master.NameU, masterWidth, masterHeight);
                                 WriteDefaultTextBlock(writer, ns, masterWidth, masterHeight);
                             }
                             WriteCell(writer, ns, "ShapeSplit", 1);
@@ -602,6 +602,7 @@ namespace OfficeIMO.Visio {
                 WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
                 WriteCell(writer, ns, "FillPattern", shape.FillPattern);
                 WriteCellValue(writer, ns, "FillForegnd", shape.FillColor.ToVisioHex());
+                WritePreservedGeometrySections(writer, shape.PreservedGeometrySections);
                 WriteConnectionSection(writer, ns, shape.ConnectionPoints);
                 WriteDataSection(writer, ns, shape.Data, originalIdEntry);
                 WriteTextElement(writer, ns, shape.Text);
@@ -650,10 +651,10 @@ namespace OfficeIMO.Visio {
             WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
             WriteCell(writer, ns, "FillPattern", shape.FillPattern);
             WriteCellValue(writer, ns, "FillForegnd", shape.FillColor.ToVisioHex());
-              if (!isGroup) {
-                  WriteCell(writer, ns, "ObjType", 1);
-                 WriteMasterGeometry(writer, ns, shape.NameU, width, height);
-              }
+            if (!isGroup) {
+                WriteCell(writer, ns, "ObjType", 1);
+            }
+            WriteShapeGeometry(writer, ns, shape.PreservedGeometrySections, shape.NameU, width, height, writeGeneratedGeometryWhenEmpty: !isGroup);
             WriteConnectionSection(writer, ns, shape.ConnectionPoints);
             WriteDataSection(writer, ns, shape.Data, originalIdEntry);
             WriteTextElement(writer, ns, shape.Text);
@@ -714,12 +715,7 @@ namespace OfficeIMO.Visio {
                 return;
             }
 
-            if (connector.PreservedGeometrySections.Count > 0) {
-                foreach (XElement section in connector.PreservedGeometrySections) {
-                    XElement clone = new(section);
-                    using var reader = clone.CreateReader();
-                    writer.WriteNode(reader, false);
-                }
+            if (WritePreservedGeometrySections(writer, connector.PreservedGeometrySections)) {
                 return;
             }
 
@@ -759,6 +755,28 @@ namespace OfficeIMO.Visio {
             }
 
             writer.WriteEndElement();
+        }
+
+        private static void WriteShapeGeometry(XmlWriter writer, string ns, IEnumerable<XElement> preservedGeometrySections, string? nameU, double width, double height, bool writeGeneratedGeometryWhenEmpty = true) {
+            if (WritePreservedGeometrySections(writer, preservedGeometrySections)) {
+                return;
+            }
+
+            if (writeGeneratedGeometryWhenEmpty) {
+                WriteMasterGeometry(writer, ns, nameU, width, height);
+            }
+        }
+
+        private static bool WritePreservedGeometrySections(XmlWriter writer, IEnumerable<XElement> preservedGeometrySections) {
+            bool wroteGeometry = false;
+            foreach (XElement section in preservedGeometrySections) {
+                XElement clone = new(section);
+                using var reader = clone.CreateReader();
+                writer.WriteNode(reader, false);
+                wroteGeometry = true;
+            }
+
+            return wroteGeometry;
         }
 
         private static void ValidatePagesForSave(IEnumerable<VisioPage> pages) {

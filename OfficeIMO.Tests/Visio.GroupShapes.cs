@@ -84,6 +84,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ApplyMasterReferences_UsesMatchingMasterChildWhenGroupedChildrenLackMasterShapeIds() {
+            XElement shapeElement = new XElement(VisioNs + "Shape",
+                new XAttribute("ID", "1"),
+                new XAttribute("Master", "100"),
+                new XAttribute("Type", "Group"),
+                new XElement(VisioNs + "Shapes",
+                    new XElement(VisioNs + "Shape", new XAttribute("ID", "2")),
+                    new XElement(VisioNs + "Shape", new XAttribute("ID", "3"))));
+
+            VisioShape shape = InvokeParseShape(shapeElement);
+
+            VisioShape masterRoot = new("10") {
+                Type = "Group",
+                Width = 9,
+                Height = 9,
+                LocPinX = 4.5,
+                LocPinY = 4.5
+            };
+            masterRoot.Children.Add(new VisioShape("11") { Width = 2, Height = 1, LocPinX = 1, LocPinY = 0.5 });
+            masterRoot.Children.Add(new VisioShape("12") { Width = 4, Height = 3, LocPinX = 2, LocPinY = 1.5 });
+
+            Dictionary<string, VisioMaster> masters = new() {
+                ["100"] = new VisioMaster("100", "GroupedMaster", masterRoot)
+            };
+
+            InvokeApplyMasterReferences(shape, shapeElement, masters);
+
+            Assert.Equal(2, shape.Children[0].Width);
+            Assert.Equal(1, shape.Children[0].Height);
+            Assert.Equal(1, shape.Children[0].LocPinX);
+            Assert.Equal(0.5, shape.Children[0].LocPinY);
+
+            Assert.Equal(4, shape.Children[1].Width);
+            Assert.Equal(3, shape.Children[1].Height);
+            Assert.Equal(2, shape.Children[1].LocPinX);
+            Assert.Equal(1.5, shape.Children[1].LocPinY);
+        }
+
+        [Fact]
         public void ParseShape_AllowsNestingUpToLimit() {
             int maxDepth = GetMaxShapeDepth();
             XElement root = CreateNestedGroup(maxDepth);

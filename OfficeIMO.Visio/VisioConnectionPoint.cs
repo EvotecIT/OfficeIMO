@@ -17,6 +17,8 @@ namespace OfficeIMO.Visio {
             DirY = dirY;
         }
 
+        internal int? SectionIndex { get; set; }
+
         /// <summary>
         /// Gets or sets the X coordinate of the connection point relative to the shape.
         /// </summary>
