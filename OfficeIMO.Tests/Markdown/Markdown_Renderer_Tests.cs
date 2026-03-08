@@ -227,6 +227,24 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_Converts_IxDataview_Columns_And_Object_Records_To_Static_Table_Html() {
+        var md = """
+```ix-dataview
+{"kind":"ix_tool_dataview_v1","columns":["Server","Fails"],"records":[{"Server":"AD0","Fails":0},{"Server":"AD1","Fails":1}]}
+```
+""";
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md);
+
+        Assert.Contains("class=\"omd-visual omd-dataview\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-kind=\"dataview\"", html, StringComparison.Ordinal);
+        Assert.Contains("<th>Server</th>", html, StringComparison.Ordinal);
+        Assert.Contains("<th>Fails</th>", html, StringComparison.Ordinal);
+        Assert.Contains("<td>AD0</td>", html, StringComparison.Ordinal);
+        Assert.Contains("<td>1</td>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Leaves_Invalid_IxDataview_Fences_As_Code_Blocks() {
         var md = """
 ```ix-dataview
