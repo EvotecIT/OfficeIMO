@@ -35,6 +35,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NamedRange_Sanitize_ResolvesExistingSanitizedSheetPrefix() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                var data = doc.AddWorkSheet("Data??");
+                doc.SetNamedRange("OnData", "Data??!A1", save: false, hidden: false, validationMode: NameValidationMode.Sanitize);
+
+                var value = doc.GetNamedRange("OnData");
+                Assert.Equal($"'{data.Name}'!$A$1", value);
+            }
+            File.Delete(path);
+        }
+
+        [Fact]
         public void NamedRange_StrictThrowsOutOfBounds() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
