@@ -485,6 +485,12 @@ namespace OfficeIMO.Visio {
                     double y = 0;
                     double dirX = 0;
                     double dirY = 0;
+                    int? sectionIndex = null;
+                    if (int.TryParse(row.Attribute("IX")?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedSectionIndex) &&
+                        parsedSectionIndex >= 0) {
+                        sectionIndex = parsedSectionIndex;
+                    }
+
                     foreach (XElement cell in row.Elements(ns + "Cell")) {
                         string? n = cell.Attribute("N")?.Value;
                         string? v = cell.Attribute("V")?.Value;
@@ -503,7 +509,9 @@ namespace OfficeIMO.Visio {
                                 break;
                         }
                     }
-                    shape.ConnectionPoints.Add(new VisioConnectionPoint(x, y, dirX, dirY));
+                    shape.ConnectionPoints.Add(new VisioConnectionPoint(x, y, dirX, dirY) {
+                        SectionIndex = sectionIndex
+                    });
                 }
             }
 
@@ -798,8 +806,14 @@ namespace OfficeIMO.Visio {
                 return null;
             }
 
-            index -= 1;
-            return index >= 0 && index < shape.ConnectionPoints.Count ? shape.ConnectionPoints[index] : null;
+            int sectionIndex = index - 1;
+            foreach (VisioConnectionPoint point in shape.ConnectionPoints) {
+                if (point.SectionIndex == sectionIndex) {
+                    return point;
+                }
+            }
+
+            return sectionIndex >= 0 && sectionIndex < shape.ConnectionPoints.Count ? shape.ConnectionPoints[sectionIndex] : null;
         }
     }
 }

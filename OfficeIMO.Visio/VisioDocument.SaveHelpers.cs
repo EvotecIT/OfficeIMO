@@ -474,13 +474,14 @@ namespace OfficeIMO.Visio {
 
         private static void WriteConnectionSection(XmlWriter writer, string ns, IList<VisioConnectionPoint> points) {
             if (points.Count == 0) return;
+            Dictionary<VisioConnectionPoint, int> pointIndices = BuildConnectionPointIndices(points);
             writer.WriteStartElement("Section", ns);
             writer.WriteAttributeString("N", "Connection");
             for (int i = 0; i < points.Count; i++) {
                 VisioConnectionPoint cp = points[i];
                 writer.WriteStartElement("Row", ns);
                 writer.WriteAttributeString("T", "Connection");
-                writer.WriteAttributeString("IX", XmlConvert.ToString(i));
+                writer.WriteAttributeString("IX", XmlConvert.ToString(pointIndices[cp]));
                 WriteCell(writer, ns, "X", cp.X);
                 WriteCell(writer, ns, "Y", cp.Y);
                 WriteCell(writer, ns, "DirX", cp.DirX);
@@ -531,8 +532,38 @@ namespace OfficeIMO.Visio {
 
         private static string GetConnectionCell(VisioShape shape, VisioConnectionPoint? point) {
             if (point == null) return "PinX";
-            int index = shape.ConnectionPoints.IndexOf(point);
-            return index >= 0 ? $"Connections.X{index + 1}" : "PinX";
+            Dictionary<VisioConnectionPoint, int> pointIndices = BuildConnectionPointIndices(shape.ConnectionPoints);
+            return pointIndices.TryGetValue(point, out int index)
+                ? $"Connections.X{index + 1}"
+                : "PinX";
+        }
+
+        private static Dictionary<VisioConnectionPoint, int> BuildConnectionPointIndices(IList<VisioConnectionPoint> points) {
+            Dictionary<VisioConnectionPoint, int> indices = new(points.Count);
+            HashSet<int> usedIndices = new();
+
+            foreach (VisioConnectionPoint point in points) {
+                if (point.SectionIndex.HasValue && point.SectionIndex.Value >= 0 && usedIndices.Add(point.SectionIndex.Value)) {
+                    indices[point] = point.SectionIndex.Value;
+                }
+            }
+
+            int nextIndex = 0;
+            foreach (VisioConnectionPoint point in points) {
+                if (indices.ContainsKey(point)) {
+                    continue;
+                }
+
+                while (usedIndices.Contains(nextIndex)) {
+                    nextIndex++;
+                }
+
+                indices[point] = nextIndex;
+                usedIndices.Add(nextIndex);
+                nextIndex++;
+            }
+
+            return indices;
         }
 
         private static XDocument CreateVisioDocumentXml(bool requestRecalcOnOpen) {
