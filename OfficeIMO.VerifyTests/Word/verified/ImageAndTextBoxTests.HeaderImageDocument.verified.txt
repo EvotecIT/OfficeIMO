@@ -21,92 +21,11 @@
 <!--------------------------------------------------------------------------------------------------------------------->
 /word/document.xml
 <!--------------------------------------------------------------------------------------------------------------------->
-<w:document xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex" xmlns:cx2="http://schemas.microsoft.com/office/drawing/2015/10/21/chartex" xmlns:cx3="http://schemas.microsoft.com/office/drawing/2016/5/9/chartex" xmlns:cx4="http://schemas.microsoft.com/office/drawing/2016/5/10/chartex" xmlns:cx5="http://schemas.microsoft.com/office/drawing/2016/5/11/chartex" xmlns:cx6="http://schemas.microsoft.com/office/drawing/2016/5/12/chartex" xmlns:cx7="http://schemas.microsoft.com/office/drawing/2016/5/13/chartex" xmlns:cx8="http://schemas.microsoft.com/office/drawing/2016/5/14/chartex" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:aink="http://schemas.microsoft.com/office/drawing/2016/ink" xmlns:am3d="http://schemas.microsoft.com/office/drawing/2017/model3d" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:oel="http://schemas.microsoft.com/office/2019/extlst" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14">
+<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex" xmlns:cx2="http://schemas.microsoft.com/office/drawing/2015/10/21/chartex" xmlns:cx3="http://schemas.microsoft.com/office/drawing/2016/5/9/chartex" xmlns:cx4="http://schemas.microsoft.com/office/drawing/2016/5/10/chartex" xmlns:cx5="http://schemas.microsoft.com/office/drawing/2016/5/11/chartex" xmlns:cx6="http://schemas.microsoft.com/office/drawing/2016/5/12/chartex" xmlns:cx7="http://schemas.microsoft.com/office/drawing/2016/5/13/chartex" xmlns:cx8="http://schemas.microsoft.com/office/drawing/2016/5/14/chartex" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:aink="http://schemas.microsoft.com/office/drawing/2016/ink" xmlns:am3d="http://schemas.microsoft.com/office/drawing/2017/model3d" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:oel="http://schemas.microsoft.com/office/2019/extlst" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14">
   <w:body>
-    <w:p>
-      <w:pPr />
-      <w:r>
-        <w:t xml:space="preserve">Text box</w:t>
-      </w:r>
-    </w:p>
-    <w:p>
-      <w:pPr />
-      <w:r>
-        <mc:AlternateContent>
-          <mc:Choice Requires="wps">
-            <w:drawing>
-              <wp:anchor xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" distT="91440" distB="91440" distL="114300" distR="114300" simplePos="0" relativeHeight="251659264" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1" wp14:editId="E00000001" wp14:anchorId="00000001">
-                <wp:simplePos x="0" y="0" />
-                <wp:positionH relativeFrom="page">
-                  <wp:posOffset>720000</wp:posOffset>
-                </wp:positionH>
-                <wp:positionV relativeFrom="page">
-                  <wp:posOffset>1080000</wp:posOffset>
-                </wp:positionV>
-                <wp:extent cx="2360930" cy="1404620" />
-                <wp:effectExtent l="0" t="0" r="0" b="0" />
-                <wp:wrapThrough wrapText="bothSides">
-                  <wp:wrapPolygon edited="0">
-                    <wp:start x="0" y="0" />
-                    <wp:lineTo x="0" y="21384" />
-                    <wp:lineTo x="21384" y="21384" />
-                    <wp:lineTo x="21384" y="0" />
-                    <wp:lineTo x="0" y="0" />
-                  </wp:wrapPolygon>
-                </wp:wrapThrough>
-                <wp:docPr id="1" name="Text Box 2" />
-                <wp:cNvGraphicFramePr>
-                  <a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" />
-                </wp:cNvGraphicFramePr>
-                <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
-                  <a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">
-                    <wps:wsp xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">
-                      <wps:cNvSpPr txBox="1">
-                        <a:spLocks noChangeArrowheads="1" />
-                      </wps:cNvSpPr>
-                      <wps:spPr bwMode="auto">
-                        <a:xfrm>
-                          <a:off x="0" y="0" />
-                          <a:ext cx="2360930" cy="1404620" />
-                        </a:xfrm>
-                        <a:prstGeom prst="rect">
-                          <a:avLst />
-                        </a:prstGeom>
-                      </wps:spPr>
-                      <wps:txbx>
-                        <w:txbxContent>
-                          <w:p w:rsidR="00000000" w:rsidRDefault="006713BC" w14:paraId="100FFE99" w14:textId="27C5287F">
-                            <w:pPr>
-                              <w:spacing w:after="0" />
-                              <w:rPr />
-                            </w:pPr>
-                            <w:r>
-                              <w:rPr />
-                              <w:t>Hello from textbox</w:t>
-                              <w:br />
-                            </w:r>
-                          </w:p>
-                        </w:txbxContent>
-                      </wps:txbx>
-                      <wps:bodyPr rot="0" vert="horz" wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" anchor="t" anchorCtr="0">
-                        <a:normAutofit />
-                      </wps:bodyPr>
-                    </wps:wsp>
-                  </a:graphicData>
-                </a:graphic>
-                <wp14:sizeRelH relativeFrom="margin">
-                  <wp14:pctWidth>58500</wp14:pctWidth>
-                </wp14:sizeRelH>
-                <wp14:sizeRelV relativeFrom="margin">
-                  <wp14:pctHeight>20000</wp14:pctHeight>
-                </wp14:sizeRelV>
-              </wp:anchor>
-            </w:drawing>
-          </mc:Choice>
-        </mc:AlternateContent>
-      </w:r>
-    </w:p>
     <w:sectPr w:rsidR="R00000001">
+      <w:headerReference w:type="default" r:id="R00000001" />
+      <w:footerReference w:type="default" r:id="R00000001" />
       <w:pgSz w:w="12240" w:h="15840" w:code="1" />
       <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
     </w:sectPr>
@@ -10926,4 +10845,74 @@
     </a:ext>
   </a:extLst>
 </a:theme>
+<!--------------------------------------------------------------------------------------------------------------------->
+/word/header1.xml
+<!--------------------------------------------------------------------------------------------------------------------->
+<w:hdr xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:a14="http://schemas.microsoft.com/office/drawing/2010/main" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:p>
+    <w:pPr />
+    <w:r>
+      <w:t xml:space="preserve">Header image</w:t>
+      <w:drawing>
+        <wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="251658240" behindDoc="1" locked="0" layoutInCell="1" allowOverlap="1" wp14:editId="E00000001" wp14:anchorId="00000001" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+          <wp:simplePos x="0" y="0" />
+          <wp:positionH relativeFrom="column">
+            <wp:posOffset>0</wp:posOffset>
+          </wp:positionH>
+          <wp:positionV relativeFrom="paragraph">
+            <wp:posOffset>0</wp:posOffset>
+          </wp:positionV>
+          <wp:extent cx="609600" cy="609600" />
+          <wp:effectExtent l="0" t="0" r="0" b="1905" />
+          <wp:wrapSquare wrapText="bothSides" />
+          <wp:docPr id="1" name="Kulek" descr="Header image" title="Header logo" />
+          <wp:cNvGraphicFramePr>
+            <a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1" />
+          </wp:cNvGraphicFramePr>
+          <a:graphic>
+            <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+              <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                <pic:nvPicPr>
+                  <pic:cNvPr id="0" name="Kulek.jpg" descr="Header image" title="Header logo" />
+                  <pic:cNvPicPr />
+                </pic:nvPicPr>
+                <pic:blipFill>
+                  <a:blip r:embed="R00000001" cstate="print" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+                    <a:extLst>
+                      <a:ext uri="{28A0092B-C50C-407E-A947-70E740481C1C}">
+                        <a14:useLocalDpi xmlns:a14="http://schemas.microsoft.com/office/drawing/2010/main" val="0" />
+                      </a:ext>
+                    </a:extLst>
+                  </a:blip>
+                  <a:stretch>
+                    <a:fillRect />
+                  </a:stretch>
+                </pic:blipFill>
+                <pic:spPr>
+                  <a:xfrm>
+                    <a:off x="0" y="0" />
+                    <a:ext cx="609600" cy="609600" />
+                  </a:xfrm>
+                  <a:prstGeom prst="rect">
+                    <a:avLst />
+                  </a:prstGeom>
+                </pic:spPr>
+              </pic:pic>
+            </a:graphicData>
+          </a:graphic>
+          <wp14:sizeRelH relativeFrom="page">
+            <wp14:pctWidth>0</wp14:pctWidth>
+          </wp14:sizeRelH>
+          <wp14:sizeRelV relativeFrom="page">
+            <wp14:pctHeight>0</wp14:pctHeight>
+          </wp14:sizeRelV>
+        </wp:anchor>
+      </w:drawing>
+    </w:r>
+  </w:p>
+</w:hdr>
+<!--------------------------------------------------------------------------------------------------------------------->
+/word/footer1.xml
+<!--------------------------------------------------------------------------------------------------------------------->
+<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" />
 <!--------------------------------------------------------------------------------------------------------------------->

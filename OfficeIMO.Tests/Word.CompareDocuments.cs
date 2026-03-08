@@ -144,6 +144,56 @@ namespace OfficeIMO.Tests {
             AssertNoTempArtifact(result);
         }
 
+        [Fact]
+        public void CompareDetectsInsertedTableCellInExistingRow() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_source_cell_insert.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                WordTable table = doc.AddTable(1, 1);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Left");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_target_cell_insert.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordTable table = doc.AddTable(1, 2);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Left");
+                table.Rows[0].Cells[1].Paragraphs[0].SetText("Right");
+                doc.Save(false);
+            }
+
+            using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
+            Assert.Equal(2, result.Tables[0].Rows[0].CellsCount);
+
+            Body body = result._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
+            InsertedRun? ins = body.Descendants<InsertedRun>().FirstOrDefault(r => r.InnerText == "Right");
+            Assert.NotNull(ins);
+            AssertNoTempArtifact(result);
+        }
+
+        [Fact]
+        public void ComparePreservesListFormattingOnChangedParagraph() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_source_list_format.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                var list = doc.AddList(WordListStyle.Numbered);
+                list.AddItem("Item 1");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_target_list_format.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                var list = doc.AddList(WordListStyle.Numbered);
+                list.AddItem("Item 1 updated");
+                doc.Save(false);
+            }
+
+            using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
+            WordParagraph? listParagraph = result.Paragraphs.FirstOrDefault(p => p.Text.Contains("Item 1"));
+
+            Assert.NotNull(listParagraph);
+            Assert.True(listParagraph!.IsListItem);
+            AssertNoTempArtifact(result);
+        }
+
         private static void AssertNoTempArtifact(WordDocument document) {
             Assert.Equal(string.Empty, document.FilePath);
         }

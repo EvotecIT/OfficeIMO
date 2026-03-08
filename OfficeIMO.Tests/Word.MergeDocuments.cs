@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
+using System.Reflection;
 using DocumentFormat.OpenXml.Vml.Office;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -219,5 +221,51 @@ namespace OfficeIMO.Tests {
             Assert.True(mainPart.EmbeddedPackageParts.Any());
         }
     }
-}
+
+        [Fact]
+        public void Test_MergingDocumentsCopiesMissingCustomParagraphStyles() {
+            var destinationPath = Path.Combine(_directoryWithFiles, "MergeDocCustomStyleBase.docx");
+            var sourcePath = Path.Combine(_directoryWithFiles, "MergeDocCustomStyleSource.docx");
+
+            var style = new Style { Type = StyleValues.Paragraph, StyleId = "MergedStyle" };
+            style.Append(new StyleName { Val = "Merged Style" });
+            style.Append(new BasedOn { Val = "Normal" });
+            WordParagraphStyle.RegisterCustomStyle("MergedStyle", style);
+
+            try {
+                using (var doc = WordDocument.Create(destinationPath)) {
+                    doc.AddParagraph("Base document");
+                    doc.Save();
+                }
+
+                using (var doc = WordDocument.Create(sourcePath)) {
+                    doc.AddParagraph("Styled text").SetStyleId("MergedStyle");
+                    doc.Save();
+                }
+
+                using (var destination = WordDocument.Load(destinationPath))
+                using (var source = WordDocument.Load(sourcePath)) {
+                    destination.AppendDocument(source);
+                    destination.Save();
+                }
+
+                using (var merged = WordDocument.Load(destinationPath)) {
+                    var styleDefinitions = merged._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    var mergedStyle = styleDefinitions.Elements<Style>().FirstOrDefault(s => s.StyleId == "MergedStyle");
+
+                    Assert.NotNull(mergedStyle);
+                    Assert.Equal("Merged Style", mergedStyle!.StyleName?.Val?.Value);
+                    Assert.Contains(merged.Paragraphs, p => p.Text == "Styled text" && p.StyleId == "MergedStyle");
+                }
+            } finally {
+                ClearCustomParagraphStyles();
+            }
+        }
+
+        private static void ClearCustomParagraphStyles() {
+            var field = typeof(WordParagraphStyle).GetField("_customStyles", BindingFlags.NonPublic | BindingFlags.Static);
+            var dict = (IDictionary<string, Style>)field!.GetValue(null)!;
+            dict.Clear();
+        }
+    }
 }
