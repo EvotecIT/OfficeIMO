@@ -198,6 +198,21 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
+    public void Reader_Can_Normalize_RepeatedStrongDelimiterRuns_BeforeParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeLooseStrongDelimiters = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("- Overall health ****healthy****", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<strong>healthy</strong>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("****healthy****", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_Ast_Normalization_Propagates_To_Nested_Quote_Parsing() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
