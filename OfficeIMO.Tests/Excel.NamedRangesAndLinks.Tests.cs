@@ -48,6 +48,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NamedRange_QuotedSheetNameContainingBang_NormalizesCorrectly() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                doc.AddWorkSheet("Report!2026");
+                doc.SetNamedRange("BangSheet", "'Report!2026'!A1:B2", save: false, hidden: false, validationMode: NameValidationMode.Strict);
+
+                var value = doc.GetNamedRange("BangSheet");
+                Assert.Equal("'Report!2026'!$A$1:$B$2", value);
+            }
+            File.Delete(path);
+        }
+
+        [Fact]
         public void NamedRange_StrictThrowsOutOfBounds() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {

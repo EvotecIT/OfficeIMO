@@ -301,7 +301,7 @@ namespace OfficeIMO.Excel {
         private string NormalizeRange(string range, NameValidationMode validationMode) {
             string? sheetPrefix = null;
             string a1 = range;
-            int idx = range.IndexOf('!');
+            int idx = range.LastIndexOf('!');
             if (idx >= 0) {
                 sheetPrefix = NormalizeSheetPrefix(range.Substring(0, idx), validationMode);
                 a1 = range.Substring(idx + 1);
