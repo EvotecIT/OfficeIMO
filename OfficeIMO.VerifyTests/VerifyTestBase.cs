@@ -161,6 +161,7 @@ public abstract class VerifyTestBase {
 
         NormalizeDrawingReferences(rootElement);
         NormalizeSectionProperties(rootElement);
+        NormalizeRevisionMetadata(rootElement);
     }
 
     private static void NormalizeDocumentReferences(Document document) {
@@ -253,6 +254,47 @@ public abstract class VerifyTestBase {
             }
             if (sectionProperties.RsidDel != null) {
                 sectionProperties.RsidDel = "R" + i.ToString("X8");
+                i++;
+            }
+        }
+    }
+
+    private static void NormalizeRevisionMetadata(DocumentFormat.OpenXml.OpenXmlElement rootElement) {
+        var revisionDate = new DateTime(9999, 12, 31, 23, 59, 59, DateTimeKind.Utc);
+
+        var i = 1;
+        foreach (var inserted in rootElement.Descendants<InsertedRun>()) {
+            inserted.Id = i.ToString(CultureInfo.InvariantCulture);
+            inserted.Author = "Comparer";
+            inserted.Date = revisionDate;
+            i++;
+        }
+
+        i = 1;
+        foreach (var deleted in rootElement.Descendants<DeletedRun>()) {
+            deleted.Id = i.ToString(CultureInfo.InvariantCulture);
+            deleted.Author = "Comparer";
+            deleted.Date = revisionDate;
+            i++;
+        }
+
+        i = 1;
+        foreach (var change in rootElement.Descendants<RunPropertiesChange>()) {
+            change.Id = i.ToString(CultureInfo.InvariantCulture);
+            change.Author = "Comparer";
+            change.Date = revisionDate;
+            i++;
+        }
+
+        i = 1;
+        foreach (var run in rootElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.Run>()) {
+            if (run.RsidRunAddition != null) {
+                run.RsidRunAddition = "R" + i.ToString("X8");
+                i++;
+            }
+
+            if (run.RsidRunDeletion != null) {
+                run.RsidRunDeletion = "R" + i.ToString("X8");
                 i++;
             }
         }

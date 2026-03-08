@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml.Wordprocessing;
+
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
         private static void CompareTables(WordDocument source, WordDocument target, WordDocument result) {
@@ -20,13 +22,9 @@ namespace OfficeIMO.Word {
 
             for (int i = count; i < target.Tables.Count; i++) {
                 WordTable tgtTable = target.Tables[i];
-                WordTable resTable = result.AddTable(tgtTable.RowsCount, tgtTable.Rows.First().CellsCount);
-                for (int r = 0; r < tgtTable.RowsCount; r++) {
-                    for (int c = 0; c < tgtTable.Rows[r].CellsCount; c++) {
-                        string text = tgtTable.Rows[r].Cells[c].Paragraphs.FirstOrDefault()?.Text ?? string.Empty;
-                        resTable.Rows[r].Cells[c].AddParagraph(removeExistingParagraphs: true).AddInsertedText(text, "Comparer");
-                    }
-                }
+                var clonedTable = (Table)tgtTable._table.CloneNode(true);
+                MarkTableAsInserted(clonedTable);
+                result._wordprocessingDocument.MainDocumentPart!.Document!.Body!.Append(clonedTable);
             }
         }
 
@@ -48,11 +46,9 @@ namespace OfficeIMO.Word {
 
             for (int i = rowCount; i < target.RowsCount; i++) {
                 WordTableRow tgtRow = target.Rows[i];
-                WordTableRow resRow = result.AddRow(tgtRow.CellsCount);
-                for (int c = 0; c < tgtRow.CellsCount; c++) {
-                    string text = tgtRow.Cells[c].Paragraphs.FirstOrDefault()?.Text ?? string.Empty;
-                    resRow.Cells[c].AddParagraph(removeExistingParagraphs: true).AddInsertedText(text, "Comparer");
-                }
+                var clonedRow = (TableRow)tgtRow._tableRow.CloneNode(true);
+                MarkRowAsInserted(clonedRow);
+                result._table.Append(clonedRow);
             }
         }
 
@@ -70,6 +66,57 @@ namespace OfficeIMO.Word {
                 string text = source.Cells[i].Paragraphs.FirstOrDefault()?.Text ?? string.Empty;
                 result.Cells[i].AddParagraph(removeExistingParagraphs: true).AddDeletedText(text, "Comparer");
             }
+
+            for (int i = cellCount; i < target.CellsCount; i++) {
+                var clonedCell = (TableCell)target.Cells[i]._tableCell.CloneNode(true);
+                MarkCellAsInserted(clonedCell);
+                result._tableRow.Append(clonedCell);
+            }
+        }
+
+        private static void MarkTableAsInserted(Table table) {
+            foreach (var paragraph in table.Descendants<Paragraph>()) {
+                MarkParagraphAsInserted(paragraph);
+            }
+        }
+
+        private static void MarkRowAsInserted(TableRow row) {
+            foreach (var paragraph in row.Descendants<Paragraph>()) {
+                MarkParagraphAsInserted(paragraph);
+            }
+        }
+
+        private static void MarkCellAsInserted(TableCell cell) {
+            foreach (var paragraph in cell.Descendants<Paragraph>()) {
+                MarkParagraphAsInserted(paragraph);
+            }
+        }
+
+        private static void MarkParagraphAsInserted(Paragraph paragraph) {
+            var paragraphProperties = (ParagraphProperties?)paragraph.ParagraphProperties?.CloneNode(true);
+            var text = paragraph.InnerText;
+
+            paragraph.RemoveAllChildren();
+
+            if (paragraphProperties != null) {
+                paragraph.Append(paragraphProperties);
+            }
+
+            if (string.IsNullOrEmpty(text)) {
+                return;
+            }
+
+            var run = new Run();
+            run.RsidRunAddition = WordHeadersAndFooters.GenerateRsid();
+            run.Append(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
+
+            var inserted = new InsertedRun {
+                Author = "Comparer",
+                Date = DateTime.Now,
+                Id = WordHeadersAndFooters.GenerateRevisionId()
+            };
+            inserted.Append(run);
+            paragraph.Append(inserted);
         }
     }
 }
