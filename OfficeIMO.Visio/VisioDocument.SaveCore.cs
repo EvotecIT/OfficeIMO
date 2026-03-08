@@ -334,7 +334,7 @@ namespace OfficeIMO.Visio {
                         writer.WriteStartElement("Page", ns);
                         writer.WriteAttributeString("ID", XmlConvert.ToString(page.Id));
                         writer.WriteAttributeString("Name", page.Name);
-                        writer.WriteAttributeString("NameU", page.Name);
+                        writer.WriteAttributeString("NameU", page.NameU ?? page.Name);
                         double viewScale = page.ViewScale;
                         if (double.IsNaN(viewScale) || double.IsInfinity(viewScale) || viewScale <= 0) {
                             viewScale = 1;
@@ -369,7 +369,7 @@ namespace OfficeIMO.Visio {
                         WritePageCell(writer, ns, "DrawingScale", drawingScale.ToInches(), drawingScale.Unit.ToVisioUnitCode());
                         WritePageCell(writer, ns, "DrawingSizeType", 0);
                         WritePageCell(writer, ns, "DrawingScaleType", 0);
-                        WritePageCell(writer, ns, "InhibitSnap", 0);
+                        WritePageCell(writer, ns, "InhibitSnap", page.Snap ? 0 : 1);
                         WritePageCell(writer, ns, "PageLockReplace", 0, "BOOL");
                         WritePageCell(writer, ns, "PageLockDuplicate", 0, "BOOL");
                         WritePageCell(writer, ns, "UIVisibility", 0);

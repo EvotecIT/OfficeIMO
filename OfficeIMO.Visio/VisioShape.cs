@@ -54,6 +54,16 @@ namespace OfficeIMO.Visio {
         /// </summary>
         internal string? PersistedId { get; set; }
 
+        // Raw parse-presence flags used by the loader so explicit zero values are
+        // not mistaken for missing geometry when master defaults are applied.
+        internal bool HasExplicitWidth { get; set; }
+
+        internal bool HasExplicitHeight { get; set; }
+
+        internal bool HasExplicitLocPinX { get; set; }
+
+        internal bool HasExplicitLocPinY { get; set; }
+
         /// <summary>
         /// Gets or sets the shape name.
         /// </summary>
