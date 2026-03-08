@@ -236,8 +236,63 @@ public sealed class ReaderDocumentReaderTests {
         }
     }
 
+    [Fact]
+    public void DocumentReader_MarkdownChunking_ExtractsVisualFenceMetadata() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        var mermaid = "graph TD\nA --> B";
+        var chart = "{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"data\":[1]}]}}";
+        var network = "{\"nodes\":[{\"id\":1,\"label\":\"AD0\"}],\"edges\":[]}";
+        try {
+            File.WriteAllText(path,
+                "# Visuals\n\n```mermaid\n" + mermaid + "\n```\n\n```ix-chart\n" + chart + "\n```\n\n```ix-network\n" + network + "\n```\n");
+
+            var chunk = DocumentReader.Read(path)
+                .Single(c => c.Kind == ReaderInputKind.Markdown && (c.Visuals?.Count ?? 0) > 0);
+
+            Assert.Equal("Visuals", chunk.Location.HeadingPath);
+            Assert.NotNull(chunk.Visuals);
+            Assert.Equal(3, chunk.Visuals!.Count);
+
+            Assert.Equal("mermaid", chunk.Visuals[0].Kind);
+            Assert.Equal("mermaid", chunk.Visuals[0].Language);
+            Assert.Equal(ComputeShortHash(chunk.Visuals[0].Content), chunk.Visuals[0].PayloadHash);
+            Assert.Contains("graph TD", chunk.Visuals[0].Content, StringComparison.Ordinal);
+            Assert.Contains("A --> B", chunk.Visuals[0].Content, StringComparison.Ordinal);
+
+            Assert.Equal("chart", chunk.Visuals[1].Kind);
+            Assert.Equal("ix-chart", chunk.Visuals[1].Language);
+            Assert.Equal(ComputeShortHash(chunk.Visuals[1].Content), chunk.Visuals[1].PayloadHash);
+            Assert.Contains("\"type\":\"bar\"", chunk.Visuals[1].Content, StringComparison.Ordinal);
+
+            Assert.Equal("network", chunk.Visuals[2].Kind);
+            Assert.Equal("ix-network", chunk.Visuals[2].Language);
+            Assert.Equal(ComputeShortHash(chunk.Visuals[2].Content), chunk.Visuals[2].PayloadHash);
+            Assert.Contains("\"label\":\"AD0\"", chunk.Visuals[2].Content, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_MarkdownChunking_DoesNotDuplicateIxDataViewAsVisualMetadata() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path,
+                "# Visual\n\n```ix-dataview\n{\"rows\":[[\"Server\",\"Fails\"],[\"AD0\",\"0\"]]}\n```\n");
+
+            var chunk = DocumentReader.Read(path)
+                .Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
+
+            Assert.NotNull(chunk.Tables);
+            Assert.Null(chunk.Visuals);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
     private static string ComputeShortHash(string input) {
-        var data = Encoding.UTF8.GetBytes(input ?? string.Empty);
+        var normalized = (input ?? string.Empty).TrimEnd('\r', '\n');
+        var data = Encoding.UTF8.GetBytes(normalized);
         byte[] hash;
         using (var sha = SHA256.Create()) {
             hash = sha.ComputeHash(data);
