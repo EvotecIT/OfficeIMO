@@ -448,6 +448,25 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
+    public void DocumentReader_MarkdownChunking_CanNormalize_RepeatedStrongDelimiterRuns() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path, "# Summary\n\n- Overall health ****healthy****");
+
+            var chunk = DocumentReader.Read(path, new ReaderOptions {
+                MarkdownInputNormalization = new MarkdownInputNormalizationOptions {
+                    NormalizeLooseStrongDelimiters = true
+                }
+            }).Single(c => c.Kind == ReaderInputKind.Markdown);
+
+            Assert.Contains("**healthy**", chunk.Markdown ?? string.Empty, StringComparison.Ordinal);
+            Assert.DoesNotContain("****healthy****", chunk.Markdown ?? string.Empty, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_MarkdownChunking_CanApply_BlockBoundaryNormalization() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
         try {

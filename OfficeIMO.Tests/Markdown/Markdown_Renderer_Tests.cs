@@ -413,6 +413,17 @@ x^2 + 1
     }
 
     [Fact]
+    public void MarkdownRenderer_Normalizes_RepeatedStrongDelimiterRuns_When_Enabled() {
+        var opts = new MarkdownRendererOptions {
+            NormalizeLooseStrongDelimiters = true
+        };
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("- Overall health ****healthy****", opts);
+        Assert.Contains("<strong>healthy</strong>", htmlOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("****healthy****", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Normalizes_TightArrowAndColonSpacing_When_Enabled() {
         var opts = new MarkdownRendererOptions {
             NormalizeTightStrongBoundaries = true,
