@@ -75,6 +75,20 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
+    public void Reader_Can_Normalize_BrokenStrongArrowLabels_BeforeParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeBrokenStrongArrowLabels = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("- Signal **No current failures -> **Why it matters:** transport/auth issues", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<strong>No current failures</strong> -&gt; <strong>Why it matters:</strong> transport/auth issues", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_Can_Normalize_TightColonSpacing_Via_Ast() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {

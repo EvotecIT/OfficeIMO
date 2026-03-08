@@ -2578,6 +2578,7 @@ public static class DocumentReader {
             NormalizeEscapedInlineCodeSpans = options.NormalizeEscapedInlineCodeSpans,
             NormalizeTightStrongBoundaries = options.NormalizeTightStrongBoundaries,
             NormalizeTightArrowStrongBoundaries = options.NormalizeTightArrowStrongBoundaries,
+            NormalizeBrokenStrongArrowLabels = options.NormalizeBrokenStrongArrowLabels,
             NormalizeTightColonSpacing = options.NormalizeTightColonSpacing,
             NormalizeHeadingListBoundaries = options.NormalizeHeadingListBoundaries,
             NormalizeCompactStrongLabelListBoundaries = options.NormalizeCompactStrongLabelListBoundaries,
