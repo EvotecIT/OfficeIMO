@@ -1,5 +1,5 @@
-using System.Text.Json;
 using System.Text;
+using System.Text.Json;
 using OfficeIMO.Markdown;
 
 namespace OfficeIMO.MarkdownRenderer;
@@ -63,31 +63,14 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
 
         try {
             var raw = rawContent!;
-            using var doc = JsonDocument.Parse(raw);
-            var root = doc.RootElement;
+            using var document = JsonDocument.Parse(raw);
+            var root = document.RootElement;
+            var payloadHash = MarkdownRenderer.ComputeShortHash(raw.TrimEnd('\r', '\n'));
             if (root.ValueKind != JsonValueKind.Object) {
                 return null;
             }
 
-            if (!root.TryGetProperty("rows", out var rowsElement) || rowsElement.ValueKind != JsonValueKind.Array) {
-                return null;
-            }
-
-            var rows = new List<IReadOnlyList<string>>();
-            foreach (var rowElement in rowsElement.EnumerateArray()) {
-                if (rowElement.ValueKind != JsonValueKind.Array) {
-                    return null;
-                }
-
-                var row = new List<string>();
-                foreach (var cellElement in rowElement.EnumerateArray()) {
-                    row.Add(ReadJsonScalar(cellElement));
-                }
-
-                rows.Add(row);
-            }
-
-            if (rows.Count == 0) {
+            if (!TryParseDataViewRows(root, out var columns, out var rows)) {
                 return null;
             }
 
@@ -96,16 +79,22 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
             var kind = TryReadJsonString(root, "kind");
             var callId = TryReadJsonString(root, "call_id");
 
-            return BuildDataViewHtml(rows, title, summary, kind, callId);
+            return BuildDataViewHtml(columns, rows, title, summary, kind, callId, payloadHash);
         } catch (JsonException) {
             return null;
         }
     }
 
-    private static string BuildDataViewHtml(IReadOnlyList<IReadOnlyList<string>> rows, string? title, string? summary, string? kind, string? callId) {
+    private static string BuildDataViewHtml(
+        IReadOnlyList<string> columns,
+        IReadOnlyList<IReadOnlyList<string>> rows,
+        string? title,
+        string? summary,
+        string? kind,
+        string? callId,
+        string payloadHash) {
         var sb = new StringBuilder();
-        var headers = rows[0];
-        var bodyRowCount = Math.Max(0, rows.Count - 1);
+        var bodyRowCount = rows.Count;
         sb.Append("<div class=\"omd-dataview\"");
         if (!string.IsNullOrWhiteSpace(title)) {
             sb.Append(" data-ix-title=\"")
@@ -128,10 +117,13 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
               .Append('"');
         }
         sb.Append(" data-ix-column-count=\"")
-          .Append(headers.Count.ToString(System.Globalization.CultureInfo.InvariantCulture))
+          .Append(columns.Count.ToString(System.Globalization.CultureInfo.InvariantCulture))
           .Append('"')
           .Append(" data-ix-row-count=\"")
           .Append(bodyRowCount.ToString(System.Globalization.CultureInfo.InvariantCulture))
+          .Append('"')
+          .Append(" data-ix-payload-hash=\"")
+          .Append(System.Net.WebUtility.HtmlEncode(payloadHash))
           .Append("\">");
 
         if (!string.IsNullOrWhiteSpace(summary)) {
@@ -146,21 +138,20 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
               .Append(System.Net.WebUtility.HtmlEncode(title))
               .Append("</caption>");
         }
-
         sb.Append("<thead><tr>");
-        for (int i = 0; i < headers.Count; i++) {
+        for (int i = 0; i < columns.Count; i++) {
             sb.Append("<th>")
-              .Append(System.Net.WebUtility.HtmlEncode(headers[i] ?? string.Empty))
+              .Append(System.Net.WebUtility.HtmlEncode(columns[i] ?? string.Empty))
               .Append("</th>");
         }
         sb.Append("</tr></thead>");
 
-        if (rows.Count > 1) {
+        if (rows.Count > 0) {
             sb.Append("<tbody>");
-            for (int rowIndex = 1; rowIndex < rows.Count; rowIndex++) {
+            for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
                 var row = rows[rowIndex];
                 sb.Append("<tr>");
-                for (int cellIndex = 0; cellIndex < headers.Count; cellIndex++) {
+                for (int cellIndex = 0; cellIndex < columns.Count; cellIndex++) {
                     var cellValue = cellIndex < row.Count ? row[cellIndex] : string.Empty;
                     sb.Append("<td>")
                       .Append(System.Net.WebUtility.HtmlEncode(cellValue ?? string.Empty))
@@ -173,6 +164,117 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
 
         sb.Append("</table></div>");
         return sb.ToString();
+    }
+
+    private static bool TryParseDataViewRows(JsonElement root, out IReadOnlyList<string> columns, out IReadOnlyList<IReadOnlyList<string>> rows) {
+        columns = Array.Empty<string>();
+        rows = Array.Empty<IReadOnlyList<string>>();
+
+        if (root.TryGetProperty("rows", out var rowsElement) && rowsElement.ValueKind == JsonValueKind.Array) {
+            var parsedRows = new List<IReadOnlyList<string>>();
+            foreach (var rowElement in rowsElement.EnumerateArray()) {
+                if (rowElement.ValueKind != JsonValueKind.Array) {
+                    return false;
+                }
+
+                parsedRows.Add(ReadArrayRow(rowElement));
+            }
+
+            if (parsedRows.Count == 0) {
+                return false;
+            }
+
+            columns = parsedRows[0].ToArray();
+            rows = parsedRows.Count > 1 ? parsedRows.Skip(1).ToArray() : Array.Empty<IReadOnlyList<string>>();
+            return true;
+        }
+
+        if (!root.TryGetProperty("records", out var recordsElement) || recordsElement.ValueKind != JsonValueKind.Array) {
+            return false;
+        }
+
+        var parsedColumns = TryReadColumns(root) ?? DeriveColumnsFromObjectRecords(recordsElement);
+        if (parsedColumns == null || parsedColumns.Count == 0) {
+            return false;
+        }
+
+        var parsedRowsFromRecords = new List<IReadOnlyList<string>>();
+        foreach (var recordElement in recordsElement.EnumerateArray()) {
+            if (recordElement.ValueKind == JsonValueKind.Array) {
+                parsedRowsFromRecords.Add(NormalizeRow(ReadArrayRow(recordElement), parsedColumns.Count));
+                continue;
+            }
+
+            if (recordElement.ValueKind == JsonValueKind.Object) {
+                parsedRowsFromRecords.Add(ReadObjectRow(recordElement, parsedColumns));
+                continue;
+            }
+
+            return false;
+        }
+
+        columns = parsedColumns;
+        rows = parsedRowsFromRecords;
+        return true;
+    }
+
+    private static IReadOnlyList<string>? TryReadColumns(JsonElement root) {
+        if (!root.TryGetProperty("columns", out var columnsElement) || columnsElement.ValueKind != JsonValueKind.Array) {
+            return null;
+        }
+
+        var columns = new List<string>();
+        foreach (var columnElement in columnsElement.EnumerateArray()) {
+            columns.Add(ReadJsonScalar(columnElement));
+        }
+
+        return columns;
+    }
+
+    private static IReadOnlyList<string>? DeriveColumnsFromObjectRecords(JsonElement recordsElement) {
+        foreach (var recordElement in recordsElement.EnumerateArray()) {
+            if (recordElement.ValueKind != JsonValueKind.Object) {
+                continue;
+            }
+
+            var columns = new List<string>();
+            foreach (var property in recordElement.EnumerateObject()) {
+                columns.Add(property.Name);
+            }
+
+            return columns.Count == 0 ? null : columns;
+        }
+
+        return null;
+    }
+
+    private static IReadOnlyList<string> ReadArrayRow(JsonElement rowElement) {
+        var row = new List<string>();
+        foreach (var cellElement in rowElement.EnumerateArray()) {
+            row.Add(ReadJsonScalar(cellElement));
+        }
+
+        return row;
+    }
+
+    private static IReadOnlyList<string> ReadObjectRow(JsonElement recordElement, IReadOnlyList<string> columns) {
+        var row = new string[columns.Count];
+        for (int i = 0; i < columns.Count; i++) {
+            row[i] = recordElement.TryGetProperty(columns[i], out var cellElement)
+                ? ReadJsonScalar(cellElement)
+                : string.Empty;
+        }
+
+        return row;
+    }
+
+    private static IReadOnlyList<string> NormalizeRow(IReadOnlyList<string> row, int columnCount) {
+        var normalized = new string[columnCount];
+        for (int i = 0; i < columnCount; i++) {
+            normalized[i] = i < row.Count ? row[i] ?? string.Empty : string.Empty;
+        }
+
+        return normalized;
     }
 
     private static string ReadJsonScalar(JsonElement element) {

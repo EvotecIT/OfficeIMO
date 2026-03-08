@@ -5,8 +5,11 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.Reader;
 using OfficeIMO.Word;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -209,9 +212,10 @@ public sealed class ReaderDocumentReaderTests {
     [Fact]
     public void DocumentReader_MarkdownChunking_ExtractsIxDataViewTables() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        var raw = "{\"title\":\"Replication Summary\",\"summary\":\"Latest replication posture\",\"kind\":\"ix_tool_dataview_v1\",\"call_id\":\"call_123\",\"rows\":[[\"Server\",\"Fails\"],[\"AD0\",\"0\"],[\"AD1\",\"1\"]]}";
         try {
             File.WriteAllText(path,
-                "# Visual\n\n```ix-dataview\n{\"title\":\"Replication Summary\",\"summary\":\"Latest replication posture\",\"kind\":\"ix_tool_dataview_v1\",\"call_id\":\"call_123\",\"rows\":[[\"Server\",\"Fails\"],[\"AD0\",\"0\"],[\"AD1\",\"1\"]]}\n```\n");
+                "# Visual\n\n```ix-dataview\n" + raw + "\n```\n");
 
             var chunk = DocumentReader.Read(path).Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
 
@@ -222,6 +226,43 @@ public sealed class ReaderDocumentReaderTests {
             Assert.Equal("ix_tool_dataview_v1", chunk.Tables[0].Kind);
             Assert.Equal("call_123", chunk.Tables[0].CallId);
             Assert.Equal("Latest replication posture", chunk.Tables[0].Summary);
+            Assert.Equal(ComputeShortHash(raw), chunk.Tables[0].PayloadHash);
+            Assert.Equal(new[] { "Server", "Fails" }, chunk.Tables[0].Columns);
+            Assert.Equal(2, chunk.Tables[0].TotalRowCount);
+            Assert.Equal("AD0", chunk.Tables[0].Rows[0][0]);
+            Assert.Equal("1", chunk.Tables[0].Rows[1][1]);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    private static string ComputeShortHash(string input) {
+        var data = Encoding.UTF8.GetBytes(input ?? string.Empty);
+        byte[] hash;
+        using (var sha = SHA256.Create()) {
+            hash = sha.ComputeHash(data);
+        }
+
+        var sb = new StringBuilder(16);
+        for (int i = 0; i < 8 && i < hash.Length; i++) {
+            sb.Append(hash[i].ToString("x2", CultureInfo.InvariantCulture));
+        }
+
+        return sb.ToString();
+    }
+
+    [Fact]
+    public void DocumentReader_MarkdownChunking_ExtractsIxDataViewColumnsAndObjectRecords() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path,
+                "# Visual\n\n```ix-dataview\n{\"kind\":\"ix_tool_dataview_v1\",\"columns\":[\"Server\",\"Fails\"],\"records\":[{\"Server\":\"AD0\",\"Fails\":0},{\"Server\":\"AD1\",\"Fails\":1}]}\n```\n");
+
+            var chunk = DocumentReader.Read(path).Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
+
+            Assert.NotNull(chunk.Tables);
+            Assert.Single(chunk.Tables!);
+            Assert.Equal("ix_tool_dataview_v1", chunk.Tables![0].Title);
             Assert.Equal(new[] { "Server", "Fails" }, chunk.Tables[0].Columns);
             Assert.Equal(2, chunk.Tables[0].TotalRowCount);
             Assert.Equal("AD0", chunk.Tables[0].Rows[0][0]);

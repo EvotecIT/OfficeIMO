@@ -2000,30 +2000,11 @@ public static class DocumentReader {
                 return false;
             }
 
-            if (!root.TryGetProperty("rows", out var rowsElement) || rowsElement.ValueKind != JsonValueKind.Array) {
+            if (!TryParseDataViewRows(root, out var parsedColumns, out var parsedRows)) {
                 return false;
             }
 
-            var rawRows = new List<IReadOnlyList<string>>();
-            foreach (var rowElement in rowsElement.EnumerateArray()) {
-                if (rowElement.ValueKind != JsonValueKind.Array) {
-                    return false;
-                }
-
-                var row = new List<string>();
-                foreach (var cellElement in rowElement.EnumerateArray()) {
-                    row.Add(ReadIxDataViewScalar(cellElement));
-                }
-
-                rawRows.Add(row);
-            }
-
-            if (rawRows.Count == 0) {
-                return false;
-            }
-
-            var headers = rawRows[0];
-            var bodyRows = rawRows.Count > 1 ? rawRows.Skip(1).ToList() : new List<IReadOnlyList<string>>();
+            var bodyRows = parsedRows.ToList();
             int totalRowCount = bodyRows.Count;
 
             bool truncated = false;
@@ -2032,9 +2013,9 @@ public static class DocumentReader {
                 truncated = true;
             }
 
-            int columnCount = Math.Max(headers.Count, bodyRows.Count == 0 ? 0 : bodyRows.Max(static row => row?.Count ?? 0));
-            var columns = headers.Count > 0
-                ? EnsureMarkdownTableColumns(headers, columnCount)
+            int columnCount = Math.Max(parsedColumns.Count, bodyRows.Count == 0 ? 0 : bodyRows.Max(static row => row?.Count ?? 0));
+            var columns = parsedColumns.Count > 0
+                ? EnsureMarkdownTableColumns(parsedColumns, columnCount)
                 : BuildMarkdownTableFallbackColumns(columnCount);
             var normalizedRows = bodyRows
                 .Select(row => NormalizeMarkdownTableRow(row, columnCount))
@@ -2045,6 +2026,7 @@ public static class DocumentReader {
                 Kind = TryReadJsonString(root, "kind"),
                 CallId = TryReadJsonString(root, "call_id"),
                 Summary = TryReadJsonString(root, "summary"),
+                PayloadHash = ComputeShortHash(rawContent ?? string.Empty),
                 Columns = columns,
                 Rows = normalizedRows,
                 TotalRowCount = totalRowCount,
@@ -2054,6 +2036,108 @@ public static class DocumentReader {
         } catch (JsonException) {
             return false;
         }
+    }
+
+    private static bool TryParseDataViewRows(JsonElement root, out IReadOnlyList<string> columns, out IReadOnlyList<IReadOnlyList<string>> rows) {
+        columns = Array.Empty<string>();
+        rows = Array.Empty<IReadOnlyList<string>>();
+
+        if (root.TryGetProperty("rows", out var rowsElement) && rowsElement.ValueKind == JsonValueKind.Array) {
+            var parsedRows = new List<IReadOnlyList<string>>();
+            foreach (var rowElement in rowsElement.EnumerateArray()) {
+                if (rowElement.ValueKind != JsonValueKind.Array) {
+                    return false;
+                }
+
+                parsedRows.Add(ReadIxDataViewArrayRow(rowElement));
+            }
+
+            if (parsedRows.Count == 0) {
+                return false;
+            }
+
+            columns = parsedRows[0].ToArray();
+            rows = parsedRows.Count > 1 ? parsedRows.Skip(1).ToArray() : Array.Empty<IReadOnlyList<string>>();
+            return true;
+        }
+
+        if (!root.TryGetProperty("records", out var recordsElement) || recordsElement.ValueKind != JsonValueKind.Array) {
+            return false;
+        }
+
+        var parsedColumns = TryReadIxDataViewColumns(root) ?? DeriveIxDataViewColumnsFromObjectRecords(recordsElement);
+        if (parsedColumns == null || parsedColumns.Count == 0) {
+            return false;
+        }
+
+        var parsedRowsFromRecords = new List<IReadOnlyList<string>>();
+        foreach (var recordElement in recordsElement.EnumerateArray()) {
+            if (recordElement.ValueKind == JsonValueKind.Array) {
+                parsedRowsFromRecords.Add(NormalizeMarkdownTableRow(ReadIxDataViewArrayRow(recordElement), parsedColumns.Count));
+                continue;
+            }
+
+            if (recordElement.ValueKind == JsonValueKind.Object) {
+                parsedRowsFromRecords.Add(ReadIxDataViewObjectRow(recordElement, parsedColumns));
+                continue;
+            }
+
+            return false;
+        }
+
+        columns = parsedColumns;
+        rows = parsedRowsFromRecords;
+        return true;
+    }
+
+    private static IReadOnlyList<string>? TryReadIxDataViewColumns(JsonElement root) {
+        if (!root.TryGetProperty("columns", out var columnsElement) || columnsElement.ValueKind != JsonValueKind.Array) {
+            return null;
+        }
+
+        var columns = new List<string>();
+        foreach (var columnElement in columnsElement.EnumerateArray()) {
+            columns.Add(ReadIxDataViewScalar(columnElement));
+        }
+
+        return columns;
+    }
+
+    private static IReadOnlyList<string>? DeriveIxDataViewColumnsFromObjectRecords(JsonElement recordsElement) {
+        foreach (var recordElement in recordsElement.EnumerateArray()) {
+            if (recordElement.ValueKind != JsonValueKind.Object) {
+                continue;
+            }
+
+            var columns = new List<string>();
+            foreach (var property in recordElement.EnumerateObject()) {
+                columns.Add(property.Name);
+            }
+
+            return columns.Count == 0 ? null : columns;
+        }
+
+        return null;
+    }
+
+    private static IReadOnlyList<string> ReadIxDataViewArrayRow(JsonElement rowElement) {
+        var row = new List<string>();
+        foreach (var cellElement in rowElement.EnumerateArray()) {
+            row.Add(ReadIxDataViewScalar(cellElement));
+        }
+
+        return row;
+    }
+
+    private static IReadOnlyList<string> ReadIxDataViewObjectRow(JsonElement recordElement, IReadOnlyList<string> columns) {
+        var row = new string[columns.Count];
+        for (int i = 0; i < columns.Count; i++) {
+            row[i] = recordElement.TryGetProperty(columns[i], out var cellElement)
+                ? ReadIxDataViewScalar(cellElement)
+                : string.Empty;
+        }
+
+        return row;
     }
 
     private static string ReadIxDataViewScalar(JsonElement element) {
@@ -2075,6 +2159,35 @@ public static class DocumentReader {
         return element.ValueKind == JsonValueKind.String
             ? element.GetString()
             : element.GetRawText();
+    }
+
+    private static string ComputeShortHash(string input) {
+        var normalized = (input ?? string.Empty).TrimEnd('\r', '\n');
+        var data = Encoding.UTF8.GetBytes(normalized);
+        byte[] hash;
+#if NET8_0_OR_GREATER
+        hash = SHA256.HashData(data);
+#else
+        using (var sha = SHA256.Create()) {
+            hash = sha.ComputeHash(data);
+        }
+#endif
+
+        return ToHex(hash, 8);
+    }
+
+    private static string ToHex(byte[] bytes, int take) {
+        if (bytes == null || bytes.Length == 0) {
+            return string.Empty;
+        }
+
+        int len = Math.Min(take, bytes.Length);
+        var sb = new StringBuilder(len * 2);
+        for (int i = 0; i < len; i++) {
+            sb.Append(bytes[i].ToString("x2", CultureInfo.InvariantCulture));
+        }
+
+        return sb.ToString();
     }
 
     private static IReadOnlyList<string> EnsureMarkdownTableColumns(IReadOnlyList<string> headers, int columnCount) {
