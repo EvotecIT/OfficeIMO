@@ -21,6 +21,26 @@ internal static class SheetNameLookup
         return sheets.FirstOrDefault(sheet => Matches(sheet.Name?.Value, requestedName));
     }
 
+    internal static string ResolveExistingOrRequested(IEnumerable<ExcelSheet> sheets, string requestedName)
+    {
+        return FindByRequestedName(sheets, requestedName)?.Name ?? requestedName;
+    }
+
+    internal static string ResolveExistingOrNormalizedOrRequested(IEnumerable<ExcelSheet> sheets, string requestedName)
+    {
+        return FindByRequestedName(sheets, requestedName)?.Name
+               ?? NormalizeForLookup(requestedName)
+               ?? requestedName;
+    }
+
+    internal static string BuildInternalLocation(IEnumerable<ExcelSheet> sheets, string requestedName, string targetA1, bool normalizeFallback = false)
+    {
+        string effectiveSheetName = normalizeFallback
+            ? ResolveExistingOrNormalizedOrRequested(sheets, requestedName)
+            : ResolveExistingOrRequested(sheets, requestedName);
+        return $"'{ExcelSheet.EscapeSheetNameForLink(effectiveSheetName)}'!{targetA1}";
+    }
+
     internal static bool Matches(string? actualSheetName, string requestedName)
     {
         if (string.Equals(actualSheetName, requestedName, StringComparison.OrdinalIgnoreCase))

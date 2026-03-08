@@ -103,13 +103,13 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void AddBackLinksToToc(string tocSheetName = "TOC", int row = 2, int col = 1, string text = "← TOC") {
             var tocSheet = SheetNameLookup.FindByRequestedName(this.Sheets, tocSheetName);
-            string resolvedTocName = tocSheet?.Name ?? SheetNameLookup.NormalizeForLookup(tocSheetName) ?? tocSheetName;
+            string resolvedTocName = SheetNameLookup.ResolveExistingOrNormalizedOrRequested(this.Sheets, tocSheetName);
             foreach (var sh in this.Sheets) {
                 if (string.Equals(sh.Name, resolvedTocName, StringComparison.OrdinalIgnoreCase)) continue;
                 if (tocSheet != null)
                     sh.SetInternalLink(row, col, tocSheet, "A1", text);
                 else
-                    sh.SetInternalLink(row, col, $"'{ExcelSheet.EscapeSheetNameForLink(resolvedTocName)}'!A1", text);
+                    sh.SetInternalLink(row, col, SheetNameLookup.BuildInternalLocation(this.Sheets, tocSheetName, "A1", normalizeFallback: true), text);
             }
         }
 

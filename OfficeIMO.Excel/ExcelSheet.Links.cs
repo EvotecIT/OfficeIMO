@@ -122,9 +122,7 @@ namespace OfficeIMO.Excel {
         }
 
         private string ResolveInternalSheetLinkLocation(string requestedSheetName, string targetA1) {
-            var resolvedSheet = SheetNameLookup.FindByRequestedName(_excelDocument.Sheets, requestedSheetName);
-            string effectiveSheetName = resolvedSheet?.Name ?? requestedSheetName;
-            return $"'{EscapeSheetNameForLink(effectiveSheetName)}'!{targetA1}";
+            return SheetNameLookup.BuildInternalLocation(_excelDocument.Sheets, requestedSheetName, targetA1);
         }
 
         /// <summary>
