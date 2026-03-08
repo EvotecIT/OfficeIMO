@@ -481,6 +481,11 @@ namespace OfficeIMO.Visio {
         private static void ParseShapeProperties(VisioShape shape, XElement shapeElement, XNamespace ns) {
             List<XElement> sectionElements = shapeElement.Elements(ns + "Section").ToList();
 
+            foreach (XElement geometrySection in sectionElements.Where(section =>
+                         string.Equals(section.Attribute("N")?.Value, "Geometry", StringComparison.OrdinalIgnoreCase))) {
+                shape.PreservedGeometrySections.Add(new XElement(geometrySection));
+            }
+
             XElement? connectionSection = sectionElements.FirstOrDefault(e => e.Attribute("N")?.Value == "Connection");
             if (connectionSection != null) {
                 foreach (XElement row in connectionSection.Elements(ns + "Row")) {

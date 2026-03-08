@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Xml.Linq;
 using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Visio {
@@ -178,6 +179,11 @@ namespace OfficeIMO.Visio {
         /// Connection points associated with the shape.
         /// </summary>
         public IList<VisioConnectionPoint> ConnectionPoints { get; } = new List<VisioConnectionPoint>();
+
+        /// <summary>
+        /// Geometry sections captured from a loaded package so custom shape outlines can be preserved on save.
+        /// </summary>
+        internal IList<XElement> PreservedGeometrySections { get; } = new List<XElement>();
 
         /// <summary>
         /// Arbitrary data associated with the shape.
