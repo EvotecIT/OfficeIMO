@@ -202,7 +202,14 @@ public class Markdown_Renderer_Tests {
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md);
         var payloadHash = ComputeShortHash(raw);
 
-        Assert.Contains("class=\"omd-dataview\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"omd-visual omd-dataview\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-contract=\"v1\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-kind=\"dataview\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-fence-language=\"ix-dataview\"", html, StringComparison.Ordinal);
+        Assert.Contains($"data-omd-visual-hash=\"{payloadHash}\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-config-format=\"json\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-config-encoding=\"base64-utf8\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-config-b64=\"", html, StringComparison.Ordinal);
         Assert.Contains("class=\"omd-dataview-table\"", html, StringComparison.Ordinal);
         Assert.Contains("data-ix-title=\"Replication Summary\"", html, StringComparison.Ordinal);
         Assert.Contains("data-ix-summary=\"Latest replication posture\"", html, StringComparison.Ordinal);
