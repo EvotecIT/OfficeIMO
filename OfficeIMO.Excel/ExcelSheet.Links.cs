@@ -59,7 +59,7 @@ namespace OfficeIMO.Excel {
                     if (!TryGetCellText(r, c, out var text) || string.IsNullOrWhiteSpace(text)) continue;
                     string sheetName = destinationSheetForCellText(text);
                     if (string.IsNullOrWhiteSpace(sheetName)) continue;
-                    string location = $"'{EscapeSheetNameForLink(sheetName)}'!{targetA1}";
+                    string location = ResolveInternalSheetLinkLocation(sheetName, targetA1);
                     string disp = display?.Invoke(text) ?? text;
                     SetInternalLink(r, c, location, disp, styled);
                 }
@@ -121,6 +121,12 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
+        private string ResolveInternalSheetLinkLocation(string requestedSheetName, string targetA1) {
+            var resolvedSheet = SheetNameLookup.FindByRequestedName(_excelDocument.Sheets, requestedSheetName);
+            string effectiveSheetName = resolvedSheet?.Name ?? requestedSheetName;
+            return $"'{EscapeSheetNameForLink(effectiveSheetName)}'!{targetA1}";
+        }
+
         /// <summary>
         /// Links a column identified by <paramref name="header"/> to internal sheets using each cell's text.
         /// Defaults to linking to a sheet with the same name as the cell text. When the header is missing the operation is skipped.
@@ -152,7 +158,7 @@ namespace OfficeIMO.Excel {
                 if (!TryGetCellText(r, col, out var text) || string.IsNullOrWhiteSpace(text)) continue;
                 string sheetName = toSheet(text);
                 if (string.IsNullOrWhiteSpace(sheetName)) continue;
-                string location = $"'{EscapeSheetNameForLink(sheetName)}'!{targetA1}";
+                string location = ResolveInternalSheetLinkLocation(sheetName, targetA1);
                 string disp = display?.Invoke(text) ?? text;
                 SetInternalLink(r, col, location, disp, styled);
             }
@@ -183,7 +189,7 @@ namespace OfficeIMO.Excel {
                 if (!TryGetCellText(r, col, out var text) || string.IsNullOrWhiteSpace(text)) continue;
                 string sheetName = toSheet(text);
                 if (string.IsNullOrWhiteSpace(sheetName)) continue;
-                string location = $"'{EscapeSheetNameForLink(sheetName)}'!{targetA1}";
+                string location = ResolveInternalSheetLinkLocation(sheetName, targetA1);
                 string disp = display?.Invoke(text) ?? text;
                 SetInternalLink(r, col, location, disp, styled);
             }
@@ -305,7 +311,7 @@ namespace OfficeIMO.Excel {
                 if (!TryGetCellText(r, column, out var text) || string.IsNullOrWhiteSpace(text)) continue;
                 string sheetName = toSheet(text);
                 if (string.IsNullOrWhiteSpace(sheetName)) continue;
-                string location = $"'{EscapeSheetNameForLink(sheetName)}'!{targetA1}";
+                string location = ResolveInternalSheetLinkLocation(sheetName, targetA1);
                 string disp = display?.Invoke(text) ?? text;
                 SetInternalLink(r, column, location, disp, styled);
             }
@@ -341,7 +347,7 @@ namespace OfficeIMO.Excel {
                 if (!TryGetCellText(r, column, out var text) || string.IsNullOrWhiteSpace(text)) continue;
                 string sheetName = toSheet(text);
                 if (string.IsNullOrWhiteSpace(sheetName)) continue;
-                string location = $"'{EscapeSheetNameForLink(sheetName)}'!{targetA1}";
+                string location = ResolveInternalSheetLinkLocation(sheetName, targetA1);
                 string disp = display?.Invoke(text) ?? text;
                 SetInternalLink(r, column, location, disp, styled);
             }
@@ -461,7 +467,7 @@ namespace OfficeIMO.Excel {
                 if (!TryGetCellText(r, headerCol, out var value) || string.IsNullOrWhiteSpace(value)) continue;
                 string sheetName = toSheet(value);
                 if (string.IsNullOrWhiteSpace(sheetName)) continue;
-                string location = $"'{EscapeSheetNameForLink(sheetName)}'!{targetA1}";
+                string location = ResolveInternalSheetLinkLocation(sheetName, targetA1);
                 string disp = display?.Invoke(value) ?? value;
                 SetInternalLink(r, headerCol, location, disp, styled);
             }
@@ -525,7 +531,7 @@ namespace OfficeIMO.Excel {
                 if (!TryGetCellText(r, headerCol, out var value) || string.IsNullOrWhiteSpace(value)) continue;
                 string sheetName = toSheet(value);
                 if (string.IsNullOrWhiteSpace(sheetName)) continue;
-                string location = $"'{EscapeSheetNameForLink(sheetName)}'!{targetA1}";
+                string location = ResolveInternalSheetLinkLocation(sheetName, targetA1);
                 string disp = display?.Invoke(value) ?? value;
                 SetInternalLink(r, headerCol, location, disp, styled);
             }

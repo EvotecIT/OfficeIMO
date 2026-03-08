@@ -203,5 +203,38 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(items, h => h.Reference!.Value == "B3" && !string.IsNullOrEmpty(h.Id?.Value));
             }
         }
+
+        [Fact]
+        [Trait("Category","ExcelLinks")]
+        public void Excel_LinkByHeader_In_Range_InternalLinks_ResolveSanitizedSheetNames() {
+            string filePath = Path.Combine(_directoryWithFiles, "LinksByHeader_InRange_SanitizedSheetNames.xlsx");
+            if (File.Exists(filePath)) File.Delete(filePath);
+
+            using (var doc = ExcelDocument.Create(filePath))
+            {
+                var s = doc.AddWorkSheet("Summary");
+                var target = doc.AddWorkSheet("domain-001??");
+
+                s.Cell(1, 1, "Domain");
+                s.Cell(2, 1, "domain-001??");
+
+                s.LinkByHeaderToInternalSheetsInRange("A1:A2", "Domain", targetA1: "A1", styled: false);
+                doc.Save(false);
+            }
+
+            using (var pkg = SpreadsheetDocument.Open(filePath, false))
+            {
+                var wb = pkg.WorkbookPart!;
+                var sheets = wb.Workbook.Sheets!.Elements<Sheet>();
+                var summary = sheets.First(x => x.Name!.Value == "Summary");
+                var wsPart = (WorksheetPart)wb.GetPartById(summary.Id!);
+                var ws = wsPart.Worksheet;
+                var hyperlinks = ws.Elements<Hyperlinks>().FirstOrDefault();
+                Assert.NotNull(hyperlinks);
+                var hyperlink = hyperlinks!.Elements<Hyperlink>().Single();
+                Assert.Equal("A2", hyperlink.Reference!.Value);
+                Assert.Equal("'domain-001'!A1", hyperlink.Location!.Value);
+            }
+        }
     }
 }
