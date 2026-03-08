@@ -26,8 +26,13 @@ namespace OfficeIMO.Visio {
             document.Title = package.PackageProperties.Title;
             document.Author = package.PackageProperties.Creator;
 
-            PackageRelationship documentRel = package.GetRelationshipsByType(DocumentRelationshipType).Single();
+            PackageRelationship documentRel = GetRequiredSingleRelationship(
+                package.GetRelationshipsByType(DocumentRelationshipType),
+                "package document");
             Uri documentUri = PackUriHelper.ResolvePartUri(new Uri("/", UriKind.Relative), documentRel.TargetUri);
+            if (!package.PartExists(documentUri)) {
+                throw new InvalidDataException($"Document relationship points to missing part '{documentUri}'.");
+            }
             PackagePart documentPart = package.GetPart(documentUri);
             if (documentPart.ContentType != DocumentContentType) {
                 throw new InvalidDataException($"Unexpected Visio document content type: {documentPart.ContentType}");
@@ -44,8 +49,13 @@ namespace OfficeIMO.Visio {
                 };
             }
 
-            PackageRelationship pagesRel = documentPart.GetRelationshipsByType(PagesRelationshipType).Single();
+            PackageRelationship pagesRel = GetRequiredSingleRelationship(
+                documentPart.GetRelationshipsByType(PagesRelationshipType),
+                "document pages");
             Uri pagesUri = PackUriHelper.ResolvePartUri(documentPart.Uri, pagesRel.TargetUri);
+            if (!package.PartExists(pagesUri)) {
+                throw new InvalidDataException($"Pages relationship points to missing part '{pagesUri}'.");
+            }
             PackagePart pagesPart = package.GetPart(pagesUri);
 
             // Load masters (if exist) to populate references on shapes
@@ -152,6 +162,9 @@ namespace OfficeIMO.Visio {
                                     }
                                 }
                                 break;
+                            case "InhibitSnap":
+                                page.Snap = !TryParseTruthyCellValue(valueAttr);
+                                break;
                         }
                     }
                 }
@@ -241,10 +254,14 @@ namespace OfficeIMO.Visio {
                         string? v = cell.Attribute("V")?.Value;
                         switch (n) {
                             case "BeginArrow":
-                                connector.BeginArrow = (EndArrow)int.Parse(v ?? "0", CultureInfo.InvariantCulture);
+                                if (TryParseCellIntValue(v, out int beginArrow)) {
+                                    connector.BeginArrow = (EndArrow)beginArrow;
+                                }
                                 break;
                             case "EndArrow":
-                                connector.EndArrow = (EndArrow)int.Parse(v ?? "0", CultureInfo.InvariantCulture);
+                                if (TryParseCellIntValue(v, out int endArrow)) {
+                                    connector.EndArrow = (EndArrow)endArrow;
+                                }
                                 break;
                             case "LineWeight":
                                 connector.LineWeight = ParseDouble(v);
@@ -338,18 +355,22 @@ namespace OfficeIMO.Visio {
                     case "Width":
                         shape.Width = ParseDouble(v);
                         widthFound = true;
+                        shape.HasExplicitWidth = true;
                         break;
                     case "Height":
                         shape.Height = ParseDouble(v);
                         heightFound = true;
+                        shape.HasExplicitHeight = true;
                         break;
                     case "LocPinX":
                         shape.LocPinX = ParseDouble(v);
                         locPinXFound = true;
+                        shape.HasExplicitLocPinX = true;
                         break;
                     case "LocPinY":
                         shape.LocPinY = ParseDouble(v);
                         locPinYFound = true;
+                        shape.HasExplicitLocPinY = true;
                         break;
                     case "Angle":
                         shape.Angle = ParseDouble(v);
@@ -403,6 +424,7 @@ namespace OfficeIMO.Visio {
                     if (width != null) {
                         shape.Width = ParseDouble(width.Value);
                         widthFound = true;
+                        shape.HasExplicitWidth = true;
                     }
                 }
                 if (!heightFound) {
@@ -410,6 +432,7 @@ namespace OfficeIMO.Visio {
                     if (height != null) {
                         shape.Height = ParseDouble(height.Value);
                         heightFound = true;
+                        shape.HasExplicitHeight = true;
                     }
                 }
                 if (!locPinXFound) {
@@ -417,6 +440,7 @@ namespace OfficeIMO.Visio {
                     if (locPinX != null) {
                         shape.LocPinX = ParseDouble(locPinX.Value);
                         locPinXFound = true;
+                        shape.HasExplicitLocPinX = true;
                     }
                 }
                 if (!locPinYFound) {
@@ -424,6 +448,7 @@ namespace OfficeIMO.Visio {
                     if (locPinY != null) {
                         shape.LocPinY = ParseDouble(locPinY.Value);
                         locPinYFound = true;
+                        shape.HasExplicitLocPinY = true;
                     }
                 }
                 if (!angleFound) {
@@ -546,16 +571,16 @@ namespace OfficeIMO.Visio {
 
             VisioShape? fallbackMasterShape = shape.MasterShape ?? effectiveMasterShape ?? effectiveMaster?.Shape;
             if (fallbackMasterShape != null) {
-                if (shape.Width == 0) {
+                if (!shape.HasExplicitWidth) {
                     shape.Width = fallbackMasterShape.Width;
                 }
-                if (shape.Height == 0) {
+                if (!shape.HasExplicitHeight) {
                     shape.Height = fallbackMasterShape.Height;
                 }
-                if (shape.LocPinX == 0) {
+                if (!shape.HasExplicitLocPinX) {
                     shape.LocPinX = fallbackMasterShape.LocPinX;
                 }
-                if (shape.LocPinY == 0) {
+                if (!shape.HasExplicitLocPinY) {
                     shape.LocPinY = fallbackMasterShape.LocPinY;
                 }
             }
@@ -584,6 +609,10 @@ namespace OfficeIMO.Visio {
             string? nameU = shapeElement.Attribute("NameU")?.Value;
             if (string.Equals(nameU, "Connector", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(nameU, "Dynamic connector", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+
+            if (TryGetTruthyCellValue(shapeElement, "OneD")) {
                 return true;
             }
 
@@ -680,6 +709,68 @@ namespace OfficeIMO.Visio {
             return ParseDouble(row.Elements(ns + "Cell")
                 .FirstOrDefault(cell => string.Equals(cell.Attribute("N")?.Value, cellName, StringComparison.OrdinalIgnoreCase))
                 ?.Attribute("V")?.Value);
+        }
+
+        private static bool TryGetTruthyCellValue(XElement element, string cellName) {
+            string? value = element.Elements()
+                .FirstOrDefault(child => string.Equals(child.Name.LocalName, "Cell", StringComparison.OrdinalIgnoreCase) &&
+                                         string.Equals(child.Attribute("N")?.Value, cellName, StringComparison.OrdinalIgnoreCase))
+                ?.Attribute("V")?.Value;
+            return TryParseTruthyCellValue(value);
+        }
+
+        private static bool TryParseTruthyCellValue(string? value) {
+            string? normalized = NormalizeCellLiteral(value);
+            if (string.IsNullOrWhiteSpace(normalized)) {
+                return false;
+            }
+
+            if (bool.TryParse(normalized, out bool boolValue)) {
+                return boolValue;
+            }
+
+            return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double numericValue) &&
+                   numericValue != 0;
+        }
+
+        private static bool TryParseCellIntValue(string? value, out int result) {
+            string? normalized = NormalizeCellLiteral(value);
+            if (int.TryParse(normalized, NumberStyles.Integer, CultureInfo.InvariantCulture, out result)) {
+                return true;
+            }
+
+            if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double numericValue)) {
+                int integerValue = Convert.ToInt32(numericValue, CultureInfo.InvariantCulture);
+                if (Math.Abs(numericValue - integerValue) <= 1e-9) {
+                    result = integerValue;
+                    return true;
+                }
+            }
+
+            result = 0;
+            return false;
+        }
+
+        private static string? NormalizeCellLiteral(string? value) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+
+            string normalized = value.Trim();
+            while (normalized.StartsWith("GUARD(", StringComparison.OrdinalIgnoreCase) && normalized.EndsWith(")", StringComparison.Ordinal)) {
+                normalized = normalized.Substring(6, normalized.Length - 7).Trim();
+            }
+
+            return normalized;
+        }
+
+        private static PackageRelationship GetRequiredSingleRelationship(IEnumerable<PackageRelationship> relationships, string description) {
+            List<PackageRelationship> matches = relationships.ToList();
+            if (matches.Count != 1) {
+                throw new InvalidDataException($"Expected exactly one {description} relationship, but found {matches.Count}.");
+            }
+
+            return matches[0];
         }
 
         private static VisioConnectionPoint? ResolveConnectionPoint(VisioShape shape, string? connectionCell) {

@@ -255,8 +255,35 @@ namespace OfficeIMO.Visio {
         public IList<VisioConnector> Connectors => _connectors;
 
         private string NextId() {
-            int n = _shapes.Count + _connectors.Count + 1;
-            return n.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            HashSet<int> usedIds = new();
+
+            void Reserve(string? id) {
+                if (int.TryParse(id, out int numericId) && numericId > 0) {
+                    usedIds.Add(numericId);
+                }
+            }
+
+            void VisitShape(VisioShape shape) {
+                Reserve(shape.Id);
+                foreach (VisioShape child in shape.Children) {
+                    VisitShape(child);
+                }
+            }
+
+            foreach (VisioShape shape in _shapes) {
+                VisitShape(shape);
+            }
+
+            foreach (VisioConnector connector in _connectors) {
+                Reserve(connector.Id);
+            }
+
+            int nextId = 1;
+            while (usedIds.Contains(nextId)) {
+                nextId++;
+            }
+
+            return nextId.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private static void ApplyUnits(ref double x, ref double y, ref double w, ref double h, VisioMeasurementUnit unit) {
@@ -714,9 +741,22 @@ namespace OfficeIMO.Visio {
         /// <param name="w">Width of the shape.</param>
         /// <param name="h">Height of the shape.</param>
         /// <param name="text">Optional text.</param>
+        /// <param name="unit">
+        /// Optional measurement unit. When omitted, values are interpreted using
+        /// the page <see cref="DefaultUnit"/>.
+        /// </param>
         /// <returns>The created shape.</returns>
-        public VisioShape AddShape(string id, VisioMaster master, double x, double y, double w, double h, string? text = null) {
-            VisioShape shape = new VisioShape(id, x, y, w, h, text ?? string.Empty) { Master = master };
+        public VisioShape AddShape(string id, VisioMaster master, double x, double y, double w, double h, string? text = null, VisioMeasurementUnit? unit = null) {
+            VisioMeasurementUnit effectiveUnit = unit ?? DefaultUnit;
+            x = x.ToInches(effectiveUnit);
+            y = y.ToInches(effectiveUnit);
+            w = w.ToInches(effectiveUnit);
+            h = h.ToInches(effectiveUnit);
+
+            VisioShape shape = new VisioShape(id, x, y, w, h, text ?? string.Empty) {
+                Master = master,
+                NameU = master.NameU
+            };
             _shapes.Add(shape);
             return shape;
         }
