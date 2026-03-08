@@ -1,6 +1,8 @@
 using DocumentFormat.OpenXml.CustomProperties;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Charts;
+using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System;
@@ -80,7 +82,7 @@ public abstract class VerifyTestBase {
     }
 
     private static void NormalizeWord(WordprocessingDocument document) {
-        NormalizeDocument(document.MainDocumentPart?.Document);
+        NormalizePart(document.MainDocumentPart);
         NormalizeCustomFilePropertiesPart(document.CustomFilePropertiesPart);
     }
 
@@ -100,17 +102,51 @@ public abstract class VerifyTestBase {
         return sb.ToString();
     }
 
-    private static void NormalizeDocument(Document? document) {
-        if (document is null)
+    private static void NormalizePart(OpenXmlPart? part) {
+        if (part is null) {
             return;
-
-        var i = 1;
-        foreach (var hyperlink in document.Descendants<Hyperlink>()) {
-            hyperlink.Id = "R" + i.ToString("X8");
-            i++;
         }
 
-        i = 1;
+        NormalizeRootElement(part.RootElement);
+
+        if (part is WordprocessingCommentsPart commentsPart && commentsPart.RootElement != null) {
+            foreach (var comment in commentsPart.RootElement.Descendants<Comment>()) {
+                comment.Date = DateTime.MaxValue;
+            }
+        }
+
+        if (part is NumberingDefinitionsPart numberingPart && numberingPart.RootElement != null) {
+            var i = 1;
+            foreach (var nsid in numberingPart.RootElement.Descendants<Nsid>()) {
+                nsid.Val = i.ToString("X8");
+                i++;
+            }
+        }
+
+        foreach (var childPart in part.Parts) {
+            NormalizePart(childPart.OpenXmlPart);
+        }
+    }
+
+    private static void NormalizeRootElement(DocumentFormat.OpenXml.OpenXmlElement? rootElement) {
+        if (rootElement is null) {
+            return;
+        }
+
+        if (rootElement is Document document) {
+            NormalizeDocumentReferences(document);
+        } else {
+            NormalizeRelationshipReferences(rootElement);
+        }
+
+        NormalizeDrawingReferences(rootElement);
+        NormalizeSectionProperties(rootElement);
+    }
+
+    private static void NormalizeDocumentReferences(Document document) {
+        NormalizeRelationshipReferences(document);
+
+        var i = 1;
         foreach (var headerReference in document.Descendants<HeaderReference>()) {
             headerReference.Id = "R" + i.ToString("X8");
             i++;
@@ -121,15 +157,23 @@ public abstract class VerifyTestBase {
             footerReference.Id = "R" + i.ToString("X8");
             i++;
         }
+    }
+
+    private static void NormalizeRelationshipReferences(DocumentFormat.OpenXml.OpenXmlElement rootElement) {
+        var i = 1;
+        foreach (var hyperlink in rootElement.Descendants<Hyperlink>()) {
+            hyperlink.Id = "R" + i.ToString("X8");
+            i++;
+        }
 
         i = 1;
-        foreach (var chartReference in document.Descendants<ChartReference>()) {
+        foreach (var chartReference in rootElement.Descendants<ChartReference>()) {
             chartReference.Id = "R" + i.ToString("X8");
             i++;
         }
 
         i = 1;
-        foreach (var blip in document.Descendants<Blip>()) {
+        foreach (var blip in rootElement.Descendants<Blip>()) {
             if (blip.Embed != null) {
                 blip.Embed = "R" + i.ToString("X8");
                 i++;
@@ -140,24 +184,33 @@ public abstract class VerifyTestBase {
                 i++;
             }
         }
+    }
 
-        if (document.MainDocumentPart!.GetPartsOfType<WordprocessingCommentsPart>().Any()) {
-            foreach (var comment in document.MainDocumentPart.WordprocessingCommentsPart!.RootElement!.Descendants<Comment>()) {
-                comment.Date = DateTime.MaxValue;
-            }
+    private static void NormalizeDrawingReferences(DocumentFormat.OpenXml.OpenXmlElement rootElement) {
+        var i = 1;
+        foreach (var docProperties in rootElement.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties>()) {
+            docProperties.Id = (UInt32Value)(uint)i;
+            i++;
         }
 
-        if (document.MainDocumentPart!.GetPartsOfType<NumberingDefinitionsPart>().Any()) {
-            i = 1;
-            foreach (var nsid in document.MainDocumentPart.NumberingDefinitionsPart!.RootElement!.Descendants<Nsid>()) {
-                nsid.Val = i.ToString("X8");
-                i++;
-            }
-        }
-
-        // Normalize RSID in SectionProperties
         i = 1;
-        foreach (var sectionProperties in document.Descendants<SectionProperties>()) {
+        foreach (var anchor in rootElement.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor>()) {
+            anchor.AnchorId = i.ToString("X8");
+            anchor.EditId = "E" + i.ToString("X8");
+            i++;
+        }
+
+        i = 1;
+        foreach (var inline in rootElement.Descendants<Inline>()) {
+            inline.AnchorId = i.ToString("X8");
+            inline.EditId = "E" + i.ToString("X8");
+            i++;
+        }
+    }
+
+    private static void NormalizeSectionProperties(DocumentFormat.OpenXml.OpenXmlElement rootElement) {
+        var i = 1;
+        foreach (var sectionProperties in rootElement.Descendants<SectionProperties>()) {
             if (sectionProperties.RsidRPr != null) {
                 sectionProperties.RsidRPr = "R" + i.ToString("X8");
                 i++;
