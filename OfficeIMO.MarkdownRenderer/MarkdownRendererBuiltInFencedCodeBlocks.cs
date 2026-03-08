@@ -97,7 +97,7 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
             var kind = TryReadJsonString(root, "kind");
             var callId = TryReadJsonString(root, "call_id");
 
-            return BuildDataViewHtml(rows, title, summary, kind, callId, payloadHash);
+            return BuildDataViewHtml(rows, title, summary, kind, callId, payloadHash, raw);
         } catch (JsonException) {
             return null;
         }
@@ -109,11 +109,25 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
         string? summary,
         string? kind,
         string? callId,
-        string payloadHash) {
+        string payloadHash,
+        string rawContent) {
         var sb = new StringBuilder();
         var headers = rows[0];
         var bodyRowCount = Math.Max(0, rows.Count - 1);
-        sb.Append("<div class=\"omd-dataview\"");
+        var encodedPayloadHash = System.Net.WebUtility.HtmlEncode(payloadHash);
+        var encodedBase64 = System.Net.WebUtility.HtmlEncode(Convert.ToBase64String(Encoding.UTF8.GetBytes(rawContent ?? string.Empty)));
+        sb.Append("<div class=\"omd-visual omd-dataview\"")
+          .Append(" data-omd-visual-contract=\"v1\"")
+          .Append(" data-omd-visual-kind=\"dataview\"")
+          .Append(" data-omd-fence-language=\"ix-dataview\"")
+          .Append(" data-omd-visual-hash=\"")
+          .Append(encodedPayloadHash)
+          .Append('"')
+          .Append(" data-omd-config-format=\"json\"")
+          .Append(" data-omd-config-encoding=\"base64-utf8\"")
+          .Append(" data-omd-config-b64=\"")
+          .Append(encodedBase64)
+          .Append('"');
         if (!string.IsNullOrWhiteSpace(title)) {
             sb.Append(" data-ix-title=\"")
               .Append(System.Net.WebUtility.HtmlEncode(title))
@@ -141,7 +155,7 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
           .Append(bodyRowCount.ToString(System.Globalization.CultureInfo.InvariantCulture))
           .Append('"')
           .Append(" data-ix-payload-hash=\"")
-          .Append(System.Net.WebUtility.HtmlEncode(payloadHash))
+          .Append(encodedPayloadHash)
           .Append("\">");
 
         if (!string.IsNullOrWhiteSpace(summary)) {
