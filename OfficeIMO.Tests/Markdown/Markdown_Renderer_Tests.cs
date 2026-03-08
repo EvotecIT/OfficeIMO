@@ -236,7 +236,8 @@ public class Markdown_Renderer_Tests {
 
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md);
 
-        Assert.Contains("class=\"omd-dataview\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"omd-visual omd-dataview\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-kind=\"dataview\"", html, StringComparison.Ordinal);
         Assert.Contains("<th>Server</th>", html, StringComparison.Ordinal);
         Assert.Contains("<th>Fails</th>", html, StringComparison.Ordinal);
         Assert.Contains("<td>AD0</td>", html, StringComparison.Ordinal);
