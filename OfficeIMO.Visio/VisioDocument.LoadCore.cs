@@ -813,6 +813,11 @@ namespace OfficeIMO.Visio {
                 }
             }
 
+            bool hasExplicitSectionIndices = shape.ConnectionPoints.Any(point => point.SectionIndex.HasValue);
+            if (hasExplicitSectionIndices) {
+                return null;
+            }
+
             return sectionIndex >= 0 && sectionIndex < shape.ConnectionPoints.Count ? shape.ConnectionPoints[sectionIndex] : null;
         }
     }
