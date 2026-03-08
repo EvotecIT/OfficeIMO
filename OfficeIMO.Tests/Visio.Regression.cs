@@ -318,7 +318,6 @@ namespace OfficeIMO.Tests {
             Assert.Equal(SixLabors.ImageSharp.Color.White, shape.FillColor);
             Assert.Equal(SixLabors.ImageSharp.Color.White, connector.LineColor);
         }
-
         private static void RewritePage(string vsdxPath, Action<XDocument> transform) {
             using FileStream stream = File.Open(vsdxPath, FileMode.Open, FileAccess.ReadWrite);
             using ZipArchive archive = new(stream, ZipArchiveMode.Update);

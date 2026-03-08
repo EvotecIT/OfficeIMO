@@ -20,18 +20,21 @@ public static class ExcelHostExtensions
 
         if (!string.IsNullOrWhiteSpace(name))
         {
-            var existing = sheetsCollection.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
+            string requestedName = name!;
+            var existing = validationMode == SheetNameValidationMode.Sanitize
+                ? SheetNameLookup.FindByRequestedName(sheetsCollection, requestedName)
+                : sheetsCollection.FirstOrDefault(s => string.Equals(s.Name, requestedName, StringComparison.OrdinalIgnoreCase));
             if (existing != null)
             {
                 return existing;
             }
 
-            return document.AddWorkSheet(name ?? string.Empty, validationMode);
+            return document.AddWorkSheet(requestedName, validationMode);
         }
 
         if (sheetsCollection.Count == 0)
         {
-            return document.AddWorkSheet(string.Empty, SheetNameValidationMode.None);
+            return document.AddWorkSheet();
         }
 
         return sheetsCollection[sheetsCollection.Count - 1];

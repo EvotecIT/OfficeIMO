@@ -9,27 +9,11 @@ namespace OfficeIMO.Excel {
         // Core implementation: single source of truth (no locks here)
         private void CellValueCore(int row, int column, object? value) {
             var (cellValue, dataType) = CoerceForCell(value);
-            bool wroteNumber = dataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
 
             var cell = GetCell(row, column);
             cell.CellValue = cellValue;
             cell.DataType = dataType;
-
-            // Automatically apply date format for DateTime values
-            // Using Excel's built-in date format code 14 (invariant short date)
-            if (wroteNumber && (value is DateTime || value is DateTimeOffset)) {
-                ApplyBuiltInNumberFormat(row, column, 14);  // Built-in format 14 is short date
-            }
-
-            if (value is TimeSpan) {
-                // Built-in format 46 renders durations using the invariant [h]:mm:ss pattern
-                ApplyBuiltInNumberFormat(row, column, 46);
-            }
-
-            // Enable wrap text when value contains new lines so Excel renders multiple lines correctly
-            if (value is string s && (s.Contains("\n") || s.Contains("\r"))) {
-                ApplyWrapText(row, column);
-            }
+            ApplyAutomaticCellFormatting(cell, value, dataType);
         }
 
         // Core coercion logic shared between sequential and parallel operations
@@ -228,6 +212,26 @@ namespace OfficeIMO.Excel {
         private void ApplyWrapText(int row, int column) {
             var cell = GetCell(row, column);
             ApplyWrapText(cell);
+        }
+
+        private void ApplyAutomaticCellFormatting(Cell cell, object? value, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>? dataType) {
+            bool wroteNumber = dataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
+
+            // Automatically apply date format for DateTime values
+            // Using Excel's built-in date format code 14 (invariant short date)
+            if (wroteNumber && (value is DateTime || value is DateTimeOffset)) {
+                ApplyBuiltInNumberFormat(cell, 14);
+            }
+
+            if (value is TimeSpan) {
+                // Built-in format 46 renders durations using the invariant [h]:mm:ss pattern
+                ApplyBuiltInNumberFormat(cell, 46);
+            }
+
+            // Enable wrap text when value contains new lines so Excel renders multiple lines correctly
+            if (value is string s && (s.Contains("\n") || s.Contains("\r"))) {
+                ApplyWrapText(cell);
+            }
         }
 
         private void ApplyWrapText(Cell cell) {
@@ -542,7 +546,10 @@ namespace OfficeIMO.Excel {
 
         private void ApplyBuiltInNumberFormat(int row, int column, uint builtInFormatId) {
             Cell cell = GetCell(row, column);
+            ApplyBuiltInNumberFormat(cell, builtInFormatId);
+        }
 
+        private void ApplyBuiltInNumberFormat(Cell cell, uint builtInFormatId) {
             var workbookPart = _excelDocument._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
             WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
             if (stylesPart == null) {

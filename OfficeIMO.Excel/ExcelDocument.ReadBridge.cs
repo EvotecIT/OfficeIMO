@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelSheet GetSheet(string name) {
             if (string.IsNullOrEmpty(name)) throw new ArgumentNullException(nameof(name));
-            var sheet = Sheets.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.Ordinal));
+            var sheet = Sheets.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
             if (sheet is null) throw new KeyNotFoundException($"Sheet '{name}' not found.");
             return sheet;
         }
@@ -30,7 +30,7 @@ namespace OfficeIMO.Excel {
         /// Tries to get a worksheet by name.
         /// </summary>
         public bool TryGetSheet(string name, out ExcelSheet? sheet) {
-            sheet = Sheets.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.Ordinal));
+            sheet = Sheets.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
             return sheet != null;
         }
     }

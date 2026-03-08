@@ -55,15 +55,29 @@ namespace OfficeIMO.Excel {
             if (bufferRows.Count > 0)
                 ScheduleChunk(bufferRows, chunkIndex++, r1, c1, r2, c2);
 
+            var allTasks = Task.WhenAll(tasks);
             for (int i = 0; i < chunkIndex; i++) {
                 RangeChunk? readyChunk;
                 while (!results.TryRemove(nextToYield, out readyChunk)) {
-                    Thread.SpinWait(200);
-                    Thread.Yield();
+                    ct.ThrowIfCancellationRequested();
+
+                    if (allTasks.IsCompleted) {
+                        try {
+                            allTasks.GetAwaiter().GetResult();
+                        } catch (AggregateException ex) when (ex.InnerExceptions.Count == 1) {
+                            throw ex.InnerExceptions[0];
+                        }
+
+                        throw new InvalidOperationException($"Chunk {nextToYield} was not produced.");
+                    }
+
+                    Thread.Sleep(1);
                 }
                 yield return readyChunk!;
                 nextToYield++;
             }
+
+            allTasks.GetAwaiter().GetResult();
 
             void ScheduleChunk(List<Row> rows, int index, int rr1, int cc1, int rr2, int cc2) {
                 var snapshot = rows.ToArray();

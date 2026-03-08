@@ -33,7 +33,6 @@ namespace OfficeIMO.Excel {
 
             // Prepared buffers for parallel scenario
             var prepared = new (int Row, int Col, CellValue Val, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> Type)[list.Count];
-            var wrapFlags = new bool[list.Count];
             var ssPlanner = new SharedStringPlanner();
 
             ExecuteWithPolicy(
@@ -55,10 +54,6 @@ namespace OfficeIMO.Excel {
                     }, i => {
                         var (r, c, obj) = list[i];
                         var (val, type) = CoerceForCellNoDom(obj, ssPlanner);
-                        if (type?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString && val?.Text is string raw) {
-                            if (raw.Contains("\n") || raw.Contains("\r"))
-                                wrapFlags[i] = true;
-                        }
                         prepared[i] = (r, c, val!, type!);
                     });
                 },
@@ -67,12 +62,11 @@ namespace OfficeIMO.Excel {
                     ssPlanner.ApplyAndFixup(prepared, _excelDocument);
                     for (int i = 0; i < prepared.Length; i++) {
                         var p = prepared[i];
+                        var originalValue = list[i].Value;
                         var cell = GetCell(p.Row, p.Col);
                         cell.CellValue = p.Val;
                         cell.DataType = p.Type;
-                        if (wrapFlags[i]) {
-                            ApplyWrapText(cell);
-                        }
+                        ApplyAutomaticCellFormatting(cell, originalValue, p.Type);
                     }
                 },
                 ct: ct

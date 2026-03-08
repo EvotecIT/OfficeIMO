@@ -11,6 +11,48 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class ExcelSheetNameValidationAndPreflightTests {
         [Fact]
+        public void AddWorkSheet_Default_SanitizesInvalidCharsAndDuplicates() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                var first = doc.AddWorkSheet("Q4:Revenue/Forecast?*");
+                var second = doc.AddWorkSheet("Q4:Revenue/Forecast?*");
+
+                Assert.Equal("Q4_Revenue_Forecast", first.Name);
+                Assert.Equal("Q4_Revenue_Forecast (2)", second.Name);
+            }
+            File.Delete(path);
+        }
+
+        [Fact]
+        public void AddWorkSheet_Default_BlankNamesUseUniqueExcelStyleSheetNames() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                var first = doc.AddWorkSheet();
+                var second = doc.AddWorkSheet("   ");
+                var third = doc.AddWorkSheet("???");
+
+                Assert.Equal("Sheet1", first.Name);
+                Assert.Equal("Sheet2", second.Name);
+                Assert.Equal("Sheet3", third.Name);
+            }
+            File.Delete(path);
+        }
+
+        [Fact]
+        public void GetOrCreateSheet_Sanitize_ReusesExistingSanitizedSheet() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                var created = doc.AddWorkSheet("Data??");
+                var resolved = doc.GetOrCreateSheet("Data??", SheetNameValidationMode.Sanitize);
+
+                Assert.Single(doc.Sheets);
+                Assert.Equal(created.Name, resolved.Name);
+                Assert.Equal("Data", resolved.Name);
+            }
+            File.Delete(path);
+        }
+
+        [Fact]
         public void AddWorkSheet_Sanitize_InvalidCharsAndDuplicate() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
@@ -36,6 +78,22 @@ namespace OfficeIMO.Tests {
                 var s1 = doc.AddWorkSheet("Data", SheetNameValidationMode.Strict);
                 Assert.NotNull(s1);
                 Assert.Throws<ArgumentException>(() => doc.AddWorkSheet("Data", SheetNameValidationMode.Strict));
+            }
+            File.Delete(path);
+        }
+
+        [Fact]
+        public void RenameWorkSheet_StrictSetter_ThrowsOnInvalidOrDuplicate() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                var alpha = doc.AddWorkSheet("Alpha", SheetNameValidationMode.Strict);
+                var beta = doc.AddWorkSheet("Beta", SheetNameValidationMode.Strict);
+
+                Assert.Throws<ArgumentException>(() => alpha.Name = "Bad:Name");
+                Assert.Throws<ArgumentException>(() => beta.Name = "Alpha");
+
+                alpha.Name = "alpha";
+                Assert.Equal("alpha", alpha.Name);
             }
             File.Delete(path);
         }

@@ -897,7 +897,7 @@ namespace OfficeIMO.Excel {
         /// <param name="workSheetName">Worksheet name.</param>
         /// <returns>Created <see cref="ExcelSheet"/> instance.</returns>
         public ExcelSheet AddWorkSheet(string workSheetName = "") {
-            return AddWorkSheet(workSheetName, SheetNameValidationMode.None);
+            return AddWorkSheet(workSheetName, SheetNameValidationMode.Sanitize);
         }
 
         /// <summary>
@@ -909,19 +909,45 @@ namespace OfficeIMO.Excel {
         public ExcelSheet AddWorkSheet(string workSheetName, SheetNameValidationMode validationMode) {
             return Locking.ExecuteWrite(EnsureLock(), () => {
                 EnsureSheetCacheInitialized(_lock);
-                string name = ValidateOrSanitizeSheetName(workSheetName, validationMode);
+                string name = ValidateOrSanitizeSheetName(workSheetName, validationMode, currentSheetName: null);
                 ExcelSheet excelSheet = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, name);
                 MarkSheetCacheDirty();
                 return excelSheet;
             });
         }
 
-        private string ValidateOrSanitizeSheetName(string name, SheetNameValidationMode mode) {
+        internal void RenameWorkSheet(ExcelSheet sheet, string workSheetName, SheetNameValidationMode validationMode) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+
+            Locking.ExecuteWrite(EnsureLock(), () => {
+                string currentName = sheet.Name;
+                string validatedName = ValidateOrSanitizeSheetName(workSheetName, validationMode, currentName);
+                if (string.Equals(currentName, validatedName, StringComparison.Ordinal)) {
+                    return;
+                }
+
+                var target = _workBookPart.Workbook.Sheets?
+                    .OfType<DocumentFormat.OpenXml.Spreadsheet.Sheet>()
+                    .FirstOrDefault(s => ReferenceEquals(s, sheet.SheetElement)
+                                         || string.Equals(s.Name?.Value, currentName, StringComparison.Ordinal));
+                if (target == null) {
+                    throw new ArgumentException("Worksheet not found in workbook.", nameof(sheet));
+                }
+
+                target.Name = validatedName;
+                UpdateSheetNameReferences(currentName, validatedName);
+                _workBookPart.Workbook.Save();
+            });
+        }
+
+        private string ValidateOrSanitizeSheetName(string name, SheetNameValidationMode mode, string? currentSheetName) {
             // Collect existing names (case-insensitive)
             var existing = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
             foreach (var s in _workBookPart.Workbook.Sheets?.OfType<DocumentFormat.OpenXml.Spreadsheet.Sheet>() ?? System.Linq.Enumerable.Empty<DocumentFormat.OpenXml.Spreadsheet.Sheet>()) {
                 var existingName = s.Name?.Value;
-                if (!string.IsNullOrEmpty(existingName)) existing.Add(existingName!);
+                if (string.IsNullOrEmpty(existingName)) continue;
+                if (!string.IsNullOrEmpty(currentSheetName) && string.Equals(existingName, currentSheetName, StringComparison.OrdinalIgnoreCase)) continue;
+                existing.Add(existingName!);
             }
 
             if (mode == SheetNameValidationMode.None) {
@@ -960,7 +986,7 @@ namespace OfficeIMO.Excel {
             // Collapse multiple underscores and trim leading/trailing underscores for nicer names
             cleaned = _multipleUnderscoresRegex.Replace(cleaned, "_");
             cleaned = cleaned.Trim('_');
-            if (cleaned.Length == 0) cleaned = "Sheet";
+            if (cleaned.Length == 0) cleaned = GenerateDefaultSheetName(existing);
             if (cleaned.Length > 31) cleaned = cleaned.Substring(0, 31);
 
             // Ensure uniqueness by appending (2), (3), ...
@@ -973,6 +999,17 @@ namespace OfficeIMO.Excel {
                 candidate = basePart + suffix;
                 n++;
             }
+            return candidate;
+        }
+
+        private static string GenerateDefaultSheetName(System.Collections.Generic.ISet<string> existing) {
+            int n = 1;
+            string candidate = "Sheet1";
+            while (existing.Contains(candidate)) {
+                n++;
+                candidate = "Sheet" + n.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
             return candidate;
         }
 
@@ -1044,6 +1081,7 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
         public void Save(string filePath, bool openExcel, ExcelSaveOptions? options) {
             var path = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
+            var originalFilePath = FilePath;
 
             // Ensure target directory is writable
             if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
@@ -1052,28 +1090,27 @@ namespace OfficeIMO.Excel {
             EnsureDirectoryWritable(path);
 
             var payload = PreparePackageForSave(options);
+            try {
+                CommitPreparedPackageToFile(path, payload);
 
-            using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None)) {
-                fs.Write(payload.PackageBytes, 0, payload.PackageBytes.Length);
-                fs.Flush();
-            }
+                var fileBytes = File.ReadAllBytes(path);
+                ReloadFromBytes(fileBytes);
+                FilePath = path;
 
-            try { payload.Properties.ApplyTo(path); } catch { }
-            try { ExcelPackageUtilities.NormalizeContentTypes(path); } catch { }
-            FilePath = path;
-
-            var fileBytes = File.ReadAllBytes(path);
-            ReloadFromBytes(fileBytes);
-
-            if (openExcel) {
-                Helpers.Open(path, true);
-            }
-
-            if (options?.ValidateOpenXml == true) {
-                var errors = ValidateOpenXml();
-                if (errors.Count > 0) {
-                    throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+                if (openExcel) {
+                    Helpers.Open(path, true);
                 }
+
+                if (options?.ValidateOpenXml == true) {
+                    var errors = ValidateOpenXml();
+                    if (errors.Count > 0) {
+                        throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+                    }
+                }
+            } catch {
+                TryRestoreDocumentState(payload);
+                FilePath = originalFilePath;
+                throw;
             }
         }
 
@@ -1145,34 +1182,34 @@ namespace OfficeIMO.Excel {
         /// <param name="cancellationToken">Cancels the asynchronous save work.</param>
         public async Task SaveAsync(string filePath, bool openExcel, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
             var target = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
+            var originalFilePath = FilePath;
             if (File.Exists(target) && new FileInfo(target).IsReadOnly) {
                 throw new IOException($"Failed to save to '{target}'. The file is read-only.");
             }
             EnsureDirectoryWritable(target);
 
             var payload = PreparePackageForSave(options);
+            try {
+                await CommitPreparedPackageToFileAsync(target, payload, cancellationToken).ConfigureAwait(false);
 
-            using (var fs = new FileStream(target, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 8192, FileOptions.Asynchronous)) {
-                await fs.WriteAsync(payload.PackageBytes, 0, payload.PackageBytes.Length, cancellationToken).ConfigureAwait(false);
-                await fs.FlushAsync(cancellationToken).ConfigureAwait(false);
-            }
+                var fileBytes = await ReadAllBytesCompatAsync(target, cancellationToken).ConfigureAwait(false);
+                ReloadFromBytes(fileBytes);
+                FilePath = target;
 
-            try { payload.Properties.ApplyTo(target); } catch { }
-            try { ExcelPackageUtilities.NormalizeContentTypes(target); } catch { }
-            FilePath = target;
-
-            var fileBytes = await ReadAllBytesCompatAsync(target, cancellationToken).ConfigureAwait(false);
-            ReloadFromBytes(fileBytes);
-
-            if (openExcel) {
-                Open(filePath, true);
-            }
-
-            if (options?.ValidateOpenXml == true) {
-                var errors = ValidateOpenXml();
-                if (errors.Count > 0) {
-                    throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+                if (openExcel) {
+                    Open(target, true);
                 }
+
+                if (options?.ValidateOpenXml == true) {
+                    var errors = ValidateOpenXml();
+                    if (errors.Count > 0) {
+                        throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+                    }
+                }
+            } catch {
+                TryRestoreDocumentState(payload);
+                FilePath = originalFilePath;
+                throw;
             }
         }
 
@@ -1194,18 +1231,24 @@ namespace OfficeIMO.Excel {
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
             var payload = PreparePackageForSave(options);
-            var withProperties = payload.Properties.ApplyTo(payload.PackageBytes);
-            var finalizedBytes = NormalizePackageBytes(withProperties);
-            destination.Write(finalizedBytes, 0, finalizedBytes.Length);
-            try { destination.Flush(); } catch (NotSupportedException) { }
+            try {
+                var withProperties = payload.Properties.ApplyTo(payload.PackageBytes);
+                var finalizedBytes = NormalizePackageBytes(withProperties);
+                PrepareDestinationStreamForWrite(destination);
+                destination.Write(finalizedBytes, 0, finalizedBytes.Length);
+                try { destination.Flush(); } catch (NotSupportedException) { }
 
-            ReloadFromBytes(finalizedBytes);
+                ReloadFromBytes(finalizedBytes);
 
-            if (options?.ValidateOpenXml == true) {
-                var errors = ValidateOpenXml();
-                if (errors.Count > 0) {
-                    throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+                if (options?.ValidateOpenXml == true) {
+                    var errors = ValidateOpenXml();
+                    if (errors.Count > 0) {
+                        throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+                    }
                 }
+            } catch {
+                TryRestoreDocumentState(payload);
+                throw;
             }
         }
 
@@ -1229,18 +1272,24 @@ namespace OfficeIMO.Excel {
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
             var payload = PreparePackageForSave(options);
-            var withProperties = payload.Properties.ApplyTo(payload.PackageBytes);
-            var finalizedBytes = NormalizePackageBytes(withProperties);
-            await destination.WriteAsync(finalizedBytes, 0, finalizedBytes.Length, cancellationToken).ConfigureAwait(false);
-            try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
+            try {
+                var withProperties = payload.Properties.ApplyTo(payload.PackageBytes);
+                var finalizedBytes = NormalizePackageBytes(withProperties);
+                PrepareDestinationStreamForWrite(destination);
+                await destination.WriteAsync(finalizedBytes, 0, finalizedBytes.Length, cancellationToken).ConfigureAwait(false);
+                try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
 
-            ReloadFromBytes(finalizedBytes);
+                ReloadFromBytes(finalizedBytes);
 
-            if (options?.ValidateOpenXml == true) {
-                var errors = ValidateOpenXml();
-                if (errors.Count > 0) {
-                    throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+                if (options?.ValidateOpenXml == true) {
+                    var errors = ValidateOpenXml();
+                    if (errors.Count > 0) {
+                        throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+                    }
                 }
+            } catch {
+                TryRestoreDocumentState(payload);
+                throw;
             }
         }
 
@@ -1296,14 +1345,164 @@ namespace OfficeIMO.Excel {
             return new SavePayload(packageBytes, propertiesSnapshot);
         }
 
+        private static void PrepareDestinationStreamForWrite(Stream destination) {
+            if (!destination.CanSeek) {
+                return;
+            }
+
+            destination.Seek(0, SeekOrigin.Begin);
+            destination.SetLength(0);
+        }
+
+        private static string CreateTemporarySavePath(string targetPath) {
+            var fullTargetPath = Path.GetFullPath(targetPath);
+            var directory = Path.GetDirectoryName(fullTargetPath);
+            if (string.IsNullOrEmpty(directory)) {
+                directory = Directory.GetCurrentDirectory();
+            }
+
+            var fileName = Path.GetFileName(fullTargetPath);
+            if (string.IsNullOrEmpty(fileName)) {
+                fileName = "workbook.xlsx";
+            }
+
+            return Path.Combine(directory, $".{fileName}.{Guid.NewGuid():N}.tmp");
+        }
+
+        private static string CreateTemporaryBackupPath(string targetPath) {
+            var fullTargetPath = Path.GetFullPath(targetPath);
+            var directory = Path.GetDirectoryName(fullTargetPath);
+            if (string.IsNullOrEmpty(directory)) {
+                directory = Directory.GetCurrentDirectory();
+            }
+
+            var fileName = Path.GetFileName(fullTargetPath);
+            if (string.IsNullOrEmpty(fileName)) {
+                fileName = "workbook.xlsx";
+            }
+
+            return Path.Combine(directory, $".{fileName}.{Guid.NewGuid():N}.bak");
+        }
+
+        private static void ReplaceTargetFile(string temporaryPath, string targetPath) {
+            if (!File.Exists(targetPath)) {
+                File.Move(temporaryPath, targetPath);
+                return;
+            }
+
+            IOException? lastIOException = null;
+            for (int attempt = 0; attempt < 5; attempt++) {
+                try {
+                    File.Replace(temporaryPath, targetPath, destinationBackupFileName: null);
+                    return;
+                } catch (IOException ex) when (attempt < 4) {
+                    lastIOException = ex;
+                    Thread.Sleep(50 * (attempt + 1));
+                }
+            }
+
+            var backupPath = CreateTemporaryBackupPath(targetPath);
+            try {
+                File.Move(targetPath, backupPath);
+                try {
+                    File.Move(temporaryPath, targetPath);
+                    temporaryPath = string.Empty;
+                    DeleteFileIfExists(backupPath);
+                    return;
+                } catch {
+                    if (!File.Exists(targetPath) && File.Exists(backupPath)) {
+                        File.Move(backupPath, targetPath);
+                    }
+
+                    throw;
+                }
+            } catch when (lastIOException != null) {
+                throw lastIOException;
+            } finally {
+                DeleteFileIfExists(backupPath);
+                DeleteFileIfExists(temporaryPath);
+            }
+        }
+
+        private static void DeleteFileIfExists(string path) {
+            if (string.IsNullOrWhiteSpace(path)) {
+                return;
+            }
+
+            try {
+                if (File.Exists(path)) {
+                    File.Delete(path);
+                }
+            } catch {
+            }
+        }
+
+        private static void CommitPreparedPackageToFile(string targetPath, SavePayload payload) {
+            var temporaryPath = CreateTemporarySavePath(targetPath);
+            try {
+                using (var fs = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
+                    fs.Write(payload.PackageBytes, 0, payload.PackageBytes.Length);
+                    fs.Flush();
+                }
+
+                try { payload.Properties.ApplyTo(temporaryPath); } catch { }
+                try { ExcelPackageUtilities.NormalizeContentTypes(temporaryPath); } catch { }
+
+                ReplaceTargetFile(temporaryPath, targetPath);
+                temporaryPath = string.Empty;
+            } finally {
+                DeleteFileIfExists(temporaryPath);
+            }
+        }
+
+        private static async Task CommitPreparedPackageToFileAsync(string targetPath, SavePayload payload, CancellationToken cancellationToken) {
+            var temporaryPath = CreateTemporarySavePath(targetPath);
+            try {
+                using (var fs = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 8192, FileOptions.Asynchronous)) {
+                    await fs.WriteAsync(payload.PackageBytes, 0, payload.PackageBytes.Length, cancellationToken).ConfigureAwait(false);
+                    await fs.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                try { payload.Properties.ApplyTo(temporaryPath); } catch { }
+                try { ExcelPackageUtilities.NormalizeContentTypes(temporaryPath); } catch { }
+
+                ReplaceTargetFile(temporaryPath, targetPath);
+                temporaryPath = string.Empty;
+            } finally {
+                DeleteFileIfExists(temporaryPath);
+            }
+        }
+
+        private void TryRestoreDocumentState(SavePayload payload) {
+            try {
+                ReloadFromBytes(payload.PackageBytes);
+            } catch {
+                // Best-effort recovery only; preserve the original save exception.
+            }
+        }
+
         private void ReloadFromBytes(byte[] packageBytes) {
-            var mem = new MemoryStream(packageBytes.Length + 8192);
+            var previousDocument = _spreadSheetDocument;
+            var previousPackageStream = _packageStream;
+
+            Stream mem = _copyPackageToSourceOnDispose
+                ? new NonDisposingMemoryStream(packageBytes.Length + 8192)
+                : new MemoryStream(packageBytes.Length + 8192);
             mem.Write(packageBytes, 0, packageBytes.Length);
             mem.Position = 0;
             var reopenSettings = new OpenSettings { AutoSave = true };
             _spreadSheetDocument = SpreadsheetDocument.Open(mem, true, reopenSettings);
             _workBookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
             _sharedStringTablePart = null;
+            _packageStream = _copyPackageToSourceOnDispose ? mem : null;
+
+            if (previousPackageStream != null && !ReferenceEquals(previousPackageStream, mem)) {
+                DisposeStream(previousPackageStream);
+            }
+
+            if (previousDocument != null && !ReferenceEquals(previousDocument, _spreadSheetDocument)) {
+                try { previousDocument.Dispose(); } catch { }
+            }
         }
 
         private static byte[] NormalizePackageBytes(byte[] packageBytes) {
