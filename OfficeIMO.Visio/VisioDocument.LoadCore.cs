@@ -295,7 +295,8 @@ namespace OfficeIMO.Visio {
         private static readonly double DefaultLineWeight = VisioShape.DefaultLineWeight;
 
         private static double ParseDouble(string? value) {
-            return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0;
+            string? normalized = NormalizeCellLiteral(value);
+            return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0;
         }
 
         private static VisioShape ParseShape(XElement shapeElement, XNamespace ns, VisioShape? parent = null, int depth = 0) {
@@ -590,7 +591,12 @@ namespace OfficeIMO.Visio {
                 List<XElement> childElements = childShapes.Elements(ns + "Shape").ToList();
                 int count = Math.Min(childElements.Count, shape.Children.Count);
                 for (int i = 0; i < count; i++) {
-                    ApplyMasterReferences(shape.Children[i], childElements[i], ns, masters, effectiveMaster, fallbackMasterShape);
+                    VisioShape? inheritedChildMasterShape = null;
+                    if (fallbackMasterShape != null && i < fallbackMasterShape.Children.Count) {
+                        inheritedChildMasterShape = fallbackMasterShape.Children[i];
+                    }
+
+                    ApplyMasterReferences(shape.Children[i], childElements[i], ns, masters, effectiveMaster, inheritedChildMasterShape ?? fallbackMasterShape);
                 }
             }
         }
