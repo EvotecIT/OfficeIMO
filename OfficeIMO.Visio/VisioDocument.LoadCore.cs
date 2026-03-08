@@ -752,11 +752,15 @@ namespace OfficeIMO.Visio {
         }
 
         private static string? NormalizeCellLiteral(string? value) {
-            if (string.IsNullOrWhiteSpace(value)) {
+            if (value is null) {
                 return null;
             }
 
             string normalized = value.Trim();
+            if (normalized.Length == 0) {
+                return null;
+            }
+
             while (normalized.StartsWith("GUARD(", StringComparison.OrdinalIgnoreCase) && normalized.EndsWith(")", StringComparison.Ordinal)) {
                 normalized = normalized.Substring(6, normalized.Length - 7).Trim();
             }
