@@ -162,5 +162,28 @@ namespace OfficeIMO.Tests {
 
             File.Delete(filePath);
         }
+
+        [Fact]
+        public void ClearPreservesValidTextBodyStructure() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointTextBox box = slide.AddTextBox("Initial");
+
+                box.Clear();
+                presentation.Save();
+
+                Assert.Empty(presentation.ValidateDocument());
+                Assert.Equal(string.Empty, box.Text);
+            }
+
+            using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                Shape shape = document.PresentationPart!.SlideParts.First().Slide.Descendants<Shape>().First();
+                Assert.Single(shape.TextBody!.Elements<A.Paragraph>());
+            }
+
+            File.Delete(filePath);
+        }
     }
 }

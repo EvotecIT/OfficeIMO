@@ -47,13 +47,7 @@ namespace OfficeIMO.PowerPoint {
 
             Picture picture = (Picture)Element;
             A.Blip blip = picture.BlipFill?.Blip ?? throw new InvalidOperationException("Picture has no image");
-
-            if (blip.Embed != null) {
-                OpenXmlPart? oldPart = _slidePart.GetPartById(blip.Embed!);
-                if (oldPart != null) {
-                    _slidePart.DeletePart(oldPart);
-                }
-            }
+            string? previousRelationshipId = blip.Embed?.Value;
 
             string imageExtension = PowerPointPartFactory.GetImageExtension(type);
             string imagePartUri = PowerPointPartFactory.GetIndexedPartUri(
@@ -66,10 +60,24 @@ namespace OfficeIMO.PowerPoint {
                 _slidePart,
                 partTypeInfo.ContentType,
                 imagePartUri);
-            newImage.Position = 0;
+            if (newImage.CanSeek) {
+                newImage.Position = 0;
+            }
             imagePart.FeedData(newImage);
             string relId = _slidePart.GetIdOfPart(imagePart);
             blip.Embed = relId;
+
+            if (previousRelationshipId != null &&
+                !IsRelationshipReferenced(previousRelationshipId, blip)) {
+                try {
+                    OpenXmlPart? oldPart = _slidePart.GetPartById(previousRelationshipId);
+                    if (oldPart != null) {
+                        _slidePart.DeletePart(oldPart);
+                    }
+                } catch (ArgumentOutOfRangeException) {
+                    // The previous relationship may already be absent on damaged input.
+                }
+            }
         }
 
         /// <summary>
@@ -228,6 +236,12 @@ namespace OfficeIMO.PowerPoint {
             rect.Right = right;
             rect.Bottom = bottom;
             Picture.BlipFill.SourceRectangle = rect;
+        }
+
+        private bool IsRelationshipReferenced(string relationshipId, A.Blip currentBlip) {
+            return _slidePart.Slide
+                .Descendants<A.Blip>()
+                .Any(blip => !ReferenceEquals(blip, currentBlip) && blip.Embed?.Value == relationshipId);
         }
     }
 }

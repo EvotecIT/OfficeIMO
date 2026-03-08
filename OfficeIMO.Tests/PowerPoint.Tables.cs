@@ -274,6 +274,28 @@ namespace OfficeIMO.Tests {
             File.Delete(filePath);
         }
 
+        [Fact]
+        public void CanAddColumnUsingExplicitAppendIndex() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointTable table = slide.AddTable(1, 2);
+
+                table.AddColumn(table.Columns);
+                table.GetCell(0, 2).Text = "Appended";
+                presentation.Save();
+            }
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                PowerPointTable table = presentation.Slides.Single().Tables.First();
+                Assert.Equal(3, table.Columns);
+                Assert.Equal("Appended", table.GetCell(0, 2).Text);
+            }
+
+            File.Delete(filePath);
+        }
+
         private sealed class SalesRow {
             public SalesRow(string product, int q1, int q2) {
                 Product = product;

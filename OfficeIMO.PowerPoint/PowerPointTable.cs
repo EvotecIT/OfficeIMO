@@ -859,9 +859,10 @@ namespace OfficeIMO.PowerPoint {
         public void AddColumn(int? index = null) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             A.TableGrid grid = table.TableGrid!;
+            int existingColumns = Columns;
             A.GridColumn gridColumn = new() { Width = 3708400L };
 
-            if (index.HasValue && index.Value < Columns) {
+            if (index.HasValue && index.Value < existingColumns) {
                 A.GridColumn refCol = grid.Elements<A.GridColumn>().ElementAt(index.Value);
                 grid.InsertBefore(gridColumn, refCol);
             } else {
@@ -875,7 +876,7 @@ namespace OfficeIMO.PowerPoint {
                     new A.TableCellProperties()
                 );
 
-                if (index.HasValue && index.Value < Columns) {
+                if (index.HasValue && index.Value < existingColumns) {
                     A.TableCell refCell = row.Elements<A.TableCell>().ElementAt(index.Value);
                     row.InsertBefore(cell, refCell);
                 } else {
