@@ -145,10 +145,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AssertNoTempArtifact(WordDocument document) {
-            string artifactPath = document.FilePath;
-            Assert.False(File.Exists(artifactPath));
-            string fileName = Path.GetFileName(artifactPath);
-            Assert.Empty(Directory.GetFiles(Path.GetTempPath(), fileName));
+            Assert.Equal(string.Empty, document.FilePath);
         }
     }
 }

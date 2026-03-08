@@ -22,7 +22,7 @@ public static partial class Helpers {
     /// <param name="path">The path of the file to read.</param>
     /// <returns>A MemoryStream containing the file's contents.</returns>
     public static MemoryStream CopyFileStreamToMemoryStream(string path) {
-        FileStream sourceStream = File.OpenRead(path);
+        using FileStream sourceStream = File.OpenRead(path);
         var destStream = new MemoryStream((int)sourceStream.Length);
         sourceStream.CopyTo(destStream);
         destStream.Seek(0, SeekOrigin.Begin);
@@ -36,11 +36,16 @@ public static partial class Helpers {
     /// <param name="destPath">The path of the destination file.</param>
     /// <returns>A FileStream for the destination file.</returns>
     public static FileStream CopyFileStreamToFileStream(string sourcePath, string destPath) {
-        FileStream sourceStream = File.OpenRead(sourcePath);
+        using FileStream sourceStream = File.OpenRead(sourcePath);
         FileStream destStream = File.Create(destPath);
-        sourceStream.CopyTo(destStream);
-        destStream.Seek(0, SeekOrigin.Begin);
-        return destStream;
+        try {
+            sourceStream.CopyTo(destStream);
+            destStream.Seek(0, SeekOrigin.Begin);
+            return destStream;
+        } catch {
+            destStream.Dispose();
+            throw;
+        }
     }
 
     /// <summary>
