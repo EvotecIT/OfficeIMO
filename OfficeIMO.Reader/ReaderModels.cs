@@ -130,6 +130,11 @@ public sealed class ReaderChunk {
     public IReadOnlyList<ReaderTable>? Tables { get; set; }
 
     /// <summary>
+    /// Optional structured visual fence metadata extracted from this chunk.
+    /// </summary>
+    public IReadOnlyList<ReaderVisual>? Visuals { get; set; }
+
+    /// <summary>
     /// Optional warnings about truncation or unsupported content.
     /// </summary>
     public IReadOnlyList<string>? Warnings { get; set; }
@@ -265,6 +270,31 @@ public sealed class ReaderTable {
     /// True when <see cref="Rows"/> was truncated compared to <see cref="TotalRowCount"/>.
     /// </summary>
     public bool Truncated { get; set; }
+}
+
+/// <summary>
+/// Minimal visual fence model for ingestion (kind + original language + payload).
+/// </summary>
+public sealed class ReaderVisual {
+    /// <summary>
+    /// Normalized visual kind (for example: "mermaid", "chart", or "network").
+    /// </summary>
+    public string Kind { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Original fenced-code language label from markdown (for example: "ix-chart").
+    /// </summary>
+    public string Language { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Raw visual payload/content from inside the fenced block.
+    /// </summary>
+    public string Content { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional stable short hash derived from <see cref="Content"/>.
+    /// </summary>
+    public string? PayloadHash { get; set; }
 }
 
 /// <summary>
