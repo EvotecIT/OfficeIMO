@@ -126,6 +126,54 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelCharts_UpdateData_WithQuotedBangSheetName() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Update.QuotedBangSheet.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Report!2026's");
+                sheet.Cell(1, 1, "Month");
+                sheet.Cell(1, 2, "Sales");
+                sheet.Cell(2, 1, "Jan");
+                sheet.Cell(3, 1, "Feb");
+                sheet.Cell(2, 2, 1d);
+                sheet.Cell(3, 2, 2d);
+
+                var chart = sheet.AddChartFromRange("A1:B3", row: 2, column: 6, widthPixels: 480, heightPixels: 320,
+                    type: ExcelChartType.Line, hasHeaders: true, title: "Monthly");
+
+                var updated = new ExcelChartData(
+                    new[] { "Jan", "Feb", "Mar" },
+                    new[] { new ExcelChartSeries("Sales", new[] { 1d, 2d, 3d }) });
+
+                chart.UpdateData(updated);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var workbookPart = spreadsheet.WorkbookPart!;
+                var hostSheet = workbookPart.Workbook.Sheets!.Elements<Sheet>()
+                    .First(s => s.Name!.Value == "Report!2026's");
+                var wsPart = (WorksheetPart)workbookPart.GetPartById(hostSheet.Id!);
+
+                Assert.Equal("Jan", GetCellValue(spreadsheet, wsPart, "A2"));
+                Assert.Equal("Feb", GetCellValue(spreadsheet, wsPart, "A3"));
+                Assert.Equal("Mar", GetCellValue(spreadsheet, wsPart, "A4"));
+                Assert.Equal("1", GetCellValue(spreadsheet, wsPart, "B2"));
+                Assert.Equal("2", GetCellValue(spreadsheet, wsPart, "B3"));
+                Assert.Equal("3", GetCellValue(spreadsheet, wsPart, "B4"));
+
+                var chartPart = wsPart.DrawingsPart!.ChartParts.First();
+                var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+                var lineChart = plotArea.GetFirstChild<C.LineChart>()!;
+                var series = lineChart.Elements<C.LineChartSeries>().First();
+                string valuesFormula = series.GetFirstChild<C.Values>()!
+                    .GetFirstChild<C.NumberReference>()!
+                    .Formula!.Text!;
+                Assert.Equal("'Report!2026''s'!$B$2:$B$4", valuesFormula);
+            }
+        }
+
+        [Fact]
         public void Test_ExcelCharts_Scatter_CanCreateChart() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Scatter.xlsx");
 
