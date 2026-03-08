@@ -242,6 +242,11 @@ public sealed class ReaderTable {
     public string? Summary { get; set; }
 
     /// <summary>
+    /// Optional stable short hash derived from the source payload.
+    /// </summary>
+    public string? PayloadHash { get; set; }
+
+    /// <summary>
     /// Column headers.
     /// </summary>
     public IReadOnlyList<string> Columns { get; set; } = Array.Empty<string>();

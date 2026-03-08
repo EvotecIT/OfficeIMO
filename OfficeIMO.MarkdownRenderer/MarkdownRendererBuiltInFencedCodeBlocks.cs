@@ -63,6 +63,7 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
 
         try {
             var raw = rawContent!;
+            var payloadHash = MarkdownRenderer.ComputeShortHash(raw.TrimEnd('\r', '\n'));
             using var doc = JsonDocument.Parse(raw);
             var root = doc.RootElement;
             if (root.ValueKind != JsonValueKind.Object) {
@@ -96,13 +97,19 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
             var kind = TryReadJsonString(root, "kind");
             var callId = TryReadJsonString(root, "call_id");
 
-            return BuildDataViewHtml(rows, title, summary, kind, callId);
+            return BuildDataViewHtml(rows, title, summary, kind, callId, payloadHash);
         } catch (JsonException) {
             return null;
         }
     }
 
-    private static string BuildDataViewHtml(IReadOnlyList<IReadOnlyList<string>> rows, string? title, string? summary, string? kind, string? callId) {
+    private static string BuildDataViewHtml(
+        IReadOnlyList<IReadOnlyList<string>> rows,
+        string? title,
+        string? summary,
+        string? kind,
+        string? callId,
+        string payloadHash) {
         var sb = new StringBuilder();
         var headers = rows[0];
         var bodyRowCount = Math.Max(0, rows.Count - 1);
@@ -132,6 +139,9 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
           .Append('"')
           .Append(" data-ix-row-count=\"")
           .Append(bodyRowCount.ToString(System.Globalization.CultureInfo.InvariantCulture))
+          .Append('"')
+          .Append(" data-ix-payload-hash=\"")
+          .Append(System.Net.WebUtility.HtmlEncode(payloadHash))
           .Append("\">");
 
         if (!string.IsNullOrWhiteSpace(summary)) {
