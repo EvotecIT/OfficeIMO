@@ -62,14 +62,15 @@ public abstract class VerifyTestBase {
     }
 
     private static async Task<string> GetVerifyResult(IdPartPair id) {
-        if (id.OpenXmlPart.RootElement is null)
-            return "";
-
         var result = new StringBuilder();
-        var xml = FormatXml(id.OpenXmlPart.RootElement.OuterXml);
+        var content = await GetPartContent(id.OpenXmlPart);
+        if (string.IsNullOrEmpty(content)) {
+            return "";
+        }
+
         result.AppendLine(id.OpenXmlPart.Uri.ToString());
         result.AppendLine(RowDelimiter);
-        result.AppendLine(xml);
+        result.AppendLine(content);
         result.AppendLine(RowDelimiter);
 
         foreach (var part in id.OpenXmlPart.Parts) {
@@ -79,6 +80,25 @@ public abstract class VerifyTestBase {
         }
 
         return result.ToString();
+    }
+
+    private static async Task<string> GetPartContent(OpenXmlPart part) {
+        if (part.RootElement != null) {
+            return FormatXml(part.RootElement.OuterXml);
+        }
+
+        if (part is AlternativeFormatImportPart altPart && IsTextContent(altPart.ContentType)) {
+            using var stream = altPart.GetStream();
+            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            var text = await reader.ReadToEndAsync();
+
+            var result = new StringBuilder();
+            result.AppendLine($"ContentType: {altPart.ContentType}");
+            result.Append(NormalizeText(text));
+            return result.ToString();
+        }
+
+        return "";
     }
 
     private static void NormalizeWord(WordprocessingDocument document) {
@@ -173,6 +193,12 @@ public abstract class VerifyTestBase {
         }
 
         i = 1;
+        foreach (var altChunk in rootElement.Descendants<AltChunk>()) {
+            altChunk.Id = "R" + i.ToString("X8");
+            i++;
+        }
+
+        i = 1;
         foreach (var blip in rootElement.Descendants<Blip>()) {
             if (blip.Embed != null) {
                 blip.Embed = "R" + i.ToString("X8");
@@ -206,6 +232,12 @@ public abstract class VerifyTestBase {
             inline.EditId = "E" + i.ToString("X8");
             i++;
         }
+
+        i = 1;
+        foreach (var sdtId in rootElement.Descendants<SdtId>()) {
+            sdtId.Val = new Int32Value(i);
+            i++;
+        }
     }
 
     private static void NormalizeSectionProperties(DocumentFormat.OpenXml.OpenXmlElement rootElement) {
@@ -232,5 +264,16 @@ public abstract class VerifyTestBase {
         if (fileTime is CustomDocumentProperty property) {
             property.VTFileTime!.Text = LastTime;
         }
+    }
+
+    private static bool IsTextContent(string contentType) {
+        return string.Equals(contentType, AlternativeFormatImportPartType.Html.ContentType, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(contentType, AlternativeFormatImportPartType.Rtf.ContentType, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(contentType, AlternativeFormatImportPartType.TextPlain.ContentType, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeText(string value) {
+        return value.Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace("\r", "\n", StringComparison.Ordinal);
     }
 }
