@@ -81,4 +81,8 @@
     <RestoreAdditionalProjectFallbackFolders></RestoreAdditionalProjectFallbackFolders>
   </PropertyGroup>
 
+  <Target Name="RemoveStaleQuestPdfSkia" AfterTargets="Build">
+    <Delete Files="$(TargetDir)QuestPdfSkia.dll" Condition="Exists('$(TargetDir)QuestPdfSkia.dll')" />
+  </Target>
+
 </Project>

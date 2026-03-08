@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.CustomProperties;
+using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -125,6 +126,19 @@ public abstract class VerifyTestBase {
         foreach (var chartReference in document.Descendants<ChartReference>()) {
             chartReference.Id = "R" + i.ToString("X8");
             i++;
+        }
+
+        i = 1;
+        foreach (var blip in document.Descendants<Blip>()) {
+            if (blip.Embed != null) {
+                blip.Embed = "R" + i.ToString("X8");
+                i++;
+            }
+
+            if (blip.Link != null) {
+                blip.Link = "R" + i.ToString("X8");
+                i++;
+            }
         }
 
         if (document.MainDocumentPart!.GetPartsOfType<WordprocessingCommentsPart>().Any()) {
