@@ -25,6 +25,8 @@ namespace OfficeIMO.Word {
             Dictionary<string, string> relationshipIdMap = new();
             Dictionary<OpenXmlPart, OpenXmlPart> partMap = new();
 
+            CopyMissingStyles(srcMain, destMain);
+
             Numbering destNumbering;
             if (destMain.NumberingDefinitionsPart == null) {
                 destNumbering = new Numbering();
@@ -87,6 +89,45 @@ namespace OfficeIMO.Word {
                 RemapRelationshipIds(clone, srcMain, destMain, relationshipIdMap, partMap);
                 destMain.Document.Body.Append(clone);
             }
+        }
+
+        private static void CopyMissingStyles(MainDocumentPart sourceMain, MainDocumentPart destinationMain) {
+            var sourceStyles = sourceMain.StyleDefinitionsPart?.Styles;
+            if (sourceStyles == null) {
+                return;
+            }
+
+            var destinationStylePart = destinationMain.StyleDefinitionsPart;
+            if (destinationStylePart == null) {
+                destinationStylePart = destinationMain.AddNewPart<StyleDefinitionsPart>();
+                destinationStylePart.Styles = new Styles();
+            } else {
+                destinationStylePart.Styles ??= new Styles();
+            }
+
+            var destinationStyles = destinationStylePart.Styles!;
+            var existingIds = new HashSet<string>(
+                destinationStyles.Elements<Style>()
+                    .Select(style => style.StyleId?.Value)
+                    .Where(id => !string.IsNullOrEmpty(id))!
+                    .Cast<string>(),
+                StringComparer.OrdinalIgnoreCase);
+
+            foreach (var style in sourceStyles.Elements<Style>()) {
+                var sourceStyleId = style.StyleId?.Value;
+                if (string.IsNullOrEmpty(sourceStyleId)) {
+                    continue;
+                }
+
+                string styleId = sourceStyleId!;
+                if (!existingIds.Add(styleId)) {
+                    continue;
+                }
+
+                destinationStyles.Append((Style)style.CloneNode(true));
+            }
+
+            destinationStyles.Save();
         }
 
         private static int GetNextAbstractNumId(Numbering numbering) {
