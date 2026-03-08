@@ -342,6 +342,27 @@ namespace OfficeIMO.Tests
                 }
             }
         }
+
+        [Fact]
+        public void Create_ToMemoryStream_AfterExplicitSave_PersistsLaterEditsOnDispose()
+        {
+            using var source = new MemoryStream();
+            using (var document = ExcelDocument.Create(source))
+            {
+                document.AddWorkSheet("Initial");
+
+                using var export = new MemoryStream();
+                document.Save(export, new ExcelSaveOptions { ValidateOpenXml = true });
+
+                document.AddWorkSheet("AfterExplicitSave");
+            }
+
+            source.Position = 0;
+            using var reloaded = ExcelDocument.Load(source);
+            Assert.Equal(2, reloaded.Sheets.Count);
+            Assert.Contains(reloaded.Sheets, s => s.Name == "Initial");
+            Assert.Contains(reloaded.Sheets, s => s.Name == "AfterExplicitSave");
+        }
     }
 }
 

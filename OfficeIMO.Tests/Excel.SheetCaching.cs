@@ -50,6 +50,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_RemoveWorkSheet_IsCaseInsensitive() {
+            string filePath = Path.Combine(_directoryWithFiles, "SheetRemoveCaseInsensitive.xlsx");
+            using var document = ExcelDocument.Create(filePath);
+            document.AddWorkSheet("Alpha");
+            document.AddWorkSheet("Beta");
+
+            document.RemoveWorkSheet("alpha");
+
+            Assert.DoesNotContain(document.Sheets, sheet => string.Equals(sheet.Name, "Alpha", StringComparison.Ordinal));
+            Assert.Contains(document.Sheets, sheet => string.Equals(sheet.Name, "Beta", StringComparison.Ordinal));
+
+            document.Save();
+        }
+
+        [Fact]
+        public void Test_TableOfContents_AndBackLinks_ResolveSanitizedSheetNames() {
+            string filePath = Path.Combine(_directoryWithFiles, "SheetTocSanitizedNames.xlsx");
+            using var document = ExcelDocument.Create(filePath);
+            var data = document.AddWorkSheet("Data");
+            document.AddWorkSheet("Summary");
+
+            document.AddTableOfContents(sheetName: "TOC??", placeFirst: true, withHyperlinks: false, includeNamedRanges: false, styled: false);
+            document.AddBackLinksToToc("TOC??", text: "Back to TOC");
+
+            var toc = document.Sheets.First();
+            Assert.Equal("TOC", toc.Name);
+            Assert.True(toc.TryGetCellText(4, 1, out var firstEntry));
+            Assert.Equal("Data", firstEntry);
+            Assert.True(toc.TryGetCellText(5, 1, out var secondEntry));
+            Assert.Equal("Summary", secondEntry);
+            Assert.False(toc.TryGetCellText(6, 1, out _));
+            Assert.True(toc.TryGetCellText(2, 1, out var generatedText));
+            Assert.StartsWith("Generated:", generatedText);
+
+            Assert.True(data.TryGetCellText(2, 1, out var backlinkText));
+            Assert.Equal("Back to TOC", backlinkText);
+
+            document.Save();
+        }
+
+        [Fact]
         public void Benchmark_CachedVersusUncachedSheetAccess() {
             string filePath = Path.Combine(_directoryWithFiles, "SheetCacheBenchmark.xlsx");
             using var document = ExcelDocument.Create(filePath);

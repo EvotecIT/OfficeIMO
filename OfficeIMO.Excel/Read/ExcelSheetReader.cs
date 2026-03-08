@@ -38,7 +38,7 @@ namespace OfficeIMO.Excel {
             foreach (var row in sheetData.Elements<Row>()) {
                 var rIndex = checked((int)row.RowIndex!.Value);
                 foreach (var cell in row.Elements<Cell>()) {
-                    var (cIndex, _) = A1.ParseCellRef(cell.CellReference?.Value ?? string.Empty);
+                    var (_, cIndex) = A1.ParseCellRef(cell.CellReference?.Value ?? string.Empty);
                     var value = ConvertCell(cell);
                     if (value is not null || CellHasExplicitBlank(cell))
                         yield return new CellValueInfo(rIndex, cIndex, value);
@@ -56,6 +56,10 @@ namespace OfficeIMO.Excel {
             if (cell.CellFormula is not null && cell.CellValue is not null) return cell.CellValue.InnerText;
             if (cell.CellValue is not null) return cell.CellValue.InnerText;
             return null;
+        }
+
+        private static string? ExtractFormulaText(Cell cell) {
+            return cell.CellFormula?.Text;
         }
 
         private static string? ExtractInlineString(Cell cell) {
@@ -77,6 +81,7 @@ namespace OfficeIMO.Excel {
                 TypeHint = cell.DataType?.Value,
                 StyleIndex = cell.StyleIndex?.Value,
                 HasFormula = cell.CellFormula is not null,
+                FormulaText = ExtractFormulaText(cell),
                 RawText = ExtractRawText(cell),
                 InlineText = ExtractInlineString(cell)
             };
@@ -88,7 +93,7 @@ namespace OfficeIMO.Excel {
                 if (_opt.UseCachedFormulaResult && raw.RawText != null) {
                     raw.TypedValue = ConvertByHints(raw.TypeHint, raw.StyleIndex, raw.RawText, raw.InlineText);
                 } else {
-                    raw.TypedValue = raw.RawText ?? raw.InlineText; // return formula/cached text
+                    raw.TypedValue = raw.FormulaText ?? raw.RawText ?? raw.InlineText;
                 }
                 return raw;
             }
@@ -171,6 +176,7 @@ namespace OfficeIMO.Excel {
             public EnumValue<CellValues>? TypeHint;
             public uint? StyleIndex;
             public bool HasFormula;
+            public string? FormulaText;
             public string? RawText;
             public string? InlineText;
             public object? TypedValue;

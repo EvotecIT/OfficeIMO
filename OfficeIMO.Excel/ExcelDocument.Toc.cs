@@ -12,12 +12,13 @@ namespace OfficeIMO.Excel {
         /// <param name="styled">When true, renders a banner and a formatted table with AutoFilter.</param>
         public void AddTableOfContents(string sheetName = "TOC", bool placeFirst = true, bool withHyperlinks = true, bool includeNamedRanges = false, bool includeHiddenNamedRanges = false, Predicate<string>? rangeNameFilter = null, bool styled = true) {
             // Remove existing TOC sheet if present (recreate clean to avoid leftover elements)
-            var existing = this.Sheets.FirstOrDefault(s => string.Equals(s.Name, sheetName, StringComparison.OrdinalIgnoreCase));
+            var existing = FindSheetByName(this.Sheets, sheetName);
             if (existing != null) {
-                RemoveWorkSheet(sheetName);
+                RemoveWorkSheet(existing.Name);
             }
 
             var toc = this.AddWorkSheet(sheetName);
+            string tocName = toc.Name;
             int r = 1;
             // Banner
             toc.Cell(r, 1, "Workbook Navigation"); toc.CellBold(r, 1, true); toc.CellBackground(r, 1, "#D9E1F2"); r++;
@@ -49,7 +50,7 @@ namespace OfficeIMO.Excel {
             var rowsStart = r;
             foreach (var sh in this.Sheets) {
                 // Skip the TOC sheet itself; it will be moved to first anyway
-                if (string.Equals(sh.Name, sheetName, StringComparison.OrdinalIgnoreCase)) continue;
+                if (string.Equals(sh.Name, tocName, StringComparison.OrdinalIgnoreCase)) continue;
 
                 if (withHyperlinks) toc.SetInternalLink(r, 1, sh, "A1", sh.Name); else toc.Cell(r, 1, sh.Name);
 
@@ -86,7 +87,7 @@ namespace OfficeIMO.Excel {
                 try { toc.Freeze(topRows: headerRow, leftCols: 0); } catch { }
                 toc.AutoFitColumns();
             }
-            if (placeFirst) MoveSheetToBeginning(sheetName);
+            if (placeFirst) MoveSheetToBeginning(tocName);
 
             // As a safety net, clean up any broken/duplicate defined names after sheet changes.
             RepairDefinedNames(save: true);
@@ -101,13 +102,14 @@ namespace OfficeIMO.Excel {
         /// Adds a small back link to the TOC on each worksheet at the given cell (default A2).
         /// </summary>
         public void AddBackLinksToToc(string tocSheetName = "TOC", int row = 2, int col = 1, string text = "← TOC") {
-            var tocSheet = this.Sheets.FirstOrDefault(s => string.Equals(s.Name, tocSheetName, StringComparison.OrdinalIgnoreCase));
+            var tocSheet = FindSheetByName(this.Sheets, tocSheetName);
+            string resolvedTocName = tocSheet?.Name ?? NormalizeSheetNameForLookup(tocSheetName) ?? tocSheetName;
             foreach (var sh in this.Sheets) {
-                if (string.Equals(sh.Name, tocSheetName, StringComparison.OrdinalIgnoreCase)) continue;
+                if (string.Equals(sh.Name, resolvedTocName, StringComparison.OrdinalIgnoreCase)) continue;
                 if (tocSheet != null)
                     sh.SetInternalLink(row, col, tocSheet, "A1", text);
                 else
-                    sh.SetInternalLink(row, col, $"'{ExcelSheet.EscapeSheetNameForLink(tocSheetName)}'!A1", text);
+                    sh.SetInternalLink(row, col, $"'{ExcelSheet.EscapeSheetNameForLink(resolvedTocName)}'!A1", text);
             }
         }
 
@@ -118,7 +120,7 @@ namespace OfficeIMO.Excel {
                 if (sheets == null) return;
 
                 var all = sheets.Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>().ToList();
-                var target = all.FirstOrDefault(s => string.Equals(s.Name, sheetName, StringComparison.Ordinal));
+                var target = FindSheetByName(all, sheetName);
                 if (target == null) return;
 
                 int oldIdx = all.IndexOf(target);
@@ -157,7 +159,7 @@ namespace OfficeIMO.Excel {
                 var sheets = wb.Sheets;
                 if (sheets == null) return;
                 var all = sheets.Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>().ToList();
-                var sheet = all.FirstOrDefault(s => string.Equals(s.Name, sheetName, StringComparison.Ordinal));
+                var sheet = FindSheetByName(all, sheetName);
                 if (sheet == null) return;
 
                 int removedIdx = all.IndexOf(sheet);
@@ -193,6 +195,55 @@ namespace OfficeIMO.Excel {
                 wb.Save();
                 MarkSheetCacheDirty();
             });
+        }
+
+        private static DocumentFormat.OpenXml.Spreadsheet.Sheet? FindSheetByName(
+            System.Collections.Generic.IEnumerable<DocumentFormat.OpenXml.Spreadsheet.Sheet> sheets,
+            string sheetName) {
+            return sheets.FirstOrDefault(s => SheetNameMatches(s.Name?.Value, sheetName));
+        }
+
+        private static ExcelSheet? FindSheetByName(
+            System.Collections.Generic.IEnumerable<ExcelSheet> sheets,
+            string sheetName) {
+            return sheets.FirstOrDefault(s => SheetNameMatches(s.Name, sheetName));
+        }
+
+        private static bool SheetNameMatches(string? actualSheetName, string requestedSheetName) {
+            if (string.Equals(actualSheetName, requestedSheetName, StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+
+            string? normalizedRequestedName = NormalizeSheetNameForLookup(requestedSheetName);
+            return normalizedRequestedName != null
+                   && !string.Equals(normalizedRequestedName, requestedSheetName, StringComparison.OrdinalIgnoreCase)
+                   && string.Equals(actualSheetName, normalizedRequestedName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string? NormalizeSheetNameForLookup(string? sheetName) {
+            string baseName = (sheetName ?? string.Empty).Trim();
+            baseName = baseName.Trim('\'', ' ');
+            if (baseName.Length == 0) {
+                return null;
+            }
+
+            var sb = new System.Text.StringBuilder(baseName.Length);
+            foreach (char c in baseName) {
+                if (c == ':' || c == '\\' || c == '/' || c == '?' || c == '*' || c == '[' || c == ']') {
+                    sb.Append('_');
+                } else {
+                    sb.Append(c);
+                }
+            }
+
+            string cleaned = sb.ToString().Trim();
+            cleaned = _multipleUnderscoresRegex.Replace(cleaned, "_");
+            cleaned = cleaned.Trim('_');
+            if (cleaned.Length == 0) {
+                return null;
+            }
+
+            return cleaned.Length > 31 ? cleaned.Substring(0, 31) : cleaned;
         }
     }
 }

@@ -50,10 +50,10 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelSheetReader GetSheet(string name) {
             var wb = _doc.WorkbookPart!.Workbook;
-            var sheet = wb.Sheets!.Elements<Sheet>().FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.Ordinal));
+            var sheet = wb.Sheets!.Elements<Sheet>().FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
             if (sheet is null) throw new KeyNotFoundException($"Sheet '{name}' not found.");
             var wsPart = (WorksheetPart)_doc.WorkbookPart!.GetPartById(sheet.Id!);
-            return new ExcelSheetReader(name, wsPart, _sst, _styles, _opt);
+            return new ExcelSheetReader(sheet.Name!, wsPart, _sst, _styles, _opt);
         }
 
         /// <summary>

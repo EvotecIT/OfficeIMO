@@ -11,6 +11,7 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public partial class ExcelSheet : IDisposable {
         private readonly Sheet _sheet;
+        internal Sheet SheetElement => _sheet;
 
         /// <summary>
         /// Gets or sets the worksheet name.
@@ -20,7 +21,7 @@ namespace OfficeIMO.Excel {
                 return _sheet.Name?.Value ?? string.Empty;
             }
             set {
-                _sheet.Name = value;
+                _excelDocument.RenameWorkSheet(this, value, SheetNameValidationMode.Strict);
             }
         }
         private readonly UInt32Value _id;
@@ -130,7 +131,6 @@ namespace OfficeIMO.Excel {
             sheets.Append(sheet);
 
             this._sheet = sheet;
-            this.Name = name;
             this._id = sheet.SheetId!;
             this._worksheetPart = worksheetPart;
 
