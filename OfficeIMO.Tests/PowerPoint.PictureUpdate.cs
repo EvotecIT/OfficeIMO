@@ -39,5 +39,34 @@ namespace OfficeIMO.Tests {
 
             File.Delete(filePath);
         }
+
+        [Fact]
+        public void UpdatingDuplicatedPictureDoesNotBreakSiblingRelationship() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string originalImage = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
+            string replacementImage = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "Kulek.jpg");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointPicture original = slide.AddPicture(originalImage);
+                PowerPointPicture duplicate = Assert.IsType<PowerPointPicture>(slide.DuplicateShape(original, 250000, 0));
+
+                using FileStream stream = new(replacementImage, FileMode.Open, FileAccess.Read);
+                original.UpdateImage(stream, ImagePartType.Jpeg);
+
+                Assert.Equal("image/jpeg", original.ContentType);
+                Assert.Equal("image/png", duplicate.ContentType);
+                presentation.Save();
+            }
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                PowerPointPicture[] pictures = presentation.Slides.Single().Pictures.ToArray();
+                Assert.Equal(2, pictures.Length);
+                Assert.Contains(pictures, picture => picture.ContentType == "image/jpeg");
+                Assert.Contains(pictures, picture => picture.ContentType == "image/png");
+            }
+
+            File.Delete(filePath);
+        }
     }
 }

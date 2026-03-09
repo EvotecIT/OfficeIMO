@@ -256,7 +256,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Removes all paragraphs from the textbox.
         /// </summary>
         public void Clear() {
-            EnsureTextBody().RemoveAllChildren<A.Paragraph>();
+            TextBody textBody = EnsureTextBody();
+            A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
+
+            textBody.RemoveAllChildren<A.Paragraph>();
+            textBody.Append(CreateEmptyParagraph(templateParagraph));
         }
 
         /// <summary>
@@ -749,6 +753,34 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ApplyDefaultListSpacing(PowerPointParagraph paragraph) {
             DefaultListParagraphStyle.Apply(paragraph);
+        }
+
+        private static A.Paragraph CreateEmptyParagraph(A.Paragraph? templateParagraph) {
+            A.Paragraph paragraph = new();
+
+            if (templateParagraph?.ParagraphProperties != null) {
+                paragraph.ParagraphProperties =
+                    (A.ParagraphProperties)templateParagraph.ParagraphProperties.CloneNode(true);
+            }
+
+            A.Run run = new(new A.Text(string.Empty));
+            A.RunProperties? templateRunProps = templateParagraph?
+                .Elements<A.Run>()
+                .Select(existingRun => existingRun.RunProperties)
+                .FirstOrDefault(runProperties => runProperties != null);
+            if (templateRunProps != null) {
+                run.RunProperties = (A.RunProperties)templateRunProps.CloneNode(true);
+            }
+
+            paragraph.Append(run);
+
+            A.EndParagraphRunProperties? templateEnd =
+                templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
+            if (templateEnd != null) {
+                paragraph.Append((A.EndParagraphRunProperties)templateEnd.CloneNode(true));
+            }
+
+            return paragraph;
         }
 
         private A.BodyProperties? GetBodyProperties() {

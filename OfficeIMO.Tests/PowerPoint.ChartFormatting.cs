@@ -783,6 +783,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PointLevelCalloutsEnableLeaderLinesWithoutSeriesSetup() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                var data = new PowerPointChartData(
+                    new[] { "North", "South", "West" },
+                    new[] { new PowerPointChartSeries("Sales", new[] { 42d, 31d, 27d }) });
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChart chart = slide.AddPieChart(data);
+                    chart.SetSeriesDataLabelCalloutsForPoint(0, 1, enabled: true);
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator();
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.DataLabels labels = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
+                        .GetFirstChild<C.PlotArea>()!
+                        .GetFirstChild<C.PieChart>()!
+                        .Elements<C.PieChartSeries>()
+                        .Single()
+                        .GetFirstChild<C.DataLabels>()!;
+
+                    Assert.True(labels.GetFirstChild<C.ShowLeaderLines>()?.Val?.Value);
+                    Assert.NotNull(labels.GetFirstChild<C.LeaderLines>());
+
+                    C.DataLabel pointLabel = labels.Elements<C.DataLabel>()
+                        .Single(item => item.GetFirstChild<C.Index>()?.Val?.Value == 1U);
+                    Assert.Equal(C.DataLabelPositionValues.OutsideEnd,
+                        pointLabel.GetFirstChild<C.DataLabelPosition>()?.Val?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void CanApplyPointLevelDataLabelTemplate() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 

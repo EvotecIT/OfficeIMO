@@ -1125,9 +1125,20 @@ namespace OfficeIMO.PowerPoint {
             }
 
             C.DataLabelPositionValues? resolvedPosition = enabled ? position ?? C.DataLabelPositionValues.OutsideEnd : position;
-            return SetSeriesDataLabelForPoint(seriesIndex, pointIndex, showValue: enabled, showCategoryName: false,
-                showSeriesName: false, showLegendKey: false, showPercent: false, position: resolvedPosition,
-                numberFormat: null, sourceLinked: false);
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                ApplyDataLabelOverrides(label, showLegendKey: false, showValue: enabled, showCategoryName: false,
+                    showSeriesName: false, showPercent: false, position: resolvedPosition, numberFormat: null,
+                    sourceLinked: false);
+                ApplyDataLabelLeaderLines(EnsureDataLabels(series), enabled, lineColor: null, lineWidthPoints: null);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
         }
 
         /// <summary>
@@ -1144,9 +1155,20 @@ namespace OfficeIMO.PowerPoint {
             }
 
             C.DataLabelPositionValues? resolvedPosition = enabled ? position ?? C.DataLabelPositionValues.OutsideEnd : position;
-            return SetSeriesDataLabelForPoint(seriesName, pointIndex, showValue: enabled, showCategoryName: false,
-                showSeriesName: false, showLegendKey: false, showPercent: false, position: resolvedPosition,
-                numberFormat: null, sourceLinked: false, ignoreCase: ignoreCase);
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                ApplyDataLabelOverrides(label, showLegendKey: false, showValue: enabled, showCategoryName: false,
+                    showSeriesName: false, showPercent: false, position: resolvedPosition, numberFormat: null,
+                    sourceLinked: false);
+                ApplyDataLabelLeaderLines(EnsureDataLabels(series), enabled, lineColor: null, lineWidthPoints: null);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
         }
 
         /// <summary>
@@ -2947,16 +2969,20 @@ namespace OfficeIMO.PowerPoint {
             double? lineWidthPoints) {
             ReplaceChild(labels, new C.ShowLeaderLines { Val = showLeaderLines });
 
-            if (lineColor != null || lineWidthPoints != null) {
+            if (showLeaderLines || lineColor != null || lineWidthPoints != null) {
                 C.LeaderLines leaderLines = labels.GetFirstChild<C.LeaderLines>() ?? new C.LeaderLines();
                 C.ChartShapeProperties props = leaderLines.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
-                ApplyOptionalLine(props, lineColor, lineWidthPoints);
-                if (props.Parent == null) {
+                if (lineColor != null || lineWidthPoints != null) {
+                    ApplyOptionalLine(props, lineColor, lineWidthPoints);
+                }
+                if ((lineColor != null || lineWidthPoints != null) && props.Parent == null) {
                     leaderLines.Append(props);
                 }
                 if (leaderLines.Parent == null) {
                     labels.Append(leaderLines);
                 }
+            } else {
+                labels.GetFirstChild<C.LeaderLines>()?.Remove();
             }
 
             NormalizeDataLabelsOrder(labels);

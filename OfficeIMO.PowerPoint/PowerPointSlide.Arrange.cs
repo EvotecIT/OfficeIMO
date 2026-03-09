@@ -183,6 +183,27 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void UpdateNonVisualDrawingProperties(OpenXmlElement element, string baseName) {
+            ApplyUniqueNonVisualDrawingProperties(element, baseName);
+
+            if (element is GroupShape groupShape) {
+                foreach (OpenXmlElement child in groupShape.ChildElements) {
+                    UpdateDescendantNonVisualDrawingProperties(child);
+                }
+            }
+        }
+
+        private void UpdateDescendantNonVisualDrawingProperties(OpenXmlElement element) {
+            string baseName = GetElementBaseName(element);
+            ApplyUniqueNonVisualDrawingProperties(element, baseName);
+
+            if (element is GroupShape groupShape) {
+                foreach (OpenXmlElement child in groupShape.ChildElements) {
+                    UpdateDescendantNonVisualDrawingProperties(child);
+                }
+            }
+        }
+
+        private void ApplyUniqueNonVisualDrawingProperties(OpenXmlElement element, string baseName) {
             string resolvedBaseName = string.IsNullOrWhiteSpace(baseName) ? "Shape" : baseName;
             string name = GenerateUniqueName(resolvedBaseName);
             uint id = _nextShapeId++;
@@ -194,7 +215,8 @@ namespace OfficeIMO.PowerPoint {
                             new NonVisualDrawingProperties(),
                             new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
                             new ApplicationNonVisualDrawingProperties());
-                    NonVisualDrawingProperties drawing = nonVisual.NonVisualDrawingProperties ??= new NonVisualDrawingProperties();
+                    NonVisualDrawingProperties drawing = nonVisual.NonVisualDrawingProperties ??=
+                        new NonVisualDrawingProperties();
                     drawing.Id = id;
                     drawing.Name = name;
                     break;
@@ -205,7 +227,8 @@ namespace OfficeIMO.PowerPoint {
                             new NonVisualDrawingProperties(),
                             new NonVisualPictureDrawingProperties(),
                             new ApplicationNonVisualDrawingProperties());
-                    NonVisualDrawingProperties drawing = nonVisual.NonVisualDrawingProperties ??= new NonVisualDrawingProperties();
+                    NonVisualDrawingProperties drawing = nonVisual.NonVisualDrawingProperties ??=
+                        new NonVisualDrawingProperties();
                     drawing.Id = id;
                     drawing.Name = name;
                     break;
@@ -216,12 +239,39 @@ namespace OfficeIMO.PowerPoint {
                             new NonVisualDrawingProperties(),
                             new NonVisualGraphicFrameDrawingProperties(),
                             new ApplicationNonVisualDrawingProperties());
-                    NonVisualDrawingProperties drawing = nonVisual.NonVisualDrawingProperties ??= new NonVisualDrawingProperties();
+                    NonVisualDrawingProperties drawing = nonVisual.NonVisualDrawingProperties ??=
+                        new NonVisualDrawingProperties();
+                    drawing.Id = id;
+                    drawing.Name = name;
+                    break;
+                }
+                case GroupShape g: {
+                    NonVisualGroupShapeProperties nonVisual = g.NonVisualGroupShapeProperties ??=
+                        new NonVisualGroupShapeProperties(
+                            new NonVisualDrawingProperties(),
+                            new NonVisualGroupShapeDrawingProperties(),
+                            new ApplicationNonVisualDrawingProperties());
+                    NonVisualDrawingProperties drawing = nonVisual.NonVisualDrawingProperties ??=
+                        new NonVisualDrawingProperties();
                     drawing.Id = id;
                     drawing.Name = name;
                     break;
                 }
             }
+        }
+
+        private static string GetElementBaseName(OpenXmlElement element) {
+            return element switch {
+                Shape s => s.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value ?? "Shape",
+                Picture p => p.NonVisualPictureProperties?.NonVisualDrawingProperties?.Name?.Value ?? "Picture",
+                GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null =>
+                    g.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties?.Name?.Value ?? "Table",
+                GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null =>
+                    g.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties?.Name?.Value ?? "Chart",
+                GraphicFrame g => g.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties?.Name?.Value ?? "GraphicFrame",
+                GroupShape g => g.NonVisualGroupShapeProperties?.NonVisualDrawingProperties?.Name?.Value ?? "Group",
+                _ => "Shape"
+            };
         }
 
         private PowerPointShape? CreateShapeFromElement(OpenXmlElement element) {
