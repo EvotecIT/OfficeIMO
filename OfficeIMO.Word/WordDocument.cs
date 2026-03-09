@@ -1321,7 +1321,9 @@ namespace OfficeIMO.Word {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
-            using var fileStream = new FileStream(filePath, FileMode.Open, readOnly ? FileAccess.Read : FileAccess.ReadWrite, FileShare.Read, 4096, FileOptions.Asynchronous);
+            // Mirror the synchronous Load path: we only need read access because the
+            // file is copied into memory before the package is opened.
+            using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.Asynchronous);
             var memoryStream = new MemoryStream();
             await fileStream.CopyToAsync(memoryStream, 81920, cancellationToken);
             memoryStream.Seek(0, SeekOrigin.Begin);
@@ -1721,6 +1723,13 @@ namespace OfficeIMO.Word {
             // Clone document once and copy package properties in the same operation
             using (var clone = this._wordprocessingDocument.Clone(outputStream)) {
                 CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
+            }
+
+            // Keep stream-based saves aligned with file-based saves when the destination
+            // supports the read/write/seek semantics required by Package.Open.
+            if (outputStream.CanRead && outputStream.CanWrite && outputStream.CanSeek) {
+                outputStream.Seek(0, SeekOrigin.Begin);
+                Helpers.MakeOpenOfficeCompatible(outputStream);
             }
 
             OriginalStream = outputStream;

@@ -294,16 +294,16 @@ namespace OfficeIMO.Excel {
         /// Accepts an optional sheet prefix (e.g. '<c>'Sheet1'!A1:B2</c>').
         /// Throws <see cref="ArgumentException"/> if the input is not a valid A1 range or cell reference.
         /// </summary>
-        private static string NormalizeRange(string range) {
+        private string NormalizeRange(string range) {
             return NormalizeRange(range, NameValidationMode.Sanitize);
         }
 
-        private static string NormalizeRange(string range, NameValidationMode validationMode) {
+        private string NormalizeRange(string range, NameValidationMode validationMode) {
             string? sheetPrefix = null;
             string a1 = range;
-            int idx = range.IndexOf('!');
+            int idx = range.LastIndexOf('!');
             if (idx >= 0) {
-                sheetPrefix = range.Substring(0, idx + 1);
+                sheetPrefix = NormalizeSheetPrefix(range.Substring(0, idx), validationMode);
                 a1 = range.Substring(idx + 1);
             }
 
@@ -340,7 +340,34 @@ namespace OfficeIMO.Excel {
             if (start != end) {
                 normalized += ":" + end;
             }
-            return sheetPrefix + normalized;
+            return (sheetPrefix != null ? sheetPrefix + "!" : string.Empty) + normalized;
+        }
+
+        private string NormalizeSheetPrefix(string sheetToken, NameValidationMode validationMode) {
+            if (string.IsNullOrWhiteSpace(sheetToken)) {
+                return sheetToken;
+            }
+
+            string trimmedToken = sheetToken.Trim();
+            string requestedSheetName = UnquoteSheetName(trimmedToken);
+            if (requestedSheetName.Length == 0) {
+                return trimmedToken;
+            }
+
+            string effectiveSheetName = validationMode == NameValidationMode.Sanitize
+                ? SheetNameLookup.ResolveExistingOrRequested(Sheets, requestedSheetName)
+                : requestedSheetName;
+
+            return $"'{EscapeSheetName(effectiveSheetName)}'";
+        }
+
+        private static string UnquoteSheetName(string sheetToken) {
+            string trimmedToken = sheetToken.Trim();
+            if (trimmedToken.Length >= 2 && trimmedToken[0] == '\'' && trimmedToken[trimmedToken.Length - 1] == '\'') {
+                return trimmedToken.Substring(1, trimmedToken.Length - 2).Replace("''", "'");
+            }
+
+            return trimmedToken;
         }
 
         /// <summary>

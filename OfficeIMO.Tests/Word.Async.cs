@@ -71,5 +71,22 @@ namespace OfficeIMO.Tests {
 
             File.Delete(filePath);
         }
+
+        [Fact]
+        public async Task Test_WordLoadAsync_AllowsReadOnlySharedHandle() {
+            var filePath = Path.Combine(_directoryWithFiles, "AsyncLoadSharedHandle.docx");
+            if (File.Exists(filePath)) File.Delete(filePath);
+
+            using (var document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Shared");
+                document.Save();
+            }
+
+            using var sharedReader = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            await using var loaded = await WordDocument.LoadAsync(filePath, cancellationToken: CancellationToken.None);
+
+            var paragraph = Assert.Single(loaded.Paragraphs);
+            Assert.Equal("Shared", paragraph.Text);
+        }
     }
 }

@@ -202,7 +202,14 @@ public class Markdown_Renderer_Tests {
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md);
         var payloadHash = ComputeShortHash(raw);
 
-        Assert.Contains("class=\"omd-dataview\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"omd-visual omd-dataview\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-contract=\"v1\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-kind=\"dataview\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-fence-language=\"ix-dataview\"", html, StringComparison.Ordinal);
+        Assert.Contains($"data-omd-visual-hash=\"{payloadHash}\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-config-format=\"json\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-config-encoding=\"base64-utf8\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-config-b64=\"", html, StringComparison.Ordinal);
         Assert.Contains("class=\"omd-dataview-table\"", html, StringComparison.Ordinal);
         Assert.Contains("data-ix-title=\"Replication Summary\"", html, StringComparison.Ordinal);
         Assert.Contains("data-ix-summary=\"Latest replication posture\"", html, StringComparison.Ordinal);
@@ -213,6 +220,24 @@ public class Markdown_Renderer_Tests {
         Assert.Contains("<caption>Replication Summary</caption>", html, StringComparison.Ordinal);
         Assert.Contains("<p class=\"omd-dataview-summary\">Latest replication posture</p>", html, StringComparison.Ordinal);
         Assert.Contains($"data-ix-payload-hash=\"{payloadHash}\"", html, StringComparison.Ordinal);
+        Assert.Contains("<th>Server</th>", html, StringComparison.Ordinal);
+        Assert.Contains("<th>Fails</th>", html, StringComparison.Ordinal);
+        Assert.Contains("<td>AD0</td>", html, StringComparison.Ordinal);
+        Assert.Contains("<td>1</td>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Converts_IxDataview_Columns_And_Object_Records_To_Static_Table_Html() {
+        var md = """
+```ix-dataview
+{"kind":"ix_tool_dataview_v1","columns":["Server","Fails"],"records":[{"Server":"AD0","Fails":0},{"Server":"AD1","Fails":1}]}
+```
+""";
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md);
+
+        Assert.Contains("class=\"omd-visual omd-dataview\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-kind=\"dataview\"", html, StringComparison.Ordinal);
         Assert.Contains("<th>Server</th>", html, StringComparison.Ordinal);
         Assert.Contains("<th>Fails</th>", html, StringComparison.Ordinal);
         Assert.Contains("<td>AD0</td>", html, StringComparison.Ordinal);
@@ -385,6 +410,17 @@ x^2 + 1
         var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("- Signal **Current comparison used **System** log only.**", opts);
         Assert.Contains("<strong>Current comparison used System log only.</strong>", htmlOut, StringComparison.Ordinal);
         Assert.DoesNotContain("used **System** log only.**", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Normalizes_RepeatedStrongDelimiterRuns_When_Enabled() {
+        var opts = new MarkdownRendererOptions {
+            NormalizeLooseStrongDelimiters = true
+        };
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("- Overall health ****healthy****", opts);
+        Assert.Contains("<strong>healthy</strong>", htmlOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("****healthy****", htmlOut, StringComparison.Ordinal);
     }
 
     [Fact]

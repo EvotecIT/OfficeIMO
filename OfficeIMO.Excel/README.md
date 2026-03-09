@@ -369,9 +369,12 @@ await doc.SaveAsync("report.xlsx", false, new ExcelSaveOptions {
 ## Sheet Names
 
 - Excel allows up to 31 characters; disallows : \ / ? * [ ] and duplicate names (case-insensitive).
-- Use the validation overload to coerce or enforce rules when adding sheets:
+- `AddWorkSheet(...)` sanitizes by default; use the validation overload when you want to opt into `Strict` errors or explicit `None` behavior:
 
 ```csharp
+var auto = doc.AddWorkSheet("Q4:Revenue/Forecast?*");
+Console.WriteLine(auto.Name); // => "Q4_Revenue_Forecast"
+
 // Sanitize mode: fixes invalid characters, trims to 31 chars, and ensures uniqueness (adds " (2)")
 var s = doc.AddWorkSheet("Q4:Revenue/Forecast?*", SheetNameValidationMode.Sanitize);
 Console.WriteLine(s.Name); // => "Q4_Revenue_Forecast"

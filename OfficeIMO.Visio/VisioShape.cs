@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Xml.Linq;
 using SixLabors.ImageSharp;
 
 namespace OfficeIMO.Visio {
@@ -53,6 +54,16 @@ namespace OfficeIMO.Visio {
         /// Identifier stored in the package when different from <see cref="Id"/>.
         /// </summary>
         internal string? PersistedId { get; set; }
+
+        // Raw parse-presence flags used by the loader so explicit zero values are
+        // not mistaken for missing geometry when master defaults are applied.
+        internal bool HasExplicitWidth { get; set; }
+
+        internal bool HasExplicitHeight { get; set; }
+
+        internal bool HasExplicitLocPinX { get; set; }
+
+        internal bool HasExplicitLocPinY { get; set; }
 
         /// <summary>
         /// Gets or sets the shape name.
@@ -168,6 +179,11 @@ namespace OfficeIMO.Visio {
         /// Connection points associated with the shape.
         /// </summary>
         public IList<VisioConnectionPoint> ConnectionPoints { get; } = new List<VisioConnectionPoint>();
+
+        /// <summary>
+        /// Geometry sections captured from a loaded package so custom shape outlines can be preserved on save.
+        /// </summary>
+        internal IList<XElement> PreservedGeometrySections { get; } = new List<XElement>();
 
         /// <summary>
         /// Arbitrary data associated with the shape.

@@ -35,6 +35,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NamedRange_Sanitize_ResolvesExistingSanitizedSheetPrefix() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                var data = doc.AddWorkSheet("Data??");
+                doc.SetNamedRange("OnData", "Data??!A1", save: false, hidden: false, validationMode: NameValidationMode.Sanitize);
+
+                var value = doc.GetNamedRange("OnData");
+                Assert.Equal($"'{data.Name}'!$A$1", value);
+            }
+            File.Delete(path);
+        }
+
+        [Fact]
+        public void NamedRange_QuotedSheetNameContainingBang_NormalizesCorrectly() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                doc.AddWorkSheet("Report!2026");
+                doc.SetNamedRange("BangSheet", "'Report!2026'!A1:B2", save: false, hidden: false, validationMode: NameValidationMode.Strict);
+
+                var value = doc.GetNamedRange("BangSheet");
+                Assert.Equal("'Report!2026'!$A$1:$B$2", value);
+            }
+            File.Delete(path);
+        }
+
+        [Fact]
         public void NamedRange_StrictThrowsOutOfBounds() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
@@ -67,6 +93,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void InternalLink_LocationString_ResolvesExistingSanitizedSheetName() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                var main = doc.AddWorkSheet("Main");
+                var target = doc.AddWorkSheet("Summary??");
+
+                main.SetInternalLink(1, 1, "Summary??!A1", style: false);
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(main)!;
+                var links = wsPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
+                Assert.NotNull(links);
+                var hl = links!.Elements<Hyperlink>().Single();
+                Assert.Equal($"'{target.Name}'!A1", hl.Location!.Value);
+            }
+            File.Delete(path);
+        }
+
+        [Fact]
+        public void InternalLink_LocationString_PreservesExternalWorkbookReference() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                var main = doc.AddWorkSheet("Main");
+
+                main.SetInternalLink(1, 1, "'[Other.xlsx]Summary'!A1", style: false);
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(main)!;
+                var links = wsPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
+                Assert.NotNull(links);
+                var hl = links!.Elements<Hyperlink>().Single();
+                Assert.Equal("'[Other.xlsx]Summary'!A1", hl.Location!.Value);
+            }
+            File.Delete(path);
+        }
+
+        [Fact]
         public void LinkCellsToInternalSheets_EscapesSpacesAndQuotes() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
@@ -89,6 +154,29 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, hyperlinkItems.Count);
                 Assert.Equal("'Summary Sheet'!B2", hyperlinkItems[0].Location!.Value);
                 Assert.Equal("'Quote''s Sheet'!B2", hyperlinkItems[1].Location!.Value);
+            }
+            File.Delete(path);
+        }
+
+        [Fact]
+        public void LinkCellsToInternalSheets_ResolvesSanitizedExistingSheetNames() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                var main = doc.AddWorkSheet("Main");
+                var target = doc.AddWorkSheet("Summary??");
+
+                main.CellValue(1, 1, "Name");
+                main.CellValue(2, 1, "Summary??");
+
+                main.LinkCellsToInternalSheets("A2:A2", text => text, targetA1: "B2", display: null, styled: false);
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(main)!;
+                var links = wsPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
+                Assert.NotNull(links);
+                var hyperlink = links!.Elements<Hyperlink>().Single();
+                Assert.Equal($"'{target.Name}'!B2", hyperlink.Location!.Value);
             }
             File.Delete(path);
         }

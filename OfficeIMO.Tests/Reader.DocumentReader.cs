@@ -307,6 +307,27 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
+    public void DocumentReader_MarkdownChunking_ExtractsIxDataViewColumnsAndObjectRecords() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path,
+                "# Visual\n\n```ix-dataview\n{\"kind\":\"ix_tool_dataview_v1\",\"columns\":[\"Server\",\"Fails\"],\"records\":[{\"Server\":\"AD0\",\"Fails\":0},{\"Server\":\"AD1\",\"Fails\":1}]}\n```\n");
+
+            var chunk = DocumentReader.Read(path).Single(c => c.Kind == ReaderInputKind.Markdown && (c.Tables?.Count ?? 0) > 0);
+
+            Assert.NotNull(chunk.Tables);
+            Assert.Single(chunk.Tables!);
+            Assert.Equal("ix_tool_dataview_v1", chunk.Tables![0].Title);
+            Assert.Equal(new[] { "Server", "Fails" }, chunk.Tables[0].Columns);
+            Assert.Equal(2, chunk.Tables[0].TotalRowCount);
+            Assert.Equal("AD0", chunk.Tables[0].Rows[0][0]);
+            Assert.Equal("1", chunk.Tables[0].Rows[1][1]);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_MarkdownChunking_RespectsIxDataViewRowCaps() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
         try {
@@ -421,6 +442,25 @@ public sealed class ReaderDocumentReaderTests {
             }).Single(c => c.Kind == ReaderInputKind.Markdown);
 
             Assert.Contains("**No current failures** -> **Why it matters:**", chunk.Markdown ?? string.Empty, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_MarkdownChunking_CanNormalize_RepeatedStrongDelimiterRuns() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path, "# Summary\n\n- Overall health ****healthy****");
+
+            var chunk = DocumentReader.Read(path, new ReaderOptions {
+                MarkdownInputNormalization = new MarkdownInputNormalizationOptions {
+                    NormalizeLooseStrongDelimiters = true
+                }
+            }).Single(c => c.Kind == ReaderInputKind.Markdown);
+
+            Assert.Contains("**healthy**", chunk.Markdown ?? string.Empty, StringComparison.Ordinal);
+            Assert.DoesNotContain("****healthy****", chunk.Markdown ?? string.Empty, StringComparison.Ordinal);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }

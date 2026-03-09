@@ -74,16 +74,7 @@ namespace OfficeIMO.Excel {
         internal static bool TryParseSheetQualifiedRange(string? formula, out string sheetName, out string rangeA1) {
             sheetName = string.Empty;
             rangeA1 = string.Empty;
-            if (string.IsNullOrWhiteSpace(formula)) return false;
-
-            string formulaValue = formula ?? string.Empty;
-            int bang = formulaValue.LastIndexOf('!');
-            if (bang <= 0 || bang >= formulaValue.Length - 1) return false;
-
-            sheetName = formulaValue.Substring(0, bang);
-            rangeA1 = formulaValue.Substring(bang + 1);
-
-            sheetName = UnquoteSheetName(sheetName);
+            if (!SheetNameLookup.TryParseSheetQualifiedReference(formula, out sheetName, out rangeA1)) return false;
             rangeA1 = rangeA1.Replace("$", string.Empty);
             return true;
         }
@@ -100,14 +91,6 @@ namespace OfficeIMO.Excel {
             r1 = r2 = row;
             c1 = c2 = col;
             return true;
-        }
-
-        private static string UnquoteSheetName(string name) {
-            name = name.Trim();
-            if (name.Length >= 2 && name[0] == '\'' && name[name.Length - 1] == '\'') {
-                name = name.Substring(1, name.Length - 2).Replace("''", "'");
-            }
-            return name;
         }
 
         private static List<SeriesDescriptor> BuildSeriesDescriptors(ExcelChartDataRange range, ExcelChartData? data,

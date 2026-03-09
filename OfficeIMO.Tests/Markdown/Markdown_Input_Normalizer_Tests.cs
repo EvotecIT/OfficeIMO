@@ -140,6 +140,16 @@ public class Markdown_Input_Normalizer_Tests {
     }
 
     [Fact]
+    public void Normalize_RepeatedStrongDelimiterRuns_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeLooseStrongDelimiters = true
+        };
+
+        var normalized = MarkdownInputNormalizer.Normalize("- Overall health ****healthy****", options);
+        Assert.Equal("- Overall health **healthy**", normalized);
+    }
+
+    [Fact]
     public void Normalize_TightStrongBoundaries_DoesNotCorruptAdjacentStrongSpans() {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeTightStrongBoundaries = true

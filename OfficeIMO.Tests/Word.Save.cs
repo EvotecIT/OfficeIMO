@@ -211,6 +211,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_SaveToStream_RunsCompatibilityFixerAndLeavesStreamOpen() {
+            using var document = WordDocument.Create();
+            document.AddParagraph("Stream compatibility");
+
+            using var outputStream = new MemoryStream();
+            document.Save(outputStream);
+
+            Assert.True(outputStream.CanRead);
+            Assert.Equal(0, outputStream.Position);
+            AssertAllRelationshipTargetsNormalized(outputStream);
+
+            outputStream.Position = 0;
+            using var reloaded = WordDocument.Load(outputStream);
+            var paragraph = Assert.Single(reloaded.Paragraphs);
+            Assert.Equal("Stream compatibility", paragraph.Text);
+        }
+
+        [Fact]
         public void Test_CreateDocumentInStream() {
             using var stream = new MemoryStream();
             using var document = WordDocument.Create(stream);
@@ -313,6 +331,26 @@ namespace OfficeIMO.Tests {
             using var reloaded = WordDocument.Load(inspectionStream);
             var paragraph = Assert.Single(reloaded.Paragraphs);
             Assert.Equal("Byte array compatibility", paragraph.Text);
+        }
+
+        private static void AssertAllRelationshipTargetsNormalized(Stream packageStream) {
+            if (packageStream.CanSeek) {
+                packageStream.Seek(0, SeekOrigin.Begin);
+            }
+
+            using (var package = Package.Open(packageStream, FileMode.Open, FileAccess.Read)) {
+                var relsUri = new Uri("/word/_rels/document.xml.rels", UriKind.Relative);
+                Assert.True(package.PartExists(relsUri));
+                var part = package.GetPart(relsUri);
+                using var relStream = part.GetStream(FileMode.Open, FileAccess.Read);
+                var rels = XDocument.Load(relStream);
+                var targets = rels.Root?.Elements().Select(e => e.Attribute("Target")?.Value).Where(v => !string.IsNullOrEmpty(v)) ?? Enumerable.Empty<string>();
+                Assert.All(targets, target => Assert.False(target!.StartsWith("/word/", StringComparison.Ordinal), $"Relationship target '{target}' should not start with '/word/'."));
+            }
+
+            if (packageStream.CanSeek) {
+                packageStream.Seek(0, SeekOrigin.Begin);
+            }
         }
 
     }

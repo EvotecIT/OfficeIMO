@@ -184,6 +184,47 @@ namespace OfficeIMO.Tests {
                 Assert.Throws<ArgumentException>(() => sheet.CellValue(1, 1, longText));
             }
         }
+
+        [Fact]
+        public void Test_CellValuesParallel_AppliesAutomaticDateAndDurationFormatting() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesParallelFormatting.xlsx");
+            var date = new DateTime(2024, 5, 1, 10, 30, 0);
+            var duration = new TimeSpan(1, 2, 3, 4);
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    var cells = new (int Row, int Column, object Value)[] {
+                        (1, 1, date),
+                        (2, 1, duration)
+                    };
+
+                    sheet.CellValues(cells, ExecutionMode.Parallel);
+                    document.Save();
+                }
+
+                using var spreadsheet = SpreadsheetDocument.Open(filePath, false);
+                ValidateSpreadsheetDocument(filePath, spreadsheet);
+
+                var workbookPart = spreadsheet.WorkbookPart!;
+                var styles = workbookPart.WorkbookStylesPart!.Stylesheet!;
+                var cellFormats = styles.CellFormats!.Elements<CellFormat>().ToList();
+                var cellsOnSheet = workbookPart.WorksheetParts.First().Worksheet.Descendants<Cell>().ToList();
+
+                var dateCell = cellsOnSheet.First(c => c.CellReference == "A1");
+                var dateFormat = cellFormats[(int)dateCell.StyleIndex!.Value];
+                Assert.Equal(14U, dateFormat.NumberFormatId!.Value);
+                Assert.True(dateFormat.ApplyNumberFormat?.Value ?? false);
+
+                var durationCell = cellsOnSheet.First(c => c.CellReference == "A2");
+                var durationFormat = cellFormats[(int)durationCell.StyleIndex!.Value];
+                Assert.Equal(46U, durationFormat.NumberFormatId!.Value);
+                Assert.True(durationFormat.ApplyNumberFormat?.Value ?? false);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
     }
 }
 

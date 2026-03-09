@@ -154,6 +154,42 @@ namespace OfficeIMO.Tests {
                 XElement.Parse(ReadConnectorGeometry(savedPath))));
         }
 
+        [Fact]
+        public void CustomShapeGeometryIsPreservedOnRoundTrip() {
+            string filePath = CreateShapeDocument();
+
+            RewritePage(filePath, pageDoc => {
+                XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+                XElement shape = GetFirstShape(pageDoc, ns);
+                shape.SetAttributeValue("NameU", "CustomChevron");
+
+                XElement geometry = shape.Elements(ns + "Section").First(section => (string?)section.Attribute("N") == "Geometry");
+                geometry.RemoveNodes();
+                geometry.Add(
+                    new XElement(ns + "Row",
+                        new XAttribute("T", "Geometry"),
+                        new XElement(ns + "Cell", new XAttribute("N", "NoFill"), new XAttribute("V", "0")),
+                        new XElement(ns + "Cell", new XAttribute("N", "NoLine"), new XAttribute("V", "0"))),
+                    CreateRow(ns, "MoveTo", 0, 0),
+                    CreateRow(ns, "LineTo", 1.5, 0),
+                    CreateRow(ns, "LineTo", 2, 0.5),
+                    CreateRow(ns, "LineTo", 1.5, 1),
+                    CreateRow(ns, "LineTo", 0, 1),
+                    CreateRow(ns, "LineTo", 0.5, 0.5),
+                    CreateRow(ns, "LineTo", 0, 0));
+            });
+
+            string originalGeometry = ReadFirstShapeGeometry(filePath);
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            string savedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            loaded.Save(savedPath);
+
+            Assert.True(XNode.DeepEquals(
+                XElement.Parse(originalGeometry),
+                XElement.Parse(ReadFirstShapeGeometry(savedPath))));
+        }
+
         private static string CreateConnectorDocument(ConnectorKind kind) {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
@@ -163,6 +199,15 @@ namespace OfficeIMO.Tests {
             page.Shapes.Add(start);
             page.Shapes.Add(end);
             page.Connectors.Add(new VisioConnector(start, end) { Kind = kind });
+            document.Save();
+            return filePath;
+        }
+
+        private static string CreateShapeDocument() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Page-1");
+            page.Shapes.Add(new VisioShape("1", 2, 2, 2, 1, "Shape"));
             document.Save();
             return filePath;
         }
@@ -182,6 +227,13 @@ namespace OfficeIMO.Tests {
                 .Element(ns + "Shapes")!
                 .Elements(ns + "Shape")
                 .Last();
+        }
+
+        private static XElement GetFirstShape(XDocument pageDoc, XNamespace ns) {
+            return pageDoc.Root!
+                .Element(ns + "Shapes")!
+                .Elements(ns + "Shape")
+                .First();
         }
 
         private static XElement CreateRow(XNamespace ns, string type, double x, double y) {
@@ -233,6 +285,16 @@ namespace OfficeIMO.Tests {
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
             XElement connectorShape = GetConnectorShape(pageDoc, ns);
             XElement geometry = connectorShape.Elements(ns + "Section").First(section => (string?)section.Attribute("N") == "Geometry");
+            return geometry.ToString(SaveOptions.DisableFormatting);
+        }
+
+        private static string ReadFirstShapeGeometry(string vsdxPath) {
+            using ZipArchive archive = ZipFile.OpenRead(vsdxPath);
+            using Stream stream = archive.GetEntry("visio/pages/page1.xml")!.Open();
+            XDocument pageDoc = XDocument.Load(stream);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XElement shape = GetFirstShape(pageDoc, ns);
+            XElement geometry = shape.Elements(ns + "Section").First(section => (string?)section.Attribute("N") == "Geometry");
             return geometry.ToString(SaveOptions.DisableFormatting);
         }
 
