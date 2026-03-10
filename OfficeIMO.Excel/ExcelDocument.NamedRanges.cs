@@ -58,10 +58,7 @@ namespace OfficeIMO.Excel {
                 ushort sheetPos = GetSheetPositionIndex(scope);
                 foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == name && d.LocalSheetId != null && d.LocalSheetId.Value == sheetPos).ToList())
                     dn.Remove();
-                // Use an explicit sheet-qualified reference for maximum Excel compatibility
-                // Escape single quotes inside the sheet name per Excel syntax ('' -> ')
-                string sheetQuoted = $"'{EscapeSheetName(scope.Name)}'!";
-                string localRef = NormalizeRange(sheetQuoted + range, validationMode);
+                string localRef = NormalizeLocalNamedRange(scope, range, validationMode);
                 var dnNew = new DefinedName { Name = name, Text = localRef, LocalSheetId = sheetPos, Hidden = hidden ? true : (bool?)null };
                 definedNames.Append(dnNew);
             }
@@ -341,6 +338,15 @@ namespace OfficeIMO.Excel {
                 normalized += ":" + end;
             }
             return (sheetPrefix != null ? sheetPrefix + "!" : string.Empty) + normalized;
+        }
+
+        private string NormalizeLocalNamedRange(ExcelSheet scope, string range, NameValidationMode validationMode) {
+            if (SheetNameLookup.TryParseSheetQualifiedReference(range, out _, out _)) {
+                return NormalizeRange(range, validationMode);
+            }
+
+            string sheetQuoted = $"'{EscapeSheetName(scope.Name)}'!";
+            return NormalizeRange(sheetQuoted + range, validationMode);
         }
 
         private string NormalizeSheetPrefix(string sheetToken, NameValidationMode validationMode) {

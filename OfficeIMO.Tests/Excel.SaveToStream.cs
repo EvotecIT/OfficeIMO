@@ -173,5 +173,43 @@ namespace OfficeIMO.Tests {
                 }
             }
         }
+
+        [Fact]
+        public void Test_Save_WithValidationFailure_PreservesExistingDestinationFile() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "SaveValidationFailure.Source.xlsx");
+            string destinationPath = Path.Combine(_directoryWithFiles, "SaveValidationFailure.Destination.xlsx");
+
+            try {
+                using (var existing = ExcelDocument.Create(destinationPath)) {
+                    existing.AddWorkSheet("Original");
+                    existing.Save(destinationPath, openExcel: false);
+                }
+
+                using var document = ExcelDocument.Create(sourcePath);
+                document.AddWorkSheet("Broken");
+
+                var brokenSheet = document._spreadSheetDocument.WorkbookPart!.Workbook.Sheets!
+                    .OfType<Sheet>()
+                    .Single();
+                brokenSheet.Name = null;
+
+                Assert.Throws<InvalidOperationException>(() =>
+                    document.Save(destinationPath, openExcel: false, options: new ExcelSaveOptions { ValidateOpenXml = true }));
+
+                using var spreadsheet = SpreadsheetDocument.Open(destinationPath, false);
+                var sheets = spreadsheet.WorkbookPart!.Workbook!.Sheets!.OfType<Sheet>().ToList();
+                var savedSheet = Assert.Single(sheets);
+                Assert.Equal("Original", savedSheet.Name?.Value);
+            }
+            finally {
+                if (File.Exists(sourcePath)) {
+                    File.Delete(sourcePath);
+                }
+
+                if (File.Exists(destinationPath)) {
+                    File.Delete(destinationPath);
+                }
+            }
+        }
     }
 }
