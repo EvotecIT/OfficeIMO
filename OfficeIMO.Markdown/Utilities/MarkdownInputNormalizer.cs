@@ -212,7 +212,10 @@ public static class MarkdownInputNormalizationPresets {
     /// <param name="options">Options instance to mutate.</param>
     /// <param name="preset">Preset to apply.</param>
     public static void ApplyTo(MarkdownInputNormalizationOptions options, MarkdownInputNormalizationPreset preset) {
-        ArgumentNullException.ThrowIfNull(options);
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
         Reset(options);
 
         switch (preset) {
