@@ -9,6 +9,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     public static IEnumerable<object[]> CoreParityCases() {
         yield return new object[] { "italic-with-inner-bold", "*a **b** c*" };
         yield return new object[] { "bold-with-inner-italic", "**a *b* c**" };
+        yield return new object[] { "triple-marker-balanced", "***foo***" };
+        yield return new object[] { "triple-marker-inner-bold-then-outer-italic", "***foo** bar*" };
+        yield return new object[] { "single-star-inside-bold-stays-literal", "**foo*bar**" };
+        yield return new object[] { "double-star-inside-italic-rebalances", "*a **b* c**" };
         yield return new object[] { "blockquote-lazy-continuation", "> Quote line 1\nQuote line 2" };
         yield return new object[] { "blockquote-blank-line", "> Quote\n>\n> Continued line" };
         yield return new object[] { "blockquote-nested-list", "> - List item\n>   - Nested" };
@@ -70,6 +74,12 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "inline-link-angle-destination-space", "[x](<https://example.com/a b> \"title\")" };
         yield return new object[] { "inline-image-angle-destination-space", "Look ![x](<https://example.com/a b> \"title\") now" };
         yield return new object[] { "reference-link-angle-destination-space", "[x][r]\n\n[r]: <https://example.com/a b>" };
+        yield return new object[] { "inline-link-empty-angle-destination", "[x](<>)" };
+        yield return new object[] { "inline-link-empty-angle-destination-with-title", "[x](<> \"title\")" };
+        yield return new object[] { "inline-image-empty-angle-destination", "Look ![x](<>) now" };
+        yield return new object[] { "inline-link-invalid-title-tail", "[x](https://example.com \"title\" extra)" };
+        yield return new object[] { "inline-link-title-with-escaped-quote", "[x](https://example.com \"a \\\"quote\\\" title\")" };
+        yield return new object[] { "reference-link-empty-angle-destination", "[x][r]\n\n[r]: <>" };
         yield return new object[] { "unordered-list-tab-continuation", "- first line\n\tsecond line\n- next" };
         yield return new object[] { "ordered-list-tab-continuation", "1. first line\n\tsecond line\n2. next" };
         yield return new object[] { "blockquote-lazy-after-unordered-list-item", "> - item\ncontinuation" };

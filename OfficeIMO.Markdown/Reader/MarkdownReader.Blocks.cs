@@ -100,6 +100,7 @@ public static partial class MarkdownReader {
         string alt = t.Substring(2, altEnd - 2);
         string inner = t.Substring(altEnd + 2, parenClose - (altEnd + 2));
         if (!TrySplitUrlAndOptionalTitle(inner, out var src, out var title)) {
+            if (IndexOfWhitespace(inner.Trim()) >= 0) return false;
             src = UnescapeMarkdownBackslashEscapes(inner.Trim());
             title = null;
         }
