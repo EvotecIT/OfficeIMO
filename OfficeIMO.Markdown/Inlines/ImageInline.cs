@@ -23,6 +23,6 @@ public sealed class ImageInline {
             return ImageHtmlAttributes.BuildBlockedPlaceholder(Alt);
         }
         var extra = ImageHtmlAttributes.BuildImageAttributes(o, Src);
-        return $"<img src=\"{System.Net.WebUtility.HtmlEncode(Src)}\" alt=\"{System.Net.WebUtility.HtmlEncode(Alt)}\"{titleAttr}{extra} />";
+        return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(Src)}\" alt=\"{System.Net.WebUtility.HtmlEncode(Alt)}\"{titleAttr}{extra} />";
     }
 }

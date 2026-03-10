@@ -159,8 +159,34 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void Parses_Inline_Image_With_Angle_Destination_Containing_Spaces() {
             var html = MarkdownReader.Parse("Look ![alt](<https://example.com/a (b).png>) now").ToHtmlFragment();
 
-            Assert.Contains("src=\"https://example.com/a (b).png\"", html);
+            Assert.Contains("src=\"https://example.com/a%20(b).png\"", html);
             Assert.Contains("alt=\"alt\"", html);
+        }
+
+        [Fact]
+        public void Parses_Inline_Link_With_Angle_Destination_Containing_Spaces() {
+            var html = MarkdownReader.Parse("[x](<https://example.com/a b> \"title\")").ToHtmlFragment();
+
+            Assert.Contains("href=\"https://example.com/a%20b\"", html, StringComparison.Ordinal);
+            Assert.Contains("title=\"title\"", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Reference_Link_With_Angle_Destination_Containing_Spaces_Is_Preserved() {
+            const string md = """
+[x][r]
+
+[r]: <https://example.com/a b>
+""";
+
+            var doc = MarkdownReader.Parse(md);
+            var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+            var link = Assert.IsType<LinkInline>(paragraph.Inlines.Items[0]);
+
+            Assert.Equal("https://example.com/a b", link.Url);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("href=\"https://example.com/a%20b\"", html, StringComparison.Ordinal);
         }
 
         [Fact]

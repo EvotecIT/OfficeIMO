@@ -55,6 +55,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "inline-link-escaped-closing-paren", "[x](https://example.com/a\\)b)" };
         yield return new object[] { "inline-image-balanced-parens", "Look ![alt](https://example.com/a_(b).png) now" };
         yield return new object[] { "linked-image-nested-alt", "[![alt [x]](https://example.com/a_(b).png)](https://example.com)" };
+        yield return new object[] { "inline-link-angle-destination-space", "[x](<https://example.com/a b> \"title\")" };
+        yield return new object[] { "inline-image-angle-destination-space", "Look ![x](<https://example.com/a b> \"title\") now" };
+        yield return new object[] { "reference-link-angle-destination-space", "[x][r]\n\n[r]: <https://example.com/a b>" };
     }
 
     [Theory]
