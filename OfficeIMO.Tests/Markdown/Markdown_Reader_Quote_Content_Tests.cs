@@ -116,5 +116,18 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
             Assert.Contains("<blockquote><ol><li>item continuation</li></ol></blockquote>", html, StringComparison.Ordinal);
         }
+
+        [Fact]
+        public void Quote_Indented_Paragraph_Line_Can_Stay_In_Paragraph_And_Allow_Lazy_Continuation() {
+            const string md = "> quote\n>     code\ncontinuation";
+
+            var doc = MarkdownReader.Parse(md);
+            var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
+            var paragraph = Assert.IsType<ParagraphBlock>(qb.Children.First());
+            Assert.Equal("quote code continuation", paragraph.Inlines.RenderMarkdown());
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<blockquote><p>quote code continuation</p></blockquote>", html, StringComparison.Ordinal);
+        }
     }
 }

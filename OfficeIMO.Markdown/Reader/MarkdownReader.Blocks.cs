@@ -681,6 +681,8 @@ public static partial class MarkdownReader {
                 string quoteContent = StripSingleQuoteMarker(part);
                 if (TryNormalizeQuotedListContinuationLine(lastQuoteContent, quoteContent, options, out var normalizedQuotedLine)) {
                     quoteContent = normalizedQuotedLine;
+                } else if (TryNormalizeQuotedIndentedParagraphContinuation(lastQuoteContent, quoteContent, options, out var normalizedQuotedParagraphLine)) {
+                    quoteContent = normalizedQuotedParagraphLine;
                 }
 
                 collected.Add("> " + quoteContent);
