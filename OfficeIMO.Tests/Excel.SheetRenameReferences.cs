@@ -4,6 +4,7 @@ using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
+using TableColumn = DocumentFormat.OpenXml.Spreadsheet.TableColumn;
 using OfficeFormula = DocumentFormat.OpenXml.Office.Excel.Formula;
 using Xunit;
 
@@ -219,6 +220,57 @@ namespace OfficeIMO.Tests {
 
                 var validation = summaryPart.Worksheet.Descendants<DataValidation>().Single();
                 Assert.Equal("COUNTIF('Renamed Data'!$A$1:$A$3,\">0\")+COUNTIF('[Other.xlsx]Data'!$A$1:$A$3,\">0\")>0", validation.GetFirstChild<Formula1>()!.Text);
+            }
+            finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Test_RenameWorkSheet_UpdatesTableDefinitionFormulas() {
+            string filePath = Path.Combine(_directoryWithFiles, "RenameWorksheet.TableFormulas.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var data = document.AddWorkSheet("Data", SheetNameValidationMode.Strict);
+                    var summary = document.AddWorkSheet("Summary", SheetNameValidationMode.Strict);
+
+                    data.CellValue(1, 1, 10);
+                    data.CellValue(2, 1, 20);
+
+                    summary.CellValue(1, 1, "Label");
+                    summary.CellValue(1, 2, "Value");
+                    summary.CellValue(2, 1, "A");
+                    summary.CellValue(2, 2, 1);
+                    summary.CellValue(3, 1, "B");
+                    summary.CellValue(3, 2, 2);
+                    summary.AddTable("A1:B3", true, "SummaryTable", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+
+                    var workbookPart = document._spreadSheetDocument.WorkbookPart!;
+                    var summarySheet = workbookPart.Workbook.Sheets!.Elements<Sheet>().First(s => s.Name == "Summary");
+                    var summaryPart = (WorksheetPart)workbookPart.GetPartById(summarySheet.Id!);
+                    var tablePart = summaryPart.TableDefinitionParts.Single();
+                    var valueColumn = tablePart.Table.TableColumns!.Elements<TableColumn>().Last();
+                    valueColumn.CalculatedColumnFormula = new CalculatedColumnFormula { Text = "SUM(Data!$A$2,1)" };
+                    valueColumn.TotalsRowFormula = new TotalsRowFormula { Text = "SUM(Data!$A$2:$A$3)" };
+                    tablePart.Table.TotalsRowShown = true;
+                    tablePart.Table.Save();
+
+                    data.Name = "Renamed Data";
+                    document.Save(filePath, openExcel: false);
+                }
+
+                using var spreadsheet = SpreadsheetDocument.Open(filePath, false);
+                var workbookPartAfter = spreadsheet.WorkbookPart!;
+                var summarySheetAfter = workbookPartAfter.Workbook.Sheets!.Elements<Sheet>().First(s => s.Name == "Summary");
+                var summaryPartAfter = (WorksheetPart)workbookPartAfter.GetPartById(summarySheetAfter.Id!);
+                var tablePartAfter = summaryPartAfter.TableDefinitionParts.Single();
+                var valueColumnAfter = tablePartAfter.Table.TableColumns!.Elements<TableColumn>().Last();
+
+                Assert.Equal("SUM('Renamed Data'!$A$2,1)", valueColumnAfter.CalculatedColumnFormula!.Text);
+                Assert.Equal("SUM('Renamed Data'!$A$2:$A$3)", valueColumnAfter.TotalsRowFormula!.Text);
             }
             finally {
                 if (File.Exists(filePath)) {
