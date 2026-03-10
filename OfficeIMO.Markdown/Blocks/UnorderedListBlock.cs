@@ -76,18 +76,33 @@ public sealed class UnorderedListBlock : IMarkdownBlock {
             return false;
         }
 
+        bool IsLooseInScope(int startIndex, int level) {
+            for (int i = startIndex; i < Items.Count; i++) {
+                var it = Items[i];
+                if (it.Level < level) break;
+                if (it.Level != level) continue;
+                if (it.ForceLoose || it.AdditionalParagraphs.Count > 0) return true;
+            }
+            return false;
+        }
+
         void AppendOpenUl(int startIndex, int level) {
             sb.Append(ContainsTasksInScope(startIndex, level) ? "<ul class=\"contains-task-list\">" : "<ul>");
         }
 
         AppendOpenUl(0, 0);
+        var scopeStartByLevel = new List<int> { 0 };
         int currentLevel = 0;
         bool liOpen = false;
         for (int idx = 0; idx < Items.Count; idx++) {
             var item = Items[idx];
             int level = item.Level;
             if (level > currentLevel) {
-                for (int k = currentLevel + 1; k <= level; k++) AppendOpenUl(idx, k);
+                for (int k = currentLevel + 1; k <= level; k++) {
+                    AppendOpenUl(idx, k);
+                    if (scopeStartByLevel.Count <= k) scopeStartByLevel.Add(idx);
+                    else scopeStartByLevel[k] = idx;
+                }
                 currentLevel = level;
                 // keep parent <li> open
             } else if (level < currentLevel) {
@@ -97,7 +112,9 @@ public sealed class UnorderedListBlock : IMarkdownBlock {
             } else {
                 if (liOpen) { sb.Append("</li>"); liOpen = false; }
             }
-            sb.Append(item.IsTask ? "<li class=\"task-list-item\">" : "<li>").Append(item.RenderHtml());
+            int scopeStart = scopeStartByLevel[level];
+            bool renderLoose = IsLooseInScope(scopeStart, level);
+            sb.Append(item.IsTask ? "<li class=\"task-list-item\">" : "<li>").Append(item.RenderHtml(renderLoose));
             liOpen = true;
         }
         if (liOpen) { sb.Append("</li>"); liOpen = false; }

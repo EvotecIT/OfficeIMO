@@ -49,14 +49,17 @@ public sealed class ListItem {
         return string.Join("\n\n", parts);
     }
 
-    internal string RenderHtml() {
+    internal string RenderHtml() => RenderHtml(forceLoose: false);
+
+    internal string RenderHtml(bool forceLoose) {
+        bool renderLoose = forceLoose || ForceLoose;
         string checkbox = IsTask ? "<input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled" + (Checked ? " checked" : string.Empty) + "> " : string.Empty;
-        if (!ForceLoose && AdditionalParagraphs.Count == 0 && Children.Count == 0) {
+        if (!renderLoose && AdditionalParagraphs.Count == 0 && Children.Count == 0) {
             return checkbox + Content.RenderHtml();
         }
 
         // Tight list behavior: when there is exactly one paragraph, keep it inline even if child blocks exist.
-        if (!ForceLoose && AdditionalParagraphs.Count == 0) {
+        if (!renderLoose && AdditionalParagraphs.Count == 0) {
             var sbTight = new StringBuilder();
             sbTight.Append(checkbox).Append(Content.RenderHtml());
             for (int i = 0; i < Children.Count; i++) {
