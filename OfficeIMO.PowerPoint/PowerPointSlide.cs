@@ -121,7 +121,7 @@ namespace OfficeIMO.PowerPoint {
 
                 Background bg = common.Background ?? new Background();
                 BackgroundProperties props = bg.BackgroundProperties ?? new BackgroundProperties();
-                props.RemoveAllChildren<A.SolidFill>();
+                RemoveBackgroundFillChildren(props);
                 props.Append(new A.SolidFill(new A.RgbColorModelHex { Val = value }));
                 bg.BackgroundProperties = props;
                 common.Background = bg;
@@ -162,8 +162,7 @@ namespace OfficeIMO.PowerPoint {
             Background background = common.Background ?? new Background();
             BackgroundProperties props = background.BackgroundProperties ?? new BackgroundProperties();
 
-            props.RemoveAllChildren<A.SolidFill>();
-            props.RemoveAllChildren<A.BlipFill>();
+            RemoveBackgroundFillChildren(props);
 
             props.Append(new A.BlipFill(
                 new A.Blip { Embed = relationshipId },
@@ -391,6 +390,15 @@ namespace OfficeIMO.PowerPoint {
             OpenXmlUnknownElement morph = new OpenXmlUnknownElement("p159", "morph", P159Namespace);
             morph.SetAttribute(new OpenXmlAttribute("option", string.Empty, "byObject"));
             return morph;
+        }
+
+        private static void RemoveBackgroundFillChildren(BackgroundProperties properties) {
+            properties.RemoveAllChildren<A.BlipFill>();
+            properties.RemoveAllChildren<A.GradientFill>();
+            properties.RemoveAllChildren<A.GroupFill>();
+            properties.RemoveAllChildren<A.NoFill>();
+            properties.RemoveAllChildren<A.PatternFill>();
+            properties.RemoveAllChildren<A.SolidFill>();
         }
 
         private SlideId GetSlideId() {

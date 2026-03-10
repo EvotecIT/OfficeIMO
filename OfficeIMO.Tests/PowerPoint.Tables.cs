@@ -142,6 +142,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void TableStyles_DoesNotDuplicateEntries() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointTableStyleInfo[] styles = presentation.TableStyles.ToArray();
+
+                Assert.NotEmpty(styles);
+                Assert.Equal(styles.Length, styles.Select(style => style.StyleId).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void CanSetTableCellAutoFit() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 

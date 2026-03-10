@@ -343,7 +343,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             OpenXmlCompositeElement? element = GetColorElement(scheme, color);
-            return element?.GetFirstChild<A.RgbColorModelHex>()?.Val;
+            return GetThemeColorValue(element);
         }
 
         /// <summary>
@@ -416,7 +416,7 @@ namespace OfficeIMO.PowerPoint {
             var colors = new Dictionary<PowerPointThemeColor, string>();
             foreach (PowerPointThemeColor color in Enum.GetValues(typeof(PowerPointThemeColor))) {
                 OpenXmlCompositeElement? element = GetColorElement(scheme, color);
-                string? hexValue = element?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value;
+                string? hexValue = GetThemeColorValue(element);
                 if (!string.IsNullOrEmpty(hexValue)) {
                     colors[color] = hexValue!;
                 }
@@ -533,11 +533,12 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 List<PowerPointTableStyleInfo> styles = new();
+                HashSet<string> seenStyleIds = new(StringComparer.OrdinalIgnoreCase);
                 A.TableStyleList? styleList = stylesPart?.TableStyleList;
                 if (styleList != null) {
                     foreach (A.TableStyle style in styleList.Elements<A.TableStyle>()) {
                         string styleId = style.StyleId?.Value ?? string.Empty;
-                        if (string.IsNullOrWhiteSpace(styleId)) {
+                        if (string.IsNullOrWhiteSpace(styleId) || !seenStyleIds.Add(styleId)) {
                             continue;
                         }
 
@@ -549,7 +550,7 @@ namespace OfficeIMO.PowerPoint {
                 if (stylesPart != null) {
                     using Stream stream = stylesPart.GetStream(FileMode.Open, FileAccess.Read);
                     if (stream.Length > 0) {
-                        AddTableStylesFromStream(styles, stream);
+                        AddTableStylesFromStream(styles, seenStyleIds, stream);
                     }
                 }
 
@@ -557,7 +558,7 @@ namespace OfficeIMO.PowerPoint {
                     using Stream? resource = typeof(PowerPointPresentation).Assembly
                         .GetManifestResourceStream(TableStylesResourceName);
                     if (resource != null) {
-                        AddTableStylesFromStream(styles, resource);
+                        AddTableStylesFromStream(styles, seenStyleIds, resource);
                     }
                 }
 
@@ -565,7 +566,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void AddTableStylesFromStream(List<PowerPointTableStyleInfo> styles, Stream stream) {
+        private static void AddTableStylesFromStream(List<PowerPointTableStyleInfo> styles, ISet<string> seenStyleIds, Stream stream) {
             XDocument document = XDocument.Load(stream);
             XElement? root = document.Root;
             if (root == null) {
@@ -575,13 +576,22 @@ namespace OfficeIMO.PowerPoint {
             XNamespace drawing = "http://schemas.openxmlformats.org/drawingml/2006/main";
             foreach (XElement style in root.Elements(drawing + "tblStyle")) {
                 string styleId = style.Attribute("styleId")?.Value ?? string.Empty;
-                if (string.IsNullOrWhiteSpace(styleId)) {
+                if (string.IsNullOrWhiteSpace(styleId) || !seenStyleIds.Add(styleId)) {
                     continue;
                 }
 
                 string name = style.Attribute("styleName")?.Value ?? string.Empty;
                 styles.Add(new PowerPointTableStyleInfo(styleId, name));
             }
+        }
+
+        private static string? GetThemeColorValue(OpenXmlCompositeElement? element) {
+            string? rgbColor = element?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value;
+            if (!string.IsNullOrWhiteSpace(rgbColor)) {
+                return rgbColor;
+            }
+
+            return element?.GetFirstChild<A.SystemColor>()?.LastColor?.Value;
         }
 
         /// <summary>

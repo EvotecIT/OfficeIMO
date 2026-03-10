@@ -89,6 +89,7 @@ namespace OfficeIMO.PowerPoint {
             tree.AppendChild(frame);
             PowerPointTable tbl = new(frame, _slidePart);
             tbl.SetColumnWidthsEvenly();
+            tbl.SetRowHeightsEvenly();
             _shapes.Add(tbl);
             return tbl;
         }
