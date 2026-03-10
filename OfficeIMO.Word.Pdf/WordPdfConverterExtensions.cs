@@ -48,7 +48,7 @@ namespace OfficeIMO.Word.Pdf {
                 pdf.GeneratePdf(path);
             } finally {
                 // Restore whatever license was set before conversion across all loaded QuestPDF TFMs
-                QuestPdfLicenseUtil.SetLicenseForAll(originalLicense);
+                RestoreQuestPdfLicense(originalLicense);
             }
         }
 
@@ -80,7 +80,7 @@ namespace OfficeIMO.Word.Pdf {
                     stream.Position = 0;
                 }
             } finally {
-                QuestPdfLicenseUtil.SetLicenseForAll(originalLicense);
+                RestoreQuestPdfLicense(originalLicense);
             }
         }
 
@@ -103,7 +103,7 @@ namespace OfficeIMO.Word.Pdf {
                     return stream.ToArray();
                 }
             } finally {
-                QuestPdfLicenseUtil.SetLicenseForAll(originalLicense);
+                RestoreQuestPdfLicense(originalLicense);
             }
         }
 
@@ -119,12 +119,17 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentNullException(nameof(document));
             }
 
-            using (MemoryStream stream = new MemoryStream()) {
-                cancellationToken.ThrowIfCancellationRequested();
-                Document pdf = CreatePdfDocument(document, options);
-                await Task.Run(() => pdf.GeneratePdf(stream), cancellationToken).ConfigureAwait(false);
-                stream.Position = 0;
-                return stream.ToArray();
+            var originalLicense = QuestPdfLicenseUtil.GetEffectiveLicenseValue();
+            try {
+                using (MemoryStream stream = new MemoryStream()) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    Document pdf = CreatePdfDocument(document, options);
+                    await Task.Run(() => pdf.GeneratePdf(stream), cancellationToken).ConfigureAwait(false);
+                    stream.Position = 0;
+                    return stream.ToArray();
+                }
+            } finally {
+                RestoreQuestPdfLicense(originalLicense);
             }
         }
 
@@ -155,8 +160,15 @@ namespace OfficeIMO.Word.Pdf {
                 Directory.CreateDirectory(directory);
             }
 
+            var originalLicense = QuestPdfLicenseUtil.GetEffectiveLicenseValue();
             Document pdf = CreatePdfDocument(document, options);
-            return Task.Run(() => pdf.GeneratePdf(path), cancellationToken);
+            return Task.Run(() => {
+                try {
+                    pdf.GeneratePdf(path);
+                } finally {
+                    RestoreQuestPdfLicense(originalLicense);
+                }
+            }, cancellationToken);
         }
 
         /// <summary>
@@ -191,9 +203,14 @@ namespace OfficeIMO.Word.Pdf {
                         stream.Position = 0;
                     }
                 } finally {
-                    QuestPdfLicenseUtil.SetLicenseForAll(originalLicense);
+                    RestoreQuestPdfLicense(originalLicense);
                 }
             }, cancellationToken);
+        }
+
+        private static void RestoreQuestPdfLicense(int? originalLicense) {
+            QuestPdfLicenseUtil.SetLicenseForAll(originalLicense);
+            QuestPDF.Settings.License = originalLicense.HasValue ? (LicenseType?) (LicenseType)originalLicense.Value : null;
         }
 
         private static Document CreatePdfDocument(WordDocument document, PdfSaveOptions? options) {
@@ -465,6 +482,10 @@ namespace OfficeIMO.Word.Pdf {
             private const string LicensePropertyName = "License";
 
             public static int? GetEffectiveLicenseValue() {
+                if (QuestPDF.Settings.License.HasValue) {
+                    return (int)QuestPDF.Settings.License.Value;
+                }
+
                 foreach (var asm in EnumerateQuestPdfAssemblies()) {
                     var val = ReadLicenseFromAssembly(asm);
                     if (val != null) return val;
