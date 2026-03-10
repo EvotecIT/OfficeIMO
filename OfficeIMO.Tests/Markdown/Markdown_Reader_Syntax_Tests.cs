@@ -223,6 +223,44 @@ Heading Title
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Separates_Blank_Line_Before_List_Item_Setext_Heading() {
+        var markdown = """
+- Item
+
+  Heading
+  -------
+  body
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var list = Assert.Single(result.SyntaxTree.Children);
+        var item = Assert.Single(list.Children);
+        Assert.Equal(3, item.Children.Count);
+
+        var firstParagraph = item.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, firstParagraph.Kind);
+        Assert.NotNull(firstParagraph.SourceSpan);
+        Assert.Equal(1, firstParagraph.SourceSpan!.Value.StartLine);
+        Assert.Equal(1, firstParagraph.SourceSpan!.Value.EndLine);
+        Assert.Equal("Item", firstParagraph.Literal);
+
+        var heading = item.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
+        Assert.NotNull(heading.SourceSpan);
+        Assert.Equal(3, heading.SourceSpan!.Value.StartLine);
+        Assert.Equal(4, heading.SourceSpan!.Value.EndLine);
+        Assert.Equal("Heading", heading.Literal);
+
+        var trailingParagraph = item.Children[2];
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, trailingParagraph.Kind);
+        Assert.NotNull(trailingParagraph.SourceSpan);
+        Assert.Equal(5, trailingParagraph.SourceSpan!.Value.StartLine);
+        Assert.Equal(5, trailingParagraph.SourceSpan!.Value.EndLine);
+        Assert.Equal("body", trailingParagraph.Literal);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Nested_Quote_Child_Spans() {
         var markdown = """
 > quoted

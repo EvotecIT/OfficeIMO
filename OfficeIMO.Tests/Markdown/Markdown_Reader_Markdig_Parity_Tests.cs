@@ -92,6 +92,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "blockquote-setext-heading-then-paragraph", "> title\n> -----\n>\n> after" };
         yield return new object[] { "list-setext-heading", "- item\n  heading\n  -------" };
         yield return new object[] { "list-setext-heading-then-paragraph-same-group", "- item\n  heading\n  -------\n  after" };
+        yield return new object[] { "list-blank-line-then-setext-heading", "- item\n\n  Heading\n  ---\n  text" };
         yield return new object[] { "list-setext-heading-then-quote", "- item\n  heading\n  -------\n\n  > quote" };
         yield return new object[] { "paragraph-then-nonone-ordered-marker", "alpha\n10. beta" };
         yield return new object[] { "list-continuation-then-nonone-ordered-marker", "- outer\n  10. item\n      continuation" };
