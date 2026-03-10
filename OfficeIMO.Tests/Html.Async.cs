@@ -76,6 +76,16 @@ namespace OfficeIMO.Tests {
             await AssertFooterCreatedAsync(HeaderFooterValues.Even, "Even footer fragment", doc => doc.DifferentOddAndEvenPages = true);
         }
 
+        [Fact]
+        public async Task AddHtmlToHeaderAsync_CreatesFirstHeader() {
+            await AssertHeaderCreatedAsync(HeaderFooterValues.First, "First header fragment", doc => doc.DifferentFirstPage = true);
+        }
+
+        [Fact]
+        public async Task AddHtmlToHeaderAsync_CreatesEvenHeader() {
+            await AssertHeaderCreatedAsync(HeaderFooterValues.Even, "Even header fragment", doc => doc.DifferentOddAndEvenPages = true);
+        }
+
         private static async Task AssertFooterCreatedAsync(HeaderFooterValues footerType, string expectedText, Action<WordDocument> configure) {
             using var doc = WordDocument.Create();
             configure(doc);
@@ -91,6 +101,24 @@ namespace OfficeIMO.Tests {
             Assert.Same(footer, ResolveFooter(footers, footerType));
 
             string innerText = GetFooterInnerText(doc, footerType);
+            Assert.Contains(expectedText, innerText);
+        }
+
+        private static async Task AssertHeaderCreatedAsync(HeaderFooterValues headerType, string expectedText, Action<WordDocument> configure) {
+            using var doc = WordDocument.Create();
+            configure(doc);
+
+            string html = $"<p>{expectedText}</p>";
+            await doc.AddHtmlToHeaderAsync(html, headerType);
+
+            int sectionIndex = doc.Sections.Count - 1;
+            WordHeader header = RequireSectionHeader(doc, sectionIndex, headerType);
+
+            var section = doc.Sections[sectionIndex];
+            var headers = Assert.IsAssignableFrom<WordHeaders>(section.Header);
+            Assert.Same(header, ResolveHeader(headers, headerType));
+
+            string innerText = GetHeaderInnerText(doc, headerType);
             Assert.Contains(expectedText, innerText);
         }
 
@@ -148,6 +176,12 @@ namespace OfficeIMO.Tests {
             return footers.Default;
         }
 
+        private static WordHeader? ResolveHeader(WordHeaders headers, HeaderFooterValues type) {
+            if (type == HeaderFooterValues.First) return headers.First;
+            if (type == HeaderFooterValues.Even) return headers.Even;
+            return headers.Default;
+        }
+
         private static string GetFooterInnerText(WordDocument doc, HeaderFooterValues footerType) {
             using var ms = new MemoryStream();
             doc.Save(ms);
@@ -169,6 +203,29 @@ namespace OfficeIMO.Tests {
                 ?? throw new InvalidOperationException("Unable to resolve the footer part from the document package.");
 
             return footerPart.Footer?.InnerText ?? string.Empty;
+        }
+
+        private static string GetHeaderInnerText(WordDocument doc, HeaderFooterValues headerType) {
+            using var ms = new MemoryStream();
+            doc.Save(ms);
+            ms.Position = 0;
+
+            using var package = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(ms, false);
+            var body = package.MainDocumentPart?.Document?.Body ?? throw new InvalidOperationException("The saved document body is missing.");
+            var sectionProperties = body.Descendants<SectionProperties>().LastOrDefault() ?? throw new InvalidOperationException("The document does not define section properties.");
+
+            HeaderReference? headerReference = sectionProperties.Elements<HeaderReference>().FirstOrDefault(reference =>
+                headerType == HeaderFooterValues.Default
+                    ? reference.Type == null || reference.Type.Value == HeaderFooterValues.Default
+                    : reference.Type?.Value == headerType);
+
+            string headerPartId = headerReference?.Id?.Value
+                ?? throw new InvalidOperationException($"The {headerType} header reference could not be located in the saved document.");
+
+            var headerPart = package.MainDocumentPart!.GetPartById(headerPartId) as DocumentFormat.OpenXml.Packaging.HeaderPart
+                ?? throw new InvalidOperationException("Unable to resolve the header part from the document package.");
+
+            return headerPart.Header?.InnerText ?? string.Empty;
         }
 
         [Fact]

@@ -89,7 +89,7 @@ namespace OfficeIMO.Word {
             }
 
             // get normal switches
-            string switches = "(\\\\)([A-Za-z@]{1} *([A-Za-z0-9/]+|\".+\")?)";
+            string switches = @"(\\[A-Za-z@](?:\s*(?:""[^""]*""|[^\s\\]+))?)";
 
             rgx = new Regex(switches);
             matches = rgx.Matches(fieldCodeDeclaration);

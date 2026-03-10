@@ -350,6 +350,117 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ComplexFieldWithMultipleQuotedSwitches_LoadsAllSwitches() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldMultipleQuotedSwitches.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var parameters = new List<string> {
+                    "ANSWER",
+                    "\"What is the answer?\"",
+                    "\\d \"42\"",
+                    "\\o \"Tooltip\""
+                };
+
+                document.AddParagraph().AddField(WordFieldType.Ask, advanced: true, parameters: parameters);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var field = Assert.Single(document.Fields);
+
+                Assert.Equal(WordFieldType.Ask, field.FieldType);
+                Assert.Equal(new[] { "ANSWER", "\"What is the answer?\"" }, field.FieldInstructions);
+                Assert.Equal(new[] { "\\d \"42\"", "\\o \"Tooltip\"" }, field.FieldSwitches);
+            }
+        }
+
+        [Fact]
+        public void Test_FieldsInTables_AreReturnedFromDocumentAndHeaderFooterCollections() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldsInTables.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var bodyTable = document.AddTable(1, 1);
+                bodyTable.Rows[0].Cells[0].Paragraphs[0].AddField(WordFieldType.Author, advanced: true);
+
+                document.AddHeadersAndFooters();
+
+                var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+                header.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].AddField(WordFieldType.Page, advanced: true);
+
+                var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+                footer.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].AddField(WordFieldType.NumPages, advanced: true);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+                var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+
+                Assert.Single(document.Fields);
+                Assert.Equal(WordFieldType.Author, document.Fields[0].FieldType);
+
+                Assert.Single(document.Sections[0].Fields);
+                Assert.Equal(WordFieldType.Author, document.Sections[0].Fields[0].FieldType);
+
+                Assert.Single(header.Fields);
+                Assert.Equal(WordFieldType.Page, header.Fields[0].FieldType);
+
+                Assert.Single(footer.Fields);
+                Assert.Equal(WordFieldType.NumPages, footer.Fields[0].FieldType);
+            }
+        }
+
+        [Fact]
+        public void Test_FieldText_LoadsCombinedSimpleFieldResultFromMultipleRuns() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldTextMultipleRunsSimple.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddField(WordFieldType.Author);
+
+                var simpleField = paragraph._paragraph.Elements<SimpleField>().Single();
+                simpleField.RemoveAllChildren<Run>();
+                simpleField.Append(new Run(new Text("Alpha")));
+                simpleField.Append(new Run(new Text("Beta")));
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var field = Assert.Single(document.Fields);
+
+                Assert.Equal("AlphaBeta", field.Text);
+
+                field.Text = "Merged";
+                Assert.Equal("Merged", field.Text);
+            }
+        }
+
+        [Fact]
+        public void Test_FieldText_LoadsCombinedComplexFieldResultFromMultipleRuns() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldTextMultipleRunsComplex.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddField(WordFieldType.Author, advanced: true);
+
+                var resultRun = paragraph._paragraph.Elements<Run>().Single(run => run.Elements<Text>().Any());
+                resultRun.GetFirstChild<Text>()!.Text = "Alpha";
+                resultRun.InsertAfterSelf(new Run(new Text("Beta")));
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var field = Assert.Single(document.Fields);
+
+                Assert.Equal("AlphaBeta", field.Text);
+
+                field.Text = "Merged";
+                Assert.Equal("Merged", field.Text);
+            }
+        }
+
+        [Fact]
         public void Test_ReadingOfFragmentedInstructions() {
             using WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "partitionedFieldInstructions.docx"));
 

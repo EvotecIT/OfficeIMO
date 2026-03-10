@@ -92,13 +92,32 @@ namespace OfficeIMO.Tests.Ordering {
             Assert.True(ms.Length > 0);
         }
 
-        [Fact(Skip = "Pending: WordSection.Elements returns wrong content for second section with AddSection. Enable once fixed.")]
-        public void Markdown_Html_OrderPreserved_AcrossSections_Pending() {
+        [Fact]
+        public void Markdown_Html_OrderPreserved_AcrossSections() {
             using var doc = BuildSampleDoc();
             string md = doc.ToMarkdown();
+            int intro = md.IndexOf("Intro P1", StringComparison.Ordinal);
+            int after1 = md.IndexOf("After T1", StringComparison.Ordinal);
+            int s2p1 = md.IndexOf("Section2 P1", StringComparison.Ordinal);
+            int t2 = md.IndexOf("T2_R1C1", StringComparison.Ordinal);
+            int after2 = md.IndexOf("Section2 After T2", StringComparison.Ordinal);
+
             Assert.Contains("Section2 P1", md);
+            Assert.True(intro >= 0 && after1 > intro && s2p1 > after1 && t2 > s2p1 && after2 > t2, $"Markdown section order invalid:\n{md}");
+
             string html = doc.ToHtml();
+            int htmlIntro = html.IndexOf("Intro P1", StringComparison.Ordinal);
+            int htmlAfter1 = html.IndexOf("After T1", StringComparison.Ordinal);
+            int htmlS2P1 = html.IndexOf("Section2 P1", StringComparison.Ordinal);
+            int htmlT2 = html.IndexOf("T2_R1C1", StringComparison.Ordinal);
+            int htmlAfter2 = html.IndexOf("Section2 After T2", StringComparison.Ordinal);
+
             Assert.Contains("Section2 P1", html);
+            Assert.True(htmlIntro >= 0 && htmlAfter1 > htmlIntro && htmlS2P1 > htmlAfter1 && htmlT2 > htmlS2P1 && htmlAfter2 > htmlT2, $"HTML section order invalid:\n{html}");
+
+            Assert.Contains("Section2 P1", doc.Sections[1].Paragraphs.Select(p => p.Text));
+            Assert.Contains("T2_R1C1", doc.Sections[1].Tables.Select(t => t.Rows[1].Cells[0].Paragraphs[0].Text));
+            Assert.DoesNotContain("Intro P1", doc.Sections[1].Paragraphs.Select(p => p.Text));
         }
     }
 }

@@ -43,5 +43,24 @@ namespace OfficeIMO.Tests {
                 Assert.Single(document.Lists);
             }
         }
+
+        [Fact]
+        public void Test_PictureBulletList_FromNonSeekableStream() {
+            var filePath = Path.Combine(_directoryWithFiles, "PictureBulletListNonSeekableStream.docx");
+            using (var document = WordDocument.Create(filePath)) {
+                var imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+                using var stream = new NonSeekableReadStream(File.ReadAllBytes(imagePath));
+                var list = document.AddPictureBulletList(stream, "Kulek.jpg");
+                list.AddItem("Item1");
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                var numbering = document._wordprocessingDocument?.MainDocumentPart?.NumberingDefinitionsPart?.Numbering;
+                Assert.NotNull(numbering);
+                Assert.NotNull(numbering!.Elements<NumberingPictureBullet>().FirstOrDefault());
+                Assert.Single(document.Lists);
+            }
+        }
     }
 }

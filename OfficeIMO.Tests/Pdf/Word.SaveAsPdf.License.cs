@@ -4,6 +4,8 @@ using QuestPDF.Infrastructure;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -49,6 +51,52 @@ namespace OfficeIMO.Tests {
             string pdfContent = File.ReadAllText(pdfPath);
             Assert.Contains(fontFamily.Replace(" ", ""), pdfContent, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("FontFile", pdfContent);
+        }
+
+        [Fact]
+        public async Task SaveAsPdfAsync_Path_RestoresUnsetLicense() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfAsyncLicensePath.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfAsyncLicensePath.pdf");
+
+            QuestPDF.Settings.License = null;
+            try {
+                using (WordDocument document = WordDocument.Create(docPath)) {
+                    document.AddParagraph("Hello World");
+                    document.Save();
+
+                    await document.SaveAsPdfAsync(pdfPath, new PdfSaveOptions {
+                        QuestPdfLicenseType = LicenseType.Community
+                    }, CancellationToken.None);
+                }
+
+                Assert.True(File.Exists(pdfPath));
+                Assert.Null(QuestPDF.Settings.License);
+            } finally {
+                QuestPDF.Settings.License = null;
+            }
+        }
+
+        [Fact]
+        public async Task SaveAsPdfAsync_ByteArray_RestoresUnsetLicense() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfAsyncLicenseBytes.docx");
+
+            QuestPDF.Settings.License = null;
+            try {
+                using (WordDocument document = WordDocument.Create(docPath)) {
+                    document.AddParagraph("Hello World");
+                    document.Save();
+
+                    byte[] bytes = await document.SaveAsPdfAsync(new PdfSaveOptions {
+                        QuestPdfLicenseType = LicenseType.Community
+                    }, CancellationToken.None);
+
+                    Assert.NotEmpty(bytes);
+                }
+
+                Assert.Null(QuestPDF.Settings.License);
+            } finally {
+                QuestPDF.Settings.License = null;
+            }
         }
     }
 }

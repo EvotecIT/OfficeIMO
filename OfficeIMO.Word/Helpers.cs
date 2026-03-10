@@ -121,7 +121,37 @@ namespace OfficeIMO.Word {
             return IsFileLocked(new FileInfo(fileName));
         }
 
+        internal static TResult UseSeekableImageStream<TResult>(Stream imageStream, Func<Stream, TResult> action) {
+            if (imageStream == null) {
+                throw new ArgumentNullException(nameof(imageStream));
+            }
+
+            if (action == null) {
+                throw new ArgumentNullException(nameof(action));
+            }
+
+            if (imageStream.CanSeek) {
+                long originalPosition = imageStream.Position;
+                imageStream.Position = 0;
+
+                try {
+                    return action(imageStream);
+                } finally {
+                    imageStream.Position = originalPosition;
+                }
+            }
+
+            using var copy = new MemoryStream();
+            imageStream.CopyTo(copy);
+            copy.Position = 0;
+            return action(copy);
+        }
+
         internal static ImageCharacteristics GetImageCharacteristics(Stream imageStream, string? fileName = null) {
+            return UseSeekableImageStream(imageStream, seekableImageStream => GetImageCharacteristicsCore(seekableImageStream, fileName));
+        }
+
+        private static ImageCharacteristics GetImageCharacteristicsCore(Stream imageStream, string? fileName) {
             // Fast-path by extension to avoid throwing/catching first-chance exceptions from ImageSharp
             string? ext = null;
             if (!string.IsNullOrEmpty(fileName)) {
@@ -137,26 +167,22 @@ namespace OfficeIMO.Word {
                         var hAttr = root.Attribute("height");
                         if (wAttr != null) double.TryParse(wAttr.Value.Replace("px", string.Empty), out width);
                         if (hAttr != null) double.TryParse(hAttr.Value.Replace("px", string.Empty), out height);
-                        imageStream.Position = 0;
                         return new ImageCharacteristics(width, height, CustomImagePartType.Svg);
                     } catch {
                         imageStream.Position = 0;
                         // If SVG parsing fails, fall through to ImageSharp attempt
                     }
                 } else if (ext == ".emf") {
-                    imageStream.Position = 0;
                     return new ImageCharacteristics(0, 0, CustomImagePartType.Emf);
                 }
             }
 
             try {
                 using var img = SixLabors.ImageSharp.Image.Load(imageStream, out var imageFormat);
-                imageStream.Position = 0;
                 var type = ConvertToImagePartType(imageFormat);
                 return new ImageCharacteristics(img.Width, img.Height, type);
             } catch (SixLabors.ImageSharp.UnknownImageFormatException) {
                 // Fallback: infer type from extension (if available) without throwing
-                imageStream.Position = 0;
                 if (!string.IsNullOrEmpty(ext)) {
                     switch (ext) {
                         case ".png":

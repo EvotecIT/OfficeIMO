@@ -131,5 +131,64 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(body.Descendants<Inserted>());
             }
         }
+
+        [Fact]
+        public void Test_AcceptRevisions_ByAuthor_OnlyAcceptsMatchingChanges() {
+            string filePath = Path.Combine(_directoryWithFiles, "TrackedChangesAcceptByAuthor.docx");
+            File.Delete(filePath);
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddInsertedText("AddedByAlice", "Alice");
+                paragraph.AddInsertedText("AddedByBob", "Bob");
+                paragraph.AddDeletedText("RemovedByAlice", "Alice");
+                paragraph.AddDeletedText("RemovedByBob", "Bob");
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                document.AcceptRevisions("Alice");
+
+                Assert.NotNull(document._document);
+                var body = document._document!.Body;
+                Assert.NotNull(body);
+
+                Assert.DoesNotContain(body!.Descendants<InsertedRun>(), run => run.Author?.Value == "Alice");
+                Assert.DoesNotContain(body.Descendants<DeletedRun>(), run => run.Author?.Value == "Alice");
+                Assert.Contains(body.Descendants<InsertedRun>(), run => run.Author?.Value == "Bob" && run.InnerText == "AddedByBob");
+                Assert.Contains(body.Descendants<DeletedRun>(), run => run.Author?.Value == "Bob" && run.InnerText == "RemovedByBob");
+                Assert.Contains(body.Descendants<Run>(), run => run.InnerText == "AddedByAlice");
+            }
+        }
+
+        [Fact]
+        public void Test_RejectRevisions_ByAuthor_OnlyRejectsMatchingChanges() {
+            string filePath = Path.Combine(_directoryWithFiles, "TrackedChangesRejectByAuthor.docx");
+            File.Delete(filePath);
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddInsertedText("AddedByAlice", "Alice");
+                paragraph.AddInsertedText("AddedByBob", "Bob");
+                paragraph.AddDeletedText("RemovedByAlice", "Alice");
+                paragraph.AddDeletedText("RemovedByBob", "Bob");
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                document.RejectRevisions("Alice");
+
+                Assert.NotNull(document._document);
+                var body = document._document!.Body;
+                Assert.NotNull(body);
+
+                Assert.DoesNotContain(body!.Descendants<InsertedRun>(), run => run.Author?.Value == "Alice");
+                Assert.DoesNotContain(body.Descendants<DeletedRun>(), run => run.Author?.Value == "Alice");
+                Assert.Contains(body.Descendants<InsertedRun>(), run => run.Author?.Value == "Bob" && run.InnerText == "AddedByBob");
+                Assert.Contains(body.Descendants<DeletedRun>(), run => run.Author?.Value == "Bob" && run.InnerText == "RemovedByBob");
+                Assert.Contains(body.Descendants<Run>(), run => run.InnerText == "RemovedByAlice");
+                Assert.DoesNotContain(body.Descendants<Run>(), run => run.InnerText == "AddedByAlice");
+            }
+        }
     }
 }

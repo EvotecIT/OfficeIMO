@@ -133,10 +133,11 @@ namespace OfficeIMO.Word.Markdown {
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
         /// <returns>A new <see cref="WordDocument"/> instance.</returns>
         public static async Task<WordDocument> LoadFromMarkdownAsync(this string path, MarkdownToWordOptions? options = null, CancellationToken cancellationToken = default) {
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            var markdown = await File.ReadAllTextAsync(path, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+#if NET8_0_OR_GREATER
+            using var reader = new StreamReader(path, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            var markdown = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
 #else
-            using var reader = new StreamReader(path, Encoding.UTF8);
+            using var reader = new StreamReader(path, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
             var markdown = await reader.ReadToEndAsync().ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
 #endif

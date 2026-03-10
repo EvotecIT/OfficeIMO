@@ -102,6 +102,28 @@ namespace OfficeIMO.Tests {
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
 
+        [Fact]
+        public void Test_CreatingWordDocumentWithImageFromNonSeekableStream() {
+            var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithNonSeekableImage.docx");
+            var imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+
+            using (var document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                using var stream = new NonSeekableReadStream(File.ReadAllBytes(imagePath));
+                paragraph.AddImage(stream, "Kulek.jpg", null, null);
+
+                Assert.Single(document.Images);
+                Assert.True(document.Images[0].Width > 0);
+                Assert.True(document.Images[0].Height > 0);
+                document.Save(false);
+            }
+
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.Single(document.Images);
+                Assert.Equal("Kulek.jpg", document.Images[0].FileName);
+            }
+        }
+
 
         [Fact]
         public void Test_CreatingWordDocumentWithImagesHeadersAndFooters() {

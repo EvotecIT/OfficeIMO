@@ -178,15 +178,7 @@ namespace OfficeIMO.Word.Html {
             var targetSection = doc.Sections.LastOrDefault() ?? throw new System.InvalidOperationException("The document does not contain any sections to append HTML to the header.");
             doc.AddHeadersAndFooters();
             var headers = targetSection.Header ?? throw new System.InvalidOperationException("The target section does not have any headers defined. Call AddHeadersAndFooters() before appending HTML to the header.");
-            WordHeader? header = type == HeaderFooterValues.First
-                ? headers.First
-                : type == HeaderFooterValues.Even
-                    ? headers.Even
-                    : headers.Default;
-
-            if (header == null) {
-                throw new System.InvalidOperationException($"The {DescribeHeaderFooter(type.Value)} header could not be located for the current section.");
-            }
+            var header = GetOrCreateHeader(doc, targetSection, headers, type.Value);
 
             var converter = new HtmlToWordConverter();
             await converter.AddHtmlToHeaderAsync(doc, header, html, options, cancellationToken).ConfigureAwait(false);
@@ -249,6 +241,22 @@ namespace OfficeIMO.Word.Html {
             return footer ?? throw new System.InvalidOperationException($"The {DescribeHeaderFooter(footerType)} footer could not be located or created for the current section.");
 
             static WordFooter? SelectFooter(WordFooters source, HeaderFooterValues type) {
+                if (type == HeaderFooterValues.First) return source.First;
+                if (type == HeaderFooterValues.Even) return source.Even;
+                return source.Default;
+            }
+        }
+
+        private static WordHeader GetOrCreateHeader(WordDocument document, WordSection targetSection, WordHeaders headers, HeaderFooterValues headerType) {
+            WordHeader? header = SelectHeader(headers, headerType);
+            if (header == null) {
+                WordHeadersAndFooters.AddHeaderReference(document, targetSection, headerType);
+                header = SelectHeader(headers, headerType);
+            }
+
+            return header ?? throw new System.InvalidOperationException($"The {DescribeHeaderFooter(headerType)} header could not be located or created for the current section.");
+
+            static WordHeader? SelectHeader(WordHeaders source, HeaderFooterValues type) {
                 if (type == HeaderFooterValues.First) return source.First;
                 if (type == HeaderFooterValues.Even) return source.Even;
                 return source.Default;
