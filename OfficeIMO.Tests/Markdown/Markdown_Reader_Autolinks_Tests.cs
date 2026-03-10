@@ -158,6 +158,42 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Autolinks_DoNot_Link_Plain_Mailto_Email_Tokens() {
+        var doc = MarkdownReader.Parse("Contact mailto:user@example.com now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Contact mailto:user@example.com now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Plain_Emails_With_Path_Suffixes() {
+        var doc = MarkdownReader.Parse("Contact user@example.com/path now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Contact user@example.com/path now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Plain_Emails_With_Fragment_Suffixes() {
+        var doc = MarkdownReader.Parse("Contact user@example.com#frag now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Contact user@example.com#frag now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Plain_Emails_With_Plus_Tags() {
+        var doc = MarkdownReader.Parse("Contact user.name+tag@example.com now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"mailto:user.name+tag@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Contact user.name+tag@example.com now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Angle_Autolinks_Explicit_Mailto_Are_Supported() {
         var doc = MarkdownReader.Parse("Contact <mailto:user@example.com>.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });

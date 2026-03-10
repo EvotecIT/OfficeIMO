@@ -1398,7 +1398,8 @@ public static partial class MarkdownReader {
         email = string.Empty;
         if (start < 0 || start >= text.Length) return false;
         if (!IsEmailStartChar(text[start])) return false;
-        if (start > 0 && IsEmailChar(text[start - 1])) return false;
+        if (start > 0 && (IsEmailChar(text[start - 1]) || text[start - 1] == '+')) return false;
+        if (IsImmediatelyAfterMailtoScheme(text, start)) return false;
 
         int i = start;
         bool sawAt = false;
@@ -1420,7 +1421,10 @@ public static partial class MarkdownReader {
 
         var token = text.Substring(start, j - start);
         if (!LooksLikeEmail(token)) return false;
-        if (scanEnd < text.Length && IsEmailChar(text[scanEnd])) return false;
+        if (scanEnd < text.Length) {
+            if (IsEmailChar(text[scanEnd])) return false;
+            if (text[scanEnd] == '/' || text[scanEnd] == '#') return false;
+        }
 
         end = j;
         email = token;
@@ -1431,7 +1435,14 @@ public static partial class MarkdownReader {
 
     private static bool IsEmailChar(char c) {
         if (char.IsLetterOrDigit(c)) return true;
-        return c == '@' || c == '.' || c == '-' || c == '_' || c == '+';
+        return c == '@' || c == '.' || c == '-' || c == '_';
+    }
+
+    private static bool IsImmediatelyAfterMailtoScheme(string text, int start) {
+        if (string.IsNullOrEmpty(text) || start < 7) return false;
+        if (text[start - 1] != ':') return false;
+
+        return string.Compare(text, start - 7, "mailto:", 0, 7, StringComparison.OrdinalIgnoreCase) == 0;
     }
 
     /// <summary>
