@@ -197,6 +197,36 @@ c | d
         }
 
         [Fact]
+        public void Unordered_List_Becomes_Loose_When_Later_Item_Has_Second_Paragraph() {
+            const string md = """
+- a
+- b
+
+  second paragraph
+""";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<ul><li><p>a</p></li><li><p>b</p><p>second paragraph</p></li></ul>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Ordered_List_Becomes_Loose_When_Later_Item_Has_Second_Paragraph() {
+            const string md = """
+10. a
+11. b
+
+    second paragraph
+""";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<ol start=\"10\"><li><p>a</p></li><li><p>b</p><p>second paragraph</p></li></ol>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void List_Item_Can_Contain_Nested_Ordered_List() {
             string md = """
 - outer

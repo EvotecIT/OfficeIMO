@@ -78,6 +78,16 @@ public sealed class OrderedListBlock : IMarkdownBlock {
             return false;
         }
 
+        bool IsLooseInScope(int startIndex, int level) {
+            for (int i = startIndex; i < Items.Count; i++) {
+                var it = Items[i];
+                if (it.Level < level) break;
+                if (it.Level != level) continue;
+                if (it.ForceLoose || it.AdditionalParagraphs.Count > 0) return true;
+            }
+            return false;
+        }
+
         void AppendOpenOl(int startIndex, int level, bool isTopLevel) {
             var cls = ContainsTasksInScope(startIndex, level) ? " class=\"contains-task-list\"" : string.Empty;
             if (isTopLevel) sb.Append("<ol").Append(startAttr).Append(cls).Append(">");
@@ -85,6 +95,7 @@ public sealed class OrderedListBlock : IMarkdownBlock {
         }
 
         AppendOpenOl(0, 0, isTopLevel: true);
+        var scopeStartByLevel = new List<int> { 0 };
         int currentLevel = 0;
         bool liOpen = false;
         for (int idx = 0; idx < Items.Count; idx++) {
@@ -92,7 +103,11 @@ public sealed class OrderedListBlock : IMarkdownBlock {
             int level = item.Level;
             if (level > currentLevel) {
                 // Open nested lists inside the current <li>
-                for (int k = currentLevel + 1; k <= level; k++) AppendOpenOl(idx, k, isTopLevel: false);
+                for (int k = currentLevel + 1; k <= level; k++) {
+                    AppendOpenOl(idx, k, isTopLevel: false);
+                    if (scopeStartByLevel.Count <= k) scopeStartByLevel.Add(idx);
+                    else scopeStartByLevel[k] = idx;
+                }
                 currentLevel = level;
                 // Do not close parent <li> — nested list belongs inside it
             } else if (level < currentLevel) {
@@ -105,7 +120,9 @@ public sealed class OrderedListBlock : IMarkdownBlock {
                 if (liOpen) { sb.Append("</li>"); liOpen = false; }
             }
             // Open new list item
-            sb.Append(item.IsTask ? "<li class=\"task-list-item\">" : "<li>").Append(item.RenderHtml());
+            int scopeStart = scopeStartByLevel[level];
+            bool renderLoose = IsLooseInScope(scopeStart, level);
+            sb.Append(item.IsTask ? "<li class=\"task-list-item\">" : "<li>").Append(item.RenderHtml(renderLoose));
             liOpen = true;
         }
         // Close the last open <li>
