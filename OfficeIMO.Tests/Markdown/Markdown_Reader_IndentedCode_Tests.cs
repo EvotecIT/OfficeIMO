@@ -34,7 +34,7 @@ Paragraph
             var doc = MarkdownReader.Parse(md);
 
             var code = Assert.IsType<CodeBlock>(doc.Blocks[0]);
-            Assert.Equal("line1\nline2", code.Content.Replace("\r\n", "\n", StringComparison.Ordinal));
+            Assert.Equal("line1\nline2", code.Content.Replace("\r\n", "\n"));
             Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
 
             var html = doc.ToHtmlFragment();
