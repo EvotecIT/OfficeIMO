@@ -55,10 +55,13 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "autolink-www-after-dash", "Visit foo-www.example.com now" };
         yield return new object[] { "autolink-after-equals", "Visit foo=https://example.com now" };
         yield return new object[] { "autolink-www-after-equals", "Visit foo=www.example.com now" };
+        yield return new object[] { "autolink-after-open-bracket", "Visit [https://example.com now" };
+        yield return new object[] { "autolink-www-after-open-bracket", "Visit [www.example.com now" };
         yield return new object[] { "angle-autolink-http", "<https://example.com>" };
         yield return new object[] { "plain-mailto-does-not-autolink-email", "Contact mailto:user@example.com now" };
         yield return new object[] { "plain-email-after-colon", "Contact foo:user@example.com now" };
         yield return new object[] { "plain-email-after-equals", "Contact foo=user@example.com now" };
+        yield return new object[] { "plain-email-after-open-bracket", "Contact [user@example.com now" };
         yield return new object[] { "plain-email-after-slash", "Contact /user@example.com now" };
         yield return new object[] { "plain-email-after-underscore", "Contact _user@example.com now" };
         yield return new object[] { "plain-email-with-path-suffix", "Contact user@example.com/path now" };
