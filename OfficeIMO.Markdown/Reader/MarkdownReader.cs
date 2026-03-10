@@ -134,7 +134,7 @@ public static partial class MarkdownReader {
 
             if (TryParseReferenceLinkDefinition(lines, idx, options, out var label, out var url, out var title, out var consumedLines)) {
                 var resolved = ResolveUrl(url, options);
-                if (resolved != null) state.LinkRefs[label] = (resolved!, title);
+                if (resolved != null && !state.LinkRefs.ContainsKey(label)) state.LinkRefs[label] = (resolved!, title);
                 idx += consumedLines - 1;
             }
         }
