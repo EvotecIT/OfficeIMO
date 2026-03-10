@@ -612,6 +612,22 @@ c | d
         }
 
         [Fact]
+        public void List_Item_Setext_Heading_Can_Be_Followed_By_Paragraph_In_Same_Group() {
+            const string md = """
+- item
+  heading
+  -------
+  after
+""";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<li><h2", html, StringComparison.Ordinal);
+            Assert.Contains(">item heading</h2>after</li>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void NonOne_Ordered_Marker_Does_Not_Interrupt_List_Item_Paragraph() {
             string md = """
 - outer

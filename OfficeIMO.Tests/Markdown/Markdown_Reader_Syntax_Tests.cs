@@ -194,6 +194,35 @@ Heading Title
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Trailing_Paragraph_After_List_Item_Setext_Heading() {
+        var markdown = """
+- Item title
+  ----------
+  body
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var list = Assert.Single(result.SyntaxTree.Children);
+        var item = Assert.Single(list.Children);
+        Assert.Equal(2, item.Children.Count);
+
+        var heading = item.Children[0];
+        Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
+        Assert.NotNull(heading.SourceSpan);
+        Assert.Equal(1, heading.SourceSpan!.Value.StartLine);
+        Assert.Equal(2, heading.SourceSpan!.Value.EndLine);
+        Assert.Equal("Item title", heading.Literal);
+
+        var paragraph = item.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
+        Assert.NotNull(paragraph.SourceSpan);
+        Assert.Equal(3, paragraph.SourceSpan!.Value.StartLine);
+        Assert.Equal(3, paragraph.SourceSpan!.Value.EndLine);
+        Assert.Equal("body", paragraph.Literal);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Nested_Quote_Child_Spans() {
         var markdown = """
 > quoted
