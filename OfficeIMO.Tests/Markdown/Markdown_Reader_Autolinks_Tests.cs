@@ -123,6 +123,33 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Autolinks_DoNot_Link_Http_Urls_With_Query_Ampersands() {
+        var doc = MarkdownReader.Parse("Visit https://example.com/path?q=1&next=2 now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://example.com/path?q=1&amp;next=2\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Visit https://example.com/path?q=1&amp;next=2 now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Http_Urls_With_Fragment_Ampersands() {
+        var doc = MarkdownReader.Parse("Visit https://example.com/path#frag&next now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://example.com/path#frag&amp;next\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Visit https://example.com/path#frag&amp;next now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Www_Urls_With_Query_Ampersands() {
+        var doc = MarkdownReader.Parse("Visit www.example.com/path?q=1&next=2 now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://www.example.com/path?q=1&amp;next=2\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Visit www.example.com/path?q=1&amp;next=2 now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Autolinks_Email_Inside_Text() {
         var doc = MarkdownReader.Parse("Email user@example.com.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });

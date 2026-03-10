@@ -1296,7 +1296,7 @@ public static partial class MarkdownReader {
         int i = rawEnd;
         // Trim trailing punctuation commonly outside URLs
         while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
-        if (ShouldRejectQueryParenthesesAutolink(text, start, i)) return false;
+        if (ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
         if (ShouldRejectAmbiguousTrailingParen(text, start, rawEnd, i)) return false;
         end = i; return end > start + 7;
     }
@@ -1311,7 +1311,7 @@ public static partial class MarkdownReader {
         int i = rawEnd;
         int scanEnd = rawEnd;
         while (i > start && (text[i - 1] == '.' || text[i - 1] == ',' || text[i - 1] == ';' || text[i - 1] == ':' || text[i - 1] == '!' || text[i - 1] == '?' || text[i - 1] == '\'' || text[i - 1] == '"')) i--;
-        if (ShouldRejectQueryParenthesesAutolink(text, start, i)) return false;
+        if (ShouldRejectQueryFragmentSpecialCharsAutolink(text, start, i)) return false;
         if (ShouldRejectAmbiguousTrailingParen(text, start, rawEnd, i)) return false;
 
         // Must include at least one dot after the www.
@@ -1369,7 +1369,7 @@ public static partial class MarkdownReader {
         return sawOpenParen;
     }
 
-    private static bool ShouldRejectQueryParenthesesAutolink(string text, int start, int end) {
+    private static bool ShouldRejectQueryFragmentSpecialCharsAutolink(string text, int start, int end) {
         if (string.IsNullOrEmpty(text) || start < 0 || end <= start) return false;
 
         int queryOrFragmentIndex = -1;
@@ -1385,7 +1385,7 @@ public static partial class MarkdownReader {
 
         for (int i = queryOrFragmentIndex + 1; i < end; i++) {
             char ch = text[i];
-            if (ch == '(' || ch == ')') {
+            if (ch == '(' || ch == ')' || ch == '&') {
                 return true;
             }
         }
