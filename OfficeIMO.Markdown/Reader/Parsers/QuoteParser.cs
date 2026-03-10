@@ -22,6 +22,9 @@ public static partial class MarkdownReader {
                     if (inner.Count > 0 &&
                         TryNormalizeQuotedListContinuationLine(inner[inner.Count - 1], stripped, options, out var normalizedQuotedLine)) {
                         stripped = normalizedQuotedLine;
+                    } else if (inner.Count > 0 &&
+                        TryNormalizeQuotedIndentedParagraphContinuation(inner[inner.Count - 1], stripped, options, out var normalizedQuotedParagraphLine)) {
+                        stripped = normalizedQuotedParagraphLine;
                     }
 
                     inner.Add(stripped);
@@ -178,6 +181,31 @@ public static partial class MarkdownReader {
         if (currentIndent + 1 != continuationIndent) return false;
 
         normalized = new string(' ', continuationIndent) + trimmed;
+        return true;
+    }
+
+    private static bool TryNormalizeQuotedIndentedParagraphContinuation(string? previousLine, string? currentLine, MarkdownReaderOptions options, out string normalized) {
+        normalized = currentLine ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(previousLine) || string.IsNullOrWhiteSpace(currentLine)) return false;
+
+        var previous = previousLine!;
+        if (!LooksLikeParagraphLine(new[] { previous }, 0, options)) return false;
+
+        int currentIndent = CountLeadingIndentColumns(currentLine!);
+        if (currentIndent <= 0 || currentIndent > 4) return false;
+
+        var trimmed = currentLine!.TrimStart();
+        if (trimmed.Length == 0) return false;
+        if (trimmed.StartsWith(">")) return false;
+        if (IsAtxHeading(trimmed, out _, out _)) return false;
+        if (LooksLikeHr(trimmed)) return false;
+        if (IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
+        if (LooksLikeTableRow(trimmed)) return false;
+        if (ShouldTreatAsDefinitionLine(new[] { currentLine }, 0, options)) return false;
+        if (IsCalloutHeader("> " + trimmed, out _, out _)) return false;
+        if (IsUnorderedListLine(trimmed, out _, out _, out _) || IsParagraphInterruptingOrderedListLine(trimmed)) return false;
+
+        normalized = trimmed;
         return true;
     }
 }

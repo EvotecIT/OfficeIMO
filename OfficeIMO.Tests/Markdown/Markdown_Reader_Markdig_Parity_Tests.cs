@@ -143,6 +143,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "blockquote-lazy-after-unordered-list-item", "> - item\ncontinuation" };
         yield return new object[] { "blockquote-lazy-after-ordered-list-item", "> 1. item\ncontinuation" };
         yield return new object[] { "blockquote-explicit-after-ordered-list-item", "> 1. item\n>   continuation" };
+        yield return new object[] { "blockquote-indented-paragraph-then-lazy-continuation", "> quote\n>     code\ncontinuation" };
         yield return new object[] { "nested-blockquote-lazy-after-list-item", "> Outer\n> > Inner\n> > - a\n> > - b\n> After" };
     }
 
