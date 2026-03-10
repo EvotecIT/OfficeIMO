@@ -1153,13 +1153,14 @@ public static partial class MarkdownReader {
 
     private static bool IsDefinitionLineBlockCandidate(string? line) {
         if (string.IsNullOrWhiteSpace(line)) return false;
+        string safeLine = line!;
 
         int leading = 0;
-        while (leading < line.Length && line[leading] == ' ') leading++;
+        while (leading < safeLine.Length && safeLine[leading] == ' ') leading++;
         if (leading >= 4) return false;
-        if (leading < line.Length && line[leading] == '\t') return false;
+        if (leading < safeLine.Length && safeLine[leading] == '\t') return false;
 
-        return IsDefinitionLine(line);
+        return IsDefinitionLine(safeLine);
     }
 
     private static bool TryGetDefinitionSeparator(string line, out int idx) {
