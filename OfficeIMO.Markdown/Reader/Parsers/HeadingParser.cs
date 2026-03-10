@@ -5,7 +5,7 @@ public static partial class MarkdownReader {
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
             if (!options.Headings) return false;
             if (!IsAtxHeading(lines[i], out int level, out string text)) return false;
-            doc.Add(new HeadingBlock(level, text));
+            doc.Add(new HeadingBlock(level, ParseInlines(text, options, state)));
             i++; return true;
         }
     }
