@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests {
     public class PowerPointAdvancedFeatures {
@@ -88,6 +89,42 @@ namespace OfficeIMO.Tests {
                     }
 
                     Assert.Equal(6, axisIds.Count);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void BackgroundColor_ReplacesExistingBackgroundImageFill() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    slide.SetBackgroundImage(imagePath);
+                    slide.BackgroundColor = "112233";
+
+                    presentation.Save();
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointSlide slide = presentation.Slides.Single();
+                    Assert.Equal("112233", slide.BackgroundColor);
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.First();
+                    DocumentFormat.OpenXml.Presentation.BackgroundProperties properties =
+                        slidePart.Slide.CommonSlideData!.Background!.BackgroundProperties!;
+
+                    Assert.Null(properties.GetFirstChild<A.BlipFill>());
+                    Assert.Equal("112233", properties.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val?.Value);
                 }
             } finally {
                 if (File.Exists(filePath)) {

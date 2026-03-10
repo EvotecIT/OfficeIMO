@@ -185,5 +185,65 @@ namespace OfficeIMO.Tests {
 
             File.Delete(filePath);
         }
+
+        [Fact]
+        public void SetParagraphs_ReplacesContentWithoutLeadingBlankParagraph() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointTextBox box = slide.AddTextBox("Initial");
+
+                box.SetParagraphs(new[] { "First", "Second" });
+
+                Assert.Equal("First" + Environment.NewLine + "Second", box.Text);
+                Assert.Equal(2, box.Paragraphs.Count);
+                presentation.Save();
+            }
+
+            using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                Shape shape = document.PresentationPart!.SlideParts.First().Slide.Descendants<Shape>().First();
+                var paragraphs = shape.TextBody!.Elements<A.Paragraph>().ToList();
+                Assert.Equal(2, paragraphs.Count);
+                Assert.Equal("First", paragraphs[0].InnerText);
+                Assert.Equal("Second", paragraphs[1].InnerText);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void SetBulletsAndNumberedList_DoNotLeaveLeadingBlankParagraph() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointTextBox bullets = slide.AddTextBox("Initial bullets");
+                PowerPointTextBox numbered = slide.AddTextBox("Initial numbered");
+
+                bullets.SetBullets(new[] { "Bullet A", "Bullet B" });
+                numbered.SetNumberedList(new[] { "One", "Two" });
+
+                Assert.Equal(2, bullets.Paragraphs.Count);
+                Assert.Equal(2, numbered.Paragraphs.Count);
+                presentation.Save();
+            }
+
+            using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                var shapes = document.PresentationPart!.SlideParts.First().Slide.Descendants<Shape>().ToList();
+
+                var bulletParagraphs = shapes[0].TextBody!.Elements<A.Paragraph>().ToList();
+                Assert.Equal(2, bulletParagraphs.Count);
+                Assert.Equal("Bullet A", bulletParagraphs[0].InnerText);
+                Assert.Equal("Bullet B", bulletParagraphs[1].InnerText);
+
+                var numberedParagraphs = shapes[1].TextBody!.Elements<A.Paragraph>().ToList();
+                Assert.Equal(2, numberedParagraphs.Count);
+                Assert.Equal("One", numberedParagraphs[0].InnerText);
+                Assert.Equal("Two", numberedParagraphs[1].InnerText);
+            }
+
+            File.Delete(filePath);
+        }
     }
 }

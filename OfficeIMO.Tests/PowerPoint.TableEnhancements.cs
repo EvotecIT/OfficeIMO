@@ -30,6 +30,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AddTable_InitializesRowHeightsFromRequestedHeight() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointTable table = slide.AddTable(rows: 3, columns: 2, left: 0, top: 0, width: 4000, height: 9000);
+
+                Assert.Equal(3000, table.GetRowHeight(0));
+                Assert.Equal(3000, table.GetRowHeight(1));
+                Assert.Equal(3000, table.GetRowHeight(2));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void SetRowHeightsByRatio_UsesTableHeight() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
