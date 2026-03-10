@@ -138,6 +138,13 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "nested-blockquote-lazy-after-list-item", "> Outer\n> > Inner\n> > - a\n> > - b\n> After" };
     }
 
+    public static IEnumerable<object[]> MarkdigCompatibleLiteralAutolinkCases() {
+        yield return new object[] { "bare-http-default-markdig", "Visit https://example.com now" };
+        yield return new object[] { "bare-www-default-markdig", "Visit www.example.com now" };
+        yield return new object[] { "bare-email-default-markdig", "Contact user@example.com now" };
+        yield return new object[] { "mixed-literal-autolinks-default-markdig", "See https://example.com and www.example.com and user@example.com" };
+    }
+
     [Theory]
     [MemberData(nameof(CoreParityCases))]
     public void MarkdownReader_Matches_Markdig_On_Curated_Cases(string _, string markdown) {
@@ -148,6 +155,21 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         };
 
         var office = MarkdownReader.Parse(markdown).ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown);
+
+        Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
+    }
+
+    [Theory]
+    [MemberData(nameof(MarkdigCompatibleLiteralAutolinkCases))]
+    public void MarkdownReader_Matches_Markdig_With_Markdig_Compatible_Preset(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        };
+
+        var office = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateMarkdigCompatible()).ToHtmlFragment(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown);
 
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));

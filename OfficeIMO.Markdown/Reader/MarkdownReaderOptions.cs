@@ -5,6 +5,17 @@ namespace OfficeIMO.Markdown;
 /// that OfficeIMO.Markdown produces, so generated Markdown can be parsed back predictably.
 /// </summary>
 public sealed class MarkdownReaderOptions {
+    /// <summary>
+    /// Creates a reader configuration aligned with Markdig's default literal-autolink behavior.
+    /// Bare <c>http(s)://...</c>, <c>www.*</c>, and plain email tokens remain literal text, while
+    /// explicit Markdown links and angle-bracket autolinks continue to work.
+    /// </summary>
+    public static MarkdownReaderOptions CreateMarkdigCompatible() => new MarkdownReaderOptions {
+        AutolinkUrls = false,
+        AutolinkWwwUrls = false,
+        AutolinkEmails = false
+    };
+
     /// <summary>Enable YAML front matter parsing at the very top of the file.</summary>
     public bool FrontMatter { get; set; } = true;
     /// <summary>Enable recognition of Docs-style callouts ("> [!KIND] Title" blocks).</summary>
