@@ -148,7 +148,7 @@ public class Markdown_Reader_Autolinks_Tests {
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://example.com\"", html, StringComparison.Ordinal);
-        Assert.Contains(markdown.Replace("&", "&amp;", StringComparison.Ordinal), html, StringComparison.Ordinal);
+        Assert.Contains(markdown.Replace("&", "&amp;"), html, StringComparison.Ordinal);
     }
 
     [Theory]
