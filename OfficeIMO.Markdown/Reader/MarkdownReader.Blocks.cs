@@ -200,9 +200,13 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static TableBlock ParseTable(string[] lines, int start, int end) {
+    private static TableBlock ParseTable(string[] lines, int start, int end, MarkdownReaderOptions options, MarkdownReaderState state) {
         var cells0 = SplitTableRow(lines[start]);
         var table = new TableBlock();
+        var inlineOptions = CloneOptionsWithoutFrontMatter(options);
+        var inlineState = CloneState(state);
+        table.InlineRenderOptions = inlineOptions;
+        table.InlineRenderState = inlineState;
         if (start + 1 <= end && IsAlignmentRow(lines[start + 1])) {
             table.Headers.AddRange(cells0);
             var aligns = SplitTableRow(lines[start + 1]);
@@ -211,7 +215,47 @@ public static partial class MarkdownReader {
         } else {
             for (int i = start; i <= end; i++) table.Rows.Add(SplitTableRow(lines[i]));
         }
+        table.SetParsedCells(
+            ParseTableInlineCells(table.Headers, inlineOptions, inlineState),
+            ParseTableInlineRows(table.Rows, inlineOptions, inlineState),
+            table.ComputeContentSignature());
         return table;
+    }
+
+    private static List<InlineSequence> ParseTableInlineCells(IReadOnlyList<string> cells, MarkdownReaderOptions options, MarkdownReaderState state) {
+        var parsedCells = new List<InlineSequence>(cells.Count);
+        for (int i = 0; i < cells.Count; i++) {
+            parsedCells.Add(ParseTableCellInlines(cells[i], options, state));
+        }
+        return parsedCells;
+    }
+
+    private static List<IReadOnlyList<InlineSequence>> ParseTableInlineRows(IReadOnlyList<IReadOnlyList<string>> rows, MarkdownReaderOptions options, MarkdownReaderState state) {
+        var parsedRows = new List<IReadOnlyList<InlineSequence>>(rows.Count);
+        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+            var row = rows[rowIndex];
+            if (row == null || row.Count == 0) {
+                parsedRows.Add(Array.Empty<InlineSequence>());
+                continue;
+            }
+
+            var parsedRow = new List<InlineSequence>(row.Count);
+            for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) {
+                parsedRow.Add(ParseTableCellInlines(row[cellIndex], options, state));
+            }
+            parsedRows.Add(parsedRow);
+        }
+        return parsedRows;
+    }
+
+    private static InlineSequence ParseTableCellInlines(string? cell, MarkdownReaderOptions options, MarkdownReaderState state) {
+        if (string.IsNullOrEmpty(cell)) {
+            return new InlineSequence();
+        }
+
+        var normalized = TableBlock.NormalizeBreakMarkers(cell ?? string.Empty);
+        var sanitized = TableBlock.SanitizeInlineMarkdownInput(normalized);
+        return ParseInlineText(sanitized, options, state);
     }
 
     private static bool IsAlignmentRow(string line) {

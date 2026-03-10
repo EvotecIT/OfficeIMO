@@ -81,6 +81,10 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 | a | b |
 """;
             var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
+            Assert.Equal(2, table.ParsedHeaders?.Count);
+            Assert.NotNull(table.ParsedRows);
+            Assert.Single(table.ParsedRows!);
             var html = doc.ToHtmlFragment();
             Assert.Contains("<th><strong>H</strong></th>", html);
             Assert.Contains("<th><code>C</code></th>", html);
@@ -96,8 +100,30 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 [r]: https://example.com
 """;
             var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
+            Assert.NotNull(table.ParsedRows);
+            Assert.Single(table.ParsedRows!);
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
             Assert.Contains("<a href=\"https://example.com\">x</a>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Table_RenderHtml_Falls_Back_To_Current_StringCells_After_Mutation() {
+            string md = """
+| Header |
+| --- |
+| value |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
+
+            table.Headers[0] = "**Changed**";
+            table.Rows[0] = new[] { "[fresh](https://example.com)" };
+
+            var html = ((IMarkdownBlock)table).RenderHtml();
+
+            Assert.Contains("<th><strong>Changed</strong></th>", html, StringComparison.Ordinal);
+            Assert.Contains("<a href=\"https://example.com\">fresh</a>", html, StringComparison.Ordinal);
         }
 
         [Fact]
