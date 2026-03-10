@@ -57,6 +57,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "autolink-www-after-equals", "Visit foo=www.example.com now" };
         yield return new object[] { "autolink-after-ampersand", "Visit &https://example.com now" };
         yield return new object[] { "autolink-www-after-ampersand", "Visit &www.example.com now" };
+        yield return new object[] { "autolink-after-open-paren", "Visit (https://example.com now" };
+        yield return new object[] { "autolink-after-open-paren-with-close", "Visit (https://example.com) now" };
+        yield return new object[] { "autolink-www-after-open-paren", "Visit (www.example.com now" };
+        yield return new object[] { "autolink-www-after-open-paren-with-close", "Visit (www.example.com) now" };
         yield return new object[] { "autolink-after-open-bracket", "Visit [https://example.com now" };
         yield return new object[] { "autolink-www-after-open-bracket", "Visit [www.example.com now" };
         yield return new object[] { "angle-autolink-http", "<https://example.com>" };
@@ -64,6 +68,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "plain-email-after-colon", "Contact foo:user@example.com now" };
         yield return new object[] { "plain-email-after-equals", "Contact foo=user@example.com now" };
         yield return new object[] { "plain-email-after-ampersand", "Contact &user@example.com now" };
+        yield return new object[] { "plain-email-after-open-paren", "Contact (user@example.com) now" };
         yield return new object[] { "plain-email-after-open-bracket", "Contact [user@example.com now" };
         yield return new object[] { "plain-email-after-slash", "Contact /user@example.com now" };
         yield return new object[] { "plain-email-after-underscore", "Contact _user@example.com now" };
