@@ -25,10 +25,9 @@ public static partial class MarkdownReader {
             }
             if (t.Length < 3) return false;
             int level = ch == '=' ? 1 : 2;
-            doc.Add(new HeadingBlock(level, line.Trim()));
+            doc.Add(new HeadingBlock(level, ParseInlines(line.Trim(), options, state)));
             i += 2; // consume both lines
             return true;
         }
     }
 }
-

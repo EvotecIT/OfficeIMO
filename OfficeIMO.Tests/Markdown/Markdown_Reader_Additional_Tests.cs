@@ -231,6 +231,37 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Atx_Heading_Parses_Inline_Markup_And_Uses_PlainText_For_Slug() {
+            const string md = "## **Heading** `Text`";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var heading = Assert.IsType<HeadingBlock>(doc.Blocks[0]);
+            Assert.Equal("Heading Text", heading.Text);
+            Assert.Equal("## **Heading** `Text`", ((IMarkdownBlock)heading).RenderMarkdown());
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<h2 id=\"heading-text\"><strong>Heading</strong> <code>Text</code></h2>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Setext_Heading_Parses_Inline_Markup() {
+            const string md = """
+                **Heading** `Text`
+                ------------------
+                """;
+
+            var doc = MarkdownReader.Parse(md);
+
+            var heading = Assert.IsType<HeadingBlock>(doc.Blocks[0]);
+            Assert.Equal(2, heading.Level);
+            Assert.Equal("Heading Text", heading.Text);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<h2 id=\"heading-text\"><strong>Heading</strong> <code>Text</code></h2>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Invalid_Reference_Definition_Like_Line_Does_Not_Become_Definition_List() {
             const string md = "[a [b]]: https://example.com";
 

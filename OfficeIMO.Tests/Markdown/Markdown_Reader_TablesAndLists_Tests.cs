@@ -557,6 +557,20 @@ c | d
         }
 
         [Fact]
+        public void List_Item_Setext_Heading_Parses_Inline_Markup() {
+            const string md = """
+                - **item**
+                  `heading`
+                  -------
+                """;
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<li><h2 id=\"item-heading\"><strong>item</strong> <code>heading</code></h2></li>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void List_Item_Setext_Heading_Does_Not_Emit_Empty_Paragraphs_Before_Nested_Blocks() {
             string md = """
 - item

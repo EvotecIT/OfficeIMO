@@ -17,7 +17,7 @@ public static partial class MarkdownReader {
     private static MarkdownSyntaxNode BuildSyntaxNode(IMarkdownBlock block, MarkdownSourceSpan? span = null) {
         switch (block) {
             case HeadingBlock heading:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Heading, span, heading.Text, BuildHeadingChildren(heading, span));
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Heading, span, heading.Inlines.RenderMarkdown(), BuildHeadingChildren(heading, span));
             case ParagraphBlock paragraph:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, span, paragraph.Inlines.RenderMarkdown());
             case HorizontalRuleBlock:
@@ -86,7 +86,7 @@ public static partial class MarkdownReader {
         };
 
         MarkdownSourceSpan? textSpan = span.HasValue ? new MarkdownSourceSpan(span.Value.StartLine, span.Value.StartLine) : null;
-        nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.HeadingText, textSpan, heading.Text));
+        nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.HeadingText, textSpan, heading.Inlines.RenderMarkdown()));
 
         return nodes;
     }
