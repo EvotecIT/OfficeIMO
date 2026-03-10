@@ -893,7 +893,7 @@ public static partial class MarkdownReader {
         var headingLines = lines.GetRange(0, groupLength);
         if (!TryParseSetextHeadingParagraphLines(headingLines, options, out int level, out string headingText)) return false;
 
-        blocks.Add(new HeadingBlock(level, headingText));
+        blocks.Add(new HeadingBlock(level, ParseInlines(headingText, options, state)));
 
         if (firstBlank < 0) return true;
 
