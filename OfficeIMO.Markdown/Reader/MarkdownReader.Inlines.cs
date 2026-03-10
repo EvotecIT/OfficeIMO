@@ -1333,6 +1333,7 @@ public static partial class MarkdownReader {
         if (start + 7 > text.Length) return false;
         // Require a boundary on the left so we don't linkify inside longer words.
         if (start > 0 && char.IsLetterOrDigit(text[start - 1])) return false;
+        if (IsAfterInvalidReferenceDefinitionPrefix(text, start)) return false;
         var rem = text.Substring(start);
         if (!(rem.StartsWith("http://") || rem.StartsWith("https://"))) return false;
         int rawEnd = ConsumeLiteralUrl(text, start);
@@ -1348,6 +1349,7 @@ public static partial class MarkdownReader {
         end = start;
         if (start + 4 > text.Length) return false;
         if (start > 0 && char.IsLetterOrDigit(text[start - 1])) return false;
+        if (IsAfterInvalidReferenceDefinitionPrefix(text, start)) return false;
         if (!(text.Substring(start).StartsWith("www.", StringComparison.OrdinalIgnoreCase))) return false;
 
         int rawEnd = ConsumeLiteralUrl(text, start);
@@ -1367,6 +1369,27 @@ public static partial class MarkdownReader {
 
         end = i;
         return end > start + 4;
+    }
+
+    private static bool IsAfterInvalidReferenceDefinitionPrefix(string text, int start) {
+        if (string.IsNullOrEmpty(text) || start <= 0 || start > text.Length) return false;
+
+        int lineStart = text.LastIndexOf('\n', start - 1);
+        lineStart = lineStart < 0 ? 0 : lineStart + 1;
+
+        int probe = start - 1;
+        while (probe >= lineStart && text[probe] == ' ') probe--;
+        if (probe < lineStart || text[probe] != ':') return false;
+
+        string prefix = text.Substring(lineStart, probe - lineStart + 1).TrimEnd();
+        if (prefix.Length < 4 || prefix[0] != '[') return false;
+
+        int balancedEnd = FindMatchingBracket(prefix, 0);
+        if (balancedEnd <= 1 || balancedEnd + 1 >= prefix.Length || prefix[balancedEnd + 1] != ':' || balancedEnd + 2 != prefix.Length) {
+            return false;
+        }
+
+        return FindReferenceLabelEnd(prefix, 0) < 0;
     }
 
     private static int ConsumeLiteralUrl(string text, int start) {
