@@ -18,8 +18,9 @@ namespace OfficeIMO.Tests {
         public Excel() {
             _directoryDocuments = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
             _directoryWithImages = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
-            //_directoryDocuments = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Tests", "TempDocuments");
-            _directoryWithFiles = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TempDocuments1");
+            // Create a unique per-test directory to avoid parallel write collisions between Excel tests.
+            string unique = Guid.NewGuid().ToString("N");
+            _directoryWithFiles = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TempDocuments1", unique);
             Word.Setup(_directoryWithFiles);
         }
 

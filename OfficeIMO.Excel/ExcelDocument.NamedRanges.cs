@@ -109,8 +109,12 @@ namespace OfficeIMO.Excel {
                 ushort pos = GetSheetPositionIndex(scope);
                 var dnLocal = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId != null && d.LocalSheetId.Value == pos);
                 var text = dnLocal?.Text;
-                if (string.IsNullOrEmpty(text)) return text;
-                return StripSheetPrefixIfMatches(text!, scope);
+                if (!string.IsNullOrEmpty(text)) {
+                    return StripSheetPrefixIfMatches(text!, scope);
+                }
+
+                var dnGlobal = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId == null);
+                return dnGlobal?.Text;
             } else {
                 var dnGlobal = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId == null);
                 return dnGlobal?.Text;
