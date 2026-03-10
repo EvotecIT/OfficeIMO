@@ -531,6 +531,18 @@ c | d
         }
 
         [Fact]
+        public void Unordered_List_Allows_Tab_Indented_Continuation_Lines() {
+            string md = "- first line\n\tsecond line\n- next";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Equal(2, list.Items.Count);
+            Assert.Empty(list.Items[0].AdditionalParagraphs);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("first line second line", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Ordered_List_Allows_Indented_Continuation_Lines() {
             string md = """
 1. first line
@@ -543,6 +555,18 @@ c | d
 
             var html = doc.ToHtmlFragment();
             Assert.Contains("first line second line", html);
+        }
+
+        [Fact]
+        public void Ordered_List_Allows_Tab_Indented_Continuation_Lines() {
+            string md = "1. first line\n\tsecond line\n2. next";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<OrderedListBlock>(doc.Blocks[0]);
+            Assert.Equal(2, list.Items.Count);
+            Assert.Empty(list.Items[0].AdditionalParagraphs);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("first line second line", html, StringComparison.Ordinal);
         }
 
         [Theory]
