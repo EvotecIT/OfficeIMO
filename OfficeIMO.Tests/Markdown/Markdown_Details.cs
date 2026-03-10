@@ -29,5 +29,27 @@ namespace OfficeIMO.Tests {
             var html = ((IMarkdownBlock)details).RenderHtml();
             Assert.Equal("<details open>\n<summary>Expand</summary>\n\n<p>Paragraph text</p>\n</details>", html);
         }
+
+        [Fact]
+        public void Summary_RenderMarkdown_Preserves_Inline_Markup() {
+            var summary = new SummaryBlock(new InlineSequence()
+                .Text("Use ")
+                .Bold("strong")
+                .Text(" ")
+                .Code("code"));
+            var details = new DetailsBlock(summary, new[] { new ParagraphBlock(new InlineSequence().Text("Hidden text")) });
+
+            var markdown = ((IMarkdownBlock)details).RenderMarkdown();
+            var html = ((IMarkdownBlock)details).RenderHtml();
+
+            Assert.Contains("<summary>", markdown, StringComparison.Ordinal);
+            Assert.Contains("**strong**", markdown, StringComparison.Ordinal);
+            Assert.Contains("`code`", markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain("<strong>", markdown, StringComparison.Ordinal);
+            Assert.Contains("<summary>", html, StringComparison.Ordinal);
+            Assert.Contains("<strong>strong</strong>", html, StringComparison.Ordinal);
+            Assert.Contains("<code>code</code>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("**strong**", html, StringComparison.Ordinal);
+        }
     }
 }
