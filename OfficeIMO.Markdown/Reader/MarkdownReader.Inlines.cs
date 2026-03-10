@@ -294,7 +294,7 @@ public static partial class MarkdownReader {
 
                 bool preferInnerBold = ShouldPreferInnerBold(stack, marker, remaining, canOpen, canClose);
                 bool splitDoubleUnderscoreOpener = ShouldSplitDoubleUnderscoreToLiteralAndItalic(text, pos, remaining, canOpen, canClose);
-                bool splitQuadRunIntoLiteralAndTriple = ShouldSplitQuadrupleRunIntoLiteralAndTriple(text, pos, marker, remaining, canOpen, canClose);
+                int literalPrefixForOddCloser = GetLiteralPrefixLengthForOddCloser(text, pos, marker, remaining, canOpen, canClose);
 
                 if (canClose && !preferInnerBold) {
                     while (remaining > 0) {
@@ -319,9 +319,9 @@ public static partial class MarkdownReader {
                         stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }));
                         remaining -= 2;
                     }
-                    else if (splitQuadRunIntoLiteralAndTriple) {
-                        Current().Text(marker.ToString());
-                        remaining -= 1;
+                    else if (literalPrefixForOddCloser > 0) {
+                        Current().Text(new string(marker, literalPrefixForOddCloser));
+                        remaining -= literalPrefixForOddCloser;
                     }
 
                     while (remaining > 0) {
@@ -599,14 +599,29 @@ public static partial class MarkdownReader {
                HasFutureClosingDelimiterRun(text, start + 2, '_', minimumRunLength: 1);
     }
 
-    private static bool ShouldSplitQuadrupleRunIntoLiteralAndTriple(string text, int start, char marker, int runLen, bool canOpen, bool canClose) {
-        if (!canOpen || canClose) return false;
-        if (runLen != 4) return false;
-        if (marker != '*' && marker != '_') return false;
-        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
+    private static int GetLiteralPrefixLengthForOddCloser(string text, int start, char marker, int runLen, bool canOpen, bool canClose) {
+        if (!canOpen || canClose) return 0;
+        if (runLen < 2 || (runLen % 2) != 0) return 0;
+        if (marker != '*' && marker != '_') return 0;
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return 0;
 
-        return FindNextClosingDelimiterRunIndex(text, start + 4, marker, requiredRunLength: 4) < 0 &&
-               FindNextClosingDelimiterRunIndex(text, start + 4, marker, requiredRunLength: 3) >= 0;
+        for (int candidate = runLen - 1; candidate >= 1; candidate -= 2) {
+            if (FindNextClosingDelimiterRunIndex(text, start + runLen, marker, requiredRunLength: candidate) < 0) continue;
+
+            bool hasSameOrLongerEvenCloser = false;
+            for (int even = runLen; even >= candidate + 1; even -= 2) {
+                if (FindNextClosingDelimiterRunIndex(text, start + runLen, marker, requiredRunLength: even) >= 0) {
+                    hasSameOrLongerEvenCloser = true;
+                    break;
+                }
+            }
+
+            if (!hasSameOrLongerEvenCloser) {
+                return runLen - candidate;
+            }
+        }
+
+        return 0;
     }
 
     private static bool HasFutureClosingDelimiterRun(string text, int start, char marker, int minimumRunLength) {

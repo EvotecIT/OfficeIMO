@@ -39,6 +39,24 @@ public class Markdown_Reader_Emphasis_Edge_Tests {
     }
 
     [Fact]
+    public void Double_Star_Opener_Can_Degrade_To_Literal_And_Italic_When_Only_A_Single_Closer_Exists() {
+        var md = "**foo*";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("*<em>foo</em>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("**foo*", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Sextuple_Star_Opener_Can_Degrade_To_Literal_And_Triple_When_Only_A_Triple_Closer_Exists() {
+        var md = "******foo***";
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("***<em><strong>foo</strong></em>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("****<strong>foo</strong>*", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Triple_Marker_Run_Can_Keep_Italic_Open_After_Inner_Bold_Closes() {
         var md = "***foo** bar*";
         var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
