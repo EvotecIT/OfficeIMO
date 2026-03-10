@@ -17,7 +17,7 @@ public static partial class MarkdownReader {
             var line = lines[i] ?? string.Empty;
             if (string.IsNullOrWhiteSpace(line)) return false;
 
-            int indent = CountLeadingSpaces(line);
+            int indent = CountLeadingIndentColumns(line);
             if (indent < IndentedCodeMinimumSpaces) return false;
 
             var sb = new StringBuilder();
@@ -30,18 +30,18 @@ public static partial class MarkdownReader {
                     // Include blank lines only if there is a following indented line (otherwise end block).
                     int peek = j + 1;
                     if (peek >= lines.Length) break;
-                    int nextIndent = CountLeadingSpaces(lines[peek] ?? string.Empty);
+                    int nextIndent = CountLeadingIndentColumns(lines[peek] ?? string.Empty);
                     if (nextIndent < IndentedCodeMinimumSpaces) break;
                     sb.AppendLine();
                     j++;
                     continue;
                 }
 
-                int curIndent = CountLeadingSpaces(cur);
+                int curIndent = CountLeadingIndentColumns(cur);
                 if (curIndent < IndentedCodeMinimumSpaces) break;
 
-                // Strip the first 4 spaces; preserve any additional indentation.
-                sb.AppendLine(cur.Substring(IndentedCodeMinimumSpaces));
+                // Strip the first four indentation columns; preserve any additional indentation.
+                sb.AppendLine(StripLeadingIndentColumns(cur, IndentedCodeMinimumSpaces));
                 j++;
             }
 
