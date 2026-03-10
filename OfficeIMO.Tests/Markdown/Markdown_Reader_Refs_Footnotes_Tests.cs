@@ -89,6 +89,16 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.DoesNotContain("<dl>", html, StringComparison.Ordinal);
         }
 
+        [Theory]
+        [InlineData("[x]: https://example.com \"title\" extra", "<p>[x]: https://example.com &quot;title&quot; extra</p>")]
+        [InlineData("[x]: <https://example.com/a b> \"title\" extra", "<p>[x]: &lt;https://example.com/a b&gt; &quot;title&quot; extra</p>")]
+        public void Invalid_Reference_Definition_Title_Tails_Remain_Literal_Text(string markdown, string expectedHtml) {
+            var html = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+            Assert.Contains(expectedHtml, html, StringComparison.Ordinal);
+            Assert.DoesNotContain("href=\"https://example.com", html, StringComparison.Ordinal);
+        }
+
         [Fact]
         public void Footnote_Refs_And_Definitions_RoundTrip() {
             var md = string.Join("\n", new[] {
