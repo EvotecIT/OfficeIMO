@@ -60,7 +60,11 @@ public sealed class ListItem {
             var sbTight = new StringBuilder();
             sbTight.Append(checkbox).Append(Content.RenderHtml());
             for (int i = 0; i < Children.Count; i++) {
-                if (Children[i] is IMarkdownBlock b) sbTight.Append(b.RenderHtml());
+                if (Children[i] is ParagraphBlock paragraph) {
+                    sbTight.Append(paragraph.Inlines.RenderHtml());
+                } else if (Children[i] is IMarkdownBlock b) {
+                    sbTight.Append(b.RenderHtml());
+                }
             }
             return sbTight.ToString();
         }

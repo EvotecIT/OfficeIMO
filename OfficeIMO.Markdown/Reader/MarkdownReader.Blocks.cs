@@ -871,21 +871,23 @@ public static partial class MarkdownReader {
             return;
         }
 
-        int firstBlank = lines.FindIndex(static line => line.Length == 0);
-        int groupLength = firstBlank >= 0 ? firstBlank : lines.Count;
-        if (groupLength >= 2) {
-            var headingLines = lines.GetRange(0, groupLength);
-            if (TryParseSetextHeadingParagraphLines(headingLines, options, out level, out headingText)) {
-                item.SyntaxChildren.Add(new MarkdownSyntaxNode(
-                    MarkdownSyntaxKind.Heading,
-                    new MarkdownSourceSpan(absoluteLineOffset + 1, absoluteLineOffset + groupLength),
-                    headingText));
+        if (TryGetLeadingSetextHeadingPrefix(lines, options, out int headingLineCount, out level, out headingText)) {
+            item.SyntaxChildren.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.Heading,
+                new MarkdownSourceSpan(absoluteLineOffset + 1, absoluteLineOffset + headingLineCount),
+                headingText));
 
-                if (firstBlank >= 0 && firstBlank + 1 < lines.Count) {
-                    AddParagraphSyntaxNodes(item.SyntaxChildren, lines.GetRange(firstBlank + 1, lines.Count - firstBlank - 1), absoluteLineOffset + firstBlank + 1, options, state);
+            if (headingLineCount < lines.Count) {
+                var trailingLines = lines.GetRange(headingLineCount, lines.Count - headingLineCount);
+                if (!trailingLines.TrueForAll(string.IsNullOrWhiteSpace)) {
+                    var trailingSyntax = new List<MarkdownSyntaxNode>();
+                    _ = ParseBlocksFromLines(trailingLines.ToArray(), options, state ?? new MarkdownReaderState(), trailingSyntax, lineOffset: lineOffset + headingLineCount);
+                    for (int i = 0; i < trailingSyntax.Count; i++) {
+                        item.SyntaxChildren.Add(trailingSyntax[i]);
+                    }
                 }
-                return;
             }
+            return;
         }
 
         AddParagraphSyntaxNodes(item.SyntaxChildren, lines, absoluteLineOffset, options, state);
@@ -934,26 +936,40 @@ public static partial class MarkdownReader {
         blocks = new List<IMarkdownBlock>();
         if (lines == null || lines.Count == 0 || options == null || !options.Headings) return false;
 
-        int firstBlank = lines.FindIndex(static line => line.Length == 0);
-        int groupLength = firstBlank >= 0 ? firstBlank : lines.Count;
-        if (groupLength < 2) return false;
-
-        var headingLines = lines.GetRange(0, groupLength);
-        if (!TryParseSetextHeadingParagraphLines(headingLines, options, out int level, out string headingText)) return false;
+        if (!TryGetLeadingSetextHeadingPrefix(lines, options, out int headingLineCount, out int level, out string headingText)) return false;
 
         blocks.Add(new HeadingBlock(level, ParseInlines(headingText, options, state)));
 
-        if (firstBlank < 0) return true;
+        if (headingLineCount >= lines.Count) return true;
 
-        var trailingLines = lines.GetRange(firstBlank + 1, lines.Count - firstBlank - 1);
+        var trailingLines = lines.GetRange(headingLineCount, lines.Count - headingLineCount);
         if (trailingLines.TrueForAll(string.IsNullOrWhiteSpace)) return true;
 
-        var paragraphs = ParseParagraphsFromLines(trailingLines, options, state);
-        for (int i = 0; i < paragraphs.Count; i++) {
-            blocks.Add(new ParagraphBlock(paragraphs[i]));
+        var trailingBlocks = ParseBlocksFromLines(trailingLines.ToArray(), options, state ?? new MarkdownReaderState());
+        for (int i = 0; i < trailingBlocks.Count; i++) {
+            blocks.Add(trailingBlocks[i]);
         }
 
         return true;
+    }
+
+    private static bool TryGetLeadingSetextHeadingPrefix(List<string> lines, MarkdownReaderOptions options, out int headingLineCount, out int level, out string headingText) {
+        headingLineCount = 0;
+        level = 0;
+        headingText = string.Empty;
+        if (lines == null || lines.Count < 2 || options == null || !options.Headings) return false;
+
+        for (int prefixLength = 2; prefixLength <= lines.Count; prefixLength++) {
+            var candidate = lines.GetRange(0, prefixLength);
+            if (!TryParseSetextHeadingParagraphLines(candidate, options, out level, out headingText)) continue;
+
+            headingLineCount = prefixLength;
+            return true;
+        }
+
+        level = 0;
+        headingText = string.Empty;
+        return false;
     }
 
     private static bool TryParseSetextHeadingParagraphLines(List<string> lines, MarkdownReaderOptions options, out int level, out string headingText) {
