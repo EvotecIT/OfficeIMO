@@ -154,7 +154,10 @@ public class Markdown_Reader_Autolinks_Tests {
     [Theory]
     [InlineData("Visit foo:https://example.com now")]
     [InlineData("Visit foo.https://example.com now")]
-    public void Autolinks_DoNot_Link_Http_Urls_After_Colon_Or_Dot(string markdown) {
+    [InlineData("Visit foo+https://example.com now")]
+    [InlineData("Visit foo-https://example.com now")]
+    [InlineData("Visit foo=https://example.com now")]
+    public void Autolinks_DoNot_Link_Http_Urls_After_Common_Prefix_Punctuation(string markdown) {
         var doc = MarkdownReader.Parse(markdown);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
@@ -180,13 +183,17 @@ public class Markdown_Reader_Autolinks_Tests {
         Assert.Contains("<p>Visit _www.example.com now</p>", html, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Autolinks_DoNot_Link_Www_Urls_After_Colon() {
-        var doc = MarkdownReader.Parse("Visit foo:www.example.com now");
+    [Theory]
+    [InlineData("Visit foo:www.example.com now")]
+    [InlineData("Visit foo+www.example.com now")]
+    [InlineData("Visit foo-www.example.com now")]
+    [InlineData("Visit foo=www.example.com now")]
+    public void Autolinks_DoNot_Link_Www_Urls_After_Common_Prefix_Punctuation(string markdown) {
+        var doc = MarkdownReader.Parse(markdown);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://www.example.com\"", html, StringComparison.Ordinal);
-        Assert.Contains("<p>Visit foo:www.example.com now</p>", html, StringComparison.Ordinal);
+        Assert.Contains(markdown, html, StringComparison.Ordinal);
     }
 
 
@@ -223,6 +230,15 @@ public class Markdown_Reader_Autolinks_Tests {
 
         Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
         Assert.Contains("<p>Contact foo:user@example.com now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Plain_Emails_After_Equals() {
+        var doc = MarkdownReader.Parse("Contact foo=user@example.com now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Contact foo=user@example.com now</p>", html, StringComparison.Ordinal);
     }
 
     [Fact]
