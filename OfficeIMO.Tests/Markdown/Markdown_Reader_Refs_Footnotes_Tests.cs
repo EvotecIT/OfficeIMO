@@ -35,6 +35,22 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Reference_Link_Title_On_Next_Line_Is_Resolved() {
+            var md = string.Join("\n", new[] {
+                "See [Docs][docs].",
+                "",
+                "[docs]: https://evotec.xyz",
+                "  \"Docs\""
+            });
+
+            var html = MarkdownReader.Parse(md).ToHtml();
+
+            Assert.Contains("href=\"https://evotec.xyz\"", html);
+            Assert.Contains("title=\"Docs\"", html);
+            Assert.DoesNotContain("&quot;Docs&quot;", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Footnote_Refs_And_Definitions_RoundTrip() {
             var md = string.Join("\n", new[] {
                 "Hello[^1] world.",

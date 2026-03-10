@@ -132,18 +132,80 @@ public static partial class MarkdownReader {
             if (leading >= 4) continue;
             if (leading < line.Length && line[leading] == '\t') continue;
 
-            var t = line.Trim(); if (t.Length < 5 || t[0] != '[') continue;
-            if (t.Length > 1 && t[1] == '^') continue; // footnote definition, not a link ref
-            int rb = FindReferenceLabelEnd(t, 0); if (rb <= 1) continue;
-            if (rb + 1 >= t.Length || t[rb + 1] != ':') continue;
-            string label = NormalizeReferenceLabel(t.Substring(1, rb - 1));
-            string rest = t.Substring(rb + 2).Trim(); if (string.IsNullOrEmpty(rest)) continue;
-            if (!TrySplitUrlAndOptionalTitle(rest, out var url, out var title)) continue;
-            if (!string.IsNullOrEmpty(label)) {
+            if (TryParseReferenceLinkDefinition(lines, idx, options, out var label, out var url, out var title, out var consumedLines)) {
                 var resolved = ResolveUrl(url, options);
                 if (resolved != null) state.LinkRefs[label] = (resolved!, title);
+                idx += consumedLines - 1;
             }
         }
+    }
+
+    private static bool TryParseReferenceLinkDefinition(string[] lines, int index, MarkdownReaderOptions options, out string label, out string url, out string? title, out int consumedLines) {
+        label = url = string.Empty;
+        title = null;
+        consumedLines = 0;
+
+        if (index < 0 || index >= lines.Length) return false;
+        var line = lines[index];
+        if (string.IsNullOrWhiteSpace(line)) return false;
+
+        int leading = 0;
+        while (leading < line.Length && line[leading] == ' ') leading++;
+        if (leading >= 4) return false;
+        if (leading < line.Length && line[leading] == '\t') return false;
+
+        var trimmed = line.Trim();
+        if (trimmed.Length < 5 || trimmed[0] != '[') return false;
+        if (trimmed.Length > 1 && trimmed[1] == '^') return false;
+
+        int rb = FindReferenceLabelEnd(trimmed, 0);
+        if (rb <= 1) return false;
+        if (rb + 1 >= trimmed.Length || trimmed[rb + 1] != ':') return false;
+
+        label = NormalizeReferenceLabel(trimmed.Substring(1, rb - 1));
+        string rest = trimmed.Substring(rb + 2).Trim();
+        if (string.IsNullOrEmpty(rest)) return false;
+
+        if (TrySplitUrlAndOptionalTitle(rest, out url, out title)) {
+            consumedLines = 1;
+            if (title == null && TryParseReferenceTitleContinuation(lines, index + 1, out var continuedTitle)) {
+                title = continuedTitle;
+                consumedLines = 2;
+            }
+            return !string.IsNullOrEmpty(label);
+        }
+
+        if (IndexOfWhitespace(rest) >= 0) return false;
+
+        url = UnescapeMarkdownBackslashEscapes(rest);
+        title = null;
+        consumedLines = 1;
+
+        if (TryParseReferenceTitleContinuation(lines, index + 1, out var continuationTitle)) {
+            title = continuationTitle;
+            consumedLines = 2;
+        }
+
+        return !string.IsNullOrEmpty(label);
+    }
+
+    private static bool TryParseReferenceTitleContinuation(string[] lines, int index, out string? title) {
+        title = null;
+        if (index < 0 || index >= lines.Length) return false;
+
+        var line = lines[index];
+        if (string.IsNullOrWhiteSpace(line)) return false;
+
+        int leading = 0;
+        while (leading < line.Length && line[leading] == ' ') leading++;
+        if (leading >= 4) return false;
+        if (leading < line.Length && line[leading] == '\t') return false;
+
+        title = TryParseOptionalTitleToken(line.Trim());
+        if (title == null) return false;
+
+        title = UnescapeMarkdownBackslashEscapes(title);
+        return true;
     }
 
     private static bool StartsWithReferenceDefinitionLikeLabel(string line) {
