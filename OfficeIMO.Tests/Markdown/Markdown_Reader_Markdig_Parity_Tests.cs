@@ -88,6 +88,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "reference-link-label-case-normalization", "[x][MiXeD]\n\n[mixed]: https://example.com" };
         yield return new object[] { "reference-link-escaped-bracket-label", "[x][a \\[b\\]]\n\n[a \\[b\\]]: https://example.com" };
         yield return new object[] { "reference-link-collapsed", "[x][]\n\n[x]: https://example.com" };
+        yield return new object[] { "reference-link-invalid-nested-label-definition", "[x [y]]\n\n[x [y]]: https://example.com" };
         yield return new object[] { "reference-link-shortcut", "[x]\n\n[x]: https://example.com" };
         yield return new object[] { "reference-link-definition-three-space-indent", "[x][r]\n\n   [r]: https://example.com" };
         yield return new object[] { "reference-link-definition-tab-indent-invalid", "[x][r]\n\n\t[r]: https://example.com" };

@@ -68,6 +68,17 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Invalid_Nested_Reference_Definition_Line_Remains_Literal_Text() {
+            const string md = "[x [y]]\n\n[x [y]]: https://example.com";
+
+            var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+            Assert.Contains("<p>[x [y]]</p>", html, StringComparison.Ordinal);
+            Assert.Contains("<p>[x [y]]: https://example.com</p>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("href=\"https://example.com\"", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Footnote_Refs_And_Definitions_RoundTrip() {
             var md = string.Join("\n", new[] {
                 "Hello[^1] world.",
