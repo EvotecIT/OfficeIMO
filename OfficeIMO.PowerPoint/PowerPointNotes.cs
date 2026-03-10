@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -99,27 +101,55 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string Text {
             get {
-                Shape? shape = NotesSlide.CommonSlideData?.ShapeTree?.GetFirstChild<Shape>();
-                A.Paragraph? paragraph = shape?.TextBody?.GetFirstChild<A.Paragraph>();
-                A.Run? run = paragraph?.GetFirstChild<A.Run>();
-                A.Text? text = run?.GetFirstChild<A.Text>();
-                return text?.Text ?? string.Empty;
+                Shape? shape = GetNotesTextShape(NotesSlide.CommonSlideData?.ShapeTree);
+                if (shape?.TextBody == null) {
+                    return string.Empty;
+                }
+
+                List<string> paragraphs = shape.TextBody.Elements<A.Paragraph>()
+                    .Select(ReadParagraphText)
+                    .ToList();
+                return paragraphs.Count == 0 ? string.Empty : string.Join(Environment.NewLine, paragraphs);
             }
             set {
                 NotesSlide notesSlide = NotesSlide;
                 CommonSlideData common = notesSlide.CommonSlideData ??= new CommonSlideData(CreateEmptyShapeTree());
                 ShapeTree tree = EnsureShapeTree(common);
-                Shape? shape = tree.GetFirstChild<Shape>();
-                if (shape is null) {
-                    uint placeholderId = GetNextShapeId(tree);
-                    shape = CreateNotesPlaceholderShape(placeholderId);
-                    tree.AppendChild(shape);
-                }
+                Shape shape = GetOrCreateNotesTextShape(tree);
+                TextBody textBody = shape.TextBody ?? new TextBody(new A.BodyProperties(), new A.ListStyle());
+                shape.TextBody ??= textBody;
 
-                A.Paragraph paragraph = shape.TextBody!.GetFirstChild<A.Paragraph>() ?? shape.TextBody.AppendChild(new A.Paragraph());
-                A.Run run = paragraph.GetFirstChild<A.Run>() ?? paragraph.AppendChild(new A.Run());
-                A.Text text = run.GetFirstChild<A.Text>() ?? run.AppendChild(new A.Text());
-                text.Text = value;
+                A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
+                A.ParagraphProperties? templateParagraphProperties = templateParagraph?.GetFirstChild<A.ParagraphProperties>();
+                A.EndParagraphRunProperties? templateEndParagraphRunProperties = templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
+                A.RunProperties? templateRunProperties = templateParagraph?
+                    .Elements<A.Run>()
+                    .Select(run => run.RunProperties)
+                    .FirstOrDefault(properties => properties != null);
+
+                textBody.RemoveAllChildren<A.Paragraph>();
+
+                string[] lines = (value ?? string.Empty).Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+                foreach (string line in lines) {
+                    A.Paragraph paragraph = new();
+                    if (templateParagraphProperties != null) {
+                        paragraph.Append((A.ParagraphProperties)templateParagraphProperties.CloneNode(true));
+                    }
+
+                    A.Run run = new();
+                    if (templateRunProperties != null) {
+                        run.RunProperties = (A.RunProperties)templateRunProperties.CloneNode(true);
+                    }
+
+                    run.Append(new A.Text(line));
+                    paragraph.Append(run);
+
+                    if (templateEndParagraphRunProperties != null) {
+                        paragraph.Append((A.EndParagraphRunProperties)templateEndParagraphRunProperties.CloneNode(true));
+                    }
+
+                    textBody.Append(paragraph);
+                }
             }
         }
 
@@ -181,6 +211,53 @@ namespace OfficeIMO.PowerPoint {
                 .Max();
 
             return maxId + 1U;
+        }
+
+        private static Shape? GetNotesTextShape(ShapeTree? shapeTree) {
+            if (shapeTree == null) {
+                return null;
+            }
+
+            return shapeTree.Elements<Shape>().FirstOrDefault(IsNotesTextShape)
+                ?? shapeTree.Elements<Shape>().FirstOrDefault(shape => shape.TextBody != null);
+        }
+
+        private static Shape GetOrCreateNotesTextShape(ShapeTree shapeTree) {
+            Shape? shape = GetNotesTextShape(shapeTree);
+            if (shape != null) {
+                return shape;
+            }
+
+            uint placeholderId = GetNextShapeId(shapeTree);
+            shape = CreateNotesPlaceholderShape(placeholderId);
+            shapeTree.AppendChild(shape);
+            return shape;
+        }
+
+        private static bool IsNotesTextShape(Shape shape) {
+            PlaceholderShape? placeholder = shape.NonVisualShapeProperties?
+                .ApplicationNonVisualDrawingProperties?
+                .GetFirstChild<PlaceholderShape>();
+            return placeholder?.Type?.Value == PlaceholderValues.Body;
+        }
+
+        private static string ReadParagraphText(A.Paragraph paragraph) {
+            StringBuilder builder = new();
+            foreach (DocumentFormat.OpenXml.OpenXmlElement child in paragraph.ChildElements) {
+                switch (child) {
+                    case A.Run run:
+                        builder.Append(run.Text?.Text ?? string.Empty);
+                        break;
+                    case A.Break:
+                        builder.AppendLine();
+                        break;
+                    case A.Field field:
+                        builder.Append(field.Text?.Text ?? string.Empty);
+                        break;
+                }
+            }
+
+            return builder.ToString();
         }
 
         private HashSet<string> GetRelationshipIds() {
