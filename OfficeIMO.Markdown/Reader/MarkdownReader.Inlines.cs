@@ -1385,6 +1385,7 @@ public static partial class MarkdownReader {
             || previous == '='
             || previous == '&'
             || previous == '('
+            || previous == '\''
             || previous == '[';
     }
 
@@ -1474,7 +1475,7 @@ public static partial class MarkdownReader {
         email = string.Empty;
         if (start < 0 || start >= text.Length) return false;
         if (!IsEmailStartChar(text[start])) return false;
-        if (start > 0 && (IsEmailChar(text[start - 1]) || text[start - 1] == '+' || text[start - 1] == '/' || text[start - 1] == ':' || text[start - 1] == '=' || text[start - 1] == '&' || text[start - 1] == '(' || text[start - 1] == '[')) return false;
+        if (start > 0 && (IsEmailChar(text[start - 1]) || text[start - 1] == '+' || text[start - 1] == '/' || text[start - 1] == ':' || text[start - 1] == '=' || text[start - 1] == '&' || text[start - 1] == '(' || text[start - 1] == '\'' || text[start - 1] == '[')) return false;
         if (IsImmediatelyAfterMailtoScheme(text, start)) return false;
 
         int i = start;
