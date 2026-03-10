@@ -51,6 +51,23 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Reference_Link_First_Definition_Wins() {
+            var md = string.Join("\n", new[] {
+                "See [Docs][docs].",
+                "",
+                "[docs]: https://first.example.com \"First\"",
+                "[docs]: https://second.example.com \"Second\""
+            });
+
+            var html = MarkdownReader.Parse(md).ToHtml();
+
+            Assert.Contains("href=\"https://first.example.com\"", html);
+            Assert.Contains("title=\"First\"", html);
+            Assert.DoesNotContain("https://second.example.com", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("title=\"Second\"", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Footnote_Refs_And_Definitions_RoundTrip() {
             var md = string.Join("\n", new[] {
                 "Hello[^1] world.",

@@ -74,6 +74,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "inline-link-angle-destination-space", "[x](<https://example.com/a b> \"title\")" };
         yield return new object[] { "inline-image-angle-destination-space", "Look ![x](<https://example.com/a b> \"title\") now" };
         yield return new object[] { "reference-link-angle-destination-space", "[x][r]\n\n[r]: <https://example.com/a b>" };
+        yield return new object[] { "reference-link-first-definition-wins", "[x][r]\n\n[r]: https://first.example.com \"first\"\n[r]: https://second.example.com \"second\"" };
+        yield return new object[] { "reference-link-first-definition-wins-with-next-line-title", "[x][r]\n\n[r]: https://first.example.com\n  \"first\"\n[r]: https://second.example.com \"second\"" };
         yield return new object[] { "inline-link-empty-angle-destination", "[x](<>)" };
         yield return new object[] { "inline-link-empty-angle-destination-with-title", "[x](<> \"title\")" };
         yield return new object[] { "inline-image-empty-angle-destination", "Look ![x](<>) now" };

@@ -9,7 +9,7 @@ public static partial class MarkdownReader {
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
             if (TryParseReferenceLinkDefinition(lines, i, options, out var label, out var url, out var title, out var consumedLines)) {
                 var resolved = ResolveUrl(url, options);
-                if (resolved != null) {
+                if (resolved != null && !state.LinkRefs.ContainsKey(label)) {
                     state.LinkRefs[label] = (resolved!, title);
                 }
                 i += consumedLines;
