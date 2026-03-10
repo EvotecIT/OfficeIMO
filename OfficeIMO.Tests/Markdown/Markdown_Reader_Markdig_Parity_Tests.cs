@@ -40,6 +40,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "autolink-fragment-with-ampersand", "Visit https://example.com/path#frag&next now" };
         yield return new object[] { "autolink-www-query-with-ampersand", "Visit www.example.com/path?q=1&next=2 now" };
         yield return new object[] { "angle-autolink-http", "<https://example.com>" };
+        yield return new object[] { "plain-mailto-does-not-autolink-email", "Contact mailto:user@example.com now" };
+        yield return new object[] { "plain-email-with-path-suffix", "Contact user@example.com/path now" };
+        yield return new object[] { "plain-email-with-fragment-suffix", "Contact user@example.com#frag now" };
+        yield return new object[] { "plain-email-with-plus-tag", "Contact user.name+tag@example.com now" };
         yield return new object[] { "quote-blank-paragraph-then-paragraph", "> one\n>\n> \n> two" };
         yield return new object[] { "unordered-list-indented-code-then-paragraph", "- item\n\n      code\n\n  after" };
         yield return new object[] { "ordered-list-nested-blockquote-then-code", "1. item\n   > quote\n\n      code" };
