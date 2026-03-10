@@ -277,6 +277,7 @@ namespace OfficeIMO.Excel {
         private SharedStringTablePart? _sharedStringTablePart;
         private Stream? _packageStream;
         private Stream? _sourceStream;
+        private Stream? _ownedOpenStream;
         private bool _copyPackageToSourceOnDispose;
         private bool _copyPackageToFilePathOnDispose;
         private bool _leaveSourceStreamOpen = true;
@@ -554,7 +555,8 @@ namespace OfficeIMO.Excel {
             Stream? sourceStream,
             bool copyPackageToSourceOnDispose,
             bool leaveSourceStreamOpen,
-            bool copyPackageToFilePathOnDispose = false) {
+            bool copyPackageToFilePathOnDispose = false,
+            Stream? ownedOpenStream = null) {
             bool keepPackageStream = copyPackageToSourceOnDispose || copyPackageToFilePathOnDispose;
             var document = new ExcelDocument {
                 FilePath = filePath ?? string.Empty,
@@ -568,6 +570,7 @@ namespace OfficeIMO.Excel {
 
             document._packageStream = keepPackageStream ? packageStream : null;
             document._sourceStream = copyPackageToSourceOnDispose ? sourceStream : null;
+            document._ownedOpenStream = ownedOpenStream;
             document._copyPackageToSourceOnDispose = copyPackageToSourceOnDispose && sourceStream != null;
             document._copyPackageToFilePathOnDispose = copyPackageToFilePathOnDispose && packageStream != null && !string.IsNullOrEmpty(filePath);
             document._leaveSourceStreamOpen = leaveSourceStreamOpen;
@@ -585,7 +588,8 @@ namespace OfficeIMO.Excel {
             Stream? sourceStream = null,
             bool copyPackageToSourceOnDispose = false,
             bool leaveSourceStreamOpen = true,
-            bool copyPackageToFilePathOnDispose = false) {
+            bool copyPackageToFilePathOnDispose = false,
+            Stream? ownedOpenStream = null) {
             bool keepPackageStream = copyPackageToSourceOnDispose || copyPackageToFilePathOnDispose;
             var document = new ExcelDocument {
                 FilePath = filePath ?? string.Empty,
@@ -593,6 +597,7 @@ namespace OfficeIMO.Excel {
                 _workBookPart = GetWorkbookPartOrThrow(spreadSheetDocument),
                 _packageStream = keepPackageStream ? packageStream : null,
                 _sourceStream = copyPackageToSourceOnDispose ? sourceStream : null,
+                _ownedOpenStream = ownedOpenStream,
                 _copyPackageToSourceOnDispose = copyPackageToSourceOnDispose && sourceStream != null,
                 _copyPackageToFilePathOnDispose = copyPackageToFilePathOnDispose && packageStream != null && !string.IsNullOrEmpty(filePath),
                 _leaveSourceStreamOpen = leaveSourceStreamOpen,
@@ -758,17 +763,6 @@ namespace OfficeIMO.Excel {
 
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
-            }
-
-            var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
-
-            // Try direct file streaming first for better memory efficiency and avoid large intermediate buffers.
-            // Packages with content type issues may require normalization, so fall back to buffered reads on failures.
-            try {
-                var spreadSheetDocument = SpreadsheetDocument.Open(filePath, !readOnly, effectiveOpenSettings);
-                return CreateDocument(spreadSheetDocument, filePath);
-            } catch (Exception ex) when (ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException) {
-                log?.Invoke($"Failed to open '{filePath}' directly. Falling back to normalized stream. Inner exception: {ex.Message}", ex);
             }
 
             var bytes = ReadAllBytesCompatAsync(filePath, CancellationToken.None).GetAwaiter().GetResult();
@@ -1699,6 +1693,15 @@ namespace OfficeIMO.Excel {
                     // ignored
                 }
                 this._spreadSheetDocument = null!;
+            }
+
+            if (_ownedOpenStream != null) {
+                try {
+                    _ownedOpenStream.Dispose();
+                } catch {
+                    // ignored
+                }
+                _ownedOpenStream = null;
             }
 
             PersistPackageToSourceIfNeeded();
