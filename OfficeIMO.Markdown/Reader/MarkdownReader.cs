@@ -139,9 +139,9 @@ public static partial class MarkdownReader {
             string label = NormalizeReferenceLabel(t.Substring(1, rb - 1));
             string rest = t.Substring(rb + 2).Trim(); if (string.IsNullOrEmpty(rest)) continue;
             if (!TrySplitUrlAndOptionalTitle(rest, out var url, out var title)) continue;
-            if (!string.IsNullOrEmpty(label) && !string.IsNullOrEmpty(url)) {
+            if (!string.IsNullOrEmpty(label)) {
                 var resolved = ResolveUrl(url, options);
-                if (!string.IsNullOrEmpty(resolved)) state.LinkRefs[label] = (resolved!, title);
+                if (resolved != null) state.LinkRefs[label] = (resolved!, title);
             }
         }
     }

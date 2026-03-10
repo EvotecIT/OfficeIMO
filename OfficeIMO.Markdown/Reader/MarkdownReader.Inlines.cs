@@ -60,7 +60,7 @@ public static partial class MarkdownReader {
             if (options.AutolinkUrls && StartsWithHttp(text, pos, out int urlEnd)) {
                 var url = text.Substring(pos, urlEnd - pos);
                 var resolved = ResolveUrl(url, options);
-                if (string.IsNullOrEmpty(resolved)) Current().Text(url);
+                if (resolved is null) Current().Text(url);
                 else Current().Link(url, resolved!, null);
                 pos = urlEnd; continue;
             }
@@ -72,7 +72,7 @@ public static partial class MarkdownReader {
                 if (!scheme.EndsWith("://", StringComparison.Ordinal)) scheme = scheme.TrimEnd('/') + "://";
                 var href = scheme + label;
                 var resolved = ResolveUrl(href, options);
-                if (string.IsNullOrEmpty(resolved)) Current().Text(label);
+                if (resolved is null) Current().Text(label);
                 else Current().Link(label, resolved!, null);
                 pos = wwwEnd; continue;
             }
@@ -81,7 +81,7 @@ public static partial class MarkdownReader {
             if (options.AutolinkEmails && TryConsumePlainEmail(text, pos, out int emailEnd, out string email)) {
                 var href = "mailto:" + email;
                 var resolved = ResolveUrl(href, options);
-                if (string.IsNullOrEmpty(resolved)) Current().Text(email);
+                if (resolved is null) Current().Text(email);
                 else Current().Link(email, resolved!, null);
                 pos = emailEnd; continue;
             }
@@ -114,7 +114,7 @@ public static partial class MarkdownReader {
                 if (allowLinks && allowImages) {
                     var imgResolved = ResolveUrl(img2, options);
                     var hrefResolved = ResolveUrl(href2, options);
-                    if (string.IsNullOrEmpty(imgResolved) || string.IsNullOrEmpty(hrefResolved)) {
+                    if (imgResolved is null || hrefResolved is null) {
                         // Unsafe URLs: keep content as plain text instead of a clickable linked image.
                         Current().Text(string.IsNullOrEmpty(alt2) ? "image" : alt2);
                     } else {
@@ -131,7 +131,7 @@ public static partial class MarkdownReader {
                         var key = NormalizeReferenceLabel(refLabel);
                         if (state.LinkRefs.TryGetValue(key, out var defImg)) {
                             var resolved = ResolveUrl(defImg.Url, options);
-                            if (string.IsNullOrEmpty(resolved)) {
+                            if (resolved is null) {
                                 Current().Text(string.IsNullOrEmpty(altRef) ? "image" : altRef);
                             } else {
                                 Current().Image(altRef, resolved!, defImg.Title);
@@ -146,12 +146,17 @@ public static partial class MarkdownReader {
                     // Inline image: ![alt](src "title")
                     if (TryParseInlineImage(text, pos, out int consumedImg, out var altImg, out var srcImg, out var titleImg)) {
                         var srcResolved = ResolveUrl(srcImg, options);
-                        if (string.IsNullOrEmpty(srcResolved)) {
+                        if (srcResolved is null) {
                             Current().Text(string.IsNullOrEmpty(altImg) ? "image" : altImg);
                         } else {
                             Current().Image(altImg, srcResolved!, titleImg);
                         }
                         pos += consumedImg; continue;
+                    }
+
+                    if (TryConsumeLiteralInlineImage(text, pos, out int literalImageLength)) {
+                        Current().Text(text.Substring(pos, literalImageLength));
+                        pos += literalImageLength; continue;
                     }
                 }
             }
@@ -159,7 +164,7 @@ public static partial class MarkdownReader {
             // Angle-bracket autolinks: <https://example.com>, <mailto:user@example.com>, <tel:+123>, <user@example.com>
             if (text[pos] == '<' && TryParseAngleAutolink(text, pos, out int consumedAngle, out var labelAngle, out var hrefAngle)) {
                 var resolved = ResolveUrl(hrefAngle, options);
-                if (string.IsNullOrEmpty(resolved)) {
+                if (resolved is null) {
                     Current().Text(text.Substring(pos, consumedAngle));
                 } else {
                     Current().Link(labelAngle, resolved!, null);
@@ -174,7 +179,7 @@ public static partial class MarkdownReader {
                         var labelSeq = ParseInlinesInternal(lbl2, options, state, allowLinks: false, allowImages: false);
                         if (state.LinkRefs.TryGetValue(key, out var def2)) {
                             var resolved = ResolveUrl(def2.Url, options);
-                            if (string.IsNullOrEmpty(resolved)) {
+                            if (resolved is null) {
                                 foreach (var n in labelSeq.Items) Current().AddRaw(n);
                             } else {
                                 Current().AddRaw(new LinkInline(labelSeq, resolved!, def2.Title));
@@ -189,7 +194,7 @@ public static partial class MarkdownReader {
                         var labelSeq = ParseInlinesInternal(lbl, options, state, allowLinks: false, allowImages: false);
                         if (state.LinkRefs.TryGetValue(key, out var def)) {
                             var resolved = ResolveUrl(def.Url, options);
-                            if (string.IsNullOrEmpty(resolved)) {
+                            if (resolved is null) {
                                 foreach (var n in labelSeq.Items) Current().AddRaw(n);
                             } else {
                                 Current().AddRaw(new LinkInline(labelSeq, resolved!, def.Title));
@@ -204,7 +209,7 @@ public static partial class MarkdownReader {
                         var labelSeq = ParseInlinesInternal(lbl3, options, state, allowLinks: false, allowImages: false);
                         if (state.LinkRefs.TryGetValue(key, out var def3)) {
                             var resolved = ResolveUrl(def3.Url, options);
-                            if (string.IsNullOrEmpty(resolved)) {
+                            if (resolved is null) {
                                 foreach (var n in labelSeq.Items) Current().AddRaw(n);
                             } else {
                                 Current().AddRaw(new LinkInline(labelSeq, resolved!, def3.Title));
@@ -222,7 +227,7 @@ public static partial class MarkdownReader {
                             Current().AddRaw(new LinkInline(labelSeq, string.Empty, title2));
                         } else {
                             var hrefResolved = ResolveUrl(href3, options);
-                            if (string.IsNullOrEmpty(hrefResolved)) {
+                            if (hrefResolved is null) {
                                 // Unsafe URLs: keep the label as plain inline content instead of producing an <a href="...">.
                                 foreach (var n in labelSeq.Items) Current().AddRaw(n);
                             } else {
@@ -230,6 +235,11 @@ public static partial class MarkdownReader {
                             }
                         }
                         pos += consumed2; continue;
+                    }
+
+                    if (TryConsumeLiteralInlineLink(text, pos, out int literalLinkLength)) {
+                        Current().Text(text.Substring(pos, literalLinkLength));
+                        pos += literalLinkLength; continue;
                     }
                 }
             }
@@ -942,7 +952,32 @@ public static partial class MarkdownReader {
         return true;
     }
 
+    private static bool TryConsumeLiteralInlineLink(string text, int start, out int consumed) {
+        consumed = 0;
+        if (start >= text.Length || text[start] != '[') return false;
+        int labelEnd = FindMatchingBracket(text, start);
+        if (labelEnd < 0) return false;
+        if (labelEnd + 1 >= text.Length || text[labelEnd + 1] != '(') return false;
+        int parenClose = FindMatchingParen(text, labelEnd + 1);
+        if (parenClose < 0) return false;
+        consumed = parenClose - start + 1;
+        return true;
+    }
+
+    private static bool TryConsumeLiteralInlineImage(string text, int start, out int consumed) {
+        consumed = 0;
+        if (start + 1 >= text.Length || text[start] != '!' || text[start + 1] != '[') return false;
+        int altEnd = FindMatchingBracket(text, start + 1);
+        if (altEnd < 0) return false;
+        if (altEnd + 1 >= text.Length || text[altEnd + 1] != '(') return false;
+        int parenClose = FindMatchingParen(text, altEnd + 1);
+        if (parenClose < 0) return false;
+        consumed = parenClose - start + 1;
+        return true;
+    }
+
     private static string? ResolveUrl(string url, MarkdownReaderOptions? options) {
+        if (url.Length == 0) return string.Empty;
         if (string.IsNullOrWhiteSpace(url)) return null;
         url = url.Trim();
 
@@ -1069,6 +1104,8 @@ public static partial class MarkdownReader {
             '-' => true,
             '.' => true,
             '!' => true,
+            '"' => true,
+            '\'' => true,
             '|' => true,
             '>' => true,
             '=' => true,
@@ -1108,6 +1145,7 @@ public static partial class MarkdownReader {
         label = text.Substring(start + 1, labelEnd - (start + 1));
         string inner = text.Substring(parenOpen + 1, parenClose - (parenOpen + 1));
         if (!TrySplitUrlAndOptionalTitle(inner, out href, out title)) {
+            if (IndexOfWhitespace(inner.Trim()) >= 0) return false;
             href = UnescapeMarkdownBackslashEscapes(inner.Trim());
             title = null;
         }
@@ -1128,6 +1166,7 @@ public static partial class MarkdownReader {
         alt = text.Substring(start + 3, altEnd - (start + 3));
         string inner = text.Substring(altEnd + 2, imgClose - (altEnd + 2));
         if (!TrySplitUrlAndOptionalTitle(inner, out img, out imgTitle)) {
+            if (IndexOfWhitespace(inner.Trim()) >= 0) return false;
             img = UnescapeMarkdownBackslashEscapes(inner.Trim());
             imgTitle = null;
         }
@@ -1139,6 +1178,7 @@ public static partial class MarkdownReader {
         if (parenClose2 < 0) return false;
         string hrefInner = text.Substring(parenOpen2 + 1, parenClose2 - (parenOpen2 + 1));
         if (!TrySplitUrlAndOptionalTitle(hrefInner, out href, out _)) {
+            if (IndexOfWhitespace(hrefInner.Trim()) >= 0) return false;
             href = UnescapeMarkdownBackslashEscapes(hrefInner.Trim());
         }
         consumed = parenClose2 - start + 1;
@@ -1157,13 +1197,14 @@ public static partial class MarkdownReader {
         // CommonMark: destination can be wrapped in <...> to allow spaces and parentheses safely.
         if (t[0] == '<') {
             int gt = t.IndexOf('>');
-            if (gt > 1) {
+            if (gt >= 1) {
                 url = UnescapeMarkdownBackslashEscapes(t.Substring(1, gt - 1).Trim());
                 var rest = t.Substring(gt + 1).Trim();
-                if (rest.Length > 0) {
-                    title = TryParseOptionalTitleToken(rest);
-                    if (title != null) title = UnescapeMarkdownBackslashEscapes(title);
-                }
+                if (rest.Length == 0) return true;
+
+                title = TryParseOptionalTitleToken(rest);
+                if (title == null) return false;
+                title = UnescapeMarkdownBackslashEscapes(title);
                 return true;
             }
         }
@@ -1180,7 +1221,8 @@ public static partial class MarkdownReader {
         if (remaining.Length == 0) { title = null; return true; }
 
         title = TryParseOptionalTitleToken(remaining);
-        if (title != null) title = UnescapeMarkdownBackslashEscapes(title);
+        if (title == null) return false;
+        title = UnescapeMarkdownBackslashEscapes(title);
         return true;
     }
 
@@ -1212,6 +1254,7 @@ public static partial class MarkdownReader {
         alt = text.Substring(start + 2, altEnd - (start + 2));
         string inner = text.Substring(altEnd + 2, parenClose - (altEnd + 2));
         if (!TrySplitUrlAndOptionalTitle(inner, out src, out title)) {
+            if (IndexOfWhitespace(inner.Trim()) >= 0) return false;
             src = UnescapeMarkdownBackslashEscapes(inner.Trim());
             title = null;
         }

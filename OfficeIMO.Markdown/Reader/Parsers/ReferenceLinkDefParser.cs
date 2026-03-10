@@ -26,10 +26,9 @@ public static partial class MarkdownReader {
             string rest = t.Substring(rb + 2).Trim();
             if (string.IsNullOrEmpty(rest)) return false;
             if (!TrySplitUrlAndOptionalTitle(rest, out var url, out var title)) return false;
-            if (!string.IsNullOrEmpty(label) && !string.IsNullOrEmpty(url))
-            {
+            if (!string.IsNullOrEmpty(label)) {
                 var resolved = ResolveUrl(url, options);
-                if (!string.IsNullOrEmpty(resolved)) {
+                if (resolved != null) {
                     state.LinkRefs[label] = (resolved!, title);
                 }
             }
