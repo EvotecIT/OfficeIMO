@@ -54,9 +54,14 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             });
             var doc = MarkdownReader.Parse(md);
             var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
-            Assert.Equal(3, qb.Children.Count);
+            Assert.Equal(2, qb.Children.Count);
             var inner = Assert.IsType<QuoteBlock>(qb.Children[1]);
-            Assert.IsType<UnorderedListBlock>(inner.Children[1]);
+            Assert.Equal(2, inner.Children.Count);
+            var list = Assert.IsType<UnorderedListBlock>(inner.Children[1]);
+            Assert.Equal(2, list.Items.Count);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<blockquote><p>Outer</p><blockquote><p>Inner</p><ul><li>a</li><li>b After</li></ul></blockquote></blockquote>", html, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -71,6 +76,32 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var table = Assert.IsType<TableBlock>(qb.Children.First());
             Assert.Equal(new[] { "A", "B" }, table.Headers);
             Assert.Equal(new[] { ColumnAlignment.None, ColumnAlignment.Right }, table.Alignments);
+        }
+
+        [Fact]
+        public void Quote_Lazy_Continuation_Extends_Unordered_List_Item() {
+            const string md = "> - item\ncontinuation";
+
+            var doc = MarkdownReader.Parse(md);
+            var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
+            var list = Assert.IsType<UnorderedListBlock>(qb.Children.First());
+            Assert.Single(list.Items);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<blockquote><ul><li>item continuation</li></ul></blockquote>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Quote_Lazy_Continuation_Extends_Ordered_List_Item() {
+            const string md = "> 1. item\ncontinuation";
+
+            var doc = MarkdownReader.Parse(md);
+            var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
+            var list = Assert.IsType<OrderedListBlock>(qb.Children.First());
+            Assert.Single(list.Items);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<blockquote><ol><li>item continuation</li></ol></blockquote>", html, StringComparison.Ordinal);
         }
     }
 }

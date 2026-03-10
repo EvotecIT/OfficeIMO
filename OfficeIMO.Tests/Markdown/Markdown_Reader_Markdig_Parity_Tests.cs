@@ -60,6 +60,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "reference-link-angle-destination-space", "[x][r]\n\n[r]: <https://example.com/a b>" };
         yield return new object[] { "unordered-list-tab-continuation", "- first line\n\tsecond line\n- next" };
         yield return new object[] { "ordered-list-tab-continuation", "1. first line\n\tsecond line\n2. next" };
+        yield return new object[] { "blockquote-lazy-after-unordered-list-item", "> - item\ncontinuation" };
+        yield return new object[] { "blockquote-lazy-after-ordered-list-item", "> 1. item\ncontinuation" };
+        yield return new object[] { "nested-blockquote-lazy-after-list-item", "> Outer\n> > Inner\n> > - a\n> > - b\n> After" };
     }
 
     [Theory]
