@@ -71,7 +71,7 @@ public static partial class MarkdownReader {
                         var key = NormalizeReferenceLabel(lbl);
                         if (state.LinkRefs.TryGetValue(key, out var defc)) {
                             sb.Append('[').Append(lbl).Append(']')
-                              .Append('(').Append(defc.Url);
+                              .Append('(').Append(FormatExpandedReferenceDestination(defc.Url));
                             if (!string.IsNullOrEmpty(defc.Title)) sb.Append(' ').Append('"').Append(defc.Title).Append('"');
                             sb.Append(')');
                             pos = rb + 3; continue;
@@ -86,7 +86,7 @@ public static partial class MarkdownReader {
                             var key = NormalizeReferenceLabel(refLbl);
                             if (state.LinkRefs.TryGetValue(key, out var def)) {
                                 sb.Append('[').Append(textLbl).Append(']')
-                                  .Append('(').Append(def.Url);
+                                  .Append('(').Append(FormatExpandedReferenceDestination(def.Url));
                                 if (!string.IsNullOrEmpty(def.Title)) sb.Append(' ').Append('"').Append(def.Title).Append('"');
                                 sb.Append(')');
                                 pos = rb2 + 1; continue;
@@ -99,7 +99,7 @@ public static partial class MarkdownReader {
                         var key = NormalizeReferenceLabel(lbls);
                         if (state.LinkRefs.TryGetValue(key, out var defs)) {
                             sb.Append('[').Append(lbls).Append(']')
-                              .Append('(').Append(defs.Url);
+                              .Append('(').Append(FormatExpandedReferenceDestination(defs.Url));
                             if (!string.IsNullOrEmpty(defs.Title)) sb.Append(' ').Append('"').Append(defs.Title).Append('"');
                             sb.Append(')');
                             pos = rb + 1; continue;
@@ -110,5 +110,14 @@ public static partial class MarkdownReader {
             sb.Append(text[pos]); pos++;
         }
         return sb.ToString();
+    }
+
+    private static string FormatExpandedReferenceDestination(string? url) {
+        if (string.IsNullOrEmpty(url)) {
+            return string.Empty;
+        }
+
+        var value = url!;
+        return value.IndexOfAny(new[] { ' ', '\t', '\r', '\n' }) >= 0 ? "<" + value + ">" : value;
     }
 }

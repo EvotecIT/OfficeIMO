@@ -52,7 +52,7 @@ public sealed class ImageBlock : IMarkdownBlock, ICaptionable {
     string IMarkdownBlock.RenderHtml() {
         string alt = System.Net.WebUtility.HtmlEncode(Alt ?? string.Empty);
         string title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title!)}\"";
-        string src = System.Net.WebUtility.HtmlEncode(Path);
+        string src = HtmlAttributeUrlEncoder.Encode(Path);
         string size = string.Empty;
         if (Width != null) size += $" width=\"{Width.Value}\"";
         if (Height != null) size += $" height=\"{Height.Value}\"";
