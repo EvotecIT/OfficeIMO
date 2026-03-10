@@ -39,12 +39,23 @@ public static partial class MarkdownReader {
 
                     // Only continue lazily when both sides look like paragraph content.
                     // A non-quoted list/item/code starter should end the blockquote instead of being swallowed into it.
-                    if (inner.Count == 0 || !LooksLikeParagraphLine(inner, inner.Count - 1, options)) break;
-                    if (!TryNormalizeQuoteLazyContinuationLine(lines, j, options, out var normalizedLazyLine)) break;
+                    if (inner.Count > 0) {
+                        if (LooksLikeParagraphLine(inner, inner.Count - 1, options)) {
+                            if (!TryNormalizeQuoteLazyContinuationLine(lines, j, options, out var normalizedLazyLine)) break;
 
-                    inner.Add(normalizedLazyLine);
-                    j++;
-                    continue;
+                            inner.Add(normalizedLazyLine);
+                            j++;
+                            continue;
+                        }
+
+                        if (TryNormalizeQuoteLazyContinuationAfterListItem(inner[inner.Count - 1], lines, j, options, out var normalizedListLazyLine)) {
+                            inner.Add(normalizedListLazyLine);
+                            j++;
+                            continue;
+                        }
+                    }
+
+                    break;
                 }
 
                 break;
@@ -113,6 +124,22 @@ public static partial class MarkdownReader {
         }
 
         normalized = trimmed;
+        return true;
+    }
+
+    private static bool TryNormalizeQuoteLazyContinuationAfterListItem(string? previousLine, IReadOnlyList<string>? lines, int index, MarkdownReaderOptions options, out string normalized) {
+        normalized = string.Empty;
+        if (string.IsNullOrWhiteSpace(previousLine)) return false;
+        if (!TryNormalizeQuoteLazyContinuationLine(lines, index, options, out var normalizedLazyLine)) return false;
+
+        var previous = previousLine!;
+        if (!IsUnorderedListLine(previous, out _, out _, out _) &&
+            !IsOrderedListLine(previous, out _, out _, out _)) {
+            return false;
+        }
+
+        int continuationIndent = GetListContinuationIndent(previous);
+        normalized = new string(' ', Math.Max(continuationIndent, 1)) + normalizedLazyLine;
         return true;
     }
 }
