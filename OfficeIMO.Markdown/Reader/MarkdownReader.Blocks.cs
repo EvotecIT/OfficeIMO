@@ -678,9 +678,14 @@ public static partial class MarkdownReader {
             }
 
             if (part.TrimStart().StartsWith(">")) {
-                collected.Add(part);
+                string quoteContent = StripSingleQuoteMarker(part);
+                if (TryNormalizeQuotedListContinuationLine(lastQuoteContent, quoteContent, options, out var normalizedQuotedLine)) {
+                    quoteContent = normalizedQuotedLine;
+                }
+
+                collected.Add("> " + quoteContent);
                 sawQuotedLine = true;
-                lastQuoteContent = StripSingleQuoteMarker(part);
+                lastQuoteContent = quoteContent;
                 j++;
                 continue;
             }

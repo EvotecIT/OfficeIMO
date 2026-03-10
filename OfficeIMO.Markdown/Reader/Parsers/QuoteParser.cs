@@ -18,7 +18,13 @@ public static partial class MarkdownReader {
                 var ltrim = ln.TrimStart();
                 if (ltrim.StartsWith(">")) {
                     // Strip one level
-                    if (ltrim.Length >= 2 && ltrim[1] == ' ') inner.Add(ltrim.Substring(2)); else inner.Add(ltrim.Substring(1));
+                    var stripped = ltrim.Length >= 2 && ltrim[1] == ' ' ? ltrim.Substring(2) : ltrim.Substring(1);
+                    if (inner.Count > 0 &&
+                        TryNormalizeQuotedListContinuationLine(inner[inner.Count - 1], stripped, options, out var normalizedQuotedLine)) {
+                        stripped = normalizedQuotedLine;
+                    }
+
+                    inner.Add(stripped);
                     sawQuotedLine = true;
                     j++;
                     continue;
@@ -140,6 +146,38 @@ public static partial class MarkdownReader {
 
         int continuationIndent = GetListContinuationIndent(previous);
         normalized = new string(' ', Math.Max(continuationIndent, 1)) + normalizedLazyLine;
+        return true;
+    }
+
+    private static bool TryNormalizeQuotedListContinuationLine(string? previousLine, string? currentLine, MarkdownReaderOptions options, out string normalized) {
+        normalized = currentLine ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(previousLine) || string.IsNullOrWhiteSpace(currentLine)) return false;
+
+        var previous = previousLine!;
+        if (!IsUnorderedListLine(previous, out _, out _, out _) &&
+            !IsOrderedListLine(previous, out _, out _, out _)) {
+            return false;
+        }
+
+        int currentIndent = CountLeadingIndentColumns(currentLine!);
+        if (currentIndent <= 0) return false;
+
+        var trimmed = currentLine!.TrimStart();
+        if (trimmed.Length == 0) return false;
+        if (trimmed.StartsWith(">")) return false;
+        if (IsAtxHeading(trimmed, out _, out _)) return false;
+        if (LooksLikeHr(trimmed)) return false;
+        if (IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
+        if (LooksLikeTableRow(trimmed)) return false;
+        if (ShouldTreatAsDefinitionLine(new[] { currentLine }, 0, options)) return false;
+        if (IsCalloutHeader("> " + trimmed, out _, out _)) return false;
+        if (IsUnorderedListLine(trimmed, out _, out _, out _) || IsParagraphInterruptingOrderedListLine(trimmed)) return false;
+
+        int continuationIndent = GetListContinuationIndent(previous);
+        if (currentIndent >= continuationIndent) return false;
+        if (currentIndent + 1 != continuationIndent) return false;
+
+        normalized = new string(' ', continuationIndent) + trimmed;
         return true;
     }
 }

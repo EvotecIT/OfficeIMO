@@ -103,5 +103,18 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
             Assert.Contains("<blockquote><ol><li>item continuation</li></ol></blockquote>", html, StringComparison.Ordinal);
         }
+
+        [Fact]
+        public void Quote_Explicit_Continuation_Extends_Ordered_List_Item() {
+            const string md = "> 1. item\n>   continuation";
+
+            var doc = MarkdownReader.Parse(md);
+            var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
+            var list = Assert.IsType<OrderedListBlock>(qb.Children.First());
+            Assert.Single(list.Items);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<blockquote><ol><li>item continuation</li></ol></blockquote>", html, StringComparison.Ordinal);
+        }
     }
 }
