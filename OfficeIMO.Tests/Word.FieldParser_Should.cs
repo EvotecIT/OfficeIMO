@@ -50,6 +50,7 @@ namespace OfficeIMO.Tests
             [InlineData("BIBLIOGRAPHY \\@ \"roman\"", 1)]
             [InlineData("BIBLIOGRAPHY \\h \"some senctence\"", 1)]
             [InlineData(@"BIBLIOGRAPHY \t test \*arabic", 1)]
+            [InlineData(@"BIBLIOGRAPHY \t value-with.dot \*arabic", 1)]
             [InlineData(@"Page \h \d something \* MERGEFORMAT", 2)]
             public void Test_IdentifySwitches(String FieldCodeString, int expected_amount_of_switches)
             {
@@ -62,7 +63,9 @@ namespace OfficeIMO.Tests
             [InlineData("BIBLIOGRAPHY \\@ \"roman\"", new [] { "\\@ \"roman\""})]
             [InlineData("BIBLIOGRAPHY \\h \"some senctence\"", new[] {"\\h \"some senctence\"" })]
             [InlineData(@"BIBLIOGRAPHY \t test \*arabic", new[] {"\\t test" })]
+            [InlineData(@"BIBLIOGRAPHY \t value-with.dot \*arabic", new[] {"\\t value-with.dot" })]
             [InlineData(@"Page \h \d something \* MERGEFORMAT", new[] {"\\h","\\d something"})]
+            [InlineData(@"ASK ANSWER ""Prompt"" \d ""42"" \o ""Tooltip"" \* MERGEFORMAT", new[] { "\\d \"42\"", "\\o \"Tooltip\"" })]
             public void Test_ParseSwitches(String FieldCodeString, String[] expected_switches)
             {
                 var parser = new WordFieldParser(FieldCodeString);
