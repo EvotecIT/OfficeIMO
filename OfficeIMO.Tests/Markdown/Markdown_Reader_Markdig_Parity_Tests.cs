@@ -143,6 +143,16 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "bare-www-default-markdig", "Visit www.example.com now" };
         yield return new object[] { "bare-email-default-markdig", "Contact user@example.com now" };
         yield return new object[] { "mixed-literal-autolinks-default-markdig", "See https://example.com and www.example.com and user@example.com" };
+        yield return new object[] { "angle-email-still-autolinks", "Email <user@example.com>." };
+        yield return new object[] { "angle-mailto-still-autolinks", "Contact <mailto:user@example.com> now" };
+        yield return new object[] { "literal-http-after-colon", "Visit foo:https://example.com now" };
+        yield return new object[] { "literal-http-after-open-paren", "Visit (https://example.com) now" };
+        yield return new object[] { "literal-http-after-apostrophe", "Visit 'https://example.com now" };
+        yield return new object[] { "literal-http-after-open-bracket", "Visit [https://example.com now" };
+        yield return new object[] { "literal-email-after-colon", "Contact foo:user@example.com now" };
+        yield return new object[] { "literal-email-after-open-paren", "Contact (user@example.com) now" };
+        yield return new object[] { "literal-email-after-apostrophe", "Contact 'user@example.com now" };
+        yield return new object[] { "literal-email-after-open-bracket", "Contact [user@example.com now" };
     }
 
     [Theory]
