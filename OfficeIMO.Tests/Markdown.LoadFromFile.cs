@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using OfficeIMO.Word.Markdown;
 using Xunit;
 
@@ -33,6 +34,21 @@ namespace OfficeIMO.Tests {
             using var doc = WordMarkdownConverterExtensions.LoadFromMarkdown(mdPath, encoding: latin1);
             string text = string.Join("\n", doc.Paragraphs.Select(p => p.Text));
             Assert.Contains("ol\u00e9", text);
+
+            File.Delete(mdPath);
+        }
+
+        [Fact]
+        public async Task Test_LoadFromMarkdownAsync_Path_DefaultEncoding() {
+            string tempDir = Path.Combine(AppContext.BaseDirectory, "TempMarkdown");
+            Directory.CreateDirectory(tempDir);
+            string mdPath = Path.Combine(tempDir, "LoadFromPathDefaultAsync.md");
+            string content = "# Title\r\n\r\nCaf\u00e9";
+            File.WriteAllText(mdPath, content, Encoding.Unicode);
+
+            using var doc = await WordMarkdownConverterExtensions.LoadFromMarkdownAsync(mdPath);
+            string text = string.Join("\n", doc.Paragraphs.Select(p => p.Text));
+            Assert.Contains("Caf\u00e9", text);
 
             File.Delete(mdPath);
         }

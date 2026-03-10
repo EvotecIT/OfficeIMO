@@ -2284,51 +2284,52 @@ namespace OfficeIMO.Word {
             double? width = null,
             double? height = null
         ) {
-
-            // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
-            // if widht/height are not set we check ourselves
-            // but probably will need better way
-            var imageCharacteristics = Helpers.GetImageCharacteristics(imageStream, fileName);
-            if (width == null || height == null) {
-                if (imageCharacteristics.Width == 0 || imageCharacteristics.Height == 0) {
-                    throw new ArgumentException("Width and height must be provided for this image type.");
+            return Helpers.UseSeekableImageStream(imageStream, preparedImageStream => {
+                // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
+                // if widht/height are not set we check ourselves
+                // but probably will need better way
+                var imageCharacteristics = Helpers.GetImageCharacteristics(preparedImageStream, fileName);
+                if (width == null || height == null) {
+                    if (imageCharacteristics.Width == 0 || imageCharacteristics.Height == 0) {
+                        throw new ArgumentException("Width and height must be provided for this image type.");
+                    }
+                    width = imageCharacteristics.Width;
+                    height = imageCharacteristics.Height;
                 }
-                width = imageCharacteristics.Width;
-                height = imageCharacteristics.Height;
-            }
 
+                var imagePartType = imageCharacteristics.Type;
+                var imageName = System.IO.Path.GetFileNameWithoutExtension(fileName);
 
-            var imagePartType = imageCharacteristics.Type;
-            var imageName = System.IO.Path.GetFileNameWithoutExtension(fileName);
+                ImagePart imagePart;
+                string relationshipId;
+                var location = paragraph.Location();
+                if (location.GetType() == typeof(Header)) {
+                    var part = ((Header)location).HeaderPart ?? throw new InvalidOperationException("Header part is missing.");
+                    imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
+                    relationshipId = part.GetIdOfPart(imagePart);
+                } else if (location.GetType() == typeof(Footer)) {
+                    var part = ((Footer)location).FooterPart ?? throw new InvalidOperationException("Footer part is missing.");
+                    imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
+                    relationshipId = part.GetIdOfPart(imagePart);
+                } else if (location.GetType() == typeof(Document)) {
+                    var part = document._wordprocessingDocument.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart is missing.");
+                    imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
+                    relationshipId = part.GetIdOfPart(imagePart);
+                } else {
+                    throw new InvalidOperationException("Paragraph is not in document or header or footer. This is weird. Probably a bug.");
+                }
 
-            ImagePart imagePart;
-            string relationshipId;
-            var location = paragraph.Location();
-            if (location.GetType() == typeof(Header)) {
-                var part = ((Header)location).HeaderPart ?? throw new InvalidOperationException("Header part is missing.");
-                imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
-                relationshipId = part.GetIdOfPart(imagePart);
-            } else if (location.GetType() == typeof(Footer)) {
-                var part = ((Footer)location).FooterPart ?? throw new InvalidOperationException("Footer part is missing.");
-                imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
-                relationshipId = part.GetIdOfPart(imagePart);
-            } else if (location.GetType() == typeof(Document)) {
-                var part = document._wordprocessingDocument.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart is missing.");
-                imagePart = part.AddImagePart(imagePartType.ToOpenXmlImagePartType());
-                relationshipId = part.GetIdOfPart(imagePart);
-            } else {
-                throw new InvalidOperationException("Paragraph is not in document or header or footer. This is weird. Probably a bug.");
-            }
+                preparedImageStream.Position = 0;
+                imagePart.FeedData(preparedImageStream);
 
-            imagePart.FeedData(imageStream);
-
-            return new WordImageLocation() {
-                ImagePart = imagePart,
-                RelationshipId = relationshipId,
-                Width = width.Value,
-                Height = height.Value,
-                ImageName = imageName
-            };
+                return new WordImageLocation() {
+                    ImagePart = imagePart,
+                    RelationshipId = relationshipId,
+                    Width = width.Value,
+                    Height = height.Value,
+                    ImageName = imageName
+                };
+            });
         }
 
         private void AddExternalImage(WordDocument document, WordParagraph paragraph, Uri uri, double width, double height, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description, WrapTextImage wrapImage) {

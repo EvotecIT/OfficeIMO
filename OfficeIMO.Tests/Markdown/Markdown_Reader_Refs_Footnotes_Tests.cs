@@ -35,6 +35,71 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Reference_Link_Title_On_Next_Line_Is_Resolved() {
+            var md = string.Join("\n", new[] {
+                "See [Docs][docs].",
+                "",
+                "[docs]: https://evotec.xyz",
+                "  \"Docs\""
+            });
+
+            var html = MarkdownReader.Parse(md).ToHtml();
+
+            Assert.Contains("href=\"https://evotec.xyz\"", html);
+            Assert.Contains("title=\"Docs\"", html);
+            Assert.DoesNotContain("&quot;Docs&quot;", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Reference_Link_First_Definition_Wins() {
+            var md = string.Join("\n", new[] {
+                "See [Docs][docs].",
+                "",
+                "[docs]: https://first.example.com \"First\"",
+                "[docs]: https://second.example.com \"Second\""
+            });
+
+            var html = MarkdownReader.Parse(md).ToHtml();
+
+            Assert.Contains("href=\"https://first.example.com\"", html);
+            Assert.Contains("title=\"First\"", html);
+            Assert.DoesNotContain("https://second.example.com", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("title=\"Second\"", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Invalid_Nested_Reference_Definition_Line_Remains_Literal_Text() {
+            const string md = "[x [y]]\n\n[x [y]]: https://example.com";
+
+            var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+            Assert.Contains("<p>[x [y]]</p>", html, StringComparison.Ordinal);
+            Assert.Contains("<p>[x [y]]: https://example.com</p>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("href=\"https://example.com\"", html, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData("[]: https://example.com", "<p>[]: https://example.com</p>")]
+        [InlineData("[ ]: https://example.com", "<p>[ ]: https://example.com</p>")]
+        public void Invalid_Empty_Reference_Definition_Lines_Remain_Literal_Text(string markdown, string expectedHtml) {
+            var html = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+            Assert.Contains(expectedHtml, html, StringComparison.Ordinal);
+            Assert.DoesNotContain("href=\"https://example.com\"", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("<dl>", html, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData("[x]: https://example.com \"title\" extra", "<p>[x]: https://example.com &quot;title&quot; extra</p>")]
+        [InlineData("[x]: <https://example.com/a b> \"title\" extra", "<p>[x]: &lt;https://example.com/a b&gt; &quot;title&quot; extra</p>")]
+        public void Invalid_Reference_Definition_Title_Tails_Remain_Literal_Text(string markdown, string expectedHtml) {
+            var html = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+            Assert.Contains(expectedHtml, html, StringComparison.Ordinal);
+            Assert.DoesNotContain("href=\"https://example.com", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Footnote_Refs_And_Definitions_RoundTrip() {
             var md = string.Join("\n", new[] {
                 "Hello[^1] world.",

@@ -1332,7 +1332,8 @@ public static partial class MarkdownReader {
         end = start;
         if (start + 7 > text.Length) return false;
         // Require a boundary on the left so we don't linkify inside longer words.
-        if (start > 0 && char.IsLetterOrDigit(text[start - 1])) return false;
+        if (HasInvalidAutolinkLeftBoundary(text, start)) return false;
+        if (IsAfterInvalidReferenceDefinitionPrefix(text, start)) return false;
         var rem = text.Substring(start);
         if (!(rem.StartsWith("http://") || rem.StartsWith("https://"))) return false;
         int rawEnd = ConsumeLiteralUrl(text, start);
@@ -1347,7 +1348,8 @@ public static partial class MarkdownReader {
     private static bool StartsWithWww(string text, int start, out int end) {
         end = start;
         if (start + 4 > text.Length) return false;
-        if (start > 0 && char.IsLetterOrDigit(text[start - 1])) return false;
+        if (HasInvalidAutolinkLeftBoundary(text, start)) return false;
+        if (IsAfterInvalidReferenceDefinitionPrefix(text, start)) return false;
         if (!(text.Substring(start).StartsWith("www.", StringComparison.OrdinalIgnoreCase))) return false;
 
         int rawEnd = ConsumeLiteralUrl(text, start);
@@ -1367,6 +1369,27 @@ public static partial class MarkdownReader {
 
         end = i;
         return end > start + 4;
+    }
+
+    private static bool HasInvalidAutolinkLeftBoundary(string text, int start) {
+        if (string.IsNullOrEmpty(text) || start <= 0 || start > text.Length) return false;
+
+        char previous = text[start - 1];
+        return char.IsLetterOrDigit(previous) || previous == '_' || previous == '/' || previous == ':' || previous == '.';
+    }
+
+    private static bool IsAfterInvalidReferenceDefinitionPrefix(string text, int start) {
+        if (string.IsNullOrEmpty(text) || start <= 0 || start > text.Length) return false;
+
+        int lineStart = text.LastIndexOf('\n', start - 1);
+        lineStart = lineStart < 0 ? 0 : lineStart + 1;
+        int lineEnd = text.IndexOf('\n', start);
+        if (lineEnd < 0) lineEnd = text.Length;
+
+        string line = text.Substring(lineStart, lineEnd - lineStart);
+        if (!StartsWithReferenceDefinitionLikeLabel(line)) return false;
+
+        return !TryParseReferenceLinkDefinition(new[] { line }, 0, new MarkdownReaderOptions(), out _, out _, out _, out _);
     }
 
     private static int ConsumeLiteralUrl(string text, int start) {
@@ -1441,7 +1464,7 @@ public static partial class MarkdownReader {
         email = string.Empty;
         if (start < 0 || start >= text.Length) return false;
         if (!IsEmailStartChar(text[start])) return false;
-        if (start > 0 && (IsEmailChar(text[start - 1]) || text[start - 1] == '+')) return false;
+        if (start > 0 && (IsEmailChar(text[start - 1]) || text[start - 1] == '+' || text[start - 1] == '/')) return false;
         if (IsImmediatelyAfterMailtoScheme(text, start)) return false;
 
         int i = start;

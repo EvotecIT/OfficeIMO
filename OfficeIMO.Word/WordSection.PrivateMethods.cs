@@ -249,45 +249,66 @@ namespace OfficeIMO.Word {
             return list;
         }
 
+        private int GetSectionOrdinal() {
+            int sectionIndex = _document.Sections.IndexOf(this);
+            if (sectionIndex < 0) {
+                throw new InvalidOperationException("The section is not attached to the document.");
+            }
+
+            return sectionIndex;
+        }
+
+        private int GetSectionCount() {
+            return Math.Max(_document.Sections.Count, 1);
+        }
+
+        private static bool IsSectionBoundaryParagraph(Paragraph paragraph) {
+            return paragraph.ParagraphProperties?.SectionProperties != null;
+        }
+
+        private static bool IsPureSectionBreakParagraph(Paragraph paragraph) {
+            if (!IsSectionBoundaryParagraph(paragraph)) {
+                return false;
+            }
+
+            if (paragraph.ChildElements.Any(element => element is not ParagraphProperties)) {
+                return false;
+            }
+
+            return paragraph.ParagraphProperties?.ChildElements.All(element => element is SectionProperties) != false;
+        }
+
         /// <summary>
         /// Get all paragraphs in given section
         /// </summary>
         /// <returns></returns>
         private List<WordParagraph> GetParagraphsList() {
-            Dictionary<int, List<Paragraph>> dataSections = new Dictionary<int, List<Paragraph>>();
-            var count = 0;
+            int targetSection = GetSectionOrdinal();
+            var paragraphsBySection = Enumerable.Range(0, GetSectionCount())
+                .Select(_ => new List<Paragraph>())
+                .ToList();
 
-            dataSections[count] = new List<Paragraph>();
-            var foundCount = -1;
-            if (_wordprocessingDocument?.MainDocumentPart?.Document != null) {
-                if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
-                    var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
-                    foreach (var element in listElements) {
-                        if (element is Paragraph) {
-                            Paragraph paragraph = (Paragraph)element;
-                            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                                if (AreSectionPropertiesEqual(paragraph.ParagraphProperties.SectionProperties, _sectionProperties)) {
-                                    foundCount = count;
-                                }
+            var body = _wordprocessingDocument?.MainDocumentPart?.Document?.Body;
+            if (body == null) {
+                return new List<WordParagraph>();
+            }
 
-                                count++;
-                                dataSections[count] = new List<Paragraph>();
-                            } else {
-                                dataSections[count].Add(paragraph);
-                            }
-                        }
-                    }
+            int currentSection = 0;
+            foreach (var element in body.ChildElements) {
+                if (element is not Paragraph paragraph) {
+                    continue;
+                }
 
-                    if (foundCount < 0) {
-                        var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
-                        if (AreSectionPropertiesEqual(sectionProperties, _sectionProperties)) {
-                            foundCount = count;
-                        }
-                    }
+                if (!IsPureSectionBreakParagraph(paragraph)) {
+                    paragraphsBySection[currentSection].Add(paragraph);
+                }
+
+                if (IsSectionBoundaryParagraph(paragraph) && currentSection < paragraphsBySection.Count - 1) {
+                    currentSection++;
                 }
             }
 
-            return ConvertParagraphsToWordParagraphs(_document, dataSections[foundCount]);
+            return ConvertParagraphsToWordParagraphs(_document, paragraphsBySection[targetSection]);
         }
 
         /// <summary>
@@ -329,41 +350,28 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns></returns>
         private List<WordTable> GetTablesList() {
-            Dictionary<int, List<WordTable>> dataSections = new Dictionary<int, List<WordTable>>();
-            var count = 0;
+            int targetSection = GetSectionOrdinal();
+            var tablesBySection = Enumerable.Range(0, GetSectionCount())
+                .Select(_ => new List<WordTable>())
+                .ToList();
 
-            dataSections[count] = new List<WordTable>();
-            var foundCount = -1;
-            if (_wordprocessingDocument?.MainDocumentPart?.Document != null) {
-                if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
-                    var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
-                    foreach (var element in listElements) {
-                        if (element is Paragraph) {
-                            Paragraph paragraph = (Paragraph)element;
-                            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                                if (AreSectionPropertiesEqual(paragraph.ParagraphProperties.SectionProperties, _sectionProperties)) {
-                                    foundCount = count;
-                                }
+            var body = _wordprocessingDocument?.MainDocumentPart?.Document?.Body;
+            if (body == null) {
+                return new List<WordTable>();
+            }
 
-                                count++;
-                                dataSections[count] = new List<WordTable>();
-                            }
-                        } else if (element is Table) {
-                            WordTable wordTable = new WordTable(_document, (Table)element);
-                            dataSections[count].Add(wordTable);
-                        }
+            int currentSection = 0;
+            foreach (var element in body.ChildElements) {
+                if (element is Paragraph paragraph) {
+                    if (IsSectionBoundaryParagraph(paragraph) && currentSection < tablesBySection.Count - 1) {
+                        currentSection++;
                     }
-
-                    if (foundCount < 0) {
-                        var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
-                        if (AreSectionPropertiesEqual(sectionProperties, _sectionProperties)) {
-                            foundCount = count;
-                        }
-                    }
+                } else if (element is Table table) {
+                    tablesBySection[currentSection].Add(new WordTable(_document, table));
                 }
             }
 
-            return dataSections[foundCount];
+            return tablesBySection[targetSection];
         }
 
         /// <summary>
@@ -371,93 +379,59 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns></returns>
         private List<WordEmbeddedDocument> GetEmbeddedDocumentsList() {
-            Dictionary<int, List<WordEmbeddedDocument>> dataSections = new Dictionary<int, List<WordEmbeddedDocument>>();
-            var count = 0;
+            int targetSection = GetSectionOrdinal();
+            var embeddedDocumentsBySection = Enumerable.Range(0, GetSectionCount())
+                .Select(_ => new List<WordEmbeddedDocument>())
+                .ToList();
 
-            dataSections[count] = new List<WordEmbeddedDocument>();
-            var foundCount = -1;
-            if (_wordprocessingDocument?.MainDocumentPart?.Document != null) {
-                if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
-                    var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
-                    foreach (var element in listElements) {
-                        if (element is Paragraph) {
-                            Paragraph paragraph = (Paragraph)element;
-                            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                                if (AreSectionPropertiesEqual(paragraph.ParagraphProperties.SectionProperties, _sectionProperties)) {
-                                    foundCount = count;
-                                }
-                                count++;
-                                dataSections[count] = new List<WordEmbeddedDocument>();
-                            }
-                        } else if (element is AltChunk) {
-                            WordEmbeddedDocument wordEmbeddedDocument = new WordEmbeddedDocument(_document, (AltChunk)element);
-                            dataSections[count].Add(wordEmbeddedDocument);
-                        }
-                    }
+            var body = _wordprocessingDocument?.MainDocumentPart?.Document?.Body;
+            if (body == null) {
+                return new List<WordEmbeddedDocument>();
+            }
 
-                    if (foundCount < 0) {
-                        var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
-                        if (AreSectionPropertiesEqual(sectionProperties, _sectionProperties)) {
-                            foundCount = count;
-                        }
+            int currentSection = 0;
+            foreach (var element in body.ChildElements) {
+                if (element is Paragraph paragraph) {
+                    if (IsSectionBoundaryParagraph(paragraph) && currentSection < embeddedDocumentsBySection.Count - 1) {
+                        currentSection++;
                     }
+                } else if (element is AltChunk altChunk) {
+                    embeddedDocumentsBySection[currentSection].Add(new WordEmbeddedDocument(_document, altChunk));
                 }
             }
-            return dataSections[foundCount];
+
+            return embeddedDocumentsBySection[targetSection];
         }
 
         private List<WordEmbeddedObject> GetEmbeddedObjectsList() {
-            Dictionary<int, List<WordEmbeddedObject>> dataSections = new Dictionary<int, List<WordEmbeddedObject>>();
-            var count = 0;
+            int targetSection = GetSectionOrdinal();
+            var embeddedObjectsBySection = Enumerable.Range(0, GetSectionCount())
+                .Select(_ => new List<WordEmbeddedObject>())
+                .ToList();
 
-            dataSections[count] = new List<WordEmbeddedObject>();
-            var foundCount = -1;
-            if (_wordprocessingDocument?.MainDocumentPart?.Document != null) {
-                if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
-                    var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
-                    foreach (var element in listElements) {
-                        if (element is Paragraph paragraph) {
-                            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                                if (AreSectionPropertiesEqual(paragraph.ParagraphProperties.SectionProperties, _sectionProperties)) {
-                                    foundCount = count;
-                                }
-                                count++;
-                                dataSections[count] = new List<WordEmbeddedObject>();
-                            }
+            var body = _wordprocessingDocument?.MainDocumentPart?.Document?.Body;
+            if (body == null) {
+                return new List<WordEmbeddedObject>();
+            }
 
-                            foreach (var run in paragraph.ChildElements.OfType<Run>()) {
-                                if (run.Descendants<Ovml.OleObject>().Any()) {
-                                    dataSections[count].Add(new WordEmbeddedObject(_document, run));
-                                }
-                            }
-                        }
+            int currentSection = 0;
+            foreach (var element in body.ChildElements) {
+                if (element is not Paragraph paragraph) {
+                    continue;
+                }
+
+                foreach (var run in paragraph.ChildElements.OfType<Run>()) {
+                    if (run.Descendants<Ovml.OleObject>().Any()) {
+                        embeddedObjectsBySection[currentSection].Add(new WordEmbeddedObject(_document, run));
                     }
+                }
 
-                    if (foundCount < 0) {
-                        var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
-                        if (AreSectionPropertiesEqual(sectionProperties, _sectionProperties)) {
-                            foundCount = count;
-                        }
-                    }
+                if (IsSectionBoundaryParagraph(paragraph) && currentSection < embeddedObjectsBySection.Count - 1) {
+                    currentSection++;
                 }
             }
 
-            return dataSections[foundCount];
-        }
-
-        /// <summary>
-        /// Checks if two SectionProperties are equal
-        /// </summary>
-        /// <param name="sp1"></param>
-        /// <param name="sp2"></param>
-        /// <returns></returns>
-        private bool AreSectionPropertiesEqual(SectionProperties? sp1, SectionProperties? sp2) {
-            if (sp1 == null || sp2 == null) {
-                return sp1 == sp2;
-            }
-
-            // Compare the XML representation of the SectionProperties
-            return sp1.OuterXml == sp2.OuterXml;
+            return embeddedObjectsBySection[targetSection];
         }
 
         /// <summary>
@@ -465,61 +439,36 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns></returns>
         private List<WordElement> GetWordElements() {
-            Dictionary<int, List<WordElement>> dataSections = new Dictionary<int, List<WordElement>>();
-            var count = 0;
+            int targetSection = GetSectionOrdinal();
+            var elementsBySection = Enumerable.Range(0, GetSectionCount())
+                .Select(_ => new List<WordElement>())
+                .ToList();
 
-            dataSections[count] = new List<WordElement>();
-            var foundCount = -1;
-            if (_wordprocessingDocument?.MainDocumentPart?.Document != null) {
-                if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
-                    var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
-                    foreach (var element in listElements) {
-                        if (element is Paragraph) {
-                            // converts Paragraph to WordParagraph
-                            Paragraph paragraph = (Paragraph)element;
-                            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                                if (AreSectionPropertiesEqual(paragraph.ParagraphProperties.SectionProperties, _sectionProperties)) {
-                                    foundCount = count;
-                                }
+            var body = _wordprocessingDocument?.MainDocumentPart?.Document?.Body;
+            if (body == null) {
+                return new List<WordElement>();
+            }
 
-                                count++;
-                                dataSections[count] = new List<WordElement>();
-                            } else {
-                                dataSections[count].AddRange(ConvertParagraphToWordParagraphs(_document, paragraph));
-                            }
-                        } else if (element is AltChunk) {
-                            // converts AltChunk to WordEmbeddedDocument
-                            WordEmbeddedDocument wordEmbeddedDocument = new WordEmbeddedDocument(_document, (AltChunk)element);
-                            dataSections[count].Add(wordEmbeddedDocument);
-                        } else if (element is SdtBlock) {
-                            // converts SdtBlock to WordElement
-                            dataSections[count].Add(ConvertStdBlockToWordElements(_document, (SdtBlock)element));
-                        } else if (element is Table) {
-                            // converts Table to WordTable
-                            WordTable wordTable = new WordTable(_document, (Table)element);
-                            dataSections[count].Add(wordTable);
-                        } else if (element is SectionProperties sp) {
-                            // Section boundary marker; handled below. No warning needed.
-                            if (AreSectionPropertiesEqual(sp, _sectionProperties)) {
-                                foundCount = count;
-                            }
-                        } else {
-                            // Other body-level elements currently not mapped to WordElement
-                            // (e.g., bookmarks, custom XML). Intentionally skip noisy warnings.
-                            // Debug.WriteLine($"Unmapped body element: {element.GetType().Name}");
-                        }
+            int currentSection = 0;
+            foreach (var element in body.ChildElements) {
+                if (element is Paragraph paragraph) {
+                    if (!IsPureSectionBreakParagraph(paragraph)) {
+                        elementsBySection[currentSection].AddRange(ConvertParagraphToWordParagraphs(_document, paragraph));
                     }
 
-                    if (foundCount < 0) {
-                        var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
-                        if (AreSectionPropertiesEqual(sectionProperties, _sectionProperties)) {
-                            foundCount = count;
-                        }
+                    if (IsSectionBoundaryParagraph(paragraph) && currentSection < elementsBySection.Count - 1) {
+                        currentSection++;
                     }
+                } else if (element is AltChunk altChunk) {
+                    elementsBySection[currentSection].Add(new WordEmbeddedDocument(_document, altChunk));
+                } else if (element is SdtBlock sdtBlock) {
+                    elementsBySection[currentSection].Add(ConvertStdBlockToWordElements(_document, sdtBlock));
+                } else if (element is Table table) {
+                    elementsBySection[currentSection].Add(new WordTable(_document, table));
                 }
             }
 
-            return dataSections[foundCount];
+            return elementsBySection[targetSection];
         }
 
         /// <summary>
@@ -575,39 +524,28 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns></returns>
         private List<SdtBlock> GetSdtBlockList() {
-            Dictionary<int, List<SdtBlock>> dataSections = new Dictionary<int, List<SdtBlock>>();
-            var count = 0;
+            int targetSection = GetSectionOrdinal();
+            var sdtBlocksBySection = Enumerable.Range(0, GetSectionCount())
+                .Select(_ => new List<SdtBlock>())
+                .ToList();
 
-            dataSections[count] = new List<SdtBlock>();
-            var foundCount = -1;
-            if (_wordprocessingDocument?.MainDocumentPart?.Document != null) {
-                if (_wordprocessingDocument.MainDocumentPart.Document.Body != null) {
-                    var listElements = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements;
-                    foreach (var element in listElements) {
-                        if (element is Paragraph) {
-                            Paragraph paragraph = (Paragraph)element;
-                            if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                                if (AreSectionPropertiesEqual(paragraph.ParagraphProperties.SectionProperties, _sectionProperties)) {
-                                    foundCount = count;
-                                }
+            var body = _wordprocessingDocument?.MainDocumentPart?.Document?.Body;
+            if (body == null) {
+                return new List<SdtBlock>();
+            }
 
-                                count++;
-                                dataSections[count] = new List<SdtBlock>();
-                            }
-                        } else if (element is SdtBlock) {
-                            dataSections[count].Add((SdtBlock)element);
-                        }
+            int currentSection = 0;
+            foreach (var element in body.ChildElements) {
+                if (element is Paragraph paragraph) {
+                    if (IsSectionBoundaryParagraph(paragraph) && currentSection < sdtBlocksBySection.Count - 1) {
+                        currentSection++;
                     }
-
-                    if (foundCount < 0) {
-                        var sectionProperties = _wordprocessingDocument.MainDocumentPart.Document.Body.ChildElements.OfType<SectionProperties>().FirstOrDefault();
-                        if (AreSectionPropertiesEqual(sectionProperties, _sectionProperties)) {
-                            foundCount = count;
-                        }
-                    }
+                } else if (element is SdtBlock sdtBlock) {
+                    sdtBlocksBySection[currentSection].Add(sdtBlock);
                 }
             }
-            return dataSections[foundCount];
+
+            return sdtBlocksBySection[targetSection];
         }
 
         /// <summary>

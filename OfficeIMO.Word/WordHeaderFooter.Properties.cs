@@ -216,7 +216,24 @@ namespace OfficeIMO.Word {
                     if (f != null) list.Add(f);
                 }
 
+                foreach (var table in Tables) {
+                    AddFieldsFromTable(table, list);
+                }
+
                 return list;
+            }
+        }
+
+        private static void AddFieldsFromTable(WordTable table, List<WordField> list) {
+            foreach (var paragraph in table.Paragraphs.Where(p => p.IsField)) {
+                var field = paragraph.Field;
+                if (field != null) {
+                    list.Add(field);
+                }
+            }
+
+            foreach (var nestedTable in table.NestedTables) {
+                AddFieldsFromTable(nestedTable, list);
             }
         }
 

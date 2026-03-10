@@ -140,6 +140,28 @@ public class Markdown_Reader_Autolinks_Tests {
         Assert.Contains("<p>Visit https://example.com/path#frag&amp;next now</p>", html, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("Visit _https://example.com now")]
+    [InlineData("Visit /https://example.com now")]
+    public void Autolinks_DoNot_Link_Http_Urls_After_Invalid_Left_Boundaries(string markdown) {
+        var doc = MarkdownReader.Parse(markdown);
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains(markdown.Replace("&", "&amp;"), html, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Visit foo:https://example.com now")]
+    [InlineData("Visit foo.https://example.com now")]
+    public void Autolinks_DoNot_Link_Http_Urls_After_Colon_Or_Dot(string markdown) {
+        var doc = MarkdownReader.Parse(markdown);
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains(markdown, html, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Autolinks_DoNot_Link_Www_Urls_With_Query_Ampersands() {
         var doc = MarkdownReader.Parse("Visit www.example.com/path?q=1&next=2 now");
@@ -148,6 +170,25 @@ public class Markdown_Reader_Autolinks_Tests {
         Assert.DoesNotContain("href=\"https://www.example.com/path?q=1&amp;next=2\"", html, StringComparison.Ordinal);
         Assert.Contains("<p>Visit www.example.com/path?q=1&amp;next=2 now</p>", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Www_Urls_After_Invalid_Left_Boundaries() {
+        var doc = MarkdownReader.Parse("Visit _www.example.com now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://www.example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Visit _www.example.com now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Www_Urls_After_Colon() {
+        var doc = MarkdownReader.Parse("Visit foo:www.example.com now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://www.example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Visit foo:www.example.com now</p>", html, StringComparison.Ordinal);
+    }
+
 
     [Fact]
     public void Autolinks_Email_Inside_Text() {
@@ -164,6 +205,15 @@ public class Markdown_Reader_Autolinks_Tests {
 
         Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
         Assert.Contains("<p>Contact mailto:user@example.com now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Plain_Emails_After_Slash() {
+        var doc = MarkdownReader.Parse("Contact /user@example.com now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Contact /user@example.com now</p>", html, StringComparison.Ordinal);
     }
 
     [Fact]

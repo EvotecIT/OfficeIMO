@@ -23,6 +23,18 @@ public partial class Word {
         Assert.Equal(expectedType, imageСharacteristics.Type);
     }
 
+    [Fact]
+    public void Test_GetImageCharacteristics_FromNonSeekableStream() {
+        var filePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+        using var imageStream = new NonSeekableReadStream(File.ReadAllBytes(filePath));
+
+        var imageCharacteristics = Helpers.GetImageCharacteristics(imageStream, "Kulek.jpg");
+
+        Assert.Equal(CustomImagePartType.Jpeg, imageCharacteristics.Type);
+        Assert.True(imageCharacteristics.Width > 0);
+        Assert.True(imageCharacteristics.Height > 0);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]

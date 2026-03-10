@@ -298,7 +298,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.DoesNotContain("<dl>", html, StringComparison.Ordinal);
             Assert.Contains("<p>", html, StringComparison.Ordinal);
             Assert.Contains("[a [b]]:", html, StringComparison.Ordinal);
-            Assert.Contains("href=\"https://example.com\"", html, StringComparison.Ordinal);
+            Assert.Contains("https://example.com", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("href=\"https://example.com\"", html, StringComparison.Ordinal);
         }
 
         [Fact]

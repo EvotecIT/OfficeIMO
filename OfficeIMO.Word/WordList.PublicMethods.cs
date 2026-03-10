@@ -336,11 +336,13 @@ namespace OfficeIMO.Word {
             var numbering = numberingPart.Numbering;
             EnsureW15Namespace(numbering);
 
-            var characteristics = Helpers.GetImageCharacteristics(imageStream, fileName);
-            var imagePart = numberingPart.AddImagePart(characteristics.Type.ToOpenXmlImagePartType());
-            imageStream.Position = 0;
-            imagePart.FeedData(imageStream);
-            var relId = numberingPart.GetIdOfPart(imagePart);
+            string relId = Helpers.UseSeekableImageStream(imageStream, preparedImageStream => {
+                var characteristics = Helpers.GetImageCharacteristics(preparedImageStream, fileName);
+                var imagePart = numberingPart.AddImagePart(characteristics.Type.ToOpenXmlImagePartType());
+                preparedImageStream.Position = 0;
+                imagePart.FeedData(preparedImageStream);
+                return numberingPart.GetIdOfPart(imagePart);
+            });
 
             int picId = numbering.Elements<NumberingPictureBullet>()
                 .Select(p => (int)(p.NumberingPictureBulletId?.Value ?? 0))
