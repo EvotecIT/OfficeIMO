@@ -167,6 +167,15 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Autolinks_DoNot_Link_Http_Urls_After_Apostrophe() {
+        var doc = MarkdownReader.Parse("Visit 'https://example.com now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Visit &#39;https://example.com now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Autolinks_DoNot_Link_Www_Urls_With_Query_Ampersands() {
         var doc = MarkdownReader.Parse("Visit www.example.com/path?q=1&next=2 now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
@@ -207,6 +216,15 @@ public class Markdown_Reader_Autolinks_Tests {
 
         Assert.DoesNotContain("href=\"https://www.example.com\"", html, StringComparison.Ordinal);
         Assert.Contains(markdown, html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Www_Urls_After_Apostrophe() {
+        var doc = MarkdownReader.Parse("Visit 'www.example.com now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://www.example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Visit &#39;www.example.com now</p>", html, StringComparison.Ordinal);
     }
 
 
@@ -279,6 +297,15 @@ public class Markdown_Reader_Autolinks_Tests {
 
         Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
         Assert.Contains("<p>Contact (user@example.com) now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Plain_Emails_After_Apostrophe() {
+        var doc = MarkdownReader.Parse("Contact 'user@example.com now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Contact &#39;user@example.com now</p>", html, StringComparison.Ordinal);
     }
 
     [Fact]
