@@ -35,6 +35,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "autolink-query-balanced-parens-then-dot", "Visit https://example.com/search?q=(x)." };
         yield return new object[] { "autolink-query-balanced-parens-then-comma", "Visit https://example.com/search?q=(x), now" };
         yield return new object[] { "autolink-www-query-balanced-parens", "Visit www.example.com/search?q=(x) now" };
+        yield return new object[] { "autolink-fragment-balanced-parens", "Visit https://example.com/path#(x) now" };
+        yield return new object[] { "autolink-www-fragment-balanced-parens", "Visit www.example.com/path#(x) now" };
+        yield return new object[] { "autolink-fragment-with-ampersand", "Visit https://example.com/path#frag&next now" };
+        yield return new object[] { "autolink-www-query-with-ampersand", "Visit www.example.com/path?q=1&next=2 now" };
         yield return new object[] { "angle-autolink-http", "<https://example.com>" };
         yield return new object[] { "quote-blank-paragraph-then-paragraph", "> one\n>\n> \n> two" };
         yield return new object[] { "unordered-list-indented-code-then-paragraph", "- item\n\n      code\n\n  after" };
