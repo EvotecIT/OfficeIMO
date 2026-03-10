@@ -94,6 +94,35 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Autolinks_DoNot_Link_Http_Urls_With_Query_Parentheses() {
+        var doc = MarkdownReader.Parse("Visit https://example.com/search?q=(x) now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://example.com/search?q=(x)\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Visit https://example.com/search?q=(x) now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Www_Urls_With_Query_Parentheses() {
+        var doc = MarkdownReader.Parse("Visit www.example.com/search?q=(x) now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://www.example.com/search?q=(x)\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Visit www.example.com/search?q=(x) now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_Still_Link_Path_Parentheses_Before_Query_String() {
+        var doc = MarkdownReader.Parse("Visit https://example.com/path_(demo)?q=value now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains(
+            "<a href=\"https://example.com/path_(demo)?q=value\">https://example.com/path_(demo)?q=value</a>",
+            html,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Autolinks_Email_Inside_Text() {
         var doc = MarkdownReader.Parse("Email user@example.com.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
