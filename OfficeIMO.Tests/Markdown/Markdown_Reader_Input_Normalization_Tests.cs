@@ -340,6 +340,30 @@ Status **Healthy**next
         Assert.DoesNotContain("used **System** log only.**", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Reader_Can_Apply_ChatStrict_Preset_EndToEnd() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = MarkdownInputNormalizationPresets.CreateChatStrict()
+        };
+
+        var markdown = """
+## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK
+Signal ->**Why it matters:**coverage
+- Signal **No current failures -> **Why it matters:** transport/auth issues
+Następny najlepszy krok:- **`ad_domain_controller_facts`**
+```json{"log_name":"System"}
+```
+""";
+
+        var html = MarkdownReader.Parse(markdown, options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<h2", html, StringComparison.Ordinal);
+        Assert.True(Count(html, "<li") >= 2);
+        Assert.Contains("Why it matters:", html, StringComparison.Ordinal);
+        Assert.Contains("log_name", html, StringComparison.Ordinal);
+    }
+
     private static int Count(string value, string token) {
         if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(token)) return 0;
 
