@@ -115,7 +115,15 @@ namespace OfficeIMO.PowerPoint {
             set {
                 CommonSlideData common = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
                 if (value == null) {
-                    common.Background = null;
+                    BackgroundProperties? properties = common.Background?.BackgroundProperties;
+                    if (properties == null) {
+                        return;
+                    }
+
+                    properties.RemoveAllChildren<A.SolidFill>();
+                    if (!properties.HasChildren) {
+                        common.Background = null;
+                    }
                     return;
                 }
 
@@ -139,6 +147,8 @@ namespace OfficeIMO.PowerPoint {
                 throw new FileNotFoundException("Image file not found.", imagePath);
             }
 
+            A.Blip? previousBlip = GetBackgroundBlip();
+            string? previousRelationshipId = previousBlip?.Embed?.Value;
             ImagePartType imageType = GetImagePartType(imagePath);
             PartTypeInfo partTypeInfo = imageType.ToPartTypeInfo();
             string imageExtension = PowerPointPartFactory.GetImageExtension(imageType, imagePath);
@@ -171,6 +181,8 @@ namespace OfficeIMO.PowerPoint {
 
             background.BackgroundProperties = props;
             common.Background = background;
+
+            RemoveUnusedImagePart(previousRelationshipId, previousBlip);
         }
 
         /// <summary>
@@ -182,10 +194,14 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
+            A.Blip? previousBlip = GetBackgroundBlip();
+            string? previousRelationshipId = previousBlip?.Embed?.Value;
             common.Background.BackgroundProperties.RemoveAllChildren<A.BlipFill>();
             if (!common.Background.BackgroundProperties.HasChildren) {
                 common.Background = null;
             }
+
+            RemoveUnusedImagePart(previousRelationshipId, previousBlip);
         }
 
         /// <summary>
@@ -399,6 +415,35 @@ namespace OfficeIMO.PowerPoint {
             properties.RemoveAllChildren<A.NoFill>();
             properties.RemoveAllChildren<A.PatternFill>();
             properties.RemoveAllChildren<A.SolidFill>();
+        }
+
+        private A.Blip? GetBackgroundBlip() {
+            return _slidePart.Slide.CommonSlideData?.Background?.BackgroundProperties?.GetFirstChild<A.BlipFill>()?.Blip;
+        }
+
+        private void RemoveUnusedImagePart(string? relationshipId, A.Blip? currentBlip) {
+            string resolvedRelationshipId = relationshipId ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(resolvedRelationshipId)) {
+                return;
+            }
+            if (IsImageRelationshipReferenced(resolvedRelationshipId, currentBlip)) {
+                return;
+            }
+
+            try {
+                OpenXmlPart? oldPart = _slidePart.GetPartById(resolvedRelationshipId);
+                if (oldPart != null) {
+                    _slidePart.DeletePart(oldPart);
+                }
+            } catch (ArgumentOutOfRangeException) {
+                // The previous relationship may already be absent on damaged input.
+            }
+        }
+
+        private bool IsImageRelationshipReferenced(string relationshipId, A.Blip? currentBlip) {
+            return _slidePart.Slide
+                .Descendants<A.Blip>()
+                .Any(blip => !ReferenceEquals(blip, currentBlip) && blip.Embed?.Value == relationshipId);
         }
 
         private SlideId GetSlideId() {

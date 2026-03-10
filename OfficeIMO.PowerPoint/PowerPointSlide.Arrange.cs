@@ -1,12 +1,22 @@
 using System;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
+        private static readonly MethodInfo AddNewPartWithContentTypeMethod =
+            typeof(OpenXmlPartContainer)
+                .GetMethods()
+                .Single(m => m.Name == "AddNewPart" &&
+                             m.IsGenericMethodDefinition &&
+                             m.GetParameters().Length == 2);
+
         /// <summary>
         ///     Creates a duplicate of the provided shape and optionally offsets its position (EMUs).
         /// </summary>
@@ -20,6 +30,9 @@ namespace OfficeIMO.PowerPoint {
 
             OpenXmlElement clone = shape.Element.CloneNode(true);
             UpdateNonVisualDrawingProperties(clone, GetDuplicateBaseName(shape));
+            if (shape is PowerPointChart && clone is GraphicFrame duplicatedChartFrame) {
+                RebindDuplicatedChart(duplicatedChartFrame);
+            }
 
             PowerPointShape? duplicate = CreateShapeFromElement(clone);
             if (duplicate == null) {
@@ -289,6 +302,83 @@ namespace OfficeIMO.PowerPoint {
                 default:
                     return null;
             }
+        }
+
+        private void RebindDuplicatedChart(GraphicFrame frame) {
+            C.ChartReference? chartReference = frame.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>();
+            string originalRelationshipId = chartReference?.Id?.Value
+                ?? throw new InvalidOperationException("Chart reference not found for duplicated shape.");
+            ChartPart sourceChartPart = (ChartPart)_slidePart.GetPartById(originalRelationshipId);
+            chartReference!.Id = CloneChartPart(sourceChartPart);
+        }
+
+        private string CloneChartPart(ChartPart sourceChartPart) {
+            string relationshipId = GetNextRelationshipId(_slidePart);
+            ChartPart targetChartPart = (ChartPart)AddNewPartWithContentType(_slidePart, sourceChartPart, relationshipId);
+            if (sourceChartPart.ChartSpace != null) {
+                targetChartPart.ChartSpace = (C.ChartSpace)sourceChartPart.ChartSpace.CloneNode(true);
+                targetChartPart.ChartSpace.Save();
+            } else {
+                CopyPartData(sourceChartPart, targetChartPart);
+            }
+            CloneReferenceRelationships(sourceChartPart, targetChartPart);
+
+            foreach (IdPartPair childPair in sourceChartPart.Parts) {
+                ClonePartRecursive(childPair.OpenXmlPart, targetChartPart, childPair.RelationshipId);
+            }
+
+            return relationshipId;
+        }
+
+        private static void ClonePartRecursive(OpenXmlPart sourcePart, OpenXmlPartContainer targetContainer, string relationshipId) {
+            OpenXmlPart newPart = sourcePart is ExtendedPart extendedPart
+                ? targetContainer.AddExtendedPart(extendedPart.RelationshipType, extendedPart.ContentType, relationshipId)
+                : AddNewPartWithContentType(targetContainer, sourcePart, relationshipId);
+
+            CopyPartData(sourcePart, newPart);
+            CloneReferenceRelationships(sourcePart, newPart);
+
+            foreach (IdPartPair childPair in sourcePart.Parts) {
+                ClonePartRecursive(childPair.OpenXmlPart, newPart, childPair.RelationshipId);
+            }
+        }
+
+        private static OpenXmlPart AddNewPartWithContentType(OpenXmlPartContainer container, OpenXmlPart sourcePart, string relationshipId) {
+            MethodInfo method = AddNewPartWithContentTypeMethod.MakeGenericMethod(sourcePart.GetType());
+            return (OpenXmlPart)method.Invoke(container, new object[] { sourcePart.ContentType, relationshipId })!;
+        }
+
+        private static void CopyPartData(OpenXmlPart sourcePart, OpenXmlPart targetPart) {
+            using Stream sourceStream = sourcePart.GetStream(FileMode.Open, FileAccess.Read);
+            using Stream targetStream = targetPart.GetStream(FileMode.Create, FileAccess.Write);
+            sourceStream.CopyTo(targetStream);
+        }
+
+        private static void CloneReferenceRelationships(OpenXmlPartContainer source, OpenXmlPartContainer target) {
+            foreach (ExternalRelationship rel in source.ExternalRelationships) {
+                target.AddExternalRelationship(rel.RelationshipType, rel.Uri, rel.Id);
+            }
+
+            foreach (HyperlinkRelationship rel in source.HyperlinkRelationships) {
+                target.AddHyperlinkRelationship(rel.Uri, rel.IsExternal, rel.Id);
+            }
+        }
+
+        private static string GetNextRelationshipId(OpenXmlPartContainer container) {
+            var existingRelationships = container.Parts.Select(part => part.RelationshipId)
+                .Concat(container.ExternalRelationships.Select(rel => rel.Id))
+                .Concat(container.HyperlinkRelationships.Select(rel => rel.Id))
+                .Where(id => !string.IsNullOrEmpty(id))
+                .ToHashSet(StringComparer.Ordinal);
+
+            int nextId = 1;
+            string relationshipId;
+            do {
+                relationshipId = "rId" + nextId;
+                nextId++;
+            } while (!existingRelationships.Add(relationshipId));
+
+            return relationshipId;
         }
     }
 }
