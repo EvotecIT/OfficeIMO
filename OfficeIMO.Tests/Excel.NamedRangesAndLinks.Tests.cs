@@ -61,6 +61,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NamedRange_LocalScope_PreservesAlreadyQualifiedRange() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                var data = doc.AddWorkSheet("Data");
+                data.SetNamedRange("LocalQualified", "'Data'!A1", save: false, hidden: false, validationMode: NameValidationMode.Strict);
+
+                var definedName = doc._spreadSheetDocument.WorkbookPart!.Workbook.DefinedNames!
+                    .Elements<DefinedName>()
+                    .Single(d => d.Name == "LocalQualified");
+
+                Assert.Equal("'Data'!$A$1", definedName.Text);
+                Assert.Equal("$A$1", data.GetNamedRange("LocalQualified"));
+            }
+            File.Delete(path);
+        }
+
+        [Fact]
+        public void NamedRange_LocalScope_PreservesCrossSheetQualifiedRange() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                var data = doc.AddWorkSheet("Data");
+                doc.AddWorkSheet("Other");
+                data.SetNamedRange("LocalCrossSheet", "'Other'!A1:B2", save: false, hidden: false, validationMode: NameValidationMode.Strict);
+
+                var definedName = doc._spreadSheetDocument.WorkbookPart!.Workbook.DefinedNames!
+                    .Elements<DefinedName>()
+                    .Single(d => d.Name == "LocalCrossSheet");
+
+                Assert.Equal("'Other'!$A$1:$B$2", definedName.Text);
+                Assert.Equal("'Other'!$A$1:$B$2", data.GetNamedRange("LocalCrossSheet"));
+            }
+            File.Delete(path);
+        }
+        [Fact]
         public void NamedRange_StrictThrowsOutOfBounds() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {

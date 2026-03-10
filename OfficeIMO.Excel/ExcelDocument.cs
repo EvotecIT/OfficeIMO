@@ -820,6 +820,19 @@ namespace OfficeIMO.Excel {
             return list;
         }
 
+        private static System.Collections.Generic.IReadOnlyList<string> ValidateOpenXml(byte[] packageBytes) {
+            var list = new System.Collections.Generic.List<string>();
+            if (packageBytes == null || packageBytes.Length == 0) return list;
+
+            using var stream = new MemoryStream(packageBytes, writable: false);
+            using var document = SpreadsheetDocument.Open(stream, false);
+            var validator = new OpenXmlValidator();
+            foreach (var error in validator.Validate(document)) {
+                list.Add($"{error.ErrorType}: {error.Description} at {error.Path}");
+            }
+            return list;
+        }
+
         /// <summary>
         /// Asynchronously loads an Excel document from the specified path.
         /// </summary>
@@ -1091,21 +1104,14 @@ namespace OfficeIMO.Excel {
 
             var payload = PreparePackageForSave(options);
             try {
-                CommitPreparedPackageToFile(path, payload);
-
-                var fileBytes = File.ReadAllBytes(path);
-                ReloadFromBytes(fileBytes);
+                var finalizedBytes = FinalizePackageBytes(payload);
+                ThrowIfOpenXmlValidationFails(finalizedBytes, options);
+                CommitPreparedPackageToFile(path, finalizedBytes);
+                ReloadFromBytes(finalizedBytes);
                 FilePath = path;
 
                 if (openExcel) {
                     Helpers.Open(path, true);
-                }
-
-                if (options?.ValidateOpenXml == true) {
-                    var errors = ValidateOpenXml();
-                    if (errors.Count > 0) {
-                        throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
-                    }
                 }
             } catch {
                 TryRestoreDocumentState(payload);
@@ -1190,21 +1196,14 @@ namespace OfficeIMO.Excel {
 
             var payload = PreparePackageForSave(options);
             try {
-                await CommitPreparedPackageToFileAsync(target, payload, cancellationToken).ConfigureAwait(false);
-
-                var fileBytes = await ReadAllBytesCompatAsync(target, cancellationToken).ConfigureAwait(false);
-                ReloadFromBytes(fileBytes);
+                var finalizedBytes = FinalizePackageBytes(payload);
+                ThrowIfOpenXmlValidationFails(finalizedBytes, options);
+                await CommitPreparedPackageToFileAsync(target, finalizedBytes, cancellationToken).ConfigureAwait(false);
+                ReloadFromBytes(finalizedBytes);
                 FilePath = target;
 
                 if (openExcel) {
                     Open(target, true);
-                }
-
-                if (options?.ValidateOpenXml == true) {
-                    var errors = ValidateOpenXml();
-                    if (errors.Count > 0) {
-                        throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
-                    }
                 }
             } catch {
                 TryRestoreDocumentState(payload);
@@ -1232,20 +1231,13 @@ namespace OfficeIMO.Excel {
 
             var payload = PreparePackageForSave(options);
             try {
-                var withProperties = payload.Properties.ApplyTo(payload.PackageBytes);
-                var finalizedBytes = NormalizePackageBytes(withProperties);
+                var finalizedBytes = FinalizePackageBytes(payload);
+                ThrowIfOpenXmlValidationFails(finalizedBytes, options);
                 PrepareDestinationStreamForWrite(destination);
                 destination.Write(finalizedBytes, 0, finalizedBytes.Length);
                 try { destination.Flush(); } catch (NotSupportedException) { }
 
                 ReloadFromBytes(finalizedBytes);
-
-                if (options?.ValidateOpenXml == true) {
-                    var errors = ValidateOpenXml();
-                    if (errors.Count > 0) {
-                        throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
-                    }
-                }
             } catch {
                 TryRestoreDocumentState(payload);
                 throw;
@@ -1273,20 +1265,13 @@ namespace OfficeIMO.Excel {
 
             var payload = PreparePackageForSave(options);
             try {
-                var withProperties = payload.Properties.ApplyTo(payload.PackageBytes);
-                var finalizedBytes = NormalizePackageBytes(withProperties);
+                var finalizedBytes = FinalizePackageBytes(payload);
+                ThrowIfOpenXmlValidationFails(finalizedBytes, options);
                 PrepareDestinationStreamForWrite(destination);
                 await destination.WriteAsync(finalizedBytes, 0, finalizedBytes.Length, cancellationToken).ConfigureAwait(false);
                 try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
 
                 ReloadFromBytes(finalizedBytes);
-
-                if (options?.ValidateOpenXml == true) {
-                    var errors = ValidateOpenXml();
-                    if (errors.Count > 0) {
-                        throw new System.InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
-                    }
-                }
             } catch {
                 TryRestoreDocumentState(payload);
                 throw;
@@ -1437,17 +1422,13 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void CommitPreparedPackageToFile(string targetPath, SavePayload payload) {
+        private static void CommitPreparedPackageToFile(string targetPath, byte[] finalizedBytes) {
             var temporaryPath = CreateTemporarySavePath(targetPath);
             try {
                 using (var fs = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
-                    fs.Write(payload.PackageBytes, 0, payload.PackageBytes.Length);
+                    fs.Write(finalizedBytes, 0, finalizedBytes.Length);
                     fs.Flush();
                 }
-
-                try { payload.Properties.ApplyTo(temporaryPath); } catch { }
-                try { ExcelPackageUtilities.NormalizeContentTypes(temporaryPath); } catch { }
-
                 ReplaceTargetFile(temporaryPath, targetPath);
                 temporaryPath = string.Empty;
             } finally {
@@ -1455,17 +1436,13 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static async Task CommitPreparedPackageToFileAsync(string targetPath, SavePayload payload, CancellationToken cancellationToken) {
+        private static async Task CommitPreparedPackageToFileAsync(string targetPath, byte[] finalizedBytes, CancellationToken cancellationToken) {
             var temporaryPath = CreateTemporarySavePath(targetPath);
             try {
                 using (var fs = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 8192, FileOptions.Asynchronous)) {
-                    await fs.WriteAsync(payload.PackageBytes, 0, payload.PackageBytes.Length, cancellationToken).ConfigureAwait(false);
+                    await fs.WriteAsync(finalizedBytes, 0, finalizedBytes.Length, cancellationToken).ConfigureAwait(false);
                     await fs.FlushAsync(cancellationToken).ConfigureAwait(false);
                 }
-
-                try { payload.Properties.ApplyTo(temporaryPath); } catch { }
-                try { ExcelPackageUtilities.NormalizeContentTypes(temporaryPath); } catch { }
-
                 ReplaceTargetFile(temporaryPath, targetPath);
                 temporaryPath = string.Empty;
             } finally {
@@ -1520,6 +1497,22 @@ namespace OfficeIMO.Excel {
             }
 
             return working.ToArray();
+        }
+
+        private static byte[] FinalizePackageBytes(SavePayload payload) {
+            var withProperties = payload.Properties.ApplyTo(payload.PackageBytes);
+            return NormalizePackageBytes(withProperties);
+        }
+
+        private static void ThrowIfOpenXmlValidationFails(byte[] finalizedBytes, ExcelSaveOptions? options) {
+            if (options?.ValidateOpenXml != true) {
+                return;
+            }
+
+            var errors = ValidateOpenXml(finalizedBytes);
+            if (errors.Count > 0) {
+                throw new InvalidOperationException("OpenXML validation failed:\n" + string.Join("\n", errors));
+            }
         }
 
         private sealed class PackagePropertiesSnapshot {

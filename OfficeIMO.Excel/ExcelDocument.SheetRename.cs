@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel {
 
             UpdateDefinedNameReferences(oldSheetName, newSheetName);
             UpdateWorksheetReferences(oldSheetName, newSheetName);
+            UpdateTableReferences(oldSheetName, newSheetName);
             UpdateChartReferences(oldSheetName, newSheetName);
             UpdatePivotCacheReferences(oldSheetName, newSheetName);
         }
@@ -172,6 +173,48 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private void UpdateTableReferences(string oldSheetName, string newSheetName) {
+            foreach (var worksheetPart in _workBookPart.WorksheetParts) {
+                foreach (var tableDefinitionPart in worksheetPart.TableDefinitionParts) {
+                    var table = tableDefinitionPart.Table;
+                    if (table == null) {
+                        continue;
+                    }
+
+                    bool changed = false;
+
+                    foreach (var formula in table.Descendants<CalculatedColumnFormula>()) {
+                        string? text = formula.Text;
+                        if (string.IsNullOrEmpty(text)) {
+                            continue;
+                        }
+
+                        string updated = ReplaceSheetNameReferences(text, oldSheetName, newSheetName);
+                        if (!string.Equals(updated, text, StringComparison.Ordinal)) {
+                            formula.Text = updated;
+                            changed = true;
+                        }
+                    }
+
+                    foreach (var formula in table.Descendants<TotalsRowFormula>()) {
+                        string? text = formula.Text;
+                        if (string.IsNullOrEmpty(text)) {
+                            continue;
+                        }
+
+                        string updated = ReplaceSheetNameReferences(text, oldSheetName, newSheetName);
+                        if (!string.Equals(updated, text, StringComparison.Ordinal)) {
+                            formula.Text = updated;
+                            changed = true;
+                        }
+                    }
+
+                    if (changed) {
+                        table.Save();
+                    }
+                }
+            }
+        }
         private void UpdatePivotCacheReferences(string oldSheetName, string newSheetName) {
             foreach (var cacheDefinitionPart in _workBookPart.GetPartsOfType<PivotTableCacheDefinitionPart>()) {
                 var worksheetSource = cacheDefinitionPart.PivotCacheDefinition?.CacheSource?.WorksheetSource;
