@@ -431,10 +431,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             try {
-                OpenXmlPart? oldPart = _slidePart.GetPartById(resolvedRelationshipId);
-                if (oldPart != null) {
-                    _slidePart.DeletePart(oldPart);
-                }
+                _slidePart.DeletePart(resolvedRelationshipId);
             } catch (ArgumentOutOfRangeException) {
                 // The previous relationship may already be absent on damaged input.
             }

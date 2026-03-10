@@ -367,6 +367,7 @@ namespace OfficeIMO.PowerPoint {
         private static string GetNextRelationshipId(OpenXmlPartContainer container) {
             HashSet<string> existingRelationships = new(
                 container.Parts.Select(part => part.RelationshipId)
+                    .Concat(container.DataPartReferenceRelationships.Select(rel => rel.Id))
                     .Concat(container.ExternalRelationships.Select(rel => rel.Id))
                     .Concat(container.HyperlinkRelationships.Select(rel => rel.Id))
                     .Where(id => !string.IsNullOrEmpty(id)),
