@@ -32,7 +32,7 @@ public static partial class MarkdownReader {
 
             int j = i + 1;
             bool firstIsTask = TryStripTaskMarker(firstContent, out _, out bool firstDone, out var strippedFirst);
-            var firstLines = ConsumeListContinuationLines(lines, ref j, firstContinuationIndent, strippedFirst, options);
+            var firstLines = ConsumeListContinuationLines(lines, ref j, firstContinuationIndent, strippedFirst, options, breakOnAnyOrderedListLine: true);
             var first = CreateListItemFromLeadLines(firstLines, firstIsTask, firstDone, options, state);
             first.Level = 0;
             AddListItemLeadSyntaxNodes(first, firstLines, i, options, state);
@@ -44,7 +44,7 @@ public static partial class MarkdownReader {
                 int continuationIndent = GetListContinuationIndent(lines[j]);
                 int next = j + 1;
                 bool isTask = TryStripTaskMarker(content, out _, out bool done, out var stripped);
-                var itemLines = ConsumeListContinuationLines(lines, ref next, continuationIndent, stripped, options);
+                var itemLines = ConsumeListContinuationLines(lines, ref next, continuationIndent, stripped, options, breakOnAnyOrderedListLine: true);
                 var li = CreateListItemFromLeadLines(itemLines, isTask, done, options, state);
                 li.Level = lvlAbs - lvl0Abs;
                 AddListItemLeadSyntaxNodes(li, itemLines, j, options, state);

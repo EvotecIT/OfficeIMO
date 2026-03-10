@@ -85,6 +85,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "plain-email-with-fragment-suffix", "Contact user@example.com#frag now" };
         yield return new object[] { "plain-email-with-plus-tag", "Contact user.name+tag@example.com now" };
         yield return new object[] { "quote-blank-paragraph-then-paragraph", "> one\n>\n> \n> two" };
+        yield return new object[] { "unordered-list-lazy-continuation", "- item\ncontinuation" };
+        yield return new object[] { "ordered-list-lazy-continuation", "1. item\ncontinuation" };
+        yield return new object[] { "unordered-list-loose-lazy-continuation-after-indented-paragraph", "- item\n\n    code\nafter" };
         yield return new object[] { "unordered-list-indented-code-then-paragraph", "- item\n\n      code\n\n  after" };
         yield return new object[] { "ordered-list-nested-blockquote-then-code", "1. item\n   > quote\n\n      code" };
         yield return new object[] { "setext-heading-before-list", "Heading\n-------\n- item" };

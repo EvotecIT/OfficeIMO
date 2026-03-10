@@ -9,7 +9,7 @@ public static partial class MarkdownReader {
             int firstContinuationIndent = GetListContinuationIndent(lines[i]);
 
             int j = i + 1;
-            var firstLines = ConsumeListContinuationLines(lines, ref j, firstContinuationIndent, firstContent, options);
+            var firstLines = ConsumeListContinuationLines(lines, ref j, firstContinuationIndent, firstContent, options, breakOnAnyOrderedListLine: false);
             var first = CreateListItemFromLeadLines(firstLines, isTask, done, options, state);
             first.Level = 0;
             AddListItemLeadSyntaxNodes(first, firstLines, i, options, state);
@@ -21,7 +21,7 @@ public static partial class MarkdownReader {
             while (j < lines.Length && IsUnorderedListLine(lines[j], out var lvlAbs, out var isTask2, out var done2, out var content2) && lvlAbs >= level0Abs) {
                 int continuationIndent = GetListContinuationIndent(lines[j]);
                 int next = j + 1;
-                var itemLines = ConsumeListContinuationLines(lines, ref next, continuationIndent, content2, options);
+                var itemLines = ConsumeListContinuationLines(lines, ref next, continuationIndent, content2, options, breakOnAnyOrderedListLine: false);
                 var li = CreateListItemFromLeadLines(itemLines, isTask2, done2, options, state);
                 li.Level = lvlAbs - level0Abs;
                 AddListItemLeadSyntaxNodes(li, itemLines, j, options, state);

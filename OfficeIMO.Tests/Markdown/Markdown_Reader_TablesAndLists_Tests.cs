@@ -197,6 +197,53 @@ c | d
         }
 
         [Fact]
+        public void Unordered_List_Item_Allows_Lazy_Continuation() {
+            const string md = """
+- item
+continuation
+""";
+
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Single(list.Items);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<ul><li>item continuation</li></ul>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Ordered_List_Item_Allows_Lazy_Continuation() {
+            const string md = """
+1. item
+continuation
+""";
+
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<OrderedListBlock>(doc.Blocks[0]);
+            Assert.Single(list.Items);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<ol><li>item continuation</li></ol>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Unordered_List_Item_Second_Paragraph_Allows_Lazy_Continuation() {
+            const string md = """
+- item
+
+    code
+after
+""";
+
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Single(list.Items);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<ul><li><p>item</p><p>code after</p></li></ul>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Unordered_List_Becomes_Loose_When_Later_Item_Has_Second_Paragraph() {
             const string md = """
 - a

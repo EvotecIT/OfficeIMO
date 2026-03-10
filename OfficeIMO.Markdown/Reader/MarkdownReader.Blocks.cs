@@ -482,7 +482,7 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static List<string> ConsumeListContinuationLines(string[] lines, ref int nextIndex, int continuationIndent, string initialContent, MarkdownReaderOptions options) {
+    private static List<string> ConsumeListContinuationLines(string[] lines, ref int nextIndex, int continuationIndent, string initialContent, MarkdownReaderOptions options, bool breakOnAnyOrderedListLine = false) {
         if (lines == null) return new List<string> { initialContent ?? string.Empty };
         if (nextIndex < 0) nextIndex = 0;
 
@@ -494,7 +494,7 @@ public static partial class MarkdownReader {
 
             // Stop before the next list item (including nested items).
             if (IsUnorderedListLine(line, out _, out _, out _, out _) ||
-                IsParagraphInterruptingOrderedListLine(line)) {
+                (breakOnAnyOrderedListLine ? IsOrderedListLine(line, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(line))) {
                 break;
             }
 
@@ -535,7 +535,7 @@ public static partial class MarkdownReader {
                 if (peek >= lines.Length) break;
                 var next = lines[peek] ?? string.Empty;
                 if (IsUnorderedListLine(next, out _, out _, out _, out _) ||
-                    IsOrderedListLine(next, out _, out _, out _)) {
+                    (breakOnAnyOrderedListLine ? IsOrderedListLine(next, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(next))) {
                     break;
                 }
                 int nextIndentColumns = CountLeadingIndentColumns(next);
@@ -547,7 +547,18 @@ public static partial class MarkdownReader {
             }
 
             int indentColumns = CountLeadingIndentColumns(line);
-            if (indentColumns < continuationIndent) break;
+            if (indentColumns < continuationIndent) {
+                if (collected.Count > 0 &&
+                    !string.IsNullOrWhiteSpace(collected[collected.Count - 1]) &&
+                    LooksLikeParagraphLine(collected, collected.Count - 1, options) &&
+                    TryNormalizeListLazyContinuationLine(lines, k, options, breakOnAnyOrderedListLine, out var normalizedLazyLine)) {
+                    collected.Add(normalizedLazyLine);
+                    k++;
+                    continue;
+                }
+
+                break;
+            }
 
             // Strip the required indent; keep the remainder as-is (including additional indentation).
             string cont = StripLeadingIndentColumns(line, continuationIndent);
@@ -558,6 +569,31 @@ public static partial class MarkdownReader {
 
         nextIndex = k;
         return collected;
+    }
+
+    private static bool TryNormalizeListLazyContinuationLine(IReadOnlyList<string>? lines, int index, MarkdownReaderOptions options, bool breakOnAnyOrderedListLine, out string normalized) {
+        var source = lines != null && index >= 0 && index < lines.Count ? (lines[index] ?? string.Empty) : string.Empty;
+        normalized = source;
+        if (string.IsNullOrWhiteSpace(source)) return false;
+
+        var trimmed = source.TrimStart();
+        if (trimmed.Length == 0) return false;
+        if (trimmed.StartsWith(">")) return false;
+        if (IsAtxHeading(trimmed, out _, out _)) return false;
+        if (LooksLikeHr(trimmed)) return false;
+        if (IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
+        if (LooksLikeTableRow(trimmed)) return false;
+        if (ShouldTreatAsDefinitionLine(lines, index, options)) return false;
+        if (IsCalloutHeader("> " + trimmed, out _, out _)) return false;
+        if (IsUnorderedListLine(trimmed, out _, out _, out _, out _)) return false;
+        if (breakOnAnyOrderedListLine ? IsOrderedListLine(trimmed, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(trimmed)) return false;
+
+        if (options.HtmlBlocks && trimmed.StartsWith("<") && !TryParseAngleAutolink(trimmed, 0, out _, out _, out _)) {
+            return false;
+        }
+
+        normalized = trimmed;
+        return true;
     }
 
     private static bool TryParseNestedFencedCodeBlock(string[] lines, ref int index, int continuationIndent, MarkdownReaderOptions options, out CodeBlock? block) {
