@@ -24,7 +24,7 @@ public static partial class MarkdownReader {
             var nestedState = CloneState(state);
             var syntaxChildren = new System.Collections.Generic.List<MarkdownSyntaxNode>();
             var innerDoc = ParseInternal(string.Join("\n", inner), nestedOptions, nestedState, allowFrontMatter: false, syntaxChildren, lineOffset: state.SourceLineOffset + i + 1);
-            doc.Add(new CalloutBlock(kind, title, innerDoc.Blocks, syntaxChildren));
+            doc.Add(new CalloutBlock(kind, ParseInlines(title, options, state), innerDoc.Blocks, syntaxChildren));
 
             i = j;
             return true;

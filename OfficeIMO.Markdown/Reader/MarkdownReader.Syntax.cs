@@ -40,12 +40,14 @@ public static partial class MarkdownReader {
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.OrderedList, span, ordered.Start.ToString(System.Globalization.CultureInfo.InvariantCulture), BuildListItemSyntaxNodes(ordered.Items, MarkdownSyntaxKind.OrderedList));
             case DefinitionListBlock definitionList:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.DefinitionList, span, children: BuildDefinitionItemSyntaxNodes(definitionList));
-            case CalloutBlock callout:
+            case CalloutBlock callout: {
+                var calloutTitleMarkdown = callout.TitleInlines.RenderMarkdown();
                 return new MarkdownSyntaxNode(
                     MarkdownSyntaxKind.Callout,
                     span,
-                    string.IsNullOrWhiteSpace(callout.Title) ? callout.Kind : callout.Kind + ":" + callout.Title,
+                    string.IsNullOrWhiteSpace(calloutTitleMarkdown) ? callout.Kind : callout.Kind + ":" + calloutTitleMarkdown,
                     callout.SyntaxChildren ?? (callout.Children != null ? BuildChildSyntaxNodes(callout.Children) : Array.Empty<MarkdownSyntaxNode>()));
+            }
             case DetailsBlock details:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.Details, span, details.Open ? "open" : null, BuildDetailsChildren(details));
             case SummaryBlock summary:
