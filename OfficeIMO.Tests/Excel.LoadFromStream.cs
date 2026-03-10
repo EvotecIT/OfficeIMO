@@ -363,6 +363,40 @@ namespace OfficeIMO.Tests
             Assert.Contains(reloaded.Sheets, s => s.Name == "Initial");
             Assert.Contains(reloaded.Sheets, s => s.Name == "AfterExplicitSave");
         }
+
+        [Fact]
+        public void Create_ToMemoryStream_ParameterlessSave_WritesBackToSourceStream()
+        {
+            using var source = new MemoryStream();
+            using (var document = ExcelDocument.Create(source))
+            {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Saved");
+                document.Save();
+            }
+
+            source.Position = 0;
+            using var reloaded = ExcelDocument.Load(source);
+            Assert.True(reloaded.Sheets[0].TryGetCellText(1, 1, out var value));
+            Assert.Equal("Saved", value);
+        }
+
+        [Fact]
+        public async Task Create_ToMemoryStream_ParameterlessSaveAsync_WritesBackToSourceStream()
+        {
+            using var source = new MemoryStream();
+            await using (var document = ExcelDocument.Create(source))
+            {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Saved Async");
+                await document.SaveAsync();
+            }
+
+            source.Position = 0;
+            using var reloaded = ExcelDocument.Load(source);
+            Assert.True(reloaded.Sheets[0].TryGetCellText(1, 1, out var value));
+            Assert.Equal("Saved Async", value);
+        }
     }
 }
 
