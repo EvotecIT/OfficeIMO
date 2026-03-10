@@ -347,26 +347,28 @@ public sealed class TableBlock : IMarkdownBlock {
     }
 
     internal int ComputeContentSignature() {
-        var hash = new HashCode();
-        hash.Add(Headers.Count);
+        unchecked {
+            int hash = 17;
+            hash = (hash * 31) + Headers.Count;
         for (int i = 0; i < Headers.Count; i++) {
-            hash.Add(Headers[i], StringComparer.Ordinal);
+                hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(Headers[i] ?? string.Empty);
         }
 
-        hash.Add(Rows.Count);
+            hash = (hash * 31) + Rows.Count;
         for (int rowIndex = 0; rowIndex < Rows.Count; rowIndex++) {
             var row = Rows[rowIndex];
-            hash.Add(row?.Count ?? -1);
+                hash = (hash * 31) + (row?.Count ?? -1);
             if (row == null) {
                 continue;
             }
 
             for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) {
-                hash.Add(row[cellIndex], StringComparer.Ordinal);
+                    hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(row[cellIndex] ?? string.Empty);
+                }
             }
-        }
 
-        return hash.ToHashCode();
+            return hash;
+        }
     }
 
     internal static bool TryConsumeBreakTag(string value, int index, out int consumed) {
