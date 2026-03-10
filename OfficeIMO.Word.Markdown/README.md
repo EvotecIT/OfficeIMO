@@ -51,7 +51,7 @@ using var doc = markdown.LoadFromMarkdown(options);
 ```
 
 - Typed contract is available via `MarkdownToWordOptions.ImageLayout`.
-- `PreferNarrativeSingleLineDefinitions = true` disables definition-list parsing for `Label: value` narrative lines.
+- `PreferNarrativeSingleLineDefinitions = true` keeps isolated `Label: value` lines as narrative paragraphs while still allowing grouped definition-list blocks.
 - `OnImageLayoutDiagnostic` can be used to inspect final width/height and applied layout constraints.
 
 ## Supported features (core)

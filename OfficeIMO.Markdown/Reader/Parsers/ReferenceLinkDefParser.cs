@@ -19,7 +19,7 @@ public static partial class MarkdownReader {
             var t = line.Trim();
             if (t.Length < 5 || t[0] != '[') return false;
             if (t.Length > 1 && t[1] == '^') return false; // footnote definition, not a link ref
-            int rb = t.IndexOf(']');
+            int rb = FindReferenceLabelEnd(t, 0);
             if (rb <= 1) return false;
             if (rb + 1 >= t.Length || t[rb + 1] != ':') return false;
             string label = NormalizeReferenceLabel(t.Substring(1, rb - 1));

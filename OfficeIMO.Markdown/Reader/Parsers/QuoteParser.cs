@@ -39,8 +39,8 @@ public static partial class MarkdownReader {
 
                     // Only continue lazily when both sides look like paragraph content.
                     // A non-quoted list/item/code starter should end the blockquote instead of being swallowed into it.
-                    if (inner.Count == 0 || !LooksLikeParagraphLine(inner[inner.Count - 1])) break;
-                    if (!TryNormalizeQuoteLazyContinuationLine(ln, out var normalizedLazyLine)) break;
+                    if (inner.Count == 0 || !LooksLikeParagraphLine(inner, inner.Count - 1, options)) break;
+                    if (!TryNormalizeQuoteLazyContinuationLine(lines, j, options, out var normalizedLazyLine)) break;
 
                     inner.Add(normalizedLazyLine);
                     j++;
@@ -61,7 +61,9 @@ public static partial class MarkdownReader {
         }
     }
 
-    private static bool LooksLikeParagraphLine(string line) {
+    private static bool LooksLikeParagraphLine(IReadOnlyList<string>? lines, int index, MarkdownReaderOptions options) {
+        if (lines == null || index < 0 || index >= lines.Count) return false;
+        var line = lines[index] ?? string.Empty;
         if (string.IsNullOrWhiteSpace(line)) return false;
         if (CountLeadingSpaces(line) >= 4) return false;
 
@@ -75,20 +77,20 @@ public static partial class MarkdownReader {
         if (LooksLikeTableRow(t)) return false;
         if (IsUnorderedListLine(t, out _, out _, out _)) return false;
         if (IsParagraphInterruptingOrderedListLine(t)) return false;
-        if (IsDefinitionLine(t)) return false;
+        if (ShouldTreatAsDefinitionLine(lines, index, options)) return false;
         if (IsCalloutHeader("> " + t, out _, out _)) return false; // callout marker is quote-prefixed in source
 
         return true;
     }
 
-    private static bool TryNormalizeQuoteLazyContinuationLine(string? line, out string normalized) {
-        var source = line ?? string.Empty;
+    private static bool TryNormalizeQuoteLazyContinuationLine(IReadOnlyList<string>? lines, int index, MarkdownReaderOptions options, out string normalized) {
+        var source = lines != null && index >= 0 && index < lines.Count ? (lines[index] ?? string.Empty) : string.Empty;
         normalized = source;
         if (string.IsNullOrWhiteSpace(source)) return false;
 
         int leadingSpaces = CountLeadingSpaces(source);
         if (leadingSpaces == 0) {
-            return LooksLikeParagraphLine(source);
+            return LooksLikeParagraphLine(lines, index, options);
         }
 
         if (leadingSpaces > 4) {
@@ -102,7 +104,7 @@ public static partial class MarkdownReader {
         if (LooksLikeHr(trimmed)) return false;
         if (IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
         if (LooksLikeTableRow(trimmed)) return false;
-        if (IsDefinitionLine(trimmed)) return false;
+        if (ShouldTreatAsDefinitionLine(lines, index, options)) return false;
         if (IsCalloutHeader("> " + trimmed, out _, out _)) return false;
 
         if (IsUnorderedListLine(trimmed, out _, out _, out _) || IsParagraphInterruptingOrderedListLine(trimmed)) {

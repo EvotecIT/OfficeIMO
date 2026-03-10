@@ -306,7 +306,8 @@ namespace OfficeIMO.Word.Markdown {
             // Parse using OfficeIMO.Markdown reader.
             var readerOptions = new Omd.MarkdownReaderOptions {
                 BaseUri = options.BaseUri,
-                DefinitionLists = !options.PreferNarrativeSingleLineDefinitions
+                DefinitionLists = true,
+                PreferNarrativeSingleLineDefinitions = options.PreferNarrativeSingleLineDefinitions
             };
             var omd = Omd.MarkdownReader.Parse(markdown, readerOptions);
             var blocks = omd.Blocks;

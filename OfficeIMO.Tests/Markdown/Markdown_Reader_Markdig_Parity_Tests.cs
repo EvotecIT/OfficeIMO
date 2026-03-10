@@ -48,6 +48,13 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "nonone-ordered-marker-with-indented-continuation", "alpha\n10. beta\n    gamma" };
         yield return new object[] { "list-quote-lazy-after-setext-heading", "- outer\n  heading\n  -------\n  > quote\n  continuation" };
         yield return new object[] { "literal-url-colon-stays-paragraph", "Visit https://example.com/path_(x): now" };
+        yield return new object[] { "atx-empty-heading", "#" };
+        yield return new object[] { "atx-indented-heading", "   # heading" };
+        yield return new object[] { "atx-trailing-closing-hashes", "### foo ###" };
+        yield return new object[] { "inline-link-nested-label", "[link [inner]](https://example.com)" };
+        yield return new object[] { "inline-link-escaped-closing-paren", "[x](https://example.com/a\\)b)" };
+        yield return new object[] { "inline-image-balanced-parens", "Look ![alt](https://example.com/a_(b).png) now" };
+        yield return new object[] { "linked-image-nested-alt", "[![alt [x]](https://example.com/a_(b).png)](https://example.com)" };
     }
 
     [Theory]
