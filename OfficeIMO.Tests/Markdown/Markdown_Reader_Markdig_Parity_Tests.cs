@@ -58,6 +58,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "inline-link-angle-destination-space", "[x](<https://example.com/a b> \"title\")" };
         yield return new object[] { "inline-image-angle-destination-space", "Look ![x](<https://example.com/a b> \"title\") now" };
         yield return new object[] { "reference-link-angle-destination-space", "[x][r]\n\n[r]: <https://example.com/a b>" };
+        yield return new object[] { "unordered-list-tab-continuation", "- first line\n\tsecond line\n- next" };
+        yield return new object[] { "ordered-list-tab-continuation", "1. first line\n\tsecond line\n2. next" };
     }
 
     [Theory]
