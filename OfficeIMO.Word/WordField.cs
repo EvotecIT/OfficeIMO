@@ -342,21 +342,22 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string Text {
             get {
-                foreach (var run in _runs) {
-                    var text = run.ChildElements.OfType<Text>().FirstOrDefault();
-                    if (text != null) {
-                        return text.Text;
-                    }
-                }
-
-                return "";
+                return string.Concat(_runs
+                    .SelectMany(run => run.ChildElements.OfType<Text>())
+                    .Select(text => text.Text));
             }
             set {
-                foreach (var run in _runs) {
-                    var text = run.ChildElements.OfType<Text>().FirstOrDefault();
-                    if (text != null) {
-                        text.Text = value;
-                    }
+                var texts = _runs
+                    .SelectMany(run => run.ChildElements.OfType<Text>())
+                    .ToList();
+
+                if (texts.Count == 0) {
+                    return;
+                }
+
+                texts[0].Text = value;
+                for (int i = 1; i < texts.Count; i++) {
+                    texts[i].Text = string.Empty;
                 }
             }
         }
@@ -366,10 +367,7 @@ namespace OfficeIMO.Word {
             this._paragraph = paragraph;
             this._simpleField = simpleField;
             if (simpleField != null) {
-                var run = simpleField.GetFirstChild<Run>();
-                if (run != null) {
-                    this._runs.Add(run);
-                }
+                this._runs.AddRange(simpleField.Elements<Run>());
             } else if (runs != null) {
                 this._runs = runs;
             }

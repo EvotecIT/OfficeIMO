@@ -350,6 +350,57 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FieldText_LoadsCombinedSimpleFieldResultFromMultipleRuns() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldTextMultipleRunsSimple.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddField(WordFieldType.Author);
+
+                var simpleField = paragraph._paragraph.Elements<SimpleField>().Single();
+                simpleField.RemoveAllChildren<Run>();
+                simpleField.Append(new Run(new Text("Alpha")));
+                simpleField.Append(new Run(new Text("Beta")));
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var field = Assert.Single(document.Fields);
+
+                Assert.Equal("AlphaBeta", field.Text);
+
+                field.Text = "Merged";
+                Assert.Equal("Merged", field.Text);
+            }
+        }
+
+        [Fact]
+        public void Test_FieldText_LoadsCombinedComplexFieldResultFromMultipleRuns() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldTextMultipleRunsComplex.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph();
+                paragraph.AddField(WordFieldType.Author, advanced: true);
+
+                var resultRun = paragraph._paragraph.Elements<Run>().Single(run => run.Elements<Text>().Any());
+                resultRun.GetFirstChild<Text>()!.Text = "Alpha";
+                resultRun.InsertAfterSelf(new Run(new Text("Beta")));
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var field = Assert.Single(document.Fields);
+
+                Assert.Equal("AlphaBeta", field.Text);
+
+                field.Text = "Merged";
+                Assert.Equal("Merged", field.Text);
+            }
+        }
+
+        [Fact]
         public void Test_ReadingOfFragmentedInstructions() {
             using WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "partitionedFieldInstructions.docx"));
 
