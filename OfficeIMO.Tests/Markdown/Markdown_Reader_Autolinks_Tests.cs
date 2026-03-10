@@ -143,6 +143,7 @@ public class Markdown_Reader_Autolinks_Tests {
     [Theory]
     [InlineData("Visit _https://example.com now")]
     [InlineData("Visit /https://example.com now")]
+    [InlineData("Visit &https://example.com now")]
     public void Autolinks_DoNot_Link_Http_Urls_After_Invalid_Left_Boundaries(string markdown) {
         var doc = MarkdownReader.Parse(markdown);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
@@ -182,6 +183,15 @@ public class Markdown_Reader_Autolinks_Tests {
 
         Assert.DoesNotContain("href=\"https://www.example.com\"", html, StringComparison.Ordinal);
         Assert.Contains("<p>Visit _www.example.com now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Www_Urls_After_Ampersand() {
+        var doc = MarkdownReader.Parse("Visit &www.example.com now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://www.example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Visit &amp;www.example.com now</p>", html, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -250,6 +260,15 @@ public class Markdown_Reader_Autolinks_Tests {
 
         Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
         Assert.Contains("<p>Contact [user@example.com now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Plain_Emails_After_Ampersand() {
+        var doc = MarkdownReader.Parse("Contact &user@example.com now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Contact &amp;user@example.com now</p>", html, StringComparison.Ordinal);
     }
 
     [Fact]
