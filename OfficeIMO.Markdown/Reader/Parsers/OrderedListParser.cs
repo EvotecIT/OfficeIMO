@@ -33,15 +33,7 @@ public static partial class MarkdownReader {
             int j = i + 1;
             bool firstIsTask = TryStripTaskMarker(firstContent, out _, out bool firstDone, out var strippedFirst);
             var firstLines = ConsumeListContinuationLines(lines, ref j, firstContinuationIndent, strippedFirst, options);
-            ListItem first;
-            if (TryParseListItemLeadSetextBlocks(firstLines, options, state, out var firstBlocks)) {
-                first = firstIsTask ? ListItem.TaskInlines(new InlineSequence(), firstDone) : new ListItem(new InlineSequence());
-                for (int p = 0; p < firstBlocks.Count; p++) first.Children.Add(firstBlocks[p]);
-            } else {
-                var firstParas = ParseParagraphsFromLines(firstLines, options, state);
-                first = firstIsTask ? ListItem.TaskInlines(firstParas[0], firstDone) : new ListItem(firstParas[0]);
-                for (int p = 1; p < firstParas.Count; p++) first.AdditionalParagraphs.Add(firstParas[p]);
-            }
+            var first = CreateListItemFromLeadLines(firstLines, firstIsTask, firstDone, options, state);
             first.Level = 0;
             AddListItemLeadSyntaxNodes(first, firstLines, i, options, state);
             ol.Items.Add(first);
@@ -53,15 +45,7 @@ public static partial class MarkdownReader {
                 int next = j + 1;
                 bool isTask = TryStripTaskMarker(content, out _, out bool done, out var stripped);
                 var itemLines = ConsumeListContinuationLines(lines, ref next, continuationIndent, stripped, options);
-                ListItem li;
-                if (TryParseListItemLeadSetextBlocks(itemLines, options, state, out var itemBlocks)) {
-                    li = isTask ? ListItem.TaskInlines(new InlineSequence(), done) : new ListItem(new InlineSequence());
-                    for (int p = 0; p < itemBlocks.Count; p++) li.Children.Add(itemBlocks[p]);
-                } else {
-                    var paras = ParseParagraphsFromLines(itemLines, options, state);
-                    li = isTask ? ListItem.TaskInlines(paras[0], done) : new ListItem(paras[0]);
-                    for (int p = 1; p < paras.Count; p++) li.AdditionalParagraphs.Add(paras[p]);
-                }
+                var li = CreateListItemFromLeadLines(itemLines, isTask, done, options, state);
                 li.Level = lvlAbs - lvl0Abs;
                 AddListItemLeadSyntaxNodes(li, itemLines, j, options, state);
                 ol.Items.Add(li);

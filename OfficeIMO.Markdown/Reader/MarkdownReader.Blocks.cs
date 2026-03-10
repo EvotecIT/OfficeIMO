@@ -897,6 +897,25 @@ public static partial class MarkdownReader {
             return;
         }
 
+        int firstBlank = lines.FindIndex(string.IsNullOrWhiteSpace);
+        if (firstBlank > 0) {
+            AddParagraphSyntaxNodes(item.SyntaxChildren, lines.GetRange(0, firstBlank), absoluteLineOffset, options, state);
+
+            if (firstBlank + 1 < lines.Count) {
+                var trailingLines = lines.GetRange(firstBlank + 1, lines.Count - firstBlank - 1);
+                if (!trailingLines.TrueForAll(string.IsNullOrWhiteSpace)) {
+                    var trailingSyntax = new List<MarkdownSyntaxNode>();
+                    _ = ParseBlocksFromLines(trailingLines.ToArray(), options, state ?? new MarkdownReaderState(), trailingSyntax, lineOffset: lineOffset + firstBlank + 1);
+                    for (int i = 0; i < trailingSyntax.Count; i++) {
+                        item.SyntaxChildren.Add(trailingSyntax[i]);
+                    }
+                    return;
+                }
+            }
+
+            return;
+        }
+
         AddParagraphSyntaxNodes(item.SyntaxChildren, lines, absoluteLineOffset, options, state);
     }
 
@@ -939,6 +958,55 @@ public static partial class MarkdownReader {
         item.SyntaxChildren.Add(BuildSyntaxNode(block, new MarkdownSourceSpan(absoluteStart + 1, Math.Max(absoluteStart + 1, absoluteEndExclusive))));
     }
 
+    private static ListItem CreateListItemFromLeadLines(List<string> lines, bool isTask, bool done, MarkdownReaderOptions options, MarkdownReaderState? state) {
+        if (TryParseListItemLeadSetextBlocks(lines, options, state, out var leadBlocks)) {
+            var headingItem = isTask ? ListItem.TaskInlines(new InlineSequence(), done) : new ListItem(new InlineSequence());
+            for (int i = 0; i < leadBlocks.Count; i++) {
+                headingItem.Children.Add(leadBlocks[i]);
+            }
+            return headingItem;
+        }
+
+        int firstBlank = lines.FindIndex(string.IsNullOrWhiteSpace);
+        if (firstBlank <= 0) {
+            var paragraphs = ParseParagraphsFromLines(lines, options, state);
+            var item = isTask ? ListItem.TaskInlines(paragraphs[0], done) : new ListItem(paragraphs[0]);
+            for (int i = 1; i < paragraphs.Count; i++) {
+                item.AdditionalParagraphs.Add(paragraphs[i]);
+            }
+            return item;
+        }
+
+        var firstParagraph = ParseParagraphsFromLines(lines.GetRange(0, firstBlank), options, state)[0];
+        var mixedItem = isTask ? ListItem.TaskInlines(firstParagraph, done) : new ListItem(firstParagraph);
+
+        if (firstBlank + 1 >= lines.Count) return mixedItem;
+
+        var trailingLines = lines.GetRange(firstBlank + 1, lines.Count - firstBlank - 1);
+        if (trailingLines.TrueForAll(string.IsNullOrWhiteSpace)) return mixedItem;
+
+        var trailingBlocks = ParseBlocksFromLines(trailingLines.ToArray(), options, state ?? new MarkdownReaderState());
+        bool allParagraphs = true;
+        for (int i = 0; i < trailingBlocks.Count; i++) {
+            if (trailingBlocks[i] is ParagraphBlock paragraph) {
+                mixedItem.AdditionalParagraphs.Add(paragraph.Inlines);
+                continue;
+            }
+
+            allParagraphs = false;
+            break;
+        }
+
+        if (allParagraphs) return mixedItem;
+
+        mixedItem.AdditionalParagraphs.Clear();
+        for (int i = 0; i < trailingBlocks.Count; i++) {
+            mixedItem.Children.Add(trailingBlocks[i]);
+        }
+        mixedItem.ForceLoose = true;
+        return mixedItem;
+    }
+
     private static bool TryParseListItemLeadSetextBlocks(List<string> lines, MarkdownReaderOptions options, MarkdownReaderState? state, out List<IMarkdownBlock> blocks) {
         blocks = new List<IMarkdownBlock>();
         if (lines == null || lines.Count == 0 || options == null || !options.Headings) return false;
@@ -966,7 +1034,11 @@ public static partial class MarkdownReader {
         headingText = string.Empty;
         if (lines == null || lines.Count < 2 || options == null || !options.Headings) return false;
 
-        for (int prefixLength = 2; prefixLength <= lines.Count; prefixLength++) {
+        int firstBlank = lines.FindIndex(string.IsNullOrWhiteSpace);
+        int maxPrefixLength = firstBlank >= 0 ? firstBlank : lines.Count;
+        if (maxPrefixLength < 2) return false;
+
+        for (int prefixLength = 2; prefixLength <= maxPrefixLength; prefixLength++) {
             var candidate = lines.GetRange(0, prefixLength);
             if (!TryParseSetextHeadingParagraphLines(candidate, options, out level, out headingText)) continue;
 

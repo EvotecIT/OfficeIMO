@@ -658,6 +658,23 @@ c | d
         }
 
         [Fact]
+        public void List_Item_Blank_Line_Then_Setext_Heading_Starts_A_New_Block() {
+            const string md = """
+- item
+
+  Heading
+  ---
+  text
+""";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<ul><li><p>item</p><h2", html, StringComparison.Ordinal);
+            Assert.Contains(">Heading</h2><p>text</p></li></ul>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void NonOne_Ordered_Marker_Does_Not_Interrupt_List_Item_Paragraph() {
             string md = """
 - outer
