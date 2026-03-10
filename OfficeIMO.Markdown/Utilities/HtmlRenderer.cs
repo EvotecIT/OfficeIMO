@@ -139,9 +139,8 @@ internal static class HtmlRenderer {
                 if (ReferenceEquals(block, sidebar)) continue; // skip the sidebar placeholder; it's rendered as navHtml
                 if (block is HeadingBlock h) {
                     if (!headingSlugs.TryGetValue(h, out var id)) id = MarkdownSlug.GitHub(h.Text);
-                    var encoded = System.Net.WebUtility.HtmlEncode(h.Text);
                     content.Append($"<h{h.Level} id=\"{id}\">");
-                    content.Append(encoded);
+                    content.Append(h.Inlines.RenderHtml());
                     if (options.IncludeAnchorLinks || options.ShowAnchorIcons) {
                         var icon = System.Net.WebUtility.HtmlEncode(options.AnchorIcon ?? "🔗");
                         content.Append($"<a class=\"heading-anchor\" href=\"#{id}\" data-anchor-id=\"{id}\" title=\"Copy link\" aria-label=\"Copy link\">{icon}</a>");
@@ -185,9 +184,8 @@ internal static class HtmlRenderer {
             }
             if (block is HeadingBlock h) {
                 if (!headingSlugs.TryGetValue(h, out var id)) id = MarkdownSlug.GitHub(h.Text);
-                var encoded = System.Net.WebUtility.HtmlEncode(h.Text);
                 sb.Append($"<h{h.Level} id=\"{id}\">");
-                sb.Append(encoded);
+                sb.Append(h.Inlines.RenderHtml());
                 if (options.IncludeAnchorLinks || options.ShowAnchorIcons) {
                     var icon = System.Net.WebUtility.HtmlEncode(options.AnchorIcon ?? "🔗");
                     // Anchor icon button; when CopyHeadingLinkOnClick, JS hooks it to copy full URL

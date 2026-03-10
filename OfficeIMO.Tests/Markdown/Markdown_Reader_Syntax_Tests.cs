@@ -62,6 +62,21 @@ Heading Title
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Preserves_Heading_Inline_Markup_In_Literals() {
+        const string markdown = "# **Heading** `Text`";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var heading = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
+        Assert.Equal("**Heading** `Text`", heading.Literal);
+
+        var text = heading.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.HeadingText, text.Kind);
+        Assert.Equal("**Heading** `Text`", text.Literal);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Reconstructs_SameType_Nested_Lists() {
         var markdown = """
 - parent
