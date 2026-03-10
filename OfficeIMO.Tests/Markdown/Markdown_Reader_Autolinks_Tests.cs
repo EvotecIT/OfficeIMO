@@ -438,6 +438,18 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Autolinks_Can_Use_Markdig_Compatible_Preset() {
+        var options = MarkdownReaderOptions.CreateMarkdigCompatible();
+        var doc = MarkdownReader.Parse("See https://example.com and www.example.com and user@example.com and <angle@example.com>", options);
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://example.com\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("href=\"https://www.example.com\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("href=\"mailto:user@example.com\">user@example.com</a>", html, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"mailto:angle@example.com\">angle@example.com</a>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Autolinks_Require_Left_Boundary() {
         var doc = MarkdownReader.Parse("prefixhttps://example.com should not linkify.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
