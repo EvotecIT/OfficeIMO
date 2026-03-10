@@ -80,6 +80,11 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "inline-link-invalid-title-tail", "[x](https://example.com \"title\" extra)" };
         yield return new object[] { "inline-link-title-with-escaped-quote", "[x](https://example.com \"a \\\"quote\\\" title\")" };
         yield return new object[] { "reference-link-empty-angle-destination", "[x][r]\n\n[r]: <>" };
+        yield return new object[] { "reference-link-title-next-line", "[x][r]\n\n[r]: https://example.com\n  \"title\"" };
+        yield return new object[] { "reference-link-angle-destination-title-next-line", "[x][r]\n\n[r]: <https://example.com/a b>\n  \"title\"" };
+        yield return new object[] { "reference-link-label-whitespace-normalization", "[x][A   B]\n\n[a b]: https://example.com" };
+        yield return new object[] { "reference-link-label-case-normalization", "[x][MiXeD]\n\n[mixed]: https://example.com" };
+        yield return new object[] { "reference-link-escaped-bracket-label", "[x][a \\[b\\]]\n\n[a \\[b\\]]: https://example.com" };
         yield return new object[] { "unordered-list-tab-continuation", "- first line\n\tsecond line\n- next" };
         yield return new object[] { "ordered-list-tab-continuation", "1. first line\n\tsecond line\n2. next" };
         yield return new object[] { "blockquote-lazy-after-unordered-list-item", "> - item\ncontinuation" };
