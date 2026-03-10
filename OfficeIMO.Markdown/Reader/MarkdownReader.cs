@@ -215,7 +215,7 @@ public static partial class MarkdownReader {
         if (trimmed.Length > 1 && trimmed[1] == '^') return false;
 
         int balancedEnd = FindMatchingBracket(trimmed, 0);
-        return balancedEnd > 1 && balancedEnd + 1 < trimmed.Length && trimmed[balancedEnd + 1] == ':';
+        return balancedEnd >= 1 && balancedEnd + 1 < trimmed.Length && trimmed[balancedEnd + 1] == ':';
     }
 
     private static string NormalizeReferenceLabel(string? label) {

@@ -1382,14 +1382,20 @@ public static partial class MarkdownReader {
         if (probe < lineStart || text[probe] != ':') return false;
 
         string prefix = text.Substring(lineStart, probe - lineStart + 1).TrimEnd();
-        if (prefix.Length < 4 || prefix[0] != '[') return false;
+        if (prefix.Length < 3 || prefix[0] != '[') return false;
 
         int balancedEnd = FindMatchingBracket(prefix, 0);
-        if (balancedEnd <= 1 || balancedEnd + 1 >= prefix.Length || prefix[balancedEnd + 1] != ':' || balancedEnd + 2 != prefix.Length) {
+        if (balancedEnd < 1 || balancedEnd + 1 >= prefix.Length || prefix[balancedEnd + 1] != ':' || balancedEnd + 2 != prefix.Length) {
             return false;
         }
 
-        return FindReferenceLabelEnd(prefix, 0) < 0;
+        int strictEnd = FindReferenceLabelEnd(prefix, 0);
+        if (strictEnd < 0 || strictEnd + 1 >= prefix.Length || prefix[strictEnd + 1] != ':') {
+            return true;
+        }
+
+        var normalizedLabel = NormalizeReferenceLabel(prefix.Substring(1, strictEnd - 1));
+        return string.IsNullOrEmpty(normalizedLabel);
     }
 
     private static int ConsumeLiteralUrl(string text, int start) {
