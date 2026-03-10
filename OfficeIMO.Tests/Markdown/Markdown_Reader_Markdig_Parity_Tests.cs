@@ -91,6 +91,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "reference-link-invalid-nested-label-definition", "[x [y]]\n\n[x [y]]: https://example.com" };
         yield return new object[] { "reference-link-invalid-empty-label-definition", "[]: https://example.com" };
         yield return new object[] { "reference-link-invalid-whitespace-label-definition", "[ ]: https://example.com" };
+        yield return new object[] { "reference-link-invalid-title-tail", "[x]: https://example.com \"title\" extra" };
+        yield return new object[] { "reference-link-invalid-angle-title-tail", "[x]: <https://example.com/a b> \"title\" extra" };
         yield return new object[] { "reference-link-shortcut", "[x]\n\n[x]: https://example.com" };
         yield return new object[] { "reference-link-definition-three-space-indent", "[x][r]\n\n   [r]: https://example.com" };
         yield return new object[] { "reference-link-definition-tab-indent-invalid", "[x][r]\n\n\t[r]: https://example.com" };
