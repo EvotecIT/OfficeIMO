@@ -217,6 +217,15 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Autolinks_DoNot_Link_Plain_Emails_After_Colon() {
+        var doc = MarkdownReader.Parse("Contact foo:user@example.com now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Contact foo:user@example.com now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Autolinks_DoNot_Link_Plain_Emails_With_Path_Suffixes() {
         var doc = MarkdownReader.Parse("Contact user@example.com/path now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
