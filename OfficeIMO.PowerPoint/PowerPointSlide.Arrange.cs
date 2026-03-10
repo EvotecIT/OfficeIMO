@@ -365,11 +365,12 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static string GetNextRelationshipId(OpenXmlPartContainer container) {
-            var existingRelationships = container.Parts.Select(part => part.RelationshipId)
-                .Concat(container.ExternalRelationships.Select(rel => rel.Id))
-                .Concat(container.HyperlinkRelationships.Select(rel => rel.Id))
-                .Where(id => !string.IsNullOrEmpty(id))
-                .ToHashSet(StringComparer.Ordinal);
+            HashSet<string> existingRelationships = new(
+                container.Parts.Select(part => part.RelationshipId)
+                    .Concat(container.ExternalRelationships.Select(rel => rel.Id))
+                    .Concat(container.HyperlinkRelationships.Select(rel => rel.Id))
+                    .Where(id => !string.IsNullOrEmpty(id)),
+                StringComparer.Ordinal);
 
             int nextId = 1;
             string relationshipId;
