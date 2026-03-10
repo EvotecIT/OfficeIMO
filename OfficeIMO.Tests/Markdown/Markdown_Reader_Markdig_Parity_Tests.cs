@@ -46,6 +46,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "autolink-after-underscore", "Visit _https://example.com now" };
         yield return new object[] { "autolink-www-after-underscore", "Visit _www.example.com now" };
         yield return new object[] { "autolink-after-slash", "Visit /https://example.com now" };
+        yield return new object[] { "autolink-after-colon", "Visit foo:https://example.com now" };
+        yield return new object[] { "autolink-www-after-colon", "Visit foo:www.example.com now" };
+        yield return new object[] { "autolink-after-dot", "Visit foo.https://example.com now" };
         yield return new object[] { "angle-autolink-http", "<https://example.com>" };
         yield return new object[] { "plain-mailto-does-not-autolink-email", "Contact mailto:user@example.com now" };
         yield return new object[] { "plain-email-after-slash", "Contact /user@example.com now" };

@@ -1375,7 +1375,7 @@ public static partial class MarkdownReader {
         if (string.IsNullOrEmpty(text) || start <= 0 || start > text.Length) return false;
 
         char previous = text[start - 1];
-        return char.IsLetterOrDigit(previous) || previous == '_' || previous == '/';
+        return char.IsLetterOrDigit(previous) || previous == '_' || previous == '/' || previous == ':' || previous == '.';
     }
 
     private static bool IsAfterInvalidReferenceDefinitionPrefix(string text, int start) {
