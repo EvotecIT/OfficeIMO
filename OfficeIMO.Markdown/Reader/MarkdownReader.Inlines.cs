@@ -294,6 +294,7 @@ public static partial class MarkdownReader {
 
                 bool preferInnerBold = ShouldPreferInnerBold(stack, marker, remaining, canOpen, canClose);
                 bool splitDoubleUnderscoreOpener = ShouldSplitDoubleUnderscoreToLiteralAndItalic(text, pos, remaining, canOpen, canClose);
+                bool splitQuadRunIntoLiteralAndTriple = ShouldSplitQuadrupleRunIntoLiteralAndTriple(text, pos, marker, remaining, canOpen, canClose);
 
                 if (canClose && !preferInnerBold) {
                     while (remaining > 0) {
@@ -317,6 +318,10 @@ public static partial class MarkdownReader {
                         Current().Text("_");
                         stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }));
                         remaining -= 2;
+                    }
+                    else if (splitQuadRunIntoLiteralAndTriple) {
+                        Current().Text(marker.ToString());
+                        remaining -= 1;
                     }
 
                     while (remaining > 0) {
@@ -592,6 +597,16 @@ public static partial class MarkdownReader {
 
         return !HasFutureClosingDelimiterRun(text, start + 2, '_', minimumRunLength: 2) &&
                HasFutureClosingDelimiterRun(text, start + 2, '_', minimumRunLength: 1);
+    }
+
+    private static bool ShouldSplitQuadrupleRunIntoLiteralAndTriple(string text, int start, char marker, int runLen, bool canOpen, bool canClose) {
+        if (!canOpen || canClose) return false;
+        if (runLen != 4) return false;
+        if (marker != '*' && marker != '_') return false;
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
+
+        return FindNextClosingDelimiterRunIndex(text, start + 4, marker, requiredRunLength: 4) < 0 &&
+               FindNextClosingDelimiterRunIndex(text, start + 4, marker, requiredRunLength: 3) >= 0;
     }
 
     private static bool HasFutureClosingDelimiterRun(string text, int start, char marker, int minimumRunLength) {

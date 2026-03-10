@@ -13,6 +13,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "triple-marker-inner-bold-then-outer-italic", "***foo** bar*" };
         yield return new object[] { "single-star-inside-bold-stays-literal", "**foo*bar**" };
         yield return new object[] { "double-star-inside-italic-rebalances", "*a **b* c**" };
+        yield return new object[] { "quad-star-opener-degrades-to-literal-and-triple", "****foo***" };
+        yield return new object[] { "quad-underscore-opener-degrades-to-literal-and-triple", "____foo___" };
         yield return new object[] { "blockquote-lazy-continuation", "> Quote line 1\nQuote line 2" };
         yield return new object[] { "blockquote-blank-line", "> Quote\n>\n> Continued line" };
         yield return new object[] { "blockquote-nested-list", "> - List item\n>   - Nested" };
