@@ -36,15 +36,12 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
-    public void Autolinks_Trim_Unmatched_Closing_Paren_After_Http_Url() {
+    public void Autolinks_DoNot_Link_Http_Urls_After_Open_Paren() {
         var doc = MarkdownReader.Parse("See (https://en.wikipedia.org/wiki/Function_(mathematics)) now.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
-        Assert.Contains(
-            "(<a href=\"https://en.wikipedia.org/wiki/Function_(mathematics)\">https://en.wikipedia.org/wiki/Function_(mathematics)</a>)",
-            html,
-            StringComparison.Ordinal);
-        Assert.DoesNotContain("mathematics))</a>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("href=\"https://en.wikipedia.org/wiki/Function_(mathematics)\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>See (https://en.wikipedia.org/wiki/Function_(mathematics)) now.</p>", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -158,6 +155,8 @@ public class Markdown_Reader_Autolinks_Tests {
     [InlineData("Visit foo+https://example.com now")]
     [InlineData("Visit foo-https://example.com now")]
     [InlineData("Visit foo=https://example.com now")]
+    [InlineData("Visit (https://example.com now")]
+    [InlineData("Visit (https://example.com) now")]
     [InlineData("Visit [https://example.com now")]
     public void Autolinks_DoNot_Link_Http_Urls_After_Common_Prefix_Punctuation(string markdown) {
         var doc = MarkdownReader.Parse(markdown);
@@ -199,6 +198,8 @@ public class Markdown_Reader_Autolinks_Tests {
     [InlineData("Visit foo+www.example.com now")]
     [InlineData("Visit foo-www.example.com now")]
     [InlineData("Visit foo=www.example.com now")]
+    [InlineData("Visit (www.example.com now")]
+    [InlineData("Visit (www.example.com) now")]
     [InlineData("Visit [www.example.com now")]
     public void Autolinks_DoNot_Link_Www_Urls_After_Common_Prefix_Punctuation(string markdown) {
         var doc = MarkdownReader.Parse(markdown);
@@ -269,6 +270,15 @@ public class Markdown_Reader_Autolinks_Tests {
 
         Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
         Assert.Contains("<p>Contact &amp;user@example.com now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Plain_Emails_After_Open_Paren() {
+        var doc = MarkdownReader.Parse("Contact (user@example.com) now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Contact (user@example.com) now</p>", html, StringComparison.Ordinal);
     }
 
     [Fact]
