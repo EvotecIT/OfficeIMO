@@ -285,6 +285,20 @@ Heading Title
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Preserves_Callout_Title_Inline_Markup_In_Literal() {
+        var markdown = """
+> [!NOTE] Title with **strong** [link](https://example.com)
+> body
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var callout = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.Callout, callout.Kind);
+        Assert.Equal("note:Title with **strong** [link](https://example.com)", callout.Literal);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Definition_List_Item_Spans() {
         var markdown = """
 Term: Definition
