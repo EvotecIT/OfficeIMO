@@ -343,7 +343,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             OpenXmlCompositeElement? element = GetColorElement(scheme, color);
-            return element?.GetFirstChild<A.RgbColorModelHex>()?.Val;
+            return GetThemeColorValue(element);
         }
 
         /// <summary>
@@ -416,7 +416,7 @@ namespace OfficeIMO.PowerPoint {
             var colors = new Dictionary<PowerPointThemeColor, string>();
             foreach (PowerPointThemeColor color in Enum.GetValues(typeof(PowerPointThemeColor))) {
                 OpenXmlCompositeElement? element = GetColorElement(scheme, color);
-                string? hexValue = element?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value;
+                string? hexValue = GetThemeColorValue(element);
                 if (!string.IsNullOrEmpty(hexValue)) {
                     colors[color] = hexValue!;
                 }
@@ -533,11 +533,12 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 List<PowerPointTableStyleInfo> styles = new();
+                HashSet<string> seenStyleIds = new(StringComparer.OrdinalIgnoreCase);
                 A.TableStyleList? styleList = stylesPart?.TableStyleList;
                 if (styleList != null) {
                     foreach (A.TableStyle style in styleList.Elements<A.TableStyle>()) {
                         string styleId = style.StyleId?.Value ?? string.Empty;
-                        if (string.IsNullOrWhiteSpace(styleId)) {
+                        if (string.IsNullOrWhiteSpace(styleId) || !seenStyleIds.Add(styleId)) {
                             continue;
                         }
 
@@ -549,7 +550,7 @@ namespace OfficeIMO.PowerPoint {
                 if (stylesPart != null) {
                     using Stream stream = stylesPart.GetStream(FileMode.Open, FileAccess.Read);
                     if (stream.Length > 0) {
-                        AddTableStylesFromStream(styles, stream);
+                        AddTableStylesFromStream(styles, seenStyleIds, stream);
                     }
                 }
 
@@ -557,7 +558,7 @@ namespace OfficeIMO.PowerPoint {
                     using Stream? resource = typeof(PowerPointPresentation).Assembly
                         .GetManifestResourceStream(TableStylesResourceName);
                     if (resource != null) {
-                        AddTableStylesFromStream(styles, resource);
+                        AddTableStylesFromStream(styles, seenStyleIds, resource);
                     }
                 }
 
@@ -565,7 +566,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void AddTableStylesFromStream(List<PowerPointTableStyleInfo> styles, Stream stream) {
+        private static void AddTableStylesFromStream(List<PowerPointTableStyleInfo> styles, ISet<string> seenStyleIds, Stream stream) {
             XDocument document = XDocument.Load(stream);
             XElement? root = document.Root;
             if (root == null) {
@@ -575,13 +576,22 @@ namespace OfficeIMO.PowerPoint {
             XNamespace drawing = "http://schemas.openxmlformats.org/drawingml/2006/main";
             foreach (XElement style in root.Elements(drawing + "tblStyle")) {
                 string styleId = style.Attribute("styleId")?.Value ?? string.Empty;
-                if (string.IsNullOrWhiteSpace(styleId)) {
+                if (string.IsNullOrWhiteSpace(styleId) || !seenStyleIds.Add(styleId)) {
                     continue;
                 }
 
                 string name = style.Attribute("styleName")?.Value ?? string.Empty;
                 styles.Add(new PowerPointTableStyleInfo(styleId, name));
             }
+        }
+
+        private static string? GetThemeColorValue(OpenXmlCompositeElement? element) {
+            string? rgbColor = element?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value;
+            if (!string.IsNullOrWhiteSpace(rgbColor)) {
+                return rgbColor;
+            }
+
+            return element?.GetFirstChild<A.SystemColor>()?.LastColor?.Value;
         }
 
         /// <summary>
@@ -1165,6 +1175,7 @@ namespace OfficeIMO.PowerPoint {
             uint newId = GetNextSlideId();
             SlideId slideId = new() { Id = newId, RelationshipId = slideRelId };
             _presentationPart.Presentation.SlideIdList.Append(slideId);
+            AssignSlideToNearestSection(newId, _slides.Count);
             _presentationPart.Presentation.Save();
 
             PowerPointSlide slide = new(slidePart);
@@ -1206,6 +1217,7 @@ namespace OfficeIMO.PowerPoint {
                 _presentationPart.DeletePart(part);
             }
 
+            SyncSectionsWithSlides();
             _presentationPart.Presentation.Save();
         }
 
@@ -1251,6 +1263,7 @@ namespace OfficeIMO.PowerPoint {
                 slideIdList.Append(id);
             }
 
+            SyncSectionsWithSlides();
             _presentationPart.Presentation.Save();
         }
 
@@ -1288,6 +1301,8 @@ namespace OfficeIMO.PowerPoint {
             SlideIdList slideIdList = _presentationPart.Presentation.SlideIdList ??= new SlideIdList();
             SlideId slideId = new() { Id = GetNextSlideId(), RelationshipId = slideRelId };
             InsertSlideId(slideIdList, slideId, targetIndex);
+            AssignSlideToNearestSection(slideId.Id?.Value ?? throw new InvalidOperationException("Slide ID is missing."),
+                targetIndex);
 
             PowerPointSlide duplicate = new(slidePart);
             duplicate.Hidden = sourceSlide.Hidden;
@@ -1371,6 +1386,8 @@ namespace OfficeIMO.PowerPoint {
             SlideIdList slideIdList = _presentationPart.Presentation.SlideIdList ??= new SlideIdList();
             SlideId slideId = new() { Id = GetNextSlideId(), RelationshipId = slideRelId };
             InsertSlideId(slideIdList, slideId, targetIndex);
+            AssignSlideToNearestSection(slideId.Id?.Value ?? throw new InvalidOperationException("Slide ID is missing."),
+                targetIndex);
 
             PowerPointSlide imported = new(slidePart);
             imported.Hidden = sourceSlide.Hidden;
@@ -1841,29 +1858,64 @@ namespace OfficeIMO.PowerPoint {
         private static void EnsureSectionCoverage(P14.SectionList sectionList, IReadOnlyList<SlideId> slideIds) {
             Dictionary<uint, int> slideIndexMap = BuildSlideIndexMap(slideIds);
             HashSet<uint> assigned = new();
+            List<P14.Section> orderedSections = new();
 
-            foreach (P14.Section section in sectionList.Elements<P14.Section>()) {
+            foreach (P14.Section section in sectionList.Elements<P14.Section>().ToList()) {
                 P14.SectionSlideIdList list = EnsureSectionSlideIdList(section);
-                List<P14.SectionSlideIdListEntry> entries = list.Elements<P14.SectionSlideIdListEntry>()
-                    .Where(entry => entry.Id?.Value != null && slideIndexMap.ContainsKey(entry.Id.Value))
+                List<uint> sectionSlideIds = list.Elements<P14.SectionSlideIdListEntry>()
+                    .Select(entry => entry.Id?.Value)
+                    .Where(id => id != null && slideIndexMap.ContainsKey(id.Value))
+                    .Select(id => id!.Value)
+                    .OrderBy(id => slideIndexMap[id])
                     .ToList();
 
                 list.RemoveAllChildren();
-                foreach (P14.SectionSlideIdListEntry entry in entries
-                             .OrderBy(entry => slideIndexMap[entry.Id!.Value])) {
-                    list.Append(entry);
-                    assigned.Add(entry.Id!.Value);
+                foreach (uint slideId in sectionSlideIds) {
+                    if (!assigned.Add(slideId)) {
+                        continue;
+                    }
+
+                    list.Append(new P14.SectionSlideIdListEntry { Id = slideId });
+                }
+
+                if (list.Elements<P14.SectionSlideIdListEntry>().Any()) {
+                    orderedSections.Add(section);
+                } else {
+                    section.Remove();
                 }
             }
 
-            P14.Section? lastSection = sectionList.Elements<P14.Section>().LastOrDefault();
-            if (lastSection == null) {
+            if (orderedSections.Count == 0) {
+                if (slideIds.Count == 0) {
+                    return;
+                }
+
+                P14.Section defaultSection = CreateSection(DefaultSectionName, slideIds
+                    .Select(id => id.Id?.Value)
+                    .Where(id => id != null)
+                    .Select(id => id!.Value)
+                    .ToList());
+                sectionList.RemoveAllChildren();
+                sectionList.Append(defaultSection);
                 return;
             }
 
-            P14.SectionSlideIdList target = EnsureSectionSlideIdList(lastSection);
-            foreach (uint slideId in slideIndexMap.Keys.Where(id => !assigned.Contains(id))) {
+            P14.SectionSlideIdList target = EnsureSectionSlideIdList(orderedSections.Last());
+            foreach (uint slideId in slideIds
+                         .Select(id => id.Id?.Value)
+                         .Where(id => id != null)
+                         .Select(id => id!.Value)
+                         .Where(id => !assigned.Contains(id))) {
                 target.Append(new P14.SectionSlideIdListEntry { Id = slideId });
+            }
+
+            orderedSections = orderedSections
+                .OrderBy(section => GetSectionStartIndex(section, slideIndexMap))
+                .ToList();
+
+            sectionList.RemoveAllChildren();
+            foreach (P14.Section section in orderedSections) {
+                sectionList.Append(section);
             }
         }
 
@@ -1913,6 +1965,80 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return null;
+        }
+
+        private static int GetSectionStartIndex(P14.Section section, IReadOnlyDictionary<uint, int> slideIndexMap) {
+            P14.SectionSlideIdList? list = section.SectionSlideIdList;
+            if (list == null) {
+                return int.MaxValue;
+            }
+
+            return list.Elements<P14.SectionSlideIdListEntry>()
+                .Select(entry => entry.Id?.Value)
+                .Where(id => id != null && slideIndexMap.ContainsKey(id.Value))
+                .Select(id => slideIndexMap[id!.Value])
+                .DefaultIfEmpty(int.MaxValue)
+                .Min();
+        }
+
+        private void AssignSlideToNearestSection(uint slideId, int slideIndex) {
+            P14.SectionList? sectionList = GetSectionList(create: false);
+            if (sectionList == null) {
+                return;
+            }
+
+            List<SlideId> slideIds = _presentationPart.Presentation?.SlideIdList?
+                .Elements<SlideId>()
+                .ToList() ?? new List<SlideId>();
+            if (slideIds.Count == 0) {
+                return;
+            }
+
+            if (FindSectionBySlideId(sectionList, slideId) != null) {
+                EnsureSectionCoverage(sectionList, slideIds);
+                return;
+            }
+
+            P14.Section? targetSection = null;
+            if (slideIndex > 0) {
+                uint? previousSlideId = slideIds[slideIndex - 1].Id?.Value;
+                if (previousSlideId != null) {
+                    targetSection = FindSectionBySlideId(sectionList, previousSlideId.Value);
+                }
+            }
+
+            if (targetSection == null && slideIndex + 1 < slideIds.Count) {
+                uint? nextSlideId = slideIds[slideIndex + 1].Id?.Value;
+                if (nextSlideId != null) {
+                    targetSection = FindSectionBySlideId(sectionList, nextSlideId.Value);
+                }
+            }
+
+            targetSection ??= sectionList.Elements<P14.Section>().LastOrDefault();
+            if (targetSection == null) {
+                sectionList.Append(CreateSection(DefaultSectionName, new[] { slideId }));
+                EnsureSectionCoverage(sectionList, slideIds);
+                return;
+            }
+
+            EnsureSectionSlideIdList(targetSection).Append(new P14.SectionSlideIdListEntry { Id = slideId });
+            EnsureSectionCoverage(sectionList, slideIds);
+        }
+
+        private void SyncSectionsWithSlides() {
+            P14.SectionList? sectionList = GetSectionList(create: false);
+            if (sectionList == null) {
+                return;
+            }
+
+            List<SlideId> slideIds = _presentationPart.Presentation?.SlideIdList?
+                .Elements<SlideId>()
+                .ToList() ?? new List<SlideId>();
+            if (slideIds.Count == 0) {
+                return;
+            }
+
+            EnsureSectionCoverage(sectionList, slideIds);
         }
 
         private PowerPointSectionInfo BuildSectionInfo(P14.Section section, IReadOnlyList<SlideId> slideIds) {

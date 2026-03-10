@@ -44,7 +44,7 @@ public sealed class DetailsBlock : IMarkdownBlock {
 
         if (Summary != null) {
             sb.Append(NewLine);
-            sb.Append(((IMarkdownBlock)Summary).RenderHtml());
+            sb.Append(renderHtmlChildren ? ((IMarkdownBlock)Summary).RenderHtml() : ((IMarkdownBlock)Summary).RenderMarkdown());
         }
 
         if (Children.Count > 0) {
@@ -85,6 +85,6 @@ public sealed class SummaryBlock : IMarkdownBlock {
         Inlines = new InlineSequence().Text(text ?? string.Empty);
     }
 
-    string IMarkdownBlock.RenderMarkdown() => $"<summary>{Inlines.RenderHtml()}</summary>";
+    string IMarkdownBlock.RenderMarkdown() => $"<summary>{Inlines.RenderMarkdown()}</summary>";
     string IMarkdownBlock.RenderHtml() => $"<summary>{Inlines.RenderHtml()}</summary>";
 }

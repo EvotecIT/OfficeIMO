@@ -62,6 +62,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DefaultThemeColors_IncludeSystemColorBackedEntries() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+
+                IReadOnlyDictionary<PowerPointThemeColor, string> colors = presentation.GetThemeColors();
+
+                Assert.Equal("000000", presentation.GetThemeColor(PowerPointThemeColor.Dark1));
+                Assert.Equal("FFFFFF", presentation.GetThemeColor(PowerPointThemeColor.Light1));
+                Assert.Equal("000000", colors[PowerPointThemeColor.Dark1]);
+                Assert.Equal("FFFFFF", colors[PowerPointThemeColor.Light1]);
+                Assert.Equal("156082", colors[PowerPointThemeColor.Accent1]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void CanSetThemeFontsAcrossScripts() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {

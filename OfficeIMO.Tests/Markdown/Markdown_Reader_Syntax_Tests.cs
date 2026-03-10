@@ -62,6 +62,21 @@ Heading Title
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Preserves_Heading_Inline_Markup_In_Literals() {
+        const string markdown = "# **Heading** `Text`";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var heading = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
+        Assert.Equal("**Heading** `Text`", heading.Literal);
+
+        var text = heading.Children[1];
+        Assert.Equal(MarkdownSyntaxKind.HeadingText, text.Kind);
+        Assert.Equal("**Heading** `Text`", text.Literal);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Reconstructs_SameType_Nested_Lists() {
         var markdown = """
 - parent
@@ -282,6 +297,20 @@ Heading Title
         Assert.NotNull(item.SourceSpan);
         Assert.Equal(2, item.SourceSpan!.Value.StartLine);
         Assert.Equal(3, item.SourceSpan!.Value.EndLine);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Preserves_Callout_Title_Inline_Markup_In_Literal() {
+        var markdown = """
+> [!NOTE] Title with **strong** [link](https://example.com)
+> body
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var callout = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.Callout, callout.Kind);
+        Assert.Equal("note:Title with **strong** [link](https://example.com)", callout.Literal);
     }
 
     [Fact]

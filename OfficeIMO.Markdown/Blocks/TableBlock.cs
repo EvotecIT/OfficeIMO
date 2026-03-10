@@ -18,11 +18,32 @@ public sealed class TableBlock : IMarkdownBlock {
     public int SkippedRowCount { get; internal set; }
     /// <summary>Number of columns skipped due to table limits.</summary>
     public int SkippedColumnCount { get; internal set; }
+    internal List<InlineSequence>? ParsedHeaders { get; private set; }
+    internal List<IReadOnlyList<InlineSequence>>? ParsedRows { get; private set; }
+    internal int? ParsedContentSignature { get; private set; }
 
     // When a table is produced by the reader, we keep the parse options/state so inline parsing in cells
     // (links/emphasis/etc) can honor URL safety settings and reference-style link definitions.
     internal MarkdownReaderOptions? InlineRenderOptions { get; set; }
     internal MarkdownReaderState? InlineRenderState { get; set; }
+
+    internal void SetParsedCells(
+        IReadOnlyList<InlineSequence>? headers,
+        IReadOnlyList<IReadOnlyList<InlineSequence>>? rows,
+        int contentSignature) {
+        ParsedHeaders = headers == null ? null : new List<InlineSequence>(headers);
+        if (rows == null) {
+            ParsedRows = null;
+        } else {
+            ParsedRows = new List<IReadOnlyList<InlineSequence>>(rows.Count);
+            for (int i = 0; i < rows.Count; i++) {
+                var row = rows[i];
+                ParsedRows.Add(row == null ? Array.Empty<InlineSequence>() : new List<InlineSequence>(row));
+            }
+        }
+
+        ParsedContentSignature = contentSignature;
+    }
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() {
@@ -69,31 +90,37 @@ public sealed class TableBlock : IMarkdownBlock {
     string IMarkdownBlock.RenderHtml() {
         StringBuilder sb = new StringBuilder();
         sb.Append("<table>");
+        bool useParsedCells = ParsedContentSignature.HasValue && ParsedContentSignature.Value == ComputeContentSignature();
         if (Headers.Count > 0) {
             sb.Append("<thead><tr>");
             int columnCount = GetEffectiveColumnCount();
             var preparedHeaders = PrepareRowCells(Headers, columnCount);
+            var preparedParsedHeaders = useParsedCells ? PrepareParsedRowCells(ParsedHeaders, columnCount) : null;
             for (int i = 0; i < preparedHeaders.Count; i++) {
                 var h = preparedHeaders[i];
                 var style = GetAlignment(i);
                 var styleAttr = style switch { ColumnAlignment.Left => " style=\"text-align:left\"", ColumnAlignment.Center => " style=\"text-align:center\"", ColumnAlignment.Right => " style=\"text-align:right\"", _ => string.Empty };
                 sb.Append($"<th{styleAttr}>");
-                sb.Append(RenderCellHtml(h, isHeaderCell: true));
+                sb.Append(RenderCellHtml(h, preparedParsedHeaders?[i]));
                 sb.Append("</th>");
             }
             sb.Append("</tr></thead>");
         }
         sb.Append("<tbody>");
         int bodyColumnCount = GetEffectiveColumnCount();
-        foreach (IReadOnlyList<string> row in Rows) {
+        for (int rowIndex = 0; rowIndex < Rows.Count; rowIndex++) {
+            var row = Rows[rowIndex];
             var cells = PrepareRowCells(row, bodyColumnCount);
+            var parsedCells = useParsedCells && ParsedRows != null && rowIndex < ParsedRows.Count
+                ? PrepareParsedRowCells(ParsedRows[rowIndex], bodyColumnCount)
+                : null;
             sb.Append("<tr>");
             for (int i = 0; i < cells.Count; i++) {
                 var cell = cells[i];
                 var style = GetAlignment(i);
                 var styleAttr = style switch { ColumnAlignment.Left => " style=\"text-align:left\"", ColumnAlignment.Center => " style=\"text-align:center\"", ColumnAlignment.Right => " style=\"text-align:right\"", _ => string.Empty };
                 sb.Append($"<td{styleAttr}>");
-                sb.Append(RenderCellHtml(cell, isHeaderCell: false));
+                sb.Append(RenderCellHtml(cell, parsedCells?[i]));
                 sb.Append("</td>");
             }
             sb.Append("</tr>");
@@ -102,7 +129,12 @@ public sealed class TableBlock : IMarkdownBlock {
         return sb.ToString();
     }
 
-    private string RenderCellHtml(string cell, bool isHeaderCell) {
+    private string RenderCellHtml(string cell, InlineSequence? parsedCell) {
+        if (parsedCell != null) {
+            var parsedRendered = NormalizeEncodedEntities(parsedCell.RenderHtml());
+            return parsedRendered.Contains('\n') ? parsedRendered.Replace("\n", "<br/>") : parsedRendered;
+        }
+
         if (string.IsNullOrEmpty(cell)) return string.Empty;
         // Allow simple <br> markers inside table cells and support inline markdown (code, links, emphasis).
         // We avoid allowing arbitrary HTML by translating only <br> tags to hard breaks and then using the inline parser.
@@ -151,7 +183,7 @@ public sealed class TableBlock : IMarkdownBlock {
         return builder?.ToString() ?? value;
     }
 
-    private static string NormalizeBreakMarkers(string cell) {
+    internal static string NormalizeBreakMarkers(string cell) {
         var builder = new StringBuilder(cell.Length);
 
         for (int i = 0; i < cell.Length; i++) {
@@ -183,7 +215,7 @@ public sealed class TableBlock : IMarkdownBlock {
         return builder.ToString();
     }
 
-    private static string SanitizeInlineMarkdownInput(string value) {
+    internal static string SanitizeInlineMarkdownInput(string value) {
         StringBuilder? builder = null;
         for (int i = 0; i < value.Length; i++) {
             char ch = value[i];
@@ -209,7 +241,7 @@ public sealed class TableBlock : IMarkdownBlock {
         return builder?.ToString() ?? value;
     }
 
-    private static string NormalizeEncodedEntities(string value) {
+    internal static string NormalizeEncodedEntities(string value) {
         if (value.IndexOf("&amp;", StringComparison.Ordinal) < 0) {
             return value;
         }
@@ -280,7 +312,66 @@ public sealed class TableBlock : IMarkdownBlock {
         return cells;
     }
 
-    private static bool TryConsumeBreakTag(string value, int index, out int consumed) {
+    private static IReadOnlyList<InlineSequence> PrepareParsedRowCells(IReadOnlyList<InlineSequence>? row, int expectedCount) {
+        if (row == null || row.Count == 0) {
+            if (expectedCount <= 0) {
+                return Array.Empty<InlineSequence>();
+            }
+
+            var padded = new InlineSequence[expectedCount];
+            for (int i = 0; i < padded.Length; i++) {
+                padded[i] = new InlineSequence();
+            }
+            return padded;
+        }
+
+        if (expectedCount <= 0) {
+            var copy = new InlineSequence[row.Count];
+            for (int i = 0; i < row.Count; i++) {
+                copy[i] = row[i] ?? new InlineSequence();
+            }
+            return copy;
+        }
+
+        var cells = new InlineSequence[expectedCount];
+        int limit = Math.Min(expectedCount, row.Count);
+        for (int i = 0; i < limit; i++) {
+            cells[i] = row[i] ?? new InlineSequence();
+        }
+        if (limit < expectedCount) {
+            for (int i = limit; i < expectedCount; i++) {
+                cells[i] = new InlineSequence();
+            }
+        }
+        return cells;
+    }
+
+    internal int ComputeContentSignature() {
+        unchecked {
+            int hash = 17;
+            hash = (hash * 31) + Headers.Count;
+        for (int i = 0; i < Headers.Count; i++) {
+                hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(Headers[i] ?? string.Empty);
+        }
+
+            hash = (hash * 31) + Rows.Count;
+        for (int rowIndex = 0; rowIndex < Rows.Count; rowIndex++) {
+            var row = Rows[rowIndex];
+                hash = (hash * 31) + (row?.Count ?? -1);
+            if (row == null) {
+                continue;
+            }
+
+            for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) {
+                    hash = (hash * 31) + StringComparer.Ordinal.GetHashCode(row[cellIndex] ?? string.Empty);
+                }
+            }
+
+            return hash;
+        }
+    }
+
+    internal static bool TryConsumeBreakTag(string value, int index, out int consumed) {
         consumed = 0;
         int length = value.Length;
         if (index + 3 >= length) {
@@ -312,7 +403,7 @@ public sealed class TableBlock : IMarkdownBlock {
         return false;
     }
 
-    private static bool IsSpecificLetter(char value, char expected) {
+    internal static bool IsSpecificLetter(char value, char expected) {
         return char.ToLowerInvariant(value) == expected;
     }
 }

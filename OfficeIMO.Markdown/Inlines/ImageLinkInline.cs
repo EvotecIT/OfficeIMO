@@ -32,12 +32,12 @@ public sealed class ImageLinkInline {
 
         if (!linkAllowed && !imageAllowed) return ImageHtmlAttributes.BuildBlockedPlaceholder(Alt);
         if (!imageAllowed && linkAllowed) {
-            return $"<a href=\"{System.Net.WebUtility.HtmlEncode(LinkUrl)}\"{extra}>{System.Net.WebUtility.HtmlEncode(Alt)}</a>";
+            return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl)}\"{extra}>{System.Net.WebUtility.HtmlEncode(Alt)}</a>";
         }
         if (imageAllowed && !linkAllowed) {
-            return $"<img src=\"{System.Net.WebUtility.HtmlEncode(ImageUrl)}\" alt=\"{System.Net.WebUtility.HtmlEncode(Alt)}\"{title}{imgExtra} />";
+            return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(ImageUrl)}\" alt=\"{System.Net.WebUtility.HtmlEncode(Alt)}\"{title}{imgExtra} />";
         }
 
-        return $"<a href=\"{System.Net.WebUtility.HtmlEncode(LinkUrl)}\"{extra}><img src=\"{System.Net.WebUtility.HtmlEncode(ImageUrl)}\" alt=\"{System.Net.WebUtility.HtmlEncode(Alt)}\"{title}{imgExtra} /></a>";
+        return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl)}\"{extra}><img src=\"{HtmlAttributeUrlEncoder.Encode(ImageUrl)}\" alt=\"{System.Net.WebUtility.HtmlEncode(Alt)}\"{title}{imgExtra} /></a>";
     }
 }

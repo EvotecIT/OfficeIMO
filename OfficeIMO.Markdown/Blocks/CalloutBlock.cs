@@ -9,6 +9,8 @@ public sealed class CalloutBlock : IMarkdownBlock {
     public string Kind { get; }
     /// <summary>Callout title displayed inline with the marker.</summary>
     public string Title { get; }
+    /// <summary>Parsed inline title content when available.</summary>
+    public InlineSequence TitleInlines { get; }
     /// <summary>Callout body text (can include multiple lines).</summary>
     public string Body { get; }
 
@@ -20,15 +22,25 @@ public sealed class CalloutBlock : IMarkdownBlock {
     internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; }
 
     /// <summary>Creates a callout with the specified kind, title and body.</summary>
-    public CalloutBlock(string kind, string title, string body) {
+    public CalloutBlock(string kind, string title, string body)
+        : this(kind, new InlineSequence().Text(title ?? string.Empty), body) {
+    }
+
+    internal CalloutBlock(string kind, InlineSequence titleInlines, string body) {
         Kind = (kind ?? "info").Trim();
-        Title = title ?? string.Empty;
+        TitleInlines = titleInlines ?? new InlineSequence();
+        Title = InlinePlainText.Extract(TitleInlines);
         Body = body ?? string.Empty;
     }
 
-    internal CalloutBlock(string kind, string title, IReadOnlyList<IMarkdownBlock> children, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren = null) {
+    internal CalloutBlock(string kind, string title, IReadOnlyList<IMarkdownBlock> children, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren = null)
+        : this(kind, new InlineSequence().Text(title ?? string.Empty), children, syntaxChildren) {
+    }
+
+    internal CalloutBlock(string kind, InlineSequence titleInlines, IReadOnlyList<IMarkdownBlock> children, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren = null) {
         Kind = (kind ?? "info").Trim();
-        Title = title ?? string.Empty;
+        TitleInlines = titleInlines ?? new InlineSequence();
+        Title = InlinePlainText.Extract(TitleInlines);
         Body = string.Empty;
         Children = children;
         SyntaxChildren = syntaxChildren;
@@ -38,8 +50,9 @@ public sealed class CalloutBlock : IMarkdownBlock {
     string IMarkdownBlock.RenderMarkdown() {
         string tag = Kind.ToUpperInvariant();
         StringBuilder sb = new StringBuilder();
-        if (string.IsNullOrWhiteSpace(Title)) sb.AppendLine($"> [!{tag}]");
-        else sb.AppendLine($"> [!{tag}] {Title}");
+        var titleMarkdown = TitleInlines.RenderMarkdown();
+        if (string.IsNullOrWhiteSpace(titleMarkdown)) sb.AppendLine($"> [!{tag}]");
+        else sb.AppendLine($"> [!{tag}] {titleMarkdown}");
         string bodyMarkdown;
         if (Children != null && Children.Count > 0) {
             var inner = new StringBuilder();
@@ -62,13 +75,15 @@ public sealed class CalloutBlock : IMarkdownBlock {
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
         var kind = System.Net.WebUtility.HtmlEncode(Kind);
-        var titleText = string.IsNullOrWhiteSpace(Title) ? FormatTitleFromKind(Kind) : Title;
-        var title = System.Net.WebUtility.HtmlEncode(titleText);
+        var titleMarkdown = TitleInlines.RenderMarkdown();
+        var hasTitleInlines = !string.IsNullOrWhiteSpace(titleMarkdown);
+        var titleText = hasTitleInlines ? TitleInlines.RenderHtml() : System.Net.WebUtility.HtmlEncode(FormatTitleFromKind(Kind));
+        var hasVisibleTitle = hasTitleInlines || !string.IsNullOrWhiteSpace(FormatTitleFromKind(Kind));
 
         var sb = new StringBuilder();
         sb.Append("<blockquote class=\"callout ").Append(kind).Append("\">");
-        if (!string.IsNullOrWhiteSpace(titleText)) {
-            sb.Append("<p><strong>").Append(title).Append("</strong></p>");
+        if (hasVisibleTitle) {
+            sb.Append("<p><strong>").Append(titleText).Append("</strong></p>");
         }
 
         if (Children != null && Children.Count > 0) {

@@ -94,7 +94,6 @@ namespace OfficeIMO.Tests {
             }
             File.Delete(path);
         }
-
         [Fact]
         public void NamedRange_StrictThrowsOutOfBounds() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");

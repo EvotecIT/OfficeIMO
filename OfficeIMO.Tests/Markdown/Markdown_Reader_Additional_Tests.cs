@@ -138,6 +138,58 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Parses_Standalone_Image_With_Balanced_Parens_In_Destination() {
+            var doc = MarkdownReader.Parse("![alt](https://example.com/a_(b).png)");
+
+            var image = Assert.IsType<ImageBlock>(doc.Blocks[0]);
+            Assert.Equal("alt", image.Alt);
+            Assert.Equal("https://example.com/a_(b).png", image.Path);
+        }
+
+        [Fact]
+        public void Parses_Standalone_Image_With_Angle_Destination_Containing_Spaces() {
+            var doc = MarkdownReader.Parse("![alt](<https://example.com/a (b).png>)");
+
+            var image = Assert.IsType<ImageBlock>(doc.Blocks[0]);
+            Assert.Equal("alt", image.Alt);
+            Assert.Equal("https://example.com/a (b).png", image.Path);
+        }
+
+        [Fact]
+        public void Parses_Inline_Image_With_Angle_Destination_Containing_Spaces() {
+            var html = MarkdownReader.Parse("Look ![alt](<https://example.com/a (b).png>) now").ToHtmlFragment();
+
+            Assert.Contains("src=\"https://example.com/a%20(b).png\"", html);
+            Assert.Contains("alt=\"alt\"", html);
+        }
+
+        [Fact]
+        public void Parses_Inline_Link_With_Angle_Destination_Containing_Spaces() {
+            var html = MarkdownReader.Parse("[x](<https://example.com/a b> \"title\")").ToHtmlFragment();
+
+            Assert.Contains("href=\"https://example.com/a%20b\"", html, StringComparison.Ordinal);
+            Assert.Contains("title=\"title\"", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Reference_Link_With_Angle_Destination_Containing_Spaces_Is_Preserved() {
+            const string md = """
+[x][r]
+
+[r]: <https://example.com/a b>
+""";
+
+            var doc = MarkdownReader.Parse(md);
+            var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+            var link = Assert.IsType<LinkInline>(paragraph.Inlines.Items[0]);
+
+            Assert.Equal("https://example.com/a b", link.Url);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("href=\"https://example.com/a%20b\"", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Inline_Html_Br_Can_Be_Disabled() {
             string md = "First<br>Second";
 
@@ -205,6 +257,78 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Atx_Heading_Parses_Inline_Markup_And_Uses_PlainText_For_Slug() {
+            const string md = "## **Heading** `Text`";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var heading = Assert.IsType<HeadingBlock>(doc.Blocks[0]);
+            Assert.Equal("Heading Text", heading.Text);
+            Assert.Equal("## **Heading** `Text`", ((IMarkdownBlock)heading).RenderMarkdown());
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<h2 id=\"heading-text\"><strong>Heading</strong> <code>Text</code></h2>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Setext_Heading_Parses_Inline_Markup() {
+            const string md = """
+                **Heading** `Text`
+                ------------------
+                """;
+
+            var doc = MarkdownReader.Parse(md);
+
+            var heading = Assert.IsType<HeadingBlock>(doc.Blocks[0]);
+            Assert.Equal(2, heading.Level);
+            Assert.Equal("Heading Text", heading.Text);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<h2 id=\"heading-text\"><strong>Heading</strong> <code>Text</code></h2>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Invalid_Reference_Definition_Like_Line_Does_Not_Become_Definition_List() {
+            const string md = "[a [b]]: https://example.com";
+
+            var doc = MarkdownReader.Parse(md);
+
+            Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.DoesNotContain("<dl>", html, StringComparison.Ordinal);
+            Assert.Contains("<p>", html, StringComparison.Ordinal);
+            Assert.Contains("[a [b]]:", html, StringComparison.Ordinal);
+            Assert.Contains("href=\"https://example.com\"", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void PreferNarrativeSingleLineDefinitions_Keeps_Isolated_Label_Value_As_Paragraph() {
+            const string md = "Interpretation: topology looks clean in this sample.";
+
+            var doc = MarkdownReader.Parse(md, new MarkdownReaderOptions {
+                PreferNarrativeSingleLineDefinitions = true
+            });
+
+            Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+            Assert.DoesNotContain("<dl>", doc.ToHtmlFragment(), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void PreferNarrativeSingleLineDefinitions_Still_Parses_Grouped_Definition_List() {
+            const string md = """
+                Status: healthy
+                Impact: none
+                """;
+
+            var doc = MarkdownReader.Parse(md, new MarkdownReaderOptions {
+                PreferNarrativeSingleLineDefinitions = true
+            });
+
+            var definitionList = Assert.IsType<DefinitionListBlock>(doc.Blocks[0]);
+            Assert.Equal(2, definitionList.Items.Count);
+        }
+
+        [Fact]
         public void Unordered_List_Parses_Inline_Markup() {
             string md = "- *emphasis* and [link](https://example.com)\n- [x] **bold** task";
             var doc = MarkdownReader.Parse(md);
@@ -245,9 +369,26 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             string md = "*Term*: Definition\n[Link](https://example.com): Another";
             var doc = MarkdownReader.Parse(md);
             var defList = Assert.IsType<DefinitionListBlock>(doc.Blocks[0]);
+            Assert.NotNull(defList.ParsedItems);
+            Assert.Equal(2, defList.ParsedItems!.Count);
             var html = ((IMarkdownBlock)defList).RenderHtml();
             Assert.Contains("<em>Term</em>", html);
             Assert.Contains("href=\"https://example.com\"", html);
+        }
+
+        [Fact]
+        public void Definition_List_RenderHtml_Falls_Back_To_Current_StringItems_After_Mutation() {
+            const string md = "Term: Value";
+
+            var doc = MarkdownReader.Parse(md);
+            var defList = Assert.IsType<DefinitionListBlock>(doc.Blocks[0]);
+
+            defList.Items[0] = ("**Changed**", "[fresh](https://example.com)");
+
+            var html = ((IMarkdownBlock)defList).RenderHtml();
+
+            Assert.Contains("<dt><strong>Changed</strong></dt>", html, StringComparison.Ordinal);
+            Assert.Contains("<dd><a href=\"https://example.com\">fresh</a></dd>", html, StringComparison.Ordinal);
         }
 
         [Fact]

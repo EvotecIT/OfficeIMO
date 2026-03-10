@@ -142,6 +142,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void TableStyles_DoesNotDuplicateEntries() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointTableStyleInfo[] styles = presentation.TableStyles.ToArray();
+
+                Assert.NotEmpty(styles);
+                Assert.Equal(styles.Length, styles.Select(style => style.StyleId).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void CanSetTableCellAutoFit() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
@@ -269,6 +283,28 @@ namespace OfficeIMO.Tests {
                 PowerPointTable table = presentation.Slides[0].Tables.First();
                 Assert.Equal(4000000L, table.GetColumnWidth(0));
                 Assert.Equal(2000000L, table.GetColumnWidth(1));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void CanAddColumnUsingExplicitAppendIndex() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointTable table = slide.AddTable(1, 2);
+
+                table.AddColumn(table.Columns);
+                table.GetCell(0, 2).Text = "Appended";
+                presentation.Save();
+            }
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                PowerPointTable table = presentation.Slides.Single().Tables.First();
+                Assert.Equal(3, table.Columns);
+                Assert.Equal("Appended", table.GetCell(0, 2).Text);
             }
 
             File.Delete(filePath);

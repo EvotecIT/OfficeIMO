@@ -94,11 +94,103 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Autolinks_DoNot_Link_Http_Urls_With_Query_Parentheses() {
+        var doc = MarkdownReader.Parse("Visit https://example.com/search?q=(x) now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://example.com/search?q=(x)\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Visit https://example.com/search?q=(x) now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Www_Urls_With_Query_Parentheses() {
+        var doc = MarkdownReader.Parse("Visit www.example.com/search?q=(x) now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://www.example.com/search?q=(x)\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Visit www.example.com/search?q=(x) now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_Still_Link_Path_Parentheses_Before_Query_String() {
+        var doc = MarkdownReader.Parse("Visit https://example.com/path_(demo)?q=value now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains(
+            "<a href=\"https://example.com/path_(demo)?q=value\">https://example.com/path_(demo)?q=value</a>",
+            html,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Http_Urls_With_Query_Ampersands() {
+        var doc = MarkdownReader.Parse("Visit https://example.com/path?q=1&next=2 now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://example.com/path?q=1&amp;next=2\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Visit https://example.com/path?q=1&amp;next=2 now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Http_Urls_With_Fragment_Ampersands() {
+        var doc = MarkdownReader.Parse("Visit https://example.com/path#frag&next now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://example.com/path#frag&amp;next\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Visit https://example.com/path#frag&amp;next now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Www_Urls_With_Query_Ampersands() {
+        var doc = MarkdownReader.Parse("Visit www.example.com/path?q=1&next=2 now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"https://www.example.com/path?q=1&amp;next=2\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Visit www.example.com/path?q=1&amp;next=2 now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Autolinks_Email_Inside_Text() {
         var doc = MarkdownReader.Parse("Email user@example.com.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<a href=\"mailto:user@example.com\">user@example.com</a>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Plain_Mailto_Email_Tokens() {
+        var doc = MarkdownReader.Parse("Contact mailto:user@example.com now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Contact mailto:user@example.com now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Plain_Emails_With_Path_Suffixes() {
+        var doc = MarkdownReader.Parse("Contact user@example.com/path now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Contact user@example.com/path now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Plain_Emails_With_Fragment_Suffixes() {
+        var doc = MarkdownReader.Parse("Contact user@example.com#frag now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Contact user@example.com#frag now</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Autolinks_DoNot_Link_Plain_Emails_With_Plus_Tags() {
+        var doc = MarkdownReader.Parse("Contact user.name+tag@example.com now");
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("href=\"mailto:user.name+tag@example.com\"", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Contact user.name+tag@example.com now</p>", html, StringComparison.Ordinal);
     }
 
     [Fact]

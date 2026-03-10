@@ -215,7 +215,6 @@ namespace OfficeIMO.Excel {
                 }
             }
         }
-
         private void UpdatePivotCacheReferences(string oldSheetName, string newSheetName) {
             foreach (var cacheDefinitionPart in _workBookPart.GetPartsOfType<PivotTableCacheDefinitionPart>()) {
                 var worksheetSource = cacheDefinitionPart.PivotCacheDefinition?.CacheSource?.WorksheetSource;

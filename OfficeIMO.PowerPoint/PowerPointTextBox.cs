@@ -32,31 +32,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointParagraph AddParagraph(string text = "", Action<PowerPointParagraph>? configure = null,
             Action<PowerPointTextRun>? run = null) {
             TextBody textBody = EnsureTextBody();
-
-            A.Paragraph paragraph = new();
-            A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
-            if (templateParagraph?.ParagraphProperties != null) {
-                paragraph.ParagraphProperties = (A.ParagraphProperties)templateParagraph.ParagraphProperties.CloneNode(true);
-            }
-
-            A.Run newRun = new(new A.Text(text ?? string.Empty));
-            A.RunProperties? templateRunProps = templateParagraph?
-                .Elements<A.Run>()
-                .Select(r => r.RunProperties)
-                .FirstOrDefault(rp => rp != null);
-            if (templateRunProps != null) {
-                newRun.RunProperties = (A.RunProperties)templateRunProps.CloneNode(true);
-            }
-            paragraph.Append(newRun);
-
-            A.EndParagraphRunProperties? templateEnd = templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
-            if (templateEnd != null) {
-                paragraph.Append((A.EndParagraphRunProperties)templateEnd.CloneNode(true));
-            }
-
-            textBody.Append(paragraph);
-
-            var wrapper = new PowerPointParagraph(paragraph, _slidePart);
+            var wrapper = AppendParagraph(textBody, text ?? string.Empty, textBody.Elements<A.Paragraph>().FirstOrDefault());
             configure?.Invoke(wrapper);
             if (run != null) {
                 var runWrapper = wrapper.Runs.FirstOrDefault() ?? wrapper.AddRun(text ?? string.Empty);
@@ -94,8 +70,11 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentNullException(nameof(paragraphs));
             }
 
-            Clear();
-            return AddParagraphs(paragraphs, configure);
+            return ReplaceParagraphs(paragraphs, (paragraphText, templateParagraph) => {
+                PowerPointParagraph paragraph = AppendParagraph(EnsureTextBody(), paragraphText ?? string.Empty, templateParagraph);
+                configure?.Invoke(paragraph);
+                return paragraph;
+            });
         }
 
         /// <summary>
@@ -131,8 +110,16 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentNullException(nameof(bullets));
             }
 
-            Clear();
-            return AddBullets(bullets, level, bulletChar, configure);
+            return ReplaceParagraphs(bullets, (bullet, templateParagraph) => {
+                PowerPointParagraph paragraph = AppendParagraph(EnsureTextBody(), bullet ?? string.Empty, templateParagraph);
+                paragraph.SetBullet(bulletChar);
+                if (level > 0) {
+                    paragraph.Level = level;
+                }
+                ApplyDefaultListSpacing(paragraph);
+                configure?.Invoke(paragraph);
+                return paragraph;
+            });
         }
 
         /// <summary>
@@ -184,8 +171,22 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentNullException(nameof(items));
             }
 
-            Clear();
-            return AddNumberedList(items, style, startAt, level, configure);
+            bool first = true;
+            return ReplaceParagraphs(items, (item, templateParagraph) => {
+                PowerPointParagraph paragraph = AppendParagraph(EnsureTextBody(), item ?? string.Empty, templateParagraph);
+                if (first) {
+                    paragraph.SetNumbered(style, startAt);
+                    first = false;
+                } else {
+                    paragraph.SetNumbered(style);
+                }
+                if (level > 0) {
+                    paragraph.Level = level;
+                }
+                ApplyDefaultListSpacing(paragraph);
+                configure?.Invoke(paragraph);
+                return paragraph;
+            });
         }
 
         /// <summary>
@@ -256,7 +257,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Removes all paragraphs from the textbox.
         /// </summary>
         public void Clear() {
-            EnsureTextBody().RemoveAllChildren<A.Paragraph>();
+            TextBody textBody = EnsureTextBody();
+            A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
+
+            textBody.RemoveAllChildren<A.Paragraph>();
+            textBody.Append(CreateEmptyParagraph(templateParagraph));
         }
 
         /// <summary>
@@ -749,6 +754,78 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ApplyDefaultListSpacing(PowerPointParagraph paragraph) {
             DefaultListParagraphStyle.Apply(paragraph);
+        }
+
+        private IReadOnlyList<PowerPointParagraph> ReplaceParagraphs<T>(IEnumerable<T> items,
+            Func<T, A.Paragraph?, PowerPointParagraph> addParagraph) {
+            TextBody textBody = EnsureTextBody();
+            A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
+            textBody.RemoveAllChildren<A.Paragraph>();
+
+            var results = new List<PowerPointParagraph>();
+            foreach (T item in items) {
+                results.Add(addParagraph(item, templateParagraph));
+            }
+
+            if (results.Count == 0) {
+                textBody.Append(CreateEmptyParagraph(templateParagraph));
+            }
+
+            return results;
+        }
+
+        private PowerPointParagraph AppendParagraph(TextBody textBody, string text, A.Paragraph? templateParagraph) {
+            A.Paragraph paragraph = new();
+            if (templateParagraph?.ParagraphProperties != null) {
+                paragraph.ParagraphProperties = (A.ParagraphProperties)templateParagraph.ParagraphProperties.CloneNode(true);
+            }
+
+            A.Run run = new(new A.Text(text));
+            A.RunProperties? templateRunProps = templateParagraph?
+                .Elements<A.Run>()
+                .Select(existingRun => existingRun.RunProperties)
+                .FirstOrDefault(runProperties => runProperties != null);
+            if (templateRunProps != null) {
+                run.RunProperties = (A.RunProperties)templateRunProps.CloneNode(true);
+            }
+
+            paragraph.Append(run);
+
+            A.EndParagraphRunProperties? templateEnd = templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
+            if (templateEnd != null) {
+                paragraph.Append((A.EndParagraphRunProperties)templateEnd.CloneNode(true));
+            }
+
+            textBody.Append(paragraph);
+            return new PowerPointParagraph(paragraph, _slidePart);
+        }
+
+        private static A.Paragraph CreateEmptyParagraph(A.Paragraph? templateParagraph) {
+            A.Paragraph paragraph = new();
+
+            if (templateParagraph?.ParagraphProperties != null) {
+                paragraph.ParagraphProperties =
+                    (A.ParagraphProperties)templateParagraph.ParagraphProperties.CloneNode(true);
+            }
+
+            A.Run run = new(new A.Text(string.Empty));
+            A.RunProperties? templateRunProps = templateParagraph?
+                .Elements<A.Run>()
+                .Select(existingRun => existingRun.RunProperties)
+                .FirstOrDefault(runProperties => runProperties != null);
+            if (templateRunProps != null) {
+                run.RunProperties = (A.RunProperties)templateRunProps.CloneNode(true);
+            }
+
+            paragraph.Append(run);
+
+            A.EndParagraphRunProperties? templateEnd =
+                templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
+            if (templateEnd != null) {
+                paragraph.Append((A.EndParagraphRunProperties)templateEnd.CloneNode(true));
+            }
+
+            return paragraph;
         }
 
         private A.BodyProperties? GetBodyProperties() {

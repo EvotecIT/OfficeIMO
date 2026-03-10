@@ -81,6 +81,10 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 | a | b |
 """;
             var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
+            Assert.Equal(2, table.ParsedHeaders?.Count);
+            Assert.NotNull(table.ParsedRows);
+            Assert.Single(table.ParsedRows!);
             var html = doc.ToHtmlFragment();
             Assert.Contains("<th><strong>H</strong></th>", html);
             Assert.Contains("<th><code>C</code></th>", html);
@@ -96,8 +100,30 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 [r]: https://example.com
 """;
             var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
+            Assert.NotNull(table.ParsedRows);
+            Assert.Single(table.ParsedRows!);
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
             Assert.Contains("<a href=\"https://example.com\">x</a>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Table_RenderHtml_Falls_Back_To_Current_StringCells_After_Mutation() {
+            string md = """
+| Header |
+| --- |
+| value |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
+
+            table.Headers[0] = "**Changed**";
+            table.Rows[0] = new[] { "[fresh](https://example.com)" };
+
+            var html = ((IMarkdownBlock)table).RenderHtml();
+
+            Assert.Contains("<th><strong>Changed</strong></th>", html, StringComparison.Ordinal);
+            Assert.Contains("<a href=\"https://example.com\">fresh</a>", html, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -505,6 +531,18 @@ c | d
         }
 
         [Fact]
+        public void Unordered_List_Allows_Tab_Indented_Continuation_Lines() {
+            string md = "- first line\n\tsecond line\n- next";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
+            Assert.Equal(2, list.Items.Count);
+            Assert.Empty(list.Items[0].AdditionalParagraphs);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("first line second line", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Ordered_List_Allows_Indented_Continuation_Lines() {
             string md = """
 1. first line
@@ -519,6 +557,18 @@ c | d
             Assert.Contains("first line second line", html);
         }
 
+        [Fact]
+        public void Ordered_List_Allows_Tab_Indented_Continuation_Lines() {
+            string md = "1. first line\n\tsecond line\n2. next";
+            var doc = MarkdownReader.Parse(md);
+            var list = Assert.IsType<OrderedListBlock>(doc.Blocks[0]);
+            Assert.Equal(2, list.Items.Count);
+            Assert.Empty(list.Items[0].AdditionalParagraphs);
+
+            var html = doc.ToHtmlFragment();
+            Assert.Contains("first line second line", html, StringComparison.Ordinal);
+        }
+
         [Theory]
         [InlineData("- item\n  heading\n  -------", "<ul><li><h2", ">item heading</h2></li></ul>")]
         [InlineData("1. item\n   heading\n   -------", "<ol><li><h2", ">item heading</h2></li></ol>")]
@@ -528,6 +578,20 @@ c | d
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
             Assert.Contains(expectedPrefix, html, StringComparison.Ordinal);
             Assert.Contains(expectedSuffix, html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void List_Item_Setext_Heading_Parses_Inline_Markup() {
+            const string md = """
+                - **item**
+                  `heading`
+                  -------
+                """;
+
+            var doc = MarkdownReader.Parse(md);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<li><h2 id=\"item-heading\"><strong>item</strong> <code>heading</code></h2></li>", html, StringComparison.Ordinal);
         }
 
         [Fact]

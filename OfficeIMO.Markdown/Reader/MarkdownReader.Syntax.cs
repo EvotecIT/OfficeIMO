@@ -17,7 +17,7 @@ public static partial class MarkdownReader {
     private static MarkdownSyntaxNode BuildSyntaxNode(IMarkdownBlock block, MarkdownSourceSpan? span = null) {
         switch (block) {
             case HeadingBlock heading:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Heading, span, heading.Text, BuildHeadingChildren(heading, span));
+                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Heading, span, heading.Inlines.RenderMarkdown(), BuildHeadingChildren(heading, span));
             case ParagraphBlock paragraph:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, span, paragraph.Inlines.RenderMarkdown());
             case HorizontalRuleBlock:
@@ -40,12 +40,14 @@ public static partial class MarkdownReader {
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.OrderedList, span, ordered.Start.ToString(System.Globalization.CultureInfo.InvariantCulture), BuildListItemSyntaxNodes(ordered.Items, MarkdownSyntaxKind.OrderedList));
             case DefinitionListBlock definitionList:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.DefinitionList, span, children: BuildDefinitionItemSyntaxNodes(definitionList));
-            case CalloutBlock callout:
+            case CalloutBlock callout: {
+                var calloutTitleMarkdown = callout.TitleInlines.RenderMarkdown();
                 return new MarkdownSyntaxNode(
                     MarkdownSyntaxKind.Callout,
                     span,
-                    string.IsNullOrWhiteSpace(callout.Title) ? callout.Kind : callout.Kind + ":" + callout.Title,
+                    string.IsNullOrWhiteSpace(calloutTitleMarkdown) ? callout.Kind : callout.Kind + ":" + calloutTitleMarkdown,
                     callout.SyntaxChildren ?? (callout.Children != null ? BuildChildSyntaxNodes(callout.Children) : Array.Empty<MarkdownSyntaxNode>()));
+            }
             case DetailsBlock details:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.Details, span, details.Open ? "open" : null, BuildDetailsChildren(details));
             case SummaryBlock summary:
@@ -86,7 +88,7 @@ public static partial class MarkdownReader {
         };
 
         MarkdownSourceSpan? textSpan = span.HasValue ? new MarkdownSourceSpan(span.Value.StartLine, span.Value.StartLine) : null;
-        nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.HeadingText, textSpan, heading.Text));
+        nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.HeadingText, textSpan, heading.Inlines.RenderMarkdown()));
 
         return nodes;
     }

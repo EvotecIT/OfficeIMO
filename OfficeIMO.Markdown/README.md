@@ -198,6 +198,19 @@ var normalizedParsed = MarkdownReader.Parse("**Status\nHEALTHY**", new MarkdownR
         NormalizeSoftWrappedStrongSpans = true
     }
 });
+
+// Or use named presets for common ingestion contracts
+var transcriptParsed = MarkdownReader.Parse(markdown, new MarkdownReaderOptions {
+    InputNormalization = MarkdownInputNormalizationPresets.CreateChatTranscript()
+});
+
+var strictChatParsed = MarkdownReader.Parse(markdown, new MarkdownReaderOptions {
+    InputNormalization = MarkdownInputNormalizationPresets.CreateChatStrict()
+});
+
+var docsParsed = MarkdownReader.Parse(markdown, new MarkdownReaderOptions {
+    InputNormalization = MarkdownInputNormalizationPresets.CreateDocsLoose()
+});
 ```
 
 Header transforms and acronyms

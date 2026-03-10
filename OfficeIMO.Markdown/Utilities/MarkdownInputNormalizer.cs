@@ -136,6 +136,160 @@ public sealed class MarkdownInputNormalizationOptions {
     /// Default: false.
     /// </summary>
     public bool NormalizeNestedStrongDelimiters { get; set; } = false;
+
+    /// <summary>
+    /// Enables the named preset on the current options instance.
+    /// Existing values are overwritten by the preset defaults.
+    /// </summary>
+    /// <param name="preset">Preset to apply.</param>
+    /// <returns>The same options instance for chaining.</returns>
+    public MarkdownInputNormalizationOptions ApplyPreset(MarkdownInputNormalizationPreset preset) {
+        MarkdownInputNormalizationPresets.ApplyTo(this, preset);
+        return this;
+    }
+}
+
+/// <summary>
+/// Named input-normalization presets for common markdown ingestion scenarios.
+/// </summary>
+public enum MarkdownInputNormalizationPreset {
+    /// <summary>No preset behavior.</summary>
+    None = 0,
+    /// <summary>
+    /// Conservative transcript repair preset aligned with current chat-host bridge behavior.
+    /// </summary>
+    ChatTranscript = 1,
+    /// <summary>
+    /// Broader chat/model-output repair preset for aggressively malformed transcript content.
+    /// </summary>
+    ChatStrict = 2,
+    /// <summary>
+    /// Conservative documentation import preset that avoids transcript-specific boundary rewrites.
+    /// </summary>
+    DocsLoose = 3
+}
+
+/// <summary>
+/// Factory and application helpers for <see cref="MarkdownInputNormalizationPreset"/>.
+/// </summary>
+public static class MarkdownInputNormalizationPresets {
+    /// <summary>
+    /// Creates a new options instance with the selected preset applied.
+    /// </summary>
+    /// <param name="preset">Preset to create.</param>
+    /// <returns>New options instance.</returns>
+    public static MarkdownInputNormalizationOptions Create(MarkdownInputNormalizationPreset preset) {
+        var options = new MarkdownInputNormalizationOptions();
+        ApplyTo(options, preset);
+        return options;
+    }
+
+    /// <summary>
+    /// Creates the conservative transcript-repair preset aligned with existing chat bridge behavior.
+    /// </summary>
+    public static MarkdownInputNormalizationOptions CreateChatTranscript() {
+        return Create(MarkdownInputNormalizationPreset.ChatTranscript);
+    }
+
+    /// <summary>
+    /// Creates the broader chat/model-output repair preset.
+    /// </summary>
+    public static MarkdownInputNormalizationOptions CreateChatStrict() {
+        return Create(MarkdownInputNormalizationPreset.ChatStrict);
+    }
+
+    /// <summary>
+    /// Creates the conservative documentation import preset.
+    /// </summary>
+    public static MarkdownInputNormalizationOptions CreateDocsLoose() {
+        return Create(MarkdownInputNormalizationPreset.DocsLoose);
+    }
+
+    /// <summary>
+    /// Applies a preset to an existing options instance.
+    /// Existing values are overwritten by the preset defaults.
+    /// </summary>
+    /// <param name="options">Options instance to mutate.</param>
+    /// <param name="preset">Preset to apply.</param>
+    public static void ApplyTo(MarkdownInputNormalizationOptions options, MarkdownInputNormalizationPreset preset) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        Reset(options);
+
+        switch (preset) {
+            case MarkdownInputNormalizationPreset.None:
+                return;
+            case MarkdownInputNormalizationPreset.ChatTranscript:
+                ApplyChatTranscript(options);
+                return;
+            case MarkdownInputNormalizationPreset.ChatStrict:
+                ApplyChatStrict(options);
+                return;
+            case MarkdownInputNormalizationPreset.DocsLoose:
+                ApplyDocsLoose(options);
+                return;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(preset), preset, "Unknown markdown input normalization preset.");
+        }
+    }
+
+    private static void Reset(MarkdownInputNormalizationOptions options) {
+        options.NormalizeSoftWrappedStrongSpans = false;
+        options.NormalizeInlineCodeSpanLineBreaks = false;
+        options.NormalizeEscapedInlineCodeSpans = false;
+        options.NormalizeTightStrongBoundaries = false;
+        options.NormalizeTightArrowStrongBoundaries = false;
+        options.NormalizeBrokenStrongArrowLabels = false;
+        options.NormalizeTightColonSpacing = false;
+        options.NormalizeHeadingListBoundaries = false;
+        options.NormalizeCompactStrongLabelListBoundaries = false;
+        options.NormalizeCompactHeadingBoundaries = false;
+        options.NormalizeColonListBoundaries = false;
+        options.NormalizeCompactFenceBodyBoundaries = false;
+        options.NormalizeLooseStrongDelimiters = false;
+        options.NormalizeOrderedListMarkerSpacing = false;
+        options.NormalizeOrderedListParenMarkers = false;
+        options.NormalizeOrderedListCaretArtifacts = false;
+        options.NormalizeTightParentheticalSpacing = false;
+        options.NormalizeNestedStrongDelimiters = false;
+    }
+
+    private static void ApplyChatTranscript(MarkdownInputNormalizationOptions options) {
+        options.NormalizeLooseStrongDelimiters = true;
+        options.NormalizeTightStrongBoundaries = true;
+        options.NormalizeOrderedListMarkerSpacing = true;
+        options.NormalizeOrderedListParenMarkers = true;
+        options.NormalizeOrderedListCaretArtifacts = true;
+        options.NormalizeTightParentheticalSpacing = true;
+        options.NormalizeNestedStrongDelimiters = true;
+        options.NormalizeTightArrowStrongBoundaries = true;
+        options.NormalizeTightColonSpacing = true;
+    }
+
+    private static void ApplyChatStrict(MarkdownInputNormalizationOptions options) {
+        ApplyChatTranscript(options);
+        options.NormalizeSoftWrappedStrongSpans = true;
+        options.NormalizeInlineCodeSpanLineBreaks = true;
+        options.NormalizeEscapedInlineCodeSpans = true;
+        options.NormalizeBrokenStrongArrowLabels = true;
+        options.NormalizeHeadingListBoundaries = true;
+        options.NormalizeCompactStrongLabelListBoundaries = true;
+        options.NormalizeCompactHeadingBoundaries = true;
+        options.NormalizeColonListBoundaries = true;
+        options.NormalizeCompactFenceBodyBoundaries = true;
+    }
+
+    private static void ApplyDocsLoose(MarkdownInputNormalizationOptions options) {
+        options.NormalizeLooseStrongDelimiters = true;
+        options.NormalizeTightStrongBoundaries = true;
+        options.NormalizeOrderedListMarkerSpacing = true;
+        options.NormalizeOrderedListParenMarkers = true;
+        options.NormalizeOrderedListCaretArtifacts = true;
+        options.NormalizeTightParentheticalSpacing = true;
+        options.NormalizeNestedStrongDelimiters = true;
+    }
 }
 
 /// <summary>

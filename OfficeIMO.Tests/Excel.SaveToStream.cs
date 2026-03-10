@@ -173,7 +173,6 @@ namespace OfficeIMO.Tests {
                 }
             }
         }
-
         [Fact]
         public void Test_Save_WithValidationFailure_PreservesExistingDestinationFile() {
             string sourcePath = Path.Combine(_directoryWithFiles, "SaveValidationFailure.Source.xlsx");

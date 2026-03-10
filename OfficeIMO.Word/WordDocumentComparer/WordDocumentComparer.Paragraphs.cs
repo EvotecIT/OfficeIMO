@@ -24,8 +24,14 @@ namespace OfficeIMO.Word {
             var srcRuns = source._paragraph.Elements<Run>().ToList();
             var tgtRuns = target._paragraph.Elements<Run>().ToList();
             int runCount = Math.Min(srcRuns.Count, tgtRuns.Count);
+            var paragraphProperties = (ParagraphProperties?)result._paragraph.ParagraphProperties?.CloneNode(true)
+                ?? (ParagraphProperties?)source._paragraph.ParagraphProperties?.CloneNode(true)
+                ?? (ParagraphProperties?)target._paragraph.ParagraphProperties?.CloneNode(true);
 
             result._paragraph.RemoveAllChildren();
+            if (paragraphProperties != null) {
+                result._paragraph.Append(paragraphProperties);
+            }
 
             for (int i = 0; i < runCount; i++) {
                 string srcText = srcRuns[i].InnerText;

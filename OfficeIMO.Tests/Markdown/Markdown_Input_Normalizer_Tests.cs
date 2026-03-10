@@ -150,6 +150,62 @@ public class Markdown_Input_Normalizer_Tests {
     }
 
     [Fact]
+    public void Presets_ChatTranscript_AlignsWithLegacyBridgeContract() {
+        var options = MarkdownInputNormalizationPresets.CreateChatTranscript();
+
+        Assert.True(options.NormalizeLooseStrongDelimiters);
+        Assert.True(options.NormalizeTightStrongBoundaries);
+        Assert.True(options.NormalizeOrderedListMarkerSpacing);
+        Assert.True(options.NormalizeOrderedListParenMarkers);
+        Assert.True(options.NormalizeOrderedListCaretArtifacts);
+        Assert.True(options.NormalizeTightParentheticalSpacing);
+        Assert.True(options.NormalizeNestedStrongDelimiters);
+        Assert.True(options.NormalizeTightArrowStrongBoundaries);
+        Assert.True(options.NormalizeTightColonSpacing);
+        Assert.False(options.NormalizeSoftWrappedStrongSpans);
+        Assert.False(options.NormalizeBrokenStrongArrowLabels);
+        Assert.False(options.NormalizeCompactFenceBodyBoundaries);
+    }
+
+    [Fact]
+    public void Presets_ChatStrict_RepairsRepresentativeTranscriptArtifacts() {
+        var options = MarkdownInputNormalizationPresets.CreateChatStrict();
+        var markdown = """
+## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK
+Signal ->**Why it matters:**coverage
+- Signal **No current failures -> **Why it matters:** transport/auth issues
+Następny najlepszy krok:- **`ad_domain_controller_facts`**
+```json{"log_name":"System"}
+```
+Use \`/act act_001\` now.
+""";
+
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Contains("## Wynik ogólny\n- **Replication:**", normalized);
+        Assert.Contains("Why it matters:", normalized);
+        Assert.Contains("```json\n{\"log_name\":\"System\"}", normalized);
+        Assert.Contains("Use `/act act_001` now.", normalized);
+    }
+
+    [Fact]
+    public void Presets_DocsLoose_RemainsConservative() {
+        var options = MarkdownInputNormalizationPresets.CreateDocsLoose();
+
+        Assert.True(options.NormalizeLooseStrongDelimiters);
+        Assert.True(options.NormalizeTightStrongBoundaries);
+        Assert.True(options.NormalizeOrderedListMarkerSpacing);
+        Assert.True(options.NormalizeOrderedListParenMarkers);
+        Assert.True(options.NormalizeOrderedListCaretArtifacts);
+        Assert.True(options.NormalizeTightParentheticalSpacing);
+        Assert.True(options.NormalizeNestedStrongDelimiters);
+        Assert.False(options.NormalizeTightColonSpacing);
+        Assert.False(options.NormalizeBrokenStrongArrowLabels);
+        Assert.False(options.NormalizeHeadingListBoundaries);
+        Assert.False(options.NormalizeCompactFenceBodyBoundaries);
+    }
+
+    [Fact]
     public void Normalize_TightStrongBoundaries_DoesNotCorruptAdjacentStrongSpans() {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeTightStrongBoundaries = true

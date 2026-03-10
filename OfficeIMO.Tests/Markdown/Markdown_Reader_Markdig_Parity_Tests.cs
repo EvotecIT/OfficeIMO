@@ -31,7 +31,19 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "ordered-list-fenced-code-followed-by-paragraph", "1. item\n\n   ```txt\n   code\n   ```\n\n   after" };
         yield return new object[] { "autolink-balanced-parens-then-comma", "Visit https://example.com/path_(x), ok" };
         yield return new object[] { "autolink-www-balanced-parens-then-dot", "Visit www.example.com/path_(x)." };
+        yield return new object[] { "autolink-query-balanced-parens", "Visit https://example.com/search?q=(x) now" };
+        yield return new object[] { "autolink-query-balanced-parens-then-dot", "Visit https://example.com/search?q=(x)." };
+        yield return new object[] { "autolink-query-balanced-parens-then-comma", "Visit https://example.com/search?q=(x), now" };
+        yield return new object[] { "autolink-www-query-balanced-parens", "Visit www.example.com/search?q=(x) now" };
+        yield return new object[] { "autolink-fragment-balanced-parens", "Visit https://example.com/path#(x) now" };
+        yield return new object[] { "autolink-www-fragment-balanced-parens", "Visit www.example.com/path#(x) now" };
+        yield return new object[] { "autolink-fragment-with-ampersand", "Visit https://example.com/path#frag&next now" };
+        yield return new object[] { "autolink-www-query-with-ampersand", "Visit www.example.com/path?q=1&next=2 now" };
         yield return new object[] { "angle-autolink-http", "<https://example.com>" };
+        yield return new object[] { "plain-mailto-does-not-autolink-email", "Contact mailto:user@example.com now" };
+        yield return new object[] { "plain-email-with-path-suffix", "Contact user@example.com/path now" };
+        yield return new object[] { "plain-email-with-fragment-suffix", "Contact user@example.com#frag now" };
+        yield return new object[] { "plain-email-with-plus-tag", "Contact user.name+tag@example.com now" };
         yield return new object[] { "quote-blank-paragraph-then-paragraph", "> one\n>\n> \n> two" };
         yield return new object[] { "unordered-list-indented-code-then-paragraph", "- item\n\n      code\n\n  after" };
         yield return new object[] { "ordered-list-nested-blockquote-then-code", "1. item\n   > quote\n\n      code" };
@@ -48,6 +60,21 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "nonone-ordered-marker-with-indented-continuation", "alpha\n10. beta\n    gamma" };
         yield return new object[] { "list-quote-lazy-after-setext-heading", "- outer\n  heading\n  -------\n  > quote\n  continuation" };
         yield return new object[] { "literal-url-colon-stays-paragraph", "Visit https://example.com/path_(x): now" };
+        yield return new object[] { "atx-empty-heading", "#" };
+        yield return new object[] { "atx-indented-heading", "   # heading" };
+        yield return new object[] { "atx-trailing-closing-hashes", "### foo ###" };
+        yield return new object[] { "inline-link-nested-label", "[link [inner]](https://example.com)" };
+        yield return new object[] { "inline-link-escaped-closing-paren", "[x](https://example.com/a\\)b)" };
+        yield return new object[] { "inline-image-balanced-parens", "Look ![alt](https://example.com/a_(b).png) now" };
+        yield return new object[] { "linked-image-nested-alt", "[![alt [x]](https://example.com/a_(b).png)](https://example.com)" };
+        yield return new object[] { "inline-link-angle-destination-space", "[x](<https://example.com/a b> \"title\")" };
+        yield return new object[] { "inline-image-angle-destination-space", "Look ![x](<https://example.com/a b> \"title\") now" };
+        yield return new object[] { "reference-link-angle-destination-space", "[x][r]\n\n[r]: <https://example.com/a b>" };
+        yield return new object[] { "unordered-list-tab-continuation", "- first line\n\tsecond line\n- next" };
+        yield return new object[] { "ordered-list-tab-continuation", "1. first line\n\tsecond line\n2. next" };
+        yield return new object[] { "blockquote-lazy-after-unordered-list-item", "> - item\ncontinuation" };
+        yield return new object[] { "blockquote-lazy-after-ordered-list-item", "> 1. item\ncontinuation" };
+        yield return new object[] { "nested-blockquote-lazy-after-list-item", "> Outer\n> > Inner\n> > - a\n> > - b\n> After" };
     }
 
     [Theory]

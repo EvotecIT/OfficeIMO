@@ -278,7 +278,6 @@ namespace OfficeIMO.Tests {
                 }
             }
         }
-
         private static string GetCellText(WorkbookPart workbookPart, WorksheetPart worksheetPart, string cellReference) {
             var cell = worksheetPart.Worksheet.Descendants<Cell>()
                 .First(c => string.Equals(c.CellReference?.Value, cellReference, StringComparison.OrdinalIgnoreCase));

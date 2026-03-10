@@ -30,5 +30,42 @@ public class Markdown_Reader_Callout_RichBody_Tests {
         Assert.Contains("language-csharp", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Console.WriteLine", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Callout_Title_Preserves_Inline_Markup() {
+        string md = """
+> [!TIP] Use **strong** [links](https://example.com)
+> Body
+""";
+
+        var doc = MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var markdown = doc.ToMarkdown();
+
+        Assert.Contains("<strong>Use <strong>strong</strong> <a href=\"https://example.com\">links</a></strong>", html, StringComparison.Ordinal);
+        Assert.Contains("> [!TIP] Use **strong** [links](https://example.com)", markdown, StringComparison.Ordinal);
+
+        var callout = Assert.IsType<CalloutBlock>(Assert.Single(doc.Blocks));
+        Assert.Equal("Use strong links", callout.Title);
+        Assert.Equal("Use **strong** [links](https://example.com)", callout.TitleInlines.RenderMarkdown());
+    }
+
+    [Fact]
+    public void Callout_Title_With_ImageOnly_Inline_Does_Not_Fall_Back_To_Kind_Label() {
+        string md = """
+> [!TIP] ![](/icon.svg)
+> Body
+""";
+
+        var doc = MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<strong><img src=\"/icon.svg\" alt=\"\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<strong>Tip</strong>", html, StringComparison.Ordinal);
+
+        var callout = Assert.IsType<CalloutBlock>(Assert.Single(doc.Blocks));
+        Assert.Equal(string.Empty, callout.Title);
+        Assert.Equal("![](/icon.svg)", callout.TitleInlines.RenderMarkdown());
+    }
 }
 

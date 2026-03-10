@@ -1429,7 +1429,6 @@ namespace OfficeIMO.Excel {
                     fs.Write(finalizedBytes, 0, finalizedBytes.Length);
                     fs.Flush();
                 }
-
                 ReplaceTargetFile(temporaryPath, targetPath);
                 temporaryPath = string.Empty;
             } finally {
@@ -1444,7 +1443,6 @@ namespace OfficeIMO.Excel {
                     await fs.WriteAsync(finalizedBytes, 0, finalizedBytes.Length, cancellationToken).ConfigureAwait(false);
                     await fs.FlushAsync(cancellationToken).ConfigureAwait(false);
                 }
-
                 ReplaceTargetFile(temporaryPath, targetPath);
                 temporaryPath = string.Empty;
             } finally {

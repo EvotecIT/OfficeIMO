@@ -348,7 +348,6 @@ namespace OfficeIMO.Excel {
             string sheetQuoted = $"'{EscapeSheetName(scope.Name)}'!";
             return NormalizeRange(sheetQuoted + range, validationMode);
         }
-
         private string NormalizeSheetPrefix(string sheetToken, NameValidationMode validationMode) {
             if (string.IsNullOrWhiteSpace(sheetToken)) {
                 return sheetToken;
