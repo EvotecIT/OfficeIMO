@@ -20,8 +20,8 @@ on:
 
 env:
   DOTNET_VERSION: |
-    8.0.x
-    10.0.x
+    8.0.418
+    10.0.103
   BUILD_CONFIGURATION: 'Release'
   TEST_VERBOSITY: minimal # set to 'detailed' to restore full test output
   SUMMARIZE_FAILURES: true # set to 'false' to disable summarizing failing tests
