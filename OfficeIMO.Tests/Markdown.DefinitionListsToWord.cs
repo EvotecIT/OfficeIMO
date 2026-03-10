@@ -48,5 +48,23 @@ namespace OfficeIMO.Tests {
             Assert.Contains("no — nothing is failed", combinedRunText, StringComparison.Ordinal);
             Assert.Contains(runs, run => run.Bold && string.Equals(run.Text, "no — nothing is failed", StringComparison.Ordinal));
         }
+
+        [Fact]
+        public void MarkdownToWord_PreferNarrativeSingleLineDefinitions_Still_Renders_Grouped_Definition_List() {
+            const string markdown = """
+                Status: healthy
+                Impact: none
+                """;
+
+            using var document = markdown.LoadFromMarkdown(new MarkdownToWordOptions {
+                PreferNarrativeSingleLineDefinitions = true
+            });
+            var paragraphRunText = document.Paragraphs
+                .Select(p => string.Concat(p.GetRuns().Select(run => run.Text)))
+                .ToList();
+
+            Assert.Contains("Status: healthy", paragraphRunText);
+            Assert.Contains("Impact: none", paragraphRunText);
+        }
     }
 }

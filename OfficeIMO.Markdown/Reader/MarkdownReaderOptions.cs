@@ -26,6 +26,11 @@ public sealed class MarkdownReaderOptions {
     /// <summary>Enable definition lists (Term: Definition lines).</summary>
     public bool DefinitionLists { get; set; } = true;
     /// <summary>
+    /// When <c>true</c>, isolated single-line <c>Term: Definition</c> patterns stay as narrative paragraphs.
+    /// Consecutive definition-like lines still parse as a definition list.
+    /// </summary>
+    public bool PreferNarrativeSingleLineDefinitions { get; set; } = false;
+    /// <summary>
     /// Enable raw HTML blocks. When set to <c>false</c>, block-level HTML is preserved as plain text so that readers can postprocess
     /// or render it verbatim.
     /// </summary>

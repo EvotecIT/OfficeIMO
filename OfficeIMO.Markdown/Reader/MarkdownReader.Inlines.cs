@@ -839,12 +839,84 @@ public static partial class MarkdownReader {
         return true;
     }
 
+    private static int FindMatchingBracket(string text, int openIndex) {
+        if (string.IsNullOrEmpty(text) || openIndex < 0 || openIndex >= text.Length || text[openIndex] != '[') return -1;
+
+        int depth = 0;
+        bool escaped = false;
+        for (int i = openIndex; i < text.Length; i++) {
+            char c = text[i];
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (c == '[') {
+                depth++;
+                continue;
+            }
+
+            if (c == ']') {
+                depth--;
+                if (depth == 0) return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private static int FindReferenceLabelEnd(string text, int openIndex) {
+        if (string.IsNullOrEmpty(text) || openIndex < 0 || openIndex >= text.Length || text[openIndex] != '[') return -1;
+
+        bool escaped = false;
+        for (int i = openIndex + 1; i < text.Length; i++) {
+            char c = text[i];
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (c == '[') return -1;
+            if (c == ']') return i;
+        }
+
+        return -1;
+    }
+
+    private static string UnescapeMarkdownBackslashEscapes(string value) {
+        if (string.IsNullOrEmpty(value)) return value ?? string.Empty;
+
+        var sb = new StringBuilder(value.Length);
+        for (int i = 0; i < value.Length; i++) {
+            char c = value[i];
+            if (c == '\\' && i + 1 < value.Length && IsBackslashEscapable(value[i + 1])) {
+                sb.Append(value[i + 1]);
+                i++;
+                continue;
+            }
+
+            sb.Append(c);
+        }
+
+        return sb.ToString();
+    }
+
     private static bool TryParseRefLink(string text, int start, out int consumed, out string label, out string refLabel) {
         consumed = 0; label = refLabel = string.Empty;
         if (start >= text.Length || text[start] != '[') return false;
-        int rb = text.IndexOf(']', start + 1); if (rb < 0) return false;
+        int rb = FindMatchingBracket(text, start); if (rb < 0) return false;
         if (rb + 1 >= text.Length || text[rb + 1] != '[') return false;
-        int rb2 = text.IndexOf(']', rb + 2); if (rb2 < 0) return false;
+        int rb2 = FindMatchingBracket(text, rb + 1); if (rb2 < 0) return false;
         label = text.Substring(start + 1, rb - (start + 1));
         refLabel = text.Substring(rb + 2, rb2 - (rb + 2));
         consumed = rb2 - start + 1; return true;
@@ -853,7 +925,7 @@ public static partial class MarkdownReader {
     private static bool TryParseCollapsedRef(string text, int start, out int consumed, out string label) {
         consumed = 0; label = string.Empty;
         if (start >= text.Length || text[start] != '[') return false;
-        int rb = text.IndexOf(']', start + 1); if (rb < 0) return false;
+        int rb = FindMatchingBracket(text, start); if (rb < 0) return false;
         if (rb + 2 >= text.Length || text[rb + 1] != '[' || text[rb + 2] != ']') return false;
         label = text.Substring(start + 1, rb - (start + 1));
         consumed = rb + 3 - start;
@@ -863,7 +935,7 @@ public static partial class MarkdownReader {
     private static bool TryParseShortcutRef(string text, int start, out int consumed, out string label) {
         consumed = 0; label = string.Empty;
         if (start >= text.Length || text[start] != '[') return false;
-        int rb = text.IndexOf(']', start + 1); if (rb < 0) return false;
+        int rb = FindMatchingBracket(text, start); if (rb < 0) return false;
         if (rb + 1 < text.Length && (text[rb + 1] == '(' || text[rb + 1] == '[')) return false;
         label = text.Substring(start + 1, rb - (start + 1));
         consumed = rb + 1 - start;
@@ -1027,7 +1099,7 @@ public static partial class MarkdownReader {
     private static bool TryParseLink(string text, int start, out int consumed, out string label, out string href, out string? title) {
         consumed = 0; label = href = string.Empty; title = null;
         if (start >= text.Length || text[start] != '[') return false;
-        int labelEnd = text.IndexOf(']', start + 1);
+        int labelEnd = FindMatchingBracket(text, start);
         if (labelEnd < 0) return false;
         int parenOpen = (labelEnd + 1 < text.Length && text[labelEnd + 1] == '(') ? labelEnd + 1 : -1;
         if (parenOpen < 0) return false;
@@ -1036,7 +1108,7 @@ public static partial class MarkdownReader {
         label = text.Substring(start + 1, labelEnd - (start + 1));
         string inner = text.Substring(parenOpen + 1, parenClose - (parenOpen + 1));
         if (!TrySplitUrlAndOptionalTitle(inner, out href, out title)) {
-            href = inner.Trim();
+            href = UnescapeMarkdownBackslashEscapes(inner.Trim());
             title = null;
         }
         consumed = parenClose - start + 1;
@@ -1048,7 +1120,7 @@ public static partial class MarkdownReader {
         if (start >= text.Length || text[start] != '[') return false;
         if (start + 1 >= text.Length || text[start + 1] != '!') return false;
         if (start + 2 >= text.Length || text[start + 2] != '[') return false;
-        int altEnd = text.IndexOf(']', start + 3);
+        int altEnd = FindMatchingBracket(text, start + 2);
         if (altEnd < 0) return false;
         if (altEnd + 1 >= text.Length || text[altEnd + 1] != '(') return false;
         int imgClose = FindMatchingParen(text, altEnd + 1);
@@ -1056,16 +1128,19 @@ public static partial class MarkdownReader {
         alt = text.Substring(start + 3, altEnd - (start + 3));
         string inner = text.Substring(altEnd + 2, imgClose - (altEnd + 2));
         if (!TrySplitUrlAndOptionalTitle(inner, out img, out imgTitle)) {
-            img = inner.Trim();
+            img = UnescapeMarkdownBackslashEscapes(inner.Trim());
             imgTitle = null;
         }
-        int closeBracket = (imgClose + 1 < text.Length) ? text.IndexOf(']', imgClose + 1) : -1;
-        if (closeBracket != imgClose + 1) return false;
+        int closeBracket = (imgClose + 1 < text.Length && text[imgClose + 1] == ']') ? imgClose + 1 : -1;
+        if (closeBracket < 0) return false;
         int parenOpen2 = (closeBracket + 1 < text.Length && text[closeBracket + 1] == '(') ? closeBracket + 1 : -1;
         if (parenOpen2 != closeBracket + 1) return false;
         int parenClose2 = FindMatchingParen(text, parenOpen2);
         if (parenClose2 < 0) return false;
-        href = text.Substring(parenOpen2 + 1, parenClose2 - (parenOpen2 + 1)).Trim();
+        string hrefInner = text.Substring(parenOpen2 + 1, parenClose2 - (parenOpen2 + 1));
+        if (!TrySplitUrlAndOptionalTitle(hrefInner, out href, out _)) {
+            href = UnescapeMarkdownBackslashEscapes(hrefInner.Trim());
+        }
         consumed = parenClose2 - start + 1;
         return true;
     }
@@ -1083,21 +1158,29 @@ public static partial class MarkdownReader {
         if (t[0] == '<') {
             int gt = t.IndexOf('>');
             if (gt > 1) {
-                url = t.Substring(1, gt - 1).Trim();
+                url = UnescapeMarkdownBackslashEscapes(t.Substring(1, gt - 1).Trim());
                 var rest = t.Substring(gt + 1).Trim();
-                if (rest.Length > 0) title = TryParseOptionalTitleToken(rest);
+                if (rest.Length > 0) {
+                    title = TryParseOptionalTitleToken(rest);
+                    if (title != null) title = UnescapeMarkdownBackslashEscapes(title);
+                }
                 return true;
             }
         }
 
         int ws = IndexOfWhitespace(t);
-        if (ws < 0) { url = t; title = null; return true; }
+        if (ws < 0) {
+            url = UnescapeMarkdownBackslashEscapes(t);
+            title = null;
+            return true;
+        }
 
-        url = t.Substring(0, ws).Trim();
+        url = UnescapeMarkdownBackslashEscapes(t.Substring(0, ws).Trim());
         var remaining = t.Substring(ws).Trim();
         if (remaining.Length == 0) { title = null; return true; }
 
         title = TryParseOptionalTitleToken(remaining);
+        if (title != null) title = UnescapeMarkdownBackslashEscapes(title);
         return true;
     }
 
@@ -1121,7 +1204,7 @@ public static partial class MarkdownReader {
     private static bool TryParseInlineImage(string text, int start, out int consumed, out string alt, out string src, out string? title) {
         consumed = 0; alt = src = string.Empty; title = null;
         if (start + 1 >= text.Length || text[start] != '!' || text[start + 1] != '[') return false;
-        int altEnd = text.IndexOf(']', start + 2);
+        int altEnd = FindMatchingBracket(text, start + 1);
         if (altEnd < 0) return false;
         if (altEnd + 1 >= text.Length || text[altEnd + 1] != '(') return false;
         int parenClose = FindMatchingParen(text, altEnd + 1);
@@ -1129,7 +1212,7 @@ public static partial class MarkdownReader {
         alt = text.Substring(start + 2, altEnd - (start + 2));
         string inner = text.Substring(altEnd + 2, parenClose - (altEnd + 2));
         if (!TrySplitUrlAndOptionalTitle(inner, out src, out title)) {
-            src = inner.Trim();
+            src = UnescapeMarkdownBackslashEscapes(inner.Trim());
             title = null;
         }
         consumed = parenClose - start + 1;
@@ -1139,7 +1222,7 @@ public static partial class MarkdownReader {
     private static bool TryParseReferenceImage(string text, int start, out int consumed, out string alt, out string label) {
         consumed = 0; alt = label = string.Empty;
         if (start + 1 >= text.Length || text[start] != '!' || text[start + 1] != '[') return false;
-        int altEnd = text.IndexOf(']', start + 2);
+        int altEnd = FindMatchingBracket(text, start + 1);
         if (altEnd < 0) return false;
 
         alt = text.Substring(start + 2, altEnd - (start + 2));
@@ -1149,7 +1232,7 @@ public static partial class MarkdownReader {
 
         // Full or collapsed reference: ![alt][label] or ![alt][]
         if (altEnd + 1 < text.Length && text[altEnd + 1] == '[') {
-            int labelEnd = text.IndexOf(']', altEnd + 2);
+            int labelEnd = FindMatchingBracket(text, altEnd + 1);
             if (labelEnd < 0) return false;
             label = text.Substring(altEnd + 2, labelEnd - (altEnd + 2));
             if (string.IsNullOrEmpty(label)) label = alt;
@@ -1164,13 +1247,40 @@ public static partial class MarkdownReader {
     }
 
     private static int FindMatchingParen(string text, int openIndex) {
-        int depth = 0; bool inQuotes = false;
+        int depth = 0;
+        bool inDoubleQuotes = false;
+        bool inSingleQuotes = false;
+        bool inAngle = false;
+        bool escaped = false;
         for (int i = openIndex; i < text.Length; i++) {
             char c = text[i];
-            if (c == '"') { inQuotes = !inQuotes; continue; }
-            if (inQuotes) continue;
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (inAngle) {
+                if (c == '>') inAngle = false;
+                continue;
+            }
+            if (inDoubleQuotes) {
+                if (c == '"') inDoubleQuotes = false;
+                continue;
+            }
+            if (inSingleQuotes) {
+                if (c == '\'') inSingleQuotes = false;
+                continue;
+            }
             if (c == '(') { depth++; continue; }
             if (c == ')') { depth--; if (depth == 0) return i; continue; }
+            if (depth == 1) {
+                if (c == '<') { inAngle = true; continue; }
+                if (c == '"') { inDoubleQuotes = true; continue; }
+                if (c == '\'') { inSingleQuotes = true; continue; }
+            }
         }
         return -1;
     }

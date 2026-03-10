@@ -134,7 +134,7 @@ public static partial class MarkdownReader {
 
             var t = line.Trim(); if (t.Length < 5 || t[0] != '[') continue;
             if (t.Length > 1 && t[1] == '^') continue; // footnote definition, not a link ref
-            int rb = t.IndexOf(']'); if (rb <= 1) continue;
+            int rb = FindReferenceLabelEnd(t, 0); if (rb <= 1) continue;
             if (rb + 1 >= t.Length || t[rb + 1] != ':') continue;
             string label = NormalizeReferenceLabel(t.Substring(1, rb - 1));
             string rest = t.Substring(rb + 2).Trim(); if (string.IsNullOrEmpty(rest)) continue;
@@ -144,6 +144,16 @@ public static partial class MarkdownReader {
                 if (!string.IsNullOrEmpty(resolved)) state.LinkRefs[label] = (resolved!, title);
             }
         }
+    }
+
+    private static bool StartsWithReferenceDefinitionLikeLabel(string line) {
+        if (string.IsNullOrWhiteSpace(line)) return false;
+        var trimmed = line.TrimStart();
+        if (trimmed.Length < 4 || trimmed[0] != '[') return false;
+        if (trimmed.Length > 1 && trimmed[1] == '^') return false;
+
+        int balancedEnd = FindMatchingBracket(trimmed, 0);
+        return balancedEnd > 1 && balancedEnd + 1 < trimmed.Length && trimmed[balancedEnd + 1] == ':';
     }
 
     private static string NormalizeReferenceLabel(string? label) {
@@ -176,6 +186,7 @@ public static partial class MarkdownReader {
             OrderedLists = source.OrderedLists,
             Tables = source.Tables,
             DefinitionLists = source.DefinitionLists,
+            PreferNarrativeSingleLineDefinitions = source.PreferNarrativeSingleLineDefinitions,
             HtmlBlocks = source.HtmlBlocks,
             Paragraphs = source.Paragraphs,
             AutolinkUrls = source.AutolinkUrls,

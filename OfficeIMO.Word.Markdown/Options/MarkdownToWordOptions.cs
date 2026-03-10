@@ -74,8 +74,8 @@ namespace OfficeIMO.Word.Markdown {
         public MarkdownImageLayoutOptions ImageLayout { get; } = new MarkdownImageLayoutOptions();
 
         /// <summary>
-        /// When enabled, markdown parser definition-list detection is disabled so
-        /// <c>Label: value</c> lines are kept as narrative paragraphs.
+        /// When enabled, isolated single-line <c>Label: value</c> content is kept as
+        /// narrative paragraphs while grouped definition-list blocks remain structured.
         /// </summary>
         public bool PreferNarrativeSingleLineDefinitions { get; set; }
 

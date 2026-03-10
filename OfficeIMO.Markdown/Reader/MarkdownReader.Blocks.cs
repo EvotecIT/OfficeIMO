@@ -8,12 +8,45 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public static partial class MarkdownReader {
     private static bool IsAtxHeading(string line, out int level, out string text) {
-        level = 0; text = string.Empty;
+        level = 0;
+        text = string.Empty;
         if (string.IsNullOrEmpty(line)) return false;
-        int i = 0; while (i < line.Length && line[i] == '#') i++;
-        if (i < 1 || i > 6) return false;
-        if (i < line.Length && line[i] == ' ') { level = i; text = line.Substring(i + 1); return true; }
-        return false;
+
+        int indent = 0;
+        while (indent < line.Length && indent < 4 && line[indent] == ' ') indent++;
+        if (indent >= 4) return false;
+
+        int i = indent;
+        while (i < line.Length && line[i] == '#') i++;
+
+        int count = i - indent;
+        if (count < 1 || count > 6) return false;
+        if (i < line.Length && !char.IsWhiteSpace(line[i])) return false;
+
+        int contentStart = i;
+        while (contentStart < line.Length && char.IsWhiteSpace(line[contentStart])) contentStart++;
+        if (contentStart >= line.Length) {
+            level = count;
+            text = string.Empty;
+            return true;
+        }
+
+        int contentEnd = line.Length;
+        while (contentEnd > contentStart && char.IsWhiteSpace(line[contentEnd - 1])) contentEnd--;
+
+        int closingStart = contentEnd;
+        while (closingStart > contentStart && line[closingStart - 1] == '#') closingStart--;
+        if (closingStart < contentEnd) {
+            int beforeClosing = closingStart - 1;
+            if (beforeClosing >= contentStart && char.IsWhiteSpace(line[beforeClosing])) {
+                contentEnd = beforeClosing;
+                while (contentEnd > contentStart && char.IsWhiteSpace(line[contentEnd - 1])) contentEnd--;
+            }
+        }
+
+        level = count;
+        text = line.Substring(contentStart, contentEnd - contentStart);
+        return true;
     }
 
     private static bool IsCodeFenceOpen(string line, out string language, out char fenceChar, out int fenceLength) {
@@ -59,15 +92,15 @@ public static partial class MarkdownReader {
         if (string.IsNullOrEmpty(line)) return false;
         var t = line.Trim();
         if (!t.StartsWith("![")) return false;
-        int altEnd = t.IndexOf(']');
+        int altEnd = FindMatchingBracket(t, 1);
         if (altEnd < 2) return false;
         if (altEnd + 1 >= t.Length || t[altEnd + 1] != '(') return false;
-        int parenClose = t.IndexOf(')', altEnd + 2);
+        int parenClose = FindMatchingParen(t, altEnd + 1);
         if (parenClose <= altEnd + 2) return false;
         string alt = t.Substring(2, altEnd - 2);
         string inner = t.Substring(altEnd + 2, parenClose - (altEnd + 2));
         if (!TrySplitUrlAndOptionalTitle(inner, out var src, out var title)) {
-            src = inner.Trim();
+            src = UnescapeMarkdownBackslashEscapes(inner.Trim());
             title = null;
         }
         image = new ImageBlock(src, alt, title);
@@ -564,7 +597,9 @@ public static partial class MarkdownReader {
             if (!sawQuotedLine) break;
             var previousQuoteContent = lastQuoteContent;
             if (previousQuoteContent == null || previousQuoteContent.Length == 0) break;
-            if (!LooksLikeParagraphLine(previousQuoteContent) || !TryNormalizeQuoteLazyContinuationLine(part, out var normalizedLazyLine)) break;
+            var quoteContext = new[] { previousQuoteContent, part };
+            if (!LooksLikeParagraphLine(quoteContext, 0, options) ||
+                !TryNormalizeQuoteLazyContinuationLine(quoteContext, 1, options, out var normalizedLazyLine)) break;
 
             collected.Add("> " + normalizedLazyLine);
             lastQuoteContent = normalizedLazyLine;
@@ -1096,7 +1131,35 @@ public static partial class MarkdownReader {
         if (IsAtxHeading(trimmed, out _, out _)) return false; // headings take priority over definition lists
         if (IsUnorderedListLine(trimmed, out _, out _, out _)) return false; // list items with ":" are not definition terms
         if (IsOrderedListLine(trimmed, out _, out _)) return false; // numbered list items with ":" are not definition terms
+        if (StartsWithReferenceDefinitionLikeLabel(trimmed)) return false; // malformed or valid link ref definitions should not become <dl>
         return TryGetDefinitionSeparator(line, out _);
+    }
+
+    private static bool ShouldTreatAsDefinitionLine(IReadOnlyList<string>? lines, int index, MarkdownReaderOptions options) {
+        if (lines == null || index < 0 || index >= lines.Count) return false;
+        if (options == null || !options.DefinitionLists) return false;
+
+        var line = lines[index] ?? string.Empty;
+        if (!IsDefinitionLineBlockCandidate(line)) return false;
+        if (!options.PreferNarrativeSingleLineDefinitions) return true;
+
+        return HasAdjacentDefinitionLine(lines, index);
+    }
+
+    private static bool HasAdjacentDefinitionLine(IReadOnlyList<string> lines, int index) {
+        return IsDefinitionLineBlockCandidate(index > 0 ? lines[index - 1] : null)
+               || IsDefinitionLineBlockCandidate(index + 1 < lines.Count ? lines[index + 1] : null);
+    }
+
+    private static bool IsDefinitionLineBlockCandidate(string? line) {
+        if (string.IsNullOrWhiteSpace(line)) return false;
+
+        int leading = 0;
+        while (leading < line.Length && line[leading] == ' ') leading++;
+        if (leading >= 4) return false;
+        if (leading < line.Length && line[leading] == '\t') return false;
+
+        return IsDefinitionLine(line);
     }
 
     private static bool TryGetDefinitionSeparator(string line, out int idx) {

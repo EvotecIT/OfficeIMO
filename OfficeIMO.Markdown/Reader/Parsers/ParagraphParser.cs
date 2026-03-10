@@ -63,7 +63,7 @@ public static partial class MarkdownReader {
         int pos = 0;
         while (pos < text.Length) {
             if (text[pos] == '[') {
-                int rb = text.IndexOf(']', pos + 1);
+                int rb = FindMatchingBracket(text, pos);
                 if (rb > pos + 1) {
                     // collapsed: [text][]
                     if (rb + 2 < text.Length && text[rb + 1] == '[' && text[rb + 2] == ']') {
@@ -79,7 +79,7 @@ public static partial class MarkdownReader {
                     }
                     // full: [text][label]
                     if (rb + 1 < text.Length && text[rb + 1] == '[') {
-                        int rb2 = text.IndexOf(']', rb + 2);
+                        int rb2 = FindMatchingBracket(text, rb + 1);
                         if (rb2 > rb + 2) {
                             var textLbl = text.Substring(pos + 1, rb - (pos + 1));
                             var refLbl = text.Substring(rb + 2, rb2 - (rb + 2));
