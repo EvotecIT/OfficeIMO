@@ -40,6 +40,22 @@ public sealed class FootnoteDefinitionBlock : IMarkdownBlock {
     string IMarkdownBlock.RenderHtml() {
         // Standalone rendering; HtmlRenderer aggregates footnotes into a dedicated section.
         var encLabel = System.Net.WebUtility.HtmlEncode(Label);
+        var paragraphs = Paragraphs;
+        if (paragraphs != null && paragraphs.Count > 0) {
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < paragraphs.Count; i++) {
+                var paragraph = paragraphs[i] ?? new InlineSequence();
+                sb.Append("<p id=\"fn:").Append(encLabel).Append("\"><sup>").Append(encLabel).Append("</sup> ")
+                    .Append(paragraph.RenderHtml());
+                if (i == paragraphs.Count - 1) {
+                    sb.Append(" <a class=\"footnote-backref\" href=\"#fnref:").Append(encLabel).Append("\" aria-label=\"Back to reference\">&#8617;</a>");
+                }
+                sb.Append("</p>");
+            }
+
+            return sb.ToString();
+        }
+
         var inlines = MarkdownReader.ParseInlineText(Text);
         return $"<p id=\"fn:{encLabel}\"><sup>{encLabel}</sup> {inlines.RenderHtml()} <a class=\"footnote-backref\" href=\"#fnref:{encLabel}\" aria-label=\"Back to reference\">&#8617;</a></p>";
     }
