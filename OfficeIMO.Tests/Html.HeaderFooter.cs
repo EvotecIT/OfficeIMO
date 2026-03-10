@@ -41,6 +41,16 @@ namespace OfficeIMO.Tests {
             AssertFooterCreated(HeaderFooterValues.Even, "Sync even footer", doc => doc.DifferentOddAndEvenPages = true);
         }
 
+        [Fact]
+        public void AddHtmlToHeader_CreatesFirstHeader() {
+            AssertHeaderCreated(HeaderFooterValues.First, "Sync first header", doc => doc.DifferentFirstPage = true);
+        }
+
+        [Fact]
+        public void AddHtmlToHeader_CreatesEvenHeader() {
+            AssertHeaderCreated(HeaderFooterValues.Even, "Sync even header", doc => doc.DifferentOddAndEvenPages = true);
+        }
+
         private static void AssertFooterCreated(HeaderFooterValues footerType, string expectedText, Action<WordDocument> configure) {
             using WordDocument document = WordDocument.Create();
             configure(document);
@@ -54,6 +64,22 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(ResolveFooter(footers!, footerType));
 
             string innerText = GetFooterInnerText(document, footerType);
+            Assert.Contains(expectedText, innerText);
+        }
+
+        private static void AssertHeaderCreated(HeaderFooterValues headerType, string expectedText, Action<WordDocument> configure) {
+            using WordDocument document = WordDocument.Create();
+            configure(document);
+
+            string html = $"<p>{expectedText}</p>";
+            document.AddHtmlToHeader(html, headerType);
+
+            var section = document.Sections.Last();
+            var headers = section.Header;
+            Assert.NotNull(headers);
+            Assert.NotNull(ResolveHeader(headers!, headerType));
+
+            string innerText = GetHeaderInnerText(document, headerType);
             Assert.Contains(expectedText, innerText);
         }
 
