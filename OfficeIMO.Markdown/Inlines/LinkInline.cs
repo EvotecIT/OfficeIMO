@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Hyperlink inline.
 /// </summary>
-public sealed class LinkInline : IMarkdownInline, IRenderableMarkdownInline {
+public sealed class LinkInline : IMarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
     /// <summary>Link text.</summary>
     public string Text { get; }
     /// <summary>Destination URL.</summary>
@@ -47,4 +47,5 @@ public sealed class LinkInline : IMarkdownInline, IRenderableMarkdownInline {
     }
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
+    void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);
 }

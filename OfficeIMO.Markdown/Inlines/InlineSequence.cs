@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Sequence of inline nodes used in paragraphs and list items.
 /// </summary>
-public sealed class InlineSequence : IMarkdownInline, IRenderableMarkdownInline {
+public sealed class InlineSequence : IMarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
     private readonly List<IMarkdownInline> _inlines = new List<IMarkdownInline>();
     private readonly IReadOnlyList<object> _itemsView;
 
@@ -90,6 +90,7 @@ public sealed class InlineSequence : IMarkdownInline, IRenderableMarkdownInline 
 
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
+    void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => InlinePlainText.AppendPlainText(sb, this);
 
     private static IRenderableMarkdownInline GetRenderable(IMarkdownInline node) {
         return node as IRenderableMarkdownInline
