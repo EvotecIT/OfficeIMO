@@ -57,6 +57,26 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
             Assert.Contains("href=\"#deep\">Deep</a>", html);
         }
+
+        [Fact]
+        public void Toc_Html_PreviousHeading_Scope_Matches_Markdown_Rendering() {
+            var md = MarkdownDoc.Create()
+                .H1("Doc")
+                .H2("Intro")
+                .H3("Intro Child")
+                .H2("Appendix")
+                .H3("Extra")
+                .TocForPreviousHeading("Appendix Contents", min: 3, max: 3);
+
+            var html = md.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Clean,
+                IncludeAnchorLinks = false,
+                ShowAnchorIcons = false
+            });
+
+            Assert.Contains("href=\"#extra\">Extra</a>", html);
+            Assert.DoesNotContain("href=\"#intro-child\">Intro Child</a>", html);
+        }
     }
 }
 

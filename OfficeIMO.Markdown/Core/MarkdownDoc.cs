@@ -362,53 +362,19 @@ public class MarkdownDoc {
     private System.Collections.Generic.List<IMarkdownBlock> RealizeTocPlaceholders(System.Collections.Generic.Dictionary<string, int> slugRegistry) {
         // Create a shallow copy first
         var realized = new System.Collections.Generic.List<IMarkdownBlock>(_blocks);
-        // Collect heading info from realized list with indices
-        var headings = new System.Collections.Generic.List<(int Index, int Level, string Text, HeadingBlock Block)>();
+        var headingCatalog = MarkdownHeadingCatalog.Create(realized, slugRegistry);
         _headingSlugMap = new System.Collections.Generic.Dictionary<HeadingBlock, string>();
-        for (int idx = 0; idx < realized.Count; idx++) {
-            if (realized[idx] is HeadingBlock h) {
-                var slug = MarkdownSlug.GitHub(h.Text, slugRegistry);
-                _headingSlugMap[h] = slug;
-                headings.Add((idx, h.Level, h.Text, h));
-            }
+        foreach (var kvp in headingCatalog.HeadingSlugs) {
+            _headingSlugMap[kvp.Key] = kvp.Value;
         }
         // Replace placeholders with generated TOC blocks
         for (int i = 0; i < realized.Count; i++) {
             if (realized[i] is TocPlaceholderBlock tp) {
                 var opts = tp.Options;
-                // Enforce top-level if requested
-                int effectiveMin = opts.RequireTopLevel && opts.MinLevel > 1 ? 1 : opts.MinLevel;
-                int effectiveMax = opts.MaxLevel;
                 var toc = new TocBlock { Ordered = opts.Ordered, NormalizeLevels = opts.NormalizeToMinLevel };
-                // Determine scope bounds
-                int startIdx = 0; int endIdx = realized.Count;
-                string? titleAnchor = null;
-                if (opts.IncludeTitle && i > 0 && realized[i - 1] is HeadingBlock titleHeading) {
-                    if (!_headingSlugMap.TryGetValue(titleHeading, out titleAnchor)) titleAnchor = MarkdownSlug.GitHub(titleHeading.Text);
-                }
-                if (opts.Scope == TocScope.PreviousHeading) {
-                    // Root at the nearest preceding heading with level < MinLevel if available; otherwise nearest heading.
-                    var prev = headings.LastOrDefault(h => h.Index < i && h.Level < opts.MinLevel);
-                    if (prev == default) prev = headings.LastOrDefault(h => h.Index < i);
-                    if (prev != default) {
-                        startIdx = prev.Index + 1;
-                        var nextAtOrAbove = headings.FirstOrDefault(h => h.Index > prev.Index && h.Level <= prev.Level);
-                        if (nextAtOrAbove != default) endIdx = nextAtOrAbove.Index;
-                    }
-                } else if (opts.Scope == TocScope.HeadingTitle && !string.IsNullOrWhiteSpace(opts.ScopeHeadingTitle)) {
-                    var root = headings.FirstOrDefault(h => string.Equals(h.Text, opts.ScopeHeadingTitle, System.StringComparison.OrdinalIgnoreCase));
-                    if (root != default) {
-                        startIdx = root.Index + 1;
-                        var nextAtOrAbove = headings.FirstOrDefault(h => h.Index > root.Index && h.Level <= root.Level);
-                        if (nextAtOrAbove != default) endIdx = nextAtOrAbove.Index;
-                    }
-                }
-                foreach (var h in headings) {
-                    if (h.Index < startIdx || h.Index >= endIdx) continue;
-                    if (h.Level < effectiveMin || h.Level > effectiveMax) continue;
-                    if (!_headingSlugMap.TryGetValue(h.Block, out var anchor)) anchor = MarkdownSlug.GitHub(h.Text);
-                    if (titleAnchor != null && string.Equals(anchor, titleAnchor, System.StringComparison.Ordinal)) continue;
-                    toc.Entries.Add(new TocBlock.Entry { Level = h.Level, Text = h.Text, Anchor = anchor });
+                string? titleAnchor = headingCatalog.GetPrecedingHeadingAnchor(realized, i, opts);
+                foreach (var entry in headingCatalog.BuildTocEntries(realized, i, opts, titleAnchor)) {
+                    toc.Entries.Add(entry);
                 }
                 realized[i] = toc;
             }
