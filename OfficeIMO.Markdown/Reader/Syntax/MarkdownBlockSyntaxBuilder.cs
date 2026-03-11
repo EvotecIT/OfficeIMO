@@ -49,13 +49,6 @@ internal static class MarkdownBlockSyntaxBuilder {
             quote.Children.Count == 0 ? string.Join("\n", quote.Lines) : null,
             GetProvidedSyntaxChildrenOrBuild(quote));
 
-    internal static MarkdownSyntaxNode BuildListBlock(IListSyntaxMarkdownBlock listBlock, MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(
-            listBlock.ListSyntaxKind,
-            span,
-            listBlock.ListLiteral,
-            BuildListItemSyntaxNodes(listBlock.ListItems, listBlock.ListSyntaxKind));
-
     internal static MarkdownSyntaxNode BuildDefinitionListBlock(DefinitionListBlock definitionList, MarkdownSourceSpan? span) =>
         new MarkdownSyntaxNode(MarkdownSyntaxKind.DefinitionList, span, children: definitionList.BuildSyntaxItems());
 
@@ -119,36 +112,6 @@ internal static class MarkdownBlockSyntaxBuilder {
 
         MarkdownSourceSpan? textSpan = span.HasValue ? new MarkdownSourceSpan(span.Value.StartLine, span.Value.StartLine) : null;
         nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.HeadingText, textSpan, heading.Inlines.RenderMarkdown()));
-
-        return nodes;
-    }
-
-    internal static IReadOnlyList<MarkdownSyntaxNode> BuildListItemSyntaxNodes(IReadOnlyList<ListItem> items, MarkdownSyntaxKind listKind) {
-        int index = 0;
-        return BuildListItemSyntaxNodes(items, listKind, ref index, 0);
-    }
-
-    private static IReadOnlyList<MarkdownSyntaxNode> BuildListItemSyntaxNodes(IReadOnlyList<ListItem> items, MarkdownSyntaxKind listKind, ref int index, int level) {
-        var nodes = new List<MarkdownSyntaxNode>();
-        while (index < items.Count) {
-            var item = items[index];
-            if (item.Level < level) break;
-            if (item.Level > level) {
-                index++;
-                continue;
-            }
-
-            index++;
-
-            MarkdownSyntaxNode? nestedList = null;
-            if (index < items.Count && items[index].Level > level) {
-                var nestedLevel = items[index].Level;
-                var nestedItems = BuildListItemSyntaxNodes(items, listKind, ref index, nestedLevel);
-                nestedList = new MarkdownSyntaxNode(listKind, GetAggregateSpan(nestedItems), children: nestedItems);
-            }
-
-            nodes.Add(item.BuildSyntaxNode(nestedList));
-        }
 
         return nodes;
     }

@@ -17,9 +17,9 @@ public sealed class UnorderedListBlock : IMarkdownListBlock, ISyntaxMarkdownBloc
     string IMarkdownBlock.RenderHtml() =>
         MarkdownListRendering.RenderHtml("ul", Items, _ => string.Empty);
 
-    IReadOnlyList<ListItem> IListSyntaxMarkdownBlock.ListItems => Items;
-    MarkdownSyntaxKind IListSyntaxMarkdownBlock.ListSyntaxKind => MarkdownSyntaxKind.UnorderedList;
-    string? IListSyntaxMarkdownBlock.ListLiteral => null;
+    IReadOnlyList<ListItem> IMarkdownListBlock.ListItems => Items;
+    MarkdownSyntaxKind IMarkdownListBlock.ListSyntaxKind => MarkdownSyntaxKind.UnorderedList;
+    string? IMarkdownListBlock.ListLiteral => null;
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        MarkdownBlockSyntaxBuilder.BuildListBlock(this, span);
+        MarkdownListSyntax.BuildListBlockNode(this, span);
 }
