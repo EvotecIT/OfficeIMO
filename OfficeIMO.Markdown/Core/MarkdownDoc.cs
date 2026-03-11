@@ -50,6 +50,23 @@ public class MarkdownDoc {
         }
     }
 
+    /// <summary>Enumerates all headings in document order, including nested headings.</summary>
+    public IEnumerable<HeadingBlock> DescendantHeadings() {
+        foreach (var block in DescendantsAndSelf()) {
+            if (block is HeadingBlock heading) {
+                yield return heading;
+            }
+        }
+    }
+
+    /// <summary>Gets the resolved anchor id for a heading within this document.</summary>
+    public string GetHeadingAnchor(HeadingBlock heading) {
+        if (heading == null) throw new ArgumentNullException(nameof(heading));
+
+        var (_, headingCatalog) = GetBlocksAndHeadingSlugs();
+        return headingCatalog.GetHeadingAnchor(heading);
+    }
+
     private IReadOnlyList<IMarkdownBlock> BuildTopLevelBlocks() {
         if (_frontMatter == null) {
             return _blocks;
