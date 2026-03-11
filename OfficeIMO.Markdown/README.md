@@ -1,15 +1,15 @@
 OfficeIMO.Markdown
 ==================
 
-Fluent and object‑model Markdown builder for .NET with CommonMark/GFM‑style output. Zero runtime dependencies, rich table/list helpers, HTML export (fragment or full document) with built‑in styles and Prism highlighting.
+Markdown builder, reader, AST/query model, and HTML renderer for .NET. Zero runtime dependencies, rich table/list helpers, Markdown-to-HTML export, and a typed reader surface with optional Markdig-compatible parsing defaults for parity-sensitive scenarios.
 
 ## Why OfficeIMO.Markdown
 
 - Pure .NET, cross‑platform — no native renderers required
 - Fluent API or explicit object model — compose documents predictably
-- CommonMark/GFM‑style output that renders well on GitHub, wikis, and docs sites
+- GitHub-like output by default, with a typed reader and a Markdig-compatible mode when you need stricter parsing defaults
 - HTML export with clean themes (Clean, GitHub Light/Dark/Auto), CDN/offline assets, and Prism highlighting
-- Designed for reporting — tables from sequences/objects, callouts, TOC, and front matter
+- Designed for reporting and chat/docs rendering — tables from sequences/objects, callouts, TOC, front matter, and runtime-safe ingestion presets
 
 ### Design & Expectations
 
@@ -29,14 +29,21 @@ Badges
 
 Highlights
 - No external dependencies for Markdown/HTML generation.
-- Fluent API and explicit object model.
+- Fluent API, explicit object model, and typed reader/query surface.
 - Core blocks: headings, paragraphs, links, images (with captions), lists (UL/OL/task/definition), tables, code blocks, callouts, front matter (YAML).
 - Tables from objects/sequences: include/exclude/order/rename/formatters, alignment presets, date/number heuristics.
 - Table of Contents: at top, here, or scoped to sections; GitHub‑style anchors.
 - Table of Contents: at top, here, or scoped to sections; GitHub‑style anchors; HTML layouts (panel/sidebar) with optional ScrollSpy.
 - HTML: fragment or full document; styles (Clean, GitHub Light/Dark/Auto, Word), CSS delivery (inline/link/external file), Online/Offline asset modes.
 - Prism highlighting: CDN link or offline inline; manifest for safe dedupe across fragments.
-- Reader (experimental): parse Markdown back into the typed object model you can traverse.
+- Reader: parse Markdown back into typed blocks/inlines, query document descendants, inspect list items/headings/front matter, and opt into syntax-tree spans.
+- Markdig-compatible reader mode: disables OfficeIMO-only callout/task-list parsing and turns off bare literal autolinks for closer parity-sensitive ingestion.
+
+### Positioning
+
+- `OfficeIMO.Markdown` is now suitable for real builder + reader workloads, including AST-style traversal and chat/document rendering pipelines.
+- It is still not a full CommonMark/GFM replacement and should not be marketed as "full Markdig parity" yet.
+- Use the default mode for OfficeIMO/GitHub-like behavior and `MarkdownReaderOptions.CreateMarkdigCompatible()` when stricter Markdig-like reader behavior matters more than OfficeIMO conveniences.
 
 ### AOT / Trimming notes
 
@@ -167,7 +174,7 @@ var htmlCdnOnline  = md.ToHtmlDocument(new HtmlOptions { CssDelivery = CssDelive
 var htmlCdnOffline = md.ToHtmlDocument(new HtmlOptions { CssDelivery = CssDelivery.LinkHref, CssHref = cdn, AssetMode = AssetMode.Offline, BodyClass = "markdown-body" });
 ```
 
-Reader (experimental)
+Reader / AST usage
 
 ```csharp
 // Parse Markdown back into typed blocks/inlines
@@ -176,6 +183,21 @@ var doc = MarkdownReader.Parse(File.ReadAllText("README.md"));
 // Inspect blocks
 foreach (var h2 in doc.Blocks.OfType<HeadingBlock>().Where(h => h.Level == 2)) {
     Console.WriteLine($"Section: {h2.Text}");
+}
+
+// Traverse the typed document model
+foreach (var block in doc.DescendantsAndSelf()) {
+    Console.WriteLine(block.GetType().Name);
+}
+
+// Query headings and resolved anchors
+foreach (var heading in doc.GetHeadingInfos()) {
+    Console.WriteLine($"{heading.Level}: {heading.Text} -> {heading.Anchor}");
+}
+
+// Access top-level front matter and structured entries
+if (doc.HasDocumentHeader && doc.TryGetFrontMatterValue<string>("title", out var title)) {
+    Console.WriteLine("Title: " + title);
 }
 
 // Feature toggles align with OfficeIMO blocks/inlines
