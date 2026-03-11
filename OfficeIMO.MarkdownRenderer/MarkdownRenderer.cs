@@ -164,6 +164,7 @@ public static class MarkdownRenderer {
             TaskLists = source.TaskLists,
             Tables = source.Tables,
             DefinitionLists = source.DefinitionLists,
+            PreferNarrativeSingleLineDefinitions = source.PreferNarrativeSingleLineDefinitions,
             HtmlBlocks = source.HtmlBlocks,
             Paragraphs = source.Paragraphs,
             AutolinkUrls = source.AutolinkUrls,
