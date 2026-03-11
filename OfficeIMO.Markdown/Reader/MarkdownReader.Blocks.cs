@@ -743,9 +743,8 @@ public static partial class MarkdownReader {
 
         if (collected.Count == 0) return false;
 
-        var nested = ParseBlocksFromLines(collected.ToArray(), options, state, lineOffset: index);
-        if (nested.Count > 0 && nested[0] is QuoteBlock qb) {
-            quote = qb;
+        if (TryParseCollectedNestedBlock(collected, options, state, index, out QuoteBlock? parsedQuote)) {
+            quote = parsedQuote;
             index = j;
             return true;
         }
@@ -783,13 +782,31 @@ public static partial class MarkdownReader {
         }
 
         if (collected.Count == 0) return false;
-        var nested = ParseBlocksFromLines(collected.ToArray(), options, state, lineOffset: index);
-        if (nested.Count > 0 && nested[0] is TableBlock tb) {
-            table = tb;
+        if (TryParseCollectedNestedBlock(collected, options, state, index, out TableBlock? parsedTable)) {
+            table = parsedTable;
             index = j;
             return true;
         }
         return false;
+    }
+
+    private static bool TryParseCollectedNestedBlock<TBlock>(
+        List<string> lines,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state,
+        int lineOffset,
+        out TBlock? block)
+        where TBlock : class, IMarkdownBlock {
+        block = null;
+        if (lines == null || lines.Count == 0) return false;
+
+        var nested = ParseBlocksFromLines(lines.ToArray(), options, state, lineOffset: lineOffset);
+        if (nested.Count == 0 || nested[0] is not TBlock parsedBlock) {
+            return false;
+        }
+
+        block = parsedBlock;
+        return true;
     }
 
     private static bool TryParseNestedHtmlBlock(string[] lines, ref int index, int continuationIndent, MarkdownReaderOptions options, MarkdownReaderState state, out IMarkdownBlock? block) {
