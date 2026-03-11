@@ -8,7 +8,23 @@ namespace OfficeIMO.Markdown;
 /// YAML front matter block rendered at the beginning of the document.
 /// </summary>
 public sealed class FrontMatterBlock : IFrontMatterMarkdownBlock, ISyntaxMarkdownBlock {
-    private readonly List<(string Key, object? Value)> _pairs = new List<(string, object?)>();
+    /// <summary>Single front matter entry.</summary>
+    public sealed class Entry {
+        /// <summary>Entry key.</summary>
+        public string Key { get; }
+        /// <summary>Entry value.</summary>
+        public object? Value { get; }
+
+        internal Entry(string key, object? value) {
+            Key = key;
+            Value = value;
+        }
+    }
+
+    private readonly List<Entry> _entries = new List<Entry>();
+
+    /// <summary>Structured front matter entries in insertion order.</summary>
+    public IReadOnlyList<Entry> Entries => _entries;
 
     /// <summary>
     /// Creates front matter from an anonymous object or dictionary.
@@ -17,11 +33,11 @@ public sealed class FrontMatterBlock : IFrontMatterMarkdownBlock, ISyntaxMarkdow
     public static FrontMatterBlock FromObject(object data) {
         FrontMatterBlock fm = new FrontMatterBlock();
         if (data is IEnumerable<KeyValuePair<string, object?>> dict) {
-            foreach (KeyValuePair<string, object?> kv in dict) fm._pairs.Add((kv.Key, kv.Value));
+            foreach (KeyValuePair<string, object?> kv in dict) fm._entries.Add(new Entry(kv.Key, kv.Value));
         } else {
             var props = data.GetType().GetProperties()
                 .Where(p => p.CanRead && p.GetIndexParameters().Length == 0 && p.GetMethod != null && p.GetMethod.GetParameters().Length == 0);
-            foreach (var p in props) fm._pairs.Add((p.Name, p.GetValue(data)));
+            foreach (var p in props) fm._entries.Add(new Entry(p.Name, p.GetValue(data)));
         }
         return fm;
     }
@@ -33,12 +49,12 @@ public sealed class FrontMatterBlock : IFrontMatterMarkdownBlock, ISyntaxMarkdow
         if (data is null) throw new ArgumentNullException(nameof(data));        
         FrontMatterBlock fm = new FrontMatterBlock();
         if (data is IEnumerable<KeyValuePair<string, object?>> dict) {
-            foreach (KeyValuePair<string, object?> kv in dict) fm._pairs.Add((kv.Key, kv.Value));
+            foreach (KeyValuePair<string, object?> kv in dict) fm._entries.Add(new Entry(kv.Key, kv.Value));
             return fm;
         }
         var props = typeof(T).GetProperties()
             .Where(p => p.CanRead && p.GetIndexParameters().Length == 0 && p.GetMethod != null && p.GetMethod.GetParameters().Length == 0);
-        foreach (var p in props) fm._pairs.Add((p.Name, p.GetValue(data)));
+        foreach (var p in props) fm._entries.Add(new Entry(p.Name, p.GetValue(data)));
         return fm;
     }
 
@@ -46,8 +62,9 @@ public sealed class FrontMatterBlock : IFrontMatterMarkdownBlock, ISyntaxMarkdow
     public string Render() {
         StringBuilder sb = new StringBuilder();
         sb.AppendLine("---");
-        foreach ((string k, object? v) in _pairs) {
-            sb.AppendLine(k + ": " + YamlValue(v));
+        for (int i = 0; i < Entries.Count; i++) {
+            var entry = Entries[i];
+            sb.AppendLine(entry.Key + ": " + YamlValue(entry.Value));
         }
         sb.Append("---");
         return sb.ToString();

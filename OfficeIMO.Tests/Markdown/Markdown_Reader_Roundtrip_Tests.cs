@@ -72,5 +72,37 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Single(md.Blocks);
             Assert.IsType<HeadingBlock>(md.Blocks[0]);
         }
+
+        [Fact]
+        public void Reader_Exposes_FrontMatter_Entries_As_Structured_Data() {
+            const string markdown = """
+---
+title: Doc
+published: true
+tags: [a, b]
+---
+
+# Heading
+""";
+
+            var parsed = MarkdownReader.Parse(markdown);
+            var frontMatter = Assert.IsType<FrontMatterBlock>(parsed.DocumentHeader!);
+
+            Assert.Collection(
+                frontMatter.Entries,
+                entry => {
+                    Assert.Equal("title", entry.Key);
+                    Assert.Equal("Doc", Assert.IsType<string>(entry.Value));
+                },
+                entry => {
+                    Assert.Equal("published", entry.Key);
+                    Assert.True(Assert.IsType<bool>(entry.Value));
+                },
+                entry => {
+                    Assert.Equal("tags", entry.Key);
+                    var tags = Assert.IsAssignableFrom<IEnumerable<string>>(entry.Value);
+                    Assert.Equal(new[] { "a", "b" }, tags.ToArray());
+                });
+        }
     }
 }
