@@ -29,6 +29,13 @@ public class Markdown_Reader_Callout_RichBody_Tests {
         Assert.Contains("Item 2", html, StringComparison.Ordinal);
         Assert.Contains("language-csharp", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Console.WriteLine", html, StringComparison.Ordinal);
+
+        var callout = Assert.IsType<CalloutBlock>(Assert.Single(doc.Blocks));
+        Assert.Collection(
+            callout.ChildBlocks,
+            block => Assert.IsType<ParagraphBlock>(block),
+            block => Assert.IsType<UnorderedListBlock>(block),
+            block => Assert.IsType<CodeBlock>(block));
     }
 
     [Fact]
