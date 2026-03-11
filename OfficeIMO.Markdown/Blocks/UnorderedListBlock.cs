@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Unordered list supporting plain items and task (checklist) items.
 /// </summary>
-public sealed class UnorderedListBlock : IMarkdownBlock, IListSyntaxMarkdownBlock {
+public sealed class UnorderedListBlock : IMarkdownBlock, IListSyntaxMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>List items.</summary>
     public List<ListItem> Items { get; } = new List<ListItem>();
     /// <inheritdoc />
@@ -126,4 +126,6 @@ public sealed class UnorderedListBlock : IMarkdownBlock, IListSyntaxMarkdownBloc
     IReadOnlyList<ListItem> IListSyntaxMarkdownBlock.ListItems => Items;
     MarkdownSyntaxKind IListSyntaxMarkdownBlock.ListSyntaxKind => MarkdownSyntaxKind.UnorderedList;
     string? IListSyntaxMarkdownBlock.ListLiteral => null;
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
+        MarkdownBlockSyntaxBuilder.BuildListBlock(this, span);
 }

@@ -7,7 +7,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// YAML front matter block rendered at the beginning of the document.
 /// </summary>
-public sealed class FrontMatterBlock : IMarkdownBlock {
+public sealed class FrontMatterBlock : IMarkdownBlock, ISyntaxMarkdownBlock {
     private readonly List<(string Key, object? Value)> _pairs = new List<(string, object?)>();
 
     /// <summary>
@@ -100,4 +100,6 @@ public sealed class FrontMatterBlock : IMarkdownBlock {
     string IMarkdownBlock.RenderMarkdown() => Render();
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() => string.Empty;
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
+        MarkdownBlockSyntaxBuilder.BuildFrontMatterBlock(this, span);
 }

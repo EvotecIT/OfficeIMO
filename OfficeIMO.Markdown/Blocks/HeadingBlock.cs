@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Markdown heading (ATX) block, levels 1–6.
 /// </summary>
-public sealed class HeadingBlock : IMarkdownBlock {
+public sealed class HeadingBlock : IMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Heading level constrained to [1,6].</summary>
     public int Level { get; }
     /// <summary>Inline content owned by this heading.</summary>
@@ -38,6 +38,9 @@ public sealed class HeadingBlock : IMarkdownBlock {
         var id = MarkdownSlug.GitHub(Text);
         return $"<h{Level} id=\"{id}\">{Inlines.RenderHtml()}</h{Level}>";
     }
+
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
+        MarkdownBlockSyntaxBuilder.BuildHeadingBlock(this, span);
 
     private static InlineSequence CreateTextInlines(string? text) {
         var inlines = new InlineSequence();

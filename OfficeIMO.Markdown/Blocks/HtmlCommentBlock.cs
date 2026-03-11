@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Represents an HTML comment preserved as a top-level Markdown block.
 /// </summary>
-public sealed class HtmlCommentBlock : IMarkdownBlock {
+public sealed class HtmlCommentBlock : IMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Gets the raw HTML comment text, including the comment delimiters.</summary>
     public string Comment { get; }
 
@@ -25,4 +25,7 @@ public sealed class HtmlCommentBlock : IMarkdownBlock {
             _ => string.Empty
         };
     }
+
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
+        MarkdownBlockSyntaxBuilder.BuildHtmlCommentBlock(this, span);
 }

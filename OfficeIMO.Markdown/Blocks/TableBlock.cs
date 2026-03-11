@@ -7,7 +7,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Pipe table with optional header row.
 /// </summary>
-public sealed class TableBlock : IMarkdownBlock {
+public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Optional header cells.</summary>
     public List<string> Headers { get; } = new List<string>();
     /// <summary>Parsed inline representation of the current header cells.</summary>
@@ -471,4 +471,7 @@ public sealed class TableBlock : IMarkdownBlock {
     internal static bool IsSpecificLetter(char value, char expected) {
         return char.ToLowerInvariant(value) == expected;
     }
+
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
+        MarkdownBlockSyntaxBuilder.BuildTableBlock(this, span);
 }
