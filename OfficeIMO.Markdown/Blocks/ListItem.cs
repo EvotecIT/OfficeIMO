@@ -107,20 +107,7 @@ public sealed class ListItem {
     }
 
     internal MarkdownSyntaxNode BuildSyntaxNode(MarkdownSyntaxNode? nestedList) {
-        var children = new List<MarkdownSyntaxNode>();
-        if (SyntaxChildren.Count > 0) {
-            children.AddRange(SyntaxChildren);
-        } else {
-            if (Content.Nodes.Count > 0 || (AdditionalParagraphs.Count == 0 && Children.Count == 0)) {
-                children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: Content.RenderMarkdown()));
-            }
-            for (int i = 0; i < AdditionalParagraphs.Count; i++) {
-                children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: AdditionalParagraphs[i].RenderMarkdown()));
-            }
-            for (int i = 0; i < Children.Count; i++) {
-                children.Add(MarkdownBlockSyntaxBuilder.BuildBlock(Children[i]));
-            }
-        }
+        var children = BuildOwnedSyntaxChildren();
 
         if (nestedList != null) {
             children.Add(nestedList);
@@ -136,4 +123,29 @@ public sealed class ListItem {
             literal,
             children);
     }
+
+    private List<MarkdownSyntaxNode> BuildOwnedSyntaxChildren() {
+        var children = new List<MarkdownSyntaxNode>();
+        if (SyntaxChildren.Count > 0) {
+            children.AddRange(SyntaxChildren);
+            return children;
+        }
+
+        if (Content.Nodes.Count > 0 || (AdditionalParagraphs.Count == 0 && Children.Count == 0)) {
+            children.Add(BuildParagraphSyntaxNode(Content));
+        }
+
+        for (int i = 0; i < AdditionalParagraphs.Count; i++) {
+            children.Add(BuildParagraphSyntaxNode(AdditionalParagraphs[i]));
+        }
+
+        for (int i = 0; i < Children.Count; i++) {
+            children.Add(MarkdownBlockSyntaxBuilder.BuildBlock(Children[i]));
+        }
+
+        return children;
+    }
+
+    private static MarkdownSyntaxNode BuildParagraphSyntaxNode(InlineSequence paragraph) =>
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: paragraph.RenderMarkdown());
 }
