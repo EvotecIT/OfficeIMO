@@ -159,5 +159,29 @@ Paragraph
                 },
                 kinds);
         }
+
+        [Fact]
+        public void Reader_Enumerates_List_Items_In_Document_Order() {
+            const string markdown = """
+- outer
+  - inner
+
+> - quoted
+""";
+
+            var parsed = MarkdownReader.Parse(markdown);
+            var items = parsed.DescendantListItems().ToArray();
+
+            Assert.Equal(3, items.Length);
+            Assert.Equal("outer", items[0].Content.RenderMarkdown());
+            Assert.Equal("inner", items[1].Content.RenderMarkdown());
+            Assert.Equal("quoted", items[2].Content.RenderMarkdown());
+
+            var topList = Assert.IsType<UnorderedListBlock>(parsed.Blocks[0]);
+            Assert.Equal(topList.Items, topList.ListItems);
+
+            var quotedList = Assert.IsType<UnorderedListBlock>(Assert.IsType<QuoteBlock>(parsed.Blocks[1]).ChildBlocks[0]);
+            Assert.Equal(quotedList.Items, quotedList.ListItems);
+        }
     }
 }
