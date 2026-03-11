@@ -210,6 +210,9 @@ c | d
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
             Assert.Single(list.Items[0].AdditionalParagraphs);
+            Assert.Equal(2, list.Items[0].ParagraphBlocks.Count);
+            Assert.Equal("first paragraph", list.Items[0].ParagraphBlocks[0].Inlines.RenderMarkdown());
+            Assert.Equal("second paragraph", list.Items[0].ParagraphBlocks[1].Inlines.RenderMarkdown());
 
             var html = doc.ToHtmlFragment();
             Assert.Contains("<li><p>first paragraph</p><p>second paragraph</p></li>", html);

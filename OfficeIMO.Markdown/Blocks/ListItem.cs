@@ -8,6 +8,11 @@ public sealed class ListItem {
     public InlineSequence Content { get; }
     /// <summary>Additional paragraphs inside the list item (multi-paragraph list items).</summary>
     public List<InlineSequence> AdditionalParagraphs { get; } = new List<InlineSequence>();
+    /// <summary>
+    /// Paragraph blocks owned by this list item.
+    /// This exposes list-item paragraph content as blocks for AST-style consumers.
+    /// </summary>
+    public IReadOnlyList<ParagraphBlock> ParagraphBlocks => BuildParagraphBlocks();
     /// <summary>Nested block content inside the list item (e.g., nested ordered/unordered lists, code blocks).</summary>
     public List<IMarkdownBlock> Children { get; } = new List<IMarkdownBlock>();
     /// <summary>True when rendered as a task item (<c>- [ ]</c> or <c>- [x]</c>).</summary>
@@ -133,12 +138,9 @@ public sealed class ListItem {
             return children;
         }
 
-        if (Content.Nodes.Count > 0 || (AdditionalParagraphs.Count == 0 && Children.Count == 0)) {
-            children.Add(BuildParagraphSyntaxNode(Content));
-        }
-
-        for (int i = 0; i < AdditionalParagraphs.Count; i++) {
-            children.Add(BuildParagraphSyntaxNode(AdditionalParagraphs[i]));
+        var paragraphBlocks = BuildParagraphBlocks();
+        for (int i = 0; i < paragraphBlocks.Count; i++) {
+            children.Add(BuildParagraphSyntaxNode(paragraphBlocks[i].Inlines));
         }
 
         for (int i = 0; i < Children.Count; i++) {
@@ -146,6 +148,19 @@ public sealed class ListItem {
         }
 
         return children;
+    }
+
+    private IReadOnlyList<ParagraphBlock> BuildParagraphBlocks() {
+        var paragraphs = new List<ParagraphBlock>();
+        if (Content.Nodes.Count > 0 || (AdditionalParagraphs.Count == 0 && Children.Count == 0)) {
+            paragraphs.Add(new ParagraphBlock(Content));
+        }
+
+        for (int i = 0; i < AdditionalParagraphs.Count; i++) {
+            paragraphs.Add(new ParagraphBlock(AdditionalParagraphs[i]));
+        }
+
+        return paragraphs;
     }
 
     private static MarkdownSyntaxNode BuildParagraphSyntaxNode(InlineSequence paragraph) =>
