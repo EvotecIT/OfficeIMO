@@ -213,6 +213,10 @@ c | d
             Assert.Equal(2, list.Items[0].ParagraphBlocks.Count);
             Assert.Equal("first paragraph", list.Items[0].ParagraphBlocks[0].Inlines.RenderMarkdown());
             Assert.Equal("second paragraph", list.Items[0].ParagraphBlocks[1].Inlines.RenderMarkdown());
+            Assert.Collection(
+                list.Items[0].BlockChildren,
+                block => Assert.Equal("first paragraph", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => Assert.Equal("second paragraph", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
 
             var html = doc.ToHtmlFragment();
             Assert.Contains("<li><p>first paragraph</p><p>second paragraph</p></li>", html);
@@ -565,6 +569,11 @@ after
             Assert.Equal(2, list.Items[0].ChildBlocks.Count);
             Assert.IsType<QuoteBlock>(list.Items[0].ChildBlocks[0]);
             Assert.IsType<ParagraphBlock>(list.Items[0].ChildBlocks[1]);
+            Assert.Collection(
+                list.Items[0].BlockChildren,
+                block => Assert.Equal("item", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => Assert.IsType<QuoteBlock>(block),
+                block => Assert.Equal("trailing", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
             Assert.True(list.Items[0].ForceLoose);
 
             var html = doc.ToHtmlFragment();
@@ -586,6 +595,11 @@ after
             Assert.Equal(2, list.Items[0].ChildBlocks.Count);
             Assert.IsType<QuoteBlock>(list.Items[0].ChildBlocks[0]);
             Assert.IsType<ParagraphBlock>(list.Items[0].ChildBlocks[1]);
+            Assert.Collection(
+                list.Items[0].BlockChildren,
+                block => Assert.Equal("item", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => Assert.IsType<QuoteBlock>(block),
+                block => Assert.Equal("trailing", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
             Assert.True(list.Items[0].ForceLoose);
 
             var html = doc.ToHtmlFragment();
