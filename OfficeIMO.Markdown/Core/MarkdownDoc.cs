@@ -80,6 +80,10 @@ public class MarkdownDoc {
         return null;
     }
 
+    /// <summary>Checks whether the document has a top-level block of the requested type.</summary>
+    public bool HasTopLevelBlockOfType<TBlock>() where TBlock : class, IMarkdownBlock =>
+        FindFirstTopLevelBlockOfType<TBlock>() != null;
+
     /// <summary>Enumerates all document blocks of the requested type depth-first.</summary>
     public IEnumerable<TBlock> DescendantsOfType<TBlock>() where TBlock : class, IMarkdownBlock {
         foreach (var block in DescendantsAndSelf()) {
@@ -99,6 +103,10 @@ public class MarkdownDoc {
 
         return null;
     }
+
+    /// <summary>Checks whether the document has any block of the requested type depth-first.</summary>
+    public bool HasDescendantOfType<TBlock>() where TBlock : class, IMarkdownBlock =>
+        FindFirstDescendantOfType<TBlock>() != null;
 
     /// <summary>Enumerates all list items in document order, including nested items.</summary>
     public IEnumerable<ListItem> DescendantListItems() {
