@@ -76,12 +76,9 @@ public static partial class MarkdownReader {
                 break;
             }
             // Recursively parse inner content as a separate document
-            var nestedOptions = CloneOptionsWithoutFrontMatter(options);
-            var nestedState = CloneState(state);
-            var syntaxChildren = new System.Collections.Generic.List<MarkdownSyntaxNode>();
-            var innerDoc = ParseInternal(string.Join("\n", inner), nestedOptions, nestedState, allowFrontMatter: false, syntaxChildren, lineOffset: state.SourceLineOffset + i);
+            var (childBlocks, syntaxChildren) = ParseNestedMarkdownBlocks(string.Join("\n", inner), options, state, state.SourceLineOffset + i);
             var qb = new QuoteBlock();
-            foreach (var b in innerDoc.Blocks) qb.Children.Add(b);
+            foreach (var b in childBlocks) qb.Children.Add(b);
             qb.SyntaxChildren = syntaxChildren;
             doc.Add(qb); i = j; return true;
         }

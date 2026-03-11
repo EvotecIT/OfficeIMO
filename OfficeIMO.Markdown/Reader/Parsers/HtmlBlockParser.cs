@@ -160,12 +160,9 @@ public static partial class MarkdownReader {
             }
 
             string body = inner.Substring(bodyStart);
-            var nestedOptions = CloneOptionsWithoutFrontMatter(options);
-            var nestedState = CloneState(state);
-            var syntaxChildren = new List<MarkdownSyntaxNode>();
             int bodyLineOffset = state.SourceLineOffset + startLineIndex + CountNewLines(htmlContent, 0, tagEnd + 1) + CountNewLines(inner, 0, bodyStart);
-            var nestedDoc = ParseInternal(body, nestedOptions, nestedState, allowFrontMatter: false, syntaxChildren, lineOffset: bodyLineOffset);
-            block = new DetailsBlock(summary, nestedDoc.Blocks, isOpen) {
+            var (childBlocks, syntaxChildren) = ParseNestedMarkdownBlocks(body, options, state, bodyLineOffset);
+            block = new DetailsBlock(summary, childBlocks, isOpen) {
                 InsertBlankLineAfterSummary = body.StartsWith("\n\n", StringComparison.Ordinal),
                 InsertBlankLineBeforeClosing = body.EndsWith("\n\n", StringComparison.Ordinal)
             };

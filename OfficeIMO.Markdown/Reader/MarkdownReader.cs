@@ -357,4 +357,17 @@ public static partial class MarkdownReader {
         clone.SourceLineOffset = state.SourceLineOffset;
         return clone;
     }
+
+    private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren) ParseNestedMarkdownBlocks(
+        string markdown,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state,
+        int lineOffset) {
+
+        var nestedOptions = CloneOptionsWithoutFrontMatter(options);
+        var nestedState = CloneState(state);
+        var syntaxChildren = new List<MarkdownSyntaxNode>();
+        var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, syntaxChildren, lineOffset: lineOffset);
+        return (nestedDoc.Blocks, syntaxChildren);
+    }
 }
