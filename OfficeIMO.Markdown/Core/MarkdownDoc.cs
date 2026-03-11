@@ -7,7 +7,7 @@ namespace OfficeIMO.Markdown;
 public class MarkdownDoc {
     private readonly List<IMarkdownBlock> _blocks = new();
     private IMarkdownBlock? _lastBlock;
-    private FrontMatterBlock? _frontMatter;
+    private IFrontMatterMarkdownBlock? _frontMatter;
     private System.Collections.Generic.Dictionary<IHeadingMarkdownBlock, string> _headingSlugMap = new();
 
     /// <summary>Creates a new, empty Markdown document.</summary>
@@ -20,7 +20,7 @@ public class MarkdownDoc {
     /// <param name="block">Block to append to the document.</param>
     /// <returns>Same <see cref="MarkdownDoc"/> for chaining.</returns>
     public MarkdownDoc Add(IMarkdownBlock block) {
-        if (block is FrontMatterBlock fm) {
+        if (block is IFrontMatterMarkdownBlock fm) {
             _frontMatter = fm;
         } else {
             _blocks.Add(block);
@@ -196,7 +196,7 @@ public class MarkdownDoc {
         var (blocks, _, _) = GetBlocksAndHeadingSlugs();
         StringBuilder sb = new StringBuilder();
         if (_frontMatter != null) {
-            sb.AppendLine(_frontMatter.Render());
+            sb.AppendLine(_frontMatter.RenderFrontMatter());
             sb.AppendLine();
         }
         for (int i = 0; i < blocks.Count; i++) {

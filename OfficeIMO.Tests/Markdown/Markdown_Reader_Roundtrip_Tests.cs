@@ -56,6 +56,21 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.NotNull(ul);
             Assert.True(ul!.Items.Count >= 3);
         }
+
+        [Fact]
+        public void Document_Add_Treats_FrontMatter_As_Document_Header_Block() {
+            var md = MarkdownDoc.Create()
+                .Add(FrontMatterBlock.FromObject(new { title = "Doc", published = true }))
+                .H1("Doc");
+
+            var text = md.ToMarkdown().Replace("\r", "");
+
+            Assert.StartsWith("---\n", text);
+            Assert.Contains("title: Doc", text);
+            Assert.Contains("published: true", text);
+            Assert.Contains("\n\n# Doc", text);
+            Assert.Single(md.Blocks);
+            Assert.IsType<HeadingBlock>(md.Blocks[0]);
+        }
     }
 }
-
