@@ -35,22 +35,12 @@ internal static class MarkdownBlockSyntaxBuilder {
             ((IMarkdownBlock)image).RenderMarkdown(),
             BuildImageChildren(image, span));
 
-    internal static MarkdownSyntaxNode BuildTableBlock(TableBlock table, MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(
-            MarkdownSyntaxKind.Table,
-            span,
-            ((IMarkdownBlock)table).RenderMarkdown(),
-            table.BuildSyntaxChildren(span));
-
     internal static MarkdownSyntaxNode BuildQuoteBlock(QuoteBlock quote, MarkdownSourceSpan? span) =>
         new MarkdownSyntaxNode(
             MarkdownSyntaxKind.Quote,
             span,
             quote.Children.Count == 0 ? string.Join("\n", quote.Lines) : null,
             GetOwnedSyntaxChildrenOrBuild(quote));
-
-    internal static MarkdownSyntaxNode BuildDefinitionListBlock(DefinitionListBlock definitionList, MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.DefinitionList, span, children: definitionList.BuildSyntaxItems());
 
     internal static MarkdownSyntaxNode BuildCalloutBlock(CalloutBlock callout, MarkdownSourceSpan? span) {
         var calloutTitleMarkdown = callout.TitleInlines.RenderMarkdown();

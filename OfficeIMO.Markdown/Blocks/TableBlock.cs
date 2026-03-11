@@ -504,5 +504,9 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock {
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        MarkdownBlockSyntaxBuilder.BuildTableBlock(this, span);
+        new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.Table,
+            span,
+            ((IMarkdownBlock)this).RenderMarkdown(),
+            BuildSyntaxChildren(span));
 }
