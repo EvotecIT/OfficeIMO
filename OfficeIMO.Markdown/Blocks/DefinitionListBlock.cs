@@ -121,5 +121,5 @@ public sealed class DefinitionListBlock : IMarkdownBlock, ISyntaxMarkdownBlock {
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        MarkdownBlockSyntaxBuilder.BuildDefinitionListBlock(this, span);
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.DefinitionList, span, children: BuildSyntaxItems());
 }
