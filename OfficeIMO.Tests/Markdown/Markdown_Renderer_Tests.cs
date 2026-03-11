@@ -611,6 +611,28 @@ Top-IDs:
     }
 
     [Fact]
+    public void MarkdownRenderer_ChatStrictMinimalMarkdigCompatible_Disables_Callouts_TaskLists_And_LiteralAutolinks() {
+        var opts = MarkdownRendererPresets.CreateChatStrictMinimalMarkdigCompatible();
+        var markdown = """
+> [!NOTE]
+> body
+
+- [ ] task
+
+Visit https://example.com now.
+""";
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, opts);
+        Assert.DoesNotContain("class=\"callout", htmlOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("contains-task-list", htmlOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("task-list-item-checkbox", htmlOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("href=\"https://example.com\"", htmlOut, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("[!NOTE]", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("[ ] task", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("Visit https://example.com now.", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Allows_SameOrigin_Absolute_Http_Images_When_BaseHref_Is_Set() {
         var opts = new MarkdownRendererOptions { BaseHref = "https://example.com/" };
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("![alt](https://example.com/a.png)", opts);

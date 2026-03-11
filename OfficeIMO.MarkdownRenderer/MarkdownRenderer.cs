@@ -161,6 +161,7 @@ public static class MarkdownRenderer {
             Images = source.Images,
             UnorderedLists = source.UnorderedLists,
             OrderedLists = source.OrderedLists,
+            TaskLists = source.TaskLists,
             Tables = source.Tables,
             DefinitionLists = source.DefinitionLists,
             HtmlBlocks = source.HtmlBlocks,

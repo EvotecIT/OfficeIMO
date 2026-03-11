@@ -7,6 +7,22 @@ namespace OfficeIMO.MarkdownRenderer;
 /// These are intentionally opinionated, but still fully configurable via <see cref="MarkdownRendererOptions"/>.
 /// </summary>
 public static class MarkdownRendererPresets {
+    private static MarkdownReaderOptions CreateStrictReaderOptions(bool markdigCompatible) {
+        var reader = markdigCompatible
+            ? MarkdownReaderOptions.CreateMarkdigCompatible()
+            : new MarkdownReaderOptions();
+
+        reader.HtmlBlocks = false;
+        reader.InlineHtml = false;
+        reader.DisallowFileUrls = true;
+        reader.AllowDataUrls = false;
+        reader.AllowProtocolRelativeUrls = false;
+        reader.RestrictUrlSchemes = true;
+        reader.AllowedUrlSchemes = new[] { "http", "https", "mailto" };
+
+        return reader;
+    }
+
     /// <summary>
     /// Strict preset for untrusted chat messages.
     /// - Disables HTML parsing (blocks + inline)
@@ -22,13 +38,7 @@ public static class MarkdownRendererPresets {
         o.HtmlOptions.Style = HtmlStyle.ChatAuto;
         o.HtmlOptions.CssScopeSelector = "#omdRoot article.markdown-body";
 
-        o.ReaderOptions.HtmlBlocks = false;
-        o.ReaderOptions.InlineHtml = false;
-        o.ReaderOptions.DisallowFileUrls = true;
-        o.ReaderOptions.AllowDataUrls = false;
-        o.ReaderOptions.AllowProtocolRelativeUrls = false;
-        o.ReaderOptions.RestrictUrlSchemes = true;
-        o.ReaderOptions.AllowedUrlSchemes = new[] { "http", "https", "mailto" };
+        o.ReaderOptions = CreateStrictReaderOptions(markdigCompatible: false);
         o.NormalizeSoftWrappedStrongSpans = true;
         o.NormalizeInlineCodeSpanLineBreaks = true;
         o.NormalizeEscapedInlineCodeSpans = true;
@@ -75,11 +85,39 @@ public static class MarkdownRendererPresets {
     }
 
     /// <summary>
+    /// Strict preset for untrusted chat messages, but with Markdig-compatible reader behavior.
+    /// This disables OfficeIMO-only literal autolinks, callouts, and task-list parsing while keeping the same chat security defaults.
+    /// </summary>
+    public static MarkdownRendererOptions CreateChatStrictMarkdigCompatible(string? baseHref = null) {
+        var o = CreateChatStrict(baseHref);
+        o.ReaderOptions = CreateStrictReaderOptions(markdigCompatible: true);
+        return o;
+    }
+
+    /// <summary>
     /// Strict preset for untrusted chat messages, with optional client-side renderers disabled.
     /// This disables Mermaid/Chart/Math/Prism and the copy-button UX helpers to minimize script usage in the shell.
     /// </summary>
     public static MarkdownRendererOptions CreateChatStrictMinimal(string? baseHref = null) {
         var o = CreateChatStrict(baseHref);
+        o.EnableCodeCopyButtons = false;
+        o.EnableTableCopyButtons = false;
+
+        o.Mermaid.Enabled = false;
+        o.Chart.Enabled = false;
+        o.Network.Enabled = false;
+        o.Math.Enabled = false;
+        if (o.HtmlOptions.Prism != null) o.HtmlOptions.Prism.Enabled = false;
+
+        return o;
+    }
+
+    /// <summary>
+    /// Strict minimal preset for untrusted chat messages, with Markdig-compatible reader behavior.
+    /// This combines the minimal shell-friendly renderer defaults with the stricter reader preset used for parity-sensitive hosts.
+    /// </summary>
+    public static MarkdownRendererOptions CreateChatStrictMinimalMarkdigCompatible(string? baseHref = null) {
+        var o = CreateChatStrictMarkdigCompatible(baseHref);
         o.EnableCodeCopyButtons = false;
         o.EnableTableCopyButtons = false;
 
