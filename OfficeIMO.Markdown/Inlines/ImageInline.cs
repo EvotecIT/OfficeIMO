@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Standalone inline image: ![alt](src "title").
 /// </summary>
-public sealed class ImageInline {
+public sealed class ImageInline : IMarkdownInline {
     /// <summary>Alternate text for the image.</summary>
     public string Alt { get; }
     /// <summary>Image source URL or data URI.</summary>

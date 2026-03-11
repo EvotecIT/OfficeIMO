@@ -2,7 +2,7 @@ namespace OfficeIMO.Markdown;
 
 internal static class InlinePlainText {
     public static string Extract(InlineSequence? sequence) {
-        if (sequence == null || sequence.Items.Count == 0) {
+        if (sequence == null || sequence.Nodes.Count == 0) {
             return string.Empty;
         }
 
@@ -12,7 +12,7 @@ internal static class InlinePlainText {
     }
 
     private static void Append(System.Text.StringBuilder sb, InlineSequence sequence) {
-        foreach (var node in sequence.Items) {
+        foreach (var node in sequence.Nodes) {
             if (node is TextRun t) sb.Append(t.Text);
             else if (node is CodeSpanInline cs) sb.Append(cs.Text);
             else if (node is ItalicSequenceInline it) Append(sb, it.Inlines);

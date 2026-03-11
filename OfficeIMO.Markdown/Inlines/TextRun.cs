@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Plain text run.
 /// </summary>
-public sealed class TextRun {
+public sealed class TextRun : IMarkdownInline {
     /// <summary>Text content.</summary>
     public string Text { get; }
     /// <summary>Creates a plain text run.</summary>
