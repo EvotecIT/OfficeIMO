@@ -193,7 +193,7 @@ public class MarkdownDoc {
     /// <summary>Renders the document to Markdown string.</summary>
     public string ToMarkdown() {
         // Build a transient block list where TOC placeholders are realized
-        var (blocks, _) = GetBlocksAndHeadingSlugs();
+        var (blocks, _, _) = GetBlocksAndHeadingSlugs();
         StringBuilder sb = new StringBuilder();
         if (_frontMatter != null) {
             sb.AppendLine(_frontMatter.Render());
@@ -253,10 +253,10 @@ public class MarkdownDoc {
         return HtmlRenderer.RenderParts(this, options);
     }
 
-    internal (System.Collections.Generic.List<IMarkdownBlock> Blocks, System.Collections.Generic.IReadOnlyDictionary<HeadingBlock, string> HeadingSlugs) GetBlocksAndHeadingSlugs() {
+    internal (System.Collections.Generic.List<IMarkdownBlock> Blocks, System.Collections.Generic.IReadOnlyDictionary<HeadingBlock, string> HeadingSlugs, MarkdownHeadingCatalog HeadingCatalog) GetBlocksAndHeadingSlugs() {
         var registry = MarkdownSlug.CreateRegistry();
-        var realized = RealizeTocPlaceholders(registry);
-        return (realized, _headingSlugMap);
+        var (realized, headingCatalog) = RealizeTocPlaceholders(registry);
+        return (realized, _headingSlugMap, headingCatalog);
     }
 
     /// <summary>
@@ -359,7 +359,7 @@ public class MarkdownDoc {
         return Toc(opts => { opts.Title = title ?? ""; opts.IncludeTitle = !string.IsNullOrEmpty(title); opts.MinLevel = min; opts.MaxLevel = max; opts.Ordered = ordered; opts.TitleLevel = titleLevel; opts.Scope = TocScope.HeadingTitle; opts.ScopeHeadingTitle = headingTitle; }, placeAtTop: false);
     }
 
-    private System.Collections.Generic.List<IMarkdownBlock> RealizeTocPlaceholders(System.Collections.Generic.Dictionary<string, int> slugRegistry) {
+    private (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) RealizeTocPlaceholders(System.Collections.Generic.Dictionary<string, int> slugRegistry) {
         // Create a shallow copy first
         var realized = new System.Collections.Generic.List<IMarkdownBlock>(_blocks);
         var headingCatalog = MarkdownHeadingCatalog.Create(realized, slugRegistry);
@@ -379,6 +379,6 @@ public class MarkdownDoc {
                 realized[i] = toc;
             }
         }
-        return realized;
+        return (realized, headingCatalog);
     }
 }
