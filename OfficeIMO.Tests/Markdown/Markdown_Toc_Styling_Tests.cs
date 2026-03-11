@@ -52,6 +52,27 @@ See note[^1].
             Assert.Contains("class=\"footnotes\"", html);
             Assert.Contains("Footnote text", html);
         }
+
+        [Fact]
+        public void Toc_Panel_Does_Not_Duplicate_Inserted_Title_Heading_In_Body() {
+            var md = MarkdownDoc.Create()
+                .H1("Doc")
+                .H2("One")
+                .Toc(o => {
+                    o.MinLevel = 2;
+                    o.MaxLevel = 2;
+                    o.Layout = TocLayout.Panel;
+                    o.IncludeTitle = true;
+                    o.Title = "Contents";
+                    o.TitleLevel = 2;
+                }, placeAtTop: true);
+
+            var html = md.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Clean });
+
+            Assert.Contains("<nav role=\"navigation\"", html);
+            Assert.DoesNotContain("<h2>Contents</h2>", html, StringComparison.Ordinal);
+            Assert.Single(System.Text.RegularExpressions.Regex.Matches(html, ">Contents<").Cast<System.Text.RegularExpressions.Match>());
+        }
     }
 }
 

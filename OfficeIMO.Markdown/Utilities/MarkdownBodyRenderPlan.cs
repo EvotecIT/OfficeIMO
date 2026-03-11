@@ -33,7 +33,7 @@ internal sealed class MarkdownBodyRenderPlan {
 
             if (block is TocPlaceholderBlock toc &&
                 sidebar == null &&
-                (toc.Options.Layout == TocLayout.SidebarLeft || toc.Options.Layout == TocLayout.SidebarRight)) {
+                toc.UsesSidebarLayout()) {
                 sidebar = toc;
                 continue;
             }
@@ -53,10 +53,6 @@ internal sealed class MarkdownBodyRenderPlan {
             return false;
         }
 
-        var options = toc.Options;
-        return options.IncludeTitle &&
-               (options.Layout == TocLayout.SidebarLeft ||
-                options.Layout == TocLayout.SidebarRight ||
-                options.Layout == TocLayout.Panel);
+        return toc.SuppressesPrecedingHeadingTitle();
     }
 }

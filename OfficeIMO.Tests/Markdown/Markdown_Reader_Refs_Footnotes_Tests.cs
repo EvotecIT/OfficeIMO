@@ -134,5 +134,25 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("href=\"https://example.com\"", html, StringComparison.Ordinal);
             Assert.Equal(2, footnote.Paragraphs.Count);
         }
+
+        [Fact]
+        public void ToHtml_Footnote_Section_Reuses_Block_Owned_ListItem_Rendering() {
+            var md = string.Join("\n", new[] {
+                "Lead[^1]",
+                "",
+                "[^1]: First *line*",
+                "",
+                "  Second [link](https://example.com)"
+            });
+
+            var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null
+            });
+
+            Assert.Contains("<section class=\"footnotes\"><hr /><ol>", html, StringComparison.Ordinal);
+            Assert.Contains("<li id=\"fn:1\"><p>First <em>line</em></p><p>Second <a href=\"https://example.com\">link</a> <a class=\"footnote-backref\" href=\"#fnref:1\"", html, StringComparison.Ordinal);
+        }
     }
 }

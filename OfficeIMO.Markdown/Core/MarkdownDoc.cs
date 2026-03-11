@@ -370,13 +370,7 @@ public class MarkdownDoc {
         // Replace placeholders with generated TOC blocks
         for (int i = 0; i < realized.Count; i++) {
             if (realized[i] is TocPlaceholderBlock tp) {
-                var opts = tp.Options;
-                var toc = new TocBlock { Ordered = opts.Ordered, NormalizeLevels = opts.NormalizeToMinLevel };
-                string? titleAnchor = headingCatalog.GetPrecedingHeadingAnchor(realized, i, opts);
-                foreach (var entry in headingCatalog.BuildTocEntries(realized, i, opts, titleAnchor)) {
-                    toc.Entries.Add(entry);
-                }
-                realized[i] = toc;
+                realized[i] = tp.Realize(realized, i, headingCatalog);
             }
         }
         return (realized, headingCatalog);
