@@ -133,6 +133,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("<em>line</em>", html, StringComparison.Ordinal);
             Assert.Contains("href=\"https://example.com\"", html, StringComparison.Ordinal);
             Assert.Equal(2, footnote.Paragraphs.Count);
+            Assert.Equal(2, footnote.ParagraphBlocks.Count);
+            Assert.All(footnote.ParagraphBlocks, paragraph => Assert.False(string.IsNullOrWhiteSpace(paragraph.Inlines.RenderMarkdown())));
         }
     }
 }

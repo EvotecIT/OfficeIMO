@@ -919,6 +919,15 @@ public static partial class MarkdownReader {
         return paragraphs;
     }
 
+    private static List<ParagraphBlock> ParseParagraphBlocksFromLines(List<string> lines, MarkdownReaderOptions options, MarkdownReaderState? state) {
+        var paragraphInlines = ParseParagraphsFromLines(lines, options, state);
+        var blocks = new List<ParagraphBlock>(paragraphInlines.Count);
+        for (int i = 0; i < paragraphInlines.Count; i++) {
+            blocks.Add(new ParagraphBlock(paragraphInlines[i]));
+        }
+        return blocks;
+    }
+
     private static void AddListItemLeadSyntaxNodes(ListItem item, List<string> lines, int lineOffset, MarkdownReaderOptions options, MarkdownReaderState? state) {
         if (item == null || lines == null || lines.Count == 0) return;
         int absoluteLineOffset = (state?.SourceLineOffset ?? 0) + lineOffset;
