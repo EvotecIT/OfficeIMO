@@ -704,6 +704,27 @@ Next paragraph.
         Assert.Contains("<p>Next paragraph.</p>", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void MarkdownRenderer_Preserves_TaskLists_Flag_From_ReaderOptions() {
+        var markdown = """
+- [ ] Todo
+- [x] Done
+""";
+        var opts = new MarkdownRendererOptions {
+            ReaderOptions = new MarkdownReaderOptions {
+                TaskLists = false,
+                HtmlBlocks = false,
+                InlineHtml = false
+            }
+        };
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, opts);
+
+        Assert.DoesNotContain("contains-task-list", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("task-list-item-checkbox", html, StringComparison.Ordinal);
+        Assert.Contains("[ ] Todo", html, StringComparison.Ordinal);
+        Assert.Contains("[x] Done", html, StringComparison.Ordinal);
+    }
     private static int Count(string value, string token) {
         if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(token)) return 0;
 
