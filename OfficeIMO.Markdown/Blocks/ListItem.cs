@@ -17,6 +17,8 @@ public sealed class ListItem {
     public List<IMarkdownBlock> Children { get; } = new List<IMarkdownBlock>();
     /// <summary>Read-only AST-style view of nested child blocks inside the list item.</summary>
     public IReadOnlyList<IMarkdownBlock> ChildBlocks => Children;
+    /// <summary>Ordered AST-style view of all list-item child blocks, including lead paragraphs.</summary>
+    public IReadOnlyList<IMarkdownBlock> BlockChildren => BuildBlockChildren();
     /// <summary>True when rendered as a task item (<c>- [ ]</c> or <c>- [x]</c>).</summary>
     public bool IsTask { get; }
     /// <summary>Whether the task is checked.</summary>
@@ -140,13 +142,13 @@ public sealed class ListItem {
             return children;
         }
 
-        var paragraphBlocks = BuildParagraphBlocks();
-        for (int i = 0; i < paragraphBlocks.Count; i++) {
-            children.Add(BuildParagraphSyntaxNode(paragraphBlocks[i].Inlines));
-        }
-
-        for (int i = 0; i < ChildBlocks.Count; i++) {
-            children.Add(MarkdownBlockSyntaxBuilder.BuildBlock(ChildBlocks[i]));
+        var blockChildren = BuildBlockChildren();
+        for (int i = 0; i < blockChildren.Count; i++) {
+            if (blockChildren[i] is ParagraphBlock paragraph) {
+                children.Add(BuildParagraphSyntaxNode(paragraph.Inlines));
+            } else {
+                children.Add(MarkdownBlockSyntaxBuilder.BuildBlock(blockChildren[i]));
+            }
         }
 
         return children;
@@ -163,6 +165,20 @@ public sealed class ListItem {
         }
 
         return paragraphs;
+    }
+
+    private IReadOnlyList<IMarkdownBlock> BuildBlockChildren() {
+        var blocks = new List<IMarkdownBlock>();
+        var paragraphs = BuildParagraphBlocks();
+        for (int i = 0; i < paragraphs.Count; i++) {
+            blocks.Add(paragraphs[i]);
+        }
+
+        for (int i = 0; i < ChildBlocks.Count; i++) {
+            blocks.Add(ChildBlocks[i]);
+        }
+
+        return blocks;
     }
 
     private static MarkdownSyntaxNode BuildParagraphSyntaxNode(InlineSequence paragraph) =>
