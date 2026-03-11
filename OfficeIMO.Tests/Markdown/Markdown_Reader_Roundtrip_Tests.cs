@@ -183,5 +183,24 @@ Paragraph
             var quotedList = Assert.IsType<UnorderedListBlock>(Assert.IsType<QuoteBlock>(parsed.Blocks[1]).ChildBlocks[0]);
             Assert.Equal(quotedList.Items, quotedList.ListItems);
         }
+
+        [Fact]
+        public void Reader_Enumerates_Headings_And_Resolved_Anchors() {
+            const string markdown = """
+# Title
+
+## Repeat
+
+## Repeat
+""";
+
+            var parsed = MarkdownReader.Parse(markdown);
+            var headings = parsed.DescendantHeadings().ToArray();
+
+            Assert.Equal(new[] { "Title", "Repeat", "Repeat" }, headings.Select(h => h.Text).ToArray());
+            Assert.Equal("title", parsed.GetHeadingAnchor(headings[0]));
+            Assert.Equal("repeat", parsed.GetHeadingAnchor(headings[1]));
+            Assert.Equal("repeat-1", parsed.GetHeadingAnchor(headings[2]));
+        }
     }
 }
