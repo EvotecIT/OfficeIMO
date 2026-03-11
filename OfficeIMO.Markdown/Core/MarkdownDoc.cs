@@ -169,6 +169,9 @@ public class MarkdownDoc {
         return null;
     }
 
+    /// <summary>Checks whether a heading with the specified resolved anchor is present.</summary>
+    public bool HasHeadingAnchor(string anchor) => FindHeadingByAnchor(anchor) != null;
+
     /// <summary>Finds the first heading whose plain text matches the provided heading text.</summary>
     public HeadingInfo? FindHeading(string text, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
         if (string.IsNullOrEmpty(text)) {
@@ -184,6 +187,10 @@ public class MarkdownDoc {
 
         return null;
     }
+
+    /// <summary>Checks whether a heading whose plain text matches the provided heading text is present.</summary>
+    public bool HasHeading(string text, StringComparison comparison = StringComparison.OrdinalIgnoreCase) =>
+        FindHeading(text, comparison) != null;
 
     /// <summary>Finds headings whose plain text matches the provided heading text.</summary>
     public IReadOnlyList<HeadingInfo> FindHeadings(string text, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
