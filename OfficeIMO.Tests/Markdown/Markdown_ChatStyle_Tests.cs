@@ -21,6 +21,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MarkdownRendererPresets_CreateChatStrictMarkdigCompatible_Disables_OfficeImoOnly_Reader_Extensions() {
+            var opts = MarkdownRendererPresets.CreateChatStrictMarkdigCompatible();
+
+            Assert.Equal(HtmlStyle.ChatAuto, opts.HtmlOptions.Style);
+            Assert.Equal("#omdRoot article.markdown-body", opts.HtmlOptions.CssScopeSelector);
+            Assert.False(opts.ReaderOptions.Callouts);
+            Assert.False(opts.ReaderOptions.TaskLists);
+            Assert.False(opts.ReaderOptions.AutolinkUrls);
+            Assert.False(opts.ReaderOptions.AutolinkWwwUrls);
+            Assert.False(opts.ReaderOptions.AutolinkEmails);
+        }
+
+        [Fact]
         public void MarkdownRenderer_RenderUpdateScript_ProducesUpdateContentCall() {
             var opts = MarkdownRendererPresets.CreateChatStrict();
             var js = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderUpdateScript("**bold**", opts);
