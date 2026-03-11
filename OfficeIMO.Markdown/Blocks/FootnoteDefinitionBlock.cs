@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Footnote definition block, e.g., [^id]: content.
 /// </summary>
-public sealed class FootnoteDefinitionBlock : IMarkdownBlock {
+public sealed class FootnoteDefinitionBlock : IMarkdownBlock, ISyntaxChildrenMarkdownBlock {
     /// <summary>Footnote label (identifier without the leading ^).</summary>
     public string Label { get; }
     /// <summary>Footnote text content.</summary>
@@ -59,4 +59,6 @@ public sealed class FootnoteDefinitionBlock : IMarkdownBlock {
         var inlines = MarkdownReader.ParseInlineText(Text);
         return $"<p id=\"fn:{encLabel}\"><sup>{encLabel}</sup> {inlines.RenderHtml()} <a class=\"footnote-backref\" href=\"#fnref:{encLabel}\" aria-label=\"Back to reference\">&#8617;</a></p>";
     }
+
+    IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
 }

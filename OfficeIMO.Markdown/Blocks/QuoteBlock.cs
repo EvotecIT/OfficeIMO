@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Simple blockquote block consisting of raw text lines.
 /// </summary>
-public sealed class QuoteBlock : IMarkdownBlock {
+public sealed class QuoteBlock : IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock {
     /// <summary>Raw text lines for a simple quote (used when <see cref="Children"/> is empty).</summary>
     public System.Collections.Generic.List<string> Lines { get; } = new System.Collections.Generic.List<string>();
     /// <summary>Nested blocks rendered inside the quote.</summary>
@@ -48,4 +48,7 @@ public sealed class QuoteBlock : IMarkdownBlock {
         var encoded = System.Net.WebUtility.HtmlEncode(string.Join("\n", Lines)).Replace("\n", "<br/>");
         return $"<blockquote><p>{encoded}</p></blockquote>";
     }
+
+    IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => Children;
+    IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
 }

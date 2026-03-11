@@ -33,7 +33,7 @@ public static partial class MarkdownReader {
                     MarkdownSyntaxKind.Quote,
                     span,
                     quote.Children.Count == 0 ? string.Join("\n", quote.Lines) : null,
-                    quote.SyntaxChildren ?? BuildChildSyntaxNodes(quote.Children));
+                    GetProvidedSyntaxChildrenOrBuild(quote));
             case UnorderedListBlock unordered:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.UnorderedList, span, children: BuildListItemSyntaxNodes(unordered.Items, MarkdownSyntaxKind.UnorderedList));
             case OrderedListBlock ordered:
@@ -46,7 +46,7 @@ public static partial class MarkdownReader {
                     MarkdownSyntaxKind.Callout,
                     span,
                     string.IsNullOrWhiteSpace(calloutTitleMarkdown) ? callout.Kind : callout.Kind + ":" + calloutTitleMarkdown,
-                    callout.SyntaxChildren ?? (callout.Children != null ? BuildChildSyntaxNodes(callout.Children) : Array.Empty<MarkdownSyntaxNode>()));
+                    GetProvidedSyntaxChildrenOrBuild(callout));
             }
             case DetailsBlock details:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.Details, span, details.Open ? "open" : null, BuildDetailsChildren(details));
@@ -80,6 +80,16 @@ public static partial class MarkdownReader {
             nodes.Add(BuildSyntaxNode(child));
         }
         return nodes;
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> GetProvidedSyntaxChildrenOrBuild(IChildMarkdownBlockContainer block) {
+        if (block is ISyntaxChildrenMarkdownBlock syntaxOwner &&
+            syntaxOwner.ProvidedSyntaxChildren != null &&
+            syntaxOwner.ProvidedSyntaxChildren.Count > 0) {
+            return syntaxOwner.ProvidedSyntaxChildren;
+        }
+
+        return BuildChildSyntaxNodes(block.ChildBlocks);
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> BuildHeadingChildren(HeadingBlock heading, MarkdownSourceSpan? span) {
@@ -169,10 +179,12 @@ public static partial class MarkdownReader {
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> BuildDetailsChildren(DetailsBlock details) {
-        if (details.SyntaxChildren != null && details.SyntaxChildren.Count > 0) {
+        if (details is ISyntaxChildrenMarkdownBlock syntaxOwner &&
+            syntaxOwner.ProvidedSyntaxChildren != null &&
+            syntaxOwner.ProvidedSyntaxChildren.Count > 0) {
             var nodesWithSummary = new List<MarkdownSyntaxNode>();
             if (details.Summary != null) nodesWithSummary.Add(BuildSyntaxNode(details.Summary));
-            for (int i = 0; i < details.SyntaxChildren.Count; i++) nodesWithSummary.Add(details.SyntaxChildren[i]);
+            for (int i = 0; i < syntaxOwner.ProvidedSyntaxChildren.Count; i++) nodesWithSummary.Add(syntaxOwner.ProvidedSyntaxChildren[i]);
             return nodesWithSummary;
         }
 
@@ -185,7 +197,11 @@ public static partial class MarkdownReader {
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> BuildFootnoteChildren(FootnoteDefinitionBlock footnote) {
-        if (footnote.SyntaxChildren != null && footnote.SyntaxChildren.Count > 0) return footnote.SyntaxChildren;
+        if (footnote is ISyntaxChildrenMarkdownBlock syntaxOwner &&
+            syntaxOwner.ProvidedSyntaxChildren != null &&
+            syntaxOwner.ProvidedSyntaxChildren.Count > 0) {
+            return syntaxOwner.ProvidedSyntaxChildren;
+        }
 
         if (footnote.Paragraphs.Count == 0) return Array.Empty<MarkdownSyntaxNode>();
 
