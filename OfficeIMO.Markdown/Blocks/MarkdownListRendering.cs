@@ -45,7 +45,7 @@ internal static class MarkdownListRendering {
                 var it = items[i];
                 if (it.Level < level) break;
                 if (it.Level != level) continue;
-                if (it.ForceLoose || it.AdditionalParagraphs.Count > 0) return true;
+                if (it.RequiresLooseListRendering()) return true;
             }
             return false;
         }

@@ -106,6 +106,8 @@ public sealed class ListItem {
         return true;
     }
 
+    internal bool RequiresLooseListRendering() => ForceLoose || AdditionalParagraphs.Count > 0;
+
     internal MarkdownSyntaxNode BuildSyntaxNode(MarkdownSyntaxNode? nestedList) {
         var children = BuildOwnedSyntaxChildren();
 
