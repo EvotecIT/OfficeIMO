@@ -104,12 +104,12 @@ What to add next (if needed for the chat app):
 - Additional diagram engines using the same approach: keep them as fenced code blocks in Markdown, render via client-side JS or a server-side renderer if required.
 - More chart formats by agreeing on a fenced block format (JSON/YAML) and adding a renderer that transforms those blocks into `<canvas>` plus JS.
 
-## Suggested Roadmap (To Get Closer to GFM)
+## Suggested Roadmap
 
-If the goal is "closer to Markdig/CommonMark" rather than just "good enough for GitHub-like content", these are the highest-impact improvements:
+If the goal is broader standards coverage rather than just "good enough for GitHub-like content", these are the highest-impact improvements:
 
 1. Broader CommonMark/GFM corpus coverage beyond the curated parity cases already fixed.
-2. Stronger extension/plugin seams comparable to Markdig’s pipeline model.
+2. Stronger extension/plugin seams for custom parsers and renderers.
 3. More delimiter-run / inline edge-case coverage.
-4. Benchmarks against Markdig on representative docs/chat corpora.
+4. Benchmarks on representative docs/chat corpora.
 5. Continued cleanup of any remaining string-heavy surfaces in the public model.
