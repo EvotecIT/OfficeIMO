@@ -129,6 +129,14 @@ Paragraph
                 parsed.Blocks,
                 block => Assert.IsType<HeadingBlock>(block),
                 block => Assert.IsType<ParagraphBlock>(block));
+
+            Assert.Collection(
+                parsed.TopLevelBlocksOfType<HeadingBlock>(),
+                block => Assert.Equal("Heading", block.Text));
+
+            Assert.Collection(
+                parsed.TopLevelBlocksOfType<FrontMatterBlock>(),
+                block => Assert.Equal("Doc", block.Entries[0].Value));
         }
 
         [Fact]
@@ -158,6 +166,12 @@ Paragraph
                     typeof(ParagraphBlock)
                 },
                 kinds);
+
+            Assert.Equal(
+                new[] { "Quote", "item", "Paragraph" },
+                parsed.DescendantsOfType<ParagraphBlock>()
+                    .Select(block => block.Inlines.RenderMarkdown())
+                    .ToArray());
         }
 
         [Fact]

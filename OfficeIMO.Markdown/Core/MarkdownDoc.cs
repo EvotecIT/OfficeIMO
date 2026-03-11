@@ -41,6 +41,24 @@ public class MarkdownDoc {
         }
     }
 
+    /// <summary>Enumerates top-level document blocks of the requested type.</summary>
+    public IEnumerable<TBlock> TopLevelBlocksOfType<TBlock>() where TBlock : class, IMarkdownBlock {
+        foreach (var block in TopLevelBlocks) {
+            if (block is TBlock typedBlock) {
+                yield return typedBlock;
+            }
+        }
+    }
+
+    /// <summary>Enumerates all document blocks of the requested type depth-first.</summary>
+    public IEnumerable<TBlock> DescendantsOfType<TBlock>() where TBlock : class, IMarkdownBlock {
+        foreach (var block in DescendantsAndSelf()) {
+            if (block is TBlock typedBlock) {
+                yield return typedBlock;
+            }
+        }
+    }
+
     /// <summary>Enumerates all list items in document order, including nested items.</summary>
     public IEnumerable<ListItem> DescendantListItems() {
         foreach (var block in TopLevelBlocks) {
