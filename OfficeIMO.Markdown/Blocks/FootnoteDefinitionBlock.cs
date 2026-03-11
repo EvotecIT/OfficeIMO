@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Footnote definition block, e.g., [^id]: content.
 /// </summary>
-public sealed class FootnoteDefinitionBlock : IMarkdownBlock, ISyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock {
+public sealed class FootnoteDefinitionBlock : IMarkdownBlock, ISyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock, IFootnoteSectionMarkdownBlock {
     /// <summary>Footnote label (identifier without the leading ^).</summary>
     public string Label { get; }
     /// <summary>Footnote text content.</summary>
@@ -14,6 +14,7 @@ public sealed class FootnoteDefinitionBlock : IMarkdownBlock, ISyntaxChildrenMar
     /// </summary>
     public IReadOnlyList<InlineSequence> Paragraphs { get; }
     internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; }
+    string IFootnoteSectionMarkdownBlock.FootnoteLabel => Label;
     /// <summary>Create a new footnote definition.</summary>
     /// <param name="label">Identifier used by references.</param>
     /// <param name="text">Definition text.</param>
@@ -58,6 +59,34 @@ public sealed class FootnoteDefinitionBlock : IMarkdownBlock, ISyntaxChildrenMar
 
         var inlines = MarkdownReader.ParseInlineText(Text);
         return $"<p id=\"fn:{encLabel}\"><sup>{encLabel}</sup> {inlines.RenderHtml()} <a class=\"footnote-backref\" href=\"#fnref:{encLabel}\" aria-label=\"Back to reference\">&#8617;</a></p>";
+    }
+
+    string IFootnoteSectionMarkdownBlock.RenderFootnoteSectionItemHtml() {
+        var label = Label ?? string.Empty;
+        if (label.Length == 0) {
+            return string.Empty;
+        }
+
+        var encLabel = System.Net.WebUtility.HtmlEncode(label);
+        var paragraphs = Paragraphs;
+        if (paragraphs == null || paragraphs.Count == 0) {
+            paragraphs = new List<InlineSequence> { MarkdownReader.ParseInlineText(Text) };
+        }
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<li id=\"fn:").Append(encLabel).Append("\">");
+
+        for (int i = 0; i < paragraphs.Count; i++) {
+            var paragraph = paragraphs[i] ?? new InlineSequence();
+            sb.Append("<p>").Append(paragraph.RenderHtml());
+            if (i == paragraphs.Count - 1) {
+                sb.Append(" <a class=\"footnote-backref\" href=\"#fnref:").Append(encLabel).Append("\" aria-label=\"Back to reference\">&#8617;</a>");
+            }
+            sb.Append("</p>");
+        }
+
+        sb.Append("</li>");
+        return sb.ToString();
     }
 
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
