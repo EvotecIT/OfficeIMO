@@ -10,8 +10,12 @@ namespace OfficeIMO.Markdown;
 public sealed class TableBlock : IMarkdownBlock {
     /// <summary>Optional header cells.</summary>
     public List<string> Headers { get; } = new List<string>();
+    /// <summary>Parsed inline representation of the current header cells.</summary>
+    public IReadOnlyList<InlineSequence> HeaderInlines => BuildHeaderInlines();
     /// <summary>Data rows.</summary>
     public List<IReadOnlyList<string>> Rows { get; } = new List<IReadOnlyList<string>>();
+    /// <summary>Parsed inline representation of the current data rows.</summary>
+    public IReadOnlyList<IReadOnlyList<InlineSequence>> RowInlines => BuildRowInlines();
     /// <summary>Optional column alignments per column (used when headers are present).</summary>
     public List<ColumnAlignment> Alignments { get; } = new List<ColumnAlignment>();
     /// <summary>Number of rows skipped due to table limits.</summary>
@@ -91,11 +95,13 @@ public sealed class TableBlock : IMarkdownBlock {
         StringBuilder sb = new StringBuilder();
         sb.Append("<table>");
         bool useParsedCells = ParsedContentSignature.HasValue && ParsedContentSignature.Value == ComputeContentSignature();
+        var headerInlines = BuildHeaderInlines();
+        var rowInlines = BuildRowInlines();
         if (Headers.Count > 0) {
             sb.Append("<thead><tr>");
             int columnCount = GetEffectiveColumnCount();
             var preparedHeaders = PrepareRowCells(Headers, columnCount);
-            var preparedParsedHeaders = useParsedCells ? PrepareParsedRowCells(ParsedHeaders, columnCount) : null;
+            var preparedParsedHeaders = PrepareParsedRowCells(headerInlines, columnCount);
             for (int i = 0; i < preparedHeaders.Count; i++) {
                 var h = preparedHeaders[i];
                 var style = GetAlignment(i);
@@ -111,8 +117,8 @@ public sealed class TableBlock : IMarkdownBlock {
         for (int rowIndex = 0; rowIndex < Rows.Count; rowIndex++) {
             var row = Rows[rowIndex];
             var cells = PrepareRowCells(row, bodyColumnCount);
-            var parsedCells = useParsedCells && ParsedRows != null && rowIndex < ParsedRows.Count
-                ? PrepareParsedRowCells(ParsedRows[rowIndex], bodyColumnCount)
+            var parsedCells = rowIndex < rowInlines.Count
+                ? PrepareParsedRowCells(rowInlines[rowIndex], bodyColumnCount)
                 : null;
             sb.Append("<tr>");
             for (int i = 0; i < cells.Count; i++) {
@@ -127,6 +133,65 @@ public sealed class TableBlock : IMarkdownBlock {
         }
         sb.Append("</tbody></table>");
         return sb.ToString();
+    }
+
+    private IReadOnlyList<InlineSequence> BuildHeaderInlines() {
+        int columnCount = GetEffectiveColumnCount();
+        if (columnCount == 0) {
+            return Array.Empty<InlineSequence>();
+        }
+
+        bool useParsedCells = ParsedContentSignature.HasValue && ParsedContentSignature.Value == ComputeContentSignature();
+        if (useParsedCells) {
+            return PrepareParsedRowCells(ParsedHeaders, columnCount);
+        }
+
+        var headers = PrepareRowCells(Headers, columnCount);
+        return ParseInlineCells(headers);
+    }
+
+    private IReadOnlyList<IReadOnlyList<InlineSequence>> BuildRowInlines() {
+        if (Rows.Count == 0) {
+            return Array.Empty<IReadOnlyList<InlineSequence>>();
+        }
+
+        int columnCount = GetEffectiveColumnCount();
+        bool useParsedCells = ParsedContentSignature.HasValue && ParsedContentSignature.Value == ComputeContentSignature();
+        var rows = new List<IReadOnlyList<InlineSequence>>(Rows.Count);
+
+        for (int rowIndex = 0; rowIndex < Rows.Count; rowIndex++) {
+            if (useParsedCells && ParsedRows != null && rowIndex < ParsedRows.Count) {
+                rows.Add(PrepareParsedRowCells(ParsedRows[rowIndex], columnCount));
+                continue;
+            }
+
+            rows.Add(ParseInlineCells(PrepareRowCells(Rows[rowIndex], columnCount)));
+        }
+
+        return rows;
+    }
+
+    private IReadOnlyList<InlineSequence> ParseInlineCells(IReadOnlyList<string> cells) {
+        if (cells == null || cells.Count == 0) {
+            return Array.Empty<InlineSequence>();
+        }
+
+        var options = InlineRenderOptions ?? new MarkdownReaderOptions();
+        var state = InlineRenderState ?? new MarkdownReaderState();
+        var parsed = new InlineSequence[cells.Count];
+        for (int i = 0; i < cells.Count; i++) {
+            var cell = cells[i];
+            if (string.IsNullOrEmpty(cell)) {
+                parsed[i] = new InlineSequence();
+                continue;
+            }
+
+            var normalized = NormalizeBreakMarkers(cell);
+            var sanitized = SanitizeInlineMarkdownInput(normalized);
+            parsed[i] = MarkdownReader.ParseInlineText(sanitized, options, state);
+        }
+
+        return parsed;
     }
 
     private string RenderCellHtml(string cell, InlineSequence? parsedCell) {
