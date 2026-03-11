@@ -116,6 +116,44 @@ public class MarkdownDoc {
         return infos;
     }
 
+    /// <summary>Finds the heading with the specified resolved anchor, if present.</summary>
+    public HeadingInfo? FindHeadingByAnchor(string anchor) {
+        if (string.IsNullOrWhiteSpace(anchor)) {
+            return null;
+        }
+
+        var normalized = anchor.Trim();
+        if (normalized.StartsWith("#", StringComparison.Ordinal)) {
+            normalized = normalized.Substring(1);
+        }
+
+        var headings = GetHeadingInfos();
+        for (int i = 0; i < headings.Count; i++) {
+            if (string.Equals(headings[i].Anchor, normalized, StringComparison.Ordinal)) {
+                return headings[i];
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Finds headings whose plain text matches the provided heading text.</summary>
+    public IReadOnlyList<HeadingInfo> FindHeadings(string text, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
+        if (string.IsNullOrEmpty(text)) {
+            return Array.Empty<HeadingInfo>();
+        }
+
+        var headings = GetHeadingInfos();
+        var matches = new List<HeadingInfo>();
+        for (int i = 0; i < headings.Count; i++) {
+            if (string.Equals(headings[i].Text, text, comparison)) {
+                matches.Add(headings[i]);
+            }
+        }
+
+        return matches;
+    }
+
     private IReadOnlyList<IMarkdownBlock> BuildTopLevelBlocks() {
         if (_frontMatter == null) {
             return _blocks;
