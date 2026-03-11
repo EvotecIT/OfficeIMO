@@ -5,6 +5,11 @@ public static partial class MarkdownReader {
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
             if (!options.UnorderedLists) return false;
             if (!IsUnorderedListLine(lines[i], out int level0Abs, out var isTask, out var done, out var firstContent)) return false;
+            if (isTask && !options.TaskLists) {
+                isTask = false;
+                done = false;
+                firstContent = GetUnorderedListItemContent(lines[i]);
+            }
             var ul = new UnorderedListBlock();
             int firstContinuationIndent = GetListContinuationIndent(lines[i]);
 
@@ -19,6 +24,11 @@ public static partial class MarkdownReader {
             ConsumeNestedBlocksForListItem(lines, ref j, level0Abs, firstContinuationIndent, options, state, first, allowNestedOrdered: true, allowNestedUnordered: true);
 
             while (j < lines.Length && IsUnorderedListLine(lines[j], out var lvlAbs, out var isTask2, out var done2, out var content2) && lvlAbs >= level0Abs) {
+                if (isTask2 && !options.TaskLists) {
+                    isTask2 = false;
+                    done2 = false;
+                    content2 = GetUnorderedListItemContent(lines[j]);
+                }
                 int continuationIndent = GetListContinuationIndent(lines[j]);
                 int next = j + 1;
                 var itemLines = ConsumeListContinuationLines(lines, ref next, continuationIndent, content2, options, breakOnAnyOrderedListLine: false);

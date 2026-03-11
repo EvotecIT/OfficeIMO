@@ -584,7 +584,7 @@ public static partial class MarkdownReader {
         if (IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
         if (LooksLikeTableRow(trimmed)) return false;
         if (ShouldTreatAsDefinitionLine(lines, index, options)) return false;
-        if (IsCalloutHeader("> " + trimmed, out _, out _)) return false;
+        if (options.Callouts && IsCalloutHeader("> " + trimmed, out _, out _)) return false;
         if (IsUnorderedListLine(trimmed, out _, out _, out _, out _)) return false;
         if (breakOnAnyOrderedListLine ? IsOrderedListLine(trimmed, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(trimmed)) return false;
 
@@ -1516,6 +1516,20 @@ public static partial class MarkdownReader {
             content = c; level = spaces / 2; return true;
         }
         return false;
+    }
+
+    private static string GetUnorderedListItemContent(string line) {
+        if (string.IsNullOrEmpty(line)) return string.Empty;
+        int spaces = 0;
+        while (spaces < line.Length && line[spaces] == ' ') spaces++;
+        if (spaces >= line.Length) return string.Empty;
+
+        char ch = line[spaces];
+        if ((ch == '-' || ch == '*' || ch == '+') && spaces + 1 < line.Length && line[spaces + 1] == ' ') {
+            return line.Substring(spaces + 2);
+        }
+
+        return string.Empty;
     }
 
     private static bool IsCalloutHeader(string line, out string kind, out string title) {

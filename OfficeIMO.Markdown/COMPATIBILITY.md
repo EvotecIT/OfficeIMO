@@ -73,7 +73,7 @@ These are the main reasons you will see differences compared to typical CommonMa
   - Delimiter-run rules (nesting, intraword `_`, etc.) are simplified and can differ from CommonMark output.
 - Autolinks
   - Literal autolinks cover common cases (`http(s)://...`, `www.*`, plain emails, and angle-bracket absolute URIs like `mailto:`, `ftp://`, `tel:`, and `urn:`) but do not aim for full spec coverage.
-  - For Markdig-style default literal-autolink behavior, use `MarkdownReaderOptions.CreateMarkdigCompatible()` to turn off bare `http(s)`, `www`, and plain-email autolinking while keeping explicit links and angle autolinks.
+  - For Markdig-style default behavior, use `MarkdownReaderOptions.CreateMarkdigCompatible()` to turn off bare `http(s)`, `www`, and plain-email autolinking and disable OfficeIMO-only callout/task-list parsing while keeping explicit links, angle autolinks, and plain lists.
 - Code blocks
   - Some CommonMark edge cases around indentation and list nesting are not fully covered (fenced code is the most reliable form).
 - HTML

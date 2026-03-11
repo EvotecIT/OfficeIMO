@@ -245,6 +245,7 @@ public static partial class MarkdownReader {
             IndentedCodeBlocks = source.IndentedCodeBlocks,
             Images = source.Images,
             UnorderedLists = source.UnorderedLists,
+            TaskLists = source.TaskLists,
             OrderedLists = source.OrderedLists,
             Tables = source.Tables,
             DefinitionLists = source.DefinitionLists,

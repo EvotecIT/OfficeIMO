@@ -183,6 +183,7 @@ var parsed = MarkdownReader.Parse(markdown, new MarkdownReaderOptions { Tables =
 
 // Opt into Markdig-like literal autolink behavior
 var markdigCompatible = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateMarkdigCompatible());
+// Disables bare literal autolinks plus OfficeIMO-only callout/task-list parsing.
 
 // Opt into a lightweight syntax tree with source spans.
 var detailed = MarkdownReader.ParseWithSyntaxTree(markdown);
