@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Markdown heading (ATX) block, levels 1–6.
 /// </summary>
-public sealed class HeadingBlock : IMarkdownBlock, ISyntaxMarkdownBlock {
+public sealed class HeadingBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IContextualHtmlMarkdownBlock {
     /// <summary>Heading level constrained to [1,6].</summary>
     public int Level { get; }
     /// <summary>Inline content owned by this heading.</summary>
@@ -37,6 +37,34 @@ public sealed class HeadingBlock : IMarkdownBlock, ISyntaxMarkdownBlock {
     string IMarkdownBlock.RenderHtml() {
         var id = MarkdownSlug.GitHub(Text);
         return $"<h{Level} id=\"{id}\">{Inlines.RenderHtml()}</h{Level}>";
+    }
+
+    string IContextualHtmlMarkdownBlock.RenderHtml(MarkdownBodyRenderContext context) {
+        if (!context.HeadingSlugs.TryGetValue(this, out var id)) {
+            id = MarkdownSlug.GitHub(Text);
+        }
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<h").Append(Level).Append(" id=\"").Append(id).Append("\">");
+        sb.Append(Inlines.RenderHtml());
+        if (context.Options.IncludeAnchorLinks || context.Options.ShowAnchorIcons) {
+            var icon = System.Net.WebUtility.HtmlEncode(context.Options.AnchorIcon ?? "🔗");
+            sb.Append("<a class=\"heading-anchor\" href=\"#")
+              .Append(id)
+              .Append("\" data-anchor-id=\"")
+              .Append(id)
+              .Append("\" title=\"Copy link\" aria-label=\"Copy link\">")
+              .Append(icon)
+              .Append("</a>");
+        }
+        sb.Append("</h").Append(Level).Append('>');
+
+        if (context.Options.BackToTopLinks && Level >= context.Options.BackToTopMinLevel) {
+            var text = System.Net.WebUtility.HtmlEncode(context.Options.BackToTopText ?? "Back to top");
+            sb.Append("<div class=\"back-to-top\"><a href=\"#top\">").Append(text).Append("</a></div>");
+        }
+
+        return sb.ToString();
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>

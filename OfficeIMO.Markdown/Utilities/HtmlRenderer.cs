@@ -112,6 +112,7 @@ internal static class HtmlRenderer {
     }
 
     private static string RenderBody(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, HtmlOptions options, System.Collections.Generic.IReadOnlyDictionary<HeadingBlock, string> headingSlugs, MarkdownHeadingCatalog headingCatalog) {
+        var context = new MarkdownBodyRenderContext(blocks, options, headingSlugs, headingCatalog);
         // Footnote definitions are rendered at the bottom in a dedicated section.
         var footnotes = new List<FootnoteDefinitionBlock>();
 
@@ -125,14 +126,14 @@ internal static class HtmlRenderer {
 
         if (sidebar != null) {
             var side = sidebar.Options.Layout == TocLayout.SidebarLeft ? "left" : "right";
-            var navHtml = BuildTocHtml(blocks, sidebar, headingSlugs, headingCatalog);
+            var navHtml = ((IContextualHtmlMarkdownBlock)sidebar).RenderHtml(context);
             var content = new StringBuilder();
             for (int i = 0; i < blocks.Count; i++) {
                 var block = blocks[i];
                 if (TryCollectFootnote(block, footnotes)) continue;
                 if (ShouldSkipTocTitleHeading(blocks, i, block)) continue;
                 if (ReferenceEquals(block, sidebar)) continue; // skip the sidebar placeholder; it's rendered as navHtml
-                content.Append(RenderBodyBlock(blocks, block, options, headingSlugs, headingCatalog));
+                content.Append(RenderBodyBlock(block, context));
             }
             if (footnotes.Count > 0) content.Append(BuildFootnotesSectionHtml(footnotes));
             var sbLayout = new StringBuilder();
@@ -152,7 +153,7 @@ internal static class HtmlRenderer {
             var block = blocks[i];
             if (TryCollectFootnote(block, footnotes)) continue;
             if (ShouldSkipTocTitleHeading(blocks, i, block)) continue;
-            sb.Append(RenderBodyBlock(blocks, block, options, headingSlugs, headingCatalog));
+            sb.Append(RenderBodyBlock(block, context));
         }
         if (footnotes.Count > 0) sb.Append(BuildFootnotesSectionHtml(footnotes));
         return sb.ToString();
@@ -183,44 +184,12 @@ internal static class HtmlRenderer {
                 options.Layout == TocLayout.Panel);
     }
 
-    private static string RenderBodyBlock(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, IMarkdownBlock block, HtmlOptions options, System.Collections.Generic.IReadOnlyDictionary<HeadingBlock, string> headingSlugs, MarkdownHeadingCatalog headingCatalog) {
-        if (block is HeadingBlock heading) {
-            return RenderHeadingHtml(heading, options, headingSlugs);
-        }
-
-        if (block is TocPlaceholderBlock toc) {
-            return BuildTocHtml(blocks, toc, headingSlugs, headingCatalog);
+    private static string RenderBodyBlock(IMarkdownBlock block, MarkdownBodyRenderContext context) {
+        if (block is IContextualHtmlMarkdownBlock contextualBlock) {
+            return contextualBlock.RenderHtml(context);
         }
 
         return block.RenderHtml();
-    }
-
-    private static string RenderHeadingHtml(HeadingBlock heading, HtmlOptions options, System.Collections.Generic.IReadOnlyDictionary<HeadingBlock, string> headingSlugs) {
-        if (!headingSlugs.TryGetValue(heading, out var id)) {
-            id = MarkdownSlug.GitHub(heading.Text);
-        }
-
-        var sb = new StringBuilder();
-        sb.Append("<h").Append(heading.Level).Append(" id=\"").Append(id).Append("\">");
-        sb.Append(heading.Inlines.RenderHtml());
-        if (options.IncludeAnchorLinks || options.ShowAnchorIcons) {
-            var icon = System.Net.WebUtility.HtmlEncode(options.AnchorIcon ?? "🔗");
-            sb.Append("<a class=\"heading-anchor\" href=\"#")
-              .Append(id)
-              .Append("\" data-anchor-id=\"")
-              .Append(id)
-              .Append("\" title=\"Copy link\" aria-label=\"Copy link\">")
-              .Append(icon)
-              .Append("</a>");
-        }
-        sb.Append("</h").Append(heading.Level).Append('>');
-
-        if (options.BackToTopLinks && heading.Level >= options.BackToTopMinLevel) {
-            var text = System.Net.WebUtility.HtmlEncode(options.BackToTopText ?? "Back to top");
-            sb.Append("<div class=\"back-to-top\"><a href=\"#top\">").Append(text).Append("</a></div>");
-        }
-
-        return sb.ToString();
     }
 
     private static string BuildFootnotesSectionHtml(List<FootnoteDefinitionBlock> footnotes) {
@@ -261,115 +230,6 @@ internal static class HtmlRenderer {
 
         sb.Append("</ol></section>");
         return sb.ToString();
-    }
-
-    private static string BuildTocHtml(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, TocPlaceholderBlock tp, System.Collections.Generic.IReadOnlyDictionary<HeadingBlock, string> headingSlugs, MarkdownHeadingCatalog headingCatalog) {
-        var opts = tp.Options;
-        int titleLevel = opts.TitleLevel < 1 ? 1 : (opts.TitleLevel > 6 ? 6 : opts.TitleLevel);
-        int placeholderIndex = System.Array.IndexOf(blocks.ToArray(), tp);
-        string? titleAnchor = headingCatalog.GetPrecedingHeadingAnchor(blocks, placeholderIndex, opts);
-        var relevant = headingCatalog.BuildTocEntries(blocks, placeholderIndex, opts, titleAnchor)
-            .Select(e => (e.Level, e.Text, e.Anchor))
-            .ToList();
-        if (relevant.Count == 0) return string.Empty;
-
-        // Build nested list of headings, ensuring nested lists are children of their parent <li>
-        // HTML shape produced (example):
-        // <ul>
-        //   <li>H2
-        //     <ul>
-        //       <li>H3</li>
-        //       <li>H3</li>
-        //     </ul>
-        //   </li>
-        //   <li>H2</li>
-        // </ul>
-        var listTag = opts.Ordered ? "ol" : "ul";
-        var sbNested = new StringBuilder(relevant.Count * 64);
-        int baseLevel = (opts.NormalizeToMinLevel ? relevant.Min(r => r.Level) : 1);
-        int currentDepth = 0; // relative to baseLevel
-        bool any = false;
-        sbNested.Append('<').Append(listTag).Append('>');
-        for (int i = 0; i < relevant.Count; i++) {
-            var e = relevant[i];
-            int depth = Math.Max(0, e.Level - baseLevel);
-
-            if (any) {
-                if (depth == currentDepth) {
-                    // sibling at same depth: close previous item
-                    sbNested.Append("</li>");
-                } else if (depth > currentDepth) {
-                    // dive: open nested lists inside the current <li>
-                    for (int d = currentDepth; d < depth; d++) sbNested.Append('<').Append(listTag).Append('>');
-                } else /* depth < currentDepth */ {
-                    // ascend: close open item and unwind lists
-                    for (int d = currentDepth; d > depth; d--) sbNested.Append("</li></").Append(listTag).Append('>');
-                    // close the parent item at the new depth as we move to a sibling
-                    sbNested.Append("</li>");
-                }
-            }
-
-            sbNested.Append("<li><a href=\"")
-                    .Append('#').Append(System.Net.WebUtility.HtmlEncode(e.Anchor))
-                    .Append("\">")
-                    .Append(System.Net.WebUtility.HtmlEncode(e.Text))
-                    .Append("</a>");
-
-            currentDepth = depth; any = true;
-        }
-        if (any) sbNested.Append("</li>");
-        for (int d = currentDepth; d > 0; d--) sbNested.Append("</").Append(listTag).Append("></li>");
-        sbNested.Append("</").Append(listTag).Append('>');
-
-        // Collapsible panel (legacy + styled)
-        if (opts.Collapsible) {
-            string open = opts.Collapsed ? string.Empty : " open";
-            string summary = System.Net.WebUtility.HtmlEncode(opts.Title ?? "Contents");
-            var sbWrap = new StringBuilder();
-            sbWrap.Append("<details class=\"md-toc\"").Append(open).Append("><summary>")
-                  .Append(summary).Append("</summary>")
-                  .Append(sbNested.ToString())
-                  .Append("</details>");
-            return sbWrap.ToString();
-        }
-
-        // Enhanced layouts: wrap in <nav> with classes for styling/scrollspy when requested
-        bool enhanced = opts.Layout != TocLayout.List || opts.ScrollSpy || opts.Sticky;
-        if (enhanced) {
-            var classes = new StringBuilder("md-toc");
-            if (opts.Layout == TocLayout.Panel) classes.Append(" panel");
-            if (opts.Layout == TocLayout.SidebarRight) classes.Append(" sidebar right");
-            if (opts.Layout == TocLayout.SidebarLeft) classes.Append(" sidebar left");
-            if (opts.Sticky) classes.Append(" sticky");
-            if (opts.ScrollSpy) classes.Append(" md-scrollspy autoscroll");
-            if (opts.Chrome == TocChrome.None) classes.Append(" no-chrome");
-            if (opts.Chrome == TocChrome.Outline) classes.Append(" outline");
-            if (opts.Chrome == TocChrome.Panel) classes.Append(" panel");
-            if (opts.HideOnNarrow) classes.Append(" hide-narrow");
-            string aria = System.Net.WebUtility.HtmlEncode(opts.AriaLabel ?? "Table of Contents");
-            var sb = new StringBuilder();
-            sb.Append("<nav role=\"navigation\" aria-label=\"").Append(aria).Append("\" class=\"").Append(classes).Append("\"");
-            if (opts.ScrollSpy) sb.Append(" data-md-scrollspy=\"1\"");
-            if (opts.Sticky) sb.Append(" data-autoscroll=\"1\"");
-            sb.Append(">");
-            if (opts.IncludeTitle && !string.IsNullOrWhiteSpace(opts.Title)) {
-                sb.Append("<div class=\"toc-title\">").Append(System.Net.WebUtility.HtmlEncode(opts.Title)).Append("</div>");
-            }
-            sb.Append(sbNested.ToString());
-            sb.Append("</nav>");
-            return sb.ToString();
-        }
-
-        // Legacy: emit plain heading + list without wrapper
-        if (opts.IncludeTitle) {
-            var sbo = new StringBuilder();
-            sbo.Append("<h").Append(titleLevel).Append('>')
-               .Append(System.Net.WebUtility.HtmlEncode(opts.Title))
-               .Append("</h").Append(titleLevel).Append('>')
-               .Append(sbNested.ToString());
-            return sbo.ToString();
-        }
-        return sbNested.ToString();
     }
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _scopedBaseCssCache = new System.Collections.Concurrent.ConcurrentDictionary<string, string>(System.StringComparer.Ordinal);
