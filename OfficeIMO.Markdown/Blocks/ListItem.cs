@@ -97,4 +97,35 @@ public sealed class ListItem {
         var cls = IsTask ? " class=\"task-list-item\"" : string.Empty;
         return "<li" + cls + ">" + RenderHtml() + "</li>";
     }
+
+    internal MarkdownSyntaxNode BuildSyntaxNode(MarkdownSyntaxNode? nestedList) {
+        var children = new List<MarkdownSyntaxNode>();
+        if (SyntaxChildren.Count > 0) {
+            children.AddRange(SyntaxChildren);
+        } else {
+            if (Content.Nodes.Count > 0 || (AdditionalParagraphs.Count == 0 && Children.Count == 0)) {
+                children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: Content.RenderMarkdown()));
+            }
+            for (int i = 0; i < AdditionalParagraphs.Count; i++) {
+                children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: AdditionalParagraphs[i].RenderMarkdown()));
+            }
+            for (int i = 0; i < Children.Count; i++) {
+                children.Add(MarkdownBlockSyntaxBuilder.BuildBlock(Children[i]));
+            }
+        }
+
+        if (nestedList != null) {
+            children.Add(nestedList);
+        }
+
+        string? literal = IsTask
+            ? (Checked ? "[x]" : "[ ]")
+            : null;
+
+        return new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.ListItem,
+            MarkdownBlockSyntaxBuilder.GetAggregateSpan(children),
+            literal,
+            children);
+    }
 }
