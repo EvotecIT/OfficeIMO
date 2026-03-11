@@ -103,6 +103,22 @@ tags: [a, b]
                     var tags = Assert.IsAssignableFrom<IEnumerable<string>>(entry.Value);
                     Assert.Equal(new[] { "a", "b" }, tags.ToArray());
                 });
+
+            var published = frontMatter.FindEntry("published");
+            Assert.NotNull(published);
+            Assert.True(Assert.IsType<bool>(published!.Value));
+
+            Assert.True(frontMatter.TryGetValue<string>("title", out var title));
+            Assert.Equal("Doc", title);
+
+            Assert.True(frontMatter.TryGetValue<bool>("published", out var isPublished));
+            Assert.True(isPublished);
+
+            Assert.True(frontMatter.TryGetValue<IEnumerable<string>>("tags", out var tagValues));
+            Assert.Equal(new[] { "a", "b" }, tagValues!.ToArray());
+
+            Assert.False(frontMatter.TryGetValue<int>("title", out _));
+            Assert.Null(frontMatter.FindEntry("missing"));
         }
 
         [Fact]

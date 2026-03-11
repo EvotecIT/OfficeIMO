@@ -26,6 +26,33 @@ public sealed class FrontMatterBlock : IFrontMatterMarkdownBlock, ISyntaxMarkdow
     /// <summary>Structured front matter entries in insertion order.</summary>
     public IReadOnlyList<Entry> Entries => _entries;
 
+    /// <summary>Finds a front matter entry by key.</summary>
+    public Entry? FindEntry(string key, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
+        if (string.IsNullOrEmpty(key)) {
+            return null;
+        }
+
+        for (int i = 0; i < Entries.Count; i++) {
+            if (string.Equals(Entries[i].Key, key, comparison)) {
+                return Entries[i];
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Gets a typed front matter value by key when available.</summary>
+    public bool TryGetValue<T>(string key, out T? value) {
+        var entry = FindEntry(key);
+        if (entry?.Value is T typedValue) {
+            value = typedValue;
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
     /// <summary>
     /// Creates front matter from an anonymous object or dictionary.
     /// </summary>
