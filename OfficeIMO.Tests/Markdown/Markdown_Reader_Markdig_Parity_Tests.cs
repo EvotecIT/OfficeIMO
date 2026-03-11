@@ -151,7 +151,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "nested-blockquote-lazy-after-list-item", "> Outer\n> > Inner\n> > - a\n> > - b\n> After" };
     }
 
-    public static IEnumerable<object[]> MarkdigCompatiblePresetCases() {
+    public static IEnumerable<object[]> PortableProfileCases() {
         yield return new object[] { "bare-http-default-markdig", "Visit https://example.com now" };
         yield return new object[] { "bare-www-default-markdig", "Visit www.example.com now" };
         yield return new object[] { "bare-email-default-markdig", "Contact user@example.com now" };
@@ -188,15 +188,15 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     }
 
     [Theory]
-    [MemberData(nameof(MarkdigCompatiblePresetCases))]
-    public void MarkdownReader_Matches_Markdig_With_Markdig_Compatible_Preset(string _, string markdown) {
+    [MemberData(nameof(PortableProfileCases))]
+    public void MarkdownReader_Matches_Markdig_With_Portable_Profile(string _, string markdown) {
         var htmlOptions = new HtmlOptions {
             Style = HtmlStyle.Plain,
             CssDelivery = CssDelivery.None,
             BodyClass = null
         };
 
-        var office = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateMarkdigCompatible()).ToHtmlFragment(htmlOptions);
+        var office = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile()).ToHtmlFragment(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown);
 
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));

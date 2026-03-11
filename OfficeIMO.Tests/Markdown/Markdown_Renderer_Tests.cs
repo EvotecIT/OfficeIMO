@@ -611,8 +611,8 @@ Top-IDs:
     }
 
     [Fact]
-    public void MarkdownRenderer_ChatStrictMinimalMarkdigCompatible_Disables_Callouts_TaskLists_And_LiteralAutolinks() {
-        var opts = MarkdownRendererPresets.CreateChatStrictMinimalMarkdigCompatible();
+    public void MarkdownRenderer_ChatStrictMinimalPortable_Disables_Callouts_TaskLists_And_LiteralAutolinks() {
+        var opts = MarkdownRendererPresets.CreateChatStrictMinimalPortable();
         var markdown = """
 > [!NOTE]
 > body

@@ -1,13 +1,13 @@
 OfficeIMO.Markdown
 ==================
 
-Markdown builder, reader, AST/query model, and HTML renderer for .NET. Zero runtime dependencies, rich table/list helpers, Markdown-to-HTML export, and a typed reader surface with optional Markdig-compatible parsing defaults for parity-sensitive scenarios.
+Markdown builder, reader, AST/query model, and HTML renderer for .NET. Zero runtime dependencies, rich table/list helpers, Markdown-to-HTML export, and a typed reader surface with an optional portable parsing profile for portability-sensitive scenarios.
 
 ## Why OfficeIMO.Markdown
 
 - Pure .NET, cross‑platform — no native renderers required
 - Fluent API or explicit object model — compose documents predictably
-- GitHub-like output by default, with a typed reader and a Markdig-compatible mode when you need stricter parsing defaults
+- GitHub-like output by default, with a typed reader and a portable profile when you need stricter parsing defaults
 - HTML export with clean themes (Clean, GitHub Light/Dark/Auto), CDN/offline assets, and Prism highlighting
 - Designed for reporting and chat/docs rendering — tables from sequences/objects, callouts, TOC, front matter, and runtime-safe ingestion presets
 
@@ -37,13 +37,13 @@ Highlights
 - HTML: fragment or full document; styles (Clean, GitHub Light/Dark/Auto, Word), CSS delivery (inline/link/external file), Online/Offline asset modes.
 - Prism highlighting: CDN link or offline inline; manifest for safe dedupe across fragments.
 - Reader: parse Markdown back into typed blocks/inlines, query document descendants, inspect list items/headings/front matter, and opt into syntax-tree spans.
-- Markdig-compatible reader mode: disables OfficeIMO-only callout/task-list parsing and turns off bare literal autolinks for closer parity-sensitive ingestion.
+- Portable reader profile: disables OfficeIMO-only callout/task-list parsing and turns off bare literal autolinks for portability-sensitive ingestion.
 
 ### Positioning
 
 - `OfficeIMO.Markdown` is now suitable for real builder + reader workloads, including AST-style traversal and chat/document rendering pipelines.
-- It is still not a full CommonMark/GFM replacement and should not be marketed as "full Markdig parity" yet.
-- Use the default mode for OfficeIMO/GitHub-like behavior and `MarkdownReaderOptions.CreateMarkdigCompatible()` when stricter Markdig-like reader behavior matters more than OfficeIMO conveniences.
+- It is still not a full CommonMark/GFM replacement.
+- Use the default mode for OfficeIMO/GitHub-like behavior and `MarkdownReaderOptions.CreatePortableProfile()` when stricter, more portable reader behavior matters more than OfficeIMO conveniences.
 
 ### AOT / Trimming notes
 
@@ -203,8 +203,8 @@ if (doc.HasDocumentHeader && doc.TryGetFrontMatterValue<string>("title", out var
 // Feature toggles align with OfficeIMO blocks/inlines
 var parsed = MarkdownReader.Parse(markdown, new MarkdownReaderOptions { Tables = true, Callouts = true });
 
-// Opt into Markdig-like literal autolink behavior
-var markdigCompatible = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateMarkdigCompatible());
+// Opt into the portable reader profile
+var portable = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile());
 // Disables bare literal autolinks plus OfficeIMO-only callout/task-list parsing.
 
 // Opt into a lightweight syntax tree with source spans.

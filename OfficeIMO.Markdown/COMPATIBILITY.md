@@ -81,9 +81,9 @@ These are the main reasons you will see differences compared to typical CommonMa
   - Delimiter-run rules (nesting, intraword `_`, etc.) are simplified and can differ from CommonMark output.
 - Autolinks
   - Literal autolinks cover common cases (`http(s)://...`, `www.*`, plain emails, and angle-bracket absolute URIs like `mailto:`, `ftp://`, `tel:`, and `urn:`) but do not aim for full spec coverage.
-  - For Markdig-style default behavior, use `MarkdownReaderOptions.CreateMarkdigCompatible()` to turn off bare `http(s)`, `www`, and plain-email autolinking and disable OfficeIMO-only callout/task-list parsing while keeping explicit links, angle autolinks, and plain lists.
+  - For a more portable baseline, use `MarkdownReaderOptions.CreatePortableProfile()` to turn off bare `http(s)`, `www`, and plain-email autolinking and disable OfficeIMO-only callout/task-list parsing while keeping explicit links, angle autolinks, and plain lists.
 - Extension model
-  - The parser/renderer architecture is much cleaner than before, but it is still not as pluggable or extension-rich as Markdig.
+  - The parser/renderer architecture is much cleaner than before, but it is still not as pluggable or extension-rich as other dedicated markdown engines.
 - Spec breadth
   - We now cover a much larger compatibility set than the earlier subset reader, but the curated parity corpus is still not the same thing as full CommonMark/GFM conformance.
 - Code blocks
@@ -104,12 +104,12 @@ What to add next (if needed for the chat app):
 - Additional diagram engines using the same approach: keep them as fenced code blocks in Markdown, render via client-side JS or a server-side renderer if required.
 - More chart formats by agreeing on a fenced block format (JSON/YAML) and adding a renderer that transforms those blocks into `<canvas>` plus JS.
 
-## Suggested Roadmap (To Get Closer to GFM)
+## Suggested Roadmap
 
-If the goal is "closer to Markdig/CommonMark" rather than just "good enough for GitHub-like content", these are the highest-impact improvements:
+If the goal is broader standards coverage rather than just "good enough for GitHub-like content", these are the highest-impact improvements:
 
 1. Broader CommonMark/GFM corpus coverage beyond the curated parity cases already fixed.
-2. Stronger extension/plugin seams comparable to Markdig’s pipeline model.
+2. Stronger extension/plugin seams for custom parsers and renderers.
 3. More delimiter-run / inline edge-case coverage.
-4. Benchmarks against Markdig on representative docs/chat corpora.
+4. Benchmarks on representative docs/chat corpora.
 5. Continued cleanup of any remaining string-heavy surfaces in the public model.

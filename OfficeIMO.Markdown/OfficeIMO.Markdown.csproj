@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Description>Markdown builder, typed reader/AST, and HTML renderer for .NET with GitHub-like output and optional Markdig-compatible reader mode. No external dependencies.</Description>
+        <Description>Markdown builder, typed reader/AST, and HTML renderer for .NET with GitHub-like output and an optional portable reader profile. No external dependencies.</Description>
         <AssemblyName>OfficeIMO.Markdown</AssemblyName>
         <AssemblyTitle>OfficeIMO.Markdown</AssemblyTitle>
         <VersionPrefix>0.5.12</VersionPrefix>
