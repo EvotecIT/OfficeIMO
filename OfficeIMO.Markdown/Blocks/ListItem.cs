@@ -63,10 +63,10 @@ public sealed class ListItem {
             var sbTight = new StringBuilder();
             sbTight.Append(checkbox).Append(Content.RenderHtml());
             for (int i = 0; i < Children.Count; i++) {
-                if (Children[i] is IInlineParagraphMarkdownBlock paragraph) {
-                    sbTight.Append(paragraph.ParagraphInlines.RenderHtml());
-                } else if (Children[i] is IMarkdownBlock b) {
-                    sbTight.Append(b.RenderHtml());
+                if (Children[i] is ITightListItemHtmlMarkdownBlock tightHtmlBlock) {
+                    sbTight.Append(tightHtmlBlock.RenderTightListItemHtml());
+                } else {
+                    sbTight.Append(Children[i].RenderHtml());
                 }
             }
             return sbTight.ToString();
@@ -84,35 +84,30 @@ public sealed class ListItem {
         }
 
         for (int i = 0; i < Children.Count; i++) {
-            if (Children[i] is IMarkdownBlock b) sb.Append(b.RenderHtml());
+            sb.Append(Children[i].RenderHtml());
         }
         return sb.ToString();
     }
-    internal string ToMarkdownListLine() {
-        var indent = new string(' ', Level * 2);
-        if (IsTask) return indent + "- [" + (Checked ? "x" : " ") + "] " + RenderMarkdown();
-        return indent + "- " + RenderMarkdown();
-    }
-    internal string ToHtmlListItem() {
-        var cls = IsTask ? " class=\"task-list-item\"" : string.Empty;
-        return "<li" + cls + ">" + RenderHtml() + "</li>";
+
+    internal bool TryAbsorbTrailingParagraphBlocks(IReadOnlyList<IMarkdownBlock> trailingBlocks) {
+        if (trailingBlocks == null || trailingBlocks.Count == 0) {
+            return true;
+        }
+
+        for (int i = 0; i < trailingBlocks.Count; i++) {
+            if (trailingBlocks[i] is not IParagraphMarkdownBlock paragraph) {
+                AdditionalParagraphs.Clear();
+                return false;
+            }
+
+            AdditionalParagraphs.Add(paragraph.ParagraphInlines);
+        }
+
+        return true;
     }
 
     internal MarkdownSyntaxNode BuildSyntaxNode(MarkdownSyntaxNode? nestedList) {
-        var children = new List<MarkdownSyntaxNode>();
-        if (SyntaxChildren.Count > 0) {
-            children.AddRange(SyntaxChildren);
-        } else {
-            if (Content.Nodes.Count > 0 || (AdditionalParagraphs.Count == 0 && Children.Count == 0)) {
-                children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: Content.RenderMarkdown()));
-            }
-            for (int i = 0; i < AdditionalParagraphs.Count; i++) {
-                children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: AdditionalParagraphs[i].RenderMarkdown()));
-            }
-            for (int i = 0; i < Children.Count; i++) {
-                children.Add(MarkdownBlockSyntaxBuilder.BuildBlock(Children[i]));
-            }
-        }
+        var children = BuildOwnedSyntaxChildren();
 
         if (nestedList != null) {
             children.Add(nestedList);
@@ -128,4 +123,29 @@ public sealed class ListItem {
             literal,
             children);
     }
+
+    private List<MarkdownSyntaxNode> BuildOwnedSyntaxChildren() {
+        var children = new List<MarkdownSyntaxNode>();
+        if (SyntaxChildren.Count > 0) {
+            children.AddRange(SyntaxChildren);
+            return children;
+        }
+
+        if (Content.Nodes.Count > 0 || (AdditionalParagraphs.Count == 0 && Children.Count == 0)) {
+            children.Add(BuildParagraphSyntaxNode(Content));
+        }
+
+        for (int i = 0; i < AdditionalParagraphs.Count; i++) {
+            children.Add(BuildParagraphSyntaxNode(AdditionalParagraphs[i]));
+        }
+
+        for (int i = 0; i < Children.Count; i++) {
+            children.Add(MarkdownBlockSyntaxBuilder.BuildBlock(Children[i]));
+        }
+
+        return children;
+    }
+
+    private static MarkdownSyntaxNode BuildParagraphSyntaxNode(InlineSequence paragraph) =>
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: paragraph.RenderMarkdown());
 }
