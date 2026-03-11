@@ -168,6 +168,22 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void TocForPreviousHeading_Markdown_Uses_Same_Scope_Rules_As_Html_Rendering() {
+            var md = MarkdownDoc.Create()
+                .H1("Doc")
+                .H2("Intro")
+                .H3("Intro Child")
+                .H2("Appendix")
+                .H3("Extra")
+                .TocForPreviousHeading("Appendix Contents", min: 3, max: 3);
+
+            var text = md.ToMarkdown().Replace("\r", "");
+
+            Assert.Contains("- [Extra](#extra)", text);
+            Assert.DoesNotContain("- [Intro Child](#intro-child)", text);
+        }
+
+        [Fact]
         public void TableFromAuto_Applies_Heuristics() {
             var rows = new [] {
                 new { Date = "2025-01-02", Amount = "12.50" },
