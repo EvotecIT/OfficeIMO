@@ -117,14 +117,22 @@ tags: [a, b]
             Assert.True(frontMatter.TryGetValue<IEnumerable<string>>("tags", out var tagValues));
             Assert.Equal(new[] { "a", "b" }, tagValues!.ToArray());
 
+            Assert.True(frontMatter.HasEntry("published"));
+            Assert.True(frontMatter.HasEntry("Published"));
+            Assert.False(frontMatter.HasEntry("Published", StringComparison.Ordinal));
             Assert.False(frontMatter.TryGetValue<int>("title", out _));
             Assert.Null(frontMatter.FindEntry("missing"));
+            Assert.False(frontMatter.HasEntry("missing"));
 
             Assert.True(parsed.HasDocumentHeader);
+            Assert.True(parsed.HasFrontMatterEntry("published"));
+            Assert.True(parsed.HasFrontMatterEntry("Published"));
+            Assert.False(parsed.HasFrontMatterEntry("Published", StringComparison.Ordinal));
             Assert.Equal("published", parsed.FindFrontMatterEntry("published")!.Key);
             Assert.True(parsed.TryGetFrontMatterValue<string>("title", out var documentTitle));
             Assert.Equal("Doc", documentTitle);
             Assert.False(parsed.TryGetFrontMatterValue<int>("title", out _));
+            Assert.False(parsed.HasFrontMatterEntry("missing"));
         }
 
         [Fact]

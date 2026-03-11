@@ -41,6 +41,10 @@ public sealed class FrontMatterBlock : IFrontMatterMarkdownBlock, ISyntaxMarkdow
         return null;
     }
 
+    /// <summary>Checks whether the front matter contains an entry with the specified key.</summary>
+    public bool HasEntry(string key, StringComparison comparison = StringComparison.OrdinalIgnoreCase) =>
+        FindEntry(key, comparison) != null;
+
     /// <summary>Gets a typed front matter value by key when available.</summary>
     public bool TryGetValue<T>(string key, out T? value) {
         var entry = FindEntry(key);
