@@ -20,6 +20,20 @@ internal sealed class TocPlaceholderBlock : IMarkdownBlock, ISyntaxMarkdownBlock
          Options.Layout == TocLayout.SidebarRight ||
          Options.Layout == TocLayout.Panel);
 
+    internal string WrapSidebarLayoutHtml(string navigationHtml, string contentHtml) {
+        var side = Options.Layout == TocLayout.SidebarLeft ? "left" : "right";
+        string widthStyle = Options.WidthPx.HasValue ? $" style=\"--md-toc-width: {Options.WidthPx.Value}px\"" : string.Empty;
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"<div class=\"md-layout two-col {side}\"{widthStyle}>");
+        if (side == "left") {
+            sb.Append(navigationHtml).Append("<div class=\"md-content\">").Append(contentHtml).Append("</div>");
+        } else {
+            sb.Append("<div class=\"md-content\">").Append(contentHtml).Append("</div>").Append(navigationHtml);
+        }
+        sb.Append("</div>");
+        return sb.ToString();
+    }
+
     internal TocBlock Realize(IReadOnlyList<IMarkdownBlock> blocks, int placeholderIndex, MarkdownHeadingCatalog headingCatalog) {
         var toc = new TocBlock {
             Ordered = Options.Ordered,
