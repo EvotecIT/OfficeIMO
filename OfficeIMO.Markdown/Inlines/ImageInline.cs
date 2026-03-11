@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Standalone inline image: ![alt](src "title").
 /// </summary>
-public sealed class ImageInline : IMarkdownInline {
+public sealed class ImageInline : IMarkdownInline, IRenderableMarkdownInline {
     /// <summary>Alternate text for the image.</summary>
     public string Alt { get; }
     /// <summary>Image source URL or data URI.</summary>
@@ -25,4 +25,6 @@ public sealed class ImageInline : IMarkdownInline {
         var extra = ImageHtmlAttributes.BuildImageAttributes(o, Src);
         return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(Src)}\" alt=\"{System.Net.WebUtility.HtmlEncode(Alt)}\"{titleAttr}{extra} />";
     }
+    string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
+    string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
 }

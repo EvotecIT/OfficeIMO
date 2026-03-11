@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Highlighted inline text rendered as <c>==text==</c> in Markdown and <c>&lt;mark&gt;</c> in HTML.
 /// </summary>
-public sealed class HighlightInline : IMarkdownInline {
+public sealed class HighlightInline : IMarkdownInline, IRenderableMarkdownInline {
     /// <summary>Text content.</summary>
     public string Text { get; }
 
@@ -14,4 +14,6 @@ public sealed class HighlightInline : IMarkdownInline {
 
     internal string RenderMarkdown() => "==" + MarkdownEscaper.EscapeHighlightText(Text) + "==";
     internal string RenderHtml() => "<mark>" + System.Net.WebUtility.HtmlEncode(Text) + "</mark>";
+    string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
+    string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
 }
