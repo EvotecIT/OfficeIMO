@@ -27,13 +27,12 @@ internal static class HtmlRenderer {
 
     internal static HtmlRenderParts RenderParts(MarkdownDoc doc, HtmlOptions options) {
         using var _ctx = HtmlRenderContext.Push(options);
-        var (realizedBlocks, headingSlugs, headingCatalog) = doc.GetBlocksAndHeadingSlugs();
+        var renderModel = doc.BuildRenderModel();
         var css = BuildCss(options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks);
         options._externalCssContentToWrite = cssToWrite; // pass back for SaveHtml
 
         // Insert a top anchor for back-to-top links
-        var blocksForRendering = doc.Blocks;
-        string bodyContent = (options.BackToTopLinks ? "<a id=\"top\"></a>" : string.Empty) + RenderBody(blocksForRendering, options, headingSlugs, headingCatalog);
+        string bodyContent = (options.BackToTopLinks ? "<a id=\"top\"></a>" : string.Empty) + RenderBody(renderModel, options);
         if (options.ThemeToggle) {
             const string toggle = "<button class=\"theme-toggle\" data-theme-toggle title=\"Toggle theme\" aria-label=\"Toggle theme\">🌓</button>";
             bodyContent = toggle + bodyContent;
@@ -50,12 +49,7 @@ internal static class HtmlRenderer {
         StringBuilder scripts = new StringBuilder();
         if (options.ThemeToggle) scripts.Append(HtmlResources.ThemeToggleScript);
         if (options.CopyHeadingLinkOnClick) scripts.Append(HtmlResources.AnchorCopyScript);
-        // ScrollSpy: include only if any TOC requests it
-        try {
-            if (doc.Blocks != null && doc.Blocks.Any(b => b is TocPlaceholderBlock tp && tp.RequestsScrollSpy())) {
-                scripts.Append(HtmlResources.ScrollSpyScript);
-            }
-        } catch { /* best-effort */ }
+        if (renderModel.HasScrollSpyToc) scripts.Append(HtmlResources.ScrollSpyScript);
 
         // Additional JS: link in head when Online; download+inline into scripts when Offline
         if (options.AssetMode == AssetMode.Online) {
@@ -110,9 +104,9 @@ internal static class HtmlRenderer {
         return parts;
     }
 
-    private static string RenderBody(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, HtmlOptions options, System.Collections.Generic.IReadOnlyDictionary<HeadingBlock, string> headingSlugs, MarkdownHeadingCatalog headingCatalog) {
-        var context = new MarkdownBodyRenderContext(blocks, options, headingSlugs, headingCatalog);
-        var plan = MarkdownBodyRenderPlan.Create(blocks);
+    private static string RenderBody(MarkdownRenderModel renderModel, HtmlOptions options) {
+        var context = new MarkdownBodyRenderContext(renderModel.SourceBlocks, options, renderModel.HeadingSlugs, renderModel.HeadingCatalog);
+        var plan = MarkdownBodyRenderPlan.Create(renderModel.SourceBlocks);
         var footnotes = plan.Footnotes;
         var sidebar = plan.Sidebar;
 

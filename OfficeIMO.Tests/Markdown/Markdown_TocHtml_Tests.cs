@@ -77,6 +77,21 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("href=\"#extra\">Extra</a>", html);
             Assert.DoesNotContain("href=\"#intro-child\">Intro Child</a>", html);
         }
+
+        [Fact]
+        public void Toc_Rendering_Reuses_Stable_Heading_Slugs_Across_Markdown_And_Html() {
+            var md = MarkdownDoc.Create()
+                .H2("Repeat")
+                .H2("Repeat")
+                .TocHere(o => { o.MinLevel = 2; o.MaxLevel = 2; });
+
+            var markdown = md.ToMarkdown().Replace("\r", "");
+            var html = md.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Clean });
+
+            Assert.Contains("- [Repeat](#repeat)\n- [Repeat](#repeat-1)", markdown, StringComparison.Ordinal);
+            Assert.Contains("href=\"#repeat\">Repeat</a>", html, StringComparison.Ordinal);
+            Assert.Contains("href=\"#repeat-1\">Repeat</a>", html, StringComparison.Ordinal);
+        }
     }
 }
 
