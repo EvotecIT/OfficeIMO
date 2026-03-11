@@ -29,6 +29,29 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("md-toc sidebar right sticky", html);
             Assert.Contains("On this page", html);
         }
+
+        [Fact]
+        public void Toc_SidebarRight_Keeps_Footnotes_In_Content_Column() {
+            var markdown = """
+# Doc
+
+See note[^1].
+
+## One
+
+[TOC layout=sidebar-right min=2 max=2 title="On this page"]
+
+[^1]: Footnote text
+""";
+
+            var doc = MarkdownReader.Parse(markdown);
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Clean });
+
+            Assert.Contains("class=\"md-layout two-col right\"", html);
+            Assert.Contains("class=\"md-content\"", html);
+            Assert.Contains("class=\"footnotes\"", html);
+            Assert.Contains("Footnote text", html);
+        }
     }
 }
 

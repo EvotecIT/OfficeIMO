@@ -112,27 +112,16 @@ internal static class HtmlRenderer {
 
     private static string RenderBody(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, HtmlOptions options, System.Collections.Generic.IReadOnlyDictionary<HeadingBlock, string> headingSlugs, MarkdownHeadingCatalog headingCatalog) {
         var context = new MarkdownBodyRenderContext(blocks, options, headingSlugs, headingCatalog);
-        // Footnote definitions are rendered at the bottom in a dedicated section.
-        var footnotes = new List<FootnoteDefinitionBlock>();
-
-        // Detect a sidebar TOC and render a two-column layout when present
-        TocPlaceholderBlock? sidebar = null;
-        for (int i = 0; i < blocks.Count; i++) {
-            if (blocks[i] is TocPlaceholderBlock tp && (tp.Options.Layout == TocLayout.SidebarLeft || tp.Options.Layout == TocLayout.SidebarRight)) {
-                sidebar = tp; break;
-            }
-        }
+        var plan = MarkdownBodyRenderPlan.Create(blocks);
+        var footnotes = plan.Footnotes;
+        var sidebar = plan.Sidebar;
 
         if (sidebar != null) {
             var side = sidebar.Options.Layout == TocLayout.SidebarLeft ? "left" : "right";
             var navHtml = ((IContextualHtmlMarkdownBlock)sidebar).RenderHtml(context);
             var content = new StringBuilder();
-            for (int i = 0; i < blocks.Count; i++) {
-                var block = blocks[i];
-                if (TryCollectFootnote(block, footnotes)) continue;
-                if (ShouldSkipTocTitleHeading(blocks, i, block)) continue;
-                if (ReferenceEquals(block, sidebar)) continue; // skip the sidebar placeholder; it's rendered as navHtml
-                content.Append(RenderBodyBlock(block, context));
+            for (int i = 0; i < plan.RenderBlocks.Count; i++) {
+                content.Append(RenderBodyBlock(plan.RenderBlocks[i], context));
             }
             if (footnotes.Count > 0) content.Append(BuildFootnotesSectionHtml(footnotes));
             var sbLayout = new StringBuilder();
@@ -148,39 +137,11 @@ internal static class HtmlRenderer {
         }
 
         var sb = new StringBuilder();
-        for (int i = 0; i < blocks.Count; i++) {
-            var block = blocks[i];
-            if (TryCollectFootnote(block, footnotes)) continue;
-            if (ShouldSkipTocTitleHeading(blocks, i, block)) continue;
-            sb.Append(RenderBodyBlock(block, context));
+        for (int i = 0; i < plan.RenderBlocks.Count; i++) {
+            sb.Append(RenderBodyBlock(plan.RenderBlocks[i], context));
         }
         if (footnotes.Count > 0) sb.Append(BuildFootnotesSectionHtml(footnotes));
         return sb.ToString();
-    }
-
-    private static bool TryCollectFootnote(IMarkdownBlock block, List<FootnoteDefinitionBlock> footnotes) {
-        if (block is not FootnoteDefinitionBlock footnote) {
-            return false;
-        }
-
-        footnotes.Add(footnote);
-        return true;
-    }
-
-    private static bool ShouldSkipTocTitleHeading(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, int index, IMarkdownBlock block) {
-        if (block is not HeadingBlock) {
-            return false;
-        }
-
-        if (index + 1 >= blocks.Count || blocks[index + 1] is not TocPlaceholderBlock toc) {
-            return false;
-        }
-
-        var options = toc.Options;
-        return options.IncludeTitle &&
-               (options.Layout == TocLayout.SidebarLeft ||
-                options.Layout == TocLayout.SidebarRight ||
-                options.Layout == TocLayout.Panel);
     }
 
     private static string RenderBodyBlock(IMarkdownBlock block, MarkdownBodyRenderContext context) {
@@ -191,7 +152,7 @@ internal static class HtmlRenderer {
         return block.RenderHtml();
     }
 
-    private static string BuildFootnotesSectionHtml(List<FootnoteDefinitionBlock> footnotes) {
+    private static string BuildFootnotesSectionHtml(IReadOnlyList<FootnoteDefinitionBlock> footnotes) {
         if (footnotes == null || footnotes.Count == 0) return string.Empty;
 
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
