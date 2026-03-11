@@ -32,6 +32,15 @@ public class MarkdownDoc {
         return this;
     }
 
+    /// <summary>Enumerates all document blocks depth-first, including front matter when present.</summary>
+    public IEnumerable<IMarkdownBlock> DescendantsAndSelf() {
+        foreach (var block in TopLevelBlocks) {
+            foreach (var descendant in EnumerateBlockAndDescendants(block)) {
+                yield return descendant;
+            }
+        }
+    }
+
     private IReadOnlyList<IMarkdownBlock> BuildTopLevelBlocks() {
         if (_frontMatter == null) {
             return _blocks;
@@ -42,6 +51,31 @@ public class MarkdownDoc {
         };
         blocks.AddRange(_blocks);
         return blocks;
+    }
+
+    private static IEnumerable<IMarkdownBlock> EnumerateBlockAndDescendants(IMarkdownBlock block) {
+        yield return block;
+
+        if (block is IMarkdownListBlock listBlock) {
+            for (int i = 0; i < listBlock.ListItems.Count; i++) {
+                var item = listBlock.ListItems[i];
+                for (int j = 0; j < item.BlockChildren.Count; j++) {
+                    foreach (var descendant in EnumerateBlockAndDescendants(item.BlockChildren[j])) {
+                        yield return descendant;
+                    }
+                }
+            }
+
+            yield break;
+        }
+
+        if (block is IChildMarkdownBlockContainer container) {
+            for (int i = 0; i < container.ChildBlocks.Count; i++) {
+                foreach (var descendant in EnumerateBlockAndDescendants(container.ChildBlocks[i])) {
+                    yield return descendant;
+                }
+            }
+        }
     }
 
     /// <summary>Sets YAML front matter from an anonymous object or dictionary.</summary>

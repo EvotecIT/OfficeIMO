@@ -130,5 +130,34 @@ Paragraph
                 block => Assert.IsType<HeadingBlock>(block),
                 block => Assert.IsType<ParagraphBlock>(block));
         }
+
+        [Fact]
+        public void Reader_Enumerates_Blocks_Depth_First() {
+            const string markdown = """
+---
+title: Doc
+---
+
+> Quote
+>
+> - item
+
+Paragraph
+""";
+
+            var parsed = MarkdownReader.Parse(markdown);
+            var kinds = parsed.DescendantsAndSelf().Select(block => block.GetType()).ToArray();
+
+            Assert.Equal(
+                new[] {
+                    typeof(FrontMatterBlock),
+                    typeof(QuoteBlock),
+                    typeof(ParagraphBlock),
+                    typeof(UnorderedListBlock),
+                    typeof(ParagraphBlock),
+                    typeof(ParagraphBlock)
+                },
+                kinds);
+        }
     }
 }
