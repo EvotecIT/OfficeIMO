@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Collapsible disclosure block with an optional summary and nested content.
 /// </summary>
-public sealed class DetailsBlock : IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock {
+public sealed class DetailsBlock : IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Optional summary displayed in the disclosure header.</summary>
     public SummaryBlock? Summary { get; set; }
 
@@ -69,7 +69,7 @@ public sealed class DetailsBlock : IMarkdownBlock, IChildMarkdownBlockContainer,
     IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => Children;
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
 
-    internal IReadOnlyList<MarkdownSyntaxNode> BuildSyntaxChildren() {
+    IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() {
         if (SyntaxChildren != null && SyntaxChildren.Count > 0) {
             var nodesWithSummary = new List<MarkdownSyntaxNode>();
             if (Summary != null) {
