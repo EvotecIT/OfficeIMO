@@ -27,13 +27,13 @@ internal static class HtmlRenderer {
 
     internal static HtmlRenderParts RenderParts(MarkdownDoc doc, HtmlOptions options) {
         using var _ctx = HtmlRenderContext.Push(options);
-        var (realizedBlocks, headingSlugs, headingCatalog) = doc.GetBlocksAndHeadingSlugs();
+        var (realizedBlocks, headingCatalog) = doc.GetBlocksAndHeadingSlugs();
         var css = BuildCss(options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks);
         options._externalCssContentToWrite = cssToWrite; // pass back for SaveHtml
 
         // Insert a top anchor for back-to-top links
         var blocksForRendering = doc.Blocks;
-        string bodyContent = (options.BackToTopLinks ? "<a id=\"top\"></a>" : string.Empty) + RenderBody(blocksForRendering, options, headingSlugs, headingCatalog);
+        string bodyContent = (options.BackToTopLinks ? "<a id=\"top\"></a>" : string.Empty) + RenderBody(blocksForRendering, options, headingCatalog);
         if (options.ThemeToggle) {
             const string toggle = "<button class=\"theme-toggle\" data-theme-toggle title=\"Toggle theme\" aria-label=\"Toggle theme\">🌓</button>";
             bodyContent = toggle + bodyContent;
@@ -52,7 +52,7 @@ internal static class HtmlRenderer {
         if (options.CopyHeadingLinkOnClick) scripts.Append(HtmlResources.AnchorCopyScript);
         // ScrollSpy: include only if any TOC requests it
         try {
-            if (doc.Blocks != null && doc.Blocks.Any(b => b is TocPlaceholderBlock tp && tp.Options.ScrollSpy)) {
+            if (doc.Blocks != null && doc.Blocks.Any(b => b is ITocPlaceholderMarkdownBlock toc && toc.RequiresScrollSpy())) {
                 scripts.Append(HtmlResources.ScrollSpyScript);
             }
         } catch { /* best-effort */ }
@@ -110,30 +110,20 @@ internal static class HtmlRenderer {
         return parts;
     }
 
-    private static string RenderBody(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, HtmlOptions options, System.Collections.Generic.IReadOnlyDictionary<HeadingBlock, string> headingSlugs, MarkdownHeadingCatalog headingCatalog) {
-        var context = new MarkdownBodyRenderContext(blocks, options, headingSlugs, headingCatalog);
+    private static string RenderBody(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, HtmlOptions options, MarkdownHeadingCatalog headingCatalog) {
+        var context = new MarkdownBodyRenderContext(blocks, options, headingCatalog);
         var plan = MarkdownBodyRenderPlan.Create(blocks);
         var footnotes = plan.Footnotes;
         var sidebar = plan.Sidebar;
 
         if (sidebar != null) {
-            var side = sidebar.Options.Layout == TocLayout.SidebarLeft ? "left" : "right";
-            var navHtml = ((IContextualHtmlMarkdownBlock)sidebar).RenderHtml(context);
+            var navHtml = sidebar.RenderHtml(context);
             var content = new StringBuilder();
             for (int i = 0; i < plan.RenderBlocks.Count; i++) {
                 content.Append(RenderBodyBlock(plan.RenderBlocks[i], context));
             }
             if (footnotes.Count > 0) content.Append(BuildFootnotesSectionHtml(footnotes));
-            var sbLayout = new StringBuilder();
-            string widthStyle = sidebar.Options.WidthPx.HasValue ? $" style=\"--md-toc-width: {sidebar.Options.WidthPx.Value}px\"" : string.Empty;
-            sbLayout.Append($"<div class=\"md-layout two-col {side}\"{widthStyle}>");
-            if (side == "left") {
-                sbLayout.Append(navHtml).Append("<div class=\"md-content\">").Append(content.ToString()).Append("</div>");
-            } else {
-                sbLayout.Append("<div class=\"md-content\">").Append(content.ToString()).Append("</div>").Append(navHtml);
-            }
-            sbLayout.Append("</div>");
-            return sbLayout.ToString();
+            return sidebar.WrapSidebarLayoutHtml(navHtml, content.ToString());
         }
 
         var sb = new StringBuilder();
@@ -152,7 +142,7 @@ internal static class HtmlRenderer {
         return block.RenderHtml();
     }
 
-    private static string BuildFootnotesSectionHtml(IReadOnlyList<FootnoteDefinitionBlock> footnotes) {
+    private static string BuildFootnotesSectionHtml(IReadOnlyList<IFootnoteSectionMarkdownBlock> footnotes) {
         if (footnotes == null || footnotes.Count == 0) return string.Empty;
 
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -163,29 +153,10 @@ internal static class HtmlRenderer {
             var fn = footnotes[i];
             if (fn == null) continue;
 
-            var label = fn.Label ?? string.Empty;
+            var label = fn.FootnoteLabel ?? string.Empty;
             if (label.Length == 0) continue;
             if (!seen.Add(label)) continue;
-
-            var enc = System.Net.WebUtility.HtmlEncode(label);
-            sb.Append("<li id=\"fn:").Append(enc).Append("\">");
-
-            var paragraphs = fn.Paragraphs;
-            if (paragraphs == null || paragraphs.Count == 0) {
-                var one = MarkdownReader.ParseInlineText(fn.Text);
-                paragraphs = new List<InlineSequence> { one };
-            }
-
-            for (int p = 0; p < paragraphs.Count; p++) {
-                var para = paragraphs[p] ?? new InlineSequence();
-                sb.Append("<p>").Append(para.RenderHtml());
-                if (p == paragraphs.Count - 1) {
-                    sb.Append(" <a class=\"footnote-backref\" href=\"#fnref:").Append(enc).Append("\" aria-label=\"Back to reference\">&#8617;</a>");
-                }
-                sb.Append("</p>");
-            }
-
-            sb.Append("</li>");
+            sb.Append(fn.RenderFootnoteSectionItemHtml());
         }
 
         sb.Append("</ol></section>");

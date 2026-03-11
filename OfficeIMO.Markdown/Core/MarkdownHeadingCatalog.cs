@@ -2,14 +2,14 @@ namespace OfficeIMO.Markdown;
 
 internal sealed class MarkdownHeadingCatalog {
     internal readonly struct HeadingEntry {
-        internal HeadingEntry(int index, HeadingBlock block, string anchor) {
+        internal HeadingEntry(int index, IHeadingMarkdownBlock block, string anchor) {
             Index = index;
             Block = block;
             Anchor = anchor ?? string.Empty;
         }
 
         internal int Index { get; }
-        internal HeadingBlock Block { get; }
+        internal IHeadingMarkdownBlock Block { get; }
         internal int Level => Block.Level;
         internal string Text => Block.Text;
         internal string Anchor { get; }
@@ -17,19 +17,31 @@ internal sealed class MarkdownHeadingCatalog {
 
     private readonly IReadOnlyList<HeadingEntry> _headings;
 
-    private MarkdownHeadingCatalog(IReadOnlyList<HeadingEntry> headings, IReadOnlyDictionary<HeadingBlock, string> headingSlugs) {
+    private MarkdownHeadingCatalog(IReadOnlyList<HeadingEntry> headings, IReadOnlyDictionary<IHeadingMarkdownBlock, string> headingSlugs) {
         _headings = headings;
         HeadingSlugs = headingSlugs;
     }
 
-    internal IReadOnlyDictionary<HeadingBlock, string> HeadingSlugs { get; }
+    internal IReadOnlyDictionary<IHeadingMarkdownBlock, string> HeadingSlugs { get; }
+
+    internal string GetHeadingAnchor(IHeadingMarkdownBlock heading) {
+        if (heading == null) {
+            return string.Empty;
+        }
+
+        if (HeadingSlugs.TryGetValue(heading, out var slug)) {
+            return slug;
+        }
+
+        return MarkdownSlug.GitHub(heading.Text);
+    }
 
     internal static MarkdownHeadingCatalog Create(IReadOnlyList<IMarkdownBlock> blocks, Dictionary<string, int>? slugRegistry = null) {
         var headings = new List<HeadingEntry>();
-        var slugs = new Dictionary<HeadingBlock, string>();
+        var slugs = new Dictionary<IHeadingMarkdownBlock, string>();
 
         for (int idx = 0; idx < blocks.Count; idx++) {
-            if (blocks[idx] is not HeadingBlock heading) {
+            if (blocks[idx] is not IHeadingMarkdownBlock heading) {
                 continue;
             }
 
@@ -49,15 +61,11 @@ internal sealed class MarkdownHeadingCatalog {
             return null;
         }
 
-        if (blocks[blockIndex - 1] is not HeadingBlock titleHeading) {
+        if (blocks[blockIndex - 1] is not IHeadingMarkdownBlock titleHeading) {
             return null;
         }
 
-        if (!HeadingSlugs.TryGetValue(titleHeading, out var titleSlug)) {
-            titleSlug = MarkdownSlug.GitHub(titleHeading.Text);
-        }
-
-        return titleSlug;
+        return GetHeadingAnchor(titleHeading);
     }
 
     internal List<TocBlock.Entry> BuildTocEntries(IReadOnlyList<IMarkdownBlock> blocks, int placeholderIndex, TocOptions options, string? titleAnchor = null) {

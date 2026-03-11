@@ -3,11 +3,46 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Placeholder that is replaced with a generated Table of Contents at render time.
 /// </summary>
-internal sealed class TocPlaceholderBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IContextualHtmlMarkdownBlock {
+internal sealed class TocPlaceholderBlock : IMarkdownBlock, ISyntaxMarkdownBlock, ITocPlaceholderMarkdownBlock {
     public TocOptions Options { get; }
     public TocPlaceholderBlock(TocOptions options) { Options = options; }
     string IMarkdownBlock.RenderMarkdown() => string.Empty; // Replaced during render
     string IMarkdownBlock.RenderHtml() => string.Empty; // Replaced during render
+
+    bool IBodySidebarMarkdownBlock.UsesSidebarLayout() =>
+        Options.Layout == TocLayout.SidebarLeft || Options.Layout == TocLayout.SidebarRight;
+
+    bool IBodySidebarMarkdownBlock.SuppressesPrecedingHeadingTitle() =>
+        Options.IncludeTitle &&
+        (Options.Layout == TocLayout.SidebarLeft ||
+         Options.Layout == TocLayout.SidebarRight ||
+         Options.Layout == TocLayout.Panel);
+
+    bool ITocPlaceholderMarkdownBlock.RequiresScrollSpy() => Options.ScrollSpy;
+
+    string IBodySidebarMarkdownBlock.WrapSidebarLayoutHtml(string navigationHtml, string contentHtml) {
+        var side = Options.Layout == TocLayout.SidebarLeft ? "left" : "right";
+        string widthStyle = Options.WidthPx.HasValue ? $" style=\"--md-toc-width: {Options.WidthPx.Value}px\"" : string.Empty;
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"<div class=\"md-layout two-col {side}\"{widthStyle}>");
+        if (side == "left") {
+            sb.Append(navigationHtml).Append("<div class=\"md-content\">").Append(contentHtml).Append("</div>");
+        } else {
+            sb.Append("<div class=\"md-content\">").Append(contentHtml).Append("</div>").Append(navigationHtml);
+        }
+        sb.Append("</div>");
+        return sb.ToString();
+    }
+
+    TocBlock ITocPlaceholderMarkdownBlock.RealizeToc(IReadOnlyList<IMarkdownBlock> blocks, int placeholderIndex, MarkdownHeadingCatalog headingCatalog) {
+        var toc = new TocBlock { Ordered = Options.Ordered, NormalizeLevels = Options.NormalizeToMinLevel };
+        string? titleAnchor = headingCatalog.GetPrecedingHeadingAnchor(blocks, placeholderIndex, Options);
+        foreach (var entry in headingCatalog.BuildTocEntries(blocks, placeholderIndex, Options, titleAnchor)) {
+            toc.Entries.Add(entry);
+        }
+        return toc;
+    }
+
     string IContextualHtmlMarkdownBlock.RenderHtml(MarkdownBodyRenderContext context) {
         int titleLevel = Options.TitleLevel < 1 ? 1 : (Options.TitleLevel > 6 ? 6 : Options.TitleLevel);
         int placeholderIndex = System.Array.IndexOf(context.Blocks.ToArray(), this);
