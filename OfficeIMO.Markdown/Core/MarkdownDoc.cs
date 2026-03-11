@@ -16,6 +16,8 @@ public class MarkdownDoc {
     public IReadOnlyList<IMarkdownBlock> Blocks => _blocks;
     /// <summary>Document-level front matter/header block when present.</summary>
     public FrontMatterBlock? DocumentHeader => _frontMatter as FrontMatterBlock;
+    /// <summary>All top-level document blocks in order, including front matter when present.</summary>
+    public IReadOnlyList<IMarkdownBlock> TopLevelBlocks => BuildTopLevelBlocks();
 
     /// <summary>Adds a block instance (object-model style).</summary>
     /// <param name="block">Block to append to the document.</param>
@@ -28,6 +30,18 @@ public class MarkdownDoc {
             _lastBlock = block;
         }
         return this;
+    }
+
+    private IReadOnlyList<IMarkdownBlock> BuildTopLevelBlocks() {
+        if (_frontMatter == null) {
+            return _blocks;
+        }
+
+        var blocks = new List<IMarkdownBlock>(_blocks.Count + 1) {
+            (IMarkdownBlock)_frontMatter
+        };
+        blocks.AddRange(_blocks);
+        return blocks;
     }
 
     /// <summary>Sets YAML front matter from an anonymous object or dictionary.</summary>

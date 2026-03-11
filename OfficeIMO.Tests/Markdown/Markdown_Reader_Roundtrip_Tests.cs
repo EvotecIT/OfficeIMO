@@ -104,5 +104,31 @@ tags: [a, b]
                     Assert.Equal(new[] { "a", "b" }, tags.ToArray());
                 });
         }
+
+        [Fact]
+        public void Reader_Exposes_TopLevel_Blocks_In_Document_Order() {
+            const string markdown = """
+---
+title: Doc
+---
+
+# Heading
+
+Paragraph
+""";
+
+            var parsed = MarkdownReader.Parse(markdown);
+
+            Assert.Collection(
+                parsed.TopLevelBlocks,
+                block => Assert.IsType<FrontMatterBlock>(block),
+                block => Assert.IsType<HeadingBlock>(block),
+                block => Assert.IsType<ParagraphBlock>(block));
+
+            Assert.Collection(
+                parsed.Blocks,
+                block => Assert.IsType<HeadingBlock>(block),
+                block => Assert.IsType<ParagraphBlock>(block));
+        }
     }
 }
