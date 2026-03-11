@@ -12,6 +12,8 @@ internal sealed class TocPlaceholderBlock : IMarkdownBlock, ISyntaxMarkdownBlock
     internal bool UsesSidebarLayout() =>
         Options.Layout == TocLayout.SidebarLeft || Options.Layout == TocLayout.SidebarRight;
 
+    internal bool RequestsScrollSpy() => Options.ScrollSpy;
+
     internal bool SuppressesPrecedingHeadingTitle() =>
         Options.IncludeTitle &&
         (Options.Layout == TocLayout.SidebarLeft ||
@@ -34,7 +36,7 @@ internal sealed class TocPlaceholderBlock : IMarkdownBlock, ISyntaxMarkdownBlock
 
     string IContextualHtmlMarkdownBlock.RenderHtml(MarkdownBodyRenderContext context) {
         int titleLevel = Options.TitleLevel < 1 ? 1 : (Options.TitleLevel > 6 ? 6 : Options.TitleLevel);
-        int placeholderIndex = System.Array.IndexOf(context.Blocks.ToArray(), this);
+        int placeholderIndex = context.GetBlockIndex(this);
         string? titleAnchor = context.HeadingCatalog.GetPrecedingHeadingAnchor(context.Blocks, placeholderIndex, Options);
         var relevant = context.HeadingCatalog.BuildTocEntries(context.Blocks, placeholderIndex, Options, titleAnchor)
             .Select(e => (e.Level, e.Text, e.Anchor))
