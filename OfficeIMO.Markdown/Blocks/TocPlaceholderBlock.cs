@@ -8,6 +8,30 @@ internal sealed class TocPlaceholderBlock : IMarkdownBlock, ISyntaxMarkdownBlock
     public TocPlaceholderBlock(TocOptions options) { Options = options; }
     string IMarkdownBlock.RenderMarkdown() => string.Empty; // Replaced during render
     string IMarkdownBlock.RenderHtml() => string.Empty; // Replaced during render
+
+    internal bool UsesSidebarLayout() =>
+        Options.Layout == TocLayout.SidebarLeft || Options.Layout == TocLayout.SidebarRight;
+
+    internal bool SuppressesPrecedingHeadingTitle() =>
+        Options.IncludeTitle &&
+        (Options.Layout == TocLayout.SidebarLeft ||
+         Options.Layout == TocLayout.SidebarRight ||
+         Options.Layout == TocLayout.Panel);
+
+    internal TocBlock Realize(IReadOnlyList<IMarkdownBlock> blocks, int placeholderIndex, MarkdownHeadingCatalog headingCatalog) {
+        var toc = new TocBlock {
+            Ordered = Options.Ordered,
+            NormalizeLevels = Options.NormalizeToMinLevel
+        };
+
+        string? titleAnchor = headingCatalog.GetPrecedingHeadingAnchor(blocks, placeholderIndex, Options);
+        foreach (var entry in headingCatalog.BuildTocEntries(blocks, placeholderIndex, Options, titleAnchor)) {
+            toc.Entries.Add(entry);
+        }
+
+        return toc;
+    }
+
     string IContextualHtmlMarkdownBlock.RenderHtml(MarkdownBodyRenderContext context) {
         int titleLevel = Options.TitleLevel < 1 ? 1 : (Options.TitleLevel > 6 ? 6 : Options.TitleLevel);
         int placeholderIndex = System.Array.IndexOf(context.Blocks.ToArray(), this);

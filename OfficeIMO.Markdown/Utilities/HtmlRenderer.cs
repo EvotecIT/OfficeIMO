@@ -166,26 +166,7 @@ internal static class HtmlRenderer {
             var label = fn.Label ?? string.Empty;
             if (label.Length == 0) continue;
             if (!seen.Add(label)) continue;
-
-            var enc = System.Net.WebUtility.HtmlEncode(label);
-            sb.Append("<li id=\"fn:").Append(enc).Append("\">");
-
-            var paragraphs = fn.Paragraphs;
-            if (paragraphs == null || paragraphs.Count == 0) {
-                var one = MarkdownReader.ParseInlineText(fn.Text);
-                paragraphs = new List<InlineSequence> { one };
-            }
-
-            for (int p = 0; p < paragraphs.Count; p++) {
-                var para = paragraphs[p] ?? new InlineSequence();
-                sb.Append("<p>").Append(para.RenderHtml());
-                if (p == paragraphs.Count - 1) {
-                    sb.Append(" <a class=\"footnote-backref\" href=\"#fnref:").Append(enc).Append("\" aria-label=\"Back to reference\">&#8617;</a>");
-                }
-                sb.Append("</p>");
-            }
-
-            sb.Append("</li>");
+            sb.Append(fn.RenderFootnoteSectionItemHtml());
         }
 
         sb.Append("</ol></section>");

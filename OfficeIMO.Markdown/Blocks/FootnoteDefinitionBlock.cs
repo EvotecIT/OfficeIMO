@@ -60,6 +60,34 @@ public sealed class FootnoteDefinitionBlock : IMarkdownBlock, ISyntaxChildrenMar
         return $"<p id=\"fn:{encLabel}\"><sup>{encLabel}</sup> {inlines.RenderHtml()} <a class=\"footnote-backref\" href=\"#fnref:{encLabel}\" aria-label=\"Back to reference\">&#8617;</a></p>";
     }
 
+    internal string RenderFootnoteSectionItemHtml() {
+        var label = Label ?? string.Empty;
+        if (label.Length == 0) {
+            return string.Empty;
+        }
+
+        var encLabel = System.Net.WebUtility.HtmlEncode(label);
+        var paragraphs = Paragraphs;
+        if (paragraphs == null || paragraphs.Count == 0) {
+            paragraphs = new List<InlineSequence> { MarkdownReader.ParseInlineText(Text) };
+        }
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<li id=\"fn:").Append(encLabel).Append("\">");
+
+        for (int i = 0; i < paragraphs.Count; i++) {
+            var paragraph = paragraphs[i] ?? new InlineSequence();
+            sb.Append("<p>").Append(paragraph.RenderHtml());
+            if (i == paragraphs.Count - 1) {
+                sb.Append(" <a class=\"footnote-backref\" href=\"#fnref:").Append(encLabel).Append("\" aria-label=\"Back to reference\">&#8617;</a>");
+            }
+            sb.Append("</p>");
+        }
+
+        sb.Append("</li>");
+        return sb.ToString();
+    }
+
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
 
     internal IReadOnlyList<MarkdownSyntaxNode> BuildSyntaxChildren() {
