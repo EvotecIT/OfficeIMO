@@ -1039,20 +1039,8 @@ public static partial class MarkdownReader {
         if (trailingLines.TrueForAll(string.IsNullOrWhiteSpace)) return mixedItem;
 
         var trailingBlocks = ParseBlocksFromLines(trailingLines.ToArray(), options, state ?? new MarkdownReaderState());
-        bool allParagraphs = true;
-        for (int i = 0; i < trailingBlocks.Count; i++) {
-            if (trailingBlocks[i] is IParagraphMarkdownBlock paragraph) {
-                mixedItem.AdditionalParagraphs.Add(paragraph.ParagraphInlines);
-                continue;
-            }
+        if (mixedItem.TryAbsorbTrailingParagraphBlocks(trailingBlocks)) return mixedItem;
 
-            allParagraphs = false;
-            break;
-        }
-
-        if (allParagraphs) return mixedItem;
-
-        mixedItem.AdditionalParagraphs.Clear();
         for (int i = 0; i < trailingBlocks.Count; i++) {
             mixedItem.Children.Add(trailingBlocks[i]);
         }

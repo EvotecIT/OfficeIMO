@@ -98,6 +98,23 @@ public sealed class ListItem {
         return "<li" + cls + ">" + RenderHtml() + "</li>";
     }
 
+    internal bool TryAbsorbTrailingParagraphBlocks(IReadOnlyList<IMarkdownBlock> trailingBlocks) {
+        if (trailingBlocks == null || trailingBlocks.Count == 0) {
+            return true;
+        }
+
+        for (int i = 0; i < trailingBlocks.Count; i++) {
+            if (trailingBlocks[i] is not IParagraphMarkdownBlock paragraph) {
+                AdditionalParagraphs.Clear();
+                return false;
+            }
+
+            AdditionalParagraphs.Add(paragraph.ParagraphInlines);
+        }
+
+        return true;
+    }
+
     internal MarkdownSyntaxNode BuildSyntaxNode(MarkdownSyntaxNode? nestedList) {
         var children = new List<MarkdownSyntaxNode>();
         if (SyntaxChildren.Count > 0) {
