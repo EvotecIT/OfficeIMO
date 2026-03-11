@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Hyperlink inline.
 /// </summary>
-public sealed class LinkInline : IMarkdownInline {
+public sealed class LinkInline : IMarkdownInline, IRenderableMarkdownInline {
     /// <summary>Link text.</summary>
     public string Text { get; }
     /// <summary>Destination URL.</summary>
@@ -45,4 +45,6 @@ public sealed class LinkInline : IMarkdownInline {
         }
         return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(Url)}\"{title}{extra}>{System.Net.WebUtility.HtmlEncode(Text)}</a>";
     }
+    string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
+    string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
 }
