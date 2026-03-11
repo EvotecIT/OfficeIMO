@@ -27,5 +27,5 @@ public sealed class HtmlCommentBlock : IMarkdownBlock, ISyntaxMarkdownBlock {
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        MarkdownBlockSyntaxBuilder.BuildHtmlCommentBlock(this, span);
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.HtmlComment, span, Comment);
 }

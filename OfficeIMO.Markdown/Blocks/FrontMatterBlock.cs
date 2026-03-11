@@ -103,5 +103,5 @@ public sealed class FrontMatterBlock : IFrontMatterMarkdownBlock, ISyntaxMarkdow
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() => string.Empty;
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        MarkdownBlockSyntaxBuilder.BuildFrontMatterBlock(this, span);
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatter, span, Render());
 }

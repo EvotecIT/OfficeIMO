@@ -7,5 +7,5 @@ public sealed class HorizontalRuleBlock : IMarkdownBlock, ISyntaxMarkdownBlock {
     string IMarkdownBlock.RenderMarkdown() => "---";
     string IMarkdownBlock.RenderHtml() => "<hr />";
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        MarkdownBlockSyntaxBuilder.BuildHorizontalRuleBlock(span);
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.HorizontalRule, span, "---");
 }

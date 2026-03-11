@@ -15,9 +15,6 @@ internal static class MarkdownBlockSyntaxBuilder {
             span ?? inlineBlock.ProvidedSyntaxSpan,
             inlineBlock.SyntaxInlines.RenderMarkdown());
 
-    internal static MarkdownSyntaxNode BuildHorizontalRuleBlock(MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.HorizontalRule, span, "---");
-
     internal static MarkdownSyntaxNode BuildQuoteBlock(QuoteBlock quote, MarkdownSourceSpan? span) =>
         new MarkdownSyntaxNode(
             MarkdownSyntaxKind.Quote,
@@ -43,18 +40,6 @@ internal static class MarkdownBlockSyntaxBuilder {
             span,
             footnote.Label,
             GetOwnedSyntaxChildrenOrBuild(footnote));
-
-    internal static MarkdownSyntaxNode BuildFrontMatterBlock(FrontMatterBlock frontMatter, MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatter, span, frontMatter.Render());
-
-    internal static MarkdownSyntaxNode BuildHtmlCommentBlock(HtmlCommentBlock comment, MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.HtmlComment, span, comment.Comment);
-
-    internal static MarkdownSyntaxNode BuildHtmlRawBlock(HtmlRawBlock rawHtml, MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.HtmlRaw, span, rawHtml.Html);
-
-    internal static MarkdownSyntaxNode BuildTocPlaceholderBlock(MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.TocPlaceholder, span);
 
     internal static IReadOnlyList<MarkdownSyntaxNode> BuildChildSyntaxNodes(IEnumerable<IMarkdownBlock> children) {
         var nodes = new List<MarkdownSyntaxNode>();

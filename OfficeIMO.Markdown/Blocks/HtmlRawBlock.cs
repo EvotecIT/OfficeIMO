@@ -22,5 +22,5 @@ public sealed class HtmlRawBlock : IMarkdownBlock, ISyntaxMarkdownBlock {
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        MarkdownBlockSyntaxBuilder.BuildHtmlRawBlock(this, span);
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.HtmlRaw, span, Html);
 }
