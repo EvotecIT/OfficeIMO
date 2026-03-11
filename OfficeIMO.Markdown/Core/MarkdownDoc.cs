@@ -14,6 +14,8 @@ public class MarkdownDoc {
 
     /// <summary>All blocks added to the document (excluding front matter).</summary>
     public IReadOnlyList<IMarkdownBlock> Blocks => _blocks;
+    /// <summary>Document-level front matter/header block when present.</summary>
+    public FrontMatterBlock? DocumentHeader => _frontMatter as FrontMatterBlock;
 
     /// <summary>Adds a block instance (object-model style).</summary>
     /// <param name="block">Block to append to the document.</param>
