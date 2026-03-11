@@ -18,8 +18,8 @@ public static partial class MarkdownReader {
         switch (block) {
             case HeadingBlock heading:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.Heading, span, heading.Inlines.RenderMarkdown(), BuildHeadingChildren(heading, span));
-            case ParagraphBlock paragraph:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, span, paragraph.Inlines.RenderMarkdown());
+            case IInlineSyntaxMarkdownBlock inlineBlock:
+                return new MarkdownSyntaxNode(inlineBlock.SyntaxKind, span ?? inlineBlock.ProvidedSyntaxSpan, inlineBlock.SyntaxInlines.RenderMarkdown());
             case HorizontalRuleBlock:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.HorizontalRule, span, "---");
             case CodeBlock code:
@@ -34,10 +34,8 @@ public static partial class MarkdownReader {
                     span,
                     quote.Children.Count == 0 ? string.Join("\n", quote.Lines) : null,
                     GetProvidedSyntaxChildrenOrBuild(quote));
-            case UnorderedListBlock unordered:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.UnorderedList, span, children: BuildListItemSyntaxNodes(unordered.Items, MarkdownSyntaxKind.UnorderedList));
-            case OrderedListBlock ordered:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.OrderedList, span, ordered.Start.ToString(System.Globalization.CultureInfo.InvariantCulture), BuildListItemSyntaxNodes(ordered.Items, MarkdownSyntaxKind.OrderedList));
+            case IListSyntaxMarkdownBlock listBlock:
+                return new MarkdownSyntaxNode(listBlock.ListSyntaxKind, span, listBlock.ListLiteral, BuildListItemSyntaxNodes(listBlock.ListItems, listBlock.ListSyntaxKind));
             case DefinitionListBlock definitionList:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.DefinitionList, span, children: BuildDefinitionItemSyntaxNodes(definitionList));
             case CalloutBlock callout: {
@@ -50,8 +48,6 @@ public static partial class MarkdownReader {
             }
             case DetailsBlock details:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.Details, span, details.Open ? "open" : null, BuildDetailsChildren(details));
-            case SummaryBlock summary:
-                return new MarkdownSyntaxNode(MarkdownSyntaxKind.Summary, span ?? summary.SyntaxSpan, summary.Inlines.RenderMarkdown());
             case FootnoteDefinitionBlock footnote:
                 return new MarkdownSyntaxNode(
                     MarkdownSyntaxKind.FootnoteDefinition,

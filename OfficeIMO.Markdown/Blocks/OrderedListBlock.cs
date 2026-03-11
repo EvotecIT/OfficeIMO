@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Ordered (numbered) list.
 /// </summary>
-public sealed class OrderedListBlock : IMarkdownBlock {
+public sealed class OrderedListBlock : IMarkdownBlock, IListSyntaxMarkdownBlock {
     /// <summary>Items within the ordered list.</summary>
     public List<ListItem> Items { get; } = new List<ListItem>();
     /// <summary>Starting number (default 1).</summary>
@@ -133,4 +133,8 @@ public sealed class OrderedListBlock : IMarkdownBlock {
         sb.Append("</ol>");
         return sb.ToString();
     }
+
+    IReadOnlyList<ListItem> IListSyntaxMarkdownBlock.ListItems => Items;
+    MarkdownSyntaxKind IListSyntaxMarkdownBlock.ListSyntaxKind => MarkdownSyntaxKind.OrderedList;
+    string? IListSyntaxMarkdownBlock.ListLiteral => Start.ToString(System.Globalization.CultureInfo.InvariantCulture);
 }
