@@ -82,9 +82,10 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 """;
             var doc = MarkdownReader.Parse(md);
             var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
-            Assert.Equal(2, table.ParsedHeaders?.Count);
-            Assert.NotNull(table.ParsedRows);
-            Assert.Single(table.ParsedRows!);
+            Assert.Equal(2, table.HeaderInlines.Count);
+            Assert.Single(table.RowInlines);
+            Assert.Equal("**H**", table.HeaderInlines[0].RenderMarkdown());
+            Assert.Equal("`C`", table.HeaderInlines[1].RenderMarkdown());
             var html = doc.ToHtmlFragment();
             Assert.Contains("<th><strong>H</strong></th>", html);
             Assert.Contains("<th><code>C</code></th>", html);
@@ -101,8 +102,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 """;
             var doc = MarkdownReader.Parse(md);
             var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
-            Assert.NotNull(table.ParsedRows);
-            Assert.Single(table.ParsedRows!);
+            Assert.Single(table.RowInlines);
+            Assert.Equal("[x](https://example.com)", table.RowInlines[0][0].RenderMarkdown());
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
             Assert.Contains("<a href=\"https://example.com\">x</a>", html, StringComparison.Ordinal);
         }
@@ -124,6 +125,24 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
             Assert.Contains("<th><strong>Changed</strong></th>", html, StringComparison.Ordinal);
             Assert.Contains("<a href=\"https://example.com\">fresh</a>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Table_InlineCells_Follow_Current_String_Content_After_Mutation() {
+            string md = """
+| Header |
+| --- |
+| value |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
+
+            table.Headers[0] = "**Changed**";
+            table.Rows[0] = new[] { "[fresh](https://example.com)" };
+
+            Assert.Equal("**Changed**", table.HeaderInlines[0].RenderMarkdown());
+            Assert.Single(table.RowInlines);
+            Assert.Equal("[fresh](https://example.com)", table.RowInlines[0][0].RenderMarkdown());
         }
 
         [Fact]

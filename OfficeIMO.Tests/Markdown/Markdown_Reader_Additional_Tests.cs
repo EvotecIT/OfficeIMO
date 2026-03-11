@@ -384,8 +384,9 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             string md = "*Term*: Definition\n[Link](https://example.com): Another";
             var doc = MarkdownReader.Parse(md);
             var defList = Assert.IsType<DefinitionListBlock>(doc.Blocks[0]);
-            Assert.NotNull(defList.ParsedItems);
-            Assert.Equal(2, defList.ParsedItems!.Count);
+            Assert.Equal(2, defList.InlineItems.Count);
+            Assert.Equal("*Term*", defList.InlineItems[0].Term.RenderMarkdown());
+            Assert.Equal("[Link](https://example.com)", defList.InlineItems[1].Term.RenderMarkdown());
             var html = ((IMarkdownBlock)defList).RenderHtml();
             Assert.Contains("<em>Term</em>", html);
             Assert.Contains("href=\"https://example.com\"", html);
@@ -419,6 +420,20 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
             Assert.Contains("<dt><strong>Changed</strong></dt>", html, StringComparison.Ordinal);
             Assert.Contains("<dd><a href=\"https://example.com\">fresh</a></dd>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Definition_List_InlineItems_Follow_Current_String_Content_After_Mutation() {
+            const string md = "Term: Value";
+
+            var doc = MarkdownReader.Parse(md);
+            var defList = Assert.IsType<DefinitionListBlock>(doc.Blocks[0]);
+
+            defList.Items[0] = ("**Changed**", "[fresh](https://example.com)");
+
+            Assert.Single(defList.InlineItems);
+            Assert.Equal("**Changed**", defList.InlineItems[0].Term.RenderMarkdown());
+            Assert.Equal("[fresh](https://example.com)", defList.InlineItems[0].Definition.RenderMarkdown());
         }
 
         [Fact]
