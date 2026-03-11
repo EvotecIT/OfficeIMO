@@ -13,12 +13,16 @@ public sealed class CalloutBlock : IMarkdownBlock, IChildMarkdownBlockContainer,
     public InlineSequence TitleInlines { get; }
     /// <summary>Callout body text (can include multiple lines).</summary>
     public string Body { get; }
+    /// <summary>
+    /// Parsed body blocks when the callout is created by the reader.
+    /// This exposes callout content as owned child blocks for AST-style consumers.
+    /// </summary>
+    public IReadOnlyList<IMarkdownBlock> ChildBlocks { get; }
 
     /// <summary>
     /// Optional parsed body blocks. When present (produced by <see cref="MarkdownReader"/>),
     /// HTML/Markdown rendering uses these blocks instead of the raw <see cref="Body"/> string.
     /// </summary>
-    internal IReadOnlyList<IMarkdownBlock>? Children { get; }
     internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; }
 
     /// <summary>Creates a callout with the specified kind, title and body.</summary>
@@ -31,6 +35,7 @@ public sealed class CalloutBlock : IMarkdownBlock, IChildMarkdownBlockContainer,
         TitleInlines = titleInlines ?? new InlineSequence();
         Title = InlinePlainText.Extract(TitleInlines);
         Body = body ?? string.Empty;
+        ChildBlocks = Array.Empty<IMarkdownBlock>();
     }
 
     internal CalloutBlock(string kind, string title, IReadOnlyList<IMarkdownBlock> children, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren = null)
@@ -42,7 +47,7 @@ public sealed class CalloutBlock : IMarkdownBlock, IChildMarkdownBlockContainer,
         TitleInlines = titleInlines ?? new InlineSequence();
         Title = InlinePlainText.Extract(TitleInlines);
         Body = string.Empty;
-        Children = children;
+        ChildBlocks = children ?? Array.Empty<IMarkdownBlock>();
         SyntaxChildren = syntaxChildren;
     }
 
@@ -54,11 +59,11 @@ public sealed class CalloutBlock : IMarkdownBlock, IChildMarkdownBlockContainer,
         if (string.IsNullOrWhiteSpace(titleMarkdown)) sb.AppendLine($"> [!{tag}]");
         else sb.AppendLine($"> [!{tag}] {titleMarkdown}");
         string bodyMarkdown;
-        if (Children != null && Children.Count > 0) {
+        if (ChildBlocks.Count > 0) {
             var inner = new StringBuilder();
-            for (int i = 0; i < Children.Count; i++) {
-                if (Children[i] == null) continue;
-                var rendered = Children[i].RenderMarkdown();
+            for (int i = 0; i < ChildBlocks.Count; i++) {
+                if (ChildBlocks[i] == null) continue;
+                var rendered = ChildBlocks[i].RenderMarkdown();
                 if (string.IsNullOrEmpty(rendered)) continue;
                 inner.AppendLine(rendered.TrimEnd());
             }
@@ -86,10 +91,10 @@ public sealed class CalloutBlock : IMarkdownBlock, IChildMarkdownBlockContainer,
             sb.Append("<p><strong>").Append(titleText).Append("</strong></p>");
         }
 
-        if (Children != null && Children.Count > 0) {
-            for (int i = 0; i < Children.Count; i++) {
-                if (Children[i] == null) continue;
-                sb.Append(Children[i].RenderHtml());
+        if (ChildBlocks.Count > 0) {
+            for (int i = 0; i < ChildBlocks.Count; i++) {
+                if (ChildBlocks[i] == null) continue;
+                sb.Append(ChildBlocks[i].RenderHtml());
             }
         } else {
             // Plain text body (builder-created callouts).
@@ -115,7 +120,6 @@ public sealed class CalloutBlock : IMarkdownBlock, IChildMarkdownBlockContainer,
         return char.ToUpperInvariant(t[0]) + t.Substring(1).ToLowerInvariant();
     }
 
-    IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => Children ?? Array.Empty<IMarkdownBlock>();
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
         MarkdownBlockSyntaxBuilder.BuildCalloutBlock(this, span);
