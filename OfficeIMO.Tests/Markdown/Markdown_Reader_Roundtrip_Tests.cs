@@ -163,6 +163,10 @@ Paragraph
             var topLevelHeading = parsed.FindFirstTopLevelBlockOfType<HeadingBlock>();
             Assert.NotNull(topLevelHeading);
             Assert.Equal("Heading", topLevelHeading!.Text);
+
+            Assert.True(parsed.HasTopLevelBlockOfType<HeadingBlock>());
+            Assert.True(parsed.HasTopLevelBlockOfType<FrontMatterBlock>());
+            Assert.False(parsed.HasTopLevelBlockOfType<QuoteBlock>());
         }
 
         [Fact]
@@ -202,6 +206,10 @@ Paragraph
             var firstNestedList = parsed.FindFirstDescendantOfType<UnorderedListBlock>();
             Assert.NotNull(firstNestedList);
             Assert.Equal("item", firstNestedList!.Items[0].Content.RenderMarkdown());
+
+            Assert.True(parsed.HasDescendantOfType<UnorderedListBlock>());
+            Assert.True(parsed.HasDescendantOfType<ParagraphBlock>());
+            Assert.False(parsed.HasDescendantOfType<TableBlock>());
         }
 
         [Fact]
