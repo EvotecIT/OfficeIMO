@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Paragraph block containing a sequence of inline nodes.
 /// </summary>
-public sealed class ParagraphBlock : IMarkdownBlock {
+public sealed class ParagraphBlock : IMarkdownBlock, IInlineParagraphMarkdownBlock {
     /// <summary>Inline content within this paragraph.</summary>
     public InlineSequence Inlines { get; }
     /// <summary>Creates a paragraph block.</summary>
@@ -12,4 +12,5 @@ public sealed class ParagraphBlock : IMarkdownBlock {
     string IMarkdownBlock.RenderMarkdown() => Inlines.RenderMarkdown();
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() => $"<p>{Inlines.RenderHtml()}</p>";
+    InlineSequence IInlineParagraphMarkdownBlock.ParagraphInlines => Inlines;
 }
