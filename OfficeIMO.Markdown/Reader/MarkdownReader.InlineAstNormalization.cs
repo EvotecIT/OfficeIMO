@@ -49,13 +49,8 @@ public static partial class MarkdownReader {
     }
 
     private static bool NormalizeNestedInlineNode(IMarkdownInline node, MarkdownInputNormalizationOptions options) {
-        if (node is BoldSequenceInline bold) return NormalizeInlineSequenceInPlace(bold.Inlines, options);
-        if (node is ItalicSequenceInline italic) return NormalizeInlineSequenceInPlace(italic.Inlines, options);
-        if (node is BoldItalicSequenceInline boldItalic) return NormalizeInlineSequenceInPlace(boldItalic.Inlines, options);
-        if (node is StrikethroughSequenceInline strike) return NormalizeInlineSequenceInPlace(strike.Inlines, options);
-        if (node is HighlightSequenceInline highlight) return NormalizeInlineSequenceInPlace(highlight.Inlines, options);
-        if (node is LinkInline link && link.LabelInlines != null) return NormalizeInlineSequenceInPlace(link.LabelInlines, options);
-        return false;
+        return node is IInlineContainerMarkdownInline container &&
+               NormalizeInlineSequenceInPlace(container.NestedInlines, options);
     }
 
     private static bool TryRewriteEscapedInlineCodeSpans(List<IMarkdownInline> nodes, out List<IMarkdownInline> rewritten) {
@@ -171,7 +166,7 @@ public static partial class MarkdownReader {
     }
 
     private static bool IsStrongInlineNode(IMarkdownInline node) {
-        return node is BoldInline || node is BoldSequenceInline;
+        return node is IStrongMarkdownInline;
     }
 
     private static bool NeedsLeadingSpaceAfterStrong(string? text) {
