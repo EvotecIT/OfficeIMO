@@ -1041,7 +1041,7 @@ public static partial class MarkdownReader {
         var trailingBlocks = ParseBlocksFromLines(trailingLines.ToArray(), options, state ?? new MarkdownReaderState());
         bool allParagraphs = true;
         for (int i = 0; i < trailingBlocks.Count; i++) {
-            if (trailingBlocks[i] is IInlineParagraphMarkdownBlock paragraph) {
+            if (trailingBlocks[i] is IParagraphMarkdownBlock paragraph) {
                 mixedItem.AdditionalParagraphs.Add(paragraph.ParagraphInlines);
                 continue;
             }
