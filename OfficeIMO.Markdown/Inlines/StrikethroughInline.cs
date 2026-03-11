@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Strikethrough inline (rendered as ~~text~~ in Markdown and as a deleted span in HTML).
 /// </summary>
-public sealed class StrikethroughInline {
+public sealed class StrikethroughInline : IMarkdownInline {
     /// <summary>Text content.</summary>
     public string Text { get; }
     /// <summary>Creates a new strikethrough inline.</summary>

@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Italic emphasis inline.
 /// </summary>
-public sealed class ItalicInline {
+public sealed class ItalicInline : IMarkdownInline {
     /// <summary>Text content.</summary>
     public string Text { get; }
     /// <summary>Creates an italic inline with the given text.</summary>

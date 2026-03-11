@@ -378,6 +378,21 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Paragraph_Exposes_Typed_Inline_Nodes_Alongside_Legacy_Items_View() {
+            const string md = "[link](https://example.com)";
+
+            var doc = MarkdownReader.Parse(md);
+            var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+
+            var linkNode = Assert.Single(paragraph.Inlines.Nodes);
+            var link = Assert.IsType<LinkInline>(linkNode);
+            Assert.Equal("https://example.com", link.Url);
+
+            var legacyItem = Assert.Single(paragraph.Inlines.Items);
+            Assert.Same(linkNode, legacyItem);
+        }
+
+        [Fact]
         public void Definition_List_RenderHtml_Falls_Back_To_Current_StringItems_After_Mutation() {
             const string md = "Term: Value";
 

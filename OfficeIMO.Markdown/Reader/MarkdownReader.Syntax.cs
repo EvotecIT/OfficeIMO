@@ -128,7 +128,7 @@ public static partial class MarkdownReader {
         if (item.SyntaxChildren.Count > 0) {
             children.AddRange(item.SyntaxChildren);
         } else {
-            if (item.Content.Items.Count > 0 || (item.AdditionalParagraphs.Count == 0 && item.Children.Count == 0)) {
+            if (item.Content.Nodes.Count > 0 || (item.AdditionalParagraphs.Count == 0 && item.Children.Count == 0)) {
                 children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: item.Content.RenderMarkdown()));
             }
             for (int i = 0; i < item.AdditionalParagraphs.Count; i++) {

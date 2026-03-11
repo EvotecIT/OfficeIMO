@@ -180,7 +180,7 @@ public static partial class MarkdownReader {
                         if (state.LinkRefs.TryGetValue(key, out var def2)) {
                             var resolved = ResolveUrl(def2.Url, options);
                             if (resolved is null) {
-                                foreach (var n in labelSeq.Items) Current().AddRaw(n);
+                                foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
                             } else {
                                 Current().AddRaw(new LinkInline(labelSeq, resolved!, def2.Title));
                             }
@@ -195,7 +195,7 @@ public static partial class MarkdownReader {
                         if (state.LinkRefs.TryGetValue(key, out var def)) {
                             var resolved = ResolveUrl(def.Url, options);
                             if (resolved is null) {
-                                foreach (var n in labelSeq.Items) Current().AddRaw(n);
+                                foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
                             } else {
                                 Current().AddRaw(new LinkInline(labelSeq, resolved!, def.Title));
                             }
@@ -210,7 +210,7 @@ public static partial class MarkdownReader {
                         if (state.LinkRefs.TryGetValue(key, out var def3)) {
                             var resolved = ResolveUrl(def3.Url, options);
                             if (resolved is null) {
-                                foreach (var n in labelSeq.Items) Current().AddRaw(n);
+                                foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
                             } else {
                                 Current().AddRaw(new LinkInline(labelSeq, resolved!, def3.Title));
                             }
@@ -229,7 +229,7 @@ public static partial class MarkdownReader {
                             var hrefResolved = ResolveUrl(href3, options);
                             if (hrefResolved is null) {
                                 // Unsafe URLs: keep the label as plain inline content instead of producing an <a href="...">.
-                                foreach (var n in labelSeq.Items) Current().AddRaw(n);
+                                foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
                             } else {
                                 Current().AddRaw(new LinkInline(labelSeq, hrefResolved!, title2));
                             }
@@ -395,7 +395,7 @@ public static partial class MarkdownReader {
             var f = stack.Pop();
             var parent = stack.Peek().Seq;
             parent.Text(new string(f.Marker, f.OpenLen));
-            foreach (var node in f.Seq.Items) parent.AddRaw(node);
+            foreach (var node in f.Seq.Nodes) parent.AddRaw(node);
         }
 
         return root;
@@ -494,9 +494,9 @@ public static partial class MarkdownReader {
         if (frames.Length >= 2) {
             var parent = frames[1];
             // Keep the leading triple-delimiter path available for rebalancing into <em><strong>... later.
-            if (parent.Kind == FrameKind.Bold && parent.Marker == marker && parent.OpenLen == 2 && parent.Seq.Items.Count == 0) return false;
+            if (parent.Kind == FrameKind.Bold && parent.Marker == marker && parent.OpenLen == 2 && parent.Seq.Nodes.Count == 0) return false;
 
-            if (parent.Kind == FrameKind.Bold && parent.Marker == marker && parent.OpenLen == 2 && parent.Seq.Items.Count > 0) {
+            if (parent.Kind == FrameKind.Bold && parent.Marker == marker && parent.OpenLen == 2 && parent.Seq.Nodes.Count > 0) {
                 int trailingSingleClose = FindNextClosingDelimiterRunIndex(text, start + 2, marker, requiredRunLength: 1);
                 if (trailingSingleClose >= 0) return false;
             }
@@ -534,7 +534,7 @@ public static partial class MarkdownReader {
         var parent = frames[1];
         if (top.Kind != FrameKind.Italic || top.Marker != marker || top.OpenLen != 1) return false;
         if (parent.Kind != FrameKind.Bold || parent.Marker != marker || parent.OpenLen != 2) return false;
-        if (parent.Seq.Items.Count != 0) return false;
+        if (parent.Seq.Nodes.Count != 0) return false;
 
         stack.Pop();
         stack.Pop();
@@ -558,7 +558,7 @@ public static partial class MarkdownReader {
         var parent = frames[1];
         if (top.Kind != FrameKind.Italic || top.Marker != marker || top.OpenLen != 1) return false;
         if (parent.Kind != FrameKind.Bold || parent.Marker != marker || parent.OpenLen != 2) return false;
-        if (parent.Seq.Items.Count == 0) return false;
+        if (parent.Seq.Nodes.Count == 0) return false;
 
         int trailingSingleClose = FindNextClosingDelimiterRunIndex(text, start + 2, marker, requiredRunLength: 1);
         if (trailingSingleClose < 0) return false;
@@ -567,7 +567,7 @@ public static partial class MarkdownReader {
         stack.Pop();
 
         var middle = new InlineSequence { AutoSpacing = false };
-        foreach (var node in parent.Seq.Items) {
+        foreach (var node in parent.Seq.Nodes) {
             middle.AddRaw(node);
         }
 

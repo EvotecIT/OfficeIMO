@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Hyperlink inline.
 /// </summary>
-public sealed class LinkInline {
+public sealed class LinkInline : IMarkdownInline {
     /// <summary>Link text.</summary>
     public string Text { get; }
     /// <summary>Destination URL.</summary>

@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Highlighted inline text rendered as <c>==text==</c> in Markdown and <c>&lt;mark&gt;</c> in HTML.
 /// </summary>
-public sealed class HighlightInline {
+public sealed class HighlightInline : IMarkdownInline {
     /// <summary>Text content.</summary>
     public string Text { get; }
 

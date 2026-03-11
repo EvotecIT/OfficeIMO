@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Inline that renders a linked image, e.g. [![alt](img)](href).
 /// Useful for badges (Shields.io).
 /// </summary>
-public sealed class ImageLinkInline {
+public sealed class ImageLinkInline : IMarkdownInline {
     /// <summary>Alternative text for the image.</summary>
     public string Alt { get; }
     /// <summary>Image source URL (e.g., a Shields.io badge).</summary>
