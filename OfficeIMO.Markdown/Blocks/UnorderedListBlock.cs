@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Unordered list supporting plain items and task (checklist) items.
 /// </summary>
-public sealed class UnorderedListBlock : IMarkdownBlock, IListSyntaxMarkdownBlock, ISyntaxMarkdownBlock {
+public sealed class UnorderedListBlock : IMarkdownListBlock, ISyntaxMarkdownBlock {
     /// <summary>List items.</summary>
     public List<ListItem> Items { get; } = new List<ListItem>();
     /// <inheritdoc />

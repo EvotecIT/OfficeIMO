@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Ordered (numbered) list.
 /// </summary>
-public sealed class OrderedListBlock : IMarkdownBlock, IListSyntaxMarkdownBlock, ISyntaxMarkdownBlock {
+public sealed class OrderedListBlock : IMarkdownListBlock, ISyntaxMarkdownBlock {
     /// <summary>Items within the ordered list.</summary>
     public List<ListItem> Items { get; } = new List<ListItem>();
     /// <summary>Starting number (default 1).</summary>

@@ -1227,28 +1227,22 @@ public static partial class MarkdownReader {
 
             // Nested ordered list
             if (allowNestedOrdered && options.OrderedLists && IsOrderedListLine(lines[k], out int lvlAbsO2, out _, out _) && lvlAbsO2 >= itemLevelAbs + 1) {
-                int idx = k;
-                var tempDoc = MarkdownDoc.Create();
-                var parser = new OrderedListParser();
-                if (parser.TryParse(lines, ref idx, options, tempDoc, state) && tempDoc.Blocks.Count == 1 && tempDoc.Blocks[0] is OrderedListBlock ol) {
-                    item.Children.Add(ol);
-                    AddListItemChildSyntaxNode(item, ol, k, idx, state);
+                if (TryParseNestedListBlock(lines, k, options, state, new OrderedListParser(), out var orderedList, out var orderedEndIndex)) {
+                    item.Children.Add(orderedList);
+                    AddListItemChildSyntaxNode(item, orderedList, k, orderedEndIndex, state);
                     if (sawBlankLine) item.ForceLoose = true;
-                    index = idx;
+                    index = orderedEndIndex;
                     continue;
                 }
             }
 
             // Nested unordered list
             if (allowNestedUnordered && options.UnorderedLists && IsUnorderedListLine(lines[k], out int lvlAbsU2, out _, out _, out _) && lvlAbsU2 >= itemLevelAbs + 1) {
-                int idx = k;
-                var tempDoc = MarkdownDoc.Create();
-                var parser = new UnorderedListParser();
-                if (parser.TryParse(lines, ref idx, options, tempDoc, state) && tempDoc.Blocks.Count == 1 && tempDoc.Blocks[0] is UnorderedListBlock ul) {
-                    item.Children.Add(ul);
-                    AddListItemChildSyntaxNode(item, ul, k, idx, state);
+                if (TryParseNestedListBlock(lines, k, options, state, new UnorderedListParser(), out var unorderedList, out var unorderedEndIndex)) {
+                    item.Children.Add(unorderedList);
+                    AddListItemChildSyntaxNode(item, unorderedList, k, unorderedEndIndex, state);
                     if (sawBlankLine) item.ForceLoose = true;
-                    index = idx;
+                    index = unorderedEndIndex;
                     continue;
                 }
             }
@@ -1270,6 +1264,30 @@ public static partial class MarkdownReader {
             index = k;
             return;
         }
+    }
+
+    private static bool TryParseNestedListBlock(
+        string[] lines,
+        int startIndex,
+        MarkdownReaderOptions options,
+        MarkdownReaderState? state,
+        IMarkdownBlockParser parser,
+        out IMarkdownListBlock list,
+        out int endIndex) {
+        int idx = startIndex;
+        var tempDoc = MarkdownDoc.Create();
+        var effectiveState = state ?? new MarkdownReaderState();
+        if (parser.TryParse(lines, ref idx, options, tempDoc, effectiveState) &&
+            tempDoc.Blocks.Count == 1 &&
+            tempDoc.Blocks[0] is IMarkdownListBlock parsedList) {
+            list = parsedList;
+            endIndex = idx;
+            return true;
+        }
+
+        list = null!;
+        endIndex = startIndex;
+        return false;
     }
 
     private static bool TryParseTrailingParagraphsForListItem(
