@@ -259,6 +259,15 @@ Paragraph
 
             Assert.Null(parsed.FindHeadingByAnchor("missing"));
 
+            var firstByText = parsed.FindHeading("repeat");
+            Assert.NotNull(firstByText);
+            Assert.Equal("repeat", firstByText!.Anchor);
+
+            var caseSensitiveMiss = parsed.FindHeading("repeat", StringComparison.Ordinal);
+            Assert.Null(caseSensitiveMiss);
+
+            Assert.Null(parsed.FindHeading(string.Empty));
+
             var byText = parsed.FindHeadings("repeat");
             Assert.Equal(2, byText.Count);
             Assert.Equal(new[] { "repeat", "repeat-1" }, byText.Select(info => info.Anchor).ToArray());

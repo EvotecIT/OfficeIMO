@@ -161,6 +161,22 @@ public class MarkdownDoc {
         return null;
     }
 
+    /// <summary>Finds the first heading whose plain text matches the provided heading text.</summary>
+    public HeadingInfo? FindHeading(string text, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
+        if (string.IsNullOrEmpty(text)) {
+            return null;
+        }
+
+        var headings = GetHeadingInfos();
+        for (int i = 0; i < headings.Count; i++) {
+            if (string.Equals(headings[i].Text, text, comparison)) {
+                return headings[i];
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>Finds headings whose plain text matches the provided heading text.</summary>
     public IReadOnlyList<HeadingInfo> FindHeadings(string text, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
         if (string.IsNullOrEmpty(text)) {
