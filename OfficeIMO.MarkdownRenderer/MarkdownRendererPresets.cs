@@ -7,9 +7,9 @@ namespace OfficeIMO.MarkdownRenderer;
 /// These are intentionally opinionated, but still fully configurable via <see cref="MarkdownRendererOptions"/>.
 /// </summary>
 public static class MarkdownRendererPresets {
-    private static MarkdownReaderOptions CreateStrictReaderOptions(bool markdigCompatible) {
-        var reader = markdigCompatible
-            ? MarkdownReaderOptions.CreateMarkdigCompatible()
+    private static MarkdownReaderOptions CreateStrictReaderOptions(bool portableProfile) {
+        var reader = portableProfile
+            ? MarkdownReaderOptions.CreatePortableProfile()
             : new MarkdownReaderOptions();
 
         reader.HtmlBlocks = false;
@@ -38,7 +38,7 @@ public static class MarkdownRendererPresets {
         o.HtmlOptions.Style = HtmlStyle.ChatAuto;
         o.HtmlOptions.CssScopeSelector = "#omdRoot article.markdown-body";
 
-        o.ReaderOptions = CreateStrictReaderOptions(markdigCompatible: false);
+        o.ReaderOptions = CreateStrictReaderOptions(portableProfile: false);
         o.NormalizeSoftWrappedStrongSpans = true;
         o.NormalizeInlineCodeSpanLineBreaks = true;
         o.NormalizeEscapedInlineCodeSpans = true;
@@ -85,12 +85,12 @@ public static class MarkdownRendererPresets {
     }
 
     /// <summary>
-    /// Strict preset for untrusted chat messages, but with Markdig-compatible reader behavior.
+    /// Strict preset for untrusted chat messages, but with the portable reader profile enabled.
     /// This disables OfficeIMO-only literal autolinks, callouts, and task-list parsing while keeping the same chat security defaults.
     /// </summary>
-    public static MarkdownRendererOptions CreateChatStrictMarkdigCompatible(string? baseHref = null) {
+    public static MarkdownRendererOptions CreateChatStrictPortable(string? baseHref = null) {
         var o = CreateChatStrict(baseHref);
-        o.ReaderOptions = CreateStrictReaderOptions(markdigCompatible: true);
+        o.ReaderOptions = CreateStrictReaderOptions(portableProfile: true);
         return o;
     }
 
@@ -113,11 +113,11 @@ public static class MarkdownRendererPresets {
     }
 
     /// <summary>
-    /// Strict minimal preset for untrusted chat messages, with Markdig-compatible reader behavior.
-    /// This combines the minimal shell-friendly renderer defaults with the stricter reader preset used for parity-sensitive hosts.
+    /// Strict minimal preset for untrusted chat messages, with the portable reader profile enabled.
+    /// This combines the minimal shell-friendly renderer defaults with the stricter reader preset used for portability-sensitive hosts.
     /// </summary>
-    public static MarkdownRendererOptions CreateChatStrictMinimalMarkdigCompatible(string? baseHref = null) {
-        var o = CreateChatStrictMarkdigCompatible(baseHref);
+    public static MarkdownRendererOptions CreateChatStrictMinimalPortable(string? baseHref = null) {
+        var o = CreateChatStrictPortable(baseHref);
         o.EnableCodeCopyButtons = false;
         o.EnableTableCopyButtons = false;
 

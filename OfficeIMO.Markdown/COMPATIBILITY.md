@@ -81,9 +81,9 @@ These are the main reasons you will see differences compared to typical CommonMa
   - Delimiter-run rules (nesting, intraword `_`, etc.) are simplified and can differ from CommonMark output.
 - Autolinks
   - Literal autolinks cover common cases (`http(s)://...`, `www.*`, plain emails, and angle-bracket absolute URIs like `mailto:`, `ftp://`, `tel:`, and `urn:`) but do not aim for full spec coverage.
-  - For Markdig-style default behavior, use `MarkdownReaderOptions.CreateMarkdigCompatible()` to turn off bare `http(s)`, `www`, and plain-email autolinking and disable OfficeIMO-only callout/task-list parsing while keeping explicit links, angle autolinks, and plain lists.
+  - For a more portable baseline, use `MarkdownReaderOptions.CreatePortableProfile()` to turn off bare `http(s)`, `www`, and plain-email autolinking and disable OfficeIMO-only callout/task-list parsing while keeping explicit links, angle autolinks, and plain lists.
 - Extension model
-  - The parser/renderer architecture is much cleaner than before, but it is still not as pluggable or extension-rich as Markdig.
+  - The parser/renderer architecture is much cleaner than before, but it is still not as pluggable or extension-rich as other dedicated markdown engines.
 - Spec breadth
   - We now cover a much larger compatibility set than the earlier subset reader, but the curated parity corpus is still not the same thing as full CommonMark/GFM conformance.
 - Code blocks

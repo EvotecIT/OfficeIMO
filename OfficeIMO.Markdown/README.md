@@ -203,8 +203,8 @@ if (doc.HasDocumentHeader && doc.TryGetFrontMatterValue<string>("title", out var
 // Feature toggles align with OfficeIMO blocks/inlines
 var parsed = MarkdownReader.Parse(markdown, new MarkdownReaderOptions { Tables = true, Callouts = true });
 
-// Opt into Markdig-like literal autolink behavior
-var markdigCompatible = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateMarkdigCompatible());
+// Opt into the portable reader profile
+var portable = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile());
 // Disables bare literal autolinks plus OfficeIMO-only callout/task-list parsing.
 
 // Opt into a lightweight syntax tree with source spans.
