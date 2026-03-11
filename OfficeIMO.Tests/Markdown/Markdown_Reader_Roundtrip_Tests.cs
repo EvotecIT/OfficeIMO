@@ -265,16 +265,24 @@ Paragraph
             Assert.Equal("Repeat", byAnchor!.Text);
             Assert.Equal("repeat-1", byAnchor.Anchor);
 
+            Assert.True(parsed.HasHeadingAnchor("#repeat"));
+            Assert.True(parsed.HasHeadingAnchor("repeat-1"));
             Assert.Null(parsed.FindHeadingByAnchor("missing"));
+            Assert.False(parsed.HasHeadingAnchor("missing"));
 
             var firstByText = parsed.FindHeading("repeat");
             Assert.NotNull(firstByText);
             Assert.Equal("repeat", firstByText!.Anchor);
 
+            Assert.True(parsed.HasHeading("repeat"));
+            Assert.True(parsed.HasHeading("Repeat", StringComparison.Ordinal));
+
             var caseSensitiveMiss = parsed.FindHeading("repeat", StringComparison.Ordinal);
             Assert.Null(caseSensitiveMiss);
+            Assert.False(parsed.HasHeading("repeat", StringComparison.Ordinal));
 
             Assert.Null(parsed.FindHeading(string.Empty));
+            Assert.False(parsed.HasHeading(string.Empty));
 
             var byText = parsed.FindHeadings("repeat");
             Assert.Equal(2, byText.Count);
