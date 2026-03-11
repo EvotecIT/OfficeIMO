@@ -29,9 +29,9 @@ public sealed class OrderedListBlock : IMarkdownListBlock, ISyntaxMarkdownBlock 
             Items,
             _ => Start != 1 ? " start=\"" + Start + "\"" : string.Empty);
 
-    IReadOnlyList<ListItem> IListSyntaxMarkdownBlock.ListItems => Items;
-    MarkdownSyntaxKind IListSyntaxMarkdownBlock.ListSyntaxKind => MarkdownSyntaxKind.OrderedList;
-    string? IListSyntaxMarkdownBlock.ListLiteral => Start.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    IReadOnlyList<ListItem> IMarkdownListBlock.ListItems => Items;
+    MarkdownSyntaxKind IMarkdownListBlock.ListSyntaxKind => MarkdownSyntaxKind.OrderedList;
+    string? IMarkdownListBlock.ListLiteral => Start.ToString(System.Globalization.CultureInfo.InvariantCulture);
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
         MarkdownListSyntax.BuildListBlockNode(this, span);
 }

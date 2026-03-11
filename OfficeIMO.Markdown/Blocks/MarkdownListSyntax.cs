@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 internal static class MarkdownListSyntax {
-    internal static MarkdownSyntaxNode BuildListBlockNode(IListSyntaxMarkdownBlock listBlock, MarkdownSourceSpan? span) =>
+    internal static MarkdownSyntaxNode BuildListBlockNode(IMarkdownListBlock listBlock, MarkdownSourceSpan? span) =>
         new MarkdownSyntaxNode(
             listBlock.ListSyntaxKind,
             span,
