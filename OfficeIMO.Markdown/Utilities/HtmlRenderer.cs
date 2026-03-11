@@ -27,8 +27,7 @@ internal static class HtmlRenderer {
 
     internal static HtmlRenderParts RenderParts(MarkdownDoc doc, HtmlOptions options) {
         using var _ctx = HtmlRenderContext.Push(options);
-        var (realizedBlocks, headingSlugs) = doc.GetBlocksAndHeadingSlugs();
-        var headingCatalog = MarkdownHeadingCatalog.Create(realizedBlocks);
+        var (realizedBlocks, headingSlugs, headingCatalog) = doc.GetBlocksAndHeadingSlugs();
         var css = BuildCss(options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks);
         options._externalCssContentToWrite = cssToWrite; // pass back for SaveHtml
 
