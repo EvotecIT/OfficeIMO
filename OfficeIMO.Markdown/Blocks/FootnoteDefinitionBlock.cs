@@ -61,6 +61,23 @@ public sealed class FootnoteDefinitionBlock : IMarkdownBlock, ISyntaxChildrenMar
     }
 
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
+
+    internal IReadOnlyList<MarkdownSyntaxNode> BuildSyntaxChildren() {
+        if (SyntaxChildren != null && SyntaxChildren.Count > 0) {
+            return SyntaxChildren;
+        }
+
+        if (Paragraphs.Count == 0) {
+            return Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        var nodes = new List<MarkdownSyntaxNode>(Paragraphs.Count);
+        for (int i = 0; i < Paragraphs.Count; i++) {
+            nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: Paragraphs[i].RenderMarkdown()));
+        }
+        return nodes;
+    }
+
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
         MarkdownBlockSyntaxBuilder.BuildFootnoteBlock(this, span);
 }

@@ -472,6 +472,37 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock {
         return char.ToLowerInvariant(value) == expected;
     }
 
+    internal IReadOnlyList<MarkdownSyntaxNode> BuildSyntaxChildren(MarkdownSourceSpan? span) {
+        if (!span.HasValue) {
+            return Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        var nodes = new List<MarkdownSyntaxNode>();
+        int line = span.Value.StartLine;
+
+        if (Headers.Count > 0) {
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.TableHeader,
+                new MarkdownSourceSpan(line, line),
+                string.Join(" | ", Headers)));
+            line += 2;
+        }
+
+        for (int i = 0; i < Rows.Count; i++) {
+            if (line > span.Value.EndLine) {
+                break;
+            }
+
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.TableRow,
+                new MarkdownSourceSpan(line, line),
+                string.Join(" | ", Rows[i])));
+            line++;
+        }
+
+        return nodes;
+    }
+
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
         MarkdownBlockSyntaxBuilder.BuildTableBlock(this, span);
 }
