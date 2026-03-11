@@ -21,5 +21,5 @@ public sealed class UnorderedListBlock : IMarkdownListBlock, ISyntaxMarkdownBloc
     MarkdownSyntaxKind IListSyntaxMarkdownBlock.ListSyntaxKind => MarkdownSyntaxKind.UnorderedList;
     string? IListSyntaxMarkdownBlock.ListLiteral => null;
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        MarkdownBlockSyntaxBuilder.BuildListBlock(this, span);
+        MarkdownListSyntax.BuildListBlockNode(this, span);
 }

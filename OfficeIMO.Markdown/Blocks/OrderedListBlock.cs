@@ -33,5 +33,5 @@ public sealed class OrderedListBlock : IMarkdownListBlock, ISyntaxMarkdownBlock 
     MarkdownSyntaxKind IListSyntaxMarkdownBlock.ListSyntaxKind => MarkdownSyntaxKind.OrderedList;
     string? IListSyntaxMarkdownBlock.ListLiteral => Start.ToString(System.Globalization.CultureInfo.InvariantCulture);
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        MarkdownBlockSyntaxBuilder.BuildListBlock(this, span);
+        MarkdownListSyntax.BuildListBlockNode(this, span);
 }
