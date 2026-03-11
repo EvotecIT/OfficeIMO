@@ -47,6 +47,37 @@ public sealed class CodeBlock : IMarkdownBlock, ICaptionable, ISyntaxMarkdownBlo
         return $"<pre><code{lang}>{code}</code></pre>{caption}";
     }
 
-    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        MarkdownBlockSyntaxBuilder.BuildCodeBlock(this, span);
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
+        var nodes = new List<MarkdownSyntaxNode>();
+        if (span.HasValue && IsFenced && !string.IsNullOrEmpty(Language)) {
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.CodeFenceInfo,
+                new MarkdownSourceSpan(span.Value.StartLine, span.Value.StartLine),
+                Language));
+        }
+
+        MarkdownSourceSpan? contentSpan;
+        if (span.HasValue) {
+            if (IsFenced) {
+                contentSpan = span.Value.EndLine > span.Value.StartLine + 1
+                    ? new MarkdownSourceSpan(span.Value.StartLine + 1, span.Value.EndLine - 1)
+                    : null;
+            } else {
+                contentSpan = span.Value;
+            }
+        } else {
+            contentSpan = null;
+        }
+
+        nodes.Add(new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.CodeContent,
+            contentSpan,
+            MarkdownBlockSyntaxBuilder.NormalizeSyntaxLiteralLineEndings(Content)));
+
+        return new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.CodeBlock,
+            span,
+            MarkdownBlockSyntaxBuilder.NormalizeSyntaxLiteralLineEndings(Content),
+            nodes);
+    }
 }

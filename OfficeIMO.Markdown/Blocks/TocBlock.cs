@@ -77,5 +77,5 @@ public sealed class TocBlock : IMarkdownBlock, ISyntaxMarkdownBlock {
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        MarkdownBlockSyntaxBuilder.BuildTocBlock(this, span);
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.Toc, span, ((IMarkdownBlock)this).RenderMarkdown());
 }
