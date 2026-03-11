@@ -41,6 +41,15 @@ public class MarkdownDoc {
         }
     }
 
+    /// <summary>Enumerates all list items in document order, including nested items.</summary>
+    public IEnumerable<ListItem> DescendantListItems() {
+        foreach (var block in TopLevelBlocks) {
+            foreach (var item in EnumerateListItems(block)) {
+                yield return item;
+            }
+        }
+    }
+
     private IReadOnlyList<IMarkdownBlock> BuildTopLevelBlocks() {
         if (_frontMatter == null) {
             return _blocks;
@@ -72,6 +81,31 @@ public class MarkdownDoc {
         if (block is IChildMarkdownBlockContainer container) {
             for (int i = 0; i < container.ChildBlocks.Count; i++) {
                 foreach (var descendant in EnumerateBlockAndDescendants(container.ChildBlocks[i])) {
+                    yield return descendant;
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<ListItem> EnumerateListItems(IMarkdownBlock block) {
+        if (block is IMarkdownListBlock listBlock) {
+            for (int i = 0; i < listBlock.ListItems.Count; i++) {
+                var item = listBlock.ListItems[i];
+                yield return item;
+
+                for (int j = 0; j < item.BlockChildren.Count; j++) {
+                    foreach (var descendant in EnumerateListItems(item.BlockChildren[j])) {
+                        yield return descendant;
+                    }
+                }
+            }
+
+            yield break;
+        }
+
+        if (block is IChildMarkdownBlockContainer container) {
+            for (int i = 0; i < container.ChildBlocks.Count; i++) {
+                foreach (var descendant in EnumerateListItems(container.ChildBlocks[i])) {
                     yield return descendant;
                 }
             }
