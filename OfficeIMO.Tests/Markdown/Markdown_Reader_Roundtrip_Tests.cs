@@ -159,6 +159,10 @@ Paragraph
             Assert.Collection(
                 parsed.TopLevelBlocksOfType<FrontMatterBlock>(),
                 block => Assert.Equal("Doc", block.Entries[0].Value));
+
+            var topLevelHeading = parsed.FindFirstTopLevelBlockOfType<HeadingBlock>();
+            Assert.NotNull(topLevelHeading);
+            Assert.Equal("Heading", topLevelHeading!.Text);
         }
 
         [Fact]
@@ -194,6 +198,10 @@ Paragraph
                 parsed.DescendantsOfType<ParagraphBlock>()
                     .Select(block => block.Inlines.RenderMarkdown())
                     .ToArray());
+
+            var firstNestedList = parsed.FindFirstDescendantOfType<UnorderedListBlock>();
+            Assert.NotNull(firstNestedList);
+            Assert.Equal("item", firstNestedList!.Items[0].Content.RenderMarkdown());
         }
 
         [Fact]

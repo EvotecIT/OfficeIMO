@@ -69,6 +69,17 @@ public class MarkdownDoc {
         }
     }
 
+    /// <summary>Finds the first top-level document block of the requested type.</summary>
+    public TBlock? FindFirstTopLevelBlockOfType<TBlock>() where TBlock : class, IMarkdownBlock {
+        foreach (var block in TopLevelBlocks) {
+            if (block is TBlock typedBlock) {
+                return typedBlock;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>Enumerates all document blocks of the requested type depth-first.</summary>
     public IEnumerable<TBlock> DescendantsOfType<TBlock>() where TBlock : class, IMarkdownBlock {
         foreach (var block in DescendantsAndSelf()) {
@@ -76,6 +87,17 @@ public class MarkdownDoc {
                 yield return typedBlock;
             }
         }
+    }
+
+    /// <summary>Finds the first document block of the requested type depth-first.</summary>
+    public TBlock? FindFirstDescendantOfType<TBlock>() where TBlock : class, IMarkdownBlock {
+        foreach (var block in DescendantsAndSelf()) {
+            if (block is TBlock typedBlock) {
+                return typedBlock;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>Enumerates all list items in document order, including nested items.</summary>
