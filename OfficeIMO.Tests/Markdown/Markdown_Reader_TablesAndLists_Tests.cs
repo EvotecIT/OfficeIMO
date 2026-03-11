@@ -562,9 +562,9 @@ after
             var doc = MarkdownReader.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Single(list.Items);
-            Assert.Equal(2, list.Items[0].Children.Count);
-            Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
-            Assert.IsType<ParagraphBlock>(list.Items[0].Children[1]);
+            Assert.Equal(2, list.Items[0].ChildBlocks.Count);
+            Assert.IsType<QuoteBlock>(list.Items[0].ChildBlocks[0]);
+            Assert.IsType<ParagraphBlock>(list.Items[0].ChildBlocks[1]);
             Assert.True(list.Items[0].ForceLoose);
 
             var html = doc.ToHtmlFragment();
@@ -583,9 +583,9 @@ after
             var doc = MarkdownReader.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Single(list.Items);
-            Assert.Equal(2, list.Items[0].Children.Count);
-            Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
-            Assert.IsType<ParagraphBlock>(list.Items[0].Children[1]);
+            Assert.Equal(2, list.Items[0].ChildBlocks.Count);
+            Assert.IsType<QuoteBlock>(list.Items[0].ChildBlocks[0]);
+            Assert.IsType<ParagraphBlock>(list.Items[0].ChildBlocks[1]);
             Assert.True(list.Items[0].ForceLoose);
 
             var html = doc.ToHtmlFragment();
@@ -606,7 +606,7 @@ after
             var doc = MarkdownReader.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
-            Assert.Contains(list.Items[0].Children, b => b is DetailsBlock);
+            Assert.Contains(list.Items[0].ChildBlocks, b => b is DetailsBlock);
 
             var html = doc.ToHtmlFragment();
             Assert.Contains("<details", html);
