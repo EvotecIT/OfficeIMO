@@ -67,6 +67,22 @@ public sealed class ImageBlock : IMarkdownBlock, ICaptionable, ISyntaxMarkdownBl
         return img + caption;
     }
 
-    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        MarkdownBlockSyntaxBuilder.BuildImageBlock(this, span);
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
+        var nodes = new List<MarkdownSyntaxNode>();
+        if (!string.IsNullOrEmpty(Alt)) {
+            nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageAlt, span, Alt));
+        }
+
+        nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageSource, span, Path));
+
+        if (!string.IsNullOrEmpty(Title)) {
+            nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageTitle, span, Title));
+        }
+
+        return new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.Image,
+            span,
+            ((IMarkdownBlock)this).RenderMarkdown(),
+            nodes);
+    }
 }

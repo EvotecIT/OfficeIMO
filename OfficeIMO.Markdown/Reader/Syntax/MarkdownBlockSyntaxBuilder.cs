@@ -15,25 +15,8 @@ internal static class MarkdownBlockSyntaxBuilder {
             span ?? inlineBlock.ProvidedSyntaxSpan,
             inlineBlock.SyntaxInlines.RenderMarkdown());
 
-    internal static MarkdownSyntaxNode BuildHeadingBlock(HeadingBlock heading, MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.Heading, span, heading.Inlines.RenderMarkdown(), BuildHeadingChildren(heading, span));
-
     internal static MarkdownSyntaxNode BuildHorizontalRuleBlock(MarkdownSourceSpan? span) =>
         new MarkdownSyntaxNode(MarkdownSyntaxKind.HorizontalRule, span, "---");
-
-    internal static MarkdownSyntaxNode BuildCodeBlock(CodeBlock code, MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(
-            MarkdownSyntaxKind.CodeBlock,
-            span,
-            NormalizeSyntaxLiteralLineEndings(code.Content),
-            BuildCodeBlockChildren(code, span));
-
-    internal static MarkdownSyntaxNode BuildImageBlock(ImageBlock image, MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(
-            MarkdownSyntaxKind.Image,
-            span,
-            ((IMarkdownBlock)image).RenderMarkdown(),
-            BuildImageChildren(image, span));
 
     internal static MarkdownSyntaxNode BuildQuoteBlock(QuoteBlock quote, MarkdownSourceSpan? span) =>
         new MarkdownSyntaxNode(
@@ -70,9 +53,6 @@ internal static class MarkdownBlockSyntaxBuilder {
     internal static MarkdownSyntaxNode BuildHtmlRawBlock(HtmlRawBlock rawHtml, MarkdownSourceSpan? span) =>
         new MarkdownSyntaxNode(MarkdownSyntaxKind.HtmlRaw, span, rawHtml.Html);
 
-    internal static MarkdownSyntaxNode BuildTocBlock(TocBlock toc, MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.Toc, span, ((IMarkdownBlock)toc).RenderMarkdown());
-
     internal static MarkdownSyntaxNode BuildTocPlaceholderBlock(MarkdownSourceSpan? span) =>
         new MarkdownSyntaxNode(MarkdownSyntaxKind.TocPlaceholder, span);
 
@@ -97,59 +77,6 @@ internal static class MarkdownBlockSyntaxBuilder {
         }
 
         return BuildChildSyntaxNodes(block.ChildBlocks);
-    }
-
-    internal static IReadOnlyList<MarkdownSyntaxNode> BuildHeadingChildren(HeadingBlock heading, MarkdownSourceSpan? span) {
-        var nodes = new List<MarkdownSyntaxNode> {
-            new MarkdownSyntaxNode(MarkdownSyntaxKind.HeadingLevel, literal: heading.Level.ToString(System.Globalization.CultureInfo.InvariantCulture))
-        };
-
-        MarkdownSourceSpan? textSpan = span.HasValue ? new MarkdownSourceSpan(span.Value.StartLine, span.Value.StartLine) : null;
-        nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.HeadingText, textSpan, heading.Inlines.RenderMarkdown()));
-
-        return nodes;
-    }
-
-    internal static IReadOnlyList<MarkdownSyntaxNode> BuildCodeBlockChildren(CodeBlock code, MarkdownSourceSpan? span) {
-        if (!span.HasValue) return Array.Empty<MarkdownSyntaxNode>();
-
-        var nodes = new List<MarkdownSyntaxNode>();
-        if (code.IsFenced && !string.IsNullOrEmpty(code.Language)) {
-            nodes.Add(new MarkdownSyntaxNode(
-                MarkdownSyntaxKind.CodeFenceInfo,
-                new MarkdownSourceSpan(span.Value.StartLine, span.Value.StartLine),
-                code.Language));
-        }
-
-        MarkdownSourceSpan? contentSpan;
-        if (code.IsFenced) {
-            contentSpan = span.Value.EndLine > span.Value.StartLine + 1
-                ? new MarkdownSourceSpan(span.Value.StartLine + 1, span.Value.EndLine - 1)
-                : null;
-        } else {
-            contentSpan = span.Value;
-        }
-
-        nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.CodeContent, contentSpan, NormalizeSyntaxLiteralLineEndings(code.Content)));
-        return nodes;
-    }
-
-    internal static IReadOnlyList<MarkdownSyntaxNode> BuildImageChildren(ImageBlock image, MarkdownSourceSpan? span) {
-        if (!span.HasValue) return Array.Empty<MarkdownSyntaxNode>();
-
-        var nodes = new List<MarkdownSyntaxNode> {
-            new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageSource, span, image.Path)
-        };
-
-        if (!string.IsNullOrEmpty(image.Alt)) {
-            nodes.Insert(0, new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageAlt, span, image.Alt));
-        }
-
-        if (!string.IsNullOrEmpty(image.Title)) {
-            nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageTitle, span, image.Title));
-        }
-
-        return nodes;
     }
 
     internal static string NormalizeSyntaxLiteralLineEndings(string? value) {
