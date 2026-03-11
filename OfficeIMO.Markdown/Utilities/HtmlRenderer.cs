@@ -52,7 +52,7 @@ internal static class HtmlRenderer {
         if (options.CopyHeadingLinkOnClick) scripts.Append(HtmlResources.AnchorCopyScript);
         // ScrollSpy: include only if any TOC requests it
         try {
-            if (doc.Blocks != null && doc.Blocks.Any(b => b is TocPlaceholderBlock tp && tp.Options.ScrollSpy)) {
+            if (doc.Blocks != null && doc.Blocks.Any(b => b is ITocPlaceholderMarkdownBlock toc && toc.RequiresScrollSpy())) {
                 scripts.Append(HtmlResources.ScrollSpyScript);
             }
         } catch { /* best-effort */ }

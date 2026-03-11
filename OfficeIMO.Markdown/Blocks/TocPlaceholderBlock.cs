@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Placeholder that is replaced with a generated Table of Contents at render time.
 /// </summary>
-internal sealed class TocPlaceholderBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IBodySidebarMarkdownBlock {
+internal sealed class TocPlaceholderBlock : IMarkdownBlock, ISyntaxMarkdownBlock, ITocPlaceholderMarkdownBlock {
     public TocOptions Options { get; }
     public TocPlaceholderBlock(TocOptions options) { Options = options; }
     string IMarkdownBlock.RenderMarkdown() => string.Empty; // Replaced during render
@@ -18,6 +18,8 @@ internal sealed class TocPlaceholderBlock : IMarkdownBlock, ISyntaxMarkdownBlock
          Options.Layout == TocLayout.SidebarRight ||
          Options.Layout == TocLayout.Panel);
 
+    bool ITocPlaceholderMarkdownBlock.RequiresScrollSpy() => Options.ScrollSpy;
+
     string IBodySidebarMarkdownBlock.WrapSidebarLayoutHtml(string navigationHtml, string contentHtml) {
         var side = Options.Layout == TocLayout.SidebarLeft ? "left" : "right";
         string widthStyle = Options.WidthPx.HasValue ? $" style=\"--md-toc-width: {Options.WidthPx.Value}px\"" : string.Empty;
@@ -30,6 +32,15 @@ internal sealed class TocPlaceholderBlock : IMarkdownBlock, ISyntaxMarkdownBlock
         }
         sb.Append("</div>");
         return sb.ToString();
+    }
+
+    TocBlock ITocPlaceholderMarkdownBlock.RealizeToc(IReadOnlyList<IMarkdownBlock> blocks, int placeholderIndex, MarkdownHeadingCatalog headingCatalog) {
+        var toc = new TocBlock { Ordered = Options.Ordered, NormalizeLevels = Options.NormalizeToMinLevel };
+        string? titleAnchor = headingCatalog.GetPrecedingHeadingAnchor(blocks, placeholderIndex, Options);
+        foreach (var entry in headingCatalog.BuildTocEntries(blocks, placeholderIndex, Options, titleAnchor)) {
+            toc.Entries.Add(entry);
+        }
+        return toc;
     }
 
     string IContextualHtmlMarkdownBlock.RenderHtml(MarkdownBodyRenderContext context) {
