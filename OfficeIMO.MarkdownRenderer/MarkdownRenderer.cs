@@ -163,6 +163,7 @@ public static class MarkdownRenderer {
             OrderedLists = source.OrderedLists,
             Tables = source.Tables,
             DefinitionLists = source.DefinitionLists,
+            PreferNarrativeSingleLineDefinitions = source.PreferNarrativeSingleLineDefinitions,
             HtmlBlocks = source.HtmlBlocks,
             Paragraphs = source.Paragraphs,
             AutolinkUrls = source.AutolinkUrls,

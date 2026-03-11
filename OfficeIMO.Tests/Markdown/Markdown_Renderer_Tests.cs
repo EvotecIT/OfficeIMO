@@ -660,6 +660,28 @@ Top-IDs:
         Assert.Contains("task-list-item-checkbox", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void MarkdownRenderer_Preserves_PreferNarrativeSingleLineDefinitions_From_ReaderOptions() {
+        var markdown = """
+Status: Healthy
+
+Next paragraph.
+""";
+        var opts = new MarkdownRendererOptions {
+            ReaderOptions = new MarkdownReaderOptions {
+                PreferNarrativeSingleLineDefinitions = true,
+                HtmlBlocks = false,
+                InlineHtml = false
+            }
+        };
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, opts);
+
+        Assert.DoesNotContain("<dl>", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<p>Status: Healthy</p>", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Next paragraph.</p>", html, StringComparison.Ordinal);
+    }
+
     private static int Count(string value, string token) {
         if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(token)) return 0;
 
