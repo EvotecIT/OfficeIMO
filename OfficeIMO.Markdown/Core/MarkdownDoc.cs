@@ -8,7 +8,7 @@ public class MarkdownDoc {
     private readonly List<IMarkdownBlock> _blocks = new();
     private IMarkdownBlock? _lastBlock;
     private FrontMatterBlock? _frontMatter;
-    private System.Collections.Generic.Dictionary<HeadingBlock, string> _headingSlugMap = new();
+    private System.Collections.Generic.Dictionary<IHeadingMarkdownBlock, string> _headingSlugMap = new();
 
     /// <summary>Creates a new, empty Markdown document.</summary>
     public static MarkdownDoc Create() => new MarkdownDoc();
@@ -253,7 +253,7 @@ public class MarkdownDoc {
         return HtmlRenderer.RenderParts(this, options);
     }
 
-    internal (System.Collections.Generic.List<IMarkdownBlock> Blocks, System.Collections.Generic.IReadOnlyDictionary<HeadingBlock, string> HeadingSlugs, MarkdownHeadingCatalog HeadingCatalog) GetBlocksAndHeadingSlugs() {
+    internal (System.Collections.Generic.List<IMarkdownBlock> Blocks, System.Collections.Generic.IReadOnlyDictionary<IHeadingMarkdownBlock, string> HeadingSlugs, MarkdownHeadingCatalog HeadingCatalog) GetBlocksAndHeadingSlugs() {
         var registry = MarkdownSlug.CreateRegistry();
         var (realized, headingCatalog) = RealizeTocPlaceholders(registry);
         return (realized, _headingSlugMap, headingCatalog);
@@ -363,7 +363,7 @@ public class MarkdownDoc {
         // Create a shallow copy first
         var realized = new System.Collections.Generic.List<IMarkdownBlock>(_blocks);
         var headingCatalog = MarkdownHeadingCatalog.Create(realized, slugRegistry);
-        _headingSlugMap = new System.Collections.Generic.Dictionary<HeadingBlock, string>();
+        _headingSlugMap = new System.Collections.Generic.Dictionary<IHeadingMarkdownBlock, string>();
         foreach (var kvp in headingCatalog.HeadingSlugs) {
             _headingSlugMap[kvp.Key] = kvp.Value;
         }

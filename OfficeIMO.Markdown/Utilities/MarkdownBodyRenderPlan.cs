@@ -45,7 +45,7 @@ internal sealed class MarkdownBodyRenderPlan {
     }
 
     private static bool ShouldSkipTocTitleHeading(IReadOnlyList<IMarkdownBlock> blocks, int index, IMarkdownBlock block) {
-        if (block is not HeadingBlock) {
+        if (block is not IHeadingMarkdownBlock) {
             return false;
         }
 

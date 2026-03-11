@@ -4,7 +4,7 @@ internal sealed class MarkdownBodyRenderContext {
     internal MarkdownBodyRenderContext(
         IReadOnlyList<IMarkdownBlock> blocks,
         HtmlOptions options,
-        IReadOnlyDictionary<HeadingBlock, string> headingSlugs,
+        IReadOnlyDictionary<IHeadingMarkdownBlock, string> headingSlugs,
         MarkdownHeadingCatalog headingCatalog) {
         Blocks = blocks;
         Options = options;
@@ -14,6 +14,6 @@ internal sealed class MarkdownBodyRenderContext {
 
     internal IReadOnlyList<IMarkdownBlock> Blocks { get; }
     internal HtmlOptions Options { get; }
-    internal IReadOnlyDictionary<HeadingBlock, string> HeadingSlugs { get; }
+    internal IReadOnlyDictionary<IHeadingMarkdownBlock, string> HeadingSlugs { get; }
     internal MarkdownHeadingCatalog HeadingCatalog { get; }
 }
