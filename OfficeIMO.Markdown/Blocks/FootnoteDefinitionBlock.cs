@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Footnote definition block, e.g., [^id]: content.
 /// </summary>
-public sealed class FootnoteDefinitionBlock : IMarkdownBlock, ISyntaxChildrenMarkdownBlock {
+public sealed class FootnoteDefinitionBlock : IMarkdownBlock, ISyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Footnote label (identifier without the leading ^).</summary>
     public string Label { get; }
     /// <summary>Footnote text content.</summary>
@@ -61,4 +61,6 @@ public sealed class FootnoteDefinitionBlock : IMarkdownBlock, ISyntaxChildrenMar
     }
 
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
+        MarkdownBlockSyntaxBuilder.BuildFootnoteBlock(this, span);
 }

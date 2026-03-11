@@ -646,6 +646,67 @@ Console.WriteLine("hi");
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Front_Matter_Block() {
+        var markdown = """
+---
+title: Sample
+---
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var frontMatter = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.FrontMatter, frontMatter.Kind);
+        Assert.NotNull(frontMatter.SourceSpan);
+        Assert.Equal(1, frontMatter.SourceSpan!.Value.StartLine);
+        Assert.Equal(3, frontMatter.SourceSpan!.Value.EndLine);
+        Assert.Equal(markdown.TrimEnd().Replace("\r\n", "\n"), frontMatter.Literal!.Replace("\r\n", "\n"));
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Captures_Html_Comment_Block() {
+        const string markdown = "<!-- keep me -->";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var comment = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.HtmlComment, comment.Kind);
+        Assert.NotNull(comment.SourceSpan);
+        Assert.Equal(1, comment.SourceSpan!.Value.StartLine);
+        Assert.Equal(1, comment.SourceSpan!.Value.EndLine);
+        Assert.Equal(markdown, comment.Literal);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Captures_Html_Raw_Block() {
+        const string markdown = "<div class=\"note\">Hello</div>";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var rawHtml = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.HtmlRaw, rawHtml.Kind);
+        Assert.NotNull(rawHtml.SourceSpan);
+        Assert.Equal(1, rawHtml.SourceSpan!.Value.StartLine);
+        Assert.Equal(1, rawHtml.SourceSpan!.Value.EndLine);
+        Assert.Equal(markdown, rawHtml.Literal);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Captures_Toc_Placeholder_Block() {
+        const string markdown = "[TOC]";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var tocPlaceholder = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.TocPlaceholder, tocPlaceholder.Kind);
+        Assert.NotNull(tocPlaceholder.SourceSpan);
+        Assert.Equal(1, tocPlaceholder.SourceSpan!.Value.StartLine);
+        Assert.Equal(1, tocPlaceholder.SourceSpan!.Value.EndLine);
+        Assert.Null(tocPlaceholder.Literal);
+        Assert.Empty(tocPlaceholder.Children);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Finds_Deepest_Node_By_Line() {
         var markdown = """
 # Title

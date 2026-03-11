@@ -1,0 +1,326 @@
+namespace OfficeIMO.Markdown;
+
+internal static class MarkdownBlockSyntaxBuilder {
+    internal static MarkdownSyntaxNode BuildBlock(IMarkdownBlock block, MarkdownSourceSpan? span = null) {
+        if (block is ISyntaxMarkdownBlock syntaxBlock) {
+            return syntaxBlock.BuildSyntaxNode(span);
+        }
+
+        return new MarkdownSyntaxNode(MarkdownSyntaxKind.Unknown, span, block.RenderMarkdown());
+    }
+
+    internal static MarkdownSyntaxNode BuildInlineBlock(IInlineSyntaxMarkdownBlock inlineBlock, MarkdownSourceSpan? span = null) =>
+        new MarkdownSyntaxNode(
+            inlineBlock.SyntaxKind,
+            span ?? inlineBlock.ProvidedSyntaxSpan,
+            inlineBlock.SyntaxInlines.RenderMarkdown());
+
+    internal static MarkdownSyntaxNode BuildHeadingBlock(HeadingBlock heading, MarkdownSourceSpan? span) =>
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.Heading, span, heading.Inlines.RenderMarkdown(), BuildHeadingChildren(heading, span));
+
+    internal static MarkdownSyntaxNode BuildHorizontalRuleBlock(MarkdownSourceSpan? span) =>
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.HorizontalRule, span, "---");
+
+    internal static MarkdownSyntaxNode BuildCodeBlock(CodeBlock code, MarkdownSourceSpan? span) =>
+        new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.CodeBlock,
+            span,
+            NormalizeSyntaxLiteralLineEndings(code.Content),
+            BuildCodeBlockChildren(code, span));
+
+    internal static MarkdownSyntaxNode BuildImageBlock(ImageBlock image, MarkdownSourceSpan? span) =>
+        new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.Image,
+            span,
+            ((IMarkdownBlock)image).RenderMarkdown(),
+            BuildImageChildren(image, span));
+
+    internal static MarkdownSyntaxNode BuildTableBlock(TableBlock table, MarkdownSourceSpan? span) =>
+        new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.Table,
+            span,
+            ((IMarkdownBlock)table).RenderMarkdown(),
+            BuildTableChildren(table, span));
+
+    internal static MarkdownSyntaxNode BuildQuoteBlock(QuoteBlock quote, MarkdownSourceSpan? span) =>
+        new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.Quote,
+            span,
+            quote.Children.Count == 0 ? string.Join("\n", quote.Lines) : null,
+            GetProvidedSyntaxChildrenOrBuild(quote));
+
+    internal static MarkdownSyntaxNode BuildListBlock(IListSyntaxMarkdownBlock listBlock, MarkdownSourceSpan? span) =>
+        new MarkdownSyntaxNode(
+            listBlock.ListSyntaxKind,
+            span,
+            listBlock.ListLiteral,
+            BuildListItemSyntaxNodes(listBlock.ListItems, listBlock.ListSyntaxKind));
+
+    internal static MarkdownSyntaxNode BuildDefinitionListBlock(DefinitionListBlock definitionList, MarkdownSourceSpan? span) =>
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.DefinitionList, span, children: BuildDefinitionItemSyntaxNodes(definitionList));
+
+    internal static MarkdownSyntaxNode BuildCalloutBlock(CalloutBlock callout, MarkdownSourceSpan? span) {
+        var calloutTitleMarkdown = callout.TitleInlines.RenderMarkdown();
+        return new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.Callout,
+            span,
+            string.IsNullOrWhiteSpace(calloutTitleMarkdown) ? callout.Kind : callout.Kind + ":" + calloutTitleMarkdown,
+            GetProvidedSyntaxChildrenOrBuild(callout));
+    }
+
+    internal static MarkdownSyntaxNode BuildDetailsBlock(DetailsBlock details, MarkdownSourceSpan? span) =>
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.Details, span, details.Open ? "open" : null, BuildDetailsChildren(details));
+
+    internal static MarkdownSyntaxNode BuildFootnoteBlock(FootnoteDefinitionBlock footnote, MarkdownSourceSpan? span) =>
+        new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.FootnoteDefinition,
+            span,
+            footnote.Label,
+            BuildFootnoteChildren(footnote));
+
+    internal static MarkdownSyntaxNode BuildFrontMatterBlock(FrontMatterBlock frontMatter, MarkdownSourceSpan? span) =>
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatter, span, frontMatter.Render());
+
+    internal static MarkdownSyntaxNode BuildHtmlCommentBlock(HtmlCommentBlock comment, MarkdownSourceSpan? span) =>
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.HtmlComment, span, comment.Comment);
+
+    internal static MarkdownSyntaxNode BuildHtmlRawBlock(HtmlRawBlock rawHtml, MarkdownSourceSpan? span) =>
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.HtmlRaw, span, rawHtml.Html);
+
+    internal static MarkdownSyntaxNode BuildTocBlock(TocBlock toc, MarkdownSourceSpan? span) =>
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.Toc, span, ((IMarkdownBlock)toc).RenderMarkdown());
+
+    internal static MarkdownSyntaxNode BuildTocPlaceholderBlock(MarkdownSourceSpan? span) =>
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.TocPlaceholder, span);
+
+    internal static IReadOnlyList<MarkdownSyntaxNode> BuildChildSyntaxNodes(IEnumerable<IMarkdownBlock> children) {
+        var nodes = new List<MarkdownSyntaxNode>();
+        foreach (var child in children) {
+            if (child == null) continue;
+            nodes.Add(BuildBlock(child));
+        }
+        return nodes;
+    }
+
+    internal static IReadOnlyList<MarkdownSyntaxNode> GetProvidedSyntaxChildrenOrBuild(IChildMarkdownBlockContainer block) {
+        if (block is ISyntaxChildrenMarkdownBlock syntaxOwner &&
+            syntaxOwner.ProvidedSyntaxChildren != null &&
+            syntaxOwner.ProvidedSyntaxChildren.Count > 0) {
+            return syntaxOwner.ProvidedSyntaxChildren;
+        }
+
+        return BuildChildSyntaxNodes(block.ChildBlocks);
+    }
+
+    internal static IReadOnlyList<MarkdownSyntaxNode> BuildHeadingChildren(HeadingBlock heading, MarkdownSourceSpan? span) {
+        var nodes = new List<MarkdownSyntaxNode> {
+            new MarkdownSyntaxNode(MarkdownSyntaxKind.HeadingLevel, literal: heading.Level.ToString(System.Globalization.CultureInfo.InvariantCulture))
+        };
+
+        MarkdownSourceSpan? textSpan = span.HasValue ? new MarkdownSourceSpan(span.Value.StartLine, span.Value.StartLine) : null;
+        nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.HeadingText, textSpan, heading.Inlines.RenderMarkdown()));
+
+        return nodes;
+    }
+
+    internal static IReadOnlyList<MarkdownSyntaxNode> BuildListItemSyntaxNodes(IReadOnlyList<ListItem> items, MarkdownSyntaxKind listKind) {
+        int index = 0;
+        return BuildListItemSyntaxNodes(items, listKind, ref index, 0);
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> BuildListItemSyntaxNodes(IReadOnlyList<ListItem> items, MarkdownSyntaxKind listKind, ref int index, int level) {
+        var nodes = new List<MarkdownSyntaxNode>();
+        while (index < items.Count) {
+            var item = items[index];
+            if (item.Level < level) break;
+            if (item.Level > level) {
+                index++;
+                continue;
+            }
+
+            index++;
+
+            MarkdownSyntaxNode? nestedList = null;
+            if (index < items.Count && items[index].Level > level) {
+                var nestedLevel = items[index].Level;
+                var nestedItems = BuildListItemSyntaxNodes(items, listKind, ref index, nestedLevel);
+                nestedList = new MarkdownSyntaxNode(listKind, GetAggregateSpan(nestedItems), children: nestedItems);
+            }
+
+            nodes.Add(BuildListItemSyntaxNode(item, nestedList));
+        }
+
+        return nodes;
+    }
+
+    private static MarkdownSyntaxNode BuildListItemSyntaxNode(ListItem item, MarkdownSyntaxNode? nestedList) {
+        var children = new List<MarkdownSyntaxNode>();
+        if (item.SyntaxChildren.Count > 0) {
+            children.AddRange(item.SyntaxChildren);
+        } else {
+            if (item.Content.Nodes.Count > 0 || (item.AdditionalParagraphs.Count == 0 && item.Children.Count == 0)) {
+                children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: item.Content.RenderMarkdown()));
+            }
+            for (int i = 0; i < item.AdditionalParagraphs.Count; i++) {
+                children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: item.AdditionalParagraphs[i].RenderMarkdown()));
+            }
+            for (int i = 0; i < item.Children.Count; i++) {
+                children.Add(BuildBlock(item.Children[i]));
+            }
+        }
+        if (nestedList != null) children.Add(nestedList);
+
+        string? literal = item.IsTask
+            ? (item.Checked ? "[x]" : "[ ]")
+            : null;
+
+        return new MarkdownSyntaxNode(MarkdownSyntaxKind.ListItem, GetAggregateSpan(children), literal, children);
+    }
+
+    internal static IReadOnlyList<MarkdownSyntaxNode> BuildDefinitionItemSyntaxNodes(DefinitionListBlock definitionList) {
+        if (definitionList.SyntaxItems.Count > 0) return definitionList.SyntaxItems;
+
+        var nodes = new List<MarkdownSyntaxNode>();
+        foreach (var (term, definition) in definitionList.Items) {
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.DefinitionItem,
+                literal: term,
+                children: new[] {
+                    new MarkdownSyntaxNode(MarkdownSyntaxKind.DefinitionTerm, literal: term),
+                    new MarkdownSyntaxNode(
+                        MarkdownSyntaxKind.DefinitionValue,
+                        literal: definition,
+                        children: new[] {
+                            new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: definition)
+                        })
+                }));
+        }
+        return nodes;
+    }
+
+    internal static IReadOnlyList<MarkdownSyntaxNode> BuildDetailsChildren(DetailsBlock details) {
+        if (details is ISyntaxChildrenMarkdownBlock syntaxOwner &&
+            syntaxOwner.ProvidedSyntaxChildren != null &&
+            syntaxOwner.ProvidedSyntaxChildren.Count > 0) {
+            var nodesWithSummary = new List<MarkdownSyntaxNode>();
+            if (details.Summary != null) nodesWithSummary.Add(BuildBlock(details.Summary));
+            for (int i = 0; i < syntaxOwner.ProvidedSyntaxChildren.Count; i++) nodesWithSummary.Add(syntaxOwner.ProvidedSyntaxChildren[i]);
+            return nodesWithSummary;
+        }
+
+        var nodes = new List<MarkdownSyntaxNode>();
+        if (details.Summary != null) nodes.Add(BuildBlock(details.Summary));
+        for (int i = 0; i < details.Children.Count; i++) {
+            nodes.Add(BuildBlock(details.Children[i]));
+        }
+        return nodes;
+    }
+
+    internal static IReadOnlyList<MarkdownSyntaxNode> BuildFootnoteChildren(FootnoteDefinitionBlock footnote) {
+        if (footnote is ISyntaxChildrenMarkdownBlock syntaxOwner &&
+            syntaxOwner.ProvidedSyntaxChildren != null &&
+            syntaxOwner.ProvidedSyntaxChildren.Count > 0) {
+            return syntaxOwner.ProvidedSyntaxChildren;
+        }
+
+        if (footnote.Paragraphs.Count == 0) return Array.Empty<MarkdownSyntaxNode>();
+
+        var nodes = new List<MarkdownSyntaxNode>(footnote.Paragraphs.Count);
+        for (int i = 0; i < footnote.Paragraphs.Count; i++) {
+            nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: footnote.Paragraphs[i].RenderMarkdown()));
+        }
+        return nodes;
+    }
+
+    internal static IReadOnlyList<MarkdownSyntaxNode> BuildCodeBlockChildren(CodeBlock code, MarkdownSourceSpan? span) {
+        if (!span.HasValue) return Array.Empty<MarkdownSyntaxNode>();
+
+        var nodes = new List<MarkdownSyntaxNode>();
+        if (code.IsFenced && !string.IsNullOrEmpty(code.Language)) {
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.CodeFenceInfo,
+                new MarkdownSourceSpan(span.Value.StartLine, span.Value.StartLine),
+                code.Language));
+        }
+
+        MarkdownSourceSpan? contentSpan;
+        if (code.IsFenced) {
+            contentSpan = span.Value.EndLine > span.Value.StartLine + 1
+                ? new MarkdownSourceSpan(span.Value.StartLine + 1, span.Value.EndLine - 1)
+                : null;
+        } else {
+            contentSpan = span.Value;
+        }
+
+        nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.CodeContent, contentSpan, NormalizeSyntaxLiteralLineEndings(code.Content)));
+        return nodes;
+    }
+
+    internal static IReadOnlyList<MarkdownSyntaxNode> BuildImageChildren(ImageBlock image, MarkdownSourceSpan? span) {
+        if (!span.HasValue) return Array.Empty<MarkdownSyntaxNode>();
+
+        var nodes = new List<MarkdownSyntaxNode> {
+            new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageSource, span, image.Path)
+        };
+
+        if (!string.IsNullOrEmpty(image.Alt)) {
+            nodes.Insert(0, new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageAlt, span, image.Alt));
+        }
+
+        if (!string.IsNullOrEmpty(image.Title)) {
+            nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageTitle, span, image.Title));
+        }
+
+        return nodes;
+    }
+
+    internal static IReadOnlyList<MarkdownSyntaxNode> BuildTableChildren(TableBlock table, MarkdownSourceSpan? span) {
+        if (!span.HasValue) return Array.Empty<MarkdownSyntaxNode>();
+
+        var nodes = new List<MarkdownSyntaxNode>();
+        int line = span.Value.StartLine;
+
+        if (table.Headers.Count > 0) {
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.TableHeader,
+                new MarkdownSourceSpan(line, line),
+                string.Join(" | ", table.Headers)));
+            line += 2;
+        }
+
+        for (int i = 0; i < table.Rows.Count; i++) {
+            if (line > span.Value.EndLine) break;
+
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.TableRow,
+                new MarkdownSourceSpan(line, line),
+                string.Join(" | ", table.Rows[i])));
+            line++;
+        }
+
+        return nodes;
+    }
+
+    internal static string NormalizeSyntaxLiteralLineEndings(string? value) {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        string normalized = value!;
+        return normalized.Replace("\r\n", "\n").Replace('\r', '\n');
+    }
+
+    internal static MarkdownSourceSpan? GetAggregateSpan(IReadOnlyList<MarkdownSyntaxNode> nodes) {
+        if (nodes == null || nodes.Count == 0) return null;
+
+        int? start = null;
+        int? end = null;
+        for (int i = 0; i < nodes.Count; i++) {
+            var span = nodes[i].SourceSpan;
+            if (!span.HasValue) continue;
+
+            if (!start.HasValue || span.Value.StartLine < start.Value) start = span.Value.StartLine;
+            if (!end.HasValue || span.Value.EndLine > end.Value) end = span.Value.EndLine;
+        }
+
+        if (!start.HasValue || !end.HasValue) return null;
+        return new MarkdownSourceSpan(start.Value, end.Value);
+    }
+}

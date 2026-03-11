@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Fenced code block with optional caption. Fence length adapts to backticks inside the content.
 /// </summary>
-public sealed class CodeBlock : IMarkdownBlock, ICaptionable {
+public sealed class CodeBlock : IMarkdownBlock, ICaptionable, ISyntaxMarkdownBlock {
     /// <summary>Optional language hint (e.g., csharp, bash).</summary>
     public string Language { get; }
     /// <summary>Code contents.</summary>
@@ -46,4 +46,7 @@ public sealed class CodeBlock : IMarkdownBlock, ICaptionable {
         string caption = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{System.Net.WebUtility.HtmlEncode(Caption!)}</div>";
         return $"<pre><code{lang}>{code}</code></pre>{caption}";
     }
+
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
+        MarkdownBlockSyntaxBuilder.BuildCodeBlock(this, span);
 }

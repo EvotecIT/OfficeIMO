@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Collapsible disclosure block with an optional summary and nested content.
 /// </summary>
-public sealed class DetailsBlock : IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock {
+public sealed class DetailsBlock : IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Optional summary displayed in the disclosure header.</summary>
     public SummaryBlock? Summary { get; set; }
 
@@ -68,12 +68,14 @@ public sealed class DetailsBlock : IMarkdownBlock, IChildMarkdownBlockContainer,
 
     IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => Children;
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
+        MarkdownBlockSyntaxBuilder.BuildDetailsBlock(this, span);
 }
 
 /// <summary>
 /// Summary header for a <see cref="DetailsBlock"/>.
 /// </summary>
-public sealed class SummaryBlock : IMarkdownBlock, IInlineSyntaxMarkdownBlock {
+public sealed class SummaryBlock : IMarkdownBlock, IInlineSyntaxMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Inline content inside the &lt;summary&gt; element.</summary>
     public InlineSequence Inlines { get; }
     internal MarkdownSourceSpan? SyntaxSpan { get; set; }
@@ -93,4 +95,6 @@ public sealed class SummaryBlock : IMarkdownBlock, IInlineSyntaxMarkdownBlock {
     InlineSequence IInlineSyntaxMarkdownBlock.SyntaxInlines => Inlines;
     MarkdownSyntaxKind IInlineSyntaxMarkdownBlock.SyntaxKind => MarkdownSyntaxKind.Summary;
     MarkdownSourceSpan? IInlineSyntaxMarkdownBlock.ProvidedSyntaxSpan => SyntaxSpan;
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
+        MarkdownBlockSyntaxBuilder.BuildInlineBlock(this, span);
 }

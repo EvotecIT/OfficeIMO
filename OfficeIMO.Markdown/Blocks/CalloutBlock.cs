@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Docs/Markdown-style callout (admonition) block. Renders using
 /// "> [!KIND] Title" followed by indented content lines.
 /// </summary>
-public sealed class CalloutBlock : IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock {
+public sealed class CalloutBlock : IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Admonition kind, e.g., info, warning, success.</summary>
     public string Kind { get; }
     /// <summary>Callout title displayed inline with the marker.</summary>
@@ -117,4 +117,6 @@ public sealed class CalloutBlock : IMarkdownBlock, IChildMarkdownBlockContainer,
 
     IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => Children ?? Array.Empty<IMarkdownBlock>();
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
+        MarkdownBlockSyntaxBuilder.BuildCalloutBlock(this, span);
 }
