@@ -8,7 +8,6 @@ public class MarkdownDoc {
     private readonly List<IMarkdownBlock> _blocks = new();
     private IMarkdownBlock? _lastBlock;
     private IFrontMatterMarkdownBlock? _frontMatter;
-    private System.Collections.Generic.Dictionary<IHeadingMarkdownBlock, string> _headingSlugMap = new();
 
     /// <summary>Creates a new, empty Markdown document.</summary>
     public static MarkdownDoc Create() => new MarkdownDoc();
@@ -193,7 +192,7 @@ public class MarkdownDoc {
     /// <summary>Renders the document to Markdown string.</summary>
     public string ToMarkdown() {
         // Build a transient block list where TOC placeholders are realized
-        var (blocks, _, _) = GetBlocksAndHeadingSlugs();
+        var (blocks, _) = GetBlocksAndHeadingSlugs();
         StringBuilder sb = new StringBuilder();
         if (_frontMatter != null) {
             sb.AppendLine(_frontMatter.RenderFrontMatter());
@@ -253,10 +252,10 @@ public class MarkdownDoc {
         return HtmlRenderer.RenderParts(this, options);
     }
 
-    internal (System.Collections.Generic.List<IMarkdownBlock> Blocks, System.Collections.Generic.IReadOnlyDictionary<IHeadingMarkdownBlock, string> HeadingSlugs, MarkdownHeadingCatalog HeadingCatalog) GetBlocksAndHeadingSlugs() {
+    internal (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) GetBlocksAndHeadingSlugs() {
         var registry = MarkdownSlug.CreateRegistry();
         var (realized, headingCatalog) = RealizeTocPlaceholders(registry);
-        return (realized, _headingSlugMap, headingCatalog);
+        return (realized, headingCatalog);
     }
 
     /// <summary>
@@ -363,10 +362,6 @@ public class MarkdownDoc {
         // Create a shallow copy first
         var realized = new System.Collections.Generic.List<IMarkdownBlock>(_blocks);
         var headingCatalog = MarkdownHeadingCatalog.Create(realized, slugRegistry);
-        _headingSlugMap = new System.Collections.Generic.Dictionary<IHeadingMarkdownBlock, string>();
-        foreach (var kvp in headingCatalog.HeadingSlugs) {
-            _headingSlugMap[kvp.Key] = kvp.Value;
-        }
         // Replace placeholders with generated TOC blocks
         for (int i = 0; i < realized.Count; i++) {
             if (realized[i] is ITocPlaceholderMarkdownBlock tocPlaceholder) {

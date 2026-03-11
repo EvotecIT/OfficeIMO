@@ -24,6 +24,18 @@ internal sealed class MarkdownHeadingCatalog {
 
     internal IReadOnlyDictionary<IHeadingMarkdownBlock, string> HeadingSlugs { get; }
 
+    internal string GetHeadingAnchor(IHeadingMarkdownBlock heading) {
+        if (heading == null) {
+            return string.Empty;
+        }
+
+        if (HeadingSlugs.TryGetValue(heading, out var slug)) {
+            return slug;
+        }
+
+        return MarkdownSlug.GitHub(heading.Text);
+    }
+
     internal static MarkdownHeadingCatalog Create(IReadOnlyList<IMarkdownBlock> blocks, Dictionary<string, int>? slugRegistry = null) {
         var headings = new List<HeadingEntry>();
         var slugs = new Dictionary<IHeadingMarkdownBlock, string>();
@@ -53,11 +65,7 @@ internal sealed class MarkdownHeadingCatalog {
             return null;
         }
 
-        if (!HeadingSlugs.TryGetValue(titleHeading, out var titleSlug)) {
-            titleSlug = MarkdownSlug.GitHub(titleHeading.Text);
-        }
-
-        return titleSlug;
+        return GetHeadingAnchor(titleHeading);
     }
 
     internal List<TocBlock.Entry> BuildTocEntries(IReadOnlyList<IMarkdownBlock> blocks, int placeholderIndex, TocOptions options, string? titleAnchor = null) {

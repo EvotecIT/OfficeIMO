@@ -27,13 +27,13 @@ internal static class HtmlRenderer {
 
     internal static HtmlRenderParts RenderParts(MarkdownDoc doc, HtmlOptions options) {
         using var _ctx = HtmlRenderContext.Push(options);
-        var (realizedBlocks, headingSlugs, headingCatalog) = doc.GetBlocksAndHeadingSlugs();
+        var (realizedBlocks, headingCatalog) = doc.GetBlocksAndHeadingSlugs();
         var css = BuildCss(options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks);
         options._externalCssContentToWrite = cssToWrite; // pass back for SaveHtml
 
         // Insert a top anchor for back-to-top links
         var blocksForRendering = doc.Blocks;
-        string bodyContent = (options.BackToTopLinks ? "<a id=\"top\"></a>" : string.Empty) + RenderBody(blocksForRendering, options, headingSlugs, headingCatalog);
+        string bodyContent = (options.BackToTopLinks ? "<a id=\"top\"></a>" : string.Empty) + RenderBody(blocksForRendering, options, headingCatalog);
         if (options.ThemeToggle) {
             const string toggle = "<button class=\"theme-toggle\" data-theme-toggle title=\"Toggle theme\" aria-label=\"Toggle theme\">🌓</button>";
             bodyContent = toggle + bodyContent;
@@ -110,8 +110,8 @@ internal static class HtmlRenderer {
         return parts;
     }
 
-    private static string RenderBody(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, HtmlOptions options, System.Collections.Generic.IReadOnlyDictionary<IHeadingMarkdownBlock, string> headingSlugs, MarkdownHeadingCatalog headingCatalog) {
-        var context = new MarkdownBodyRenderContext(blocks, options, headingSlugs, headingCatalog);
+    private static string RenderBody(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, HtmlOptions options, MarkdownHeadingCatalog headingCatalog) {
+        var context = new MarkdownBodyRenderContext(blocks, options, headingCatalog);
         var plan = MarkdownBodyRenderPlan.Create(blocks);
         var footnotes = plan.Footnotes;
         var sidebar = plan.Sidebar;

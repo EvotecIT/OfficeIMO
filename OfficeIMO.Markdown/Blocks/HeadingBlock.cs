@@ -40,9 +40,7 @@ public sealed class HeadingBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IContex
     }
 
     string IContextualHtmlMarkdownBlock.RenderHtml(MarkdownBodyRenderContext context) {
-        if (!context.HeadingSlugs.TryGetValue(this, out var id)) {
-            id = MarkdownSlug.GitHub(Text);
-        }
+        var id = context.HeadingCatalog.GetHeadingAnchor(this);
 
         var sb = new System.Text.StringBuilder();
         sb.Append("<h").Append(Level).Append(" id=\"").Append(id).Append("\">");
