@@ -96,6 +96,30 @@ public sealed class DefinitionListBlock : IMarkdownBlock, ISyntaxMarkdownBlock {
         }
     }
 
+    internal IReadOnlyList<MarkdownSyntaxNode> BuildSyntaxItems() {
+        if (SyntaxItems.Count > 0) {
+            return SyntaxItems;
+        }
+
+        var nodes = new List<MarkdownSyntaxNode>();
+        foreach (var (term, definition) in Items) {
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.DefinitionItem,
+                literal: term,
+                children: new[] {
+                    new MarkdownSyntaxNode(MarkdownSyntaxKind.DefinitionTerm, literal: term),
+                    new MarkdownSyntaxNode(
+                        MarkdownSyntaxKind.DefinitionValue,
+                        literal: definition,
+                        children: new[] {
+                            new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: definition)
+                        })
+                }));
+        }
+
+        return nodes;
+    }
+
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
         MarkdownBlockSyntaxBuilder.BuildDefinitionListBlock(this, span);
 }
