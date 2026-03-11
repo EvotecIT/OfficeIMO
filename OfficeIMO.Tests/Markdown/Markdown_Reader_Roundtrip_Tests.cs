@@ -88,6 +88,8 @@ tags: [a, b]
             var parsed = MarkdownReader.Parse(markdown);
             var frontMatter = Assert.IsType<FrontMatterBlock>(parsed.DocumentHeader!);
 
+            Assert.Equal(frontMatter.Entries, parsed.FrontMatterEntries);
+
             Assert.Collection(
                 frontMatter.Entries,
                 entry => {

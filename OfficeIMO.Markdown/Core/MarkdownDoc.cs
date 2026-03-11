@@ -33,6 +33,8 @@ public class MarkdownDoc {
     public IReadOnlyList<IMarkdownBlock> Blocks => _blocks;
     /// <summary>Document-level front matter/header block when present.</summary>
     public FrontMatterBlock? DocumentHeader => _frontMatter as FrontMatterBlock;
+    /// <summary>Structured document front matter entries when present.</summary>
+    public IReadOnlyList<FrontMatterBlock.Entry> FrontMatterEntries => DocumentHeader?.Entries ?? Array.Empty<FrontMatterBlock.Entry>();
     /// <summary>All top-level document blocks in order, including front matter when present.</summary>
     public IReadOnlyList<IMarkdownBlock> TopLevelBlocks => BuildTopLevelBlocks();
     /// <summary>Whether the document has front matter.</summary>
