@@ -121,6 +121,12 @@ public sealed class CalloutBlock : IMarkdownBlock, IChildMarkdownBlockContainer,
     }
 
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
-    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        MarkdownBlockSyntaxBuilder.BuildCalloutBlock(this, span);
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
+        var calloutTitleMarkdown = TitleInlines.RenderMarkdown();
+        return new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.Callout,
+            span,
+            string.IsNullOrWhiteSpace(calloutTitleMarkdown) ? Kind : Kind + ":" + calloutTitleMarkdown,
+            MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(this));
+    }
 }

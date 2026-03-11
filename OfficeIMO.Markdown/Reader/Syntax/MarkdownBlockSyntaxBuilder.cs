@@ -15,32 +15,6 @@ internal static class MarkdownBlockSyntaxBuilder {
             span ?? inlineBlock.ProvidedSyntaxSpan,
             inlineBlock.SyntaxInlines.RenderMarkdown());
 
-    internal static MarkdownSyntaxNode BuildQuoteBlock(QuoteBlock quote, MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(
-            MarkdownSyntaxKind.Quote,
-            span,
-            quote.Children.Count == 0 ? string.Join("\n", quote.Lines) : null,
-            GetOwnedSyntaxChildrenOrBuild(quote));
-
-    internal static MarkdownSyntaxNode BuildCalloutBlock(CalloutBlock callout, MarkdownSourceSpan? span) {
-        var calloutTitleMarkdown = callout.TitleInlines.RenderMarkdown();
-        return new MarkdownSyntaxNode(
-            MarkdownSyntaxKind.Callout,
-            span,
-            string.IsNullOrWhiteSpace(calloutTitleMarkdown) ? callout.Kind : callout.Kind + ":" + calloutTitleMarkdown,
-            GetOwnedSyntaxChildrenOrBuild(callout));
-    }
-
-    internal static MarkdownSyntaxNode BuildDetailsBlock(DetailsBlock details, MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.Details, span, details.Open ? "open" : null, GetOwnedSyntaxChildrenOrBuild(details));
-
-    internal static MarkdownSyntaxNode BuildFootnoteBlock(FootnoteDefinitionBlock footnote, MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(
-            MarkdownSyntaxKind.FootnoteDefinition,
-            span,
-            footnote.Label,
-            GetOwnedSyntaxChildrenOrBuild(footnote));
-
     internal static IReadOnlyList<MarkdownSyntaxNode> BuildChildSyntaxNodes(IEnumerable<IMarkdownBlock> children) {
         var nodes = new List<MarkdownSyntaxNode>();
         foreach (var child in children) {

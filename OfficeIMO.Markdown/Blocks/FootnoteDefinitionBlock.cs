@@ -126,7 +126,11 @@ public sealed class FootnoteDefinitionBlock : IMarkdownBlock, IChildMarkdownBloc
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        MarkdownBlockSyntaxBuilder.BuildFootnoteBlock(this, span);
+        new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.FootnoteDefinition,
+            span,
+            Label,
+            ((IOwnedSyntaxChildrenMarkdownBlock)this).BuildOwnedSyntaxChildren());
 
     private IReadOnlyList<ParagraphBlock> GetParagraphBlocksForRender() {
         if (ParagraphBlocks.Count > 0) {
