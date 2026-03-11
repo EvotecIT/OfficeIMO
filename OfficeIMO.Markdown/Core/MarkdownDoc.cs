@@ -35,6 +35,8 @@ public class MarkdownDoc {
     public FrontMatterBlock? DocumentHeader => _frontMatter as FrontMatterBlock;
     /// <summary>All top-level document blocks in order, including front matter when present.</summary>
     public IReadOnlyList<IMarkdownBlock> TopLevelBlocks => BuildTopLevelBlocks();
+    /// <summary>Whether the document has front matter.</summary>
+    public bool HasDocumentHeader => DocumentHeader != null;
 
     /// <summary>Adds a block instance (object-model style).</summary>
     /// <param name="block">Block to append to the document.</param>
@@ -152,6 +154,20 @@ public class MarkdownDoc {
         }
 
         return matches;
+    }
+
+    /// <summary>Finds a front matter entry by key when the document header is present.</summary>
+    public FrontMatterBlock.Entry? FindFrontMatterEntry(string key, StringComparison comparison = StringComparison.OrdinalIgnoreCase) =>
+        DocumentHeader?.FindEntry(key, comparison);
+
+    /// <summary>Gets a typed front matter value by key when the document header is present.</summary>
+    public bool TryGetFrontMatterValue<T>(string key, out T? value) {
+        if (DocumentHeader != null && DocumentHeader.TryGetValue<T>(key, out value)) {
+            return true;
+        }
+
+        value = default;
+        return false;
     }
 
     private IReadOnlyList<IMarkdownBlock> BuildTopLevelBlocks() {
