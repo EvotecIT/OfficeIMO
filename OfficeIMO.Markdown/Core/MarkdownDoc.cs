@@ -5,6 +5,23 @@ namespace OfficeIMO.Markdown;
 /// Supports a fluent-chaining style and an explicit object model via <see cref="Add(IMarkdownBlock)"/>.
 /// </summary>
 public class MarkdownDoc {
+    /// <summary>Resolved heading metadata within a document.</summary>
+    public sealed class HeadingInfo {
+        /// <summary>The heading block.</summary>
+        public HeadingBlock Block { get; }
+        /// <summary>Heading level.</summary>
+        public int Level => Block.Level;
+        /// <summary>Plain-text heading text.</summary>
+        public string Text => Block.Text;
+        /// <summary>Resolved anchor id for the heading within this document.</summary>
+        public string Anchor { get; }
+
+        internal HeadingInfo(HeadingBlock block, string anchor) {
+            Block = block ?? throw new ArgumentNullException(nameof(block));
+            Anchor = anchor ?? string.Empty;
+        }
+    }
+
     private readonly List<IMarkdownBlock> _blocks = new();
     private IMarkdownBlock? _lastBlock;
     private IFrontMatterMarkdownBlock? _frontMatter;
@@ -83,6 +100,20 @@ public class MarkdownDoc {
 
         var (_, headingCatalog) = GetBlocksAndHeadingSlugs();
         return headingCatalog.GetHeadingAnchor(heading);
+    }
+
+    /// <summary>Returns resolved heading metadata in document order.</summary>
+    public IReadOnlyList<HeadingInfo> GetHeadingInfos() {
+        var headings = DescendantHeadings().ToArray();
+        if (headings.Length == 0) {
+            return Array.Empty<HeadingInfo>();
+        }
+
+        var infos = new HeadingInfo[headings.Length];
+        for (int i = 0; i < headings.Length; i++) {
+            infos[i] = new HeadingInfo(headings[i], GetHeadingAnchor(headings[i]));
+        }
+        return infos;
     }
 
     private IReadOnlyList<IMarkdownBlock> BuildTopLevelBlocks() {

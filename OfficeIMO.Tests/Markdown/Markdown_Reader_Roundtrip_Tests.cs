@@ -215,6 +215,12 @@ Paragraph
             Assert.Equal("title", parsed.GetHeadingAnchor(headings[0]));
             Assert.Equal("repeat", parsed.GetHeadingAnchor(headings[1]));
             Assert.Equal("repeat-1", parsed.GetHeadingAnchor(headings[2]));
+
+            var infos = parsed.GetHeadingInfos();
+            Assert.Equal(new[] { "Title", "Repeat", "Repeat" }, infos.Select(info => info.Text).ToArray());
+            Assert.Equal(new[] { "title", "repeat", "repeat-1" }, infos.Select(info => info.Anchor).ToArray());
+            Assert.Equal(new[] { 1, 2, 2 }, infos.Select(info => info.Level).ToArray());
+            Assert.Same(headings[1], infos[1].Block);
         }
     }
 }
