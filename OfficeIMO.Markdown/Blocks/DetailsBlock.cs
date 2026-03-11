@@ -73,7 +73,7 @@ public sealed class DetailsBlock : IMarkdownBlock, IChildMarkdownBlockContainer,
 /// <summary>
 /// Summary header for a <see cref="DetailsBlock"/>.
 /// </summary>
-public sealed class SummaryBlock : IMarkdownBlock {
+public sealed class SummaryBlock : IMarkdownBlock, IInlineSyntaxMarkdownBlock {
     /// <summary>Inline content inside the &lt;summary&gt; element.</summary>
     public InlineSequence Inlines { get; }
     internal MarkdownSourceSpan? SyntaxSpan { get; set; }
@@ -90,4 +90,7 @@ public sealed class SummaryBlock : IMarkdownBlock {
 
     string IMarkdownBlock.RenderMarkdown() => $"<summary>{Inlines.RenderMarkdown()}</summary>";
     string IMarkdownBlock.RenderHtml() => $"<summary>{Inlines.RenderHtml()}</summary>";
+    InlineSequence IInlineSyntaxMarkdownBlock.SyntaxInlines => Inlines;
+    MarkdownSyntaxKind IInlineSyntaxMarkdownBlock.SyntaxKind => MarkdownSyntaxKind.Summary;
+    MarkdownSourceSpan? IInlineSyntaxMarkdownBlock.ProvidedSyntaxSpan => SyntaxSpan;
 }
