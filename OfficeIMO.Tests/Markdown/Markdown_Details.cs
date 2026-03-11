@@ -11,6 +11,8 @@ namespace OfficeIMO.Tests {
             var details = Assert.IsType<DetailsBlock>(doc.Blocks[0]);
             Assert.False(details.Open);
             Assert.Equal("More info", Assert.IsType<TextRun>(details.Summary!.Inlines.Items[0]).Text);
+            var child = Assert.Single(details.ChildBlocks);
+            Assert.IsType<ParagraphBlock>(child);
             Assert.Equal("<details>\n<summary>More info</summary>\n\nHidden text\n</details>", ((IMarkdownBlock)details).RenderMarkdown());
             Assert.Equal("<details>\n<summary>More info</summary>\n\n<p>Hidden text</p>\n</details>", ((IMarkdownBlock)details).RenderHtml());
         }
@@ -25,6 +27,9 @@ namespace OfficeIMO.Tests {
             Assert.True(details.Open);
             var summaryText = Assert.IsType<TextRun>(details.Summary!.Inlines.Items[0]);
             Assert.Equal("Expand", summaryText.Text);
+            var child = Assert.Single(details.ChildBlocks);
+            var paragraph = Assert.IsType<ParagraphBlock>(child);
+            Assert.Equal("Paragraph text", paragraph.Inlines.RenderMarkdown());
 
             var html = ((IMarkdownBlock)details).RenderHtml();
             Assert.Equal("<details open>\n<summary>Expand</summary>\n\n<p>Paragraph text</p>\n</details>", html);

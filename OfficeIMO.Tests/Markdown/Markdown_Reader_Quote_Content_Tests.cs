@@ -15,6 +15,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             });
             var doc = MarkdownReader.Parse(md);
             var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
+            Assert.Same(qb.Children, qb.ChildBlocks);
             Assert.True(qb.Children.Count >= 2);
             Assert.IsType<ParagraphBlock>(qb.Children[0]);
             var ul = Assert.IsType<UnorderedListBlock>(qb.Children[1]);
@@ -73,7 +74,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             });
             var doc = MarkdownReader.Parse(md);
             var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
-            var table = Assert.IsType<TableBlock>(qb.Children.First());
+            var table = Assert.IsType<TableBlock>(qb.ChildBlocks.First());
             Assert.Equal(new[] { "A", "B" }, table.Headers);
             Assert.Equal(new[] { ColumnAlignment.None, ColumnAlignment.Right }, table.Alignments);
         }

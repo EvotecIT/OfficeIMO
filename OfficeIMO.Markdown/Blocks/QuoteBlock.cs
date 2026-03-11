@@ -3,11 +3,13 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Simple blockquote block consisting of raw text lines.
 /// </summary>
-public sealed class QuoteBlock : IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock {
+public sealed class QuoteBlock : IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Raw text lines for a simple quote (used when <see cref="Children"/> is empty).</summary>
     public System.Collections.Generic.List<string> Lines { get; } = new System.Collections.Generic.List<string>();
     /// <summary>Nested blocks rendered inside the quote.</summary>
     public System.Collections.Generic.List<IMarkdownBlock> Children { get; } = new System.Collections.Generic.List<IMarkdownBlock>();
+    /// <summary>Read-only AST-style view of parsed child blocks inside the quote.</summary>
+    public IReadOnlyList<IMarkdownBlock> ChildBlocks => Children;
     /// <summary>Nested syntax nodes captured during parsing, when available.</summary>
     internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; set; }
     /// <summary>Create an empty quote block.</summary>
@@ -49,12 +51,21 @@ public sealed class QuoteBlock : IMarkdownBlock, IChildMarkdownBlockContainer, I
         return $"<blockquote><p>{encoded}</p></blockquote>";
     }
 
-    IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => Children;
+    IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => ChildBlocks;
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
+
+    IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() {
+        if (SyntaxChildren != null && SyntaxChildren.Count > 0) {
+            return SyntaxChildren;
+        }
+
+        return MarkdownBlockSyntaxBuilder.BuildChildSyntaxNodes(ChildBlocks);
+    }
+
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
         new MarkdownSyntaxNode(
             MarkdownSyntaxKind.Quote,
             span,
             Children.Count == 0 ? string.Join("\n", Lines) : null,
-            MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(this));
+            ((IOwnedSyntaxChildrenMarkdownBlock)this).BuildOwnedSyntaxChildren());
 }

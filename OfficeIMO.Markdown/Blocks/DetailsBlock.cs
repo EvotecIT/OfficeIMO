@@ -9,6 +9,8 @@ public sealed class DetailsBlock : IMarkdownBlock, IChildMarkdownBlockContainer,
 
     /// <summary>Nested blocks rendered inside the details body.</summary>
     public System.Collections.Generic.List<IMarkdownBlock> Children { get; } = new System.Collections.Generic.List<IMarkdownBlock>();
+    /// <summary>Read-only AST-style view of parsed child blocks inside the details body.</summary>
+    public IReadOnlyList<IMarkdownBlock> ChildBlocks => Children;
     /// <summary>Nested syntax nodes captured during parsing, when available.</summary>
     internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; set; }
 
@@ -66,7 +68,7 @@ public sealed class DetailsBlock : IMarkdownBlock, IChildMarkdownBlockContainer,
         return sb.ToString();
     }
 
-    IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => Children;
+    IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => ChildBlocks;
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
 
     IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() {
@@ -85,8 +87,8 @@ public sealed class DetailsBlock : IMarkdownBlock, IChildMarkdownBlockContainer,
         if (Summary != null) {
             nodes.Add(MarkdownBlockSyntaxBuilder.BuildBlock(Summary));
         }
-        for (int i = 0; i < Children.Count; i++) {
-            nodes.Add(MarkdownBlockSyntaxBuilder.BuildBlock(Children[i]));
+        for (int i = 0; i < ChildBlocks.Count; i++) {
+            nodes.Add(MarkdownBlockSyntaxBuilder.BuildBlock(ChildBlocks[i]));
         }
         return nodes;
     }

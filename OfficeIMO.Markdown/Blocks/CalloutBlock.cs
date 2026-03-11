@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Docs/Markdown-style callout (admonition) block. Renders using
 /// "> [!KIND] Title" followed by indented content lines.
 /// </summary>
-public sealed class CalloutBlock : IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock {
+public sealed class CalloutBlock : IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Admonition kind, e.g., info, warning, success.</summary>
     public string Kind { get; }
     /// <summary>Callout title displayed inline with the marker.</summary>
@@ -121,12 +121,21 @@ public sealed class CalloutBlock : IMarkdownBlock, IChildMarkdownBlockContainer,
     }
 
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
+
+    IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() {
+        if (SyntaxChildren != null && SyntaxChildren.Count > 0) {
+            return SyntaxChildren;
+        }
+
+        return MarkdownBlockSyntaxBuilder.BuildChildSyntaxNodes(ChildBlocks);
+    }
+
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
         var calloutTitleMarkdown = TitleInlines.RenderMarkdown();
         return new MarkdownSyntaxNode(
             MarkdownSyntaxKind.Callout,
             span,
             string.IsNullOrWhiteSpace(calloutTitleMarkdown) ? Kind : Kind + ":" + calloutTitleMarkdown,
-            MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(this));
+            ((IOwnedSyntaxChildrenMarkdownBlock)this).BuildOwnedSyntaxChildren());
     }
 }
