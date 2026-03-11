@@ -151,7 +151,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "nested-blockquote-lazy-after-list-item", "> Outer\n> > Inner\n> > - a\n> > - b\n> After" };
     }
 
-    public static IEnumerable<object[]> MarkdigCompatibleLiteralAutolinkCases() {
+    public static IEnumerable<object[]> MarkdigCompatiblePresetCases() {
         yield return new object[] { "bare-http-default-markdig", "Visit https://example.com now" };
         yield return new object[] { "bare-www-default-markdig", "Visit www.example.com now" };
         yield return new object[] { "bare-email-default-markdig", "Contact user@example.com now" };
@@ -166,6 +166,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "literal-email-after-open-paren", "Contact (user@example.com) now" };
         yield return new object[] { "literal-email-after-apostrophe", "Contact 'user@example.com now" };
         yield return new object[] { "literal-email-after-open-bracket", "Contact [user@example.com now" };
+        yield return new object[] { "callout-stays-blockquote-text", "> [!NOTE]\n> body\ntext" };
+        yield return new object[] { "callout-with-blank-line-stays-blockquote-text", "> [!NOTE]\n>\n> body\ntext" };
+        yield return new object[] { "unordered-task-stays-plain-list-text", "- [ ] task\n  continuation" };
+        yield return new object[] { "ordered-task-stays-plain-list-text", "1. [x] task\ncontinuation" };
     }
 
     [Theory]
@@ -184,7 +188,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     }
 
     [Theory]
-    [MemberData(nameof(MarkdigCompatibleLiteralAutolinkCases))]
+    [MemberData(nameof(MarkdigCompatiblePresetCases))]
     public void MarkdownReader_Matches_Markdig_With_Markdig_Compatible_Preset(string _, string markdown) {
         var htmlOptions = new HtmlOptions {
             Style = HtmlStyle.Plain,

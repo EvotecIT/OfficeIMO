@@ -10,7 +10,7 @@ public static partial class MarkdownReader {
                 StartsTable(lines, i) ||
                 IsUnorderedListLine(lines[i], out _, out _, out _) ||
                 IsOrderedListLine(lines[i], out _, out _) ||
-                IsCalloutHeader(lines[i], out _, out _) ||
+                (options.Callouts && IsCalloutHeader(lines[i], out _, out _)) ||
                 IsQuoteStarter(lines[i]) ||
                 IsImageLine(lines[i])) return false;
 
@@ -23,7 +23,7 @@ public static partial class MarkdownReader {
                    !StartsTable(lines, j) &&
                    !IsUnorderedListLine(lines[j], out _, out _, out _) &&
                    !IsParagraphInterruptingOrderedListLine(lines[j]) &&
-                   !IsCalloutHeader(lines[j], out _, out _) &&
+                   (!options.Callouts || !IsCalloutHeader(lines[j], out _, out _)) &&
                    !IsQuoteStarter(lines[j]) &&
                    !IsImageLine(lines[j])) {
                 var raw = lines[j];

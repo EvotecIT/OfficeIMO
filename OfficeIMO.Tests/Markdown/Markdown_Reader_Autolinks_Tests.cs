@@ -450,6 +450,21 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Markdig_Compatible_Preset_Disables_Callouts_And_Task_Checkboxes() {
+        var options = MarkdownReaderOptions.CreateMarkdigCompatible();
+
+        var callout = MarkdownReader.Parse("> [!NOTE]\n> body", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var taskList = MarkdownReader.Parse("- [ ] task", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("class=\"callout", callout, StringComparison.Ordinal);
+        Assert.Contains("[!NOTE]", callout, StringComparison.Ordinal);
+        Assert.DoesNotContain("task-list-item-checkbox", taskList, StringComparison.Ordinal);
+        Assert.Contains("[ ] task", taskList, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Autolinks_Require_Left_Boundary() {
         var doc = MarkdownReader.Parse("prefixhttps://example.com should not linkify.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
