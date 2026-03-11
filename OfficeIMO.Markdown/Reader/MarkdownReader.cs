@@ -70,8 +70,7 @@ public static partial class MarkdownReader {
                         var frontMatter = FrontMatterBlock.FromObject(dict);
                         doc.Add(frontMatter);
                         if (syntaxNodes != null) {
-                            syntaxNodes.Add(MarkdownBlockSyntaxBuilder.BuildFrontMatterBlock(
-                                frontMatter,
+                            syntaxNodes.Add(((ISyntaxMarkdownBlock)frontMatter).BuildSyntaxNode(
                                 new MarkdownSourceSpan(lineOffset + i + 1, lineOffset + end + 1)));
                         }
                     }

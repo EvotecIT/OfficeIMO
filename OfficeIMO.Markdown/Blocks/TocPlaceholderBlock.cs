@@ -134,5 +134,5 @@ internal sealed class TocPlaceholderBlock : IMarkdownBlock, ISyntaxMarkdownBlock
         return sbNested.ToString();
     }
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        MarkdownBlockSyntaxBuilder.BuildTocPlaceholderBlock(span);
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.TocPlaceholder, span);
 }
