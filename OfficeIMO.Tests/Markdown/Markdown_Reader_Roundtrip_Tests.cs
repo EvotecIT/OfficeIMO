@@ -221,6 +221,17 @@ Paragraph
             Assert.Equal(new[] { "title", "repeat", "repeat-1" }, infos.Select(info => info.Anchor).ToArray());
             Assert.Equal(new[] { 1, 2, 2 }, infos.Select(info => info.Level).ToArray());
             Assert.Same(headings[1], infos[1].Block);
+
+            var byAnchor = parsed.FindHeadingByAnchor("#repeat-1");
+            Assert.NotNull(byAnchor);
+            Assert.Equal("Repeat", byAnchor!.Text);
+            Assert.Equal("repeat-1", byAnchor.Anchor);
+
+            Assert.Null(parsed.FindHeadingByAnchor("missing"));
+
+            var byText = parsed.FindHeadings("repeat");
+            Assert.Equal(2, byText.Count);
+            Assert.Equal(new[] { "repeat", "repeat-1" }, byText.Select(info => info.Anchor).ToArray());
         }
     }
 }
