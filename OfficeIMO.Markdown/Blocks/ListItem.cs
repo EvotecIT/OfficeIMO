@@ -63,8 +63,8 @@ public sealed class ListItem {
             var sbTight = new StringBuilder();
             sbTight.Append(checkbox).Append(Content.RenderHtml());
             for (int i = 0; i < Children.Count; i++) {
-                if (Children[i] is IInlineParagraphMarkdownBlock paragraph) {
-                    sbTight.Append(paragraph.ParagraphInlines.RenderHtml());
+                if (Children[i] is ITightListItemHtmlMarkdownBlock tightHtmlBlock) {
+                    sbTight.Append(tightHtmlBlock.RenderTightListItemHtml());
                 } else if (Children[i] is IMarkdownBlock b) {
                     sbTight.Append(b.RenderHtml());
                 }
