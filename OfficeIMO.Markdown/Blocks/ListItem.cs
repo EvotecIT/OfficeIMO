@@ -65,8 +65,8 @@ public sealed class ListItem {
             for (int i = 0; i < Children.Count; i++) {
                 if (Children[i] is ITightListItemHtmlMarkdownBlock tightHtmlBlock) {
                     sbTight.Append(tightHtmlBlock.RenderTightListItemHtml());
-                } else if (Children[i] is IMarkdownBlock b) {
-                    sbTight.Append(b.RenderHtml());
+                } else {
+                    sbTight.Append(Children[i].RenderHtml());
                 }
             }
             return sbTight.ToString();
@@ -84,18 +84,9 @@ public sealed class ListItem {
         }
 
         for (int i = 0; i < Children.Count; i++) {
-            if (Children[i] is IMarkdownBlock b) sb.Append(b.RenderHtml());
+            sb.Append(Children[i].RenderHtml());
         }
         return sb.ToString();
-    }
-    internal string ToMarkdownListLine() {
-        var indent = new string(' ', Level * 2);
-        if (IsTask) return indent + "- [" + (Checked ? "x" : " ") + "] " + RenderMarkdown();
-        return indent + "- " + RenderMarkdown();
-    }
-    internal string ToHtmlListItem() {
-        var cls = IsTask ? " class=\"task-list-item\"" : string.Empty;
-        return "<li" + cls + ">" + RenderHtml() + "</li>";
     }
 
     internal bool TryAbsorbTrailingParagraphBlocks(IReadOnlyList<IMarkdownBlock> trailingBlocks) {
