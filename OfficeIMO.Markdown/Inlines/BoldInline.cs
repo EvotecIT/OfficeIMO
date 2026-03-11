@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Bold/strong emphasis inline.
 /// </summary>
-public sealed class BoldInline : IMarkdownInline, IRenderableMarkdownInline {
+public sealed class BoldInline : IMarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
     /// <summary>Text content.</summary>
     public string Text { get; }
     /// <summary>Creates a bold inline with the given text.</summary>
@@ -12,4 +12,5 @@ public sealed class BoldInline : IMarkdownInline, IRenderableMarkdownInline {
     internal string RenderHtml() => "<strong>" + System.Net.WebUtility.HtmlEncode(Text) + "</strong>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
+    void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);
 }

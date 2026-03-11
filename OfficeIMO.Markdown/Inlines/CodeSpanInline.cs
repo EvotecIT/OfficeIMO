@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Inline code span.
 /// </summary>
-public sealed class CodeSpanInline : IMarkdownInline, IRenderableMarkdownInline {
+public sealed class CodeSpanInline : IMarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
     /// <summary>Code content.</summary>
     public string Text { get; }
     /// <summary>Creates an inline code span.</summary>
@@ -21,4 +21,5 @@ public sealed class CodeSpanInline : IMarkdownInline, IRenderableMarkdownInline 
     internal string RenderHtml() => "<code>" + System.Net.WebUtility.HtmlEncode(Text) + "</code>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
+    void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);
 }

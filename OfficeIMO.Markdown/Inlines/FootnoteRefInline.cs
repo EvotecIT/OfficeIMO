@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Footnote reference inline, e.g., [^1].
 /// </summary>
-public sealed class FootnoteRefInline : IMarkdownInline, IRenderableMarkdownInline {
+public sealed class FootnoteRefInline : IMarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
     /// <summary>Reference label pointing to a footnote definition.</summary>
     public string Label { get; }
     /// <summary>Create a footnote reference inline.</summary>
@@ -12,4 +12,5 @@ public sealed class FootnoteRefInline : IMarkdownInline, IRenderableMarkdownInli
     internal string RenderHtml() => $"<sup id=\"fnref:{System.Net.WebUtility.HtmlEncode(Label)}\"><a href=\"#fn:{System.Net.WebUtility.HtmlEncode(Label)}\">{System.Net.WebUtility.HtmlEncode(Label)}</a></sup>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
+    void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Label);
 }

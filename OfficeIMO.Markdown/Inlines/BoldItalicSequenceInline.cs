@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Bold+italic emphasis that contains nested inline nodes.
 /// Used by the reader so nested markup can be represented without changing the fluent builder API.
 /// </summary>
-public sealed class BoldItalicSequenceInline : IMarkdownInline, IRenderableMarkdownInline {
+public sealed class BoldItalicSequenceInline : IMarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
     /// <summary>Inline content.</summary>
     public InlineSequence Inlines { get; }
 
@@ -17,5 +17,6 @@ public sealed class BoldItalicSequenceInline : IMarkdownInline, IRenderableMarkd
     internal string RenderHtml() => "<strong><em>" + Inlines.RenderHtml() + "</em></strong>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
+    void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => InlinePlainText.AppendPlainText(sb, Inlines);
 }
 

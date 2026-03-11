@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Italic emphasis inline.
 /// </summary>
-public sealed class ItalicInline : IMarkdownInline, IRenderableMarkdownInline {
+public sealed class ItalicInline : IMarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
     /// <summary>Text content.</summary>
     public string Text { get; }
     /// <summary>Creates an italic inline with the given text.</summary>
@@ -12,4 +12,5 @@ public sealed class ItalicInline : IMarkdownInline, IRenderableMarkdownInline {
     internal string RenderHtml() => "<em>" + System.Net.WebUtility.HtmlEncode(Text) + "</em>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
+    void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);
 }
