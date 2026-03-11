@@ -111,23 +111,13 @@ internal static class HtmlRenderer {
         var sidebar = plan.Sidebar;
 
         if (sidebar != null) {
-            var side = sidebar.Options.Layout == TocLayout.SidebarLeft ? "left" : "right";
             var navHtml = ((IContextualHtmlMarkdownBlock)sidebar).RenderHtml(context);
             var content = new StringBuilder();
             for (int i = 0; i < plan.RenderBlocks.Count; i++) {
                 content.Append(RenderBodyBlock(plan.RenderBlocks[i], context));
             }
             if (footnotes.Count > 0) content.Append(BuildFootnotesSectionHtml(footnotes));
-            var sbLayout = new StringBuilder();
-            string widthStyle = sidebar.Options.WidthPx.HasValue ? $" style=\"--md-toc-width: {sidebar.Options.WidthPx.Value}px\"" : string.Empty;
-            sbLayout.Append($"<div class=\"md-layout two-col {side}\"{widthStyle}>");
-            if (side == "left") {
-                sbLayout.Append(navHtml).Append("<div class=\"md-content\">").Append(content.ToString()).Append("</div>");
-            } else {
-                sbLayout.Append("<div class=\"md-content\">").Append(content.ToString()).Append("</div>").Append(navHtml);
-            }
-            sbLayout.Append("</div>");
-            return sbLayout.ToString();
+            return sidebar.WrapSidebarLayoutHtml(navHtml, content.ToString());
         }
 
         var sb = new StringBuilder();
