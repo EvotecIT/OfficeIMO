@@ -271,6 +271,20 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Atx_Heading_Plain_Text_Uses_Link_Label_Text_From_Inline_Contracts() {
+            const string md = "## Prefix [Linked `Text`](https://example.com)";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var heading = Assert.IsType<HeadingBlock>(doc.Blocks[0]);
+            Assert.Equal("Prefix Linked Text", heading.Text);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("id=\"prefix-linked-text\"", html, StringComparison.Ordinal);
+            Assert.Contains("<a href=\"https://example.com\">Linked <code>Text</code></a>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Setext_Heading_Parses_Inline_Markup() {
             const string md = """
                 **Heading** `Text`

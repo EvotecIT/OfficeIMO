@@ -67,5 +67,22 @@ public class Markdown_Reader_Callout_RichBody_Tests {
         Assert.Equal(string.Empty, callout.Title);
         Assert.Equal("![](/icon.svg)", callout.TitleInlines.RenderMarkdown());
     }
+
+    [Fact]
+    public void Callout_Title_Plain_Text_Uses_Nested_Link_And_Code_Content() {
+        string md = """
+> [!NOTE] Use [linked `code`](https://example.com)
+> Body
+""";
+
+        var doc = MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
+
+        var callout = Assert.IsType<CalloutBlock>(Assert.Single(doc.Blocks));
+        Assert.Equal("Use linked code", callout.Title);
+        Assert.Equal("Use [linked `code`](https://example.com)", callout.TitleInlines.RenderMarkdown());
+
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("<strong>Use <a href=\"https://example.com\">linked <code>code</code></a></strong>", html, StringComparison.Ordinal);
+    }
 }
 
