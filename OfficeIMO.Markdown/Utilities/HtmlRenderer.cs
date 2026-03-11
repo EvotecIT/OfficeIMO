@@ -128,35 +128,10 @@ internal static class HtmlRenderer {
             var content = new StringBuilder();
             for (int i = 0; i < blocks.Count; i++) {
                 var block = blocks[i];
-                if (block is FootnoteDefinitionBlock fn) { footnotes.Add(fn); continue; }
-                // Skip the TOC title heading for enhanced layouts to avoid duplicate "On this page" in content
-                if (block is HeadingBlock h0 && i + 1 < blocks.Count && blocks[i + 1] is TocPlaceholderBlock tp0) {
-                    var o0 = tp0.Options;
-                    if (o0.IncludeTitle && (o0.Layout == TocLayout.SidebarLeft || o0.Layout == TocLayout.SidebarRight || o0.Layout == TocLayout.Panel)) {
-                        continue; // do not render this heading in content
-                    }
-                }
+                if (TryCollectFootnote(block, footnotes)) continue;
+                if (ShouldSkipTocTitleHeading(blocks, i, block)) continue;
                 if (ReferenceEquals(block, sidebar)) continue; // skip the sidebar placeholder; it's rendered as navHtml
-                if (block is HeadingBlock h) {
-                    if (!headingSlugs.TryGetValue(h, out var id)) id = MarkdownSlug.GitHub(h.Text);
-                    content.Append($"<h{h.Level} id=\"{id}\">");
-                    content.Append(h.Inlines.RenderHtml());
-                    if (options.IncludeAnchorLinks || options.ShowAnchorIcons) {
-                        var icon = System.Net.WebUtility.HtmlEncode(options.AnchorIcon ?? "🔗");
-                        content.Append($"<a class=\"heading-anchor\" href=\"#{id}\" data-anchor-id=\"{id}\" title=\"Copy link\" aria-label=\"Copy link\">{icon}</a>");
-                    }
-                    content.Append($"</h{h.Level}>");
-                    if (options.BackToTopLinks && h.Level >= options.BackToTopMinLevel) {
-                        var txt = System.Net.WebUtility.HtmlEncode(options.BackToTopText ?? "Back to top");
-                        content.Append($"<div class=\"back-to-top\"><a href=\"#top\">{txt}</a></div>");
-                    }
-                } else if (block is TocPlaceholderBlock tp) {
-                    // Render any non-sidebar TOCs inline within content
-                    if (!(tp.Options.Layout == TocLayout.SidebarLeft || tp.Options.Layout == TocLayout.SidebarRight))
-                        content.Append(BuildTocHtml(blocks, tp, headingSlugs));
-                } else {
-                    content.Append(block.RenderHtml());
-                }
+                content.Append(RenderBodyBlock(blocks, block, options, headingSlugs));
             }
             if (footnotes.Count > 0) content.Append(BuildFootnotesSectionHtml(footnotes));
             var sbLayout = new StringBuilder();
@@ -174,35 +149,76 @@ internal static class HtmlRenderer {
         var sb = new StringBuilder();
         for (int i = 0; i < blocks.Count; i++) {
             var block = blocks[i];
-            if (block is FootnoteDefinitionBlock fn) { footnotes.Add(fn); continue; }
-            // Skip TOC title heading for enhanced layouts
-            if (block is HeadingBlock h0 && i + 1 < blocks.Count && blocks[i + 1] is TocPlaceholderBlock tp0) {
-                var o0 = tp0.Options;
-                if (o0.IncludeTitle && (o0.Layout == TocLayout.SidebarLeft || o0.Layout == TocLayout.SidebarRight || o0.Layout == TocLayout.Panel)) {
-                    continue;
-                }
-            }
-            if (block is HeadingBlock h) {
-                if (!headingSlugs.TryGetValue(h, out var id)) id = MarkdownSlug.GitHub(h.Text);
-                sb.Append($"<h{h.Level} id=\"{id}\">");
-                sb.Append(h.Inlines.RenderHtml());
-                if (options.IncludeAnchorLinks || options.ShowAnchorIcons) {
-                    var icon = System.Net.WebUtility.HtmlEncode(options.AnchorIcon ?? "🔗");
-                    // Anchor icon button; when CopyHeadingLinkOnClick, JS hooks it to copy full URL
-                    sb.Append($"<a class=\"heading-anchor\" href=\"#{id}\" data-anchor-id=\"{id}\" title=\"Copy link\" aria-label=\"Copy link\">{icon}</a>");
-                }
-                sb.Append($"</h{h.Level}>");
-                if (options.BackToTopLinks && h.Level >= options.BackToTopMinLevel) {
-                    var txt = System.Net.WebUtility.HtmlEncode(options.BackToTopText ?? "Back to top");
-                    sb.Append($"<div class=\"back-to-top\"><a href=\"#top\">{txt}</a></div>");
-                }
-            } else if (block is TocPlaceholderBlock tp) {
-                sb.Append(BuildTocHtml(blocks, tp, headingSlugs));
-            } else {
-                sb.Append(block.RenderHtml());
-            }
+            if (TryCollectFootnote(block, footnotes)) continue;
+            if (ShouldSkipTocTitleHeading(blocks, i, block)) continue;
+            sb.Append(RenderBodyBlock(blocks, block, options, headingSlugs));
         }
         if (footnotes.Count > 0) sb.Append(BuildFootnotesSectionHtml(footnotes));
+        return sb.ToString();
+    }
+
+    private static bool TryCollectFootnote(IMarkdownBlock block, List<FootnoteDefinitionBlock> footnotes) {
+        if (block is not FootnoteDefinitionBlock footnote) {
+            return false;
+        }
+
+        footnotes.Add(footnote);
+        return true;
+    }
+
+    private static bool ShouldSkipTocTitleHeading(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, int index, IMarkdownBlock block) {
+        if (block is not HeadingBlock) {
+            return false;
+        }
+
+        if (index + 1 >= blocks.Count || blocks[index + 1] is not TocPlaceholderBlock toc) {
+            return false;
+        }
+
+        var options = toc.Options;
+        return options.IncludeTitle &&
+               (options.Layout == TocLayout.SidebarLeft ||
+                options.Layout == TocLayout.SidebarRight ||
+                options.Layout == TocLayout.Panel);
+    }
+
+    private static string RenderBodyBlock(System.Collections.Generic.IReadOnlyList<IMarkdownBlock> blocks, IMarkdownBlock block, HtmlOptions options, System.Collections.Generic.IReadOnlyDictionary<HeadingBlock, string> headingSlugs) {
+        if (block is HeadingBlock heading) {
+            return RenderHeadingHtml(heading, options, headingSlugs);
+        }
+
+        if (block is TocPlaceholderBlock toc) {
+            return BuildTocHtml(blocks, toc, headingSlugs);
+        }
+
+        return block.RenderHtml();
+    }
+
+    private static string RenderHeadingHtml(HeadingBlock heading, HtmlOptions options, System.Collections.Generic.IReadOnlyDictionary<HeadingBlock, string> headingSlugs) {
+        if (!headingSlugs.TryGetValue(heading, out var id)) {
+            id = MarkdownSlug.GitHub(heading.Text);
+        }
+
+        var sb = new StringBuilder();
+        sb.Append("<h").Append(heading.Level).Append(" id=\"").Append(id).Append("\">");
+        sb.Append(heading.Inlines.RenderHtml());
+        if (options.IncludeAnchorLinks || options.ShowAnchorIcons) {
+            var icon = System.Net.WebUtility.HtmlEncode(options.AnchorIcon ?? "🔗");
+            sb.Append("<a class=\"heading-anchor\" href=\"#")
+              .Append(id)
+              .Append("\" data-anchor-id=\"")
+              .Append(id)
+              .Append("\" title=\"Copy link\" aria-label=\"Copy link\">")
+              .Append(icon)
+              .Append("</a>");
+        }
+        sb.Append("</h").Append(heading.Level).Append('>');
+
+        if (options.BackToTopLinks && heading.Level >= options.BackToTopMinLevel) {
+            var text = System.Net.WebUtility.HtmlEncode(options.BackToTopText ?? "Back to top");
+            sb.Append("<div class=\"back-to-top\"><a href=\"#top\">").Append(text).Append("</a></div>");
+        }
+
         return sb.ToString();
     }
 
