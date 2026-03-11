@@ -155,6 +155,22 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void ToHtml_Can_Render_Heading_Anchors_And_BackToTop_From_Block_Context() {
+            var md = MarkdownDoc.Create().H2("Install");
+
+            var html = md.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Clean,
+                IncludeAnchorLinks = true,
+                BackToTopLinks = true,
+                BackToTopMinLevel = 2
+            });
+
+            Assert.Contains("class=\"heading-anchor\"", html);
+            Assert.Contains("href=\"#install\"", html);
+            Assert.Contains("class=\"back-to-top\"", html);
+        }
+
+        [Fact]
         public void TocHere_And_TocForSection_Work() {
             var md = MarkdownDoc.Create()
                 .H1("Doc")
