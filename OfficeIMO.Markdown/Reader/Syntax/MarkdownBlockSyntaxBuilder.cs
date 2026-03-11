@@ -47,7 +47,7 @@ internal static class MarkdownBlockSyntaxBuilder {
             MarkdownSyntaxKind.Quote,
             span,
             quote.Children.Count == 0 ? string.Join("\n", quote.Lines) : null,
-            GetProvidedSyntaxChildrenOrBuild(quote));
+            GetOwnedSyntaxChildrenOrBuild(quote));
 
     internal static MarkdownSyntaxNode BuildDefinitionListBlock(DefinitionListBlock definitionList, MarkdownSourceSpan? span) =>
         new MarkdownSyntaxNode(MarkdownSyntaxKind.DefinitionList, span, children: definitionList.BuildSyntaxItems());
@@ -58,18 +58,18 @@ internal static class MarkdownBlockSyntaxBuilder {
             MarkdownSyntaxKind.Callout,
             span,
             string.IsNullOrWhiteSpace(calloutTitleMarkdown) ? callout.Kind : callout.Kind + ":" + calloutTitleMarkdown,
-            GetProvidedSyntaxChildrenOrBuild(callout));
+            GetOwnedSyntaxChildrenOrBuild(callout));
     }
 
     internal static MarkdownSyntaxNode BuildDetailsBlock(DetailsBlock details, MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.Details, span, details.Open ? "open" : null, details.BuildSyntaxChildren());
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.Details, span, details.Open ? "open" : null, GetOwnedSyntaxChildrenOrBuild(details));
 
     internal static MarkdownSyntaxNode BuildFootnoteBlock(FootnoteDefinitionBlock footnote, MarkdownSourceSpan? span) =>
         new MarkdownSyntaxNode(
             MarkdownSyntaxKind.FootnoteDefinition,
             span,
             footnote.Label,
-            footnote.BuildSyntaxChildren());
+            GetOwnedSyntaxChildrenOrBuild(footnote));
 
     internal static MarkdownSyntaxNode BuildFrontMatterBlock(FrontMatterBlock frontMatter, MarkdownSourceSpan? span) =>
         new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatter, span, frontMatter.Render());
@@ -95,7 +95,11 @@ internal static class MarkdownBlockSyntaxBuilder {
         return nodes;
     }
 
-    internal static IReadOnlyList<MarkdownSyntaxNode> GetProvidedSyntaxChildrenOrBuild(IChildMarkdownBlockContainer block) {
+    internal static IReadOnlyList<MarkdownSyntaxNode> GetOwnedSyntaxChildrenOrBuild(IChildMarkdownBlockContainer block) {
+        if (block is IOwnedSyntaxChildrenMarkdownBlock ownedSyntaxChildren) {
+            return ownedSyntaxChildren.BuildOwnedSyntaxChildren();
+        }
+
         if (block is ISyntaxChildrenMarkdownBlock syntaxOwner &&
             syntaxOwner.ProvidedSyntaxChildren != null &&
             syntaxOwner.ProvidedSyntaxChildren.Count > 0) {
