@@ -119,6 +119,12 @@ tags: [a, b]
 
             Assert.False(frontMatter.TryGetValue<int>("title", out _));
             Assert.Null(frontMatter.FindEntry("missing"));
+
+            Assert.True(parsed.HasDocumentHeader);
+            Assert.Equal("published", parsed.FindFrontMatterEntry("published")!.Key);
+            Assert.True(parsed.TryGetFrontMatterValue<string>("title", out var documentTitle));
+            Assert.Equal("Doc", documentTitle);
+            Assert.False(parsed.TryGetFrontMatterValue<int>("title", out _));
         }
 
         [Fact]
