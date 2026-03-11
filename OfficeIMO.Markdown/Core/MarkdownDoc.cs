@@ -213,6 +213,10 @@ public class MarkdownDoc {
     public FrontMatterBlock.Entry? FindFrontMatterEntry(string key, StringComparison comparison = StringComparison.OrdinalIgnoreCase) =>
         DocumentHeader?.FindEntry(key, comparison);
 
+    /// <summary>Checks whether the document header contains an entry with the specified key.</summary>
+    public bool HasFrontMatterEntry(string key, StringComparison comparison = StringComparison.OrdinalIgnoreCase) =>
+        DocumentHeader?.HasEntry(key, comparison) == true;
+
     /// <summary>Gets a typed front matter value by key when the document header is present.</summary>
     public bool TryGetFrontMatterValue<T>(string key, out T? value) {
         if (DocumentHeader != null && DocumentHeader.TryGetValue<T>(key, out value)) {
