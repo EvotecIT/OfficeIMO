@@ -52,5 +52,9 @@ public sealed class QuoteBlock : IMarkdownBlock, IChildMarkdownBlockContainer, I
     IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => Children;
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        MarkdownBlockSyntaxBuilder.BuildQuoteBlock(this, span);
+        new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.Quote,
+            span,
+            Children.Count == 0 ? string.Join("\n", Lines) : null,
+            MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(this));
 }

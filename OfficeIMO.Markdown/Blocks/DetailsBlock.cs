@@ -92,7 +92,7 @@ public sealed class DetailsBlock : IMarkdownBlock, IChildMarkdownBlockContainer,
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        MarkdownBlockSyntaxBuilder.BuildDetailsBlock(this, span);
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.Details, span, Open ? "open" : null, ((IOwnedSyntaxChildrenMarkdownBlock)this).BuildOwnedSyntaxChildren());
 }
 
 /// <summary>
