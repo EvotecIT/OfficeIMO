@@ -1,8 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Description>Fluent and object-model Markdown builder for .NET with CommonMark/GFM-style
-            output. No external dependencies.</Description>
+        <Description>Markdown builder, typed reader/AST, and HTML renderer for .NET with GitHub-like output and optional Markdig-compatible reader mode. No external dependencies.</Description>
         <AssemblyName>OfficeIMO.Markdown</AssemblyName>
         <AssemblyTitle>OfficeIMO.Markdown</AssemblyTitle>
         <VersionPrefix>0.5.12</VersionPrefix>
