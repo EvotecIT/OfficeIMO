@@ -1,4 +1,4 @@
-# OfficeIMO — Open XML utilities for .NET (Word, Excel, PowerPoint, Visio)
+# OfficeIMO — Open XML utilities for .NET
 
 [![CI](https://github.com/EvotecIT/OfficeIMO/actions/workflows/dotnet-tests.yml/badge.svg?branch=master)](https://github.com/EvotecIT/OfficeIMO/actions/workflows/dotnet-tests.yml)
 [![codecov](https://codecov.io/gh/EvotecIT/OfficeIMO/branch/master/graph/badge.svg)](https://codecov.io/gh/EvotecIT/OfficeIMO)
@@ -11,116 +11,132 @@ If you would like to contact me you can do so via Twitter or LinkedIn.
 [![linked](https://img.shields.io/badge/LinkedIn-pklys-0077B5.svg?logo=LinkedIn)](https://www.linkedin.com/in/pklys)
 [![discord](https://img.shields.io/discord/508328927853281280?style=flat-square&label=discord%20chat)](https://evo.yt/discord)
 
-OfficeIMO is a family of lightweight, cross‑platform .NET libraries that make working with Office file formats easier using the Open XML SDK — no Office/COM required.
+OfficeIMO is a family of lightweight .NET libraries for working with Office and document-related formats without Office automation or COM.
 
-- Word: create and edit .docx documents with a friendly API
-- Excel: fast read/write helpers, tables, styles, ranges, fluent composers
-- CSV: fluent, typed CSV document model with schema validation, mapping, streaming
-- PowerPoint: build .pptx slides programmatically
-- Visio: basic .vsdx diagrams
-- Markdown: builder, typed reader/AST, HTML renderer, and WebView-friendly chat/docs shell helpers
+- Word: create and edit `.docx` documents with a friendly object model
+- Excel: read/write worksheets, tables, ranges, styles, and reports
+- CSV: schema-aware CSV model with typed mapping and streaming helpers
+- PowerPoint: generate `.pptx` slides programmatically
+- Visio: basic `.vsdx` generation helpers
+- Markdown: builder, typed reader/AST, HTML rendering, and host-oriented rendering helpers
+- Reader: read-only extraction facade for ingestion scenarios
 
-Each project ships as its own NuGet package under the MIT license.
-
+Each package is shipped independently under the MIT license unless noted otherwise.
 
 ## Project READMEs
 
-- Word → `OfficeIMO.Word/README.md`
-- Excel → `OfficeIMO.Excel/README.md`
-- CSV → `OfficeIMO.CSV/README.md`
-- PowerPoint → `OfficeIMO.PowerPoint/README.md`
-- Visio → `OfficeIMO.Visio/README.md`
-- Markdown:
-  - `OfficeIMO.Markdown` — builder, typed reader/AST, HTML rendering, front matter, TOC, callouts, and query helpers
-  - `OfficeIMO.MarkdownRenderer` — WebView/browser-oriented rendering shell and incremental update helpers
-- Converters:
-  - `OfficeIMO.Word.Html` — HTML ↔ Word
-  - `OfficeIMO.Word.Markdown` — Markdown ↔ Word
-  - `OfficeIMO.Word.Pdf` — PDF export for Word
-- Reader:
-  - `OfficeIMO.Reader` — unified, read-only extraction facade for AI ingestion (Word/Excel/PowerPoint/Markdown/PDF)
-- Markdown benchmark harness:
-  - `OfficeIMO.Markdown.Benchmarks` — BenchmarkDotNet project for representative parse and HTML-render workloads
-  - `Docs/officeimo.markdown.release-checklist.md` — markdown package publish/adoption checklist
-- Modular reader preview (internal, not published yet):
-  - `OfficeIMO.Zip` — safe ZIP traversal primitives
-  - `OfficeIMO.Epub` — reusable EPUB extraction primitives
-  - `OfficeIMO.Reader.Zip` — ZIP adapter into `ReaderChunk`
-  - `OfficeIMO.Reader.Epub` — EPUB adapter into `ReaderChunk`
-  - `OfficeIMO.Reader.Text` — structured text path (CSV/JSON/XML)
-  - `OfficeIMO.Reader.Html` — HTML adapter (HTML -> Word -> Markdown)
-  - roadmap: `Docs/officeimo.reader.modular-roadmap.md`
+- [OfficeIMO.Word](OfficeIMO.Word/README.md)
+- [OfficeIMO.Excel](OfficeIMO.Excel/README.md)
+- [OfficeIMO.CSV](OfficeIMO.CSV/README.md)
+- [OfficeIMO.PowerPoint](OfficeIMO.PowerPoint/README.md)
+- [OfficeIMO.Visio](OfficeIMO.Visio/README.md)
+- [OfficeIMO.Markdown](OfficeIMO.Markdown/README.md)
+- [OfficeIMO.MarkdownRenderer](OfficeIMO.MarkdownRenderer/README.md)
+- Converters
+  - `OfficeIMO.Word.Html`
+  - `OfficeIMO.Word.Markdown`
+  - `OfficeIMO.Word.Pdf`
+- Reader
+  - `OfficeIMO.Reader`
+- Benchmarks
+  - `OfficeIMO.Markdown.Benchmarks`
+- Release prep
+  - [Docs/officeimo.markdown.release-checklist.md](Docs/officeimo.markdown.release-checklist.md)
+
+## Package Families
+
+### Word family
+
+- `OfficeIMO.Word`: main Word document object model
+- `OfficeIMO.Word.Html`: HTML conversion helpers
+- `OfficeIMO.Word.Markdown`: Markdown conversion helpers
+- `OfficeIMO.Word.Pdf`: PDF export helpers
+
+### Markdown family
+
+- `OfficeIMO.Markdown`: markdown builder, typed reader/AST, HTML renderer, front matter, TOC, callouts, and query helpers
+- `OfficeIMO.MarkdownRenderer`: WebView/browser-friendly rendering shell and incremental update helpers
+- `OfficeIMO.Markdown.Benchmarks`: representative parse/render benchmark harness
+
+### Other packages
+
+- `OfficeIMO.Excel`: workbook, worksheet, table, style, and reporting helpers
+- `OfficeIMO.CSV`: typed CSV read/write and schema workflows
+- `OfficeIMO.PowerPoint`: programmatic slide generation
+- `OfficeIMO.Visio`: basic diagram generation
+- `OfficeIMO.Reader`: unified read-only extraction facade for ingestion workflows
 
 ## Targets
 
-- Word, PowerPoint, Visio: netstandard2.0, net472, net8.0 (Linux/macOS: net8.0); select projects also net9.0
-- Excel: netstandard2.0, net472, net48, net8.0/net9.0 (cross‑platform)
-- CSV: netstandard2.0, net472, net8.0, net9.0 (cross‑platform, streaming capable)
+- Word, PowerPoint, Visio: netstandard2.0, net472, net8.0, net10.0
+- Excel, CSV: netstandard2.0, net472, net8.0, net10.0
+- Markdown, MarkdownRenderer: netstandard2.0, net472, net8.0, net10.0
 
 ## AOT / Trimming
 
-- Reflection-heavy APIs remain for dynamic/PowerShell scenarios.
-- For NativeAOT, prefer explicit selectors and typed overloads (e.g., `ExcelSheet.InsertObjects` with selectors, `TableBuilder.FromSequenceAuto<T>`, `FrontMatterBlock.FromObject<T>`).
-
-## Build & Coverage
-
-- CI (Windows/Linux/macOS): single workflow badge above
-- Coverage: Codecov dashboard linked above
-
-## Licenses
-
-All OfficeIMO packages are MIT‑licensed with exception of Visio which is not yet licensed. See individual project READMEs for third‑party dependency licenses (Open XML SDK, ImageSharp, AngleSharp, QuestPDF, SkiaSharp, etc.).
+- Reflection-heavy convenience APIs remain available for dynamic and PowerShell scenarios.
+- For trimming-sensitive workloads, prefer typed overloads and explicit selectors.
+- `OfficeIMO.Markdown` and `OfficeIMO.MarkdownRenderer` are designed to stay lightweight and predictable for embedded/document-host scenarios.
 
 ## Dependencies at a glance
 
-Below are product‑centric graphs. Arrows point from a package to what it depends on.
+Arrows point from a package to what it depends on.
 
 ### Word
 
 ```mermaid
 flowchart TB
-  WCore[OfficeIMO.Word]
+  WCore["OfficeIMO.Word"]
   subgraph Extensions
-    WHtml[OfficeIMO.Word.Html]
-    WMd[OfficeIMO.Word.Markdown]
-    WPdf[OfficeIMO.Word.Pdf]
+    WHtml["OfficeIMO.Word.Html"]
+    WMd["OfficeIMO.Word.Markdown"]
+    WPdf["OfficeIMO.Word.Pdf"]
   end
 
-  %% External deps
-  Angle[AngleSharp]
-  AngleCss[AngleSharp.Css]
-  OfficeIMO.Markdown
-  Quest[QuestPDF]
-  Skia[SkiaSharp]
+  Angle["AngleSharp"]
+  AngleCss["AngleSharp.Css"]
+  Md["OfficeIMO.Markdown"]
+  Quest["QuestPDF"]
+  Skia["SkiaSharp"]
 
-  %% Core to extensions (install these when you need that capability)
-  WCore --> WHtml
-  WCore --> WMd
-  WCore --> WPdf
+  WHtml --> WCore
+  WMd --> WCore
+  WPdf --> WCore
 
-  %% Extension uses
   WMd --> WHtml
-
-  %% External dependencies per extension
   WHtml --> Angle
   WHtml --> AngleCss
-  WMd   --> OfficeIMO.Markdown
-  WPdf  --> Quest
-  WPdf  --> Skia
+  WMd --> Md
+  WPdf --> Quest
+  WPdf --> Skia
 ```
 
-> Converters (Word.Html, Word.Markdown, Word.Pdf) are actively developed and will be released to NuGet once quality and test coverage goals are met. They ship in‑repo for early evaluation.
-```
+> Converters ship in-repo and continue to evolve before broader release packaging decisions.
+
+### Markdown
+
+```mermaid
+flowchart TB
+  Md["OfficeIMO.Markdown"]
+  MdRenderer["OfficeIMO.MarkdownRenderer"]
+  MdBench["OfficeIMO.Markdown.Benchmarks"]
+  WordMd["OfficeIMO.Word.Markdown"]
+  Json["System.Text.Json"]
+
+  MdRenderer --> Md
+  MdRenderer --> Json
+  MdBench --> Md
+  WordMd --> Md
 ```
 
 ### Excel
 
 ```mermaid
 flowchart TD
-  Xl[OfficeIMO.Excel]
-  OXml[DocumentFormat.OpenXml]
-  ImgSharp[SixLabors.ImageSharp]
-  Fonts[SixLabors.Fonts]
+  Xl["OfficeIMO.Excel"]
+  OXml["DocumentFormat.OpenXml"]
+  ImgSharp["SixLabors.ImageSharp"]
+  Fonts["SixLabors.Fonts"]
 
   Xl --> OXml
   Xl --> ImgSharp
@@ -131,8 +147,8 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  Ppt[OfficeIMO.PowerPoint]
-  OXml[DocumentFormat.OpenXml]
+  Ppt["OfficeIMO.PowerPoint"]
+  OXml["DocumentFormat.OpenXml"]
 
   Ppt --> OXml
 ```
@@ -141,41 +157,53 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  Vsdx[OfficeIMO.Visio]
-  ImgSharp[SixLabors.ImageSharp]
-  Pkg[System.IO.Packaging]
+  Vsdx["OfficeIMO.Visio"]
+  ImgSharp["SixLabors.ImageSharp"]
+  Pkg["System.IO.Packaging"]
 
   Vsdx --> ImgSharp
   Vsdx --> Pkg
 ```
 
-### When do I need what?
+## When do I need what?
 
-- Only editing/creating Word (.docx): add `OfficeIMO.Word`.
-- Word → PDF export: add `OfficeIMO.Word` + `OfficeIMO.Word.Pdf` (pulls QuestPDF + SkiaSharp).
-- Word ↔ HTML: add `OfficeIMO.Word` + `OfficeIMO.Word.Html` (pulls AngleSharp + AngleSharp.Css).
-- Word ↔ Markdown: add `OfficeIMO.Word` + `OfficeIMO.Word.Markdown` (uses OfficeIMO.Markdown and `OfficeIMO.Word.Html`).
-- Excel read/write, tables, styles: add `OfficeIMO.Excel` (pulls ImageSharp + Fonts for sizing and header images).
-- PowerPoint slides: add `OfficeIMO.PowerPoint`.
-- Visio drawings: add `OfficeIMO.Visio` (uses ImageSharp and System.IO.Packaging).
+- Creating or editing Word documents: add `OfficeIMO.Word`
+- Word to HTML: add `OfficeIMO.Word` + `OfficeIMO.Word.Html`
+- Word to Markdown or Markdown to Word: add `OfficeIMO.Word` + `OfficeIMO.Word.Markdown`
+- Word to PDF: add `OfficeIMO.Word` + `OfficeIMO.Word.Pdf`
+- Building or parsing Markdown directly: add `OfficeIMO.Markdown`
+- Hosting Markdown in WebView2 or a browser shell: add `OfficeIMO.MarkdownRenderer`
+- Benchmarking markdown parse/render behavior before release: use `OfficeIMO.Markdown.Benchmarks`
+- Excel read/write and reporting: add `OfficeIMO.Excel`
+- CSV schemas and typed CSV workflows: add `OfficeIMO.CSV`
+- PowerPoint slides: add `OfficeIMO.PowerPoint`
+- Visio diagrams: add `OfficeIMO.Visio`
 
-## Dependency versions (high‑level)
+## Markdown Release Prep
 
-- DocumentFormat.OpenXml: 3.3.x (constraints: [3.3.0, 4.0.0))
-- SixLabors.ImageSharp: 2.1.x; SixLabors.Fonts: 1.0.x (Excel)
-- AngleSharp: 1.3.x; AngleSharp.Css: 1.0.0‑beta.154 (Word.Html)
- 
-- QuestPDF: 2025.7.x; SkiaSharp: 3.119.x (Word.Pdf)
+For the current markdown package line:
 
-We keep package ranges conservative to avoid breaking changes; see each project’s csproj for exact ranges.
+- package docs live in [OfficeIMO.Markdown/README.md](OfficeIMO.Markdown/README.md) and [OfficeIMO.MarkdownRenderer/README.md](OfficeIMO.MarkdownRenderer/README.md)
+- benchmark harness lives in `OfficeIMO.Markdown.Benchmarks`
+- release steps live in [Docs/officeimo.markdown.release-checklist.md](Docs/officeimo.markdown.release-checklist.md)
+
+## Dependency versions (high level)
+
+- DocumentFormat.OpenXml: 3.3.x (conservative version ranges)
+- SixLabors.ImageSharp / SixLabors.Fonts: Excel and image-centric packages
+- AngleSharp / AngleSharp.Css: HTML conversion layers
+- QuestPDF / SkiaSharp: PDF conversion layers
+- System.Text.Json: markdown renderer host helpers
+
+See each project `.csproj` for exact package ranges.
 
 ## Licenses
 
-- OfficeIMO.Word, OfficeIMO.Excel, OfficeIMO.PowerPoint, OfficeIMO.Word.Html, OfficeIMO.Word.Markdown, OfficeIMO.Word.Pdf: MIT
-- OfficeIMO.Visio: License TBD (not MIT yet)
+- `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.CSV`, `OfficeIMO.PowerPoint`, `OfficeIMO.Markdown`, `OfficeIMO.MarkdownRenderer`: MIT
+- `OfficeIMO.Visio`: license still being finalized
 
-Third‑party dependency licenses: see their upstream repos (Open XML SDK, SixLabors, AngleSharp, QuestPDF, SkiaSharp).
- 
+Third-party dependency licenses are governed by their upstream projects.
+
 ## Support This Project
 
 If you find this project helpful, please consider supporting its development.
@@ -198,7 +226,7 @@ Thank you for considering support!
 
 ## Please share with the community
 
-Please consider sharing a post about OfficeIMO and the value it provides. It really does help!
+Please consider sharing a post about OfficeIMO and the value it provides. It really does help.
 
 [![Share on reddit](https://img.shields.io/badge/share%20on-reddit-red?logo=reddit)](https://reddit.com/submit?url=https://github.com/EvotecIT/OfficeIMO&title=OfficeIMO)
 [![Share on hacker news](https://img.shields.io/badge/share%20on-hacker%20news-orange?logo=ycombinator)](https://news.ycombinator.com/submitlink?u=https://github.com/EvotecIT/OfficeIMO)
@@ -206,5 +234,3 @@ Please consider sharing a post about OfficeIMO and the value it provides. It rea
 [![Share on facebook](https://img.shields.io/badge/share%20on-facebook-1976D2?logo=facebook)](https://www.facebook.com/sharer/sharer.php?u=https://github.com/EvotecIT/OfficeIMO)
 [![Share on linkedin](https://img.shields.io/badge/share%20on-linkedin-3949AB?logo=linkedin)](https://www.linkedin.com/shareArticle?url=https://github.com/EvotecIT/OfficeIMO&title=OfficeIMO)
 
-## Features
-See individual project READMEs for detailed capability lists and code samples.
