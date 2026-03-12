@@ -43,7 +43,7 @@ jobs:
           echo "Keep newest caches:   $KEEP_CACHES"
 
       - name: Run PowerForge housekeeping
-        uses: EvotecIT/PSPublishModule/.github/actions/github-housekeeping@1d74ff7d0b392d21256be52950c55062ce13e089
+        uses: EvotecIT/PSPublishModule/.github/actions/github-housekeeping@b76fc9aa3591a1896f04d7350f81a4b1df728d8f
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cleanup-runner: 'false'
