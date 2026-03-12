@@ -1,6 +1,9 @@
 ## Unreleased
 ### What's Changed
 * Add AI-ingestion focused chunk extraction APIs (Word/Excel/PowerPoint) and new `OfficeIMO.Reader` facade (Stream/byte[] supported) by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1430
+* Continue OfficeIMO.Markdown reader/AST/query cleanup and public API hardening across headings, lists, front matter, traversal helpers, and renderer contracts
+* Add OfficeIMO.Markdown benchmark harness for representative parse and HTML-render workloads by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1684
+* Clean up OfficeIMO.Markdown public docs and naming so the package presents a neutral portable profile rather than competitor-specific wording
 
 ## 0.23.0 - 2025.06.11
 ### What's Changed
