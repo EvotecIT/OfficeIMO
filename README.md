@@ -41,6 +41,7 @@ Each project ships as its own NuGet package under the MIT license.
   - `OfficeIMO.Reader` — unified, read-only extraction facade for AI ingestion (Word/Excel/PowerPoint/Markdown/PDF)
 - Markdown benchmark harness:
   - `OfficeIMO.Markdown.Benchmarks` — BenchmarkDotNet project for representative parse and HTML-render workloads
+  - `Docs/officeimo.markdown.release-checklist.md` — markdown package publish/adoption checklist
 - Modular reader preview (internal, not published yet):
   - `OfficeIMO.Zip` — safe ZIP traversal primitives
   - `OfficeIMO.Epub` — reusable EPUB extraction primitives

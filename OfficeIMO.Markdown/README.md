@@ -53,6 +53,7 @@ Highlights
   - OfficeIMO default reader behavior
   - OfficeIMO portable reader profile
   - the internal comparison baseline used during parity work
+- publish/adoption steps are documented in `Docs/officeimo.markdown.release-checklist.md`
 
 ### AOT / Trimming notes
 
