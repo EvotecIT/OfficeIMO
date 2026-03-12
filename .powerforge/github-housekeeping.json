@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/github.housekeeping.schema.json",
+  "repository": "EvotecIT/OfficeIMO",
+  "tokenEnvName": "GITHUB_TOKEN",
+  "dryRun": false,
+  "artifacts": {
+    "enabled": true,
+    "keepLatestPerName": 10,
+    "maxAgeDays": 7,
+    "maxDelete": 200
+  },
+  "caches": {
+    "enabled": true,
+    "keepLatestPerKey": 3,
+    "maxAgeDays": 14,
+    "maxDelete": 200
+  },
+  "runner": {
+    "enabled": false
+  }
+}

@@ -5,18 +5,10 @@ on:
     - cron: '17 */6 * * *'
   workflow_dispatch:
     inputs:
-      days:
-        description: 'Delete items older than N days'
+      apply:
+        description: 'Apply deletions (true/false)'
         required: false
-        default: '7'
-      keep_artifacts:
-        description: 'Keep newest N artifacts'
-        required: false
-        default: '20'
-      keep_caches:
-        description: 'Keep newest N caches'
-        required: false
-        default: '20'
+        default: 'true'
 
 permissions:
   actions: write
@@ -26,28 +18,12 @@ concurrency:
   group: actions-storage-cleanup
   cancel-in-progress: false
 
-env:
-  CLEAN_DAYS: ${{ github.event.inputs.days || '7' }}
-  KEEP_ARTIFACTS: ${{ github.event.inputs.keep_artifacts || '20' }}
-  KEEP_CACHES: ${{ github.event.inputs.keep_caches || '20' }}
-
 jobs:
   cleanup:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Show settings
-        run: |
-          echo "Days threshold: $CLEAN_DAYS"
-          echo "Keep newest artifacts: $KEEP_ARTIFACTS"
-          echo "Keep newest caches:   $KEEP_CACHES"
-
-      - name: Run PowerForge housekeeping
-        uses: EvotecIT/PSPublishModule/.github/actions/github-housekeeping@b76fc9aa3591a1896f04d7350f81a4b1df728d8f
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          cleanup-runner: 'false'
-          artifact-max-age-days: ${{ env.CLEAN_DAYS }}
-          artifact-keep: ${{ env.KEEP_ARTIFACTS }}
-          cache-max-age-days: ${{ env.CLEAN_DAYS }}
-          cache-keep: ${{ env.KEEP_CACHES }}
+    uses: EvotecIT/PSPublishModule/.github/workflows/reusable-github-housekeeping.yml@bbf70fcadad5a2fc28fd3749685d35baf81d3e4e
+    with:
+      config-path: ./.powerforge/github-housekeeping.json
+      apply: ${{ github.event_name == 'workflow_dispatch' && inputs.apply == 'true' || github.event_name != 'workflow_dispatch' }}
+      powerforge-ref: bbf70fcadad5a2fc28fd3749685d35baf81d3e4e
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
