@@ -10,6 +10,7 @@ Markdown builder, reader, AST/query model, and HTML renderer for .NET. Zero runt
 - GitHub-like output by default, with a typed reader and a portable profile when you need stricter parsing defaults
 - HTML export with clean themes (Clean, GitHub Light/Dark/Auto), CDN/offline assets, and Prism highlighting
 - Designed for reporting and chat/docs rendering — tables from sequences/objects, callouts, TOC, front matter, and runtime-safe ingestion presets
+- Internal benchmark harness available in `OfficeIMO.Markdown.Benchmarks` for representative parse/render measurements before releases
 
 ### Design & Expectations
 
@@ -44,6 +45,14 @@ Highlights
 - `OfficeIMO.Markdown` is now suitable for real builder + reader workloads, including AST-style traversal and chat/document rendering pipelines.
 - It is still not a full CommonMark/GFM replacement.
 - Use the default mode for OfficeIMO/GitHub-like behavior and `MarkdownReaderOptions.CreatePortableProfile()` when stricter, more portable reader behavior matters more than OfficeIMO conveniences.
+
+### Benchmarks
+
+- `OfficeIMO.Markdown.Benchmarks` is included in-repo as the release-prep benchmark harness.
+- It measures representative parse and HTML-render workloads for:
+  - OfficeIMO default reader behavior
+  - OfficeIMO portable reader profile
+  - the internal comparison baseline used during parity work
 
 ### AOT / Trimming notes
 
