@@ -337,7 +337,9 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Equal(MarkdownSemanticKinds.Chart, block.SemanticKind);
         Assert.Equal("vendor-chart", block.Language);
         Assert.Equal("{\"type\":\"bar\"}", block.Content);
-        Assert.Equal("```vendor-chart\n{\"type\":\"bar\"}\n```", document.ToMarkdown());
+        Assert.Equal(
+            NormalizeMarkdown("```vendor-chart\n{\"type\":\"bar\"}\n```"),
+            NormalizeMarkdown(document.ToMarkdown()));
     }
 
     [Fact]
@@ -355,6 +357,12 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Equal(MarkdownSemanticKinds.DataView, block.SemanticKind);
         Assert.Equal("ix-dataview", block.Language);
         Assert.Equal(raw, block.Content);
-        Assert.Equal("```ix-dataview\n" + raw + "\n```", document.ToMarkdown());
+        Assert.Equal(
+            NormalizeMarkdown("```ix-dataview\n" + raw + "\n```"),
+            NormalizeMarkdown(document.ToMarkdown()));
+    }
+
+    private static string NormalizeMarkdown(string markdown) {
+        return markdown.Replace("\r\n", "\n").TrimEnd('\n');
     }
 }
