@@ -30,6 +30,7 @@ Supported block-level mappings include:
 - images and figures
 - details / summary
 - definition lists
+- shared `data-omd-*` visual host elements back into semantic fenced blocks
 - raw HTML fallback blocks for unsupported elements
 
 Supported inline mappings include:
@@ -98,6 +99,7 @@ var document = converter.ConvertToDocument("<article><h1>Hello</h1><p>Body</p></
 - Multiple `dt` terms sharing the same `dd` group are preserved.
 - Block-rich `dd` values are preserved as Markdown text instead of being forced through inline-only conversion.
 - Unsupported custom/container elements are treated as block-level content when they are structurally block-like or when raw block preservation is enabled.
+- Shared renderer visual hosts that carry the `data-omd-*` contract are decoded back into `SemanticFencedBlock` nodes, which lets `OfficeIMO.MarkdownRenderer` HTML round-trip into semantic markdown fences.
 - Conversion happens through the `OfficeIMO.Markdown` AST, so the effective fidelity is bounded by that model.
 
 ## Current limitations
