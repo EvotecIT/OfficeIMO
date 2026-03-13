@@ -1,0 +1,42 @@
+[office.ast]
+0: Heading(level=1, text="Compatibility Boundary")
+1: TocPlaceholderBlock
+2: Heading(level=2, text="Scope")
+3: Paragraph("Portable versus OfficeIMO profile behavior.")
+4: Callout(kind=note, title="Important")
+  0: Paragraph("Callout body with [link](https://example.com/docs).")
+  1: UnorderedList(items=2)
+    item[0]: task=no content="Nested item A"
+    item[1]: task=no content="Nested item B"
+5: UnorderedList(items=2)
+  item[0]: task=unchecked content="Track parser parity"
+  item[1]: task=checked content="Keep AST honest"
+6: Paragraph("Footnote ref[^shape].")
+7: Footnote(label=shape)
+  paragraph[0]: "Footnote paragraph one."
+8: Paragraph("Visit [https://example.com/path\_\(x\)](https://example.com/path_\(x\)) now.")
+
+[office.html]
+<h1 id="compatibility-boundary">Compatibility Boundary</h1><h2>Table of Contents</h2><ul><li><a href="#scope">Scope</a></li></ul><h2 id="scope">Scope</h2><p>Portable versus OfficeIMO profile behavior.</p><blockquote class="callout note"><p><strong>Important</strong></p><p>Callout body with <a href="https://example.com/docs">link</a>.</p><ul><li>Nested item A</li><li>Nested item B</li></ul></blockquote><ul class="contains-task-list"><li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled>Track parser parity</li><li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled checked>Keep AST honest</li></ul><p>Footnote ref<sup id="fnref:shape"><a href="#fn:shape">shape</a></sup>.</p><p>Visit <a href="https://example.com/path_(x)">https://example.com/path_(x)</a>now.</p><section class="footnotes"><hr /><ol><li id="fn:shape"><p>Footnote paragraph one. <a class="footnote-backref" href="#fnref:shape" aria-label="Back to reference">&#8617;</a></p></li></ol></section>
+
+[portable.ast]
+0: Heading(level=1, text="Compatibility Boundary")
+1: Paragraph("\[TOC\]")
+2: Heading(level=2, text="Scope")
+3: Paragraph("Portable versus OfficeIMO profile behavior.")
+4: Quote
+  0: Paragraph("\[!NOTE\] Important Callout body with [link](https://example.com/docs).")
+  1: UnorderedList(items=2)
+    item[0]: task=no content="Nested item A"
+    item[1]: task=no content="Nested item B"
+5: UnorderedList(items=2)
+  item[0]: task=no content="\[ \] Track parser parity"
+  item[1]: task=no content="\[x\] Keep AST honest"
+6: Paragraph("Footnote ref\[^shape\].")
+7: DefinitionList(entries=1)
+  entry[0]: term="\[^shape\]"
+    0: Paragraph("Footnote paragraph one.")
+8: Paragraph("Visit https://example.com/path\_\(x\) now.")
+
+[portable.html]
+<h1 id="compatibility-boundary">Compatibility Boundary</h1><p>[TOC]</p><h2 id="scope">Scope</h2><p>Portable versus OfficeIMO profile behavior.</p><blockquote><p>[!NOTE] Important Callout body with <a href="https://example.com/docs">link</a>.</p><ul><li>Nested item A</li><li>Nested item B</li></ul></blockquote><ul><li>[ ] Track parser parity</li><li>[x] Keep AST honest</li></ul><p>Footnote ref[^shape].</p><dl><dt>[^shape]</dt><dd>Footnote paragraph one.</dd></dl><p>Visit https://example.com/path_(x) now.</p>

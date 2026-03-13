@@ -66,5 +66,28 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Status: healthy", paragraphRunText);
             Assert.Contains("Impact: none", paragraphRunText);
         }
+
+        [Fact]
+        public void MarkdownToWord_ReaderOptions_CanDisableOfficeIMOCallouts() {
+            const string markdown = """
+                > [!NOTE] Portable title
+                > Still ordinary quoted text.
+                """;
+
+            using var officeDocument = markdown.LoadFromMarkdown(new MarkdownToWordOptions());
+            var officeText = string.Join("\n", officeDocument.Paragraphs.Select(p => p.Text));
+
+            Assert.Contains("Portable title", officeText, StringComparison.Ordinal);
+            Assert.DoesNotContain("[!NOTE]", officeText, StringComparison.Ordinal);
+
+            using var commonMarkDocument = markdown.LoadFromMarkdown(new MarkdownToWordOptions {
+                ReaderOptions = OfficeIMO.Markdown.MarkdownReaderOptions.CreateCommonMarkProfile()
+            });
+            var commonMarkText = string.Join("\n", commonMarkDocument.Paragraphs.Select(p => p.Text));
+
+            Assert.Contains("[!NOTE]", commonMarkText, StringComparison.Ordinal);
+            Assert.Contains("Portable title", commonMarkText, StringComparison.Ordinal);
+            Assert.Contains("Still ordinary quoted text.", commonMarkText, StringComparison.Ordinal);
+        }
     }
 }

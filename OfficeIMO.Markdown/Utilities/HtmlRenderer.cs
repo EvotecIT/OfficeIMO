@@ -122,19 +122,24 @@ internal static class HtmlRenderer {
             for (int i = 0; i < plan.RenderBlocks.Count; i++) {
                 content.Append(RenderBodyBlock(plan.RenderBlocks[i], context));
             }
-            if (footnotes.Count > 0) content.Append(BuildFootnotesSectionHtml(footnotes));
-            return sidebar.WrapSidebarLayoutHtml(navHtml, content.ToString());
-        }
+        if (footnotes.Count > 0) content.Append(BuildFootnotesSectionHtml(footnotes, options));
+        return sidebar.WrapSidebarLayoutHtml(navHtml, content.ToString());
+    }
 
         var sb = new StringBuilder();
         for (int i = 0; i < plan.RenderBlocks.Count; i++) {
             sb.Append(RenderBodyBlock(plan.RenderBlocks[i], context));
         }
-        if (footnotes.Count > 0) sb.Append(BuildFootnotesSectionHtml(footnotes));
+        if (footnotes.Count > 0) sb.Append(BuildFootnotesSectionHtml(footnotes, options));
         return sb.ToString();
     }
 
     private static string RenderBodyBlock(IMarkdownBlock block, MarkdownBodyRenderContext context) {
+        var overridden = TryRenderBlockOverride(block, context.Options);
+        if (overridden != null) {
+            return overridden;
+        }
+
         if (block is IContextualHtmlMarkdownBlock contextualBlock) {
             return contextualBlock.RenderHtml(context);
         }
@@ -142,8 +147,35 @@ internal static class HtmlRenderer {
         return block.RenderHtml();
     }
 
-    private static string BuildFootnotesSectionHtml(IReadOnlyList<IFootnoteSectionMarkdownBlock> footnotes) {
+    private static string? TryRenderBlockOverride(IMarkdownBlock block, HtmlOptions options) {
+        var extensions = options.BlockRenderExtensions;
+        if (extensions == null || extensions.Count == 0) {
+            return null;
+        }
+
+        for (int i = extensions.Count - 1; i >= 0; i--) {
+            var extension = extensions[i];
+            if (extension == null || !extension.Matches(block)) {
+                continue;
+            }
+
+            var rendered = extension.RenderHtml(block, options);
+            if (rendered != null) {
+                return rendered;
+            }
+        }
+
+        return null;
+    }
+
+    private static string BuildFootnotesSectionHtml(IReadOnlyList<IFootnoteSectionMarkdownBlock> footnotes, HtmlOptions options) {
         if (footnotes == null || footnotes.Count == 0) return string.Empty;
+
+        var typedFootnotes = footnotes.OfType<FootnoteDefinitionBlock>().ToList();
+        var overridden = options.FootnoteSectionHtmlRenderer?.Invoke(typedFootnotes, options);
+        if (overridden != null) {
+            return overridden;
+        }
 
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var sb = new StringBuilder();

@@ -1,0 +1,5 @@
+[strict.html]
+<article class="markdown-body"><dl><dt>**Status</dt><dd>HEALTHY** - <strong>Servers checked:</strong>5 -<strong>Replication edges:</strong>62 -*Failed edges:**0 -*Stale edges (&gt;24h):<strong>0 -</strong>Servers with failures:**0</dd></dl></article>
+
+[chat.html]
+<article class="markdown-body"><p>Status <strong>HEALTHY</strong></p><ul><li>Servers checked <strong>5</strong></li><li>Replication edges <strong>62</strong></li><li>Failed edges <strong>0</strong></li><li>Stale edges (&gt;24h) <strong>0</strong></li><li>Servers with failures <strong>0</strong></li></ul></article>

@@ -55,6 +55,7 @@
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Examples" />
+        <InternalsVisibleTo Include="OfficeIMO.Markdown.Html" />
     </ItemGroup>
 
 </Project>

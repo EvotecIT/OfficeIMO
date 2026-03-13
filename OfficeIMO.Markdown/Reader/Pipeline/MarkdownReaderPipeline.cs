@@ -18,15 +18,15 @@ public sealed class MarkdownReaderPipeline {
         options ??= new MarkdownReaderOptions();
         var p = new MarkdownReaderPipeline();
         if (options.FrontMatter) p.Add(new MarkdownReader.FrontMatterParser());
-        if (options.Callouts) p.Add(new MarkdownReader.CalloutParser());
+        AddExtensions(p, options, MarkdownBlockParserPlacement.AfterFrontMatter);
         p.Add(new MarkdownReader.QuoteParser());
         if (options.FencedCode) p.Add(new MarkdownReader.FencedCodeParser());
         if (options.Images) p.Add(new MarkdownReader.ImageParser());
         p.Add(new MarkdownReader.HrParser());
         if (options.HtmlBlocks) p.Add(new MarkdownReader.HtmlBlockParser());
-        p.Add(new MarkdownReader.TocParser());
+        AddExtensions(p, options, MarkdownBlockParserPlacement.AfterHtmlBlocks);
         p.Add(new MarkdownReader.ReferenceLinkDefParser());
-        p.Add(new MarkdownReader.FootnoteParser());
+        AddExtensions(p, options, MarkdownBlockParserPlacement.AfterReferenceLinkDefinitions);
         if (options.Tables) p.Add(new MarkdownReader.TableParser());
         if (options.DefinitionLists) p.Add(new MarkdownReader.DefinitionListParser());
         if (options.OrderedLists) p.Add(new MarkdownReader.OrderedListParser());
@@ -34,7 +34,29 @@ public sealed class MarkdownReaderPipeline {
         if (options.IndentedCodeBlocks) p.Add(new MarkdownReader.IndentedCodeParser());
         p.Add(new MarkdownReader.SetextHeadingParser());
         if (options.Headings) p.Add(new MarkdownReader.HeadingParser());
+        AddExtensions(p, options, MarkdownBlockParserPlacement.BeforeParagraphs);
         if (options.Paragraphs) p.Add(new MarkdownReader.ParagraphParser()); // must be last
         return p;
+    }
+
+    private static void AddExtensions(
+        MarkdownReaderPipeline pipeline,
+        MarkdownReaderOptions options,
+        MarkdownBlockParserPlacement placement) {
+        var extensions = options.BlockParserExtensions;
+        if (extensions == null || extensions.Count == 0) {
+            return;
+        }
+
+        for (int i = 0; i < extensions.Count; i++) {
+            var extension = extensions[i];
+            if (extension == null
+                || extension.Placement != placement
+                || !extension.AppliesTo(options)) {
+                continue;
+            }
+
+            pipeline.Add(extension.Parser);
+        }
     }
 }

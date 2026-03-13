@@ -107,6 +107,27 @@ public sealed class MarkdownRendererOptions {
     public bool NormalizeBrokenStrongArrowLabels { get; set; } = false;
 
     /// <summary>
+    /// When true, repairs malformed signal-flow bullets where an entire arrow chain was accidentally wrapped
+    /// in one strong span.
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeWrappedSignalFlowStrongRuns { get; set; } = false;
+
+    /// <summary>
+    /// When true, expands collapsed transcript-style metric chains into real markdown lines and
+    /// converts legacy bold metric labels into plain labels with bold values.
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeCollapsedMetricChains { get; set; } = false;
+
+    /// <summary>
+    /// When true, repairs compact host-label bullets and merges simple continuation lines
+    /// (for example, <c>-AD1</c> followed by <c>healthy</c> becomes <c>- AD1 healthy</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeHostLabelBulletArtifacts { get; set; } = false;
+
+    /// <summary>
     /// When true, inserts a missing space after a colon in prose labels
     /// (for example, <c>Why it matters:missing coverage</c> becomes <c>Why it matters: missing coverage</c>).
     /// Default: false.
@@ -135,6 +156,19 @@ public sealed class MarkdownRendererOptions {
     /// Default: false.
     /// </summary>
     public bool NormalizeCompactHeadingBoundaries { get; set; } = false;
+
+    /// <summary>
+    /// When true, removes stray standalone <c>#</c> separator lines that appear immediately before a real ATX heading.
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeStandaloneHashHeadingSeparators { get; set; } = false;
+
+    /// <summary>
+    /// When true, repairs broken two-line strong lead-ins such as
+    /// <c>**Result</c> followed by <c>body text** tail</c>.
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeBrokenTwoLineStrongLeadIns { get; set; } = false;
 
     /// <summary>
     /// When true, inserts a missing newline between a colon and an immediately-following unordered list marker
@@ -191,6 +225,20 @@ public sealed class MarkdownRendererOptions {
     /// Default: false.
     /// </summary>
     public bool NormalizeNestedStrongDelimiters { get; set; } = false;
+
+    /// <summary>
+    /// When true, upgrades trailing list-item strong-close artifacts
+    /// (for example, <c>- Overall health Healthy****</c> becomes <c>- Overall health **Healthy**</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeDanglingTrailingStrongListClosers { get; set; } = false;
+
+    /// <summary>
+    /// When true, repairs malformed strong runs used as metric values
+    /// (for example, <c>******healthy**</c>, <c>**✅****Healthy**</c>, or a missing trailing closer).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeMetricValueStrongRuns { get; set; } = false;
 
     /// <summary>
     /// Optional markdown pre-processors applied before parsing.

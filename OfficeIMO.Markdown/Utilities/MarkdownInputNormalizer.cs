@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Text;
 
@@ -50,6 +51,27 @@ public sealed class MarkdownInputNormalizationOptions {
     public bool NormalizeBrokenStrongArrowLabels { get; set; } = false;
 
     /// <summary>
+    /// When true, repairs malformed signal-flow bullets where an entire arrow chain was accidentally wrapped
+    /// in one strong span.
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeWrappedSignalFlowStrongRuns { get; set; } = false;
+
+    /// <summary>
+    /// When true, expands collapsed transcript-style metric chains into real markdown lines and
+    /// converts legacy bold metric labels into plain labels with bold values.
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeCollapsedMetricChains { get; set; } = false;
+
+    /// <summary>
+    /// When true, repairs compact host-label bullets and merges plain continuation lines
+    /// (for example, <c>-AD1</c> followed by <c>healthy</c> becomes <c>- AD1 healthy</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeHostLabelBulletArtifacts { get; set; } = false;
+
+    /// <summary>
     /// When true, inserts a missing space after a colon in prose labels
     /// (for example, <c>Why it matters:missing coverage</c> becomes <c>Why it matters: missing coverage</c>).
     /// This is applied by AST-level inline normalization and intentionally skips inline code spans.
@@ -79,6 +101,19 @@ public sealed class MarkdownInputNormalizationOptions {
     /// Default: false.
     /// </summary>
     public bool NormalizeCompactHeadingBoundaries { get; set; } = false;
+
+    /// <summary>
+    /// When true, removes stray standalone <c>#</c> separator lines that appear immediately before a real ATX heading.
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeStandaloneHashHeadingSeparators { get; set; } = false;
+
+    /// <summary>
+    /// When true, repairs broken two-line strong lead-ins such as
+    /// <c>**Result</c> followed by <c>body text** tail</c>.
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeBrokenTwoLineStrongLeadIns { get; set; } = false;
 
     /// <summary>
     /// When true, inserts a missing newline between a colon and an immediately-following unordered list marker
@@ -136,6 +171,20 @@ public sealed class MarkdownInputNormalizationOptions {
     /// Default: false.
     /// </summary>
     public bool NormalizeNestedStrongDelimiters { get; set; } = false;
+
+    /// <summary>
+    /// When true, upgrades trailing list-item strong-close artifacts
+    /// (for example, <c>- Overall health Healthy****</c> becomes <c>- Overall health **Healthy**</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeDanglingTrailingStrongListClosers { get; set; } = false;
+
+    /// <summary>
+    /// When true, repairs malformed strong runs used as metric values
+    /// (for example, <c>******healthy**</c>, <c>**✅****Healthy**</c>, or a missing trailing closer).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeMetricValueStrongRuns { get; set; } = false;
 
     /// <summary>
     /// Enables the named preset on the current options instance.
@@ -242,10 +291,15 @@ public static class MarkdownInputNormalizationPresets {
         options.NormalizeTightStrongBoundaries = false;
         options.NormalizeTightArrowStrongBoundaries = false;
         options.NormalizeBrokenStrongArrowLabels = false;
+        options.NormalizeWrappedSignalFlowStrongRuns = false;
+        options.NormalizeCollapsedMetricChains = false;
+        options.NormalizeHostLabelBulletArtifacts = false;
         options.NormalizeTightColonSpacing = false;
         options.NormalizeHeadingListBoundaries = false;
         options.NormalizeCompactStrongLabelListBoundaries = false;
         options.NormalizeCompactHeadingBoundaries = false;
+        options.NormalizeStandaloneHashHeadingSeparators = false;
+        options.NormalizeBrokenTwoLineStrongLeadIns = false;
         options.NormalizeColonListBoundaries = false;
         options.NormalizeCompactFenceBodyBoundaries = false;
         options.NormalizeLooseStrongDelimiters = false;
@@ -254,6 +308,8 @@ public static class MarkdownInputNormalizationPresets {
         options.NormalizeOrderedListCaretArtifacts = false;
         options.NormalizeTightParentheticalSpacing = false;
         options.NormalizeNestedStrongDelimiters = false;
+        options.NormalizeDanglingTrailingStrongListClosers = false;
+        options.NormalizeMetricValueStrongRuns = false;
     }
 
     private static void ApplyChatTranscript(MarkdownInputNormalizationOptions options) {
@@ -266,6 +322,13 @@ public static class MarkdownInputNormalizationPresets {
         options.NormalizeNestedStrongDelimiters = true;
         options.NormalizeTightArrowStrongBoundaries = true;
         options.NormalizeTightColonSpacing = true;
+        options.NormalizeWrappedSignalFlowStrongRuns = true;
+        options.NormalizeCollapsedMetricChains = true;
+        options.NormalizeHostLabelBulletArtifacts = true;
+        options.NormalizeStandaloneHashHeadingSeparators = true;
+        options.NormalizeBrokenTwoLineStrongLeadIns = true;
+        options.NormalizeDanglingTrailingStrongListClosers = true;
+        options.NormalizeMetricValueStrongRuns = true;
     }
 
     private static void ApplyChatStrict(MarkdownInputNormalizationOptions options) {
@@ -320,6 +383,38 @@ public static class MarkdownInputNormalizer {
         @"\*\*(?<left>[^*\r\n]{1,200}?)\s*->\s*\*\*(?<label>[^*\r\n]{1,120}?):\*\*",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+    private static readonly Regex WrappedSignalFlowLineRegex = new Regex(
+        @"(?m)^(?<prefix>\s*-\s+[^\r\n]*?)\*\*(?<inner>[^\r\n]*->\s*\*\*[^\r\n]*?)\*\*(?<tail>\s*)$",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex StatusCollapsedLineRegex = new Regex(
+        @"(?m)^(?<lead>\s*\*\*Status:[^\r\n]*?)[ \t]-[ \t](?<rest>\*\*.*)$",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex BulletCollapsedLineRegex = new Regex(
+        @"(?m)^(?<lead>\s*-\s[^\r\n]*?)[ \t]-(?<rest>\s*\*{1,2}.*)$",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex LegacyStatusSummaryRegex = new Regex(
+        @"(?m)^(?<indent>\s*)\*\*Status:\s*(?<value>[^*\r\n]+)\*\*\s*$",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex LegacyBoldMetricBulletRegex = new Regex(
+        @"(?m)^(?<indent>\s*-\s)\*\*(?<label>[^*\r\n:]+):\*\*\s*(?<value>[^\r\n]*)$",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex LineStartHostLabelBulletRegex = new Regex(
+        @"(?m)^(?<indent>\s*)-(?=[A-Z]{2,}\d+\b)",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex LineStartMissingSpaceBeforeBoldBulletRegex = new Regex(
+        @"(?m)^(?<indent>\s*)-(?=\*\*)",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex SingleStarMetricBulletRegex = new Regex(
+        @"(?m)^(?<indent>\s*)-\s*\*(?=[A-Za-z][^\r\n]*:\*\*)",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
     private static readonly Regex HeadingListBoundaryRegex = new Regex(
         @"^(?<heading>[ \t]{0,3}#{1,6}[ \t]+[^\r\n]+?)(?<!\s)(?<marker>[-+*])\s+(?=\*\*)",
         RegexOptions.CultureInvariant | RegexOptions.Compiled | RegexOptions.Multiline);
@@ -330,6 +425,14 @@ public static class MarkdownInputNormalizer {
 
     private static readonly Regex CompactHeadingBoundaryRegex = new Regex(
         @"(?<=[^\s\r\n])(?<marker>#{2,6})\s+(?=\S)",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex StandaloneSingleHashSeparatorRegex = new Regex(
+        @"^\s*#\s*$",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex BrokenTwoLineStrongLeadInRegex = new Regex(
+        @"^(?<indent>\s*)\*\*(?<label>Result)\s*$",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex ColonListBoundaryRegex = new Regex(
@@ -402,6 +505,34 @@ public static class MarkdownInputNormalizer {
         @"(?<!\S)\*\*(?<left>[^*\r\n]{6,}?\s)\*\*(?<inner>[A-Za-z0-9`][^*:\r\n]*?)\*\*(?<right>[^*\r\n]*?)\*\*",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+    private static readonly Regex OrderedListLeadRegex = new Regex(
+        @"^\d+[.)]\s+",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex StandaloneHostLabelBulletRegex = new Regex(
+        @"^\s*-(?:\s*\*\*)?\s*[A-Z]{2,}\d+(?:\s*\*\*)?\s*:?\s*$",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex StructuralMarkdownLineRegex = new Regex(
+        @"^(?:[-+*]\s+|\d+[.)]\s+|#{1,6}\s+|>\s?|```|~~~|\|)",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex TrailingDanglingStrongListTokenRegex = new Regex(
+        @"(?<token>[\p{L}\p{N}_./:-]+)\*{4}(?<tail>\s*)$",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex OveropenedMetricValueStrongRegex = new Regex(
+        @"^(?<prefix>\s*(?:-\s+|\d+\.\s+)[^\r\n*]+?\s)\*{4,}(?<value>[^\s*\r\n][^*\r\n]*?)\*{2}(?<tail>\s*)$",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex AdjacentMetricStrongValueRegex = new Regex(
+        @"^(?<prefix>\s*(?:-\s+|\d+\.\s+)[^\r\n*]+?\s)\*\*(?<first>[^*\r\n]+)\*\*\*{2}(?<second>[^\s*\r\n][^*\r\n]*?)\*{2}(?<tail>\s*)$",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex MissingTrailingStrongMetricCloseRegex = new Regex(
+        @"^(?<prefix>\s*(?:-\s+|\d+\.\s+)[^\r\n*]+?\s)\*\*(?<value>[^\r\n*][^\r\n]*?)(?<!\*)\*(?<tail>\s*)$",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
     /// <summary>
     /// Normalizes markdown text based on <paramref name="options"/>.
     /// </summary>
@@ -415,6 +546,10 @@ public static class MarkdownInputNormalizer {
         }
 
         options ??= new MarkdownInputNormalizationOptions();
+
+        if (options.NormalizeBrokenTwoLineStrongLeadIns) {
+            value = ApplyTransformOutsideFencedCodeBlocks(value, RepairBrokenTwoLineStrongLeadIns);
+        }
 
         if (options.NormalizeSoftWrappedStrongSpans) {
             value = ApplyRegexOutsideFencedCodeBlocks(value, SoftWrappedStrongRegex, static match => {
@@ -433,6 +568,49 @@ public static class MarkdownInputNormalizer {
 
                 return "**" + left + " " + right + "**";
             });
+        }
+
+        if (options.NormalizeWrappedSignalFlowStrongRuns) {
+            value = ApplyRegexOutsideFencedCodeBlocks(
+                value,
+                WrappedSignalFlowLineRegex,
+                static match => {
+                    var inner = match.Groups["inner"].Value;
+                    var markerIndex = inner.IndexOf("-> **", StringComparison.Ordinal);
+                    if (markerIndex < 0) {
+                        markerIndex = inner.IndexOf("->**", StringComparison.Ordinal);
+                    }
+
+                    if (markerIndex <= 0) {
+                        return match.Value;
+                    }
+
+                    var headline = inner.Substring(0, markerIndex).TrimEnd();
+                    if (headline.Length == 0) {
+                        return match.Value;
+                    }
+
+                    var flow = inner.Substring(markerIndex).TrimStart();
+                    if (flow.StartsWith("->**", StringComparison.Ordinal)) {
+                        flow = "-> **" + flow.Substring(4);
+                    }
+
+                    if (!flow.StartsWith("-> **", StringComparison.Ordinal)) {
+                        return match.Value;
+                    }
+
+                    return match.Groups["prefix"].Value + "**" + headline + "** " + flow + match.Groups["tail"].Value;
+                });
+        }
+
+        if (options.NormalizeCollapsedMetricChains) {
+            value = ExpandCollapsedMetricLines(value);
+            value = NormalizeLegacyMetricBulletLeads(value);
+            value = ConvertLegacyMetricMarkdown(value);
+        }
+
+        if (options.NormalizeHostLabelBulletArtifacts) {
+            value = ApplyTransformOutsideFencedCodeBlocks(value, NormalizeHostLabelBulletArtifacts);
         }
 
         if (options.NormalizeNestedStrongDelimiters) {
@@ -465,6 +643,14 @@ public static class MarkdownInputNormalizer {
 
                 return "**" + trimmed + "**";
             });
+        }
+
+        if (options.NormalizeDanglingTrailingStrongListClosers) {
+            value = RepairDanglingTrailingStrongListClosers(value);
+        }
+
+        if (options.NormalizeMetricValueStrongRuns) {
+            value = RepairMalformedMetricValueStrongRuns(value);
         }
 
         if (options.NormalizeTightStrongBoundaries) {
@@ -501,6 +687,10 @@ public static class MarkdownInputNormalizer {
                 CompactHeadingBoundaryRegex,
                 static match => "\n" + match.Groups["marker"].Value + " ",
                 preserveInlineCodeSpans: true);
+        }
+
+        if (options.NormalizeStandaloneHashHeadingSeparators) {
+            value = RemoveStandaloneHashSeparatorsBeforeHeadings(value);
         }
 
         if (options.NormalizeHeadingListBoundaries) {
@@ -635,6 +825,369 @@ public static class MarkdownInputNormalizer {
         }
 
         return trimmed[index] == '.' || trimmed[index] == ')';
+    }
+
+    private static string ExpandCollapsedMetricLines(string text) {
+        if (string.IsNullOrEmpty(text)) {
+            return text ?? string.Empty;
+        }
+
+        var newline = text.IndexOf("\r\n", StringComparison.Ordinal) >= 0 ? "\r\n" : "\n";
+        var current = text;
+
+        while (true) {
+            var afterStatus = StatusCollapsedLineRegex.Replace(
+                current,
+                match => match.Groups["lead"].Value + newline + "- " + match.Groups["rest"].Value);
+
+            var afterBullets = BulletCollapsedLineRegex.Replace(
+                afterStatus,
+                match => match.Groups["lead"].Value + newline + "- " + match.Groups["rest"].Value.TrimStart());
+
+            if (afterBullets == current) {
+                return afterBullets;
+            }
+
+            current = afterBullets;
+        }
+    }
+
+    private static string NormalizeLegacyMetricBulletLeads(string text) {
+        if (string.IsNullOrEmpty(text)) {
+            return text ?? string.Empty;
+        }
+
+        var spaced = LineStartMissingSpaceBeforeBoldBulletRegex.Replace(text, "${indent}- ");
+        return SingleStarMetricBulletRegex.Replace(spaced, "${indent}- **");
+    }
+
+    private static string ConvertLegacyMetricMarkdown(string text) {
+        if (string.IsNullOrEmpty(text)) {
+            return text ?? string.Empty;
+        }
+
+        var statusNormalized = LegacyStatusSummaryRegex.Replace(
+            text,
+            match => {
+                var indent = match.Groups["indent"].Value;
+                var value = match.Groups["value"].Value.Trim();
+                return value.Length == 0 ? indent + "Status" : indent + "Status **" + value + "**";
+            });
+
+        return LegacyBoldMetricBulletRegex.Replace(
+            statusNormalized,
+            match => {
+                var indent = match.Groups["indent"].Value;
+                var label = match.Groups["label"].Value.Trim();
+                var value = match.Groups["value"].Value.Trim();
+                if (value.Length == 0) {
+                    return indent + label;
+                }
+
+                if (value.IndexOf("**", StringComparison.Ordinal) >= 0
+                    || value.IndexOf('`') >= 0
+                    || value.IndexOf("~~", StringComparison.Ordinal) >= 0
+                    || value.IndexOf("==", StringComparison.Ordinal) >= 0) {
+                    return indent + label + " " + value;
+                }
+
+                return indent + label + " **" + value + "**";
+            });
+    }
+
+    private static string RepairBrokenTwoLineStrongLeadIns(string text) {
+        if (string.IsNullOrEmpty(text) || text.IndexOf("**", StringComparison.Ordinal) < 0) {
+            return text ?? string.Empty;
+        }
+
+        var hasCrLf = text.IndexOf("\r\n", StringComparison.Ordinal) >= 0;
+        var normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
+        var lines = normalized.Split('\n');
+        var rewritten = new List<string>(lines.Length);
+        var changed = false;
+
+        for (var i = 0; i < lines.Length; i++) {
+            var current = lines[i] ?? string.Empty;
+            if (i + 1 < lines.Length) {
+                var currentMatch = BrokenTwoLineStrongLeadInRegex.Match(current);
+                if (currentMatch.Success) {
+                    var next = lines[i + 1] ?? string.Empty;
+                    var closingIndex = next.IndexOf("**", StringComparison.Ordinal);
+                    if (closingIndex > 0) {
+                        var label = currentMatch.Groups["label"].Value.Trim().TrimEnd(':');
+                        var body = next.Substring(0, closingIndex).Trim();
+                        var tail = next.Substring(closingIndex + 2).Trim();
+                        if (label.Length > 0
+                            && body.Length > 0
+                            && !StructuralMarkdownLineRegex.IsMatch(body)) {
+                            var merged = currentMatch.Groups["indent"].Value
+                                         + "**" + label + ":** "
+                                         + body
+                                         + (tail.Length == 0 ? string.Empty : " " + tail);
+                            rewritten.Add(merged);
+                            changed = true;
+                            i++;
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            rewritten.Add(current);
+        }
+
+        if (!changed) {
+            return text;
+        }
+
+        var rebuilt = string.Join("\n", rewritten);
+        return hasCrLf ? rebuilt.Replace("\n", "\r\n") : rebuilt;
+    }
+
+    private static string NormalizeHostLabelBulletArtifacts(string text) {
+        if (string.IsNullOrEmpty(text)) {
+            return text ?? string.Empty;
+        }
+
+        var spaced = LineStartHostLabelBulletRegex.Replace(text, "${indent}- ");
+        if (spaced.IndexOf('\n') < 0 && spaced.IndexOf('\r') < 0) {
+            return spaced;
+        }
+
+        var hasCrLf = spaced.IndexOf("\r\n", StringComparison.Ordinal) >= 0;
+        var normalized = spaced.Replace("\r\n", "\n").Replace('\r', '\n');
+        var lines = normalized.Split('\n');
+        if (lines.Length < 2) {
+            return spaced;
+        }
+
+        var merged = new List<string>(lines.Length);
+        var changed = !spaced.Equals(text, StringComparison.Ordinal);
+        for (var i = 0; i < lines.Length; i++) {
+            var current = lines[i] ?? string.Empty;
+            if (i + 1 < lines.Length
+                && StandaloneHostLabelBulletRegex.IsMatch(current)
+                && ShouldAttachHostLabelContinuation(lines[i + 1])) {
+                var next = (lines[i + 1] ?? string.Empty).TrimStart();
+                merged.Add(current.TrimEnd() + " " + next);
+                changed = true;
+                i++;
+                continue;
+            }
+
+            merged.Add(current);
+        }
+
+        if (!changed) {
+            return text;
+        }
+
+        var rebuilt = string.Join("\n", merged);
+        return hasCrLf ? rebuilt.Replace("\n", "\r\n") : rebuilt;
+    }
+
+    private static string RemoveStandaloneHashSeparatorsBeforeHeadings(string text) {
+        if (string.IsNullOrEmpty(text) || text.IndexOf('#') < 0) {
+            return text ?? string.Empty;
+        }
+
+        var hasCrLf = text.IndexOf("\r\n", StringComparison.Ordinal) >= 0;
+        var normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
+        var lines = normalized.Split('\n');
+        var rewritten = new List<string>(lines.Length);
+        var changed = false;
+
+        for (var i = 0; i < lines.Length; i++) {
+            var current = lines[i] ?? string.Empty;
+            if (StandaloneSingleHashSeparatorRegex.IsMatch(current)
+                && TryFindNextNonEmptyLine(lines, i + 1, out var nextIndex)
+                && IsMarkdownHeadingLine(lines[nextIndex] ?? string.Empty)) {
+                changed = true;
+                i = nextIndex - 1;
+                continue;
+            }
+
+            rewritten.Add(current);
+        }
+
+        if (!changed) {
+            return text;
+        }
+
+        var rebuilt = string.Join("\n", rewritten);
+        return hasCrLf ? rebuilt.Replace("\n", "\r\n") : rebuilt;
+    }
+
+    private static string RepairDanglingTrailingStrongListClosers(string text) {
+        if (string.IsNullOrEmpty(text) || text.IndexOf("****", StringComparison.Ordinal) < 0) {
+            return text ?? string.Empty;
+        }
+
+        var hasCrLf = text.IndexOf("\r\n", StringComparison.Ordinal) >= 0;
+        var normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
+        var lines = normalized.Split('\n');
+        var changed = false;
+
+        for (var i = 0; i < lines.Length; i++) {
+            var line = lines[i] ?? string.Empty;
+            var trimmedStart = line.TrimStart();
+            if (!trimmedStart.StartsWith("- ", StringComparison.Ordinal)
+                && !OrderedListLeadRegex.IsMatch(trimmedStart)) {
+                continue;
+            }
+
+            var repaired = TrailingDanglingStrongListTokenRegex.Replace(line, static match => {
+                var token = match.Groups["token"].Value.Trim();
+                if (token.Length == 0 || token.IndexOf("**", StringComparison.Ordinal) >= 0) {
+                    return match.Value;
+                }
+
+                return "**" + token + "**" + match.Groups["tail"].Value;
+            });
+
+            if (repaired.Equals(line, StringComparison.Ordinal)) {
+                continue;
+            }
+
+            lines[i] = repaired;
+            changed = true;
+        }
+
+        if (!changed) {
+            return text;
+        }
+
+        var rebuilt = string.Join("\n", lines);
+        return hasCrLf ? rebuilt.Replace("\n", "\r\n") : rebuilt;
+    }
+
+    private static string RepairMalformedMetricValueStrongRuns(string text) {
+        if (string.IsNullOrEmpty(text) || text.IndexOf("**", StringComparison.Ordinal) < 0) {
+            return text ?? string.Empty;
+        }
+
+        var hasCrLf = text.IndexOf("\r\n", StringComparison.Ordinal) >= 0;
+        var normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
+        var lines = normalized.Split('\n');
+        var changed = false;
+
+        for (var i = 0; i < lines.Length; i++) {
+            var line = lines[i] ?? string.Empty;
+            if (!TryRepairMalformedMetricValueStrongRunLine(line, out var repaired)
+                || repaired.Equals(line, StringComparison.Ordinal)) {
+                continue;
+            }
+
+            lines[i] = repaired;
+            changed = true;
+        }
+
+        if (!changed) {
+            return text;
+        }
+
+        var rebuilt = string.Join("\n", lines);
+        return hasCrLf ? rebuilt.Replace("\n", "\r\n") : rebuilt;
+    }
+
+    private static bool TryRepairMalformedMetricValueStrongRunLine(string line, out string repaired) {
+        repaired = line;
+        var trimmedStart = line.TrimStart();
+        if (!trimmedStart.StartsWith("- ", StringComparison.Ordinal)
+            && !OrderedListLeadRegex.IsMatch(trimmedStart)) {
+            return false;
+        }
+
+        repaired = OveropenedMetricValueStrongRegex.Replace(line, static match => {
+            var value = match.Groups["value"].Value.Trim();
+            return value.Length == 0
+                ? match.Value
+                : match.Groups["prefix"].Value + "**" + value + "**" + match.Groups["tail"].Value;
+        });
+
+        repaired = AdjacentMetricStrongValueRegex.Replace(repaired, static match => {
+            var first = match.Groups["first"].Value.Trim();
+            var second = match.Groups["second"].Value.Trim();
+            if (first.Length == 0 || second.Length == 0) {
+                return match.Value;
+            }
+
+            if (IsSymbolOnlyMetricValue(first)) {
+                return match.Groups["prefix"].Value + first + " **" + second + "**" + match.Groups["tail"].Value;
+            }
+
+            return match.Groups["prefix"].Value
+                   + "**"
+                   + first
+                   + "** **"
+                   + second
+                   + "**"
+                   + match.Groups["tail"].Value;
+        });
+
+        repaired = MissingTrailingStrongMetricCloseRegex.Replace(repaired, static match => {
+            var value = match.Groups["value"].Value.Trim();
+            return value.Length == 0
+                ? match.Value
+                : match.Groups["prefix"].Value + "**" + value + "**" + match.Groups["tail"].Value;
+        });
+
+        return true;
+    }
+
+    private static bool IsSymbolOnlyMetricValue(string value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return false;
+        }
+
+        foreach (var ch in value) {
+            if (char.IsWhiteSpace(ch)) {
+                continue;
+            }
+
+            if (char.IsLetterOrDigit(ch)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsMarkdownHeadingLine(string line) {
+        var trimmed = line.TrimStart();
+        if (trimmed.Length < 4 || trimmed[0] != '#') {
+            return false;
+        }
+
+        var depth = 0;
+        while (depth < trimmed.Length && trimmed[depth] == '#') {
+            depth++;
+        }
+
+        return depth is >= 2 and <= 6
+               && depth < trimmed.Length
+               && char.IsWhiteSpace(trimmed[depth]);
+    }
+
+    private static bool TryFindNextNonEmptyLine(string[] lines, int startIndex, out int index) {
+        for (var i = startIndex; i < lines.Length; i++) {
+            if (!string.IsNullOrWhiteSpace(lines[i])) {
+                index = i;
+                return true;
+            }
+        }
+
+        index = -1;
+        return false;
+    }
+
+    private static bool ShouldAttachHostLabelContinuation(string line) {
+        if (string.IsNullOrWhiteSpace(line)) {
+            return false;
+        }
+
+        var trimmed = line.TrimStart();
+        return !StructuralMarkdownLineRegex.IsMatch(trimmed);
     }
 
     private static string NormalizeCompactFenceBodyBoundaries(string input) {
@@ -851,6 +1404,67 @@ public static class MarkdownInputNormalizer {
         return output.ToString();
     }
 
+    private static string ApplyTransformOutsideFencedCodeBlocks(string input, Func<string, string> transformer) {
+        if (string.IsNullOrEmpty(input)) {
+            return input ?? string.Empty;
+        }
+
+        var output = new StringBuilder(input.Length);
+        var outsideSegment = new StringBuilder();
+        var inFence = false;
+        char fenceMarker = '\0';
+        var fenceRunLength = 0;
+
+        var index = 0;
+        while (index < input.Length) {
+            var lineStart = index;
+            while (index < input.Length && input[index] != '\r' && input[index] != '\n') {
+                index++;
+            }
+
+            var lineEnd = index;
+            if (index < input.Length && input[index] == '\r') {
+                index++;
+                if (index < input.Length && input[index] == '\n') {
+                    index++;
+                }
+            } else if (index < input.Length && input[index] == '\n') {
+                index++;
+            }
+
+            var line = input.Substring(lineStart, lineEnd - lineStart);
+            var lineWithNewline = input.Substring(lineStart, index - lineStart);
+
+            if (MarkdownFence.TryReadContainerAwareFenceRun(line, out _, out var runMarker, out var runLength, out var runSuffix)) {
+                if (!inFence) {
+                    FlushOutsideSegment(output, outsideSegment, transformer);
+                    inFence = true;
+                    fenceMarker = runMarker;
+                    fenceRunLength = runLength;
+                    output.Append(lineWithNewline);
+                    continue;
+                }
+
+                if (runMarker == fenceMarker && runLength >= fenceRunLength && string.IsNullOrWhiteSpace(runSuffix)) {
+                    inFence = false;
+                    fenceMarker = '\0';
+                    fenceRunLength = 0;
+                    output.Append(lineWithNewline);
+                    continue;
+                }
+            }
+
+            if (inFence) {
+                output.Append(lineWithNewline);
+            } else {
+                outsideSegment.Append(lineWithNewline);
+            }
+        }
+
+        FlushOutsideSegment(output, outsideSegment, transformer);
+        return output.ToString();
+    }
+
     private static void FlushOutsideSegment(
         StringBuilder output,
         StringBuilder outsideSegment,
@@ -865,6 +1479,18 @@ public static class MarkdownInputNormalizer {
         output.Append(preserveInlineCodeSpans
             ? ReplaceOutsideInlineCodeSpans(segment, regex, evaluator)
             : regex.Replace(segment, evaluator));
+        outsideSegment.Clear();
+    }
+
+    private static void FlushOutsideSegment(
+        StringBuilder output,
+        StringBuilder outsideSegment,
+        Func<string, string> transformer) {
+        if (outsideSegment.Length == 0) {
+            return;
+        }
+
+        output.Append(transformer(outsideSegment.ToString()));
         outsideSegment.Clear();
     }
 

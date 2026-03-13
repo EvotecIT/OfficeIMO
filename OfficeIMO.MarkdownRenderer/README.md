@@ -94,9 +94,9 @@ var chatMinimal = MarkdownRendererPresets.CreateChatStrictMinimal();
 ```
 
 - `CreateStrict(...)`: neutral untrusted-content defaults for generic markdown hosting
-- `CreateStrictPortable(...)`: same neutral defaults, but uses the portable markdown reader profile
+- `CreateStrictPortable(...)`: same neutral defaults, but uses the portable markdown reader profile and portable HTML output fallbacks
 - `CreateStrictMinimal(...)`: neutral strict preset with Mermaid, charts, math, Prism, and copy buttons disabled
-- `CreateStrictMinimalPortable(...)`: combines minimal shell behavior with the portable reader profile
+- `CreateStrictMinimalPortable(...)`: combines minimal shell behavior with the portable reader profile and portable HTML output fallbacks
 - `CreateRelaxed(...)`: trusted-content preset that allows HTML parsing and sanitizes raw HTML conservatively
 - `ApplyChatPresentation(...)`: composes chat presentation/chrome onto any existing preset without changing its security profile
 - `CreateChatStrict(...)`: compatibility wrapper built on top of the strict preset family
@@ -108,6 +108,27 @@ var chatMinimal = MarkdownRendererPresets.CreateChatStrictMinimal();
 Generic presets register neutral fenced block languages such as `chart`, `network`, `visnetwork`, and `dataview`.
 Chat presets additionally apply the `MarkdownRendererIntelligenceXAdapter`, which registers the IntelligenceX-oriented aliases `ix-chart`, `ix-network`, and `ix-dataview`.
 
+Portable presets now also degrade OfficeIMO-specific HTML chrome to simpler generic HTML:
+
+- callouts render as plain `<blockquote>` elements
+- TOC placeholders render as simple lists instead of `md-toc`/sidebar navigation chrome
+- footnotes render without the OfficeIMO-specific `footnotes` wrapper/list structure
+
+If you want those fallbacks on a non-portable preset, apply them explicitly:
+
+```csharp
+var options = MarkdownRendererPresets.CreateStrict();
+MarkdownRendererPresets.ApplyPortableHtmlOutputProfile(options);
+```
+
+Portable is now a composed contract, not just a parser switch:
+
+- reader profile: `MarkdownReaderOptions.CreatePortableProfile()`
+- shell/render defaults: same strict/minimal safety defaults as the non-portable preset you started from
+- HTML output: OfficeIMO-specific callout, TOC, and footnote chrome degrades to generic HTML automatically
+
+That makes the portable presets a better fit for hosts that want predictable generic output from the same AST pipeline, including `OfficeIMO.Markdown.Html` and future cross-engine bridges.
+
 ### IntelligenceX alias adapter
 
 ```csharp
@@ -116,6 +137,16 @@ MarkdownRendererIntelligenceXAdapter.Apply(options);
 ```
 
 Use this when you want the generic strict/relaxed presets but still need the IntelligenceX alias fence contract.
+
+### Recommended profile composition
+
+```csharp
+var options = MarkdownRendererPresets.CreateStrictPortable();
+MarkdownRendererIntelligenceXAdapter.Apply(options);
+MarkdownRendererPresets.ApplyChatPresentation(options, enableCopyButtons: true);
+```
+
+Use this pattern when the host needs a generic-first baseline plus explicit IntelligenceX visual aliases and chat chrome. It keeps the OfficeIMO/IX-specific behavior opt-in instead of making it part of the default markdown contract.
 
 ### Offline assets
 
@@ -219,6 +250,8 @@ The renderer uses `OfficeIMO.Markdown` reader options and normalization behavior
 
 - strict presets enable the chat-output normalization helpers
 - portable presets switch the underlying reader to `MarkdownReaderOptions.CreatePortableProfile()`
+- portable presets also apply the portable HTML output fallbacks from `OfficeIMO.Markdown`
+- the portable wrappers do both automatically, so callers do not need to remember separate reader and HTML fallback setup
 - if you need the same parsing behavior outside the renderer, use `MarkdownReaderOptions` and `MarkdownInputNormalizationPresets` directly in `OfficeIMO.Markdown`
 
 ## Built-In Visuals

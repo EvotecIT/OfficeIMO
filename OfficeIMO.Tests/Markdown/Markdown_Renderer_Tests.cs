@@ -107,6 +107,26 @@ public class Markdown_Renderer_Tests {
         Assert.Contains("data-mermaid-hash", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void MarkdownRenderer_StrictPreset_Preserves_Safe_Underline_Tags() {
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(
+            "<u>hello</u>",
+            MarkdownRendererPresets.CreateStrict());
+
+        Assert.Contains("<u>hello</u>", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("&lt;u&gt;hello&lt;/u&gt;", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_StrictPreset_Still_Encodes_Unsupported_Inline_Html() {
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(
+            "<span>hello</span>",
+            MarkdownRendererPresets.CreateStrict());
+
+        Assert.Contains("&lt;span&gt;hello&lt;/span&gt;", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<span>hello</span>", html, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Theory]
     [InlineData("chart")]
     public void MarkdownRenderer_Converts_Chart_Code_Fences_When_Enabled(string language) {
@@ -1017,6 +1037,29 @@ Next paragraph.
         Assert.DoesNotContain("task-list-item-checkbox", html, StringComparison.Ordinal);
         Assert.Contains("[ ] Todo", html, StringComparison.Ordinal);
         Assert.Contains("[x] Done", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Preserves_TocPlaceholders_And_Footnotes_Flags_From_ReaderOptions() {
+        var markdown = """
+[TOC]
+
+Lead[^1]
+
+[^1]: Footnote text
+""";
+        var readerOptions = MarkdownReaderOptions.CreateCommonMarkProfile();
+        readerOptions.HtmlBlocks = false;
+        readerOptions.InlineHtml = false;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, new MarkdownRendererOptions {
+            ReaderOptions = readerOptions
+        });
+
+        Assert.Contains("<p>[TOC]</p>", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Lead[^1]</p>", html, StringComparison.Ordinal);
+        Assert.Contains("<p>[^1]: Footnote text</p>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("footnotes", html, StringComparison.OrdinalIgnoreCase);
     }
     private static int Count(string value, string token) {
         if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(token)) return 0;

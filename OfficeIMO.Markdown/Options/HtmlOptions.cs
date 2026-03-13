@@ -13,6 +13,16 @@ public delegate string? MarkdownSemanticFencedBlockHtmlRenderer(SemanticFencedBl
 /// <summary>
 /// Options controlling HTML rendering style and asset delivery.
 /// </summary>
+public delegate string? MarkdownTocHtmlRenderer(TocOptions tocOptions, IReadOnlyList<TocBlock.Entry> entries, HtmlOptions options);
+
+/// <summary>
+/// Options controlling HTML rendering style and asset delivery.
+/// </summary>
+public delegate string? MarkdownFootnoteSectionHtmlRenderer(IReadOnlyList<FootnoteDefinitionBlock> footnotes, HtmlOptions options);
+
+/// <summary>
+/// Options controlling HTML rendering style and asset delivery.
+/// </summary>
 public sealed class HtmlOptions {
     /// <summary>Fragment vs full document. Default: <see cref="HtmlKind.Document"/> when used with <see cref="MarkdownDoc.ToHtmlDocument"/>.</summary>
     public HtmlKind Kind { get; set; } = HtmlKind.Fragment;
@@ -62,6 +72,21 @@ public sealed class HtmlOptions {
     /// Returning <see langword="null"/> falls back to standard fenced-code presentation.
     /// </summary>
     public MarkdownSemanticFencedBlockHtmlRenderer? SemanticFencedBlockHtmlRenderer { get; set; }
+    /// <summary>
+    /// Optional callback that can replace HTML emitted for realized TOC placeholders.
+    /// Returning <see langword="null"/> falls back to the built-in enhanced TOC rendering.
+    /// </summary>
+    public MarkdownTocHtmlRenderer? TocHtmlRenderer { get; set; }
+    /// <summary>
+    /// Optional callback that can replace HTML emitted for the aggregated footnote section.
+    /// Returning <see langword="null"/> falls back to the built-in section/ordered-list rendering.
+    /// </summary>
+    public MarkdownFootnoteSectionHtmlRenderer? FootnoteSectionHtmlRenderer { get; set; }
+    /// <summary>
+    /// Optional block render extensions that can override HTML emitted for specific block types.
+    /// Later registrations win when block types overlap.
+    /// </summary>
+    public List<MarkdownBlockHtmlRenderExtension> BlockRenderExtensions { get; } = new();
     /// <summary>Prefix selectors in emitted CSS with this scope selector to avoid collisions. Default: "article.markdown-body".</summary>
     public string? CssScopeSelector { get; set; } = "article.markdown-body";
 

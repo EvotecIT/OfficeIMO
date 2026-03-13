@@ -1,0 +1,43 @@
+[ast]
+0: Heading(level=1, text="HTML Corpus")
+1: Table(headers=2, rows=1)
+  headers: "Section" || "Notes"
+  row[0]: "Alpha" || "Intro\n\n> Quoted"
+2: DefinitionList(entries=2)
+  entry[0]: term="Term A"
+    0: Paragraph("First paragraph")
+    1: Paragraph("Second paragraph")
+  entry[1]: term="Term B"
+    0: Paragraph("First paragraph")
+    1: Paragraph("Second paragraph")
+
+[office.markdown]
+# HTML Corpus
+
+| Section | Notes |
+| --- | --- |
+| Alpha | Intro<br><br>> Quoted |
+
+Term A: First paragraph
+
+Second paragraph
+Term B: First paragraph
+
+Second paragraph
+
+[portable.markdown]
+# HTML Corpus
+
+| Section | Notes |
+| --- | --- |
+| Alpha | Intro<br><br>> Quoted |
+
+Term A: First paragraph
+
+Second paragraph
+Term B: First paragraph
+
+Second paragraph
+
+[rendered.html]
+<h1 id="html-corpus">HTML Corpus</h1><table><thead><tr><th>Section</th><th>Notes</th></tr></thead><tbody><tr><td>Alpha</td><td><p>Intro</p><blockquote><p>Quoted</p></blockquote></td></tr></tbody></table><dl><dt>Term A</dt><dd><p>First paragraph</p><p>Second paragraph</p></dd><dt>Term B</dt><dd><p>First paragraph</p><p>Second paragraph</p></dd></dl>

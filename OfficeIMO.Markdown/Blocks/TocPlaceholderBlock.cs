@@ -52,6 +52,19 @@ internal sealed class TocPlaceholderBlock : IMarkdownBlock, ISyntaxMarkdownBlock
             .ToList();
         if (relevant.Count == 0) return string.Empty;
 
+        var realizedEntries = relevant
+            .Select(entry => new TocBlock.Entry {
+                Level = entry.Level,
+                Text = entry.Text,
+                Anchor = entry.Anchor
+            })
+            .ToList();
+
+        var overridden = context.Options.TocHtmlRenderer?.Invoke(Options, realizedEntries, context.Options);
+        if (overridden != null) {
+            return overridden;
+        }
+
         var listTag = Options.Ordered ? "ol" : "ul";
         var sbNested = new System.Text.StringBuilder(relevant.Count * 64);
         int baseLevel = (Options.NormalizeToMinLevel ? relevant.Min(r => r.Level) : 1);

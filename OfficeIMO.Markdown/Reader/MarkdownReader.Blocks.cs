@@ -264,6 +264,10 @@ public static partial class MarkdownReader {
             ParseTableInlineCells(table.Headers, inlineOptions, inlineState),
             ParseTableInlineRows(table.Rows, inlineOptions, inlineState),
             table.ComputeContentSignature());
+        table.SetStructuredCells(
+            BuildTableCells(table.Headers, inlineOptions, inlineState),
+            BuildTableRows(table.Rows, inlineOptions, inlineState),
+            table.ComputeContentSignature());
         return table;
     }
 
@@ -301,6 +305,38 @@ public static partial class MarkdownReader {
         var normalized = TableBlock.NormalizeBreakMarkers(cell ?? string.Empty);
         var sanitized = TableBlock.SanitizeInlineMarkdownInput(normalized);
         return ParseInlineText(sanitized, options, state);
+    }
+
+    private static List<TableCell> BuildTableCells(IReadOnlyList<string> cells, MarkdownReaderOptions options, MarkdownReaderState state) {
+        var typedCells = new List<TableCell>(cells.Count);
+        for (int i = 0; i < cells.Count; i++) {
+            typedCells.Add(BuildTableCell(cells[i], options, state));
+        }
+        return typedCells;
+    }
+
+    private static List<IReadOnlyList<TableCell>> BuildTableRows(IReadOnlyList<IReadOnlyList<string>> rows, MarkdownReaderOptions options, MarkdownReaderState state) {
+        var typedRows = new List<IReadOnlyList<TableCell>>(rows.Count);
+        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+            var row = rows[rowIndex];
+            if (row == null || row.Count == 0) {
+                typedRows.Add(Array.Empty<TableCell>());
+                continue;
+            }
+
+            typedRows.Add(BuildTableCells(row, options, state));
+        }
+        return typedRows;
+    }
+
+    private static TableCell BuildTableCell(string? cell, MarkdownReaderOptions options, MarkdownReaderState state) {
+        if (string.IsNullOrEmpty(cell)) {
+            return new TableCell();
+        }
+
+        return new TableCell(new[] {
+            new ParagraphBlock(ParseTableCellInlines(cell, options, state))
+        });
     }
 
     private static bool IsAlignmentRow(string line) {

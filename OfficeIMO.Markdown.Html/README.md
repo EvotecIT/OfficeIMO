@@ -69,6 +69,43 @@ var options = new HtmlToMarkdownOptions {
 string markdown = "<p><a href=\"guide/start\">Docs</a></p>".ToMarkdown(options);
 ```
 
+### Convert with portable markdown output
+
+```csharp
+using OfficeIMO.Markdown.Html;
+
+var options = HtmlToMarkdownOptions.CreatePortableProfile();
+
+string markdown = """
+<blockquote>
+  <p><strong>Example</strong></p>
+  <p>Body text</p>
+</blockquote>
+""".ToMarkdown(options);
+```
+
+Use the portable profile when HTML ingestion should produce generic markdown output instead of OfficeIMO-specific block syntax.
+
+### Convert to `MarkdownDoc`, then choose the markdown writer profile explicitly
+
+```csharp
+using OfficeIMO.Markdown;
+using OfficeIMO.Markdown.Html;
+
+var converter = new HtmlToMarkdownConverter();
+var document = converter.ConvertToDocument("""
+<table>
+  <tr><th>Name</th><th>Notes</th></tr>
+  <tr><td>Alice</td><td><p>Line one</p><blockquote><p>Line two</p></blockquote></td></tr>
+</table>
+""");
+
+var officeMarkdown = document.ToMarkdown(MarkdownWriteOptions.CreateOfficeIMOProfile());
+var portableMarkdown = document.ToMarkdown(MarkdownWriteOptions.CreatePortableProfile());
+```
+
+This is the cleanest path when HTML ingestion fidelity matters first and the markdown serialization contract is a separate downstream decision.
+
 ### Use the converter directly
 
 ```csharp
@@ -90,20 +127,42 @@ var document = converter.ConvertToDocument("<article><h1>Hello</h1><p>Body</p></
   Emits unsupported block elements as `HtmlRawBlock` instead of dropping them.
 - `PreserveUnsupportedInlineHtml`
   Emits unsupported inline elements as raw HTML instead of flattening them to plain text only.
+- `MarkdownWriteOptions`
+  Controls how the intermediate `MarkdownDoc` is serialized back to markdown text.
+  Use `HtmlToMarkdownOptions.CreatePortableProfile()` when portability matters more than preserving OfficeIMO-style output.
+
+## Profile guidance
+
+- `CreateOfficeIMOProfile()`
+  Best when the downstream consumer is `OfficeIMO.Markdown`/`OfficeIMO.MarkdownRenderer` and can benefit from richer OfficeIMO block syntax.
+- `CreatePortableProfile()`
+  Best when the downstream consumer is a generic markdown engine, HTML reconversion flow, or another parser that should not depend on OfficeIMO-only syntax.
+
+The important split is:
+
+- `HtmlToMarkdownOptions`
+  Controls HTML ingestion behavior and preservation choices.
+- `MarkdownWriteOptions`
+  Controls how the intermediate AST is written back to markdown text.
+
+That means `OfficeIMO.Markdown.Html` is no longer just a text flattener. It is an HTML-to-AST bridge with a configurable markdown writer on the output side.
 
 ## Structural notes
 
 - Mixed block order inside list items is preserved.
 - Multiple `dd` values for the same `dt` are preserved.
 - Multiple `dt` terms sharing the same `dd` group are preserved.
-- Block-rich `dd` values are preserved as Markdown text instead of being forced through inline-only conversion.
+- Block-rich `dd` values are preserved as typed block content instead of being forced through inline-only conversion.
+- Table cells preserve typed block content in the intermediate `MarkdownDoc` AST instead of collapsing immediately to strings.
 - Unsupported custom/container elements are treated as block-level content when they are structurally block-like or when raw block preservation is enabled.
 - Conversion happens through the `OfficeIMO.Markdown` AST, so the effective fidelity is bounded by that model.
 
+For the current stack, this means HTML ingestion can preserve more structure than plain markdown text can always express directly. The AST is the source of truth; markdown emission is the profile-driven projection of that model.
+
 ## Current limitations
 
-- Table cells are currently converted to Markdown cell text rather than a richer nested block model.
-- Definition lists currently target the existing `OfficeIMO.Markdown` definition list representation, so rich `dd` content is preserved as Markdown text but not yet as a richer nested AST value model.
+- Markdown text emission is still constrained by markdown syntax itself, so rich table-cell and definition-list AST content may be flattened when serialized for engines that only accept plain markdown text.
+- Portable output intentionally degrades OfficeIMO-specific constructs instead of preserving host-specific syntax.
 - Unsupported HTML is preserved best when `PreserveUnsupportedBlocks` / `PreserveUnsupportedInlineHtml` are enabled.
 
 ## Related packages
