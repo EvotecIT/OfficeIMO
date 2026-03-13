@@ -240,6 +240,36 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_PreservesMultipleParagraphsInDefinitionValues() {
+        string html = "<dl><dt>Term</dt><dd><p>First paragraph</p><p>Second paragraph</p></dd></dl>";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var list = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
+
+        Assert.Single(list.Items);
+        Assert.Equal("Term", list.Items[0].Term);
+        Assert.Equal("First paragraph\n\nSecond paragraph", list.Items[0].Definition);
+
+        string markdown = document.ToMarkdown();
+        Assert.Contains("Term: First paragraph", markdown, StringComparison.Ordinal);
+        Assert.Contains("Second paragraph", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesMixedBlockContentInDefinitionValues() {
+        string html = "<dl><dt>Term</dt><dd><p>Intro</p><blockquote><p>Quoted</p></blockquote><ul><li>Nested</li></ul></dd></dl>";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var list = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
+
+        Assert.Single(list.Items);
+        Assert.Equal("Term", list.Items[0].Term);
+        Assert.Contains("Intro", list.Items[0].Definition, StringComparison.Ordinal);
+        Assert.Contains("> Quoted", list.Items[0].Definition, StringComparison.Ordinal);
+        Assert.Contains("- Nested", list.Items[0].Definition, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_PreservesNestedListOrderInsideListItem() {
         string html = "<ul><li><p>Alpha</p><ul><li>Nested</li></ul><p>Omega</p></li></ul>";
 

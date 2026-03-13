@@ -442,7 +442,7 @@ public sealed partial class HtmlToMarkdownConverter {
             }
 
             if (child.TagName.Equals("DD", StringComparison.OrdinalIgnoreCase) && pendingTerms.Count > 0) {
-                string definition = ConvertInlineNodesToMarkdown(child.ChildNodes, context).Trim();
+                string definition = ConvertDefinitionValueToMarkdown(child, context);
                 foreach (string term in pendingTerms) {
                     list.Items.Add((term, definition));
                 }
@@ -451,5 +451,16 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         return list;
+    }
+
+    private static string ConvertDefinitionValueToMarkdown(IElement element, ConversionContext context) {
+        if (HasDirectBlockChildren(element, context)) {
+            string blockMarkdown = RenderBlocksToMarkdown(ConvertNodesToBlocks(element.ChildNodes, context));
+            if (blockMarkdown.Length > 0) {
+                return blockMarkdown;
+            }
+        }
+
+        return ConvertInlineNodesToMarkdown(element.ChildNodes, context).Trim();
     }
 }

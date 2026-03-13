@@ -96,13 +96,14 @@ var document = converter.ConvertToDocument("<article><h1>Hello</h1><p>Body</p></
 - Mixed block order inside list items is preserved.
 - Multiple `dd` values for the same `dt` are preserved.
 - Multiple `dt` terms sharing the same `dd` group are preserved.
+- Block-rich `dd` values are preserved as Markdown text instead of being forced through inline-only conversion.
 - Unsupported custom/container elements are treated as block-level content when they are structurally block-like or when raw block preservation is enabled.
 - Conversion happens through the `OfficeIMO.Markdown` AST, so the effective fidelity is bounded by that model.
 
 ## Current limitations
 
 - Table cells are currently converted to Markdown cell text rather than a richer nested block model.
-- Definition lists currently target the existing `OfficeIMO.Markdown` definition list representation.
+- Definition lists currently target the existing `OfficeIMO.Markdown` definition list representation, so rich `dd` content is preserved as Markdown text but not yet as a richer nested AST value model.
 - Unsupported HTML is preserved best when `PreserveUnsupportedBlocks` / `PreserveUnsupportedInlineHtml` are enabled.
 
 ## Related packages
