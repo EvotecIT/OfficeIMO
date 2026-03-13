@@ -78,6 +78,8 @@ MarkdownRendererPresets.ApplyChatPresentation(options, enableCopyButtons: false)
 MarkdownRendererIntelligenceXAdapter.Apply(options);
 ```
 
+Use this as the preferred composition path for downstream hosts. The `CreateChatStrict*` helpers remain available as compatibility wrappers.
+
 ### Strict vs portable presets
 
 ```csharp

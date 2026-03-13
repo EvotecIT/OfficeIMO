@@ -35,7 +35,9 @@ Recommended additional validation:
 
 - run one focused benchmark class to confirm the harness still executes
 - recheck `OfficeIMO.Markdown\README.md` and `OfficeIMO.Markdown\COMPATIBILITY.md`
+- recheck `OfficeIMO.MarkdownRenderer\README.md` for preset/composition and visual-contract guidance
 - verify package descriptions/readmes/icons render correctly in the `.csproj` metadata
+- run `dotnet pack` for both markdown packages and confirm the expected versioned `.nupkg` artifacts are produced
 
 ## Publish Sequence
 

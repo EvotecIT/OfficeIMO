@@ -19,6 +19,7 @@
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>0.2.0: introduces generic-first preset composition, AST-based semantic fenced-block rendering, IntelligenceX alias adapters, shared visual metadata contracts, and broader dataview payload support for host integrations.</PackageReleaseNotes>
     <DebugType>portable</DebugType>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <IsPublishable>True</IsPublishable>

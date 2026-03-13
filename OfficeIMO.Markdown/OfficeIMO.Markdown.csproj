@@ -19,6 +19,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageIcon>OfficeIMO.png</PackageIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageReleaseNotes>0.6.0: adds semantic fenced-block AST support, fenced block extension APIs, improved quoted/container fence handling, and HTML parts/asset workflows aligned for downstream HTML-to-Markdown and host integrations.</PackageReleaseNotes>
         <DebugType>portable</DebugType>
         <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
         <IsPublishable>True</IsPublishable>
