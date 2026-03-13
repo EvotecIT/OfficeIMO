@@ -30,6 +30,7 @@ Each project ships as its own NuGet package under the MIT license.
 - PowerPoint → `OfficeIMO.PowerPoint/README.md`
 - Visio → `OfficeIMO.Visio/README.md`
 - Converters:
+  - `OfficeIMO.Markdown.Html` — HTML → Markdown
   - `OfficeIMO.Word.Html` — HTML ↔ Word
   - `OfficeIMO.Word.Markdown` — Markdown ↔ Word
   - `OfficeIMO.Word.Pdf` — PDF export for Word
@@ -41,7 +42,7 @@ Each project ships as its own NuGet package under the MIT license.
   - `OfficeIMO.Reader.Zip` — ZIP adapter into `ReaderChunk`
   - `OfficeIMO.Reader.Epub` — EPUB adapter into `ReaderChunk`
   - `OfficeIMO.Reader.Text` — structured text path (CSV/JSON/XML)
-  - `OfficeIMO.Reader.Html` — HTML adapter (HTML -> Word -> Markdown)
+  - `OfficeIMO.Reader.Html` — HTML adapter (HTML -> Markdown)
   - roadmap: `Docs/officeimo.reader.modular-roadmap.md`
 
 ## Targets
@@ -83,6 +84,7 @@ flowchart TB
   Angle[AngleSharp]
   AngleCss[AngleSharp.Css]
   OfficeIMO.Markdown
+  OMdHtml[OfficeIMO.Markdown.Html]
   Quest[QuestPDF]
   Skia[SkiaSharp]
 
@@ -97,6 +99,7 @@ flowchart TB
   %% External dependencies per extension
   WHtml --> Angle
   WHtml --> AngleCss
+  OMdHtml --> OfficeIMO.Markdown
   WMd   --> OfficeIMO.Markdown
   WPdf  --> Quest
   WPdf  --> Skia
@@ -147,6 +150,7 @@ flowchart TD
 - Only editing/creating Word (.docx): add `OfficeIMO.Word`.
 - Word → PDF export: add `OfficeIMO.Word` + `OfficeIMO.Word.Pdf` (pulls QuestPDF + SkiaSharp).
 - Word ↔ HTML: add `OfficeIMO.Word` + `OfficeIMO.Word.Html` (pulls AngleSharp + AngleSharp.Css).
+- HTML → Markdown: add `OfficeIMO.Markdown` + `OfficeIMO.Markdown.Html` (pulls AngleSharp).
 - Word ↔ Markdown: add `OfficeIMO.Word` + `OfficeIMO.Word.Markdown` (uses OfficeIMO.Markdown and `OfficeIMO.Word.Html`).
 - Excel read/write, tables, styles: add `OfficeIMO.Excel` (pulls ImageSharp + Fonts for sizing and header images).
 - PowerPoint slides: add `OfficeIMO.PowerPoint`.
@@ -164,7 +168,7 @@ We keep package ranges conservative to avoid breaking changes; see each project�
 
 ## Licenses
 
-- OfficeIMO.Word, OfficeIMO.Excel, OfficeIMO.PowerPoint, OfficeIMO.Word.Html, OfficeIMO.Word.Markdown, OfficeIMO.Word.Pdf: MIT
+- OfficeIMO.Markdown.Html, OfficeIMO.Word, OfficeIMO.Excel, OfficeIMO.PowerPoint, OfficeIMO.Word.Html, OfficeIMO.Word.Markdown, OfficeIMO.Word.Pdf: MIT
 - OfficeIMO.Visio: License TBD (not MIT yet)
 
 Third‑party dependency licenses: see their upstream repos (Open XML SDK, SixLabors, AngleSharp, QuestPDF, SkiaSharp).

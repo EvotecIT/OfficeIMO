@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Description>HTML converter for OfficeIMO.Markdown - Convert HTML fragments or documents into OfficeIMO.Markdown documents and Markdown text.</Description>
+        <AssemblyName>OfficeIMO.Markdown.Html</AssemblyName>
+        <AssemblyTitle>OfficeIMO.Markdown.Html</AssemblyTitle>
+        <VersionPrefix>0.1.0</VersionPrefix>
+        <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
+            $(TargetFrameworks);net472
+        </TargetFrameworks>
+        <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+        <Company>Evotec</Company>
+        <Authors>Przemyslaw Klys</Authors>
+        <PackageId>OfficeIMO.Markdown.Html</PackageId>
+        <PackageTags>html;markdown;converter;net472;net8.0;net10.0</PackageTags>
+        <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <IsPublishable>True</IsPublishable>
+        <PackageIcon>OfficeIMO.png</PackageIcon>
+        <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <DebugType>portable</DebugType>
+        <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+        <GenerateDocumentationFile>True</GenerateDocumentationFile>
+        <LangVersion>Latest</LangVersion>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\Assets\OfficeIMO.png">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
+        <None Include="README.md">
+            <Pack>True</Pack>
+            <PackagePath>README.md</PackagePath>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AngleSharp" Version="1.3.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\OfficeIMO.Markdown\OfficeIMO.Markdown.csproj" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.Net.Http" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="System" />
+        <Using Include="System.IO" />
+        <Using Include="System.Linq" />
+        <Using Include="System.Text" />
+        <Using Include="System.Collections.Generic" />
+    </ItemGroup>
+
+</Project>

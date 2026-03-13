@@ -1,6 +1,6 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Html;
-using OfficeIMO.Word.Markdown;
+using OfficeIMO.Markdown.Html;
 using System.Text;
 using Xunit;
 
@@ -140,19 +140,19 @@ public sealed class ReaderHtmlModularTests {
         try {
             DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(
                 htmlOptions: new ReaderHtmlOptions {
-                    MarkdownOptions = new WordToMarkdownOptions {
-                        EnableUnderline = true
+                    HtmlToMarkdownOptions = new HtmlToMarkdownOptions {
+                        BaseUri = new Uri("https://example.com/docs/")
                     }
                 },
                 replaceExisting: true);
 
-            var html = "<html><body><p><u>underlined</u></p></body></html>";
+            var html = "<html><body><p><a href=\"guide/getting-started\">Docs</a></p></body></html>";
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
             var chunks = DocumentReader.Read(stream, "configured.html").ToList();
 
             Assert.NotEmpty(chunks);
             Assert.Contains(chunks, c =>
-                ((c.Markdown ?? c.Text).Contains("<u>underlined</u>", StringComparison.OrdinalIgnoreCase)));
+                ((c.Markdown ?? c.Text).Contains("https://example.com/docs/guide/getting-started", StringComparison.OrdinalIgnoreCase)));
         } finally {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
         }

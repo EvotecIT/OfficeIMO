@@ -1,19 +1,13 @@
-using OfficeIMO.Word.Html;
-using OfficeIMO.Word.Markdown;
+using OfficeIMO.Markdown.Html;
 
 namespace OfficeIMO.Reader.Html;
 
 /// <summary>
-/// Options for HTML ingestion pipeline (HTML -> Word -> Markdown).
+/// Options for HTML ingestion pipeline (HTML -> Markdown).
 /// </summary>
 public sealed class ReaderHtmlOptions {
     /// <summary>
-    /// Options passed to HTML-to-Word conversion stage.
+    /// Options passed to HTML-to-Markdown conversion stage.
     /// </summary>
-    public HtmlToWordOptions? HtmlToWordOptions { get; set; }
-
-    /// <summary>
-    /// Options passed to Word-to-Markdown conversion stage.
-    /// </summary>
-    public WordToMarkdownOptions? MarkdownOptions { get; set; }
+    public HtmlToMarkdownOptions? HtmlToMarkdownOptions { get; set; }
 }

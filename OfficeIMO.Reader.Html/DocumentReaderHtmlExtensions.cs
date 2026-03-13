@@ -1,5 +1,4 @@
-using OfficeIMO.Word.Html;
-using OfficeIMO.Word.Markdown;
+using OfficeIMO.Markdown.Html;
 
 namespace OfficeIMO.Reader.Html;
 
@@ -55,10 +54,7 @@ public static class DocumentReaderHtmlExtensions {
         int maxChars = effective.MaxChars > 0 ? effective.MaxChars : 8_000;
         var logicalSourceName = sourceName.Trim().Length == 0 ? "document.html" : sourceName;
 
-        string markdown;
-        using (var document = html.LoadFromHtml(effectiveHtmlOptions.HtmlToWordOptions)) {
-            markdown = document.ToMarkdown(effectiveHtmlOptions.MarkdownOptions);
-        }
+        string markdown = html.ToMarkdown(effectiveHtmlOptions.HtmlToMarkdownOptions);
 
         if (string.IsNullOrWhiteSpace(markdown)) {
             yield return BuildWarningChunk(logicalSourceName, "html-warning-0000", "HTML content produced no markdown text.");
