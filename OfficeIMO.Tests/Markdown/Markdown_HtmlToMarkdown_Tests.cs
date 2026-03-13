@@ -86,6 +86,45 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_PreservesUnsupportedBlockElementsBetweenParagraphs() {
+        string html = "<p>Alpha</p><custom-widget data-name=\"demo\">Hello</custom-widget><p>Omega</p>";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            PreserveUnsupportedBlocks = true
+        });
+
+        Assert.Collection(document.Blocks,
+            block => Assert.IsType<ParagraphBlock>(block),
+            block => Assert.IsType<HtmlRawBlock>(block),
+            block => Assert.IsType<ParagraphBlock>(block));
+
+        string markdown = document.ToMarkdown();
+        int alphaIndex = markdown.IndexOf("Alpha", StringComparison.Ordinal);
+        int widgetIndex = markdown.IndexOf("<custom-widget", StringComparison.Ordinal);
+        int omegaIndex = markdown.IndexOf("Omega", StringComparison.Ordinal);
+        Assert.True(alphaIndex >= 0, "Expected Alpha in markdown output.");
+        Assert.True(widgetIndex > alphaIndex, "Expected raw custom block after the opening paragraph.");
+        Assert.True(omegaIndex > widgetIndex, "Expected trailing paragraph after the custom block.");
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesUnsupportedBlockElementsInsideListItems() {
+        string html = "<ul><li><p>Alpha</p><custom-widget data-name=\"demo\">Hello</custom-widget><p>Omega</p></li></ul>";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            PreserveUnsupportedBlocks = true
+        });
+
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
+        var item = Assert.Single(list.Items);
+
+        Assert.Collection(item.BlockChildren,
+            block => Assert.IsType<ParagraphBlock>(block),
+            block => Assert.IsType<HtmlRawBlock>(block),
+            block => Assert.IsType<ParagraphBlock>(block));
+    }
+
+    [Fact]
     public void HtmlToMarkdown_CapturesFigureCaptionOnImageBlocks() {
         string html = "<figure><img src=\"/img/demo.png\" alt=\"Demo\" /><figcaption>Example caption</figcaption></figure>";
 
@@ -97,6 +136,20 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Equal("https://example.com/img/demo.png", image.Path);
         Assert.Equal("Demo", image.Alt);
         Assert.Equal("Example caption", image.Caption);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesParagraphBreaksInsideTableCells() {
+        string html = "<table><tr><th>Section</th><th>Notes</th></tr><tr><td>Alpha</td><td><p>First</p><p>Second</p></td></tr></table>";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("Alpha", table.Rows[0][0]);
+        Assert.Equal("First\n\nSecond", table.Rows[0][1]);
+
+        string markdown = document.ToMarkdown();
+        Assert.Contains("First<br><br>Second", markdown, StringComparison.Ordinal);
     }
 
     [Fact]

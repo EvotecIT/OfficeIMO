@@ -95,6 +95,18 @@ public sealed partial class HtmlToMarkdownConverter {
         return CollapseWhitespace(value!).Trim();
     }
 
+    private static string RenderBlocksToMarkdown(IEnumerable<IMarkdownBlock> blocks) {
+        var renderedBlocks = new List<string>();
+        foreach (var block in blocks) {
+            string rendered = block.RenderMarkdown().Trim();
+            if (rendered.Length > 0) {
+                renderedBlocks.Add(rendered);
+            }
+        }
+
+        return string.Join("\n\n", renderedBlocks);
+    }
+
     private static string CollapseWhitespace(string value) {
         var sb = new StringBuilder(value.Length);
         bool previousWhitespace = false;

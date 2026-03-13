@@ -10,6 +10,12 @@ public sealed partial class HtmlToMarkdownConverter {
         "NAV", "OL", "P", "PRE", "SECTION", "TABLE", "UL"
     };
 
+    private static readonly HashSet<string> s_InlineTags = new(StringComparer.OrdinalIgnoreCase) {
+        "A", "ABBR", "B", "BDI", "BDO", "BR", "BUTTON", "CITE", "CODE", "DATA", "DEL", "DFN",
+        "EM", "I", "IMG", "INPUT", "INS", "KBD", "LABEL", "MARK", "Q", "RP", "RT", "RTC", "RUBY",
+        "S", "SAMP", "SMALL", "SPAN", "STRONG", "SUB", "SUP", "TIME", "U", "VAR", "WBR"
+    };
+
     private static List<IMarkdownBlock> ConvertNodesToBlocks(IEnumerable<INode> nodes, ConversionContext context) {
         var blocks = new List<IMarkdownBlock>();
         var inlineBuffer = new List<INode>();
@@ -37,7 +43,7 @@ public sealed partial class HtmlToMarkdownConverter {
                 continue;
             }
 
-            if (node is IElement blockElement && IsBlockElement(blockElement)) {
+            if (node is IElement blockElement && ShouldTreatAsBlockElement(blockElement, context)) {
                 FlushInlineParagraph();
                 blocks.AddRange(ConvertElementToBlocks(blockElement, context));
                 continue;
@@ -52,6 +58,26 @@ public sealed partial class HtmlToMarkdownConverter {
 
     private static bool IsBlockElement(IElement element) {
         return s_BlockTags.Contains(element.TagName);
+    }
+
+    private static bool IsInlineElement(IElement element) {
+        return s_InlineTags.Contains(element.TagName);
+    }
+
+    private static bool ShouldTreatAsBlockElement(IElement element, ConversionContext context) {
+        if (IsBlockElement(element)) {
+            return true;
+        }
+
+        if (HasDirectBlockChildren(element)) {
+            return true;
+        }
+
+        if (context.Options.PreserveUnsupportedBlocks && !IsInlineElement(element)) {
+            return true;
+        }
+
+        return false;
     }
 
     private static bool HasDirectBlockChildren(IElement element) {
@@ -320,6 +346,13 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static string ConvertTableCellToMarkdown(IElement cell, ConversionContext context) {
+        if (HasDirectBlockChildren(cell)) {
+            string blockMarkdown = RenderBlocksToMarkdown(ConvertNodesToBlocks(cell.ChildNodes, context));
+            if (blockMarkdown.Length > 0) {
+                return blockMarkdown.Replace("  \n", "<br>");
+            }
+        }
+
         string inlineMarkdown = ConvertInlineNodesToMarkdown(cell.ChildNodes, context).Trim();
         return inlineMarkdown.Replace("  \n", "<br>");
     }
