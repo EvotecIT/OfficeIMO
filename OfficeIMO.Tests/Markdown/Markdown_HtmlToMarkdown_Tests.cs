@@ -6,6 +6,18 @@ namespace OfficeIMO.Tests;
 
 public sealed class MarkdownHtmlToMarkdownTests {
     [Fact]
+    public void HtmlToMarkdown_Converter_UsesDefaultOptionsWhenNull() {
+        var converter = new HtmlToMarkdownConverter();
+
+        string markdown = converter.Convert("<p>Hello</p>", options: null);
+        MarkdownDoc document = converter.ConvertToDocument("<p>Hello</p>", options: null);
+
+        Assert.Contains("Hello", markdown, StringComparison.Ordinal);
+        Assert.Single(document.Blocks);
+        Assert.IsType<ParagraphBlock>(document.Blocks[0]);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_ConvertsCommonDocumentBlocks() {
         string html = "<html><body><h1>Hello</h1><p>A <strong>bold</strong> <a href=\"https://example.com\">link</a>.</p><ul><li>One</li><li>Two</li></ul></body></html>";
 
@@ -30,6 +42,17 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_ConvertsHtmlFragmentWithoutBodyWrapper() {
+        string html = "<h2>Fragment</h2><p>Body</p>";
+
+        MarkdownDoc document = html.LoadFromHtml();
+
+        Assert.Collection(document.Blocks,
+            block => Assert.IsType<HeadingBlock>(block),
+            block => Assert.IsType<ParagraphBlock>(block));
+    }
+
+    [Fact]
     public void HtmlToMarkdown_ResolvesRelativeLinksWithBaseUri() {
         string html = "<p><a href=\"guide/start\">Docs</a></p>";
 
@@ -49,6 +72,31 @@ public sealed class MarkdownHtmlToMarkdownTests {
         });
 
         Assert.Contains("<custom-widget", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesUnsupportedInlineHtml_WhenRequested() {
+        string html = "<p>Hello <custom-inline data-name=\"demo\">world</custom-inline></p>";
+
+        string markdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+            PreserveUnsupportedInlineHtml = true
+        });
+
+        Assert.Contains("<custom-inline", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_CapturesFigureCaptionOnImageBlocks() {
+        string html = "<figure><img src=\"/img/demo.png\" alt=\"Demo\" /><figcaption>Example caption</figcaption></figure>";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/")
+        });
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://example.com/img/demo.png", image.Path);
+        Assert.Equal("Demo", image.Alt);
+        Assert.Equal("Example caption", image.Caption);
     }
 
     [Fact]

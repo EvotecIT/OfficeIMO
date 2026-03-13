@@ -28,4 +28,18 @@ public sealed class HtmlToMarkdownOptions {
     /// When true, unsupported inline elements are emitted as raw HTML inside inline Markdown.
     /// </summary>
     public bool PreserveUnsupportedInlineHtml { get; set; } = true;
+
+    /// <summary>
+    /// Creates a shallow copy of the current options instance so callers can reuse option templates safely.
+    /// </summary>
+    /// <returns>A new <see cref="HtmlToMarkdownOptions"/> with the same option values.</returns>
+    public HtmlToMarkdownOptions Clone() {
+        return new HtmlToMarkdownOptions {
+            BaseUri = BaseUri,
+            UseBodyContentsOnly = UseBodyContentsOnly,
+            RemoveScriptsAndStyles = RemoveScriptsAndStyles,
+            PreserveUnsupportedBlocks = PreserveUnsupportedBlocks,
+            PreserveUnsupportedInlineHtml = PreserveUnsupportedInlineHtml
+        };
+    }
 }

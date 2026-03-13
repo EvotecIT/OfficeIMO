@@ -19,22 +19,34 @@ public sealed partial class HtmlToMarkdownConverter {
     /// <summary>
     /// Converts HTML into Markdown text.
     /// </summary>
-    public string Convert(string html, HtmlToMarkdownOptions options) {
+    /// <param name="html">HTML fragment or document to convert.</param>
+    /// <param name="options">
+    /// Optional conversion options. When omitted, <see cref="HtmlToMarkdownOptions"/> defaults are used.
+    /// </param>
+    /// <returns>Markdown text produced from the supplied HTML.</returns>
+    public string Convert(string html, HtmlToMarkdownOptions? options = null) {
         return ConvertToDocument(html, options).ToMarkdown();
     }
 
     /// <summary>
     /// Converts HTML into a Markdown document model.
     /// </summary>
-    public MarkdownDoc ConvertToDocument(string html, HtmlToMarkdownOptions options) {
+    /// <param name="html">HTML fragment or document to convert.</param>
+    /// <param name="options">
+    /// Optional conversion options. When omitted, <see cref="HtmlToMarkdownOptions"/> defaults are used.
+    /// </param>
+    /// <returns>
+    /// A <see cref="MarkdownDoc"/> that preserves the converted block structure before rendering to Markdown text.
+    /// </returns>
+    public MarkdownDoc ConvertToDocument(string html, HtmlToMarkdownOptions? options = null) {
         if (html == null) throw new ArgumentNullException(nameof(html));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        var effectiveOptions = options?.Clone() ?? new HtmlToMarkdownOptions();
 
         var parser = new HtmlParser();
         var document = parser.ParseDocument(html);
-        var context = new ConversionContext(options);
+        var context = new ConversionContext(effectiveOptions);
 
-        INode root = options.UseBodyContentsOnly && document.Body != null
+        INode root = effectiveOptions.UseBodyContentsOnly && document.Body != null
             ? document.Body
             : (INode?)document.DocumentElement ?? document;
 
