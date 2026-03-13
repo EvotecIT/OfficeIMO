@@ -27,6 +27,7 @@ namespace OfficeIMO.Tests {
                     summary.CellValue(2, 3, "Accent");
                     summary.CellFormula(2, 2, "SUM(1,2)");
                     summary.SetHyperlink(1, 1, "https://example.org", display: "Name");
+                    summary.SetComment(2, 3, "Accent comment", author: "Tester", initials: "TT");
                     summary.FormatCell(2, 1, "0.00%");
                     summary.CellBackground(2, 1, "#00FF00");
                     summary.CellBold(2, 1, true);
@@ -38,23 +39,46 @@ namespace OfficeIMO.Tests {
                     summary.AutoFitRow(3);
                     summary.CellValue(1, 4, "Status");
                     summary.CellValue(1, 5, "Region");
+                    summary.CellValue(1, 6, "Score");
+                    summary.CellValue(1, 7, "Budget");
                     summary.CellValue(2, 4, "Open");
                     summary.CellValue(2, 5, "North");
+                    summary.CellValue(2, 6, 10d);
+                    summary.CellValue(2, 7, 8d);
                     summary.CellValue(3, 4, "Closed");
                     summary.CellValue(3, 5, "South");
+                    summary.CellValue(3, 6, 20d);
+                    summary.CellValue(3, 7, 18d);
                     summary.CellValue(4, 4, "Open");
                     summary.CellValue(4, 5, "East");
+                    summary.CellValue(4, 6, 30d);
+                    summary.CellValue(4, 7, 28d);
                     summary.AddTable("A1:B2", hasHeader: true, name: "SummaryTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
-                    summary.AddAutoFilter("D1:E4", new Dictionary<uint, IEnumerable<string>> {
+                    summary.SetTableTotals("A1:B2", new Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> {
+                        ["Name"] = DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues.Count,
+                        ["Column2"] = DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues.Sum,
+                    });
+                    summary.AddAutoFilter("D1:G4", new Dictionary<uint, IEnumerable<string>> {
                         { 0, new[] { "Open" } }
                     });
+                    summary.AutoFilterByHeaderContains("Region", "or");
+                    summary.AutoFilterByHeaderGreaterThanOrEqual("Score", 15d);
+                    summary.AutoFilterByHeaderBetween("Budget", 10d, 20d);
                     summary.Freeze(topRows: 1, leftCols: 1);
+                    summary.Protect(new ExcelSheetProtectionOptions {
+                        AllowSelectLockedCells = false,
+                        AllowSelectUnlockedCells = false,
+                        AllowSort = true,
+                        AllowAutoFilter = true,
+                        AllowInsertRows = true,
+                    });
                     hidden.SetHidden(true);
                     document.SetNamedRange("GlobalData", "'Summary'!A1:B2", save: false);
                     document.Save();
                 }
 
                 ApplyBorderToCell(filePath, "Summary", "A2");
+                ApplySheetDisplaySettings(filePath, "Summary", "FF336699", rightToLeft: true);
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
                 var snapshot = reloadedDocument.CreateInspectionSnapshot();
@@ -64,21 +88,48 @@ namespace OfficeIMO.Tests {
                 var summarySheet = Assert.Single(snapshot.Worksheets, w => w.Name == "Summary");
                 Assert.Equal(0, summarySheet.Index);
                 Assert.False(summarySheet.Hidden);
+                Assert.True(summarySheet.RightToLeft);
+                Assert.Equal("FF336699", summarySheet.TabColorArgb);
                 Assert.Equal(1, summarySheet.FrozenRowCount);
                 Assert.Equal(1, summarySheet.FrozenColumnCount);
+                Assert.NotNull(summarySheet.Protection);
+                Assert.False(summarySheet.Protection!.AllowSelectLockedCells);
+                Assert.False(summarySheet.Protection.AllowSelectUnlockedCells);
+                Assert.True(summarySheet.Protection.AllowSort);
+                Assert.True(summarySheet.Protection.AllowAutoFilter);
+                Assert.True(summarySheet.Protection.AllowInsertRows);
                 Assert.NotNull(summarySheet.AutoFilter);
-                Assert.Equal("D1:E4", summarySheet.AutoFilter!.A1Range);
-                var worksheetFilterColumn = Assert.Single(summarySheet.AutoFilter.Columns);
-                Assert.Equal(0, worksheetFilterColumn.ColumnId);
+                Assert.Equal("D1:G4", summarySheet.AutoFilter!.A1Range);
+                var worksheetFilterColumn = Assert.Single(summarySheet.AutoFilter.Columns, column => column.ColumnId == 0);
                 Assert.Equal(new[] { "Open" }, worksheetFilterColumn.Values);
                 var table = Assert.Single(summarySheet.Tables);
                 Assert.Equal("SummaryTable", table.Name);
                 Assert.Equal("A1:B2", table.A1Range);
                 Assert.Equal("TableStyleMedium2", table.StyleName);
                 Assert.True(table.HasHeaderRow);
+                Assert.True(table.TotalsRowShown);
                 Assert.NotNull(table.AutoFilter);
                 Assert.Equal("A1:B2", table.AutoFilter!.A1Range);
                 Assert.Equal(new[] { "Name", "Column2" }, table.Columns.Select(c => c.Name).ToArray());
+                Assert.Equal("count", table.Columns[0].TotalsRowFunction);
+                Assert.Equal("sum", table.Columns[1].TotalsRowFunction);
+                var containsFilter = Assert.Single(summarySheet.AutoFilter.Columns, column => column.ColumnId == 1);
+                Assert.NotNull(containsFilter.CustomFilters);
+                Assert.False(containsFilter.CustomFilters!.MatchAll);
+                var containsCondition = Assert.Single(containsFilter.CustomFilters.Conditions);
+                Assert.Equal("equal", containsCondition.Operator, StringComparer.OrdinalIgnoreCase);
+                Assert.Equal("*or*", containsCondition.Value);
+                var scoreFilter = Assert.Single(summarySheet.AutoFilter.Columns, column => column.ColumnId == 2);
+                Assert.NotNull(scoreFilter.CustomFilters);
+                var scoreCondition = Assert.Single(scoreFilter.CustomFilters!.Conditions);
+                Assert.Equal("greaterThanOrEqual", scoreCondition.Operator, StringComparer.OrdinalIgnoreCase);
+                Assert.Equal("15", scoreCondition.Value);
+                var budgetFilter = Assert.Single(summarySheet.AutoFilter.Columns, column => column.ColumnId == 3);
+                Assert.NotNull(budgetFilter.CustomFilters);
+                Assert.True(budgetFilter.CustomFilters!.MatchAll);
+                Assert.Equal(2, budgetFilter.CustomFilters.Conditions.Count);
+                Assert.Contains(budgetFilter.CustomFilters.Conditions, condition => string.Equals(condition.Operator, "greaterThanOrEqual", StringComparison.OrdinalIgnoreCase) && condition.Value == "10");
+                Assert.Contains(budgetFilter.CustomFilters.Conditions, condition => string.Equals(condition.Operator, "lessThanOrEqual", StringComparison.OrdinalIgnoreCase) && condition.Value == "20");
                 Assert.Contains(summarySheet.Cells, c => c.Row == 2 && c.Column == 2 && c.Formula == "SUM(1,2)");
                 var linkedCell = Assert.Single(summarySheet.Cells, c => c.Row == 1 && c.Column == 1);
                 Assert.NotNull(linkedCell.Hyperlink);
@@ -101,6 +152,9 @@ namespace OfficeIMO.Tests {
                 var fontColorCell = Assert.Single(summarySheet.Cells, c => c.Row == 2 && c.Column == 3);
                 Assert.NotNull(fontColorCell.Style);
                 Assert.Equal("FF112233", fontColorCell.Style!.FontColorArgb);
+                Assert.NotNull(fontColorCell.Comment);
+                Assert.Equal("Tester (TT)", fontColorCell.Comment!.Author);
+                Assert.Equal("Accent comment", fontColorCell.Comment.Text);
 
                 var column = Assert.Single(summarySheet.Columns, c => c.StartIndex == 1 && c.EndIndex == 1);
                 Assert.Equal(20, column.Width);
@@ -137,6 +191,7 @@ namespace OfficeIMO.Tests {
                     summary.CellValue(2, 6, "Accent");
                     summary.CellFormula(2, 5, "SUM(B2:B2)");
                     summary.SetHyperlink(2, 1, "https://alpha.example/", display: "Alpha");
+                    summary.SetComment(2, 6, "Accent comment", author: "Tester", initials: "TT");
                     summary.FormatCell(2, 2, "0.00%");
                     summary.CellBackground(2, 2, "#00FF00");
                     summary.CellBold(2, 2, true);
@@ -148,18 +203,45 @@ namespace OfficeIMO.Tests {
                     summary.AutoFitRow(3);
                     summary.CellValue(1, 7, "Status");
                     summary.CellValue(1, 8, "Region");
+                    summary.CellValue(1, 9, "Score");
+                    summary.CellValue(1, 10, "Budget");
                     summary.CellValue(2, 7, "Open");
                     summary.CellValue(2, 8, "North");
+                    summary.CellValue(2, 9, 10d);
+                    summary.CellValue(2, 10, 8d);
                     summary.CellValue(3, 7, "Closed");
                     summary.CellValue(3, 8, "South");
+                    summary.CellValue(3, 9, 20d);
+                    summary.CellValue(3, 10, 18d);
                     summary.CellValue(4, 7, "Open");
                     summary.CellValue(4, 8, "East");
+                    summary.CellValue(4, 9, 30d);
+                    summary.CellValue(4, 10, 28d);
                     summary.AddTable("A1:B3", hasHeader: true, name: "SummaryTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
-                    summary.AddAutoFilter("G1:H4", new Dictionary<uint, IEnumerable<string>> {
+                    summary.SetTableTotals("A1:B3", new Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> {
+                        ["Name"] = DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues.Count,
+                        ["Count"] = DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues.Sum,
+                    });
+                    summary.CellBackground(3, 1, "#D9EAD3");
+                    summary.CellBackground(3, 2, "#D9EAD3");
+                    summary.AddAutoFilter("G1:J4", new Dictionary<uint, IEnumerable<string>> {
                         { 0, new[] { "Open" } }
                     });
+                    summary.AutoFilterByHeaderContains("Region", "or");
+                    summary.AutoFilterByHeaderGreaterThanOrEqual("Score", 15d);
+                    summary.AutoFilterByHeaderBetween("Budget", 10d, 20d);
                     summary.Freeze(topRows: 1, leftCols: 1);
+                    summary.Protect(new ExcelSheetProtectionOptions {
+                        AllowSelectLockedCells = false,
+                        AllowSelectUnlockedCells = false,
+                        AllowSort = true,
+                        AllowAutoFilter = true,
+                        AllowInsertRows = true,
+                    });
                     hidden.SetHidden(true);
+                    summary.SetInternalLink(5, 1, hidden, "B5", display: "Go hidden");
+                    summary.SetInternalLink(6, 1, "LocalData", display: "Go local");
+                    summary.SetComment(6, 1, "Jump note", author: "Tester", initials: "TT");
 
                     document.SetNamedRange("GlobalData", "'Summary'!A1:B2", save: false);
                     summary.SetNamedRange("LocalData", "A2:B2", save: false);
@@ -167,6 +249,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 ApplyBorderToCell(filePath, "Summary", "B2");
+                ApplySheetDisplaySettings(filePath, "Summary", "FF336699", rightToLeft: true);
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
                 var batch = reloadedDocument.CreateGoogleSheetsBatch(new GoogleSheetsSaveOptions {
@@ -181,6 +264,8 @@ namespace OfficeIMO.Tests {
                 var summaryRequest = Assert.Single(addSheetRequests, r => r.SheetName == "Summary");
                 Assert.Equal(0, summaryRequest.SheetIndex);
                 Assert.False(summaryRequest.Hidden);
+                Assert.True(summaryRequest.RightToLeft);
+                Assert.Equal("FF336699", summaryRequest.TabColorArgb);
                 Assert.Equal(1, summaryRequest.FrozenRowCount);
                 Assert.Equal(1, summaryRequest.FrozenColumnCount);
 
@@ -197,6 +282,17 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(hyperlinkCell.Hyperlink);
                 Assert.True(hyperlinkCell.Hyperlink!.IsExternal);
                 Assert.Equal("https://alpha.example/", hyperlinkCell.Hyperlink.Target);
+                var internalHyperlinkCell = Assert.Single(updateRequest.Cells, c => c.RowIndex == 4 && c.ColumnIndex == 0);
+                Assert.NotNull(internalHyperlinkCell.Hyperlink);
+                Assert.False(internalHyperlinkCell.Hyperlink!.IsExternal);
+                Assert.Equal("'Hidden'!B5", internalHyperlinkCell.Hyperlink.Target);
+                var localNamedRangeHyperlinkCell = Assert.Single(updateRequest.Cells, c => c.RowIndex == 5 && c.ColumnIndex == 0);
+                Assert.NotNull(localNamedRangeHyperlinkCell.Hyperlink);
+                Assert.False(localNamedRangeHyperlinkCell.Hyperlink!.IsExternal);
+                Assert.Equal("LocalData", localNamedRangeHyperlinkCell.Hyperlink.Target);
+                Assert.NotNull(localNamedRangeHyperlinkCell.Comment);
+                Assert.Equal("Tester (TT)", localNamedRangeHyperlinkCell.Comment!.Author);
+                Assert.Equal("Jump note", localNamedRangeHyperlinkCell.Comment.Text);
 
                 var styledCell = Assert.Single(updateRequest.Cells, c => c.RowIndex == 1 && c.ColumnIndex == 1);
                 Assert.NotNull(styledCell.Style);
@@ -213,6 +309,9 @@ namespace OfficeIMO.Tests {
                 var fontColorCell = Assert.Single(updateRequest.Cells, c => c.RowIndex == 1 && c.ColumnIndex == 5);
                 Assert.NotNull(fontColorCell.Style);
                 Assert.Equal("FF112233", fontColorCell.Style!.FontColorArgb);
+                Assert.NotNull(fontColorCell.Comment);
+                Assert.Equal("Tester (TT)", fontColorCell.Comment!.Author);
+                Assert.Equal("Accent comment", fontColorCell.Comment.Text);
 
                 var dimensionRequests = batch.Requests.OfType<GoogleSheetsUpdateDimensionPropertiesRequest>().ToList();
                 Assert.Contains(dimensionRequests, r => r.SheetName == "Summary" && r.DimensionKind == GoogleSheetsDimensionKind.Columns && r.StartIndex == 1 && r.EndIndexExclusive == 2 && r.PixelSize.HasValue && r.PixelSize.Value > 0);
@@ -221,24 +320,49 @@ namespace OfficeIMO.Tests {
                 var tableRequest = Assert.Single(batch.Requests.OfType<GoogleSheetsAddTableRequest>(), r => r.SheetName == "Summary");
                 Assert.Equal("SummaryTable", tableRequest.TableName);
                 Assert.Equal("A1:B3", tableRequest.A1Range);
+                Assert.True(tableRequest.TotalsRowShown);
+                Assert.Equal("FFD9EAD3", tableRequest.FooterColorArgb);
                 Assert.Equal(new[] { "Name", "Count" }, tableRequest.Columns.Select(c => c.Name).ToArray());
                 Assert.Equal("TEXT", tableRequest.Columns[0].ColumnType);
-                Assert.Equal("TEXT", tableRequest.Columns[1].ColumnType);
+                Assert.Equal("PERCENT", tableRequest.Columns[1].ColumnType);
+                Assert.Equal("count", tableRequest.Columns[0].TotalsRowFunction);
+                Assert.Equal("sum", tableRequest.Columns[1].TotalsRowFunction);
 
                 var basicFilter = Assert.Single(batch.Requests.OfType<GoogleSheetsSetBasicFilterRequest>(), r => r.SheetName == "Summary");
-                Assert.Equal("G1:H4", basicFilter.A1Range);
-                var basicFilterCriteria = Assert.Single(basicFilter.Criteria);
-                Assert.Equal(0, basicFilterCriteria.ColumnId);
-                Assert.Equal(new[] { "Closed" }, basicFilterCriteria.HiddenValues);
+                Assert.Equal("G1:J4", basicFilter.A1Range);
+                Assert.Equal(4, basicFilter.Criteria.Count);
+                var basicFilterValueCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 0);
+                Assert.Equal(new[] { "Closed" }, basicFilterValueCriteria.HiddenValues);
+                var basicFilterContainsCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 1);
+                Assert.NotNull(basicFilterContainsCriteria.Condition);
+                Assert.Equal("TEXT_CONTAINS", basicFilterContainsCriteria.Condition!.Type);
+                Assert.Equal(new[] { "or" }, basicFilterContainsCriteria.Condition.Values);
+                var basicFilterNumericCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 2);
+                Assert.NotNull(basicFilterNumericCriteria.Condition);
+                Assert.Equal("NUMBER_GREATER_THAN_EQ", basicFilterNumericCriteria.Condition!.Type);
+                Assert.Equal(new[] { "15" }, basicFilterNumericCriteria.Condition.Values);
+                var basicFilterBetweenCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 3);
+                Assert.NotNull(basicFilterBetweenCriteria.Condition);
+                Assert.Equal("NUMBER_BETWEEN", basicFilterBetweenCriteria.Condition!.Type);
+                Assert.Equal(new[] { "10", "20" }, basicFilterBetweenCriteria.Condition.Values);
 
                 var filterView = Assert.Single(batch.Requests.OfType<GoogleSheetsAddFilterViewRequest>(), r => r.SheetName == "Summary");
                 Assert.Equal("SummaryTable Filter", filterView.Title);
                 Assert.Equal("A1:B3", filterView.A1Range);
 
+                var protectedRange = Assert.Single(batch.Requests.OfType<GoogleSheetsAddProtectedRangeRequest>(), r => r.SheetName == "Summary");
+                Assert.False(protectedRange.WarningOnly);
+                Assert.Contains("sort", protectedRange.Description, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("autofilter", protectedRange.Description, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("insert rows", protectedRange.Description, StringComparison.OrdinalIgnoreCase);
+
                 var namedRanges = batch.Requests.OfType<GoogleSheetsAddNamedRangeRequest>().ToList();
                 Assert.Equal(2, namedRanges.Count);
                 Assert.Contains(namedRanges, r => r.Name == "GlobalData" && r.SheetName == null && r.A1Range == "'Summary'!$A$1:$B$2");
                 Assert.Contains(namedRanges, r => r.Name == "LocalData" && r.SheetName == "Summary" && r.A1Range == "'Summary'!$A$2:$B$2");
+                Assert.Contains(batch.Report.Notices, n => n.Feature == "SheetProtection");
+                Assert.Contains(batch.Report.Notices, n => n.Feature == "SheetProtectionPermissions");
+                Assert.Contains(batch.Report.Notices, n => n.Feature == "TableTotals");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -268,6 +392,99 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_GoogleSheetsBatchCompiler_AndApiPayloadBuilder_MapAdvancedAutoFilterConditions() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsAdvancedAutoFilters.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var data = document.AddWorkSheet("Data");
+
+                    data.CellValue(1, 1, "Prefix");
+                    data.CellValue(1, 2, "Suffix");
+                    data.CellValue(1, 3, "Variance");
+                    data.CellValue(1, 4, "Notes");
+                    data.CellValue(1, 5, "Delta");
+                    data.CellValue(2, 1, "Ops-West");
+                    data.CellValue(2, 2, "NorthOps");
+                    data.CellValue(2, 3, 5d);
+                    data.CellValue(2, 4, "keep");
+                    data.CellValue(2, 5, 5d);
+                    data.CellValue(3, 1, "Sales-East");
+                    data.CellValue(3, 2, "WestTeam");
+                    data.CellValue(3, 3, 15d);
+                    data.CellValue(3, 4, "review later");
+                    data.CellValue(3, 5, 10d);
+                    data.CellValue(4, 1, "Ops-Central");
+                    data.CellValue(4, 2, "FieldOps");
+                    data.CellValue(4, 3, 25d);
+                    data.CellValue(4, 4, "done");
+                    data.CellValue(4, 5, 15d);
+
+                    data.AddAutoFilter("A1:E4");
+                    data.AutoFilterByHeaderStartsWith("Prefix", "Op");
+                    data.AutoFilterByHeaderEndsWith("Suffix", "Ops");
+                    data.AutoFilterByHeaderNotBetween("Variance", 10d, 20d);
+                    data.AutoFilterByHeaderDoesNotContain("Notes", "view");
+                    data.AutoFilterByHeaderNotEqual("Delta", 10d);
+
+                    document.Save();
+                }
+
+                using var reloadedDocument = ExcelDocument.Load(filePath);
+                var batch = reloadedDocument.CreateGoogleSheetsBatch(new GoogleSheetsSaveOptions {
+                    Title = "Advanced Auto Filters"
+                });
+
+                var basicFilter = Assert.Single(batch.Requests.OfType<GoogleSheetsSetBasicFilterRequest>(), r => r.SheetName == "Data");
+                Assert.Equal("A1:E4", basicFilter.A1Range);
+                Assert.Equal(5, basicFilter.Criteria.Count);
+
+                var startsWithCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 0);
+                Assert.NotNull(startsWithCriteria.Condition);
+                Assert.Equal("TEXT_STARTS_WITH", startsWithCriteria.Condition!.Type);
+                Assert.Equal(new[] { "Op" }, startsWithCriteria.Condition.Values);
+
+                var endsWithCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 1);
+                Assert.NotNull(endsWithCriteria.Condition);
+                Assert.Equal("TEXT_ENDS_WITH", endsWithCriteria.Condition!.Type);
+                Assert.Equal(new[] { "Ops" }, endsWithCriteria.Condition.Values);
+
+                var notBetweenCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 2);
+                Assert.NotNull(notBetweenCriteria.Condition);
+                Assert.Equal("NUMBER_NOT_BETWEEN", notBetweenCriteria.Condition!.Type);
+                Assert.Equal(new[] { "10", "20" }, notBetweenCriteria.Condition.Values);
+
+                var notContainsCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 3);
+                Assert.NotNull(notContainsCriteria.Condition);
+                Assert.Equal("TEXT_NOT_CONTAINS", notContainsCriteria.Condition!.Type);
+                Assert.Equal(new[] { "view" }, notContainsCriteria.Condition.Values);
+
+                var notEqualCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 4);
+                Assert.NotNull(notEqualCriteria.Condition);
+                Assert.Equal("NUMBER_NOT_EQ", notEqualCriteria.Condition!.Type);
+                Assert.Equal(new[] { "10" }, notEqualCriteria.Condition.Values);
+
+                var payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
+                var basicFilterRequest = Assert.Single(payload.Requests, r => r.SetBasicFilter != null);
+
+                Assert.Equal("TEXT_STARTS_WITH", basicFilterRequest.SetBasicFilter!.Filter.Criteria!["0"].Condition!.Type);
+                Assert.Equal("Op", Assert.Single(basicFilterRequest.SetBasicFilter.Filter.Criteria["0"].Condition!.Values!).UserEnteredValue);
+                Assert.Equal("TEXT_ENDS_WITH", basicFilterRequest.SetBasicFilter.Filter.Criteria["1"].Condition!.Type);
+                Assert.Equal("Ops", Assert.Single(basicFilterRequest.SetBasicFilter.Filter.Criteria["1"].Condition!.Values!).UserEnteredValue);
+                Assert.Equal("NUMBER_NOT_BETWEEN", basicFilterRequest.SetBasicFilter.Filter.Criteria["2"].Condition!.Type);
+                Assert.Equal(new[] { "10", "20" }, basicFilterRequest.SetBasicFilter.Filter.Criteria["2"].Condition!.Values!.Select(v => v.UserEnteredValue).ToArray());
+                Assert.Equal("TEXT_NOT_CONTAINS", basicFilterRequest.SetBasicFilter.Filter.Criteria["3"].Condition!.Type);
+                Assert.Equal("view", Assert.Single(basicFilterRequest.SetBasicFilter.Filter.Criteria["3"].Condition!.Values!).UserEnteredValue);
+                Assert.Equal("NUMBER_NOT_EQ", basicFilterRequest.SetBasicFilter.Filter.Criteria["4"].Condition!.Type);
+                Assert.Equal("10", Assert.Single(basicFilterRequest.SetBasicFilter.Filter.Criteria["4"].Condition!.Values!).UserEnteredValue);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Test_GoogleSheetsApiPayloadBuilder_TranslatesNeutralBatchToSheetsPayloads() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsApiPayloadBuilder.xlsx");
 
@@ -279,6 +496,7 @@ namespace OfficeIMO.Tests {
                     summary.CellValue(1, 1, "Name");
                     summary.CellValue(2, 2, 12);
                     summary.SetHyperlink(2, 1, "https://alpha.example/", display: "Alpha");
+                    summary.SetComment(2, 1, "External link note", author: "Tester", initials: "TT");
                     summary.FormatCell(2, 2, "0.00%");
                     summary.CellBackground(2, 2, "#00FF00");
                     summary.CellBold(2, 2, true);
@@ -289,23 +507,52 @@ namespace OfficeIMO.Tests {
                     summary.AutoFitRow(3);
                     summary.CellValue(1, 7, "Status");
                     summary.CellValue(1, 8, "Region");
+                    summary.CellValue(1, 9, "Score");
+                    summary.CellValue(1, 10, "Budget");
                     summary.CellValue(2, 7, "Open");
                     summary.CellValue(2, 8, "North");
+                    summary.CellValue(2, 9, 10d);
+                    summary.CellValue(2, 10, 8d);
                     summary.CellValue(3, 7, "Closed");
                     summary.CellValue(3, 8, "South");
+                    summary.CellValue(3, 9, 20d);
+                    summary.CellValue(3, 10, 18d);
                     summary.CellValue(4, 7, "Open");
                     summary.CellValue(4, 8, "East");
+                    summary.CellValue(4, 9, 30d);
+                    summary.CellValue(4, 10, 28d);
                     summary.AddTable("A1:B3", hasHeader: true, name: "SummaryTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
-                    summary.AddAutoFilter("G1:H4", new Dictionary<uint, IEnumerable<string>> {
+                    summary.SetTableTotals("A1:B3", new Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> {
+                        ["Name"] = DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues.Count,
+                        ["Count"] = DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues.Sum,
+                    });
+                    summary.CellBackground(3, 1, "#D9EAD3");
+                    summary.CellBackground(3, 2, "#D9EAD3");
+                    summary.AddAutoFilter("G1:J4", new Dictionary<uint, IEnumerable<string>> {
                         { 0, new[] { "Open" } }
                     });
+                    summary.AutoFilterByHeaderContains("Region", "or");
+                    summary.AutoFilterByHeaderGreaterThanOrEqual("Score", 15d);
+                    summary.AutoFilterByHeaderBetween("Budget", 10d, 20d);
                     summary.Freeze(topRows: 1, leftCols: 1);
+                    summary.Protect(new ExcelSheetProtectionOptions {
+                        AllowSelectLockedCells = false,
+                        AllowSelectUnlockedCells = false,
+                        AllowSort = true,
+                        AllowAutoFilter = true,
+                        AllowInsertRows = true,
+                    });
+                    summary.SetInternalLink(5, 1, hidden, "B5", display: "Go hidden");
+                    summary.SetInternalLink(6, 1, "LocalData", display: "Go local");
+                    summary.SetComment(6, 1, "Jump note", author: "Tester", initials: "TT");
                     hidden.SetHidden(true);
                     document.SetNamedRange("GlobalData", "'Summary'!A1:B3", save: false);
+                    summary.SetNamedRange("LocalData", "B2:B3", save: false);
                     document.Save();
                 }
 
                 ApplyBorderToCell(filePath, "Summary", "B2");
+                ApplySheetDisplaySettings(filePath, "Summary", "FF336699", rightToLeft: true);
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
                 var batch = reloadedDocument.CreateGoogleSheetsBatch(new GoogleSheetsSaveOptions {
@@ -315,10 +562,17 @@ namespace OfficeIMO.Tests {
                 var createPayload = GoogleSheetsApiPayloadBuilder.BuildCreateSpreadsheetPayload(batch);
                 Assert.Equal("API Export", createPayload.Properties.Title);
                 Assert.Equal(2, createPayload.Sheets.Count);
-                Assert.Contains(createPayload.Sheets, s => s.Properties.SheetId == 1 && s.Properties.Title == "Summary" && s.Properties.GridProperties.FrozenRowCount == 1);
+                Assert.Contains(createPayload.Sheets, s =>
+                    s.Properties.SheetId == 1
+                    && s.Properties.Title == "Summary"
+                    && s.Properties.GridProperties.FrozenRowCount == 1
+                    && s.Properties.RightToLeft == true
+                    && s.Properties.TabColor != null
+                    && s.Properties.TabColor.Red > 0.19d
+                    && s.Properties.TabColor.Blue > 0.59d);
                 Assert.Contains(createPayload.Sheets, s => s.Properties.SheetId == 2 && s.Properties.Title == "Hidden" && s.Properties.Hidden);
 
-                var batchPayload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch);
+                var batchPayload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch), "spread123");
                 Assert.NotEmpty(batchPayload.Requests);
 
                 Assert.Contains(batchPayload.Requests, r =>
@@ -337,6 +591,12 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, basicFilterRequest.SetBasicFilter!.Filter.Range.SheetId);
                 Assert.Equal(6, basicFilterRequest.SetBasicFilter.Filter.Range.StartColumnIndex);
                 Assert.Contains("Closed", basicFilterRequest.SetBasicFilter.Filter.Criteria!["0"].HiddenValues!);
+                Assert.Equal("TEXT_CONTAINS", basicFilterRequest.SetBasicFilter.Filter.Criteria["1"].Condition!.Type);
+                Assert.Equal("or", Assert.Single(basicFilterRequest.SetBasicFilter.Filter.Criteria["1"].Condition!.Values!).UserEnteredValue);
+                Assert.Equal("NUMBER_GREATER_THAN_EQ", basicFilterRequest.SetBasicFilter.Filter.Criteria["2"].Condition!.Type);
+                Assert.Equal("15", Assert.Single(basicFilterRequest.SetBasicFilter.Filter.Criteria["2"].Condition!.Values!).UserEnteredValue);
+                Assert.Equal("NUMBER_BETWEEN", basicFilterRequest.SetBasicFilter.Filter.Criteria["3"].Condition!.Type);
+                Assert.Equal(new[] { "10", "20" }, basicFilterRequest.SetBasicFilter.Filter.Criteria["3"].Condition!.Values!.Select(v => v.UserEnteredValue).ToArray());
 
                 var filterViewRequest = Assert.Single(batchPayload.Requests, r => r.AddFilterView != null);
                 Assert.Equal("SummaryTable Filter", filterViewRequest.AddFilterView!.Filter.Title);
@@ -345,8 +605,19 @@ namespace OfficeIMO.Tests {
                 var tableRequest = Assert.Single(batchPayload.Requests, r => r.AddTable != null);
                 Assert.Equal("SummaryTable", tableRequest.AddTable!.Table.Name);
                 Assert.Equal(1, tableRequest.AddTable.Table.Range.SheetId);
+                var rowsProperties = Assert.IsType<GoogleSheetsApiTableRowsPropertiesPayload>(tableRequest.AddTable.Table.RowsProperties);
+                var footerColorStyle = Assert.IsType<GoogleSheetsApiColorStylePayload>(rowsProperties.FooterColorStyle);
+                var footerColor = Assert.IsType<GoogleSheetsApiColorPayload>(footerColorStyle.RgbColor);
+                Assert.True(footerColor.Red > 0.84d);
+                Assert.True(footerColor.Green > 0.91d);
+                Assert.True(footerColor.Blue > 0.82d);
                 Assert.Equal("Name", tableRequest.AddTable.Table.ColumnProperties![0].Name);
-                Assert.Equal("TEXT", tableRequest.AddTable.Table.ColumnProperties[1].ColumnType);
+                Assert.Equal("PERCENT", tableRequest.AddTable.Table.ColumnProperties[1].ColumnType);
+
+                var protectedRange = Assert.Single(batchPayload.Requests, r => r.AddProtectedRange != null);
+                Assert.Equal(1, protectedRange.AddProtectedRange!.ProtectedRange.Range.SheetId);
+                Assert.False(protectedRange.AddProtectedRange.ProtectedRange.WarningOnly);
+                Assert.Contains("sort", protectedRange.AddProtectedRange.ProtectedRange.Description, StringComparison.OrdinalIgnoreCase);
 
                 var hyperlinkCell = batchPayload.Requests
                     .Where(r => r.UpdateCells != null)
@@ -354,27 +625,39 @@ namespace OfficeIMO.Tests {
                     .SelectMany(r => r.Values)
                     .First(c => c.UserEnteredValue?.FormulaValue != null && c.UserEnteredValue.FormulaValue.Contains("HYPERLINK", StringComparison.Ordinal));
                 Assert.Contains("https://alpha.example/", hyperlinkCell.UserEnteredValue!.FormulaValue);
+                Assert.Equal("Tester (TT): External link note", hyperlinkCell.Note);
+
+                var internalHyperlinkCell = batchPayload.Requests
+                    .Where(r => r.UpdateCells != null)
+                    .SelectMany(r => r.UpdateCells!.Rows)
+                    .SelectMany(r => r.Values)
+                    .First(c => c.UserEnteredValue?.FormulaValue != null && c.UserEnteredValue.FormulaValue.Contains("gid=2", StringComparison.Ordinal));
+                Assert.Contains("docs.google.com/spreadsheets/d/spread123/edit#gid=2", internalHyperlinkCell.UserEnteredValue!.FormulaValue);
+                Assert.Equal("OfficeIMO internal link target: Hidden!B5", internalHyperlinkCell.Note);
+
+                var localNamedRangeHyperlinkCell = batchPayload.Requests
+                    .Where(r => r.UpdateCells != null)
+                    .SelectMany(r => r.UpdateCells!.Rows)
+                    .SelectMany(r => r.Values)
+                    .First(c => c.UserEnteredValue?.FormulaValue != null && c.UserEnteredValue.FormulaValue.Contains("Go local", StringComparison.Ordinal));
+                Assert.Contains("docs.google.com/spreadsheets/d/spread123/edit#gid=1", localNamedRangeHyperlinkCell.UserEnteredValue!.FormulaValue);
+                Assert.Equal("Tester (TT): Jump note" + Environment.NewLine + Environment.NewLine + "OfficeIMO internal link target: LocalData -> Summary!B2:B3", localNamedRangeHyperlinkCell.Note);
 
                 var styledCell = batchPayload.Requests
                     .Where(r => r.UpdateCells != null)
                     .SelectMany(r => r.UpdateCells!.Rows)
                     .SelectMany(r => r.Values)
-                    .First(c => c.UserEnteredFormat?.NumberFormat?.Pattern == "0.00%");
+                    .First(c => c.UserEnteredFormat?.HorizontalAlignment == "CENTER");
                 Assert.Equal("PERCENT", styledCell.UserEnteredFormat!.NumberFormat!.Type);
+                Assert.Equal("0.00%", styledCell.UserEnteredFormat.NumberFormat.Pattern);
                 Assert.Equal("CENTER", styledCell.UserEnteredFormat.HorizontalAlignment);
                 Assert.NotNull(styledCell.UserEnteredFormat.Borders);
                 Assert.Equal("SOLID_MEDIUM", styledCell.UserEnteredFormat.Borders!.Left!.Style);
                 Assert.Equal(1d, styledCell.UserEnteredFormat.Borders.Left.Color!.Red);
                 Assert.Equal("DASHED", styledCell.UserEnteredFormat.Borders.Top!.Style);
                 Assert.Equal(1d, styledCell.UserEnteredFormat.Borders.Top.Color!.Blue);
-                Assert.Equal("WRAP", batchPayload.Requests
-                    .Where(r => r.UpdateCells != null)
-                    .SelectMany(r => r.UpdateCells!.Rows)
-                    .SelectMany(r => r.Values)
-                    .First(c => c.UserEnteredFormat?.WrapStrategy == "WRAP")
-                    .UserEnteredFormat!.WrapStrategy);
 
-                var namedRange = Assert.Single(batchPayload.Requests, r => r.AddNamedRange != null);
+                var namedRange = Assert.Single(batchPayload.Requests, r => r.AddNamedRange?.NamedRange.Name == "GlobalData");
                 Assert.Equal("GlobalData", namedRange.AddNamedRange!.NamedRange.Name);
                 Assert.Equal(1, namedRange.AddNamedRange.NamedRange.Range.SheetId);
                 Assert.Equal(0, namedRange.AddNamedRange.NamedRange.Range.StartRowIndex);
@@ -393,8 +676,13 @@ namespace OfficeIMO.Tests {
             try {
                 using var document = ExcelDocument.Create(filePath);
                 var summary = document.AddWorkSheet("Summary");
+                var target = document.AddWorkSheet("Target");
                 summary.CellValue(1, 1, "Name");
                 summary.SetHyperlink(2, 1, "https://alpha.example/", display: "Alpha");
+                summary.SetInternalLink(3, 1, target, "B5", display: "Target");
+                summary.SetNamedRange("LocalData", "B2:B3", save: false);
+                summary.SetInternalLink(4, 1, "LocalData", display: "Local");
+                summary.SetComment(4, 1, "Jump note", author: "Tester", initials: "TT");
                 summary.CellValue(2, 2, 5);
 
                 var recordedRequests = new List<(Uri Uri, string Method, string? Body, string? Authorization)>();
@@ -439,6 +727,11 @@ namespace OfficeIMO.Tests {
                 var updateRequest = Assert.Single(recordedRequests, r => r.Uri.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/spread123:batchUpdate");
                 Assert.Equal("POST", updateRequest.Method);
                 Assert.Contains("HYPERLINK", updateRequest.Body!);
+                Assert.Contains("docs.google.com/spreadsheets/d/spread123/edit#gid=2", updateRequest.Body!);
+                Assert.Contains("OfficeIMO internal link target: Target!B5", updateRequest.Body!);
+                Assert.Contains("docs.google.com/spreadsheets/d/spread123/edit#gid=1", updateRequest.Body!);
+                Assert.Contains("Tester (TT): Jump note", updateRequest.Body!);
+                Assert.Contains("OfficeIMO internal link target: LocalData -\\u003E Summary!B2:B3", updateRequest.Body!);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -621,6 +914,44 @@ namespace OfficeIMO.Tests {
 
             stylesheet.Save();
             worksheetPart.Worksheet.Save();
+            workbookPart.Workbook.Save();
+        }
+
+        private static void ApplySheetDisplaySettings(string filePath, string sheetName, string tabColorArgb, bool rightToLeft) {
+            using var document = SpreadsheetDocument.Open(filePath, true);
+            var workbookPart = document.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is missing.");
+            var sheet = workbookPart.Workbook.Sheets?.Elements<Sheet>().FirstOrDefault(s => string.Equals(s.Name?.Value, sheetName, StringComparison.Ordinal))
+                ?? throw new InvalidOperationException($"Sheet '{sheetName}' was not found.");
+            var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+            var worksheet = worksheetPart.Worksheet;
+
+            var sheetProperties = worksheet.GetFirstChild<SheetProperties>();
+            if (sheetProperties == null) {
+                sheetProperties = new SheetProperties();
+                worksheet.InsertAt(sheetProperties, 0);
+            }
+
+            sheetProperties.TabColor = new TabColor {
+                Rgb = tabColorArgb,
+            };
+
+            var sheetViews = worksheet.GetFirstChild<SheetViews>();
+            if (sheetViews == null) {
+                sheetViews = new SheetViews();
+                worksheet.InsertAfter(sheetViews, sheetProperties);
+            }
+
+            var sheetView = sheetViews.Elements<SheetView>().FirstOrDefault();
+            if (sheetView == null) {
+                sheetView = new SheetView {
+                    WorkbookViewId = 0U,
+                };
+                sheetViews.Append(sheetView);
+            }
+
+            sheetView.RightToLeft = rightToLeft;
+
+            worksheet.Save();
             workbookPart.Workbook.Save();
         }
 
