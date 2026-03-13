@@ -127,6 +127,72 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("SUM(A1:B1)>10", dv.GetFirstChild<Formula1>()!.Text);
             }
         }
+
+        [Fact]
+        public void ValidationListNamedRange() {
+            string filePath = Path.Combine(_directoryWithFiles, "ValidationListNamedRange.xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet options = document.AddWorkSheet("Options");
+                ExcelSheet data = document.AddWorkSheet("Data");
+
+                options.CellValue(1, 1, "Open");
+                options.CellValue(2, 1, "Closed");
+                options.CellValue(3, 1, "Pending");
+                document.SetNamedRange("StatusOptions", "'Options'!A1:A3", save: false);
+                data.ValidationListNamedRange("B2:B5", "StatusOptions");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.Last();
+                DataValidation dv = wsPart.Worksheet.Descendants<DataValidation>().First();
+                Assert.Equal(DataValidationValues.List, dv.Type!.Value);
+                Assert.Equal("=StatusOptions", dv.GetFirstChild<Formula1>()!.Text);
+            }
+        }
+
+        [Fact]
+        public void ValidationListRange() {
+            string filePath = Path.Combine(_directoryWithFiles, "ValidationListRange.xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet options = document.AddWorkSheet("Options");
+                ExcelSheet data = document.AddWorkSheet("Data");
+
+                options.CellValue(1, 1, "Open");
+                options.CellValue(2, 1, "Closed");
+                options.CellValue(3, 1, "Pending");
+                data.ValidationListRange("B2:B5", "A1:A3", "Options");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.Last();
+                DataValidation dv = wsPart.Worksheet.Descendants<DataValidation>().First();
+                Assert.Equal(DataValidationValues.List, dv.Type!.Value);
+                Assert.Equal("='Options'!A1:A3", dv.GetFirstChild<Formula1>()!.Text);
+            }
+        }
+
+        [Fact]
+        public void ValidationListRangeOnCurrentSheet() {
+            string filePath = Path.Combine(_directoryWithFiles, "ValidationListRangeOnCurrentSheet.xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet data = document.AddWorkSheet("Data");
+
+                data.CellValue(1, 4, "Open");
+                data.CellValue(2, 4, "Closed");
+                data.CellValue(3, 4, "Pending");
+                data.ValidationListRange("B2:B5", "D1:D3");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                DataValidation dv = wsPart.Worksheet.Descendants<DataValidation>().First();
+                Assert.Equal(DataValidationValues.List, dv.Type!.Value);
+                Assert.Equal("=D1:D3", dv.GetFirstChild<Formula1>()!.Text);
+            }
+        }
     }
 }
 

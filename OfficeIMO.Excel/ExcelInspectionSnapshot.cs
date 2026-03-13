@@ -45,6 +45,7 @@ namespace OfficeIMO.Excel {
         private readonly List<ExcelMergedRangeSnapshot> _mergedRanges = new List<ExcelMergedRangeSnapshot>();
         private readonly List<ExcelColumnSnapshot> _columns = new List<ExcelColumnSnapshot>();
         private readonly List<ExcelRowSnapshot> _rows = new List<ExcelRowSnapshot>();
+        private readonly List<ExcelDataValidationSnapshot> _validations = new List<ExcelDataValidationSnapshot>();
         private readonly List<ExcelTableSnapshot> _tables = new List<ExcelTableSnapshot>();
 
         /// <summary>
@@ -108,6 +109,11 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<ExcelRowSnapshot> Rows => _rows;
 
         /// <summary>
+        /// Worksheet data validations discovered during inspection.
+        /// </summary>
+        public IReadOnlyList<ExcelDataValidationSnapshot> Validations => _validations;
+
+        /// <summary>
         /// Worksheet-level auto filter discovered during inspection, when present.
         /// </summary>
         public ExcelAutoFilterSnapshot? AutoFilter { get; internal set; }
@@ -140,6 +146,11 @@ namespace OfficeIMO.Excel {
         internal void AddRow(ExcelRowSnapshot row) {
             if (row == null) throw new ArgumentNullException(nameof(row));
             _rows.Add(row);
+        }
+
+        internal void AddValidation(ExcelDataValidationSnapshot validation) {
+            if (validation == null) throw new ArgumentNullException(nameof(validation));
+            _validations.Add(validation);
         }
 
         internal void AddTable(ExcelTableSnapshot table) {
@@ -216,6 +227,51 @@ namespace OfficeIMO.Excel {
         /// Whether PivotTable interaction is allowed.
         /// </summary>
         public bool AllowPivotTables { get; internal set; }
+    }
+
+    /// <summary>
+    /// Immutable worksheet data-validation metadata discovered during inspection.
+    /// </summary>
+    public sealed class ExcelDataValidationSnapshot {
+        private readonly List<string> _a1Ranges = new List<string>();
+
+        /// <summary>
+        /// Validation type such as <c>list</c> or <c>whole</c>.
+        /// </summary>
+        public string? Type { get; internal set; }
+
+        /// <summary>
+        /// Validation operator, when present.
+        /// </summary>
+        public string? Operator { get; internal set; }
+
+        /// <summary>
+        /// Whether blank values are allowed.
+        /// </summary>
+        public bool AllowBlank { get; internal set; }
+
+        /// <summary>
+        /// Formula1 text stored by Excel, when present.
+        /// </summary>
+        public string? Formula1 { get; internal set; }
+
+        /// <summary>
+        /// Formula2 text stored by Excel, when present.
+        /// </summary>
+        public string? Formula2 { get; internal set; }
+
+        /// <summary>
+        /// All A1 ranges targeted by the validation.
+        /// </summary>
+        public IReadOnlyList<string> A1Ranges => _a1Ranges;
+
+        internal void AddRange(string a1Range) {
+            if (string.IsNullOrWhiteSpace(a1Range)) {
+                throw new ArgumentException("Range is required.", nameof(a1Range));
+            }
+
+            _a1Ranges.Add(a1Range);
+        }
     }
 
     /// <summary>

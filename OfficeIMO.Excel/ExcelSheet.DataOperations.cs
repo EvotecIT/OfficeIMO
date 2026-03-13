@@ -407,6 +407,78 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Applies a list validation to the specified A1 range using a workbook or sheet-local named range.
+        /// </summary>
+        public void ValidationListNamedRange(string a1Range, string namedRange, bool allowBlank = true) {
+            if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
+            if (string.IsNullOrWhiteSpace(namedRange)) throw new ArgumentNullException(nameof(namedRange));
+
+            var normalizedNamedRange = namedRange.Trim();
+            if (!normalizedNamedRange.StartsWith("=", StringComparison.Ordinal)) {
+                normalizedNamedRange = "=" + normalizedNamedRange;
+            }
+
+            WriteLock(() => {
+                var ws = _worksheetPart.Worksheet;
+                var dvs = ws.GetFirstChild<DataValidations>();
+                if (dvs == null) {
+                    dvs = new DataValidations();
+                    ws.Append(dvs);
+                }
+
+                var dv = new DataValidation {
+                    Type = DataValidationValues.List,
+                    AllowBlank = allowBlank,
+                    SequenceOfReferences = new ListValue<StringValue> { InnerText = a1Range }
+                };
+                dv.Append(new Formula1(normalizedNamedRange));
+                dvs.Append(dv);
+                ws.Save();
+            });
+        }
+
+        /// <summary>
+        /// Applies a list validation to the specified A1 range using a referenced worksheet range.
+        /// When <paramref name="sourceSheetName"/> is omitted, the current worksheet is used.
+        /// </summary>
+        public void ValidationListRange(string a1Range, string sourceA1Range, string? sourceSheetName = null, bool allowBlank = true) {
+            if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
+            if (string.IsNullOrWhiteSpace(sourceA1Range)) throw new ArgumentNullException(nameof(sourceA1Range));
+
+            var normalizedSourceRange = sourceA1Range.Trim();
+            if (normalizedSourceRange.StartsWith("=", StringComparison.Ordinal)) {
+                normalizedSourceRange = normalizedSourceRange.Substring(1).Trim();
+            }
+
+            string formulaRange;
+            if (string.IsNullOrWhiteSpace(sourceSheetName)) {
+                formulaRange = normalizedSourceRange;
+            } else {
+                var effectiveSheetName = sourceSheetName!.Trim();
+                formulaRange = ExcelChartUtils.EnsureSheetQualifiedRange(effectiveSheetName, normalizedSourceRange);
+            }
+            var formula = "=" + formulaRange;
+
+            WriteLock(() => {
+                var ws = _worksheetPart.Worksheet;
+                var dvs = ws.GetFirstChild<DataValidations>();
+                if (dvs == null) {
+                    dvs = new DataValidations();
+                    ws.Append(dvs);
+                }
+
+                var dv = new DataValidation {
+                    Type = DataValidationValues.List,
+                    AllowBlank = allowBlank,
+                    SequenceOfReferences = new ListValue<StringValue> { InnerText = a1Range }
+                };
+                dv.Append(new Formula1(formula));
+                dvs.Append(dv);
+                ws.Save();
+            });
+        }
+
+        /// <summary>
         /// Applies a whole number validation to the specified A1 range.
         /// </summary>
         public void ValidationWholeNumber(string a1Range, DataValidationOperatorValues @operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
