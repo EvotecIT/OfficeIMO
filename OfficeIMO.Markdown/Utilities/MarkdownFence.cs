@@ -48,6 +48,39 @@ public static class MarkdownFence {
     }
 
     /// <summary>
+    /// Tries to parse a fence run from a line that may be prefixed by blockquote container markers
+    /// and indentation, returning the preserved prefix separately.
+    /// </summary>
+    /// <param name="line">Line to inspect.</param>
+    /// <param name="linePrefix">Leading indentation and blockquote markers preceding the fence.</param>
+    /// <param name="marker">Fence marker (<c>`</c> or <c>~</c>).</param>
+    /// <param name="runLength">Fence run length.</param>
+    /// <param name="suffix">Any trailing text after the marker run (for example language token).</param>
+    /// <returns><c>true</c> when the line contains a valid fence run after container prefixes; otherwise <c>false</c>.</returns>
+    public static bool TryReadContainerAwareFenceRun(string? line, out string linePrefix, out char marker, out int runLength, out string suffix) {
+        linePrefix = string.Empty;
+        marker = '\0';
+        runLength = 0;
+        suffix = string.Empty;
+
+        if (line is null) {
+            return false;
+        }
+
+        var fenceCandidateStart = GetContainerAwareFenceCandidateStartIndex(line);
+        if (fenceCandidateStart >= line.Length) {
+            return false;
+        }
+
+        if (!TryReadFenceRun(line.Substring(fenceCandidateStart), out marker, out runLength, out suffix)) {
+            return false;
+        }
+
+        linePrefix = line.Substring(0, fenceCandidateStart);
+        return true;
+    }
+
+    /// <summary>
     /// Builds a code-fence marker that cannot be prematurely closed by runs inside <paramref name="content"/>.
     /// </summary>
     /// <param name="content">Code content.</param>
@@ -87,5 +120,34 @@ public static class MarkdownFence {
         }
 
         return longest;
+    }
+
+    private static int GetContainerAwareFenceCandidateStartIndex(string line) {
+        var index = 0;
+
+        while (true) {
+            var segmentStart = index;
+            while (index < line.Length && (line[index] == ' ' || line[index] == '\t')) {
+                index++;
+            }
+
+            if (index < line.Length && line[index] == '>') {
+                index++;
+                if (index < line.Length && line[index] == ' ') {
+                    index++;
+                }
+
+                continue;
+            }
+
+            index = segmentStart;
+            break;
+        }
+
+        while (index < line.Length && (line[index] == ' ' || line[index] == '\t')) {
+            index++;
+        }
+
+        return index;
     }
 }

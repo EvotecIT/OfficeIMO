@@ -133,6 +133,24 @@ if (parsed.HasDocumentHeader && parsed.TryGetFrontMatterValue<string>("title", o
 }
 ```
 
+### Semantic fenced blocks and reader extensions
+
+```csharp
+var options = new MarkdownReaderOptions();
+options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
+    "Vendor charts",
+    new[] { "vendor-chart" },
+    context => new SemanticFencedBlock(MarkdownSemanticKinds.Chart, context.Language, context.Content, context.Caption)));
+
+var parsed = MarkdownReader.Parse("""
+```vendor-chart
+{"type":"bar"}
+```
+""", options);
+```
+
+Use semantic fenced blocks when a fenced language represents a host contract or visual/document semantic rather than ordinary code.
+
 ### Portable reader profile
 
 ```csharp
@@ -176,11 +194,26 @@ doc.SaveHtml("release-notes.html", new HtmlOptions {
 });
 ```
 
+### HTML parts and asset manifests
+
+```csharp
+var parts = doc.ToHtmlParts(new HtmlOptions {
+    EmitMode = AssetEmitMode.ManifestOnly,
+    Prism = new PrismOptions { Enabled = true, Languages = { "csharp" } }
+});
+
+var merged = HtmlAssetMerger.Build(new[] { parts.Assets });
+```
+
+Use `ToHtmlParts(...)` and `HtmlAssetMerger.Build(...)` when a host wants to own the final HTML shell or deduplicate CSS/JS assets across multiple fragments.
+
 ## Feature Highlights
 
 - Builder API: headings, paragraphs, links, images, tables, code fences, callouts, footnotes, front matter, TOC helpers
 - Reader API: typed blocks/inlines, syntax-tree spans, traversal helpers, heading queries, list-item queries, front matter lookups
+- Semantic extensions: fenced block extension seam plus first-class semantic fenced-block nodes
 - HTML rendering: fragment or full document, multiple built-in themes, inline/external/link CSS delivery, CDN/offline asset handling
+- Host integration: HTML parts/assets model for advanced embedding and shell assembly
 - Table helpers: generate tables from objects or sequences, per-column alignment, renames, transforms, and formatters
 - Chat/docs ingestion: named input-normalization presets for transcript, strict chat, and docs cleanup workflows
 - Deterministic output: stable markdown and HTML generation for snapshotting, diffs, and downstream export flows

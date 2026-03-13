@@ -6,57 +6,101 @@ namespace OfficeIMO.MarkdownRenderer;
 
 internal static class MarkdownRendererBuiltInFencedCodeBlocks {
     public static void RegisterDefaults(MarkdownRendererOptions options) {
+        RegisterGenericDefaults(options);
+    }
+
+    public static void RegisterGenericDefaults(MarkdownRendererOptions options) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }
 
         options.FencedCodeBlockRenderers.Add(CreateChartRenderer());
         options.FencedCodeBlockRenderers.Add(CreateNetworkRenderer());
+        options.FencedCodeBlockRenderers.Add(CreateGenericDataViewRenderer());
+    }
+
+    public static void RegisterIntelligenceXDefaults(MarkdownRendererOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        options.FencedCodeBlockRenderers.Add(CreateIxChartRenderer());
+        options.FencedCodeBlockRenderers.Add(CreateIxNetworkRenderer());
         options.FencedCodeBlockRenderers.Add(CreateDataViewRenderer());
     }
 
     private static MarkdownFencedCodeBlockRenderer CreateChartRenderer() {
+        return CreateChartRenderer("Built-in Chart.js", new[] { "chart" });
+    }
+
+    internal static MarkdownFencedCodeBlockRenderer CreateIxChartRenderer() {
+        return CreateChartRenderer("Built-in IX Chart.js alias", new[] { "ix-chart" });
+    }
+
+    private static MarkdownFencedCodeBlockRenderer CreateChartRenderer(string displayName, IReadOnlyList<string> languages) {
         return new MarkdownFencedCodeBlockRenderer(
-            "Built-in Chart.js",
-            new[] { "chart", "ix-chart" },
+            displayName,
+            languages,
             (match, options) => options.Chart?.Enabled == true
-                ? BuildNativeVisualHtml("canvas", "omd-chart", "chart", match.Language, "data-chart-hash", "data-chart-config-b64", match.RawContent)
-                : null);
+                ? BuildNativeVisualHtml("canvas", "omd-chart", MarkdownSemanticKinds.Chart, match.Language, "data-chart-hash", "data-chart-config-b64", match.RawContent)
+                : null) {
+            SemanticKind = MarkdownSemanticKinds.Chart
+        };
     }
 
     private static MarkdownFencedCodeBlockRenderer CreateNetworkRenderer() {
+        return CreateNetworkRenderer("Built-in vis-network", new[] { "network", "visnetwork" });
+    }
+
+    internal static MarkdownFencedCodeBlockRenderer CreateIxNetworkRenderer() {
+        return CreateNetworkRenderer("Built-in IX vis-network alias", new[] { "ix-network" });
+    }
+
+    private static MarkdownFencedCodeBlockRenderer CreateNetworkRenderer(string displayName, IReadOnlyList<string> languages) {
         return new MarkdownFencedCodeBlockRenderer(
-            "Built-in vis-network",
-            new[] { "ix-network", "network", "visnetwork" },
+            displayName,
+            languages,
             (match, options) => options.Network?.Enabled == true
-                ? BuildNativeVisualHtml("div", "omd-network", "network", match.Language, "data-network-hash", "data-network-config-b64", match.RawContent)
+                ? BuildNativeVisualHtml("div", "omd-network", MarkdownSemanticKinds.Network, match.Language, "data-network-hash", "data-network-config-b64", match.RawContent)
                 : null) {
+            SemanticKind = MarkdownSemanticKinds.Network,
             BuildShellHeadHtml = BuildNetworkShellHeadHtml,
             BuildBeforeContentReplaceScript = BuildNetworkBeforeReplaceScript,
             BuildAfterContentReplaceScript = BuildNetworkAfterReplaceScript
         };
     }
 
-    private static MarkdownFencedCodeBlockRenderer CreateDataViewRenderer() {
+    private static MarkdownFencedCodeBlockRenderer CreateGenericDataViewRenderer() {
+        return new MarkdownFencedCodeBlockRenderer(
+            "Built-in dataview",
+            new[] { "dataview" },
+            (match, _) => TryBuildDataViewHtml(match.RawContent, match.Language, emitLegacyIxAttributes: false)) {
+            SemanticKind = MarkdownSemanticKinds.DataView
+        };
+    }
+
+    internal static MarkdownFencedCodeBlockRenderer CreateDataViewRenderer() {
         return new MarkdownFencedCodeBlockRenderer(
             "Built-in IX dataview",
             new[] { "ix-dataview" },
-            (match, _) => TryBuildDataViewHtml(match.RawContent));
+            (match, _) => TryBuildDataViewHtml(match.RawContent, match.Language, emitLegacyIxAttributes: true)) {
+            SemanticKind = MarkdownSemanticKinds.DataView
+        };
     }
 
     private static string BuildNativeVisualHtml(string elementName, string cssClass, string visualKind, string language, string hashAttribute, string configAttribute, string rawContent) {
-        var raw = rawContent ?? string.Empty;
-        var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(raw));
-        var hash = MarkdownRenderer.ComputeShortHash(raw);
-        var encodedClass = System.Net.WebUtility.HtmlEncode("omd-visual " + (cssClass ?? string.Empty).Trim());
-        var encodedKind = System.Net.WebUtility.HtmlEncode(visualKind ?? string.Empty);
-        var encodedLanguage = System.Net.WebUtility.HtmlEncode(language ?? string.Empty);
-        var encodedHash = System.Net.WebUtility.HtmlEncode(hash);
-        var encodedBase64 = System.Net.WebUtility.HtmlEncode(base64);
-        return $"<{elementName} class=\"{encodedClass}\" data-omd-visual-contract=\"v1\" data-omd-visual-kind=\"{encodedKind}\" data-omd-fence-language=\"{encodedLanguage}\" data-omd-visual-hash=\"{encodedHash}\" data-omd-config-format=\"json\" data-omd-config-encoding=\"base64-utf8\" data-omd-config-b64=\"{encodedBase64}\" {hashAttribute}=\"{encodedHash}\" {configAttribute}=\"{encodedBase64}\"></{elementName}>";
+        var payload = MarkdownVisualContract.CreatePayload(rawContent);
+        return MarkdownVisualContract.BuildElementHtml(
+            elementName,
+            "omd-visual " + (cssClass ?? string.Empty).Trim(),
+            visualKind,
+            language,
+            payload,
+            new KeyValuePair<string, string?>(hashAttribute, payload.Hash),
+            new KeyValuePair<string, string?>(configAttribute, payload.Base64));
     }
 
-    private static string? TryBuildDataViewHtml(string? rawContent) {
+    private static string? TryBuildDataViewHtml(string? rawContent, string language, bool emitLegacyIxAttributes) {
         if (string.IsNullOrWhiteSpace(rawContent)) {
             return null;
         }
@@ -74,12 +118,12 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
                 return null;
             }
 
-            var title = TryReadJsonString(root, "title");
-            var summary = TryReadJsonString(root, "summary");
-            var kind = TryReadJsonString(root, "kind");
-            var callId = TryReadJsonString(root, "call_id");
+            var title = TryReadJsonString(root, "title", "caption", "name");
+            var summary = TryReadJsonString(root, "summary", "description");
+            var kind = TryReadJsonString(root, "kind", "schema", "viewKind");
+            var callId = TryReadJsonString(root, "call_id", "callId", "requestId");
 
-            return BuildDataViewHtml(columns, rows, title, summary, kind, callId, payloadHash, raw);
+            return BuildDataViewHtml(columns, rows, title, summary, kind, callId, payloadHash, raw, language, emitLegacyIxAttributes);
         } catch (JsonException) {
             return null;
         }
@@ -93,52 +137,48 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
         string? kind,
         string? callId,
         string payloadHash,
-        string rawContent) {
+        string rawContent,
+        string language,
+        bool emitLegacyIxAttributes) {
         var sb = new StringBuilder();
         var bodyRowCount = rows.Count;
-        var encodedPayloadHash = System.Net.WebUtility.HtmlEncode(payloadHash);
-        var encodedBase64 = System.Net.WebUtility.HtmlEncode(Convert.ToBase64String(Encoding.UTF8.GetBytes(rawContent ?? string.Empty)));
+        var payload = MarkdownVisualContract.CreatePayload(rawContent);
         sb.Append("<div class=\"omd-visual omd-dataview\"")
-          .Append(" data-omd-visual-contract=\"v1\"")
-          .Append(" data-omd-visual-kind=\"dataview\"")
-          .Append(" data-omd-fence-language=\"ix-dataview\"")
-          .Append(" data-omd-visual-hash=\"")
-          .Append(encodedPayloadHash)
-          .Append('"')
-          .Append(" data-omd-config-format=\"json\"")
-          .Append(" data-omd-config-encoding=\"base64-utf8\"")
-          .Append(" data-omd-config-b64=\"")
-          .Append(encodedBase64)
-          .Append('"');
+          ;
+        MarkdownVisualContract.AppendCommonAttributes(sb, MarkdownSemanticKinds.DataView, language, payload);
+        MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-column-count", columns.Count);
+        MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-row-count", bodyRowCount);
+        MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-payload-hash", payloadHash);
         if (!string.IsNullOrWhiteSpace(title)) {
-            sb.Append(" data-ix-title=\"")
-              .Append(System.Net.WebUtility.HtmlEncode(title))
-              .Append('"');
+            MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-title", title);
+            if (emitLegacyIxAttributes) {
+                MarkdownVisualContract.AppendAttribute(sb, "data-ix-title", title);
+            }
         }
         if (!string.IsNullOrWhiteSpace(summary)) {
-            sb.Append(" data-ix-summary=\"")
-              .Append(System.Net.WebUtility.HtmlEncode(summary))
-              .Append('"');
+            MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-summary", summary);
+            if (emitLegacyIxAttributes) {
+                MarkdownVisualContract.AppendAttribute(sb, "data-ix-summary", summary);
+            }
         }
         if (!string.IsNullOrWhiteSpace(kind)) {
-            sb.Append(" data-ix-kind=\"")
-              .Append(System.Net.WebUtility.HtmlEncode(kind))
-              .Append('"');
+            MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-kind", kind);
+            if (emitLegacyIxAttributes) {
+                MarkdownVisualContract.AppendAttribute(sb, "data-ix-kind", kind);
+            }
         }
         if (!string.IsNullOrWhiteSpace(callId)) {
-            sb.Append(" data-ix-call-id=\"")
-              .Append(System.Net.WebUtility.HtmlEncode(callId))
-              .Append('"');
+            MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-call-id", callId);
+            if (emitLegacyIxAttributes) {
+                MarkdownVisualContract.AppendAttribute(sb, "data-ix-call-id", callId);
+            }
         }
-        sb.Append(" data-ix-column-count=\"")
-          .Append(columns.Count.ToString(System.Globalization.CultureInfo.InvariantCulture))
-          .Append('"')
-          .Append(" data-ix-row-count=\"")
-          .Append(bodyRowCount.ToString(System.Globalization.CultureInfo.InvariantCulture))
-          .Append('"')
-          .Append(" data-ix-payload-hash=\"")
-          .Append(encodedPayloadHash)
-          .Append("\">");
+        if (emitLegacyIxAttributes) {
+            MarkdownVisualContract.AppendAttribute(sb, "data-ix-column-count", columns.Count);
+            MarkdownVisualContract.AppendAttribute(sb, "data-ix-row-count", bodyRowCount);
+            MarkdownVisualContract.AppendAttribute(sb, "data-ix-payload-hash", payload.Hash);
+        }
+        sb.Append(">");
 
         if (!string.IsNullOrWhiteSpace(summary)) {
             sb.Append("<p class=\"omd-dataview-summary\">")
@@ -184,26 +224,15 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
         columns = Array.Empty<string>();
         rows = Array.Empty<IReadOnlyList<string>>();
 
-        if (root.TryGetProperty("rows", out var rowsElement) && rowsElement.ValueKind == JsonValueKind.Array) {
-            var parsedRows = new List<IReadOnlyList<string>>();
-            foreach (var rowElement in rowsElement.EnumerateArray()) {
-                if (rowElement.ValueKind != JsonValueKind.Array) {
-                    return false;
-                }
-
-                parsedRows.Add(ReadArrayRow(rowElement));
+        if (TryGetPropertyIgnoreCase(root, out var rowsElement, "rows") && rowsElement.ValueKind == JsonValueKind.Array) {
+            if (TryParseInlineDataViewRows(root, rowsElement, out columns, out rows)) {
+                return true;
             }
 
-            if (parsedRows.Count == 0) {
-                return false;
-            }
-
-            columns = parsedRows[0].ToArray();
-            rows = parsedRows.Count > 1 ? parsedRows.Skip(1).ToArray() : Array.Empty<IReadOnlyList<string>>();
-            return true;
+            return false;
         }
 
-        if (!root.TryGetProperty("records", out var recordsElement) || recordsElement.ValueKind != JsonValueKind.Array) {
+        if (!TryGetPropertyIgnoreCase(root, out var recordsElement, "records", "items") || recordsElement.ValueKind != JsonValueKind.Array) {
             return false;
         }
 
@@ -233,7 +262,7 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
     }
 
     private static IReadOnlyList<string>? TryReadColumns(JsonElement root) {
-        if (!root.TryGetProperty("columns", out var columnsElement) || columnsElement.ValueKind != JsonValueKind.Array) {
+        if (!TryGetPropertyIgnoreCase(root, out var columnsElement, "columns", "headers") || columnsElement.ValueKind != JsonValueKind.Array) {
             return null;
         }
 
@@ -274,7 +303,7 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
     private static IReadOnlyList<string> ReadObjectRow(JsonElement recordElement, IReadOnlyList<string> columns) {
         var row = new string[columns.Count];
         for (int i = 0; i < columns.Count; i++) {
-            row[i] = recordElement.TryGetProperty(columns[i], out var cellElement)
+            row[i] = TryGetPropertyIgnoreCase(recordElement, out var cellElement, columns[i])
                 ? ReadJsonScalar(cellElement)
                 : string.Empty;
         }
@@ -302,14 +331,95 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
         };
     }
 
-    private static string? TryReadJsonString(JsonElement root, string propertyName) {
-        if (!root.TryGetProperty(propertyName, out var element) || element.ValueKind == JsonValueKind.Null) {
+    private static bool TryParseInlineDataViewRows(
+        JsonElement root,
+        JsonElement rowsElement,
+        out IReadOnlyList<string> columns,
+        out IReadOnlyList<IReadOnlyList<string>> rows) {
+        columns = Array.Empty<string>();
+        rows = Array.Empty<IReadOnlyList<string>>();
+
+        JsonValueKind? itemKind = null;
+        foreach (var rowElement in rowsElement.EnumerateArray()) {
+            if (itemKind == null) {
+                itemKind = rowElement.ValueKind;
+            }
+
+            if (itemKind == JsonValueKind.Array && rowElement.ValueKind != JsonValueKind.Array) {
+                return false;
+            }
+
+            if (itemKind == JsonValueKind.Object && rowElement.ValueKind != JsonValueKind.Object) {
+                return false;
+            }
+        }
+
+        if (itemKind == null) {
+            return false;
+        }
+
+        if (itemKind == JsonValueKind.Array) {
+            var parsedRows = new List<IReadOnlyList<string>>();
+            foreach (var rowElement in rowsElement.EnumerateArray()) {
+                parsedRows.Add(ReadArrayRow(rowElement));
+            }
+
+            if (parsedRows.Count == 0) {
+                return false;
+            }
+
+            columns = parsedRows[0].ToArray();
+            rows = parsedRows.Count > 1 ? parsedRows.Skip(1).ToArray() : Array.Empty<IReadOnlyList<string>>();
+            return true;
+        }
+
+        if (itemKind != JsonValueKind.Object) {
+            return false;
+        }
+
+        var parsedColumns = TryReadColumns(root) ?? DeriveColumnsFromObjectRecords(rowsElement);
+        if (parsedColumns == null || parsedColumns.Count == 0) {
+            return false;
+        }
+
+        var parsedObjectRows = new List<IReadOnlyList<string>>();
+        foreach (var rowElement in rowsElement.EnumerateArray()) {
+            parsedObjectRows.Add(ReadObjectRow(rowElement, parsedColumns));
+        }
+
+        columns = parsedColumns;
+        rows = parsedObjectRows;
+        return true;
+    }
+
+    private static string? TryReadJsonString(JsonElement root, params string[] propertyNames) {
+        if (!TryGetPropertyIgnoreCase(root, out var element, propertyNames) || element.ValueKind == JsonValueKind.Null) {
             return null;
         }
 
         return element.ValueKind == JsonValueKind.String
             ? element.GetString()
             : element.GetRawText();
+    }
+
+    private static bool TryGetPropertyIgnoreCase(JsonElement element, out JsonElement value, params string[] propertyNames) {
+        if (element.ValueKind != JsonValueKind.Object || propertyNames == null || propertyNames.Length == 0) {
+            value = default;
+            return false;
+        }
+
+        foreach (var property in element.EnumerateObject()) {
+            for (int i = 0; i < propertyNames.Length; i++) {
+                var name = propertyNames[i];
+                if (!string.IsNullOrWhiteSpace(name) && string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase)) {
+                    value = property.Value;
+                    return true;
+                }
+            }
+        }
+
+        value = default;
+        return false;
     }
 
     private static string? BuildNetworkShellHeadHtml(MarkdownRendererOptions options, AssetMode assetMode) {

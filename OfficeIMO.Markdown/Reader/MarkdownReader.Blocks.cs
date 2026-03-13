@@ -77,6 +77,50 @@ public static partial class MarkdownReader {
         return trimmed.Length >= Math.Max(3, fenceLength);
     }
 
+    private static IMarkdownBlock CreateParsedFencedBlock(string language, string content, bool isFenced, string? caption, MarkdownReaderOptions options) {
+        var extensions = options?.FencedBlockExtensions;
+        if (extensions != null && extensions.Count > 0) {
+            var context = new MarkdownFencedBlockFactoryContext(language, content, isFenced, caption);
+            for (int i = extensions.Count - 1; i >= 0; i--) {
+                var extension = extensions[i];
+                if (extension == null || !FencedBlockExtensionHandlesLanguage(extension, language)) {
+                    continue;
+                }
+
+                var block = extension.CreateBlock(context);
+                if (block == null) {
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(caption) && block is ICaptionable captionable && string.IsNullOrWhiteSpace(captionable.Caption)) {
+                    captionable.Caption = caption;
+                }
+
+                return block;
+            }
+        }
+
+        return new CodeBlock(language, content, isFenced) {
+            Caption = caption
+        };
+    }
+
+    private static bool FencedBlockExtensionHandlesLanguage(MarkdownFencedBlockExtension extension, string language) {
+        var languages = extension.Languages;
+        if (languages == null || languages.Count == 0) {
+            return false;
+        }
+
+        for (int i = 0; i < languages.Count; i++) {
+            var candidate = languages[i];
+            if (!string.IsNullOrWhiteSpace(candidate) && string.Equals(candidate, language, StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static bool TryParseCaption(string line, out string caption) {
         caption = string.Empty;
         if (string.IsNullOrEmpty(line)) return false;
@@ -596,7 +640,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryParseNestedFencedCodeBlock(string[] lines, ref int index, int continuationIndent, MarkdownReaderOptions options, out CodeBlock? block) {
+    private static bool TryParseNestedFencedCodeBlock(string[] lines, ref int index, int continuationIndent, MarkdownReaderOptions options, out IMarkdownBlock? block) {
         block = null;
         if (lines == null || index < 0 || index >= lines.Length) return false;
         if (!options.FencedCode) return false;
@@ -619,17 +663,18 @@ public static partial class MarkdownReader {
             j++;
         }
 
-        var cb = new CodeBlock(language, code.ToString().TrimEnd('\r', '\n'));
+        var content = code.ToString().TrimEnd('\r', '\n');
+        string? caption = null;
         // Optional caption line (indented like other nested content)
         if (j < lines.Length) {
             var capLine = lines[j] ?? string.Empty;
             if (CountLeadingIndentColumns(capLine) >= continuationIndent) {
                 var capSlice = StripLeadingIndentColumns(capLine, continuationIndent);
-                if (TryParseCaption(capSlice, out var cap)) { cb.Caption = cap; j++; }
+                if (TryParseCaption(capSlice, out var cap)) { caption = cap; j++; }
             }
         }
 
-        block = cb;
+        block = CreateParsedFencedBlock(language, content, isFenced: true, caption, options);
         index = j;
         return true;
     }

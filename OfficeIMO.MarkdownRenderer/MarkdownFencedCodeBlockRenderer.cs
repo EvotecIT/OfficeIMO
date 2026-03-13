@@ -64,6 +64,7 @@ public sealed class MarkdownFencedCodeBlockRenderer {
 
         Name = name.Trim();
         Languages = normalized;
+        SemanticKind = normalized[0];
     }
 
     /// <summary>
@@ -75,6 +76,12 @@ public sealed class MarkdownFencedCodeBlockRenderer {
     /// Fenced code block languages handled by this renderer.
     /// </summary>
     public IReadOnlyList<string> Languages { get; }
+
+    /// <summary>
+    /// Semantic fenced-block kind used when the markdown reader materializes matching fences into AST nodes.
+    /// Defaults to the first registered language.
+    /// </summary>
+    public string SemanticKind { get; set; }
 
     /// <summary>
     /// HTML conversion callback invoked for each matching rendered code block.

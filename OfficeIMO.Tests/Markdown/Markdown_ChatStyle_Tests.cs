@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using OfficeIMO.Markdown;
 using OfficeIMO.MarkdownRenderer;
 using Xunit;
@@ -21,6 +23,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MarkdownRendererPresets_CreateStrict_UsesGenericStyleAndLeavesChatChromeOff() {
+            var opts = MarkdownRendererPresets.CreateStrict();
+
+            Assert.Equal(HtmlStyle.GithubAuto, opts.HtmlOptions.Style);
+            Assert.Equal("article.markdown-body", opts.HtmlOptions.CssScopeSelector);
+            Assert.False(opts.EnableCodeCopyButtons);
+            Assert.False(opts.EnableTableCopyButtons);
+        }
+
+        [Fact]
+        public void MarkdownRendererPresets_CreateStrictPortable_Disables_OfficeImoOnly_Reader_Extensions() {
+            var opts = MarkdownRendererPresets.CreateStrictPortable();
+
+            Assert.Equal(HtmlStyle.GithubAuto, opts.HtmlOptions.Style);
+            Assert.Equal("article.markdown-body", opts.HtmlOptions.CssScopeSelector);
+            Assert.False(opts.ReaderOptions.Callouts);
+            Assert.False(opts.ReaderOptions.TaskLists);
+            Assert.False(opts.ReaderOptions.AutolinkUrls);
+            Assert.False(opts.ReaderOptions.AutolinkWwwUrls);
+            Assert.False(opts.ReaderOptions.AutolinkEmails);
+        }
+
+        [Fact]
         public void MarkdownRendererPresets_CreateChatStrictPortable_Disables_OfficeImoOnly_Reader_Extensions() {
             var opts = MarkdownRendererPresets.CreateChatStrictPortable();
 
@@ -31,6 +56,95 @@ namespace OfficeIMO.Tests {
             Assert.False(opts.ReaderOptions.AutolinkUrls);
             Assert.False(opts.ReaderOptions.AutolinkWwwUrls);
             Assert.False(opts.ReaderOptions.AutolinkEmails);
+        }
+
+        [Fact]
+        public void MarkdownRendererPresets_CreateChatStrict_BuildsOnStrictDefaults() {
+            var strict = MarkdownRendererPresets.CreateStrict();
+            var chat = MarkdownRendererPresets.CreateChatStrict();
+
+            Assert.Equal(strict.ReaderOptions.RestrictUrlSchemes, chat.ReaderOptions.RestrictUrlSchemes);
+            Assert.Equal(strict.HtmlOptions.BlockExternalHttpImages, chat.HtmlOptions.BlockExternalHttpImages);
+            Assert.Equal(strict.MaxMarkdownChars, chat.MaxMarkdownChars);
+            Assert.Equal(strict.MaxBodyHtmlBytes, chat.MaxBodyHtmlBytes);
+            Assert.True(chat.EnableCodeCopyButtons);
+            Assert.True(chat.EnableTableCopyButtons);
+        }
+
+        [Fact]
+        public void MarkdownRendererPresets_ApplyChatPresentation_Can_Compose_Generic_Preset_Into_Chat_Surface() {
+            var opts = MarkdownRendererPresets.CreateStrictMinimal();
+
+            MarkdownRendererPresets.ApplyChatPresentation(opts, enableCopyButtons: false);
+            MarkdownRendererIntelligenceXAdapter.Apply(opts);
+
+            Assert.Equal(HtmlStyle.ChatAuto, opts.HtmlOptions.Style);
+            Assert.Equal("#omdRoot article.markdown-body", opts.HtmlOptions.CssScopeSelector);
+            Assert.False(opts.EnableCodeCopyButtons);
+            Assert.False(opts.EnableTableCopyButtons);
+            Assert.Contains(opts.FencedCodeBlockRenderers, renderer => renderer.Languages.Contains("ix-chart", StringComparer.OrdinalIgnoreCase));
+            Assert.Contains(opts.FencedCodeBlockRenderers, renderer => renderer.Languages.Contains("ix-network", StringComparer.OrdinalIgnoreCase));
+            Assert.Contains(opts.FencedCodeBlockRenderers, renderer => renderer.Languages.Contains("ix-dataview", StringComparer.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void MarkdownRendererPresets_CreateChatStrictMinimal_Matches_Composed_Generic_Preset() {
+            var composed = MarkdownRendererPresets.CreateStrictMinimal();
+            MarkdownRendererPresets.ApplyChatPresentation(composed, enableCopyButtons: false);
+            MarkdownRendererIntelligenceXAdapter.Apply(composed);
+
+            var wrapper = MarkdownRendererPresets.CreateChatStrictMinimal();
+
+            Assert.Equal(wrapper.HtmlOptions.Style, composed.HtmlOptions.Style);
+            Assert.Equal(wrapper.HtmlOptions.CssScopeSelector, composed.HtmlOptions.CssScopeSelector);
+            Assert.Equal(wrapper.EnableCodeCopyButtons, composed.EnableCodeCopyButtons);
+            Assert.Equal(wrapper.EnableTableCopyButtons, composed.EnableTableCopyButtons);
+            Assert.Equal(
+                wrapper.FencedCodeBlockRenderers.SelectMany(renderer => renderer.Languages).OrderBy(value => value, StringComparer.OrdinalIgnoreCase),
+                composed.FencedCodeBlockRenderers.SelectMany(renderer => renderer.Languages).OrderBy(value => value, StringComparer.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void MarkdownRendererPresets_CreateStrict_DoesNotRegister_IntelligenceX_FenceAliases() {
+            var opts = MarkdownRendererPresets.CreateStrict();
+
+            Assert.Contains(opts.FencedCodeBlockRenderers, renderer => renderer.Languages.Contains("dataview", StringComparer.OrdinalIgnoreCase));
+            Assert.DoesNotContain(opts.FencedCodeBlockRenderers, renderer => renderer.Languages.Contains("ix-chart", StringComparer.OrdinalIgnoreCase));
+            Assert.DoesNotContain(opts.FencedCodeBlockRenderers, renderer => renderer.Languages.Contains("ix-network", StringComparer.OrdinalIgnoreCase));
+            Assert.DoesNotContain(opts.FencedCodeBlockRenderers, renderer => renderer.Languages.Contains("ix-dataview", StringComparer.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void MarkdownRendererPresets_CreateChatStrict_Registers_IntelligenceX_FenceAliases() {
+            var opts = MarkdownRendererPresets.CreateChatStrict();
+
+            Assert.Contains(opts.FencedCodeBlockRenderers, renderer => renderer.Languages.Contains("ix-chart", StringComparer.OrdinalIgnoreCase));
+            Assert.Contains(opts.FencedCodeBlockRenderers, renderer => renderer.Languages.Contains("ix-network", StringComparer.OrdinalIgnoreCase));
+            Assert.Contains(opts.FencedCodeBlockRenderers, renderer => renderer.Languages.Contains("ix-dataview", StringComparer.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void MarkdownRendererIntelligenceXAdapter_Can_Opt_Generic_Preset_Into_Ix_Aliases() {
+            var opts = MarkdownRendererPresets.CreateStrict();
+
+            MarkdownRendererIntelligenceXAdapter.Apply(opts);
+
+            Assert.True(MarkdownRendererIntelligenceXAdapter.IsApplied(opts));
+            Assert.Contains(opts.FencedCodeBlockRenderers, renderer => renderer.Languages.Contains("ix-chart", StringComparer.OrdinalIgnoreCase));
+            Assert.Contains(opts.FencedCodeBlockRenderers, renderer => renderer.Languages.Contains("ix-network", StringComparer.OrdinalIgnoreCase));
+            Assert.Contains(opts.FencedCodeBlockRenderers, renderer => renderer.Languages.Contains("ix-dataview", StringComparer.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void MarkdownRendererIntelligenceXAdapter_Is_Idempotent() {
+            var opts = MarkdownRendererPresets.CreateStrict();
+
+            MarkdownRendererIntelligenceXAdapter.Apply(opts);
+            MarkdownRendererIntelligenceXAdapter.Apply(opts);
+
+            Assert.Equal(1, opts.FencedCodeBlockRenderers.Count(renderer => renderer.Languages.Contains("ix-chart", StringComparer.OrdinalIgnoreCase)));
+            Assert.Equal(1, opts.FencedCodeBlockRenderers.Count(renderer => renderer.Languages.Contains("ix-network", StringComparer.OrdinalIgnoreCase)));
+            Assert.Equal(1, opts.FencedCodeBlockRenderers.Count(renderer => renderer.Languages.Contains("ix-dataview", StringComparer.OrdinalIgnoreCase)));
         }
 
         [Fact]

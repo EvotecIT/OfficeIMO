@@ -154,6 +154,7 @@ public sealed class MarkdownSyntaxNode {
             case MarkdownSyntaxKind.OrderedList:
             case MarkdownSyntaxKind.ListItem:
             case MarkdownSyntaxKind.CodeBlock:
+            case MarkdownSyntaxKind.SemanticFencedBlock:
             case MarkdownSyntaxKind.Table:
             case MarkdownSyntaxKind.TableHeader:
             case MarkdownSyntaxKind.TableRow:

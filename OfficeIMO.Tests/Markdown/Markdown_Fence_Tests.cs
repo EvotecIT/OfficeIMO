@@ -22,6 +22,39 @@ public class Markdown_Fence_Tests {
     }
 
     [Fact]
+    public void TryReadContainerAwareFenceRun_ParsesQuotedFenceWithLanguage() {
+        var ok = MarkdownFence.TryReadContainerAwareFenceRun("> ```csharp", out var prefix, out var marker, out var runLength, out var suffix);
+
+        Assert.True(ok);
+        Assert.Equal("> ", prefix);
+        Assert.Equal('`', marker);
+        Assert.Equal(3, runLength);
+        Assert.Equal("csharp", suffix);
+    }
+
+    [Fact]
+    public void TryReadContainerAwareFenceRun_ParsesNestedQuotedFenceWithLanguage() {
+        var ok = MarkdownFence.TryReadContainerAwareFenceRun("> > ```json", out var prefix, out var marker, out var runLength, out var suffix);
+
+        Assert.True(ok);
+        Assert.Equal("> > ", prefix);
+        Assert.Equal('`', marker);
+        Assert.Equal(3, runLength);
+        Assert.Equal("json", suffix);
+    }
+
+    [Fact]
+    public void TryReadContainerAwareFenceRun_ParsesListIndentedQuotedFenceWithLanguage() {
+        var ok = MarkdownFence.TryReadContainerAwareFenceRun("  > ```mermaid", out var prefix, out var marker, out var runLength, out var suffix);
+
+        Assert.True(ok);
+        Assert.Equal("  > ", prefix);
+        Assert.Equal('`', marker);
+        Assert.Equal(3, runLength);
+        Assert.Equal("mermaid", suffix);
+    }
+
+    [Fact]
     public void BuildSafeFence_PicksShortestSafeMarker() {
         var fence = MarkdownFence.BuildSafeFence("````\n~");
 

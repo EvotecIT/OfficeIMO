@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Text.RegularExpressions;
 using OfficeIMO.Markdown;
 
 namespace OfficeIMO.MarkdownRenderer;
@@ -9,18 +8,6 @@ namespace OfficeIMO.MarkdownRenderer;
 /// + an incremental update mechanism.
 /// </summary>
 public static class MarkdownRenderer {
-    private static readonly Regex MermaidPreCodeBlockRegex = new Regex(
-        "(<pre[^>]*>)\\s*<code\\s+class=\"language-mermaid\"[^>]*>([\\s\\S]*?)</code>\\s*</pre>",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
-    private static readonly Regex ChartPreCodeBlockRegex = new Regex(
-        "(<pre[^>]*>)\\s*<code\\s+class=\"language-chart\"[^>]*>([\\s\\S]*?)</code>\\s*</pre>",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
-    private static readonly Regex MathPreCodeBlockRegex = new Regex(
-        "(<pre[^>]*>)\\s*<code\\s+class=\"language-(math|latex)\"[^>]*>([\\s\\S]*?)</code>\\s*</pre>",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
     /// <summary>
     /// Parses Markdown using OfficeIMO.Markdown and returns an HTML fragment (typically an &lt;article class="markdown-body"&gt; wrapper).
     /// When Mermaid is enabled, Mermaid code blocks are annotated with hashes for incremental rendering.
@@ -60,20 +47,17 @@ public static class MarkdownRenderer {
         }
 
         var doc = MarkdownReader.Parse(markdown, readerOptions);
-        string html = doc.ToHtmlFragment(htmlOptions) ?? string.Empty;
+        var priorCodeBlockHtmlRenderer = htmlOptions.CodeBlockHtmlRenderer;
+        var priorSemanticFencedBlockHtmlRenderer = htmlOptions.SemanticFencedBlockHtmlRenderer;
+        htmlOptions.CodeBlockHtmlRenderer = CreateEffectiveCodeBlockHtmlRenderer(options, priorCodeBlockHtmlRenderer);
+        htmlOptions.SemanticFencedBlockHtmlRenderer = CreateEffectiveSemanticFencedBlockHtmlRenderer(options, priorSemanticFencedBlockHtmlRenderer);
 
-        html = ConvertCustomCodeBlocks(html, options);
-
-        if (options.Mermaid?.Enabled == true) {
-            html = ConvertMermaidCodeBlocks(html, enableHashCaching: options.Mermaid.EnableHashCaching);
-        }
-
-        if (options.Chart?.Enabled == true) {
-            html = ConvertChartCodeBlocks(html);
-        }
-
-        if (options.Math?.Enabled == true && options.Math.EnableFencedMathBlocks) {
-            html = ConvertMathCodeBlocks(html, options.Math);
+        string html;
+        try {
+            html = doc.ToHtmlFragment(htmlOptions) ?? string.Empty;
+        } finally {
+            htmlOptions.CodeBlockHtmlRenderer = priorCodeBlockHtmlRenderer;
+            htmlOptions.SemanticFencedBlockHtmlRenderer = priorSemanticFencedBlockHtmlRenderer;
         }
 
         if (!string.IsNullOrWhiteSpace(options.BaseHref)) {
@@ -111,32 +95,245 @@ public static class MarkdownRenderer {
         return html ?? string.Empty;
     }
 
+    private static MarkdownCodeBlockHtmlRenderer? CreateEffectiveCodeBlockHtmlRenderer(
+        MarkdownRendererOptions options,
+        MarkdownCodeBlockHtmlRenderer? priorRenderer) {
+        return (block, htmlOptions) => {
+            if (priorRenderer != null) {
+                var priorHtml = priorRenderer(block, htmlOptions);
+                if (priorHtml != null) {
+                    return priorHtml;
+                }
+            }
+
+            return TryRenderCodeBlockOverride(block, options);
+        };
+    }
+
+    private static MarkdownSemanticFencedBlockHtmlRenderer? CreateEffectiveSemanticFencedBlockHtmlRenderer(
+        MarkdownRendererOptions options,
+        MarkdownSemanticFencedBlockHtmlRenderer? priorRenderer) {
+        return (block, htmlOptions) => {
+            if (priorRenderer != null) {
+                var priorHtml = priorRenderer(block, htmlOptions);
+                if (priorHtml != null) {
+                    return priorHtml;
+                }
+            }
+
+            return TryRenderSemanticFencedBlockOverride(block, options);
+        };
+    }
+
+    private static string? TryRenderCodeBlockOverride(CodeBlock block, MarkdownRendererOptions options) {
+        if (block == null) {
+            return null;
+        }
+
+        string? replacement = TryRenderCustomFencedCodeBlock(block, options);
+        if (replacement == null && options.Mermaid?.Enabled == true && string.Equals(block.Language, "mermaid", StringComparison.OrdinalIgnoreCase)) {
+            replacement = BuildMermaidCodeBlockHtml(block.Content, options.Mermaid.EnableHashCaching);
+        }
+
+        if (replacement == null && options.Chart?.Enabled == true && string.Equals(block.Language, "chart", StringComparison.OrdinalIgnoreCase)) {
+            replacement = BuildChartCodeBlockHtml(block.Content);
+        }
+
+        if (replacement == null
+            && options.Math?.Enabled == true
+            && options.Math.EnableFencedMathBlocks
+            && IsMathFenceLanguageAllowed(block.Language, options.Math)) {
+            replacement = BuildMathCodeBlockHtml(block.Content);
+        }
+
+        if (replacement == null) {
+            return null;
+        }
+
+        return replacement + BuildCodeBlockCaptionHtml(block.Caption);
+    }
+
+    private static string? TryRenderSemanticFencedBlockOverride(SemanticFencedBlock block, MarkdownRendererOptions options) {
+        if (block == null) {
+            return null;
+        }
+
+        string? replacement = TryRenderCustomSemanticFencedBlock(block, options);
+        if (replacement == null && options.Mermaid?.Enabled == true && string.Equals(block.SemanticKind, MarkdownSemanticKinds.Mermaid, StringComparison.OrdinalIgnoreCase)) {
+            replacement = BuildMermaidCodeBlockHtml(block.Content, options.Mermaid.EnableHashCaching);
+        }
+
+        if (replacement == null
+            && options.Math?.Enabled == true
+            && options.Math.EnableFencedMathBlocks
+            && string.Equals(block.SemanticKind, MarkdownSemanticKinds.Math, StringComparison.OrdinalIgnoreCase)) {
+            replacement = BuildMathCodeBlockHtml(block.Content);
+        }
+
+        if (replacement != null) {
+            return replacement + BuildCodeBlockCaptionHtml(block.Caption);
+        }
+
+        var codeBlock = new CodeBlock(block.Language, block.Content) {
+            Caption = block.Caption
+        };
+        return TryRenderCodeBlockOverride(codeBlock, options);
+    }
+
+    private static string? TryRenderCustomSemanticFencedBlock(SemanticFencedBlock block, MarkdownRendererOptions options) {
+        var renderers = options.FencedCodeBlockRenderers;
+        if (renderers == null || renderers.Count == 0) {
+            return null;
+        }
+
+        var exactLanguageMatch = TryRenderMatchingFencedCodeBlockRenderer(
+            renderers,
+            renderer => RendererHandlesLanguage(renderer, block.Language),
+            CreateCodeBlockMatch(block.Language, block.Content),
+            options);
+        if (exactLanguageMatch != null) {
+            return exactLanguageMatch;
+        }
+
+        return TryRenderMatchingFencedCodeBlockRenderer(
+            renderers,
+            renderer => RendererHandlesSemanticKind(renderer, block.SemanticKind),
+            CreateCodeBlockMatch(block.Language, block.Content),
+            options);
+    }
+
+    private static string? TryRenderCustomFencedCodeBlock(CodeBlock block, MarkdownRendererOptions options) {
+        var renderers = options.FencedCodeBlockRenderers;
+        if (renderers == null || renderers.Count == 0) {
+            return null;
+        }
+
+        return TryRenderMatchingFencedCodeBlockRenderer(
+            renderers,
+            renderer => RendererHandlesLanguage(renderer, block.Language),
+            CreateCodeBlockMatch(block),
+            options);
+    }
+
+    private static string? TryRenderMatchingFencedCodeBlockRenderer(
+        IReadOnlyList<MarkdownFencedCodeBlockRenderer> renderers,
+        Func<MarkdownFencedCodeBlockRenderer, bool> predicate,
+        MarkdownFencedCodeBlockMatch match,
+        MarkdownRendererOptions options) {
+        if (renderers == null || renderers.Count == 0) {
+            return null;
+        }
+
+        for (int i = renderers.Count - 1; i >= 0; i--) {
+            var renderer = renderers[i];
+            if (renderer == null || !predicate(renderer)) {
+                continue;
+            }
+
+            var replacement = renderer.RenderHtml(match, options);
+            if (replacement != null) {
+                return replacement;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool RendererHandlesLanguage(MarkdownFencedCodeBlockRenderer renderer, string language) {
+        var languages = renderer.Languages;
+        if (languages == null || languages.Count == 0) {
+            return false;
+        }
+
+        for (int i = 0; i < languages.Count; i++) {
+            var candidate = languages[i];
+            if (!string.IsNullOrWhiteSpace(candidate) && string.Equals(candidate, language, StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool RendererHandlesSemanticKind(MarkdownFencedCodeBlockRenderer renderer, string semanticKind) {
+        return !string.IsNullOrWhiteSpace(renderer.SemanticKind)
+               && !string.IsNullOrWhiteSpace(semanticKind)
+               && string.Equals(renderer.SemanticKind, semanticKind, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static MarkdownFencedCodeBlockMatch CreateCodeBlockMatch(CodeBlock block) {
+        return CreateCodeBlockMatch(block.Language, block.Content);
+    }
+
+    private static MarkdownFencedCodeBlockMatch CreateCodeBlockMatch(string language, string rawContent) {
+        rawContent ??= string.Empty;
+        var encodedContent = BuildHtmlEncodedCodeBlockContent(rawContent);
+        var originalHtml = BuildDefaultCodeBlockPreHtml(language, rawContent);
+        return new MarkdownFencedCodeBlockMatch(language, encodedContent, rawContent, originalHtml);
+    }
+
+    private static string BuildHtmlEncodedCodeBlockContent(string rawContent) {
+        var encodedContent = System.Net.WebUtility.HtmlEncode(rawContent ?? string.Empty);
+        if (encodedContent.Length > 0) {
+            encodedContent += "\n";
+        }
+
+        return encodedContent;
+    }
+
+    private static string BuildDefaultCodeBlockPreHtml(string language, string rawContent) {
+        var encodedLanguage = string.IsNullOrEmpty(language)
+            ? string.Empty
+            : $" class=\"language-{System.Net.WebUtility.HtmlEncode(language)}\"";
+        var encodedContent = BuildHtmlEncodedCodeBlockContent(rawContent);
+        return $"<pre><code{encodedLanguage}>{encodedContent}</code></pre>";
+    }
+
+    private static string BuildCodeBlockCaptionHtml(string? caption) {
+        return string.IsNullOrWhiteSpace(caption)
+            ? string.Empty
+            : $"<div class=\"caption\">{System.Net.WebUtility.HtmlEncode(caption)}</div>";
+    }
+
+    private static string BuildMermaidCodeBlockHtml(string rawContent, bool enableHashCaching) {
+        var encodedContent = System.Net.WebUtility.HtmlEncode(rawContent ?? string.Empty);
+        string hashAttr = string.Empty;
+        if (enableHashCaching) {
+            string hash = ComputeShortHash(rawContent ?? string.Empty);
+            hashAttr = $" data-mermaid-hash=\"{hash}\"";
+        }
+
+        return $"<pre class=\"mermaid\"{hashAttr}>{encodedContent}</pre>";
+    }
+
+    private static string BuildChartCodeBlockHtml(string rawJson) {
+        var payload = MarkdownVisualContract.CreatePayload(rawJson);
+        return MarkdownVisualContract.BuildElementHtml(
+            "canvas",
+            "omd-visual omd-chart",
+            MarkdownSemanticKinds.Chart,
+            MarkdownSemanticKinds.Chart,
+            payload,
+            new KeyValuePair<string, string?>("data-chart-hash", payload.Hash),
+            new KeyValuePair<string, string?>("data-chart-config-b64", payload.Base64));
+    }
+
+    private static string BuildMathCodeBlockHtml(string rawContent) {
+        var safe = System.Net.WebUtility.HtmlEncode(rawContent ?? string.Empty);
+        return "<div class=\"omd-math\">$$\n" + safe + "\n$$</div>";
+    }
+
     private static string PreprocessMarkdown(string markdown, MarkdownRendererOptions options) {
         var value = markdown ?? string.Empty;
         if (value.Length == 0) {
             return value;
         }
 
-        value = MarkdownInputNormalizer.Normalize(value, new MarkdownInputNormalizationOptions {
-            NormalizeSoftWrappedStrongSpans = options.NormalizeSoftWrappedStrongSpans,
-            NormalizeInlineCodeSpanLineBreaks = options.NormalizeInlineCodeSpanLineBreaks,
-            NormalizeEscapedInlineCodeSpans = options.NormalizeEscapedInlineCodeSpans,
-            NormalizeTightStrongBoundaries = options.NormalizeTightStrongBoundaries,
-            NormalizeTightArrowStrongBoundaries = options.NormalizeTightArrowStrongBoundaries,
-            NormalizeBrokenStrongArrowLabels = options.NormalizeBrokenStrongArrowLabels,
-            NormalizeTightColonSpacing = options.NormalizeTightColonSpacing,
-            NormalizeHeadingListBoundaries = options.NormalizeHeadingListBoundaries,
-            NormalizeCompactStrongLabelListBoundaries = options.NormalizeCompactStrongLabelListBoundaries,
-            NormalizeCompactHeadingBoundaries = options.NormalizeCompactHeadingBoundaries,
-            NormalizeColonListBoundaries = options.NormalizeColonListBoundaries,
-            NormalizeCompactFenceBodyBoundaries = options.NormalizeCompactFenceBodyBoundaries,
-            NormalizeLooseStrongDelimiters = options.NormalizeLooseStrongDelimiters,
-            NormalizeOrderedListMarkerSpacing = options.NormalizeOrderedListMarkerSpacing,
-            NormalizeOrderedListParenMarkers = options.NormalizeOrderedListParenMarkers,
-            NormalizeOrderedListCaretArtifacts = options.NormalizeOrderedListCaretArtifacts,
-            NormalizeTightParentheticalSpacing = options.NormalizeTightParentheticalSpacing,
-            NormalizeNestedStrongDelimiters = options.NormalizeNestedStrongDelimiters
-        });
+        var normalization = CreateEffectiveInputNormalization(options);
+        var preParseNormalization = CreatePreParseNormalizationOptions(normalization);
+        if (preParseNormalization != null) {
+            value = MarkdownInputNormalizer.Normalize(value, preParseNormalization);
+        }
 
         var pre = options.MarkdownPreProcessors;
         if (pre != null && pre.Count > 0) {
@@ -152,7 +349,8 @@ public static class MarkdownRenderer {
 
     private static MarkdownReaderOptions CreateEffectiveReaderOptions(MarkdownRendererOptions options) {
         var source = options.ReaderOptions ?? new MarkdownReaderOptions();
-        return new MarkdownReaderOptions {
+        var normalization = CreateEffectiveInputNormalization(options);
+        var effective = new MarkdownReaderOptions {
             FrontMatter = source.FrontMatter,
             Callouts = source.Callouts,
             Headings = source.Headings,
@@ -181,26 +379,151 @@ public static class MarkdownRenderer {
             AllowProtocolRelativeUrls = source.AllowProtocolRelativeUrls,
             RestrictUrlSchemes = source.RestrictUrlSchemes,
             AllowedUrlSchemes = source.AllowedUrlSchemes,
-            InputNormalization = new MarkdownInputNormalizationOptions {
-                NormalizeSoftWrappedStrongSpans = source.InputNormalization?.NormalizeSoftWrappedStrongSpans ?? options.NormalizeSoftWrappedStrongSpans,
-                NormalizeInlineCodeSpanLineBreaks = source.InputNormalization?.NormalizeInlineCodeSpanLineBreaks ?? options.NormalizeInlineCodeSpanLineBreaks,
-                NormalizeEscapedInlineCodeSpans = source.InputNormalization?.NormalizeEscapedInlineCodeSpans ?? options.NormalizeEscapedInlineCodeSpans,
-                NormalizeTightStrongBoundaries = source.InputNormalization?.NormalizeTightStrongBoundaries ?? options.NormalizeTightStrongBoundaries,
-                NormalizeTightArrowStrongBoundaries = source.InputNormalization?.NormalizeTightArrowStrongBoundaries ?? options.NormalizeTightArrowStrongBoundaries,
-                NormalizeBrokenStrongArrowLabels = source.InputNormalization?.NormalizeBrokenStrongArrowLabels ?? options.NormalizeBrokenStrongArrowLabels,
-                NormalizeTightColonSpacing = source.InputNormalization?.NormalizeTightColonSpacing ?? options.NormalizeTightColonSpacing,
-                NormalizeHeadingListBoundaries = source.InputNormalization?.NormalizeHeadingListBoundaries ?? options.NormalizeHeadingListBoundaries,
-                NormalizeCompactStrongLabelListBoundaries = source.InputNormalization?.NormalizeCompactStrongLabelListBoundaries ?? options.NormalizeCompactStrongLabelListBoundaries,
-                NormalizeCompactHeadingBoundaries = source.InputNormalization?.NormalizeCompactHeadingBoundaries ?? options.NormalizeCompactHeadingBoundaries,
-                NormalizeColonListBoundaries = source.InputNormalization?.NormalizeColonListBoundaries ?? options.NormalizeColonListBoundaries,
-                NormalizeCompactFenceBodyBoundaries = source.InputNormalization?.NormalizeCompactFenceBodyBoundaries ?? options.NormalizeCompactFenceBodyBoundaries,
-                NormalizeLooseStrongDelimiters = source.InputNormalization?.NormalizeLooseStrongDelimiters ?? options.NormalizeLooseStrongDelimiters,
-                NormalizeOrderedListMarkerSpacing = source.InputNormalization?.NormalizeOrderedListMarkerSpacing ?? options.NormalizeOrderedListMarkerSpacing,
-                NormalizeOrderedListParenMarkers = source.InputNormalization?.NormalizeOrderedListParenMarkers ?? options.NormalizeOrderedListParenMarkers,
-                NormalizeOrderedListCaretArtifacts = source.InputNormalization?.NormalizeOrderedListCaretArtifacts ?? options.NormalizeOrderedListCaretArtifacts,
-                NormalizeTightParentheticalSpacing = source.InputNormalization?.NormalizeTightParentheticalSpacing ?? options.NormalizeTightParentheticalSpacing,
-                NormalizeNestedStrongDelimiters = source.InputNormalization?.NormalizeNestedStrongDelimiters ?? options.NormalizeNestedStrongDelimiters
+            InputNormalization = CreateInlineNormalizationOptions(normalization)
+        };
+
+        AddRendererSemanticFencedBlockExtensions(effective, options);
+        CopyFencedBlockExtensions(source, effective);
+        return effective;
+    }
+
+    private static MarkdownInputNormalizationOptions CreateEffectiveInputNormalization(MarkdownRendererOptions options) {
+        var source = options.ReaderOptions?.InputNormalization;
+        return new MarkdownInputNormalizationOptions {
+            NormalizeSoftWrappedStrongSpans = (source?.NormalizeSoftWrappedStrongSpans == true) || options.NormalizeSoftWrappedStrongSpans,
+            NormalizeInlineCodeSpanLineBreaks = (source?.NormalizeInlineCodeSpanLineBreaks == true) || options.NormalizeInlineCodeSpanLineBreaks,
+            NormalizeEscapedInlineCodeSpans = (source?.NormalizeEscapedInlineCodeSpans == true) || options.NormalizeEscapedInlineCodeSpans,
+            NormalizeTightStrongBoundaries = (source?.NormalizeTightStrongBoundaries == true) || options.NormalizeTightStrongBoundaries,
+            NormalizeTightArrowStrongBoundaries = (source?.NormalizeTightArrowStrongBoundaries == true) || options.NormalizeTightArrowStrongBoundaries,
+            NormalizeBrokenStrongArrowLabels = (source?.NormalizeBrokenStrongArrowLabels == true) || options.NormalizeBrokenStrongArrowLabels,
+            NormalizeTightColonSpacing = (source?.NormalizeTightColonSpacing == true) || options.NormalizeTightColonSpacing,
+            NormalizeHeadingListBoundaries = (source?.NormalizeHeadingListBoundaries == true) || options.NormalizeHeadingListBoundaries,
+            NormalizeCompactStrongLabelListBoundaries = (source?.NormalizeCompactStrongLabelListBoundaries == true) || options.NormalizeCompactStrongLabelListBoundaries,
+            NormalizeCompactHeadingBoundaries = (source?.NormalizeCompactHeadingBoundaries == true) || options.NormalizeCompactHeadingBoundaries,
+            NormalizeColonListBoundaries = (source?.NormalizeColonListBoundaries == true) || options.NormalizeColonListBoundaries,
+            NormalizeCompactFenceBodyBoundaries = (source?.NormalizeCompactFenceBodyBoundaries == true) || options.NormalizeCompactFenceBodyBoundaries,
+            NormalizeLooseStrongDelimiters = (source?.NormalizeLooseStrongDelimiters == true) || options.NormalizeLooseStrongDelimiters,
+            NormalizeOrderedListMarkerSpacing = (source?.NormalizeOrderedListMarkerSpacing == true) || options.NormalizeOrderedListMarkerSpacing,
+            NormalizeOrderedListParenMarkers = (source?.NormalizeOrderedListParenMarkers == true) || options.NormalizeOrderedListParenMarkers,
+            NormalizeOrderedListCaretArtifacts = (source?.NormalizeOrderedListCaretArtifacts == true) || options.NormalizeOrderedListCaretArtifacts,
+            NormalizeTightParentheticalSpacing = (source?.NormalizeTightParentheticalSpacing == true) || options.NormalizeTightParentheticalSpacing,
+            NormalizeNestedStrongDelimiters = (source?.NormalizeNestedStrongDelimiters == true) || options.NormalizeNestedStrongDelimiters
+        };
+    }
+
+    private static MarkdownInputNormalizationOptions CreateInlineNormalizationOptions(MarkdownInputNormalizationOptions source) {
+        return new MarkdownInputNormalizationOptions {
+            NormalizeEscapedInlineCodeSpans = source?.NormalizeEscapedInlineCodeSpans ?? false,
+            NormalizeTightStrongBoundaries = source?.NormalizeTightStrongBoundaries ?? false,
+            NormalizeTightColonSpacing = source?.NormalizeTightColonSpacing ?? false
+        };
+    }
+
+    private static void CopyFencedBlockExtensions(MarkdownReaderOptions source, MarkdownReaderOptions target) {
+        var extensions = source.FencedBlockExtensions;
+        if (extensions == null || extensions.Count == 0) {
+            return;
+        }
+
+        for (int i = 0; i < extensions.Count; i++) {
+            var extension = extensions[i];
+            if (extension != null) {
+                target.FencedBlockExtensions.Add(extension);
             }
+        }
+    }
+
+    private static void AddRendererSemanticFencedBlockExtensions(MarkdownReaderOptions target, MarkdownRendererOptions options) {
+        AddSemanticFencedBlockExtension(target, "Built-in Mermaid AST", new[] { MarkdownSemanticKinds.Mermaid }, MarkdownSemanticKinds.Mermaid);
+
+        var mathLanguages = options.Math?.FencedMathLanguages;
+        if (mathLanguages != null && mathLanguages.Length > 0) {
+            AddSemanticFencedBlockExtension(target, "Built-in Math AST", mathLanguages, MarkdownSemanticKinds.Math);
+        }
+
+        var renderers = options.FencedCodeBlockRenderers;
+        if (renderers == null || renderers.Count == 0) {
+            return;
+        }
+
+        for (int i = 0; i < renderers.Count; i++) {
+            var renderer = renderers[i];
+            if (renderer == null) {
+                continue;
+            }
+
+            var semanticKind = string.IsNullOrWhiteSpace(renderer.SemanticKind)
+                ? renderer.Languages[0]
+                : renderer.SemanticKind;
+            AddSemanticFencedBlockExtension(target, renderer.Name + " AST", renderer.Languages, semanticKind);
+        }
+    }
+
+    private static void AddSemanticFencedBlockExtension(
+        MarkdownReaderOptions target,
+        string name,
+        IEnumerable<string> languages,
+        string semanticKind) {
+        target.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
+            name,
+            languages,
+            context => new SemanticFencedBlock(semanticKind, context.Language, context.Content, context.Caption)));
+    }
+
+    private static MarkdownInputNormalizationOptions? CreatePreParseNormalizationOptions(MarkdownInputNormalizationOptions source) {
+        bool normalizeSoftWrappedStrong = source?.NormalizeSoftWrappedStrongSpans ?? false;
+        bool normalizeInlineCodeLineBreaks = source?.NormalizeInlineCodeSpanLineBreaks ?? false;
+        bool normalizeLooseStrongDelimiters = source?.NormalizeLooseStrongDelimiters ?? false;
+        bool normalizeTightStrongBoundaries = source?.NormalizeTightStrongBoundaries ?? false;
+        bool normalizeTightArrowStrongBoundaries = source?.NormalizeTightArrowStrongBoundaries ?? false;
+        bool normalizeBrokenStrongArrowLabels = source?.NormalizeBrokenStrongArrowLabels ?? false;
+        bool normalizeHeadingListBoundaries = source?.NormalizeHeadingListBoundaries ?? false;
+        bool normalizeCompactStrongLabelListBoundaries = source?.NormalizeCompactStrongLabelListBoundaries ?? false;
+        bool normalizeCompactHeadingBoundaries = source?.NormalizeCompactHeadingBoundaries ?? false;
+        bool normalizeColonListBoundaries = source?.NormalizeColonListBoundaries ?? false;
+        bool normalizeCompactFenceBodyBoundaries = source?.NormalizeCompactFenceBodyBoundaries ?? false;
+        bool normalizeOrderedListMarkerSpacing = source?.NormalizeOrderedListMarkerSpacing ?? false;
+        bool normalizeOrderedListParenMarkers = source?.NormalizeOrderedListParenMarkers ?? false;
+        bool normalizeOrderedListCaretArtifacts = source?.NormalizeOrderedListCaretArtifacts ?? false;
+        bool normalizeTightParentheticalSpacing = source?.NormalizeTightParentheticalSpacing ?? false;
+        bool normalizeNestedStrongDelimiters = source?.NormalizeNestedStrongDelimiters ?? false;
+
+        if (!normalizeSoftWrappedStrong
+            && !normalizeInlineCodeLineBreaks
+            && !normalizeLooseStrongDelimiters
+            && !normalizeTightStrongBoundaries
+            && !normalizeTightArrowStrongBoundaries
+            && !normalizeBrokenStrongArrowLabels
+            && !normalizeHeadingListBoundaries
+            && !normalizeCompactStrongLabelListBoundaries
+            && !normalizeCompactHeadingBoundaries
+            && !normalizeColonListBoundaries
+            && !normalizeCompactFenceBodyBoundaries
+            && !normalizeOrderedListMarkerSpacing
+            && !normalizeOrderedListParenMarkers
+            && !normalizeOrderedListCaretArtifacts
+            && !normalizeTightParentheticalSpacing
+            && !normalizeNestedStrongDelimiters) {
+            return null;
+        }
+
+        return new MarkdownInputNormalizationOptions {
+            NormalizeSoftWrappedStrongSpans = normalizeSoftWrappedStrong,
+            NormalizeInlineCodeSpanLineBreaks = normalizeInlineCodeLineBreaks,
+            NormalizeLooseStrongDelimiters = normalizeLooseStrongDelimiters,
+            NormalizeTightStrongBoundaries = normalizeTightStrongBoundaries,
+            NormalizeTightArrowStrongBoundaries = normalizeTightArrowStrongBoundaries,
+            NormalizeBrokenStrongArrowLabels = normalizeBrokenStrongArrowLabels,
+            NormalizeHeadingListBoundaries = normalizeHeadingListBoundaries,
+            NormalizeCompactStrongLabelListBoundaries = normalizeCompactStrongLabelListBoundaries,
+            NormalizeCompactHeadingBoundaries = normalizeCompactHeadingBoundaries,
+            NormalizeColonListBoundaries = normalizeColonListBoundaries,
+            NormalizeCompactFenceBodyBoundaries = normalizeCompactFenceBodyBoundaries,
+            NormalizeOrderedListMarkerSpacing = normalizeOrderedListMarkerSpacing,
+            NormalizeOrderedListParenMarkers = normalizeOrderedListParenMarkers,
+            NormalizeOrderedListCaretArtifacts = normalizeOrderedListCaretArtifacts,
+            NormalizeTightParentheticalSpacing = normalizeTightParentheticalSpacing,
+            NormalizeNestedStrongDelimiters = normalizeNestedStrongDelimiters
         };
     }
 
@@ -318,137 +641,6 @@ public static class MarkdownRenderer {
     /// </summary>
     public static string RenderChatBubbleUpdateScript(string markdown, ChatMessageRole role = ChatMessageRole.Assistant, MarkdownRendererOptions? options = null) {
         return BuildUpdateScript(RenderChatBubbleBodyHtml(markdown, role, options));
-    }
-
-    private static string ConvertMermaidCodeBlocks(string html, bool enableHashCaching) {
-        if (string.IsNullOrEmpty(html)) return html;
-        if (html.IndexOf("language-mermaid", StringComparison.OrdinalIgnoreCase) < 0) return html;
-        // Mermaid expects elements with class="mermaid" containing the diagram text. Convert fenced blocks
-        // rendered as <pre><code class="language-mermaid">..</code></pre> into <pre class="mermaid">..</pre>.
-        return MermaidPreCodeBlockRegex.Replace(html, m => {
-            var content = m.Groups[2].Value;
-            string hashAttr = string.Empty;
-            if (enableHashCaching) {
-                string hash = ComputeShortHash(content);
-                hashAttr = $" data-mermaid-hash=\"{hash}\"";
-            }
-            return $"<pre class=\"mermaid\"{hashAttr}>{content}</pre>";
-        });
-    }
-
-    private static string ConvertCustomCodeBlocks(string html, MarkdownRendererOptions options) {
-        if (string.IsNullOrEmpty(html)) {
-            return html;
-        }
-
-        var renderers = options.FencedCodeBlockRenderers;
-        if (renderers == null || renderers.Count == 0) {
-            return html;
-        }
-
-        var value = html;
-        for (int i = renderers.Count - 1; i >= 0; i--) {
-            var renderer = renderers[i];
-            if (renderer == null) {
-                continue;
-            }
-
-            value = ConvertCustomCodeBlocks(value, renderer, options);
-        }
-
-        return value;
-    }
-
-    private static string ConvertCustomCodeBlocks(string html, MarkdownFencedCodeBlockRenderer renderer, MarkdownRendererOptions options) {
-        if (string.IsNullOrEmpty(html)) {
-            return html;
-        }
-
-        var languages = renderer.Languages;
-        if (languages == null || languages.Count == 0) {
-            return html;
-        }
-
-        bool mightMatch = false;
-        for (int i = 0; i < languages.Count; i++) {
-            var lang = languages[i];
-            if (string.IsNullOrWhiteSpace(lang)) {
-                continue;
-            }
-
-            if (html.IndexOf("language-" + lang, StringComparison.OrdinalIgnoreCase) >= 0) {
-                mightMatch = true;
-                break;
-            }
-        }
-
-        if (!mightMatch) {
-            return html;
-        }
-
-        var regex = BuildCustomCodeBlockRegex(languages);
-        return regex.Replace(html, m => {
-            var language = m.Groups[2].Value ?? string.Empty;
-            var encoded = m.Groups[3].Value ?? string.Empty;
-            var raw = System.Net.WebUtility.HtmlDecode(encoded) ?? string.Empty;
-            var match = new MarkdownFencedCodeBlockMatch(language, encoded, raw, m.Value);
-            var replacement = renderer.RenderHtml(match, options);
-            return replacement ?? m.Value;
-        });
-    }
-
-    private static Regex BuildCustomCodeBlockRegex(IReadOnlyList<string> languages) {
-        var aliases = new List<string>();
-        for (int i = 0; i < languages.Count; i++) {
-            var lang = (languages[i] ?? string.Empty).Trim();
-            if (lang.Length == 0) {
-                continue;
-            }
-
-            aliases.Add(Regex.Escape(lang));
-        }
-
-        if (aliases.Count == 0) {
-            return new Regex("$a", RegexOptions.CultureInvariant);
-        }
-
-        var pattern = "(<pre[^>]*>)\\s*<code\\s+class=\"language-(" + string.Join("|", aliases) + ")\"[^>]*>([\\s\\S]*?)</code>\\s*</pre>";
-        return new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-    }
-
-    private static string ConvertChartCodeBlocks(string html) {
-        if (string.IsNullOrEmpty(html)) return html;
-        if (html.IndexOf("language-chart", StringComparison.OrdinalIgnoreCase) < 0) return html;
-        // Charts are authored as fenced code blocks named `chart` with JSON config. Convert
-        // <pre><code class="language-chart">..</code></pre> into a <canvas> annotated with base64 config.
-        return ChartPreCodeBlockRegex.Replace(html, m => {
-            var encoded = m.Groups[2].Value ?? string.Empty;
-            var rawJson = System.Net.WebUtility.HtmlDecode(encoded);
-            var b64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawJson ?? string.Empty));
-            var hash = ComputeShortHash(rawJson ?? string.Empty);
-            var encodedHash = System.Net.WebUtility.HtmlEncode(hash);
-            var encodedBase64 = System.Net.WebUtility.HtmlEncode(b64);
-            return $"<canvas class=\"omd-visual omd-chart\" data-omd-visual-contract=\"v1\" data-omd-visual-kind=\"chart\" data-omd-fence-language=\"chart\" data-omd-visual-hash=\"{encodedHash}\" data-omd-config-format=\"json\" data-omd-config-encoding=\"base64-utf8\" data-omd-config-b64=\"{encodedBase64}\" data-chart-hash=\"{encodedHash}\" data-chart-config-b64=\"{encodedBase64}\"></canvas>";
-        });
-    }
-
-    private static string ConvertMathCodeBlocks(string html, MathOptions mathOptions) {
-        if (string.IsNullOrEmpty(html)) return html;
-        if (html.IndexOf("language-math", StringComparison.OrdinalIgnoreCase) < 0 &&
-            html.IndexOf("language-latex", StringComparison.OrdinalIgnoreCase) < 0) return html;
-        // Convert fenced ```math/```latex blocks rendered as code fences into display-math text nodes.
-        // KaTeX auto-render runs on the updated DOM and will render the $$...$$ delimiters.
-        return MathPreCodeBlockRegex.Replace(html, m => {
-            var lang = (m.Groups[2].Value ?? string.Empty).Trim();
-            if (!IsMathFenceLanguageAllowed(lang, mathOptions)) return m.Value;
-
-            var encoded = m.Groups[3].Value ?? string.Empty;
-            var raw = System.Net.WebUtility.HtmlDecode(encoded) ?? string.Empty;
-
-            // Re-encode to keep content safe as text. Preserve newlines for nicer display rendering.
-            var safe = System.Net.WebUtility.HtmlEncode(raw);
-            return "<div class=\"omd-math\">$$\n" + safe + "\n$$</div>";
-        });
     }
 
     private static bool IsMathFenceLanguageAllowed(string lang, MathOptions mathOptions) {
