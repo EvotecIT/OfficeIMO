@@ -72,7 +72,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         replacePayload,
                         cancellationToken).ConfigureAwait(false);
 
-                    var contentPayload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, sheetIdMap);
+                    var contentPayload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(
+                        batch,
+                        sheetIdMap,
+                        existingResponse.SpreadsheetId ?? effectiveOptions.Location.ExistingFileId);
                     if (contentPayload.Requests.Count > 0) {
                         await SendAsync<object>(
                             client,
@@ -111,7 +114,6 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
                 var sheetIdMapForCreate = GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch);
                 var createPayload = GoogleSheetsApiPayloadBuilder.BuildCreateSpreadsheetPayload(batch, sheetIdMapForCreate);
-                var updatePayload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, sheetIdMapForCreate);
                 var createResponse = await SendAsync<GoogleSheetsApiCreateSpreadsheetResponse>(
                     client,
                     accessToken.AccessToken,
@@ -119,6 +121,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     "https://sheets.googleapis.com/v4/spreadsheets",
                     createPayload,
                     cancellationToken).ConfigureAwait(false);
+
+                var updatePayload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(
+                    batch,
+                    sheetIdMapForCreate,
+                    createResponse.SpreadsheetId);
 
                 if (!string.IsNullOrWhiteSpace(createResponse.SpreadsheetId) && updatePayload.Requests.Count > 0) {
                     await SendAsync<object>(

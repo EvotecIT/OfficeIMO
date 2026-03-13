@@ -20,6 +20,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public string SheetName { get; set; } = string.Empty;
         public int SheetIndex { get; set; }
         public bool Hidden { get; set; }
+        public bool RightToLeft { get; set; }
+        public string? TabColorArgb { get; set; }
         public int FrozenRowCount { get; set; }
         public int FrozenColumnCount { get; set; }
     }
@@ -52,6 +54,18 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public string Name { get; set; } = string.Empty;
         public string? SheetName { get; set; }
         public string A1Range { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Adds a protected sheet/range to the target spreadsheet.
+    /// </summary>
+    public sealed class GoogleSheetsAddProtectedRangeRequest : GoogleSheetsRequest {
+        public GoogleSheetsAddProtectedRangeRequest() : base("addProtectedRange") {
+        }
+
+        public string SheetName { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public bool WarningOnly { get; set; }
     }
 
     /// <summary>
@@ -104,6 +118,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public bool HasHeaderRow { get; set; }
         public bool TotalsRowShown { get; set; }
         public string? StyleName { get; set; }
+        public string? FooterColorArgb { get; set; }
         public IReadOnlyList<GoogleSheetsTableColumn> Columns { get; set; } = Array.Empty<GoogleSheetsTableColumn>();
     }
 
@@ -156,6 +171,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public string? NumberFormatHint { get; set; }
         public GoogleSheetsCellStyle? Style { get; set; }
         public GoogleSheetsHyperlink? Hyperlink { get; set; }
+        public GoogleSheetsComment? Comment { get; set; }
     }
 
     /// <summary>
@@ -228,11 +244,28 @@ namespace OfficeIMO.Excel.GoogleSheets {
     }
 
     /// <summary>
+    /// Provider-neutral comment payload used by the Google Sheets compiler output.
+    /// </summary>
+    public sealed class GoogleSheetsComment {
+        public string? Author { get; set; }
+        public string Text { get; set; } = string.Empty;
+    }
+
+    /// <summary>
     /// Filter criteria for one relative column within a Google Sheets filter range.
     /// </summary>
     public sealed class GoogleSheetsFilterColumnCriteria {
         public int ColumnId { get; set; }
         public IReadOnlyList<string> HiddenValues { get; set; } = Array.Empty<string>();
+        public GoogleSheetsBooleanCondition? Condition { get; set; }
+    }
+
+    /// <summary>
+    /// Provider-neutral boolean condition used by Google Sheets filter criteria.
+    /// </summary>
+    public sealed class GoogleSheetsBooleanCondition {
+        public string Type { get; set; } = string.Empty;
+        public IReadOnlyList<string> Values { get; set; } = Array.Empty<string>();
     }
 
     /// <summary>
@@ -242,6 +275,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public int ColumnIndex { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? ColumnType { get; set; }
+        public string? TotalsRowFunction { get; set; }
     }
 
     /// <summary>

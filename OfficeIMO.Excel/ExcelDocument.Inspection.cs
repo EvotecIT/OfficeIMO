@@ -36,11 +36,18 @@ namespace OfficeIMO.Excel {
                     var readerSheet = reader.GetSheet(sheetName);
                     var typedValues = BuildTypedCellMap(readerSheet);
                     var hyperlinkMap = BuildHyperlinkMap(worksheetPart);
+                    var commentMap = BuildCommentMap(worksheetPart);
 
                     var worksheetSnapshot = new ExcelWorksheetSnapshot {
                         Name = sheetName,
                         Index = sheetIndex,
                         Hidden = sheet.State?.Value == SheetStateValues.Hidden || sheet.State?.Value == SheetStateValues.VeryHidden,
+                        RightToLeft = worksheetPart.Worksheet
+                            .GetFirstChild<SheetViews>()?
+                            .Elements<SheetView>()
+                            .FirstOrDefault()?
+                            .RightToLeft?.Value == true,
+                        TabColorArgb = GetColorArgb(worksheetPart.Worksheet.GetFirstChild<SheetProperties>()?.TabColor),
                         UsedRangeA1 = readerSheet.GetUsedRangeA1(),
                     };
 
@@ -106,6 +113,7 @@ namespace OfficeIMO.Excel {
                                     StyleIndex = cell.StyleIndex?.Value,
                                     Style = BuildCellStyleSnapshot(styleContext, cell.StyleIndex?.Value),
                                     Hyperlink = hyperlinkMap.TryGetValue(cellReference, out var hyperlink) ? hyperlink : null,
+                                    Comment = commentMap.TryGetValue(cellReference, out var comment) ? comment : null,
                                 });
                             }
                         }
@@ -139,6 +147,8 @@ namespace OfficeIMO.Excel {
 
                     worksheetSnapshot.AutoFilter = BuildAutoFilterSnapshot(
                         worksheetPart.Worksheet.Elements<AutoFilter>().FirstOrDefault());
+                    worksheetSnapshot.Protection = BuildWorksheetProtectionSnapshot(
+                        worksheetPart.Worksheet.Elements<SheetProtection>().FirstOrDefault());
 
                     foreach (var tableDefinitionPart in worksheetPart.TableDefinitionParts) {
                         var table = tableDefinitionPart.Table;
@@ -170,6 +180,28 @@ namespace OfficeIMO.Excel {
             }
 
             return snapshot;
+        }
+
+        private static ExcelWorksheetProtectionSnapshot? BuildWorksheetProtectionSnapshot(SheetProtection? protection) {
+            if (protection == null) {
+                return null;
+            }
+
+            return new ExcelWorksheetProtectionSnapshot {
+                AllowSelectLockedCells = protection.SelectLockedCells?.Value == true,
+                AllowSelectUnlockedCells = protection.SelectUnlockedCells?.Value == true,
+                AllowFormatCells = protection.FormatCells?.Value == true,
+                AllowFormatColumns = protection.FormatColumns?.Value == true,
+                AllowFormatRows = protection.FormatRows?.Value == true,
+                AllowInsertColumns = protection.InsertColumns?.Value == true,
+                AllowInsertRows = protection.InsertRows?.Value == true,
+                AllowInsertHyperlinks = protection.InsertHyperlinks?.Value == true,
+                AllowDeleteColumns = protection.DeleteColumns?.Value == true,
+                AllowDeleteRows = protection.DeleteRows?.Value == true,
+                AllowSort = protection.Sort?.Value == true,
+                AllowAutoFilter = protection.AutoFilter?.Value == true,
+                AllowPivotTables = protection.PivotTables?.Value == true,
+            };
         }
 
         private static Dictionary<string, ExcelHyperlinkSnapshot> BuildHyperlinkMap(WorksheetPart worksheetPart) {
@@ -211,6 +243,61 @@ namespace OfficeIMO.Excel {
             }
 
             return map;
+        }
+
+        private static Dictionary<string, ExcelCommentSnapshot> BuildCommentMap(WorksheetPart worksheetPart) {
+            var commentsPart = worksheetPart.WorksheetCommentsPart;
+            var comments = commentsPart?.Comments;
+            if (comments?.CommentList == null) {
+                return new Dictionary<string, ExcelCommentSnapshot>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            var authorNames = comments.Authors?
+                .Elements<Author>()
+                .Select(author => author.Text ?? string.Empty)
+                .ToList()
+                ?? new List<string>();
+
+            var map = new Dictionary<string, ExcelCommentSnapshot>(StringComparer.OrdinalIgnoreCase);
+            foreach (var comment in comments.CommentList.Elements<Comment>()) {
+                var reference = comment.Reference?.Value;
+                if (string.IsNullOrWhiteSpace(reference)) {
+                    continue;
+                }
+
+                string? author = null;
+                var authorId = comment.AuthorId?.Value;
+                if (authorId.HasValue && authorId.Value < authorNames.Count) {
+                    author = authorNames[checked((int)authorId.Value)];
+                }
+
+                map[reference!] = new ExcelCommentSnapshot {
+                    Author = string.IsNullOrWhiteSpace(author) ? null : author,
+                    Text = ExtractCommentText(comment.CommentText),
+                };
+            }
+
+            return map;
+        }
+
+        private static string ExtractCommentText(CommentText? commentText) {
+            if (commentText == null) {
+                return string.Empty;
+            }
+
+            var builder = new System.Text.StringBuilder();
+            foreach (var element in commentText.Descendants<OpenXmlElement>()) {
+                if (element is Text text) {
+                    builder.Append(text.Text);
+                } else if (element is Break) {
+                    builder.Append('\n');
+                }
+            }
+
+            return builder
+                .ToString()
+                .Replace("\r\n", "\n")
+                .Replace('\r', '\n');
         }
 
         private static ExcelCellStyleSnapshot? BuildCellStyleSnapshot(StyleInspectionContext context, uint? styleIndex) {
@@ -283,6 +370,29 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
+                var customFilters = filterColumn.GetFirstChild<CustomFilters>();
+                if (customFilters != null) {
+                    var customFiltersSnapshot = new ExcelCustomFiltersSnapshot {
+                        MatchAll = customFilters.And?.Value == true,
+                    };
+
+                    foreach (var customFilter in customFilters.Elements<CustomFilter>()) {
+                        var value = customFilter.Val?.Value;
+                        if (string.IsNullOrWhiteSpace(value)) {
+                            continue;
+                        }
+
+                        customFiltersSnapshot.AddCondition(new ExcelCustomFilterConditionSnapshot {
+                            Operator = GetOpenXmlAttributeValue(customFilter, "operator"),
+                            Value = value!,
+                        });
+                    }
+
+                    if (customFiltersSnapshot.Conditions.Count > 0) {
+                        columnSnapshot.CustomFilters = customFiltersSnapshot;
+                    }
+                }
+
                 snapshot.AddColumn(columnSnapshot);
             }
 
@@ -324,11 +434,19 @@ namespace OfficeIMO.Excel {
                 snapshot.AddColumn(new ExcelTableColumnSnapshot {
                     Index = checked((int)(tableColumn.Id?.Value ?? 0U)),
                     Name = tableColumn.Name?.Value ?? string.Empty,
-                    TotalsRowFunction = tableColumn.TotalsRowFunction?.Value.ToString(),
+                    TotalsRowFunction = GetOpenXmlAttributeValue(tableColumn, "totalsRowFunction"),
                 });
             }
 
             return snapshot;
+        }
+
+        private static string? GetOpenXmlAttributeValue(OpenXmlElement element, string localName) {
+            if (element == null) throw new ArgumentNullException(nameof(element));
+            if (string.IsNullOrWhiteSpace(localName)) throw new ArgumentException("Attribute name is required.", nameof(localName));
+
+            var attribute = element.GetAttributes().FirstOrDefault(a => string.Equals(a.LocalName, localName, StringComparison.OrdinalIgnoreCase));
+            return string.IsNullOrWhiteSpace(attribute.Value) ? null : attribute.Value;
         }
 
         private static ExcelCellBorderSnapshot? BuildBorderSnapshot(Border? border) {
@@ -406,6 +524,7 @@ namespace OfficeIMO.Excel {
         private static string? GetColorArgb(OpenXmlElement? colorElement) {
             string? rgb = colorElement switch {
                 Color color => color.Rgb?.Value,
+                TabColor tabColor => tabColor.Rgb?.Value,
                 ForegroundColor foregroundColor => foregroundColor.Rgb?.Value,
                 BackgroundColor backgroundColor => backgroundColor.Rgb?.Value,
                 _ => null,

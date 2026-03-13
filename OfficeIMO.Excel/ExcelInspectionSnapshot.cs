@@ -63,6 +63,16 @@ namespace OfficeIMO.Excel {
         public bool Hidden { get; internal set; }
 
         /// <summary>
+        /// Whether the worksheet is displayed right-to-left.
+        /// </summary>
+        public bool RightToLeft { get; internal set; }
+
+        /// <summary>
+        /// Worksheet tab color in ARGB hexadecimal form, when present.
+        /// </summary>
+        public string? TabColorArgb { get; internal set; }
+
+        /// <summary>
         /// Number of frozen rows detected on the worksheet.
         /// </summary>
         public int FrozenRowCount { get; internal set; }
@@ -103,6 +113,11 @@ namespace OfficeIMO.Excel {
         public ExcelAutoFilterSnapshot? AutoFilter { get; internal set; }
 
         /// <summary>
+        /// Worksheet protection discovered during inspection, when present.
+        /// </summary>
+        public ExcelWorksheetProtectionSnapshot? Protection { get; internal set; }
+
+        /// <summary>
         /// Tables discovered on the worksheet.
         /// </summary>
         public IReadOnlyList<ExcelTableSnapshot> Tables => _tables;
@@ -131,6 +146,76 @@ namespace OfficeIMO.Excel {
             if (table == null) throw new ArgumentNullException(nameof(table));
             _tables.Add(table);
         }
+    }
+
+    /// <summary>
+    /// Immutable worksheet-protection metadata discovered during inspection.
+    /// </summary>
+    public sealed class ExcelWorksheetProtectionSnapshot {
+        /// <summary>
+        /// Whether selecting locked cells is allowed.
+        /// </summary>
+        public bool AllowSelectLockedCells { get; internal set; }
+
+        /// <summary>
+        /// Whether selecting unlocked cells is allowed.
+        /// </summary>
+        public bool AllowSelectUnlockedCells { get; internal set; }
+
+        /// <summary>
+        /// Whether formatting cells is allowed.
+        /// </summary>
+        public bool AllowFormatCells { get; internal set; }
+
+        /// <summary>
+        /// Whether formatting columns is allowed.
+        /// </summary>
+        public bool AllowFormatColumns { get; internal set; }
+
+        /// <summary>
+        /// Whether formatting rows is allowed.
+        /// </summary>
+        public bool AllowFormatRows { get; internal set; }
+
+        /// <summary>
+        /// Whether inserting columns is allowed.
+        /// </summary>
+        public bool AllowInsertColumns { get; internal set; }
+
+        /// <summary>
+        /// Whether inserting rows is allowed.
+        /// </summary>
+        public bool AllowInsertRows { get; internal set; }
+
+        /// <summary>
+        /// Whether inserting hyperlinks is allowed.
+        /// </summary>
+        public bool AllowInsertHyperlinks { get; internal set; }
+
+        /// <summary>
+        /// Whether deleting columns is allowed.
+        /// </summary>
+        public bool AllowDeleteColumns { get; internal set; }
+
+        /// <summary>
+        /// Whether deleting rows is allowed.
+        /// </summary>
+        public bool AllowDeleteRows { get; internal set; }
+
+        /// <summary>
+        /// Whether sorting is allowed.
+        /// </summary>
+        public bool AllowSort { get; internal set; }
+
+        /// <summary>
+        /// Whether AutoFilter interaction is allowed.
+        /// </summary>
+        public bool AllowAutoFilter { get; internal set; }
+
+        /// <summary>
+        /// Whether PivotTable interaction is allowed.
+        /// </summary>
+        public bool AllowPivotTables { get; internal set; }
     }
 
     /// <summary>
@@ -171,6 +256,26 @@ namespace OfficeIMO.Excel {
         /// Hyperlink metadata attached to the cell, when present.
         /// </summary>
         public ExcelHyperlinkSnapshot? Hyperlink { get; internal set; }
+
+        /// <summary>
+        /// Comment metadata attached to the cell, when present.
+        /// </summary>
+        public ExcelCommentSnapshot? Comment { get; internal set; }
+    }
+
+    /// <summary>
+    /// Immutable comment metadata discovered during inspection.
+    /// </summary>
+    public sealed class ExcelCommentSnapshot {
+        /// <summary>
+        /// Comment author display name, when available.
+        /// </summary>
+        public string? Author { get; internal set; }
+
+        /// <summary>
+        /// Comment text content.
+        /// </summary>
+        public string Text { get; internal set; } = string.Empty;
     }
 
     /// <summary>
@@ -316,9 +421,51 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IReadOnlyList<string> Values => _values;
 
+        /// <summary>
+        /// Custom filter predicates recorded for this column, when present.
+        /// </summary>
+        public ExcelCustomFiltersSnapshot? CustomFilters { get; internal set; }
+
         internal void AddValue(string value) {
             _values.Add(value ?? string.Empty);
         }
+    }
+
+    /// <summary>
+    /// Immutable custom-filter metadata discovered during inspection.
+    /// </summary>
+    public sealed class ExcelCustomFiltersSnapshot {
+        private readonly List<ExcelCustomFilterConditionSnapshot> _conditions = new List<ExcelCustomFilterConditionSnapshot>();
+
+        /// <summary>
+        /// Whether all custom-filter conditions must match.
+        /// </summary>
+        public bool MatchAll { get; internal set; }
+
+        /// <summary>
+        /// Individual custom-filter conditions.
+        /// </summary>
+        public IReadOnlyList<ExcelCustomFilterConditionSnapshot> Conditions => _conditions;
+
+        internal void AddCondition(ExcelCustomFilterConditionSnapshot condition) {
+            if (condition == null) throw new ArgumentNullException(nameof(condition));
+            _conditions.Add(condition);
+        }
+    }
+
+    /// <summary>
+    /// Immutable single custom-filter predicate discovered during inspection.
+    /// </summary>
+    public sealed class ExcelCustomFilterConditionSnapshot {
+        /// <summary>
+        /// Custom-filter operator name, when present.
+        /// </summary>
+        public string? Operator { get; internal set; }
+
+        /// <summary>
+        /// Comparison value stored in the workbook.
+        /// </summary>
+        public string Value { get; internal set; } = string.Empty;
     }
 
     /// <summary>
