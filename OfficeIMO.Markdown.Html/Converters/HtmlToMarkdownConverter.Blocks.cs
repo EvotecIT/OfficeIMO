@@ -196,10 +196,16 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         var item = isTask ? ListItem.TaskInlines(firstParagraph, isChecked) : new ListItem(firstParagraph);
+        bool encounteredNonParagraphBlock = false;
         for (; index < blocks.Count; index++) {
             if (blocks[index] is ParagraphBlock paragraph) {
-                item.AdditionalParagraphs.Add(paragraph.Inlines);
+                if (!encounteredNonParagraphBlock) {
+                    item.AdditionalParagraphs.Add(paragraph.Inlines);
+                } else {
+                    item.Children.Add(paragraph);
+                }
             } else {
+                encounteredNonParagraphBlock = true;
                 item.Children.Add(blocks[index]);
             }
         }
@@ -396,7 +402,6 @@ public sealed partial class HtmlToMarkdownConverter {
             if (child.TagName.Equals("DD", StringComparison.OrdinalIgnoreCase) && currentTerm != null) {
                 string definition = ConvertInlineNodesToMarkdown(child.ChildNodes, context).Trim();
                 list.Items.Add((currentTerm, definition));
-                currentTerm = null;
             }
         }
 

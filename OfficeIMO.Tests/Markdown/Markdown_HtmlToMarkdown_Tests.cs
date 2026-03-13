@@ -50,4 +50,40 @@ public sealed class MarkdownHtmlToMarkdownTests {
 
         Assert.Contains("<custom-widget", markdown, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesMixedListItemBlockOrder() {
+        string html = "<ul><li><p>Alpha</p><blockquote><p>Quoted</p></blockquote><p>Omega</p></li></ul>";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
+        var item = Assert.Single(list.Items);
+
+        Assert.Collection(item.BlockChildren,
+            block => Assert.IsType<ParagraphBlock>(block),
+            block => Assert.IsType<QuoteBlock>(block),
+            block => Assert.IsType<ParagraphBlock>(block));
+
+        string markdown = document.ToMarkdown();
+        int alphaIndex = markdown.IndexOf("Alpha", StringComparison.Ordinal);
+        int quoteIndex = markdown.IndexOf("Quoted", StringComparison.Ordinal);
+        int omegaIndex = markdown.IndexOf("Omega", StringComparison.Ordinal);
+        Assert.True(alphaIndex >= 0, "Expected Alpha in markdown output.");
+        Assert.True(quoteIndex > alphaIndex, "Expected quoted content after the opening paragraph.");
+        Assert.True(omegaIndex > quoteIndex, "Expected trailing paragraph after the quote block.");
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesMultipleDefinitionsPerTerm() {
+        string html = "<dl><dt>Term</dt><dd>First definition</dd><dd>Second definition</dd></dl>";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var list = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(2, list.Items.Count);
+        Assert.Equal("Term", list.Items[0].Term);
+        Assert.Equal("First definition", list.Items[0].Definition);
+        Assert.Equal("Term", list.Items[1].Term);
+        Assert.Equal("Second definition", list.Items[1].Definition);
+    }
 }
