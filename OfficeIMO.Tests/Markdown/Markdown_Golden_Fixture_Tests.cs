@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.IO;
 using System.Text;
-using System.Text.RegularExpressions;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.MarkdownRenderer;
@@ -10,10 +9,6 @@ using Xunit;
 namespace OfficeIMO.Tests.MarkdownSuite;
 
 public sealed class Markdown_Golden_Fixture_Tests {
-    private static readonly Regex VolatileVisualHashAttributeRegex = new(
-        "(data-(?:omd-visual-hash|network-hash|chart-hash|omd-dataview-payload-hash|ix-payload-hash))=\"[^\"]+\"",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
-
     [Fact]
     public void MarkdownGolden_ProfileBoundary() {
         string markdown = LoadCompatibilityFixture("portable-profile-boundary.md");
@@ -347,13 +342,6 @@ public sealed class Markdown_Golden_Fixture_Tests {
         if (string.IsNullOrWhiteSpace(html)) {
             return string.Empty;
         }
-
-        html = VolatileVisualHashAttributeRegex.Replace(html, static match => {
-            var equalsIndex = match.Value.IndexOf('=');
-            return equalsIndex >= 0
-                ? match.Value.Substring(0, equalsIndex + 1) + "\"<normalized>\""
-                : match.Value;
-        });
 
         var sb = new StringBuilder(html.Length);
         bool inTag = false;
