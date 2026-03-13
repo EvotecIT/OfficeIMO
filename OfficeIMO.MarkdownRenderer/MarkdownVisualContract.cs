@@ -1,4 +1,5 @@
 using System.Text;
+using OfficeIMO.Markdown;
 
 namespace OfficeIMO.MarkdownRenderer;
 
@@ -8,13 +9,13 @@ namespace OfficeIMO.MarkdownRenderer;
 /// </summary>
 public static class MarkdownVisualContract {
     /// <summary>Current shared visual contract version.</summary>
-    public const string ContractVersion = "v1";
+    public const string ContractVersion = MarkdownVisualElementContract.ContractVersion;
 
     /// <summary>Config format emitted by the built-in visual renderers.</summary>
-    public const string ConfigFormatJson = "json";
+    public const string ConfigFormatJson = MarkdownVisualElementContract.ConfigFormatJson;
 
     /// <summary>Config encoding emitted by the built-in visual renderers.</summary>
-    public const string ConfigEncodingBase64Utf8 = "base64-utf8";
+    public const string ConfigEncodingBase64Utf8 = MarkdownVisualElementContract.ConfigEncodingBase64Utf8;
 
     /// <summary>
     /// Creates a payload descriptor from raw JSON or other renderer-owned source text.
@@ -82,13 +83,13 @@ public static class MarkdownVisualContract {
             throw new ArgumentException("Fence language is required.", nameof(language));
         }
 
-        AppendAttribute(sb, "data-omd-visual-contract", ContractVersion);
-        AppendAttribute(sb, "data-omd-visual-kind", visualKind);
-        AppendAttribute(sb, "data-omd-fence-language", language);
-        AppendAttribute(sb, "data-omd-visual-hash", payload.Hash);
-        AppendAttribute(sb, "data-omd-config-format", ConfigFormatJson);
-        AppendAttribute(sb, "data-omd-config-encoding", ConfigEncodingBase64Utf8);
-        AppendAttribute(sb, "data-omd-config-b64", payload.Base64);
+        AppendAttribute(sb, MarkdownVisualElementContract.AttributeVisualContract, ContractVersion);
+        AppendAttribute(sb, MarkdownVisualElementContract.AttributeVisualKind, visualKind);
+        AppendAttribute(sb, MarkdownVisualElementContract.AttributeFenceLanguage, language);
+        AppendAttribute(sb, MarkdownVisualElementContract.AttributeVisualHash, payload.Hash);
+        AppendAttribute(sb, MarkdownVisualElementContract.AttributeConfigFormat, ConfigFormatJson);
+        AppendAttribute(sb, MarkdownVisualElementContract.AttributeConfigEncoding, ConfigEncodingBase64Utf8);
+        AppendAttribute(sb, MarkdownVisualElementContract.AttributeConfigBase64, payload.Base64);
     }
 
     /// <summary>

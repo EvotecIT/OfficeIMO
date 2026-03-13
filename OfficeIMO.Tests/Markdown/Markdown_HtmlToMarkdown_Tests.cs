@@ -1,6 +1,8 @@
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
+using OfficeIMO.MarkdownRenderer;
 using Xunit;
+using MarkdownRendererShell = OfficeIMO.MarkdownRenderer.MarkdownRenderer;
 
 namespace OfficeIMO.Tests;
 
@@ -317,5 +319,42 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Equal(("Beta", "Shared definition"), list.Items[1]);
         Assert.Equal(("Alpha", "Follow-up definition"), list.Items[2]);
         Assert.Equal(("Beta", "Follow-up definition"), list.Items[3]);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_ConvertsSharedVisualHostIntoSemanticFencedBlock() {
+        var payload = MarkdownVisualContract.CreatePayload("{\"type\":\"bar\"}");
+        string html = MarkdownVisualContract.BuildElementHtml(
+            "div",
+            "omd-visual omd-custom",
+            MarkdownSemanticKinds.Chart,
+            "vendor-chart",
+            payload);
+
+        MarkdownDoc document = html.LoadFromHtml();
+
+        var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
+        Assert.Equal(MarkdownSemanticKinds.Chart, block.SemanticKind);
+        Assert.Equal("vendor-chart", block.Language);
+        Assert.Equal("{\"type\":\"bar\"}", block.Content);
+        Assert.Equal("```vendor-chart\n{\"type\":\"bar\"}\n```", document.ToMarkdown());
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_RoundTrips_RenderedIxDataviewHtml_BackToSemanticFence() {
+        const string raw = """
+{"title":"Replication Summary","summary":"Latest replication posture","kind":"ix_tool_dataview_v1","call_id":"call_123","headers":["Domain","Status"],"items":[{"Domain":"ad.evotec.xyz","Status":"Healthy"}]}
+""";
+        var options = MarkdownRendererPresets.CreateStrictMinimal();
+        MarkdownRendererIntelligenceXAdapter.Apply(options);
+        string html = MarkdownRendererShell.RenderBodyHtml("```ix-dataview\n" + raw + "\n```", options);
+
+        MarkdownDoc document = html.LoadFromHtml();
+
+        var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
+        Assert.Equal(MarkdownSemanticKinds.DataView, block.SemanticKind);
+        Assert.Equal("ix-dataview", block.Language);
+        Assert.Equal(raw, block.Content);
+        Assert.Equal("```ix-dataview\n" + raw + "\n```", document.ToMarkdown());
     }
 }
