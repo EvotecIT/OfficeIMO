@@ -21,8 +21,8 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void MarkdownRendererPresets_CreateChatStrictMarkdigCompatible_Disables_OfficeImoOnly_Reader_Extensions() {
-            var opts = MarkdownRendererPresets.CreateChatStrictMarkdigCompatible();
+        public void MarkdownRendererPresets_CreateChatStrictPortable_Disables_OfficeImoOnly_Reader_Extensions() {
+            var opts = MarkdownRendererPresets.CreateChatStrictPortable();
 
             Assert.Equal(HtmlStyle.ChatAuto, opts.HtmlOptions.Style);
             Assert.Equal("#omdRoot article.markdown-body", opts.HtmlOptions.CssScopeSelector);

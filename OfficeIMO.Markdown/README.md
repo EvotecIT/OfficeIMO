@@ -1,322 +1,274 @@
-OfficeIMO.Markdown
-==================
+# OfficeIMO.Markdown — .NET Markdown Builder, Reader, and HTML Renderer
 
-Fluent and object‑model Markdown builder for .NET with CommonMark/GFM‑style output. Zero runtime dependencies, rich table/list helpers, HTML export (fragment or full document) with built‑in styles and Prism highlighting.
+OfficeIMO.Markdown is a cross-platform .NET library for composing Markdown, parsing it back into a typed document model, and rendering it to HTML without external runtime dependencies.
 
-## Why OfficeIMO.Markdown
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Markdown)](https://www.nuget.org/packages/OfficeIMO.Markdown)
+[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Markdown?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Markdown)
 
-- Pure .NET, cross‑platform — no native renderers required
-- Fluent API or explicit object model — compose documents predictably
-- CommonMark/GFM‑style output that renders well on GitHub, wikis, and docs sites
-- HTML export with clean themes (Clean, GitHub Light/Dark/Auto), CDN/offline assets, and Prism highlighting
-- Designed for reporting — tables from sequences/objects, callouts, TOC, and front matter
+- Targets: netstandard2.0, net472, net8.0, net10.0
+- License: MIT
+- NuGet: `OfficeIMO.Markdown`
+- Dependencies: none
 
-### Design & Expectations
+### AOT / Trimming Notes
 
-- Deterministic output — stable ordering and formatting make diffs/snapshots easy
-- Extensible blocks — add custom blocks with small helpers instead of string concatenation
-- Good defaults — header transforms (Pretty + acronyms), numeric/date alignment heuristics
-- Performance — string builders and pooled buffers; no exceptions in hot loops (e.g., header lookups)
-
-Badges
-
-<!-- Replace OWNER/REPO and workflow names to match your repo; update NuGet id when published. -->
-[![NuGet](https://img.shields.io/nuget/v/OfficeIMO.Markdown.svg)](https://www.nuget.org/packages/OfficeIMO.Markdown)
-[![NuGet Downloads](https://img.shields.io/nuget/dt/OfficeIMO.Markdown.svg)](https://www.nuget.org/packages/OfficeIMO.Markdown)
-[![Build](https://img.shields.io/github/actions/workflow/status/EvotecIT/OfficeIMO/ci.yml?branch=main)](https://github.com/EvotecIT/OfficeIMO/actions)
-[![Coverage](https://img.shields.io/codecov/c/github/EvotecIT/OfficeIMO.svg)](https://app.codecov.io/gh/EvotecIT/OfficeIMO)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
-
-Highlights
-- No external dependencies for Markdown/HTML generation.
-- Fluent API and explicit object model.
-- Core blocks: headings, paragraphs, links, images (with captions), lists (UL/OL/task/definition), tables, code blocks, callouts, front matter (YAML).
-- Tables from objects/sequences: include/exclude/order/rename/formatters, alignment presets, date/number heuristics.
-- Table of Contents: at top, here, or scoped to sections; GitHub‑style anchors.
-- Table of Contents: at top, here, or scoped to sections; GitHub‑style anchors; HTML layouts (panel/sidebar) with optional ScrollSpy.
-- HTML: fragment or full document; styles (Clean, GitHub Light/Dark/Auto, Word), CSS delivery (inline/link/external file), Online/Offline asset modes.
-- Prism highlighting: CDN link or offline inline; manifest for safe dedupe across fragments.
-- Reader (experimental): parse Markdown back into the typed object model you can traverse.
-
-### AOT / Trimming notes
-
-- `FromAny(...)` uses reflection for arbitrary runtime types (handy for PowerShell/Expando/etc.).
-- For NativeAOT/trimming, prefer typed overloads or explicit selectors.
+- The core builder, reader, and renderer APIs avoid external runtime dependencies and are straightforward to trim.
+- Reflection-based helpers remain available for convenience scenarios such as `FromAny(...)`.
+- For NativeAOT or trimming-sensitive workloads, prefer typed overloads and explicit selectors.
 
 ```csharp
-var doc = MarkdownDoc.Create();
-// AOT-safe: typed sequence
-doc.Table(t => t.FromSequenceAuto(people));
+using OfficeIMO.Markdown;
 
-// AOT-safe: typed object -> front matter
-public sealed class BuildInfo { public string Version { get; set; } = "1.0"; }
-doc.FrontMatter(FrontMatterBlock.FromObject(new BuildInfo()));
+var people = new[] {
+    new Person("Alice", "Dev", 98.5),
+    new Person("Bob", "Ops", 91.0)
+};
+
+var doc = MarkdownDoc.Create()
+    .Table(t => t.FromSequenceAuto(people));
+
+doc.FrontMatter(FrontMatterBlock.FromObject(new BuildInfo { Version = "1.0.0" }));
+
+public sealed record Person(string Name, string Role, double Score);
+public sealed class BuildInfo {
+    public string Version { get; set; } = "";
+}
 ```
 
-## Supported Markdown
+## Install
 
-Blocks
-- Headings: ATX `#..######` with space; levels 1–6
-- Paragraphs and hard breaks: two spaces or explicit `\n` from composed content
-- Fenced code blocks: triple backticks with optional language; optional `_caption_` line below
-- Images: `![alt](src "title")` with optional `{width=.. height=..}` hints
-- Lists: unordered `-/*/+`, ordered `1.`; supports nesting via indentation; task items `- [ ]` / `- [x]`
-- Tables: GitHub pipe tables with per‑column alignment markers (`:---`, `:---:`, `---:`)
-- Block quotes: `>` lines; supports nesting and lazy continuation
-- Callouts: `> [!info] Title` lines (Docs‑style), followed by body paragraphs
-- Horizontal rule: `---`
-- Footnotes: references `[^id]` and definitions `[^id]:` with continuation lines
-- Front matter: top‑of‑file YAML between `---` fences
-
-Inlines
-- Text, bold `**..**`, italic `*..*`, bold+italic `***..***`
-- Strikethrough `~~..~~`
-- Highlight `==..==`
-- Underline via `<u>text</u>`
-- Code spans: backtick‑delimited; supports multi‑backtick fences when content contains backticks
-- Links: inline `[text](url "title")`, autolinks (`http(s)://...`, `www.*`, plain emails), and reference‑style `[text][label]` with separate definitions
-- Images: `![alt](src "title")` and linked images `[![alt](img "title")](href)`
-
-Writer guarantees
-- Deterministic formatting and spacing for stable diffs
-- GitHub‑friendly output (tables, footnotes, task lists)
-
-Install
-
-```bash
+```powershell
 dotnet add package OfficeIMO.Markdown
 ```
 
-Example
+## Hello, Markdown
 
 ```csharp
 using OfficeIMO.Markdown;
 
-var md = MarkdownDoc
+var doc = MarkdownDoc
     .Create()
-    .FrontMatter(new { title = "DomainDetective", tags = new[] { "dns", "email", "security" } })
-    .H1("DomainDetective")
-    .P("All-in-one DNS, email, and TLS analyzer with rich reports.")
-    .Callout("info", "Early access", "APIs may change before 1.0.")
-    .H2("Install")
-    .Code("bash", "dotnet tool install -g DomainDetective")
+    .FrontMatter(new { title = "OfficeIMO.Markdown", tags = new[] { "docs", "reporting" } })
+    .H1("OfficeIMO.Markdown")
+    .P("Typed Markdown builder, reader, and HTML renderer for .NET.")
     .H2("Quick start")
-    .Code("powershell",
-        "Test-DDMailDomainClassification -DomainName 'evotec.pl','evotec.xyz' -ExportFormat Word")
-    .H2("Features")
     .Ul(ul => ul
-        .Item("SPF/DKIM/DMARC scoring")
-        .Item("TLS/SSL tests and cipher hints")
-        .Item("WHOIS, MX, PTR, DNSSEC, BIMI")
-        .Item("Exports: Word, HTML, PDF, Markdown"))
-    .H2("Links")
-    .Ul(ul => ul
-        .ItemLink("Docs", "https://evotec.xyz/hub/")
-        .ItemLink("Issues", "https://github.com/EvotecIT/DomainDetective/issues"));
+        .Item("Build Markdown with a fluent API")
+        .Item("Parse Markdown into typed blocks and inlines")
+        .Item("Render HTML fragments or full documents"))
+    .Code("powershell", "dotnet add package OfficeIMO.Markdown");
 
-var markdown = md.ToMarkdown();
-var htmlFrag = md.ToHtmlFragment();
-var htmlDoc  = md.ToHtmlDocument();
+var markdown = doc.ToMarkdown();
+var htmlFragment = doc.ToHtmlFragment();
+var htmlDocument = doc.ToHtmlDocument();
 ```
 
-Status: early preview. API may evolve before 1.0.
+## Common Tasks by Example
 
-Advanced usage
+### Builder: headings, callouts, lists, and code
 
 ```csharp
-using OfficeIMO.Markdown;
-using System.Globalization;
+var doc = MarkdownDoc.Create()
+    .H1("Release Notes")
+    .Callout("info", "Heads up", "This API is still evolving before 1.0.")
+    .P("OfficeIMO.Markdown is suitable for document, reporting, and chat-style rendering flows.")
+    .H2("Features")
+    .Ul(ul => ul
+        .Item("Typed AST/query model")
+        .Item("TOC helpers")
+        .Item("Front matter")
+        .Item("HTML rendering"))
+    .Code("csharp", "Console.WriteLine(\"Hello Markdown\");");
+```
 
-var people = new[] {
+### Tables from typed objects or explicit selectors
+
+```csharp
+var results = new[] {
     new { Name = "Alice", Role = "Dev", Score = 98.5, Joined = "2024-01-10" },
     new { Name = "Bob", Role = "Ops", Score = 91.0, Joined = "2023-08-22" }
 };
 
-// 1) Control header casing + acronyms (user-provided)
-var headerTx = HeaderTransforms.PrettyWithAcronyms(new[] { "ID", "DMARC", "SPF" });
-MarkdownDoc.Create()
-    .H2("FromAny with header transform")
-    .Table(t => t.Columns(headerTx).FromAny(new { DmarcPolicy = "p=none", SpfAligned = true }))
-
-    // 2) FromSequence with explicit columns + numeric/date alignment
-    .H2("FromSequence with selectors")
-    .Table(t => t.FromSequence(people,
-            ("Name",   x => x.Name),
-            ("Role",   x => x.Role),
-            ("Score",  x => x.Score),
+var doc = MarkdownDoc.Create()
+    .H2("Team")
+    .Table(t => t.FromSequence(results,
+            ("Name", x => x.Name),
+            ("Role", x => x.Role),
+            ("Score", x => x.Score),
             ("Joined", x => x.Joined))
-        .AlignNumericRight()     // right-align numeric columns
-        .AlignDatesCenter())     // center-align date-like columns
+        .AlignNumericRight()
+        .AlignDatesCenter());
+```
 
-    // 3) TOC at top + scoped TOC inside a section
+### TOC helpers and scoped navigation
+
+```csharp
+var doc = MarkdownDoc.Create()
+    .H1("Guide")
+    .H2("Install")
     .H2("Usage")
     .H3("Tables")
     .H3("Lists")
     .TocAtTop("Contents", min: 2, max: 3)
-    .H2("Appendix").H3("Extra")
+    .H2("Appendix")
+    .H3("Extra")
     .TocForPreviousHeading("Appendix Contents", min: 3, max: 3);
-
-// HTML rendering
-var htmlFragment = md.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.GithubAuto });
-var htmlDocument = md.ToHtmlDocument(new HtmlOptions { Title = "Report", Style = HtmlStyle.Clean, CssDelivery = CssDelivery.Inline });
-md.SaveHtml("Report.html", new HtmlOptions { Style = HtmlStyle.Clean, CssDelivery = CssDelivery.ExternalFile }); // writes Report.html + Report.css
-
-// CDN link online vs offline (download and inline)
-var cdn = "https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.1/github-markdown.min.css";
-var htmlCdnOnline  = md.ToHtmlDocument(new HtmlOptions { CssDelivery = CssDelivery.LinkHref, CssHref = cdn, AssetMode = AssetMode.Online, BodyClass = "markdown-body" });
-var htmlCdnOffline = md.ToHtmlDocument(new HtmlOptions { CssDelivery = CssDelivery.LinkHref, CssHref = cdn, AssetMode = AssetMode.Offline, BodyClass = "markdown-body" });
 ```
 
-Reader (experimental)
+### Parse Markdown into a typed document model
 
 ```csharp
-// Parse Markdown back into typed blocks/inlines
-var doc = MarkdownReader.Parse(File.ReadAllText("README.md"));
+var parsed = MarkdownReader.Parse(File.ReadAllText("README.md"));
 
-// Inspect blocks
-foreach (var h2 in doc.Blocks.OfType<HeadingBlock>().Where(h => h.Level == 2)) {
-    Console.WriteLine($"Section: {h2.Text}");
+foreach (var heading in parsed.GetHeadingInfos()) {
+    Console.WriteLine($"{heading.Level}: {heading.Text} -> {heading.Anchor}");
 }
 
-// Feature toggles align with OfficeIMO blocks/inlines
-var parsed = MarkdownReader.Parse(markdown, new MarkdownReaderOptions { Tables = true, Callouts = true });
-
-// Opt into Markdig-like literal autolink behavior
-var markdigCompatible = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateMarkdigCompatible());
-// Disables bare literal autolinks plus OfficeIMO-only callout/task-list parsing.
-
-// Opt into a lightweight syntax tree with source spans.
-var detailed = MarkdownReader.ParseWithSyntaxTree(markdown);
-foreach (var node in detailed.SyntaxTree.Children) {
-    Console.WriteLine($"{node.Kind} @ {node.SourceSpan}");
+foreach (var block in parsed.DescendantsAndSelf()) {
+    Console.WriteLine(block.GetType().Name);
 }
-// Nested quote/callout content and list-item child blocks also carry source spans when available.
 
-// TOC placeholders in Markdown are recognized and rendered:
-// [TOC] or [[TOC]] or {:toc} or <!-- TOC -->
-// Parameterized form: [TOC min=2 max=3 layout=sidebar-right sticky=true scrollspy=true title="On this page"]
+if (parsed.HasDocumentHeader && parsed.TryGetFrontMatterValue<string>("title", out var title)) {
+    Console.WriteLine("Title: " + title);
+}
+```
 
-// Optional input normalization for chat/model output before parsing
-var normalizedParsed = MarkdownReader.Parse("**Status\nHEALTHY**", new MarkdownReaderOptions {
-    InputNormalization = new MarkdownInputNormalizationOptions {
-        NormalizeSoftWrappedStrongSpans = true
-    }
-});
+### Portable reader profile
 
-// Or use named presets for common ingestion contracts
-var transcriptParsed = MarkdownReader.Parse(markdown, new MarkdownReaderOptions {
+```csharp
+var portable = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile());
+```
+
+Use the portable profile when portability-sensitive ingestion matters more than OfficeIMO-specific conveniences. It disables OfficeIMO-only callout/task-list parsing and turns off bare literal autolinks.
+
+### Input normalization for chat or model output
+
+```csharp
+var parsed = MarkdownReader.Parse(markdown, new MarkdownReaderOptions {
     InputNormalization = MarkdownInputNormalizationPresets.CreateChatTranscript()
 });
 
-var strictChatParsed = MarkdownReader.Parse(markdown, new MarkdownReaderOptions {
+var strictChat = MarkdownReader.Parse(markdown, new MarkdownReaderOptions {
     InputNormalization = MarkdownInputNormalizationPresets.CreateChatStrict()
 });
 
-var docsParsed = MarkdownReader.Parse(markdown, new MarkdownReaderOptions {
+var docs = MarkdownReader.Parse(markdown, new MarkdownReaderOptions {
     InputNormalization = MarkdownInputNormalizationPresets.CreateDocsLoose()
 });
 ```
 
-Header transforms and acronyms
+### HTML fragments and full documents
 
 ```csharp
-// Provide your own acronyms to uppercase in headers
-var tx = HeaderTransforms.PrettyWithAcronyms(new[] { "ID", "DMARC", "SPF" });
-MarkdownDoc.Create().Table(t => t.Columns(tx).FromAny(new { DmarcPolicy = "p=none", SpfAligned = true, Id = 25 }));
+var fragment = doc.ToHtmlFragment(new HtmlOptions {
+    Style = HtmlStyle.GithubAuto
+});
 
-// Or inline via options
-MarkdownDoc.Create().Table(t => t.FromAny(new { DmarcPolicy = "p=none" }, o => o.HeaderTransform = HeaderTransforms.PrettyWithAcronyms(new[] { "DMARC" })));
+var fullPage = doc.ToHtmlDocument(new HtmlOptions {
+    Title = "Release Notes",
+    Style = HtmlStyle.Clean,
+    CssDelivery = CssDelivery.Inline
+});
+
+doc.SaveHtml("release-notes.html", new HtmlOptions {
+    Style = HtmlStyle.Word,
+    CssDelivery = CssDelivery.ExternalFile
+});
 ```
 
-TOC helpers
+## Feature Highlights
 
-```csharp
-var md = MarkdownDoc.Create()
-    .H1("Report")
-    .H2("Intro").P("...")
-    .H2("Usage").H3("Tables").H3("Lists")
-    .TocAtTop("Contents", min: 2, max: 3) // top-level TOC (plain list)
-    .H2("Appendix").H3("Extra")
-    .TocHere(o => { o.MinLevel = 3; o.MaxLevel = 3; }) // TOC at current position
-    .TocForSection("Usage", "Usage Contents", min: 3, max: 3); // scoped to a named section
+- Builder API: headings, paragraphs, links, images, tables, code fences, callouts, footnotes, front matter, TOC helpers
+- Reader API: typed blocks/inlines, syntax-tree spans, traversal helpers, heading queries, list-item queries, front matter lookups
+- HTML rendering: fragment or full document, multiple built-in themes, inline/external/link CSS delivery, CDN/offline asset handling
+- Table helpers: generate tables from objects or sequences, per-column alignment, renames, transforms, and formatters
+- Chat/docs ingestion: named input-normalization presets for transcript, strict chat, and docs cleanup workflows
+- Deterministic output: stable markdown and HTML generation for snapshotting, diffs, and downstream export flows
 
-// TOC HTML styling (new)
-MarkdownDoc.Create()
-    .H1("Guide").H2("Install").H2("Usage").H2("FAQ")
-    // 1) Compact panel card with title
-    .TocAtTop("Contents", min: 2, max: 3)
-    .TocHere(o => {
-        o.MinLevel = 2; o.MaxLevel = 3;
-        o.IncludeTitle = true; o.Title = "On this page"; o.Layout = TocLayout.Panel; o.Collapsible = false;
-    })
-    // 2) Right sidebar, sticky + ScrollSpy (highlights current section)
-    .TocAtTop("On this page", min: 2, max: 3)
-    .TocHere(o => {
-        o.MinLevel = 2; o.MaxLevel = 3;
-        o.Layout = TocLayout.SidebarRight; o.Sticky = true; o.ScrollSpy = true; o.IncludeTitle = true; o.Title = "On this page";
-    });
-```
+## Detailed Feature Matrix
 
-Column Options (FromAny)
+- Documents
+  - ✅ Fluent builder and explicit block model
+  - ✅ Typed traversal helpers (`TopLevelBlocks`, `DescendantsAndSelf`, `DescendantsOfType<T>()`)
+  - ✅ Heading, front matter, and list-item query helpers
+- Blocks
+  - ✅ Headings, paragraphs, block quotes, callouts, fenced code, tables, lists, task lists, definition lists, front matter, footnotes, TOC placeholders
+  - ✅ HTML comments, raw HTML blocks, horizontal rules, details/summary
+- Inlines
+  - ✅ Text, emphasis, strong, strike, highlight, code spans, links, images, reference links
+  - ✅ Typed inline sequences and inline plain-text extraction
+- Rendering
+  - ✅ Markdown output
+  - ✅ HTML fragment and full document output
+  - ✅ Themes: Plain, Clean, GitHub Light/Dark/Auto, Chat Light/Dark/Auto, Word
+  - ✅ TOC layouts: list, panel, sidebar left/right with sticky and ScrollSpy options
+- Parsing
+  - ✅ Typed reader with optional syntax tree
+  - ✅ Portable profile for stricter, more neutral parsing defaults
+  - ✅ Input normalization presets for transcript/chat/docs cleanup
 
-| Option          | Type                              | Purpose |
-|-----------------|-----------------------------------|---------|
-| Include         | HashSet<string>                   | Only include these properties |
-| Exclude         | HashSet<string>                   | Exclude these properties |
-| Order           | List<string>                      | Order of headers (others follow) |
-| HeaderRenames   | Dictionary<string,string>         | Map property name → header text |
-| HeaderTransform | Func<string,string>               | Transform header when no rename specified |
-| Formatters      | Dictionary<string, Func<object?,string>> | Per‑property cell formatting |
-| Alignments      | List<ColumnAlignment>             | Per‑column alignment for header/cells |
+## Supported Markdown
 
-Heuristics
-- AlignNumericRight(threshold=0.8): right‑align columns that look numeric.
-- AlignDatesCenter(threshold=0.6): center‑align columns that look like dates.
+Blocks
+- headings
+- paragraphs and hard breaks
+- fenced code blocks with optional language and captions
+- images with optional size hints
+- unordered, ordered, task, and definition lists
+- GitHub-style pipe tables
+- block quotes with lazy continuation
+- callouts
+- horizontal rules
+- footnotes
+- front matter
+- TOC placeholders
 
-Doc‑level helpers
-- TableAuto(build, alignNumeric=true, alignDates=true)
-- TableFromAuto(data, configure?, alignNumeric=true, alignDates=true)
+Inlines
+- text
+- emphasis / strong / combined emphasis
+- strike and highlight
+- code spans
+- inline and reference links
+- inline and linked images
 
- HTML options
-- Kind: Fragment | Document
-- Style: Plain | Clean | GithubLight | GithubDark | GithubAuto | ChatLight | ChatDark | ChatAuto | Word
-- CssDelivery: Inline | ExternalFile | LinkHref | None
-- AssetMode: Online (link) | Offline (download+inline)
-- Title, BodyClass (default "markdown-body"), IncludeAnchorLinks, ThemeToggle
-- EmitMode: Emit (default) | ManifestOnly for host-side asset merging
-- Prism: Enabled, Theme (Prism/Okaidia/GithubDark/GithubAuto), Languages, Plugins, CdnBase
+## HTML Rendering Notes
 
-Chat styles
-- ChatLight/ChatDark/ChatAuto are compact, embed-friendly themes intended for chat UIs (no large page margins).
+- `ToHtmlFragment(...)` is ideal for embedding into an existing page or WebView host.
+- `ToHtmlDocument(...)` is ideal for standalone docs or generated reports.
+- `HtmlStyle.Word` gives a document-like look with Word-style typography and table defaults.
+- `ToHtmlParts(...)` exposes asset manifests for hosts that want to deduplicate or merge CSS/JS themselves.
 
-TOC HTML options (via TocOptions in TocAtTop/TocHere/TocFor*)
-- Layout: List (default, plain nested list), Panel (card), SidebarRight/SidebarLeft
-- Collapsible: wrap in <details>; Collapsed: default state
-- ScrollSpy: highlight active heading while scrolling; Sticky: keep TOC visible (position: sticky)
+## Benchmarks
 
-Word style
-- HtmlStyle.Word gives a document‑like look (Calibri/Cambria headings), Wordish tables (header shading, banded rows, borders), and comfortable spacing.
-- Table cells support inline markdown (code, links, emphasis, images) and `<br>` tags become line breaks.
+`OfficeIMO.Markdown.Benchmarks` ships in-repo as the benchmark harness used for release-prep sanity checks.
 
-Embedding fragments with CSS
-```csharp
-// Get a self‑contained fragment with CSS and tiny scripts inlined
-var frag = md.ToHtmlFragmentWithCss(new HtmlOptions { Style = HtmlStyle.Word });
-```
+- representative parse workloads
+- representative HTML-render workloads
+- default reader behavior vs portable profile
 
-De‑duping assets
-- ToHtmlParts returns Assets: a list of { Id, Kind (Css/Js), Href or Inline }.
-- Tags we emit include data-asset-id for easy deduplication if you concatenate HTML.
-- Set EmitMode = ManifestOnly to suppress emitting <link>/<script> tags and merge Assets yourself.
+For release steps, see [../Docs/officeimo.markdown.release-checklist.md](../Docs/officeimo.markdown.release-checklist.md).
 
-Targets
-- netstandard2.0 (library)
-- net8.0, net9.0
+## Package Family
 
-License
+- `OfficeIMO.Markdown`: build, parse, query, and render Markdown/HTML
+- `OfficeIMO.MarkdownRenderer`: host-oriented WebView/browser shell helpers built on top of `OfficeIMO.Markdown`
+- `OfficeIMO.Word.Markdown`: Word conversion layer that uses the Markdown package family
 
-MIT — see LICENSE.
+## Dependencies & Versions
 
-Contributing
+- No runtime NuGet dependencies for the core markdown library
+- Targets: netstandard2.0, net472, net8.0, net10.0
+- License: MIT
 
-Issues and PRs welcome. Please keep one‑class/enum per file, avoid external runtime deps, and add targeted tests for new features.
+## Notes on Versioning
+
+- Minor releases may add APIs, improve parser coverage, and broaden AST/query capabilities.
+- Patch releases focus on correctness, compatibility, and rendering fixes.
+- The current goal is a stable and intentional package baseline, not a frozen 1.0 contract yet.
+
+## Notes
+
+- Cross-platform: no COM automation, no Office requirement
+- Deterministic output is a design goal for tests, docs, and downstream exports
+- Public API and docs are being actively polished ahead of the next package line
+

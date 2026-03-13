@@ -438,8 +438,8 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
-    public void Autolinks_Can_Use_Markdig_Compatible_Preset() {
-        var options = MarkdownReaderOptions.CreateMarkdigCompatible();
+    public void Autolinks_Can_Use_Portable_Profile() {
+        var options = MarkdownReaderOptions.CreatePortableProfile();
         var doc = MarkdownReader.Parse("See https://example.com and www.example.com and user@example.com and <angle@example.com>", options);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
@@ -450,8 +450,8 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
-    public void Markdig_Compatible_Preset_Disables_Callouts_And_Task_Checkboxes() {
-        var options = MarkdownReaderOptions.CreateMarkdigCompatible();
+    public void Portable_Profile_Disables_Callouts_And_Task_Checkboxes() {
+        var options = MarkdownReaderOptions.CreatePortableProfile();
 
         var callout = MarkdownReader.Parse("> [!NOTE]\n> body", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
