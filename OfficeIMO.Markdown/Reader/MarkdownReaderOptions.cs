@@ -151,4 +151,11 @@ public sealed class MarkdownReaderOptions {
     /// Optional markdown input normalization before parsing. Defaults are conservative (no transformations).
     /// </summary>
     public MarkdownInputNormalizationOptions InputNormalization { get; set; } = new MarkdownInputNormalizationOptions();
+
+    /// <summary>
+    /// Optional language-based fenced block factories that can produce specialized AST nodes
+    /// instead of plain <see cref="CodeBlock"/> instances.
+    /// Later registrations win when languages overlap.
+    /// </summary>
+    public List<MarkdownFencedBlockExtension> FencedBlockExtensions { get; } = new();
 }

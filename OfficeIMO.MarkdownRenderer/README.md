@@ -27,9 +27,9 @@ dotnet add package OfficeIMO.MarkdownRenderer
 ```csharp
 using OfficeIMO.MarkdownRenderer;
 
-var options = MarkdownRendererPresets.CreateChatStrict();
+var options = MarkdownRendererPresets.CreateStrict();
 
-var shellHtml = MarkdownRenderer.BuildShellHtml("Chat", options);
+var shellHtml = MarkdownRenderer.BuildShellHtml("Markdown", options);
 var bodyHtml = MarkdownRenderer.RenderBodyHtml("""
 # Hello
 
@@ -44,18 +44,18 @@ This is rendered through OfficeIMO.MarkdownRenderer.
 ```csharp
 using OfficeIMO.MarkdownRenderer;
 
-var options = MarkdownRendererPresets.CreateChatStrict();
+var options = MarkdownRendererPresets.CreateStrict();
 
-webView.NavigateToString(MarkdownRenderer.BuildShellHtml("Chat", options));
+webView.NavigateToString(MarkdownRenderer.BuildShellHtml("Markdown", options));
 await webView.ExecuteScriptAsync(MarkdownRenderer.RenderUpdateScript(markdownText, options));
 ```
 
 ### Streaming-friendly update path
 
 ```csharp
-var options = MarkdownRendererPresets.CreateChatStrict();
+var options = MarkdownRendererPresets.CreateStrict();
 
-webView.NavigateToString(MarkdownRenderer.BuildShellHtml("Chat", options));
+webView.NavigateToString(MarkdownRenderer.BuildShellHtml("Markdown", options));
 
 var bodyHtml = MarkdownRenderer.RenderBodyHtml(markdownText, options);
 webView.CoreWebView2.PostWebMessageAsString(bodyHtml);
@@ -70,21 +70,50 @@ var bubbleHtml = MarkdownRenderer.RenderChatBubbleBodyHtml(markdownText, ChatMes
 webView.CoreWebView2.PostWebMessageAsString(bubbleHtml);
 ```
 
+### Generic-first chat composition
+
+```csharp
+var options = MarkdownRendererPresets.CreateStrictMinimal();
+MarkdownRendererPresets.ApplyChatPresentation(options, enableCopyButtons: false);
+MarkdownRendererIntelligenceXAdapter.Apply(options);
+```
+
 ### Strict vs portable presets
 
 ```csharp
-var strict = MarkdownRendererPresets.CreateChatStrict();
-var strictPortable = MarkdownRendererPresets.CreateChatStrictPortable();
-var minimal = MarkdownRendererPresets.CreateChatStrictMinimal();
-var minimalPortable = MarkdownRendererPresets.CreateChatStrictMinimalPortable();
-var relaxed = MarkdownRendererPresets.CreateChatRelaxed();
+var strict = MarkdownRendererPresets.CreateStrict();
+var strictPortable = MarkdownRendererPresets.CreateStrictPortable();
+var minimal = MarkdownRendererPresets.CreateStrictMinimal();
+var minimalPortable = MarkdownRendererPresets.CreateStrictMinimalPortable();
+var relaxed = MarkdownRendererPresets.CreateRelaxed();
+
+var chatStrict = MarkdownRendererPresets.CreateChatStrict();
+var chatMinimal = MarkdownRendererPresets.CreateChatStrictMinimal();
 ```
 
-- `CreateChatStrict(...)`: untrusted-content defaults with compact chat styling
-- `CreateChatStrictPortable(...)`: same host/security defaults, but uses the portable markdown reader profile
-- `CreateChatStrictMinimal(...)`: strict preset with Mermaid, charts, math, Prism, and copy buttons disabled
-- `CreateChatStrictMinimalPortable(...)`: combines minimal shell behavior with the portable reader profile
-- `CreateChatRelaxed(...)`: trusted-content preset that allows HTML parsing and sanitizes raw HTML conservatively
+- `CreateStrict(...)`: neutral untrusted-content defaults for generic markdown hosting
+- `CreateStrictPortable(...)`: same neutral defaults, but uses the portable markdown reader profile
+- `CreateStrictMinimal(...)`: neutral strict preset with Mermaid, charts, math, Prism, and copy buttons disabled
+- `CreateStrictMinimalPortable(...)`: combines minimal shell behavior with the portable reader profile
+- `CreateRelaxed(...)`: trusted-content preset that allows HTML parsing and sanitizes raw HTML conservatively
+- `ApplyChatPresentation(...)`: composes chat presentation/chrome onto any existing preset without changing its security profile
+- `CreateChatStrict(...)`: compatibility wrapper built on top of the strict preset family
+- `CreateChatStrictPortable(...)`: portable chat wrapper
+- `CreateChatStrictMinimal(...)`: minimal chat wrapper
+- `CreateChatStrictMinimalPortable(...)`: minimal portable chat wrapper
+- `CreateChatRelaxed(...)`: relaxed chat wrapper
+
+Generic presets register neutral fenced block languages such as `chart`, `network`, `visnetwork`, and `dataview`.
+Chat presets additionally apply the `MarkdownRendererIntelligenceXAdapter`, which registers the IntelligenceX-oriented aliases `ix-chart`, `ix-network`, and `ix-dataview`.
+
+### IntelligenceX alias adapter
+
+```csharp
+var options = MarkdownRendererPresets.CreateStrict();
+MarkdownRendererIntelligenceXAdapter.Apply(options);
+```
+
+Use this when you want the generic strict/relaxed presets but still need the IntelligenceX alias fence contract.
 
 ### Offline assets
 
@@ -92,7 +121,7 @@ var relaxed = MarkdownRendererPresets.CreateChatRelaxed();
 using OfficeIMO.Markdown;
 using OfficeIMO.MarkdownRenderer;
 
-var options = MarkdownRendererPresets.CreateChatStrict();
+var options = MarkdownRendererPresets.CreateStrict();
 options.HtmlOptions.AssetMode = AssetMode.Offline;
 
 options.Mermaid.ScriptUrl = @"C:\app\assets\mermaid.min.js";
@@ -116,7 +145,7 @@ options.ShellCss = """
 
 - Full shell HTML builder for WebView/browser hosts
 - Body fragment renderer for incremental updates
-- Strict, portable, minimal, and relaxed presets for chat/document hosting
+- Neutral and chat-specific strict, portable, minimal, and relaxed presets
 - Optional Mermaid, Chart.js, vis-network, and math shell integration
 - Chat bubble helpers and copy-button UX
 - Host-friendly message contract and data attributes for native integration
@@ -154,6 +183,7 @@ Built-in visual renderers emit shared `data-omd-*` attributes:
 - `data-omd-config-b64`
 
 That keeps host integrations stable even when new visual types are added later.
+Chart, network, and dataview built-ins now all flow through the same shared metadata builder, so future visual types can reuse the same contract instead of hand-assembling attributes per renderer.
 
 ## Security Defaults
 
@@ -194,7 +224,10 @@ Fenced code blocks can be converted into shell-native visuals:
 - Mermaid
 - Chart.js
 - vis-network
+- dataview tables
 - math rendering
+
+Generic `dataview` fences accept both array-row and object-row payloads. The built-in parser recognizes neutral aliases such as `headers`/`items`, `caption`/`description`, and `callId`, while `ix-dataview` continues to mirror the legacy `data-ix-*` attributes for IntelligenceX hosts.
 
 These features are optional and can be disabled entirely in the minimal presets.
 

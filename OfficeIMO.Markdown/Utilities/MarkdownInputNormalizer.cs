@@ -676,7 +676,7 @@ public static class MarkdownInputNormalizer {
                 continue;
             }
 
-            if (MarkdownFence.TryReadFenceRun(line, out var runMarker, out var runLength, out var runSuffix)) {
+            if (MarkdownFence.TryReadContainerAwareFenceRun(line, out _, out var runMarker, out var runLength, out var runSuffix)) {
                 if (!inFence) {
                     inFence = true;
                     fenceMarker = runMarker;
@@ -704,7 +704,7 @@ public static class MarkdownInputNormalizer {
             return false;
         }
 
-        if (!MarkdownFence.TryReadFenceRun(line, out fenceMarker, out fenceRunLength, out var runSuffix)) {
+        if (!MarkdownFence.TryReadContainerAwareFenceRun(line, out var linePrefix, out fenceMarker, out fenceRunLength, out var runSuffix)) {
             return false;
         }
 
@@ -721,7 +721,7 @@ public static class MarkdownInputNormalizer {
             return false;
         }
 
-        normalizedLine = new string(fenceMarker, fenceRunLength) + language + "\n" + body;
+        normalizedLine = linePrefix + new string(fenceMarker, fenceRunLength) + language + "\n" + linePrefix + body;
         return true;
     }
 
@@ -821,7 +821,7 @@ public static class MarkdownInputNormalizer {
             var line = input.Substring(lineStart, lineEnd - lineStart);
             var lineWithNewline = input.Substring(lineStart, index - lineStart);
 
-            if (MarkdownFence.TryReadFenceRun(line, out var runMarker, out var runLength, out var runSuffix)) {
+            if (MarkdownFence.TryReadContainerAwareFenceRun(line, out _, out var runMarker, out var runLength, out var runSuffix)) {
                 if (!inFence) {
                     FlushOutsideSegment(output, outsideSegment, regex, evaluator, preserveInlineCodeSpans);
                     inFence = true;

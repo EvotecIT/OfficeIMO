@@ -130,6 +130,42 @@ public class Markdown_Input_Normalizer_Tests {
     }
 
     [Fact]
+    public void Normalize_CompactQuotedMermaidFenceBodyBoundary_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeCompactFenceBodyBoundaries = true
+        };
+
+        var markdown = "> ```mermaidflowchart LR A-->B\n> ```";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal("> ```mermaid\n> flowchart LR A-->B\n> ```", normalized);
+    }
+
+    [Fact]
+    public void Normalize_CompactNestedQuotedMermaidFenceBodyBoundary_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeCompactFenceBodyBoundaries = true
+        };
+
+        var markdown = "> > ```mermaidflowchart LR A-->B\n> > ```";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal("> > ```mermaid\n> > flowchart LR A-->B\n> > ```", normalized);
+    }
+
+    [Fact]
+    public void Normalize_CompactListQuotedMermaidFenceBodyBoundary_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeCompactFenceBodyBoundaries = true
+        };
+
+        var markdown = "- item\n\n  > ```mermaidflowchart LR A-->B\n  > ```";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal("- item\n\n  > ```mermaid\n  > flowchart LR A-->B\n  > ```", normalized);
+    }
+
+    [Fact]
     public void Normalize_LooseStrongDelimiters_WhenEnabled() {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeLooseStrongDelimiters = true
@@ -259,6 +295,22 @@ Następny najlepszy krok:- **`ad_domain_controller_facts`**
 Use \`/act act_001\`
 Status **Healthy**next
 ~~~
+""";
+
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+        Assert.Equal(markdown, normalized);
+    }
+
+    [Fact]
+    public void Normalize_InlineCodeLineBreaks_DoesNotChangeQuotedFencedCodeBlocks() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeInlineCodeSpanLineBreaks = true
+        };
+
+        var markdown = """
+> ```ix-chart
+> {"type":"bar","data":{"labels":["A"],"datasets":[{"label":"Count","data":[1]}]}}
+> ```
 """;
 
         var normalized = MarkdownInputNormalizer.Normalize(markdown, options);

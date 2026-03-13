@@ -3,6 +3,16 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Options controlling HTML rendering style and asset delivery.
 /// </summary>
+public delegate string? MarkdownCodeBlockHtmlRenderer(CodeBlock block, HtmlOptions options);
+
+/// <summary>
+/// Options controlling HTML rendering style and asset delivery.
+/// </summary>
+public delegate string? MarkdownSemanticFencedBlockHtmlRenderer(SemanticFencedBlock block, HtmlOptions options);
+
+/// <summary>
+/// Options controlling HTML rendering style and asset delivery.
+/// </summary>
 public sealed class HtmlOptions {
     /// <summary>Fragment vs full document. Default: <see cref="HtmlKind.Document"/> when used with <see cref="MarkdownDoc.ToHtmlDocument"/>.</summary>
     public HtmlKind Kind { get; set; } = HtmlKind.Fragment;
@@ -42,6 +52,16 @@ public sealed class HtmlOptions {
     public AssetEmitMode EmitMode { get; set; } = AssetEmitMode.Emit;
     /// <summary>Optional Prism highlighting configuration.</summary>
     public PrismOptions? Prism { get; set; }
+    /// <summary>
+    /// Optional callback that can replace HTML emitted for individual code blocks.
+    /// Returning <see langword="null"/> falls back to the default <c>&lt;pre&gt;&lt;code&gt;</c> rendering.
+    /// </summary>
+    public MarkdownCodeBlockHtmlRenderer? CodeBlockHtmlRenderer { get; set; }
+    /// <summary>
+    /// Optional callback that can replace HTML emitted for semantic fenced blocks.
+    /// Returning <see langword="null"/> falls back to standard fenced-code presentation.
+    /// </summary>
+    public MarkdownSemanticFencedBlockHtmlRenderer? SemanticFencedBlockHtmlRenderer { get; set; }
     /// <summary>Prefix selectors in emitted CSS with this scope selector to avoid collisions. Default: "article.markdown-body".</summary>
     public string? CssScopeSelector { get; set; } = "article.markdown-body";
 

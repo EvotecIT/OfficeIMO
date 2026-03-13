@@ -132,5 +132,27 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("<img src=\"images/photo.png\" alt=\"Alt text\" title=\"Title text\" width=\"640\" height=\"480\" />", html, StringComparison.Ordinal);
             Assert.Contains("<div class=\"caption\">Photo caption</div>", html, StringComparison.Ordinal);
         }
+
+        [Fact]
+        public void HtmlOptions_CodeBlockHtmlRenderer_Applies_Inside_Nested_List_Items() {
+            var markdown = """
+- item
+
+  ```text
+  hello from list
+  ```
+""";
+            var doc = MarkdownReader.Parse(markdown);
+            var html = doc.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                CodeBlockHtmlRenderer = (block, _) => $"<aside class=\"code-proxy\">{System.Net.WebUtility.HtmlEncode(block.Content)}</aside>"
+            });
+
+            Assert.Contains("<ul>", html, StringComparison.Ordinal);
+            Assert.Contains("<aside class=\"code-proxy\">hello from list</aside>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("<pre><code class=\"language-text\">", html, StringComparison.Ordinal);
+        }
     }
 }

@@ -2,8 +2,10 @@ namespace OfficeIMO.MarkdownRenderer;
 
 /// <summary>
 /// Options controlling vis-network rendering when used in a WebView/browser context.
-/// Networks are authored as fenced code blocks named <c>ix-network</c>, <c>network</c>, or <c>visnetwork</c>
+/// Generic networks are authored as fenced code blocks named <c>network</c> or <c>visnetwork</c>
 /// containing JSON with <c>nodes</c>, <c>edges</c>, and optional <c>options</c>.
+/// IntelligenceX/chat hosts can opt into the <c>ix-network</c> alias through <see cref="MarkdownRendererIntelligenceXAdapter"/>
+/// or the chat preset family.
 /// </summary>
 public sealed class NetworkOptions {
     /// <summary>Enable vis-network support. Default: false.</summary>

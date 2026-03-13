@@ -109,7 +109,6 @@ public class Markdown_Renderer_Tests {
 
     [Theory]
     [InlineData("chart")]
-    [InlineData("ix-chart")]
     public void MarkdownRenderer_Converts_Chart_Code_Fences_When_Enabled(string language) {
         var configJson = "{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}";
         var md = $"```{language}\n{configJson}\n```";
@@ -130,8 +129,130 @@ public class Markdown_Renderer_Tests {
         Assert.Equal(configJson, DecodeBase64Attribute(html, "data-omd-config-b64"));
     }
 
+    [Fact]
+    public void MarkdownRenderer_ChatPreset_Converts_IxChart_Code_Fences_When_Enabled() {
+        var configJson = "{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}";
+        var md = $"```ix-chart\n{configJson}\n```";
+        var opts = MarkdownRendererPresets.CreateChatStrictMinimal();
+        opts.Chart.Enabled = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+
+        Assert.Contains("class=\"omd-visual omd-chart\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-fence-language=\"ix-chart\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_ChatPreset_Converts_IxChart_Code_Fences_Inside_List_Items_When_Enabled() {
+        var configJson = "{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}";
+        var md = $"""
+- item
+
+  ```ix-chart
+  {configJson}
+  ```
+""";
+        var opts = MarkdownRendererPresets.CreateChatStrictMinimal();
+        opts.Chart.Enabled = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+
+        Assert.Contains("<ul>", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"omd-visual omd-chart\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-fence-language=\"ix-chart\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("language-ix-chart", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_ChatPreset_Converts_Quoted_IxChart_Code_Fences_When_Enabled() {
+        var configJson = "{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}";
+        var md = $"""
+> ```ix-chart
+> {configJson}
+> ```
+""";
+        var opts = MarkdownRendererPresets.CreateChatStrictMinimal();
+        opts.Chart.Enabled = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+
+        Assert.Contains("<blockquote>", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"omd-visual omd-chart\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-fence-language=\"ix-chart\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("language-ix-chart", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_ChatPreset_Converts_Nested_Quoted_IxChart_Code_Fences_When_Enabled() {
+        var configJson = "{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}";
+        var md = $"""
+> outer
+>
+> > ```ix-chart
+> > {configJson}
+> > ```
+""";
+        var opts = MarkdownRendererPresets.CreateChatStrictMinimal();
+        opts.Chart.Enabled = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+
+        Assert.Contains("<blockquote>", html, StringComparison.Ordinal);
+        Assert.Contains("outer", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"omd-visual omd-chart\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-fence-language=\"ix-chart\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("language-ix-chart", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_ChatPreset_Converts_List_Quoted_IxChart_Code_Fences_When_Enabled() {
+        var configJson = "{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}";
+        var md = $"""
+- item
+
+  > ```ix-chart
+  > {configJson}
+  > ```
+""";
+        var opts = MarkdownRendererPresets.CreateChatStrictMinimal();
+        opts.Chart.Enabled = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+
+        Assert.Contains("<ul>", html, StringComparison.Ordinal);
+        Assert.Contains("<blockquote>", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"omd-visual omd-chart\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-fence-language=\"ix-chart\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("language-ix-chart", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Converts_Compact_Quoted_Mermaid_Fences_When_Normalization_Is_Enabled() {
+        var opts = new MarkdownRendererOptions {
+            NormalizeCompactFenceBodyBoundaries = true
+        };
+        opts.Mermaid.Enabled = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("> ```mermaidflowchart LR A-->B\n> ```", opts);
+
+        Assert.Contains("<blockquote>", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"mermaid\"", html, StringComparison.Ordinal);
+        Assert.Contains("flowchart LR", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Converts_Quoted_Math_Fences_When_Enabled() {
+        var opts = new MarkdownRendererOptions();
+        opts.Math.Enabled = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("> ```math\n> x^2 + 1\n> ```", opts);
+
+        Assert.Contains("<blockquote>", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"omd-math\"", html, StringComparison.Ordinal);
+        Assert.Contains("x^2 + 1", html, StringComparison.Ordinal);
+    }
+
     [Theory]
-    [InlineData("ix-network")]
     [InlineData("network")]
     [InlineData("visnetwork")]
     public void MarkdownRenderer_Converts_Network_Code_Fences_When_Enabled(string language) {
@@ -152,6 +273,22 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_ChatPreset_Converts_IxNetwork_Code_Fences_When_Enabled() {
+        var md = """
+```ix-network
+{"nodes":[{"id":"A","label":"User"},{"id":"B","label":"Group"}],"edges":[{"from":"A","to":"B","label":"memberOf"}]}
+```
+""";
+        var opts = MarkdownRendererPresets.CreateChatStrictMinimal();
+        opts.Network.Enabled = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+
+        Assert.Contains("class=\"omd-visual omd-network\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-fence-language=\"ix-network\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Chart_Fallback_Uses_Shared_Native_Visual_Metadata() {
         var configJson = "{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}";
         var opts = new MarkdownRendererOptions();
@@ -165,6 +302,26 @@ public class Markdown_Renderer_Tests {
         Assert.Contains("data-omd-visual-kind=\"chart\"", html, StringComparison.Ordinal);
         Assert.Contains("data-chart-config-b64", html, StringComparison.Ordinal);
         Assert.Equal(configJson, DecodeBase64Attribute(html, "data-omd-config-b64"));
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Renders_Semantic_Chart_Blocks_By_SemanticKind_When_Language_Does_Not_Match_A_Renderer() {
+        var md = """
+```vendor-chart-json
+{"type":"bar"}
+```
+""";
+        var opts = new MarkdownRendererOptions();
+        opts.Chart.Enabled = true;
+        opts.ReaderOptions.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
+            "Vendor chart AST",
+            new[] { "vendor-chart-json" },
+            context => new SemanticFencedBlock(MarkdownSemanticKinds.Chart, context.Language, context.Content, context.Caption)));
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+
+        Assert.Contains("class=\"omd-visual omd-chart\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-fence-language=\"vendor-chart-json\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -191,6 +348,64 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_Converts_Generic_Dataview_Fences_To_Static_Table_Html() {
+        var raw = "{\"title\":\"Replication Summary\",\"summary\":\"Latest replication posture\",\"kind\":\"generic_dataview_v1\",\"call_id\":\"call_123\",\"rows\":[[\"Server\",\"Fails\"],[\"AD0\",\"0\"],[\"AD1\",\"1\"]]}";
+        var md = """
+```dataview
+{"title":"Replication Summary","summary":"Latest replication posture","kind":"generic_dataview_v1","call_id":"call_123","rows":[["Server","Fails"],["AD0","0"],["AD1","1"]]}
+```
+""";
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, MarkdownRendererPresets.CreateStrictMinimal());
+        var payloadHash = ComputeShortHash(raw);
+
+        Assert.Contains("class=\"omd-visual omd-dataview\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-contract=\"v1\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-kind=\"dataview\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-fence-language=\"dataview\"", html, StringComparison.Ordinal);
+        Assert.Contains($"data-omd-visual-hash=\"{payloadHash}\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-title=\"Replication Summary\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-summary=\"Latest replication posture\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-kind=\"generic_dataview_v1\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-call-id=\"call_123\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-column-count=\"2\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-row-count=\"2\"", html, StringComparison.Ordinal);
+        Assert.Contains($"data-omd-dataview-payload-hash=\"{payloadHash}\"", html, StringComparison.Ordinal);
+        Assert.Equal(raw, DecodeBase64Attribute(html, "data-omd-config-b64"));
+        Assert.DoesNotContain("data-ix-title=", html, StringComparison.Ordinal);
+        Assert.Contains("<caption>Replication Summary</caption>", html, StringComparison.Ordinal);
+        Assert.Contains("<p class=\"omd-dataview-summary\">Latest replication posture</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Converts_Generic_Dataview_Fences_With_Neutral_Aliases_To_Static_Table_Html() {
+        var raw = "{\"caption\":\"Replication Summary\",\"description\":\"Latest replication posture\",\"schema\":\"generic.dataview.v2\",\"callId\":\"call_456\",\"headers\":[\"Server\",\"Fails\"],\"items\":[{\"server\":\"AD0\",\"fails\":0},{\"server\":\"AD1\",\"fails\":1}]}";
+        var md = """
+```dataview
+{"caption":"Replication Summary","description":"Latest replication posture","schema":"generic.dataview.v2","callId":"call_456","headers":["Server","Fails"],"items":[{"server":"AD0","fails":0},{"server":"AD1","fails":1}]}
+```
+""";
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, MarkdownRendererPresets.CreateStrictMinimal());
+        var payloadHash = ComputeShortHash(raw);
+
+        Assert.Contains("class=\"omd-visual omd-dataview\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-title=\"Replication Summary\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-summary=\"Latest replication posture\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-kind=\"generic.dataview.v2\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-call-id=\"call_456\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-column-count=\"2\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-row-count=\"2\"", html, StringComparison.Ordinal);
+        Assert.Contains($"data-omd-dataview-payload-hash=\"{payloadHash}\"", html, StringComparison.Ordinal);
+        Assert.Equal(raw, DecodeBase64Attribute(html, "data-omd-config-b64"));
+        Assert.Contains("<th>Server</th>", html, StringComparison.Ordinal);
+        Assert.Contains("<th>Fails</th>", html, StringComparison.Ordinal);
+        Assert.Contains("<td>AD0</td>", html, StringComparison.Ordinal);
+        Assert.Contains("<td>1</td>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-ix-title=", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Converts_IxDataview_Fences_To_Static_Table_Html() {
         var raw = "{\"title\":\"Replication Summary\",\"summary\":\"Latest replication posture\",\"kind\":\"ix_tool_dataview_v1\",\"call_id\":\"call_123\",\"rows\":[[\"Server\",\"Fails\"],[\"AD0\",\"0\"],[\"AD1\",\"1\"]]}";
         var md = """
@@ -199,7 +414,7 @@ public class Markdown_Renderer_Tests {
 ```
 """;
 
-        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md);
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, MarkdownRendererPresets.CreateChatStrictMinimal());
         var payloadHash = ComputeShortHash(raw);
 
         Assert.Contains("class=\"omd-visual omd-dataview\"", html, StringComparison.Ordinal);
@@ -211,6 +426,14 @@ public class Markdown_Renderer_Tests {
         Assert.Contains("data-omd-config-encoding=\"base64-utf8\"", html, StringComparison.Ordinal);
         Assert.Contains("data-omd-config-b64=\"", html, StringComparison.Ordinal);
         Assert.Contains("class=\"omd-dataview-table\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-title=\"Replication Summary\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-summary=\"Latest replication posture\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-kind=\"ix_tool_dataview_v1\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-call-id=\"call_123\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-column-count=\"2\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-row-count=\"2\"", html, StringComparison.Ordinal);
+        Assert.Contains($"data-omd-dataview-payload-hash=\"{payloadHash}\"", html, StringComparison.Ordinal);
+        Assert.Equal(raw, DecodeBase64Attribute(html, "data-omd-config-b64"));
         Assert.Contains("data-ix-title=\"Replication Summary\"", html, StringComparison.Ordinal);
         Assert.Contains("data-ix-summary=\"Latest replication posture\"", html, StringComparison.Ordinal);
         Assert.Contains("data-ix-kind=\"ix_tool_dataview_v1\"", html, StringComparison.Ordinal);
@@ -234,10 +457,27 @@ public class Markdown_Renderer_Tests {
 ```
 """;
 
-        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md);
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, MarkdownRendererPresets.CreateChatStrictMinimal());
 
         Assert.Contains("class=\"omd-visual omd-dataview\"", html, StringComparison.Ordinal);
         Assert.Contains("data-omd-visual-kind=\"dataview\"", html, StringComparison.Ordinal);
+        Assert.Contains("<th>Server</th>", html, StringComparison.Ordinal);
+        Assert.Contains("<th>Fails</th>", html, StringComparison.Ordinal);
+        Assert.Contains("<td>AD0</td>", html, StringComparison.Ordinal);
+        Assert.Contains("<td>1</td>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Converts_Dataview_Rows_Object_Payloads_With_CaseInsensitive_Columns() {
+        var md = """
+```dataview
+{"headers":["Server","Fails"],"rows":[{"server":"AD0","fails":0},{"server":"AD1","fails":1}]}
+```
+""";
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, MarkdownRendererPresets.CreateStrictMinimal());
+
+        Assert.Contains("class=\"omd-visual omd-dataview\"", html, StringComparison.Ordinal);
         Assert.Contains("<th>Server</th>", html, StringComparison.Ordinal);
         Assert.Contains("<th>Fails</th>", html, StringComparison.Ordinal);
         Assert.Contains("<td>AD0</td>", html, StringComparison.Ordinal);
@@ -252,7 +492,7 @@ public class Markdown_Renderer_Tests {
 ```
 """;
 
-        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md);
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, MarkdownRendererPresets.CreateChatStrictMinimal());
 
         Assert.DoesNotContain("class=\"omd-dataview\"", html, StringComparison.Ordinal);
         Assert.Contains("<pre><code", html, StringComparison.Ordinal);
@@ -536,6 +776,40 @@ x^2 + 1
 
         var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("hello {{name}}", opts);
         Assert.Contains("hello IntelligenceX", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_MarkdownPreProcessors_Run_After_PreParse_Normalization() {
+        var opts = new MarkdownRendererOptions {
+            NormalizeCompactFenceBodyBoundaries = true
+        };
+        opts.Mermaid.Enabled = true;
+        opts.MarkdownPreProcessors.Add((markdown, _) =>
+            markdown.Replace("```mermaid\nflowchart LR", "```mermaid\ngraph TD"));
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("```mermaidflowchart LR A-->B\n```", opts);
+
+        Assert.Contains("class=\"mermaid\"", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("graph TD A--&gt;B", htmlOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("flowchart LR A--&gt;B", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Preserves_PreParse_Normalization_From_ReaderInputNormalization() {
+        var opts = new MarkdownRendererOptions {
+            ReaderOptions = new MarkdownReaderOptions {
+                InputNormalization = new MarkdownInputNormalizationOptions {
+                    NormalizeOrderedListParenMarkers = true
+                },
+                HtmlBlocks = false,
+                InlineHtml = false
+            }
+        };
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("1) First check", opts);
+
+        Assert.Contains("<ol>", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("<li>First check</li>", htmlOut, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -9,8 +9,9 @@ public static partial class MarkdownReader {
             var code = new System.Text.StringBuilder();
             while (j < lines.Length && !IsCodeFenceClose(lines[j], fenceChar, fenceLength)) { code.AppendLine(lines[j]); j++; }
             if (j < lines.Length && IsCodeFenceClose(lines[j], fenceChar, fenceLength)) j++;
-            var block = new CodeBlock(language, code.ToString().TrimEnd('\r', '\n'));
-            if (j < lines.Length && TryParseCaption(lines[j], out var cap)) { block.Caption = cap; j++; }
+            string? caption = null;
+            if (j < lines.Length && TryParseCaption(lines[j], out var cap)) { caption = cap; j++; }
+            var block = CreateParsedFencedBlock(language, code.ToString().TrimEnd('\r', '\n'), isFenced: true, caption, options);
             doc.Add(block);
             i = j; return true;
         }

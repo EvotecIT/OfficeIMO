@@ -7,10 +7,10 @@ namespace OfficeIMO.MarkdownRenderer;
 /// </summary>
 public sealed class MarkdownRendererOptions {
     /// <summary>
-    /// Creates a new renderer options instance and seeds built-in fenced block renderers.
+    /// Creates a new renderer options instance and seeds generic built-in fenced block renderers.
     /// </summary>
     public MarkdownRendererOptions() {
-        MarkdownRendererBuiltInFencedCodeBlocks.RegisterDefaults(this);
+        MarkdownRendererBuiltInFencedCodeBlocks.RegisterGenericDefaults(this);
     }
 
     /// <summary>

@@ -244,7 +244,7 @@ public static partial class MarkdownReader {
     }
 
     private static MarkdownReaderOptions CloneOptionsWithoutFrontMatter(MarkdownReaderOptions source) {
-        return new MarkdownReaderOptions {
+        var clone = new MarkdownReaderOptions {
             FrontMatter = false,
             Callouts = source.Callouts,
             Headings = source.Headings,
@@ -294,6 +294,9 @@ public static partial class MarkdownReader {
                 NormalizeNestedStrongDelimiters = source.InputNormalization?.NormalizeNestedStrongDelimiters ?? false
             }
         };
+
+        CopyFencedBlockExtensions(source, clone);
+        return clone;
     }
 
     private static MarkdownInputNormalizationOptions? CreatePreParseNormalizationOptions(MarkdownInputNormalizationOptions? source) {
@@ -355,6 +358,24 @@ public static partial class MarkdownReader {
         foreach (var kvp in state.LinkRefs) clone.LinkRefs[kvp.Key] = kvp.Value;
         clone.SourceLineOffset = state.SourceLineOffset;
         return clone;
+    }
+
+    private static void CopyFencedBlockExtensions(MarkdownReaderOptions source, MarkdownReaderOptions target) {
+        if (source == null || target == null) {
+            return;
+        }
+
+        var extensions = source.FencedBlockExtensions;
+        if (extensions == null || extensions.Count == 0) {
+            return;
+        }
+
+        for (int i = 0; i < extensions.Count; i++) {
+            var extension = extensions[i];
+            if (extension != null) {
+                target.FencedBlockExtensions.Add(extension);
+            }
+        }
     }
 
     private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren) ParseNestedMarkdownBlocks(

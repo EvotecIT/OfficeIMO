@@ -24,6 +24,10 @@ public enum MarkdownSyntaxKind {
     ListItem,
     /// <summary>Fenced or indented code block.</summary>
     CodeBlock,
+    /// <summary>Host-defined semantic fenced block.</summary>
+    SemanticFencedBlock,
+    /// <summary>Semantic kind metadata for a semantic fenced block.</summary>
+    FenceSemanticKind,
     /// <summary>Fenced code block info string / language hint.</summary>
     CodeFenceInfo,
     /// <summary>Code block content payload.</summary>
