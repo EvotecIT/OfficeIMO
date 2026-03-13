@@ -86,4 +86,54 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Equal("Term", list.Items[1].Term);
         Assert.Equal("Second definition", list.Items[1].Definition);
     }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesNestedListOrderInsideListItem() {
+        string html = "<ul><li><p>Alpha</p><ul><li>Nested</li></ul><p>Omega</p></li></ul>";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
+        var item = Assert.Single(list.Items);
+
+        Assert.Collection(item.BlockChildren,
+            block => Assert.IsType<ParagraphBlock>(block),
+            block => Assert.IsType<UnorderedListBlock>(block),
+            block => Assert.IsType<ParagraphBlock>(block));
+
+        string markdown = document.ToMarkdown();
+        int alphaIndex = markdown.IndexOf("Alpha", StringComparison.Ordinal);
+        int nestedIndex = markdown.IndexOf("Nested", StringComparison.Ordinal);
+        int omegaIndex = markdown.IndexOf("Omega", StringComparison.Ordinal);
+        Assert.True(alphaIndex >= 0, "Expected Alpha in markdown output.");
+        Assert.True(nestedIndex > alphaIndex, "Expected nested list content after the opening paragraph.");
+        Assert.True(omegaIndex > nestedIndex, "Expected trailing paragraph after the nested list.");
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesDetailsOrderInsideListItem() {
+        string html = "<ul><li><p>Alpha</p><details open><summary>More</summary><p>Hidden</p></details><p>Omega</p></li></ul>";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
+        var item = Assert.Single(list.Items);
+
+        Assert.Collection(item.BlockChildren,
+            block => Assert.IsType<ParagraphBlock>(block),
+            block => Assert.IsType<DetailsBlock>(block),
+            block => Assert.IsType<ParagraphBlock>(block));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesMultipleTermsPerDefinitionGroup() {
+        string html = "<dl><dt>Alpha</dt><dt>Beta</dt><dd>Shared definition</dd><dd>Follow-up definition</dd></dl>";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var list = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(4, list.Items.Count);
+        Assert.Equal(("Alpha", "Shared definition"), list.Items[0]);
+        Assert.Equal(("Beta", "Shared definition"), list.Items[1]);
+        Assert.Equal(("Alpha", "Follow-up definition"), list.Items[2]);
+        Assert.Equal(("Beta", "Follow-up definition"), list.Items[3]);
+    }
 }

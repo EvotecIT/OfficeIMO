@@ -391,17 +391,29 @@ public sealed partial class HtmlToMarkdownConverter {
 
     private static DefinitionListBlock ConvertDefinitionListElement(IElement element, ConversionContext context) {
         var list = new DefinitionListBlock();
-        string? currentTerm = null;
+        var pendingTerms = new List<string>();
+        bool hasDefinitionsForCurrentGroup = false;
 
         foreach (var child in element.Children) {
             if (child.TagName.Equals("DT", StringComparison.OrdinalIgnoreCase)) {
-                currentTerm = ConvertInlineNodesToMarkdown(child.ChildNodes, context).Trim();
+                if (hasDefinitionsForCurrentGroup) {
+                    pendingTerms.Clear();
+                    hasDefinitionsForCurrentGroup = false;
+                }
+
+                string term = ConvertInlineNodesToMarkdown(child.ChildNodes, context).Trim();
+                if (term.Length > 0) {
+                    pendingTerms.Add(term);
+                }
                 continue;
             }
 
-            if (child.TagName.Equals("DD", StringComparison.OrdinalIgnoreCase) && currentTerm != null) {
+            if (child.TagName.Equals("DD", StringComparison.OrdinalIgnoreCase) && pendingTerms.Count > 0) {
                 string definition = ConvertInlineNodesToMarkdown(child.ChildNodes, context).Trim();
-                list.Items.Add((currentTerm, definition));
+                foreach (string term in pendingTerms) {
+                    list.Items.Add((term, definition));
+                }
+                hasDefinitionsForCurrentGroup = true;
             }
         }
 
