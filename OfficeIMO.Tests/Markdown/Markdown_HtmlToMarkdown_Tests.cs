@@ -125,6 +125,36 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_PreservesUnsupportedBlockElementsInsideSections() {
+        string html = "<section><p>Alpha</p><custom-widget data-name=\"demo\">Hello</custom-widget><p>Omega</p></section>";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            PreserveUnsupportedBlocks = true
+        });
+
+        Assert.Collection(document.Blocks,
+            block => Assert.IsType<ParagraphBlock>(block),
+            block => Assert.IsType<HtmlRawBlock>(block),
+            block => Assert.IsType<ParagraphBlock>(block));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesUnsupportedBlockElementsInsideDetails() {
+        string html = "<details open><summary>More</summary><p>Alpha</p><custom-widget data-name=\"demo\">Hello</custom-widget><p>Omega</p></details>";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            PreserveUnsupportedBlocks = true
+        });
+
+        var details = Assert.IsType<DetailsBlock>(Assert.Single(document.Blocks));
+        Assert.NotNull(details.Summary);
+        Assert.Collection(details.ChildBlocks,
+            block => Assert.IsType<ParagraphBlock>(block),
+            block => Assert.IsType<HtmlRawBlock>(block),
+            block => Assert.IsType<ParagraphBlock>(block));
+    }
+
+    [Fact]
     public void HtmlToMarkdown_CapturesFigureCaptionOnImageBlocks() {
         string html = "<figure><img src=\"/img/demo.png\" alt=\"Demo\" /><figcaption>Example caption</figcaption></figure>";
 
@@ -136,6 +166,27 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Equal("https://example.com/img/demo.png", image.Path);
         Assert.Equal("Demo", image.Alt);
         Assert.Equal("Example caption", image.Caption);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesFigureOrderInsideListItems() {
+        string html = "<ul><li><p>Alpha</p><figure><img src=\"/img/demo.png\" alt=\"Demo\" /><figcaption>Caption</figcaption></figure><p>Omega</p></li></ul>";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/")
+        });
+
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
+        var item = Assert.Single(list.Items);
+
+        Assert.Collection(item.BlockChildren,
+            block => Assert.IsType<ParagraphBlock>(block),
+            block => {
+                var image = Assert.IsType<ImageBlock>(block);
+                Assert.Equal("https://example.com/img/demo.png", image.Path);
+                Assert.Equal("Caption", image.Caption);
+            },
+            block => Assert.IsType<ParagraphBlock>(block));
     }
 
     [Fact]

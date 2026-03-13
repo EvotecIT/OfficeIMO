@@ -69,7 +69,7 @@ public sealed partial class HtmlToMarkdownConverter {
             return true;
         }
 
-        if (HasDirectBlockChildren(element)) {
+        if (HasDirectBlockChildren(element, context)) {
             return true;
         }
 
@@ -80,9 +80,9 @@ public sealed partial class HtmlToMarkdownConverter {
         return false;
     }
 
-    private static bool HasDirectBlockChildren(IElement element) {
+    private static bool HasDirectBlockChildren(IElement element, ConversionContext context) {
         foreach (var child in element.Children) {
-            if (IsBlockElement(child)) {
+            if (ShouldTreatAsBlockElement(child, context)) {
                 return true;
             }
         }
@@ -133,7 +133,7 @@ public sealed partial class HtmlToMarkdownConverter {
             case "FORM":
             case "ADDRESS":
             case "BODY":
-                if (HasDirectBlockChildren(element)) {
+                if (HasDirectBlockChildren(element, context)) {
                     return ConvertNodesToBlocks(element.ChildNodes, context);
                 }
 
@@ -148,7 +148,7 @@ public sealed partial class HtmlToMarkdownConverter {
                     return new IMarkdownBlock[] { new HtmlRawBlock(element.OuterHtml) };
                 }
 
-                if (HasDirectBlockChildren(element)) {
+                if (HasDirectBlockChildren(element, context)) {
                     return ConvertNodesToBlocks(element.ChildNodes, context);
                 }
 
@@ -346,7 +346,7 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static string ConvertTableCellToMarkdown(IElement cell, ConversionContext context) {
-        if (HasDirectBlockChildren(cell)) {
+        if (HasDirectBlockChildren(cell, context)) {
             string blockMarkdown = RenderBlocksToMarkdown(ConvertNodesToBlocks(cell.ChildNodes, context));
             if (blockMarkdown.Length > 0) {
                 return blockMarkdown.Replace("  \n", "<br>");
@@ -380,7 +380,7 @@ public sealed partial class HtmlToMarkdownConverter {
     private static IEnumerable<IMarkdownBlock> ConvertFigureElement(IElement element, ConversionContext context) {
         var image = element.QuerySelector("img");
         if (image == null) {
-            if (HasDirectBlockChildren(element)) {
+            if (HasDirectBlockChildren(element, context)) {
                 return ConvertNodesToBlocks(element.ChildNodes, context);
             }
 
