@@ -31,8 +31,10 @@ Each package is shipped independently under the MIT license unless noted otherwi
 - [OfficeIMO.PowerPoint](OfficeIMO.PowerPoint/README.md)
 - [OfficeIMO.Visio](OfficeIMO.Visio/README.md)
 - [OfficeIMO.Markdown](OfficeIMO.Markdown/README.md)
+- `OfficeIMO.Markdown.Html` — HTML to Markdown conversion prototype
 - [OfficeIMO.MarkdownRenderer](OfficeIMO.MarkdownRenderer/README.md)
 - Converters
+  - `OfficeIMO.Markdown.Html`
   - `OfficeIMO.Word.Html`
   - `OfficeIMO.Word.Markdown`
   - `OfficeIMO.Word.Pdf`
@@ -42,7 +44,6 @@ Each package is shipped independently under the MIT license unless noted otherwi
   - `OfficeIMO.Markdown.Benchmarks`
 - Release prep
   - [Docs/officeimo.markdown.release-checklist.md](Docs/officeimo.markdown.release-checklist.md)
-
 ## Package Families
 
 ### Word family
@@ -55,6 +56,7 @@ Each package is shipped independently under the MIT license unless noted otherwi
 ### Markdown family
 
 - `OfficeIMO.Markdown`: markdown builder, typed reader/AST, HTML renderer, front matter, TOC, callouts, and query helpers
+- `OfficeIMO.Markdown.Html`: HTML to Markdown conversion prototype targeting the OfficeIMO.Markdown AST
 - `OfficeIMO.MarkdownRenderer`: WebView/browser-friendly rendering shell and incremental update helpers
 - `OfficeIMO.Markdown.Benchmarks`: representative parse/render benchmark harness
 
@@ -96,6 +98,7 @@ flowchart TB
   Angle["AngleSharp"]
   AngleCss["AngleSharp.Css"]
   Md["OfficeIMO.Markdown"]
+  MdHtml["OfficeIMO.Markdown.Html"]
   Quest["QuestPDF"]
   Skia["SkiaSharp"]
 
@@ -106,6 +109,7 @@ flowchart TB
   WMd --> WHtml
   WHtml --> Angle
   WHtml --> AngleCss
+  MdHtml --> Md
   WMd --> Md
   WPdf --> Quest
   WPdf --> Skia
@@ -199,7 +203,7 @@ See each project `.csproj` for exact package ranges.
 
 ## Licenses
 
-- `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.CSV`, `OfficeIMO.PowerPoint`, `OfficeIMO.Markdown`, `OfficeIMO.MarkdownRenderer`: MIT
+- `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.CSV`, `OfficeIMO.PowerPoint`, `OfficeIMO.Markdown`, `OfficeIMO.MarkdownRenderer`, `OfficeIMO.Markdown.Html`, `OfficeIMO.Word.Html`, `OfficeIMO.Word.Markdown`, `OfficeIMO.Word.Pdf`: MIT
 - `OfficeIMO.Visio`: license still being finalized
 
 Third-party dependency licenses are governed by their upstream projects.

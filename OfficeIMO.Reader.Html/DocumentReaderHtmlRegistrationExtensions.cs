@@ -19,7 +19,7 @@ public static class DocumentReaderHtmlRegistrationExtensions {
         DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "HTML Reader Adapter",
-            Description = "Modular HTML adapter using OfficeIMO.Word.Html + OfficeIMO.Word.Markdown.",
+            Description = "Modular HTML adapter using OfficeIMO.Markdown.Html.",
             Kind = ReaderInputKind.Html,
             Extensions = new[] { ".html", ".htm" },
             ReadPath = (path, readerOptions, ct) => DocumentReaderHtmlExtensions.ReadHtmlFile(

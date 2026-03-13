@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>HTML adapter for OfficeIMO.Reader using OfficeIMO.Word.Html and OfficeIMO.Word.Markdown.</Description>
+    <Description>HTML adapter for OfficeIMO.Reader using OfficeIMO.Markdown.Html.</Description>
     <AssemblyName>OfficeIMO.Reader.Html</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.Html</AssemblyTitle>
     <VersionPrefix>0.0.1</VersionPrefix>
@@ -26,9 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Word.Html\OfficeIMO.Word.Html.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Word.Markdown\OfficeIMO.Word.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Markdown.Html\OfficeIMO.Markdown.Html.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

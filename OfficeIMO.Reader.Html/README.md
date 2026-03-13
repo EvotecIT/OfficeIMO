@@ -3,8 +3,7 @@
 `OfficeIMO.Reader.Html` is a modular adapter for HTML ingestion.
 
 Current scope:
-- HTML -> Word (via `OfficeIMO.Word.Html`)
-- Word -> Markdown (via `OfficeIMO.Word.Markdown`)
+- HTML -> Markdown (via `OfficeIMO.Markdown.Html`)
 - Markdown chunk emission in `ReaderChunk` shape
 - heading-aware chunk metadata (`Location.HeadingPath`, `Location.StartLine`) when `ReaderOptions.MarkdownChunkByHeadings = true`
 - path and stream dispatch via `DocumentReader` handler registration
@@ -16,21 +15,6 @@ Registration into `OfficeIMO.Reader`:
 using OfficeIMO.Reader.Html;
 
 DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler();
-```
-
-With custom conversion options:
-
-```csharp
-using OfficeIMO.Reader.Html;
-using OfficeIMO.Word.Markdown;
-
-DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(
-    htmlOptions: new ReaderHtmlOptions {
-        MarkdownOptions = new WordToMarkdownOptions {
-            EnableUnderline = true
-        }
-    },
-    replaceExisting: true);
 ```
 
 Status:
