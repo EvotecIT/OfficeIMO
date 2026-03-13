@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Description>Google Docs planning and export scaffolding for OfficeIMO.Word.</Description>
+        <AssemblyName>OfficeIMO.Word.GoogleDocs</AssemblyName>
+        <AssemblyTitle>OfficeIMO.Word.GoogleDocs</AssemblyTitle>
+        <VersionPrefix>0.1.0</VersionPrefix>
+        <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
+            $(TargetFrameworks);net472</TargetFrameworks>
+        <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+        <Company>Evotec</Company>
+        <Authors>Przemyslaw Klys</Authors>
+        <PackageId>OfficeIMO.Word.GoogleDocs</PackageId>
+        <PackageTags>google;docs;officeimo;word;docx;net472;net8.0;net10.0</PackageTags>
+        <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <DelaySign>False</DelaySign>
+        <IsPublishable>True</IsPublishable>
+        <Copyright>(c) 2011 - 2024 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
+        <PackageIcon>OfficeIMO.png</PackageIcon>
+        <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+        <DebugType>portable</DebugType>
+        <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+        <GenerateDocumentationFile>True</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+        <LangVersion>Latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <EnableTrimmingPolyfills>true</EnableTrimmingPolyfills>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\Assets\OfficeIMO.png">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\OfficeIMO.GoogleWorkspace\OfficeIMO.GoogleWorkspace.csproj" />
+        <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.Net.Http" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="System" />
+        <Using Include="System.Collections.Generic" />
+        <Using Include="System.Linq" />
+        <Using Include="System.Threading" />
+        <Using Include="System.Threading.Tasks" />
+    </ItemGroup>
+
+</Project>
