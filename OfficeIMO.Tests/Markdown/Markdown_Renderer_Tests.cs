@@ -305,6 +305,25 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void MarkdownVisualContract_Can_Build_Shared_Visual_Metadata_For_Hosts() {
+        var payload = MarkdownVisualContract.CreatePayload("{\"type\":\"bar\"}");
+        var html = MarkdownVisualContract.BuildElementHtml(
+            "div",
+            "omd-visual omd-custom",
+            "custom-chart",
+            "vendor-chart",
+            payload,
+            new KeyValuePair<string, string?>("data-custom-hash", payload.Hash));
+
+        Assert.Contains("class=\"omd-visual omd-custom\"", html, StringComparison.Ordinal);
+        Assert.Contains($"data-omd-visual-contract=\"{MarkdownVisualContract.ContractVersion}\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-kind=\"custom-chart\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-fence-language=\"vendor-chart\"", html, StringComparison.Ordinal);
+        Assert.Contains($"data-custom-hash=\"{payload.Hash}\"", html, StringComparison.Ordinal);
+        Assert.Equal("{\"type\":\"bar\"}", DecodeBase64Attribute(html, "data-omd-config-b64"));
+    }
+
+    [Fact]
     public void MarkdownRenderer_Renders_Semantic_Chart_Blocks_By_SemanticKind_When_Language_Does_Not_Match_A_Renderer() {
         var md = """
 ```vendor-chart-json

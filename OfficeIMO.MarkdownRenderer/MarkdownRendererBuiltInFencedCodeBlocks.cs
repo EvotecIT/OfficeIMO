@@ -89,8 +89,8 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
     }
 
     private static string BuildNativeVisualHtml(string elementName, string cssClass, string visualKind, string language, string hashAttribute, string configAttribute, string rawContent) {
-        var payload = MarkdownVisualContractHtml.CreatePayload(rawContent);
-        return MarkdownVisualContractHtml.BuildElementHtml(
+        var payload = MarkdownVisualContract.CreatePayload(rawContent);
+        return MarkdownVisualContract.BuildElementHtml(
             elementName,
             "omd-visual " + (cssClass ?? string.Empty).Trim(),
             visualKind,
@@ -142,41 +142,41 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
         bool emitLegacyIxAttributes) {
         var sb = new StringBuilder();
         var bodyRowCount = rows.Count;
-        var payload = MarkdownVisualContractHtml.CreatePayload(rawContent);
+        var payload = MarkdownVisualContract.CreatePayload(rawContent);
         sb.Append("<div class=\"omd-visual omd-dataview\"")
           ;
-        MarkdownVisualContractHtml.AppendCommonAttributes(sb, MarkdownSemanticKinds.DataView, language, payload);
-        MarkdownVisualContractHtml.AppendAttribute(sb, "data-omd-dataview-column-count", columns.Count);
-        MarkdownVisualContractHtml.AppendAttribute(sb, "data-omd-dataview-row-count", bodyRowCount);
-        MarkdownVisualContractHtml.AppendAttribute(sb, "data-omd-dataview-payload-hash", payloadHash);
+        MarkdownVisualContract.AppendCommonAttributes(sb, MarkdownSemanticKinds.DataView, language, payload);
+        MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-column-count", columns.Count);
+        MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-row-count", bodyRowCount);
+        MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-payload-hash", payloadHash);
         if (!string.IsNullOrWhiteSpace(title)) {
-            MarkdownVisualContractHtml.AppendAttribute(sb, "data-omd-dataview-title", title);
+            MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-title", title);
             if (emitLegacyIxAttributes) {
-                MarkdownVisualContractHtml.AppendAttribute(sb, "data-ix-title", title);
+                MarkdownVisualContract.AppendAttribute(sb, "data-ix-title", title);
             }
         }
         if (!string.IsNullOrWhiteSpace(summary)) {
-            MarkdownVisualContractHtml.AppendAttribute(sb, "data-omd-dataview-summary", summary);
+            MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-summary", summary);
             if (emitLegacyIxAttributes) {
-                MarkdownVisualContractHtml.AppendAttribute(sb, "data-ix-summary", summary);
+                MarkdownVisualContract.AppendAttribute(sb, "data-ix-summary", summary);
             }
         }
         if (!string.IsNullOrWhiteSpace(kind)) {
-            MarkdownVisualContractHtml.AppendAttribute(sb, "data-omd-dataview-kind", kind);
+            MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-kind", kind);
             if (emitLegacyIxAttributes) {
-                MarkdownVisualContractHtml.AppendAttribute(sb, "data-ix-kind", kind);
+                MarkdownVisualContract.AppendAttribute(sb, "data-ix-kind", kind);
             }
         }
         if (!string.IsNullOrWhiteSpace(callId)) {
-            MarkdownVisualContractHtml.AppendAttribute(sb, "data-omd-dataview-call-id", callId);
+            MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-call-id", callId);
             if (emitLegacyIxAttributes) {
-                MarkdownVisualContractHtml.AppendAttribute(sb, "data-ix-call-id", callId);
+                MarkdownVisualContract.AppendAttribute(sb, "data-ix-call-id", callId);
             }
         }
         if (emitLegacyIxAttributes) {
-            MarkdownVisualContractHtml.AppendAttribute(sb, "data-ix-column-count", columns.Count);
-            MarkdownVisualContractHtml.AppendAttribute(sb, "data-ix-row-count", bodyRowCount);
-            MarkdownVisualContractHtml.AppendAttribute(sb, "data-ix-payload-hash", payload.Hash);
+            MarkdownVisualContract.AppendAttribute(sb, "data-ix-column-count", columns.Count);
+            MarkdownVisualContract.AppendAttribute(sb, "data-ix-row-count", bodyRowCount);
+            MarkdownVisualContract.AppendAttribute(sb, "data-ix-payload-hash", payload.Hash);
         }
         sb.Append(">");
 

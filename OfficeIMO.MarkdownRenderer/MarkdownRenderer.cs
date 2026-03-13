@@ -307,8 +307,8 @@ public static class MarkdownRenderer {
     }
 
     private static string BuildChartCodeBlockHtml(string rawJson) {
-        var payload = MarkdownVisualContractHtml.CreatePayload(rawJson);
-        return MarkdownVisualContractHtml.BuildElementHtml(
+        var payload = MarkdownVisualContract.CreatePayload(rawJson);
+        return MarkdownVisualContract.BuildElementHtml(
             "canvas",
             "omd-visual omd-chart",
             MarkdownSemanticKinds.Chart,

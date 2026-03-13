@@ -185,6 +185,8 @@ Built-in visual renderers emit shared `data-omd-*` attributes:
 That keeps host integrations stable even when new visual types are added later.
 Chart, network, and dataview built-ins now all flow through the same shared metadata builder, so future visual types can reuse the same contract instead of hand-assembling attributes per renderer.
 
+You can also emit the same metadata contract directly from host code through `MarkdownVisualContract.CreatePayload(...)` and `MarkdownVisualContract.BuildElementHtml(...)` when you need custom visual blocks outside the built-in renderer list.
+
 ## Security Defaults
 
 The strict presets are biased toward untrusted chat-style content:
