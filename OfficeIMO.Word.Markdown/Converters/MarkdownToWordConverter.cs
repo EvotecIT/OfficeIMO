@@ -19,7 +19,6 @@ namespace OfficeIMO.Word.Markdown {
         private const double PixelsPerInch = 96d;
         private const double MinimumContentWidthPixels = 1d;
         private static readonly TimeSpan DefaultRemoteImageDownloadTimeout = TimeSpan.FromSeconds(20);
-        private static readonly System.Net.Http.HttpClient SharedRemoteImageClient = CreateRemoteImageClient(DefaultRemoteImageDownloadTimeout);
 
         private static bool LocalPathAllowed(string path, MarkdownToWordOptions options) {
             if (!options.AllowLocalImages) return false;
@@ -52,11 +51,33 @@ namespace OfficeIMO.Word.Markdown {
             return contentTwips * PixelsPerInch / TwipsPerInch;
         }
 
-        private static System.Net.Http.HttpClient CreateRemoteImageClient(TimeSpan timeout) {
-            var client = new System.Net.Http.HttpClient();
+        private static System.Net.Http.HttpClient CreateRemoteImageClient(TimeSpan timeout, bool bypassProxy = false) {
+            System.Net.Http.HttpClient client;
+            if (bypassProxy) {
+                var handler = new System.Net.Http.HttpClientHandler {
+                    Proxy = null,
+                    UseProxy = false
+                };
+                client = new System.Net.Http.HttpClient(handler, disposeHandler: true);
+            } else {
+                client = new System.Net.Http.HttpClient();
+            }
+
             client.Timeout = timeout;
             client.DefaultRequestHeaders.UserAgent.ParseAdd("OfficeIMO.Word.Markdown");
             return client;
+        }
+
+        private static bool IsLoopbackImageUri(Uri uri) {
+            if (uri == null) {
+                return false;
+            }
+
+            if (uri.IsLoopback) {
+                return true;
+            }
+
+            return string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string? ResolveDefaultFontFamily(MarkdownToWordOptions options) {
@@ -186,11 +207,8 @@ namespace OfficeIMO.Word.Markdown {
 
         private static byte[] DownloadRemoteImageBytes(Uri uri, MarkdownToWordOptions options) {
             var timeout = ResolveRemoteImageTimeout(options);
-            if (timeout == DefaultRemoteImageDownloadTimeout) {
-                return SharedRemoteImageClient.GetByteArrayAsync(uri).GetAwaiter().GetResult();
-            }
-
-            using var client = CreateRemoteImageClient(timeout);
+            // Fresh clients avoid stale loopback/proxy behavior on older framework handlers.
+            using var client = CreateRemoteImageClient(timeout, bypassProxy: IsLoopbackImageUri(uri));
             return client.GetByteArrayAsync(uri).GetAwaiter().GetResult();
         }
 
