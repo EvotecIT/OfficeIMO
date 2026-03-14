@@ -30,6 +30,7 @@ Supported block-level mappings include:
 - images and figures
 - details / summary
 - definition lists
+- shared `data-omd-*` visual host elements back into semantic fenced blocks
 - raw HTML fallback blocks for unsupported elements
 
 Supported inline mappings include:
@@ -155,6 +156,7 @@ That means `OfficeIMO.Markdown.Html` is no longer just a text flattener. It is a
 - Block-rich `dd` values are preserved as typed block content instead of being forced through inline-only conversion.
 - Table cells preserve typed block content in the intermediate `MarkdownDoc` AST instead of collapsing immediately to strings.
 - Unsupported custom/container elements are treated as block-level content when they are structurally block-like or when raw block preservation is enabled.
+- Shared renderer visual hosts that carry the `data-omd-*` contract are decoded back into `SemanticFencedBlock` nodes, which lets `OfficeIMO.MarkdownRenderer` HTML round-trip into semantic markdown fences.
 - Conversion happens through the `OfficeIMO.Markdown` AST, so the effective fidelity is bounded by that model.
 
 For the current stack, this means HTML ingestion can preserve more structure than plain markdown text can always express directly. The AST is the source of truth; markdown emission is the profile-driven projection of that model.

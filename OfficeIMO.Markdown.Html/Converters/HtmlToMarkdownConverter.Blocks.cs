@@ -91,6 +91,10 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static IEnumerable<IMarkdownBlock> ConvertElementToBlocks(IElement element, ConversionContext context) {
+        if (TryConvertVisualContractElement(element, out var visualBlock)) {
+            return new IMarkdownBlock[] { visualBlock };
+        }
+
         string tag = element.TagName;
         switch (tag) {
             case "P":
@@ -159,6 +163,30 @@ public sealed partial class HtmlToMarkdownConverter {
 
                 return new IMarkdownBlock[] { new ParagraphBlock(ParseInlines(fallbackInline)) };
         }
+    }
+
+    private static bool TryConvertVisualContractElement(IElement element, out SemanticFencedBlock visualBlock) {
+        visualBlock = null!;
+        if (element == null) {
+            return false;
+        }
+
+        var attributes = new List<KeyValuePair<string, string?>>();
+        foreach (var attribute in element.Attributes) {
+            attributes.Add(new KeyValuePair<string, string?>(attribute.Name, attribute.Value));
+        }
+
+        if (!MarkdownVisualElementContract.TryParse(attributes, out var visualElement)) {
+            return false;
+        }
+
+        var payload = visualElement!.TryDecodePayload();
+        if (payload == null) {
+            return false;
+        }
+
+        visualBlock = new SemanticFencedBlock(visualElement.VisualKind, visualElement.FenceLanguage, payload);
+        return true;
     }
 
     private static IEnumerable<IMarkdownBlock> ConvertParagraphElement(IElement element, ConversionContext context) {
