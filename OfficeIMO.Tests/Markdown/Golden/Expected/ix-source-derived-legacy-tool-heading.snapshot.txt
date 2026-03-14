@@ -1,0 +1,5 @@
+[strict.html]
+<article class="markdown-body"><p>[Cached evidence fallback]</p><p>Recent evidence:</p><ul><li>eventlog_top_events: #</li></ul><h2 id="top-30-recent-events-preview">Top 30 recent events (preview)</h2><h1 id=""></h1><h3 id="ad-environment-discover">ad_environment_discover</h3><h1 id="-1"></h1><h2 id="active-directory-environment-discovery">Active Directory: Environment Discovery</h2></article>
+
+[chat.html]
+<article class="markdown-body"><p>[Cached evidence fallback]</p><p>Recent evidence:</p><h3 id="top-30-recent-events-preview">Top 30 recent events (preview)</h3><h2 id="active-directory-environment-discovery">Active Directory: Environment Discovery</h2></article>

@@ -73,6 +73,130 @@ public class Markdown_Input_Normalizer_Tests {
     }
 
     [Fact]
+    public void Normalize_WrappedSignalFlowStrongRuns_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeWrappedSignalFlowStrongRuns = true,
+            NormalizeTightArrowStrongBoundaries = true,
+            NormalizeTightStrongBoundaries = true
+        };
+
+        var markdown = "- Signal **Catalog count includes hidden/disabled/deprecated rules -> **Why it matters:**external/custom rules can drift or disappear between hosts ->**Next action:**break down `rule_origin` (`builtin` vs `external`) and confirm expected external rules are present.**";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal("- Signal **Catalog count includes hidden/disabled/deprecated rules** -> **Why it matters:** external/custom rules can drift or disappear between hosts -> **Next action:** break down `rule_origin` (`builtin` vs `external`) and confirm expected external rules are present.", normalized);
+    }
+
+    [Fact]
+    public void Normalize_CollapsedMetricChains_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeCollapsedMetricChains = true,
+            NormalizeMetricValueStrongRuns = true
+        };
+
+        var markdown = "**Status: HEALTHY** - **Servers checked:**5 -**Replication edges:**62 -*Failed edges:**0 -*Stale edges (>24h):**0 - **Servers with failures:**0";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Contains("Status **HEALTHY**", normalized, StringComparison.Ordinal);
+        Assert.Contains("- Servers checked **5**", normalized, StringComparison.Ordinal);
+        Assert.Contains("- Replication edges **62**", normalized, StringComparison.Ordinal);
+        Assert.Contains("- Failed edges **0**", normalized, StringComparison.Ordinal);
+        Assert.Contains("- Stale edges (>24h) **0**", normalized, StringComparison.Ordinal);
+        Assert.Contains("- Servers with failures **0**", normalized, StringComparison.Ordinal);
+        Assert.DoesNotContain("-**", normalized, StringComparison.Ordinal);
+        Assert.DoesNotContain("**Servers checked:**", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Normalize_CollapsedMetricChains_DoesNotSplitInlineHyphenProse() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeCollapsedMetricChains = true
+        };
+
+        var markdown = "Health note: foo - **bar** should stay inline.";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal(markdown, normalized);
+    }
+
+    [Fact]
+    public void Normalize_HostLabelBulletArtifacts_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeHostLabelBulletArtifacts = true
+        };
+
+        var markdown = "-AD1\nhealthy for directory access\n-AD2 ready";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal("- AD1 healthy for directory access\n- AD2 ready", normalized);
+    }
+
+    [Fact]
+    public void Normalize_HostLabelBulletArtifacts_DoesNotRewriteFencedCode() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeHostLabelBulletArtifacts = true
+        };
+
+        var markdown = "```text\n-AD1\nhealthy for directory access\n```";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal(markdown, normalized);
+    }
+
+    [Fact]
+    public void Normalize_StandaloneHashHeadingSeparators_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeStandaloneHashHeadingSeparators = true
+        };
+
+        var markdown = "#\n\n### Forest Replication Status\n- Overall health ✅ Healthy****";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal("### Forest Replication Status\n- Overall health ✅ Healthy****", normalized);
+    }
+
+    [Fact]
+    public void Normalize_StandaloneHashHeadingSeparators_DoesNotRewriteOrdinaryHashLine() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeStandaloneHashHeadingSeparators = true
+        };
+
+        var markdown = "Inventory legend:\n#\nkeep this line as-is";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal(markdown, normalized);
+    }
+
+    [Fact]
+    public void Normalize_BrokenTwoLineStrongLeadIns_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeBrokenTwoLineStrongLeadIns = true
+        };
+
+        var markdown = """
+**Result
+all 5 are healthy for directory access** with recommended LDAPS endpoints.
+""";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal("**Result:** all 5 are healthy for directory access with recommended LDAPS endpoints.", normalized);
+    }
+
+    [Fact]
+    public void Normalize_BrokenTwoLineStrongLeadIns_PreservesLegitimateMultilineBoldContent() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeBrokenTwoLineStrongLeadIns = true
+        };
+
+        var markdown = """
+**Keep
+this together**
+""";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal(markdown, normalized);
+    }
+
+    [Fact]
     public void Normalize_CompactHeadingAndStrongLabelListBoundaries_WhenEnabled() {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeHeadingListBoundaries = true,
@@ -186,6 +310,45 @@ public class Markdown_Input_Normalizer_Tests {
     }
 
     [Fact]
+    public void Normalize_DanglingTrailingStrongListClosers_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeDanglingTrailingStrongListClosers = true
+        };
+
+        var normalized = MarkdownInputNormalizer.Normalize("- Overall health ✅ Healthy****", options);
+        Assert.Equal("- Overall health ✅ **Healthy**", normalized);
+    }
+
+    [Fact]
+    public void Normalize_DanglingTrailingStrongListClosers_DoesNotRewriteOrdinaryProse() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeDanglingTrailingStrongListClosers = true
+        };
+
+        var markdown = "Literal marker code****";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+        Assert.Equal(markdown, normalized);
+    }
+
+    [Fact]
+    public void Normalize_MetricValueStrongRuns_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeMetricValueStrongRuns = true
+        };
+
+        var markdown = """
+- Overall health ******healthy**
+- Overall health **✅****Healthy**
+- LDAP/LDAPS across all DCs **healthy on FQDN endpoints for all 5 servers*
+""";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Contains("- Overall health **healthy**", normalized, StringComparison.Ordinal);
+        Assert.Contains("- Overall health ✅ **Healthy**", normalized, StringComparison.Ordinal);
+        Assert.Contains("- LDAP/LDAPS across all DCs **healthy on FQDN endpoints for all 5 servers**", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Presets_ChatTranscript_AlignsWithLegacyBridgeContract() {
         var options = MarkdownInputNormalizationPresets.CreateChatTranscript();
 
@@ -198,6 +361,13 @@ public class Markdown_Input_Normalizer_Tests {
         Assert.True(options.NormalizeNestedStrongDelimiters);
         Assert.True(options.NormalizeTightArrowStrongBoundaries);
         Assert.True(options.NormalizeTightColonSpacing);
+        Assert.True(options.NormalizeWrappedSignalFlowStrongRuns);
+        Assert.True(options.NormalizeCollapsedMetricChains);
+        Assert.True(options.NormalizeHostLabelBulletArtifacts);
+        Assert.True(options.NormalizeStandaloneHashHeadingSeparators);
+        Assert.True(options.NormalizeBrokenTwoLineStrongLeadIns);
+        Assert.True(options.NormalizeDanglingTrailingStrongListClosers);
+        Assert.True(options.NormalizeMetricValueStrongRuns);
         Assert.False(options.NormalizeSoftWrappedStrongSpans);
         Assert.False(options.NormalizeBrokenStrongArrowLabels);
         Assert.False(options.NormalizeCompactFenceBodyBoundaries);
@@ -235,6 +405,13 @@ Use \`/act act_001\` now.
         Assert.True(options.NormalizeOrderedListCaretArtifacts);
         Assert.True(options.NormalizeTightParentheticalSpacing);
         Assert.True(options.NormalizeNestedStrongDelimiters);
+        Assert.False(options.NormalizeWrappedSignalFlowStrongRuns);
+        Assert.False(options.NormalizeCollapsedMetricChains);
+        Assert.False(options.NormalizeHostLabelBulletArtifacts);
+        Assert.False(options.NormalizeStandaloneHashHeadingSeparators);
+        Assert.False(options.NormalizeBrokenTwoLineStrongLeadIns);
+        Assert.False(options.NormalizeDanglingTrailingStrongListClosers);
+        Assert.False(options.NormalizeMetricValueStrongRuns);
         Assert.False(options.NormalizeTightColonSpacing);
         Assert.False(options.NormalizeBrokenStrongArrowLabels);
         Assert.False(options.NormalizeHeadingListBoundaries);

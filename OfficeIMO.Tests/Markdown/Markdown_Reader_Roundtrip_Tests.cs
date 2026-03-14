@@ -247,6 +247,34 @@ Paragraph
         }
 
         [Fact]
+        public void Reader_Enumerates_Typed_Table_Cell_Blocks_Depth_First() {
+            const string markdown = """
+| Col1 | Col2 |
+| --- | --- |
+| A | B |
+""";
+
+            var parsed = MarkdownReader.Parse(markdown);
+            var kinds = parsed.DescendantsAndSelf().Select(block => block.GetType()).ToArray();
+
+            Assert.Equal(
+                new[] {
+                    typeof(TableBlock),
+                    typeof(ParagraphBlock),
+                    typeof(ParagraphBlock),
+                    typeof(ParagraphBlock),
+                    typeof(ParagraphBlock)
+                },
+                kinds);
+
+            Assert.Equal(
+                new[] { "Col1", "Col2", "A", "B" },
+                parsed.DescendantsOfType<ParagraphBlock>()
+                    .Select(block => block.Inlines.RenderMarkdown())
+                    .ToArray());
+        }
+
+        [Fact]
         public void Reader_Enumerates_Headings_And_Resolved_Anchors() {
             const string markdown = """
 # Title

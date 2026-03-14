@@ -1,0 +1,5 @@
+[strict.html]
+<article class="markdown-body"><h1 id=""></h1><h2 id="domain-controller-reachability">Domain Controller Reachability</h2><p>-AD1 healthy for directory access -AD2 secure-channel drift suspected -AD3 ready</p></article>
+
+[chat.html]
+<article class="markdown-body"><h2 id="domain-controller-reachability">Domain Controller Reachability</h2><ul><li>AD1 healthy for directory access</li><li>AD2 secure-channel drift suspected</li><li>AD3 ready</li></ul></article>

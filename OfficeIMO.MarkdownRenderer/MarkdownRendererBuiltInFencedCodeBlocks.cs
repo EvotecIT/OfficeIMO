@@ -109,7 +109,7 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
             var raw = rawContent!;
             using var document = JsonDocument.Parse(raw);
             var root = document.RootElement;
-            var payloadHash = MarkdownRenderer.ComputeShortHash(raw.TrimEnd('\r', '\n'));
+            var payload = MarkdownVisualContract.CreatePayload(raw);
             if (root.ValueKind != JsonValueKind.Object) {
                 return null;
             }
@@ -123,7 +123,7 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
             var kind = TryReadJsonString(root, "kind", "schema", "viewKind");
             var callId = TryReadJsonString(root, "call_id", "callId", "requestId");
 
-            return BuildDataViewHtml(columns, rows, title, summary, kind, callId, payloadHash, raw, language, emitLegacyIxAttributes);
+            return BuildDataViewHtml(columns, rows, title, summary, kind, callId, payload, language, emitLegacyIxAttributes);
         } catch (JsonException) {
             return null;
         }
@@ -136,19 +136,17 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
         string? summary,
         string? kind,
         string? callId,
-        string payloadHash,
-        string rawContent,
+        MarkdownVisualPayload payload,
         string language,
         bool emitLegacyIxAttributes) {
         var sb = new StringBuilder();
         var bodyRowCount = rows.Count;
-        var payload = MarkdownVisualContract.CreatePayload(rawContent);
         sb.Append("<div class=\"omd-visual omd-dataview\"")
           ;
         MarkdownVisualContract.AppendCommonAttributes(sb, MarkdownSemanticKinds.DataView, language, payload);
         MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-column-count", columns.Count);
         MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-row-count", bodyRowCount);
-        MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-payload-hash", payloadHash);
+        MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-payload-hash", payload.Hash);
         if (!string.IsNullOrWhiteSpace(title)) {
             MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-title", title);
             if (emitLegacyIxAttributes) {

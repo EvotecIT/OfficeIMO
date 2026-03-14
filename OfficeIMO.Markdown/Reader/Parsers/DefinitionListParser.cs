@@ -7,16 +7,16 @@ public static partial class MarkdownReader {
             if (!ShouldTreatAsDefinitionLine(lines, i, options)) return false;
             var dl = new DefinitionListBlock();
             dl.SetParsingContext(options, state);
-            var parsedItems = new List<(InlineSequence Term, InlineSequence Definition)>();
             int j = i;
             while (j < lines.Length && ShouldTreatAsDefinitionLine(lines, j, options)) {
                 if (!TryGetDefinitionSeparator(lines[j], out var idx)) break;
                 var term = lines[j].Substring(0, idx).Trim();
                 var def = lines[j].Substring(idx + 1).TrimStart();
-                dl.Items.Add((term, def));
-                parsedItems.Add((
-                    MarkdownReader.ParseInlineText(term, options, state),
-                    MarkdownReader.ParseInlineText(def, options, state)));
+                var termInlines = MarkdownReader.ParseInlineText(term, options, state);
+                var definitionInlines = MarkdownReader.ParseInlineText(def, options, state);
+                dl.AddEntry(new DefinitionListEntry(
+                    termInlines,
+                    new[] { new ParagraphBlock(definitionInlines) }));
 
                 int lineNumber = state.SourceLineOffset + j + 1;
                 var lineSpan = new MarkdownSourceSpan(lineNumber, lineNumber);
@@ -36,7 +36,6 @@ public static partial class MarkdownReader {
                     }));
                 j++;
             }
-            dl.SetParsedItems(parsedItems, dl.ComputeContentSignature());
             doc.Add(dl); i = j; return true;
         }
     }

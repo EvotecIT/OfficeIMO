@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using System.Linq;
 using OfficeIMO.Markdown;
 
 namespace OfficeIMO.MarkdownRenderer;
@@ -21,11 +23,19 @@ public static class MarkdownVisualContract {
     /// Creates a payload descriptor from raw JSON or other renderer-owned source text.
     /// </summary>
     public static MarkdownVisualPayload CreatePayload(string? rawContent) {
-        var raw = rawContent ?? string.Empty;
+        var raw = NormalizeLineEndings(rawContent ?? string.Empty);
         return new MarkdownVisualPayload(
             raw,
             Convert.ToBase64String(Encoding.UTF8.GetBytes(raw)),
-            MarkdownRenderer.ComputeShortHash(raw));
+            ComputePayloadHash(raw));
+    }
+
+    /// <summary>
+    /// Computes a stable cross-platform payload hash for renderer-owned visual content.
+    /// JSON payloads are canonicalized before hashing so whitespace and object-property order do not affect the hash.
+    /// </summary>
+    public static string ComputePayloadHash(string? rawContent) {
+        return MarkdownRenderer.ComputeShortHash(CanonicalizeForHashing(rawContent));
     }
 
     /// <summary>
@@ -151,6 +161,79 @@ public static class MarkdownVisualContract {
     private static string HtmlEncode(string value) {
         return System.Net.WebUtility.HtmlEncode(value ?? string.Empty);
     }
+
+    private static string CanonicalizeForHashing(string? rawContent) {
+        var raw = NormalizeLineEndings(rawContent ?? string.Empty);
+        if (raw.Length == 0) {
+            return string.Empty;
+        }
+
+        try {
+            using var document = JsonDocument.Parse(raw);
+            return CanonicalizeJson(document.RootElement);
+        } catch (JsonException) {
+            return raw;
+        }
+    }
+
+    private static string CanonicalizeJson(JsonElement element) {
+        return element.ValueKind switch {
+            JsonValueKind.Object => CanonicalizeObject(element),
+            JsonValueKind.Array => CanonicalizeArray(element),
+            JsonValueKind.String => JsonSerializer.Serialize(element.GetString() ?? string.Empty),
+            JsonValueKind.Number => element.GetRawText(),
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            JsonValueKind.Null => "null",
+            _ => element.GetRawText()
+        };
+    }
+
+    private static string CanonicalizeObject(JsonElement element) {
+        var properties = element.EnumerateObject()
+            .OrderBy(static property => property.Name, StringComparer.Ordinal)
+            .ToArray();
+        if (properties.Length == 0) {
+            return "{}";
+        }
+
+        var sb = new StringBuilder();
+        sb.Append('{');
+        for (int i = 0; i < properties.Length; i++) {
+            if (i > 0) {
+                sb.Append(',');
+            }
+
+            var property = properties[i];
+            sb.Append(JsonSerializer.Serialize(property.Name))
+              .Append(':')
+              .Append(CanonicalizeJson(property.Value));
+        }
+        sb.Append('}');
+        return sb.ToString();
+    }
+
+    private static string CanonicalizeArray(JsonElement element) {
+        var sb = new StringBuilder();
+        sb.Append('[');
+        bool first = true;
+        foreach (var item in element.EnumerateArray()) {
+            if (!first) {
+                sb.Append(',');
+            }
+
+            sb.Append(CanonicalizeJson(item));
+            first = false;
+        }
+        sb.Append(']');
+        return sb.ToString();
+    }
+
+    private static string NormalizeLineEndings(string value) {
+        return value
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n');
+    }
 }
 
 /// <summary>
@@ -172,6 +255,6 @@ public sealed class MarkdownVisualPayload {
     /// <summary>UTF-8 base64-encoded payload text.</summary>
     public string Base64 { get; }
 
-    /// <summary>Short stable hash of the raw payload text.</summary>
+    /// <summary>Short stable hash of the canonicalized payload text.</summary>
     public string Hash { get; }
 }

@@ -25,7 +25,8 @@ public sealed partial class HtmlToMarkdownConverter {
     /// </param>
     /// <returns>Markdown text produced from the supplied HTML.</returns>
     public string Convert(string html, HtmlToMarkdownOptions? options = null) {
-        return ConvertToDocument(html, options).ToMarkdown();
+        var effectiveOptions = options?.Clone() ?? new HtmlToMarkdownOptions();
+        return ConvertToDocument(html, effectiveOptions).ToMarkdown(effectiveOptions.MarkdownWriteOptions);
     }
 
     /// <summary>

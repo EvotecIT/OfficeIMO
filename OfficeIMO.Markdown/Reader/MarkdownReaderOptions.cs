@@ -1,23 +1,109 @@
 namespace OfficeIMO.Markdown;
 
 /// <summary>
-/// Options for the Markdown reader. Feature toggles mirror the blocks and inlines
-/// that OfficeIMO.Markdown produces, so generated Markdown can be parsed back predictably.
+/// Options for the Markdown reader. Profiles and feature toggles shape the generic markdown core,
+/// while <see cref="BlockParserExtensions"/> controls opt-in non-core block syntax such as
+/// OfficeIMO callouts, TOC placeholders, and footnotes.
 /// </summary>
 public sealed class MarkdownReaderOptions {
     /// <summary>
+    /// Creates a new OfficeIMO-flavored reader configuration with the built-in block syntax extensions registered.
+    /// </summary>
+    public MarkdownReaderOptions() : this(seedBuiltInBlockParserExtensions: true) {
+    }
+
+    private MarkdownReaderOptions(bool seedBuiltInBlockParserExtensions) {
+        if (seedBuiltInBlockParserExtensions) {
+            MarkdownReaderBuiltInExtensions.RegisterOfficeIMODefaults(this);
+        }
+    }
+
+    /// <summary>Named reader profiles for common markdown compatibility targets.</summary>
+    public enum MarkdownDialectProfile {
+        /// <summary>OfficeIMO defaults including host-oriented extensions.</summary>
+        OfficeIMO,
+        /// <summary>CommonMark-style core markdown without host-specific extensions.</summary>
+        CommonMark,
+        /// <summary>GitHub Flavored Markdown-style extensions without OfficeIMO host syntax.</summary>
+        GitHubFlavoredMarkdown,
+        /// <summary>Portable OfficeIMO subset for stricter or parity-sensitive hosts.</summary>
+        Portable
+    }
+
+    /// <summary>Creates a reader configuration for the requested dialect/profile.</summary>
+    public static MarkdownReaderOptions CreateProfile(MarkdownDialectProfile profile) =>
+        profile switch {
+            MarkdownDialectProfile.OfficeIMO => CreateOfficeIMOProfile(),
+            MarkdownDialectProfile.CommonMark => CreateCommonMarkProfile(),
+            MarkdownDialectProfile.GitHubFlavoredMarkdown => CreateGitHubFlavoredMarkdownProfile(),
+            MarkdownDialectProfile.Portable => CreatePortableProfile(),
+            _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unknown markdown reader profile.")
+        };
+
+    /// <summary>
+    /// Creates the explicit OfficeIMO profile. This mirrors the library defaults and keeps host-oriented
+    /// extensions such as callouts, TOC placeholders, and footnotes enabled.
+    /// </summary>
+    public static MarkdownReaderOptions CreateOfficeIMOProfile() => new MarkdownReaderOptions();
+
+    /// <summary>
+    /// Creates a CommonMark-style core profile. This disables OfficeIMO-only and GFM-style extensions such as
+    /// front matter, task lists, tables, definition lists, TOC placeholders, and footnotes.
+    /// </summary>
+    public static MarkdownReaderOptions CreateCommonMarkProfile() {
+        return new MarkdownReaderOptions(seedBuiltInBlockParserExtensions: false) {
+            FrontMatter = false,
+            Callouts = false,
+            TaskLists = false,
+            Tables = false,
+            DefinitionLists = false,
+            TocPlaceholders = false,
+            Footnotes = false,
+            AutolinkUrls = false,
+            AutolinkWwwUrls = false,
+            AutolinkEmails = false
+        };
+    }
+
+    /// <summary>
+    /// Creates a GitHub Flavored Markdown-style profile. This keeps CommonMark core behavior plus
+    /// tables, task lists, and footnotes, while disabling OfficeIMO-only callouts and TOC placeholders.
+    /// </summary>
+    public static MarkdownReaderOptions CreateGitHubFlavoredMarkdownProfile() {
+        var options = new MarkdownReaderOptions(seedBuiltInBlockParserExtensions: false) {
+            FrontMatter = false,
+            Callouts = false,
+            TaskLists = true,
+            Tables = true,
+            DefinitionLists = false,
+            TocPlaceholders = false,
+            Footnotes = true,
+            AutolinkUrls = true,
+            AutolinkWwwUrls = true,
+            AutolinkEmails = true
+        };
+
+        MarkdownReaderBuiltInExtensions.AddFootnotes(options);
+        return options;
+    }
+
+    /// <summary>
     /// Creates a reader configuration for portable Markdown behavior across stricter hosts.
     /// Bare <c>http(s)://...</c>, <c>www.*</c>, and plain email tokens remain literal text, and
-    /// OfficeIMO-specific extensions such as Docs-style callouts and task-list checkbox parsing are disabled.
+    /// OfficeIMO-specific extensions such as Docs-style callouts, TOC placeholders, and footnotes are disabled.
     /// Explicit Markdown links, angle-bracket autolinks, and plain unordered lists continue to work.
     /// </summary>
-    public static MarkdownReaderOptions CreatePortableProfile() => new MarkdownReaderOptions {
-        Callouts = false,
-        TaskLists = false,
-        AutolinkUrls = false,
-        AutolinkWwwUrls = false,
-        AutolinkEmails = false
-    };
+    public static MarkdownReaderOptions CreatePortableProfile() {
+        return new MarkdownReaderOptions(seedBuiltInBlockParserExtensions: false) {
+            Callouts = false,
+            TaskLists = false,
+            TocPlaceholders = false,
+            Footnotes = false,
+            AutolinkUrls = false,
+            AutolinkWwwUrls = false,
+            AutolinkEmails = false
+        };
+    }
 
     /// <summary>Enable YAML front matter parsing at the very top of the file.</summary>
     public bool FrontMatter { get; set; } = true;
@@ -41,6 +127,10 @@ public sealed class MarkdownReaderOptions {
     public bool Tables { get; set; } = true;
     /// <summary>Enable definition lists (Term: Definition lines).</summary>
     public bool DefinitionLists { get; set; } = true;
+    /// <summary>Enable placeholder TOC markers such as <c>[TOC]</c> and <c>{:toc}</c>.</summary>
+    public bool TocPlaceholders { get; set; } = true;
+    /// <summary>Enable footnote references and footnote definition blocks.</summary>
+    public bool Footnotes { get; set; } = true;
     /// <summary>
     /// When <c>true</c>, isolated single-line <c>Term: Definition</c> patterns stay as narrative paragraphs.
     /// Consecutive definition-like lines still parse as a definition list.
@@ -158,4 +248,10 @@ public sealed class MarkdownReaderOptions {
     /// Later registrations win when languages overlap.
     /// </summary>
     public List<MarkdownFencedBlockExtension> FencedBlockExtensions { get; } = new();
+
+    /// <summary>
+    /// Optional block parser extensions layered into the default reader pipeline at named placement anchors.
+    /// Profiles use this to opt into OfficeIMO/GFM-style non-core block syntax such as callouts, TOC placeholders, and footnotes.
+    /// </summary>
+    public List<MarkdownBlockParserExtension> BlockParserExtensions { get; } = new();
 }

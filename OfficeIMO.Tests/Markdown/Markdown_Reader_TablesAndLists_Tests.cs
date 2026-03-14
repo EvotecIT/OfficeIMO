@@ -92,6 +92,26 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Table_Cells_Are_Exposed_As_Typed_Block_Content() {
+            string md = """
+| **H** | `C` |
+| --- | --- |
+| [a](https://example.com) | b |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
+
+            Assert.Collection(table.HeaderCells,
+                cell => Assert.Equal("**H**", Assert.IsType<ParagraphBlock>(Assert.Single(cell.Blocks)).Inlines.RenderMarkdown()),
+                cell => Assert.Equal("`C`", Assert.IsType<ParagraphBlock>(Assert.Single(cell.Blocks)).Inlines.RenderMarkdown()));
+
+            Assert.Single(table.RowCells);
+            Assert.Collection(table.RowCells[0],
+                cell => Assert.Equal("[a](https://example.com)", Assert.IsType<ParagraphBlock>(Assert.Single(cell.Blocks)).Inlines.RenderMarkdown()),
+                cell => Assert.Equal("b", Assert.IsType<ParagraphBlock>(Assert.Single(cell.Blocks)).Inlines.RenderMarkdown()));
+        }
+
+        [Fact]
         public void Table_Cells_Resolve_Reference_Links() {
             string md = """
 | Col |

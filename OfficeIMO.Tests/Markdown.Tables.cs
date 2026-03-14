@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Markdown.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 using System.Linq;
@@ -50,6 +51,63 @@ namespace OfficeIMO.Tests {
             var lines = markdown.Split('\n');
             Assert.Equal("| Left | Center | Right |", lines[0].TrimEnd('\r'));
             Assert.Equal("| :--- | :---: | ---: |", lines[1].TrimEnd('\r'));
+        }
+
+        [Fact]
+        public void MarkdownDoc_ToWordDocument_Preserves_MultiParagraph_TableCell_From_HtmlAst() {
+            const string html = """
+                <table>
+                  <tr>
+                    <th>Status</th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <p>Healthy</p>
+                      <p>Observed from AST path</p>
+                    </td>
+                  </tr>
+                </table>
+                """;
+
+            var markdown = html.LoadFromHtml();
+
+            using var doc = markdown.ToWordDocument(new MarkdownToWordOptions { FontFamily = "Calibri" });
+            var cellParagraphs = doc.Tables[0].Rows[1].Cells[0].Paragraphs
+                .Select(p => p.Text)
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .ToList();
+
+            Assert.Equal(2, cellParagraphs.Count);
+            Assert.Equal("Healthy", cellParagraphs[0]);
+            Assert.Equal("Observed from AST path", cellParagraphs[1]);
+        }
+
+        [Fact]
+        public void Html_LoadFromHtmlViaMarkdown_Preserves_MultiParagraph_TableCell_From_AstBridge() {
+            const string html = """
+                <table>
+                  <tr>
+                    <th>Status</th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <p>Healthy</p>
+                      <p>Observed from bridge</p>
+                    </td>
+                  </tr>
+                </table>
+                """;
+
+            using var doc = html.LoadFromHtmlViaMarkdown(
+                wordOptions: new MarkdownToWordOptions { FontFamily = "Calibri" });
+            var cellParagraphs = doc.Tables[0].Rows[1].Cells[0].Paragraphs
+                .Select(p => p.Text)
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .ToList();
+
+            Assert.Equal(2, cellParagraphs.Count);
+            Assert.Equal("Healthy", cellParagraphs[0]);
+            Assert.Equal("Observed from bridge", cellParagraphs[1]);
         }
     }
 }

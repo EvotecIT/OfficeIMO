@@ -1,4 +1,5 @@
 using OfficeIMO.Markdown;
+using OfficeIMO.Markdown.Html;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -102,6 +103,42 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         /// <summary>
+        /// Creates a new Word document directly from a typed <see cref="MarkdownDoc"/>.
+        /// </summary>
+        /// <param name="markdown">Typed markdown document to convert.</param>
+        /// <param name="options">Optional conversion options.</param>
+        /// <returns>A new <see cref="WordDocument"/> instance.</returns>
+        public static WordDocument ToWordDocument(this MarkdownDoc markdown, MarkdownToWordOptions? options = null) {
+            var converter = new MarkdownToWordConverter();
+            return converter.ConvertAsync(markdown, options ?? new MarkdownToWordOptions(), CancellationToken.None).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Creates a new Word document from HTML by first converting to a typed <see cref="MarkdownDoc"/> and then rendering that AST directly.
+        /// </summary>
+        /// <param name="html">HTML fragment or document to convert.</param>
+        /// <param name="htmlOptions">Optional HTML-to-Markdown conversion options.</param>
+        /// <param name="wordOptions">Optional Word conversion options.</param>
+        /// <returns>A new <see cref="WordDocument"/> instance.</returns>
+        public static WordDocument LoadFromHtmlViaMarkdown(this string html, HtmlToMarkdownOptions? htmlOptions = null, MarkdownToWordOptions? wordOptions = null) {
+            var markdown = html.LoadFromHtml(htmlOptions);
+            return markdown.ToWordDocument(wordOptions);
+        }
+
+        /// <summary>
+        /// Creates a new Word document from HTML read from a stream by first converting to a typed <see cref="MarkdownDoc"/> and then rendering that AST directly.
+        /// </summary>
+        /// <param name="htmlStream">Readable stream containing HTML markup.</param>
+        /// <param name="htmlOptions">Optional HTML-to-Markdown conversion options.</param>
+        /// <param name="wordOptions">Optional Word conversion options.</param>
+        /// <returns>A new <see cref="WordDocument"/> instance.</returns>
+        public static WordDocument LoadFromHtmlViaMarkdown(this Stream htmlStream, HtmlToMarkdownOptions? htmlOptions = null, MarkdownToWordOptions? wordOptions = null) {
+            if (htmlStream == null) throw new ArgumentNullException(nameof(htmlStream));
+            using var reader = new StreamReader(htmlStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
+            return reader.ReadToEnd().LoadFromHtmlViaMarkdown(htmlOptions, wordOptions);
+        }
+
+        /// <summary>
         /// Creates a new document from a Markdown stream.
         /// </summary>
         /// <param name="markdownStream">Stream containing Markdown content.</param>
@@ -157,6 +194,18 @@ namespace OfficeIMO.Word.Markdown {
             string markdown = await reader.ReadToEndAsync().ConfigureAwait(false);
             var converter = new MarkdownToWordConverter();
             return await converter.ConvertAsync(markdown, options ?? new MarkdownToWordOptions(), cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Asynchronously creates a new Word document directly from a typed <see cref="MarkdownDoc"/>.
+        /// </summary>
+        /// <param name="markdown">Typed markdown document to convert.</param>
+        /// <param name="options">Optional conversion options.</param>
+        /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+        /// <returns>A new <see cref="WordDocument"/> instance.</returns>
+        public static Task<WordDocument> ToWordDocumentAsync(this MarkdownDoc markdown, MarkdownToWordOptions? options = null, CancellationToken cancellationToken = default) {
+            var converter = new MarkdownToWordConverter();
+            return converter.ConvertAsync(markdown, options ?? new MarkdownToWordOptions(), cancellationToken);
         }
 
         // HTML via OfficeIMO.Markdown (Word -> Markdown -> HTML)

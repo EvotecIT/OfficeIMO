@@ -33,6 +33,21 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_Convert_Uses_Configured_MarkdownWriteOptions() {
+        var options = new HtmlToMarkdownOptions {
+            MarkdownWriteOptions = new MarkdownWriteOptions()
+        };
+        options.MarkdownWriteOptions.BlockRenderExtensions.Add(new MarkdownBlockMarkdownRenderExtension(
+            "Test.Paragraph.Override",
+            typeof(ParagraphBlock),
+            (block, _) => block is ParagraphBlock ? "PARAGRAPH-OVERRIDE" : null));
+
+        string markdown = "<p>Hello</p>".ToMarkdown(options);
+
+        Assert.Equal("PARAGRAPH-OVERRIDE", markdown.Trim());
+    }
+
+    [Fact]
     public void HtmlToMarkdown_LoadFromHtml_ProducesTypedBlocks() {
         string html = "<html><body><h2>Section</h2><blockquote><p>Quoted</p></blockquote><details open><summary>More</summary><p>Hidden text</p></details></body></html>";
 
@@ -200,9 +215,30 @@ public sealed class MarkdownHtmlToMarkdownTests {
 
         Assert.Equal("Alpha", table.Rows[0][0]);
         Assert.Equal("First\n\nSecond", table.Rows[0][1]);
+        Assert.Collection(table.RowCells[0][1].Blocks,
+            block => Assert.Equal("First", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+            block => Assert.Equal("Second", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
 
         string markdown = document.ToMarkdown();
         Assert.Contains("First<br><br>Second", markdown, StringComparison.Ordinal);
+
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("<td><p>First</p><p>Second</p></td>", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesMixedBlockContentInsideTableCells() {
+        string html = "<table><tr><th>Section</th><th>Notes</th></tr><tr><td>Alpha</td><td><p>Intro</p><blockquote><p>Quoted</p></blockquote></td></tr></table>";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        Assert.Collection(table.RowCells[0][1].Blocks,
+            block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+            block => Assert.IsType<QuoteBlock>(block));
+
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("<td><p>Intro</p><blockquote><p>Quoted</p></blockquote></td>", renderedHtml, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -234,11 +270,11 @@ public sealed class MarkdownHtmlToMarkdownTests {
         MarkdownDoc document = html.LoadFromHtml();
         var list = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
 
-        Assert.Equal(2, list.Items.Count);
-        Assert.Equal("Term", list.Items[0].Term);
-        Assert.Equal("First definition", list.Items[0].Definition);
-        Assert.Equal("Term", list.Items[1].Term);
-        Assert.Equal("Second definition", list.Items[1].Definition);
+        Assert.Equal(2, list.Entries.Count);
+        Assert.Equal("Term", list.Entries[0].Term.RenderMarkdown());
+        Assert.Equal("First definition", Assert.IsType<ParagraphBlock>(Assert.Single(list.Entries[0].DefinitionBlocks)).Inlines.RenderMarkdown());
+        Assert.Equal("Term", list.Entries[1].Term.RenderMarkdown());
+        Assert.Equal("Second definition", Assert.IsType<ParagraphBlock>(Assert.Single(list.Entries[1].DefinitionBlocks)).Inlines.RenderMarkdown());
     }
 
     [Fact]
@@ -248,9 +284,11 @@ public sealed class MarkdownHtmlToMarkdownTests {
         MarkdownDoc document = html.LoadFromHtml();
         var list = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
 
-        Assert.Single(list.Items);
-        Assert.Equal("Term", list.Items[0].Term);
-        Assert.Equal("First paragraph\n\nSecond paragraph", list.Items[0].Definition);
+        Assert.Single(list.Entries);
+        Assert.Equal("Term", list.Entries[0].Term.RenderMarkdown());
+        Assert.Collection(list.Entries[0].DefinitionBlocks,
+            block => Assert.Equal("First paragraph", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+            block => Assert.Equal("Second paragraph", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
 
         string markdown = document.ToMarkdown();
         Assert.Contains("Term: First paragraph", markdown, StringComparison.Ordinal);
@@ -264,11 +302,12 @@ public sealed class MarkdownHtmlToMarkdownTests {
         MarkdownDoc document = html.LoadFromHtml();
         var list = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
 
-        Assert.Single(list.Items);
-        Assert.Equal("Term", list.Items[0].Term);
-        Assert.Contains("Intro", list.Items[0].Definition, StringComparison.Ordinal);
-        Assert.Contains("> Quoted", list.Items[0].Definition, StringComparison.Ordinal);
-        Assert.Contains("- Nested", list.Items[0].Definition, StringComparison.Ordinal);
+        Assert.Single(list.Entries);
+        Assert.Equal("Term", list.Entries[0].Term.RenderMarkdown());
+        Assert.Collection(list.Entries[0].DefinitionBlocks,
+            block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+            block => Assert.IsType<QuoteBlock>(block),
+            block => Assert.IsType<UnorderedListBlock>(block));
     }
 
     [Fact]
@@ -314,11 +353,13 @@ public sealed class MarkdownHtmlToMarkdownTests {
         MarkdownDoc document = html.LoadFromHtml();
         var list = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
 
-        Assert.Equal(4, list.Items.Count);
+        Assert.Equal(4, list.Entries.Count);
         Assert.Equal(("Alpha", "Shared definition"), list.Items[0]);
         Assert.Equal(("Beta", "Shared definition"), list.Items[1]);
         Assert.Equal(("Alpha", "Follow-up definition"), list.Items[2]);
         Assert.Equal(("Beta", "Follow-up definition"), list.Items[3]);
+        Assert.Equal("Alpha", list.Entries[0].Term.RenderMarkdown());
+        Assert.Equal("Shared definition", Assert.IsType<ParagraphBlock>(Assert.Single(list.Entries[0].DefinitionBlocks)).Inlines.RenderMarkdown());
     }
 
     [Fact]

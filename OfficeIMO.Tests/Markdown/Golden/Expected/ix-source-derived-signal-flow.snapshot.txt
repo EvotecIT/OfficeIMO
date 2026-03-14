@@ -1,0 +1,5 @@
+[strict.html]
+<article class="markdown-body"><ol><li>First check</li><li>Second check</li></ol><ul><li>Signal <strong>Catalog count includes hidden/disabled/deprecated rules</strong>-&gt; **Why it matters:**external/custom rules can drift or disappear between hosts -&gt; ** Next action:<strong>break down <code>rule_origin</code>(<code>builtin</code>vs <code>external</code>) and confirm expected external rules are present.</strong></li><li>TestimoX rules available <strong>359</strong></li></ul></article>
+
+[chat.html]
+<article class="markdown-body"><ol><li>First check</li><li>Second check</li></ol><ul><li>Signal <strong>Catalog count includes hidden/disabled/deprecated rules</strong>-&gt; <strong>Why it matters:</strong>external/custom rules can drift or disappear between hosts -&gt; <strong>Next action:</strong>break down <code>rule_origin</code>(<code>builtin</code>vs <code>external</code>) and confirm expected external rules are present.</li><li>TestimoX rules available <strong>359</strong></li></ul></article>

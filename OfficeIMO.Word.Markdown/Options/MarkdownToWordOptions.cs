@@ -80,6 +80,12 @@ namespace OfficeIMO.Word.Markdown {
         public bool PreferNarrativeSingleLineDefinitions { get; set; }
 
         /// <summary>
+        /// Optional markdown reader configuration used before Word conversion.
+        /// When omitted, the converter uses the default OfficeIMO reader profile.
+        /// </summary>
+        public OfficeIMO.Markdown.MarkdownReaderOptions? ReaderOptions { get; set; }
+
+        /// <summary>
         /// Optional hard cap (pixels) applied to rendered markdown image width.
         /// </summary>
         public double? MaxImageWidthPixels {

@@ -105,7 +105,7 @@ public static partial class MarkdownReader {
             }
 
             // Footnote ref [^id] should be recognized before generic link parsing
-            if (text[pos] == '[' && pos + 2 < text.Length && text[pos + 1] == '^') {
+            if (options.Footnotes && text[pos] == '[' && pos + 2 < text.Length && text[pos + 1] == '^') {
                 int rb = text.IndexOf(']', pos + 2);
                 if (rb > pos + 2) { var lab = text.Substring(pos + 2, rb - (pos + 2)); Current().FootnoteRef(lab); pos = rb + 1; continue; }
             }
@@ -371,7 +371,7 @@ public static partial class MarkdownReader {
             }
 
             // Footnote ref [^id]
-            if (text[pos] == '[' && pos + 2 < text.Length && text[pos + 1] == '^') {
+            if (options.Footnotes && text[pos] == '[' && pos + 2 < text.Length && text[pos + 1] == '^') {
                 int rb = text.IndexOf(']', pos + 2);
                 if (rb > pos + 2) { var lab = text.Substring(pos + 2, rb - (pos + 2)); Current().FootnoteRef(lab); pos = rb + 1; continue; }
             }

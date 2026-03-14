@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Security.Cryptography;
 using System.Text;
 using OfficeIMO.Markdown;
 using OfficeIMO.MarkdownRenderer;
@@ -105,6 +104,26 @@ public class Markdown_Renderer_Tests {
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md);
         Assert.Contains("class=\"mermaid\"", html, StringComparison.Ordinal);
         Assert.Contains("data-mermaid-hash", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_StrictPreset_Preserves_Safe_Underline_Tags() {
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(
+            "<u>hello</u>",
+            MarkdownRendererPresets.CreateStrict());
+
+        Assert.Contains("<u>hello</u>", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("&lt;u&gt;hello&lt;/u&gt;", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_StrictPreset_Still_Encodes_Unsupported_Inline_Html() {
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(
+            "<span>hello</span>",
+            MarkdownRendererPresets.CreateStrict());
+
+        Assert.Contains("&lt;span&gt;hello&lt;/span&gt;", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<span>hello</span>", html, StringComparison.OrdinalIgnoreCase);
     }
 
     [Theory]
@@ -306,7 +325,8 @@ public class Markdown_Renderer_Tests {
 
     [Fact]
     public void MarkdownVisualContract_Can_Build_Shared_Visual_Metadata_For_Hosts() {
-        var payload = MarkdownVisualContract.CreatePayload("{\"type\":\"bar\"}");
+        var raw = "{\"type\":\"bar\"}";
+        var payload = MarkdownVisualContract.CreatePayload(raw);
         var html = MarkdownVisualContract.BuildElementHtml(
             "div",
             "omd-visual omd-custom",
@@ -319,8 +339,34 @@ public class Markdown_Renderer_Tests {
         Assert.Contains($"data-omd-visual-contract=\"{MarkdownVisualContract.ContractVersion}\"", html, StringComparison.Ordinal);
         Assert.Contains("data-omd-visual-kind=\"custom-chart\"", html, StringComparison.Ordinal);
         Assert.Contains("data-omd-fence-language=\"vendor-chart\"", html, StringComparison.Ordinal);
+        Assert.Contains($"data-omd-visual-hash=\"{MarkdownVisualContract.ComputePayloadHash(raw)}\"", html, StringComparison.Ordinal);
         Assert.Contains($"data-custom-hash=\"{payload.Hash}\"", html, StringComparison.Ordinal);
-        Assert.Equal("{\"type\":\"bar\"}", DecodeBase64Attribute(html, "data-omd-config-b64"));
+        Assert.Equal(raw, DecodeBase64Attribute(html, "data-omd-config-b64"));
+    }
+
+    [Fact]
+    public void MarkdownVisualContract_Uses_Stable_Hash_For_Equivalent_Json_Payloads() {
+        var minified = "{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}";
+        var formatted = """
+{
+  "data": {
+    "datasets": [
+      {
+        "data": [ 1 ],
+        "label": "Count"
+      }
+    ],
+    "labels": [ "A" ]
+  },
+  "type": "bar"
+}
+""";
+
+        var minifiedPayload = MarkdownVisualContract.CreatePayload(minified);
+        var formattedPayload = MarkdownVisualContract.CreatePayload(formatted.Replace("\n", "\r\n"));
+
+        Assert.Equal(minifiedPayload.Hash, formattedPayload.Hash);
+        Assert.NotEqual(minifiedPayload.Base64, formattedPayload.Base64);
     }
 
     [Fact]
@@ -376,7 +422,7 @@ public class Markdown_Renderer_Tests {
 """;
 
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, MarkdownRendererPresets.CreateStrictMinimal());
-        var payloadHash = ComputeShortHash(raw);
+        var payloadHash = MarkdownVisualContract.ComputePayloadHash(raw);
 
         Assert.Contains("class=\"omd-visual omd-dataview\"", html, StringComparison.Ordinal);
         Assert.Contains("data-omd-visual-contract=\"v1\"", html, StringComparison.Ordinal);
@@ -406,7 +452,7 @@ public class Markdown_Renderer_Tests {
 """;
 
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, MarkdownRendererPresets.CreateStrictMinimal());
-        var payloadHash = ComputeShortHash(raw);
+        var payloadHash = MarkdownVisualContract.ComputePayloadHash(raw);
 
         Assert.Contains("class=\"omd-visual omd-dataview\"", html, StringComparison.Ordinal);
         Assert.Contains("data-omd-dataview-title=\"Replication Summary\"", html, StringComparison.Ordinal);
@@ -434,7 +480,7 @@ public class Markdown_Renderer_Tests {
 """;
 
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, MarkdownRendererPresets.CreateChatStrictMinimal());
-        var payloadHash = ComputeShortHash(raw);
+        var payloadHash = MarkdownVisualContract.ComputePayloadHash(raw);
 
         Assert.Contains("class=\"omd-visual omd-dataview\"", html, StringComparison.Ordinal);
         Assert.Contains("data-omd-visual-contract=\"v1\"", html, StringComparison.Ordinal);
@@ -1018,6 +1064,29 @@ Next paragraph.
         Assert.Contains("[ ] Todo", html, StringComparison.Ordinal);
         Assert.Contains("[x] Done", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void MarkdownRenderer_Preserves_TocPlaceholders_And_Footnotes_Flags_From_ReaderOptions() {
+        var markdown = """
+[TOC]
+
+Lead[^1]
+
+[^1]: Footnote text
+""";
+        var readerOptions = MarkdownReaderOptions.CreateCommonMarkProfile();
+        readerOptions.HtmlBlocks = false;
+        readerOptions.InlineHtml = false;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, new MarkdownRendererOptions {
+            ReaderOptions = readerOptions
+        });
+
+        Assert.Contains("<p>[TOC]</p>", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Lead[^1]</p>", html, StringComparison.Ordinal);
+        Assert.Contains("<p>[^1]: Footnote text</p>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("footnotes", html, StringComparison.OrdinalIgnoreCase);
+    }
     private static int Count(string value, string token) {
         if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(token)) return 0;
 
@@ -1045,18 +1114,4 @@ Next paragraph.
         return Encoding.UTF8.GetString(bytes).TrimEnd('\r', '\n');
     }
 
-    private static string ComputeShortHash(string input) {
-        var data = Encoding.UTF8.GetBytes(input ?? string.Empty);
-        byte[] hash;
-        using (var sha = SHA256.Create()) {
-            hash = sha.ComputeHash(data);
-        }
-
-        var sb = new StringBuilder(16);
-        for (int i = 0; i < 8 && i < hash.Length; i++) {
-            sb.Append(hash[i].ToString("x2", CultureInfo.InvariantCulture));
-        }
-
-        return sb.ToString();
-    }
 }
