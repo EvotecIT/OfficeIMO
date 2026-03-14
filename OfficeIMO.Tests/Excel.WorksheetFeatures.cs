@@ -109,5 +109,41 @@ namespace OfficeIMO.Tests {
                 }
             }
         }
+
+        [Fact]
+        public void Test_WorksheetGridlinesPersistence() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetGridlines.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Gridlines");
+                sheet.CellValue(1, 1, "Header");
+                sheet.SetGridlinesVisible(false);
+                document.Save(false);
+            }
+
+            using (var doc = SpreadsheetDocument.Open(filePath, false)) {
+                var wb = doc.WorkbookPart!;
+                var sheet = wb.Workbook.Sheets!.OfType<Sheet>().First(s => s.Name == "Gridlines");
+                var wsPart = (WorksheetPart)wb.GetPartById(sheet.Id!);
+                var view = wsPart.Worksheet.GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>();
+                Assert.NotNull(view);
+                Assert.False(view!.ShowGridLines?.Value ?? true);
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var sheet = document.Sheets.First();
+                sheet.SetGridlinesVisible(true);
+                document.Save(false);
+            }
+
+            using (var doc = SpreadsheetDocument.Open(filePath, false)) {
+                var wb = doc.WorkbookPart!;
+                var sheet = wb.Workbook.Sheets!.OfType<Sheet>().First(s => s.Name == "Gridlines");
+                var wsPart = (WorksheetPart)wb.GetPartById(sheet.Id!);
+                var view = wsPart.Worksheet.GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>();
+                Assert.NotNull(view);
+                Assert.True(view!.ShowGridLines?.Value ?? true);
+            }
+        }
     }
 }
