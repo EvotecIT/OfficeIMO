@@ -41,6 +41,10 @@
         <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="System.Text.Json" Version="[8.0.5,9.0.0)" />
+    </ItemGroup>
+
     <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
         <Reference Include="System.Net.Http" />
     </ItemGroup>
@@ -49,8 +53,13 @@
         <Using Include="System" />
         <Using Include="System.Collections.Generic" />
         <Using Include="System.Linq" />
+        <Using Include="System.Net.Http" />
         <Using Include="System.Threading" />
         <Using Include="System.Threading.Tasks" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="OfficeIMO.Tests" />
     </ItemGroup>
 
 </Project>
