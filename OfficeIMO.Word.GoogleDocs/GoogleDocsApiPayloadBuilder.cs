@@ -13,20 +13,28 @@ namespace OfficeIMO.Word.GoogleDocs {
         }
 
         internal static GoogleDocsApiBatchUpdatePayload BuildInitialBatchUpdatePayload(GoogleDocsBatch batch) {
-            return BuildInitialBatchUpdatePayload(batch, null);
+            return BuildPreparedInitialBatchUpdate(batch, null).Payload;
         }
 
         internal static GoogleDocsApiBatchUpdatePayload BuildInitialBatchUpdatePayload(
             GoogleDocsBatch batch,
             IReadOnlyDictionary<GoogleDocsInlineImage, string>? imageUris) {
+            return BuildPreparedInitialBatchUpdate(batch, imageUris).Payload;
+        }
+
+        internal static PreparedInitialBatchUpdate BuildPreparedInitialBatchUpdate(
+            GoogleDocsBatch batch,
+            IReadOnlyDictionary<GoogleDocsInlineImage, string>? imageUris) {
             if (batch == null) throw new ArgumentNullException(nameof(batch));
 
+            var prepared = new PreparedInitialBatchUpdate();
             var payload = new GoogleDocsApiBatchUpdatePayload();
             foreach (var request in batch.Requests.Reverse()) {
-                AppendRequest(payload, batch.Report, request, imageUris, null);
+                AppendRequest(payload, batch.Report, request, imageUris, null, allowFootnotes: true, prepared.Footnotes);
             }
 
-            return payload;
+            prepared.Payload = payload;
+            return prepared;
         }
 
         internal static GoogleDocsApiBatchUpdatePayload BuildSegmentBatchUpdatePayload(
@@ -40,7 +48,24 @@ namespace OfficeIMO.Word.GoogleDocs {
 
             var payload = new GoogleDocsApiBatchUpdatePayload();
             foreach (var request in segment.Requests.Reverse()) {
-                AppendRequest(payload, report, request, imageUris, segmentId);
+                AppendRequest(payload, report, request, imageUris, segmentId, allowFootnotes: false, null);
+            }
+
+            return payload;
+        }
+
+        internal static GoogleDocsApiBatchUpdatePayload BuildFootnoteBatchUpdatePayload(
+            GoogleDocsFootnote footnote,
+            TranslationReport report,
+            string footnoteId,
+            IReadOnlyDictionary<GoogleDocsInlineImage, string>? imageUris) {
+            if (footnote == null) throw new ArgumentNullException(nameof(footnote));
+            if (report == null) throw new ArgumentNullException(nameof(report));
+            if (string.IsNullOrWhiteSpace(footnoteId)) throw new ArgumentException("Footnote id is required.", nameof(footnoteId));
+
+            var payload = new GoogleDocsApiBatchUpdatePayload();
+            foreach (var paragraph in footnote.Paragraphs.Reverse()) {
+                AppendParagraphRequests(payload, report, paragraph, imageUris, footnoteId, 1, false, allowFootnotes: false, null);
             }
 
             return payload;
@@ -263,7 +288,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleDocsParagraph paragraph,
             IReadOnlyDictionary<GoogleDocsInlineImage, string>? imageUris,
             string? segmentId) {
-            AppendParagraphRequests(payload, report, paragraph, imageUris, segmentId, 1, true);
+            AppendParagraphRequests(payload, report, paragraph, imageUris, segmentId, 1, true, segmentId == null, null);
         }
 
         private static void AppendParagraphRequests(
@@ -273,7 +298,9 @@ namespace OfficeIMO.Word.GoogleDocs {
             IReadOnlyDictionary<GoogleDocsInlineImage, string>? imageUris,
             string? segmentId,
             int insertionIndex,
-            bool allowStructuralBreaks) {
+            bool allowStructuralBreaks,
+            bool allowFootnotes,
+            List<GoogleDocsFootnote>? preparedFootnotes) {
             var materialized = MaterializeParagraph(paragraph, report, imageUris);
             payload.Requests.Add(new GoogleDocsApiRequestPayload {
                 InsertText = new GoogleDocsApiInsertTextRequestPayload {
@@ -341,6 +368,30 @@ namespace OfficeIMO.Word.GoogleDocs {
                         BulletPreset = ResolveListPreset(paragraph, report),
                     }
                 });
+            }
+
+            if (materialized.Footnotes.Count > 0 && allowFootnotes) {
+                foreach (var footnote in materialized.Footnotes.OrderByDescending(item => item.InsertOffset)) {
+                    payload.Requests.Add(new GoogleDocsApiRequestPayload {
+                        CreateFootnote = new GoogleDocsApiCreateFootnoteRequestPayload {
+                            Location = new GoogleDocsApiLocationPayload {
+                                Index = insertionIndex + footnote.InsertOffset,
+                                SegmentId = segmentId,
+                            }
+                        }
+                    });
+                    preparedFootnotes?.Add(footnote.Source);
+                }
+            }
+
+            if (materialized.Footnotes.Count > 0 && !allowFootnotes) {
+                AddReportNoticeOnce(
+                    report,
+                    TranslationSeverity.Warning,
+                    segmentId == null ? "Tables" : "Footnotes",
+                    segmentId == null
+                        ? "Footnotes inside table cell replay are not executed in the current Google Docs slice, because native footnote creation is currently limited to top-level body paragraphs."
+                        : "Nested footnotes inside Google Docs segments are not executed in the current slice.");
             }
 
             foreach (var image in materialized.Images.OrderByDescending(item => item.InsertOffset)) {
@@ -421,10 +472,12 @@ namespace OfficeIMO.Word.GoogleDocs {
             TranslationReport report,
             GoogleDocsRequest request,
             IReadOnlyDictionary<GoogleDocsInlineImage, string>? imageUris,
-            string? segmentId) {
+            string? segmentId,
+            bool allowFootnotes,
+            List<GoogleDocsFootnote>? preparedFootnotes) {
             switch (request) {
                 case GoogleDocsInsertParagraphRequest paragraphRequest:
-                    AppendParagraphRequests(payload, report, paragraphRequest.Paragraph, imageUris, segmentId);
+                    AppendParagraphRequests(payload, report, paragraphRequest.Paragraph, imageUris, segmentId, 1, true, allowFootnotes, preparedFootnotes);
                     break;
                 case GoogleDocsInsertTableRequest tableRequest:
                     payload.Requests.Add(new GoogleDocsApiRequestPayload {
@@ -499,7 +552,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             IReadOnlyDictionary<GoogleDocsInlineImage, string>? imageUris) {
             var payload = new GoogleDocsApiBatchUpdatePayload();
             foreach (var paragraph in cell.Paragraphs.AsEnumerable().Reverse()) {
-                AppendParagraphRequests(payload, report, paragraph, imageUris, segmentId, insertionIndex, false);
+                AppendParagraphRequests(payload, report, paragraph, imageUris, segmentId, insertionIndex, false, false, null);
             }
 
             return payload.Requests;
@@ -610,6 +663,13 @@ namespace OfficeIMO.Word.GoogleDocs {
             MaterializedParagraph materialized,
             int currentOffset) {
             var text = SanitizeText(run.Text);
+            if (run.Footnote != null) {
+                materialized.Footnotes.Add(new MaterializedFootnote {
+                    InsertOffset = currentOffset + text.Length,
+                    Source = run.Footnote,
+                });
+            }
+
             if (run.InlineImage == null) {
                 return text;
             }
@@ -979,6 +1039,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             public string PrefixText { get; set; } = string.Empty;
             public StringBuilder TextBuilder { get; } = new StringBuilder();
             public List<MaterializedRun> Runs { get; } = new List<MaterializedRun>();
+            public List<MaterializedFootnote> Footnotes { get; } = new List<MaterializedFootnote>();
             public List<MaterializedImage> Images { get; } = new List<MaterializedImage>();
             public string InsertedText => PrefixText + TextBuilder.ToString();
         }
@@ -993,6 +1054,16 @@ namespace OfficeIMO.Word.GoogleDocs {
             public int InsertOffset { get; set; }
             public string Uri { get; set; } = string.Empty;
             public GoogleDocsInlineImage Source { get; set; } = new GoogleDocsInlineImage();
+        }
+
+        internal sealed class PreparedInitialBatchUpdate {
+            public GoogleDocsApiBatchUpdatePayload Payload { get; set; } = new GoogleDocsApiBatchUpdatePayload();
+            public List<GoogleDocsFootnote> Footnotes { get; } = new List<GoogleDocsFootnote>();
+        }
+
+        private sealed class MaterializedFootnote {
+            public int InsertOffset { get; set; }
+            public GoogleDocsFootnote Source { get; set; } = new GoogleDocsFootnote();
         }
 
         private sealed class LiveTableContext {

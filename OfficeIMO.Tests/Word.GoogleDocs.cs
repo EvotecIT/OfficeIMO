@@ -218,6 +218,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_GoogleDocsBatchCompiler_CompilesFootnotes() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsFootnotes.docx");
+
+            try {
+                using var document = BuildGoogleDocsFootnoteDocument(filePath);
+                var snapshot = document.CreateInspectionSnapshot();
+                var paragraph = Assert.IsType<WordParagraphSnapshot>(snapshot.Sections[0].Elements[0]);
+                var footnoteRun = Assert.Single(paragraph.Runs, run => run.Footnote != null);
+                Assert.Single(footnoteRun.Footnote!.Paragraphs);
+                Assert.Equal("Footnote text", footnoteRun.Footnote.Paragraphs[0].Text);
+
+                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                    Title = "Footnote Export"
+                });
+
+                var paragraphRequest = Assert.Single(batch.Requests.OfType<GoogleDocsInsertParagraphRequest>());
+                var compiledFootnoteRun = Assert.Single(paragraphRequest.Paragraph.Runs, run => run.Footnote != null);
+                Assert.Single(compiledFootnoteRun.Footnote!.Paragraphs);
+                Assert.Equal("Footnote text", compiledFootnoteRun.Footnote.Paragraphs[0].Text);
+                Assert.Contains(batch.Report.Notices, notice => notice.Feature == "Footnotes");
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Test_GoogleDocsApiPayloadBuilder_EmitsCreateFootnoteRequests() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsFootnotePayload.docx");
+
+            try {
+                using var document = BuildGoogleDocsFootnoteDocument(filePath);
+                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                    Title = "Footnote Export"
+                });
+
+                var payload = GoogleDocsApiPayloadBuilder.BuildInitialBatchUpdatePayload(batch);
+
+                Assert.Contains(payload.Requests, request => request.InsertText?.Text == "Body text\n");
+                var footnoteRequest = Assert.Single(payload.Requests, request => request.CreateFootnote != null);
+                Assert.Equal(10, footnoteRequest.CreateFootnote!.Location.Index);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Test_GoogleDocsApiPayloadBuilder_EmitsNativeSectionBreakRequests() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsSectionBreak.docx");
             string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
@@ -460,6 +510,65 @@ namespace OfficeIMO.Tests {
                     Assert.NotNull(uri);
                     Assert.Contains("img-table-123", uri!, StringComparison.Ordinal);
                 }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public async Task Test_GoogleDocsExporter_ReplaysFootnoteContent() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterFootnote.docx");
+
+            try {
+                using var document = BuildGoogleDocsFootnoteDocument(filePath);
+                var recordedRequests = new List<(Uri Uri, string Method, string? Body, string? Authorization)>();
+                int batchUpdateCount = 0;
+
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
+                    string? body = request.Content == null ? null : await request.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    recordedRequests.Add((request.RequestUri!, request.Method.Method, body, request.Headers.Authorization?.ToString()));
+
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents") {
+                        return CreateJsonResponse("{\"documentId\":\"doc-footnote\",\"title\":\"Footnote Export\"}");
+                    }
+
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-footnote:batchUpdate") {
+                        batchUpdateCount++;
+                        if (body != null && body.Contains("\"createFootnote\"", StringComparison.Ordinal)) {
+                            return CreateJsonResponse("{\"replies\":[{\"createFootnote\":{\"footnoteId\":\"fn123\"}}]}");
+                        }
+
+                        return CreateJsonResponse("{}");
+                    }
+
+                    return new HttpResponseMessage(HttpStatusCode.NotFound) {
+                        Content = new StringContent("unexpected request", Encoding.UTF8, "text/plain")
+                    };
+                }));
+
+                var session = new GoogleWorkspaceSession(
+                    new FakeGoogleWorkspaceCredentialSource(),
+                    new GoogleWorkspaceSessionOptions {
+                        HttpClient = httpClient,
+                    });
+
+                var result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                    Title = "Footnote Export",
+                });
+
+                Assert.Equal("doc-footnote", result.DocumentId);
+                Assert.Equal(3, recordedRequests.Count);
+                Assert.Equal(2, batchUpdateCount);
+                Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
+
+                var initialBatchRequest = recordedRequests.First(request => request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-footnote:batchUpdate");
+                Assert.Contains("\"createFootnote\"", initialBatchRequest.Body!);
+
+                var footnoteBatchRequest = recordedRequests.Last(request => request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-footnote:batchUpdate");
+                Assert.Contains("\"segmentId\":\"fn123\"", footnoteBatchRequest.Body!);
+                Assert.Contains("\"text\":\"Footnote text\\n\"", footnoteBatchRequest.Body!);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -842,6 +951,13 @@ namespace OfficeIMO.Tests {
             var nextPageParagraph = document.AddParagraph("Starts on next page");
             nextPageParagraph.PageBreakBefore = true;
 
+            return document;
+        }
+
+        private WordDocument BuildGoogleDocsFootnoteDocument(string filePath) {
+            var document = WordDocument.Create(filePath);
+            document.BuiltinDocumentProperties.Title = "Google Docs Footnotes";
+            document.AddParagraph("Body text").AddFootNote("Footnote text");
             return document;
         }
 

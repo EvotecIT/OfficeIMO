@@ -80,7 +80,20 @@ namespace OfficeIMO.Word {
         public bool IsHyperlink { get; internal set; }
         public string? HyperlinkUri { get; internal set; }
         public string? HyperlinkAnchor { get; internal set; }
+        public WordFootnoteSnapshot? Footnote { get; internal set; }
         public WordInlineImageSnapshot? InlineImage { get; internal set; }
+    }
+
+    public sealed class WordFootnoteSnapshot {
+        private readonly List<WordParagraphSnapshot> _paragraphs = new List<WordParagraphSnapshot>();
+
+        public long? ReferenceId { get; internal set; }
+        public IReadOnlyList<WordParagraphSnapshot> Paragraphs => _paragraphs;
+
+        internal void AddParagraph(WordParagraphSnapshot paragraph) {
+            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+            _paragraphs.Add(paragraph);
+        }
     }
 
     public sealed class WordInlineImageSnapshot {

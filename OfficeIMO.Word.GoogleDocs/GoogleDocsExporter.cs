@@ -155,14 +155,28 @@ namespace OfficeIMO.Word.GoogleDocs {
                 batch,
                 cancellationToken).ConfigureAwait(false);
 
-            var initialPayload = GoogleDocsApiPayloadBuilder.BuildInitialBatchUpdatePayload(batch, imageUris);
+            var preparedInitialBatch = GoogleDocsApiPayloadBuilder.BuildPreparedInitialBatchUpdate(batch, imageUris);
+            GoogleDocsApiBatchUpdateResponse? initialResponse = null;
+            var initialPayload = preparedInitialBatch.Payload;
             if (initialPayload.Requests.Count > 0) {
-                await SendAsync<object>(
+                initialResponse = await SendAsync<GoogleDocsApiBatchUpdateResponse>(
                     client,
                     accessToken,
                     HttpMethod.Post,
                     $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                     initialPayload,
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            if (preparedInitialBatch.Footnotes.Count > 0 && initialResponse != null) {
+                await ApplyFootnotesAsync(
+                    client,
+                    accessToken,
+                    documentId,
+                    batch,
+                    preparedInitialBatch.Footnotes,
+                    initialResponse,
+                    imageUris,
                     cancellationToken).ConfigureAwait(false);
             }
 
@@ -329,10 +343,21 @@ namespace OfficeIMO.Word.GoogleDocs {
         }
 
         private static IEnumerable<GoogleDocsInlineImage> EnumerateParagraphImages(GoogleDocsParagraph paragraph) {
-            return paragraph.Runs
-                .Select(run => run.InlineImage)
-                .Where(image => image != null)
-                .Cast<GoogleDocsInlineImage>();
+            foreach (var run in paragraph.Runs) {
+                if (run.InlineImage != null) {
+                    yield return run.InlineImage;
+                }
+
+                if (run.Footnote == null) {
+                    continue;
+                }
+
+                foreach (var footnoteParagraph in run.Footnote.Paragraphs) {
+                    foreach (var image in EnumerateParagraphImages(footnoteParagraph)) {
+                        yield return image;
+                    }
+                }
+            }
         }
 
         private static IEnumerable<GoogleDocsInlineImage> EnumerateTableImages(GoogleDocsTable table) {
@@ -448,6 +473,47 @@ namespace OfficeIMO.Word.GoogleDocs {
                     HttpMethod.Post,
                     $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                     segmentMergePayload,
+                    cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        private static async Task ApplyFootnotesAsync(
+            HttpClient client,
+            string accessToken,
+            string documentId,
+            GoogleDocsBatch batch,
+            IReadOnlyList<GoogleDocsFootnote> footnotes,
+            GoogleDocsApiBatchUpdateResponse initialResponse,
+            IReadOnlyDictionary<GoogleDocsInlineImage, string> imageUris,
+            CancellationToken cancellationToken) {
+            var footnoteReplies = initialResponse.Replies
+                .Where(reply => reply.CreateFootnote?.FootnoteId != null)
+                .Select(reply => reply.CreateFootnote!.FootnoteId!)
+                .ToList();
+
+            if (footnoteReplies.Count != footnotes.Count) {
+                batch.Report.Add(
+                    TranslationSeverity.Warning,
+                    "Footnotes",
+                    $"Expected {footnotes.Count} Google Docs footnote replies after creation, but the API returned {footnoteReplies.Count}. Footnote content replay may be incomplete.");
+            }
+
+            for (int index = 0; index < Math.Min(footnotes.Count, footnoteReplies.Count); index++) {
+                var footnotePayload = GoogleDocsApiPayloadBuilder.BuildFootnoteBatchUpdatePayload(
+                    footnotes[index],
+                    batch.Report,
+                    footnoteReplies[index],
+                    imageUris);
+                if (footnotePayload.Requests.Count == 0) {
+                    continue;
+                }
+
+                await SendAsync<object>(
+                    client,
+                    accessToken,
+                    HttpMethod.Post,
+                    $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
+                    footnotePayload,
                     cancellationToken).ConfigureAwait(false);
             }
         }

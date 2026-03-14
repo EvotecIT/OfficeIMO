@@ -152,6 +152,7 @@ namespace OfficeIMO.Word {
                     IsHyperlink = hyperlink != null,
                     HyperlinkUri = hyperlink?.Uri?.ToString(),
                     HyperlinkAnchor = hyperlink?.Anchor,
+                    Footnote = BuildFootnoteSnapshot(run.FootNote),
                     InlineImage = image == null ? null : new WordInlineImageSnapshot {
                         FilePath = string.IsNullOrWhiteSpace(image.FilePath) ? null : image.FilePath,
                         FileName = image.FileName,
@@ -211,6 +212,27 @@ namespace OfficeIMO.Word {
             }
 
             return snapshot;
+        }
+
+        private WordFootnoteSnapshot? BuildFootnoteSnapshot(WordFootNote? footNote) {
+            if (footNote == null) {
+                return null;
+            }
+
+            var paragraphs = footNote.Paragraphs;
+            if (paragraphs == null || paragraphs.Count == 0) {
+                return null;
+            }
+
+            var snapshot = new WordFootnoteSnapshot {
+                ReferenceId = footNote.ReferenceId,
+            };
+
+            foreach (var paragraphGroup in GroupParagraphs(paragraphs).Where(paragraph => paragraph.GetRuns().Any(run => run.FootNote == null))) {
+                snapshot.AddParagraph(BuildParagraphSnapshot(paragraphGroup));
+            }
+
+            return snapshot.Paragraphs.Count > 0 ? snapshot : null;
         }
 
         private IEnumerable<WordParagraph> GroupParagraphs(IEnumerable<WordParagraph> paragraphParts) {

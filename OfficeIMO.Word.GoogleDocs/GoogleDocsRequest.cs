@@ -97,6 +97,7 @@ namespace OfficeIMO.Word.GoogleDocs {
         public int? FontSize { get; set; }
         public string? ForegroundColorHex { get; set; }
         public GoogleDocsLink? Link { get; set; }
+        public GoogleDocsFootnote? Footnote { get; set; }
         public GoogleDocsInlineImage? InlineImage { get; set; }
     }
 
@@ -122,6 +123,21 @@ namespace OfficeIMO.Word.GoogleDocs {
         public double? Height { get; set; }
         public bool IsInline { get; set; }
         public string? WrapText { get; set; }
+    }
+
+    /// <summary>
+    /// Normalized footnote payload used by the compiler output.
+    /// </summary>
+    public sealed class GoogleDocsFootnote {
+        private readonly List<GoogleDocsParagraph> _paragraphs = new List<GoogleDocsParagraph>();
+
+        public long? ReferenceId { get; set; }
+        public IReadOnlyList<GoogleDocsParagraph> Paragraphs => _paragraphs;
+
+        internal void AddParagraph(GoogleDocsParagraph paragraph) {
+            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+            _paragraphs.Add(paragraph);
+        }
     }
 
     /// <summary>

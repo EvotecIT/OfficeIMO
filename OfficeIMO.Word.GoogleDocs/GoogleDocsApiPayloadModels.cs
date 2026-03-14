@@ -24,6 +24,10 @@ namespace OfficeIMO.Word.GoogleDocs {
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public GoogleDocsApiCreateFooterRequestPayload? CreateFooter { get; set; }
 
+        [JsonPropertyName("createFootnote")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleDocsApiCreateFootnoteRequestPayload? CreateFootnote { get; set; }
+
         [JsonPropertyName("insertInlineImage")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public GoogleDocsApiInsertInlineImageRequestPayload? InsertInlineImage { get; set; }
@@ -90,6 +94,11 @@ namespace OfficeIMO.Word.GoogleDocs {
         [JsonPropertyName("sectionBreakLocation")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public GoogleDocsApiLocationPayload? SectionBreakLocation { get; set; }
+    }
+
+    internal sealed class GoogleDocsApiCreateFootnoteRequestPayload {
+        [JsonPropertyName("location")]
+        public GoogleDocsApiLocationPayload Location { get; set; } = new GoogleDocsApiLocationPayload();
     }
 
     internal sealed class GoogleDocsApiInsertInlineImageRequestPayload {
@@ -325,6 +334,9 @@ namespace OfficeIMO.Word.GoogleDocs {
 
         [JsonPropertyName("footers")]
         public Dictionary<string, GoogleDocsApiHeaderFooterResponse>? Footers { get; set; }
+
+        [JsonPropertyName("footnotes")]
+        public Dictionary<string, GoogleDocsApiHeaderFooterResponse>? Footnotes { get; set; }
     }
 
     internal sealed class GoogleDocsApiBatchUpdateResponse {
@@ -340,6 +352,10 @@ namespace OfficeIMO.Word.GoogleDocs {
         [JsonPropertyName("createFooter")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public GoogleDocsApiCreateFooterResponsePayload? CreateFooter { get; set; }
+
+        [JsonPropertyName("createFootnote")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleDocsApiCreateFootnoteResponsePayload? CreateFootnote { get; set; }
     }
 
     internal sealed class GoogleDocsApiCreateHeaderResponsePayload {
@@ -350,6 +366,11 @@ namespace OfficeIMO.Word.GoogleDocs {
     internal sealed class GoogleDocsApiCreateFooterResponsePayload {
         [JsonPropertyName("footerId")]
         public string? FooterId { get; set; }
+    }
+
+    internal sealed class GoogleDocsApiCreateFootnoteResponsePayload {
+        [JsonPropertyName("footnoteId")]
+        public string? FootnoteId { get; set; }
     }
 
     internal sealed class GoogleDocsApiBodyResponse {

@@ -15,6 +15,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             bool listNoticeAdded = false;
             bool styleNoticeAdded = false;
             bool imageNoticeAdded = false;
+            bool footnoteNoticeAdded = false;
             bool tableNoticeAdded = false;
             bool tableMergeNoticeAdded = false;
 
@@ -34,7 +35,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                     report.Add(
                         TranslationSeverity.Info,
                         "HeadersAndFooters",
-                        "Word section header/footer metadata is preserved in the snapshot, but Google Docs export still needs a dedicated header/footer execution layer.");
+                        "Word section header/footer metadata is preserved in the snapshot. Default header/footer execution is implemented, while first/even variants still remain a dedicated follow-up slice.");
                 }
 
                 AddSegment(batch, report, section.Index, section.DefaultHeader);
@@ -84,6 +85,14 @@ namespace OfficeIMO.Word.GoogleDocs {
                             imageNoticeAdded = true;
                         }
 
+                        if (!footnoteNoticeAdded && paragraph.Runs.Any(run => run.Footnote != null)) {
+                            report.Add(
+                                TranslationSeverity.Info,
+                                "Footnotes",
+                                "Word footnotes are preserved in the neutral Google Docs batch and can now be emitted as native Google Docs footnotes for body paragraphs.");
+                            footnoteNoticeAdded = true;
+                        }
+
                         batch.Add(new GoogleDocsInsertParagraphRequest {
                             SectionIndex = sectionIndex,
                             ElementIndex = elementIndex,
@@ -113,7 +122,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                             report.Add(
                                 TranslationSeverity.Info,
                                 "TableMerges",
-                                "Merged Word table cells are preserved as diagnostics in the neutral Google Docs batch, but exact Google Docs merge execution still needs staged request generation.");
+                                "Merged Word table cells are preserved in the neutral Google Docs batch and can now be replayed through native Google Docs mergeTableCells requests.");
                             tableMergeNoticeAdded = true;
                         }
 
@@ -254,6 +263,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                         Uri = run.HyperlinkUri,
                         Anchor = run.HyperlinkAnchor,
                     } : null,
+                    Footnote = run.Footnote == null ? null : ConvertFootnote(run.Footnote),
                     InlineImage = run.InlineImage == null ? null : new GoogleDocsInlineImage {
                         FilePath = run.InlineImage.FilePath,
                         FileName = run.InlineImage.FileName,
@@ -267,6 +277,18 @@ namespace OfficeIMO.Word.GoogleDocs {
                         WrapText = run.InlineImage.WrapText,
                     },
                 });
+            }
+
+            return converted;
+        }
+
+        private static GoogleDocsFootnote ConvertFootnote(WordFootnoteSnapshot footnote) {
+            var converted = new GoogleDocsFootnote {
+                ReferenceId = footnote.ReferenceId,
+            };
+
+            foreach (var paragraph in footnote.Paragraphs) {
+                converted.AddParagraph(ConvertParagraph(paragraph));
             }
 
             return converted;
