@@ -161,6 +161,57 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        /// <summary>
+        /// Keeps this paragraph on the same page as the following paragraph.
+        /// </summary>
+        public bool KeepWithNext {
+            get {
+                return _paragraphProperties != null && _paragraphProperties.KeepNext is not null;
+            }
+            set {
+                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
+                if (value) {
+                    props.KeepNext ??= new KeepNext();
+                } else {
+                    props.KeepNext?.Remove();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Keeps all lines in this paragraph together on the same page.
+        /// </summary>
+        public bool KeepLinesTogether {
+            get {
+                return _paragraphProperties != null && _paragraphProperties.KeepLines is not null;
+            }
+            set {
+                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
+                if (value) {
+                    props.KeepLines ??= new KeepLines();
+                } else {
+                    props.KeepLines?.Remove();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Enables widow and orphan control for this paragraph.
+        /// </summary>
+        public bool AvoidWidowAndOrphan {
+            get {
+                return _paragraphProperties != null && _paragraphProperties.WidowControl is not null;
+            }
+            set {
+                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
+                if (value) {
+                    props.WidowControl ??= new WidowControl();
+                } else {
+                    props.WidowControl?.Remove();
+                }
+            }
+        }
         /// <summary>
         /// Gets or sets the first line indentation in twips (1/20 of a point).
         /// </summary>

@@ -18,6 +18,11 @@ namespace OfficeIMO.Word.GoogleDocs {
             bool footnoteNoticeAdded = false;
             bool tableNoticeAdded = false;
             bool tableMergeNoticeAdded = false;
+            bool bookmarkNoticeAdded = false;
+            bool capsNoticeAdded = false;
+            bool lineSpacingNoticeAdded = false;
+            bool tabStopNoticeAdded = false;
+            bool sectionLayoutNoticeAdded = false;
 
             for (int sectionIndex = 0; sectionIndex < snapshot.Sections.Count; sectionIndex++) {
                 var section = snapshot.Sections[sectionIndex];
@@ -35,15 +40,15 @@ namespace OfficeIMO.Word.GoogleDocs {
                     report.Add(
                         TranslationSeverity.Info,
                         "HeadersAndFooters",
-                        "Word section header/footer metadata is preserved in the snapshot. Default header/footer execution is implemented, while first/even variants still remain a dedicated follow-up slice.");
+                        "Word section header/footer metadata is preserved in the snapshot. Default, first-page, and even-page header/footer execution are implemented through the current Google Docs export path.");
                 }
 
                 AddSegment(batch, report, section.Index, section.DefaultHeader);
                 AddSegment(batch, report, section.Index, section.DefaultFooter);
-                AddUnsupportedSegmentNotice(report, section.Index, section.FirstHeader);
-                AddUnsupportedSegmentNotice(report, section.Index, section.FirstFooter);
-                AddUnsupportedSegmentNotice(report, section.Index, section.EvenHeader);
-                AddUnsupportedSegmentNotice(report, section.Index, section.EvenFooter);
+                AddSegment(batch, report, section.Index, section.FirstHeader);
+                AddSegment(batch, report, section.Index, section.FirstFooter);
+                AddSegment(batch, report, section.Index, section.EvenHeader);
+                AddSegment(batch, report, section.Index, section.EvenFooter);
 
                 for (int elementIndex = 0; elementIndex < section.Elements.Count; elementIndex++) {
                     var element = section.Elements[elementIndex];
@@ -77,6 +82,43 @@ namespace OfficeIMO.Word.GoogleDocs {
                             styleNoticeAdded = true;
                         }
 
+                        if (!capsNoticeAdded && paragraph.Runs.Any(run => string.Equals(run.CapsStyle, nameof(CapsStyle.Caps), StringComparison.OrdinalIgnoreCase))) {
+                            report.Add(
+                                TranslationSeverity.Warning,
+                                "TextStyles",
+                                "Word all-caps run styling is preserved in the neutral Google Docs batch, but the current Google Docs export only emits native smallCaps. Full caps remains a dedicated follow-up slice.");
+                            capsNoticeAdded = true;
+                        }
+
+                        if (!lineSpacingNoticeAdded && paragraph.LineSpacingValue.HasValue && !CanMapLineSpacing(paragraph)) {
+                            report.Add(
+                                TranslationSeverity.Warning,
+                                "ParagraphStyles",
+                                "Some Word line spacing rules still do not have a dependable Google Docs approximation. Unsupported rules remain a dedicated follow-up slice.");
+                            lineSpacingNoticeAdded = true;
+                        }
+
+                        if (paragraph.LineSpacingValue.HasValue
+                            && CanMapLineSpacing(paragraph)
+                            && !string.Equals(paragraph.LineSpacingRule, "Auto", StringComparison.OrdinalIgnoreCase)) {
+                            report.Add(
+                                TranslationSeverity.Info,
+                                "ParagraphStyles",
+                                "Word Exact and AtLeast line spacing are now exported as Google Docs lineSpacing approximations based on the Word line-height value.");
+                        }
+
+                        if (!tabStopNoticeAdded && paragraph.TabStops.Count > 0) {
+                            report.Add(
+                                paragraph.TabStops.Any(tabStop => !string.IsNullOrWhiteSpace(tabStop.Leader) && !string.Equals(tabStop.Leader, "None", StringComparison.OrdinalIgnoreCase))
+                                    ? TranslationSeverity.Warning
+                                    : TranslationSeverity.Info,
+                                "ParagraphStyles",
+                                paragraph.TabStops.Any(tabStop => !string.IsNullOrWhiteSpace(tabStop.Leader) && !string.Equals(tabStop.Leader, "None", StringComparison.OrdinalIgnoreCase))
+                                    ? "Word tab stops are now emitted as native Google Docs paragraph tabStops, but Word tab leaders do not have a direct Google Docs paragraph-style equivalent in the current export path."
+                                    : "Word tab stops are now emitted as native Google Docs paragraph tabStops.");
+                            tabStopNoticeAdded = true;
+                        }
+
                         if (!imageNoticeAdded && paragraph.Runs.Any(run => run.InlineImage != null)) {
                             report.Add(
                                 TranslationSeverity.Info,
@@ -93,11 +135,28 @@ namespace OfficeIMO.Word.GoogleDocs {
                             footnoteNoticeAdded = true;
                         }
 
+                        if (!bookmarkNoticeAdded && (!string.IsNullOrWhiteSpace(paragraph.BookmarkName) || paragraph.Runs.Any(run => !string.IsNullOrWhiteSpace(run.HyperlinkAnchor)))) {
+                            report.Add(
+                                TranslationSeverity.Info,
+                                "Bookmarks",
+                                "Word paragraph bookmarks are preserved in the neutral Google Docs batch and can now be emitted as native Google Docs named ranges in body flow, header/footer segments, footnotes, and replayed table cells. Internal anchor links remain preserved for a dedicated follow-up linking slice.");
+                            bookmarkNoticeAdded = true;
+                        }
+
                         batch.Add(new GoogleDocsInsertParagraphRequest {
                             SectionIndex = sectionIndex,
                             ElementIndex = elementIndex,
+                            SectionStyle = elementIndex == 0 ? ConvertSectionStyle(section) : null,
                             Paragraph = ConvertParagraph(paragraph, startsNewSectionBefore, section.SectionBreakType),
                         });
+
+                        if (!sectionLayoutNoticeAdded && elementIndex == 0 && HasSectionLayout(section)) {
+                            report.Add(
+                                TranslationSeverity.Info,
+                                "Sections",
+                                "Word section page size and supported margins are now preserved in the neutral Google Docs batch so the exporter can emit native updateSectionStyle requests.");
+                            sectionLayoutNoticeAdded = true;
+                        }
                     } else if (element is WordTableSnapshot table) {
                         bool startsNewSectionBefore = section.Index > 0
                             && elementIndex == 0
@@ -129,10 +188,19 @@ namespace OfficeIMO.Word.GoogleDocs {
                         batch.Add(new GoogleDocsInsertTableRequest {
                             SectionIndex = sectionIndex,
                             ElementIndex = elementIndex,
+                            SectionStyle = elementIndex == 0 ? ConvertSectionStyle(section) : null,
                             Table = ConvertTable(table),
                             StartsNewSectionBefore = startsNewSectionBefore,
                             SectionBreakType = section.SectionBreakType,
                         });
+
+                        if (!sectionLayoutNoticeAdded && elementIndex == 0 && HasSectionLayout(section)) {
+                            report.Add(
+                                TranslationSeverity.Info,
+                                "Sections",
+                                "Word section page size and supported margins are now preserved in the neutral Google Docs batch so the exporter can emit native updateSectionStyle requests.");
+                            sectionLayoutNoticeAdded = true;
+                        }
                     }
                 }
             }
@@ -185,20 +253,6 @@ namespace OfficeIMO.Word.GoogleDocs {
             batch.AddSegment(segment);
         }
 
-        private static void AddUnsupportedSegmentNotice(
-            TranslationReport report,
-            int sectionIndex,
-            WordHeaderFooterSnapshot? source) {
-            if (source == null) {
-                return;
-            }
-
-            report.Add(
-                TranslationSeverity.Warning,
-                "HeadersAndFooters",
-                $"Section {sectionIndex + 1} contains a {source.Kind} {source.Variant} variant, but the current Google Docs slice only executes default headers and footers.");
-        }
-
         private static string ResolveTitle(WordDocument document, WordDocumentSnapshot snapshot, GoogleDocsSaveOptions options) {
             if (!string.IsNullOrWhiteSpace(options.Title)) {
                 return options.Title!;
@@ -222,14 +276,49 @@ namespace OfficeIMO.Word.GoogleDocs {
         private static bool HasFormatting(WordParagraphSnapshot paragraph) {
             return !string.IsNullOrWhiteSpace(paragraph.StyleId)
                 || !string.IsNullOrWhiteSpace(paragraph.Alignment)
+                || paragraph.IndentStartPoints.HasValue
+                || paragraph.IndentEndPoints.HasValue
+                || paragraph.IndentFirstLinePoints.HasValue
+                || paragraph.SpaceAbovePoints.HasValue
+                || paragraph.SpaceBelowPoints.HasValue
+                || paragraph.LineSpacingValue.HasValue
+                || !string.IsNullOrWhiteSpace(paragraph.ShadingFillColorHex)
+                || paragraph.LeftBorder != null
+                || paragraph.RightBorder != null
+                || paragraph.TopBorder != null
+                || paragraph.BottomBorder != null
+                || paragraph.IsRightToLeft
+                || paragraph.KeepWithNext
+                || paragraph.KeepLinesTogether
+                || paragraph.AvoidWidowAndOrphan
                 || paragraph.PageBreakBefore
+                || paragraph.TabStops.Count > 0
                 || paragraph.Runs.Any(run =>
                     run.Bold
                     || run.Italic
                     || run.Underline
                     || run.Strike
                     || run.FontSize.HasValue
+                    || !string.IsNullOrWhiteSpace(run.FontFamily)
                     || !string.IsNullOrWhiteSpace(run.ColorHex));
+        }
+
+        private static bool CanMapLineSpacing(WordParagraphSnapshot paragraph) {
+            return ResolveLineSpacingPercent(paragraph).HasValue;
+        }
+
+        private static double? ResolveLineSpacingPercent(WordParagraphSnapshot paragraph) {
+            if (!paragraph.LineSpacingValue.HasValue || paragraph.LineSpacingValue.Value <= 0) {
+                return null;
+            }
+
+            if (string.Equals(paragraph.LineSpacingRule, "Auto", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(paragraph.LineSpacingRule, "Exact", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(paragraph.LineSpacingRule, "AtLeast", StringComparison.OrdinalIgnoreCase)) {
+                return Math.Round((paragraph.LineSpacingValue.Value / 240d) * 100d, 2, MidpointRounding.AwayFromZero);
+            }
+
+            return null;
         }
 
         private static GoogleDocsParagraph ConvertParagraph(
@@ -247,7 +336,24 @@ namespace OfficeIMO.Word.GoogleDocs {
                 ListLevel = paragraph.ListLevel,
                 ListStyleName = paragraph.ListStyleName,
                 Alignment = paragraph.Alignment,
+                IndentStartPoints = paragraph.IndentStartPoints,
+                IndentEndPoints = paragraph.IndentEndPoints,
+                IndentFirstLinePoints = paragraph.IndentFirstLinePoints,
+                SpaceAbovePoints = paragraph.SpaceAbovePoints,
+                SpaceBelowPoints = paragraph.SpaceBelowPoints,
+                LineSpacingPercent = ResolveLineSpacingPercent(paragraph),
+                ShadingFillColorHex = paragraph.ShadingFillColorHex,
+                LeftBorder = ConvertParagraphBorder(paragraph.LeftBorder),
+                RightBorder = ConvertParagraphBorder(paragraph.RightBorder),
+                TopBorder = ConvertParagraphBorder(paragraph.TopBorder),
+                BottomBorder = ConvertParagraphBorder(paragraph.BottomBorder),
+                IsRightToLeft = paragraph.IsRightToLeft,
+                KeepWithNext = paragraph.KeepWithNext,
+                KeepLinesTogether = paragraph.KeepLinesTogether,
+                AvoidWidowAndOrphan = paragraph.AvoidWidowAndOrphan,
                 PageBreakBefore = paragraph.PageBreakBefore,
+                BookmarkName = paragraph.BookmarkName,
+                BookmarkId = paragraph.BookmarkId,
             };
 
             foreach (var run in paragraph.Runs) {
@@ -258,7 +364,11 @@ namespace OfficeIMO.Word.GoogleDocs {
                     Underline = run.Underline,
                     Strike = run.Strike,
                     FontSize = run.FontSize,
+                    FontFamily = run.FontFamily,
                     ForegroundColorHex = run.ColorHex,
+                    HighlightColor = run.HighlightColor,
+                    VerticalTextAlignment = run.VerticalTextAlignment,
+                    CapsStyle = run.CapsStyle,
                     Link = run.IsHyperlink ? new GoogleDocsLink {
                         Uri = run.HyperlinkUri,
                         Anchor = run.HyperlinkAnchor,
@@ -279,6 +389,14 @@ namespace OfficeIMO.Word.GoogleDocs {
                 });
             }
 
+            foreach (var tabStop in paragraph.TabStops) {
+                converted.AddTabStop(new GoogleDocsTabStop {
+                    Alignment = tabStop.Alignment,
+                    Leader = tabStop.Leader,
+                    OffsetPoints = tabStop.PositionPoints,
+                });
+            }
+
             return converted;
         }
 
@@ -294,6 +412,71 @@ namespace OfficeIMO.Word.GoogleDocs {
             return converted;
         }
 
+        private static GoogleDocsTableCellBorder? ConvertBorder(WordTableCellBorderSnapshot? border) {
+            if (border == null) {
+                return null;
+            }
+
+            return new GoogleDocsTableCellBorder {
+                Style = border.Style,
+                ColorHex = border.ColorHex,
+                Size = border.Size,
+            };
+        }
+
+        private static GoogleDocsParagraphBorder? ConvertParagraphBorder(WordParagraphBorderSnapshot? border) {
+            if (border == null) {
+                return null;
+            }
+
+            return new GoogleDocsParagraphBorder {
+                Style = border.Style,
+                ColorHex = border.ColorHex,
+                Size = border.Size,
+                Space = border.Space,
+            };
+        }
+
+        private static bool HasSectionLayout(WordSectionSnapshot section) {
+            return section.PageWidthPoints.HasValue
+                || section.PageHeightPoints.HasValue
+                || section.MarginTopPoints.HasValue
+                || section.MarginBottomPoints.HasValue
+                || section.MarginLeftPoints.HasValue
+                || section.MarginRightPoints.HasValue
+                || section.HeaderMarginPoints.HasValue
+                || section.FooterMarginPoints.HasValue
+                || (section.ColumnCount.HasValue && section.ColumnCount.Value > 1)
+                || section.ColumnSpacingPoints.HasValue
+                || section.HasColumnSeparator
+                || section.DifferentFirstPage
+                || section.PageNumberStart.HasValue
+                || string.Equals(section.Orientation, "Landscape", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static GoogleDocsSectionStyle? ConvertSectionStyle(WordSectionSnapshot section) {
+            if (!HasSectionLayout(section)) {
+                return null;
+            }
+
+            return new GoogleDocsSectionStyle {
+                Orientation = section.Orientation,
+                PageWidthPoints = section.PageWidthPoints,
+                PageHeightPoints = section.PageHeightPoints,
+                MarginTopPoints = section.MarginTopPoints,
+                MarginBottomPoints = section.MarginBottomPoints,
+                MarginLeftPoints = section.MarginLeftPoints,
+                MarginRightPoints = section.MarginRightPoints,
+                HeaderMarginPoints = section.HeaderMarginPoints,
+                FooterMarginPoints = section.FooterMarginPoints,
+                ColumnCount = section.ColumnCount,
+                ColumnSpacingPoints = section.ColumnSpacingPoints,
+                HasColumnSeparator = section.HasColumnSeparator,
+                UseFirstPageHeaderFooter = section.DifferentFirstPage,
+                PageNumberStart = section.PageNumberStart,
+            };
+        }
+
         private static GoogleDocsTable ConvertTable(WordTableSnapshot table) {
             var converted = new GoogleDocsTable {
                 RowCount = table.RowCount,
@@ -306,6 +489,10 @@ namespace OfficeIMO.Word.GoogleDocs {
                 HasVerticalMerges = table.HasVerticalMerges,
             };
 
+            foreach (var width in table.ColumnWidthPoints) {
+                converted.AddColumnWidth(width);
+            }
+
             foreach (var row in table.Rows) {
                 var convertedRow = new GoogleDocsTableRow {
                     RowIndex = row.RowIndex,
@@ -317,6 +504,10 @@ namespace OfficeIMO.Word.GoogleDocs {
                         ColumnSpan = Math.Max(1, cell.ColumnSpan),
                         RowSpan = Math.Max(1, cell.RowSpan),
                         ShadingFillColorHex = cell.ShadingFillColorHex,
+                        LeftBorder = ConvertBorder(cell.LeftBorder),
+                        RightBorder = ConvertBorder(cell.RightBorder),
+                        TopBorder = ConvertBorder(cell.TopBorder),
+                        BottomBorder = ConvertBorder(cell.BottomBorder),
                         HasHorizontalMerge = cell.HasHorizontalMerge,
                         HasVerticalMerge = cell.HasVerticalMerge,
                     };

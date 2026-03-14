@@ -181,7 +181,10 @@ namespace OfficeIMO.Word.GoogleDocs {
             }
 
             bool needsDocumentState = batch.Requests.OfType<GoogleDocsInsertTableRequest>().Any()
-                || batch.Segments.Any(segment => string.Equals(segment.Variant, "default", StringComparison.OrdinalIgnoreCase));
+                || batch.Segments.Any(segment =>
+                    string.Equals(segment.Variant, "default", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(segment.Variant, "first", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(segment.Variant, "even", StringComparison.OrdinalIgnoreCase));
 
             if (!needsDocumentState) {
                 return;
@@ -205,14 +208,28 @@ namespace OfficeIMO.Word.GoogleDocs {
                 cancellationToken).ConfigureAwait(false);
 
             if (batch.Requests.OfType<GoogleDocsInsertTableRequest>().Any()) {
-                var tablePayload = GoogleDocsApiPayloadBuilder.BuildTableContentBatchUpdatePayload(batch, documentState, imageUris);
+                var preparedTableBatch = GoogleDocsApiPayloadBuilder.BuildPreparedTableContentBatchUpdate(batch, documentState, imageUris);
+                GoogleDocsApiBatchUpdateResponse? tableContentResponse = null;
+                var tablePayload = preparedTableBatch.Payload;
                 if (tablePayload.Requests.Count > 0) {
-                    await SendAsync<object>(
+                    tableContentResponse = await SendAsync<GoogleDocsApiBatchUpdateResponse>(
                         client,
                         accessToken,
                         HttpMethod.Post,
                         $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                         tablePayload,
+                        cancellationToken).ConfigureAwait(false);
+                }
+
+                if (preparedTableBatch.Footnotes.Count > 0 && tableContentResponse != null) {
+                    await ApplyFootnotesAsync(
+                        client,
+                        accessToken,
+                        documentId,
+                        batch,
+                        preparedTableBatch.Footnotes,
+                        tableContentResponse,
+                        imageUris,
                         cancellationToken).ConfigureAwait(false);
                 }
 
@@ -224,6 +241,17 @@ namespace OfficeIMO.Word.GoogleDocs {
                         HttpMethod.Post,
                         $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                         mergePayload,
+                        cancellationToken).ConfigureAwait(false);
+                }
+
+                var tableStylePayload = GoogleDocsApiPayloadBuilder.BuildTableStyleBatchUpdatePayload(batch, documentState);
+                if (tableStylePayload.Requests.Count > 0) {
+                    await SendAsync<object>(
+                        client,
+                        accessToken,
+                        HttpMethod.Post,
+                        $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
+                        tableStylePayload,
                         cancellationToken).ConfigureAwait(false);
                 }
             }
@@ -380,22 +408,25 @@ namespace OfficeIMO.Word.GoogleDocs {
             IReadOnlyDictionary<GoogleDocsInlineImage, string> imageUris,
             GoogleDocsApiDocumentResponse documentState,
             CancellationToken cancellationToken) {
-            var defaultSegments = batch.Segments
-                .Where(segment => string.Equals(segment.Variant, "default", StringComparison.OrdinalIgnoreCase))
+            var executableSegments = batch.Segments
+                .Where(segment =>
+                    string.Equals(segment.Variant, "default", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(segment.Variant, "first", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(segment.Variant, "even", StringComparison.OrdinalIgnoreCase))
                 .ToList();
-            if (defaultSegments.Count == 0) {
+            if (executableSegments.Count == 0) {
                 return;
             }
 
             var sectionBreakIndexes = EnumerateSectionBreakIndexes(documentState).ToList();
-            foreach (var segment in defaultSegments) {
+            foreach (var segment in executableSegments) {
                 string? sectionBreakLocation = null;
                 if (segment.SectionIndex > 0) {
                     if (sectionBreakIndexes.Count < segment.SectionIndex) {
                         batch.Report.Add(
                             TranslationSeverity.Warning,
                             "HeadersAndFooters",
-                            $"Could not resolve the Google Docs section break location for section {segment.SectionIndex + 1}, so its default {segment.Kind} was skipped.");
+                            $"Could not resolve the Google Docs section break location for section {segment.SectionIndex + 1}, so its {segment.Variant} {segment.Kind} was skipped.");
                         continue;
                     }
 
@@ -404,16 +435,16 @@ namespace OfficeIMO.Word.GoogleDocs {
 
                 string? segmentId;
                 if (string.Equals(segment.Kind, "header", StringComparison.OrdinalIgnoreCase)) {
-                    segmentId = await CreateHeaderAsync(client, accessToken, documentId, sectionBreakLocation, cancellationToken).ConfigureAwait(false);
+                    segmentId = await CreateHeaderAsync(client, accessToken, documentId, sectionBreakLocation, segment.Variant, cancellationToken).ConfigureAwait(false);
                 } else {
-                    segmentId = await CreateFooterAsync(client, accessToken, documentId, sectionBreakLocation, cancellationToken).ConfigureAwait(false);
+                    segmentId = await CreateFooterAsync(client, accessToken, documentId, sectionBreakLocation, segment.Variant, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (string.IsNullOrWhiteSpace(segmentId)) {
                     batch.Report.Add(
                         TranslationSeverity.Warning,
                         "HeadersAndFooters",
-                        $"Google Docs did not return a segment id for section {segment.SectionIndex + 1} {segment.Kind}, so its content was skipped.");
+                        $"Google Docs did not return a segment id for section {segment.SectionIndex + 1} {segment.Variant} {segment.Kind}, so its content was skipped.");
                     continue;
                 }
 
@@ -463,7 +494,22 @@ namespace OfficeIMO.Word.GoogleDocs {
                     segmentDocumentState,
                     batch.Report,
                     segmentId!);
-                if (segmentMergePayload.Requests.Count == 0) {
+                if (segmentMergePayload.Requests.Count > 0) {
+                    await SendAsync<object>(
+                        client,
+                        accessToken,
+                        HttpMethod.Post,
+                        $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
+                        segmentMergePayload,
+                        cancellationToken).ConfigureAwait(false);
+                }
+
+                var segmentTableStylePayload = GoogleDocsApiPayloadBuilder.BuildSegmentTableStyleBatchUpdatePayload(
+                    segment,
+                    segmentDocumentState,
+                    batch.Report,
+                    segmentId!);
+                if (segmentTableStylePayload.Requests.Count == 0) {
                     continue;
                 }
 
@@ -472,7 +518,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                     accessToken,
                     HttpMethod.Post,
                     $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
-                    segmentMergePayload,
+                    segmentTableStylePayload,
                     cancellationToken).ConfigureAwait(false);
             }
         }
@@ -536,11 +582,12 @@ namespace OfficeIMO.Word.GoogleDocs {
             string accessToken,
             string documentId,
             string? sectionBreakLocation,
+            string variant,
             CancellationToken cancellationToken) {
             var payload = new GoogleDocsApiBatchUpdatePayload();
             payload.Requests.Add(new GoogleDocsApiRequestPayload {
                 CreateHeader = new GoogleDocsApiCreateHeaderRequestPayload {
-                    Type = "DEFAULT",
+                    Type = ResolveHeaderFooterType(variant),
                     SectionBreakLocation = string.IsNullOrWhiteSpace(sectionBreakLocation)
                         ? null
                         : new GoogleDocsApiLocationPayload { Index = int.Parse(sectionBreakLocation, System.Globalization.CultureInfo.InvariantCulture) }
@@ -563,11 +610,12 @@ namespace OfficeIMO.Word.GoogleDocs {
             string accessToken,
             string documentId,
             string? sectionBreakLocation,
+            string variant,
             CancellationToken cancellationToken) {
             var payload = new GoogleDocsApiBatchUpdatePayload();
             payload.Requests.Add(new GoogleDocsApiRequestPayload {
                 CreateFooter = new GoogleDocsApiCreateFooterRequestPayload {
-                    Type = "DEFAULT",
+                    Type = ResolveHeaderFooterType(variant),
                     SectionBreakLocation = string.IsNullOrWhiteSpace(sectionBreakLocation)
                         ? null
                         : new GoogleDocsApiLocationPayload { Index = int.Parse(sectionBreakLocation, System.Globalization.CultureInfo.InvariantCulture) }
@@ -583,6 +631,18 @@ namespace OfficeIMO.Word.GoogleDocs {
                 cancellationToken).ConfigureAwait(false);
 
             return response.Replies.FirstOrDefault()?.CreateFooter?.FooterId;
+        }
+
+        private static string ResolveHeaderFooterType(string variant) {
+            if (string.Equals(variant, "first", StringComparison.OrdinalIgnoreCase)) {
+                return "FIRST_PAGE";
+            }
+
+            if (string.Equals(variant, "even", StringComparison.OrdinalIgnoreCase)) {
+                return "EVEN_PAGE";
+            }
+
+            return "DEFAULT";
         }
 
         private static bool TryResolveImageUploadPayload(

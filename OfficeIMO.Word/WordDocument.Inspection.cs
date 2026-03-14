@@ -16,6 +16,19 @@ namespace OfficeIMO.Word {
                 var sectionSnapshot = new WordSectionSnapshot {
                     Index = sectionIndex,
                     SectionBreakType = ResolveSectionBreakType(section, sectionIndex),
+                    Orientation = NormalizeOpenXmlEnumValue(section._sectionProperties?.GetFirstChild<PageSize>()?.Orient) ?? section.PageOrientation.ToString(),
+                    PageWidthPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageSize>()?.Width?.Value),
+                    PageHeightPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageSize>()?.Height?.Value),
+                    MarginTopPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Top?.Value),
+                    MarginBottomPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Bottom?.Value),
+                    MarginLeftPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Left?.Value),
+                    MarginRightPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Right?.Value),
+                    HeaderMarginPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Header?.Value),
+                    FooterMarginPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Footer?.Value),
+                    ColumnCount = section.ColumnCount,
+                    ColumnSpacingPoints = ConvertTwipsToPoints(section.ColumnsSpace),
+                    HasColumnSeparator = section._sectionProperties?.GetFirstChild<Columns>()?.Separator?.Value ?? false,
+                    PageNumberStart = section._sectionProperties?.GetFirstChild<PageNumberType>()?.Start?.Value,
                     HeaderCount = CountHeaderParts(section.Header),
                     FooterCount = CountFooterParts(section.Footer),
                     DifferentFirstPage = section.DifferentFirstPage,
@@ -125,6 +138,8 @@ namespace OfficeIMO.Word {
         }
 
         private WordParagraphSnapshot BuildParagraphSnapshot(WordParagraph paragraph) {
+            var bookmark = paragraph.Bookmark;
+            var bookmarkStart = paragraph._paragraph.ChildElements.OfType<BookmarkStart>().FirstOrDefault();
             var snapshot = new WordParagraphSnapshot {
                 Text = string.Concat(paragraph.GetRuns().Select(run => run.Text)),
                 StyleId = paragraph.StyleId,
@@ -134,7 +149,43 @@ namespace OfficeIMO.Word {
                 ListLevel = paragraph.ListItemLevel,
                 ListStyleName = paragraph.ListStyle?.ToString(),
                 Alignment = NormalizeOpenXmlEnumValue(paragraph._paragraphProperties?.Justification?.Val),
+                IndentStartPoints = paragraph.IndentationBeforePoints,
+                IndentEndPoints = paragraph.IndentationAfterPoints,
+                IndentFirstLinePoints = ResolveIndentFirstLinePoints(paragraph),
+                SpaceAbovePoints = paragraph.LineSpacingBeforePoints,
+                SpaceBelowPoints = paragraph.LineSpacingAfterPoints,
+                LineSpacingValue = paragraph.LineSpacing,
+                LineSpacingRule = NormalizeOpenXmlEnumValue(paragraph.LineSpacingRule),
+                ShadingFillColorHex = NormalizeColorHex(paragraph.ShadingFillColorHex),
+                LeftBorder = BuildParagraphBorderSnapshot(
+                    NormalizeOpenXmlEnumValue(paragraph.Borders.LeftStyle),
+                    NormalizeColorHex(paragraph.Borders.LeftColorHex),
+                    paragraph.Borders.LeftSize?.Value,
+                    paragraph.Borders.LeftSpace?.Value),
+                RightBorder = BuildParagraphBorderSnapshot(
+                    NormalizeOpenXmlEnumValue(paragraph.Borders.RightStyle),
+                    NormalizeColorHex(paragraph.Borders.RightColorHex),
+                    paragraph.Borders.RightSize?.Value,
+                    paragraph.Borders.RightSpace?.Value),
+                TopBorder = BuildParagraphBorderSnapshot(
+                    NormalizeOpenXmlEnumValue(paragraph.Borders.TopStyle),
+                    NormalizeColorHex(paragraph.Borders.TopColorHex),
+                    paragraph.Borders.TopSize?.Value,
+                    paragraph.Borders.TopSpace?.Value),
+                BottomBorder = BuildParagraphBorderSnapshot(
+                    NormalizeOpenXmlEnumValue(paragraph.Borders.BottomStyle),
+                    NormalizeColorHex(paragraph.Borders.BottomColorHex),
+                    paragraph.Borders.BottomSize?.Value,
+                    paragraph.Borders.BottomSpace?.Value),
+                IsRightToLeft = paragraph.BiDi,
+                KeepWithNext = paragraph.KeepWithNext,
+                KeepLinesTogether = paragraph.KeepLinesTogether,
+                AvoidWidowAndOrphan = paragraph.AvoidWidowAndOrphan,
                 PageBreakBefore = paragraph.PageBreakBefore,
+                BookmarkName = bookmark?.Name ?? bookmarkStart?.Name,
+                BookmarkId = bookmark != null
+                    ? bookmark.Id
+                    : int.TryParse(bookmarkStart?.Id?.Value, out var bookmarkId) ? bookmarkId : null,
             };
 
             foreach (var run in paragraph.GetRuns()) {
@@ -148,7 +199,11 @@ namespace OfficeIMO.Word {
                     Underline = run.Underline != null,
                     Strike = run.Strike || run.DoubleStrike,
                     FontSize = run.FontSize,
+                    FontFamily = run.FontFamily,
                     ColorHex = NormalizeColorHex(run.ColorHex),
+                    HighlightColor = NormalizeOpenXmlEnumValue(run.Highlight),
+                    VerticalTextAlignment = NormalizeOpenXmlEnumValue(run.VerticalTextAlignment),
+                    CapsStyle = run.CapsStyle == CapsStyle.None ? null : run.CapsStyle.ToString(),
                     IsHyperlink = hyperlink != null,
                     HyperlinkUri = hyperlink?.Uri?.ToString(),
                     HyperlinkAnchor = hyperlink?.Anchor,
@@ -168,6 +223,14 @@ namespace OfficeIMO.Word {
                 });
             }
 
+            foreach (var tabStop in paragraph.TabStops) {
+                snapshot.AddTabStop(new WordTabStopSnapshot {
+                    Alignment = NormalizeOpenXmlEnumValue(tabStop.Alignment),
+                    Leader = NormalizeOpenXmlEnumValue(tabStop.Leader),
+                    PositionPoints = Helpers.ConvertTwipsToPoints(tabStop.Position),
+                });
+            }
+
             return snapshot;
         }
 
@@ -180,6 +243,17 @@ namespace OfficeIMO.Word {
                 Description = table.Description,
                 RepeatHeaderRow = table.Rows.Count > 0 && table.RepeatAsHeaderRowAtTheTopOfEachPage,
             };
+
+            var gridColumnWidths = table.GridColumnWidth;
+            if (gridColumnWidths.Count > 0) {
+                foreach (var width in gridColumnWidths) {
+                    snapshot.AddColumnWidth(Helpers.ConvertTwipsToPoints(width));
+                }
+            } else {
+                foreach (var width in table.ColumnWidth) {
+                    snapshot.AddColumnWidth(Helpers.ConvertTwipsToPoints(width));
+                }
+            }
 
             for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
                 var row = table.Rows[rowIndex];
@@ -194,6 +268,22 @@ namespace OfficeIMO.Word {
                         ColumnSpan = ResolveColumnSpan(cell, row, columnIndex),
                         RowSpan = ResolveRowSpan(table, rowIndex, columnIndex),
                         ShadingFillColorHex = NormalizeColorHex(cell.ShadingFillColorHex),
+                        LeftBorder = BuildBorderSnapshot(
+                            NormalizeOpenXmlEnumValue(cell.Borders.LeftStyle),
+                            NormalizeColorHex(cell.Borders.LeftColorHex),
+                            cell.Borders.LeftSize?.Value),
+                        RightBorder = BuildBorderSnapshot(
+                            NormalizeOpenXmlEnumValue(cell.Borders.RightStyle),
+                            NormalizeColorHex(cell.Borders.RightColorHex),
+                            cell.Borders.RightSize?.Value),
+                        TopBorder = BuildBorderSnapshot(
+                            NormalizeOpenXmlEnumValue(cell.Borders.TopStyle),
+                            NormalizeColorHex(cell.Borders.TopColorHex),
+                            cell.Borders.TopSize?.Value),
+                        BottomBorder = BuildBorderSnapshot(
+                            NormalizeOpenXmlEnumValue(cell.Borders.BottomStyle),
+                            NormalizeColorHex(cell.Borders.BottomColorHex),
+                            cell.Borders.BottomSize?.Value),
                         HasHorizontalMerge = cell.HasHorizontalMerge,
                         HasVerticalMerge = cell.HasVerticalMerge,
                     };
@@ -235,6 +325,18 @@ namespace OfficeIMO.Word {
             return snapshot.Paragraphs.Count > 0 ? snapshot : null;
         }
 
+        private static double? ResolveIndentFirstLinePoints(WordParagraph paragraph) {
+            if (paragraph.IndentationFirstLinePoints.HasValue) {
+                return paragraph.IndentationFirstLinePoints.Value;
+            }
+
+            if (paragraph.IndentationHangingPoints.HasValue) {
+                return -paragraph.IndentationHangingPoints.Value;
+            }
+
+            return null;
+        }
+
         private IEnumerable<WordParagraph> GroupParagraphs(IEnumerable<WordParagraph> paragraphParts) {
             Paragraph? currentParagraph = null;
 
@@ -268,6 +370,38 @@ namespace OfficeIMO.Word {
 
         private static string? NormalizeColorHex(string? value) {
             return string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+
+        private static WordTableCellBorderSnapshot? BuildBorderSnapshot(
+            string? style,
+            string? colorHex,
+            uint? size) {
+            if (string.IsNullOrWhiteSpace(style) && string.IsNullOrWhiteSpace(colorHex) && !size.HasValue) {
+                return null;
+            }
+
+            return new WordTableCellBorderSnapshot {
+                Style = style,
+                ColorHex = colorHex,
+                Size = size,
+            };
+        }
+
+        private static WordParagraphBorderSnapshot? BuildParagraphBorderSnapshot(
+            string? style,
+            string? colorHex,
+            uint? size,
+            uint? space) {
+            if (string.IsNullOrWhiteSpace(style) && string.IsNullOrWhiteSpace(colorHex) && !size.HasValue && !space.HasValue) {
+                return null;
+            }
+
+            return new WordParagraphBorderSnapshot {
+                Style = style,
+                ColorHex = colorHex,
+                Size = size,
+                Space = space,
+            };
         }
 
         private static string? ResolveImageContentType(WordImage image) {
@@ -380,6 +514,13 @@ namespace OfficeIMO.Word {
                 return char.ToUpperInvariant(normalizedInnerText[0]) + normalizedInnerText.Substring(1);
             }
 
+            var valueField = value.GetType().GetField("_value", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            string? fieldValue = valueField?.GetValue(value)?.ToString();
+            if (!string.IsNullOrWhiteSpace(fieldValue)) {
+                string normalizedFieldValue = fieldValue!;
+                return char.ToUpperInvariant(normalizedFieldValue[0]) + normalizedFieldValue.Substring(1);
+            }
+
             var text = value.ToString();
             if (!string.IsNullOrWhiteSpace(text) && !text.Contains("{", StringComparison.Ordinal)) {
                 return text;
@@ -394,6 +535,22 @@ namespace OfficeIMO.Word {
 
             string normalized = rawValue ?? string.Empty;
             return char.ToUpperInvariant(normalized[0]) + normalized.Substring(1);
+        }
+
+        private static double? ConvertTwipsToPoints(uint? twips) {
+            if (!twips.HasValue) {
+                return null;
+            }
+
+            return Helpers.ConvertTwipsToPoints((int)twips.Value);
+        }
+
+        private static double? ConvertTwipsToPoints(int? twips) {
+            if (!twips.HasValue) {
+                return null;
+            }
+
+            return Helpers.ConvertTwipsToPoints(twips.Value);
         }
     }
 }

@@ -65,6 +65,25 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets or sets whether a separator line is shown between section columns.
+        /// </summary>
+        public bool HasColumnSeparator {
+            get {
+                Columns? columns = _sectionProperties.GetFirstChild<Columns>();
+                return columns?.Separator?.Value ?? false;
+            }
+            set {
+                Columns? columns = _sectionProperties.GetFirstChild<Columns>();
+                if (columns == null) {
+                    columns = new Columns();
+                    _sectionProperties.Append(columns);
+                }
+
+                columns.Separator = value;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the footnote properties for the section.
         /// </summary>
         public FootnoteProperties FootnoteProperties {
