@@ -4,6 +4,7 @@ namespace OfficeIMO.Word.GoogleDocs {
     /// </summary>
     public interface IGoogleDocsExporter {
         GoogleDocsTranslationPlan BuildPlan(WordDocument document, GoogleDocsSaveOptions? options = null);
+        GoogleDocsBatch BuildBatch(WordDocument document, GoogleDocsSaveOptions? options = null);
         Task<GoogleDocumentReference> ExportAsync(
             WordDocument document,
             GoogleWorkspace.GoogleWorkspaceSession session,

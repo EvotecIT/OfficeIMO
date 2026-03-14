@@ -35,6 +35,7 @@
         <ProjectReference Include="..\\OfficeIMO.MarkdownRenderer\\OfficeIMO.MarkdownRenderer.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel\\OfficeIMO.Excel.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel.GoogleSheets\\OfficeIMO.Excel.GoogleSheets.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Word.GoogleDocs\\OfficeIMO.Word.GoogleDocs.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Reader\\OfficeIMO.Reader.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word.Pdf\\OfficeIMO.Word.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word.Html\\OfficeIMO.Word.Html.csproj" />
