@@ -107,6 +107,24 @@ public class Markdown_Input_Normalizer_Tests {
     }
 
     [Fact]
+    public void Normalize_CollapsedMetricChains_WhenEnabled_WithCrLfInput() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeCollapsedMetricChains = true,
+            NormalizeMetricValueStrongRuns = true
+        };
+
+        var markdown = "**Status: HEALTHY**\r\n- **Servers checked:**5\r\n- **Replication edges:**62\r\n- **Failed edges:**0\r\n- **Stale edges (>24h):**0\r\n- **Servers with failures:**0\r\n";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Contains("- Servers checked **5**", normalized, StringComparison.Ordinal);
+        Assert.Contains("- Replication edges **62**", normalized, StringComparison.Ordinal);
+        Assert.Contains("- Failed edges **0**", normalized, StringComparison.Ordinal);
+        Assert.Contains("- Stale edges (>24h) **0**", normalized, StringComparison.Ordinal);
+        Assert.Contains("- Servers with failures **0**", normalized, StringComparison.Ordinal);
+        Assert.DoesNotContain("**Servers checked:**", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Normalize_CollapsedMetricChains_DoesNotSplitInlineHyphenProse() {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeCollapsedMetricChains = true

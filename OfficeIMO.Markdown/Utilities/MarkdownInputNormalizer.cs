@@ -400,7 +400,7 @@ public static class MarkdownInputNormalizer {
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex LegacyBoldMetricBulletRegex = new Regex(
-        @"(?m)^(?<indent>\s*-\s)\*\*(?<label>[^*\r\n:]+):\*\*\s*(?<value>[^\r\n]*)$",
+        @"(?m)^(?<indent>\s*-\s)\*\*(?<label>[^*\r\n:]+):\*\*\s*(?<value>[^\r\n]*?)\s*$",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex LineStartHostLabelBulletRegex = new Regex(
