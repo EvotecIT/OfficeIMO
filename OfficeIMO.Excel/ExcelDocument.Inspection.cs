@@ -149,6 +149,9 @@ namespace OfficeIMO.Excel {
                         worksheetPart.Worksheet.Elements<AutoFilter>().FirstOrDefault());
                     worksheetSnapshot.Protection = BuildWorksheetProtectionSnapshot(
                         worksheetPart.Worksheet.Elements<SheetProtection>().FirstOrDefault());
+                    foreach (var validation in BuildDataValidationSnapshots(worksheetPart.Worksheet.GetFirstChild<DataValidations>())) {
+                        worksheetSnapshot.AddValidation(validation);
+                    }
 
                     foreach (var tableDefinitionPart in worksheetPart.TableDefinitionParts) {
                         var table = tableDefinitionPart.Table;
@@ -397,6 +400,39 @@ namespace OfficeIMO.Excel {
             }
 
             return snapshot;
+        }
+
+        private static IReadOnlyList<ExcelDataValidationSnapshot> BuildDataValidationSnapshots(DataValidations? dataValidations) {
+            var snapshots = new List<ExcelDataValidationSnapshot>();
+            if (dataValidations == null) {
+                return snapshots;
+            }
+
+            foreach (var dataValidation in dataValidations.Elements<DataValidation>()) {
+                var snapshot = new ExcelDataValidationSnapshot {
+                    Type = GetOpenXmlAttributeValue(dataValidation, "type")?.ToLowerInvariant(),
+                    Operator = GetOpenXmlAttributeValue(dataValidation, "operator"),
+                    AllowBlank = dataValidation.AllowBlank?.Value == true,
+                    Formula1 = dataValidation.GetFirstChild<Formula1>()?.Text,
+                    Formula2 = dataValidation.GetFirstChild<Formula2>()?.Text,
+                };
+
+                var sequenceOfReferences = dataValidation.SequenceOfReferences?.InnerText;
+                if (!string.IsNullOrWhiteSpace(sequenceOfReferences)) {
+                    foreach (var range in sequenceOfReferences!
+                                 .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                                 .Select(value => value.Trim())
+                                 .Where(value => !string.IsNullOrWhiteSpace(value))) {
+                        snapshot.AddRange(range);
+                    }
+                }
+
+                if (snapshot.A1Ranges.Count > 0) {
+                    snapshots.Add(snapshot);
+                }
+            }
+
+            return snapshots;
         }
 
         private static ExcelTableSnapshot? BuildTableSnapshot(Table? table) {

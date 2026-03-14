@@ -198,6 +198,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                                     ColumnProperties = table.Columns.Select(column => new GoogleSheetsApiTableColumnPropertiesPayload {
                                         Name = column.Name,
                                         ColumnType = column.ColumnType,
+                                        DataValidationRule = BuildDataValidationRule(column.DataValidationRule),
                                     }).ToList(),
                                 }
                             }
@@ -335,12 +336,14 @@ namespace OfficeIMO.Excel.GoogleSheets {
             var rowData = new GoogleSheetsApiRowDataPayload();
             bool includeFormat = false;
             bool includeNote = false;
+            bool includeValidation = false;
 
             foreach (var cell in cells) {
-                var apiCell = BuildCellData(batch, cell, sourceSheetName, sheetIds, spreadsheetId, out var hasFormat, out var hasNote);
+                var apiCell = BuildCellData(batch, cell, sourceSheetName, sheetIds, spreadsheetId, out var hasFormat, out var hasNote, out var hasValidation);
                 rowData.Values.Add(apiCell);
                 includeFormat |= hasFormat;
                 includeNote |= hasNote;
+                includeValidation |= hasValidation;
             }
 
             payload.Requests.Add(new GoogleSheetsApiRequestPayload {
@@ -351,7 +354,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         ColumnIndex = cells[0].ColumnIndex,
                     },
                     Rows = new List<GoogleSheetsApiRowDataPayload> { rowData },
-                    Fields = BuildUpdateCellsFields(includeFormat, includeNote),
+                    Fields = BuildUpdateCellsFields(includeFormat, includeNote, includeValidation),
                 }
             });
         }
@@ -363,13 +366,16 @@ namespace OfficeIMO.Excel.GoogleSheets {
             IReadOnlyDictionary<string, int> sheetIds,
             string? spreadsheetId,
             out bool hasFormat,
-            out bool hasNote) {
+            out bool hasNote,
+            out bool hasValidation) {
             hasFormat = cell.Style != null;
             hasNote = false;
+            hasValidation = cell.DataValidationRule != null;
             var valuePayload = BuildExtendedValue(cell, batch, sourceSheetName, sheetIds, spreadsheetId, out var hyperlinkNote);
             var payload = new GoogleSheetsApiCellDataPayload {
                 UserEnteredValue = valuePayload,
                 UserEnteredFormat = BuildCellFormat(cell.Style),
+                DataValidationRule = BuildDataValidationRule(cell.DataValidationRule),
                 Note = ComposeNote(cell.Comment, hyperlinkNote),
             };
             hasNote = !string.IsNullOrWhiteSpace(payload.Note);
@@ -699,16 +705,22 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
         private static GoogleSheetsApiTableRowsPropertiesPayload? BuildTableRowsProperties(GoogleSheetsAddTableRequest table) {
             if (table == null) throw new ArgumentNullException(nameof(table));
-            if (!table.TotalsRowShown) {
-                return null;
-            }
-
+            var headerColorStyle = BuildColorStyle(table.HeaderColorArgb);
+            var firstBandColorStyle = BuildColorStyle(table.FirstBandColorArgb);
+            var secondBandColorStyle = BuildColorStyle(table.SecondBandColorArgb);
             var footerColorStyle = BuildColorStyle(table.FooterColorArgb);
-            if (footerColorStyle == null) {
+
+            if (headerColorStyle == null
+                && firstBandColorStyle == null
+                && secondBandColorStyle == null
+                && footerColorStyle == null) {
                 return null;
             }
 
             return new GoogleSheetsApiTableRowsPropertiesPayload {
+                HeaderColorStyle = headerColorStyle,
+                FirstBandColorStyle = firstBandColorStyle,
+                SecondBandColorStyle = secondBandColorStyle,
                 FooterColorStyle = footerColorStyle,
             };
         }
@@ -721,6 +733,25 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
             return new GoogleSheetsApiColorStylePayload {
                 RgbColor = color,
+            };
+        }
+
+        private static GoogleSheetsApiDataValidationRulePayload? BuildDataValidationRule(GoogleSheetsDataValidationRule? rule) {
+            if (rule == null || string.IsNullOrWhiteSpace(rule.ConditionType)) {
+                return null;
+            }
+
+            return new GoogleSheetsApiDataValidationRulePayload {
+                Condition = new GoogleSheetsApiBooleanConditionPayload {
+                    Type = rule.ConditionType,
+                    Values = rule.Values.Count == 0
+                        ? null
+                        : rule.Values.Select(value => new GoogleSheetsApiConditionValuePayload {
+                            UserEnteredValue = value,
+                        }).ToList(),
+                },
+                Strict = rule.Strict,
+                ShowCustomUi = rule.ShowCustomUi,
             };
         }
 
@@ -885,10 +916,13 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return true;
         }
 
-        private static string BuildUpdateCellsFields(bool includeFormat, bool includeNote) {
+        private static string BuildUpdateCellsFields(bool includeFormat, bool includeNote, bool includeValidation) {
             var fields = new List<string> { "userEnteredValue" };
             if (includeFormat) {
                 fields.Add("userEnteredFormat");
+            }
+            if (includeValidation) {
+                fields.Add("dataValidationRule");
             }
             if (includeNote) {
                 fields.Add("note");
@@ -1061,6 +1095,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
         [JsonPropertyName("userEnteredFormat")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public GoogleSheetsApiCellFormatPayload? UserEnteredFormat { get; set; }
+
+        [JsonPropertyName("dataValidationRule")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleSheetsApiDataValidationRulePayload? DataValidationRule { get; set; }
 
         [JsonPropertyName("note")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -1298,6 +1336,18 @@ namespace OfficeIMO.Excel.GoogleSheets {
     }
 
     internal sealed class GoogleSheetsApiTableRowsPropertiesPayload {
+        [JsonPropertyName("headerColorStyle")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleSheetsApiColorStylePayload? HeaderColorStyle { get; set; }
+
+        [JsonPropertyName("firstBandColorStyle")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleSheetsApiColorStylePayload? FirstBandColorStyle { get; set; }
+
+        [JsonPropertyName("secondBandColorStyle")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleSheetsApiColorStylePayload? SecondBandColorStyle { get; set; }
+
         [JsonPropertyName("footerColorStyle")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public GoogleSheetsApiColorStylePayload? FooterColorStyle { get; set; }
@@ -1316,6 +1366,23 @@ namespace OfficeIMO.Excel.GoogleSheets {
         [JsonPropertyName("columnType")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? ColumnType { get; set; }
+
+        [JsonPropertyName("dataValidationRule")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleSheetsApiDataValidationRulePayload? DataValidationRule { get; set; }
+    }
+
+    internal sealed class GoogleSheetsApiDataValidationRulePayload {
+        [JsonPropertyName("condition")]
+        public GoogleSheetsApiBooleanConditionPayload Condition { get; set; } = new GoogleSheetsApiBooleanConditionPayload();
+
+        [JsonPropertyName("strict")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool Strict { get; set; }
+
+        [JsonPropertyName("showCustomUi")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool ShowCustomUi { get; set; }
     }
 
     internal sealed class GoogleSheetsApiNamedRangePayload {

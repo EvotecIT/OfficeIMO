@@ -118,6 +118,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public bool HasHeaderRow { get; set; }
         public bool TotalsRowShown { get; set; }
         public string? StyleName { get; set; }
+        public string? HeaderColorArgb { get; set; }
+        public string? FirstBandColorArgb { get; set; }
+        public string? SecondBandColorArgb { get; set; }
         public string? FooterColorArgb { get; set; }
         public IReadOnlyList<GoogleSheetsTableColumn> Columns { get; set; } = Array.Empty<GoogleSheetsTableColumn>();
     }
@@ -170,6 +173,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public GoogleSheetsCellValue Value { get; set; } = GoogleSheetsCellValue.Blank();
         public string? NumberFormatHint { get; set; }
         public GoogleSheetsCellStyle? Style { get; set; }
+        public GoogleSheetsDataValidationRule? DataValidationRule { get; set; }
         public GoogleSheetsHyperlink? Hyperlink { get; set; }
         public GoogleSheetsComment? Comment { get; set; }
     }
@@ -276,6 +280,17 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public string Name { get; set; } = string.Empty;
         public string? ColumnType { get; set; }
         public string? TotalsRowFunction { get; set; }
+        public GoogleSheetsDataValidationRule? DataValidationRule { get; set; }
+    }
+
+    /// <summary>
+    /// Provider-neutral table-column validation metadata for native Google Sheets tables.
+    /// </summary>
+    public sealed class GoogleSheetsDataValidationRule {
+        public string ConditionType { get; set; } = string.Empty;
+        public IReadOnlyList<string> Values { get; set; } = Array.Empty<string>();
+        public bool Strict { get; set; }
+        public bool ShowCustomUi { get; set; }
     }
 
     /// <summary>
