@@ -23,7 +23,7 @@ public static class MarkdownVisualContract {
     /// Creates a payload descriptor from raw JSON or other renderer-owned source text.
     /// </summary>
     public static MarkdownVisualPayload CreatePayload(string? rawContent) {
-        var raw = rawContent ?? string.Empty;
+        var raw = NormalizeLineEndings(rawContent ?? string.Empty);
         return new MarkdownVisualPayload(
             raw,
             Convert.ToBase64String(Encoding.UTF8.GetBytes(raw)),
