@@ -269,6 +269,21 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
+    public void Reader_DoesNot_Split_ColonListMarkers_Inside_CodeSpans_AfterParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeColonListBoundaries = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("Use `Next step:- **Item**` as captured text.", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<code>Next step:- **Item**</code>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<li", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_Can_Normalize_CompactMermaidFenceBodyBoundary_BeforeParsing() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {

@@ -135,6 +135,39 @@ Paragraph body.
     }
 
     [Fact]
+    public void MarkdownColonListBoundaryTransform_Splits_Paragraph_List_Boundaries() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownColonListBoundaryTransform());
+
+        var document = MarkdownReader.Parse("Następny najlepszy krok:- **`ad_domain_controller_facts`**", options);
+
+        Assert.Collection(document.Blocks,
+            block => {
+                var paragraph = Assert.IsType<ParagraphBlock>(block);
+                Assert.Equal("Następny najlepszy krok:", paragraph.Inlines.RenderMarkdown());
+            },
+            block => {
+                var list = Assert.IsType<UnorderedListBlock>(block);
+                var item = Assert.Single(list.Items);
+                Assert.Equal("**`ad_domain_controller_facts`**", item.Content.RenderMarkdown());
+            });
+    }
+
+    [Fact]
+    public void MarkdownColonListBoundaryTransform_DoesNotSplit_CodeSpan_Content() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownColonListBoundaryTransform());
+
+        var document = MarkdownReader.Parse("Use `Next step:- **Item**` as captured text.", options);
+
+        Assert.Collection(document.Blocks,
+            block => {
+                var paragraph = Assert.IsType<ParagraphBlock>(block);
+                Assert.Equal("Use `Next step:- **Item**` as captured text.", paragraph.Inlines.RenderMarkdown());
+            });
+    }
+
+    [Fact]
     public void MarkdownListParagraphStrongArtifactTransform_Repairs_Malformed_List_Strong_Runs() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownListParagraphStrongArtifactTransform(new MarkdownInputNormalizationOptions {

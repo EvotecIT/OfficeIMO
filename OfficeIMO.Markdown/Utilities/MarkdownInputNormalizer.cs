@@ -158,6 +158,8 @@ public sealed class MarkdownInputNormalizationOptions {
     /// <summary>
     /// When true, inserts a missing newline between a colon and an immediately-following unordered list marker
     /// on the same line (for example, <c>Next step:- **Item**</c> becomes <c>Next step:\n- **Item**</c>).
+    /// <see cref="MarkdownReader"/> prefers to apply this via a document transform after parse when the markdown
+    /// already parsed into a recoverable paragraph block.
     /// Default: false.
     /// </summary>
     public bool NormalizeColonListBoundaries { get; set; } = false;
