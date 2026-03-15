@@ -192,6 +192,21 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
+    public void Reader_DoesNot_Split_CompactHeadingMarkers_Inside_CodeSpans_AfterParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeCompactHeadingBoundaries = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("Use `unexpected### Reason` as captured text.", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<code>unexpected### Reason</code>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<h3", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_Can_Normalize_StandaloneHashHeadingSeparators_AfterParsing() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {

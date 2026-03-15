@@ -102,6 +102,39 @@ Paragraph body.
     }
 
     [Fact]
+    public void MarkdownCompactHeadingBoundaryTransform_Splits_Compact_Paragraph_Heading_Boundaries() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
+
+        var document = MarkdownReader.Parse("previous shutdown was unexpected### Reason", options);
+
+        Assert.Collection(document.Blocks,
+            block => {
+                var paragraph = Assert.IsType<ParagraphBlock>(block);
+                Assert.Equal("previous shutdown was unexpected", paragraph.Inlines.RenderMarkdown());
+            },
+            block => {
+                var heading = Assert.IsType<HeadingBlock>(block);
+                Assert.Equal(3, heading.Level);
+                Assert.Equal("Reason", heading.Text);
+            });
+    }
+
+    [Fact]
+    public void MarkdownCompactHeadingBoundaryTransform_DoesNotSplit_CodeSpan_Content() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
+
+        var document = MarkdownReader.Parse("Use `unexpected### Reason` as captured text.", options);
+
+        Assert.Collection(document.Blocks,
+            block => {
+                var paragraph = Assert.IsType<ParagraphBlock>(block);
+                Assert.Equal("Use `unexpected### Reason` as captured text.", paragraph.Inlines.RenderMarkdown());
+            });
+    }
+
+    [Fact]
     public void MarkdownListParagraphStrongArtifactTransform_Repairs_Malformed_List_Strong_Runs() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownListParagraphStrongArtifactTransform(new MarkdownInputNormalizationOptions {

@@ -134,6 +134,8 @@ public sealed class MarkdownInputNormalizationOptions {
     /// <summary>
     /// When true, inserts a missing newline before compact ATX headings emitted directly after prose or symbols
     /// on the same line (for example, <c>unexpected### Reason</c> becomes <c>unexpected\n### Reason</c>).
+    /// <see cref="MarkdownReader"/> prefers to apply this via a document transform after parse when the markdown
+    /// already parsed into a recoverable paragraph block.
     /// Default: false.
     /// </summary>
     public bool NormalizeCompactHeadingBoundaries { get; set; } = false;
