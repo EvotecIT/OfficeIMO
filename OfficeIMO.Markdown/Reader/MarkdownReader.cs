@@ -349,7 +349,6 @@ public static partial class MarkdownReader {
         bool normalizeSignalFlowLabelSpacing = source?.NormalizeSignalFlowLabelSpacing ?? false;
         bool normalizeCollapsedMetricChains = source?.NormalizeCollapsedMetricChains ?? false;
         bool normalizeHostLabelBulletArtifacts = source?.NormalizeHostLabelBulletArtifacts ?? false;
-        bool normalizeCompactStrongLabelListBoundaries = source?.NormalizeCompactStrongLabelListBoundaries ?? false;
         bool normalizeBrokenTwoLineStrongLeadIns = source?.NormalizeBrokenTwoLineStrongLeadIns ?? false;
         bool normalizeCompactFenceBodyBoundaries = source?.NormalizeCompactFenceBodyBoundaries ?? false;
         bool normalizeOrderedListMarkerSpacing = source?.NormalizeOrderedListMarkerSpacing ?? false;
@@ -372,7 +371,6 @@ public static partial class MarkdownReader {
             && !normalizeSignalFlowLabelSpacing
             && !normalizeCollapsedMetricChains
             && !normalizeHostLabelBulletArtifacts
-            && !normalizeCompactStrongLabelListBoundaries
             && !normalizeBrokenTwoLineStrongLeadIns
             && !normalizeCompactFenceBodyBoundaries
             && !normalizeOrderedListMarkerSpacing
@@ -398,7 +396,6 @@ public static partial class MarkdownReader {
             NormalizeSignalFlowLabelSpacing = normalizeSignalFlowLabelSpacing,
             NormalizeCollapsedMetricChains = normalizeCollapsedMetricChains,
             NormalizeHostLabelBulletArtifacts = normalizeHostLabelBulletArtifacts,
-            NormalizeCompactStrongLabelListBoundaries = normalizeCompactStrongLabelListBoundaries,
             NormalizeBrokenTwoLineStrongLeadIns = normalizeBrokenTwoLineStrongLeadIns,
             NormalizeCompactFenceBodyBoundaries = normalizeCompactFenceBodyBoundaries,
             NormalizeOrderedListMarkerSpacing = normalizeOrderedListMarkerSpacing,
@@ -490,6 +487,7 @@ public static partial class MarkdownReader {
         bool needsCompactHeadingBoundaryTransform = normalization?.NormalizeCompactHeadingBoundaries == true;
         bool needsColonListBoundaryTransform = normalization?.NormalizeColonListBoundaries == true;
         bool needsHeadingListBoundaryTransform = normalization?.NormalizeHeadingListBoundaries == true;
+        bool needsCompactStrongLabelListBoundaryTransform = normalization?.NormalizeCompactStrongLabelListBoundaries == true;
         bool needsListStrongArtifactTransform =
             normalization?.NormalizeLooseStrongDelimiters == true
             || normalization?.NormalizeDanglingTrailingStrongListClosers == true
@@ -499,6 +497,7 @@ public static partial class MarkdownReader {
             && !needsCompactHeadingBoundaryTransform
             && !needsColonListBoundaryTransform
             && !needsHeadingListBoundaryTransform
+            && !needsCompactStrongLabelListBoundaryTransform
             && !needsListStrongArtifactTransform) {
             return options.DocumentTransforms;
         }
@@ -508,6 +507,7 @@ public static partial class MarkdownReader {
         bool hasCompactHeadingBoundaryTransform = false;
         bool hasColonListBoundaryTransform = false;
         bool hasHeadingListBoundaryTransform = false;
+        bool hasCompactStrongLabelListBoundaryTransform = false;
         bool hasListStrongArtifactTransform = false;
 
         for (var i = 0; i < configured.Count; i++) {
@@ -524,6 +524,9 @@ public static partial class MarkdownReader {
                 case MarkdownHeadingListBoundaryTransform:
                     hasHeadingListBoundaryTransform = true;
                     break;
+                case MarkdownCompactStrongLabelListBoundaryTransform:
+                    hasCompactStrongLabelListBoundaryTransform = true;
+                    break;
                 case MarkdownListParagraphStrongArtifactTransform:
                     hasListStrongArtifactTransform = true;
                     break;
@@ -534,17 +537,22 @@ public static partial class MarkdownReader {
             && (!needsCompactHeadingBoundaryTransform || hasCompactHeadingBoundaryTransform)
             && (!needsColonListBoundaryTransform || hasColonListBoundaryTransform)
             && (!needsHeadingListBoundaryTransform || hasHeadingListBoundaryTransform)
+            && (!needsCompactStrongLabelListBoundaryTransform || hasCompactStrongLabelListBoundaryTransform)
             && (!needsListStrongArtifactTransform || hasListStrongArtifactTransform)) {
             return configured;
         }
 
-        var transforms = new List<IMarkdownDocumentTransform>(configured.Count + 5);
+        var transforms = new List<IMarkdownDocumentTransform>(configured.Count + 6);
         if (needsListStrongArtifactTransform && !hasListStrongArtifactTransform) {
             transforms.Add(new MarkdownListParagraphStrongArtifactTransform(normalization!));
         }
 
         if (needsHeadingListBoundaryTransform && !hasHeadingListBoundaryTransform) {
             transforms.Add(new MarkdownHeadingListBoundaryTransform());
+        }
+
+        if (needsCompactStrongLabelListBoundaryTransform && !hasCompactStrongLabelListBoundaryTransform) {
+            transforms.Add(new MarkdownCompactStrongLabelListBoundaryTransform());
         }
 
         if (needsCompactHeadingBoundaryTransform && !hasCompactHeadingBoundaryTransform) {

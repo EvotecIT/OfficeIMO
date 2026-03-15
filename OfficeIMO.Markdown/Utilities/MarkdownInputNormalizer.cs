@@ -129,6 +129,8 @@ public sealed class MarkdownInputNormalizationOptions {
     /// When true, inserts a missing newline before compact unordered strong-label list markers
     /// that were emitted inline after punctuation or symbol characters
     /// (for example, <c>✅- **FSMO:** ok</c> becomes <c>✅\n- **FSMO:** ok</c>).
+    /// <see cref="MarkdownReader"/> prefers to apply this via a document transform after parse when the markdown
+    /// already parsed into a recoverable paragraph or simple unordered list-item structure.
     /// Default: false.
     /// </summary>
     public bool NormalizeCompactStrongLabelListBoundaries { get; set; } = false;

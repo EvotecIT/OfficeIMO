@@ -202,6 +202,33 @@ Paragraph body.
     }
 
     [Fact]
+    public void MarkdownCompactStrongLabelListBoundaryTransform_Splits_List_Items() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownCompactStrongLabelListBoundaryTransform());
+
+        var document = MarkdownReader.Parse("- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK", options);
+
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
+        Assert.Equal(2, list.Items.Count);
+        Assert.Equal("**Replication:** wcześniej zdrowa ✅", list.Items[0].Content.RenderMarkdown());
+        Assert.Equal("**FSMO:** technicznie OK", list.Items[1].Content.RenderMarkdown());
+    }
+
+    [Fact]
+    public void MarkdownCompactStrongLabelListBoundaryTransform_DoesNotSplit_CodeSpan_Content() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownCompactStrongLabelListBoundaryTransform());
+
+        var document = MarkdownReader.Parse("✅`- **FSMO:**` tail", options);
+
+        Assert.Collection(document.Blocks,
+            block => {
+                var paragraph = Assert.IsType<ParagraphBlock>(block);
+                Assert.Equal("✅`- **FSMO:**` tail", paragraph.Inlines.RenderMarkdown());
+            });
+    }
+
+    [Fact]
     public void MarkdownListParagraphStrongArtifactTransform_Repairs_Malformed_List_Strong_Runs() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownListParagraphStrongArtifactTransform(new MarkdownInputNormalizationOptions {

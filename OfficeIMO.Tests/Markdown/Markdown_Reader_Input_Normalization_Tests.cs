@@ -152,6 +152,21 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
+    public void Reader_DoesNot_Split_CompactStrongLabelMarkers_Inside_CodeSpans_AfterParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeCompactStrongLabelListBoundaries = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("✅`- **FSMO:**` tail", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<code>- **FSMO:**</code>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<li", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_DoesNot_Split_HeadingListMarkers_Inside_CodeSpans_AfterParsing() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
