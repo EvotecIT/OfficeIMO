@@ -132,6 +132,83 @@ second
     }
 
     [Fact]
+    public void MarkdownSimpleDefinitionListParagraphTransform_Expands_Simple_Definition_List_Entries() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownSimpleDefinitionListParagraphTransform());
+
+        var document = MarkdownReader.Parse("""
+Status: healthy
+Impact: none
+""", options);
+
+        var markdown = NormalizeMarkdown(document.ToMarkdown());
+        var html = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Equal(NormalizeMarkdown("""
+Status: healthy
+
+Impact: none
+"""), markdown);
+        Assert.DoesNotContain("<dl>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownSimpleDefinitionListParagraphTransform_Preserves_Complex_Definition_List_Entries() {
+        var transform = new MarkdownSimpleDefinitionListParagraphTransform();
+        var document = MarkdownDoc.Create();
+        var definitions = new DefinitionListBlock();
+        definitions.AddEntry(new DefinitionListEntry(
+            MarkdownReader.ParseInlineText("Status"),
+            new IMarkdownBlock[] { new ParagraphBlock(MarkdownReader.ParseInlineText("healthy")) }));
+        definitions.AddEntry(new DefinitionListEntry(
+            MarkdownReader.ParseInlineText("Evidence"),
+            new IMarkdownBlock[] {
+                new ParagraphBlock(MarkdownReader.ParseInlineText("See logs")),
+                new QuoteBlock(new[] { "quoted context" })
+            }));
+        document.Add(definitions);
+
+        var transformed = MarkdownDocumentTransformPipeline.Apply(
+            document,
+            [transform],
+            new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.MarkdownReader, MarkdownReaderOptions.CreateOfficeIMOProfile()));
+
+        Assert.Collection(transformed.Blocks,
+            block => {
+                var paragraph = Assert.IsType<ParagraphBlock>(block);
+                Assert.Equal("Status: healthy", paragraph.Inlines.RenderMarkdown());
+            },
+            block => {
+                var remaining = Assert.IsType<DefinitionListBlock>(block);
+                var entry = Assert.Single(remaining.Entries);
+                Assert.Equal("Evidence", entry.TermMarkdown);
+            });
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_Can_Expand_Simple_Definition_List_Entries_Via_Transform() {
+        var options = new HtmlToMarkdownOptions();
+        options.DocumentTransforms.Add(new MarkdownSimpleDefinitionListParagraphTransform());
+
+        var document = """
+<dl>
+  <dt>Status</dt><dd>healthy</dd>
+  <dt>Impact</dt><dd>none</dd>
+</dl>
+""".LoadFromHtml(options);
+
+        var markdown = NormalizeMarkdown(document.ToMarkdown());
+        var html = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Equal(NormalizeMarkdown("""
+Status: healthy
+
+Impact: none
+"""), markdown);
+        Assert.DoesNotContain("<dl>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownInlineNormalizationTransform_Is_Idempotent() {
         var transform = new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
             NormalizeTightParentheticalSpacing = true,
