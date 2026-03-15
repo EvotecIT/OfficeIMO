@@ -119,6 +119,8 @@ public sealed class MarkdownInputNormalizationOptions {
     /// When true, inserts a missing newline between an ATX heading and an immediately-following
     /// unordered strong-label list marker on the same line
     /// (for example, <c>## Summary- **Item:** value</c> becomes <c>## Summary\n- **Item:** value</c>).
+    /// <see cref="MarkdownReader"/> prefers to apply this via a document transform after parse when the markdown
+    /// already parsed into a recoverable heading block.
     /// Default: false.
     /// </summary>
     public bool NormalizeHeadingListBoundaries { get; set; } = false;

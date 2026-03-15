@@ -168,6 +168,40 @@ Paragraph body.
     }
 
     [Fact]
+    public void MarkdownHeadingListBoundaryTransform_Splits_Heading_List_Boundaries() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownHeadingListBoundaryTransform());
+
+        var document = MarkdownReader.Parse("## Summary- **Replication:** healthy", options);
+
+        Assert.Collection(document.Blocks,
+            block => {
+                var heading = Assert.IsType<HeadingBlock>(block);
+                Assert.Equal(2, heading.Level);
+                Assert.Equal("Summary", heading.Text);
+            },
+            block => {
+                var list = Assert.IsType<UnorderedListBlock>(block);
+                var item = Assert.Single(list.Items);
+                Assert.Equal("**Replication:** healthy", item.Content.RenderMarkdown());
+            });
+    }
+
+    [Fact]
+    public void MarkdownHeadingListBoundaryTransform_DoesNotSplit_CodeSpan_Content() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownHeadingListBoundaryTransform());
+
+        var document = MarkdownReader.Parse("## Summary `- **Replication:**` tail", options);
+
+        Assert.Collection(document.Blocks,
+            block => {
+                var heading = Assert.IsType<HeadingBlock>(block);
+                Assert.Equal("Summary - **Replication:** tail", heading.Text);
+            });
+    }
+
+    [Fact]
     public void MarkdownListParagraphStrongArtifactTransform_Repairs_Malformed_List_Strong_Runs() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownListParagraphStrongArtifactTransform(new MarkdownInputNormalizationOptions {

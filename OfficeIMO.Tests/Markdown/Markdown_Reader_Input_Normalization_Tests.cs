@@ -152,6 +152,22 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
+    public void Reader_DoesNot_Split_HeadingListMarkers_Inside_CodeSpans_AfterParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeHeadingListBoundaries = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("## Summary `- **Replication:**` tail", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<h2", html, StringComparison.Ordinal);
+        Assert.Contains("<code>- **Replication:**</code>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<li", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_Can_Normalize_CollapsedOrderedListTranscriptArtifacts_BeforeParsing() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
