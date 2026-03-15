@@ -232,6 +232,26 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Table_Cells_Can_Parse_Callout_Block_Content() {
+            string md = """
+| Notes |
+| --- |
+| > [!NOTE] Important<br>> Body |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            var callout = Assert.IsType<CalloutBlock>(Assert.Single(table.RowCells[0][0].Blocks));
+            Assert.Equal("note", callout.Kind);
+            Assert.Equal("Important", callout.TitleInlines.RenderMarkdown());
+            Assert.Equal("Body", Assert.IsType<ParagraphBlock>(Assert.Single(callout.ChildBlocks)).Inlines.RenderMarkdown());
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("class=\"callout note\"", html, StringComparison.Ordinal);
+            Assert.Contains("<strong>Important</strong>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Table_Cells_Do_Not_Promote_Details_With_RawHtml_Children_To_Structured_Blocks() {
             string md = """
 | Notes |

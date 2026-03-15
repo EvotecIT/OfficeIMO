@@ -264,6 +264,44 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_Recovers_Rendered_Callout_Block() {
+        string html = "<blockquote class=\"callout note\"><p><strong>Important</strong></p><p>Body</p><ul><li>Nested</li></ul></blockquote>";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var callout = Assert.IsType<CalloutBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("note", callout.Kind);
+        Assert.Equal("Important", callout.TitleInlines.RenderMarkdown());
+        Assert.Collection(callout.ChildBlocks,
+            block => Assert.Equal("Body", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+            block => Assert.IsType<UnorderedListBlock>(block));
+
+        string markdown = document.ToMarkdown();
+        Assert.Contains("> [!NOTE] Important", markdown, StringComparison.Ordinal);
+        Assert.Contains("> Body", markdown, StringComparison.Ordinal);
+        Assert.Contains("> - Nested", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_Recovers_Rendered_Callout_Block_Inside_Table_Cell() {
+        string html = "<table><tr><th>Section</th><th>Notes</th></tr><tr><td>Alpha</td><td><blockquote class=\"callout warning\"><p><strong>Watch</strong></p><p>Body</p></blockquote></td></tr></table>";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        var callout = Assert.IsType<CalloutBlock>(Assert.Single(table.RowCells[0][1].Blocks));
+        Assert.Equal("warning", callout.Kind);
+        Assert.Equal("Watch", callout.TitleInlines.RenderMarkdown());
+        Assert.Equal("Body", Assert.IsType<ParagraphBlock>(Assert.Single(callout.ChildBlocks)).Inlines.RenderMarkdown());
+
+        string markdown = document.ToMarkdown();
+        Assert.Contains("[!WARNING] Watch", markdown, StringComparison.Ordinal);
+
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("class=\"callout warning\"", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_PreservesMixedListItemBlockOrder() {
         string html = "<ul><li><p>Alpha</p><blockquote><p>Quoted</p></blockquote><p>Omega</p></li></ul>";
 
