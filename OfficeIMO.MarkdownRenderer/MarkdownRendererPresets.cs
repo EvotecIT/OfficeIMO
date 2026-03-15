@@ -36,6 +36,7 @@ public static class MarkdownRendererPresets {
         options.NormalizeTightStrongBoundaries = true;
         options.NormalizeTightArrowStrongBoundaries = true;
         options.NormalizeBrokenStrongArrowLabels = true;
+        options.NormalizeSignalFlowLabelSpacing = true;
         options.NormalizeTightColonSpacing = true;
         options.NormalizeHeadingListBoundaries = true;
         options.NormalizeCompactStrongLabelListBoundaries = true;
@@ -81,10 +82,17 @@ public static class MarkdownRendererPresets {
         }
     }
 
-    private static void ApplyChatTranscriptNormalizationDefaults(MarkdownRendererOptions options) {
+    private static void ApplyIntelligenceXTranscriptNormalizationDefaults(MarkdownRendererOptions options) {
+        options.NormalizeZeroWidthSpacingArtifacts = true;
+        options.NormalizeEmojiWordJoins = true;
+        options.NormalizeCompactNumberedChoiceBoundaries = true;
+        options.NormalizeSentenceCollapsedBullets = true;
         options.NormalizeWrappedSignalFlowStrongRuns = true;
+        options.NormalizeSignalFlowLabelSpacing = true;
         options.NormalizeCollapsedMetricChains = true;
         options.NormalizeHostLabelBulletArtifacts = true;
+        options.NormalizeCollapsedOrderedListBoundaries = true;
+        options.NormalizeOrderedListStrongDetailClosures = true;
         options.NormalizeStandaloneHashHeadingSeparators = true;
         options.NormalizeBrokenTwoLineStrongLeadIns = true;
         options.NormalizeDanglingTrailingStrongListClosers = true;
@@ -199,73 +207,90 @@ public static class MarkdownRendererPresets {
     }
 
     /// <summary>
-    /// Strict preset for untrusted chat messages.
-    /// - Disables HTML parsing (blocks + inline)
-    /// - Strips any raw HTML blocks
-    /// - Restricts URL schemes and blocks file/data/protocol-relative URLs
-    /// - Blocks external HTTP(S) images unless same-origin with BaseHref/BaseUri
+    /// Strict preset for the explicit IntelligenceX transcript rendering contract.
+    /// This is the preferred first-class name for the OfficeIMO-hosted IX transcript surface.
     /// </summary>
-    public static MarkdownRendererOptions CreateChatStrict(string? baseHref = null) {
-        return CreateChatStrict(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
+    public static MarkdownRendererOptions CreateIntelligenceXTranscript(string? baseHref = null) {
+        return CreateIntelligenceXTranscript(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
     }
 
     /// <summary>
-    /// Strict preset for untrusted chat messages using an explicit reader profile.
+    /// Strict preset for the explicit IntelligenceX transcript rendering contract using an explicit reader profile.
     /// </summary>
-    public static MarkdownRendererOptions CreateChatStrict(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
+    public static MarkdownRendererOptions CreateIntelligenceXTranscript(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
         var options = CreateStrict(readerProfile, baseHref);
-        ApplyChatTranscriptNormalizationDefaults(options);
+        ApplyIntelligenceXTranscriptNormalizationDefaults(options);
         ApplyChatPresentation(options, enableCopyButtons: true);
         MarkdownRendererIntelligenceXAdapter.Apply(options);
         return options;
     }
 
     /// <summary>
-    /// Strict preset for untrusted chat messages, but with the portable reader profile enabled.
-    /// This disables OfficeIMO-only literal autolinks, callouts, and task-list parsing while keeping the same chat security defaults.
+    /// Strict preset for the explicit IntelligenceX transcript contract with the portable reader profile enabled.
+    /// This disables OfficeIMO-only literal autolinks, callouts, and task-list parsing while keeping the same transcript security defaults.
     /// </summary>
-    public static MarkdownRendererOptions CreateChatStrictPortable(string? baseHref = null) =>
-        CreateChatStrict(MarkdownReaderOptions.MarkdownDialectProfile.Portable, baseHref);
+    public static MarkdownRendererOptions CreateIntelligenceXTranscriptPortable(string? baseHref = null) =>
+        CreateIntelligenceXTranscript(MarkdownReaderOptions.MarkdownDialectProfile.Portable, baseHref);
 
     /// <summary>
-    /// Strict preset for untrusted chat messages, with optional client-side renderers disabled.
-    /// This disables Mermaid/Chart/Math/Prism and the copy-button UX helpers to minimize script usage in the shell.
+    /// Strict minimal preset for the explicit IntelligenceX transcript rendering contract.
+    /// This keeps the IX transcript semantics while minimizing client-side shell features by default.
     /// </summary>
-    public static MarkdownRendererOptions CreateChatStrictMinimal(string? baseHref = null) {
-        return CreateChatStrictMinimal(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
+    public static MarkdownRendererOptions CreateIntelligenceXTranscriptMinimal(string? baseHref = null) {
+        return CreateIntelligenceXTranscriptMinimal(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
     }
 
     /// <summary>
-    /// Strict minimal preset for untrusted chat messages using an explicit reader profile.
+    /// Strict minimal preset for the explicit IntelligenceX transcript rendering contract using an explicit reader profile.
     /// </summary>
-    public static MarkdownRendererOptions CreateChatStrictMinimal(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
+    public static MarkdownRendererOptions CreateIntelligenceXTranscriptMinimal(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
         var options = CreateStrictMinimal(readerProfile, baseHref);
-        ApplyChatTranscriptNormalizationDefaults(options);
+        ApplyIntelligenceXTranscriptNormalizationDefaults(options);
         ApplyChatPresentation(options, enableCopyButtons: false);
         MarkdownRendererIntelligenceXAdapter.Apply(options);
         return options;
     }
 
     /// <summary>
-    /// Strict minimal preset for untrusted chat messages, with the portable reader profile enabled.
+    /// Strict minimal preset for the explicit IntelligenceX transcript contract with the portable reader profile enabled.
     /// This combines the minimal shell-friendly renderer defaults with the stricter reader preset used for portability-sensitive hosts.
     /// </summary>
-    public static MarkdownRendererOptions CreateChatStrictMinimalPortable(string? baseHref = null) =>
-        CreateChatStrictMinimal(MarkdownReaderOptions.MarkdownDialectProfile.Portable, baseHref);
+    public static MarkdownRendererOptions CreateIntelligenceXTranscriptMinimalPortable(string? baseHref = null) =>
+        CreateIntelligenceXTranscriptMinimal(MarkdownReaderOptions.MarkdownDialectProfile.Portable, baseHref);
 
     /// <summary>
-    /// Relaxed preset for trusted/controlled content rendered in a WebView.
-    /// - Allows HTML parsing but sanitizes raw HTML blocks (very conservative allowlist)
-    /// - Allows external HTTP(S) images (unless further restricted via host/origin allowlists)
+    /// Strict desktop-shell preset for the explicit IntelligenceX transcript contract.
+    /// This keeps the minimal chat-shell defaults while enabling the interactive visual surface
+    /// required by the IntelligenceX desktop host.
     /// </summary>
-    public static MarkdownRendererOptions CreateChatRelaxed(string? baseHref = null) {
-        return CreateChatRelaxed(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
+    public static MarkdownRendererOptions CreateIntelligenceXTranscriptDesktopShell(string? baseHref = null) {
+        return CreateIntelligenceXTranscriptDesktopShell(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
     }
 
     /// <summary>
-    /// Relaxed preset for trusted/controlled chat content using an explicit reader profile.
+    /// Strict desktop-shell preset for the explicit IntelligenceX transcript contract using an explicit reader profile.
     /// </summary>
-    public static MarkdownRendererOptions CreateChatRelaxed(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
+    public static MarkdownRendererOptions CreateIntelligenceXTranscriptDesktopShell(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
+        var options = CreateIntelligenceXTranscriptMinimal(readerProfile, baseHref);
+        options.Mermaid.Enabled = true;
+        options.Chart.Enabled = true;
+        options.Network.Enabled = true;
+        return options;
+    }
+
+    /// <summary>
+    /// Relaxed preset for trusted or controlled transcript content rendered in a WebView.
+    /// - Allows HTML parsing but sanitizes raw HTML blocks (very conservative allowlist)
+    /// - Allows external HTTP(S) images (unless further restricted via host/origin allowlists)
+    /// </summary>
+    public static MarkdownRendererOptions CreateIntelligenceXTranscriptRelaxed(string? baseHref = null) {
+        return CreateIntelligenceXTranscriptRelaxed(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO, baseHref);
+    }
+
+    /// <summary>
+    /// Relaxed preset for trusted or controlled IntelligenceX transcript content using an explicit reader profile.
+    /// </summary>
+    public static MarkdownRendererOptions CreateIntelligenceXTranscriptRelaxed(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
         var options = CreateRelaxed(readerProfile, baseHref);
         ApplyChatPresentation(options, enableCopyButtons: true);
         MarkdownRendererIntelligenceXAdapter.Apply(options);

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using OfficeIMO.Markdown;
 using OfficeIMO.Word.Markdown;
 using Xunit;
 
@@ -88,6 +89,52 @@ namespace OfficeIMO.Tests {
             Assert.Contains("[!NOTE]", commonMarkText, StringComparison.Ordinal);
             Assert.Contains("Portable title", commonMarkText, StringComparison.Ordinal);
             Assert.Contains("Still ordinary quoted text.", commonMarkText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void MarkdownToWordPreset_IntelligenceXTranscript_ConfiguresTypedTranscriptDefaults() {
+            var options = MarkdownToWordPresets.CreateIntelligenceXTranscript(
+                ["C:\\allowed-a", "", "C:\\allowed-a", "C:\\allowed-b"],
+                2500);
+
+            Assert.Equal("Calibri", options.FontFamily);
+            Assert.True(options.AllowLocalImages);
+            Assert.True(options.PreferNarrativeSingleLineDefinitions);
+            Assert.True(options.FitImagesToPageContentWidth);
+            Assert.False(options.FitImagesToContextWidth);
+            Assert.Equal(100d, options.MaxImageWidthPercentOfContent);
+            Assert.Equal(2000, options.MaxImageWidthPixels);
+            Assert.Equal(2, options.AllowedImageDirectories.Count);
+            Assert.Contains("C:\\allowed-a", options.AllowedImageDirectories);
+            Assert.Contains("C:\\allowed-b", options.AllowedImageDirectories);
+            Assert.NotNull(options.ReaderOptions);
+            Assert.IsType<MarkdownReaderOptions>(options.ReaderOptions);
+            Assert.True(options.ReaderOptions!.PreferNarrativeSingleLineDefinitions);
+            Assert.True(options.ReaderOptions.Callouts);
+            Assert.True(options.ReaderOptions.DefinitionLists);
+            Assert.NotNull(options.ReaderOptions.InputNormalization);
+        }
+
+        [Fact]
+        public void MarkdownToWordCapabilities_DetectNarrativeSingleLineDefinitionSupport() {
+            const string markdown = """
+                Status: healthy
+                Impact: none
+                """;
+
+            using var document = markdown.LoadFromMarkdown(
+                MarkdownToWordPresets.CreateIntelligenceXTranscript());
+            var bodyParagraphs = document.Paragraphs
+                .Select(p => string.Concat(p.GetRuns().Select(run => run.Text)))
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .ToList();
+
+            var actualSupport = bodyParagraphs.Contains("Status: healthy", StringComparer.Ordinal)
+                                && bodyParagraphs.Contains("Impact: none", StringComparer.Ordinal);
+
+            Assert.Equal(
+                actualSupport,
+                MarkdownToWordCapabilities.PreservesNarrativeSingleLineDefinitionsAsSeparateParagraphs());
         }
     }
 }

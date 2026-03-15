@@ -33,6 +33,21 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
+    public void Reader_Can_Normalize_EmojiWordJoins_And_ZeroWidthSpacing_BeforeParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeZeroWidthSpacingArtifacts = true,
+                NormalizeEmojiWordJoins = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("✅Healthy Item\u200BOne", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("✅ Healthy ItemOne", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_Can_Normalize_EscapedInlineCode_Via_Ast() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
@@ -103,6 +118,21 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
+    public void Reader_Can_Normalize_SignalFlowLabelSpacing_BeforeParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeSignalFlowLabelSpacing = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("- Signal -> Why it matters:missing coverage -> Next action:review defaults", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("Why it matters: missing coverage", html, StringComparison.Ordinal);
+        Assert.Contains("Next action: review defaults", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_Can_Normalize_CompactHeadingAndStrongLabelListBoundaries_BeforeParsing() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {
@@ -119,6 +149,30 @@ public class Markdown_Reader_Input_Normalization_Tests {
         Assert.Equal(2, Count(html, "<li"));
         Assert.Contains("<strong>Replication:</strong>", html, StringComparison.Ordinal);
         Assert.Contains("<strong>FSMO:</strong>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reader_Can_Normalize_CollapsedOrderedListTranscriptArtifacts_BeforeParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeOrderedListParenMarkers = true,
+                NormalizeOrderedListMarkerSpacing = true,
+                NormalizeOrderedListCaretArtifacts = true,
+                NormalizeCollapsedOrderedListBoundaries = true,
+                NormalizeOrderedListStrongDetailClosures = true,
+                NormalizeLooseStrongDelimiters = true,
+                NormalizeTightParentheticalSpacing = true
+            }
+        };
+
+        var html = MarkdownReader.Parse(
+                "1) **Privilege hygiene sweep(Domain Admins + other privileged groups, nested exposure) 2)** Delegation risk audit**(unconstrained / constrained / protocol transition)",
+                options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Equal(2, Count(html, "<li"));
+        Assert.Contains("<strong>Privilege hygiene sweep</strong> (Domain Admins + other privileged groups, nested exposure)", html, StringComparison.Ordinal);
+        Assert.Contains("<strong>Delegation risk audit</strong> (unconstrained / constrained / protocol transition)", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -341,9 +395,24 @@ Status **Healthy**next
     }
 
     [Fact]
-    public void Reader_Can_Apply_ChatStrict_Preset_EndToEnd() {
+    public void Reader_Can_Normalize_NestedStrongDelimiters_InsideLabeledBullets() {
         var options = new MarkdownReaderOptions {
-            InputNormalization = MarkdownInputNormalizationPresets.CreateChatStrict()
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeNestedStrongDelimiters = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("- Why it matters **Current comparison used **System** log only.**", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("Why it matters <strong>Current comparison used System log only.</strong>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("used **System** log only.**", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reader_Can_Apply_IntelligenceXTranscriptStrict_Preset_EndToEnd() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscriptStrict()
         };
 
         var markdown = """

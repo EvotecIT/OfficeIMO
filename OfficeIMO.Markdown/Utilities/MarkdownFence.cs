@@ -1,6 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 using System;
+using System.Text;
 
 /// <summary>
 /// Helpers for reading markdown fenced-code boundaries and choosing non-colliding fences.
@@ -99,6 +100,79 @@ public static class MarkdownFence {
     }
 
     /// <summary>
+    /// Applies a text transformation only to segments outside fenced code blocks while preserving
+    /// container-aware fence boundaries such as blockquoted or indented fences.
+    /// </summary>
+    /// <param name="input">Markdown text to transform.</param>
+    /// <param name="transformer">Transform to apply outside fenced code blocks.</param>
+    /// <returns>Transformed markdown with fenced content preserved verbatim.</returns>
+    public static string ApplyTransformOutsideFencedCodeBlocks(string? input, Func<string, string> transformer) {
+        if (transformer == null) {
+            throw new ArgumentNullException(nameof(transformer));
+        }
+
+        if (string.IsNullOrEmpty(input)) {
+            return input ?? string.Empty;
+        }
+
+        var value = input!;
+        var output = new StringBuilder(value.Length);
+        var outsideSegment = new StringBuilder();
+        var inFence = false;
+        var fenceMarker = '\0';
+        var fenceRunLength = 0;
+
+        var index = 0;
+        while (index < value.Length) {
+            var lineStart = index;
+            while (index < value.Length && value[index] != '\r' && value[index] != '\n') {
+                index++;
+            }
+
+            var lineEnd = index;
+            if (index < value.Length && value[index] == '\r') {
+                index++;
+                if (index < value.Length && value[index] == '\n') {
+                    index++;
+                }
+            } else if (index < value.Length && value[index] == '\n') {
+                index++;
+            }
+
+            var line = value.Substring(lineStart, lineEnd - lineStart);
+            var lineWithNewline = value.Substring(lineStart, index - lineStart);
+
+            if (TryReadContainerAwareFenceRun(line, out _, out var runMarker, out var runLength, out var runSuffix)) {
+                if (!inFence) {
+                    FlushTransformedOutsideSegment(output, outsideSegment, transformer);
+                    inFence = true;
+                    fenceMarker = runMarker;
+                    fenceRunLength = runLength;
+                    output.Append(lineWithNewline);
+                    continue;
+                }
+
+                if (runMarker == fenceMarker && runLength >= fenceRunLength && string.IsNullOrWhiteSpace(runSuffix)) {
+                    inFence = false;
+                    fenceMarker = '\0';
+                    fenceRunLength = 0;
+                    output.Append(lineWithNewline);
+                    continue;
+                }
+            }
+
+            if (inFence) {
+                output.Append(lineWithNewline);
+            } else {
+                outsideSegment.Append(lineWithNewline);
+            }
+        }
+
+        FlushTransformedOutsideSegment(output, outsideSegment, transformer);
+        return output.ToString();
+    }
+
+    /// <summary>
     /// Returns the longest contiguous run of <paramref name="marker"/> within <paramref name="text"/>.
     /// </summary>
     public static int LongestRun(string? text, char marker) {
@@ -149,5 +223,14 @@ public static class MarkdownFence {
         }
 
         return index;
+    }
+
+    private static void FlushTransformedOutsideSegment(StringBuilder output, StringBuilder outsideSegment, Func<string, string> transformer) {
+        if (outsideSegment.Length == 0) {
+            return;
+        }
+
+        output.Append(transformer(outsideSegment.ToString()));
+        outsideSegment.Clear();
     }
 }

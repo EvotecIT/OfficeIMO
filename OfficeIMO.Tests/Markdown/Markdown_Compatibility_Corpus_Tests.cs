@@ -44,7 +44,7 @@ public class Markdown_Compatibility_Corpus_Tests {
         generic.Chart.Enabled = true;
         generic.Network.Enabled = true;
 
-        var ix = MarkdownRendererPresets.CreateChatStrictMinimal();
+        var ix = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
         ix.Chart.Enabled = true;
         ix.Network.Enabled = true;
 
@@ -96,6 +96,53 @@ public class Markdown_Compatibility_Corpus_Tests {
         Assert.Contains("Second paragraph", portableMarkdown, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Compatibility_Fixture_Ix_ExportedTranscriptVisualPack_Preserves_Semantic_Block_Recovery() {
+        string markdown = LoadCompatibilityFixture("ix-exported-transcript-visual-pack.md");
+
+        var ix = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
+        ix.Chart.Enabled = true;
+        ix.Network.Enabled = true;
+        ix.Mermaid.Enabled = true;
+
+        string html = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, ix);
+        MarkdownDoc document = html.LoadFromHtml();
+
+        Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:30: 13)");
+        Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:36: 24)");
+        Assert.True(document.Blocks.OfType<TableBlock>().Count() >= 1);
+        Assert.True(document.Blocks.OfType<OrderedListBlock>().Count() >= 1);
+
+        var semanticBlocks = document.Blocks.OfType<SemanticFencedBlock>().ToList();
+        Assert.Equal(5, semanticBlocks.Count(block => block.Language == "ix-chart"));
+        Assert.Equal(2, semanticBlocks.Count(block => block.Language == "mermaid"));
+        Assert.Contains(semanticBlocks, block => block.Content.Contains("\"label\": \"Broken\"", StringComparison.Ordinal));
+        Assert.Contains("## Proactive checks", document.ToMarkdown(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Compatibility_Fixture_Ix_ExportedTranscriptChartSuite_Preserves_ChartHeavy_Transcript_Recovery() {
+        string markdown = LoadCompatibilityFixture("ix-exported-transcript-chart-suite.md");
+
+        var ix = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
+        ix.Chart.Enabled = true;
+        ix.Mermaid.Enabled = true;
+
+        string html = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, ix);
+        MarkdownDoc document = html.LoadFromHtml();
+
+        Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:36: 24)");
+        Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:37: 49)");
+        Assert.True(document.Blocks.OfType<TableBlock>().Count() >= 1);
+
+        var semanticBlocks = document.Blocks.OfType<SemanticFencedBlock>().ToList();
+        Assert.Equal(4, semanticBlocks.Count(block => block.Language == "ix-chart"));
+        Assert.Equal(1, semanticBlocks.Count(block => block.Language == "mermaid"));
+        Assert.Contains(semanticBlocks, block => block.Content.Contains("\"label\": \"Critical\"", StringComparison.Ordinal));
+        Assert.Contains(semanticBlocks, block => block.Content.Contains("\"label\": \"Privileged Changes\"", StringComparison.Ordinal));
+        Assert.Contains("Risk distribution", document.ToMarkdown(), StringComparison.Ordinal);
+    }
+
     private static HtmlOptions CreatePlainHtmlOptions() {
         return new HtmlOptions {
             Style = HtmlStyle.Plain,
@@ -116,3 +163,4 @@ public class Markdown_Compatibility_Corpus_Tests {
         return File.ReadAllText(path);
     }
 }
+

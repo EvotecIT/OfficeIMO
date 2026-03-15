@@ -34,7 +34,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
         generic.Chart.Enabled = true;
         generic.Network.Enabled = true;
 
-        var ix = MarkdownRendererPresets.CreateChatStrictMinimal();
+        var ix = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
         ix.Chart.Enabled = true;
         ix.Network.Enabled = true;
 
@@ -50,7 +50,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
         string markdown = LoadCompatibilityFixture("ix-transcript.md");
 
         var strict = MarkdownRendererPresets.CreateStrictMinimal();
-        var chat = MarkdownRendererPresets.CreateChatStrictMinimal();
+        var chat = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
 
         var sb = new StringBuilder();
         AppendSection(sb, "strict.html", NormalizeHtml(OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, strict)));
@@ -64,7 +64,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
         string markdown = LoadCompatibilityFixture("ix-source-derived-signal-flow.md");
 
         var strict = MarkdownRendererPresets.CreateStrictMinimal();
-        var chat = MarkdownRendererPresets.CreateChatStrictMinimal();
+        var chat = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
 
         var sb = new StringBuilder();
         AppendSection(sb, "strict.html", NormalizeHtml(OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, strict)));
@@ -78,7 +78,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
         string markdown = LoadCompatibilityFixture("ix-source-derived-historical-replication.md");
 
         var strict = MarkdownRendererPresets.CreateStrictMinimal();
-        var chat = MarkdownRendererPresets.CreateChatStrictMinimal();
+        var chat = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
 
         var sb = new StringBuilder();
         AppendSection(sb, "strict.html", NormalizeHtml(OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, strict)));
@@ -92,7 +92,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
         string markdown = LoadCompatibilityFixture("ix-source-derived-collapsed-metrics.md");
 
         var strict = MarkdownRendererPresets.CreateStrictMinimal();
-        var chat = MarkdownRendererPresets.CreateChatStrictMinimal();
+        var chat = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
 
         var sb = new StringBuilder();
         AppendSection(sb, "strict.html", NormalizeHtml(OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, strict)));
@@ -106,7 +106,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
         string markdown = LoadCompatibilityFixture("ix-source-derived-host-label-bullets.md");
 
         var strict = MarkdownRendererPresets.CreateStrictMinimal();
-        var chat = MarkdownRendererPresets.CreateChatStrictMinimal();
+        var chat = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
 
         var sb = new StringBuilder();
         AppendSection(sb, "strict.html", NormalizeHtml(OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, strict)));
@@ -120,7 +120,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
         string markdown = LoadCompatibilityFixture("ix-source-derived-legacy-tool-heading.md");
 
         var strict = MarkdownRendererPresets.CreateStrictMinimal();
-        var chat = MarkdownRendererPresets.CreateChatStrictMinimal();
+        var chat = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
 
         var sb = new StringBuilder();
         AppendSection(sb, "strict.html", NormalizeHtml(OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, strict)));
@@ -134,7 +134,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
         string markdown = LoadCompatibilityFixture("ix-source-derived-broken-result.md");
 
         var strict = MarkdownRendererPresets.CreateStrictMinimal();
-        var chat = MarkdownRendererPresets.CreateChatStrictMinimal();
+        var chat = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
 
         var sb = new StringBuilder();
         AppendSection(sb, "strict.html", NormalizeHtml(OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, strict)));
@@ -150,7 +150,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
         var strict = MarkdownRendererPresets.CreateStrict();
         strict.Network.Enabled = true;
 
-        var chat = MarkdownRendererPresets.CreateChatStrict();
+        var chat = MarkdownRendererPresets.CreateIntelligenceXTranscript();
         chat.Network.Enabled = true;
 
         var sb = new StringBuilder();
@@ -167,7 +167,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
         var strict = MarkdownRendererPresets.CreateStrict();
         strict.Chart.Enabled = true;
 
-        var chat = MarkdownRendererPresets.CreateChatStrict();
+        var chat = MarkdownRendererPresets.CreateIntelligenceXTranscript();
         chat.Chart.Enabled = true;
 
         var sb = new StringBuilder();
@@ -193,6 +193,43 @@ public sealed class Markdown_Golden_Fixture_Tests {
         AppendSection(sb, "rendered.html", NormalizeHtml(renderedHtml));
 
         AssertGolden("html-rich-ast", sb.ToString().TrimEnd());
+    }
+
+    [Fact]
+    public void MarkdownGolden_IxExportedTranscriptVisualPackRoundTrip() {
+        string markdown = LoadCompatibilityFixture("ix-exported-transcript-visual-pack.md");
+        var ix = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
+        ix.Chart.Enabled = true;
+        ix.Network.Enabled = true;
+        ix.Mermaid.Enabled = true;
+
+        string html = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, ix);
+        MarkdownDoc document = html.LoadFromHtml();
+
+        var sb = new StringBuilder();
+        AppendSection(sb, "ix.html", NormalizeHtml(html));
+        AppendSection(sb, "recovered.ast", BuildDocumentSummary(document));
+        AppendSection(sb, "roundtrip.markdown", NormalizeText(document.ToMarkdown()));
+
+        AssertGolden("ix-exported-transcript-visual-pack", sb.ToString().TrimEnd());
+    }
+
+    [Fact]
+    public void MarkdownGolden_IxExportedTranscriptChartSuiteRoundTrip() {
+        string markdown = LoadCompatibilityFixture("ix-exported-transcript-chart-suite.md");
+        var ix = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
+        ix.Chart.Enabled = true;
+        ix.Mermaid.Enabled = true;
+
+        string html = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, ix);
+        MarkdownDoc document = html.LoadFromHtml();
+
+        var sb = new StringBuilder();
+        AppendSection(sb, "ix.html", NormalizeHtml(html));
+        AppendSection(sb, "recovered.ast", BuildDocumentSummary(document));
+        AppendSection(sb, "roundtrip.markdown", NormalizeText(document.ToMarkdown()));
+
+        AssertGolden("ix-exported-transcript-chart-suite", sb.ToString().TrimEnd());
     }
 
     private static HtmlOptions CreatePlainHtmlOptions() {
@@ -449,3 +486,4 @@ public sealed class Markdown_Golden_Fixture_Tests {
         throw new DirectoryNotFoundException("Could not locate OfficeIMO.Tests project root from test runtime base directory.");
     }
 }
+

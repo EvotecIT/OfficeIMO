@@ -227,17 +227,38 @@ In other words: ingest with one profile, then emit markdown or HTML with a diffe
 
 ```csharp
 var parsed = MarkdownReader.Parse(markdown, new MarkdownReaderOptions {
-    InputNormalization = MarkdownInputNormalizationPresets.CreateChatTranscript()
+    InputNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscript()
 });
 
-var strictChat = MarkdownReader.Parse(markdown, new MarkdownReaderOptions {
-    InputNormalization = MarkdownInputNormalizationPresets.CreateChatStrict()
+var strictTranscript = MarkdownReader.Parse(markdown, new MarkdownReaderOptions {
+    InputNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscriptStrict()
 });
 
 var docs = MarkdownReader.Parse(markdown, new MarkdownReaderOptions {
     InputNormalization = MarkdownInputNormalizationPresets.CreateDocsLoose()
 });
 ```
+
+Use `CreateIntelligenceXTranscript()` when the caller is intentionally ingesting IX-style transcript markdown. Use `CreateIntelligenceXTranscriptStrict()` when you need the broader repair profile for aggressively malformed transcript content.
+
+### Streaming preview normalization for partial transcript deltas
+
+```csharp
+var preview = MarkdownStreamingPreviewNormalizer.NormalizeIntelligenceXTranscript(markdownDelta);
+```
+
+Use `NormalizeIntelligenceXTranscript(...)` when a host needs conservative cleanup for in-progress IX transcript output. This path keeps partial markdown reshaping minimal, but escalates known signal-flow and malformed-strong artifacts through the explicit `IntelligenceXTranscript` input-normalization contract.
+
+### Explicit transcript preparation for export and DOCX hosts
+
+```csharp
+var body = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptBody(markdown);
+var withoutMarkers = MarkdownTranscriptTransportMarkers.StripIntelligenceXCachedEvidenceTransportMarkers(markdown);
+var export = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForExport(withoutMarkers);
+var docx = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForDocx(markdown, preservesGroupedDefinitionLikeParagraphs: false);
+```
+
+Use `MarkdownTranscriptPreparation` when a host wants the explicit IX transcript prep contract as a visible composition point instead of manually chaining normalization, ordered-list repair, blank-line collapse, and DOCX definition-line compatibility helpers. Use `MarkdownTranscriptTransportMarkers.StripIntelligenceXCachedEvidenceTransportMarkers(...)` when the host is preparing IX transcript content for markdown export and needs that explicit transport cleanup before calling `PrepareIntelligenceXTranscriptForExport(...)`.
 
 ### HTML fragments and full documents
 
@@ -281,7 +302,7 @@ Use `ToHtmlParts(...)` and `HtmlAssetMerger.Build(...)` when a host wants to own
 - HTML rendering: fragment or full document, built-in themes, inline/external/link CSS delivery, CDN/offline asset handling, and portable output fallbacks
 - Host integration: HTML parts/assets model for advanced embedding and shell assembly
 - Table helpers: generate tables from objects or sequences, per-column alignment, renames, transforms, and formatters
-- Chat/docs ingestion: named input-normalization presets for transcript, strict chat, and docs cleanup workflows
+- Chat/docs ingestion: named input-normalization presets for explicit IX transcript cleanup, strict chat repair, and docs cleanup workflows
 - Deterministic output: stable markdown and HTML generation for snapshotting, diffs, and downstream export flows
 
 ## Detailed Feature Matrix

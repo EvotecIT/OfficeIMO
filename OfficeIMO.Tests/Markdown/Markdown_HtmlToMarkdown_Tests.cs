@@ -3,6 +3,7 @@ using OfficeIMO.Markdown.Html;
 using OfficeIMO.MarkdownRenderer;
 using Xunit;
 using MarkdownRendererShell = OfficeIMO.MarkdownRenderer.MarkdownRenderer;
+using System.IO;
 
 namespace OfficeIMO.Tests;
 
@@ -403,7 +404,270 @@ public sealed class MarkdownHtmlToMarkdownTests {
             NormalizeMarkdown(document.ToMarkdown()));
     }
 
+    [Fact]
+    public void HtmlToMarkdown_RoundTrips_RenderedIxNetworkHtml_BackToSemanticFence() {
+        const string raw = """
+{"nodes":[{"id":"A","label":"User"},{"id":"B","label":"Group"}],"edges":[{"from":"A","to":"B","label":"memberOf"}]}
+""";
+        var options = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
+        options.Network.Enabled = true;
+        string html = MarkdownRendererShell.RenderBodyHtml("```ix-network\n" + raw + "\n```", options);
+
+        MarkdownDoc document = html.LoadFromHtml();
+
+        var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
+        Assert.Equal(MarkdownSemanticKinds.Network, block.SemanticKind);
+        Assert.Equal("ix-network", block.Language);
+        Assert.Equal(raw, block.Content);
+        Assert.Equal(
+            NormalizeMarkdown("```ix-network\n" + raw + "\n```"),
+            NormalizeMarkdown(document.ToMarkdown()));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_RoundTrips_RenderedMermaidHtml_BackToSemanticFence() {
+        const string raw = """
+flowchart LR
+A[Markdown Input] --> B{Parser OK?}
+B --> C[Render Mermaid]
+""";
+        var options = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
+        options.Mermaid.Enabled = true;
+        string html = MarkdownRendererShell.RenderBodyHtml("```mermaid\n" + raw + "\n```", options);
+
+        MarkdownDoc document = html.LoadFromHtml();
+
+        var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
+        Assert.Equal(MarkdownSemanticKinds.Mermaid, block.SemanticKind);
+        Assert.Equal("mermaid", block.Language);
+        Assert.Equal(raw, block.Content);
+        Assert.Equal(
+            NormalizeMarkdown("```mermaid\n" + raw + "\n```"),
+            NormalizeMarkdown(document.ToMarkdown()));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_RoundTrips_RenderedMathHtml_BackToSemanticFence() {
+        const string raw = """
+\sum_{i=1}^{n} x_i^2
+""";
+        var options = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
+        options.Math.Enabled = true;
+        string html = MarkdownRendererShell.RenderBodyHtml("```math\n" + raw + "\n```", options);
+
+        MarkdownDoc document = html.LoadFromHtml();
+
+        var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
+        Assert.Equal(MarkdownSemanticKinds.Math, block.SemanticKind);
+        Assert.Equal("math", block.Language);
+        Assert.Equal(raw, block.Content);
+        Assert.Equal(
+            NormalizeMarkdown("```math\n" + raw + "\n```"),
+            NormalizeMarkdown(document.ToMarkdown()));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_RoundTrips_MixedTranscriptFragment_WithVisuals_AndStructuredBlocks() {
+        const string markdown = """
+# Transcript Sample
+
+## Proactive checks
+
+| Check | Expected |
+|---|---|
+| Fence integrity | Visuals render |
+
+```ix-chart
+{"type":"bar","data":{"labels":["A"],"datasets":[{"label":"Count","data":[1]}]}}
+```
+
+```ix-network
+{"nodes":[{"id":"A","label":"User"},{"id":"B","label":"Group"}],"edges":[{"from":"A","to":"B","label":"memberOf"}]}
+```
+
+```mermaid
+flowchart LR
+A --> B
+```
+
+```math
+x^2 + 1
+```
+
+1. Item one
+2. Item two
+""";
+        var options = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
+        options.Chart.Enabled = true;
+        options.Network.Enabled = true;
+        options.Mermaid.Enabled = true;
+        options.Math.Enabled = true;
+
+        string html = MarkdownRendererShell.RenderBodyHtml(markdown, options);
+        MarkdownDoc document = html.LoadFromHtml();
+
+        Assert.Collection(document.Blocks,
+            block => Assert.IsType<HeadingBlock>(block),
+            block => Assert.IsType<HeadingBlock>(block),
+            block => Assert.IsType<TableBlock>(block),
+            block => {
+                var semantic = Assert.IsType<SemanticFencedBlock>(block);
+                Assert.Equal("ix-chart", semantic.Language);
+                Assert.Equal(MarkdownSemanticKinds.Chart, semantic.SemanticKind);
+            },
+            block => {
+                var semantic = Assert.IsType<SemanticFencedBlock>(block);
+                Assert.Equal("ix-network", semantic.Language);
+                Assert.Equal(MarkdownSemanticKinds.Network, semantic.SemanticKind);
+            },
+            block => {
+                var semantic = Assert.IsType<SemanticFencedBlock>(block);
+                Assert.Equal("mermaid", semantic.Language);
+                Assert.Equal(MarkdownSemanticKinds.Mermaid, semantic.SemanticKind);
+            },
+            block => {
+                var semantic = Assert.IsType<SemanticFencedBlock>(block);
+                Assert.Equal("math", semantic.Language);
+                Assert.Equal(MarkdownSemanticKinds.Math, semantic.SemanticKind);
+            },
+            block => Assert.IsType<OrderedListBlock>(block));
+
+        string roundTripped = NormalizeMarkdown(document.ToMarkdown());
+        Assert.Contains("```ix-chart", roundTripped, StringComparison.Ordinal);
+        Assert.Contains("```ix-network", roundTripped, StringComparison.Ordinal);
+        Assert.Contains("```mermaid", roundTripped, StringComparison.Ordinal);
+        Assert.Contains("```math", roundTripped, StringComparison.Ordinal);
+        Assert.Contains("| Check | Expected |", roundTripped, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_RoundTrips_ExportedTranscriptVisualPack_WithSemanticRecovery() {
+        string markdown = LoadCompatibilityFixture("ix-exported-transcript-visual-pack.md");
+        var options = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
+        options.Chart.Enabled = true;
+        options.Network.Enabled = true;
+        options.Mermaid.Enabled = true;
+
+        string html = MarkdownRendererShell.RenderBodyHtml(markdown, options);
+        MarkdownDoc document = html.LoadFromHtml();
+
+        Assert.True(document.Blocks.OfType<HeadingBlock>().Count() >= 8);
+        Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:30: 13)");
+        Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "User (20:36: 21)");
+        Assert.True(document.Blocks.OfType<TableBlock>().Count() >= 1);
+        Assert.True(document.Blocks.OfType<OrderedListBlock>().Count() >= 1);
+
+        var semanticBlocks = document.Blocks.OfType<SemanticFencedBlock>().ToList();
+        Assert.Equal(5, semanticBlocks.Count(block => block.Language == "ix-chart"));
+        Assert.Equal(2, semanticBlocks.Count(block => block.Language == "mermaid"));
+        Assert.Contains(semanticBlocks, block => block.SemanticKind == MarkdownSemanticKinds.Chart && block.Language == "ix-chart");
+        Assert.Contains(semanticBlocks, block => block.SemanticKind == MarkdownSemanticKinds.Mermaid && block.Language == "mermaid");
+        Assert.Contains(semanticBlocks, block => block.Content.Contains("\"label\": \"Broken\"", StringComparison.Ordinal));
+
+        string roundTripped = NormalizeMarkdown(document.ToMarkdown());
+        Assert.Contains("## Proactive checks", roundTripped, StringComparison.Ordinal);
+        Assert.Contains("| Check | What to verify | Expected pass signal |", roundTripped, StringComparison.Ordinal);
+        Assert.Contains("```ix-chart", roundTripped, StringComparison.Ordinal);
+        Assert.Contains("```mermaid", roundTripped, StringComparison.Ordinal);
+        Assert.Contains("\"label\": \"Broken\"", roundTripped, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_RoundTrips_ExportedTranscriptVisualPack_PreservesSemanticBlockOrder() {
+        string markdown = LoadCompatibilityFixture("ix-exported-transcript-visual-pack.md");
+        var options = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
+        options.Chart.Enabled = true;
+        options.Network.Enabled = true;
+        options.Mermaid.Enabled = true;
+
+        string html = MarkdownRendererShell.RenderBodyHtml(markdown, options);
+        MarkdownDoc document = html.LoadFromHtml();
+
+        var sequence = document.Blocks
+            .Where(block => block is SemanticFencedBlock or TableBlock or OrderedListBlock)
+            .Select(static block => block switch {
+                SemanticFencedBlock semantic => $"semantic:{semantic.Language}",
+                TableBlock => "table",
+                OrderedListBlock => "olist",
+                _ => "other"
+            })
+            .ToArray();
+
+        Assert.Equal(
+            [
+                "table",
+                "olist",
+                "semantic:ix-chart",
+                "semantic:mermaid",
+                "semantic:ix-chart",
+                "semantic:ix-chart",
+                "semantic:ix-chart",
+                "semantic:ix-chart",
+                "semantic:mermaid"
+            ],
+            sequence);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_RoundTrips_ExportedTranscriptChartSuite_WithSemanticRecovery() {
+        string markdown = LoadCompatibilityFixture("ix-exported-transcript-chart-suite.md");
+        var options = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
+        options.Chart.Enabled = true;
+        options.Mermaid.Enabled = true;
+
+        string html = MarkdownRendererShell.RenderBodyHtml(markdown, options);
+        MarkdownDoc document = html.LoadFromHtml();
+
+        Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:36: 24)");
+        Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:37: 49)");
+        Assert.True(document.Blocks.OfType<TableBlock>().Count() >= 1);
+
+        var semanticBlocks = document.Blocks.OfType<SemanticFencedBlock>().ToList();
+        Assert.Equal(4, semanticBlocks.Count(block => block.Language == "ix-chart"));
+        Assert.Equal(1, semanticBlocks.Count(block => block.Language == "mermaid"));
+        Assert.Contains(semanticBlocks, block => block.Content.Contains("\"label\": \"Critical\"", StringComparison.Ordinal));
+        Assert.Contains(semanticBlocks, block => block.Content.Contains("\"label\": \"Privileged Changes\"", StringComparison.Ordinal));
+
+        var sequence = document.Blocks
+            .Where(block => block is SemanticFencedBlock or TableBlock)
+            .Select(static block => block switch {
+                SemanticFencedBlock semantic => $"semantic:{semantic.Language}",
+                TableBlock => "table",
+                _ => "other"
+            })
+            .ToArray();
+
+        Assert.Equal(
+            [
+                "semantic:ix-chart",
+                "semantic:ix-chart",
+                "semantic:ix-chart",
+                "semantic:ix-chart",
+                "table",
+                "semantic:mermaid"
+            ],
+            sequence);
+
+        string roundTripped = NormalizeMarkdown(document.ToMarkdown());
+        Assert.Contains("Risk distribution", roundTripped, StringComparison.Ordinal);
+        Assert.Contains("```ix-chart", roundTripped, StringComparison.Ordinal);
+        Assert.Contains("```mermaid", roundTripped, StringComparison.Ordinal);
+        Assert.Contains("Feature | Test block | Expected result | If it fails, likely cause", roundTripped, StringComparison.Ordinal);
+    }
+
     private static string NormalizeMarkdown(string markdown) {
         return markdown.Replace("\r\n", "\n").TrimEnd('\n');
+    }
+
+    private static string LoadCompatibilityFixture(string name) {
+        string path = Path.Combine(
+            AppContext.BaseDirectory,
+            "..", "..", "..",
+            "Markdown",
+            "Fixtures",
+            "Compatibility",
+            name);
+
+        return File.ReadAllText(path);
     }
 }

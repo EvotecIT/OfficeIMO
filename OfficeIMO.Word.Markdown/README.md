@@ -78,6 +78,19 @@ using var doc = markdown.LoadFromMarkdown(options);
 - `PreferNarrativeSingleLineDefinitions = true` keeps isolated `Label: value` lines as narrative paragraphs while still allowing grouped definition-list blocks.
 - `OnImageLayoutDiagnostic` can be used to inspect final width/height and applied layout constraints.
 
+### Explicit IntelligenceX transcript contract
+
+```csharp
+var options = MarkdownToWordPresets.CreateIntelligenceXTranscript(
+    allowedImageDirectories: new[] { @"C:\Exports\Images" },
+    visualMaxWidthPx: 760);
+
+using var doc = markdown.LoadFromMarkdown(options);
+```
+
+- `MarkdownToWordPresets.CreateIntelligenceXTranscript(...)` is the explicit DOCX preset for IX transcript export.
+- `MarkdownToWordCapabilities.PreservesNarrativeSingleLineDefinitionsAsSeparateParagraphs()` exposes the grouped `Label: value` capability probe as a reusable OfficeIMO contract instead of host-local reflection logic.
+
 ## Supported features (core)
 
 - Headings 1–6, paragraphs, hard breaks

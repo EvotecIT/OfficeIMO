@@ -22,7 +22,7 @@ public static class MarkdownRendererIntelligenceXAdapter {
         AddIfMissing(options, "ix-chart", MarkdownRendererBuiltInFencedCodeBlocks.CreateIxChartRenderer);
         AddIfMissing(options, "ix-network", MarkdownRendererBuiltInFencedCodeBlocks.CreateIxNetworkRenderer);
         AddIfMissing(options, "ix-dataview", MarkdownRendererBuiltInFencedCodeBlocks.CreateDataViewRenderer);
-        AddPreProcessorIfMissing(options, NormalizeLegacyCachedEvidenceTransportArtifacts);
+        AddPreProcessorIfMissing(options, NormalizeLegacyIxVisualArtifacts);
         AddPreProcessorIfMissing(options, NormalizeLegacyToolHeadingArtifacts);
     }
 
@@ -98,17 +98,14 @@ public static class MarkdownRendererIntelligenceXAdapter {
         @"(?m)^[ \t]*ix:cached-tool-evidence:v1[ \t]*(?:\r?\n)?",
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
-    private static string NormalizeLegacyCachedEvidenceTransportArtifacts(string markdown, MarkdownRendererOptions _) {
+    private static string NormalizeLegacyIxVisualArtifacts(string markdown, MarkdownRendererOptions _) {
         if (string.IsNullOrEmpty(markdown)) {
             return markdown ?? string.Empty;
         }
 
-        var hasCachedEvidenceMarker = markdown.IndexOf("ix:cached-tool-evidence:v1", StringComparison.OrdinalIgnoreCase) >= 0;
         var value = StripCachedToolEvidenceMarkers(markdown);
-        if (hasCachedEvidenceMarker) {
-            value = UpgradeLegacyVisualFences(value);
-            value = UpgradeLegacyIndentedVisualBlocks(value);
-        }
+        value = UpgradeLegacyVisualFences(value);
+        value = UpgradeLegacyIndentedVisualBlocks(value);
 
         return value;
     }

@@ -1,0 +1,204 @@
+[ix.html]
+<article class="markdown-body"><h2 id="user-2029-02">User (20:29: 02)</h2><p>hey man</p><h2 id="assistant-2029-05">Assistant (20:29: 05)</h2><dl><dt>&lt;!-- ix: model</dt><dd>gpt-5.3-codex --&gt;</dd></dl><p>Hey Przemek Good to see you.</p><h2 id="user-2030-06">User (20:30: 06)</h2><p>Well lets try to show me 3 things - a table, a chart, a visnetwork and diagram so i can confirm our markdown works properly after all the changes.</p><h2 id="assistant-2030-13">Assistant (20:30: 13)</h2><dl><dt>&lt;!-- ix: model</dt><dd>gpt-5.3-codex --&gt;</dd></dl><h2 id="proactive-checks">Proactive checks</h2><table><thead><tr><th>Check</th><th>What to verify</th><th>Expected pass signal</th></tr></thead><tbody><tr><td>Fence integrity</td><td>Every code block opens/closes cleanly (<code></code>`<code></code>)</td><td>No bleeding formatting below blocks</td></tr><tr><td>JSON strictness</td><td><code>ix-chart</code>/ <code>ix-network</code>payloads are valid JSON</td><td>Visual renders instead of raw text</td></tr></tbody></table><h2 id="mixed-list-edge-case">Mixed list edge case</h2><ol><li>Item one<ul><li>sub bullet<ol><li>sub-numbered</li></ol></li></ul></li><li>Item two</li></ol><h2 id="deliberate-invalid-json-test">Deliberate invalid JSON test</h2><canvas class="omd-visual omd-chart" data-omd-visual-contract="v1" data-omd-visual-kind="chart" data-omd-fence-language="ix-chart" data-omd-visual-hash="c70009e29b327a5d" data-omd-config-format="json" data-omd-config-encoding="base64-utf8" data-omd-config-b64="ewogICJ0eXBlIjogImJhciIsCiAgImRhdGEiOiB7CiAgICAibGFiZWxzIjogWyJBIiwiQiJdLAogICAgImRhdGFzZXRzIjogWwogICAgICB7ICJsYWJlbCI6ICJCcm9rZW4iLCAiZGF0YSI6IFsxLDJdLCB9CiAgICBdCiAgfQp9" data-chart-hash="c70009e29b327a5d" data-chart-config-b64="ewogICJ0eXBlIjogImJhciIsCiAgImRhdGEiOiB7CiAgICAibGFiZWxzIjogWyJBIiwiQiJdLAogICAgImRhdGFzZXRzIjogWwogICAgICB7ICJsYWJlbCI6ICJCcm9rZW4iLCAiZGF0YSI6IFsxLDJdLCB9CiAgICBdCiAgfQp9"></canvas><h2 id="mermaid-edge-case-diagram">Mermaid edge-case diagram</h2><pre class="mermaid" data-mermaid-hash="6a1333006d741d05">flowchart LR A[Markdown Input] --&gt; B{Parser OK?} B -- Yes --&gt; C[Render Table] B -- Yes --&gt; D[Render ix-chart] B -- Yes --&gt; E[Render ix-network] C --&gt; H[Regression Gate Pass] D --&gt; H E --&gt; H</pre><h2 id="user-2036-21">User (20:36: 21)</h2><p>show me proper visual tests</p><h2 id="assistant-2036-24">Assistant (20:36: 24)</h2><dl><dt>&lt;!-- ix: model</dt><dd>gpt-5.3-codex --&gt;</dd></dl><h2 id="risk-distribution">Risk distribution</h2><canvas class="omd-visual omd-chart" data-omd-visual-contract="v1" data-omd-visual-kind="chart" data-omd-fence-language="ix-chart" data-omd-visual-hash="da68fa33432a0248" data-omd-config-format="json" data-omd-config-encoding="base64-utf8" data-omd-config-b64="ewogICJ0eXBlIjogImJhciIsCiAgImRhdGEiOiB7CiAgICAibGFiZWxzIjogWyJJZGVudGl0eSIsICJFbmRwb2ludHMiLCAiQUQiLCAiRW1haWwiLCAiQ2xvdWQiXSwKICAgICJkYXRhc2V0cyI6IFsKICAgICAgeyAibGFiZWwiOiAiTG93IiwgImRhdGEiOiBbMTQsIDIyLCA4LCAxMSwgOV0sICJiYWNrZ3JvdW5kQ29sb3IiOiAiIzIyYzU1ZSIsICJzdGFjayI6ICJyaXNrIiB9LAogICAgICB7ICJsYWJlbCI6ICJNZWRpdW0iLCAiZGF0YSI6IFs4LCAxMSwgNiwgNywgMTBdLCAiYmFja2dyb3VuZENvbG9yIjogIiNmNTllMGIiLCAic3RhY2siOiAicmlzayIgfSwKICAgICAgeyAibGFiZWwiOiAiSGlnaCIsICJkYXRhIjogWzQsIDYsIDUsIDMsIDddLCAiYmFja2dyb3VuZENvbG9yIjogIiNlZjQ0NDQiLCAic3RhY2siOiAicmlzayIgfQogICAgXQogIH0KfQ==" data-chart-hash="da68fa33432a0248" data-chart-config-b64="ewogICJ0eXBlIjogImJhciIsCiAgImRhdGEiOiB7CiAgICAibGFiZWxzIjogWyJJZGVudGl0eSIsICJFbmRwb2ludHMiLCAiQUQiLCAiRW1haWwiLCAiQ2xvdWQiXSwKICAgICJkYXRhc2V0cyI6IFsKICAgICAgeyAibGFiZWwiOiAiTG93IiwgImRhdGEiOiBbMTQsIDIyLCA4LCAxMSwgOV0sICJiYWNrZ3JvdW5kQ29sb3IiOiAiIzIyYzU1ZSIsICJzdGFjayI6ICJyaXNrIiB9LAogICAgICB7ICJsYWJlbCI6ICJNZWRpdW0iLCAiZGF0YSI6IFs4LCAxMSwgNiwgNywgMTBdLCAiYmFja2dyb3VuZENvbG9yIjogIiNmNTllMGIiLCAic3RhY2siOiAicmlzayIgfSwKICAgICAgeyAibGFiZWwiOiAiSGlnaCIsICJkYXRhIjogWzQsIDYsIDUsIDMsIDddLCAiYmFja2dyb3VuZENvbG9yIjogIiNlZjQ0NDQiLCAic3RhY2siOiAicmlzayIgfQogICAgXQogIH0KfQ=="></canvas><h2 id="security-trend">Security trend</h2><canvas class="omd-visual omd-chart" data-omd-visual-contract="v1" data-omd-visual-kind="chart" data-omd-fence-language="ix-chart" data-omd-visual-hash="d9fb49e99bb7dffc" data-omd-config-format="json" data-omd-config-encoding="base64-utf8" data-omd-config-b64="ewogICJ0eXBlIjogImxpbmUiLAogICJkYXRhIjogewogICAgImxhYmVscyI6IFsiRC0yOSIsIkQtMjYiLCJELTIzIiwiRC0yMCIsIkQtMTciLCJELTE0IiwiRC0xMSIsIkQtOCIsIkQtNSIsIkQtMiJdLAogICAgImRhdGFzZXRzIjogWwogICAgICB7ICJsYWJlbCI6ICJGYWlsZWQgTG9nb25zIiwgImRhdGEiOiBbNDUsIDUyLCA0OSwgNjMsIDU4LCA3MSwgNjksIDY2LCA3MywgODBdLCAiYm9yZGVyQ29sb3IiOiAiI2VmNDQ0NCIsICJ0ZW5zaW9uIjogMC4zIH0sCiAgICAgIHsgImxhYmVsIjogIkFjY291bnQgTG9ja291dHMiLCAiZGF0YSI6IFs1LCA3LCA2LCA5LCA4LCAxMCwgOSwgOCwgMTEsIDEyXSwgImJvcmRlckNvbG9yIjogIiNmNTllMGIiLCAidGVuc2lvbiI6IDAuMyB9CiAgICBdCiAgfQp9" data-chart-hash="d9fb49e99bb7dffc" data-chart-config-b64="ewogICJ0eXBlIjogImxpbmUiLAogICJkYXRhIjogewogICAgImxhYmVscyI6IFsiRC0yOSIsIkQtMjYiLCJELTIzIiwiRC0yMCIsIkQtMTciLCJELTE0IiwiRC0xMSIsIkQtOCIsIkQtNSIsIkQtMiJdLAogICAgImRhdGFzZXRzIjogWwogICAgICB7ICJsYWJlbCI6ICJGYWlsZWQgTG9nb25zIiwgImRhdGEiOiBbNDUsIDUyLCA0OSwgNjMsIDU4LCA3MSwgNjksIDY2LCA3MywgODBdLCAiYm9yZGVyQ29sb3IiOiAiI2VmNDQ0NCIsICJ0ZW5zaW9uIjogMC4zIH0sCiAgICAgIHsgImxhYmVsIjogIkFjY291bnQgTG9ja291dHMiLCAiZGF0YSI6IFs1LCA3LCA2LCA5LCA4LCAxMCwgOSwgOCwgMTEsIDEyXSwgImJvcmRlckNvbG9yIjogIiNmNTllMGIiLCAidGVuc2lvbiI6IDAuMyB9CiAgICBdCiAgfQp9"></canvas><h2 id="control-coverage">Control coverage</h2><canvas class="omd-visual omd-chart" data-omd-visual-contract="v1" data-omd-visual-kind="chart" data-omd-fence-language="ix-chart" data-omd-visual-hash="40125d3045dedb03" data-omd-config-format="json" data-omd-config-encoding="base64-utf8" data-omd-config-b64="ewogICJ0eXBlIjogImRvdWdobnV0IiwKICAiZGF0YSI6IHsKICAgICJsYWJlbHMiOiBbIkNvbXBsaWFudCIsICJQYXJ0aWFsIiwgIk5vbi1jb21wbGlhbnQiLCAiTm90IEFzc2Vzc2VkIl0sCiAgICAiZGF0YXNldHMiOiBbCiAgICAgIHsgImxhYmVsIjogIkNvbnRyb2wgQ292ZXJhZ2UiLCAiZGF0YSI6IFs2MiwgMjEsIDExLCA2XSwgImJhY2tncm91bmRDb2xvciI6IFsiIzIyYzU1ZSIsICIjZjU5ZTBiIiwgIiNlZjQ0NDQiLCAiI2Y0M2Y1ZSJdIH0KICAgIF0KICB9Cn0=" data-chart-hash="40125d3045dedb03" data-chart-config-b64="ewogICJ0eXBlIjogImRvdWdobnV0IiwKICAiZGF0YSI6IHsKICAgICJsYWJlbHMiOiBbIkNvbXBsaWFudCIsICJQYXJ0aWFsIiwgIk5vbi1jb21wbGlhbnQiLCAiTm90IEFzc2Vzc2VkIl0sCiAgICAiZGF0YXNldHMiOiBbCiAgICAgIHsgImxhYmVsIjogIkNvbnRyb2wgQ292ZXJhZ2UiLCAiZGF0YSI6IFs2MiwgMjEsIDExLCA2XSwgImJhY2tncm91bmRDb2xvciI6IFsiIzIyYzU1ZSIsICIjZjU5ZTBiIiwgIiNlZjQ0NDQiLCAiI2Y0M2Y1ZSJdIH0KICAgIF0KICB9Cn0="></canvas><h2 id="heat-style-matrix-proxy">Heat-style matrix proxy</h2><canvas class="omd-visual omd-chart" data-omd-visual-contract="v1" data-omd-visual-kind="chart" data-omd-fence-language="ix-chart" data-omd-visual-hash="92fa5a08ae2c2aa6" data-omd-config-format="json" data-omd-config-encoding="base64-utf8" data-omd-config-b64="ewogICJ0eXBlIjogImJhciIsCiAgImRhdGEiOiB7CiAgICAibGFiZWxzIjogWyJNb24iLCJUdWUiLCJXZWQiLCJUaHUiLCJGcmkiLCJTYXQiLCJTdW4iXSwKICAgICJkYXRhc2V0cyI6IFsKICAgICAgeyAibGFiZWwiOiAiQWRtaW4gTG9nb25zIiwgImRhdGEiOiBbMTgsIDI0LCAyMSwgMjgsIDI2LCAxMSwgOV0sICJiYWNrZ3JvdW5kQ29sb3IiOiAiIzIyYzU1ZSIgfSwKICAgICAgeyAibGFiZWwiOiAiRmFpbGVkIEF1dGggQnVyc3RzIiwgImRhdGEiOiBbMTIsIDE1LCAxNCwgMTksIDIzLCA4LCA3XSwgImJhY2tncm91bmRDb2xvciI6ICIjZWY0NDQ0IiB9CiAgICBdCiAgfQp9" data-chart-hash="92fa5a08ae2c2aa6" data-chart-config-b64="ewogICJ0eXBlIjogImJhciIsCiAgImRhdGEiOiB7CiAgICAibGFiZWxzIjogWyJNb24iLCJUdWUiLCJXZWQiLCJUaHUiLCJGcmkiLCJTYXQiLCJTdW4iXSwKICAgICJkYXRhc2V0cyI6IFsKICAgICAgeyAibGFiZWwiOiAiQWRtaW4gTG9nb25zIiwgImRhdGEiOiBbMTgsIDI0LCAyMSwgMjgsIDI2LCAxMSwgOV0sICJiYWNrZ3JvdW5kQ29sb3IiOiAiIzIyYzU1ZSIgfSwKICAgICAgeyAibGFiZWwiOiAiRmFpbGVkIEF1dGggQnVyc3RzIiwgImRhdGEiOiBbMTIsIDE1LCAxNCwgMTksIDIzLCA4LCA3XSwgImJhY2tncm91bmRDb2xvciI6ICIjZWY0NDQ0IiB9CiAgICBdCiAgfQp9"></canvas><h2 id="user-2037-47">User (20:37: 47)</h2><p>you sure this is the chartjs that we support?</p><h2 id="assistant-2037-49">Assistant (20:37: 49)</h2><dl><dt>&lt;!-- ix: model</dt><dd>gpt-5.3-codex --&gt;</dd></dl><pre class="mermaid" data-mermaid-hash="1ec6f1c0458ee422">flowchart LR A[Paste ix-chart block] --&gt; B{Renders chart?} B -- No --&gt; C[Validate JSON syntax] C --&gt; D{Valid now?} D -- No --&gt; E[Fix payload] D -- Yes --&gt; F[Renderer mismatch] B -- Yes --&gt; G{Options applied?} G -- Yes --&gt; H[Mark feature as supported]</pre></article>
+
+[recovered.ast]
+0: Heading(level=2, text="User (20:29: 02)")
+1: Paragraph("hey man")
+2: Heading(level=2, text="Assistant (20:29: 05)")
+3: DefinitionList(entries=1)
+  entry[0]: term="<!-- ix: model"
+    0: Paragraph("gpt-5.3-codex -->")
+4: Paragraph("Hey Przemek Good to see you.")
+5: Heading(level=2, text="User (20:30: 06)")
+6: Paragraph("Well lets try to show me 3 things - a table, a chart, a visnetwork and diagram so i can confirm our markdown works properly after all the changes.")
+7: Heading(level=2, text="Assistant (20:30: 13)")
+8: DefinitionList(entries=1)
+  entry[0]: term="<!-- ix: model"
+    0: Paragraph("gpt-5.3-codex -->")
+9: Heading(level=2, text="Proactive checks")
+10: Table(headers=3, rows=2)
+  headers: "Check" || "What to verify" || "Expected pass signal"
+  row[0]: "Fence integrity" || "Every code block opens/closes cleanly \(`   ```   `\)" || "No bleeding formatting below blocks"
+  row[1]: "JSON strictness" || "`ix-chart` / `ix-network` payloads are valid JSON" || "Visual renders instead of raw text"
+11: Heading(level=2, text="Mixed list edge case")
+12: OrderedList(start=1, items=2)
+  item[0]: task=no content="Item one"
+    0: UnorderedList(items=1)
+      item[0]: task=no content="sub bullet"
+        0: OrderedList(start=1, items=1)
+          item[0]: task=no content="sub-numbered"
+  item[1]: task=no content="Item two"
+13: Heading(level=2, text="Deliberate invalid JSON test")
+14: SemanticFencedBlock
+15: Heading(level=2, text="Mermaid edge-case diagram")
+16: SemanticFencedBlock
+17: Heading(level=2, text="User (20:36: 21)")
+18: Paragraph("show me proper visual tests")
+19: Heading(level=2, text="Assistant (20:36: 24)")
+20: DefinitionList(entries=1)
+  entry[0]: term="<!-- ix: model"
+    0: Paragraph("gpt-5.3-codex -->")
+21: Heading(level=2, text="Risk distribution")
+22: SemanticFencedBlock
+23: Heading(level=2, text="Security trend")
+24: SemanticFencedBlock
+25: Heading(level=2, text="Control coverage")
+26: SemanticFencedBlock
+27: Heading(level=2, text="Heat-style matrix proxy")
+28: SemanticFencedBlock
+29: Heading(level=2, text="User (20:37: 47)")
+30: Paragraph("you sure this is the chartjs that we support?")
+31: Heading(level=2, text="Assistant (20:37: 49)")
+32: DefinitionList(entries=1)
+  entry[0]: term="<!-- ix: model"
+    0: Paragraph("gpt-5.3-codex -->")
+33: SemanticFencedBlock
+
+[roundtrip.markdown]
+## User \(20:29: 02\)
+
+hey man
+
+## Assistant \(20:29: 05\)
+
+<!-- ix: model: gpt-5.3-codex -->
+
+Hey Przemek Good to see you.
+
+## User \(20:30: 06\)
+
+Well lets try to show me 3 things - a table, a chart, a visnetwork and diagram so i can confirm our markdown works properly after all the changes.
+
+## Assistant \(20:30: 13\)
+
+<!-- ix: model: gpt-5.3-codex -->
+
+## Proactive checks
+
+| Check | What to verify | Expected pass signal |
+| --- | --- | --- |
+| Fence integrity | Every code block opens/closes cleanly \\(`   ```   `\\) | No bleeding formatting below blocks |
+| JSON strictness | `ix-chart` / `ix-network` payloads are valid JSON | Visual renders instead of raw text |
+
+## Mixed list edge case
+
+1. Item one
+
+   - sub bullet
+
+     1. sub-numbered
+2. Item two
+
+## Deliberate invalid JSON test
+
+```ix-chart
+{
+  "type": "bar",
+  "data": {
+    "labels": ["A","B"],
+    "datasets": [
+      { "label": "Broken", "data": [1,2], }
+    ]
+  }
+}
+```
+
+## Mermaid edge-case diagram
+
+```mermaid
+flowchart LR
+    A[Markdown Input] --> B{Parser OK?}
+    B -- Yes --> C[Render Table]
+    B -- Yes --> D[Render ix-chart]
+    B -- Yes --> E[Render ix-network]
+    C --> H[Regression Gate Pass]
+    D --> H
+    E --> H
+```
+
+## User \(20:36: 21\)
+
+show me proper visual tests
+
+## Assistant \(20:36: 24\)
+
+<!-- ix: model: gpt-5.3-codex -->
+
+## Risk distribution
+
+```ix-chart
+{
+  "type": "bar",
+  "data": {
+    "labels": ["Identity", "Endpoints", "AD", "Email", "Cloud"],
+    "datasets": [
+      { "label": "Low", "data": [14, 22, 8, 11, 9], "backgroundColor": "#22c55e", "stack": "risk" },
+      { "label": "Medium", "data": [8, 11, 6, 7, 10], "backgroundColor": "#f59e0b", "stack": "risk" },
+      { "label": "High", "data": [4, 6, 5, 3, 7], "backgroundColor": "#ef4444", "stack": "risk" }
+    ]
+  }
+}
+```
+
+## Security trend
+
+```ix-chart
+{
+  "type": "line",
+  "data": {
+    "labels": ["D-29","D-26","D-23","D-20","D-17","D-14","D-11","D-8","D-5","D-2"],
+    "datasets": [
+      { "label": "Failed Logons", "data": [45, 52, 49, 63, 58, 71, 69, 66, 73, 80], "borderColor": "#ef4444", "tension": 0.3 },
+      { "label": "Account Lockouts", "data": [5, 7, 6, 9, 8, 10, 9, 8, 11, 12], "borderColor": "#f59e0b", "tension": 0.3 }
+    ]
+  }
+}
+```
+
+## Control coverage
+
+```ix-chart
+{
+  "type": "doughnut",
+  "data": {
+    "labels": ["Compliant", "Partial", "Non-compliant", "Not Assessed"],
+    "datasets": [
+      { "label": "Control Coverage", "data": [62, 21, 11, 6], "backgroundColor": ["#22c55e", "#f59e0b", "#ef4444", "#f43f5e"] }
+    ]
+  }
+}
+```
+
+## Heat-style matrix proxy
+
+```ix-chart
+{
+  "type": "bar",
+  "data": {
+    "labels": ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+    "datasets": [
+      { "label": "Admin Logons", "data": [18, 24, 21, 28, 26, 11, 9], "backgroundColor": "#22c55e" },
+      { "label": "Failed Auth Bursts", "data": [12, 15, 14, 19, 23, 8, 7], "backgroundColor": "#ef4444" }
+    ]
+  }
+}
+```
+
+## User \(20:37: 47\)
+
+you sure this is the chartjs that we support?
+
+## Assistant \(20:37: 49\)
+
+<!-- ix: model: gpt-5.3-codex -->
+
+```mermaid
+flowchart LR
+    A[Paste ix-chart block] --> B{Renders chart?}
+    B -- No --> C[Validate JSON syntax]
+    C --> D{Valid now?}
+    D -- No --> E[Fix payload]
+    D -- Yes --> F[Renderer mismatch]
+    B -- Yes --> G{Options applied?}
+    G -- Yes --> H[Mark feature as supported]
+```
