@@ -9,7 +9,11 @@ namespace OfficeIMO.MarkdownRenderer;
 public static class MarkdownRendererPresets {
     private static MarkdownReaderOptions CreateStrictReaderOptions(MarkdownReaderOptions.MarkdownDialectProfile readerProfile) {
         var reader = MarkdownReaderOptions.CreateProfile(readerProfile);
+        ApplyStrictReaderSecurityDefaults(reader);
+        return reader;
+    }
 
+    private static void ApplyStrictReaderSecurityDefaults(MarkdownReaderOptions reader) {
         reader.HtmlBlocks = false;
         // Keep block HTML disabled, but allow the reader's safe inline-tag subset
         // so built-in formatting like <u>...</u> and <br> can survive strict rendering.
@@ -19,8 +23,6 @@ public static class MarkdownRendererPresets {
         reader.AllowProtocolRelativeUrls = false;
         reader.RestrictUrlSchemes = true;
         reader.AllowedUrlSchemes = new[] { "http", "https", "mailto" };
-
-        return reader;
     }
 
     private static void ApplyStrictRenderingDefaults(
@@ -123,6 +125,18 @@ public static class MarkdownRendererPresets {
         if (!hasVisualUpgrade) {
             transforms.Add(new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
         }
+    }
+
+    private static void ApplyIntelligenceXTranscriptReaderContract(
+        MarkdownRendererOptions options,
+        MarkdownReaderOptions.MarkdownDialectProfile readerProfile) {
+        var transcriptReader = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
+            readerProfile,
+            preservesGroupedDefinitionLikeParagraphs: false);
+
+        ApplyStrictReaderSecurityDefaults(transcriptReader);
+        options.ReaderOptions = transcriptReader;
+        ApplyIntelligenceXTranscriptDocumentTransforms(options);
     }
 
     /// <summary>
@@ -246,7 +260,7 @@ public static class MarkdownRendererPresets {
     public static MarkdownRendererOptions CreateIntelligenceXTranscript(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
         var options = CreateStrict(readerProfile, baseHref);
         ApplyIntelligenceXTranscriptNormalizationDefaults(options);
-        ApplyIntelligenceXTranscriptDocumentTransforms(options);
+        ApplyIntelligenceXTranscriptReaderContract(options, readerProfile);
         ApplyChatPresentation(options, enableCopyButtons: true);
         MarkdownRendererIntelligenceXAdapter.Apply(options);
         MarkdownRendererIntelligenceXLegacyMigration.Apply(options);
@@ -322,7 +336,9 @@ public static class MarkdownRendererPresets {
     /// </summary>
     public static MarkdownRendererOptions CreateIntelligenceXTranscriptRelaxed(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
         var options = CreateRelaxed(readerProfile, baseHref);
-        ApplyIntelligenceXTranscriptDocumentTransforms(options);
+        ApplyIntelligenceXTranscriptReaderContract(options, readerProfile);
+        options.ReaderOptions.HtmlBlocks = true;
+        options.ReaderOptions.InlineHtml = true;
         ApplyChatPresentation(options, enableCopyButtons: true);
         MarkdownRendererIntelligenceXAdapter.Apply(options);
         MarkdownRendererIntelligenceXLegacyMigration.Apply(options);

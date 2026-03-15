@@ -200,6 +200,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscript_Reuses_Shared_Transcript_Reader_Contract() {
+            var expected = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
+                preservesGroupedDefinitionLikeParagraphs: false);
+            var opts = MarkdownRendererPresets.CreateIntelligenceXTranscript();
+
+            Assert.True(opts.ReaderOptions.PreferNarrativeSingleLineDefinitions);
+            Assert.Equal(
+                expected.InputNormalization!.NormalizeCollapsedOrderedListBoundaries,
+                opts.ReaderOptions.InputNormalization!.NormalizeCollapsedOrderedListBoundaries);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeBrokenTwoLineStrongLeadIns,
+                opts.ReaderOptions.InputNormalization.NormalizeBrokenTwoLineStrongLeadIns);
+            Assert.Contains(opts.ReaderOptions.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
+        }
+
+        [Fact]
         public void MarkdownRendererPresets_CreateIntelligenceXTranscriptDesktopShell_BuildsOnMinimalPresetAndEnablesInteractiveVisuals() {
             var minimal = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
             var desktop = MarkdownRendererPresets.CreateIntelligenceXTranscriptDesktopShell();
