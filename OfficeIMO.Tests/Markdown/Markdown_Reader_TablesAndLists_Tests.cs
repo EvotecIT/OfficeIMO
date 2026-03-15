@@ -175,6 +175,42 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Table_Cells_Can_Parse_SingleLine_List_Content() {
+            string md = """
+| Notes |
+| --- |
+| - first |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            var list = Assert.IsType<UnorderedListBlock>(Assert.Single(table.RowCells[0][0].Blocks));
+            Assert.Equal("first", list.Items[0].Content.RenderMarkdown());
+
+            var roundtrip = doc.ToMarkdown().Replace("\r\n", "\n");
+            Assert.Contains("| - first |", roundtrip, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Table_Cells_Can_Parse_SingleLine_Heading_Content() {
+            string md = """
+| Notes |
+| --- |
+| ## Important |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            var heading = Assert.IsType<HeadingBlock>(Assert.Single(table.RowCells[0][0].Blocks));
+            Assert.Equal(2, heading.Level);
+            Assert.Equal("Important", heading.Text);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<td><h2", html, StringComparison.Ordinal);
+            Assert.Contains("Important", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Table_Cells_Can_Parse_Indented_Code_Block_Content_From_Cell_Body() {
             string md = """
 | Section | Notes |

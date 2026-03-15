@@ -341,6 +341,28 @@ Paragraph
         }
 
         [Fact]
+        public void Reader_Roundtrips_SingleLine_Structured_Table_Cell_Content() {
+            const string markdown = """
+| Notes | Extra |
+| --- | --- |
+| ## Important | - first |
+""";
+
+            var parsed = MarkdownReader.Parse(markdown);
+            var table = Assert.IsType<TableBlock>(Assert.Single(parsed.Blocks));
+            Assert.IsType<HeadingBlock>(Assert.Single(table.RowCells[0][0].Blocks));
+            Assert.IsType<UnorderedListBlock>(Assert.Single(table.RowCells[0][1].Blocks));
+
+            var roundtrip = parsed.ToMarkdown().Replace("\r\n", "\n");
+            Assert.Contains("| ## Important | - first |", roundtrip, StringComparison.Ordinal);
+
+            var reparsed = MarkdownReader.Parse(roundtrip);
+            var reparsedTable = Assert.IsType<TableBlock>(Assert.Single(reparsed.Blocks));
+            Assert.IsType<HeadingBlock>(Assert.Single(reparsedTable.RowCells[0][0].Blocks));
+            Assert.IsType<UnorderedListBlock>(Assert.Single(reparsedTable.RowCells[0][1].Blocks));
+        }
+
+        [Fact]
         public void Reader_Enumerates_Headings_And_Resolved_Anchors() {
             const string markdown = """
 # Title

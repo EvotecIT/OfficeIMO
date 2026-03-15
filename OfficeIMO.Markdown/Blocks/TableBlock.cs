@@ -555,7 +555,7 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
         }
 
         var normalized = NormalizeBreakMarkers(cell ?? string.Empty);
-        if (normalized.IndexOf('\n') < 0) {
+        if (!LooksLikeStructuredMarkdownCell(normalized)) {
             return null;
         }
 
@@ -570,11 +570,79 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
             return null;
         }
 
+        if (ContainsUnsafeRawHtmlTableCellBlocks(blocks)) {
+            return null;
+        }
+
         if (blocks.Count == 1 && blocks[0] is ParagraphBlock) {
             return null;
         }
 
         return blocks;
+    }
+
+    internal static bool LooksLikeStructuredMarkdownCell(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return false;
+        }
+
+        var normalized = value!;
+        if (normalized.IndexOf('\n') >= 0) {
+            return true;
+        }
+
+        var trimmed = normalized.TrimStart();
+        if (trimmed.Length == 0) {
+            return false;
+        }
+
+        if (trimmed.StartsWith("```", StringComparison.Ordinal)
+            || trimmed.StartsWith("~~~", StringComparison.Ordinal)
+            || trimmed.StartsWith(">", StringComparison.Ordinal)
+            || trimmed.StartsWith("<", StringComparison.Ordinal)) {
+            return true;
+        }
+
+        if (trimmed[0] == '#') {
+            int run = 1;
+            while (run < trimmed.Length && trimmed[run] == '#') {
+                run++;
+            }
+
+            if (run <= 6 && run < trimmed.Length && char.IsWhiteSpace(trimmed[run])) {
+                return true;
+            }
+        }
+
+        if (trimmed.Length >= 2
+            && (trimmed[0] == '-' || trimmed[0] == '*' || trimmed[0] == '+')
+            && char.IsWhiteSpace(trimmed[1])) {
+            return true;
+        }
+
+        int digitIndex = 0;
+        while (digitIndex < trimmed.Length && char.IsDigit(trimmed[digitIndex])) {
+            digitIndex++;
+        }
+
+        if (digitIndex > 0
+            && digitIndex + 1 < trimmed.Length
+            && (trimmed[digitIndex] == '.' || trimmed[digitIndex] == ')')
+            && char.IsWhiteSpace(trimmed[digitIndex + 1])) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsUnsafeRawHtmlTableCellBlocks(IReadOnlyList<IMarkdownBlock> blocks) {
+        for (int i = 0; i < blocks.Count; i++) {
+            if (blocks[i] is HtmlRawBlock or HtmlCommentBlock) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static IReadOnlyList<string> PrepareStructuredRowMarkdown(
