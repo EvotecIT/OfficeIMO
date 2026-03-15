@@ -874,6 +874,17 @@ x^2 + 1
     }
 
     [Fact]
+    public void MarkdownRenderer_Respects_Reader_MaxInputCharacters() {
+        var opts = new MarkdownRendererOptions();
+        opts.ReaderOptions.MaxInputCharacters = 8;
+
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("123456789", opts));
+
+        Assert.Contains("MaxInputCharacters", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Can_Apply_Markdown_PreProcessors() {
         var opts = new MarkdownRendererOptions();
         opts.MarkdownPreProcessors.Add((markdown, _) => markdown.Replace("{{name}}", "IntelligenceX"));

@@ -60,6 +60,16 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_Enforces_MaxInputCharacters() {
+        var options = new HtmlToMarkdownOptions {
+            MaxInputCharacters = 12
+        };
+
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => "<p>0123456789</p>".LoadFromHtml(options));
+        Assert.Contains("MaxInputCharacters", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_ConvertsHtmlFragmentWithoutBodyWrapper() {
         string html = "<h2>Fragment</h2><p>Body</p>";
 

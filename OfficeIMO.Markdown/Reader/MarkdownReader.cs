@@ -60,6 +60,8 @@ public static partial class MarkdownReader {
                 markdown = markdown.Substring(1);
             }
 
+            ValidateInputLength(markdown, options.MaxInputCharacters, nameof(markdown));
+
             var preParseNormalization = CreatePreParseNormalizationOptions(options.InputNormalization);
             if (preParseNormalization != null) {
                 markdown = MarkdownInputNormalizer.Normalize(markdown, preParseNormalization);
@@ -286,6 +288,7 @@ public static partial class MarkdownReader {
             AllowProtocolRelativeUrls = source.AllowProtocolRelativeUrls,
             RestrictUrlSchemes = source.RestrictUrlSchemes,
             AllowedUrlSchemes = source.AllowedUrlSchemes,
+            MaxInputCharacters = source.MaxInputCharacters,
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeZeroWidthSpacingArtifacts = source.InputNormalization?.NormalizeZeroWidthSpacingArtifacts ?? false,
                 NormalizeEmojiWordJoins = source.InputNormalization?.NormalizeEmojiWordJoins ?? false,
@@ -356,7 +359,6 @@ public static partial class MarkdownReader {
         bool normalizeOrderedListCaretArtifacts = source?.NormalizeOrderedListCaretArtifacts ?? false;
         bool normalizeCollapsedOrderedListBoundaries = source?.NormalizeCollapsedOrderedListBoundaries ?? false;
         bool normalizeOrderedListStrongDetailClosures = source?.NormalizeOrderedListStrongDetailClosures ?? false;
-        bool normalizeTightParentheticalSpacing = source?.NormalizeTightParentheticalSpacing ?? false;
         bool normalizeNestedStrongDelimiters = source?.NormalizeNestedStrongDelimiters ?? false;
         bool normalizeDanglingTrailingStrongListClosers = source?.NormalizeDanglingTrailingStrongListClosers ?? false;
         bool normalizeMetricValueStrongRuns = source?.NormalizeMetricValueStrongRuns ?? false;
@@ -386,7 +388,6 @@ public static partial class MarkdownReader {
             && !normalizeOrderedListCaretArtifacts
             && !normalizeCollapsedOrderedListBoundaries
             && !normalizeOrderedListStrongDetailClosures
-            && !normalizeTightParentheticalSpacing
             && !normalizeNestedStrongDelimiters
             && !normalizeDanglingTrailingStrongListClosers
             && !normalizeMetricValueStrongRuns) {
@@ -419,7 +420,6 @@ public static partial class MarkdownReader {
             NormalizeOrderedListCaretArtifacts = normalizeOrderedListCaretArtifacts,
             NormalizeCollapsedOrderedListBoundaries = normalizeCollapsedOrderedListBoundaries,
             NormalizeOrderedListStrongDetailClosures = normalizeOrderedListStrongDetailClosures,
-            NormalizeTightParentheticalSpacing = normalizeTightParentheticalSpacing,
             NormalizeNestedStrongDelimiters = normalizeNestedStrongDelimiters,
             NormalizeDanglingTrailingStrongListClosers = normalizeDanglingTrailingStrongListClosers,
             NormalizeMetricValueStrongRuns = normalizeMetricValueStrongRuns
@@ -493,6 +493,20 @@ public static partial class MarkdownReader {
             document,
             options.DocumentTransforms,
             new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.MarkdownReader, options));
+    }
+
+    private static void ValidateInputLength(string input, int? maxInputCharacters, string paramName) {
+        if (!maxInputCharacters.HasValue) {
+            return;
+        }
+
+        if (maxInputCharacters.Value <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maxInputCharacters), maxInputCharacters.Value, "MaxInputCharacters must be greater than zero.");
+        }
+
+        if (input.Length > maxInputCharacters.Value) {
+            throw new ArgumentOutOfRangeException(paramName, input.Length, $"Input exceeds MaxInputCharacters ({maxInputCharacters.Value}).");
+        }
     }
 
     private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren) ParseNestedMarkdownBlocks(

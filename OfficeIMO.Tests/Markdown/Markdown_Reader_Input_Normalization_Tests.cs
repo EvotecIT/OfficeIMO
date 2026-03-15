@@ -380,6 +380,16 @@ Status **Healthy**next
     }
 
     [Fact]
+    public void Reader_Enforces_MaxInputCharacters() {
+        var options = new MarkdownReaderOptions {
+            MaxInputCharacters = 8
+        };
+
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => MarkdownReader.Parse("123456789", options));
+        Assert.Contains("MaxInputCharacters", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_Can_Normalize_NestedStrongDelimiters_BeforeParsing() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {

@@ -3,6 +3,17 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Applies ordered post-parse transforms to typed markdown documents.
 /// </summary>
+/// <example>
+/// <code>
+/// var options = MarkdownReaderOptions.CreatePortableProfile();
+/// options.DocumentTransforms.Add(
+///     new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.GenericSemanticFence));
+///
+/// var document = MarkdownReader.Parse(markdown, options);
+/// </code>
+/// Use document transforms for AST-level upgrades after markdown is parseable.
+/// Keep malformed-input repair in <see cref="MarkdownInputNormalizer"/> so the parser sees valid structure first.
+/// </example>
 public static class MarkdownDocumentTransformPipeline {
     /// <summary>
     /// Applies the supplied transforms in order.

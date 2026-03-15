@@ -5,6 +5,17 @@ using System;
 /// <summary>
 /// Explicit transcript-preparation helpers for hosts ingesting or exporting IntelligenceX-style markdown.
 /// </summary>
+/// <example>
+/// <code>
+/// var prepared = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptBody(markdown);
+/// var exportReady = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForExport(markdown);
+/// var docxReady = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForDocx(
+///     markdown,
+///     preservesGroupedDefinitionLikeParagraphs: true);
+/// </code>
+/// Use these helpers when the host explicitly wants the IntelligenceX transcript contract.
+/// Generic markdown ingestion should stay on <see cref="MarkdownReader"/> profiles and document transforms instead.
+/// </example>
 public static class MarkdownTranscriptPreparation {
     /// <summary>
     /// Applies the shared IX transcript body preparation contract.

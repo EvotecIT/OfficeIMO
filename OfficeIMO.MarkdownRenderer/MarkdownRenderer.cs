@@ -381,6 +381,7 @@ public static class MarkdownRenderer {
             AllowProtocolRelativeUrls = source.AllowProtocolRelativeUrls,
             RestrictUrlSchemes = source.RestrictUrlSchemes,
             AllowedUrlSchemes = source.AllowedUrlSchemes,
+            MaxInputCharacters = source.MaxInputCharacters,
             InputNormalization = CreateInlineNormalizationOptions(normalization)
         };
 

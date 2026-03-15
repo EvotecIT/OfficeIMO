@@ -7,6 +7,13 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Conservative markdown sanitizers for partial streaming preview text.
 /// </summary>
+/// <example>
+/// <code>
+/// var preview = MarkdownStreamingPreviewNormalizer.NormalizeIntelligenceXTranscript(partialDeltaText);
+/// </code>
+/// Use this only for partial or still-streaming transcript text where the host wants a conservative preview-safe cleanup pass.
+/// For full document ingestion, prefer <see cref="MarkdownTranscriptPreparation"/> or <see cref="MarkdownInputNormalizer"/>.
+/// </example>
 public static class MarkdownStreamingPreviewNormalizer {
     private static readonly Regex ZeroWidthWhitespaceRegex = new(
         @"[\u200B\u2060\uFEFF]",
