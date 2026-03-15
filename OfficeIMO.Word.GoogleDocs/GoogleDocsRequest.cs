@@ -10,6 +10,7 @@ namespace OfficeIMO.Word.GoogleDocs {
         public string Kind { get; }
         public int SectionIndex { get; set; }
         public int ElementIndex { get; set; }
+        public GoogleDocsSectionStyle? SectionStyle { get; set; }
     }
 
     /// <summary>
@@ -65,6 +66,7 @@ namespace OfficeIMO.Word.GoogleDocs {
     /// </summary>
     public sealed class GoogleDocsParagraph {
         private readonly List<GoogleDocsParagraphRun> _runs = new List<GoogleDocsParagraphRun>();
+        private readonly List<GoogleDocsTabStop> _tabStops = new List<GoogleDocsTabStop>();
 
         public string Text { get; set; } = string.Empty;
         public string? StyleId { get; set; }
@@ -76,12 +78,35 @@ namespace OfficeIMO.Word.GoogleDocs {
         public int? ListLevel { get; set; }
         public string? ListStyleName { get; set; }
         public string? Alignment { get; set; }
+        public double? IndentStartPoints { get; set; }
+        public double? IndentEndPoints { get; set; }
+        public double? IndentFirstLinePoints { get; set; }
+        public double? SpaceAbovePoints { get; set; }
+        public double? SpaceBelowPoints { get; set; }
+        public double? LineSpacingPercent { get; set; }
+        public string? ShadingFillColorHex { get; set; }
+        public GoogleDocsParagraphBorder? LeftBorder { get; set; }
+        public GoogleDocsParagraphBorder? RightBorder { get; set; }
+        public GoogleDocsParagraphBorder? TopBorder { get; set; }
+        public GoogleDocsParagraphBorder? BottomBorder { get; set; }
+        public bool IsRightToLeft { get; set; }
+        public bool KeepWithNext { get; set; }
+        public bool KeepLinesTogether { get; set; }
+        public bool AvoidWidowAndOrphan { get; set; }
         public bool PageBreakBefore { get; set; }
+        public string? BookmarkName { get; set; }
+        public int? BookmarkId { get; set; }
         public IReadOnlyList<GoogleDocsParagraphRun> Runs => _runs;
+        public IReadOnlyList<GoogleDocsTabStop> TabStops => _tabStops;
 
         internal void AddRun(GoogleDocsParagraphRun run) {
             if (run == null) throw new ArgumentNullException(nameof(run));
             _runs.Add(run);
+        }
+
+        internal void AddTabStop(GoogleDocsTabStop tabStop) {
+            if (tabStop == null) throw new ArgumentNullException(nameof(tabStop));
+            _tabStops.Add(tabStop);
         }
     }
 
@@ -95,7 +120,11 @@ namespace OfficeIMO.Word.GoogleDocs {
         public bool Underline { get; set; }
         public bool Strike { get; set; }
         public int? FontSize { get; set; }
+        public string? FontFamily { get; set; }
         public string? ForegroundColorHex { get; set; }
+        public string? HighlightColor { get; set; }
+        public string? VerticalTextAlignment { get; set; }
+        public string? CapsStyle { get; set; }
         public GoogleDocsLink? Link { get; set; }
         public GoogleDocsFootnote? Footnote { get; set; }
         public GoogleDocsInlineImage? InlineImage { get; set; }
@@ -145,6 +174,7 @@ namespace OfficeIMO.Word.GoogleDocs {
     /// </summary>
     public sealed class GoogleDocsTable {
         private readonly List<GoogleDocsTableRow> _rows = new List<GoogleDocsTableRow>();
+        private readonly List<double> _columnWidthPoints = new List<double>();
 
         public int RowCount { get; set; }
         public int ColumnCount { get; set; }
@@ -155,10 +185,15 @@ namespace OfficeIMO.Word.GoogleDocs {
         public bool HasHorizontalMerges { get; set; }
         public bool HasVerticalMerges { get; set; }
         public IReadOnlyList<GoogleDocsTableRow> Rows => _rows;
+        public IReadOnlyList<double> ColumnWidthPoints => _columnWidthPoints;
 
         internal void AddRow(GoogleDocsTableRow row) {
             if (row == null) throw new ArgumentNullException(nameof(row));
             _rows.Add(row);
+        }
+
+        internal void AddColumnWidth(double widthPoints) {
+            _columnWidthPoints.Add(widthPoints);
         }
     }
 
@@ -187,6 +222,10 @@ namespace OfficeIMO.Word.GoogleDocs {
         public int ColumnSpan { get; set; } = 1;
         public int RowSpan { get; set; } = 1;
         public string? ShadingFillColorHex { get; set; }
+        public GoogleDocsTableCellBorder? LeftBorder { get; set; }
+        public GoogleDocsTableCellBorder? RightBorder { get; set; }
+        public GoogleDocsTableCellBorder? TopBorder { get; set; }
+        public GoogleDocsTableCellBorder? BottomBorder { get; set; }
         public bool HasHorizontalMerge { get; set; }
         public bool HasVerticalMerge { get; set; }
         public IReadOnlyList<GoogleDocsParagraph> Paragraphs => _paragraphs;
@@ -195,5 +234,41 @@ namespace OfficeIMO.Word.GoogleDocs {
             if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
             _paragraphs.Add(paragraph);
         }
+    }
+
+    public sealed class GoogleDocsTableCellBorder {
+        public string? Style { get; set; }
+        public string? ColorHex { get; set; }
+        public uint? Size { get; set; }
+    }
+
+    public sealed class GoogleDocsParagraphBorder {
+        public string? Style { get; set; }
+        public string? ColorHex { get; set; }
+        public uint? Size { get; set; }
+        public uint? Space { get; set; }
+    }
+
+    public sealed class GoogleDocsTabStop {
+        public string? Alignment { get; set; }
+        public string? Leader { get; set; }
+        public double OffsetPoints { get; set; }
+    }
+
+    public sealed class GoogleDocsSectionStyle {
+        public string? Orientation { get; set; }
+        public double? PageWidthPoints { get; set; }
+        public double? PageHeightPoints { get; set; }
+        public double? MarginTopPoints { get; set; }
+        public double? MarginBottomPoints { get; set; }
+        public double? MarginLeftPoints { get; set; }
+        public double? MarginRightPoints { get; set; }
+        public double? HeaderMarginPoints { get; set; }
+        public double? FooterMarginPoints { get; set; }
+        public int? ColumnCount { get; set; }
+        public double? ColumnSpacingPoints { get; set; }
+        public bool HasColumnSeparator { get; set; }
+        public bool UseFirstPageHeaderFooter { get; set; }
+        public int? PageNumberStart { get; set; }
     }
 }
