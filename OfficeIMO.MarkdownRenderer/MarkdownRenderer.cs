@@ -524,6 +524,11 @@ public static class MarkdownRenderer {
         bool normalizeTightStrongBoundaries = source?.NormalizeTightStrongBoundaries ?? false;
         bool normalizeTightArrowStrongBoundaries = source?.NormalizeTightArrowStrongBoundaries ?? false;
         bool normalizeBrokenStrongArrowLabels = source?.NormalizeBrokenStrongArrowLabels ?? false;
+        // These transcript repairs still need to happen before parse so malformed input
+        // does not collapse into the wrong block/inline structure.
+        bool normalizeWrappedSignalFlowStrongRuns = source?.NormalizeWrappedSignalFlowStrongRuns ?? false;
+        bool normalizeSignalFlowLabelSpacing = source?.NormalizeSignalFlowLabelSpacing ?? false;
+        bool normalizeCollapsedMetricChains = source?.NormalizeCollapsedMetricChains ?? false;
         bool normalizeHostLabelBulletArtifacts = source?.NormalizeHostLabelBulletArtifacts ?? false;
         bool normalizeHeadingListBoundaries = source?.NormalizeHeadingListBoundaries ?? false;
         bool normalizeCompactStrongLabelListBoundaries = source?.NormalizeCompactStrongLabelListBoundaries ?? false;
@@ -539,6 +544,8 @@ public static class MarkdownRenderer {
         bool normalizeOrderedListStrongDetailClosures = source?.NormalizeOrderedListStrongDetailClosures ?? false;
         bool normalizeTightParentheticalSpacing = source?.NormalizeTightParentheticalSpacing ?? false;
         bool normalizeNestedStrongDelimiters = source?.NormalizeNestedStrongDelimiters ?? false;
+        bool normalizeDanglingTrailingStrongListClosers = source?.NormalizeDanglingTrailingStrongListClosers ?? false;
+        bool normalizeMetricValueStrongRuns = source?.NormalizeMetricValueStrongRuns ?? false;
 
         if (!normalizeZeroWidthSpacingArtifacts
             && !normalizeEmojiWordJoins
@@ -550,6 +557,9 @@ public static class MarkdownRenderer {
             && !normalizeTightStrongBoundaries
             && !normalizeTightArrowStrongBoundaries
             && !normalizeBrokenStrongArrowLabels
+            && !normalizeWrappedSignalFlowStrongRuns
+            && !normalizeSignalFlowLabelSpacing
+            && !normalizeCollapsedMetricChains
             && !normalizeHostLabelBulletArtifacts
             && !normalizeHeadingListBoundaries
             && !normalizeCompactStrongLabelListBoundaries
@@ -564,7 +574,9 @@ public static class MarkdownRenderer {
             && !normalizeCollapsedOrderedListBoundaries
             && !normalizeOrderedListStrongDetailClosures
             && !normalizeTightParentheticalSpacing
-            && !normalizeNestedStrongDelimiters) {
+            && !normalizeNestedStrongDelimiters
+            && !normalizeDanglingTrailingStrongListClosers
+            && !normalizeMetricValueStrongRuns) {
             return null;
         }
 
@@ -579,6 +591,9 @@ public static class MarkdownRenderer {
             NormalizeTightStrongBoundaries = normalizeTightStrongBoundaries,
             NormalizeTightArrowStrongBoundaries = normalizeTightArrowStrongBoundaries,
             NormalizeBrokenStrongArrowLabels = normalizeBrokenStrongArrowLabels,
+            NormalizeWrappedSignalFlowStrongRuns = normalizeWrappedSignalFlowStrongRuns,
+            NormalizeSignalFlowLabelSpacing = normalizeSignalFlowLabelSpacing,
+            NormalizeCollapsedMetricChains = normalizeCollapsedMetricChains,
             NormalizeHostLabelBulletArtifacts = normalizeHostLabelBulletArtifacts,
             NormalizeHeadingListBoundaries = normalizeHeadingListBoundaries,
             NormalizeCompactStrongLabelListBoundaries = normalizeCompactStrongLabelListBoundaries,
@@ -593,7 +608,9 @@ public static class MarkdownRenderer {
             NormalizeCollapsedOrderedListBoundaries = normalizeCollapsedOrderedListBoundaries,
             NormalizeOrderedListStrongDetailClosures = normalizeOrderedListStrongDetailClosures,
             NormalizeTightParentheticalSpacing = normalizeTightParentheticalSpacing,
-            NormalizeNestedStrongDelimiters = normalizeNestedStrongDelimiters
+            NormalizeNestedStrongDelimiters = normalizeNestedStrongDelimiters,
+            NormalizeDanglingTrailingStrongListClosers = normalizeDanglingTrailingStrongListClosers,
+            NormalizeMetricValueStrongRuns = normalizeMetricValueStrongRuns
         };
     }
 
