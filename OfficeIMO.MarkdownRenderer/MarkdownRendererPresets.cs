@@ -101,14 +101,28 @@ public static class MarkdownRendererPresets {
 
     private static void ApplyIntelligenceXTranscriptDocumentTransforms(MarkdownRendererOptions options) {
         var transforms = options.ReaderOptions.DocumentTransforms;
+        bool hasDefinitionCompatibility = false;
+        bool hasVisualUpgrade = false;
+
         for (var i = 0; i < transforms.Count; i++) {
-            if (transforms[i] is MarkdownJsonVisualCodeBlockTransform existing
-                && existing.LanguageMode == MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence) {
-                return;
+            switch (transforms[i]) {
+                case MarkdownSimpleDefinitionListParagraphTransform:
+                    hasDefinitionCompatibility = true;
+                    break;
+                case MarkdownJsonVisualCodeBlockTransform existing
+                    when existing.LanguageMode == MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence:
+                    hasVisualUpgrade = true;
+                    break;
             }
         }
 
-        transforms.Add(new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
+        if (!hasDefinitionCompatibility) {
+            transforms.Add(new MarkdownSimpleDefinitionListParagraphTransform());
+        }
+
+        if (!hasVisualUpgrade) {
+            transforms.Add(new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
+        }
     }
 
     /// <summary>

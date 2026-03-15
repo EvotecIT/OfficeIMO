@@ -155,6 +155,7 @@ namespace OfficeIMO.Tests {
             composed.NormalizeBrokenTwoLineStrongLeadIns = true;
             composed.NormalizeDanglingTrailingStrongListClosers = true;
             composed.NormalizeMetricValueStrongRuns = true;
+            composed.ReaderOptions.DocumentTransforms.Add(new MarkdownSimpleDefinitionListParagraphTransform());
             composed.ReaderOptions.DocumentTransforms.Add(
                 new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
             MarkdownRendererPresets.ApplyChatPresentation(composed, enableCopyButtons: false);
@@ -186,6 +187,16 @@ namespace OfficeIMO.Tests {
             Assert.Equal(
                 transcript.FencedCodeBlockRenderers.SelectMany(renderer => renderer.Languages).OrderBy(value => value, StringComparer.OrdinalIgnoreCase),
                 composed.FencedCodeBlockRenderers.SelectMany(renderer => renderer.Languages).OrderBy(value => value, StringComparer.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscript_Composes_Definition_Compatibility_Transform() {
+            var opts = MarkdownRendererPresets.CreateIntelligenceXTranscript();
+
+            Assert.Contains(opts.ReaderOptions.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
+            Assert.Contains(opts.ReaderOptions.DocumentTransforms, transform =>
+                transform is MarkdownJsonVisualCodeBlockTransform visual
+                && visual.LanguageMode == MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
         }
 
         [Fact]
@@ -298,6 +309,20 @@ all 5 are healthy for directory access** with recommended LDAPS endpoints.
             Assert.Contains("AD1 healthy for directory access", chat, StringComparison.Ordinal);
             Assert.Contains("Result:", chat, StringComparison.Ordinal);
             Assert.DoesNotContain("<strong>Result\n", chat, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscriptMinimal_Flattens_Grouped_Simple_Definitions() {
+            var markdown = """
+Status: healthy
+Impact: none
+""";
+
+            var chat = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal());
+
+            Assert.DoesNotContain("<dl>", chat, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<p>Status: healthy</p>", chat, StringComparison.Ordinal);
+            Assert.Contains("<p>Impact: none</p>", chat, StringComparison.Ordinal);
         }
 
         [Fact]
