@@ -103,6 +103,21 @@ second
     }
 
     [Fact]
+    public void HtmlToMarkdown_Can_Trim_LooseStrongWhitespace_Via_InlineNormalizationTransform() {
+        var options = new HtmlToMarkdownOptions();
+        options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeLooseStrongDelimiters = true
+        }));
+
+        var document = """
+<p><strong> LDAP/Kerberos health on all DCs </strong> next</p>
+""".LoadFromHtml(options);
+
+        var html = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("<strong>LDAP/Kerberos health on all DCs</strong> next", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownInlineNormalizationTransform_Is_Idempotent() {
         var transform = new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
             NormalizeTightParentheticalSpacing = true,

@@ -34,6 +34,17 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_Trims_StrongBoundaryWhitespace_Before_InlineParsing() {
+        string html = "<p><strong> LDAP/Kerberos health on all DCs </strong> next</p>";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<strong>LDAP/Kerberos health on all DCs</strong> next", renderedHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("** LDAP/Kerberos health on all DCs **", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_Convert_Uses_Configured_MarkdownWriteOptions() {
         var options = new HtmlToMarkdownOptions {
             MarkdownWriteOptions = new MarkdownWriteOptions()

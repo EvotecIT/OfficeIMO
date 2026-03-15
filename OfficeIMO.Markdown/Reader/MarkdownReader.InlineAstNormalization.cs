@@ -14,10 +14,12 @@ public static partial class MarkdownReader {
         bool normalizeTightStrongBoundaries = options.NormalizeTightStrongBoundaries;
         bool normalizeTightColonSpacing = options.NormalizeTightColonSpacing;
         bool normalizeTightParentheticalSpacing = options.NormalizeTightParentheticalSpacing;
+        bool normalizeLooseStrongDelimiters = options.NormalizeLooseStrongDelimiters;
         if (!normalizeEscapedInlineCode
             && !normalizeTightStrongBoundaries
             && !normalizeTightColonSpacing
-            && !normalizeTightParentheticalSpacing) return false;
+            && !normalizeTightParentheticalSpacing
+            && !normalizeLooseStrongDelimiters) return false;
 
         var items = sequence.Nodes;
         if (items == null || items.Count == 0) return false;
@@ -46,6 +48,10 @@ public static partial class MarkdownReader {
         }
 
         if (normalizeTightParentheticalSpacing && TryInsertMissingParentheticalBoundarySpaces(working)) {
+            changed = true;
+        }
+
+        if (normalizeLooseStrongDelimiters && TryTrimLooseStrongDelimiterWhitespace(working)) {
             changed = true;
         }
 
@@ -168,6 +174,76 @@ public static partial class MarkdownReader {
 
             nodes[i] = new TextRun(" " + nextTextRun.Text);
             changed = true;
+        }
+
+        return changed;
+    }
+
+    private static bool TryTrimLooseStrongDelimiterWhitespace(List<IMarkdownInline> nodes) {
+        bool changed = false;
+
+        for (int i = 0; i < nodes.Count; i++) {
+            switch (nodes[i]) {
+                case BoldInline bold:
+                    var trimmed = bold.Text.Trim();
+                    if (trimmed.Length > 0 && trimmed != bold.Text) {
+                        nodes[i] = new BoldInline(trimmed);
+                        changed = true;
+                    }
+                    break;
+                case IStrongMarkdownInline strong when strong is IInlineContainerMarkdownInline container:
+                    if (TryTrimBoundaryWhitespace(container.NestedInlines)) {
+                        changed = true;
+                    }
+                    break;
+            }
+        }
+
+        return changed;
+    }
+
+    private static bool TryTrimBoundaryWhitespace(InlineSequence? sequence) {
+        if (sequence == null || sequence.Nodes.Count == 0) {
+            return false;
+        }
+
+        var items = new List<IMarkdownInline>(sequence.Nodes);
+        bool changed = false;
+
+        while (items.Count > 0 && items[0] is TextRun leading) {
+            var trimmed = leading.Text.TrimStart();
+            if (trimmed == leading.Text) {
+                break;
+            }
+
+            changed = true;
+            if (trimmed.Length == 0) {
+                items.RemoveAt(0);
+                continue;
+            }
+
+            items[0] = new TextRun(trimmed);
+            break;
+        }
+
+        while (items.Count > 0 && items[items.Count - 1] is TextRun trailing) {
+            var trimmed = trailing.Text.TrimEnd();
+            if (trimmed == trailing.Text) {
+                break;
+            }
+
+            changed = true;
+            if (trimmed.Length == 0) {
+                items.RemoveAt(items.Count - 1);
+                continue;
+            }
+
+            items[items.Count - 1] = new TextRun(trimmed);
+            break;
+        }
+
+        if (changed) {
+            sequence.ReplaceItems(CoalesceAdjacentTextRuns(items));
         }
 
         return changed;

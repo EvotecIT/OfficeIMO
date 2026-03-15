@@ -34,7 +34,7 @@ public sealed partial class HtmlToMarkdownConverter {
                 return "  \n";
             case "STRONG":
             case "B":
-                return "**" + ConvertInlineNodesToMarkdown(element.ChildNodes, context) + "**";
+                return ConvertStrongInlineElementToMarkdown(element, context);
             case "EM":
             case "I":
                 return "*" + ConvertInlineNodesToMarkdown(element.ChildNodes, context) + "*";
@@ -104,5 +104,35 @@ public sealed partial class HtmlToMarkdownConverter {
             ? string.Empty
             : " \"" + title.Replace("\"", "\\\"") + "\"";
         return "![" + alt + "](" + EscapeLinkTarget(src) + titlePart + ")";
+    }
+
+    private static string ConvertStrongInlineElementToMarkdown(IElement element, ConversionContext? context) {
+        string content = TrimInlineMarkupBoundaryWhitespace(ConvertInlineNodesToMarkdown(element.ChildNodes, context));
+        if (content.Length == 0) {
+            return string.Empty;
+        }
+
+        return "**" + content + "**";
+    }
+
+    private static string TrimInlineMarkupBoundaryWhitespace(string value) {
+        if (string.IsNullOrEmpty(value)) {
+            return string.Empty;
+        }
+
+        int start = 0;
+        int end = value.Length - 1;
+
+        while (start <= end && char.IsWhiteSpace(value[start])) {
+            start++;
+        }
+
+        while (end >= start && char.IsWhiteSpace(value[end])) {
+            end--;
+        }
+
+        return start > end
+            ? string.Empty
+            : value.Substring(start, end - start + 1);
     }
 }
