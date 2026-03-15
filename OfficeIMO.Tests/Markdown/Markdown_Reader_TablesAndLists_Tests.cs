@@ -112,6 +112,48 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Table_Cells_Can_Parse_MultiBlock_Markdown_Content_From_Cell_Body() {
+            string md = """
+| Section | Notes |
+| --- | --- |
+| Alpha | Intro<br><br>> Quoted |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            Assert.Collection(table.RowCells[0][1].Blocks,
+                block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => Assert.IsType<QuoteBlock>(block));
+
+            var markdown = doc.ToMarkdown().Replace("\r\n", "\n");
+            Assert.Contains("Intro<br><br>> Quoted", markdown, StringComparison.Ordinal);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<td><p>Intro</p><blockquote><p>Quoted</p></blockquote></td>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Table_Cells_Keep_SingleBreak_Content_As_A_Paragraph() {
+            string md = """
+| Notes |
+| --- |
+| First<br>Second |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            var cell = table.RowCells[0][0];
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(cell.Blocks));
+            Assert.DoesNotContain(cell.Blocks, block => block is QuoteBlock or UnorderedListBlock or OrderedListBlock);
+            Assert.Contains("First", paragraph.Inlines.RenderMarkdown(), StringComparison.Ordinal);
+            Assert.Contains("Second", paragraph.Inlines.RenderMarkdown(), StringComparison.Ordinal);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("First<br", html, StringComparison.Ordinal);
+            Assert.Contains("Second", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Table_Cells_Resolve_Reference_Links() {
             string md = """
 | Col |

@@ -536,12 +536,45 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
             return new TableCell();
         }
 
+        var structuredBlocks = TryParseStructuredCellBlocks(cell);
+        if (structuredBlocks != null) {
+            return new TableCell(structuredBlocks);
+        }
+
         var normalized = NormalizeBreakMarkers(cell ?? string.Empty);
         var sanitized = SanitizeInlineMarkdownInput(normalized);
         var inlines = MarkdownReader.ParseInlineText(sanitized, InlineRenderOptions, InlineRenderState);
         return new TableCell(new[] {
             new ParagraphBlock(inlines)
         });
+    }
+
+    private IReadOnlyList<IMarkdownBlock>? TryParseStructuredCellBlocks(string? cell) {
+        if (string.IsNullOrEmpty(cell)) {
+            return null;
+        }
+
+        var normalized = NormalizeBreakMarkers(cell ?? string.Empty);
+        if (normalized.IndexOf('\n') < 0) {
+            return null;
+        }
+
+        var options = InlineRenderOptions == null
+            ? new MarkdownReaderOptions()
+            : CloneOptionsWithoutTables(InlineRenderOptions);
+        var state = InlineRenderState == null
+            ? new MarkdownReaderState()
+            : CloneState(InlineRenderState);
+        var blocks = MarkdownReader.ParseBlockFragment(normalized, options, state);
+        if (blocks.Count == 0) {
+            return null;
+        }
+
+        if (blocks.Count == 1 && blocks[0] is ParagraphBlock) {
+            return null;
+        }
+
+        return blocks;
     }
 
     private static IReadOnlyList<string> PrepareStructuredRowMarkdown(
@@ -570,6 +603,75 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
 
     private static TableCell CloneStructuredCell(TableCell? cell) {
         return cell == null ? new TableCell() : new TableCell(cell.Blocks);
+    }
+
+    private static MarkdownReaderOptions CloneOptionsWithoutTables(MarkdownReaderOptions source) {
+        var clone = MarkdownReaderOptions.CreateProfile(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO);
+        clone.FrontMatter = false;
+        clone.Callouts = source.Callouts;
+        clone.Headings = source.Headings;
+        clone.FencedCode = source.FencedCode;
+        clone.IndentedCodeBlocks = source.IndentedCodeBlocks;
+        clone.Images = source.Images;
+        clone.UnorderedLists = source.UnorderedLists;
+        clone.TaskLists = source.TaskLists;
+        clone.OrderedLists = source.OrderedLists;
+        clone.Tables = false;
+        clone.DefinitionLists = source.DefinitionLists;
+        clone.TocPlaceholders = source.TocPlaceholders;
+        clone.Footnotes = source.Footnotes;
+        clone.PreferNarrativeSingleLineDefinitions = source.PreferNarrativeSingleLineDefinitions;
+        clone.HtmlBlocks = source.HtmlBlocks;
+        clone.Paragraphs = source.Paragraphs;
+        clone.AutolinkUrls = source.AutolinkUrls;
+        clone.AutolinkWwwUrls = source.AutolinkWwwUrls;
+        clone.AutolinkWwwScheme = source.AutolinkWwwScheme;
+        clone.AutolinkEmails = source.AutolinkEmails;
+        clone.BackslashHardBreaks = source.BackslashHardBreaks;
+        clone.InlineHtml = source.InlineHtml;
+        clone.BaseUri = source.BaseUri;
+        clone.DisallowScriptUrls = source.DisallowScriptUrls;
+        clone.DisallowFileUrls = source.DisallowFileUrls;
+        clone.AllowMailtoUrls = source.AllowMailtoUrls;
+        clone.AllowDataUrls = source.AllowDataUrls;
+        clone.AllowProtocolRelativeUrls = source.AllowProtocolRelativeUrls;
+        clone.RestrictUrlSchemes = source.RestrictUrlSchemes;
+        clone.AllowedUrlSchemes = source.AllowedUrlSchemes;
+        clone.MaxInputCharacters = source.MaxInputCharacters;
+        clone.InputNormalization = source.InputNormalization == null
+            ? new MarkdownInputNormalizationOptions()
+            : source.InputNormalization;
+        clone.FencedBlockExtensions.Clear();
+        for (int i = 0; i < source.FencedBlockExtensions.Count; i++) {
+            if (source.FencedBlockExtensions[i] != null) {
+                clone.FencedBlockExtensions.Add(source.FencedBlockExtensions[i]);
+            }
+        }
+
+        clone.BlockParserExtensions.Clear();
+        for (int i = 0; i < source.BlockParserExtensions.Count; i++) {
+            if (source.BlockParserExtensions[i] != null) {
+                clone.BlockParserExtensions.Add(source.BlockParserExtensions[i]);
+            }
+        }
+
+        for (int i = 0; i < source.DocumentTransforms.Count; i++) {
+            if (source.DocumentTransforms[i] != null) {
+                clone.DocumentTransforms.Add(source.DocumentTransforms[i]);
+            }
+        }
+
+        return clone;
+    }
+
+    private static MarkdownReaderState CloneState(MarkdownReaderState state) {
+        var clone = new MarkdownReaderState();
+        foreach (var kvp in state.LinkRefs) {
+            clone.LinkRefs[kvp.Key] = kvp.Value;
+        }
+
+        clone.SourceLineOffset = state.SourceLineOffset;
+        return clone;
     }
 
     private IReadOnlyList<IMarkdownBlock> BuildChildBlocks() {

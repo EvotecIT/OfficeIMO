@@ -334,9 +334,42 @@ public static partial class MarkdownReader {
             return new TableCell();
         }
 
+        var blocks = TryParseStructuredTableCellBlocks(cell, options, state);
+        if (blocks != null) {
+            return new TableCell(blocks);
+        }
+
         return new TableCell(new[] {
             new ParagraphBlock(ParseTableCellInlines(cell, options, state))
         });
+    }
+
+    private static IReadOnlyList<IMarkdownBlock>? TryParseStructuredTableCellBlocks(
+        string? cell,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state) {
+        if (string.IsNullOrEmpty(cell)) {
+            return null;
+        }
+
+        var normalized = TableBlock.NormalizeBreakMarkers(cell ?? string.Empty);
+        if (normalized.IndexOf('\n') < 0) {
+            return null;
+        }
+
+        var fragmentOptions = CloneOptionsWithoutFrontMatter(options);
+        fragmentOptions.Tables = false;
+        var fragmentState = CloneState(state);
+        var blocks = ParseBlockFragment(normalized, fragmentOptions, fragmentState);
+        if (blocks.Count == 0) {
+            return null;
+        }
+
+        if (blocks.Count == 1 && blocks[0] is ParagraphBlock) {
+            return null;
+        }
+
+        return blocks;
     }
 
     private static bool IsAlignmentRow(string line) {
