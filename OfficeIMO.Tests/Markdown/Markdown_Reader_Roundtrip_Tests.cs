@@ -275,6 +275,72 @@ Paragraph
         }
 
         [Fact]
+        public void Reader_Roundtrips_Structured_Table_Cell_Block_Content() {
+            const string markdown = """
+| Section | Notes |
+| --- | --- |
+| Alpha | Intro<br><br>> Quoted<br><br>- first<br>- second |
+""";
+
+            var parsed = MarkdownReader.Parse(markdown);
+            var table = Assert.IsType<TableBlock>(Assert.Single(parsed.Blocks));
+            Assert.Collection(table.RowCells[0][1].Blocks,
+                block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => Assert.IsType<QuoteBlock>(block),
+                block => {
+                    var list = Assert.IsType<UnorderedListBlock>(block);
+                    Assert.Equal(new[] { "first", "second" }, list.Items.Select(item => item.Content.RenderMarkdown()).ToArray());
+                });
+
+            var roundtrip = parsed.ToMarkdown().Replace("\r\n", "\n");
+            Assert.Contains("Intro<br><br>> Quoted<br><br>- first<br>- second", roundtrip, StringComparison.Ordinal);
+
+            var reparsed = MarkdownReader.Parse(roundtrip);
+            var reparsedTable = Assert.IsType<TableBlock>(Assert.Single(reparsed.Blocks));
+            Assert.Collection(reparsedTable.RowCells[0][1].Blocks,
+                block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => Assert.IsType<QuoteBlock>(block),
+                block => {
+                    var list = Assert.IsType<UnorderedListBlock>(block);
+                    Assert.Equal(new[] { "first", "second" }, list.Items.Select(item => item.Content.RenderMarkdown()).ToArray());
+                });
+        }
+
+        [Fact]
+        public void Reader_Roundtrips_Structured_Table_Cell_Code_Block_Content() {
+            const string markdown = """
+| Section | Notes |
+| --- | --- |
+| Alpha | Intro<br><br>```text<br>code line 1<br>code line 2<br>``` |
+""";
+
+            var parsed = MarkdownReader.Parse(markdown);
+            var table = Assert.IsType<TableBlock>(Assert.Single(parsed.Blocks));
+            Assert.Collection(table.RowCells[0][1].Blocks,
+                block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => {
+                    var code = Assert.IsType<CodeBlock>(block);
+                    Assert.Equal("text", code.Language);
+                    Assert.Contains("code line 1", code.Content, StringComparison.Ordinal);
+                    Assert.Contains("code line 2", code.Content, StringComparison.Ordinal);
+                });
+
+            var roundtrip = parsed.ToMarkdown().Replace("\r\n", "\n");
+            Assert.Contains("```text<br>code line 1<br>code line 2<br>```", roundtrip, StringComparison.Ordinal);
+
+            var reparsed = MarkdownReader.Parse(roundtrip);
+            var reparsedTable = Assert.IsType<TableBlock>(Assert.Single(reparsed.Blocks));
+            Assert.Collection(reparsedTable.RowCells[0][1].Blocks,
+                block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => {
+                    var code = Assert.IsType<CodeBlock>(block);
+                    Assert.Equal("text", code.Language);
+                    Assert.Contains("code line 1", code.Content, StringComparison.Ordinal);
+                    Assert.Contains("code line 2", code.Content, StringComparison.Ordinal);
+                });
+        }
+
+        [Fact]
         public void Reader_Enumerates_Headings_And_Resolved_Anchors() {
             const string markdown = """
 # Title

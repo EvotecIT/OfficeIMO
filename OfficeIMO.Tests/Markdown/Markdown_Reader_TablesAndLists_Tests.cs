@@ -154,6 +154,50 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Table_Cells_Can_Parse_List_Content_From_Cell_Body() {
+            string md = """
+| Section | Notes |
+| --- | --- |
+| Alpha | Intro<br><br>- first<br>- second |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            Assert.Collection(table.RowCells[0][1].Blocks,
+                block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => {
+                    var list = Assert.IsType<UnorderedListBlock>(block);
+                    Assert.Equal(new[] { "first", "second" }, list.Items.Select(item => item.Content.RenderMarkdown()).ToArray());
+                });
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<td><p>Intro</p><ul><li>first</li><li>second</li></ul></td>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Table_Cells_Can_Parse_Indented_Code_Block_Content_From_Cell_Body() {
+            string md = """
+| Section | Notes |
+| --- | --- |
+| Alpha | Intro<br><br>    code line 1<br>    code line 2 |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            Assert.Collection(table.RowCells[0][1].Blocks,
+                block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => {
+                    var code = Assert.IsType<CodeBlock>(block);
+                    Assert.Contains("code line 1", code.Content, StringComparison.Ordinal);
+                    Assert.Contains("code line 2", code.Content, StringComparison.Ordinal);
+                });
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<td><p>Intro</p><pre><code>code line 1", html, StringComparison.Ordinal);
+            Assert.Contains("code line 2", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Table_Cells_Resolve_Reference_Links() {
             string md = """
 | Col |
