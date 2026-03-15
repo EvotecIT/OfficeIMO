@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
+using OfficeIMO.MarkdownRenderer;
 using Xunit;
 
 namespace OfficeIMO.Tests.MarkdownSuite;
@@ -79,8 +80,47 @@ public sealed class Markdown_Table_Cell_Ast_Parity_Tests {
         AssertTableCellAstParity(markdown, html, rowIndex: 0, cellIndex: 0);
     }
 
-    private static void AssertTableCellAstParity(string markdown, string html, int rowIndex, int cellIndex) {
-        var markdownDocument = MarkdownReader.Parse(markdown);
+    [Fact]
+    public void Table_Cell_Ast_Parity_Holds_For_Quote_Followed_By_Semantic_Block_Content() {
+        const string payload = "{\r\n  \"type\": \"bar\",\r\n  \"data\": { \"labels\": [\"A\"], \"datasets\": [{ \"label\": \"Count\", \"data\": [1] }] }\r\n}";
+        string cellPayload = payload.Replace("\r\n", "<br>").Replace('\r', '\n').Replace("\n", "<br>");
+        string markdown = "| Notes |\n| --- |\n| > Quoted<br><br>```ix-chart<br>"
+            + cellPayload
+            + "<br>``` |\n";
+        string html = "<table><tr><th>Notes</th></tr><tr><td><blockquote><p>Quoted</p></blockquote>"
+            + MarkdownVisualContract.BuildElementHtml(
+                "canvas",
+                "omd-visual omd-chart",
+                MarkdownSemanticKinds.Chart,
+                "ix-chart",
+                MarkdownVisualContract.CreatePayload(payload))
+            + "</td></tr></table>";
+
+        AssertTableCellAstParity(markdown, html, rowIndex: 0, cellIndex: 0, options: CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
+    }
+
+    [Fact]
+    public void Table_Cell_Ast_Parity_Holds_For_Details_With_Callout_And_Semantic_Block_Content() {
+        const string payload = "{\r\n  \"type\": \"bar\",\r\n  \"data\": { \"labels\": [\"A\"], \"datasets\": [{ \"label\": \"Count\", \"data\": [1] }] }\r\n}";
+        string cellPayload = payload.Replace("\r\n", "<br>").Replace('\r', '\n').Replace("\n", "<br>");
+        string markdown = "| Notes |\n| --- |\n| <details open><summary>More</summary><br><br>> [!WARNING] Watch<br>> Body<br><br>```ix-chart<br>"
+            + cellPayload
+            + "<br>```<br></details> |\n";
+        string html = "<table><tr><th>Notes</th></tr><tr><td><details open><summary>More</summary>"
+            + "<blockquote class=\"callout warning\"><p><strong>Watch</strong></p><p>Body</p></blockquote>"
+            + MarkdownVisualContract.BuildElementHtml(
+                "canvas",
+                "omd-visual omd-chart",
+                MarkdownSemanticKinds.Chart,
+                "ix-chart",
+                MarkdownVisualContract.CreatePayload(payload))
+            + "</details></td></tr></table>";
+
+        AssertTableCellAstParity(markdown, html, rowIndex: 0, cellIndex: 0, options: CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
+    }
+
+    private static void AssertTableCellAstParity(string markdown, string html, int rowIndex, int cellIndex, MarkdownReaderOptions? options = null) {
+        var markdownDocument = MarkdownReader.Parse(markdown, options);
         var htmlDocument = html.LoadFromHtml();
 
         var markdownTable = Assert.IsType<TableBlock>(Assert.Single(markdownDocument.Blocks));
@@ -162,6 +202,7 @@ public sealed class Markdown_Table_Cell_Ast_Parity_Tests {
             HeadingBlock heading => $"Heading(level={heading.Level}, text=\"{EscapeSingleLine(heading.Text)}\")",
             DetailsBlock details => $"Details(open={details.Open.ToString().ToLowerInvariant()})",
             CalloutBlock callout => $"Callout(kind={callout.Kind}, title=\"{EscapeSingleLine(callout.TitleInlines.RenderMarkdown())}\")",
+            SemanticFencedBlock semantic => $"Semantic(kind={semantic.SemanticKind}, language={semantic.Language}, text=\"{EscapeSingleLine(semantic.Content)}\")",
             _ => block.GetType().Name
         };
     }
@@ -172,5 +213,14 @@ public sealed class Markdown_Table_Cell_Ast_Parity_Tests {
             .Replace("\r", "\\r")
             .Replace("\n", "\\n")
             .Replace("\"", "\\\"");
+    }
+
+    private static MarkdownReaderOptions CreateSemanticOptions(string language, string semanticKind) {
+        var options = new MarkdownReaderOptions();
+        options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
+            "Semantic AST",
+            new[] { language },
+            context => new SemanticFencedBlock(semanticKind, context.Language, context.Content, context.Caption)));
+        return options;
     }
 }
