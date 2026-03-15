@@ -113,6 +113,29 @@ namespace OfficeIMO.Tests {
             Assert.True(options.ReaderOptions.Callouts);
             Assert.True(options.ReaderOptions.DefinitionLists);
             Assert.NotNull(options.ReaderOptions.InputNormalization);
+            Assert.Contains(options.ReaderOptions.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
+            Assert.Contains(options.ReaderOptions.DocumentTransforms, transform => transform is MarkdownJsonVisualCodeBlockTransform);
+        }
+
+        [Fact]
+        public void MarkdownToWordPreset_IntelligenceXTranscript_Flattens_Simple_Grouped_Definitions_In_ReaderPipeline() {
+            const string markdown = """
+                Status: healthy
+                Impact: none
+                """;
+
+            var options = MarkdownToWordPresets.CreateIntelligenceXTranscript();
+            var document = MarkdownReader.Parse(markdown, options.ReaderOptions);
+
+            Assert.Collection(document.Blocks,
+                block => {
+                    var paragraph = Assert.IsType<ParagraphBlock>(block);
+                    Assert.Equal("Status: healthy", paragraph.Inlines.RenderMarkdown());
+                },
+                block => {
+                    var paragraph = Assert.IsType<ParagraphBlock>(block);
+                    Assert.Equal("Impact: none", paragraph.Inlines.RenderMarkdown());
+                });
         }
 
         [Fact]

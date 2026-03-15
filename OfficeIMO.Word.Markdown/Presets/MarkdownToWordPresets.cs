@@ -22,6 +22,7 @@ public static class MarkdownToWordPresets {
         readerOptions.Callouts = true;
         readerOptions.DefinitionLists = true;
         readerOptions.InputNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscript();
+        readerOptions.DocumentTransforms.Add(new MarkdownSimpleDefinitionListParagraphTransform());
         readerOptions.DocumentTransforms.Add(
             new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
 
