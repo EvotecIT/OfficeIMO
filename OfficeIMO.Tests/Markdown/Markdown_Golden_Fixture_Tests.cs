@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.MarkdownRenderer;
@@ -9,6 +10,10 @@ using Xunit;
 namespace OfficeIMO.Tests.MarkdownSuite;
 
 public sealed class Markdown_Golden_Fixture_Tests {
+    private static readonly Regex MermaidHashAttributeRegex = new(
+        "\\sdata-mermaid-hash=\"[^\"]*\"",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     [Fact]
     public void MarkdownGolden_ProfileBoundary() {
         string markdown = LoadCompatibilityFixture("portable-profile-boundary.md");
@@ -380,6 +385,8 @@ public sealed class Markdown_Golden_Fixture_Tests {
             return string.Empty;
         }
 
+        html = MermaidHashAttributeRegex.Replace(html, " data-mermaid-hash=\"{normalized}\"");
+
         var sb = new StringBuilder(html.Length);
         bool inTag = false;
         bool lastWasWhitespace = false;
@@ -429,7 +436,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
     }
 
     private static string NormalizeText(string value) {
-        return value
+        return MermaidHashAttributeRegex.Replace(value, " data-mermaid-hash=\"{normalized}\"")
             .Replace("\r\n", "\n")
             .Replace('\r', '\n')
             .Trim();

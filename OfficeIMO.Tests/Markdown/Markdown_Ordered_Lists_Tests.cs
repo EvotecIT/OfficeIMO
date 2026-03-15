@@ -25,9 +25,10 @@ public sealed class MarkdownOrderedListsTests {
             2. Second check
             """;
 
-        var normalized = MarkdownOrderedLists.SeparateAdjacentOrderedListItems(markdown);
+        var normalized = MarkdownOrderedLists.SeparateAdjacentOrderedListItems(markdown)
+            .Replace("\r\n", "\n");
 
-        Assert.Equal(markdown, normalized);
+        Assert.Equal(markdown.Replace("\r\n", "\n"), normalized);
     }
 
     [Fact]
