@@ -63,6 +63,45 @@ second
     }
 
     [Fact]
+    public void MarkdownStandaloneHashHeadingSeparatorTransform_Removes_Empty_Hash_Heading_Before_Real_Heading() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownStandaloneHashHeadingSeparatorTransform());
+
+        var document = MarkdownReader.Parse("""
+#
+
+## Result
+""", options);
+
+        Assert.Collection(document.Blocks,
+            block => {
+                var heading = Assert.IsType<HeadingBlock>(block);
+                Assert.Equal(2, heading.Level);
+                Assert.Equal("Result", heading.Text);
+            });
+    }
+
+    [Fact]
+    public void MarkdownStandaloneHashHeadingSeparatorTransform_Preserves_Ordinary_Empty_Hash_Heading_When_Not_Followed_By_Heading() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownStandaloneHashHeadingSeparatorTransform());
+
+        var document = MarkdownReader.Parse("""
+#
+
+Paragraph body.
+""", options);
+
+        Assert.Collection(document.Blocks,
+            block => {
+                var heading = Assert.IsType<HeadingBlock>(block);
+                Assert.Equal(1, heading.Level);
+                Assert.True(string.IsNullOrWhiteSpace(heading.Text));
+            },
+            block => Assert.IsType<ParagraphBlock>(block));
+    }
+
+    [Fact]
     public void HtmlToMarkdown_Applies_DocumentTransforms_To_IntermediateDocument() {
         var options = new HtmlToMarkdownOptions();
         options.DocumentTransforms.Add(

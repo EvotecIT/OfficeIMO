@@ -342,7 +342,9 @@ public static partial class MarkdownReader {
         bool normalizeTightArrowStrongBoundaries = source?.NormalizeTightArrowStrongBoundaries ?? false;
         bool normalizeBrokenStrongArrowLabels = source?.NormalizeBrokenStrongArrowLabels ?? false;
         // These transcript repairs still need to happen before parse so malformed input
-        // does not collapse into the wrong block/inline structure.
+        // does not collapse into the wrong block/inline structure. Standalone hash heading
+        // separators are intentionally handled later via a document transform because the
+        // markdown already parses into a recoverable block structure.
         bool normalizeWrappedSignalFlowStrongRuns = source?.NormalizeWrappedSignalFlowStrongRuns ?? false;
         bool normalizeSignalFlowLabelSpacing = source?.NormalizeSignalFlowLabelSpacing ?? false;
         bool normalizeCollapsedMetricChains = source?.NormalizeCollapsedMetricChains ?? false;
@@ -350,7 +352,6 @@ public static partial class MarkdownReader {
         bool normalizeHeadingListBoundaries = source?.NormalizeHeadingListBoundaries ?? false;
         bool normalizeCompactStrongLabelListBoundaries = source?.NormalizeCompactStrongLabelListBoundaries ?? false;
         bool normalizeCompactHeadingBoundaries = source?.NormalizeCompactHeadingBoundaries ?? false;
-        bool normalizeStandaloneHashHeadingSeparators = source?.NormalizeStandaloneHashHeadingSeparators ?? false;
         bool normalizeBrokenTwoLineStrongLeadIns = source?.NormalizeBrokenTwoLineStrongLeadIns ?? false;
         bool normalizeColonListBoundaries = source?.NormalizeColonListBoundaries ?? false;
         bool normalizeCompactFenceBodyBoundaries = source?.NormalizeCompactFenceBodyBoundaries ?? false;
@@ -379,7 +380,6 @@ public static partial class MarkdownReader {
             && !normalizeHeadingListBoundaries
             && !normalizeCompactStrongLabelListBoundaries
             && !normalizeCompactHeadingBoundaries
-            && !normalizeStandaloneHashHeadingSeparators
             && !normalizeBrokenTwoLineStrongLeadIns
             && !normalizeColonListBoundaries
             && !normalizeCompactFenceBodyBoundaries
@@ -411,7 +411,6 @@ public static partial class MarkdownReader {
             NormalizeHeadingListBoundaries = normalizeHeadingListBoundaries,
             NormalizeCompactStrongLabelListBoundaries = normalizeCompactStrongLabelListBoundaries,
             NormalizeCompactHeadingBoundaries = normalizeCompactHeadingBoundaries,
-            NormalizeStandaloneHashHeadingSeparators = normalizeStandaloneHashHeadingSeparators,
             NormalizeBrokenTwoLineStrongLeadIns = normalizeBrokenTwoLineStrongLeadIns,
             NormalizeColonListBoundaries = normalizeColonListBoundaries,
             NormalizeCompactFenceBodyBoundaries = normalizeCompactFenceBodyBoundaries,
@@ -489,10 +488,40 @@ public static partial class MarkdownReader {
     }
 
     private static MarkdownDoc ApplyDocumentTransforms(MarkdownDoc document, MarkdownReaderOptions options) {
+        var transforms = BuildEffectiveDocumentTransforms(options);
         return MarkdownDocumentTransformPipeline.Apply(
             document,
-            options.DocumentTransforms,
+            transforms,
             new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.MarkdownReader, options));
+    }
+
+    private static IReadOnlyList<IMarkdownDocumentTransform> BuildEffectiveDocumentTransforms(MarkdownReaderOptions options) {
+        if (options?.InputNormalization?.NormalizeStandaloneHashHeadingSeparators != true) {
+            if (options == null) {
+                return Array.Empty<IMarkdownDocumentTransform>();
+            }
+
+            return options.DocumentTransforms;
+        }
+
+        var configured = options.DocumentTransforms;
+        for (var i = 0; i < configured.Count; i++) {
+            if (configured[i] is MarkdownStandaloneHashHeadingSeparatorTransform) {
+                return configured;
+            }
+        }
+
+        var transforms = new List<IMarkdownDocumentTransform>(configured.Count + 1) {
+            new MarkdownStandaloneHashHeadingSeparatorTransform()
+        };
+
+        for (var i = 0; i < configured.Count; i++) {
+            if (configured[i] != null) {
+                transforms.Add(configured[i]);
+            }
+        }
+
+        return transforms;
     }
 
     private static void ValidateInputLength(string input, int? maxInputCharacters, string paramName) {

@@ -192,6 +192,26 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
+    public void Reader_Can_Normalize_StandaloneHashHeadingSeparators_AfterParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeStandaloneHashHeadingSeparators = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("""
+#
+
+## Result
+""", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("<h1", html, StringComparison.Ordinal);
+        Assert.Contains("<h2", html, StringComparison.Ordinal);
+        Assert.Contains("Result", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_Can_Normalize_ColonListBoundaries_BeforeParsing() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {

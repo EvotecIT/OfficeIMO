@@ -140,6 +140,8 @@ public sealed class MarkdownInputNormalizationOptions {
 
     /// <summary>
     /// When true, removes stray standalone <c>#</c> separator lines that appear immediately before a real ATX heading.
+    /// <see cref="MarkdownReader"/> prefers to apply this via a document transform after parse so hosts can
+    /// keep the repair in the AST pipeline when the markdown already parses cleanly.
     /// Default: false.
     /// </summary>
     public bool NormalizeStandaloneHashHeadingSeparators { get; set; } = false;
