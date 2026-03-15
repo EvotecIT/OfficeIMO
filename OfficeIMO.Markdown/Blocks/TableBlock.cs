@@ -635,9 +635,31 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
         return false;
     }
 
-    private static bool ContainsUnsafeRawHtmlTableCellBlocks(IReadOnlyList<IMarkdownBlock> blocks) {
+    internal static bool ContainsUnsafeRawHtmlTableCellBlocks(IReadOnlyList<IMarkdownBlock> blocks) {
         for (int i = 0; i < blocks.Count; i++) {
-            if (blocks[i] is HtmlRawBlock or HtmlCommentBlock) {
+            if (ContainsUnsafeRawHtmlTableCellBlock(blocks[i])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsUnsafeRawHtmlTableCellBlock(IMarkdownBlock? block) {
+        if (block == null) {
+            return false;
+        }
+
+        if (block is HtmlRawBlock or HtmlCommentBlock) {
+            return true;
+        }
+
+        if (block is not IChildMarkdownBlockContainer container || container.ChildBlocks.Count == 0) {
+            return false;
+        }
+
+        for (int i = 0; i < container.ChildBlocks.Count; i++) {
+            if (ContainsUnsafeRawHtmlTableCellBlock(container.ChildBlocks[i])) {
                 return true;
             }
         }

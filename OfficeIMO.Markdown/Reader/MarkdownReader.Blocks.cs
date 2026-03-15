@@ -365,7 +365,7 @@ public static partial class MarkdownReader {
             return null;
         }
 
-        if (ContainsUnsafeRawHtmlTableCellBlocks(blocks)) {
+        if (TableBlock.ContainsUnsafeRawHtmlTableCellBlocks(blocks)) {
             return null;
         }
 
@@ -374,16 +374,6 @@ public static partial class MarkdownReader {
         }
 
         return blocks;
-    }
-
-    private static bool ContainsUnsafeRawHtmlTableCellBlocks(IReadOnlyList<IMarkdownBlock> blocks) {
-        for (int i = 0; i < blocks.Count; i++) {
-            if (blocks[i] is HtmlRawBlock or HtmlCommentBlock) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private static bool IsAlignmentRow(string line) {

@@ -211,6 +211,46 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Table_Cells_Can_Parse_Details_Block_Content_Without_RawHtml_Children() {
+            string md = """
+| Notes |
+| --- |
+| <details><summary>More</summary>Alpha</details> |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            var details = Assert.IsType<DetailsBlock>(Assert.Single(table.RowCells[0][0].Blocks));
+            Assert.NotNull(details.Summary);
+            Assert.Equal("More", details.Summary!.Inlines.RenderMarkdown());
+            Assert.Equal("Alpha", Assert.IsType<ParagraphBlock>(Assert.Single(details.ChildBlocks)).Inlines.RenderMarkdown());
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<details", html, StringComparison.Ordinal);
+            Assert.Contains("<summary>More</summary>", html, StringComparison.Ordinal);
+            Assert.Contains("<p>Alpha</p>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Table_Cells_Do_Not_Promote_Details_With_RawHtml_Children_To_Structured_Blocks() {
+            string md = """
+| Notes |
+| --- |
+| <details><summary>More</summary><script>alert(1)</script></details> |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(table.RowCells[0][0].Blocks));
+            Assert.Contains("details", paragraph.Inlines.RenderHtml(), StringComparison.Ordinal);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.DoesNotContain("<script>", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("<details", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("details", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Table_Cells_Can_Parse_Indented_Code_Block_Content_From_Cell_Body() {
             string md = """
 | Section | Notes |
