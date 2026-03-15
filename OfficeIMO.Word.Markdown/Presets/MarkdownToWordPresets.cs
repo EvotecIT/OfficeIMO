@@ -17,12 +17,8 @@ public static class MarkdownToWordPresets {
     public static MarkdownToWordOptions CreateIntelligenceXTranscript(
         IReadOnlyList<string>? allowedImageDirectories = null,
         int? visualMaxWidthPx = null) {
-        var readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
-        readerOptions.PreferNarrativeSingleLineDefinitions = true;
-        readerOptions.Callouts = true;
-        readerOptions.DefinitionLists = true;
-        readerOptions.InputNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscript();
-        readerOptions.DocumentTransforms.Add(new MarkdownSimpleDefinitionListParagraphTransform());
+        var readerOptions = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
+            preservesGroupedDefinitionLikeParagraphs: false);
         readerOptions.DocumentTransforms.Add(
             new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
 
