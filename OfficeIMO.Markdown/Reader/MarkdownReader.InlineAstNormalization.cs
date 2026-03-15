@@ -12,11 +12,13 @@ public static partial class MarkdownReader {
 
         bool normalizeEscapedInlineCode = options.NormalizeEscapedInlineCodeSpans;
         bool normalizeTightStrongBoundaries = options.NormalizeTightStrongBoundaries;
+        bool normalizeTightArrowStrongBoundaries = options.NormalizeTightArrowStrongBoundaries;
         bool normalizeTightColonSpacing = options.NormalizeTightColonSpacing;
         bool normalizeTightParentheticalSpacing = options.NormalizeTightParentheticalSpacing;
         bool normalizeLooseStrongDelimiters = options.NormalizeLooseStrongDelimiters;
         if (!normalizeEscapedInlineCode
             && !normalizeTightStrongBoundaries
+            && !normalizeTightArrowStrongBoundaries
             && !normalizeTightColonSpacing
             && !normalizeTightParentheticalSpacing
             && !normalizeLooseStrongDelimiters) return false;
@@ -40,6 +42,10 @@ public static partial class MarkdownReader {
         }
 
         if (normalizeTightStrongBoundaries && TryInsertMissingStrongBoundarySpaces(working)) {
+            changed = true;
+        }
+
+        if (normalizeTightArrowStrongBoundaries && TryInsertMissingArrowStrongBoundarySpaces(working)) {
             changed = true;
         }
 
@@ -124,6 +130,30 @@ public static partial class MarkdownReader {
             if (!NeedsLeadingSpaceAfterStrong(textRun.Text)) continue;
 
             nodes[i + 1] = new TextRun(" " + textRun.Text);
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    private static bool TryInsertMissingArrowStrongBoundarySpaces(List<IMarkdownInline> nodes) {
+        bool changed = false;
+
+        for (int i = 0; i < nodes.Count - 1; i++) {
+            if (nodes[i] is not TextRun textRun) {
+                continue;
+            }
+
+            if (!IsStrongInlineNode(nodes[i + 1])) {
+                continue;
+            }
+
+            string? normalized = NormalizeArrowStrongBoundarySuffix(textRun.Text);
+            if (normalized == null || normalized == textRun.Text) {
+                continue;
+            }
+
+            nodes[i] = new TextRun(normalized);
             changed = true;
         }
 
@@ -334,6 +364,16 @@ public static partial class MarkdownReader {
     private static bool NeedsLeadingSpaceAfterStrong(string? text) {
         if (string.IsNullOrEmpty(text)) return false;
         return char.IsLetterOrDigit(text![0]);
+    }
+
+    private static string NormalizeArrowStrongBoundarySuffix(string text) {
+        if (string.IsNullOrEmpty(text)) {
+            return text;
+        }
+
+        return text.EndsWith("->", StringComparison.Ordinal)
+            ? text + " "
+            : text;
     }
 
     private static bool IsEscapedCodeBodyText(string? text) {

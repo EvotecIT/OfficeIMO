@@ -901,6 +901,8 @@ public static class MarkdownInputNormalizer {
             });
         }
 
+        // Keep a final loose-strong pass after ordered-list detail repair because that step can
+        // introduce new boundary whitespace inside reconstructed strong delimiters.
         if (options.NormalizeLooseStrongDelimiters) {
             value = ApplyRegexOutsideFencedCodeBlocks(value, RepeatedStrongDelimiterRunRegex, static match => {
                 var leftLength = match.Groups["left"].Value.Length;

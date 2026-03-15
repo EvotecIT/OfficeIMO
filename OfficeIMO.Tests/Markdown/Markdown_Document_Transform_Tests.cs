@@ -118,6 +118,20 @@ second
     }
 
     [Fact]
+    public void HtmlToMarkdown_Can_Normalize_TightArrowStrongBoundary_Via_InlineNormalizationTransform() {
+        var options = new HtmlToMarkdownOptions();
+        options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeTightArrowStrongBoundaries = true
+        }));
+
+        var document = """
+<p>Signal -&gt;<strong>Why it matters:</strong> coverage is thin</p>
+""".LoadFromHtml(options);
+
+        Assert.Contains("Signal -> **Why it matters:** coverage is thin", document.ToMarkdown(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownInlineNormalizationTransform_Is_Idempotent() {
         var transform = new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
             NormalizeTightParentheticalSpacing = true,
