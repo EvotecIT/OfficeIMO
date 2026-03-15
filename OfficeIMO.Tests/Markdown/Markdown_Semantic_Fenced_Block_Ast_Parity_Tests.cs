@@ -169,6 +169,67 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
     }
 
     [Fact]
+    public void Semantic_Fenced_Block_Ast_Parity_Holds_Inside_Ordered_List_Items() {
+        const string payload = "{\r\n  \"type\": \"bar\",\r\n  \"data\": { \"labels\": [\"A\"], \"datasets\": [{ \"label\": \"Count\", \"data\": [1] }] }\r\n}";
+        string nestedPayload = payload.Replace("\r\n", "\n").Replace("\n", "\n   ");
+        string markdown = "1. Intro\n\n   ```ix-chart\n"
+            + "   "
+            + nestedPayload
+            + "\n   ```\n\n   Tail\n";
+        string html = "<ol><li><p>Intro</p>"
+            + MarkdownVisualContract.BuildElementHtml(
+                "canvas",
+                "omd-visual omd-chart",
+                MarkdownSemanticKinds.Chart,
+                "ix-chart",
+                MarkdownVisualContract.CreatePayload(payload))
+            + "<p>Tail</p></li></ol>";
+
+        var markdownDocument = MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
+        var htmlDocument = html.LoadFromHtml();
+
+        var markdownList = Assert.IsType<OrderedListBlock>(Assert.Single(markdownDocument.Blocks));
+        var htmlList = Assert.IsType<OrderedListBlock>(Assert.Single(htmlDocument.Blocks));
+
+        var markdownItem = Assert.Single(markdownList.Items);
+        var htmlItem = Assert.Single(htmlList.Items);
+
+        Assert.Equal(markdownItem.Content.RenderMarkdown(), htmlItem.Content.RenderMarkdown());
+        Assert.Equal(DescribeBlocks(markdownItem.Children), DescribeBlocks(htmlItem.Children));
+    }
+
+    [Fact]
+    public void Semantic_Fenced_Block_Ast_Parity_Holds_Inside_Ordered_Task_List_Items_With_Details_And_Callout() {
+        const string payload = "{\r\n  \"type\": \"bar\",\r\n  \"data\": { \"labels\": [\"A\"], \"datasets\": [{ \"label\": \"Count\", \"data\": [1] }] }\r\n}";
+        string nestedPayload = payload.Replace("\r\n", "\n").Replace("\n", "\n   > ");
+        string markdown = "1. [x] Check\n\n   <details open>\n   <summary>More</summary>\n\n   > [!NOTE] Watch\n   > Body\n   >\n   > ```ix-chart\n   > "
+            + nestedPayload
+            + "\n   > ```\n\n   </details>\n";
+        string html = "<ol class=\"contains-task-list\"><li class=\"task-list-item\"><input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled checked><p>Check</p><details open><summary>More</summary><blockquote class=\"callout note\"><p><strong>Watch</strong></p><p>Body</p>"
+            + MarkdownVisualContract.BuildElementHtml(
+                "canvas",
+                "omd-visual omd-chart",
+                MarkdownSemanticKinds.Chart,
+                "ix-chart",
+                MarkdownVisualContract.CreatePayload(payload))
+            + "</blockquote></details></li></ol>";
+
+        var markdownDocument = MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
+        var htmlDocument = html.LoadFromHtml();
+
+        var markdownList = Assert.IsType<OrderedListBlock>(Assert.Single(markdownDocument.Blocks));
+        var htmlList = Assert.IsType<OrderedListBlock>(Assert.Single(htmlDocument.Blocks));
+
+        var markdownItem = Assert.Single(markdownList.Items);
+        var htmlItem = Assert.Single(htmlList.Items);
+
+        Assert.Equal(markdownItem.Content.RenderMarkdown(), htmlItem.Content.RenderMarkdown());
+        Assert.Equal(markdownItem.IsTask, htmlItem.IsTask);
+        Assert.Equal(markdownItem.Checked, htmlItem.Checked);
+        Assert.Equal(DescribeBlocks(markdownItem.Children), DescribeBlocks(htmlItem.Children));
+    }
+
+    [Fact]
     public void Semantic_Fenced_Block_Ast_Parity_Holds_Inside_Details_Blocks() {
         const string payload = "{\r\n  \"type\": \"bar\",\r\n  \"data\": { \"labels\": [\"A\"], \"datasets\": [{ \"label\": \"Count\", \"data\": [1] }] }\r\n}";
         string markdown = "<details open>\n<summary>More</summary>\n\n```ix-chart\n"
