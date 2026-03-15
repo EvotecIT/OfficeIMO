@@ -27,7 +27,7 @@ public sealed class MarkdownSimpleDefinitionListParagraphTransform : IMarkdownDo
             throw new ArgumentNullException(nameof(context));
         }
 
-        document.ReplaceBlocks(RewriteBlocks(document.Blocks, context));
+        MarkdownDocumentBlockListExpander.RewriteDocument(document, context, RewriteBlocks);
         return document;
     }
 
@@ -50,29 +50,9 @@ public sealed class MarkdownSimpleDefinitionListParagraphTransform : IMarkdownDo
     private static IReadOnlyList<IMarkdownBlock> RewriteBlock(
         IMarkdownBlock block,
         MarkdownDocumentTransformContext context) {
-        switch (block) {
-            case DefinitionListBlock definitions:
-                return ExpandDefinitionList(definitions, context);
-            case QuoteBlock quote:
-                RewriteMutableBlockList(quote.Children, context);
-                return new[] { block };
-            case DetailsBlock details:
-                RewriteMutableBlockList(details.Children, context);
-                return new[] { block };
-            case OrderedListBlock ordered:
-                RewriteListItems(ordered.Items, context);
-                return new[] { block };
-            case UnorderedListBlock unordered:
-                RewriteListItems(unordered.Items, context);
-                return new[] { block };
-            case TableBlock table:
-                RewriteTable(table, context);
-                return new[] { block };
-            case CalloutBlock callout:
-                return new[] { RewriteCallout(callout, context) };
-            default:
-                return new[] { block };
-        }
+        return block is DefinitionListBlock definitions
+            ? ExpandDefinitionList(definitions, context)
+            : new[] { block };
     }
 
     private static IReadOnlyList<IMarkdownBlock> ExpandDefinitionList(
@@ -96,7 +76,7 @@ public sealed class MarkdownSimpleDefinitionListParagraphTransform : IMarkdownDo
             pendingDefinitionList ??= new DefinitionListBlock();
             pendingDefinitionList.AddEntry(new DefinitionListEntry(
                 entry.Term,
-                RewriteBlocks(entry.DefinitionBlocks, context)));
+                entry.DefinitionBlocks));
         }
 
         FlushPendingDefinitionList(rewritten, ref pendingDefinitionList);
@@ -126,73 +106,6 @@ public sealed class MarkdownSimpleDefinitionListParagraphTransform : IMarkdownDo
         var combined = termMarkdown + ": " + definitionMarkdown;
         paragraph = new ParagraphBlock(MarkdownReader.ParseInlineText(combined, readerOptions, readerState));
         return true;
-    }
-
-    private static void RewriteMutableBlockList(
-        IList<IMarkdownBlock> blocks,
-        MarkdownDocumentTransformContext context) {
-        if (blocks.Count == 0) {
-            return;
-        }
-
-        var rewritten = RewriteBlocks(blocks.ToList(), context);
-        blocks.Clear();
-        for (var i = 0; i < rewritten.Count; i++) {
-            blocks.Add(rewritten[i]);
-        }
-    }
-
-    private static void RewriteListItems(
-        IList<ListItem> items,
-        MarkdownDocumentTransformContext context) {
-        for (var i = 0; i < items.Count; i++) {
-            var item = items[i];
-            if (item == null || item.Children.Count == 0) {
-                continue;
-            }
-
-            RewriteMutableBlockList(item.Children, context);
-        }
-    }
-
-    private static void RewriteTable(
-        TableBlock table,
-        MarkdownDocumentTransformContext context) {
-        RewriteTableCells(table.StructuredHeaders, context);
-        if (table.StructuredRows == null) {
-            return;
-        }
-
-        for (var i = 0; i < table.StructuredRows.Count; i++) {
-            RewriteTableCells(table.StructuredRows[i], context);
-        }
-    }
-
-    private static void RewriteTableCells(
-        IEnumerable<TableCell>? cells,
-        MarkdownDocumentTransformContext context) {
-        if (cells == null) {
-            return;
-        }
-
-        foreach (var cell in cells) {
-            if (cell == null || cell.Blocks.Count == 0) {
-                continue;
-            }
-
-            RewriteMutableBlockList(cell.Blocks, context);
-        }
-    }
-
-    private static CalloutBlock RewriteCallout(
-        CalloutBlock block,
-        MarkdownDocumentTransformContext context) {
-        if (block.ChildBlocks.Count == 0) {
-            return block;
-        }
-
-        var rewrittenChildren = RewriteBlocks(block.ChildBlocks, context);
-        return new CalloutBlock(block.Kind, block.TitleInlines, rewrittenChildren, block.SyntaxChildren);
     }
 
     private static void FlushPendingDefinitionList(
