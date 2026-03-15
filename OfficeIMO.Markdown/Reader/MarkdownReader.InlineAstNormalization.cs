@@ -7,7 +7,7 @@ namespace OfficeIMO.Markdown;
 /// AST-level inline normalization helpers for model/chat oriented markdown quirks.
 /// </summary>
 public static partial class MarkdownReader {
-    private static bool NormalizeInlineSequenceInPlace(InlineSequence? sequence, MarkdownInputNormalizationOptions? options) {
+    internal static bool NormalizeInlineSequenceInPlace(InlineSequence? sequence, MarkdownInputNormalizationOptions? options) {
         if (sequence == null || options == null) return false;
 
         bool normalizeEscapedInlineCode = options.NormalizeEscapedInlineCodeSpans;

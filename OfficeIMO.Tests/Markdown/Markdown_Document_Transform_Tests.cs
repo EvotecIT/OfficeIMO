@@ -84,6 +84,49 @@ second
             NormalizeMarkdown(document.ToMarkdown()));
     }
 
+    [Fact]
+    public void HtmlToMarkdown_Can_Apply_InlineNormalizationTransform_To_IntermediateDocument() {
+        var options = new HtmlToMarkdownOptions();
+        options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeTightParentheticalSpacing = true,
+            NormalizeTightColonSpacing = true
+        }));
+
+        var document = """
+<p><strong>Deleted object remnants</strong>(SID left in ACL path)</p>
+<p>Why it matters:missing evidence</p>
+""".LoadFromHtml(options);
+
+        var html = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("<strong>Deleted object remnants</strong> (SID left in ACL path)", html, StringComparison.Ordinal);
+        Assert.Contains("Why it matters: missing evidence", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownInlineNormalizationTransform_Is_Idempotent() {
+        var transform = new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeTightParentheticalSpacing = true,
+            NormalizeTightColonSpacing = true
+        });
+
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.DocumentTransforms.Add(transform);
+
+        var document = MarkdownReader.Parse("""
+Signal **Deleted object remnants**(SID left in ACL path)
+
+Why it matters:missing evidence
+""", options);
+
+        var once = NormalizeMarkdown(document.ToMarkdown());
+        var twice = NormalizeMarkdown(MarkdownDocumentTransformPipeline.Apply(
+            document,
+            [transform],
+            new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.MarkdownReader, options)).ToMarkdown());
+
+        Assert.Equal(once, twice);
+    }
+
     private static string NormalizeMarkdown(string markdown) {
         return (markdown ?? string.Empty)
             .Replace("\r\n", "\n")

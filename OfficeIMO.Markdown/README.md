@@ -163,6 +163,19 @@ var parsed = MarkdownReader.Parse(markdown, options);
 
 Use `DocumentTransforms` for AST-level cleanup that should happen after markdown is parseable but before writing, HTML rendering, or downstream export. Keep text repair in `InputNormalization` for genuinely pre-parse fixes only.
 
+```csharp
+var htmlOptions = HtmlToMarkdownOptions.CreatePortableProfile();
+htmlOptions.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(
+    new MarkdownInputNormalizationOptions {
+        NormalizeTightParentheticalSpacing = true,
+        NormalizeTightColonSpacing = true
+    }));
+
+var document = html.LoadFromHtml(htmlOptions);
+```
+
+Use `MarkdownInlineNormalizationTransform` when content is already parseable and you want AST-safe inline cleanup on an existing `MarkdownDoc`, including HTML-imported documents.
+
 ### Portable reader profile
 
 ```csharp
