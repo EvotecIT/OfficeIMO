@@ -376,13 +376,29 @@ public sealed partial class HtmlToMarkdownConverter {
 
         var blocks = new List<IMarkdownBlock>(childBlocks);
         var titleInlines = new InlineSequence();
-        if (blocks[0] is ParagraphBlock firstParagraph
+        bool titleExplicit = IsCalloutTitleExplicit(element);
+        if (!titleExplicit && blocks[0] is ParagraphBlock synthesizedTitleParagraph && IsStrongOnlyParagraph(synthesizedTitleParagraph)) {
+            blocks.RemoveAt(0);
+        } else if (blocks[0] is ParagraphBlock firstParagraph
             && TryExtractCalloutTitleFromParagraph(firstParagraph, out var extractedTitle)) {
             titleInlines = extractedTitle;
             blocks.RemoveAt(0);
         }
 
         callout = new CalloutBlock(kind, titleInlines, blocks);
+        return true;
+    }
+
+    private static bool IsCalloutTitleExplicit(IElement element) {
+        string? explicitAttribute = element.GetAttribute("data-omd-callout-title-explicit");
+        if (string.IsNullOrWhiteSpace(explicitAttribute)) {
+            return true;
+        }
+
+        if (bool.TryParse(explicitAttribute, out bool explicitTitle)) {
+            return explicitTitle;
+        }
+
         return true;
     }
 
@@ -393,9 +409,7 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         string markdown = paragraph.Inlines.RenderMarkdown().Trim();
-        if (markdown.Length < 4
-            || !markdown.StartsWith("**", StringComparison.Ordinal)
-            || !markdown.EndsWith("**", StringComparison.Ordinal)) {
+        if (!IsStrongOnlyMarkdown(markdown)) {
             return false;
         }
 
@@ -405,6 +419,24 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         titleInlines = ParseInlines(inner);
+        return true;
+    }
+
+    private static bool IsStrongOnlyParagraph(ParagraphBlock paragraph) {
+        if (paragraph == null) {
+            return false;
+        }
+
+        return IsStrongOnlyMarkdown(paragraph.Inlines.RenderMarkdown().Trim());
+    }
+
+    private static bool IsStrongOnlyMarkdown(string markdown) {
+        if (markdown.Length < 4
+            || !markdown.StartsWith("**", StringComparison.Ordinal)
+            || !markdown.EndsWith("**", StringComparison.Ordinal)) {
+            return false;
+        }
+
         return true;
     }
 

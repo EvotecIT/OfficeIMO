@@ -283,6 +283,27 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_Roundtrips_Rendered_Callout_Block_Without_Synthesizing_Default_Title() {
+        var document = MarkdownReader.Parse("""
+> [!NOTE]
+> Body
+""");
+
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        MarkdownDoc roundtripped = renderedHtml.LoadFromHtml();
+
+        var callout = Assert.IsType<CalloutBlock>(Assert.Single(roundtripped.Blocks));
+        Assert.Equal("note", callout.Kind);
+        Assert.Equal(string.Empty, callout.TitleInlines.RenderMarkdown());
+        Assert.Equal("Body", Assert.IsType<ParagraphBlock>(Assert.Single(callout.ChildBlocks)).Inlines.RenderMarkdown());
+
+        string markdown = roundtripped.ToMarkdown();
+        Assert.Contains("> [!NOTE]", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("> [!NOTE] Note", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("> [!NOTE] note", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_Recovers_Rendered_Callout_Block_Inside_Table_Cell() {
         string html = "<table><tr><th>Section</th><th>Notes</th></tr><tr><td>Alpha</td><td><blockquote class=\"callout warning\"><p><strong>Watch</strong></p><p>Body</p></blockquote></td></tr></table>";
 
@@ -299,6 +320,28 @@ public sealed class MarkdownHtmlToMarkdownTests {
 
         string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         Assert.Contains("class=\"callout warning\"", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_Roundtrips_Rendered_Untitled_Callout_Block_Inside_Table_Cell() {
+        var document = MarkdownReader.Parse("""
+| Notes |
+| --- |
+| > [!WARNING]<br>> Body |
+""");
+
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        MarkdownDoc roundtripped = renderedHtml.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(roundtripped.Blocks));
+
+        var callout = Assert.IsType<CalloutBlock>(Assert.Single(table.RowCells[0][0].Blocks));
+        Assert.Equal("warning", callout.Kind);
+        Assert.Equal(string.Empty, callout.TitleInlines.RenderMarkdown());
+        Assert.Equal("Body", Assert.IsType<ParagraphBlock>(Assert.Single(callout.ChildBlocks)).Inlines.RenderMarkdown());
+
+        string markdown = roundtripped.ToMarkdown();
+        Assert.Contains("[!WARNING]", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("[!WARNING] Warning", markdown, StringComparison.Ordinal);
     }
 
     [Fact]
