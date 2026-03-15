@@ -846,7 +846,7 @@ namespace OfficeIMO.Excel {
                     view = new SheetView { WorkbookViewId = 0U };
                     sheetViews.Append(view);
                 }
-                view.ShowGridLines = visible ? true : (bool?)null; // null means default (true)
+                view.ShowGridLines = visible;
                 worksheet.Save();
             });
         }
