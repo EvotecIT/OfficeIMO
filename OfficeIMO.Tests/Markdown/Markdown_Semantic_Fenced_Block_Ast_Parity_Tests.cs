@@ -133,6 +133,58 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
     }
 
     [Fact]
+    public void Semantic_Fenced_Block_Ast_Parity_Holds_Inside_Quotes() {
+        const string payload = "{\r\n  \"type\": \"bar\",\r\n  \"data\": { \"labels\": [\"A\"], \"datasets\": [{ \"label\": \"Count\", \"data\": [1] }] }\r\n}";
+        string quotedPayload = payload.Replace("\r\n", "\n").Replace("\n", "\n> ");
+        string markdown = "> Intro\n>\n> ```ix-chart\n> "
+            + quotedPayload
+            + "\n> ```\n>\n> Tail\n";
+        string html = "<blockquote><p>Intro</p>"
+            + MarkdownVisualContract.BuildElementHtml(
+                "canvas",
+                "omd-visual omd-chart",
+                MarkdownSemanticKinds.Chart,
+                "ix-chart",
+                MarkdownVisualContract.CreatePayload(payload))
+            + "<p>Tail</p></blockquote>";
+
+        var markdownDocument = MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
+        var htmlDocument = html.LoadFromHtml();
+
+        var markdownQuote = Assert.IsType<QuoteBlock>(Assert.Single(markdownDocument.Blocks));
+        var htmlQuote = Assert.IsType<QuoteBlock>(Assert.Single(htmlDocument.Blocks));
+
+        Assert.Equal(DescribeBlocks(markdownQuote.ChildBlocks), DescribeBlocks(htmlQuote.ChildBlocks));
+    }
+
+    [Fact]
+    public void Semantic_Fenced_Block_Ast_Parity_Holds_Inside_Callouts() {
+        const string payload = "{\r\n  \"type\": \"bar\",\r\n  \"data\": { \"labels\": [\"A\"], \"datasets\": [{ \"label\": \"Count\", \"data\": [1] }] }\r\n}";
+        string quotedPayload = payload.Replace("\r\n", "\n").Replace("\n", "\n> ");
+        string markdown = "> [!NOTE] Watch\n> Intro\n>\n> ```ix-chart\n> "
+            + quotedPayload
+            + "\n> ```\n>\n> Tail\n";
+        string html = "<blockquote class=\"callout note\"><p><strong>Watch</strong></p><p>Intro</p>"
+            + MarkdownVisualContract.BuildElementHtml(
+                "canvas",
+                "omd-visual omd-chart",
+                MarkdownSemanticKinds.Chart,
+                "ix-chart",
+                MarkdownVisualContract.CreatePayload(payload))
+            + "<p>Tail</p></blockquote>";
+
+        var markdownDocument = MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
+        var htmlDocument = html.LoadFromHtml();
+
+        var markdownCallout = Assert.IsType<CalloutBlock>(Assert.Single(markdownDocument.Blocks));
+        var htmlCallout = Assert.IsType<CalloutBlock>(Assert.Single(htmlDocument.Blocks));
+
+        Assert.Equal(markdownCallout.Kind, htmlCallout.Kind);
+        Assert.Equal(markdownCallout.TitleInlines.RenderMarkdown(), htmlCallout.TitleInlines.RenderMarkdown());
+        Assert.Equal(DescribeBlocks(markdownCallout.ChildBlocks), DescribeBlocks(htmlCallout.ChildBlocks));
+    }
+
+    [Fact]
     public void Semantic_Fenced_Block_Ast_Parity_Holds_Inside_Table_Cells() {
         const string payload = "{\r\n  \"type\": \"bar\",\r\n  \"data\": { \"labels\": [\"A\"], \"datasets\": [{ \"label\": \"Count\", \"data\": [1] }] }\r\n}";
         string cellPayload = payload.Replace("\r\n", "<br>").Replace('\r', '\n').Replace("\n", "<br>");
