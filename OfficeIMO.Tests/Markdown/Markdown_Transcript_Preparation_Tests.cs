@@ -76,6 +76,23 @@ public sealed class MarkdownTranscriptPreparationTests {
     }
 
     [Fact]
+    public void PrepareIntelligenceXTranscriptDocument_Can_Upgrade_Legacy_Visual_Json_Via_Shared_Reader_Contract() {
+        const string markdown = """
+            ```json
+            {"type":"bar","data":{"labels":["A"],"datasets":[{"label":"Count","data":[1]}]}}
+            ```
+            """;
+
+        var document = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptDocument(
+            markdown,
+            visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
+        var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(MarkdownSemanticKinds.Chart, block.SemanticKind);
+        Assert.Equal("ix-chart", block.Language);
+    }
+
+    [Fact]
     public void PrepareIntelligenceXTranscriptForDocx_OptionallySeparatesGroupedDefinitionLikeParagraphs() {
         const string markdown = """
             Status: healthy
@@ -109,5 +126,31 @@ public sealed class MarkdownTranscriptPreparationTests {
         Assert.Collection(repaired.Blocks,
             block => Assert.Equal("Status: healthy", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
             block => Assert.Equal("Impact: none", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
+    }
+
+    [Fact]
+    public void PrepareIntelligenceXTranscriptDocumentForDocx_Can_Compose_Definition_Compatibility_And_Visual_Upgrade() {
+        const string markdown = """
+            Status: healthy
+            Impact: none
+
+            ```json
+            {"type":"bar","data":{"labels":["A"],"datasets":[{"label":"Count","data":[1]}]}}
+            ```
+            """;
+
+        var document = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptDocumentForDocx(
+            markdown,
+            preservesGroupedDefinitionLikeParagraphs: false,
+            visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
+
+        Assert.Collection(document.Blocks,
+            block => Assert.Equal("Status: healthy", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+            block => Assert.Equal("Impact: none", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+            block => {
+                var visual = Assert.IsType<SemanticFencedBlock>(block);
+                Assert.Equal(MarkdownSemanticKinds.Chart, visual.SemanticKind);
+                Assert.Equal("ix-chart", visual.Language);
+            });
     }
 }

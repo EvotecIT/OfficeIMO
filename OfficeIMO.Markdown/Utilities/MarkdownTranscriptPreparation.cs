@@ -106,14 +106,19 @@ public static class MarkdownTranscriptPreparation {
     /// </summary>
     /// <param name="markdown">Transcript markdown source.</param>
     /// <param name="readerProfile">Reader profile to compose on top of.</param>
+    /// <param name="visualFenceLanguageMode">
+    /// Optional legacy JSON visual-fence upgrade mode to apply while preparing the transcript document.
+    /// </param>
     /// <returns>Prepared transcript document.</returns>
     public static MarkdownDoc PrepareIntelligenceXTranscriptDocument(
         string? markdown,
-        MarkdownReaderOptions.MarkdownDialectProfile readerProfile = MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO) {
+        MarkdownReaderOptions.MarkdownDialectProfile readerProfile = MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO,
+        MarkdownVisualFenceLanguageMode? visualFenceLanguageMode = null) {
         return PrepareIntelligenceXTranscriptDocumentForDocx(
             markdown,
             preservesGroupedDefinitionLikeParagraphs: true,
-            readerProfile: readerProfile);
+            readerProfile: readerProfile,
+            visualFenceLanguageMode: visualFenceLanguageMode);
     }
 
     /// <summary>
@@ -139,17 +144,24 @@ public static class MarkdownTranscriptPreparation {
     /// <param name="markdown">Transcript markdown source.</param>
     /// <param name="preservesGroupedDefinitionLikeParagraphs">Whether grouped simple definition-like lines should remain definition lists.</param>
     /// <param name="readerProfile">Reader profile to compose on top of.</param>
+    /// <param name="visualFenceLanguageMode">
+    /// Optional legacy JSON visual-fence upgrade mode to apply while preparing the transcript document.
+    /// </param>
     /// <returns>Prepared transcript document.</returns>
     public static MarkdownDoc PrepareIntelligenceXTranscriptDocumentForDocx(
         string? markdown,
         bool preservesGroupedDefinitionLikeParagraphs,
-        MarkdownReaderOptions.MarkdownDialectProfile readerProfile = MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO) {
+        MarkdownReaderOptions.MarkdownDialectProfile readerProfile = MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO,
+        MarkdownVisualFenceLanguageMode? visualFenceLanguageMode = null) {
         var value = markdown ?? string.Empty;
         if (value.Length == 0) {
             return MarkdownDoc.Create();
         }
 
-        var options = CreateIntelligenceXTranscriptReaderOptions(readerProfile, preservesGroupedDefinitionLikeParagraphs);
+        var options = CreateIntelligenceXTranscriptReaderOptions(
+            readerProfile,
+            preservesGroupedDefinitionLikeParagraphs,
+            visualFenceLanguageMode);
         return MarkdownReader.Parse(value, options);
     }
 }
