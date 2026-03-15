@@ -18,9 +18,8 @@ public static class MarkdownToWordPresets {
         IReadOnlyList<string>? allowedImageDirectories = null,
         int? visualMaxWidthPx = null) {
         var readerOptions = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
-            preservesGroupedDefinitionLikeParagraphs: false);
-        readerOptions.DocumentTransforms.Add(
-            new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
+            preservesGroupedDefinitionLikeParagraphs: false,
+            visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
 
         var options = new MarkdownToWordOptions {
             FontFamily = "Calibri",

@@ -26,10 +26,15 @@ public static class MarkdownTranscriptPreparation {
     /// Whether grouped simple <c>Label: value</c> lines should remain parsed as definition lists.
     /// When <c>false</c>, a document transform expands simple grouped entries back into paragraphs.
     /// </param>
+    /// <param name="visualFenceLanguageMode">
+    /// Optional legacy JSON visual-fence upgrade mode to compose into the transcript reader contract.
+    /// When supplied, plain JSON code blocks can be upgraded into semantic visual fenced blocks during document transforms.
+    /// </param>
     /// <returns>Configured reader options for transcript parsing.</returns>
     public static MarkdownReaderOptions CreateIntelligenceXTranscriptReaderOptions(
         MarkdownReaderOptions.MarkdownDialectProfile readerProfile = MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO,
-        bool preservesGroupedDefinitionLikeParagraphs = true) {
+        bool preservesGroupedDefinitionLikeParagraphs = true,
+        MarkdownVisualFenceLanguageMode? visualFenceLanguageMode = null) {
         var options = MarkdownReaderOptions.CreateProfile(readerProfile);
         options.InputNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscript();
         options.PreferNarrativeSingleLineDefinitions = true;
@@ -45,6 +50,21 @@ public static class MarkdownTranscriptPreparation {
 
             if (!hasDefinitionCompatibilityTransform) {
                 options.DocumentTransforms.Add(new MarkdownSimpleDefinitionListParagraphTransform());
+            }
+        }
+
+        if (visualFenceLanguageMode.HasValue) {
+            bool hasVisualUpgradeTransform = false;
+            for (var i = 0; i < options.DocumentTransforms.Count; i++) {
+                if (options.DocumentTransforms[i] is MarkdownJsonVisualCodeBlockTransform existing
+                    && existing.LanguageMode == visualFenceLanguageMode.Value) {
+                    hasVisualUpgradeTransform = true;
+                    break;
+                }
+            }
+
+            if (!hasVisualUpgradeTransform) {
+                options.DocumentTransforms.Add(new MarkdownJsonVisualCodeBlockTransform(visualFenceLanguageMode.Value));
             }
         }
 

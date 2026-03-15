@@ -101,42 +101,16 @@ public static class MarkdownRendererPresets {
         options.NormalizeMetricValueStrongRuns = true;
     }
 
-    private static void ApplyIntelligenceXTranscriptDocumentTransforms(MarkdownRendererOptions options) {
-        var transforms = options.ReaderOptions.DocumentTransforms;
-        bool hasDefinitionCompatibility = false;
-        bool hasVisualUpgrade = false;
-
-        for (var i = 0; i < transforms.Count; i++) {
-            switch (transforms[i]) {
-                case MarkdownSimpleDefinitionListParagraphTransform:
-                    hasDefinitionCompatibility = true;
-                    break;
-                case MarkdownJsonVisualCodeBlockTransform existing
-                    when existing.LanguageMode == MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence:
-                    hasVisualUpgrade = true;
-                    break;
-            }
-        }
-
-        if (!hasDefinitionCompatibility) {
-            transforms.Add(new MarkdownSimpleDefinitionListParagraphTransform());
-        }
-
-        if (!hasVisualUpgrade) {
-            transforms.Add(new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
-        }
-    }
-
     private static void ApplyIntelligenceXTranscriptReaderContract(
         MarkdownRendererOptions options,
         MarkdownReaderOptions.MarkdownDialectProfile readerProfile) {
         var transcriptReader = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
             readerProfile,
-            preservesGroupedDefinitionLikeParagraphs: false);
+            preservesGroupedDefinitionLikeParagraphs: false,
+            visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
 
         ApplyStrictReaderSecurityDefaults(transcriptReader);
         options.ReaderOptions = transcriptReader;
-        ApplyIntelligenceXTranscriptDocumentTransforms(options);
     }
 
     /// <summary>
@@ -288,7 +262,7 @@ public static class MarkdownRendererPresets {
     public static MarkdownRendererOptions CreateIntelligenceXTranscriptMinimal(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
         var options = CreateStrictMinimal(readerProfile, baseHref);
         ApplyIntelligenceXTranscriptNormalizationDefaults(options);
-        ApplyIntelligenceXTranscriptDocumentTransforms(options);
+        ApplyIntelligenceXTranscriptReaderContract(options, readerProfile);
         ApplyChatPresentation(options, enableCopyButtons: false);
         MarkdownRendererIntelligenceXAdapter.Apply(options);
         MarkdownRendererIntelligenceXLegacyMigration.Apply(options);

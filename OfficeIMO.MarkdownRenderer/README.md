@@ -120,7 +120,7 @@ var ixTranscriptRelaxed = MarkdownRendererPresets.CreateIntelligenceXTranscriptR
 - `CreateStrictMinimalPortable(...)`: combines minimal shell behavior with the portable reader profile and portable HTML output fallbacks
 - `CreateRelaxed(...)`: trusted-content preset that allows HTML parsing and sanitizes raw HTML conservatively
 - `ApplyChatPresentation(...)`: composes chat presentation/chrome onto any existing preset without changing its security profile
-- `CreateIntelligenceXTranscript(...)`: explicit IX transcript rendering preset with IX visual aliases and transcript repairs
+- `CreateIntelligenceXTranscript(...)`: explicit IX transcript rendering preset with IX visual aliases and the shared transcript reader/document-transform contract
 - `CreateIntelligenceXTranscriptPortable(...)`: explicit IX transcript preset using the portable reader profile
 - `CreateIntelligenceXTranscriptMinimal(...)`: explicit minimal IX transcript preset for script-light chat shells
 - `CreateIntelligenceXTranscriptMinimalPortable(...)`: explicit minimal IX transcript preset using the portable reader profile

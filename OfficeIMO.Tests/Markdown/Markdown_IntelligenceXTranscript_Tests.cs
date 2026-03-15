@@ -140,24 +140,26 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void MarkdownRendererPresets_CreateIntelligenceXTranscriptMinimal_Matches_Composed_Generic_Preset() {
-        var composed = MarkdownRendererPresets.CreateStrictMinimal();
-        composed.NormalizeZeroWidthSpacingArtifacts = true;
-        composed.NormalizeEmojiWordJoins = true;
-        composed.NormalizeCompactNumberedChoiceBoundaries = true;
-        composed.NormalizeSentenceCollapsedBullets = true;
-        composed.NormalizeWrappedSignalFlowStrongRuns = true;
-        composed.NormalizeSignalFlowLabelSpacing = true;
-        composed.NormalizeCollapsedMetricChains = true;
-        composed.NormalizeHostLabelBulletArtifacts = true;
-        composed.NormalizeCollapsedOrderedListBoundaries = true;
-        composed.NormalizeOrderedListStrongDetailClosures = true;
+            var composed = MarkdownRendererPresets.CreateStrictMinimal();
+            var transcriptReader = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
+                preservesGroupedDefinitionLikeParagraphs: false,
+                visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
+
+            composed.ReaderOptions = transcriptReader;
+            composed.NormalizeZeroWidthSpacingArtifacts = true;
+            composed.NormalizeEmojiWordJoins = true;
+            composed.NormalizeCompactNumberedChoiceBoundaries = true;
+            composed.NormalizeSentenceCollapsedBullets = true;
+            composed.NormalizeWrappedSignalFlowStrongRuns = true;
+            composed.NormalizeSignalFlowLabelSpacing = true;
+            composed.NormalizeCollapsedMetricChains = true;
+            composed.NormalizeHostLabelBulletArtifacts = true;
+            composed.NormalizeCollapsedOrderedListBoundaries = true;
+            composed.NormalizeOrderedListStrongDetailClosures = true;
             composed.NormalizeStandaloneHashHeadingSeparators = true;
             composed.NormalizeBrokenTwoLineStrongLeadIns = true;
             composed.NormalizeDanglingTrailingStrongListClosers = true;
             composed.NormalizeMetricValueStrongRuns = true;
-            composed.ReaderOptions.DocumentTransforms.Add(new MarkdownSimpleDefinitionListParagraphTransform());
-            composed.ReaderOptions.DocumentTransforms.Add(
-                new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
             MarkdownRendererPresets.ApplyChatPresentation(composed, enableCopyButtons: false);
             MarkdownRendererIntelligenceXAdapter.Apply(composed);
             MarkdownRendererIntelligenceXLegacyMigration.Apply(composed);
@@ -202,7 +204,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void MarkdownRendererPresets_CreateIntelligenceXTranscript_Reuses_Shared_Transcript_Reader_Contract() {
             var expected = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
-                preservesGroupedDefinitionLikeParagraphs: false);
+                preservesGroupedDefinitionLikeParagraphs: false,
+                visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
             var opts = MarkdownRendererPresets.CreateIntelligenceXTranscript();
 
             Assert.True(opts.ReaderOptions.PreferNarrativeSingleLineDefinitions);
@@ -213,6 +216,29 @@ namespace OfficeIMO.Tests {
                 expected.InputNormalization.NormalizeBrokenTwoLineStrongLeadIns,
                 opts.ReaderOptions.InputNormalization.NormalizeBrokenTwoLineStrongLeadIns);
             Assert.Contains(opts.ReaderOptions.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
+            Assert.Contains(opts.ReaderOptions.DocumentTransforms, transform =>
+                transform is MarkdownJsonVisualCodeBlockTransform visual
+                && visual.LanguageMode == MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
+        }
+
+        [Fact]
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscriptMinimal_Reuses_Shared_Transcript_Reader_Contract() {
+            var expected = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
+                preservesGroupedDefinitionLikeParagraphs: false,
+                visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
+            var opts = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
+
+            Assert.True(opts.ReaderOptions.PreferNarrativeSingleLineDefinitions);
+            Assert.Equal(
+                expected.InputNormalization!.NormalizeCollapsedOrderedListBoundaries,
+                opts.ReaderOptions.InputNormalization!.NormalizeCollapsedOrderedListBoundaries);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeBrokenTwoLineStrongLeadIns,
+                opts.ReaderOptions.InputNormalization.NormalizeBrokenTwoLineStrongLeadIns);
+            Assert.Contains(opts.ReaderOptions.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
+            Assert.Contains(opts.ReaderOptions.DocumentTransforms, transform =>
+                transform is MarkdownJsonVisualCodeBlockTransform visual
+                && visual.LanguageMode == MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
         }
 
         [Fact]

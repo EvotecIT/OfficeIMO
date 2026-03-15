@@ -282,6 +282,9 @@ var body = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptBody(mark
 var withoutMarkers = MarkdownTranscriptTransportMarkers.StripIntelligenceXCachedEvidenceTransportMarkers(markdown);
 var export = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForExport(withoutMarkers);
 var docx = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForDocx(markdown, preservesGroupedDefinitionLikeParagraphs: false);
+var readerOptions = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
+    preservesGroupedDefinitionLikeParagraphs: false,
+    visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
 ```
 
 Use `MarkdownTranscriptPreparation` when a host wants the explicit IX transcript prep contract as a visible composition point instead of manually chaining normalization, ordered-list repair, blank-line collapse, and DOCX definition-line compatibility helpers. Use `MarkdownTranscriptTransportMarkers.StripIntelligenceXCachedEvidenceTransportMarkers(...)` when the host is preparing IX transcript content for markdown export and needs that explicit transport cleanup before calling `PrepareIntelligenceXTranscriptForExport(...)`.

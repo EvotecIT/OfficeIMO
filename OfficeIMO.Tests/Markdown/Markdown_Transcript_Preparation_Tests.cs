@@ -18,21 +18,26 @@ public sealed class MarkdownTranscriptPreparationTests {
     }
 
     [Fact]
-    public void CreateIntelligenceXTranscriptReaderOptions_Composes_Transcript_Normalization_And_Optional_Definition_Transform() {
+    public void CreateIntelligenceXTranscriptReaderOptions_Composes_Transcript_Normalization_And_Optional_Document_Transforms() {
         var preserved = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
             preservesGroupedDefinitionLikeParagraphs: true);
         var flattened = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
-            preservesGroupedDefinitionLikeParagraphs: false);
+            preservesGroupedDefinitionLikeParagraphs: false,
+            visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
 
         Assert.NotNull(preserved.InputNormalization);
         Assert.True(preserved.InputNormalization!.NormalizeCollapsedOrderedListBoundaries);
         Assert.True(preserved.PreferNarrativeSingleLineDefinitions);
         Assert.DoesNotContain(preserved.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
+        Assert.DoesNotContain(preserved.DocumentTransforms, transform => transform is MarkdownJsonVisualCodeBlockTransform);
 
         Assert.NotNull(flattened.InputNormalization);
         Assert.True(flattened.InputNormalization!.NormalizeCollapsedOrderedListBoundaries);
         Assert.True(flattened.PreferNarrativeSingleLineDefinitions);
         Assert.Contains(flattened.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
+        Assert.Contains(flattened.DocumentTransforms, transform =>
+            transform is MarkdownJsonVisualCodeBlockTransform visual
+            && visual.LanguageMode == MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
     }
 
     [Fact]
