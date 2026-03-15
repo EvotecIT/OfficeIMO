@@ -27,12 +27,20 @@ public sealed class MarkdownTranscriptPreparationTests {
 
         Assert.NotNull(preserved.InputNormalization);
         Assert.True(preserved.InputNormalization!.NormalizeCollapsedOrderedListBoundaries);
+        Assert.False(preserved.InputNormalization.NormalizeHeadingListBoundaries);
+        Assert.False(preserved.InputNormalization.NormalizeCompactStrongLabelListBoundaries);
+        Assert.False(preserved.InputNormalization.NormalizeCompactHeadingBoundaries);
+        Assert.False(preserved.InputNormalization.NormalizeColonListBoundaries);
         Assert.True(preserved.PreferNarrativeSingleLineDefinitions);
         Assert.DoesNotContain(preserved.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
         Assert.DoesNotContain(preserved.DocumentTransforms, transform => transform is MarkdownJsonVisualCodeBlockTransform);
 
         Assert.NotNull(flattened.InputNormalization);
         Assert.True(flattened.InputNormalization!.NormalizeCollapsedOrderedListBoundaries);
+        Assert.False(flattened.InputNormalization.NormalizeHeadingListBoundaries);
+        Assert.False(flattened.InputNormalization.NormalizeCompactStrongLabelListBoundaries);
+        Assert.False(flattened.InputNormalization.NormalizeCompactHeadingBoundaries);
+        Assert.False(flattened.InputNormalization.NormalizeColonListBoundaries);
         Assert.True(flattened.PreferNarrativeSingleLineDefinitions);
         Assert.Contains(flattened.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
         Assert.Contains(flattened.DocumentTransforms, transform =>
