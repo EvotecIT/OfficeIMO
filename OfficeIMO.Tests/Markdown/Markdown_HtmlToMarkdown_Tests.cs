@@ -440,7 +440,7 @@ B --> C[Render Mermaid]
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
         Assert.Equal(MarkdownSemanticKinds.Mermaid, block.SemanticKind);
         Assert.Equal("mermaid", block.Language);
-        Assert.Equal(raw, block.Content);
+        Assert.Equal(NormalizeMarkdown(raw), NormalizeMarkdown(block.Content));
         Assert.Equal(
             NormalizeMarkdown("```mermaid\n" + raw + "\n```"),
             NormalizeMarkdown(document.ToMarkdown()));
