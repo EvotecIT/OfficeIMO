@@ -284,6 +284,37 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
+    public void Reader_StrictTranscriptPreset_Composes_PreParse_And_AstFirst_Normalization() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscriptStrict()
+        };
+
+        var html = MarkdownReader.Parse("""
+## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK
+
+previous shutdown was unexpected### Reason
+
+Następny najlepszy krok:- **`ad_domain_controller_facts`**
+
+- Overall health ✅ Healthy****
+""", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<h2", html, StringComparison.Ordinal);
+        Assert.Contains("Wynik og", html, StringComparison.Ordinal);
+        Assert.Equal(4, Count(html, "<li"));
+        Assert.Contains("Replication", html, StringComparison.Ordinal);
+        Assert.Contains("FSMO", html, StringComparison.Ordinal);
+        Assert.Contains("<p>previous shutdown was unexpected</p>", html, StringComparison.Ordinal);
+        Assert.Contains("<h3", html, StringComparison.Ordinal);
+        Assert.Contains(">Reason<", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Następny najlepszy krok:</p>", html, StringComparison.Ordinal);
+        Assert.Contains("ad_domain_controller_facts", html, StringComparison.Ordinal);
+        Assert.Contains("Healthy", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Healthy****", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_Can_Normalize_ColonListBoundaries_BeforeParsing() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {

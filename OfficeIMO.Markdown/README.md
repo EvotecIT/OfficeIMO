@@ -176,6 +176,27 @@ var document = html.LoadFromHtml(htmlOptions);
 
 Use `MarkdownInlineNormalizationTransform` when content is already parseable and you want AST-safe inline cleanup on an existing `MarkdownDoc`, including HTML-imported documents.
 
+### Input normalization boundary
+
+`MarkdownReader` now splits normalization into two stages:
+
+- `InputNormalization`
+  Keep this for truly pre-parse repairs that make malformed markdown parseable at all, such as compact fence-body repair, broken ordered-list markers, malformed strong delimiters that would mis-tokenize, or other block-boundary damage.
+- `DocumentTransforms`
+  Use this for cleanup that can already be expressed on a parsed document, such as semantic block upgrades, inline-safe normalization, and recoverable paragraph/heading/list boundary fixes.
+
+The reader automatically routes several recoverable transcript/document repairs through built-in document transforms when their `InputNormalization` flags are enabled, including:
+
+- `NormalizeStandaloneHashHeadingSeparators`
+- `NormalizeCompactHeadingBoundaries`
+- `NormalizeColonListBoundaries`
+- `NormalizeHeadingListBoundaries`
+- `NormalizeCompactStrongLabelListBoundaries`
+- `NormalizeDanglingTrailingStrongListClosers`
+- `NormalizeMetricValueStrongRuns`
+
+That keeps the pre-parse text normalizer focused on the cases that genuinely must happen before parsing, while preserving the existing option surface for callers.
+
 ### Portable reader profile
 
 ```csharp

@@ -341,10 +341,11 @@ public static partial class MarkdownReader {
         bool normalizeLooseStrongDelimiters = source?.NormalizeLooseStrongDelimiters ?? false;
         bool normalizeTightArrowStrongBoundaries = source?.NormalizeTightArrowStrongBoundaries ?? false;
         bool normalizeBrokenStrongArrowLabels = source?.NormalizeBrokenStrongArrowLabels ?? false;
-        // These transcript repairs still need to happen before parse so malformed input
-        // does not collapse into the wrong block/inline structure. Standalone hash heading
-        // separators are intentionally handled later via a document transform because the
-        // markdown already parses into a recoverable block structure.
+        // These repairs stay on the text side because malformed input would otherwise parse
+        // into the wrong block/inline structure. Recoverable paragraph/heading/list boundary
+        // cleanup is intentionally excluded here and handled later via built-in document
+        // transforms so the reader can normalize from the AST whenever markdown is already
+        // parseable.
         bool normalizeWrappedSignalFlowStrongRuns = source?.NormalizeWrappedSignalFlowStrongRuns ?? false;
         bool normalizeSignalFlowLabelSpacing = source?.NormalizeSignalFlowLabelSpacing ?? false;
         bool normalizeCollapsedMetricChains = source?.NormalizeCollapsedMetricChains ?? false;
@@ -483,6 +484,10 @@ public static partial class MarkdownReader {
         }
 
         var normalization = options.InputNormalization;
+        // These flags intentionally map to AST/document transforms rather than pre-parse text
+        // repair because the markdown already parses into recoverable paragraph/heading/list
+        // structures. Keeping them here makes the routing boundary explicit and prevents the
+        // pre-parse normalizer from growing back into a general transcript rewrite pipeline.
         bool needsStandaloneHashTransform = normalization?.NormalizeStandaloneHashHeadingSeparators == true;
         bool needsCompactHeadingBoundaryTransform = normalization?.NormalizeCompactHeadingBoundaries == true;
         bool needsColonListBoundaryTransform = normalization?.NormalizeColonListBoundaries == true;
