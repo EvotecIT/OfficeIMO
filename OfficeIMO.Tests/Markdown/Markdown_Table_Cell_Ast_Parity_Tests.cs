@@ -55,6 +55,30 @@ public sealed class Markdown_Table_Cell_Ast_Parity_Tests {
         AssertTableCellAstParity(markdown, html, rowIndex: 0, cellIndex: 0);
     }
 
+    [Fact]
+    public void Table_Cell_Ast_Parity_Holds_For_Quote_Followed_By_Callout_Content() {
+        const string markdown = """
+| Notes |
+| --- |
+| > Quoted<br><br>> [!WARNING] Watch<br>> Body |
+""";
+        const string html = "<table><tr><th>Notes</th></tr><tr><td><blockquote><p>Quoted</p></blockquote><blockquote class=\"callout warning\"><p><strong>Watch</strong></p><p>Body</p></blockquote></td></tr></table>";
+
+        AssertTableCellAstParity(markdown, html, rowIndex: 0, cellIndex: 0);
+    }
+
+    [Fact]
+    public void Table_Cell_Ast_Parity_Holds_For_Details_With_Quote_And_Callout_Content() {
+        const string markdown = """
+| Notes |
+| --- |
+| <details open><summary>More</summary><br><br>> Quoted<br><br>> [!WARNING] Watch<br>> Body<br></details> |
+""";
+        const string html = "<table><tr><th>Notes</th></tr><tr><td><details open><summary>More</summary><blockquote><p>Quoted</p></blockquote><blockquote class=\"callout warning\"><p><strong>Watch</strong></p><p>Body</p></blockquote></details></td></tr></table>";
+
+        AssertTableCellAstParity(markdown, html, rowIndex: 0, cellIndex: 0);
+    }
+
     private static void AssertTableCellAstParity(string markdown, string html, int rowIndex, int cellIndex) {
         var markdownDocument = MarkdownReader.Parse(markdown);
         var htmlDocument = html.LoadFromHtml();
