@@ -156,6 +156,10 @@ namespace OfficeIMO.Tests {
             composed.NormalizeHostLabelBulletArtifacts = true;
             composed.NormalizeCollapsedOrderedListBoundaries = true;
             composed.NormalizeOrderedListStrongDetailClosures = true;
+            composed.NormalizeHeadingListBoundaries = true;
+            composed.NormalizeCompactStrongLabelListBoundaries = true;
+            composed.NormalizeCompactHeadingBoundaries = true;
+            composed.NormalizeColonListBoundaries = true;
             composed.NormalizeStandaloneHashHeadingSeparators = true;
             composed.NormalizeBrokenTwoLineStrongLeadIns = true;
             composed.NormalizeDanglingTrailingStrongListClosers = true;
@@ -180,6 +184,10 @@ namespace OfficeIMO.Tests {
         Assert.Equal(transcript.NormalizeHostLabelBulletArtifacts, composed.NormalizeHostLabelBulletArtifacts);
         Assert.Equal(transcript.NormalizeCollapsedOrderedListBoundaries, composed.NormalizeCollapsedOrderedListBoundaries);
         Assert.Equal(transcript.NormalizeOrderedListStrongDetailClosures, composed.NormalizeOrderedListStrongDetailClosures);
+        Assert.Equal(transcript.NormalizeHeadingListBoundaries, composed.NormalizeHeadingListBoundaries);
+        Assert.Equal(transcript.NormalizeCompactStrongLabelListBoundaries, composed.NormalizeCompactStrongLabelListBoundaries);
+        Assert.Equal(transcript.NormalizeCompactHeadingBoundaries, composed.NormalizeCompactHeadingBoundaries);
+        Assert.Equal(transcript.NormalizeColonListBoundaries, composed.NormalizeColonListBoundaries);
             Assert.Equal(transcript.NormalizeStandaloneHashHeadingSeparators, composed.NormalizeStandaloneHashHeadingSeparators);
             Assert.Equal(transcript.NormalizeBrokenTwoLineStrongLeadIns, composed.NormalizeBrokenTwoLineStrongLeadIns);
             Assert.Equal(transcript.NormalizeDanglingTrailingStrongListClosers, composed.NormalizeDanglingTrailingStrongListClosers);
@@ -215,6 +223,18 @@ namespace OfficeIMO.Tests {
             Assert.Equal(
                 expected.InputNormalization.NormalizeBrokenTwoLineStrongLeadIns,
                 opts.ReaderOptions.InputNormalization.NormalizeBrokenTwoLineStrongLeadIns);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeHeadingListBoundaries,
+                opts.ReaderOptions.InputNormalization.NormalizeHeadingListBoundaries);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeCompactStrongLabelListBoundaries,
+                opts.ReaderOptions.InputNormalization.NormalizeCompactStrongLabelListBoundaries);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeCompactHeadingBoundaries,
+                opts.ReaderOptions.InputNormalization.NormalizeCompactHeadingBoundaries);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeColonListBoundaries,
+                opts.ReaderOptions.InputNormalization.NormalizeColonListBoundaries);
             Assert.Contains(opts.ReaderOptions.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
             Assert.Contains(opts.ReaderOptions.DocumentTransforms, transform =>
                 transform is MarkdownJsonVisualCodeBlockTransform visual
@@ -235,6 +255,18 @@ namespace OfficeIMO.Tests {
             Assert.Equal(
                 expected.InputNormalization.NormalizeBrokenTwoLineStrongLeadIns,
                 opts.ReaderOptions.InputNormalization.NormalizeBrokenTwoLineStrongLeadIns);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeHeadingListBoundaries,
+                opts.ReaderOptions.InputNormalization.NormalizeHeadingListBoundaries);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeCompactStrongLabelListBoundaries,
+                opts.ReaderOptions.InputNormalization.NormalizeCompactStrongLabelListBoundaries);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeCompactHeadingBoundaries,
+                opts.ReaderOptions.InputNormalization.NormalizeCompactHeadingBoundaries);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeColonListBoundaries,
+                opts.ReaderOptions.InputNormalization.NormalizeColonListBoundaries);
             Assert.Contains(opts.ReaderOptions.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
             Assert.Contains(opts.ReaderOptions.DocumentTransforms, transform =>
                 transform is MarkdownJsonVisualCodeBlockTransform visual

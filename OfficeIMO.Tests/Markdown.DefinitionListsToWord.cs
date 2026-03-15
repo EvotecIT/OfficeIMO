@@ -96,6 +96,9 @@ namespace OfficeIMO.Tests {
             var options = MarkdownToWordPresets.CreateIntelligenceXTranscript(
                 ["C:\\allowed-a", "", "C:\\allowed-a", "C:\\allowed-b"],
                 2500);
+            var expected = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
+                preservesGroupedDefinitionLikeParagraphs: false,
+                visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
 
             Assert.Equal("Calibri", options.FontFamily);
             Assert.True(options.AllowLocalImages);
@@ -113,8 +116,16 @@ namespace OfficeIMO.Tests {
             Assert.True(options.ReaderOptions.Callouts);
             Assert.True(options.ReaderOptions.DefinitionLists);
             Assert.NotNull(options.ReaderOptions.InputNormalization);
+            Assert.Equal(expected.InputNormalization!.NormalizeCollapsedOrderedListBoundaries, options.ReaderOptions.InputNormalization!.NormalizeCollapsedOrderedListBoundaries);
+            Assert.Equal(expected.InputNormalization.NormalizeBrokenTwoLineStrongLeadIns, options.ReaderOptions.InputNormalization.NormalizeBrokenTwoLineStrongLeadIns);
+            Assert.Equal(expected.InputNormalization.NormalizeHeadingListBoundaries, options.ReaderOptions.InputNormalization.NormalizeHeadingListBoundaries);
+            Assert.Equal(expected.InputNormalization.NormalizeCompactStrongLabelListBoundaries, options.ReaderOptions.InputNormalization.NormalizeCompactStrongLabelListBoundaries);
+            Assert.Equal(expected.InputNormalization.NormalizeCompactHeadingBoundaries, options.ReaderOptions.InputNormalization.NormalizeCompactHeadingBoundaries);
+            Assert.Equal(expected.InputNormalization.NormalizeColonListBoundaries, options.ReaderOptions.InputNormalization.NormalizeColonListBoundaries);
             Assert.Contains(options.ReaderOptions.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
-            Assert.Contains(options.ReaderOptions.DocumentTransforms, transform => transform is MarkdownJsonVisualCodeBlockTransform);
+            Assert.Contains(options.ReaderOptions.DocumentTransforms, transform =>
+                transform is MarkdownJsonVisualCodeBlockTransform visual
+                && visual.LanguageMode == MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
         }
 
         [Fact]
