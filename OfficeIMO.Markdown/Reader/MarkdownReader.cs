@@ -361,8 +361,6 @@ public static partial class MarkdownReader {
         bool normalizeCollapsedOrderedListBoundaries = source?.NormalizeCollapsedOrderedListBoundaries ?? false;
         bool normalizeOrderedListStrongDetailClosures = source?.NormalizeOrderedListStrongDetailClosures ?? false;
         bool normalizeNestedStrongDelimiters = source?.NormalizeNestedStrongDelimiters ?? false;
-        bool normalizeDanglingTrailingStrongListClosers = source?.NormalizeDanglingTrailingStrongListClosers ?? false;
-        bool normalizeMetricValueStrongRuns = source?.NormalizeMetricValueStrongRuns ?? false;
 
         if (!normalizeZeroWidthSpacingArtifacts
             && !normalizeEmojiWordJoins
@@ -388,9 +386,7 @@ public static partial class MarkdownReader {
             && !normalizeOrderedListCaretArtifacts
             && !normalizeCollapsedOrderedListBoundaries
             && !normalizeOrderedListStrongDetailClosures
-            && !normalizeNestedStrongDelimiters
-            && !normalizeDanglingTrailingStrongListClosers
-            && !normalizeMetricValueStrongRuns) {
+            && !normalizeNestedStrongDelimiters) {
             return null;
         }
 
@@ -419,9 +415,7 @@ public static partial class MarkdownReader {
             NormalizeOrderedListCaretArtifacts = normalizeOrderedListCaretArtifacts,
             NormalizeCollapsedOrderedListBoundaries = normalizeCollapsedOrderedListBoundaries,
             NormalizeOrderedListStrongDetailClosures = normalizeOrderedListStrongDetailClosures,
-            NormalizeNestedStrongDelimiters = normalizeNestedStrongDelimiters,
-            NormalizeDanglingTrailingStrongListClosers = normalizeDanglingTrailingStrongListClosers,
-            NormalizeMetricValueStrongRuns = normalizeMetricValueStrongRuns
+            NormalizeNestedStrongDelimiters = normalizeNestedStrongDelimiters
         };
     }
 
@@ -496,24 +490,49 @@ public static partial class MarkdownReader {
     }
 
     private static IReadOnlyList<IMarkdownDocumentTransform> BuildEffectiveDocumentTransforms(MarkdownReaderOptions options) {
-        if (options?.InputNormalization?.NormalizeStandaloneHashHeadingSeparators != true) {
-            if (options == null) {
-                return Array.Empty<IMarkdownDocumentTransform>();
-            }
+        if (options == null) {
+            return Array.Empty<IMarkdownDocumentTransform>();
+        }
 
+        var normalization = options.InputNormalization;
+        bool needsStandaloneHashTransform = normalization?.NormalizeStandaloneHashHeadingSeparators == true;
+        bool needsListStrongArtifactTransform =
+            normalization?.NormalizeLooseStrongDelimiters == true
+            || normalization?.NormalizeDanglingTrailingStrongListClosers == true
+            || normalization?.NormalizeMetricValueStrongRuns == true;
+
+        if (!needsStandaloneHashTransform && !needsListStrongArtifactTransform) {
             return options.DocumentTransforms;
         }
 
         var configured = options.DocumentTransforms;
+        bool hasStandaloneHashTransform = false;
+        bool hasListStrongArtifactTransform = false;
+
         for (var i = 0; i < configured.Count; i++) {
-            if (configured[i] is MarkdownStandaloneHashHeadingSeparatorTransform) {
-                return configured;
+            switch (configured[i]) {
+                case MarkdownStandaloneHashHeadingSeparatorTransform:
+                    hasStandaloneHashTransform = true;
+                    break;
+                case MarkdownListParagraphStrongArtifactTransform:
+                    hasListStrongArtifactTransform = true;
+                    break;
             }
         }
 
-        var transforms = new List<IMarkdownDocumentTransform>(configured.Count + 1) {
-            new MarkdownStandaloneHashHeadingSeparatorTransform()
-        };
+        if ((!needsStandaloneHashTransform || hasStandaloneHashTransform)
+            && (!needsListStrongArtifactTransform || hasListStrongArtifactTransform)) {
+            return configured;
+        }
+
+        var transforms = new List<IMarkdownDocumentTransform>(configured.Count + 2);
+        if (needsListStrongArtifactTransform && !hasListStrongArtifactTransform) {
+            transforms.Add(new MarkdownListParagraphStrongArtifactTransform(normalization!));
+        }
+
+        if (needsStandaloneHashTransform && !hasStandaloneHashTransform) {
+            transforms.Add(new MarkdownStandaloneHashHeadingSeparatorTransform());
+        }
 
         for (var i = 0; i < configured.Count; i++) {
             if (configured[i] != null) {

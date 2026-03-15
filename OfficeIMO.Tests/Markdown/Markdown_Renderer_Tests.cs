@@ -755,6 +755,29 @@ x^2 + 1
     }
 
     [Fact]
+    public void MarkdownRenderer_Normalizes_List_Strong_Artifacts_When_Enabled() {
+        var opts = new MarkdownRendererOptions {
+            NormalizeLooseStrongDelimiters = true,
+            NormalizeDanglingTrailingStrongListClosers = true,
+            NormalizeMetricValueStrongRuns = true
+        };
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("""
+- Overall health ****healthy****
+- Overall health ✅ Healthy****
+- Overall health ******healthy**
+- Overall health **✅****Healthy**
+- LDAP/LDAPS across all DCs **healthy on FQDN endpoints for all 5 servers*
+""", opts);
+
+        Assert.Contains("<strong>healthy</strong>", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("Healthy", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("healthy on FQDN endpoints for all 5 servers", htmlOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("Healthy****", htmlOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("******healthy**", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Normalizes_TightArrowAndColonSpacing_When_Enabled() {
         var opts = new MarkdownRendererOptions {
             NormalizeTightStrongBoundaries = true,

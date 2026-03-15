@@ -212,6 +212,32 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
+    public void Reader_Can_Normalize_List_Strong_Artifacts_AfterParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeLooseStrongDelimiters = true,
+                NormalizeDanglingTrailingStrongListClosers = true,
+                NormalizeMetricValueStrongRuns = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("""
+- Overall health ****healthy****
+- Overall health ✅ Healthy****
+- Overall health ******healthy**
+- Overall health **✅****Healthy**
+- LDAP/LDAPS across all DCs **healthy on FQDN endpoints for all 5 servers*
+""", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<strong>healthy</strong>", html, StringComparison.Ordinal);
+        Assert.Contains("Healthy", html, StringComparison.Ordinal);
+        Assert.Contains("healthy on FQDN endpoints for all 5 servers", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Healthy****", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("******healthy**", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_Can_Normalize_ColonListBoundaries_BeforeParsing() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {

@@ -102,6 +102,30 @@ Paragraph body.
     }
 
     [Fact]
+    public void MarkdownListParagraphStrongArtifactTransform_Repairs_Malformed_List_Strong_Runs() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownListParagraphStrongArtifactTransform(new MarkdownInputNormalizationOptions {
+            NormalizeLooseStrongDelimiters = true,
+            NormalizeDanglingTrailingStrongListClosers = true,
+            NormalizeMetricValueStrongRuns = true
+        }));
+
+        var document = MarkdownReader.Parse("""
+- Overall health ****healthy****
+- Overall health ✅ Healthy****
+- Overall health ******healthy**
+- Overall health **✅****Healthy**
+- LDAP/LDAPS across all DCs **healthy on FQDN endpoints for all 5 servers*
+""", options);
+
+        var markdown = NormalizeMarkdown(document.ToMarkdown());
+        Assert.Contains("- Overall health **healthy**", markdown, StringComparison.Ordinal);
+        Assert.Contains("- LDAP/LDAPS across all DCs **healthy on FQDN endpoints for all 5 servers**", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("**✅****Healthy**", markdown, StringComparison.Ordinal);
+        Assert.Contains("Healthy", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_Applies_DocumentTransforms_To_IntermediateDocument() {
         var options = new HtmlToMarkdownOptions();
         options.DocumentTransforms.Add(
