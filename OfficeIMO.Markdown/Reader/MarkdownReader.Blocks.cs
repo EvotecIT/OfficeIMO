@@ -78,31 +78,46 @@ public static partial class MarkdownReader {
     }
 
     private static IMarkdownBlock CreateParsedFencedBlock(string language, string content, bool isFenced, string? caption, MarkdownReaderOptions options) {
-        var extensions = options?.FencedBlockExtensions;
-        if (extensions != null && extensions.Count > 0) {
-            var context = new MarkdownFencedBlockFactoryContext(language, content, isFenced, caption);
-            for (int i = extensions.Count - 1; i >= 0; i--) {
-                var extension = extensions[i];
-                if (extension == null || !FencedBlockExtensionHandlesLanguage(extension, language)) {
-                    continue;
-                }
-
-                var block = extension.CreateBlock(context);
-                if (block == null) {
-                    continue;
-                }
-
-                if (!string.IsNullOrWhiteSpace(caption) && block is ICaptionable captionable && string.IsNullOrWhiteSpace(captionable.Caption)) {
-                    captionable.Caption = caption;
-                }
-
-                return block;
-            }
+        var extendedBlock = TryCreateExtendedFencedBlock(options?.FencedBlockExtensions, language, content, isFenced, caption);
+        if (extendedBlock != null) {
+            return extendedBlock;
         }
 
         return new CodeBlock(language, content, isFenced) {
             Caption = caption
         };
+    }
+
+    internal static IMarkdownBlock? TryCreateExtendedFencedBlock(
+        IReadOnlyList<MarkdownFencedBlockExtension>? extensions,
+        string language,
+        string content,
+        bool isFenced,
+        string? caption) {
+        if (extensions == null || extensions.Count == 0) {
+            return null;
+        }
+
+        var context = new MarkdownFencedBlockFactoryContext(language, content, isFenced, caption);
+        for (int i = extensions.Count - 1; i >= 0; i--) {
+            var extension = extensions[i];
+            if (extension == null || !FencedBlockExtensionHandlesLanguage(extension, language)) {
+                continue;
+            }
+
+            var block = extension.CreateBlock(context);
+            if (block == null) {
+                continue;
+            }
+
+            if (!string.IsNullOrWhiteSpace(caption) && block is ICaptionable captionable && string.IsNullOrWhiteSpace(captionable.Caption)) {
+                captionable.Caption = caption;
+            }
+
+            return block;
+        }
+
+        return null;
     }
 
     private static bool FencedBlockExtensionHandlesLanguage(MarkdownFencedBlockExtension extension, string language) {
