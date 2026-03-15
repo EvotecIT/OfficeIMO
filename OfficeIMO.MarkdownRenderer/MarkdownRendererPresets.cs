@@ -99,6 +99,18 @@ public static class MarkdownRendererPresets {
         options.NormalizeMetricValueStrongRuns = true;
     }
 
+    private static void ApplyIntelligenceXTranscriptDocumentTransforms(MarkdownRendererOptions options) {
+        var transforms = options.ReaderOptions.DocumentTransforms;
+        for (var i = 0; i < transforms.Count; i++) {
+            if (transforms[i] is MarkdownJsonVisualCodeBlockTransform existing
+                && existing.LanguageMode == MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence) {
+                return;
+            }
+        }
+
+        transforms.Add(new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
+    }
+
     /// <summary>
     /// Applies portable HTML output fallbacks so OfficeIMO-only block chrome degrades to simpler generic HTML.
     /// </summary>
@@ -220,8 +232,10 @@ public static class MarkdownRendererPresets {
     public static MarkdownRendererOptions CreateIntelligenceXTranscript(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
         var options = CreateStrict(readerProfile, baseHref);
         ApplyIntelligenceXTranscriptNormalizationDefaults(options);
+        ApplyIntelligenceXTranscriptDocumentTransforms(options);
         ApplyChatPresentation(options, enableCopyButtons: true);
         MarkdownRendererIntelligenceXAdapter.Apply(options);
+        MarkdownRendererIntelligenceXLegacyMigration.Apply(options);
         return options;
     }
 
@@ -246,8 +260,10 @@ public static class MarkdownRendererPresets {
     public static MarkdownRendererOptions CreateIntelligenceXTranscriptMinimal(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
         var options = CreateStrictMinimal(readerProfile, baseHref);
         ApplyIntelligenceXTranscriptNormalizationDefaults(options);
+        ApplyIntelligenceXTranscriptDocumentTransforms(options);
         ApplyChatPresentation(options, enableCopyButtons: false);
         MarkdownRendererIntelligenceXAdapter.Apply(options);
+        MarkdownRendererIntelligenceXLegacyMigration.Apply(options);
         return options;
     }
 
@@ -292,8 +308,10 @@ public static class MarkdownRendererPresets {
     /// </summary>
     public static MarkdownRendererOptions CreateIntelligenceXTranscriptRelaxed(MarkdownReaderOptions.MarkdownDialectProfile readerProfile, string? baseHref = null) {
         var options = CreateRelaxed(readerProfile, baseHref);
+        ApplyIntelligenceXTranscriptDocumentTransforms(options);
         ApplyChatPresentation(options, enableCopyButtons: true);
         MarkdownRendererIntelligenceXAdapter.Apply(options);
+        MarkdownRendererIntelligenceXLegacyMigration.Apply(options);
         return options;
     }
 }

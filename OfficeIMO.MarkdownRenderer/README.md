@@ -77,6 +77,7 @@ var options = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
 ```
 
 Use this as the preferred path for IX-style transcript rendering. The OfficeIMO renderer surface now exposes only the explicit `IntelligenceXTranscript*` preset family for IX transcript behavior.
+Internally, those presets are thin compositions over generic reader defaults, AST/document transforms, and IX-only legacy migration helpers.
 
 ### IX desktop shell renderer contract
 
@@ -94,6 +95,7 @@ var normalized = MarkdownRendererPreProcessorPipeline.Apply(markdownText, option
 ```
 
 Use `MarkdownRendererPreProcessorPipeline.Apply(...)` when a host wants the explicit renderer-owned transcript preprocessor chain without rendering HTML yet. This keeps transcript preprocessor behavior sourced from OfficeIMO rather than re-iterated in app code.
+That pipeline is intentionally limited to pre-parse normalization and legacy migration glue. Recoverable structure upgrades should happen later through the shared OfficeIMO AST/document-transform pipeline.
 
 ### Strict vs portable presets
 
@@ -148,6 +150,7 @@ Portable is now a composed contract, not just a parser switch:
 - HTML output: OfficeIMO-specific callout, TOC, and footnote chrome degrades to generic HTML automatically
 
 That makes the portable presets a better fit for hosts that want predictable generic output from the same AST pipeline, including `OfficeIMO.Markdown.Html` and future cross-engine bridges.
+Treat the portable preset family as the generic parity boundary. Any intentionally OfficeIMO-specific or IX-specific behavior should remain opt-in rather than bleeding into the portable defaults.
 
 ### IntelligenceX alias adapter
 

@@ -53,6 +53,23 @@ public class MarkdownDoc {
         return this;
     }
 
+    internal void ReplaceBlocks(IEnumerable<IMarkdownBlock>? blocks) {
+        _blocks.Clear();
+        _lastBlock = null;
+        if (blocks == null) {
+            return;
+        }
+
+        foreach (var block in blocks) {
+            if (block == null) {
+                continue;
+            }
+
+            _blocks.Add(block);
+            _lastBlock = block;
+        }
+    }
+
     /// <summary>Enumerates all document blocks depth-first, including front matter when present.</summary>
     public IEnumerable<IMarkdownBlock> DescendantsAndSelf() {
         foreach (var block in TopLevelBlocks) {

@@ -127,6 +127,7 @@ namespace OfficeIMO.Tests {
 
             MarkdownRendererPresets.ApplyChatPresentation(opts, enableCopyButtons: false);
             MarkdownRendererIntelligenceXAdapter.Apply(opts);
+            MarkdownRendererIntelligenceXLegacyMigration.Apply(opts);
 
             Assert.Equal(HtmlStyle.ChatAuto, opts.HtmlOptions.Style);
             Assert.Equal("#omdRoot article.markdown-body", opts.HtmlOptions.CssScopeSelector);
@@ -154,8 +155,11 @@ namespace OfficeIMO.Tests {
             composed.NormalizeBrokenTwoLineStrongLeadIns = true;
             composed.NormalizeDanglingTrailingStrongListClosers = true;
             composed.NormalizeMetricValueStrongRuns = true;
+            composed.ReaderOptions.DocumentTransforms.Add(
+                new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
             MarkdownRendererPresets.ApplyChatPresentation(composed, enableCopyButtons: false);
             MarkdownRendererIntelligenceXAdapter.Apply(composed);
+            MarkdownRendererIntelligenceXLegacyMigration.Apply(composed);
 
             var transcript = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
 
@@ -177,6 +181,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(transcript.NormalizeBrokenTwoLineStrongLeadIns, composed.NormalizeBrokenTwoLineStrongLeadIns);
             Assert.Equal(transcript.NormalizeDanglingTrailingStrongListClosers, composed.NormalizeDanglingTrailingStrongListClosers);
             Assert.Equal(transcript.NormalizeMetricValueStrongRuns, composed.NormalizeMetricValueStrongRuns);
+            Assert.Equal(transcript.ReaderOptions.DocumentTransforms.Count, composed.ReaderOptions.DocumentTransforms.Count);
             Assert.Equal(transcript.MarkdownPreProcessors.Count, composed.MarkdownPreProcessors.Count);
             Assert.Equal(
                 transcript.FencedCodeBlockRenderers.SelectMany(renderer => renderer.Languages).OrderBy(value => value, StringComparer.OrdinalIgnoreCase),
@@ -243,12 +248,12 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void MarkdownRendererIntelligenceXAdapter_AddsLegacyHeadingCleanupPreProcessor_OnlyOnce() {
+        public void MarkdownRendererIntelligenceXLegacyMigration_AddsLegacyHeadingCleanupPreProcessor_OnlyOnce() {
             var opts = MarkdownRendererPresets.CreateStrict();
 
-            MarkdownRendererIntelligenceXAdapter.Apply(opts);
+            MarkdownRendererIntelligenceXLegacyMigration.Apply(opts);
             int once = opts.MarkdownPreProcessors.Count;
-            MarkdownRendererIntelligenceXAdapter.Apply(opts);
+            MarkdownRendererIntelligenceXLegacyMigration.Apply(opts);
 
             Assert.Equal(once, opts.MarkdownPreProcessors.Count);
         }

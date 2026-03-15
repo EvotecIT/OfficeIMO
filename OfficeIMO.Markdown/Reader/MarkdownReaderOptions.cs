@@ -254,4 +254,10 @@ public sealed class MarkdownReaderOptions {
     /// Profiles use this to opt into OfficeIMO/GFM-style non-core block syntax such as callouts, TOC placeholders, and footnotes.
     /// </summary>
     public List<MarkdownBlockParserExtension> BlockParserExtensions { get; } = new();
+
+    /// <summary>
+    /// Optional ordered post-parse document transforms.
+    /// Use these for AST-level upgrades and host-specific semantic rewrites after markdown has been parsed.
+    /// </summary>
+    public List<IMarkdownDocumentTransform> DocumentTransforms { get; } = new();
 }

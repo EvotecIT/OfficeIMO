@@ -22,6 +22,8 @@ public static class MarkdownToWordPresets {
         readerOptions.Callouts = true;
         readerOptions.DefinitionLists = true;
         readerOptions.InputNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscript();
+        readerOptions.DocumentTransforms.Add(
+            new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
 
         var options = new MarkdownToWordOptions {
             FontFamily = "Calibri",

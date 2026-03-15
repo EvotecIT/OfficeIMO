@@ -151,6 +151,18 @@ var parsed = MarkdownReader.Parse("""
 
 Use semantic fenced blocks when a fenced language represents a host contract or visual/document semantic rather than ordinary code.
 
+### Post-parse document transforms
+
+```csharp
+var options = MarkdownReaderOptions.CreatePortableProfile();
+options.DocumentTransforms.Add(
+    new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.GenericSemanticFence));
+
+var parsed = MarkdownReader.Parse(markdown, options);
+```
+
+Use `DocumentTransforms` for AST-level cleanup that should happen after markdown is parseable but before writing, HTML rendering, or downstream export. Keep text repair in `InputNormalization` for genuinely pre-parse fixes only.
+
 ### Portable reader profile
 
 ```csharp
@@ -158,6 +170,7 @@ var portable = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortab
 ```
 
 Use the portable profile when portability-sensitive ingestion matters more than OfficeIMO-specific conveniences. It disables OfficeIMO-only callout/task-list parsing and turns off bare literal autolinks.
+Treat that portable profile as the generic/portable contract boundary. OfficeIMO-only transcript behavior and host-specific extensions should stay opt-in on top of it rather than changing the portable defaults.
 
 ### Reader, writer, and HTML profile matrix
 
@@ -259,6 +272,7 @@ var docx = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForDocx(m
 ```
 
 Use `MarkdownTranscriptPreparation` when a host wants the explicit IX transcript prep contract as a visible composition point instead of manually chaining normalization, ordered-list repair, blank-line collapse, and DOCX definition-line compatibility helpers. Use `MarkdownTranscriptTransportMarkers.StripIntelligenceXCachedEvidenceTransportMarkers(...)` when the host is preparing IX transcript content for markdown export and needs that explicit transport cleanup before calling `PrepareIntelligenceXTranscriptForExport(...)`.
+Those IX transcript helpers are thin named compositions over generic reader/input-normalization/document-transform building blocks. They should stay as host contracts, not become the primary implementation home for generic markdown behavior.
 
 ### HTML fragments and full documents
 

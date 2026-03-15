@@ -56,7 +56,10 @@ public sealed partial class HtmlToMarkdownConverter {
             markdown.Add(block);
         }
 
-        return markdown;
+        return MarkdownDocumentTransformPipeline.Apply(
+            markdown,
+            effectiveOptions.DocumentTransforms,
+            new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.HtmlToMarkdown, effectiveOptions));
     }
 
     private static bool ShouldIgnoreElement(IElement element, ConversionContext context) {

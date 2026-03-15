@@ -112,7 +112,7 @@ public static partial class MarkdownReader {
                 if (!matched) i++; // defensive: avoid infinite loop
             }
 
-            return doc;
+            return ApplyDocumentTransforms(doc, options);
         } finally {
             state.SourceLineOffset = previousLineOffset;
         }
@@ -324,6 +324,7 @@ public static partial class MarkdownReader {
 
         CopyBlockParserExtensions(source, clone);
         CopyFencedBlockExtensions(source, clone);
+        CopyDocumentTransforms(source, clone);
         return clone;
     }
 
@@ -337,9 +338,6 @@ public static partial class MarkdownReader {
         bool normalizeLooseStrongDelimiters = source?.NormalizeLooseStrongDelimiters ?? false;
         bool normalizeTightArrowStrongBoundaries = source?.NormalizeTightArrowStrongBoundaries ?? false;
         bool normalizeBrokenStrongArrowLabels = source?.NormalizeBrokenStrongArrowLabels ?? false;
-        bool normalizeWrappedSignalFlowStrongRuns = source?.NormalizeWrappedSignalFlowStrongRuns ?? false;
-        bool normalizeSignalFlowLabelSpacing = source?.NormalizeSignalFlowLabelSpacing ?? false;
-        bool normalizeCollapsedMetricChains = source?.NormalizeCollapsedMetricChains ?? false;
         bool normalizeHostLabelBulletArtifacts = source?.NormalizeHostLabelBulletArtifacts ?? false;
         bool normalizeHeadingListBoundaries = source?.NormalizeHeadingListBoundaries ?? false;
         bool normalizeCompactStrongLabelListBoundaries = source?.NormalizeCompactStrongLabelListBoundaries ?? false;
@@ -355,8 +353,6 @@ public static partial class MarkdownReader {
         bool normalizeOrderedListStrongDetailClosures = source?.NormalizeOrderedListStrongDetailClosures ?? false;
         bool normalizeTightParentheticalSpacing = source?.NormalizeTightParentheticalSpacing ?? false;
         bool normalizeNestedStrongDelimiters = source?.NormalizeNestedStrongDelimiters ?? false;
-        bool normalizeDanglingTrailingStrongListClosers = source?.NormalizeDanglingTrailingStrongListClosers ?? false;
-        bool normalizeMetricValueStrongRuns = source?.NormalizeMetricValueStrongRuns ?? false;
 
         if (!normalizeZeroWidthSpacingArtifacts
             && !normalizeEmojiWordJoins
@@ -367,9 +363,6 @@ public static partial class MarkdownReader {
             && !normalizeLooseStrongDelimiters
             && !normalizeTightArrowStrongBoundaries
             && !normalizeBrokenStrongArrowLabels
-            && !normalizeWrappedSignalFlowStrongRuns
-            && !normalizeSignalFlowLabelSpacing
-            && !normalizeCollapsedMetricChains
             && !normalizeHostLabelBulletArtifacts
             && !normalizeHeadingListBoundaries
             && !normalizeCompactStrongLabelListBoundaries
@@ -384,9 +377,7 @@ public static partial class MarkdownReader {
             && !normalizeCollapsedOrderedListBoundaries
             && !normalizeOrderedListStrongDetailClosures
             && !normalizeTightParentheticalSpacing
-            && !normalizeNestedStrongDelimiters
-            && !normalizeDanglingTrailingStrongListClosers
-            && !normalizeMetricValueStrongRuns) {
+            && !normalizeNestedStrongDelimiters) {
             return null;
         }
 
@@ -400,9 +391,6 @@ public static partial class MarkdownReader {
             NormalizeLooseStrongDelimiters = normalizeLooseStrongDelimiters,
             NormalizeTightArrowStrongBoundaries = normalizeTightArrowStrongBoundaries,
             NormalizeBrokenStrongArrowLabels = normalizeBrokenStrongArrowLabels,
-            NormalizeWrappedSignalFlowStrongRuns = normalizeWrappedSignalFlowStrongRuns,
-            NormalizeSignalFlowLabelSpacing = normalizeSignalFlowLabelSpacing,
-            NormalizeCollapsedMetricChains = normalizeCollapsedMetricChains,
             NormalizeHostLabelBulletArtifacts = normalizeHostLabelBulletArtifacts,
             NormalizeHeadingListBoundaries = normalizeHeadingListBoundaries,
             NormalizeCompactStrongLabelListBoundaries = normalizeCompactStrongLabelListBoundaries,
@@ -417,9 +405,7 @@ public static partial class MarkdownReader {
             NormalizeCollapsedOrderedListBoundaries = normalizeCollapsedOrderedListBoundaries,
             NormalizeOrderedListStrongDetailClosures = normalizeOrderedListStrongDetailClosures,
             NormalizeTightParentheticalSpacing = normalizeTightParentheticalSpacing,
-            NormalizeNestedStrongDelimiters = normalizeNestedStrongDelimiters,
-            NormalizeDanglingTrailingStrongListClosers = normalizeDanglingTrailingStrongListClosers,
-            NormalizeMetricValueStrongRuns = normalizeMetricValueStrongRuns
+            NormalizeNestedStrongDelimiters = normalizeNestedStrongDelimiters
         };
     }
 
@@ -465,6 +451,31 @@ public static partial class MarkdownReader {
                 target.BlockParserExtensions.Add(extension);
             }
         }
+    }
+
+    private static void CopyDocumentTransforms(MarkdownReaderOptions source, MarkdownReaderOptions target) {
+        if (source == null || target == null) {
+            return;
+        }
+
+        var transforms = source.DocumentTransforms;
+        if (transforms == null || transforms.Count == 0) {
+            return;
+        }
+
+        for (int i = 0; i < transforms.Count; i++) {
+            var transform = transforms[i];
+            if (transform != null) {
+                target.DocumentTransforms.Add(transform);
+            }
+        }
+    }
+
+    private static MarkdownDoc ApplyDocumentTransforms(MarkdownDoc document, MarkdownReaderOptions options) {
+        return MarkdownDocumentTransformPipeline.Apply(
+            document,
+            options.DocumentTransforms,
+            new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.MarkdownReader, options));
     }
 
     private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren) ParseNestedMarkdownBlocks(

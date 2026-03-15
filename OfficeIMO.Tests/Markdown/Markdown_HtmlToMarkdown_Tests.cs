@@ -391,6 +391,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 """;
         var options = MarkdownRendererPresets.CreateStrictMinimal();
         MarkdownRendererIntelligenceXAdapter.Apply(options);
+        MarkdownRendererIntelligenceXLegacyMigration.Apply(options);
         string html = MarkdownRendererShell.RenderBodyHtml("```ix-dataview\n" + raw + "\n```", options);
 
         MarkdownDoc document = html.LoadFromHtml();

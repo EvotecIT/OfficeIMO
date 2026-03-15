@@ -46,11 +46,16 @@ public sealed class HtmlToMarkdownOptions {
     public MarkdownWriteOptions? MarkdownWriteOptions { get; set; }
 
     /// <summary>
+    /// Optional ordered post-conversion document transforms applied to the intermediate <see cref="MarkdownDoc"/>.
+    /// </summary>
+    public List<IMarkdownDocumentTransform> DocumentTransforms { get; } = new();
+
+    /// <summary>
     /// Creates a shallow copy of the current options instance so callers can reuse option templates safely.
     /// </summary>
     /// <returns>A new <see cref="HtmlToMarkdownOptions"/> with the same option values.</returns>
     public HtmlToMarkdownOptions Clone() {
-        return new HtmlToMarkdownOptions {
+        var clone = new HtmlToMarkdownOptions {
             BaseUri = BaseUri,
             UseBodyContentsOnly = UseBodyContentsOnly,
             RemoveScriptsAndStyles = RemoveScriptsAndStyles,
@@ -58,5 +63,14 @@ public sealed class HtmlToMarkdownOptions {
             PreserveUnsupportedInlineHtml = PreserveUnsupportedInlineHtml,
             MarkdownWriteOptions = MarkdownWriteOptions
         };
+
+        for (var i = 0; i < DocumentTransforms.Count; i++) {
+            var transform = DocumentTransforms[i];
+            if (transform != null) {
+                clone.DocumentTransforms.Add(transform);
+            }
+        }
+
+        return clone;
     }
 }
