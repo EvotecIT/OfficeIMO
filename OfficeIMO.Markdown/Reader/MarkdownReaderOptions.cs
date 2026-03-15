@@ -243,6 +243,12 @@ public sealed class MarkdownReaderOptions {
     public MarkdownInputNormalizationOptions InputNormalization { get; set; } = new MarkdownInputNormalizationOptions();
 
     /// <summary>
+    /// Optional maximum input length, in characters, accepted by <see cref="MarkdownReader"/>.
+    /// When set and exceeded, parsing fails fast with an <see cref="ArgumentOutOfRangeException"/>.
+    /// </summary>
+    public int? MaxInputCharacters { get; set; }
+
+    /// <summary>
     /// Optional language-based fenced block factories that can produce specialized AST nodes
     /// instead of plain <see cref="CodeBlock"/> instances.
     /// Later registrations win when languages overlap.
@@ -254,4 +260,19 @@ public sealed class MarkdownReaderOptions {
     /// Profiles use this to opt into OfficeIMO/GFM-style non-core block syntax such as callouts, TOC placeholders, and footnotes.
     /// </summary>
     public List<MarkdownBlockParserExtension> BlockParserExtensions { get; } = new();
+
+    /// <summary>
+    /// Optional ordered post-parse document transforms.
+    /// Use these for AST-level upgrades and host-specific semantic rewrites after markdown has been parsed.
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// var options = MarkdownReaderOptions.CreatePortableProfile();
+    /// options.DocumentTransforms.Add(
+    ///     new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.GenericSemanticFence));
+    ///
+    /// var document = MarkdownReader.Parse(markdown, options);
+    /// </code>
+    /// </example>
+    public List<IMarkdownDocumentTransform> DocumentTransforms { get; } = new();
 }

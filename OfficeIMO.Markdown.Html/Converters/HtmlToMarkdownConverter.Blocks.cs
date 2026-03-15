@@ -95,6 +95,14 @@ public sealed partial class HtmlToMarkdownConverter {
             return new IMarkdownBlock[] { visualBlock };
         }
 
+        if (TryConvertMermaidElement(element, out var mermaidBlock)) {
+            return new IMarkdownBlock[] { mermaidBlock };
+        }
+
+        if (TryConvertMathElement(element, out var mathBlock)) {
+            return new IMarkdownBlock[] { mathBlock };
+        }
+
         string tag = element.TagName;
         switch (tag) {
             case "P":
@@ -187,6 +195,62 @@ public sealed partial class HtmlToMarkdownConverter {
 
         visualBlock = new SemanticFencedBlock(visualElement.VisualKind, visualElement.FenceLanguage, payload);
         return true;
+    }
+
+    private static bool TryConvertMermaidElement(IElement element, out SemanticFencedBlock mermaidBlock) {
+        mermaidBlock = null!;
+        if (element == null
+            || !element.TagName.Equals("PRE", StringComparison.OrdinalIgnoreCase)
+            || !element.ClassList.Contains("mermaid")) {
+            return false;
+        }
+
+        var content = (element.TextContent ?? string.Empty)
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n')
+            .TrimEnd('\n');
+        if (string.IsNullOrWhiteSpace(content)) {
+            return false;
+        }
+
+        mermaidBlock = new SemanticFencedBlock(MarkdownSemanticKinds.Mermaid, "mermaid", content);
+        return true;
+    }
+
+    private static bool TryConvertMathElement(IElement element, out SemanticFencedBlock mathBlock) {
+        mathBlock = null!;
+        if (element == null
+            || !element.TagName.Equals("DIV", StringComparison.OrdinalIgnoreCase)
+            || !element.ClassList.Contains("omd-math")) {
+            return false;
+        }
+
+        var content = (element.TextContent ?? string.Empty)
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n')
+            .Trim();
+        if (!TryExtractDisplayMathContent(content, out var mathContent)) {
+            return false;
+        }
+
+        mathBlock = new SemanticFencedBlock(MarkdownSemanticKinds.Math, "math", mathContent);
+        return true;
+    }
+
+    private static bool TryExtractDisplayMathContent(string content, out string mathContent) {
+        mathContent = string.Empty;
+        if (string.IsNullOrWhiteSpace(content)) {
+            return false;
+        }
+
+        if (content.StartsWith("$$", StringComparison.Ordinal)
+            && content.EndsWith("$$", StringComparison.Ordinal)
+            && content.Length >= 4) {
+            mathContent = content.Substring(2, content.Length - 4).Trim('\r', '\n');
+            return mathContent.Length > 0;
+        }
+
+        return false;
     }
 
     private static IEnumerable<IMarkdownBlock> ConvertParagraphElement(IElement element, ConversionContext context) {

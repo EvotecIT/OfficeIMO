@@ -151,6 +151,52 @@ var parsed = MarkdownReader.Parse("""
 
 Use semantic fenced blocks when a fenced language represents a host contract or visual/document semantic rather than ordinary code.
 
+### Post-parse document transforms
+
+```csharp
+var options = MarkdownReaderOptions.CreatePortableProfile();
+options.DocumentTransforms.Add(
+    new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.GenericSemanticFence));
+
+var parsed = MarkdownReader.Parse(markdown, options);
+```
+
+Use `DocumentTransforms` for AST-level cleanup that should happen after markdown is parseable but before writing, HTML rendering, or downstream export. Keep text repair in `InputNormalization` for genuinely pre-parse fixes only.
+
+```csharp
+var htmlOptions = HtmlToMarkdownOptions.CreatePortableProfile();
+htmlOptions.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(
+    new MarkdownInputNormalizationOptions {
+        NormalizeTightParentheticalSpacing = true,
+        NormalizeTightColonSpacing = true
+    }));
+
+var document = html.LoadFromHtml(htmlOptions);
+```
+
+Use `MarkdownInlineNormalizationTransform` when content is already parseable and you want AST-safe inline cleanup on an existing `MarkdownDoc`, including HTML-imported documents.
+
+### Input normalization boundary
+
+`MarkdownReader` now splits normalization into two stages:
+
+- `InputNormalization`
+  Keep this for truly pre-parse repairs that make malformed markdown parseable at all, such as compact fence-body repair, broken ordered-list markers, malformed strong delimiters that would mis-tokenize, or other block-boundary damage.
+- `DocumentTransforms`
+  Use this for cleanup that can already be expressed on a parsed document, such as semantic block upgrades, inline-safe normalization, and recoverable paragraph/heading/list boundary fixes.
+
+The reader automatically routes several recoverable transcript/document repairs through built-in document transforms when their `InputNormalization` flags are enabled, including:
+
+- `NormalizeStandaloneHashHeadingSeparators`
+- `NormalizeCompactHeadingBoundaries`
+- `NormalizeColonListBoundaries`
+- `NormalizeHeadingListBoundaries`
+- `NormalizeCompactStrongLabelListBoundaries`
+- `NormalizeDanglingTrailingStrongListClosers`
+- `NormalizeMetricValueStrongRuns`
+
+That keeps the pre-parse text normalizer focused on the cases that genuinely must happen before parsing, while preserving the existing option surface for callers.
+
 ### Portable reader profile
 
 ```csharp
@@ -158,6 +204,7 @@ var portable = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortab
 ```
 
 Use the portable profile when portability-sensitive ingestion matters more than OfficeIMO-specific conveniences. It disables OfficeIMO-only callout/task-list parsing and turns off bare literal autolinks.
+Treat that portable profile as the generic/portable contract boundary. OfficeIMO-only transcript behavior and host-specific extensions should stay opt-in on top of it rather than changing the portable defaults.
 
 ### Reader, writer, and HTML profile matrix
 
@@ -227,17 +274,42 @@ In other words: ingest with one profile, then emit markdown or HTML with a diffe
 
 ```csharp
 var parsed = MarkdownReader.Parse(markdown, new MarkdownReaderOptions {
-    InputNormalization = MarkdownInputNormalizationPresets.CreateChatTranscript()
+    InputNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscript()
 });
 
-var strictChat = MarkdownReader.Parse(markdown, new MarkdownReaderOptions {
-    InputNormalization = MarkdownInputNormalizationPresets.CreateChatStrict()
+var strictTranscript = MarkdownReader.Parse(markdown, new MarkdownReaderOptions {
+    InputNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscriptStrict()
 });
 
 var docs = MarkdownReader.Parse(markdown, new MarkdownReaderOptions {
     InputNormalization = MarkdownInputNormalizationPresets.CreateDocsLoose()
 });
 ```
+
+Use `CreateIntelligenceXTranscript()` when the caller is intentionally ingesting IX-style transcript markdown. Use `CreateIntelligenceXTranscriptStrict()` when you need the broader repair profile for aggressively malformed transcript content.
+
+### Streaming preview normalization for partial transcript deltas
+
+```csharp
+var preview = MarkdownStreamingPreviewNormalizer.NormalizeIntelligenceXTranscript(markdownDelta);
+```
+
+Use `NormalizeIntelligenceXTranscript(...)` when a host needs conservative cleanup for in-progress IX transcript output. This path keeps partial markdown reshaping minimal, but escalates known signal-flow and malformed-strong artifacts through the explicit `IntelligenceXTranscript` input-normalization contract.
+
+### Explicit transcript preparation for export and DOCX hosts
+
+```csharp
+var body = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptBody(markdown);
+var withoutMarkers = MarkdownTranscriptTransportMarkers.StripIntelligenceXCachedEvidenceTransportMarkers(markdown);
+var export = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForExport(withoutMarkers);
+var docx = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForDocx(markdown, preservesGroupedDefinitionLikeParagraphs: false);
+var readerOptions = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
+    preservesGroupedDefinitionLikeParagraphs: false,
+    visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
+```
+
+Use `MarkdownTranscriptPreparation` when a host wants the explicit IX transcript prep contract as a visible composition point instead of manually chaining normalization, ordered-list repair, blank-line collapse, and DOCX definition-line compatibility helpers. Use `MarkdownTranscriptTransportMarkers.StripIntelligenceXCachedEvidenceTransportMarkers(...)` when the host is preparing IX transcript content for markdown export and needs that explicit transport cleanup before calling `PrepareIntelligenceXTranscriptForExport(...)`.
+Those IX transcript helpers are thin named compositions over generic reader/input-normalization/document-transform building blocks. They should stay as host contracts, not become the primary implementation home for generic markdown behavior.
 
 ### HTML fragments and full documents
 
@@ -281,7 +353,7 @@ Use `ToHtmlParts(...)` and `HtmlAssetMerger.Build(...)` when a host wants to own
 - HTML rendering: fragment or full document, built-in themes, inline/external/link CSS delivery, CDN/offline asset handling, and portable output fallbacks
 - Host integration: HTML parts/assets model for advanced embedding and shell assembly
 - Table helpers: generate tables from objects or sequences, per-column alignment, renames, transforms, and formatters
-- Chat/docs ingestion: named input-normalization presets for transcript, strict chat, and docs cleanup workflows
+- Chat/docs ingestion: named input-normalization presets for explicit IX transcript cleanup, strict chat repair, and docs cleanup workflows
 - Deterministic output: stable markdown and HTML generation for snapshotting, diffs, and downstream export flows
 
 ## Detailed Feature Matrix

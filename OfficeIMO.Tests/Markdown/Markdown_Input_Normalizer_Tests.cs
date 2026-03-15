@@ -13,6 +13,46 @@ public class Markdown_Input_Normalizer_Tests {
     }
 
     [Fact]
+    public void Normalize_ZeroWidthSpacingArtifacts_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeZeroWidthSpacingArtifacts = true
+        };
+
+        var normalized = MarkdownInputNormalizer.Normalize("Item\u200BOne", options);
+        Assert.Equal("ItemOne", normalized);
+    }
+
+    [Fact]
+    public void Normalize_EmojiWordJoins_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeEmojiWordJoins = true
+        };
+
+        var normalized = MarkdownInputNormalizer.Normalize("✅Healthy", options);
+        Assert.Equal("✅ Healthy", normalized);
+    }
+
+    [Fact]
+    public void Normalize_CompactNumberedChoiceBoundaries_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeCompactNumberedChoiceBoundaries = true
+        };
+
+        var normalized = MarkdownInputNormalizer.Normalize("I can run 1) ldap probe, or2) cert sanity.", options);
+        Assert.Equal("I can run 1) ldap probe, or 2) cert sanity.", normalized);
+    }
+
+    [Fact]
+    public void Normalize_SentenceCollapsedBullets_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeSentenceCollapsedBullets = true
+        };
+
+        var normalized = MarkdownInputNormalizer.Normalize("- AD1 starkes Muster von Dienstabbrüchen.-** AD2** eher Secure-Channel/TLS", options);
+        Assert.Equal("- AD1 starkes Muster von Dienstabbrüchen.\n-** AD2** eher Secure-Channel/TLS", normalized);
+    }
+
+    [Fact]
     public void Normalize_SoftWrappedStrong_WhenEnabled() {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeSoftWrappedStrongSpans = true
@@ -53,6 +93,52 @@ public class Markdown_Input_Normalizer_Tests {
     }
 
     [Fact]
+    public void Normalize_CollapsedOrderedListBoundaries_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeCollapsedOrderedListBoundaries = true,
+            NormalizeOrderedListMarkerSpacing = true,
+            NormalizeLooseStrongDelimiters = true,
+            NormalizeTightParentheticalSpacing = true
+        };
+
+        var normalized = MarkdownInputNormalizer.Normalize("1. **Privilege hygiene sweep**(Domain Admins + nested exposure)2.**Delegation risk audit**(unconstrained)", options);
+        Assert.Equal("1. **Privilege hygiene sweep** (Domain Admins + nested exposure)\n2. **Delegation risk audit** (unconstrained)", normalized);
+    }
+
+    [Fact]
+    public void Preset_IntelligenceXTranscript_SplitsCollapsedOrderedListBoundaries_BeforeTightStrongSpacing() {
+        var options = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscript();
+
+        var normalized = MarkdownInputNormalizer.Normalize(
+            "1. **Privilege hygiene sweep**(Domain Admins + nested exposure)2.**Delegation risk audit**(unconstrained)",
+            options);
+
+        Assert.Equal(
+            "1. **Privilege hygiene sweep** (Domain Admins + nested exposure)\n2. **Delegation risk audit** (unconstrained)",
+            normalized);
+    }
+
+    [Fact]
+    public void Normalize_OrderedListStrongDetailClosures_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeOrderedListParenMarkers = true,
+            NormalizeCollapsedOrderedListBoundaries = true,
+            NormalizeOrderedListMarkerSpacing = true,
+            NormalizeOrderedListCaretArtifacts = true,
+            NormalizeOrderedListStrongDetailClosures = true,
+            NormalizeLooseStrongDelimiters = true,
+            NormalizeTightParentheticalSpacing = true
+        };
+
+        var markdown = "1) **Privilege hygiene sweep(Domain Admins + other privileged groups, nested exposure) 2)** Delegation risk audit**(unconstrained / constrained / protocol transition)";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal(
+            "1. **Privilege hygiene sweep** (Domain Admins + other privileged groups, nested exposure)\n2. **Delegation risk audit** (unconstrained / constrained / protocol transition)",
+            normalized);
+    }
+
+    [Fact]
     public void Normalize_TightArrowStrongBoundaries_WhenEnabled() {
         var options = new MarkdownInputNormalizationOptions {
             NormalizeTightArrowStrongBoundaries = true
@@ -84,6 +170,18 @@ public class Markdown_Input_Normalizer_Tests {
         var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
 
         Assert.Equal("- Signal **Catalog count includes hidden/disabled/deprecated rules** -> **Why it matters:** external/custom rules can drift or disappear between hosts -> **Next action:** break down `rule_origin` (`builtin` vs `external`) and confirm expected external rules are present.", normalized);
+    }
+
+    [Fact]
+    public void Normalize_SignalFlowLabelSpacing_WhenEnabled() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeSignalFlowLabelSpacing = true
+        };
+
+        var markdown = "- Signal -> Why it matters:missing coverage -> Next action:review defaults";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal("- Signal -> Why it matters: missing coverage -> Next action: review defaults", normalized);
     }
 
     [Fact]
@@ -146,6 +244,18 @@ public class Markdown_Input_Normalizer_Tests {
         var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
 
         Assert.Equal("- AD1 healthy for directory access\n- AD2 ready", normalized);
+    }
+
+    [Fact]
+    public void Normalize_HostLabelBulletArtifacts_NormalizesUnicodeDashAndMissingSpaceBeforeBoldBullet() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeHostLabelBulletArtifacts = true
+        };
+
+        var markdown = "–** AD2** eher Secure-Channel";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal("- **AD2** eher Secure-Channel", normalized);
     }
 
     [Fact]
@@ -367,19 +477,26 @@ this together**
     }
 
     [Fact]
-    public void Presets_ChatTranscript_AlignsWithLegacyBridgeContract() {
-        var options = MarkdownInputNormalizationPresets.CreateChatTranscript();
+    public void Presets_IntelligenceXTranscript_AlignsWithLegacyBridgeContract() {
+        var options = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscript();
 
+        Assert.True(options.NormalizeZeroWidthSpacingArtifacts);
+        Assert.True(options.NormalizeEmojiWordJoins);
+        Assert.True(options.NormalizeCompactNumberedChoiceBoundaries);
+        Assert.True(options.NormalizeSentenceCollapsedBullets);
         Assert.True(options.NormalizeLooseStrongDelimiters);
         Assert.True(options.NormalizeTightStrongBoundaries);
         Assert.True(options.NormalizeOrderedListMarkerSpacing);
         Assert.True(options.NormalizeOrderedListParenMarkers);
         Assert.True(options.NormalizeOrderedListCaretArtifacts);
+        Assert.True(options.NormalizeCollapsedOrderedListBoundaries);
+        Assert.True(options.NormalizeOrderedListStrongDetailClosures);
         Assert.True(options.NormalizeTightParentheticalSpacing);
         Assert.True(options.NormalizeNestedStrongDelimiters);
         Assert.True(options.NormalizeTightArrowStrongBoundaries);
         Assert.True(options.NormalizeTightColonSpacing);
         Assert.True(options.NormalizeWrappedSignalFlowStrongRuns);
+        Assert.True(options.NormalizeSignalFlowLabelSpacing);
         Assert.True(options.NormalizeCollapsedMetricChains);
         Assert.True(options.NormalizeHostLabelBulletArtifacts);
         Assert.True(options.NormalizeStandaloneHashHeadingSeparators);
@@ -392,8 +509,8 @@ this together**
     }
 
     [Fact]
-    public void Presets_ChatStrict_RepairsRepresentativeTranscriptArtifacts() {
-        var options = MarkdownInputNormalizationPresets.CreateChatStrict();
+    public void Presets_IntelligenceXTranscriptStrict_RepairsRepresentativeTranscriptArtifacts() {
+        var options = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscriptStrict();
         var markdown = """
 ## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK
 Signal ->**Why it matters:**coverage
@@ -421,9 +538,12 @@ Use \`/act act_001\` now.
         Assert.True(options.NormalizeOrderedListMarkerSpacing);
         Assert.True(options.NormalizeOrderedListParenMarkers);
         Assert.True(options.NormalizeOrderedListCaretArtifacts);
+        Assert.False(options.NormalizeCollapsedOrderedListBoundaries);
+        Assert.False(options.NormalizeOrderedListStrongDetailClosures);
         Assert.True(options.NormalizeTightParentheticalSpacing);
         Assert.True(options.NormalizeNestedStrongDelimiters);
         Assert.False(options.NormalizeWrappedSignalFlowStrongRuns);
+        Assert.False(options.NormalizeSignalFlowLabelSpacing);
         Assert.False(options.NormalizeCollapsedMetricChains);
         Assert.False(options.NormalizeHostLabelBulletArtifacts);
         Assert.False(options.NormalizeStandaloneHashHeadingSeparators);
@@ -434,6 +554,8 @@ Use \`/act act_001\` now.
         Assert.False(options.NormalizeBrokenStrongArrowLabels);
         Assert.False(options.NormalizeHeadingListBoundaries);
         Assert.False(options.NormalizeCompactFenceBodyBoundaries);
+        Assert.False(options.NormalizeCollapsedOrderedListBoundaries);
+        Assert.False(options.NormalizeOrderedListStrongDetailClosures);
     }
 
     [Fact]
@@ -683,6 +805,80 @@ Top-IDs(AD1/AD2)
         var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
 
         Assert.Equal("- Signal **AD1 has very high `7034/7023` volume, mostly from Service Control Manager.**", normalized);
+    }
+
+    [Fact]
+    public void Normalize_NestedStrongDelimiters_FlattensLabeledOuterStrongBullets() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeNestedStrongDelimiters = true
+        };
+
+        var markdown = "- Why it matters **Current comparison used **System** log only.**";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal("- Why it matters **Current comparison used System log only.**", normalized);
+    }
+
+    [Fact]
+    public void Normalize_NestedStrongDelimiters_PreservesLiteralDoubleAsterisksInsideInlineCodeSpans() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeNestedStrongDelimiters = true
+        };
+
+        var markdown = "- Signal **pattern `a**b` seen, mostly from **Service Control Manager**.**";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Equal("- Signal **pattern `a**b` seen, mostly from Service Control Manager.**", normalized);
+        Assert.Contains("`a**b`", normalized);
+        Assert.DoesNotContain("from **Service", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Normalize_NestedStrongDelimiters_PreservesUnmatchedInlineCodeTail() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeNestedStrongDelimiters = true
+        };
+
+        var markdown = "- Signal **pattern `a**b seen, mostly from **Service Control Manager**.**";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Contains("`a**b seen, mostly from **Service Control Manager**.**", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Normalize_NestedStrongDelimiters_PreservesPlaceholderLikeUserContent() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeNestedStrongDelimiters = true
+        };
+
+        const string sentinel = "\u001FOMDCODE0\u001E";
+        var markdown = "- Signal **prefix " + sentinel + " and `a**b` from **Service Control Manager**.**";
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+
+        Assert.Contains(sentinel, normalized, StringComparison.Ordinal);
+        Assert.Contains("`a**b`", normalized, StringComparison.Ordinal);
+        Assert.DoesNotContain("from **Service", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Normalize_NestedStrongDelimiters_FlattensDeepNestedStrongSpansWithinBoundedPasses() {
+        var options = new MarkdownInputNormalizationOptions {
+            NormalizeNestedStrongDelimiters = true
+        };
+
+        var levels = Enumerable.Range(1, 40)
+            .Select(static i => "L" + i)
+            .ToArray();
+        var markdown = "- Signal **" + string.Join(" **", levels) + " complete.**";
+
+        var normalized = MarkdownInputNormalizer.Normalize(markdown, options);
+        var normalizedAgain = MarkdownInputNormalizer.Normalize(normalized, options);
+
+        var strongMarkerCount = normalized.Split(new[] { "**" }, StringSplitOptions.None).Length - 1;
+        Assert.True(strongMarkerCount <= 4, "Expected bounded strong markers, got " + strongMarkerCount.ToString());
+        Assert.Contains("L40 complete.", normalized, StringComparison.Ordinal);
+        Assert.DoesNotContain("**L2 **", normalized, StringComparison.Ordinal);
+        Assert.Equal(normalized, normalizedAgain);
     }
 
     [Fact]

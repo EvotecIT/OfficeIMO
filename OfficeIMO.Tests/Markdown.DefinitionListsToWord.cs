@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using OfficeIMO.Markdown;
 using OfficeIMO.Word.Markdown;
 using Xunit;
 
@@ -88,6 +89,86 @@ namespace OfficeIMO.Tests {
             Assert.Contains("[!NOTE]", commonMarkText, StringComparison.Ordinal);
             Assert.Contains("Portable title", commonMarkText, StringComparison.Ordinal);
             Assert.Contains("Still ordinary quoted text.", commonMarkText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void MarkdownToWordPreset_IntelligenceXTranscript_ConfiguresTypedTranscriptDefaults() {
+            var options = MarkdownToWordPresets.CreateIntelligenceXTranscript(
+                ["C:\\allowed-a", "", "C:\\allowed-a", "C:\\allowed-b"],
+                2500);
+            var expected = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
+                preservesGroupedDefinitionLikeParagraphs: false,
+                visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
+
+            Assert.Equal("Calibri", options.FontFamily);
+            Assert.True(options.AllowLocalImages);
+            Assert.True(options.PreferNarrativeSingleLineDefinitions);
+            Assert.True(options.FitImagesToPageContentWidth);
+            Assert.False(options.FitImagesToContextWidth);
+            Assert.Equal(100d, options.MaxImageWidthPercentOfContent);
+            Assert.Equal(2000, options.MaxImageWidthPixels);
+            Assert.Equal(2, options.AllowedImageDirectories.Count);
+            Assert.Contains("C:\\allowed-a", options.AllowedImageDirectories);
+            Assert.Contains("C:\\allowed-b", options.AllowedImageDirectories);
+            Assert.NotNull(options.ReaderOptions);
+            Assert.IsType<MarkdownReaderOptions>(options.ReaderOptions);
+            Assert.True(options.ReaderOptions!.PreferNarrativeSingleLineDefinitions);
+            Assert.True(options.ReaderOptions.Callouts);
+            Assert.True(options.ReaderOptions.DefinitionLists);
+            Assert.NotNull(options.ReaderOptions.InputNormalization);
+            Assert.Equal(expected.InputNormalization!.NormalizeCollapsedOrderedListBoundaries, options.ReaderOptions.InputNormalization!.NormalizeCollapsedOrderedListBoundaries);
+            Assert.Equal(expected.InputNormalization.NormalizeBrokenTwoLineStrongLeadIns, options.ReaderOptions.InputNormalization.NormalizeBrokenTwoLineStrongLeadIns);
+            Assert.Equal(expected.InputNormalization.NormalizeHeadingListBoundaries, options.ReaderOptions.InputNormalization.NormalizeHeadingListBoundaries);
+            Assert.Equal(expected.InputNormalization.NormalizeCompactStrongLabelListBoundaries, options.ReaderOptions.InputNormalization.NormalizeCompactStrongLabelListBoundaries);
+            Assert.Equal(expected.InputNormalization.NormalizeCompactHeadingBoundaries, options.ReaderOptions.InputNormalization.NormalizeCompactHeadingBoundaries);
+            Assert.Equal(expected.InputNormalization.NormalizeColonListBoundaries, options.ReaderOptions.InputNormalization.NormalizeColonListBoundaries);
+            Assert.Contains(options.ReaderOptions.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
+            Assert.Contains(options.ReaderOptions.DocumentTransforms, transform =>
+                transform is MarkdownJsonVisualCodeBlockTransform visual
+                && visual.LanguageMode == MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
+        }
+
+        [Fact]
+        public void MarkdownToWordPreset_IntelligenceXTranscript_Flattens_Simple_Grouped_Definitions_In_ReaderPipeline() {
+            const string markdown = """
+                Status: healthy
+                Impact: none
+                """;
+
+            var options = MarkdownToWordPresets.CreateIntelligenceXTranscript();
+            var document = MarkdownReader.Parse(markdown, options.ReaderOptions);
+
+            Assert.Collection(document.Blocks,
+                block => {
+                    var paragraph = Assert.IsType<ParagraphBlock>(block);
+                    Assert.Equal("Status: healthy", paragraph.Inlines.RenderMarkdown());
+                },
+                block => {
+                    var paragraph = Assert.IsType<ParagraphBlock>(block);
+                    Assert.Equal("Impact: none", paragraph.Inlines.RenderMarkdown());
+                });
+        }
+
+        [Fact]
+        public void MarkdownToWordCapabilities_DetectNarrativeSingleLineDefinitionSupport() {
+            const string markdown = """
+                Status: healthy
+                Impact: none
+                """;
+
+            using var document = markdown.LoadFromMarkdown(
+                MarkdownToWordPresets.CreateIntelligenceXTranscript());
+            var bodyParagraphs = document.Paragraphs
+                .Select(p => string.Concat(p.GetRuns().Select(run => run.Text)))
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .ToList();
+
+            var actualSupport = bodyParagraphs.Contains("Status: healthy", StringComparer.Ordinal)
+                                && bodyParagraphs.Contains("Impact: none", StringComparer.Ordinal);
+
+            Assert.Equal(
+                actualSupport,
+                MarkdownToWordCapabilities.PreservesNarrativeSingleLineDefinitionsAsSeparateParagraphs());
         }
     }
 }

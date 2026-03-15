@@ -7,13 +7,21 @@ namespace OfficeIMO.Markdown;
 /// AST-level inline normalization helpers for model/chat oriented markdown quirks.
 /// </summary>
 public static partial class MarkdownReader {
-    private static bool NormalizeInlineSequenceInPlace(InlineSequence? sequence, MarkdownInputNormalizationOptions? options) {
+    internal static bool NormalizeInlineSequenceInPlace(InlineSequence? sequence, MarkdownInputNormalizationOptions? options) {
         if (sequence == null || options == null) return false;
 
         bool normalizeEscapedInlineCode = options.NormalizeEscapedInlineCodeSpans;
         bool normalizeTightStrongBoundaries = options.NormalizeTightStrongBoundaries;
+        bool normalizeTightArrowStrongBoundaries = options.NormalizeTightArrowStrongBoundaries;
         bool normalizeTightColonSpacing = options.NormalizeTightColonSpacing;
-        if (!normalizeEscapedInlineCode && !normalizeTightStrongBoundaries && !normalizeTightColonSpacing) return false;
+        bool normalizeTightParentheticalSpacing = options.NormalizeTightParentheticalSpacing;
+        bool normalizeLooseStrongDelimiters = options.NormalizeLooseStrongDelimiters;
+        if (!normalizeEscapedInlineCode
+            && !normalizeTightStrongBoundaries
+            && !normalizeTightArrowStrongBoundaries
+            && !normalizeTightColonSpacing
+            && !normalizeTightParentheticalSpacing
+            && !normalizeLooseStrongDelimiters) return false;
 
         var items = sequence.Nodes;
         if (items == null || items.Count == 0) return false;
@@ -37,7 +45,19 @@ public static partial class MarkdownReader {
             changed = true;
         }
 
+        if (normalizeTightArrowStrongBoundaries && TryInsertMissingArrowStrongBoundarySpaces(working)) {
+            changed = true;
+        }
+
         if (normalizeTightColonSpacing && TryInsertMissingColonBoundarySpaces(working)) {
+            changed = true;
+        }
+
+        if (normalizeTightParentheticalSpacing && TryInsertMissingParentheticalBoundarySpaces(working)) {
+            changed = true;
+        }
+
+        if (normalizeLooseStrongDelimiters && TryTrimLooseStrongDelimiterWhitespace(working)) {
             changed = true;
         }
 
@@ -116,6 +136,30 @@ public static partial class MarkdownReader {
         return changed;
     }
 
+    private static bool TryInsertMissingArrowStrongBoundarySpaces(List<IMarkdownInline> nodes) {
+        bool changed = false;
+
+        for (int i = 0; i < nodes.Count - 1; i++) {
+            if (nodes[i] is not TextRun textRun) {
+                continue;
+            }
+
+            if (!IsStrongInlineNode(nodes[i + 1])) {
+                continue;
+            }
+
+            string? normalized = NormalizeArrowStrongBoundarySuffix(textRun.Text);
+            if (normalized == null || normalized == textRun.Text) {
+                continue;
+            }
+
+            nodes[i] = new TextRun(normalized);
+            changed = true;
+        }
+
+        return changed;
+    }
+
     private static bool TryInsertMissingColonBoundarySpaces(List<IMarkdownInline> nodes) {
         bool changed = false;
 
@@ -128,6 +172,108 @@ public static partial class MarkdownReader {
 
             nodes[i] = new TextRun(normalized);
             changed = true;
+        }
+
+        return changed;
+    }
+
+    private static bool TryInsertMissingParentheticalBoundarySpaces(List<IMarkdownInline> nodes) {
+        bool changed = false;
+
+        for (int i = 0; i < nodes.Count; i++) {
+            if (nodes[i] is TextRun textRun) {
+                var normalized = NormalizeTightParentheticalSpacing(textRun.Text);
+                if (normalized != textRun.Text) {
+                    nodes[i] = new TextRun(normalized);
+                    textRun = (TextRun)nodes[i];
+                    changed = true;
+                }
+            }
+
+            if (i == 0) {
+                continue;
+            }
+
+            if (!IsStrongInlineNode(nodes[i - 1])) {
+                continue;
+            }
+
+            if (nodes[i] is not TextRun nextTextRun || !StartsWithTightParenthetical(nextTextRun.Text)) {
+                continue;
+            }
+
+            nodes[i] = new TextRun(" " + nextTextRun.Text);
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    private static bool TryTrimLooseStrongDelimiterWhitespace(List<IMarkdownInline> nodes) {
+        bool changed = false;
+
+        for (int i = 0; i < nodes.Count; i++) {
+            switch (nodes[i]) {
+                case BoldInline bold:
+                    var trimmed = bold.Text.Trim();
+                    if (trimmed.Length > 0 && trimmed != bold.Text) {
+                        nodes[i] = new BoldInline(trimmed);
+                        changed = true;
+                    }
+                    break;
+                case IStrongMarkdownInline strong when strong is IInlineContainerMarkdownInline container:
+                    if (TryTrimBoundaryWhitespace(container.NestedInlines)) {
+                        changed = true;
+                    }
+                    break;
+            }
+        }
+
+        return changed;
+    }
+
+    private static bool TryTrimBoundaryWhitespace(InlineSequence? sequence) {
+        if (sequence == null || sequence.Nodes.Count == 0) {
+            return false;
+        }
+
+        var items = new List<IMarkdownInline>(sequence.Nodes);
+        bool changed = false;
+
+        while (items.Count > 0 && items[0] is TextRun leading) {
+            var trimmed = leading.Text.TrimStart();
+            if (trimmed == leading.Text) {
+                break;
+            }
+
+            changed = true;
+            if (trimmed.Length == 0) {
+                items.RemoveAt(0);
+                continue;
+            }
+
+            items[0] = new TextRun(trimmed);
+            break;
+        }
+
+        while (items.Count > 0 && items[items.Count - 1] is TextRun trailing) {
+            var trimmed = trailing.Text.TrimEnd();
+            if (trimmed == trailing.Text) {
+                break;
+            }
+
+            changed = true;
+            if (trimmed.Length == 0) {
+                items.RemoveAt(items.Count - 1);
+                continue;
+            }
+
+            items[items.Count - 1] = new TextRun(trimmed);
+            break;
+        }
+
+        if (changed) {
+            sequence.ReplaceItems(CoalesceAdjacentTextRuns(items));
         }
 
         return changed;
@@ -153,6 +299,27 @@ public static partial class MarkdownReader {
         return builder?.ToString() ?? text;
     }
 
+    private static string NormalizeTightParentheticalSpacing(string text) {
+        if (string.IsNullOrEmpty(text) || text.IndexOf('(') < 0) return text;
+
+        StringBuilder? builder = null;
+        for (int i = 0; i < text.Length; i++) {
+            char current = text[i];
+            if (current == '(' && ShouldInsertSpaceBeforeParenthesis(text, i)) {
+                builder ??= new StringBuilder(text.Length + 8);
+                if (builder.Length == 0) {
+                    builder.Append(text, 0, i);
+                }
+                builder.Append(' ').Append('(');
+                continue;
+            }
+
+            builder?.Append(current);
+        }
+
+        return builder?.ToString() ?? text;
+    }
+
     private static bool ShouldInsertSpaceAfterColon(string text, int colonIndex) {
         if (colonIndex <= 0 || colonIndex >= text.Length - 1) return false;
 
@@ -165,6 +332,31 @@ public static partial class MarkdownReader {
         return true;
     }
 
+    private static bool ShouldInsertSpaceBeforeParenthesis(string text, int openParenIndex) {
+        if (openParenIndex <= 0 || openParenIndex >= text.Length - 1) return false;
+
+        char previous = text[openParenIndex - 1];
+        char next = text[openParenIndex + 1];
+
+        if (!char.IsLetterOrDigit(previous) && previous != ')') return false;
+        if (!char.IsLetter(next)) return false;
+        if (char.IsWhiteSpace(previous)) return false;
+
+        return text.IndexOf(')', openParenIndex + 1) > openParenIndex + 1;
+    }
+
+    private static bool StartsWithTightParenthetical(string? text) {
+        if (string.IsNullOrEmpty(text) || text![0] != '(' || text.Length < 3) {
+            return false;
+        }
+
+        if (!char.IsLetter(text[1])) {
+            return false;
+        }
+
+        return text.IndexOf(')', 2) > 1;
+    }
+
     private static bool IsStrongInlineNode(IMarkdownInline node) {
         return node is IStrongMarkdownInline;
     }
@@ -172,6 +364,16 @@ public static partial class MarkdownReader {
     private static bool NeedsLeadingSpaceAfterStrong(string? text) {
         if (string.IsNullOrEmpty(text)) return false;
         return char.IsLetterOrDigit(text![0]);
+    }
+
+    private static string NormalizeArrowStrongBoundarySuffix(string text) {
+        if (string.IsNullOrEmpty(text)) {
+            return text;
+        }
+
+        return text.EndsWith("->", StringComparison.Ordinal)
+            ? text + " "
+            : text;
     }
 
     private static bool IsEscapedCodeBodyText(string? text) {

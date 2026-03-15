@@ -2,4 +2,4 @@
 <article class="markdown-body"><h1 id=""></h1><h2 id="ldap-health">LDAP Health</h2><p><strong>Result all 5 are healthy for directory access</strong>with recommended LDAPS endpoints.</p><dl><dt>Next step</dt><dd>capture 24h trend.</dd></dl></article>
 
 [chat.html]
-<article class="markdown-body"><h2 id="ldap-health">LDAP Health</h2><p><strong>Result:</strong>all 5 are healthy for directory access with recommended LDAPS endpoints.</p><dl><dt>Next step</dt><dd>capture 24h trend.</dd></dl></article>
+<article class="markdown-body"><h2 id="ldap-health">LDAP Health</h2><p><strong>Result:</strong>all 5 are healthy for directory access with recommended LDAPS endpoints.</p><p>Next step: capture 24h trend.</p></article>

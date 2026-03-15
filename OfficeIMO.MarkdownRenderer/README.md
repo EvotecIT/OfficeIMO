@@ -64,21 +64,38 @@ webView.CoreWebView2.PostWebMessageAsString(bodyHtml);
 ### Optional chat bubble wrappers
 
 ```csharp
-var options = MarkdownRendererPresets.CreateChatStrict();
+var options = MarkdownRendererPresets.CreateIntelligenceXTranscript();
 var bubbleHtml = MarkdownRenderer.RenderChatBubbleBodyHtml(markdownText, ChatMessageRole.Assistant, options);
 
 webView.CoreWebView2.PostWebMessageAsString(bubbleHtml);
 ```
 
-### Generic-first chat composition
+### Explicit IntelligenceX transcript contract
 
 ```csharp
-var options = MarkdownRendererPresets.CreateStrictMinimal();
-MarkdownRendererPresets.ApplyChatPresentation(options, enableCopyButtons: false);
-MarkdownRendererIntelligenceXAdapter.Apply(options);
+var options = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
 ```
 
-Use this as the preferred composition path for downstream hosts. The `CreateChatStrict*` helpers remain available as compatibility wrappers.
+Use this as the preferred path for IX-style transcript rendering. The OfficeIMO renderer surface now exposes only the explicit `IntelligenceXTranscript*` preset family for IX transcript behavior.
+Internally, those presets are thin compositions over generic reader defaults, AST/document transforms, and IX-only legacy migration helpers.
+
+### IX desktop shell renderer contract
+
+```csharp
+var options = MarkdownRendererPresets.CreateIntelligenceXTranscriptDesktopShell();
+```
+
+Use `CreateIntelligenceXTranscriptDesktopShell(...)` when the host wants the IntelligenceX desktop chat surface: minimal transcript shell defaults plus Mermaid, chart, and network visuals enabled.
+
+### Applying transcript pre-processors without rendering
+
+```csharp
+var options = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
+var normalized = MarkdownRendererPreProcessorPipeline.Apply(markdownText, options);
+```
+
+Use `MarkdownRendererPreProcessorPipeline.Apply(...)` when a host wants the explicit renderer-owned transcript preprocessor chain without rendering HTML yet. This keeps transcript preprocessor behavior sourced from OfficeIMO rather than re-iterated in app code.
+That pipeline is intentionally limited to pre-parse normalization and legacy migration glue. Recoverable structure upgrades should happen later through the shared OfficeIMO AST/document-transform pipeline.
 
 ### Strict vs portable presets
 
@@ -89,8 +106,12 @@ var minimal = MarkdownRendererPresets.CreateStrictMinimal();
 var minimalPortable = MarkdownRendererPresets.CreateStrictMinimalPortable();
 var relaxed = MarkdownRendererPresets.CreateRelaxed();
 
-var chatStrict = MarkdownRendererPresets.CreateChatStrict();
-var chatMinimal = MarkdownRendererPresets.CreateChatStrictMinimal();
+var ixTranscript = MarkdownRendererPresets.CreateIntelligenceXTranscript();
+var ixTranscriptPortable = MarkdownRendererPresets.CreateIntelligenceXTranscriptPortable();
+var ixTranscriptMinimal = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
+var ixTranscriptMinimalPortable = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimalPortable();
+var ixTranscriptDesktopShell = MarkdownRendererPresets.CreateIntelligenceXTranscriptDesktopShell();
+var ixTranscriptRelaxed = MarkdownRendererPresets.CreateIntelligenceXTranscriptRelaxed();
 ```
 
 - `CreateStrict(...)`: neutral untrusted-content defaults for generic markdown hosting
@@ -99,14 +120,15 @@ var chatMinimal = MarkdownRendererPresets.CreateChatStrictMinimal();
 - `CreateStrictMinimalPortable(...)`: combines minimal shell behavior with the portable reader profile and portable HTML output fallbacks
 - `CreateRelaxed(...)`: trusted-content preset that allows HTML parsing and sanitizes raw HTML conservatively
 - `ApplyChatPresentation(...)`: composes chat presentation/chrome onto any existing preset without changing its security profile
-- `CreateChatStrict(...)`: compatibility wrapper built on top of the strict preset family
-- `CreateChatStrictPortable(...)`: portable chat wrapper
-- `CreateChatStrictMinimal(...)`: minimal chat wrapper
-- `CreateChatStrictMinimalPortable(...)`: minimal portable chat wrapper
-- `CreateChatRelaxed(...)`: relaxed chat wrapper
+- `CreateIntelligenceXTranscript(...)`: explicit IX transcript rendering preset with IX visual aliases and the shared transcript reader/document-transform contract
+- `CreateIntelligenceXTranscriptPortable(...)`: explicit IX transcript preset using the portable reader profile
+- `CreateIntelligenceXTranscriptMinimal(...)`: explicit minimal IX transcript preset for script-light chat shells
+- `CreateIntelligenceXTranscriptMinimalPortable(...)`: explicit minimal IX transcript preset using the portable reader profile
+- `CreateIntelligenceXTranscriptDesktopShell(...)`: explicit IX desktop-shell preset with Mermaid, chart, and network visuals enabled
+- `CreateIntelligenceXTranscriptRelaxed(...)`: relaxed IX transcript preset for trusted transcript content
 
 Generic presets register neutral fenced block languages such as `chart`, `network`, `visnetwork`, and `dataview`.
-Chat presets additionally apply the `MarkdownRendererIntelligenceXAdapter`, which registers the IntelligenceX-oriented aliases `ix-chart`, `ix-network`, and `ix-dataview`.
+The explicit IX transcript presets additionally apply the `MarkdownRendererIntelligenceXAdapter`, which registers the IntelligenceX-oriented aliases `ix-chart`, `ix-network`, and `ix-dataview`.
 
 Portable presets now also degrade OfficeIMO-specific HTML chrome to simpler generic HTML:
 
@@ -128,6 +150,7 @@ Portable is now a composed contract, not just a parser switch:
 - HTML output: OfficeIMO-specific callout, TOC, and footnote chrome degrades to generic HTML automatically
 
 That makes the portable presets a better fit for hosts that want predictable generic output from the same AST pipeline, including `OfficeIMO.Markdown.Html` and future cross-engine bridges.
+Treat the portable preset family as the generic parity boundary. Any intentionally OfficeIMO-specific or IX-specific behavior should remain opt-in rather than bleeding into the portable defaults.
 
 ### IntelligenceX alias adapter
 
@@ -138,7 +161,7 @@ MarkdownRendererIntelligenceXAdapter.Apply(options);
 
 Use this when you want the generic strict/relaxed presets but still need the IntelligenceX alias fence contract.
 
-### Recommended profile composition
+### Generic-first opt-in composition
 
 ```csharp
 var options = MarkdownRendererPresets.CreateStrictPortable();
@@ -146,7 +169,7 @@ MarkdownRendererIntelligenceXAdapter.Apply(options);
 MarkdownRendererPresets.ApplyChatPresentation(options, enableCopyButtons: true);
 ```
 
-Use this pattern when the host needs a generic-first baseline plus explicit IntelligenceX visual aliases and chat chrome. It keeps the OfficeIMO/IX-specific behavior opt-in instead of making it part of the default markdown contract.
+Use this pattern when the host needs a generic-first baseline plus only a small slice of IX behavior. If the host actually wants the full IX transcript contract, prefer `CreateIntelligenceXTranscript(...)` or `CreateIntelligenceXTranscriptMinimal(...)`.
 
 ### Offline assets
 
@@ -167,7 +190,7 @@ options.Math.AutoRenderScriptUrl = @"C:\app\assets\auto-render.min.js";
 ### Shell CSS overrides
 
 ```csharp
-var options = MarkdownRendererPresets.CreateChatStrict();
+var options = MarkdownRendererPresets.CreateIntelligenceXTranscript();
 options.ShellCss = """
 .omd-chat-bubble { border-radius: 18px; }
 .omd-chat-row.omd-role-user .omd-chat-bubble { background: rgba(0, 120, 212, .18); }
@@ -291,4 +314,5 @@ These features are optional and can be disabled entirely in the minimal presets.
 - Designed for chat surfaces, docs viewers, and embedded reporting experiences
 - WebView2 is a first-class scenario, but the generated HTML works in standard browser hosts too
 - Keep the renderer preset and the host trust model aligned; use strict defaults unless you intentionally need relaxed HTML handling
+
 

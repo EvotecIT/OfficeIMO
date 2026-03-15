@@ -63,6 +63,32 @@ public sealed class MarkdownRendererOptions {
     public bool NormalizeEscapedNewlines { get; set; } = true;
 
     /// <summary>
+    /// When true, removes zero-width spacing artifacts such as U+200B/U+2060/U+FEFF before parsing.
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeZeroWidthSpacingArtifacts { get; set; } = false;
+
+    /// <summary>
+    /// When true, inserts a missing space between common status/emoji markers and following prose
+    /// (for example, <c>✅Healthy</c> becomes <c>✅ Healthy</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeEmojiWordJoins { get; set; } = false;
+
+    /// <summary>
+    /// When true, inserts missing spacing around compact numbered-choice joins
+    /// (for example, <c>or2)</c> becomes <c>or 2)</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeCompactNumberedChoiceBoundaries { get; set; } = false;
+
+    /// <summary>
+    /// When true, inserts a missing newline before compact bullet markers emitted directly after sentence punctuation.
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeSentenceCollapsedBullets { get; set; } = false;
+
+    /// <summary>
     /// When true, joins short hard-wrapped bold labels (for example, "**Status\nOK**") into a single bold span.
     /// This helps chat-style outputs that wrap short headers mid-token.
     /// Default: false.
@@ -112,6 +138,14 @@ public sealed class MarkdownRendererOptions {
     /// Default: false.
     /// </summary>
     public bool NormalizeWrappedSignalFlowStrongRuns { get; set; } = false;
+
+    /// <summary>
+    /// When true, inserts missing spaces after signal-flow labels inside arrow segments
+    /// (for example, <c>-> **Why it matters:**coverage</c> becomes
+    /// <c>-> **Why it matters:** coverage</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeSignalFlowLabelSpacing { get; set; } = false;
 
     /// <summary>
     /// When true, expands collapsed transcript-style metric chains into real markdown lines and
@@ -211,6 +245,21 @@ public sealed class MarkdownRendererOptions {
     /// Default: false.
     /// </summary>
     public bool NormalizeOrderedListCaretArtifacts { get; set; } = false;
+
+    /// <summary>
+    /// When true, inserts missing newlines between adjacent ordered list items that were emitted on one line
+    /// (for example, <c>...)</c><c>2.**Task**</c> -> <c>...)\n2.**Task**</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeCollapsedOrderedListBoundaries { get; set; } = false;
+
+    /// <summary>
+    /// When true, repairs malformed ordered list items where a bold title is missing its closing strong delimiter
+    /// before a parenthetical detail section
+    /// (for example, <c>1. **Task(detail)</c> -> <c>1. **Task** (detail)</c>).
+    /// Default: false.
+    /// </summary>
+    public bool NormalizeOrderedListStrongDetailClosures { get; set; } = false;
 
     /// <summary>
     /// When true, inserts a missing space before parenthetical phrases adjacent to prose or strong spans

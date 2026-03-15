@@ -46,17 +46,47 @@ public sealed class HtmlToMarkdownOptions {
     public MarkdownWriteOptions? MarkdownWriteOptions { get; set; }
 
     /// <summary>
+    /// Optional maximum input length, in characters, accepted by HTML-to-markdown conversion.
+    /// When set and exceeded, conversion fails fast with an <see cref="ArgumentOutOfRangeException"/>.
+    /// </summary>
+    public int? MaxInputCharacters { get; set; }
+
+    /// <summary>
+    /// Optional ordered post-conversion document transforms applied to the intermediate <see cref="MarkdownDoc"/>.
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// var options = HtmlToMarkdownOptions.CreatePortableProfile();
+    /// options.DocumentTransforms.Add(
+    ///     new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.GenericSemanticFence));
+    ///
+    /// var document = html.LoadFromHtml(options);
+    /// </code>
+    /// </example>
+    public List<IMarkdownDocumentTransform> DocumentTransforms { get; } = new();
+
+    /// <summary>
     /// Creates a shallow copy of the current options instance so callers can reuse option templates safely.
     /// </summary>
     /// <returns>A new <see cref="HtmlToMarkdownOptions"/> with the same option values.</returns>
     public HtmlToMarkdownOptions Clone() {
-        return new HtmlToMarkdownOptions {
+        var clone = new HtmlToMarkdownOptions {
             BaseUri = BaseUri,
             UseBodyContentsOnly = UseBodyContentsOnly,
             RemoveScriptsAndStyles = RemoveScriptsAndStyles,
             PreserveUnsupportedBlocks = PreserveUnsupportedBlocks,
             PreserveUnsupportedInlineHtml = PreserveUnsupportedInlineHtml,
-            MarkdownWriteOptions = MarkdownWriteOptions
+            MarkdownWriteOptions = MarkdownWriteOptions,
+            MaxInputCharacters = MaxInputCharacters
         };
+
+        for (var i = 0; i < DocumentTransforms.Count; i++) {
+            var transform = DocumentTransforms[i];
+            if (transform != null) {
+                clone.DocumentTransforms.Add(transform);
+            }
+        }
+
+        return clone;
     }
 }

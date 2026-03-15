@@ -5,7 +5,7 @@ using OfficeIMO.MarkdownRenderer;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class Markdown_ChatStyle_Tests {
+    public class Markdown_IntelligenceXTranscript_Tests {
         [Fact]
         public void HtmlStyle_ChatAuto_EmitsChatMarkerAndAutoThemeCss() {
             var doc = MarkdownReader.Parse("Hello");
@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void MarkdownRendererPresets_CreateChatStrict_UsesChatStyleAndScopedCss() {
-            var opts = MarkdownRendererPresets.CreateChatStrict();
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscript_UsesChatStyleAndScopedCss() {
+            var opts = MarkdownRendererPresets.CreateIntelligenceXTranscript();
             Assert.Equal(HtmlStyle.ChatAuto, opts.HtmlOptions.Style);
             Assert.Equal("#omdRoot article.markdown-body", opts.HtmlOptions.CssScopeSelector);
         }
@@ -48,8 +48,8 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void MarkdownRendererPresets_CreateChatStrictPortable_Disables_OfficeImoOnly_Reader_Extensions() {
-            var opts = MarkdownRendererPresets.CreateChatStrictPortable();
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscriptPortable_Disables_OfficeImoOnly_Reader_Extensions() {
+            var opts = MarkdownRendererPresets.CreateIntelligenceXTranscriptPortable();
 
             Assert.Equal(HtmlStyle.ChatAuto, opts.HtmlOptions.Style);
             Assert.Equal("#omdRoot article.markdown-body", opts.HtmlOptions.CssScopeSelector);
@@ -80,8 +80,8 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void MarkdownRendererPresets_CreateChatStrict_Can_Target_Gfm_Profile() {
-            var opts = MarkdownRendererPresets.CreateChatStrict(MarkdownReaderOptions.MarkdownDialectProfile.GitHubFlavoredMarkdown);
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscript_Can_Target_Gfm_Profile() {
+            var opts = MarkdownRendererPresets.CreateIntelligenceXTranscript(MarkdownReaderOptions.MarkdownDialectProfile.GitHubFlavoredMarkdown);
 
             Assert.Equal(HtmlStyle.ChatAuto, opts.HtmlOptions.Style);
             Assert.Equal("#omdRoot article.markdown-body", opts.HtmlOptions.CssScopeSelector);
@@ -98,9 +98,9 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void MarkdownRendererPresets_CreateChatStrict_BuildsOnStrictDefaults() {
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscript_BuildsOnStrictDefaults() {
             var strict = MarkdownRendererPresets.CreateStrict();
-            var chat = MarkdownRendererPresets.CreateChatStrict();
+            var chat = MarkdownRendererPresets.CreateIntelligenceXTranscript();
 
             Assert.Equal(strict.ReaderOptions.RestrictUrlSchemes, chat.ReaderOptions.RestrictUrlSchemes);
             Assert.Equal(strict.HtmlOptions.BlockExternalHttpImages, chat.HtmlOptions.BlockExternalHttpImages);
@@ -127,6 +127,7 @@ namespace OfficeIMO.Tests {
 
             MarkdownRendererPresets.ApplyChatPresentation(opts, enableCopyButtons: false);
             MarkdownRendererIntelligenceXAdapter.Apply(opts);
+            MarkdownRendererIntelligenceXLegacyMigration.Apply(opts);
 
             Assert.Equal(HtmlStyle.ChatAuto, opts.HtmlOptions.Style);
             Assert.Equal("#omdRoot article.markdown-body", opts.HtmlOptions.CssScopeSelector);
@@ -138,35 +139,154 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void MarkdownRendererPresets_CreateChatStrictMinimal_Matches_Composed_Generic_Preset() {
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscriptMinimal_Matches_Composed_Generic_Preset() {
             var composed = MarkdownRendererPresets.CreateStrictMinimal();
+            var transcriptReader = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
+                preservesGroupedDefinitionLikeParagraphs: false,
+                visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
+
+            composed.ReaderOptions = transcriptReader;
+            composed.NormalizeZeroWidthSpacingArtifacts = true;
+            composed.NormalizeEmojiWordJoins = true;
+            composed.NormalizeCompactNumberedChoiceBoundaries = true;
+            composed.NormalizeSentenceCollapsedBullets = true;
             composed.NormalizeWrappedSignalFlowStrongRuns = true;
+            composed.NormalizeSignalFlowLabelSpacing = true;
             composed.NormalizeCollapsedMetricChains = true;
             composed.NormalizeHostLabelBulletArtifacts = true;
+            composed.NormalizeCollapsedOrderedListBoundaries = true;
+            composed.NormalizeOrderedListStrongDetailClosures = true;
+            composed.NormalizeHeadingListBoundaries = true;
+            composed.NormalizeCompactStrongLabelListBoundaries = true;
+            composed.NormalizeCompactHeadingBoundaries = true;
+            composed.NormalizeColonListBoundaries = true;
             composed.NormalizeStandaloneHashHeadingSeparators = true;
             composed.NormalizeBrokenTwoLineStrongLeadIns = true;
             composed.NormalizeDanglingTrailingStrongListClosers = true;
             composed.NormalizeMetricValueStrongRuns = true;
             MarkdownRendererPresets.ApplyChatPresentation(composed, enableCopyButtons: false);
             MarkdownRendererIntelligenceXAdapter.Apply(composed);
+            MarkdownRendererIntelligenceXLegacyMigration.Apply(composed);
 
-            var wrapper = MarkdownRendererPresets.CreateChatStrictMinimal();
+            var transcript = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
 
-            Assert.Equal(wrapper.HtmlOptions.Style, composed.HtmlOptions.Style);
-            Assert.Equal(wrapper.HtmlOptions.CssScopeSelector, composed.HtmlOptions.CssScopeSelector);
-            Assert.Equal(wrapper.EnableCodeCopyButtons, composed.EnableCodeCopyButtons);
-            Assert.Equal(wrapper.EnableTableCopyButtons, composed.EnableTableCopyButtons);
-            Assert.Equal(wrapper.NormalizeWrappedSignalFlowStrongRuns, composed.NormalizeWrappedSignalFlowStrongRuns);
-            Assert.Equal(wrapper.NormalizeCollapsedMetricChains, composed.NormalizeCollapsedMetricChains);
-            Assert.Equal(wrapper.NormalizeHostLabelBulletArtifacts, composed.NormalizeHostLabelBulletArtifacts);
-            Assert.Equal(wrapper.NormalizeStandaloneHashHeadingSeparators, composed.NormalizeStandaloneHashHeadingSeparators);
-            Assert.Equal(wrapper.NormalizeBrokenTwoLineStrongLeadIns, composed.NormalizeBrokenTwoLineStrongLeadIns);
-            Assert.Equal(wrapper.NormalizeDanglingTrailingStrongListClosers, composed.NormalizeDanglingTrailingStrongListClosers);
-            Assert.Equal(wrapper.NormalizeMetricValueStrongRuns, composed.NormalizeMetricValueStrongRuns);
-            Assert.Equal(wrapper.MarkdownPreProcessors.Count, composed.MarkdownPreProcessors.Count);
+        Assert.Equal(transcript.HtmlOptions.Style, composed.HtmlOptions.Style);
+        Assert.Equal(transcript.HtmlOptions.CssScopeSelector, composed.HtmlOptions.CssScopeSelector);
+        Assert.Equal(transcript.EnableCodeCopyButtons, composed.EnableCodeCopyButtons);
+        Assert.Equal(transcript.EnableTableCopyButtons, composed.EnableTableCopyButtons);
+        Assert.Equal(transcript.NormalizeZeroWidthSpacingArtifacts, composed.NormalizeZeroWidthSpacingArtifacts);
+        Assert.Equal(transcript.NormalizeEmojiWordJoins, composed.NormalizeEmojiWordJoins);
+        Assert.Equal(transcript.NormalizeCompactNumberedChoiceBoundaries, composed.NormalizeCompactNumberedChoiceBoundaries);
+        Assert.Equal(transcript.NormalizeSentenceCollapsedBullets, composed.NormalizeSentenceCollapsedBullets);
+        Assert.Equal(transcript.NormalizeWrappedSignalFlowStrongRuns, composed.NormalizeWrappedSignalFlowStrongRuns);
+        Assert.Equal(transcript.NormalizeSignalFlowLabelSpacing, composed.NormalizeSignalFlowLabelSpacing);
+        Assert.Equal(transcript.NormalizeCollapsedMetricChains, composed.NormalizeCollapsedMetricChains);
+        Assert.Equal(transcript.NormalizeHostLabelBulletArtifacts, composed.NormalizeHostLabelBulletArtifacts);
+        Assert.Equal(transcript.NormalizeCollapsedOrderedListBoundaries, composed.NormalizeCollapsedOrderedListBoundaries);
+        Assert.Equal(transcript.NormalizeOrderedListStrongDetailClosures, composed.NormalizeOrderedListStrongDetailClosures);
+        Assert.Equal(transcript.NormalizeHeadingListBoundaries, composed.NormalizeHeadingListBoundaries);
+        Assert.Equal(transcript.NormalizeCompactStrongLabelListBoundaries, composed.NormalizeCompactStrongLabelListBoundaries);
+        Assert.Equal(transcript.NormalizeCompactHeadingBoundaries, composed.NormalizeCompactHeadingBoundaries);
+        Assert.Equal(transcript.NormalizeColonListBoundaries, composed.NormalizeColonListBoundaries);
+            Assert.Equal(transcript.NormalizeStandaloneHashHeadingSeparators, composed.NormalizeStandaloneHashHeadingSeparators);
+            Assert.Equal(transcript.NormalizeBrokenTwoLineStrongLeadIns, composed.NormalizeBrokenTwoLineStrongLeadIns);
+            Assert.Equal(transcript.NormalizeDanglingTrailingStrongListClosers, composed.NormalizeDanglingTrailingStrongListClosers);
+            Assert.Equal(transcript.NormalizeMetricValueStrongRuns, composed.NormalizeMetricValueStrongRuns);
+            Assert.Equal(transcript.ReaderOptions.DocumentTransforms.Count, composed.ReaderOptions.DocumentTransforms.Count);
+            Assert.Equal(transcript.MarkdownPreProcessors.Count, composed.MarkdownPreProcessors.Count);
             Assert.Equal(
-                wrapper.FencedCodeBlockRenderers.SelectMany(renderer => renderer.Languages).OrderBy(value => value, StringComparer.OrdinalIgnoreCase),
+                transcript.FencedCodeBlockRenderers.SelectMany(renderer => renderer.Languages).OrderBy(value => value, StringComparer.OrdinalIgnoreCase),
                 composed.FencedCodeBlockRenderers.SelectMany(renderer => renderer.Languages).OrderBy(value => value, StringComparer.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscript_Composes_Definition_Compatibility_Transform() {
+            var opts = MarkdownRendererPresets.CreateIntelligenceXTranscript();
+
+            Assert.Contains(opts.ReaderOptions.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
+            Assert.Contains(opts.ReaderOptions.DocumentTransforms, transform =>
+                transform is MarkdownJsonVisualCodeBlockTransform visual
+                && visual.LanguageMode == MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
+        }
+
+        [Fact]
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscript_Reuses_Shared_Transcript_Reader_Contract() {
+            var expected = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
+                preservesGroupedDefinitionLikeParagraphs: false,
+                visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
+            var opts = MarkdownRendererPresets.CreateIntelligenceXTranscript();
+
+            Assert.True(opts.ReaderOptions.PreferNarrativeSingleLineDefinitions);
+            Assert.Equal(
+                expected.InputNormalization!.NormalizeCollapsedOrderedListBoundaries,
+                opts.ReaderOptions.InputNormalization!.NormalizeCollapsedOrderedListBoundaries);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeBrokenTwoLineStrongLeadIns,
+                opts.ReaderOptions.InputNormalization.NormalizeBrokenTwoLineStrongLeadIns);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeHeadingListBoundaries,
+                opts.ReaderOptions.InputNormalization.NormalizeHeadingListBoundaries);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeCompactStrongLabelListBoundaries,
+                opts.ReaderOptions.InputNormalization.NormalizeCompactStrongLabelListBoundaries);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeCompactHeadingBoundaries,
+                opts.ReaderOptions.InputNormalization.NormalizeCompactHeadingBoundaries);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeColonListBoundaries,
+                opts.ReaderOptions.InputNormalization.NormalizeColonListBoundaries);
+            Assert.Contains(opts.ReaderOptions.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
+            Assert.Contains(opts.ReaderOptions.DocumentTransforms, transform =>
+                transform is MarkdownJsonVisualCodeBlockTransform visual
+                && visual.LanguageMode == MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
+        }
+
+        [Fact]
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscriptMinimal_Reuses_Shared_Transcript_Reader_Contract() {
+            var expected = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
+                preservesGroupedDefinitionLikeParagraphs: false,
+                visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
+            var opts = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
+
+            Assert.True(opts.ReaderOptions.PreferNarrativeSingleLineDefinitions);
+            Assert.Equal(
+                expected.InputNormalization!.NormalizeCollapsedOrderedListBoundaries,
+                opts.ReaderOptions.InputNormalization!.NormalizeCollapsedOrderedListBoundaries);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeBrokenTwoLineStrongLeadIns,
+                opts.ReaderOptions.InputNormalization.NormalizeBrokenTwoLineStrongLeadIns);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeHeadingListBoundaries,
+                opts.ReaderOptions.InputNormalization.NormalizeHeadingListBoundaries);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeCompactStrongLabelListBoundaries,
+                opts.ReaderOptions.InputNormalization.NormalizeCompactStrongLabelListBoundaries);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeCompactHeadingBoundaries,
+                opts.ReaderOptions.InputNormalization.NormalizeCompactHeadingBoundaries);
+            Assert.Equal(
+                expected.InputNormalization.NormalizeColonListBoundaries,
+                opts.ReaderOptions.InputNormalization.NormalizeColonListBoundaries);
+            Assert.Contains(opts.ReaderOptions.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
+            Assert.Contains(opts.ReaderOptions.DocumentTransforms, transform =>
+                transform is MarkdownJsonVisualCodeBlockTransform visual
+                && visual.LanguageMode == MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
+        }
+
+        [Fact]
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscriptDesktopShell_BuildsOnMinimalPresetAndEnablesInteractiveVisuals() {
+            var minimal = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
+            var desktop = MarkdownRendererPresets.CreateIntelligenceXTranscriptDesktopShell();
+
+            Assert.Equal(minimal.HtmlOptions.Style, desktop.HtmlOptions.Style);
+            Assert.Equal(minimal.HtmlOptions.CssScopeSelector, desktop.HtmlOptions.CssScopeSelector);
+            Assert.Equal(minimal.EnableCodeCopyButtons, desktop.EnableCodeCopyButtons);
+            Assert.Equal(minimal.EnableTableCopyButtons, desktop.EnableTableCopyButtons);
+            Assert.Equal(minimal.MarkdownPreProcessors.Count, desktop.MarkdownPreProcessors.Count);
+            Assert.True(desktop.Mermaid.Enabled);
+            Assert.True(desktop.Chart.Enabled);
+            Assert.True(desktop.Network.Enabled);
+            Assert.False(desktop.Math.Enabled);
         }
 
         [Fact]
@@ -180,8 +300,8 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void MarkdownRendererPresets_CreateChatStrict_Registers_IntelligenceX_FenceAliases() {
-            var opts = MarkdownRendererPresets.CreateChatStrict();
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscript_Registers_IntelligenceX_FenceAliases() {
+            var opts = MarkdownRendererPresets.CreateIntelligenceXTranscript();
 
             Assert.Contains(opts.FencedCodeBlockRenderers, renderer => renderer.Languages.Contains("ix-chart", StringComparer.OrdinalIgnoreCase));
             Assert.Contains(opts.FencedCodeBlockRenderers, renderer => renderer.Languages.Contains("ix-network", StringComparer.OrdinalIgnoreCase));
@@ -213,18 +333,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void MarkdownRendererIntelligenceXAdapter_AddsLegacyHeadingCleanupPreProcessor_OnlyOnce() {
+        public void MarkdownRendererIntelligenceXLegacyMigration_AddsLegacyHeadingCleanupPreProcessor_OnlyOnce() {
             var opts = MarkdownRendererPresets.CreateStrict();
 
-            MarkdownRendererIntelligenceXAdapter.Apply(opts);
+            MarkdownRendererIntelligenceXLegacyMigration.Apply(opts);
             int once = opts.MarkdownPreProcessors.Count;
-            MarkdownRendererIntelligenceXAdapter.Apply(opts);
+            MarkdownRendererIntelligenceXLegacyMigration.Apply(opts);
 
             Assert.Equal(once, opts.MarkdownPreProcessors.Count);
         }
 
         [Fact]
-        public void MarkdownRendererPresets_CreateChatStrictMinimal_RepairsLegacyToolHeadingArtifacts() {
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscriptMinimal_RepairsLegacyToolHeadingArtifacts() {
             var markdown = """
 [Cached evidence fallback]
 
@@ -236,7 +356,7 @@ Recent evidence:
 """;
 
             var strict = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, MarkdownRendererPresets.CreateStrictMinimal());
-            var chat = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, MarkdownRendererPresets.CreateChatStrictMinimal());
+            var chat = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal());
 
             Assert.Contains("eventlog_top_events", strict, StringComparison.Ordinal);
             Assert.Contains("Top 30 recent events (preview)", chat, StringComparison.Ordinal);
@@ -246,7 +366,7 @@ Recent evidence:
         }
 
         [Fact]
-        public void MarkdownRendererPresets_CreateChatStrictMinimal_RepairsHostLabelBulletsAndBrokenResultLeadIns() {
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscriptMinimal_RepairsHostLabelBulletsAndBrokenResultLeadIns() {
             var markdown = """
 -AD1
 healthy for directory access
@@ -256,7 +376,7 @@ all 5 are healthy for directory access** with recommended LDAPS endpoints.
 """;
 
             var strict = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, MarkdownRendererPresets.CreateStrictMinimal());
-            var chat = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, MarkdownRendererPresets.CreateChatStrictMinimal());
+            var chat = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal());
 
             Assert.Contains("AD1", strict, StringComparison.Ordinal);
             Assert.Contains("Result", strict, StringComparison.Ordinal);
@@ -266,7 +386,21 @@ all 5 are healthy for directory access** with recommended LDAPS endpoints.
         }
 
         [Fact]
-        public void MarkdownRendererPresets_CreateChatStrict_RepairsCachedEvidenceNetworkTransportArtifacts() {
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscriptMinimal_Flattens_Grouped_Simple_Definitions() {
+            var markdown = """
+Status: healthy
+Impact: none
+""";
+
+            var chat = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal());
+
+            Assert.DoesNotContain("<dl>", chat, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<p>Status: healthy</p>", chat, StringComparison.Ordinal);
+            Assert.Contains("<p>Impact: none</p>", chat, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscript_RepairsCachedEvidenceNetworkTransportArtifacts() {
             var markdown = """
 ix:cached-tool-evidence:v1
 
@@ -299,7 +433,7 @@ Indented fallback:
             strictOptions.Network.Enabled = true;
             var strict = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, strictOptions);
 
-            var chatOptions = MarkdownRendererPresets.CreateChatStrict();
+            var chatOptions = MarkdownRendererPresets.CreateIntelligenceXTranscript();
             chatOptions.Network.Enabled = true;
             var chat = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, chatOptions);
 
@@ -311,7 +445,35 @@ Indented fallback:
         }
 
         [Fact]
-        public void MarkdownRendererPresets_CreateChatStrict_RepairsCachedEvidenceChartAndDataViewTransportArtifacts() {
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscript_UpgradesPlainLegacyJsonNetworkFence() {
+            var markdown = """
+```json
+{
+  "nodes": [
+    { "id": "forest_ad.evotec.xyz", "label": "Forest: ad.evotec.xyz" }
+  ],
+  "edges": [
+    { "source": "forest_ad.evotec.xyz", "target": "domain_ad.evotec.xyz", "label": "contains" }
+  ]
+}
+```
+""";
+
+            var strictOptions = MarkdownRendererPresets.CreateStrict();
+            strictOptions.Network.Enabled = true;
+            var strict = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, strictOptions);
+
+            var transcriptOptions = MarkdownRendererPresets.CreateIntelligenceXTranscript();
+            transcriptOptions.Network.Enabled = true;
+            var transcript = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, transcriptOptions);
+
+            Assert.Contains("language-json", strict, StringComparison.Ordinal);
+            Assert.Contains("data-omd-fence-language=\"ix-network\"", transcript, StringComparison.Ordinal);
+            Assert.DoesNotContain("language-json", transcript, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscript_RepairsCachedEvidenceChartAndDataViewTransportArtifacts() {
             var markdown = """
 ix:cached-tool-evidence:v1
 
@@ -350,7 +512,7 @@ Dataview preview:
             strictOptions.Chart.Enabled = true;
             var strict = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, strictOptions);
 
-            var chatOptions = MarkdownRendererPresets.CreateChatStrict();
+            var chatOptions = MarkdownRendererPresets.CreateIntelligenceXTranscript();
             chatOptions.Chart.Enabled = true;
             var chat = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, chatOptions);
 
@@ -383,7 +545,7 @@ Dataview preview:
 
         [Fact]
         public void MarkdownRenderer_RenderUpdateScript_ProducesUpdateContentCall() {
-            var opts = MarkdownRendererPresets.CreateChatStrict();
+            var opts = MarkdownRendererPresets.CreateIntelligenceXTranscript();
             var js = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderUpdateScript("**bold**", opts);
 
             Assert.StartsWith("updateContent(", js);
@@ -402,7 +564,7 @@ Dataview preview:
 
         [Fact]
         public void MarkdownRenderer_Can_Wrap_As_ChatBubble() {
-            var opts = MarkdownRendererPresets.CreateChatStrict();
+            var opts = MarkdownRendererPresets.CreateIntelligenceXTranscript();
             var bubble = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderChatBubbleBodyHtml("Hello", ChatMessageRole.User, opts);
 
             Assert.Contains("omd-chat-row", bubble, StringComparison.Ordinal);

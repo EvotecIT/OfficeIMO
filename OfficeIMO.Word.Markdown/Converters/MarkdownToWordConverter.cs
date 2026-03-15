@@ -175,6 +175,7 @@ namespace OfficeIMO.Word.Markdown {
 
             CopyBlockParserExtensions(source, effective);
             CopyFencedBlockExtensions(source, effective);
+            CopyDocumentTransforms(source, effective);
             return effective;
         }
 
@@ -201,6 +202,19 @@ namespace OfficeIMO.Word.Markdown {
                 var extension = source.BlockParserExtensions[i];
                 if (extension != null) {
                     target.BlockParserExtensions.Add(extension);
+                }
+            }
+        }
+
+        private static void CopyDocumentTransforms(Omd.MarkdownReaderOptions source, Omd.MarkdownReaderOptions target) {
+            if (source.DocumentTransforms == null || source.DocumentTransforms.Count == 0) {
+                return;
+            }
+
+            for (var i = 0; i < source.DocumentTransforms.Count; i++) {
+                var transform = source.DocumentTransforms[i];
+                if (transform != null) {
+                    target.DocumentTransforms.Add(transform);
                 }
             }
         }
@@ -878,6 +892,18 @@ namespace OfficeIMO.Word.Markdown {
                             var captionParagraph = host.CreateParagraph();
                             ApplyBlockParagraphFormatting(captionParagraph, quoteDepth, alignment);
                             captionParagraph.AddText(cb.Caption!);
+                        }
+                        break;
+                    }
+                case Omd.SemanticFencedBlock semantic: {
+                        var semanticParagraph = host.CreateParagraph();
+                        ApplyBlockParagraphFormatting(semanticParagraph, quoteDepth, alignment);
+                        var monoFont = FontResolver.Resolve("monospace") ?? "Consolas";
+                        semanticParagraph.AddFormattedText(semantic.Content ?? string.Empty).SetFontFamily(monoFont);
+                        if (!string.IsNullOrWhiteSpace(semantic.Caption)) {
+                            var captionParagraph = host.CreateParagraph();
+                            ApplyBlockParagraphFormatting(captionParagraph, quoteDepth, alignment);
+                            captionParagraph.AddText(semantic.Caption!);
                         }
                         break;
                     }
