@@ -238,6 +238,31 @@ public class Markdown_Reader_Input_Normalization_Tests {
     }
 
     [Fact]
+    public void Reader_Can_Split_Collapsed_Table_Row_Heading_Boundaries_BeforeParsing() {
+        var options = new MarkdownReaderOptions {
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeCompactHeadingBoundaries = true
+            }
+        };
+
+        var html = MarkdownReader.Parse("""
+| Check | Expected |
+| --- | --- |
+| Escaping behavior | Text shows symbols, not formatting ## Extra markdown stress tests
+### Wide table follows
+""", options)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<table>", html, StringComparison.Ordinal);
+        Assert.Contains("Text shows symbols, not formatting", html, StringComparison.Ordinal);
+        Assert.Contains("<h2", html, StringComparison.Ordinal);
+        Assert.Contains("Extra markdown stress tests", html, StringComparison.Ordinal);
+        Assert.Contains("<h3", html, StringComparison.Ordinal);
+        Assert.Contains("Wide table follows", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text shows symbols, not formatting ## Extra markdown stress tests", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Reader_Can_Normalize_StandaloneHashHeadingSeparators_AfterParsing() {
         var options = new MarkdownReaderOptions {
             InputNormalization = new MarkdownInputNormalizationOptions {

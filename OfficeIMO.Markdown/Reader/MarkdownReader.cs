@@ -62,6 +62,12 @@ public static partial class MarkdownReader {
 
             ValidateInputLength(markdown, options.MaxInputCharacters, nameof(markdown));
 
+            // This specific repair must happen before block parsing: once a collapsed heading marker
+            // is swallowed into a table cell, the AST no longer knows the table boundary was malformed.
+            if (options.InputNormalization?.NormalizeCompactHeadingBoundaries == true) {
+                markdown = MarkdownInputNormalizer.NormalizeCollapsedTableHeadingBoundaries(markdown);
+            }
+
             var preParseNormalization = CreatePreParseNormalizationOptions(options.InputNormalization);
             if (preParseNormalization != null) {
                 markdown = MarkdownInputNormalizer.Normalize(markdown, preParseNormalization);
