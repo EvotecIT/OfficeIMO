@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.MarkdownRenderer;
@@ -93,6 +95,65 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
                 "ix-chart",
                 MarkdownVisualContract.CreatePayload(payload))
             + "<p>Tail</p></li></ul>";
+
+        var markdownDocument = MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
+        var htmlDocument = html.LoadFromHtml();
+
+        var markdownList = Assert.IsType<UnorderedListBlock>(Assert.Single(markdownDocument.Blocks));
+        var htmlList = Assert.IsType<UnorderedListBlock>(Assert.Single(htmlDocument.Blocks));
+
+        var markdownItem = Assert.Single(markdownList.Items);
+        var htmlItem = Assert.Single(htmlList.Items);
+
+        Assert.Equal(markdownItem.Content.RenderMarkdown(), htmlItem.Content.RenderMarkdown());
+        Assert.Equal(DescribeBlocks(markdownItem.Children), DescribeBlocks(htmlItem.Children));
+    }
+
+    [Fact]
+    public void Semantic_Fenced_Block_Ast_Parity_Holds_Inside_List_Items_With_Details() {
+        const string payload = "{\r\n  \"type\": \"bar\",\r\n  \"data\": { \"labels\": [\"A\"], \"datasets\": [{ \"label\": \"Count\", \"data\": [1] }] }\r\n}";
+        string nestedPayload = payload.Replace("\r\n", "\n").Replace("\n", "\n  ");
+        string markdown = "- Intro\n\n  <details open>\n  <summary>More</summary>\n\n  Hidden\n\n  ```ix-chart\n"
+            + "  "
+            + nestedPayload
+            + "\n  ```\n\n  </details>\n\n  Tail\n";
+        string html = "<ul><li><p>Intro</p><details open><summary>More</summary><p>Hidden</p>"
+            + MarkdownVisualContract.BuildElementHtml(
+                "canvas",
+                "omd-visual omd-chart",
+                MarkdownSemanticKinds.Chart,
+                "ix-chart",
+                MarkdownVisualContract.CreatePayload(payload))
+            + "</details><p>Tail</p></li></ul>";
+
+        var markdownDocument = MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
+        var htmlDocument = html.LoadFromHtml();
+
+        var markdownList = Assert.IsType<UnorderedListBlock>(Assert.Single(markdownDocument.Blocks));
+        var htmlList = Assert.IsType<UnorderedListBlock>(Assert.Single(htmlDocument.Blocks));
+
+        var markdownItem = Assert.Single(markdownList.Items);
+        var htmlItem = Assert.Single(htmlList.Items);
+
+        Assert.Equal(markdownItem.Content.RenderMarkdown(), htmlItem.Content.RenderMarkdown());
+        Assert.Equal(DescribeBlocks(markdownItem.Children), DescribeBlocks(htmlItem.Children));
+    }
+
+    [Fact]
+    public void Semantic_Fenced_Block_Ast_Parity_Holds_Inside_List_Items_With_Details_And_Callout() {
+        const string payload = "{\r\n  \"type\": \"bar\",\r\n  \"data\": { \"labels\": [\"A\"], \"datasets\": [{ \"label\": \"Count\", \"data\": [1] }] }\r\n}";
+        string nestedPayload = payload.Replace("\r\n", "\n").Replace("\n", "\n  > ");
+        string markdown = "- Intro\n\n  <details open>\n  <summary>More</summary>\n\n  > [!NOTE] Watch\n  > Body\n  >\n  > ```ix-chart\n  > "
+            + nestedPayload
+            + "\n  > ```\n\n  </details>\n";
+        string html = "<ul><li><p>Intro</p><details open><summary>More</summary><blockquote class=\"callout note\"><p><strong>Watch</strong></p><p>Body</p>"
+            + MarkdownVisualContract.BuildElementHtml(
+                "canvas",
+                "omd-visual omd-chart",
+                MarkdownSemanticKinds.Chart,
+                "ix-chart",
+                MarkdownVisualContract.CreatePayload(payload))
+            + "</blockquote></details></li></ul>";
 
         var markdownDocument = MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
         var htmlDocument = html.LoadFromHtml();
@@ -222,20 +283,86 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
     }
 
     private static string DescribeBlocks(IReadOnlyList<IMarkdownBlock> blocks) {
-        var parts = new List<string>(blocks.Count);
-        for (int i = 0; i < blocks.Count; i++) {
-            parts.Add(DescribeBlock(blocks[i]));
-        }
+        var sb = new StringBuilder();
+        AppendBlocks(sb, blocks, 0);
+        return sb.ToString().TrimEnd();
+    }
 
-        return string.Join(" | ", parts);
+    private static void AppendBlocks(StringBuilder sb, IReadOnlyList<IMarkdownBlock> blocks, int indent) {
+        for (int i = 0; i < blocks.Count; i++) {
+            AppendBlock(sb, blocks[i], indent, i);
+        }
+    }
+
+    private static void AppendBlock(StringBuilder sb, IMarkdownBlock block, int indent, int index) {
+        string prefix = new string(' ', indent * 2);
+        sb.Append(prefix)
+            .Append(index.ToString(CultureInfo.InvariantCulture))
+            .Append(": ")
+            .AppendLine(DescribeBlock(block));
+
+        switch (block) {
+            case QuoteBlock quote:
+                AppendBlocks(sb, quote.ChildBlocks, indent + 1);
+                break;
+            case CalloutBlock callout:
+                AppendBlocks(sb, callout.ChildBlocks, indent + 1);
+                break;
+            case DetailsBlock details:
+                if (details.Summary != null) {
+                    sb.Append(new string(' ', (indent + 1) * 2))
+                        .Append("summary: ")
+                        .AppendLine(EscapeSingleLine(details.Summary.Inlines.RenderMarkdown()));
+                }
+                AppendBlocks(sb, details.ChildBlocks, indent + 1);
+                break;
+            case UnorderedListBlock unordered:
+                AppendListItems(sb, unordered.Items, indent + 1);
+                break;
+            case OrderedListBlock ordered:
+                AppendListItems(sb, ordered.Items, indent + 1);
+                break;
+        }
+    }
+
+    private static void AppendListItems(StringBuilder sb, IReadOnlyList<ListItem> items, int indent) {
+        string prefix = new string(' ', indent * 2);
+        for (int i = 0; i < items.Count; i++) {
+            var item = items[i];
+            sb.Append(prefix)
+                .Append("item[")
+                .Append(i.ToString(CultureInfo.InvariantCulture))
+                .Append("]: task=")
+                .Append(item.IsTask ? (item.Checked ? "checked" : "unchecked") : "no")
+                .Append(" content=\"")
+                .Append(EscapeSingleLine(item.Content.RenderMarkdown()))
+                .AppendLine("\"");
+
+            AppendBlocks(sb, item.Children, indent + 1);
+        }
     }
 
     private static string DescribeBlock(IMarkdownBlock block) {
         return block switch {
-            ParagraphBlock paragraph => "Paragraph:" + paragraph.Inlines.RenderMarkdown(),
-            SemanticFencedBlock semantic => "Semantic:" + semantic.SemanticKind + ":" + semantic.Language + ":" + semantic.Content,
-            _ => block.GetType().Name + ":" + block.RenderMarkdown()
+            ParagraphBlock paragraph => $"Paragraph(\"{EscapeSingleLine(paragraph.Inlines.RenderMarkdown())}\")",
+            QuoteBlock => "Quote",
+            UnorderedListBlock unordered => $"UnorderedList(items={unordered.Items.Count.ToString(CultureInfo.InvariantCulture)})",
+            OrderedListBlock ordered => $"OrderedList(start={ordered.Start.ToString(CultureInfo.InvariantCulture)}, items={ordered.Items.Count.ToString(CultureInfo.InvariantCulture)})",
+            CodeBlock code => $"Code(language={code.Language}, text=\"{EscapeSingleLine(code.Content)}\")",
+            HeadingBlock heading => $"Heading(level={heading.Level}, text=\"{EscapeSingleLine(heading.Text)}\")",
+            DetailsBlock details => $"Details(open={details.Open.ToString().ToLowerInvariant()})",
+            CalloutBlock callout => $"Callout(kind={callout.Kind}, title=\"{EscapeSingleLine(callout.TitleInlines.RenderMarkdown())}\")",
+            SemanticFencedBlock semantic => $"Semantic(kind={semantic.SemanticKind}, language={semantic.Language}, text=\"{EscapeSingleLine(semantic.Content)}\")",
+            _ => block.GetType().Name
         };
+    }
+
+    private static string EscapeSingleLine(string? value) {
+        return (value ?? string.Empty)
+            .Replace("\\", "\\\\")
+            .Replace("\r", "\\r")
+            .Replace("\n", "\\n")
+            .Replace("\"", "\\\"");
     }
 
     private static MarkdownReaderOptions CreateSemanticOptions(string language, string semanticKind) {
