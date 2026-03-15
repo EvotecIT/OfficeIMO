@@ -24,28 +24,40 @@ public sealed class MarkdownTranscriptPreparationTests {
         var flattened = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
             preservesGroupedDefinitionLikeParagraphs: false,
             visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
+        var expectedNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscript();
 
         Assert.NotNull(preserved.InputNormalization);
-        Assert.True(preserved.InputNormalization!.NormalizeCollapsedOrderedListBoundaries);
-        Assert.False(preserved.InputNormalization.NormalizeHeadingListBoundaries);
-        Assert.False(preserved.InputNormalization.NormalizeCompactStrongLabelListBoundaries);
-        Assert.False(preserved.InputNormalization.NormalizeCompactHeadingBoundaries);
-        Assert.False(preserved.InputNormalization.NormalizeColonListBoundaries);
+        AssertInputNormalizationMatches(expectedNormalization, preserved.InputNormalization!);
         Assert.True(preserved.PreferNarrativeSingleLineDefinitions);
         Assert.DoesNotContain(preserved.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
         Assert.DoesNotContain(preserved.DocumentTransforms, transform => transform is MarkdownJsonVisualCodeBlockTransform);
 
         Assert.NotNull(flattened.InputNormalization);
-        Assert.True(flattened.InputNormalization!.NormalizeCollapsedOrderedListBoundaries);
-        Assert.False(flattened.InputNormalization.NormalizeHeadingListBoundaries);
-        Assert.False(flattened.InputNormalization.NormalizeCompactStrongLabelListBoundaries);
-        Assert.False(flattened.InputNormalization.NormalizeCompactHeadingBoundaries);
-        Assert.False(flattened.InputNormalization.NormalizeColonListBoundaries);
+        AssertInputNormalizationMatches(expectedNormalization, flattened.InputNormalization!);
         Assert.True(flattened.PreferNarrativeSingleLineDefinitions);
         Assert.Contains(flattened.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
         Assert.Contains(flattened.DocumentTransforms, transform =>
             transform is MarkdownJsonVisualCodeBlockTransform visual
             && visual.LanguageMode == MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
+    }
+
+    [Fact]
+    public void CreateIntelligenceXTranscriptReaderOptions_Can_Compose_On_Portable_Profile_Without_Losing_Transcript_Normalization() {
+        var options = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
+            readerProfile: MarkdownReaderOptions.MarkdownDialectProfile.Portable,
+            preservesGroupedDefinitionLikeParagraphs: true);
+        var expectedNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscript();
+
+        Assert.NotNull(options.InputNormalization);
+        AssertInputNormalizationMatches(expectedNormalization, options.InputNormalization!);
+        Assert.False(options.Callouts);
+        Assert.False(options.TaskLists);
+        Assert.False(options.TocPlaceholders);
+        Assert.False(options.Footnotes);
+        Assert.False(options.AutolinkUrls);
+        Assert.False(options.AutolinkWwwUrls);
+        Assert.False(options.AutolinkEmails);
+        Assert.True(options.PreferNarrativeSingleLineDefinitions);
     }
 
     [Fact]
@@ -160,5 +172,42 @@ public sealed class MarkdownTranscriptPreparationTests {
                 Assert.Equal(MarkdownSemanticKinds.Chart, visual.SemanticKind);
                 Assert.Equal("ix-chart", visual.Language);
             });
+    }
+
+    private static void AssertInputNormalizationMatches(
+        MarkdownInputNormalizationOptions expected,
+        MarkdownInputNormalizationOptions actual) {
+        Assert.Equal(expected.NormalizeZeroWidthSpacingArtifacts, actual.NormalizeZeroWidthSpacingArtifacts);
+        Assert.Equal(expected.NormalizeEmojiWordJoins, actual.NormalizeEmojiWordJoins);
+        Assert.Equal(expected.NormalizeCompactNumberedChoiceBoundaries, actual.NormalizeCompactNumberedChoiceBoundaries);
+        Assert.Equal(expected.NormalizeSentenceCollapsedBullets, actual.NormalizeSentenceCollapsedBullets);
+        Assert.Equal(expected.NormalizeSoftWrappedStrongSpans, actual.NormalizeSoftWrappedStrongSpans);
+        Assert.Equal(expected.NormalizeInlineCodeSpanLineBreaks, actual.NormalizeInlineCodeSpanLineBreaks);
+        Assert.Equal(expected.NormalizeEscapedInlineCodeSpans, actual.NormalizeEscapedInlineCodeSpans);
+        Assert.Equal(expected.NormalizeTightStrongBoundaries, actual.NormalizeTightStrongBoundaries);
+        Assert.Equal(expected.NormalizeTightArrowStrongBoundaries, actual.NormalizeTightArrowStrongBoundaries);
+        Assert.Equal(expected.NormalizeBrokenStrongArrowLabels, actual.NormalizeBrokenStrongArrowLabels);
+        Assert.Equal(expected.NormalizeWrappedSignalFlowStrongRuns, actual.NormalizeWrappedSignalFlowStrongRuns);
+        Assert.Equal(expected.NormalizeSignalFlowLabelSpacing, actual.NormalizeSignalFlowLabelSpacing);
+        Assert.Equal(expected.NormalizeCollapsedMetricChains, actual.NormalizeCollapsedMetricChains);
+        Assert.Equal(expected.NormalizeHostLabelBulletArtifacts, actual.NormalizeHostLabelBulletArtifacts);
+        Assert.Equal(expected.NormalizeTightColonSpacing, actual.NormalizeTightColonSpacing);
+        Assert.Equal(expected.NormalizeHeadingListBoundaries, actual.NormalizeHeadingListBoundaries);
+        Assert.Equal(expected.NormalizeCompactStrongLabelListBoundaries, actual.NormalizeCompactStrongLabelListBoundaries);
+        Assert.Equal(expected.NormalizeCompactHeadingBoundaries, actual.NormalizeCompactHeadingBoundaries);
+        Assert.Equal(expected.NormalizeStandaloneHashHeadingSeparators, actual.NormalizeStandaloneHashHeadingSeparators);
+        Assert.Equal(expected.NormalizeBrokenTwoLineStrongLeadIns, actual.NormalizeBrokenTwoLineStrongLeadIns);
+        Assert.Equal(expected.NormalizeColonListBoundaries, actual.NormalizeColonListBoundaries);
+        Assert.Equal(expected.NormalizeCompactFenceBodyBoundaries, actual.NormalizeCompactFenceBodyBoundaries);
+        Assert.Equal(expected.NormalizeLooseStrongDelimiters, actual.NormalizeLooseStrongDelimiters);
+        Assert.Equal(expected.NormalizeOrderedListMarkerSpacing, actual.NormalizeOrderedListMarkerSpacing);
+        Assert.Equal(expected.NormalizeOrderedListParenMarkers, actual.NormalizeOrderedListParenMarkers);
+        Assert.Equal(expected.NormalizeOrderedListCaretArtifacts, actual.NormalizeOrderedListCaretArtifacts);
+        Assert.Equal(expected.NormalizeCollapsedOrderedListBoundaries, actual.NormalizeCollapsedOrderedListBoundaries);
+        Assert.Equal(expected.NormalizeOrderedListStrongDetailClosures, actual.NormalizeOrderedListStrongDetailClosures);
+        Assert.Equal(expected.NormalizeTightParentheticalSpacing, actual.NormalizeTightParentheticalSpacing);
+        Assert.Equal(expected.NormalizeNestedStrongDelimiters, actual.NormalizeNestedStrongDelimiters);
+        Assert.Equal(expected.NormalizeDanglingTrailingStrongListClosers, actual.NormalizeDanglingTrailingStrongListClosers);
+        Assert.Equal(expected.NormalizeMetricValueStrongRuns, actual.NormalizeMetricValueStrongRuns);
     }
 }
