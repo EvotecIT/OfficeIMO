@@ -1217,7 +1217,7 @@ public static partial class MarkdownReader {
             if (StartsWithExactHtmlTag(text, scan, tagName, opening: false)) {
                 depth--;
                 if (depth == 0) {
-                    string inner = text.Substring(start + openLength, scan - (start + openLength));
+                    string inner = System.Net.WebUtility.HtmlDecode(text.Substring(start + openLength, scan - (start + openLength)));
                     inlines = ParseInlinesInternal(inner, options, state, allowLinks, allowImages);
                     consumed = (scan - start) + tagName.Length + 3;
                     return true;

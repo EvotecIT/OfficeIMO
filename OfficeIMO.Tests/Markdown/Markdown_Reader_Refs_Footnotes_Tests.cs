@@ -54,6 +54,36 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Supported_Html_Wrappers_Decode_Entities_Before_Parsing_Inlines() {
+            const string md = "Value <u>&amp;</u>";
+
+            var doc = MarkdownReader.Parse(md);
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+            var wrapper = Assert.IsType<HtmlTagSequenceInline>(Assert.Single(paragraph.Inlines.Nodes, node => node is HtmlTagSequenceInline));
+            var text = Assert.IsType<TextRun>(Assert.Single(wrapper.Inlines.Nodes));
+
+            Assert.Equal("&", text.Text);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("Value <u>&amp;</u>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("&amp;amp;", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Footnote_RenderMarkdown_Indents_NonParagraph_First_Block_On_Next_Line() {
+            var footnote = new FootnoteDefinitionBlock(
+                "1",
+                "```csharp\nConsole.WriteLine(1);\n```",
+                new IMarkdownBlock[] { new CodeBlock("csharp", "Console.WriteLine(1);") },
+                syntaxChildren: null);
+
+            string markdown = ((IMarkdownBlock)footnote).RenderMarkdown();
+
+            Assert.StartsWith("[^1]:\n  ```csharp", markdown, StringComparison.Ordinal);
+            Assert.Contains("\n  Console.WriteLine(1);\n", markdown, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Reference_Link_Title_On_Next_Line_Is_Resolved() {
             var md = string.Join("\n", new[] {
                 "See [Docs][docs].",

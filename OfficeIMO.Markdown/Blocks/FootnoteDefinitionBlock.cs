@@ -185,8 +185,14 @@ public sealed class FootnoteDefinitionBlock : IMarkdownBlock, IChildMarkdownBloc
         }
 
         var sb = new System.Text.StringBuilder();
-        sb.Append("[^").Append(Label).Append("]: ");
-        AppendIndentedBlockMarkdown(sb, blocks[0], firstBlock: true);
+        sb.Append("[^").Append(Label).Append("]:");
+        if (blocks[0] is ParagraphBlock) {
+            sb.Append(' ');
+            AppendIndentedBlockMarkdown(sb, blocks[0], firstBlock: true);
+        } else {
+            sb.Append('\n');
+            AppendIndentedBlockMarkdown(sb, blocks[0], firstBlock: false);
+        }
 
         for (int i = 1; i < blocks.Count; i++) {
             sb.Append("\n\n");
