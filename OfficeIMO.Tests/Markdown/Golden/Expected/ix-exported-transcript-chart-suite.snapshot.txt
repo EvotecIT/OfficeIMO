@@ -5,7 +5,7 @@
 0: Heading(level=2, text="User (20:36: 21)")
 1: Paragraph("Well what about some more real proper tests charts, colors so i can see how it all works")
 2: Heading(level=2, text="Assistant (20:36: 24)")
-3: Paragraph("<!-- ix: model: gpt-5.3-codex --> Love it - let's do **proper visual tests** with realistic data + clear color behavior. I'll give you 4 chart types so you can validate palette, legends, stacking, and trend readability.")
+3: Paragraph("<!-- ix: model: gpt-5.3-codex --> Love it - let's do **proper visual tests** with realistic data + clear color behavior.  \nI'll give you 4 chart types so you can validate palette, legends, stacking, and trend readability.")
 4: Heading(level=2, text="1) Risk distribution (stacked bar, severity colors)")
 5: SemanticFencedBlock
 6: HorizontalRuleBlock
@@ -23,7 +23,7 @@
 18: Heading(level=2, text="Assistant (20:37: 49)")
 19: Paragraph("<!-- ix: model: gpt-5.3-codex -->")
 20: Paragraph("Yep - your instinct is right: don't trust "looks fine," **certify it**.")
-21: Paragraph("You're using the correct contract shape \(`ix-chart` with Chart.js-like `type`, `data.labels`, `data.datasets`\). Now run this compact compatibility matrix to prove what your renderer actually supports.")
+21: Paragraph("You're using the correct contract shape \(`ix-chart` with Chart.js-like `type`, `data.labels`, `data.datasets`\).  \nNow run this compact compatibility matrix to prove what your renderer actually supports.")
 22: Table(headers=4, rows=6)
   headers: "Feature" || "Test block" || "Expected result" || "If it fails, likely cause"
   row[0]: "Basic bar render" || "Test A \(stacked bar\)" || "Bars render + legend visible" || "JSON parse issue or chart plugin not loaded"
@@ -46,7 +46,8 @@ Well what about some more real proper tests charts, colors so i can see how it a
 
 ## Assistant \(20:36: 24\)
 
-<!-- ix: model: gpt-5.3-codex --> Love it - let's do **proper visual tests** with realistic data + clear color behavior. I'll give you 4 chart types so you can validate palette, legends, stacking, and trend readability.
+<!-- ix: model: gpt-5.3-codex --> Love it - let's do **proper visual tests** with realistic data + clear color behavior.  
+I'll give you 4 chart types so you can validate palette, legends, stacking, and trend readability.
 
 ## 1\) Risk distribution \(stacked bar, severity colors\)
 
@@ -185,7 +186,8 @@ you sure this is the chartjs thatwe support?
 
 Yep - your instinct is right: don't trust "looks fine," **certify it**.
 
-You're using the correct contract shape \(`ix-chart` with Chart.js-like `type`, `data.labels`, `data.datasets`\). Now run this compact compatibility matrix to prove what your renderer actually supports.
+You're using the correct contract shape \(`ix-chart` with Chart.js-like `type`, `data.labels`, `data.datasets`\).  
+Now run this compact compatibility matrix to prove what your renderer actually supports.
 
 | Feature | Test block | Expected result | If it fails, likely cause |
 | --- | --- | --- | --- |

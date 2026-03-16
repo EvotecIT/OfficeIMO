@@ -5,8 +5,10 @@ namespace OfficeIMO.Markdown.Html;
 public sealed partial class HtmlToMarkdownConverter {
     private static InlineSequence ConvertInlineNodesToInlineSequence(IEnumerable<INode> nodes, ConversionContext? context) {
         var sequence = new InlineSequence { AutoSpacing = false };
-        foreach (var node in nodes) {
-            AppendInlineNode(sequence, node, context);
+        var materializedNodes = nodes as IList<INode> ?? nodes.ToList();
+        for (int i = 0; i < materializedNodes.Count; i++) {
+            bool trimEnd = NextVisibleInlineNodeIsBoundary(materializedNodes, i + 1, context);
+            AppendInlineNode(sequence, materializedNodes[i], context, trimEnd);
         }
         return sequence;
     }
@@ -19,15 +21,13 @@ public sealed partial class HtmlToMarkdownConverter {
         return sb.ToString();
     }
 
-    private static void AppendInlineNode(InlineSequence sequence, INode node, ConversionContext? context) {
+    private static void AppendInlineNode(InlineSequence sequence, INode node, ConversionContext? context, bool trimEnd) {
         switch (node) {
             case null:
             case IComment:
                 return;
             case IText text:
-                if (!string.IsNullOrEmpty(text.Data)) {
-                    sequence.Text(text.Data);
-                }
+                AppendNormalizedText(sequence, text.Data, trimEnd);
                 return;
             case IElement element:
                 if (context != null && ShouldIgnoreElement(element, context)) {
@@ -46,26 +46,26 @@ public sealed partial class HtmlToMarkdownConverter {
                 return;
             case "STRONG":
             case "B":
-                sequence.AddRaw(new BoldSequenceInline(ConvertInlineNodesToInlineSequence(element.ChildNodes, context)));
+                AppendWrappedInlineSequence(sequence, ConvertInlineNodesToInlineSequence(element.ChildNodes, context), static child => new BoldSequenceInline(child));
                 return;
             case "EM":
             case "I":
-                sequence.AddRaw(new ItalicSequenceInline(ConvertInlineNodesToInlineSequence(element.ChildNodes, context)));
+                AppendWrappedInlineSequence(sequence, ConvertInlineNodesToInlineSequence(element.ChildNodes, context), static child => new ItalicSequenceInline(child));
                 return;
             case "S":
             case "STRIKE":
             case "DEL":
-                sequence.AddRaw(new StrikethroughSequenceInline(ConvertInlineNodesToInlineSequence(element.ChildNodes, context)));
+                AppendWrappedInlineSequence(sequence, ConvertInlineNodesToInlineSequence(element.ChildNodes, context), static child => new StrikethroughSequenceInline(child));
                 return;
             case "MARK":
-                sequence.AddRaw(new HighlightSequenceInline(ConvertInlineNodesToInlineSequence(element.ChildNodes, context)));
+                AppendWrappedInlineSequence(sequence, ConvertInlineNodesToInlineSequence(element.ChildNodes, context), static child => new HighlightSequenceInline(child));
                 return;
             case "U":
             case "SUP":
             case "SUB":
             case "INS":
             case "Q":
-                sequence.AddRaw(new HtmlTagSequenceInline(tag.ToLowerInvariant(), ConvertInlineNodesToInlineSequence(element.ChildNodes, context)));
+                AppendWrappedInlineSequence(sequence, ConvertInlineNodesToInlineSequence(element.ChildNodes, context), child => new HtmlTagSequenceInline(tag.ToLowerInvariant(), child));
                 return;
             case "CODE":
                 sequence.AddRaw(new CodeSpanInline(element.TextContent ?? string.Empty));
@@ -89,8 +89,10 @@ public sealed partial class HtmlToMarkdownConverter {
             case "SAMP":
             case "VAR":
             case "LABEL":
-                foreach (var child in element.ChildNodes) {
-                    AppendInlineNode(sequence, child, context);
+                var childNodes = element.ChildNodes as IList<INode> ?? element.ChildNodes.ToList();
+                for (int i = 0; i < childNodes.Count; i++) {
+                    bool trimEnd = NextVisibleInlineNodeIsBoundary(childNodes, i + 1, context);
+                    AppendInlineNode(sequence, childNodes[i], context, trimEnd);
                 }
                 return;
             default:
@@ -99,8 +101,10 @@ public sealed partial class HtmlToMarkdownConverter {
                     return;
                 }
 
-                foreach (var child in element.ChildNodes) {
-                    AppendInlineNode(sequence, child, context);
+                var fallbackNodes = element.ChildNodes as IList<INode> ?? element.ChildNodes.ToList();
+                for (int i = 0; i < fallbackNodes.Count; i++) {
+                    bool trimEnd = NextVisibleInlineNodeIsBoundary(fallbackNodes, i + 1, context);
+                    AppendInlineNode(sequence, fallbackNodes[i], context, trimEnd);
                 }
                 return;
         }
@@ -263,6 +267,93 @@ public sealed partial class HtmlToMarkdownConverter {
             element.GetAttribute("alt") ?? string.Empty,
             src,
             element.GetAttribute("title")));
+    }
+
+    private static void AppendWrappedInlineSequence(
+        InlineSequence target,
+        InlineSequence childSequence,
+        Func<InlineSequence, IMarkdownInline> factory) {
+        if (target == null || childSequence == null || factory == null) {
+            return;
+        }
+
+        if (childSequence.Nodes.Count == 0) {
+            return;
+        }
+
+        target.AddRaw(factory(childSequence));
+    }
+
+    private static void AppendNormalizedText(InlineSequence sequence, string? text, bool trimEnd) {
+        if (sequence == null || string.IsNullOrEmpty(text)) {
+            return;
+        }
+
+        string normalized = CollapseHtmlInlineWhitespace(text!);
+        if (normalized.Length == 0) {
+            return;
+        }
+
+        bool trimLeading = sequence.Nodes.Count == 0 || sequence.Nodes[sequence.Nodes.Count - 1] is HardBreakInline;
+        if (trimLeading) {
+            normalized = normalized.TrimStart(' ');
+        }
+
+        if (trimEnd) {
+            normalized = normalized.TrimEnd(' ');
+        }
+
+        if (normalized.Length == 0) {
+            return;
+        }
+
+        sequence.Text(normalized);
+    }
+
+    private static string CollapseHtmlInlineWhitespace(string text) {
+        if (string.IsNullOrEmpty(text)) {
+            return string.Empty;
+        }
+
+        var sb = new StringBuilder(text.Length);
+        bool previousWasWhitespace = false;
+        foreach (char ch in text) {
+            if (char.IsWhiteSpace(ch)) {
+                if (previousWasWhitespace) {
+                    continue;
+                }
+
+                sb.Append(' ');
+                previousWasWhitespace = true;
+                continue;
+            }
+
+            sb.Append(ch);
+            previousWasWhitespace = false;
+        }
+
+        return sb.ToString();
+    }
+
+    private static bool NextVisibleInlineNodeIsBoundary(IList<INode> nodes, int startIndex, ConversionContext? context) {
+        for (int i = startIndex; i < nodes.Count; i++) {
+            var node = nodes[i];
+            switch (node) {
+                case null:
+                case IComment:
+                    continue;
+                case IText text when string.IsNullOrWhiteSpace(text.Data):
+                    continue;
+                case IElement element when context != null && ShouldIgnoreElement(element, context):
+                    continue;
+                case IElement element when element.TagName.Equals("BR", StringComparison.OrdinalIgnoreCase):
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        return true;
     }
 
     private static string ConvertStrongInlineElementToMarkdown(IElement element, ConversionContext? context) {

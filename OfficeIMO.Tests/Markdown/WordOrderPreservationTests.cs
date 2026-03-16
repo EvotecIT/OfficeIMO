@@ -10,6 +10,10 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Ordering {
     public class WordOrderPreservationTests {
+        private static int IndexOfMarkdownTable(string markdown, string headerRow) {
+            return markdown.IndexOf(headerRow, StringComparison.Ordinal);
+        }
+
         private static WordDocument BuildSampleDoc() {
             var doc = WordDocument.Create();
             // Section 1
@@ -59,10 +63,10 @@ namespace OfficeIMO.Tests.Ordering {
             using var doc = BuildSingleSectionDoc();
             string md = doc.ToMarkdown();
             int p1 = md.IndexOf("Intro P1", StringComparison.Ordinal);
-            int t1 = md.IndexOf("T1_R1C1", StringComparison.Ordinal);
+            int t1 = IndexOfMarkdownTable(md, "| H1 | H2 |");
             int after1 = md.IndexOf("After T1", StringComparison.Ordinal);
             int s2p1 = md.IndexOf("Section2 P1", StringComparison.Ordinal);
-            int t2 = md.IndexOf("T2_R1C1", StringComparison.Ordinal);
+            int t2 = IndexOfMarkdownTable(md, "| J1 | J2 |");
             int after2 = md.IndexOf("Section2 After T2", StringComparison.Ordinal);
 
             Assert.True(p1 >= 0 && t1 > p1 && after1 > t1, $"Order in S1 invalid: p1={p1}, t1={t1}, after1={after1}\n{md}");
@@ -99,7 +103,7 @@ namespace OfficeIMO.Tests.Ordering {
             int intro = md.IndexOf("Intro P1", StringComparison.Ordinal);
             int after1 = md.IndexOf("After T1", StringComparison.Ordinal);
             int s2p1 = md.IndexOf("Section2 P1", StringComparison.Ordinal);
-            int t2 = md.IndexOf("T2_R1C1", StringComparison.Ordinal);
+            int t2 = IndexOfMarkdownTable(md, "| J1 | J2 |");
             int after2 = md.IndexOf("Section2 After T2", StringComparison.Ordinal);
 
             Assert.Contains("Section2 P1", md);

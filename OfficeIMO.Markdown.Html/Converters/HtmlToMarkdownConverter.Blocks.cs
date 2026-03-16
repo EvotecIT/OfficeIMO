@@ -25,9 +25,9 @@ public sealed partial class HtmlToMarkdownConverter {
                 return;
             }
 
-            InlineSequence inlineSequence = ConvertInlineNodesToInlineSequence(inlineBuffer, context);
+            InlineSequence inlineSequence = NormalizeInlineSequenceForBlock(ConvertInlineNodesToInlineSequence(inlineBuffer, context));
             inlineBuffer.Clear();
-            if (inlineSequence.Nodes.Count == 0) {
+            if (!HasVisibleInlineContent(inlineSequence)) {
                 return;
             }
 
@@ -149,8 +149,8 @@ public sealed partial class HtmlToMarkdownConverter {
                     return ConvertNodesToBlocks(element.ChildNodes, context);
                 }
 
-                var inlineSequence = ConvertInlineNodesToInlineSequence(element.ChildNodes, context);
-                if (inlineSequence.Nodes.Count == 0) {
+                var inlineSequence = NormalizeInlineSequenceForBlock(ConvertInlineNodesToInlineSequence(element.ChildNodes, context));
+                if (!HasVisibleInlineContent(inlineSequence)) {
                     return Array.Empty<IMarkdownBlock>();
                 }
 
@@ -164,8 +164,8 @@ public sealed partial class HtmlToMarkdownConverter {
                     return ConvertNodesToBlocks(element.ChildNodes, context);
                 }
 
-                var fallbackInline = ConvertInlineNodesToInlineSequence(element.ChildNodes, context);
-                if (fallbackInline.Nodes.Count == 0) {
+                var fallbackInline = NormalizeInlineSequenceForBlock(ConvertInlineNodesToInlineSequence(element.ChildNodes, context));
+                if (!HasVisibleInlineContent(fallbackInline)) {
                     return Array.Empty<IMarkdownBlock>();
                 }
 
@@ -254,8 +254,8 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static IEnumerable<IMarkdownBlock> ConvertParagraphElement(IElement element, ConversionContext context) {
-        var inlineSequence = ConvertInlineNodesToInlineSequence(element.ChildNodes, context);
-        if (inlineSequence.Nodes.Count == 0) {
+        var inlineSequence = NormalizeInlineSequenceForBlock(ConvertInlineNodesToInlineSequence(element.ChildNodes, context));
+        if (!HasVisibleInlineContent(inlineSequence)) {
             return Array.Empty<IMarkdownBlock>();
         }
 
@@ -263,7 +263,7 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static HeadingBlock ConvertHeadingElement(IElement element, int level, ConversionContext context) {
-        return new HeadingBlock(level, ConvertInlineNodesToInlineSequence(element.ChildNodes, context));
+        return new HeadingBlock(level, NormalizeInlineSequenceForBlock(ConvertInlineNodesToInlineSequence(element.ChildNodes, context)));
     }
 
     private static IMarkdownBlock ConvertListElement(IElement element, bool ordered, ConversionContext context) {
@@ -546,8 +546,8 @@ public sealed partial class HtmlToMarkdownConverter {
             return ConvertNodesToBlocks(cell.ChildNodes, context);
         }
 
-        var inlineSequence = ConvertInlineNodesToInlineSequence(cell.ChildNodes, context);
-        if (inlineSequence.Nodes.Count == 0) {
+        var inlineSequence = NormalizeInlineSequenceForBlock(ConvertInlineNodesToInlineSequence(cell.ChildNodes, context));
+        if (!HasVisibleInlineContent(inlineSequence)) {
             return Array.Empty<IMarkdownBlock>();
         }
 
@@ -589,8 +589,8 @@ public sealed partial class HtmlToMarkdownConverter {
                 return ConvertNodesToBlocks(element.ChildNodes, context);
             }
 
-            var inlineSequence = ConvertInlineNodesToInlineSequence(element.ChildNodes, context);
-            if (inlineSequence.Nodes.Count == 0) {
+            var inlineSequence = NormalizeInlineSequenceForBlock(ConvertInlineNodesToInlineSequence(element.ChildNodes, context));
+            if (!HasVisibleInlineContent(inlineSequence)) {
                 return Array.Empty<IMarkdownBlock>();
             }
 
@@ -610,7 +610,7 @@ public sealed partial class HtmlToMarkdownConverter {
         SummaryBlock? summary = null;
         var summaryElement = element.Children.FirstOrDefault(child => child.TagName.Equals("SUMMARY", StringComparison.OrdinalIgnoreCase));
         if (summaryElement != null) {
-            summary = new SummaryBlock(ConvertInlineNodesToInlineSequence(summaryElement.ChildNodes, context));
+            summary = new SummaryBlock(NormalizeInlineSequenceForBlock(ConvertInlineNodesToInlineSequence(summaryElement.ChildNodes, context)));
         }
 
         var details = new DetailsBlock(summary, open: element.HasAttribute("open"));
@@ -639,8 +639,8 @@ public sealed partial class HtmlToMarkdownConverter {
                     hasDefinitionsForCurrentGroup = false;
                 }
 
-                var term = ConvertInlineNodesToInlineSequence(child.ChildNodes, context);
-                if (term.Nodes.Count > 0) {
+                var term = NormalizeInlineSequenceForBlock(ConvertInlineNodesToInlineSequence(child.ChildNodes, context));
+                if (HasVisibleInlineContent(term)) {
                     pendingTerms.Add(term);
                 }
                 continue;
@@ -664,11 +664,34 @@ public sealed partial class HtmlToMarkdownConverter {
             return ConvertNodesToBlocks(element.ChildNodes, context);
         }
 
-        var inlineSequence = ConvertInlineNodesToInlineSequence(element.ChildNodes, context);
-        if (inlineSequence.Nodes.Count == 0) {
+        var inlineSequence = NormalizeInlineSequenceForBlock(ConvertInlineNodesToInlineSequence(element.ChildNodes, context));
+        if (!HasVisibleInlineContent(inlineSequence)) {
             return Array.Empty<IMarkdownBlock>();
         }
 
         return new IMarkdownBlock[] { new ParagraphBlock(inlineSequence) };
+    }
+
+    private static InlineSequence NormalizeInlineSequenceForBlock(InlineSequence? source) {
+        return source ?? new InlineSequence { AutoSpacing = false };
+    }
+
+    private static bool HasVisibleInlineContent(InlineSequence? sequence) {
+        if (sequence == null || sequence.Nodes.Count == 0) {
+            return false;
+        }
+
+        foreach (var node in sequence.Nodes) {
+            switch (node) {
+                case null:
+                    continue;
+                case TextRun textRun when string.IsNullOrWhiteSpace(textRun.Text):
+                    continue;
+                default:
+                    return true;
+            }
+        }
+
+        return false;
     }
 }
