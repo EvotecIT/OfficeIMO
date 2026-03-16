@@ -39,6 +39,14 @@ public sealed class InlineSequence : IMarkdownInline, IRenderableMarkdownInline,
     public InlineSequence Highlight(string text) { _inlines.Add(new HighlightInline(text)); return this; }
     /// <summary>Adds underlined text (HTML-only in Markdown).</summary>
     public InlineSequence Underline(string text) { _inlines.Add(new UnderlineInline(text)); return this; }
+    /// <summary>Adds superscript text rendered via inline HTML.</summary>
+    public InlineSequence Superscript(string text) { _inlines.Add(new HtmlTagSequenceInline("sup", new InlineSequence().Text(text))); return this; }
+    /// <summary>Adds subscript text rendered via inline HTML.</summary>
+    public InlineSequence Subscript(string text) { _inlines.Add(new HtmlTagSequenceInline("sub", new InlineSequence().Text(text))); return this; }
+    /// <summary>Adds inserted text rendered via inline HTML.</summary>
+    public InlineSequence Inserted(string text) { _inlines.Add(new HtmlTagSequenceInline("ins", new InlineSequence().Text(text))); return this; }
+    /// <summary>Adds quoted text rendered via inline HTML.</summary>
+    public InlineSequence Quote(string text) { _inlines.Add(new HtmlTagSequenceInline("q", new InlineSequence().Text(text))); return this; }
     /// <summary>Adds a linked image (useful for badges).</summary>
     public InlineSequence ImageLink(string alt, string imageUrl, string linkUrl, string? title = null) { _inlines.Add(new ImageLinkInline(alt, imageUrl, linkUrl, title)); return this; }
     /// <summary>Adds a standalone inline image.</summary>

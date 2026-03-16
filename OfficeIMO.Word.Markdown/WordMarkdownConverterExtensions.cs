@@ -88,7 +88,30 @@ namespace OfficeIMO.Word.Markdown {
         /// <returns>Markdown representation of the document.</returns>
         public static async Task<string> ToMarkdownAsync(this WordDocument document, WordToMarkdownOptions? options = null, CancellationToken cancellationToken = default) {
             var converter = new WordToMarkdownConverter();
-            return await converter.ConvertAsync(document, options ?? new WordToMarkdownOptions(), cancellationToken).ConfigureAwait(false);
+            var markdown = await converter.ConvertToDocumentAsync(document, options ?? new WordToMarkdownOptions(), cancellationToken).ConfigureAwait(false);
+            return markdown.ToMarkdown().Replace("\r\n", "\n").TrimEnd('\n');
+        }
+
+        /// <summary>
+        /// Converts the document into a typed <see cref="MarkdownDoc"/> without flattening through markdown text first.
+        /// </summary>
+        /// <param name="document">Document to convert.</param>
+        /// <param name="options">Optional conversion options.</param>
+        /// <returns>Typed markdown document.</returns>
+        public static MarkdownDoc ToMarkdownDocument(this WordDocument document, WordToMarkdownOptions? options = null) {
+            return document.ToMarkdownDocumentAsync(options).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Converts the document into a typed <see cref="MarkdownDoc"/> without flattening through markdown text first.
+        /// </summary>
+        /// <param name="document">Document to convert.</param>
+        /// <param name="options">Optional conversion options.</param>
+        /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+        /// <returns>Typed markdown document.</returns>
+        public static Task<MarkdownDoc> ToMarkdownDocumentAsync(this WordDocument document, WordToMarkdownOptions? options = null, CancellationToken cancellationToken = default) {
+            var converter = new WordToMarkdownConverter();
+            return converter.ConvertToDocumentAsync(document, options ?? new WordToMarkdownOptions(), cancellationToken);
         }
 
         /// <summary>
@@ -217,8 +240,7 @@ namespace OfficeIMO.Word.Markdown {
             options ??= new HtmlOptions { Kind = HtmlKind.Document, Style = HtmlStyle.Word };
             options.Kind = HtmlKind.Document;
             if (options.Style == default) options.Style = HtmlStyle.Word;
-            var md = document.ToMarkdown();
-            var model = MarkdownReader.Parse(md);
+            var model = document.ToMarkdownDocument();
             if (options.InjectTocAtTop && !model.Blocks.Any(b => string.Equals(b.GetType().Name, "TocPlaceholderBlock", System.StringComparison.Ordinal))) {
                 model.TocAtTop(options.InjectTocTitle, options.InjectTocMinLevel, options.InjectTocMaxLevel, options.InjectTocOrdered, options.InjectTocTitleLevel);
             }
@@ -231,8 +253,7 @@ namespace OfficeIMO.Word.Markdown {
         public static string ToHtmlFragmentViaMarkdown(this WordDocument document, HtmlOptions? options = null) {
             options ??= new HtmlOptions { Kind = HtmlKind.Fragment, Style = HtmlStyle.Word };
             if (options.Style == default) options.Style = HtmlStyle.Word;
-            var md = document.ToMarkdown();
-            var model = MarkdownReader.Parse(md);
+            var model = document.ToMarkdownDocument();
             if (options.InjectTocAtTop && !model.Blocks.Any(b => string.Equals(b.GetType().Name, "TocPlaceholderBlock", System.StringComparison.Ordinal))) {
                 model.TocAtTop(options.InjectTocTitle, options.InjectTocMinLevel, options.InjectTocMaxLevel, options.InjectTocOrdered, options.InjectTocTitleLevel);
             }
@@ -246,8 +267,7 @@ namespace OfficeIMO.Word.Markdown {
             options ??= new HtmlOptions { Kind = HtmlKind.Document, Style = HtmlStyle.Word };
             options.Kind = HtmlKind.Document;
             if (options.Style == default) options.Style = HtmlStyle.Word;
-            var md = document.ToMarkdown();
-            var model = MarkdownReader.Parse(md);
+            var model = document.ToMarkdownDocument();
             if (options.InjectTocAtTop && !model.Blocks.Any(b => string.Equals(b.GetType().Name, "TocPlaceholderBlock", System.StringComparison.Ordinal))) {
                 model.TocAtTop(options.InjectTocTitle, options.InjectTocMinLevel, options.InjectTocMaxLevel, options.InjectTocOrdered, options.InjectTocTitleLevel);
             }
@@ -261,8 +281,7 @@ namespace OfficeIMO.Word.Markdown {
             options ??= new HtmlOptions { Kind = HtmlKind.Document, Style = HtmlStyle.Word };
             options.Kind = HtmlKind.Document;
             if (options.Style == default) options.Style = HtmlStyle.Word;
-            var md = await document.ToMarkdownAsync().ConfigureAwait(false);
-            var model = MarkdownReader.Parse(md);
+            var model = await document.ToMarkdownDocumentAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             if (options.InjectTocAtTop && !model.Blocks.Any(b => string.Equals(b.GetType().Name, "TocPlaceholderBlock", System.StringComparison.Ordinal))) {
                 model.TocAtTop(options.InjectTocTitle, options.InjectTocMinLevel, options.InjectTocMaxLevel, options.InjectTocOrdered, options.InjectTocTitleLevel);
             }

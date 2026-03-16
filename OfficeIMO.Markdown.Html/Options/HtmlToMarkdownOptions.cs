@@ -66,7 +66,7 @@ public sealed class HtmlToMarkdownOptions {
     public List<IMarkdownDocumentTransform> DocumentTransforms { get; } = new();
 
     /// <summary>
-    /// Creates a shallow copy of the current options instance so callers can reuse option templates safely.
+    /// Creates a copy of the current options instance so callers can reuse option templates safely.
     /// </summary>
     /// <returns>A new <see cref="HtmlToMarkdownOptions"/> with the same option values.</returns>
     public HtmlToMarkdownOptions Clone() {
@@ -76,7 +76,7 @@ public sealed class HtmlToMarkdownOptions {
             RemoveScriptsAndStyles = RemoveScriptsAndStyles,
             PreserveUnsupportedBlocks = PreserveUnsupportedBlocks,
             PreserveUnsupportedInlineHtml = PreserveUnsupportedInlineHtml,
-            MarkdownWriteOptions = MarkdownWriteOptions,
+            MarkdownWriteOptions = MarkdownWriteOptions?.Clone(),
             MaxInputCharacters = MaxInputCharacters
         };
 

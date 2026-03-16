@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO.Markdown;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 using Xunit;
@@ -83,6 +84,25 @@ namespace OfficeIMO.Tests {
             Assert.Contains($"![", markdown);
             Assert.Contains(fileName, markdown);
             Assert.True(File.Exists(Path.Combine(tempDir, fileName)));
+        }
+
+        [Fact]
+        public void WordToMarkdown_ToMarkdownDocument_BuildsTypedAstDirectly() {
+            using var doc = WordDocument.Create();
+            var paragraph = doc.AddParagraph("Water");
+            paragraph.AddText("2").SetVerticalTextAlignment(DocumentFormat.OpenXml.Wordprocessing.VerticalPositionValues.Subscript);
+            paragraph.AddText(" and ");
+            paragraph.AddText("important").Underline = DocumentFormat.OpenXml.Wordprocessing.UnderlineValues.Single;
+
+            MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions { EnableUnderline = true });
+            var block = Assert.IsType<ParagraphBlock>(Assert.Single(markdown.Blocks));
+
+            Assert.Contains(block.Inlines.Nodes, inline => inline is HtmlTagSequenceInline tag && tag.TagName == "sub");
+            Assert.Contains(block.Inlines.Nodes, inline => inline is HtmlTagSequenceInline tag && tag.TagName == "u");
+
+            string renderedHtml = markdown.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<sub>2</sub>", renderedHtml, StringComparison.Ordinal);
+            Assert.Contains("<u>important</u>", renderedHtml, StringComparison.Ordinal);
         }
     }
 }

@@ -41,7 +41,8 @@ Supported inline mappings include:
 - links
 - images
 - hard line breaks
-- a conservative set of inline passthrough elements that collapse to their children
+- typed inline HTML wrappers for `q`, `u`, `ins`, `sub`, and `sup`
+- a conservative raw/passthrough fallback for unsupported inline HTML when preservation is enabled
 
 ## Usage
 
@@ -155,6 +156,7 @@ That means `OfficeIMO.Markdown.Html` is no longer just a text flattener. It is a
 - Multiple `dt` terms sharing the same `dd` group are preserved.
 - Block-rich `dd` values are preserved as typed block content instead of being forced through inline-only conversion.
 - Table cells preserve typed block content in the intermediate `MarkdownDoc` AST instead of collapsing immediately to strings.
+- Supported inline HTML such as `q`, `u`, `ins`, `sub`, and `sup` is preserved as typed AST wrappers instead of being flattened to plain text.
 - Unsupported custom/container elements are treated as block-level content when they are structurally block-like or when raw block preservation is enabled.
 - Shared renderer visual hosts that carry the `data-omd-*` contract are decoded back into `SemanticFencedBlock` nodes, which lets `OfficeIMO.MarkdownRenderer` HTML round-trip into semantic markdown fences.
 - Conversion happens through the `OfficeIMO.Markdown` AST, so the effective fidelity is bounded by that model.
@@ -164,6 +166,7 @@ For the current stack, this means HTML ingestion can preserve more structure tha
 ## Current limitations
 
 - Markdown text emission is still constrained by markdown syntax itself, so rich table-cell and definition-list AST content may be flattened when serialized for engines that only accept plain markdown text.
+- Downstream converters may still choose deliberate degradations for AST-preserved HTML wrappers when the target format has no native equivalent. For example, the Word converter keeps `u/sub/sup` structurally but intentionally degrades `ins` and `q`.
 - Portable output intentionally degrades OfficeIMO-specific constructs instead of preserving host-specific syntax.
 - Unsupported HTML is preserved best when `PreserveUnsupportedBlocks` / `PreserveUnsupportedInlineHtml` are enabled.
 

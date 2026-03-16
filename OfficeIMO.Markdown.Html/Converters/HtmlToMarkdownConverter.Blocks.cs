@@ -25,13 +25,13 @@ public sealed partial class HtmlToMarkdownConverter {
                 return;
             }
 
-            string inlineMarkdown = ConvertInlineNodesToMarkdown(inlineBuffer, context).Trim();
+            InlineSequence inlineSequence = ConvertInlineNodesToInlineSequence(inlineBuffer, context);
             inlineBuffer.Clear();
-            if (inlineMarkdown.Length == 0) {
+            if (inlineSequence.Nodes.Count == 0) {
                 return;
             }
 
-            blocks.Add(new ParagraphBlock(ParseInlines(inlineMarkdown)));
+            blocks.Add(new ParagraphBlock(inlineSequence));
         }
 
         foreach (var node in nodes) {
@@ -149,12 +149,12 @@ public sealed partial class HtmlToMarkdownConverter {
                     return ConvertNodesToBlocks(element.ChildNodes, context);
                 }
 
-                string inlineMarkdown = ConvertInlineNodesToMarkdown(element.ChildNodes, context).Trim();
-                if (inlineMarkdown.Length == 0) {
+                var inlineSequence = ConvertInlineNodesToInlineSequence(element.ChildNodes, context);
+                if (inlineSequence.Nodes.Count == 0) {
                     return Array.Empty<IMarkdownBlock>();
                 }
 
-                return new IMarkdownBlock[] { new ParagraphBlock(ParseInlines(inlineMarkdown)) };
+                return new IMarkdownBlock[] { new ParagraphBlock(inlineSequence) };
             default:
                 if (context.Options.PreserveUnsupportedBlocks) {
                     return new IMarkdownBlock[] { new HtmlRawBlock(element.OuterHtml) };
@@ -164,12 +164,12 @@ public sealed partial class HtmlToMarkdownConverter {
                     return ConvertNodesToBlocks(element.ChildNodes, context);
                 }
 
-                string fallbackInline = ConvertInlineNodesToMarkdown(element.ChildNodes, context).Trim();
-                if (fallbackInline.Length == 0) {
+                var fallbackInline = ConvertInlineNodesToInlineSequence(element.ChildNodes, context);
+                if (fallbackInline.Nodes.Count == 0) {
                     return Array.Empty<IMarkdownBlock>();
                 }
 
-                return new IMarkdownBlock[] { new ParagraphBlock(ParseInlines(fallbackInline)) };
+                return new IMarkdownBlock[] { new ParagraphBlock(fallbackInline) };
         }
     }
 
@@ -254,17 +254,16 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static IEnumerable<IMarkdownBlock> ConvertParagraphElement(IElement element, ConversionContext context) {
-        string inlineMarkdown = ConvertInlineNodesToMarkdown(element.ChildNodes, context).Trim();
-        if (inlineMarkdown.Length == 0) {
+        var inlineSequence = ConvertInlineNodesToInlineSequence(element.ChildNodes, context);
+        if (inlineSequence.Nodes.Count == 0) {
             return Array.Empty<IMarkdownBlock>();
         }
 
-        return new IMarkdownBlock[] { new ParagraphBlock(ParseInlines(inlineMarkdown)) };
+        return new IMarkdownBlock[] { new ParagraphBlock(inlineSequence) };
     }
 
     private static HeadingBlock ConvertHeadingElement(IElement element, int level, ConversionContext context) {
-        string inlineMarkdown = ConvertInlineNodesToMarkdown(element.ChildNodes, context).Trim();
-        return new HeadingBlock(level, ParseInlines(inlineMarkdown));
+        return new HeadingBlock(level, ConvertInlineNodesToInlineSequence(element.ChildNodes, context));
     }
 
     private static IMarkdownBlock ConvertListElement(IElement element, bool ordered, ConversionContext context) {
@@ -547,12 +546,12 @@ public sealed partial class HtmlToMarkdownConverter {
             return ConvertNodesToBlocks(cell.ChildNodes, context);
         }
 
-        string inlineMarkdown = ConvertInlineNodesToMarkdown(cell.ChildNodes, context).Trim();
-        if (inlineMarkdown.Length == 0) {
+        var inlineSequence = ConvertInlineNodesToInlineSequence(cell.ChildNodes, context);
+        if (inlineSequence.Nodes.Count == 0) {
             return Array.Empty<IMarkdownBlock>();
         }
 
-        return new IMarkdownBlock[] { new ParagraphBlock(ParseInlines(inlineMarkdown)) };
+        return new IMarkdownBlock[] { new ParagraphBlock(inlineSequence) };
     }
 
     private static string RenderTableCellBlocksToMarkdown(IReadOnlyList<IMarkdownBlock> blocks) {
@@ -590,12 +589,12 @@ public sealed partial class HtmlToMarkdownConverter {
                 return ConvertNodesToBlocks(element.ChildNodes, context);
             }
 
-            string inlineMarkdown = ConvertInlineNodesToMarkdown(element.ChildNodes, context).Trim();
-            if (inlineMarkdown.Length == 0) {
+            var inlineSequence = ConvertInlineNodesToInlineSequence(element.ChildNodes, context);
+            if (inlineSequence.Nodes.Count == 0) {
                 return Array.Empty<IMarkdownBlock>();
             }
 
-            return new IMarkdownBlock[] { new ParagraphBlock(ParseInlines(inlineMarkdown)) };
+            return new IMarkdownBlock[] { new ParagraphBlock(inlineSequence) };
         }
 
         var blocks = ConvertImageElement(image, context).ToList();
@@ -611,7 +610,7 @@ public sealed partial class HtmlToMarkdownConverter {
         SummaryBlock? summary = null;
         var summaryElement = element.Children.FirstOrDefault(child => child.TagName.Equals("SUMMARY", StringComparison.OrdinalIgnoreCase));
         if (summaryElement != null) {
-            summary = new SummaryBlock(ParseInlines(ConvertInlineNodesToMarkdown(summaryElement.ChildNodes, context).Trim()));
+            summary = new SummaryBlock(ConvertInlineNodesToInlineSequence(summaryElement.ChildNodes, context));
         }
 
         var details = new DetailsBlock(summary, open: element.HasAttribute("open"));
@@ -630,7 +629,7 @@ public sealed partial class HtmlToMarkdownConverter {
 
     private static DefinitionListBlock ConvertDefinitionListElement(IElement element, ConversionContext context) {
         var list = new DefinitionListBlock();
-        var pendingTerms = new List<string>();
+        var pendingTerms = new List<InlineSequence>();
         bool hasDefinitionsForCurrentGroup = false;
 
         foreach (var child in element.Children) {
@@ -640,17 +639,17 @@ public sealed partial class HtmlToMarkdownConverter {
                     hasDefinitionsForCurrentGroup = false;
                 }
 
-                string term = ConvertInlineNodesToMarkdown(child.ChildNodes, context).Trim();
-                if (term.Length > 0) {
+                var term = ConvertInlineNodesToInlineSequence(child.ChildNodes, context);
+                if (term.Nodes.Count > 0) {
                     pendingTerms.Add(term);
                 }
                 continue;
             }
 
             if (child.TagName.Equals("DD", StringComparison.OrdinalIgnoreCase) && pendingTerms.Count > 0) {
-                foreach (string term in pendingTerms) {
+                foreach (var term in pendingTerms) {
                     list.AddEntry(new DefinitionListEntry(
-                        ParseInlines(term),
+                        term,
                         ConvertDefinitionValueToBlocks(child, context)));
                 }
                 hasDefinitionsForCurrentGroup = true;
@@ -665,11 +664,11 @@ public sealed partial class HtmlToMarkdownConverter {
             return ConvertNodesToBlocks(element.ChildNodes, context);
         }
 
-        string inlineMarkdown = ConvertInlineNodesToMarkdown(element.ChildNodes, context).Trim();
-        if (inlineMarkdown.Length == 0) {
+        var inlineSequence = ConvertInlineNodesToInlineSequence(element.ChildNodes, context);
+        if (inlineSequence.Nodes.Count == 0) {
             return Array.Empty<IMarkdownBlock>();
         }
 
-        return new IMarkdownBlock[] { new ParagraphBlock(ParseInlines(inlineMarkdown)) };
+        return new IMarkdownBlock[] { new ParagraphBlock(inlineSequence) };
     }
 }

@@ -125,6 +125,71 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_LoadFromHtml_PreservesUnsupportedInlineHtmlInAst() {
+        string html = "<p>Hello <custom-inline data-name=\"demo\">world</custom-inline></p>";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            PreserveUnsupportedInlineHtml = true
+        });
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        Assert.Contains(paragraph.Inlines.Nodes, inline => inline is HtmlRawInline raw && raw.Html.Contains("<custom-inline", StringComparison.Ordinal));
+
+        string markdown = document.ToMarkdown();
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("<custom-inline", markdown, StringComparison.Ordinal);
+        Assert.Contains("<custom-inline", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_LoadFromHtml_PreservesExtendedInlineHtmlTagsAsTypedNodes() {
+        const string html = "<p>Before <q>quoted</q> H<sub>2</sub>O <ins>inserted</ins> x<sup>2</sup></p>";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+
+        Assert.Contains(paragraph.Inlines.Nodes, inline => inline is HtmlTagSequenceInline tag && tag.TagName == "q");
+        Assert.Contains(paragraph.Inlines.Nodes, inline => inline is HtmlTagSequenceInline tag && tag.TagName == "sub");
+        Assert.Contains(paragraph.Inlines.Nodes, inline => inline is HtmlTagSequenceInline tag && tag.TagName == "ins");
+        Assert.Contains(paragraph.Inlines.Nodes, inline => inline is HtmlTagSequenceInline tag && tag.TagName == "sup");
+
+        string markdown = document.ToMarkdown();
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("<q>quoted</q>", markdown, StringComparison.Ordinal);
+        Assert.Contains("<sub>2</sub>", markdown, StringComparison.Ordinal);
+        Assert.Contains("<ins>inserted</ins>", markdown, StringComparison.Ordinal);
+        Assert.Contains("<sup>2</sup>", markdown, StringComparison.Ordinal);
+        Assert.Contains("<q>quoted</q>", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("<sub>2</sub>", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("<ins>inserted</ins>", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("<sup>2</sup>", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdownOptions_Clone_CopiesMarkdownWriteOptionsCollections() {
+        var options = new HtmlToMarkdownOptions {
+            MarkdownWriteOptions = new MarkdownWriteOptions()
+        };
+        options.MarkdownWriteOptions.BlockRenderExtensions.Add(new MarkdownBlockMarkdownRenderExtension(
+            "Original.Extension",
+            typeof(ParagraphBlock),
+            (block, _) => block is ParagraphBlock ? "ORIGINAL" : null));
+
+        var clone = options.Clone();
+        Assert.NotSame(options.MarkdownWriteOptions, clone.MarkdownWriteOptions);
+        Assert.Single(options.MarkdownWriteOptions.BlockRenderExtensions);
+        Assert.Single(clone.MarkdownWriteOptions!.BlockRenderExtensions);
+
+        clone.MarkdownWriteOptions.BlockRenderExtensions.Add(new MarkdownBlockMarkdownRenderExtension(
+            "Clone.Extension",
+            typeof(HeadingBlock),
+            (block, _) => block is HeadingBlock ? "CLONE" : null));
+
+        Assert.Single(options.MarkdownWriteOptions.BlockRenderExtensions);
+        Assert.Equal(2, clone.MarkdownWriteOptions.BlockRenderExtensions.Count);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_PreservesUnsupportedBlockElementsBetweenParagraphs() {
         string html = "<p>Alpha</p><custom-widget data-name=\"demo\">Hello</custom-widget><p>Omega</p>";
 

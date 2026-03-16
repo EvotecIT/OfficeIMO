@@ -31,7 +31,7 @@ Each package is shipped independently under the MIT license unless noted otherwi
 - [OfficeIMO.PowerPoint](OfficeIMO.PowerPoint/README.md)
 - [OfficeIMO.Visio](OfficeIMO.Visio/README.md)
 - [OfficeIMO.Markdown](OfficeIMO.Markdown/README.md)
-- `OfficeIMO.Markdown.Html` — HTML to Markdown conversion prototype
+- [OfficeIMO.Markdown.Html](OfficeIMO.Markdown.Html/README.md)
 - [OfficeIMO.MarkdownRenderer](OfficeIMO.MarkdownRenderer/README.md)
 - Converters
   - `OfficeIMO.Markdown.Html`
@@ -56,7 +56,7 @@ Each package is shipped independently under the MIT license unless noted otherwi
 ### Markdown family
 
 - `OfficeIMO.Markdown`: markdown builder, typed reader/AST, HTML renderer, front matter, TOC, callouts, and query helpers
-- `OfficeIMO.Markdown.Html`: HTML to Markdown conversion prototype targeting the OfficeIMO.Markdown AST
+- `OfficeIMO.Markdown.Html`: HTML-to-Markdown AST bridge targeting the OfficeIMO.Markdown document model
 - `OfficeIMO.MarkdownRenderer`: WebView/browser-friendly rendering shell and incremental update helpers
 - `OfficeIMO.Markdown.Benchmarks`: representative parse/render benchmark harness
 

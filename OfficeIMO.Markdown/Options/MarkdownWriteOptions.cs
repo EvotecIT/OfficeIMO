@@ -20,4 +20,18 @@ public sealed class MarkdownWriteOptions {
     /// Optional markdown block render extensions. Later registrations win when block types overlap.
     /// </summary>
     public List<MarkdownBlockMarkdownRenderExtension> BlockRenderExtensions { get; } = new();
+
+    /// <summary>
+    /// Creates a shallow clone of the writer options while copying mutable collections.
+    /// </summary>
+    public MarkdownWriteOptions Clone() {
+        var clone = new MarkdownWriteOptions();
+        for (int i = 0; i < BlockRenderExtensions.Count; i++) {
+            if (BlockRenderExtensions[i] != null) {
+                clone.BlockRenderExtensions.Add(BlockRenderExtensions[i]);
+            }
+        }
+
+        return clone;
+    }
 }

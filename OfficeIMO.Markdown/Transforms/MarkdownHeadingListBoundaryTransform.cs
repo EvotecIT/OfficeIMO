@@ -1,6 +1,3 @@
-using System.Text;
-using System.Text.RegularExpressions;
-
 namespace OfficeIMO.Markdown;
 
 /// <summary>
@@ -9,7 +6,8 @@ namespace OfficeIMO.Markdown;
 /// <remarks>
 /// This transform is intended for recoverable heading-level cleanup where markdown already parsed into a heading
 /// block, but the heading text still contains an inline list marker that should begin a new unordered list item.
-/// Code spans are masked during detection so inline code content is preserved.
+/// The split is performed directly on the parsed inline AST rather than by round-tripping the heading back through
+/// markdown parsing.
 /// </remarks>
 /// <example>
 /// <code>
@@ -20,10 +18,6 @@ namespace OfficeIMO.Markdown;
 /// </code>
 /// </example>
 public sealed class MarkdownHeadingListBoundaryTransform : IMarkdownDocumentTransform {
-    private static readonly Regex HeadingListBoundaryRegex = new(
-        @"(?<!\s)(?<marker>[-+*])\s+(?=\*\*)",
-        RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
     /// <inheritdoc />
     public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
         if (document == null) {
@@ -49,7 +43,7 @@ public sealed class MarkdownHeadingListBoundaryTransform : IMarkdownDocumentTran
             }
 
             if (block is HeadingBlock heading
-                && TryRewriteHeading(heading, context, out var expandedBlocks)) {
+                && TryRewriteHeading(heading, out var expandedBlocks)) {
                 rewritten.AddRange(expandedBlocks);
                 continue;
             }
@@ -62,73 +56,38 @@ public sealed class MarkdownHeadingListBoundaryTransform : IMarkdownDocumentTran
 
     private static bool TryRewriteHeading(
         HeadingBlock heading,
-        MarkdownDocumentTransformContext context,
         out IReadOnlyList<IMarkdownBlock> blocks) {
-        var headingMarkdown = heading.Inlines.RenderMarkdown();
-        if (headingMarkdown.Length == 0 || headingMarkdown.IndexOf('-') < 0 && headingMarkdown.IndexOf('+') < 0 && headingMarkdown.IndexOf('*') < 0) {
+        if (!MarkdownInlineTransformHelpers.TrySplitHeadingListBoundary(
+                heading.Inlines,
+                out var head,
+                out _,
+                out var tail)) {
             blocks = Array.Empty<IMarkdownBlock>();
             return false;
         }
 
-        var maskedMarkdown = RenderMaskedMarkdown(heading.Inlines);
-        var match = HeadingListBoundaryRegex.Match(maskedMarkdown);
-        if (!match.Success) {
+        head = MarkdownInlineTransformHelpers.TrimWhitespace(head, trimStart: true, trimEnd: true);
+        tail = MarkdownInlineTransformHelpers.TrimWhitespace(tail, trimStart: true, trimEnd: true);
+        if (!MarkdownInlineTransformHelpers.HasVisibleContent(head)
+            || !MarkdownInlineTransformHelpers.StartsWithStrong(tail)) {
             blocks = Array.Empty<IMarkdownBlock>();
             return false;
         }
 
-        var headingText = headingMarkdown.Substring(0, match.Index).TrimEnd();
-        if (headingText.Length == 0) {
+        var list = new UnorderedListBlock();
+        foreach (var item in MarkdownInlineTransformHelpers.ExpandCompactStrongLabelListItems(tail, level: 0, forceLoose: false)) {
+            list.Items.Add(item);
+        }
+
+        if (list.Items.Count == 0) {
             blocks = Array.Empty<IMarkdownBlock>();
             return false;
         }
 
-        var listMarkdown = match.Groups["marker"].Value + " " + headingMarkdown.Substring(match.Index + match.Length);
-        var readerOptions = context.ReaderOptions ?? new MarkdownReaderOptions();
-        var parsedListBlocks = MarkdownReader.ParseBlockFragment(listMarkdown, readerOptions, new MarkdownReaderState());
-        if (parsedListBlocks.Count == 0) {
-            blocks = Array.Empty<IMarkdownBlock>();
-            return false;
-        }
-
-        var rewritten = new List<IMarkdownBlock>(parsedListBlocks.Count + 1) {
-            new HeadingBlock(heading.Level, MarkdownReader.ParseInlineText(headingText, readerOptions, new MarkdownReaderState()))
+        blocks = new IMarkdownBlock[] {
+            new HeadingBlock(heading.Level, head),
+            list
         };
-
-        for (var i = 0; i < parsedListBlocks.Count; i++) {
-            rewritten.Add(parsedListBlocks[i]);
-        }
-
-        blocks = rewritten;
         return true;
-    }
-
-    private static string RenderMaskedMarkdown(InlineSequence inlines) {
-        var sb = new StringBuilder();
-        var nodes = inlines?.Nodes;
-        if (nodes == null || nodes.Count == 0) {
-            return string.Empty;
-        }
-
-        for (var i = 0; i < nodes.Count; i++) {
-            var node = nodes[i];
-            if (node == null) {
-                continue;
-            }
-
-            var rendered = ((IRenderableMarkdownInline)node).RenderMarkdown();
-            if (rendered.Length == 0) {
-                continue;
-            }
-
-            if (node is CodeSpanInline) {
-                sb.Append(' ', rendered.Length);
-                continue;
-            }
-
-            sb.Append(rendered);
-        }
-
-        return sb.ToString();
     }
 }

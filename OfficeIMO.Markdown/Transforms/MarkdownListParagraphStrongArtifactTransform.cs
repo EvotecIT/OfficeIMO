@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 namespace OfficeIMO.Markdown;
 
 /// <summary>
@@ -7,46 +5,10 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 /// <remarks>
 /// This transform is intended for recoverable list-item inline artifacts that do not require block-boundary repair.
-/// It operates after parse, rewrites only list-item paragraph markdown that still contains literal strong-marker damage,
-/// and reparses the affected inline content using the current reader options.
+/// It operates directly on the inline AST and only repairs node patterns that the reader already recovered into
+/// list-item paragraph content.
 /// </remarks>
 public sealed class MarkdownListParagraphStrongArtifactTransform : IMarkdownDocumentTransform {
-    private static readonly Regex RepeatedStrongDelimiterRunRegex = new(
-        @"(?<!\*)(?<left>\*{4,})(?<inner>[^*\r\n]+?)(?<right>\*{4,})(?!\*)",
-        RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
-    private static readonly Regex DanglingTrailingStrongTokenRegex = new(
-        @"(?<token>[\p{L}\p{N}_./:-]+)\*{4}(?<tail>\s*)$",
-        RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
-    private static readonly Regex EscapedDanglingTrailingStrongTokenRegex = new(
-        @"(?<token>[\p{L}\p{N}_./:-]+)(?:\\\*){4}(?<tail>\s*)$",
-        RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
-    private static readonly Regex OveropenedMetricValueStrongRegex = new(
-        @"^(?<prefix>.*\s)\*{4,}(?<value>[^\s*\r\n][^*\r\n]*?)\*{2}(?<tail>\s*)$",
-        RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
-    private static readonly Regex EscapedOveropenedMetricValueStrongRegex = new(
-        @"^(?<prefix>.*\s)(?:\\\*){4,}\*{2}(?<value>[^\s*\r\n][^*\r\n]*?)\*{2}(?<tail>\s*)$",
-        RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
-    private static readonly Regex AdjacentMetricStrongValueRegex = new(
-        @"^(?<prefix>.*\s)\*\*(?<first>[^*\r\n]+)\*\*\*{2}(?<second>[^\s*\r\n][^*\r\n]*?)\*{2}(?<tail>\s*)$",
-        RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
-    private static readonly Regex EscapedAdjacentMetricStrongValueRegex = new(
-        @"^(?<prefix>.*\s)\\\*\\\*(?<first>[^*\r\n]+)\\\*\\\*\*{2}(?<second>[^\s*\r\n][^*\r\n]*?)\*{2}(?<tail>\s*)$",
-        RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
-    private static readonly Regex MissingTrailingStrongMetricCloseRegex = new(
-        @"^(?<prefix>.*\s)\*\*(?<value>[^\r\n*][^\r\n]*?)(?<!\*)\*(?<tail>\s*)$",
-        RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
-    private static readonly Regex EscapedMissingTrailingStrongMetricCloseRegex = new(
-        @"^(?<prefix>.*\s)\\\*\*(?<value>[^\r\n*][^\r\n]*?)(?<!\*)\*(?<tail>\s*)$",
-        RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
     /// <summary>
     /// Creates a transform with the specified normalization options.
     /// </summary>
@@ -69,175 +31,251 @@ public sealed class MarkdownListParagraphStrongArtifactTransform : IMarkdownDocu
             throw new ArgumentNullException(nameof(context));
         }
 
-        MarkdownDocumentBlockRewriter.RewriteDocument(document, block => RewriteBlock(block, context));
+        MarkdownDocumentBlockRewriter.RewriteDocument(document, block => RewriteBlock(block));
         return document;
     }
 
-    private IMarkdownBlock RewriteBlock(IMarkdownBlock block, MarkdownDocumentTransformContext context) {
+    private IMarkdownBlock RewriteBlock(IMarkdownBlock block) {
         switch (block) {
             case OrderedListBlock ordered:
-                NormalizeListItems(ordered.Items, context);
+                NormalizeListItems(ordered.Items);
                 break;
             case UnorderedListBlock unordered:
-                NormalizeListItems(unordered.Items, context);
+                NormalizeListItems(unordered.Items);
                 break;
         }
 
         return block;
     }
 
-    private void NormalizeListItems(IList<ListItem> items, MarkdownDocumentTransformContext context) {
+    private void NormalizeListItems(IList<ListItem> items) {
         for (var i = 0; i < items.Count; i++) {
             var item = items[i];
             if (item == null) {
                 continue;
             }
 
-            NormalizeSequence(item.Content, context);
+            NormalizeSequence(item.Content);
             for (var paragraphIndex = 0; paragraphIndex < item.AdditionalParagraphs.Count; paragraphIndex++) {
-                NormalizeSequence(item.AdditionalParagraphs[paragraphIndex], context);
+                NormalizeSequence(item.AdditionalParagraphs[paragraphIndex]);
             }
 
             if (item.Children.Count > 0) {
-                NormalizeNestedBlocks(item.Children, context);
+                NormalizeNestedBlocks(item.Children);
             }
         }
     }
 
-    private void NormalizeNestedBlocks(IList<IMarkdownBlock> blocks, MarkdownDocumentTransformContext context) {
+    private void NormalizeNestedBlocks(IList<IMarkdownBlock> blocks) {
         for (var i = 0; i < blocks.Count; i++) {
             var block = blocks[i];
             if (block == null) {
                 continue;
             }
 
-            blocks[i] = RewriteBlock(block, context);
+            blocks[i] = RewriteBlock(block);
         }
     }
 
-    private void NormalizeSequence(InlineSequence? sequence, MarkdownDocumentTransformContext context) {
-        var markdown = sequence?.RenderMarkdown() ?? string.Empty;
-        if (markdown.Length == 0 || markdown.IndexOf('*') < 0) {
+    private void NormalizeSequence(InlineSequence? sequence) {
+        if (sequence == null || sequence.Nodes.Count == 0) {
             return;
         }
 
-        var normalized = NormalizeListParagraphMarkdown(markdown);
-        if (normalized.Equals(markdown, StringComparison.Ordinal)) {
+        bool changed = MarkdownReader.NormalizeInlineSequenceInPlace(sequence, Options);
+        var working = new List<IMarkdownInline>(sequence.Nodes.Count);
+
+        for (var i = 0; i < sequence.Nodes.Count; i++) {
+            var node = sequence.Nodes[i];
+            if (node == null) {
+                continue;
+            }
+
+            if (node is IInlineContainerMarkdownInline container
+                && container.NestedInlines != null
+                && container.NestedInlines.Nodes.Count > 0) {
+                NormalizeSequence(container.NestedInlines);
+            }
+
+            working.Add(node);
+        }
+
+        bool localChanged;
+        do {
+            localChanged = false;
+
+            if (Options.NormalizeLooseStrongDelimiters && TryFlattenRepeatedStrongRuns(working)) {
+                localChanged = true;
+            }
+
+            if (Options.NormalizeDanglingTrailingStrongListClosers && TryRewriteDanglingTrailingStrongToken(working)) {
+                localChanged = true;
+            }
+
+            if (Options.NormalizeMetricValueStrongRuns) {
+                if (TryRewriteOveropenedMetricStrongRuns(working)) {
+                    localChanged = true;
+                }
+
+                if (TryRewriteAdjacentMetricStrongValue(working)) {
+                    localChanged = true;
+                }
+
+                if (TryRewriteMissingTrailingStrongClose(working)) {
+                    localChanged = true;
+                }
+            }
+
+            changed |= localChanged;
+        } while (localChanged);
+
+        if (!changed) {
             return;
         }
 
-        var readerOptions = context.ReaderOptions ?? new MarkdownReaderOptions();
-        var reparsed = MarkdownReader.ParseInlineText(normalized, readerOptions);
-        sequence!.ReplaceItems(reparsed.Nodes);
+        sequence.ReplaceItems(CoalesceAdjacentTextRuns(working));
+        MarkdownReader.NormalizeInlineSequenceInPlace(sequence, Options);
     }
 
-    private string NormalizeListParagraphMarkdown(string markdown) {
-        var current = markdown;
+    private static bool TryFlattenRepeatedStrongRuns(List<IMarkdownInline> nodes) {
+        bool changed = false;
 
-        if (Options.NormalizeLooseStrongDelimiters) {
-            current = RepeatedStrongDelimiterRunRegex.Replace(current, static match => {
-                var leftLength = match.Groups["left"].Value.Length;
-                var rightLength = match.Groups["right"].Value.Length;
-                if (leftLength != rightLength || leftLength % 2 != 0) {
-                    return match.Value;
-                }
+        for (var i = 0; i < nodes.Count; i++) {
+            if (nodes[i] is not BoldSequenceInline outer || outer.Inlines.Nodes.Count != 1) {
+                continue;
+            }
 
-                var inner = match.Groups["inner"].Value.Trim();
-                return inner.Length == 0 ? match.Value : "**" + inner + "**";
-            });
+            switch (outer.Inlines.Nodes[0]) {
+                case BoldSequenceInline nestedSequence:
+                    nodes[i] = new BoldSequenceInline(nestedSequence.Inlines);
+                    changed = true;
+                    break;
+                case BoldInline nestedBold:
+                    nodes[i] = new BoldInline(nestedBold.Text);
+                    changed = true;
+                    break;
+            }
         }
 
-        if (Options.NormalizeDanglingTrailingStrongListClosers) {
-            current = DanglingTrailingStrongTokenRegex.Replace(current, static match => {
-                var token = match.Groups["token"].Value.Trim();
-                if (token.Length == 0 || token.IndexOf("**", StringComparison.Ordinal) >= 0) {
-                    return match.Value;
-                }
+        return changed;
+    }
 
-                return "**" + token + "**" + match.Groups["tail"].Value;
-            });
-
-            current = EscapedDanglingTrailingStrongTokenRegex.Replace(current, static match => {
-                var token = match.Groups["token"].Value.Trim();
-                if (token.Length == 0 || token.IndexOf("**", StringComparison.Ordinal) >= 0) {
-                    return match.Value;
-                }
-
-                return "**" + token + "**" + match.Groups["tail"].Value;
-            });
+    private static bool TryRewriteDanglingTrailingStrongToken(List<IMarkdownInline> nodes) {
+        if (nodes.Count < 2
+            || nodes[nodes.Count - 1] is not TextRun markerRun
+            || markerRun.Text != "****"
+            || nodes[nodes.Count - 2] is not TextRun tokenRun) {
+            return false;
         }
 
-        if (Options.NormalizeMetricValueStrongRuns) {
-            current = OveropenedMetricValueStrongRegex.Replace(current, static match => {
-                var value = match.Groups["value"].Value.Trim();
-                return value.Length == 0
-                    ? match.Value
-                    : match.Groups["prefix"].Value + "**" + value + "**" + match.Groups["tail"].Value;
-            });
-
-            current = EscapedOveropenedMetricValueStrongRegex.Replace(current, static match => {
-                var value = match.Groups["value"].Value.Trim();
-                return value.Length == 0
-                    ? match.Value
-                    : match.Groups["prefix"].Value + "**" + value + "**" + match.Groups["tail"].Value;
-            });
-
-            current = AdjacentMetricStrongValueRegex.Replace(current, static match => {
-                var first = match.Groups["first"].Value.Trim();
-                var second = match.Groups["second"].Value.Trim();
-                if (first.Length == 0 || second.Length == 0) {
-                    return match.Value;
-                }
-
-                if (IsSymbolOnlyValue(first)) {
-                    return match.Groups["prefix"].Value + first + " **" + second + "**" + match.Groups["tail"].Value;
-                }
-
-                return match.Groups["prefix"].Value
-                       + "**"
-                       + first
-                       + "** **"
-                       + second
-                       + "**"
-                       + match.Groups["tail"].Value;
-            });
-
-            current = EscapedAdjacentMetricStrongValueRegex.Replace(current, static match => {
-                var first = match.Groups["first"].Value.Trim();
-                var second = match.Groups["second"].Value.Trim();
-                if (first.Length == 0 || second.Length == 0) {
-                    return match.Value;
-                }
-
-                if (IsSymbolOnlyValue(first)) {
-                    return match.Groups["prefix"].Value + first + " **" + second + "**" + match.Groups["tail"].Value;
-                }
-
-                return match.Groups["prefix"].Value
-                       + "**"
-                       + first
-                       + "** **"
-                       + second
-                       + "**"
-                       + match.Groups["tail"].Value;
-            });
-
-            current = MissingTrailingStrongMetricCloseRegex.Replace(current, static match => {
-                var value = match.Groups["value"].Value.Trim();
-                return value.Length == 0
-                    ? match.Value
-                    : match.Groups["prefix"].Value + "**" + value + "**" + match.Groups["tail"].Value;
-            });
-
-            current = EscapedMissingTrailingStrongMetricCloseRegex.Replace(current, static match => {
-                var value = match.Groups["value"].Value.Trim();
-                return value.Length == 0
-                    ? match.Value
-                    : match.Groups["prefix"].Value + "**" + value + "**" + match.Groups["tail"].Value;
-            });
+        if (!TryExtractTrailingToken(tokenRun.Text, out var prefix, out var token)) {
+            return false;
         }
 
-        return current;
+        nodes.RemoveAt(nodes.Count - 1);
+        nodes.RemoveAt(nodes.Count - 1);
+        if (prefix.Length > 0) {
+            nodes.Add(new TextRun(prefix));
+        }
+
+        nodes.Add(new BoldInline(token));
+        return true;
+    }
+
+    private static bool TryRewriteOveropenedMetricStrongRuns(List<IMarkdownInline> nodes) {
+        if (nodes.Count < 3 || nodes[nodes.Count - 1] is not IStrongMarkdownInline) {
+            return false;
+        }
+
+        var openerCount = 0;
+        var openerStart = nodes.Count - 1;
+        while (openerStart > 0
+               && nodes[openerStart - 1] is TextRun opener
+               && opener.Text == "**") {
+            openerStart--;
+            openerCount++;
+        }
+
+        if (openerCount < 2) {
+            return false;
+        }
+
+        nodes.RemoveRange(openerStart, openerCount);
+        return true;
+    }
+
+    private static bool TryRewriteAdjacentMetricStrongValue(List<IMarkdownInline> nodes) {
+        if (nodes.Count < 5
+            || nodes[nodes.Count - 1] is not IStrongMarkdownInline
+            || nodes[nodes.Count - 2] is not TextRun trailingStrongOpen
+            || trailingStrongOpen.Text != "**"
+            || nodes[nodes.Count - 3] is not TextRun symbolValue
+            || !IsSymbolOnlyValue(symbolValue.Text)
+            || nodes[nodes.Count - 4] is not TextRun leadingStrongOpen
+            || leadingStrongOpen.Text != "**") {
+            return false;
+        }
+
+        var symbol = symbolValue.Text.Trim();
+        if (symbol.Length == 0) {
+            return false;
+        }
+
+        nodes.RemoveRange(nodes.Count - 4, 3);
+        nodes.Insert(nodes.Count - 1, new TextRun(symbol + " "));
+        return true;
+    }
+
+    private static bool TryRewriteMissingTrailingStrongClose(List<IMarkdownInline> nodes) {
+        if (nodes.Count < 3
+            || nodes[nodes.Count - 1] is not ItalicSequenceInline italic
+            || italic.Inlines.Nodes.Count == 0
+            || nodes[nodes.Count - 2] is not TextRun strayOpen
+            || strayOpen.Text != "*") {
+            return false;
+        }
+
+        nodes.RemoveAt(nodes.Count - 2);
+        nodes[nodes.Count - 1] = new BoldSequenceInline(italic.Inlines);
+        return true;
+    }
+
+    private static bool TryExtractTrailingToken(string text, out string prefix, out string token) {
+        prefix = string.Empty;
+        token = string.Empty;
+        if (string.IsNullOrWhiteSpace(text)) {
+            return false;
+        }
+
+        var end = text.Length - 1;
+        while (end >= 0 && char.IsWhiteSpace(text[end])) {
+            end--;
+        }
+
+        if (end < 0) {
+            return false;
+        }
+
+        var start = end;
+        while (start >= 0 && IsTokenChar(text[start])) {
+            start--;
+        }
+
+        token = text.Substring(start + 1, end - start).Trim();
+        if (token.Length == 0 || token.IndexOf("**", StringComparison.Ordinal) >= 0) {
+            return false;
+        }
+
+        prefix = text.Substring(0, start + 1);
+        if (prefix.Length == 0) {
+            return false;
+        }
+
+        return char.IsWhiteSpace(prefix[prefix.Length - 1]) || char.IsPunctuation(prefix[prefix.Length - 1]) || char.IsSymbol(prefix[prefix.Length - 1]);
+    }
+
+    private static bool IsTokenChar(char ch) {
+        return char.IsLetterOrDigit(ch) || ch == '_' || ch == '.' || ch == '/' || ch == ':' || ch == '-';
     }
 
     private static bool IsSymbolOnlyValue(string value) {
@@ -257,5 +295,38 @@ public sealed class MarkdownListParagraphStrongArtifactTransform : IMarkdownDocu
         }
 
         return true;
+    }
+
+    private static List<IMarkdownInline> CoalesceAdjacentTextRuns(List<IMarkdownInline> nodes) {
+        if (nodes.Count <= 1) {
+            return nodes;
+        }
+
+        var compact = new List<IMarkdownInline>(nodes.Count);
+        System.Text.StringBuilder? textBuffer = null;
+
+        void FlushTextBuffer() {
+            if (textBuffer == null) {
+                return;
+            }
+
+            compact.Add(new TextRun(textBuffer.ToString()));
+            textBuffer = null;
+        }
+
+        for (var i = 0; i < nodes.Count; i++) {
+            var node = nodes[i];
+            if (node is TextRun textRun) {
+                textBuffer ??= new System.Text.StringBuilder();
+                textBuffer.Append(textRun.Text);
+                continue;
+            }
+
+            FlushTextBuffer();
+            compact.Add(node);
+        }
+
+        FlushTextBuffer();
+        return compact;
     }
 }
