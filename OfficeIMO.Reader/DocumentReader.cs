@@ -808,6 +808,89 @@ public static class DocumentReader {
     }
 
     /// <summary>
+    /// Reads a supported file or folder path and returns source-level document payloads with optional chunk shaping.
+    /// </summary>
+    /// <param name="path">Source file or folder path.</param>
+    /// <param name="folderOptions">Folder enumeration options when <paramref name="path"/> is a directory.</param>
+    /// <param name="options">Extraction options.</param>
+    /// <param name="includeDocumentChunks">When true, includes chunk arrays in returned source documents.</param>
+    /// <param name="maxReturnedChunks">Optional cap across all returned document chunks.</param>
+    /// <param name="onProgress">Optional progress callback for folder reads.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    public static ReaderPathDocumentResult ReadPathDocumentsDetailed(
+        string path,
+        ReaderFolderOptions? folderOptions = null,
+        ReaderOptions? options = null,
+        bool includeDocumentChunks = true,
+        int? maxReturnedChunks = null,
+        Action<ReaderProgress>? onProgress = null,
+        CancellationToken cancellationToken = default) {
+        if (path == null) throw new ArgumentNullException(nameof(path));
+        if (maxReturnedChunks.HasValue && maxReturnedChunks.Value < 0) {
+            throw new ArgumentOutOfRangeException(nameof(maxReturnedChunks), "Chunk cap must be non-negative.");
+        }
+
+        List<ReaderSourceDocument> documents;
+        if (Directory.Exists(path)) {
+            documents = ReadFolderDocuments(path, folderOptions, options, onProgress, cancellationToken).ToList();
+        } else if (File.Exists(path)) {
+            documents = new List<ReaderSourceDocument>(1) {
+                ReadSingleDocument(path, options, cancellationToken)
+            };
+        } else {
+            throw new FileNotFoundException($"Path '{path}' doesn't exist.", path);
+        }
+
+        var files = new List<string>(documents.Count);
+        var warnings = new List<string>();
+        var remainingChunkBudget = includeDocumentChunks
+            ? maxReturnedChunks ?? int.MaxValue
+            : 0;
+        var truncated = false;
+        var returnedChunkCount = 0;
+        var returnedTokenEstimate = 0;
+        var shaped = new List<ReaderSourceDocument>(documents.Count);
+
+        for (var i = 0; i < documents.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var source = documents[i];
+            if (!string.IsNullOrWhiteSpace(source.Path)) {
+                files.Add(source.Path);
+            }
+
+            var shapedSource = ShapeSourceDocument(
+                source,
+                includeDocumentChunks,
+                ref remainingChunkBudget,
+                ref truncated,
+                ref returnedChunkCount,
+                ref returnedTokenEstimate,
+                warnings);
+            shaped.Add(shapedSource);
+        }
+
+        if (truncated && includeDocumentChunks && maxReturnedChunks.HasValue) {
+            AddWarning(
+                warnings,
+                $"Stopped after reaching MaxReturnedChunks ({maxReturnedChunks.Value.ToString(CultureInfo.InvariantCulture)}).");
+        }
+
+        return new ReaderPathDocumentResult {
+            Files = files.ToArray(),
+            Documents = shaped.ToArray(),
+            FilesScanned = documents.Count,
+            FilesParsed = documents.Count(static d => d.Parsed),
+            FilesSkipped = documents.Count(static d => !d.Parsed),
+            BytesRead = documents.Where(static d => d.Parsed).Sum(static d => d.SourceLengthBytes ?? 0),
+            ChunksProduced = documents.Sum(static d => d.ChunksProduced),
+            ChunksReturned = returnedChunkCount,
+            TokenEstimateReturned = returnedTokenEstimate,
+            Truncated = truncated,
+            Warnings = warnings.Count > 0 ? warnings.ToArray() : null
+        };
+    }
+
+    /// <summary>
     /// Reads a supported document from a stream and emits normalized extraction chunks.
     /// </summary>
     /// <param name="stream">Source stream. This method does not close the stream.</param>
@@ -1629,6 +1712,80 @@ public static class DocumentReader {
         });
     }
 
+    private static ReaderSourceDocument ReadSingleDocument(
+        string path,
+        ReaderOptions? options,
+        CancellationToken cancellationToken) {
+        var opt = NormalizeOptions(options);
+        var source = BuildSourceInfoFromPath(path, opt.ComputeHashes);
+
+        List<ReaderChunk>? chunks = null;
+        string? warning = null;
+        try {
+            chunks = Read(path, opt, cancellationToken).ToList();
+        } catch (OperationCanceledException) {
+            throw;
+        } catch (NotSupportedException ex) {
+            warning = $"Skipped (unsupported): {path} ({ex.Message})";
+        } catch (IOException ex) {
+            warning = $"Skipped (I/O): {path} ({ex.Message})";
+        } catch (Exception ex) {
+            warning = $"Skipped (error): {path} ({ex.Message})";
+        }
+
+        return chunks == null
+            ? BuildSourceDocument(source, parsed: false, chunks: null, sourceWarnings: warning == null ? null : new[] { warning })
+            : BuildSourceDocument(source, parsed: true, chunks: chunks, sourceWarnings: null);
+    }
+
+    private static ReaderSourceDocument ShapeSourceDocument(
+        ReaderSourceDocument source,
+        bool includeDocumentChunks,
+        ref int remainingChunkBudget,
+        ref bool truncated,
+        ref int returnedChunkCount,
+        ref int returnedTokenEstimate,
+        List<string> aggregateWarnings) {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+
+        if (source.Warnings != null) {
+            for (var i = 0; i < source.Warnings.Count; i++) {
+                AddWarning(aggregateWarnings, source.Warnings[i]);
+            }
+        }
+
+        IReadOnlyList<ReaderChunk> returnedChunks = Array.Empty<ReaderChunk>();
+        if (includeDocumentChunks && source.Chunks.Count > 0) {
+            if (remainingChunkBudget >= source.Chunks.Count) {
+                returnedChunks = source.Chunks;
+                remainingChunkBudget -= source.Chunks.Count;
+            } else {
+                var take = Math.Max(remainingChunkBudget, 0);
+                returnedChunks = take == 0 ? Array.Empty<ReaderChunk>() : source.Chunks.Take(take).ToArray();
+                remainingChunkBudget = 0;
+                truncated = true;
+            }
+        }
+
+        for (var i = 0; i < returnedChunks.Count; i++) {
+            returnedChunkCount++;
+            returnedTokenEstimate += returnedChunks[i].TokenEstimate ?? EstimateTokenCount(returnedChunks[i].Text);
+        }
+
+        return new ReaderSourceDocument {
+            Path = source.Path,
+            SourceId = source.SourceId,
+            SourceHash = source.SourceHash,
+            SourceLastWriteUtc = source.SourceLastWriteUtc,
+            SourceLengthBytes = source.SourceLengthBytes,
+            Parsed = source.Parsed,
+            ChunksProduced = source.ChunksProduced,
+            TokenEstimateTotal = source.TokenEstimateTotal,
+            Warnings = source.Warnings is null || source.Warnings.Count == 0 ? null : source.Warnings.ToArray(),
+            Chunks = returnedChunks
+        };
+    }
+
     private static ReaderSourceDocument BuildSourceDocument(
         SourceInfo source,
         bool parsed,
@@ -1670,6 +1827,18 @@ public static class DocumentReader {
             Warnings = warnings.Count > 0 ? warnings : null,
             Chunks = chunkList
         };
+    }
+
+    private static void AddWarning(List<string> warnings, string? warning) {
+        if (warnings == null || string.IsNullOrWhiteSpace(warning)) {
+            return;
+        }
+
+        if (warnings.Any(existing => string.Equals(existing, warning, StringComparison.OrdinalIgnoreCase))) {
+            return;
+        }
+
+        warnings.Add(warning!);
     }
 
     private static ReaderChunk EnrichChunk(ReaderChunk chunk, SourceInfo source, bool computeHashes) {

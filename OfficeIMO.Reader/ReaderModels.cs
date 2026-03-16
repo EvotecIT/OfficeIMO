@@ -907,6 +907,66 @@ public sealed class ReaderSourceDocument {
 }
 
 /// <summary>
+/// Detailed document-oriented read result for a single file or a folder path.
+/// </summary>
+public sealed class ReaderPathDocumentResult {
+    /// <summary>
+    /// Source file paths included in the result.
+    /// </summary>
+    public IReadOnlyList<string> Files { get; set; } = Array.Empty<string>();
+
+    /// <summary>
+    /// Source-level documents returned for the path.
+    /// </summary>
+    public IReadOnlyList<ReaderSourceDocument> Documents { get; set; } = Array.Empty<ReaderSourceDocument>();
+
+    /// <summary>
+    /// Files considered for ingestion (allowed extension scope).
+    /// </summary>
+    public int FilesScanned { get; set; }
+
+    /// <summary>
+    /// Files parsed successfully.
+    /// </summary>
+    public int FilesParsed { get; set; }
+
+    /// <summary>
+    /// Files skipped.
+    /// </summary>
+    public int FilesSkipped { get; set; }
+
+    /// <summary>
+    /// Bytes accepted for parsed files.
+    /// </summary>
+    public long BytesRead { get; set; }
+
+    /// <summary>
+    /// Total chunks produced before any returned-chunk shaping.
+    /// </summary>
+    public int ChunksProduced { get; set; }
+
+    /// <summary>
+    /// Total chunk objects materialized in <see cref="Documents"/>.
+    /// </summary>
+    public int ChunksReturned { get; set; }
+
+    /// <summary>
+    /// Aggregated token estimate across returned chunks.
+    /// </summary>
+    public int TokenEstimateReturned { get; set; }
+
+    /// <summary>
+    /// True when returned chunk materialization was truncated by caller limits.
+    /// </summary>
+    public bool Truncated { get; set; }
+
+    /// <summary>
+    /// Aggregated warnings associated with the read.
+    /// </summary>
+    public IReadOnlyList<string>? Warnings { get; set; }
+}
+
+/// <summary>
 /// Detailed folder-ingestion result optimized for indexing pipelines.
 /// </summary>
 public sealed class ReaderIngestResult {
