@@ -78,31 +78,46 @@ public static partial class MarkdownReader {
     }
 
     private static IMarkdownBlock CreateParsedFencedBlock(string language, string content, bool isFenced, string? caption, MarkdownReaderOptions options) {
-        var extensions = options?.FencedBlockExtensions;
-        if (extensions != null && extensions.Count > 0) {
-            var context = new MarkdownFencedBlockFactoryContext(language, content, isFenced, caption);
-            for (int i = extensions.Count - 1; i >= 0; i--) {
-                var extension = extensions[i];
-                if (extension == null || !FencedBlockExtensionHandlesLanguage(extension, language)) {
-                    continue;
-                }
-
-                var block = extension.CreateBlock(context);
-                if (block == null) {
-                    continue;
-                }
-
-                if (!string.IsNullOrWhiteSpace(caption) && block is ICaptionable captionable && string.IsNullOrWhiteSpace(captionable.Caption)) {
-                    captionable.Caption = caption;
-                }
-
-                return block;
-            }
+        var extendedBlock = TryCreateExtendedFencedBlock(options?.FencedBlockExtensions, language, content, isFenced, caption);
+        if (extendedBlock != null) {
+            return extendedBlock;
         }
 
         return new CodeBlock(language, content, isFenced) {
             Caption = caption
         };
+    }
+
+    internal static IMarkdownBlock? TryCreateExtendedFencedBlock(
+        IReadOnlyList<MarkdownFencedBlockExtension>? extensions,
+        string language,
+        string content,
+        bool isFenced,
+        string? caption) {
+        if (extensions == null || extensions.Count == 0) {
+            return null;
+        }
+
+        var context = new MarkdownFencedBlockFactoryContext(language, content, isFenced, caption);
+        for (int i = extensions.Count - 1; i >= 0; i--) {
+            var extension = extensions[i];
+            if (extension == null || !FencedBlockExtensionHandlesLanguage(extension, language)) {
+                continue;
+            }
+
+            var block = extension.CreateBlock(context);
+            if (block == null) {
+                continue;
+            }
+
+            if (!string.IsNullOrWhiteSpace(caption) && block is ICaptionable captionable && string.IsNullOrWhiteSpace(captionable.Caption)) {
+                captionable.Caption = caption;
+            }
+
+            return block;
+        }
+
+        return null;
     }
 
     private static bool FencedBlockExtensionHandlesLanguage(MarkdownFencedBlockExtension extension, string language) {
@@ -334,9 +349,46 @@ public static partial class MarkdownReader {
             return new TableCell();
         }
 
+        var blocks = TryParseStructuredTableCellBlocks(cell, options, state);
+        if (blocks != null) {
+            return new TableCell(blocks);
+        }
+
         return new TableCell(new[] {
             new ParagraphBlock(ParseTableCellInlines(cell, options, state))
         });
+    }
+
+    private static IReadOnlyList<IMarkdownBlock>? TryParseStructuredTableCellBlocks(
+        string? cell,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state) {
+        if (string.IsNullOrEmpty(cell)) {
+            return null;
+        }
+
+        var normalized = TableBlock.NormalizeBreakMarkers(cell ?? string.Empty);
+        if (!TableBlock.LooksLikeStructuredMarkdownCell(normalized)) {
+            return null;
+        }
+
+        var fragmentOptions = CloneOptionsWithoutFrontMatter(options);
+        fragmentOptions.Tables = false;
+        var fragmentState = CloneState(state);
+        var blocks = ParseBlockFragment(normalized, fragmentOptions, fragmentState);
+        if (blocks.Count == 0) {
+            return null;
+        }
+
+        if (TableBlock.ContainsUnsafeRawHtmlTableCellBlocks(blocks)) {
+            return null;
+        }
+
+        if (blocks.Count == 1 && blocks[0] is ParagraphBlock) {
+            return null;
+        }
+
+        return blocks;
     }
 
     private static bool IsAlignmentRow(string line) {

@@ -112,6 +112,188 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Table_Cells_Can_Parse_MultiBlock_Markdown_Content_From_Cell_Body() {
+            string md = """
+| Section | Notes |
+| --- | --- |
+| Alpha | Intro<br><br>> Quoted |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            Assert.Collection(table.RowCells[0][1].Blocks,
+                block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => Assert.IsType<QuoteBlock>(block));
+
+            var markdown = doc.ToMarkdown().Replace("\r\n", "\n");
+            Assert.Contains("Intro<br><br>> Quoted", markdown, StringComparison.Ordinal);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<td><p>Intro</p><blockquote><p>Quoted</p></blockquote></td>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Table_Cells_Keep_SingleBreak_Content_As_A_Paragraph() {
+            string md = """
+| Notes |
+| --- |
+| First<br>Second |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            var cell = table.RowCells[0][0];
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(cell.Blocks));
+            Assert.DoesNotContain(cell.Blocks, block => block is QuoteBlock or UnorderedListBlock or OrderedListBlock);
+            Assert.Contains("First", paragraph.Inlines.RenderMarkdown(), StringComparison.Ordinal);
+            Assert.Contains("Second", paragraph.Inlines.RenderMarkdown(), StringComparison.Ordinal);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("First<br", html, StringComparison.Ordinal);
+            Assert.Contains("Second", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Table_Cells_Can_Parse_List_Content_From_Cell_Body() {
+            string md = """
+| Section | Notes |
+| --- | --- |
+| Alpha | Intro<br><br>- first<br>- second |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            Assert.Collection(table.RowCells[0][1].Blocks,
+                block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => {
+                    var list = Assert.IsType<UnorderedListBlock>(block);
+                    Assert.Equal(new[] { "first", "second" }, list.Items.Select(item => item.Content.RenderMarkdown()).ToArray());
+                });
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<td><p>Intro</p><ul><li>first</li><li>second</li></ul></td>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Table_Cells_Can_Parse_SingleLine_List_Content() {
+            string md = """
+| Notes |
+| --- |
+| - first |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            var list = Assert.IsType<UnorderedListBlock>(Assert.Single(table.RowCells[0][0].Blocks));
+            Assert.Equal("first", list.Items[0].Content.RenderMarkdown());
+
+            var roundtrip = doc.ToMarkdown().Replace("\r\n", "\n");
+            Assert.Contains("| - first |", roundtrip, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Table_Cells_Can_Parse_SingleLine_Heading_Content() {
+            string md = """
+| Notes |
+| --- |
+| ## Important |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            var heading = Assert.IsType<HeadingBlock>(Assert.Single(table.RowCells[0][0].Blocks));
+            Assert.Equal(2, heading.Level);
+            Assert.Equal("Important", heading.Text);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<td><h2", html, StringComparison.Ordinal);
+            Assert.Contains("Important", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Table_Cells_Can_Parse_Details_Block_Content_Without_RawHtml_Children() {
+            string md = """
+| Notes |
+| --- |
+| <details><summary>More</summary>Alpha</details> |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            var details = Assert.IsType<DetailsBlock>(Assert.Single(table.RowCells[0][0].Blocks));
+            Assert.NotNull(details.Summary);
+            Assert.Equal("More", details.Summary!.Inlines.RenderMarkdown());
+            Assert.Equal("Alpha", Assert.IsType<ParagraphBlock>(Assert.Single(details.ChildBlocks)).Inlines.RenderMarkdown());
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<details", html, StringComparison.Ordinal);
+            Assert.Contains("<summary>More</summary>", html, StringComparison.Ordinal);
+            Assert.Contains("<p>Alpha</p>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Table_Cells_Can_Parse_Callout_Block_Content() {
+            string md = """
+| Notes |
+| --- |
+| > [!NOTE] Important<br>> Body |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            var callout = Assert.IsType<CalloutBlock>(Assert.Single(table.RowCells[0][0].Blocks));
+            Assert.Equal("note", callout.Kind);
+            Assert.Equal("Important", callout.TitleInlines.RenderMarkdown());
+            Assert.Equal("Body", Assert.IsType<ParagraphBlock>(Assert.Single(callout.ChildBlocks)).Inlines.RenderMarkdown());
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("class=\"callout note\"", html, StringComparison.Ordinal);
+            Assert.Contains("<strong>Important</strong>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Table_Cells_Do_Not_Promote_Details_With_RawHtml_Children_To_Structured_Blocks() {
+            string md = """
+| Notes |
+| --- |
+| <details><summary>More</summary><script>alert(1)</script></details> |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(table.RowCells[0][0].Blocks));
+            Assert.Contains("details", paragraph.Inlines.RenderHtml(), StringComparison.Ordinal);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.DoesNotContain("<script>", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("<details", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("details", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Table_Cells_Can_Parse_Indented_Code_Block_Content_From_Cell_Body() {
+            string md = """
+| Section | Notes |
+| --- | --- |
+| Alpha | Intro<br><br>    code line 1<br>    code line 2 |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            Assert.Collection(table.RowCells[0][1].Blocks,
+                block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => {
+                    var code = Assert.IsType<CodeBlock>(block);
+                    Assert.Contains("code line 1", code.Content, StringComparison.Ordinal);
+                    Assert.Contains("code line 2", code.Content, StringComparison.Ordinal);
+                });
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<td><p>Intro</p><pre><code>code line 1", html, StringComparison.Ordinal);
+            Assert.Contains("code line 2", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Table_Cells_Resolve_Reference_Links() {
             string md = """
 | Col |

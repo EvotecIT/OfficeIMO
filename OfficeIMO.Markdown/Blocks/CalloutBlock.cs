@@ -86,7 +86,11 @@ public sealed class CalloutBlock : IMarkdownBlock, IChildMarkdownBlockContainer,
         var hasVisibleTitle = hasTitleInlines || !string.IsNullOrWhiteSpace(FormatTitleFromKind(Kind));
 
         var sb = new StringBuilder();
-        sb.Append("<blockquote class=\"callout ").Append(kind).Append("\">");
+        sb.Append("<blockquote class=\"callout ")
+            .Append(kind)
+            .Append("\" data-omd-callout-title-explicit=\"")
+            .Append(hasTitleInlines ? "true" : "false")
+            .Append("\">");
         if (hasVisibleTitle) {
             sb.Append("<p><strong>").Append(titleText).Append("</strong></p>");
         }

@@ -23,6 +23,13 @@ public static partial class MarkdownReader {
                 var ln = lines[j];
                 var ltrim = ln.TrimStart();
                 if (ltrim.StartsWith(">")) {
+                    if (sawQuotedLine
+                        && options.Callouts
+                        && inner.Count > 0
+                        && IsCalloutHeader(ltrim, out _, out _)) {
+                        break;
+                    }
+
                     // Strip one level
                     var stripped = ltrim.Length >= 2 && ltrim[1] == ' ' ? ltrim.Substring(2) : ltrim.Substring(1);
                     if (inner.Count > 0 &&
@@ -47,6 +54,7 @@ public static partial class MarkdownReader {
                         if (peek >= lines.Length) break;
                         var nextTrim = (lines[peek] ?? string.Empty).TrimStart();
                         if (!nextTrim.StartsWith(">")) break;
+                        if (options.Callouts && inner.Count > 0 && IsCalloutHeader(nextTrim, out _, out _)) break;
                         inner.Add(string.Empty);
                         j++;
                         continue;

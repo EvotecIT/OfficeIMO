@@ -100,6 +100,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ChartAxisIdGenerator_DoesNotRewind_WhenAdvancedToOlderValue() {
+            uint first = PowerPointChartAxisIdGenerator.GetNextId();
+            uint second = PowerPointChartAxisIdGenerator.GetNextId();
+
+            PowerPointChartAxisIdGenerator.AdvanceSeedToAtLeast(first);
+
+            uint next = PowerPointChartAxisIdGenerator.GetNextId();
+            Assert.True(next > second, $"Expected next axis id to stay above {second}, but got {next}.");
+        }
+
+        [Fact]
         public void BackgroundColor_ReplacesExistingBackgroundImageFill() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");

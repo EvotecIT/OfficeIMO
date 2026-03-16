@@ -62,6 +62,12 @@ public static partial class MarkdownReader {
 
             ValidateInputLength(markdown, options.MaxInputCharacters, nameof(markdown));
 
+            // This specific repair must happen before block parsing: once a collapsed heading marker
+            // is swallowed into a table cell, the AST no longer knows the table boundary was malformed.
+            if (options.InputNormalization?.NormalizeCompactHeadingBoundaries == true) {
+                markdown = MarkdownInputNormalizer.NormalizeCollapsedTableHeadingBoundaries(markdown);
+            }
+
             var preParseNormalization = CreatePreParseNormalizationOptions(options.InputNormalization);
             if (preParseNormalization != null) {
                 markdown = MarkdownInputNormalizer.Normalize(markdown, preParseNormalization);
@@ -484,6 +490,7 @@ public static partial class MarkdownReader {
         }
 
         var normalization = options.InputNormalization;
+        bool needsRegisteredFencedBlockTransform = options.FencedBlockExtensions.Count > 0;
         // These flags intentionally map to AST/document transforms rather than pre-parse text
         // repair because the markdown already parses into recoverable paragraph/heading/list
         // structures. Keeping them here makes the routing boundary explicit and prevents the
@@ -498,7 +505,8 @@ public static partial class MarkdownReader {
             || normalization?.NormalizeDanglingTrailingStrongListClosers == true
             || normalization?.NormalizeMetricValueStrongRuns == true;
 
-        if (!needsStandaloneHashTransform
+        if (!needsRegisteredFencedBlockTransform
+            && !needsStandaloneHashTransform
             && !needsCompactHeadingBoundaryTransform
             && !needsColonListBoundaryTransform
             && !needsHeadingListBoundaryTransform
@@ -514,9 +522,13 @@ public static partial class MarkdownReader {
         bool hasHeadingListBoundaryTransform = false;
         bool hasCompactStrongLabelListBoundaryTransform = false;
         bool hasListStrongArtifactTransform = false;
+        bool hasRegisteredFencedBlockTransform = false;
 
         for (var i = 0; i < configured.Count; i++) {
             switch (configured[i]) {
+                case MarkdownRegisteredFencedBlockTransform:
+                    hasRegisteredFencedBlockTransform = true;
+                    break;
                 case MarkdownStandaloneHashHeadingSeparatorTransform:
                     hasStandaloneHashTransform = true;
                     break;
@@ -538,7 +550,8 @@ public static partial class MarkdownReader {
             }
         }
 
-        if ((!needsStandaloneHashTransform || hasStandaloneHashTransform)
+        if ((!needsRegisteredFencedBlockTransform || hasRegisteredFencedBlockTransform)
+            && (!needsStandaloneHashTransform || hasStandaloneHashTransform)
             && (!needsCompactHeadingBoundaryTransform || hasCompactHeadingBoundaryTransform)
             && (!needsColonListBoundaryTransform || hasColonListBoundaryTransform)
             && (!needsHeadingListBoundaryTransform || hasHeadingListBoundaryTransform)
@@ -547,7 +560,11 @@ public static partial class MarkdownReader {
             return configured;
         }
 
-        var transforms = new List<IMarkdownDocumentTransform>(configured.Count + 6);
+        var transforms = new List<IMarkdownDocumentTransform>(configured.Count + 7);
+        if (needsRegisteredFencedBlockTransform && !hasRegisteredFencedBlockTransform) {
+            transforms.Add(new MarkdownRegisteredFencedBlockTransform(options.FencedBlockExtensions));
+        }
+
         if (needsListStrongArtifactTransform && !hasListStrongArtifactTransform) {
             transforms.Add(new MarkdownListParagraphStrongArtifactTransform(normalization!));
         }

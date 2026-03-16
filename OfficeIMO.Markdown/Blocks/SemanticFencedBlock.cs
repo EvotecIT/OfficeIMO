@@ -13,7 +13,7 @@ public sealed class SemanticFencedBlock : IMarkdownBlock, ICaptionable, ISyntaxM
     internal SemanticFencedBlock(string semanticKind, string language, string content, string? caption, bool isFenced) {
         SemanticKind = string.IsNullOrWhiteSpace(semanticKind) ? MarkdownSemanticKinds.Custom : semanticKind.Trim();
         Language = language ?? string.Empty;
-        Content = content ?? string.Empty;
+        Content = NormalizeLineEndings(content);
         Caption = caption;
         IsFenced = isFenced;
     }
@@ -68,6 +68,16 @@ public sealed class SemanticFencedBlock : IMarkdownBlock, ICaptionable, ISyntaxM
 
         string caption = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{System.Net.WebUtility.HtmlEncode(Caption!)}</div>";
         return $"<pre><code{lang}>{code}</code></pre>{caption}";
+    }
+
+    private static string NormalizeLineEndings(string? content) {
+        if (string.IsNullOrEmpty(content)) {
+            return string.Empty;
+        }
+
+        return content!
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n');
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {

@@ -18,8 +18,18 @@ public sealed class CodeBlock : IMarkdownBlock, ICaptionable, ISyntaxMarkdownBlo
 
     internal CodeBlock(string language, string content, bool isFenced) {
         Language = language ?? string.Empty;
-        Content = content ?? string.Empty;
+        Content = NormalizeLineEndings(content);
         IsFenced = isFenced;
+    }
+
+    private static string NormalizeLineEndings(string? content) {
+        if (string.IsNullOrEmpty(content)) {
+            return string.Empty;
+        }
+
+        return content!
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n');
     }
 
     /// <inheritdoc />
