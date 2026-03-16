@@ -16,8 +16,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            long currentSeed = Interlocked.Read(ref _axisIdSeed);
-            long max = Math.Max(currentSeed, BaseAxisId);
+            long max = BaseAxisId;
 
             foreach (SlidePart slidePart in presentationPart.SlideParts) {
                 foreach (ChartPart chartPart in slidePart.ChartParts) {
@@ -35,7 +34,7 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            Interlocked.Exchange(ref _axisIdSeed, max);
+            AdvanceSeedToAtLeast(max);
         }
 
         internal static uint GetNextId() {
@@ -45,6 +44,19 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return (uint)next;
+        }
+
+        internal static void AdvanceSeedToAtLeast(long minimumSeed) {
+            while (true) {
+                long currentSeed = Interlocked.Read(ref _axisIdSeed);
+                if (minimumSeed <= currentSeed) {
+                    return;
+                }
+
+                if (Interlocked.CompareExchange(ref _axisIdSeed, minimumSeed, currentSeed) == currentSeed) {
+                    return;
+                }
+            }
         }
     }
 }
