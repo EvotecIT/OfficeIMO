@@ -569,16 +569,16 @@ public static partial class MarkdownReader {
             transforms.Add(new MarkdownListParagraphStrongArtifactTransform(normalization!));
         }
 
+        if (needsCompactHeadingBoundaryTransform && !hasCompactHeadingBoundaryTransform) {
+            transforms.Add(new MarkdownCompactHeadingBoundaryTransform());
+        }
+
         if (needsHeadingListBoundaryTransform && !hasHeadingListBoundaryTransform) {
             transforms.Add(new MarkdownHeadingListBoundaryTransform());
         }
 
         if (needsCompactStrongLabelListBoundaryTransform && !hasCompactStrongLabelListBoundaryTransform) {
             transforms.Add(new MarkdownCompactStrongLabelListBoundaryTransform());
-        }
-
-        if (needsCompactHeadingBoundaryTransform && !hasCompactHeadingBoundaryTransform) {
-            transforms.Add(new MarkdownCompactHeadingBoundaryTransform());
         }
 
         if (needsColonListBoundaryTransform && !hasColonListBoundaryTransform) {

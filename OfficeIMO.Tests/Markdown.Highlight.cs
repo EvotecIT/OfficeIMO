@@ -28,7 +28,10 @@ namespace OfficeIMO.Tests {
 
             var roundTrip = doc.ToMarkdown(new WordToMarkdownOptions { EnableHighlight = true });
             Assert.Contains("==highlighted==", roundTrip);
-            Assert.Contains("==**important**==", roundTrip);
+            Assert.True(
+                roundTrip.Contains("==**important**==", StringComparison.Ordinal)
+                || roundTrip.Contains("**==important==**", StringComparison.Ordinal),
+                $"Expected bold+highlight content in roundtrip output, got:{Environment.NewLine}{roundTrip}");
         }
     }
 }

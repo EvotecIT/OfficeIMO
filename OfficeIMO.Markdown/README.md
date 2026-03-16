@@ -367,7 +367,7 @@ Use `ToHtmlParts(...)` and `HtmlAssetMerger.Build(...)` when a host wants to own
   - ✅ HTML comments, raw HTML blocks, horizontal rules, details/summary
 - Inlines
   - ✅ Text, emphasis, strong, strike, highlight, code spans, links, images, reference links
-  - ✅ Typed inline sequences and inline plain-text extraction
+  - ✅ Typed inline sequences, inline plain-text extraction, and AST-preserved inline HTML wrappers for supported tags such as `u`, `sub`, `sup`, `ins`, and `q`
 - Rendering
   - ✅ Markdown output
   - ✅ HTML fragment and full document output
@@ -401,6 +401,7 @@ Inlines
 - code spans
 - inline and reference links
 - inline and linked images
+- supported inline HTML wrappers preserved in the AST (`u`, `sub`, `sup`, `ins`, `q`)
 
 ## HTML Rendering Notes
 

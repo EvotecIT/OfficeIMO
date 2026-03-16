@@ -80,5 +80,28 @@ namespace OfficeIMO.Tests {
             string md = doc.ToMarkdown(new WordToMarkdownOptions());
             Assert.Contains("<div>HTML Block</div>", md, StringComparison.OrdinalIgnoreCase);
         }
+
+        [Fact]
+        public void Test_Markdown_InlineIns_DegradesToUnderlineThroughWordRoundTrip() {
+            const string md = "Before <ins>inserted</ins> after";
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { FontFamily = "Calibri" });
+            string roundTrip = doc.ToMarkdown(new WordToMarkdownOptions { EnableUnderline = true });
+
+            Assert.Contains("Before", roundTrip, StringComparison.Ordinal);
+            Assert.Contains("<u>inserted</u>", roundTrip, StringComparison.Ordinal);
+            Assert.DoesNotContain("<ins>", roundTrip, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Test_Markdown_InlineQuote_DegradesToLiteralQuotesThroughWordRoundTrip() {
+            const string md = "Before <q>quoted</q> after";
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { FontFamily = "Calibri" });
+            string roundTrip = doc.ToMarkdown(new WordToMarkdownOptions { EnableUnderline = true });
+
+            Assert.Contains("Before \"quoted\" after", roundTrip, StringComparison.Ordinal);
+            Assert.DoesNotContain("<q>", roundTrip, StringComparison.Ordinal);
+        }
     }
 }

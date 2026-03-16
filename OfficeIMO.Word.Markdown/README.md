@@ -61,6 +61,8 @@ doc.SaveAsHtmlViaMarkdown("report.html", new HtmlOptions { Style = HtmlStyle.Git
 - TOC markers: `[TOC]`, `[[TOC]]`, `{:toc}`, and `<!-- TOC -->` are recognized and rendered.
   Parameterized form: `[TOC min=2 max=3 layout=sidebar-right sticky=true scrollspy=true title="On this page"]`.
 - Table cells: inline markdown (code/links/emphasis/images) is supported and `<br>` becomes a real line break in HTML.
+- AST-preserved inline HTML wrappers such as `<u>`, `<sub>`, and `<sup>` map to real Word run formatting during Markdown -> Word conversion.
+- Inline tags without a native Word run equivalent degrade intentionally on the Word leg: `<ins>` is treated as underline semantics and `<q>` roundtrips as literal quoted text.
 
 ### Markdown -> Word image layout options
 
@@ -100,6 +102,7 @@ using var doc = markdown.LoadFromMarkdown(options);
 - Images (alt/title; size hints when provided in Markdown)
 - Links and autolinks
 - Code spans/blocks
+- AST-preserved inline HTML wrappers for underline, superscript, and subscript
 - Footnotes
 - Front matter passthrough when using OfficeIMO.Markdown model
 

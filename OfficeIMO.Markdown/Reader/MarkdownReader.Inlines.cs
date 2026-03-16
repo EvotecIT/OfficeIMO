@@ -363,10 +363,10 @@ public static partial class MarkdownReader {
             }
 
             if (options.InlineHtml && text[pos] == '<') {
-                const string uOpen = "<u>"; const string uClose = "</u>";
-                if (text.Substring(pos).StartsWith(uOpen, StringComparison.OrdinalIgnoreCase)) {
-                    int end = text.IndexOf(uClose, pos + uOpen.Length, StringComparison.OrdinalIgnoreCase);
-                    if (end > 0) { var inner = text.Substring(pos + uOpen.Length, end - (pos + uOpen.Length)); Current().Underline(System.Net.WebUtility.HtmlDecode(inner)); pos = end + uClose.Length; continue; }
+                if (TryParseSupportedInlineHtmlTag(text, pos, options, state, allowLinks, allowImages, out int consumedHtmlTag, out var htmlNode)) {
+                    Current().AddRaw(htmlNode);
+                    pos += consumedHtmlTag;
+                    continue;
                 }
             }
 
@@ -1161,6 +1161,111 @@ public static partial class MarkdownReader {
             return true;
         }
         return false;
+    }
+
+    private static bool TryParseSupportedInlineHtmlTag(
+        string text,
+        int start,
+        MarkdownReaderOptions options,
+        MarkdownReaderState? state,
+        bool allowLinks,
+        bool allowImages,
+        out int consumed,
+        out IMarkdownInline htmlNode) {
+        consumed = 0;
+        htmlNode = null!;
+
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length || text[start] != '<') {
+            return false;
+        }
+
+        string[] tags = { "u", "sup", "sub", "ins", "q" };
+        for (int i = 0; i < tags.Length; i++) {
+            if (!TryParseInlineHtmlWrapper(text, start, tags[i], options, state, allowLinks, allowImages, out consumed, out var inlines)) {
+                continue;
+            }
+
+            htmlNode = new HtmlTagSequenceInline(tags[i], inlines);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryParseInlineHtmlWrapper(
+        string text,
+        int start,
+        string tagName,
+        MarkdownReaderOptions options,
+        MarkdownReaderState? state,
+        bool allowLinks,
+        bool allowImages,
+        out int consumed,
+        out InlineSequence inlines) {
+        consumed = 0;
+        inlines = new InlineSequence();
+
+        if (!StartsWithExactHtmlTag(text, start, tagName, opening: true)) {
+            return false;
+        }
+
+        int openLength = tagName.Length + 2;
+        int scan = start + openLength;
+        int depth = 1;
+
+        while (scan < text.Length) {
+            if (StartsWithExactHtmlTag(text, scan, tagName, opening: false)) {
+                depth--;
+                if (depth == 0) {
+                    string inner = text.Substring(start + openLength, scan - (start + openLength));
+                    inlines = ParseInlinesInternal(inner, options, state, allowLinks, allowImages);
+                    consumed = (scan - start) + tagName.Length + 3;
+                    return true;
+                }
+
+                scan += tagName.Length + 3;
+                continue;
+            }
+
+            if (StartsWithExactHtmlTag(text, scan, tagName, opening: true)) {
+                depth++;
+                scan += openLength;
+                continue;
+            }
+
+            scan++;
+        }
+
+        return false;
+    }
+
+    private static bool StartsWithExactHtmlTag(string text, int start, string tagName, bool opening) {
+        if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(tagName) || start < 0 || start >= text.Length || text[start] != '<') {
+            return false;
+        }
+
+        int position = start + 1;
+        if (!opening) {
+            if (position >= text.Length || text[position] != '/') {
+                return false;
+            }
+            position++;
+        }
+
+        if (position + tagName.Length >= text.Length) {
+            return false;
+        }
+
+        if (string.Compare(text, position, tagName, 0, tagName.Length, StringComparison.OrdinalIgnoreCase) != 0) {
+            return false;
+        }
+
+        position += tagName.Length;
+        if (position >= text.Length || text[position] != '>') {
+            return false;
+        }
+
+        return true;
     }
 
     private static bool TryParseLink(string text, int start, out int consumed, out string label, out string href, out string? title) {

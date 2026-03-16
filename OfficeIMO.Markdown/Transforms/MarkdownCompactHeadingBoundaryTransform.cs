@@ -1,6 +1,3 @@
-using System.Text;
-using System.Text.RegularExpressions;
-
 namespace OfficeIMO.Markdown;
 
 /// <summary>
@@ -9,7 +6,8 @@ namespace OfficeIMO.Markdown;
 /// <remarks>
 /// This transform is intended for recoverable paragraph-level transcript/document cleanup where markdown already
 /// parsed into a paragraph block, but the paragraph text still contains an inline <c>##</c>-to-<c>######</c> marker
-/// that should begin a new heading. Code spans are masked during detection so inline code content is preserved.
+/// that should begin a new heading. The split is performed directly on the parsed inline AST rather than by
+/// round-tripping markdown text back through the reader.
 /// </remarks>
 /// <example>
 /// <code>
@@ -20,10 +18,6 @@ namespace OfficeIMO.Markdown;
 /// </code>
 /// </example>
 public sealed class MarkdownCompactHeadingBoundaryTransform : IMarkdownDocumentTransform {
-    private static readonly Regex CompactHeadingBoundaryRegex = new(
-        @"(?<=[^\s\r\n])(?<marker>#{2,6})\s+(?=\S)",
-        RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
     /// <inheritdoc />
     public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
         if (document == null) {
@@ -49,7 +43,7 @@ public sealed class MarkdownCompactHeadingBoundaryTransform : IMarkdownDocumentT
             }
 
             if (block is ParagraphBlock paragraph
-                && TryRewriteParagraph(paragraph, context, out var expandedBlocks)) {
+                && TryRewriteParagraph(paragraph, out var expandedBlocks)) {
                 rewritten.AddRange(expandedBlocks);
                 continue;
             }
@@ -62,89 +56,54 @@ public sealed class MarkdownCompactHeadingBoundaryTransform : IMarkdownDocumentT
 
     private static bool TryRewriteParagraph(
         ParagraphBlock paragraph,
-        MarkdownDocumentTransformContext context,
         out IReadOnlyList<IMarkdownBlock> blocks) {
-        var markdown = paragraph.Inlines.RenderMarkdown();
-        if (markdown.Length == 0 || markdown.IndexOf('#') < 0) {
+        if (!MarkdownInlineTransformHelpers.TrySplitCompactHeadingBoundary(
+                paragraph.Inlines,
+                out var leadingParagraph,
+                out var headingLevel,
+                out var headingTail)) {
             blocks = Array.Empty<IMarkdownBlock>();
             return false;
         }
 
-        var maskedMarkdown = RenderMaskedMarkdown(paragraph.Inlines);
-        var matches = CompactHeadingBoundaryRegex.Matches(maskedMarkdown);
-        if (matches.Count == 0) {
+        leadingParagraph = MarkdownInlineTransformHelpers.TrimWhitespace(leadingParagraph, trimStart: false, trimEnd: true);
+        headingTail = MarkdownInlineTransformHelpers.TrimWhitespace(headingTail, trimStart: true, trimEnd: true);
+        if (!MarkdownInlineTransformHelpers.HasVisibleContent(leadingParagraph)
+            || !MarkdownInlineTransformHelpers.HasVisibleContent(headingTail)) {
             blocks = Array.Empty<IMarkdownBlock>();
             return false;
         }
 
-        var normalized = ApplyBoundaryRewrites(markdown, matches);
-        if (normalized.Equals(markdown, StringComparison.Ordinal)) {
-            blocks = Array.Empty<IMarkdownBlock>();
-            return false;
-        }
+        var rewritten = new List<IMarkdownBlock> {
+            new ParagraphBlock(leadingParagraph)
+        };
 
-        var readerOptions = context.ReaderOptions ?? new MarkdownReaderOptions();
-        var rewrittenBlocks = MarkdownReader.ParseBlockFragment(normalized, readerOptions, new MarkdownReaderState());
-        if (rewrittenBlocks.Count == 1
-            && rewrittenBlocks[0] is ParagraphBlock rewrittenParagraph
-            && rewrittenParagraph.Inlines.RenderMarkdown().Equals(markdown, StringComparison.Ordinal)) {
-            blocks = Array.Empty<IMarkdownBlock>();
-            return false;
-        }
-
-        blocks = rewrittenBlocks;
-        return rewrittenBlocks.Count > 0;
+        AppendHeadingBlocks(rewritten, headingLevel, headingTail);
+        blocks = rewritten;
+        return rewritten.Count > 1;
     }
 
-    private static string RenderMaskedMarkdown(InlineSequence inlines) {
-        var sb = new StringBuilder();
-        var nodes = inlines?.Nodes;
-        if (nodes == null || nodes.Count == 0) {
-            return string.Empty;
+    private static void AppendHeadingBlocks(List<IMarkdownBlock> blocks, int level, InlineSequence content) {
+        var current = MarkdownInlineTransformHelpers.TrimWhitespace(content, trimStart: true, trimEnd: true);
+        if (!MarkdownInlineTransformHelpers.HasVisibleContent(current)) {
+            return;
         }
 
-        for (var i = 0; i < nodes.Count; i++) {
-            var node = nodes[i];
-            if (node == null) {
-                continue;
-            }
-
-            var rendered = ((IRenderableMarkdownInline)node).RenderMarkdown();
-            if (rendered.Length == 0) {
-                continue;
-            }
-
-            if (node is CodeSpanInline) {
-                sb.Append(' ', rendered.Length);
-                continue;
-            }
-
-            sb.Append(rendered);
+        if (!MarkdownInlineTransformHelpers.TrySplitCompactHeadingBoundary(current, out var head, out var nextLevel, out var tail)) {
+            blocks.Add(new HeadingBlock(level, current));
+            return;
         }
 
-        return sb.ToString();
-    }
+        head = MarkdownInlineTransformHelpers.TrimWhitespace(head, trimStart: true, trimEnd: true);
+        tail = MarkdownInlineTransformHelpers.TrimWhitespace(tail, trimStart: true, trimEnd: true);
 
-    private static string ApplyBoundaryRewrites(string markdown, MatchCollection matches) {
-        var rewritten = markdown;
-        for (var i = matches.Count - 1; i >= 0; i--) {
-            var match = matches[i];
-            if (!match.Success) {
-                continue;
-            }
-
-            var marker = match.Groups["marker"].Value;
-            if (marker.Length < 2 || marker.Length > 6) {
-                continue;
-            }
-
-            rewritten = rewritten.Substring(0, match.Index)
-                        + "\n"
-                        + marker
-                        + " "
-                        + rewritten.Substring(match.Index + match.Length);
+        if (!MarkdownInlineTransformHelpers.HasVisibleContent(head)
+            || !MarkdownInlineTransformHelpers.HasVisibleContent(tail)) {
+            blocks.Add(new HeadingBlock(level, current));
+            return;
         }
 
-        return rewritten;
+        blocks.Add(new HeadingBlock(level, head));
+        AppendHeadingBlocks(blocks, nextLevel, tail);
     }
 }

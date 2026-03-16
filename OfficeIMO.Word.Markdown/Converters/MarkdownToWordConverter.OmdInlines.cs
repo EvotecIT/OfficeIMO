@@ -6,12 +6,19 @@ using Omd = OfficeIMO.Markdown;
 namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
         private readonly struct InlineFormatState {
-            public InlineFormatState(bool bold, bool italic, bool strike, UnderlineValues? underline, HighlightColorValues? highlight) {
+            public InlineFormatState(
+                bool bold,
+                bool italic,
+                bool strike,
+                UnderlineValues? underline,
+                HighlightColorValues? highlight,
+                VerticalPositionValues? verticalTextAlignment) {
                 Bold = bold;
                 Italic = italic;
                 Strike = strike;
                 Underline = underline;
                 Highlight = highlight;
+                VerticalTextAlignment = verticalTextAlignment;
             }
 
             public bool Bold { get; }
@@ -19,12 +26,14 @@ namespace OfficeIMO.Word.Markdown {
             public bool Strike { get; }
             public UnderlineValues? Underline { get; }
             public HighlightColorValues? Highlight { get; }
+            public VerticalPositionValues? VerticalTextAlignment { get; }
 
-            public InlineFormatState WithBold() => new InlineFormatState(bold: true, italic: Italic, strike: Strike, underline: Underline, highlight: Highlight);
-            public InlineFormatState WithItalic() => new InlineFormatState(bold: Bold, italic: true, strike: Strike, underline: Underline, highlight: Highlight);
-            public InlineFormatState WithStrike() => new InlineFormatState(bold: Bold, italic: Italic, strike: true, underline: Underline, highlight: Highlight);
-            public InlineFormatState WithUnderline(UnderlineValues underline) => new InlineFormatState(bold: Bold, italic: Italic, strike: Strike, underline: underline, highlight: Highlight);
-            public InlineFormatState WithHighlight(HighlightColorValues highlight) => new InlineFormatState(bold: Bold, italic: Italic, strike: Strike, underline: Underline, highlight: highlight);
+            public InlineFormatState WithBold() => new InlineFormatState(bold: true, italic: Italic, strike: Strike, underline: Underline, highlight: Highlight, verticalTextAlignment: VerticalTextAlignment);
+            public InlineFormatState WithItalic() => new InlineFormatState(bold: Bold, italic: true, strike: Strike, underline: Underline, highlight: Highlight, verticalTextAlignment: VerticalTextAlignment);
+            public InlineFormatState WithStrike() => new InlineFormatState(bold: Bold, italic: Italic, strike: true, underline: Underline, highlight: Highlight, verticalTextAlignment: VerticalTextAlignment);
+            public InlineFormatState WithUnderline(UnderlineValues underline) => new InlineFormatState(bold: Bold, italic: Italic, strike: Strike, underline: underline, highlight: Highlight, verticalTextAlignment: VerticalTextAlignment);
+            public InlineFormatState WithHighlight(HighlightColorValues highlight) => new InlineFormatState(bold: Bold, italic: Italic, strike: Strike, underline: Underline, highlight: highlight, verticalTextAlignment: VerticalTextAlignment);
+            public InlineFormatState WithVerticalTextAlignment(VerticalPositionValues verticalTextAlignment) => new InlineFormatState(bold: Bold, italic: Italic, strike: Strike, underline: Underline, highlight: Highlight, verticalTextAlignment: verticalTextAlignment);
         }
 
         private static WordParagraph AddRun(WordParagraph paragraph, string? text, InlineFormatState fmt, string? defaultFont) {
@@ -34,6 +43,7 @@ namespace OfficeIMO.Word.Markdown {
             if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) run.SetUnderline(fmt.Underline.Value);
             if (fmt.Strike) run.SetStrike();
             if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) run.SetHighlight(fmt.Highlight.Value);
+            if (fmt.VerticalTextAlignment.HasValue) run.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value);
             if (!string.IsNullOrEmpty(defaultFont)) run.SetFontFamily(defaultFont!);
             return run;
         }
@@ -51,6 +61,7 @@ namespace OfficeIMO.Word.Markdown {
             if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) wrapper.SetUnderline(fmt.Underline.Value);
             if (fmt.Strike) wrapper.SetStrike();
             if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) wrapper.SetHighlight(fmt.Highlight.Value);
+            if (fmt.VerticalTextAlignment.HasValue) wrapper.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value);
 
             if (forceMonospace) {
                 wrapper.SetFontFamily(FontResolver.Resolve("monospace") ?? "Consolas");
@@ -135,11 +146,56 @@ namespace OfficeIMO.Word.Markdown {
                     case Omd.HighlightSequenceInline hs:
                         AppendLinkLabelRunsOmd(hs.Inlines.Items ?? Array.Empty<object>(), document, runs, fmt.WithHighlight(HighlightColorValues.Yellow), defaultFont);
                         break;
+                    case Omd.HtmlTagSequenceInline htmlTag:
+                        AppendHtmlTagSequenceRunsOmd(htmlTag, document, runs, fmt, defaultFont);
+                        break;
+                    case Omd.HtmlRawInline htmlRaw:
+                        if (!string.IsNullOrEmpty(htmlRaw.Html)) {
+                            runs.Add(CreateDetachedRun(document, htmlRaw.Html, fmt, defaultFont));
+                        }
+                        break;
                     default:
                         break;
                 }
             }
         }
+
+        private static void AppendHtmlTagSequenceRunsOmd(
+            Omd.HtmlTagSequenceInline htmlTag,
+            WordDocument document,
+            List<WordParagraph> runs,
+            InlineFormatState fmt,
+            string? defaultFont) {
+            switch (htmlTag.TagName) {
+                case "u":
+                case "ins":
+                    AppendLinkLabelRunsOmd(htmlTag.Inlines.Items ?? Array.Empty<object>(), document, runs, fmt.WithUnderline(UnderlineValues.Single), defaultFont);
+                    break;
+                case "sup":
+                    AppendLinkLabelRunsOmd(htmlTag.Inlines.Items ?? Array.Empty<object>(), document, runs, fmt.WithVerticalTextAlignment(VerticalPositionValues.Superscript), defaultFont);
+                    break;
+                case "sub":
+                    AppendLinkLabelRunsOmd(htmlTag.Inlines.Items ?? Array.Empty<object>(), document, runs, fmt.WithVerticalTextAlignment(VerticalPositionValues.Subscript), defaultFont);
+                    break;
+                case "q":
+                    runs.Add(CreateDetachedRun(document, "\"", fmt, defaultFont));
+                    AppendLinkLabelRunsOmd(htmlTag.Inlines.Items ?? Array.Empty<object>(), document, runs, fmt, defaultFont);
+                    runs.Add(CreateDetachedRun(document, "\"", fmt, defaultFont));
+                    break;
+                default:
+                    AppendLinkLabelRunsOmd(htmlTag.Inlines.Items ?? Array.Empty<object>(), document, runs, fmt, defaultFont);
+                    break;
+            }
+        }
+
+        private static InlineFormatState CreateDefaultInlineFormatState() =>
+            new InlineFormatState(
+                bold: false,
+                italic: false,
+                strike: false,
+                underline: null,
+                highlight: null,
+                verticalTextAlignment: null);
 
         /// <summary>
         /// Processes OfficeIMO.Markdown inline sequence into Word runs.
@@ -162,7 +218,7 @@ namespace OfficeIMO.Word.Markdown {
                 options: options,
                 document: document,
                 footnoteDefs: footnoteDefs,
-                fmt: new InlineFormatState(bold: false, italic: false, strike: false, underline: null, highlight: null),
+                fmt: CreateDefaultInlineFormatState(),
                 defaultFont: defaultFont
             );
         }
@@ -188,7 +244,7 @@ namespace OfficeIMO.Word.Markdown {
                         break;
                     case Omd.CodeSpanInline cs: {
                             // Represent inline code using monospace font so Word -> Markdown can recover it.
-                            var run = paragraph.AddText(cs.Text ?? string.Empty);
+                            var run = AddRun(paragraph, cs.Text, fmt, defaultFont);
                             var mono = FontResolver.Resolve("monospace") ?? "Consolas";
                             run.SetFontFamily(mono);
                             break;
@@ -205,14 +261,7 @@ namespace OfficeIMO.Word.Markdown {
                                 }
 
                                 var hl = paragraph.AddHyperLink(l.Text, uri);
-
-                                // Best-effort: apply formatting to the hyperlink run.
-                                if (fmt.Bold) hl.SetBold();
-                                if (fmt.Italic) hl.SetItalic();
-                                if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) hl.SetUnderline(fmt.Underline.Value);
-                                if (fmt.Strike) hl.SetStrike();
-                                if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) hl.SetHighlight(fmt.Highlight.Value);
-                                if (!string.IsNullOrEmpty(defaultFont)) hl.SetFontFamily(defaultFont!);
+                                ApplyHyperlinkFormattingOmd(hl, fmt, defaultFont);
                             } catch (UriFormatException ex) {
                                 options.OnWarning?.Invoke($"Invalid URI '{l.Url}' - emitting as text. {ex.Message}");
                                 if (l.LabelInlines != null && (l.LabelInlines.Items?.Count ?? 0) > 0) {
@@ -234,11 +283,7 @@ namespace OfficeIMO.Word.Markdown {
                                 }
                                 var uri = new Uri(linkUrl, UriKind.RelativeOrAbsolute);
                                 var hli = paragraph.AddHyperLink(label, uri);
-                                if (fmt.Bold) hli.SetBold();
-                                if (fmt.Italic) hli.SetItalic();
-                                if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) hli.SetUnderline(fmt.Underline.Value);
-                                if (fmt.Strike) hli.SetStrike();
-                                if (!string.IsNullOrEmpty(defaultFont)) hli.SetFontFamily(defaultFont!);
+                                ApplyHyperlinkFormattingOmd(hli, fmt, defaultFont);
                             } catch (UriFormatException ex) {
                                 options.OnWarning?.Invoke($"Invalid URI '{linkUrl}' - emitting alt text. {ex.Message}");
                                 AddRun(paragraph, label, fmt, defaultFont);
@@ -294,12 +339,60 @@ namespace OfficeIMO.Word.Markdown {
                     case Omd.HighlightSequenceInline hs:
                         ProcessInlineNodesOmd(hs.Inlines.Items ?? Array.Empty<object>(), paragraph, options, document, footnoteDefs, fmt.WithHighlight(HighlightColorValues.Yellow), defaultFont);
                         break;
+                    case Omd.HtmlTagSequenceInline htmlTag:
+                        ProcessHtmlTagSequenceInlineOmd(htmlTag, paragraph, options, document, footnoteDefs, fmt, defaultFont);
+                        break;
+                    case Omd.HtmlRawInline htmlRaw:
+                        if (!string.IsNullOrEmpty(htmlRaw.Html)) {
+                            AddRun(paragraph, htmlRaw.Html, fmt, defaultFont);
+                        }
+                        break;
 
                     default:
                         // Fallback: do not leak type names into the document.
                         break;
                 }
             }
+        }
+
+        private static void ProcessHtmlTagSequenceInlineOmd(
+            Omd.HtmlTagSequenceInline htmlTag,
+            WordParagraph paragraph,
+            MarkdownToWordOptions options,
+            WordDocument document,
+            IReadOnlyDictionary<string, string>? footnoteDefs,
+            InlineFormatState fmt,
+            string? defaultFont) {
+            switch (htmlTag.TagName) {
+                case "u":
+                case "ins":
+                    ProcessInlineNodesOmd(htmlTag.Inlines.Items ?? Array.Empty<object>(), paragraph, options, document, footnoteDefs, fmt.WithUnderline(UnderlineValues.Single), defaultFont);
+                    break;
+                case "sup":
+                    ProcessInlineNodesOmd(htmlTag.Inlines.Items ?? Array.Empty<object>(), paragraph, options, document, footnoteDefs, fmt.WithVerticalTextAlignment(VerticalPositionValues.Superscript), defaultFont);
+                    break;
+                case "sub":
+                    ProcessInlineNodesOmd(htmlTag.Inlines.Items ?? Array.Empty<object>(), paragraph, options, document, footnoteDefs, fmt.WithVerticalTextAlignment(VerticalPositionValues.Subscript), defaultFont);
+                    break;
+                case "q":
+                    AddRun(paragraph, "\"", fmt, defaultFont);
+                    ProcessInlineNodesOmd(htmlTag.Inlines.Items ?? Array.Empty<object>(), paragraph, options, document, footnoteDefs, fmt, defaultFont);
+                    AddRun(paragraph, "\"", fmt, defaultFont);
+                    break;
+                default:
+                    ProcessInlineNodesOmd(htmlTag.Inlines.Items ?? Array.Empty<object>(), paragraph, options, document, footnoteDefs, fmt, defaultFont);
+                    break;
+            }
+        }
+
+        private static void ApplyHyperlinkFormattingOmd(WordParagraph hyperlink, InlineFormatState fmt, string? defaultFont) {
+            if (fmt.Bold) hyperlink.SetBold();
+            if (fmt.Italic) hyperlink.SetItalic();
+            if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) hyperlink.SetUnderline(fmt.Underline.Value);
+            if (fmt.Strike) hyperlink.SetStrike();
+            if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) hyperlink.SetHighlight(fmt.Highlight.Value);
+            if (fmt.VerticalTextAlignment.HasValue) hyperlink.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value);
+            if (!string.IsNullOrEmpty(defaultFont)) hyperlink.SetFontFamily(defaultFont!);
         }
     }
 }
