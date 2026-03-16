@@ -146,22 +146,13 @@ public sealed class MarkdownInlineNormalizationTransform : IMarkdownDocumentTran
     }
 
     private IMarkdownBlock NormalizeFootnote(FootnoteDefinitionBlock footnote) {
-        if (footnote.ParagraphBlocks.Count == 0) {
+        if (footnote.Blocks.Count == 0) {
             return footnote;
         }
 
-        var rewrittenParagraphs = new List<ParagraphBlock>(footnote.ParagraphBlocks.Count);
-        bool changed = false;
-
-        for (int i = 0; i < footnote.ParagraphBlocks.Count; i++) {
-            var paragraph = footnote.ParagraphBlocks[i] ?? new ParagraphBlock(new InlineSequence());
-            bool paragraphChanged = MarkdownReader.NormalizeInlineSequenceInPlace(paragraph.Inlines, Options);
-            rewrittenParagraphs.Add(paragraph);
-            changed |= paragraphChanged;
-        }
-
+        var rewrittenBlocks = RewriteChildBlocks(footnote.Blocks, out bool changed);
         return changed
-            ? new FootnoteDefinitionBlock(footnote.Label, footnote.Text, rewrittenParagraphs, footnote.SyntaxChildren)
+            ? new FootnoteDefinitionBlock(footnote.Label, footnote.Text, rewrittenBlocks, footnote.SyntaxChildren)
             : footnote;
     }
 

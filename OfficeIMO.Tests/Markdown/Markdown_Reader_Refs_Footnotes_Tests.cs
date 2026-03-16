@@ -35,6 +35,25 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Supported_Html_Wrappers_In_Link_Labels_Do_Not_Reenable_Nested_Links() {
+            const string md = "[outer <u>[inner](https://inner.example)</u>](https://outer.example)";
+
+            var doc = MarkdownReader.Parse(md);
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+            var link = Assert.IsType<LinkInline>(Assert.Single(paragraph.Inlines.Nodes));
+            Assert.NotNull(link.LabelInlines);
+
+            var wrapper = Assert.IsType<HtmlTagSequenceInline>(Assert.Single(link.LabelInlines!.Nodes, node => node is HtmlTagSequenceInline));
+            Assert.DoesNotContain(wrapper.Inlines.Nodes, node => node is LinkInline);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+            Assert.Contains("href=\"https://outer.example\"", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("href=\"https://inner.example\"", html, StringComparison.Ordinal);
+            Assert.Contains("[inner](https://inner.example)", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Reference_Link_Title_On_Next_Line_Is_Resolved() {
             var md = string.Join("\n", new[] {
                 "See [Docs][docs].",

@@ -575,7 +575,7 @@ namespace OfficeIMO.Word.Markdown {
                     continue;
                 }
 
-                var paragraphBlocks = new List<ParagraphBlock>();
+                var blocks = new List<IMarkdownBlock>();
                 foreach (var paragraph in footnote.Paragraphs ?? Enumerable.Empty<WordParagraph>()) {
                     bool hasRuns = false;
                     try {
@@ -589,21 +589,19 @@ namespace OfficeIMO.Word.Markdown {
                         continue;
                     }
 
-                    var blocks = BuildParagraphBlocks(paragraph, options, hasCheckbox: false, checkboxChecked: false, allowQuoteHeuristic: false);
-                    for (int i = 0; i < blocks.Count; i++) {
-                        if (blocks[i] is ParagraphBlock paragraphBlock) {
-                            paragraphBlocks.Add(paragraphBlock);
-                        }
+                    var paragraphBlocks = BuildParagraphBlocks(paragraph, options, hasCheckbox: false, checkboxChecked: false, allowQuoteHeuristic: false);
+                    for (int i = 0; i < paragraphBlocks.Count; i++) {
+                        blocks.Add(paragraphBlocks[i]);
                     }
                 }
 
-                if (paragraphBlocks.Count == 0) {
+                if (blocks.Count == 0) {
                     continue;
                 }
 
                 string label = footnote.ReferenceId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                string text = string.Join(" ", paragraphBlocks.Select(block => block.Inlines.RenderMarkdown()));
-                markdown.Add(new FootnoteDefinitionBlock(label, text, paragraphBlocks));
+                string text = string.Join("\n\n", blocks.Select(block => block.RenderMarkdown()));
+                markdown.Add(new FootnoteDefinitionBlock(label, text, blocks, syntaxChildren: null));
             }
         }
     }

@@ -363,7 +363,7 @@ public static partial class MarkdownReader {
             }
 
             if (options.InlineHtml && text[pos] == '<') {
-                if (TryParseSupportedInlineHtmlTag(text, pos, options, state, out int consumedHtmlTag, out var htmlNode)) {
+                if (TryParseSupportedInlineHtmlTag(text, pos, options, state, allowLinks, allowImages, out int consumedHtmlTag, out var htmlNode)) {
                     Current().AddRaw(htmlNode);
                     pos += consumedHtmlTag;
                     continue;
@@ -1168,6 +1168,8 @@ public static partial class MarkdownReader {
         int start,
         MarkdownReaderOptions options,
         MarkdownReaderState? state,
+        bool allowLinks,
+        bool allowImages,
         out int consumed,
         out IMarkdownInline htmlNode) {
         consumed = 0;
@@ -1179,7 +1181,7 @@ public static partial class MarkdownReader {
 
         string[] tags = { "u", "sup", "sub", "ins", "q" };
         for (int i = 0; i < tags.Length; i++) {
-            if (!TryParseInlineHtmlWrapper(text, start, tags[i], options, state, out consumed, out var inlines)) {
+            if (!TryParseInlineHtmlWrapper(text, start, tags[i], options, state, allowLinks, allowImages, out consumed, out var inlines)) {
                 continue;
             }
 
@@ -1196,6 +1198,8 @@ public static partial class MarkdownReader {
         string tagName,
         MarkdownReaderOptions options,
         MarkdownReaderState? state,
+        bool allowLinks,
+        bool allowImages,
         out int consumed,
         out InlineSequence inlines) {
         consumed = 0;
@@ -1214,7 +1218,7 @@ public static partial class MarkdownReader {
                 depth--;
                 if (depth == 0) {
                     string inner = text.Substring(start + openLength, scan - (start + openLength));
-                    inlines = ParseInlinesInternal(inner, options, state, allowLinks: true, allowImages: true);
+                    inlines = ParseInlinesInternal(inner, options, state, allowLinks, allowImages);
                     consumed = (scan - start) + tagName.Length + 3;
                     return true;
                 }

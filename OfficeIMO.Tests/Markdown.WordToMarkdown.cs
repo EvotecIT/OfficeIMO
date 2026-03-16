@@ -104,6 +104,26 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<sub>2</sub>", renderedHtml, StringComparison.Ordinal);
             Assert.Contains("<u>important</u>", renderedHtml, StringComparison.Ordinal);
         }
+
+        [Fact]
+        public void WordToMarkdown_ToMarkdownDocument_Preserves_NonParagraph_Footnote_Blocks() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Body").AddFootNote("Console.WriteLine(1);");
+            var footnoteParagraph = doc.FootNotes[0].Paragraphs![1];
+            footnoteParagraph.SetStyleId("CodeLang_csharp");
+
+            MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions());
+            var footnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(markdown.Blocks, block => block is FootnoteDefinitionBlock));
+            var code = Assert.IsType<CodeBlock>(Assert.Single(footnote.Blocks));
+
+            Assert.Equal("csharp", code.Language);
+            Assert.Equal("Console.WriteLine(1);", code.Content);
+            Assert.Empty(footnote.ParagraphBlocks);
+
+            string renderedHtml = markdown.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("<li id=\"fn:1\"><pre><code class=\"language-csharp\">Console.WriteLine(1);", renderedHtml, StringComparison.Ordinal);
+            Assert.Contains("<a class=\"footnote-backref\"", renderedHtml, StringComparison.Ordinal);
+        }
     }
 }
 
