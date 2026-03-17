@@ -201,6 +201,17 @@ public sealed class Markdown_Golden_Fixture_Tests {
     }
 
     [Fact]
+    public void MarkdownGolden_HtmlPublisherFigureFixtures() {
+        var sb = new StringBuilder();
+        AppendHtmlFixtureSnapshot(sb, "linked", "publisher-linked-picture-article.html");
+        AppendHtmlFixtureSnapshot(sb, "noscript", "publisher-noscript-linked-picture-article.html");
+        AppendHtmlFixtureSnapshot(sb, "art-direction", "publisher-art-direction-picture-article.html");
+        AppendHtmlFixtureSnapshot(sb, "width-descriptor", "publisher-width-descriptor-picture-article.html");
+
+        AssertGolden("html-publisher-figure-fixtures", sb.ToString().TrimEnd());
+    }
+
+    [Fact]
     public void MarkdownGolden_IxExportedTranscriptVisualPackRoundTrip() {
         string markdown = LoadCompatibilityFixture("ix-exported-transcript-visual-pack.md");
         var ix = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
@@ -446,6 +457,17 @@ public sealed class Markdown_Golden_Fixture_Tests {
         AppendSection(sb, name + ".ast", BuildDocumentSummary(result.Document));
     }
 
+    private static void AppendHtmlFixtureSnapshot(StringBuilder sb, string name, string fixtureName) {
+        string html = LoadHtmlFixture(fixtureName);
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/world/live/storm-update.html")
+        });
+
+        AppendSection(sb, name + ".ast", BuildDocumentSummary(document));
+        AppendSection(sb, name + ".markdown", NormalizeText(document.ToMarkdown()));
+        AppendSection(sb, name + ".html", NormalizeInlineAwareHtml(document.ToHtmlFragment(CreatePlainHtmlOptions())));
+    }
+
     private static string BuildPreProcessorDiagnosticSummary(
         IReadOnlyList<MarkdownRendererPreProcessorDiagnostic> diagnostics) {
         if (diagnostics == null || diagnostics.Count == 0) {
@@ -582,6 +604,61 @@ public sealed class Markdown_Golden_Fixture_Tests {
             .Trim();
     }
 
+    private static string NormalizeInlineAwareHtml(string html) {
+        if (string.IsNullOrWhiteSpace(html)) {
+            return string.Empty;
+        }
+
+        html = MermaidHashAttributeRegex.Replace(html, " data-mermaid-hash=\"{normalized}\"");
+
+        var sb = new StringBuilder(html.Length);
+        bool inTag = false;
+        bool lastWasWhitespace = false;
+
+        for (int i = 0; i < html.Length; i++) {
+            char ch = html[i];
+            if (ch == '<') {
+                if (!inTag && lastWasWhitespace && sb.Length > 0 && sb[sb.Length - 1] != '>') {
+                    sb.Append(' ');
+                }
+
+                inTag = true;
+                lastWasWhitespace = false;
+                sb.Append(ch);
+                continue;
+            }
+
+            if (ch == '>') {
+                inTag = false;
+                lastWasWhitespace = false;
+                sb.Append(ch);
+                continue;
+            }
+
+            if (inTag) {
+                sb.Append(ch);
+                continue;
+            }
+
+            if (char.IsWhiteSpace(ch)) {
+                lastWasWhitespace = true;
+                continue;
+            }
+
+            if (lastWasWhitespace && sb.Length > 0) {
+                sb.Append(' ');
+            }
+
+            lastWasWhitespace = false;
+            sb.Append(ch);
+        }
+
+        return sb.ToString()
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n')
+            .Trim();
+    }
+
     private static string NormalizeText(string value) {
         return MermaidHashAttributeRegex.Replace(value, " data-mermaid-hash=\"{normalized}\"")
             .Replace("\r\n", "\n")
@@ -635,6 +712,10 @@ public sealed class Markdown_Golden_Fixture_Tests {
 
     private static string LoadCompatibilityFixture(string name) {
         return NormalizeFixtureText(File.ReadAllText(Path.Combine(GetTestsProjectRoot(), "Markdown", "Fixtures", "Compatibility", name)));
+    }
+
+    private static string LoadHtmlFixture(string name) {
+        return NormalizeFixtureText(File.ReadAllText(Path.Combine(GetTestsProjectRoot(), "Markdown", "Fixtures", name)));
     }
 
     private static string GetExpectedPath(string name) {

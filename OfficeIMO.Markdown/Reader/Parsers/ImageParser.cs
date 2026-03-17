@@ -4,7 +4,17 @@ public static partial class MarkdownReader {
     internal sealed class ImageParser : IMarkdownBlockParser {
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
             if (!options.Images) return false;
-            if (!TryParseImage(lines[i], out var img, out var sizeSpec)) return false;
+            bool parsed = TryParseImage(lines[i], out var img, out var sizeSpec);
+            if (!parsed) {
+                int captionIndex = i + 1;
+                if (captionIndex >= lines.Length || !TryParseCaption(lines[captionIndex], out _)) {
+                    return false;
+                }
+
+                if (!TryParseLinkedImageBlock(lines[i], out img, out sizeSpec)) {
+                    return false;
+                }
+            }
             if (!string.IsNullOrWhiteSpace(sizeSpec))
             {
                 foreach (var part in sizeSpec!.Split(new[]{' '}, StringSplitOptions.RemoveEmptyEntries))
@@ -24,8 +34,28 @@ public static partial class MarkdownReader {
                 // Unsafe or invalid URL: let paragraph parsing treat this line as plain text.
                 return false;
             }
-            if (!string.Equals(resolvedPath, img.Path, StringComparison.Ordinal)) {
-                img = new ImageBlock(resolvedPath!, img.Alt, img.Title) { Caption = img.Caption, Height = img.Height, Width = img.Width };
+            string? resolvedLink = null;
+            if (!string.IsNullOrWhiteSpace(img.LinkUrl)) {
+                string originalLink = img.LinkUrl!;
+                resolvedLink = ResolveUrl(originalLink, options);
+                if (string.IsNullOrWhiteSpace(resolvedLink)) {
+                    return false;
+                }
+            }
+
+            if (!string.Equals(resolvedPath, img.Path, StringComparison.Ordinal)
+                || !string.Equals(resolvedLink, img.LinkUrl, StringComparison.Ordinal)) {
+                var pictureSources = img.PictureSources
+                    .Select(source => new ImagePictureSource(source.Path, source.Media, source.Type, source.Sizes, source.SrcSet))
+                    .ToList();
+                string? pictureFallbackPath = img.PictureFallbackPath;
+                img = new ImageBlock(resolvedPath!, img.Alt, img.Title, img.Width, img.Height, resolvedLink, img.LinkTitle, img.LinkTarget, img.LinkRel) {
+                    Caption = img.Caption,
+                    PictureFallbackPath = pictureFallbackPath
+                };
+                foreach (var pictureSource in pictureSources) {
+                    img.PictureSources.Add(pictureSource);
+                }
             }
             int j = i + 1;
             if (j < lines.Length && TryParseCaption(lines[j], out var cap)) { img.Caption = cap; j++; }

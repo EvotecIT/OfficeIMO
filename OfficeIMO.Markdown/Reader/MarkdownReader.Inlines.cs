@@ -130,7 +130,7 @@ public static partial class MarkdownReader {
                 if (rb > pos + 2) { var lab = text.Substring(pos + 2, rb - (pos + 2)); Current().FootnoteRef(lab); pos = rb + 1; continue; }
             }
 
-            if (TryParseImageLink(text, pos, out int consumed, out var alt2, out var img2, out var imgTitle2, out var href2)) {
+            if (TryParseImageLink(text, pos, out int consumed, out var alt2, out var img2, out var imgTitle2, out var href2, out var hrefTitle2)) {
                 if (allowLinks && allowImages) {
                     var imgResolved = ResolveUrl(img2, options);
                     var hrefResolved = ResolveUrl(href2, options);
@@ -138,7 +138,7 @@ public static partial class MarkdownReader {
                         // Unsafe URLs: keep content as plain text instead of a clickable linked image.
                         Current().Text(string.IsNullOrEmpty(alt2) ? "image" : alt2);
                     } else {
-                        Current().ImageLink(alt2, imgResolved!, hrefResolved!, imgTitle2);
+                        Current().ImageLink(alt2, imgResolved!, hrefResolved!, imgTitle2, hrefTitle2);
                     }
                     pos += consumed; continue;
                 }
@@ -1353,8 +1353,8 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryParseImageLink(string text, int start, out int consumed, out string alt, out string img, out string? imgTitle, out string href) {
-        consumed = 0; alt = img = href = string.Empty; imgTitle = null;
+    private static bool TryParseImageLink(string text, int start, out int consumed, out string alt, out string img, out string? imgTitle, out string href, out string? hrefTitle) {
+        consumed = 0; alt = img = href = string.Empty; imgTitle = hrefTitle = null;
         if (start >= text.Length || text[start] != '[') return false;
         if (start + 1 >= text.Length || text[start + 1] != '!') return false;
         if (start + 2 >= text.Length || text[start + 2] != '[') return false;
@@ -1377,9 +1377,10 @@ public static partial class MarkdownReader {
         int parenClose2 = FindMatchingParen(text, parenOpen2);
         if (parenClose2 < 0) return false;
         string hrefInner = text.Substring(parenOpen2 + 1, parenClose2 - (parenOpen2 + 1));
-        if (!TrySplitUrlAndOptionalTitle(hrefInner, out href, out _)) {
+        if (!TrySplitUrlAndOptionalTitle(hrefInner, out href, out hrefTitle)) {
             if (IndexOfWhitespace(hrefInner.Trim()) >= 0) return false;
             href = UnescapeMarkdownBackslashEscapes(hrefInner.Trim());
+            hrefTitle = null;
         }
         consumed = parenClose2 - start + 1;
         return true;

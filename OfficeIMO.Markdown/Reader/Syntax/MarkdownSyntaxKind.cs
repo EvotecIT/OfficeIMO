@@ -46,6 +46,14 @@ public enum MarkdownSyntaxKind {
     ImageAlt,
     /// <summary>Image source path or URL.</summary>
     ImageSource,
+    /// <summary>Optional hyperlink target wrapping an image block.</summary>
+    ImageLinkTarget,
+    /// <summary>Optional hyperlink title wrapping an image block.</summary>
+    ImageLinkTitle,
+    /// <summary>Optional hyperlink target wrapping an image block.</summary>
+    ImageLinkHtmlTarget,
+    /// <summary>Optional hyperlink rel wrapping an image block.</summary>
+    ImageLinkHtmlRel,
     /// <summary>Image title attribute.</summary>
     ImageTitle,
     /// <summary>Callout or admonition block.</summary>

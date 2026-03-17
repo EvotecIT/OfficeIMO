@@ -22,7 +22,7 @@ public sealed class InlineSequence : IMarkdownInline, IRenderableMarkdownInline,
     /// <summary>Adds plain text.</summary>
     public InlineSequence Text(string text) { _inlines.Add(new TextRun(text)); return this; }
     /// <summary>Adds a hyperlink.</summary>
-    public InlineSequence Link(string text, string url, string? title = null) { _inlines.Add(new LinkInline(text, url, title)); return this; }
+    public InlineSequence Link(string text, string url, string? title = null, string? linkTarget = null, string? linkRel = null) { _inlines.Add(new LinkInline(text, url, title, linkTarget, linkRel)); return this; }
     /// <summary>Adds bold text.</summary>
     public InlineSequence Bold(string text) { _inlines.Add(new BoldInline(text)); return this; }
     /// <summary>Adds bold+italic text.</summary>
@@ -48,7 +48,7 @@ public sealed class InlineSequence : IMarkdownInline, IRenderableMarkdownInline,
     /// <summary>Adds quoted text rendered via inline HTML.</summary>
     public InlineSequence Quote(string text) { _inlines.Add(new HtmlTagSequenceInline("q", new InlineSequence().Text(text))); return this; }
     /// <summary>Adds a linked image (useful for badges).</summary>
-    public InlineSequence ImageLink(string alt, string imageUrl, string linkUrl, string? title = null) { _inlines.Add(new ImageLinkInline(alt, imageUrl, linkUrl, title)); return this; }
+    public InlineSequence ImageLink(string alt, string imageUrl, string linkUrl, string? title = null, string? linkTitle = null) { _inlines.Add(new ImageLinkInline(alt, imageUrl, linkUrl, title, linkTitle)); return this; }
     /// <summary>Adds a standalone inline image.</summary>
     public InlineSequence Image(string alt, string src, string? title = null) { _inlines.Add(new ImageInline(alt, src, title)); return this; }
     /// <summary>Adds a hard line break.</summary>

@@ -1,4 +1,5 @@
 using OfficeIMO.Markdown;
+using OfficeIMO.Markdown.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests.MarkdownSuite;
@@ -682,9 +683,147 @@ Console.WriteLine("hi");
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Linked_Image_Block_Metadata() {
+        var markdown = """
+[![Alt text](https://example.com/image.png "Image title")](https://example.com/docs "Link title")
+_Caption_
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var image = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.Image, image.Kind);
+
+        Assert.Collection(image.Children,
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageAlt, node.Kind);
+                Assert.Equal("Alt text", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageSource, node.Kind);
+                Assert.Equal("https://example.com/image.png", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageLinkTarget, node.Kind);
+                Assert.Equal("https://example.com/docs", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageLinkTitle, node.Kind);
+                Assert.Equal("Link title", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageTitle, node.Kind);
+                Assert.Equal("Image title", node.Literal);
+            });
+    }
+
+    [Fact]
+    public void HtmlImported_Image_SyntaxNode_Captures_Linked_Html_Metadata() {
+        const string html = """
+<figure>
+  <a href="/docs/hero" title="Hero page" target="_blank" rel="nofollow sponsored">
+    <img src="/img/hero.png" alt="Hero" title="View hero" />
+  </a>
+  <figcaption>Hero image</figcaption>
+</figure>
+""";
+
+        var document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/")
+        });
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        var syntax = ((ISyntaxMarkdownBlock)image).BuildSyntaxNode(null);
+
+        Assert.Collection(syntax.Children,
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageAlt, node.Kind);
+                Assert.Equal("Hero", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageSource, node.Kind);
+                Assert.Equal("https://example.com/img/hero.png", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageLinkTarget, node.Kind);
+                Assert.Equal("https://example.com/docs/hero", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageLinkTitle, node.Kind);
+                Assert.Equal("Hero page", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageLinkHtmlTarget, node.Kind);
+                Assert.Equal("_blank", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageLinkHtmlRel, node.Kind);
+                Assert.Equal("nofollow sponsored", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageTitle, node.Kind);
+                Assert.Equal("View hero", node.Literal);
+            });
+    }
+
+    [Fact]
+    public void HtmlImported_Wrapped_Picture_SyntaxNode_Captures_Linked_Html_Metadata() {
+        const string html = """
+<figure>
+  <a href="/docs/hero" title="Hero page" target="_blank" rel="nofollow sponsored">
+    <div class="media-wrap">
+      <picture>
+        <source srcset="/img/hero.webp" type="image/webp" />
+        <img src="/img/hero.png" alt="Hero" title="View hero" />
+      </picture>
+    </div>
+  </a>
+  <figcaption>Hero image</figcaption>
+</figure>
+""";
+
+        var document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/")
+        });
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        var syntax = ((ISyntaxMarkdownBlock)image).BuildSyntaxNode(null);
+
+        Assert.Collection(syntax.Children,
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageAlt, node.Kind);
+                Assert.Equal("Hero", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageSource, node.Kind);
+                Assert.Equal("https://example.com/img/hero.webp", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageLinkTarget, node.Kind);
+                Assert.Equal("https://example.com/docs/hero", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageLinkTitle, node.Kind);
+                Assert.Equal("Hero page", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageLinkHtmlTarget, node.Kind);
+                Assert.Equal("_blank", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageLinkHtmlRel, node.Kind);
+                Assert.Equal("nofollow sponsored", node.Literal);
+            },
+            node => {
+                Assert.Equal(MarkdownSyntaxKind.ImageTitle, node.Kind);
+                Assert.Equal("View hero", node.Literal);
+            });
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Front_Matter_Block() {
         var markdown = """
----
+--- 
 title: Sample
 ---
 """;
@@ -696,7 +835,7 @@ title: Sample
         Assert.NotNull(frontMatter.SourceSpan);
         Assert.Equal(1, frontMatter.SourceSpan!.Value.StartLine);
         Assert.Equal(3, frontMatter.SourceSpan!.Value.EndLine);
-        Assert.Equal(markdown.TrimEnd().Replace("\r\n", "\n"), frontMatter.Literal!.Replace("\r\n", "\n"));
+        Assert.Equal("---\ntitle: Sample\n---", frontMatter.Literal!.Replace("\r\n", "\n"));
     }
 
     [Fact]

@@ -1,6 +1,27 @@
 namespace OfficeIMO.Markdown;
 
 internal static class LinkHtmlAttributes {
+    internal static string BuildLinkAttributes(HtmlOptions? o, string? url, string? explicitTarget = null, string? explicitRel = null) {
+        var target = NormalizeAttributeValue(explicitTarget);
+        var rel = NormalizeAttributeValue(explicitRel);
+
+        if (!string.IsNullOrEmpty(target) || !string.IsNullOrEmpty(rel)) {
+            var sb = new System.Text.StringBuilder();
+            if (!string.IsNullOrEmpty(target)) {
+                sb.Append(" target=\"").Append(System.Net.WebUtility.HtmlEncode(target)).Append("\"");
+            }
+
+            rel = HardenRelForTarget(target, rel);
+            if (!string.IsNullOrEmpty(rel)) {
+                sb.Append(" rel=\"").Append(System.Net.WebUtility.HtmlEncode(rel)).Append("\"");
+            }
+
+            return sb.ToString();
+        }
+
+        return BuildExternalLinkAttributes(o, url);
+    }
+
     internal static string BuildExternalLinkAttributes(HtmlOptions? o, string? url) {
         if (o == null) return string.Empty;
         var u = (url ?? string.Empty).Trim();
@@ -35,5 +56,30 @@ internal static class LinkHtmlAttributes {
         if (rp.Length > 0) sb.Append(" referrerpolicy=\"").Append(System.Net.WebUtility.HtmlEncode(rp)).Append("\"");
 
         return sb.ToString();
+    }
+
+    private static string? NormalizeAttributeValue(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return null;
+        }
+
+        var trimmed = value!.Trim();
+        return trimmed.Length == 0 ? null : trimmed;
+    }
+
+    private static string? HardenRelForTarget(string? target, string? rel) {
+        if (!string.Equals(target, "_blank", StringComparison.OrdinalIgnoreCase)) {
+            return rel;
+        }
+
+        if (string.IsNullOrWhiteSpace(rel)) {
+            return "noopener noreferrer";
+        }
+
+        var hardened = rel!;
+        var relLower = hardened.ToLowerInvariant();
+        if (!relLower.Contains("noopener")) hardened += " noopener";
+        if (!relLower.Contains("noreferrer")) hardened += " noreferrer";
+        return hardened;
     }
 }

@@ -270,7 +270,12 @@ public sealed partial class HtmlToMarkdownConverter {
             return;
         }
 
-        sequence.AddRaw(new LinkInline(label, href, element.GetAttribute("title")));
+        sequence.AddRaw(new LinkInline(
+            label,
+            href,
+            element.GetAttribute("title"),
+            element.GetAttribute("target"),
+            element.GetAttribute("rel")));
     }
 
     private static string ConvertInlineImageToMarkdown(IElement element, ConversionContext? context) {

@@ -7,7 +7,7 @@ public sealed partial class HtmlToMarkdownConverter {
     private static readonly HashSet<string> s_BlockTags = new(StringComparer.OrdinalIgnoreCase) {
         "ADDRESS", "ARTICLE", "ASIDE", "BLOCKQUOTE", "BODY", "DETAILS", "DIV", "DL", "FIGURE",
         "FOOTER", "FORM", "H1", "H2", "H3", "H4", "H5", "H6", "HEADER", "HR", "LI", "MAIN",
-        "NAV", "OL", "P", "PRE", "SECTION", "TABLE", "UL"
+        "NAV", "OL", "P", "PICTURE", "PRE", "SECTION", "TABLE", "UL"
     };
 
     private static readonly HashSet<string> s_InlineTags = new(StringComparer.OrdinalIgnoreCase) {
@@ -132,6 +132,8 @@ public sealed partial class HtmlToMarkdownConverter {
                 return new IMarkdownBlock[] { new HorizontalRuleBlock() };
             case "IMG":
                 return ConvertImageElement(element, context);
+            case "PICTURE":
+                return ConvertPictureElement(element, context);
             case "FIGURE":
                 return ConvertFigureElement(element, context);
             case "DETAILS":
@@ -555,7 +557,7 @@ public sealed partial class HtmlToMarkdownConverter {
         var headerCells = new List<TableCell>();
         var rowCells = new List<IReadOnlyList<TableCell>>();
 
-        foreach (var row in element.QuerySelectorAll("tr")) {
+        foreach (var row in EnumerateTableRows(element)) {
             var cells = row.Children
                 .Where(child => child.TagName.Equals("TH", StringComparison.OrdinalIgnoreCase) || child.TagName.Equals("TD", StringComparison.OrdinalIgnoreCase))
                 .ToList();
@@ -604,13 +606,40 @@ public sealed partial class HtmlToMarkdownConverter {
         return table;
     }
 
+    private static IEnumerable<IElement> EnumerateTableRows(IElement table) {
+        foreach (var child in table.Children) {
+            if (child.TagName.Equals("TR", StringComparison.OrdinalIgnoreCase)) {
+                yield return child;
+                continue;
+            }
+
+            if (!child.TagName.Equals("THEAD", StringComparison.OrdinalIgnoreCase)
+                && !child.TagName.Equals("TBODY", StringComparison.OrdinalIgnoreCase)
+                && !child.TagName.Equals("TFOOT", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            foreach (var row in child.Children.Where(static row => row.TagName.Equals("TR", StringComparison.OrdinalIgnoreCase))) {
+                yield return row;
+            }
+        }
+    }
+
     private static ColumnAlignment ParseAlignment(IElement cell) {
-        string? align = cell.GetAttribute("align");
-        if (string.IsNullOrWhiteSpace(align)) {
+        var alignment = ParseAlignmentValue(cell.GetAttribute("align"));
+        if (alignment != ColumnAlignment.None) {
+            return alignment;
+        }
+
+        return ParseAlignmentValue(TryGetStyleDeclarationValue(cell.GetAttribute("style"), "text-align"));
+    }
+
+    private static ColumnAlignment ParseAlignmentValue(string? rawAlignment) {
+        if (string.IsNullOrWhiteSpace(rawAlignment)) {
             return ColumnAlignment.None;
         }
 
-        switch (align!.Trim().ToLowerInvariant()) {
+        switch (rawAlignment!.Trim().ToLowerInvariant()) {
             case "left":
                 return ColumnAlignment.Left;
             case "center":
@@ -644,28 +673,77 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static IEnumerable<IMarkdownBlock> ConvertImageElement(IElement element, ConversionContext context) {
-        string src = ResolveUrl(element.GetAttribute("src"), context);
-        if (string.IsNullOrWhiteSpace(src)) {
+        if (!TryCreateImageBlock(element, context, out var image)) {
             return Array.Empty<IMarkdownBlock>();
-        }
-
-        var image = new ImageBlock(
-            src,
-            element.GetAttribute("alt"),
-            element.GetAttribute("title"));
-        if (double.TryParse(element.GetAttribute("width"), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double width)) {
-            image.Width = width;
-        }
-        if (double.TryParse(element.GetAttribute("height"), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double height)) {
-            image.Height = height;
         }
 
         return new IMarkdownBlock[] { image };
     }
 
+    private static IEnumerable<IMarkdownBlock> ConvertPictureElement(IElement element, ConversionContext context) {
+        if (element == null) {
+            return Array.Empty<IMarkdownBlock>();
+        }
+
+        string preferredSrc = ResolvePictureSource(element, context);
+        var imageElement = element.QuerySelector("img");
+        if (imageElement != null && TryCreateImageBlock(imageElement, context, out var imageBlock)) {
+            imageBlock = !string.IsNullOrWhiteSpace(preferredSrc)
+                ? CreateImageBlock(preferredSrc, imageElement, element, context)
+                : CreateImageBlock(imageBlock.Path, imageElement, element, context);
+
+            return new IMarkdownBlock[] { imageBlock };
+        }
+
+        if (string.IsNullOrWhiteSpace(preferredSrc)) {
+            return context.Options.PreserveUnsupportedBlocks
+                ? new IMarkdownBlock[] { new HtmlRawBlock(element.OuterHtml) }
+                : Array.Empty<IMarkdownBlock>();
+        }
+
+        var pictureImage = new ImageBlock(preferredSrc, alt: null, title: null);
+        ApplyPictureMetadata(element, pictureImage, null, context);
+        return new IMarkdownBlock[] { pictureImage };
+    }
+
     private static IEnumerable<IMarkdownBlock> ConvertFigureElement(IElement element, ConversionContext context) {
-        var image = element.QuerySelector("img");
-        if (image == null) {
+        var directCaption = element.Children.FirstOrDefault(child => child.TagName.Equals("FIGCAPTION", StringComparison.OrdinalIgnoreCase));
+        var directMediaContainer = element.Children.FirstOrDefault(child => TryResolveFigureMediaElement(child, out _));
+
+        if (directMediaContainer != null && TryResolveFigureMediaElement(directMediaContainer, out var directMedia)) {
+            var figureBlocks = new List<IMarkdownBlock>();
+            foreach (var child in element.ChildNodes) {
+                if (ReferenceEquals(child, directCaption)) {
+                    continue;
+                }
+
+                if (ReferenceEquals(child, directMediaContainer)) {
+                    var mediaBlocks = ConvertFigureMediaElement(directMedia, context);
+                    ApplyFigureCaptionToMedia(mediaBlocks, directCaption);
+                    figureBlocks.AddRange(mediaBlocks);
+                    continue;
+                }
+
+                figureBlocks.AddRange(ConvertNodesToBlocks(new[] { child }, context));
+            }
+
+            if (figureBlocks.Count > 0) {
+                return figureBlocks;
+            }
+        }
+
+        var imageElement = element.QuerySelector("img");
+        if (imageElement == null) {
+            var pictureElement = element.QuerySelector("picture");
+            if (pictureElement != null) {
+                var pictureBlocks = ConvertPictureElement(pictureElement, context).ToList();
+                if (pictureBlocks.Count > 0) {
+                    ApplyFigureCaptionToMedia(pictureBlocks, directCaption ?? element.QuerySelector("figcaption"));
+
+                    return pictureBlocks;
+                }
+            }
+
             if (HasDirectBlockChildren(element, context)) {
                 return ConvertNodesToBlocks(element.ChildNodes, context);
             }
@@ -678,13 +756,149 @@ public sealed partial class HtmlToMarkdownConverter {
             return new IMarkdownBlock[] { new ParagraphBlock(inlineSequence) };
         }
 
-        var blocks = ConvertImageElement(image, context).ToList();
-        var caption = element.QuerySelector("figcaption");
-        if (caption != null && blocks.Count == 1 && blocks[0] is ImageBlock imageBlock) {
-            imageBlock.Caption = NormalizeBlockText(caption.TextContent);
-        }
+        var blocks = ConvertImageElement(imageElement, context).ToList();
+        ApplyFigureCaptionToMedia(blocks, directCaption ?? element.QuerySelector("figcaption"));
 
         return blocks;
+    }
+
+    private static void ApplyFigureCaptionToMedia(IReadOnlyList<IMarkdownBlock> blocks, IElement? captionElement) {
+        if (captionElement == null || blocks == null || blocks.Count != 1 || blocks[0] is not ImageBlock imageBlock) {
+            return;
+        }
+
+        imageBlock.Caption = NormalizeBlockText(captionElement.TextContent);
+    }
+
+    private static bool IsLinkedFigureMediaAnchor(IElement element) {
+        return TryResolveAnchorMediaElement(element, out _);
+    }
+
+    private static bool TryResolveFigureMediaElement(IElement element, out IElement mediaElement) {
+        return TryResolvePureWrapperElement(
+            element,
+            candidate =>
+                candidate.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
+                || candidate.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)
+                || IsLinkedFigureMediaAnchor(candidate),
+            candidate => !candidate.TagName.Equals("FIGCAPTION", StringComparison.OrdinalIgnoreCase),
+            out mediaElement);
+    }
+
+    private static bool TryResolveAnchorMediaElement(IElement element, out IElement mediaElement) {
+        mediaElement = null!;
+        if (element == null || !element.TagName.Equals("A", StringComparison.OrdinalIgnoreCase) || HasVisibleOwnTextNodes(element)) {
+            return false;
+        }
+
+        foreach (var childNode in element.ChildNodes) {
+            switch (childNode) {
+                case IComment:
+                    continue;
+                case IText textNode when string.IsNullOrWhiteSpace(textNode.Data):
+                    continue;
+                case IElement childElement when IsIgnorableMediaWrapperChild(childElement):
+                    continue;
+                case IElement childElement when childElement.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
+                    || childElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase):
+                    mediaElement = childElement;
+                    return true;
+                case IElement childElement when !childElement.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)
+                    && TryResolvePureWrapperElement(
+                        childElement,
+                        candidate =>
+                            candidate.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
+                            || candidate.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase),
+                        candidate => !candidate.TagName.Equals("A", StringComparison.OrdinalIgnoreCase),
+                        out mediaElement):
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsIgnorableMediaWrapperChild(IElement element) {
+        if (element == null) {
+            return false;
+        }
+
+        return element.TagName.Equals("NOSCRIPT", StringComparison.OrdinalIgnoreCase)
+               || element.TagName.Equals("SCRIPT", StringComparison.OrdinalIgnoreCase)
+               || element.TagName.Equals("STYLE", StringComparison.OrdinalIgnoreCase)
+               || element.TagName.Equals("TEMPLATE", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TryResolvePureWrapperElement(
+        IElement element,
+        Func<IElement, bool> terminalPredicate,
+        Func<IElement, bool> canRecursePredicate,
+        out IElement resolvedElement) {
+        resolvedElement = null!;
+        if (element == null) {
+            return false;
+        }
+
+        if (terminalPredicate(element)) {
+            resolvedElement = element;
+            return true;
+        }
+
+        if (!canRecursePredicate(element) || HasVisibleOwnTextNodes(element)) {
+            return false;
+        }
+
+        IElement? onlyChildElement = null;
+        foreach (var childNode in element.ChildNodes) {
+            switch (childNode) {
+                case IComment:
+                    continue;
+                case IText textNode when string.IsNullOrWhiteSpace(textNode.Data):
+                    continue;
+                case IElement childElement when IsIgnorableMediaWrapperChild(childElement):
+                    continue;
+                case IElement childElement:
+                    if (onlyChildElement != null) {
+                        return false;
+                    }
+
+                    onlyChildElement = childElement;
+                    break;
+                default:
+                    return false;
+            }
+        }
+
+        return onlyChildElement != null
+            && TryResolvePureWrapperElement(onlyChildElement, terminalPredicate, canRecursePredicate, out resolvedElement);
+    }
+
+    private static bool HasVisibleOwnTextNodes(IElement element) {
+        foreach (var childNode in element.ChildNodes) {
+            if (childNode is IText textNode && !string.IsNullOrWhiteSpace(textNode.Data)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static List<IMarkdownBlock> ConvertFigureMediaElement(IElement element, ConversionContext context) {
+        if (element.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+            return ConvertPictureElement(element, context).ToList();
+        }
+
+        if (element.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)) {
+            return ConvertImageElement(element, context).ToList();
+        }
+
+        if (TryCreateLinkedImageBlockFromAnchor(element, context, out var linkedImage)) {
+            return new List<IMarkdownBlock> { linkedImage };
+        }
+
+        return ConvertNodesToBlocks(new[] { element }, context);
     }
 
     private static DetailsBlock ConvertDetailsElement(IElement element, ConversionContext context) {
@@ -774,5 +988,503 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         return false;
+    }
+
+    private static string ResolveImageSource(IElement element, ConversionContext context) {
+        return ResolveImageSource(element, context, allowParentPictureFallback: true);
+    }
+
+    private static string ResolveDirectImageSource(IElement element, ConversionContext context) {
+        return ResolveImageSource(element, context, allowParentPictureFallback: false);
+    }
+
+    private static string ResolveImageSource(IElement element, ConversionContext context, bool allowParentPictureFallback) {
+        string[] lazySourceAttributes = new[] { "data-src", "data-original", "data-original-src", "data-lazy-src" };
+        for (int i = 0; i < lazySourceAttributes.Length; i++) {
+            string resolved = ResolveUrl(element.GetAttribute(lazySourceAttributes[i]), context);
+            if (!string.IsNullOrWhiteSpace(resolved)) {
+                return resolved;
+            }
+        }
+
+        string[] sourceAttributes = new[] { "src" };
+        for (int i = 0; i < sourceAttributes.Length; i++) {
+            string resolved = ResolveUrl(element.GetAttribute(sourceAttributes[i]), context);
+            if (!string.IsNullOrWhiteSpace(resolved)) {
+                return resolved;
+            }
+        }
+
+        string srcSetResolved = ResolveUrlFromSrcSetAttributes(element, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset");
+        if (!string.IsNullOrWhiteSpace(srcSetResolved)) {
+            return srcSetResolved;
+        }
+
+        return allowParentPictureFallback
+            && element.ParentElement != null
+            && element.ParentElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)
+            ? ResolvePictureSource(element.ParentElement, context)
+            : string.Empty;
+    }
+
+    private static string ResolvePictureSource(IElement pictureElement, ConversionContext context) {
+        if (pictureElement == null) {
+            return string.Empty;
+        }
+
+        foreach (var child in pictureElement.Children) {
+            if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            string resolved = ResolveUrlFromSrcSetAttributes(child, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset");
+            if (!string.IsNullOrWhiteSpace(resolved)) {
+                return resolved;
+            }
+
+            resolved = ResolveUrlAttributes(child, context, "src", "data-src", "data-original-src", "data-lazy-src");
+            if (!string.IsNullOrWhiteSpace(resolved)) {
+                return resolved;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static string ResolveUrlFromSrcSet(string? rawSrcSet, ConversionContext context) {
+        return GetFirstResolvedSrcSetCandidate(rawSrcSet, context).url;
+    }
+
+    private static string ResolveNormalizedSrcSet(string? rawSrcSet, ConversionContext context) {
+        if (string.IsNullOrWhiteSpace(rawSrcSet)) {
+            return string.Empty;
+        }
+
+        var parts = new List<string>();
+        foreach (SrcSetCandidate candidate in SrcSetParser.Parse(rawSrcSet)) {
+            string resolved = ResolveUrl(candidate.Url, context);
+            if (!string.IsNullOrWhiteSpace(resolved)) {
+                parts.Add(string.IsNullOrWhiteSpace(candidate.Descriptor) ? resolved : resolved + " " + candidate.Descriptor);
+            }
+        }
+
+        return string.Join(", ", parts);
+    }
+
+    private static (string url, string descriptor) GetFirstResolvedSrcSetCandidate(string? rawSrcSet, ConversionContext context) {
+        if (string.IsNullOrWhiteSpace(rawSrcSet)) {
+            return (string.Empty, string.Empty);
+        }
+
+        foreach (SrcSetCandidate candidate in SrcSetParser.Parse(rawSrcSet)) {
+            string resolved = ResolveUrl(candidate.Url, context);
+            if (!string.IsNullOrWhiteSpace(resolved)) {
+                return (resolved, candidate.Descriptor);
+            }
+        }
+
+        return (string.Empty, string.Empty);
+    }
+
+    private static string ResolveUrlFromSrcSetAttributes(IElement element, ConversionContext context, params string[] attributeNames) {
+        if (element == null || attributeNames == null || attributeNames.Length == 0) {
+            return string.Empty;
+        }
+
+        for (int i = 0; i < attributeNames.Length; i++) {
+            string resolved = ResolveUrlFromSrcSet(element.GetAttribute(attributeNames[i]), context);
+            if (!string.IsNullOrWhiteSpace(resolved)) {
+                return resolved;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static string ResolveNormalizedSrcSetAttributes(IElement element, ConversionContext context, params string[] attributeNames) {
+        if (element == null || attributeNames == null || attributeNames.Length == 0) {
+            return string.Empty;
+        }
+
+        for (int i = 0; i < attributeNames.Length; i++) {
+            string resolved = ResolveNormalizedSrcSet(element.GetAttribute(attributeNames[i]), context);
+            if (!string.IsNullOrWhiteSpace(resolved)) {
+                return resolved;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static string ResolveUrlAttributes(IElement element, ConversionContext context, params string[] attributeNames) {
+        if (element == null || attributeNames == null || attributeNames.Length == 0) {
+            return string.Empty;
+        }
+
+        for (int i = 0; i < attributeNames.Length; i++) {
+            string resolved = ResolveUrl(element.GetAttribute(attributeNames[i]), context);
+            if (!string.IsNullOrWhiteSpace(resolved)) {
+                return resolved;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static void ApplyImageDimensions(IElement element, ImageBlock image) {
+        if (TryParseImageDimension(element.GetAttribute("width"), out double width)
+            || TryParseStyleDimension(element.GetAttribute("style"), "width", out width)) {
+            image.Width = width;
+        }
+
+        if (TryParseImageDimension(element.GetAttribute("height"), out double height)
+            || TryParseStyleDimension(element.GetAttribute("style"), "height", out height)) {
+            image.Height = height;
+        }
+    }
+
+    private static bool TryCreateImageBlock(IElement element, ConversionContext context, out ImageBlock image) {
+        image = null!;
+        string src = ResolveImageSource(element, context);
+        if ((string.IsNullOrWhiteSpace(src) || IsLikelyPlaceholderImageSource(src))
+            && TryCreateImageBlockFromNoscriptFallback(element, context, out image)) {
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(src)) {
+            return false;
+        }
+
+        image = CreateImageBlock(src, element);
+        return true;
+    }
+
+    private static ImageBlock CreateImageBlock(string src, IElement metadataElement, IElement? pictureElement = null, ConversionContext? context = null) {
+        var image = new ImageBlock(
+            src,
+            metadataElement.GetAttribute("alt"),
+            metadataElement.GetAttribute("title"));
+        ApplyImageDimensions(metadataElement, image);
+        if (pictureElement != null && context != null) {
+            ApplyPictureMetadata(pictureElement, image, metadataElement, context);
+        }
+        return image;
+    }
+
+    private static bool TryCreateImageBlockFromNoscriptFallback(IElement element, ConversionContext context, out ImageBlock image) {
+        image = null!;
+        if (!TryResolveAssociatedNoscriptMediaElement(element, out var fallbackMediaElement)) {
+            return false;
+        }
+
+        if (fallbackMediaElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+            var pictureImage = ConvertPictureElement(fallbackMediaElement, context).OfType<ImageBlock>().FirstOrDefault();
+            if (pictureImage == null) {
+                return false;
+            }
+
+            image = MergeImageMetadata(element, pictureImage, fallbackMediaElement.QuerySelector("img"));
+            return true;
+        }
+
+        string fallbackSrc = ResolveImageSource(fallbackMediaElement, context);
+        if (string.IsNullOrWhiteSpace(fallbackSrc)) {
+            return false;
+        }
+
+        image = CreateMergedImageBlock(fallbackSrc, element, fallbackMediaElement);
+        return true;
+    }
+
+    private static ImageBlock MergeImageMetadata(IElement preferredElement, ImageBlock fallbackImage, IElement? fallbackMetadataElement) {
+        var merged = new ImageBlock(
+            fallbackImage.Path,
+            !string.IsNullOrWhiteSpace(preferredElement.GetAttribute("alt")) ? preferredElement.GetAttribute("alt") : fallbackImage.Alt,
+            !string.IsNullOrWhiteSpace(preferredElement.GetAttribute("title")) ? preferredElement.GetAttribute("title") : fallbackImage.Title,
+            fallbackImage.Width,
+            fallbackImage.Height,
+            fallbackImage.LinkUrl,
+            fallbackImage.LinkTitle,
+            fallbackImage.LinkTarget,
+            fallbackImage.LinkRel) {
+            Caption = fallbackImage.Caption,
+            PictureFallbackPath = fallbackImage.PictureFallbackPath
+        };
+        CopyPictureSources(fallbackImage.PictureSources, merged.PictureSources);
+
+        ApplyImageDimensions(preferredElement, merged);
+        if ((merged.Width == null || merged.Height == null) && fallbackMetadataElement != null) {
+            ApplyMissingImageDimensions(fallbackMetadataElement, merged);
+        }
+
+        return merged;
+    }
+
+    private static ImageBlock CreateMergedImageBlock(string src, IElement preferredMetadataElement, IElement fallbackMetadataElement) {
+        var image = new ImageBlock(
+            src,
+            !string.IsNullOrWhiteSpace(preferredMetadataElement.GetAttribute("alt")) ? preferredMetadataElement.GetAttribute("alt") : fallbackMetadataElement.GetAttribute("alt"),
+            !string.IsNullOrWhiteSpace(preferredMetadataElement.GetAttribute("title")) ? preferredMetadataElement.GetAttribute("title") : fallbackMetadataElement.GetAttribute("title"));
+        ApplyImageDimensions(preferredMetadataElement, image);
+        ApplyMissingImageDimensions(fallbackMetadataElement, image);
+        return image;
+    }
+
+    private static void ApplyPictureMetadata(IElement pictureElement, ImageBlock image, IElement? fallbackImageElement, ConversionContext context) {
+        if (pictureElement == null || image == null || context == null) {
+            return;
+        }
+
+        image.PictureSources.Clear();
+        foreach (var source in CollectPictureSources(pictureElement, context)) {
+            image.PictureSources.Add(source);
+        }
+
+        string fallbackPath = fallbackImageElement == null
+            ? string.Empty
+            : ResolveDirectImageSource(fallbackImageElement, context);
+        image.PictureFallbackPath = string.IsNullOrWhiteSpace(fallbackPath) ? null : fallbackPath;
+    }
+
+    private static List<ImagePictureSource> CollectPictureSources(IElement pictureElement, ConversionContext context) {
+        var sources = new List<ImagePictureSource>();
+        foreach (var child in pictureElement.Children) {
+            if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            string resolvedSrcSet = ResolveNormalizedSrcSetAttributes(child, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset");
+            string resolved = ResolveUrlFromSrcSetAttributes(child, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset");
+            if (string.IsNullOrWhiteSpace(resolved)) {
+                resolved = ResolveUrlAttributes(child, context, "src", "data-src", "data-original-src", "data-lazy-src");
+            }
+
+            if (string.IsNullOrWhiteSpace(resolved)) {
+                continue;
+            }
+
+            sources.Add(new ImagePictureSource(
+                resolved,
+                child.GetAttribute("media"),
+                child.GetAttribute("type"),
+                child.GetAttribute("sizes"),
+                resolvedSrcSet));
+        }
+
+        return sources;
+    }
+
+    private static void CopyPictureSources(IEnumerable<ImagePictureSource> sourceItems, IList<ImagePictureSource> targetItems) {
+        if (sourceItems == null || targetItems == null) {
+            return;
+        }
+
+        targetItems.Clear();
+        foreach (var source in sourceItems) {
+            if (source == null || string.IsNullOrWhiteSpace(source.Path)) {
+                continue;
+            }
+
+            targetItems.Add(new ImagePictureSource(source.Path, source.Media, source.Type, source.Sizes, source.SrcSet));
+        }
+    }
+
+    private static void ApplyMissingImageDimensions(IElement element, ImageBlock image) {
+        if (image.Width == null
+            && (TryParseImageDimension(element.GetAttribute("width"), out double width)
+                || TryParseStyleDimension(element.GetAttribute("style"), "width", out width))) {
+            image.Width = width;
+        }
+
+        if (image.Height == null
+            && (TryParseImageDimension(element.GetAttribute("height"), out double height)
+                || TryParseStyleDimension(element.GetAttribute("style"), "height", out height))) {
+            image.Height = height;
+        }
+    }
+
+    private static bool TryResolveAssociatedNoscriptMediaElement(IElement element, out IElement mediaElement) {
+        mediaElement = null!;
+        foreach (var noscriptElement in EnumerateAssociatedNoscriptElements(element)) {
+            if (TryResolveNoscriptMediaElement(noscriptElement, out mediaElement)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static IEnumerable<IElement> EnumerateAssociatedNoscriptElements(IElement element) {
+        var visited = new HashSet<IElement>();
+        IElement? current = element.ParentElement;
+        int depth = 0;
+        while (current != null && depth < 3) {
+            foreach (var child in current.Children) {
+                if (child.TagName.Equals("NOSCRIPT", StringComparison.OrdinalIgnoreCase) && visited.Add(child)) {
+                    yield return child;
+                }
+            }
+
+            if (!IsPotentialMediaFallbackContainer(current)) {
+                yield break;
+            }
+
+            current = current.ParentElement;
+            depth++;
+        }
+    }
+
+    private static bool IsPotentialMediaFallbackContainer(IElement element) {
+        if (element == null) {
+            return false;
+        }
+
+        return element.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)
+               || element.TagName.Equals("DIV", StringComparison.OrdinalIgnoreCase)
+               || element.TagName.Equals("SPAN", StringComparison.OrdinalIgnoreCase)
+               || element.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)
+               || element.TagName.Equals("FIGURE", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TryResolveNoscriptMediaElement(IElement noscriptElement, out IElement mediaElement) {
+        mediaElement = null!;
+        foreach (string html in EnumerateNoscriptHtmlCandidates(noscriptElement)) {
+            var parser = new AngleSharp.Html.Parser.HtmlParser();
+            var document = parser.ParseDocument($"<body>{html}</body>");
+            IElement? parsedMediaElement = document.QuerySelector("picture") ?? document.QuerySelector("img");
+            if (parsedMediaElement != null) {
+                mediaElement = parsedMediaElement;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static IEnumerable<string> EnumerateNoscriptHtmlCandidates(IElement noscriptElement) {
+        if (noscriptElement == null) {
+            yield break;
+        }
+
+        string innerHtml = noscriptElement.InnerHtml;
+        if (!string.IsNullOrWhiteSpace(innerHtml)) {
+            yield return innerHtml;
+        }
+
+        string textContent = noscriptElement.TextContent;
+        if (!string.IsNullOrWhiteSpace(textContent) && !string.Equals(textContent, innerHtml, StringComparison.Ordinal)) {
+            yield return textContent;
+        }
+    }
+
+    private static bool IsLikelyPlaceholderImageSource(string? source) {
+        if (string.IsNullOrWhiteSpace(source)) {
+            return false;
+        }
+
+        string value = source!.Trim();
+        return value.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase)
+               || value.Contains("transparent.gif", StringComparison.OrdinalIgnoreCase)
+               || value.Contains("spacer.gif", StringComparison.OrdinalIgnoreCase)
+               || value.Contains("blank.gif", StringComparison.OrdinalIgnoreCase)
+               || value.Contains("pixel.gif", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TryCreateLinkedImageBlockFromAnchor(IElement anchorElement, ConversionContext context, out ImageBlock image) {
+        image = null!;
+        if (anchorElement == null || !anchorElement.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        string href = ResolveUrl(anchorElement.GetAttribute("href"), context);
+        if (string.IsNullOrWhiteSpace(href)) {
+            return false;
+        }
+
+        if (!TryResolveAnchorMediaElement(anchorElement, out var mediaElement)) {
+            return false;
+        }
+
+        if (mediaElement.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
+            && TryCreateImageBlock(mediaElement, context, out image)) {
+            image.LinkUrl = href;
+            image.LinkTitle = anchorElement.GetAttribute("title");
+            image.LinkTarget = anchorElement.GetAttribute("target");
+            image.LinkRel = anchorElement.GetAttribute("rel");
+            return true;
+        }
+
+        if (!mediaElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        var pictureImage = ConvertPictureElement(mediaElement, context).OfType<ImageBlock>().FirstOrDefault();
+        if (pictureImage == null) {
+            return false;
+        }
+
+        pictureImage.LinkUrl = href;
+        pictureImage.LinkTitle = anchorElement.GetAttribute("title");
+        pictureImage.LinkTarget = anchorElement.GetAttribute("target");
+        pictureImage.LinkRel = anchorElement.GetAttribute("rel");
+        image = pictureImage;
+        return true;
+    }
+
+    private static bool TryParseStyleDimension(string? style, string propertyName, out double value) {
+        value = default;
+        return TryParseImageDimension(TryGetStyleDeclarationValue(style, propertyName), out value);
+    }
+
+    private static string? TryGetStyleDeclarationValue(string? style, string propertyName) {
+        if (string.IsNullOrWhiteSpace(style) || string.IsNullOrWhiteSpace(propertyName)) {
+            return null;
+        }
+
+        foreach (var declaration in style!.Split(';')) {
+            if (string.IsNullOrWhiteSpace(declaration)) {
+                continue;
+            }
+
+            int separatorIndex = declaration.IndexOf(':');
+            if (separatorIndex <= 0) {
+                continue;
+            }
+
+            string name = declaration.Substring(0, separatorIndex).Trim();
+            if (!name.Equals(propertyName, StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            string value = declaration.Substring(separatorIndex + 1).Trim();
+            return value.Length == 0 ? null : value;
+        }
+
+        return null;
+    }
+
+    private static bool TryParseImageDimension(string? rawValue, out double value) {
+        value = default;
+        if (string.IsNullOrWhiteSpace(rawValue)) {
+            return false;
+        }
+
+        string normalized = rawValue!.Trim();
+        if (normalized.EndsWith("px", StringComparison.OrdinalIgnoreCase)) {
+            normalized = normalized.Substring(0, normalized.Length - 2).Trim();
+        }
+
+        if (normalized.Length == 0
+            || normalized.IndexOf('%') >= 0
+            || normalized.IndexOf("calc(", StringComparison.OrdinalIgnoreCase) >= 0
+            || normalized.IndexOf("var(", StringComparison.OrdinalIgnoreCase) >= 0) {
+            return false;
+        }
+
+        return double.TryParse(
+            normalized,
+            System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out value);
     }
 }

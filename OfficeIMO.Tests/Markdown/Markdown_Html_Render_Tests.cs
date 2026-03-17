@@ -134,6 +134,125 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Linked_Image_Block_Renders_Linked_Markdown_And_Html() {
+            var doc = MarkdownDoc.Create()
+                .Add(new ImageBlock("images/photo.png", "Alt text", "Title text", linkUrl: "https://example.com/docs", linkTitle: "Read more", linkTarget: "_self", linkRel: "nofollow"))
+                .Caption("Photo caption");
+
+            var block = Assert.IsType<ImageBlock>(Assert.Single(doc.Blocks));
+            Assert.Equal("https://example.com/docs", block.LinkUrl);
+            Assert.Equal("Read more", block.LinkTitle);
+            Assert.Equal("_self", block.LinkTarget);
+            Assert.Equal("nofollow", block.LinkRel);
+
+            string markdown = doc.ToMarkdown().Replace("\r\n", "\n");
+            Assert.Contains("[![Alt text](images/photo.png \"Title text\")](https://example.com/docs \"Read more\")", markdown, StringComparison.Ordinal);
+            Assert.Contains("_Photo caption_", markdown, StringComparison.Ordinal);
+
+            string html = doc.ToHtmlFragment();
+            Assert.Contains("<a href=\"https://example.com/docs\" title=\"Read more\" target=\"_self\" rel=\"nofollow\"", html, StringComparison.Ordinal);
+            Assert.Contains("<img src=\"images/photo.png\" alt=\"Alt text\" title=\"Title text\"", html, StringComparison.Ordinal);
+            Assert.Contains("<div class=\"caption\">Photo caption</div>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Linked_Image_Block_Hardens_TargetBlank_Rel_In_Html() {
+            var doc = MarkdownDoc.Create()
+                .Add(new ImageBlock("images/photo.png", "Alt text", "Title text", linkUrl: "https://example.com/docs", linkTitle: "Read more", linkTarget: "_blank"))
+                .Caption("Photo caption");
+
+            var block = Assert.IsType<ImageBlock>(Assert.Single(doc.Blocks));
+            Assert.Equal("_blank", block.LinkTarget);
+            Assert.Null(block.LinkRel);
+
+            string markdown = doc.ToMarkdown().Replace("\r\n", "\n");
+            Assert.Contains("[![Alt text](images/photo.png \"Title text\")](https://example.com/docs \"Read more\")", markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain("noopener", markdown, StringComparison.Ordinal);
+
+            string html = doc.ToHtmlFragment();
+            Assert.Contains("<a href=\"https://example.com/docs\" title=\"Read more\" target=\"_blank\" rel=\"", html, StringComparison.Ordinal);
+            Assert.Contains("noopener", html, StringComparison.Ordinal);
+            Assert.Contains("noreferrer", html, StringComparison.Ordinal);
+            Assert.Contains("<img src=\"images/photo.png\" alt=\"Alt text\" title=\"Title text\"", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Inline_Link_Preserves_Html_Metadata_And_Hardens_TargetBlank() {
+            var doc = MarkdownDoc.Create()
+                .Add(new ParagraphBlock(new InlineSequence().Link("Read more", "https://example.com/docs", "Hero docs", "_blank", "nofollow sponsored")));
+
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+            var link = Assert.IsType<LinkInline>(Assert.Single(paragraph.Inlines.Nodes));
+            Assert.Equal("_blank", link.LinkTarget);
+            Assert.Equal("nofollow sponsored", link.LinkRel);
+
+            string markdown = doc.ToMarkdown().Replace("\r\n", "\n");
+            Assert.Contains("[Read more](https://example.com/docs \"Hero docs\")", markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain("noopener", markdown, StringComparison.Ordinal);
+
+            string html = doc.ToHtmlFragment();
+            Assert.Contains("<a href=\"https://example.com/docs\" title=\"Hero docs\" target=\"_blank\" rel=\"", html, StringComparison.Ordinal);
+            Assert.Contains("nofollow", html, StringComparison.Ordinal);
+            Assert.Contains("sponsored", html, StringComparison.Ordinal);
+            Assert.Contains("noopener", html, StringComparison.Ordinal);
+            Assert.Contains("noreferrer", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Image_Block_Renders_Picture_Sources_Back_To_Html() {
+            var image = new ImageBlock("https://example.com/media/storm-wide.webp", "Flooded street at dawn", "Open full photo", 1280, 720) {
+                PictureFallbackPath = "https://example.com/media/storm-fallback.jpg"
+            };
+            image.PictureSources.Add(new ImagePictureSource(
+                "https://example.com/media/storm-wide.webp",
+                "(min-width: 960px)",
+                "image/webp",
+                "100vw",
+                "https://example.com/media/storm-wide.webp 1x, https://example.com/media/storm-wide@2x.webp 2x"));
+            image.PictureSources.Add(new ImagePictureSource(
+                "https://example.com/media/storm-mobile.webp",
+                "(max-width: 959px)",
+                "image/webp",
+                "100vw",
+                "https://example.com/media/storm-mobile.webp 1x, https://example.com/media/storm-mobile@2x.webp 2x"));
+
+            var doc = MarkdownDoc.Create().Add(image).Caption("Residents navigate floodwater after the overnight storm.");
+
+            string markdown = doc.ToMarkdown().Replace("\r\n", "\n");
+            Assert.Contains("![Flooded street at dawn](https://example.com/media/storm-wide.webp \"Open full photo\")", markdown, StringComparison.Ordinal);
+
+            string html = doc.ToHtmlFragment();
+            Assert.Contains("<picture>", html, StringComparison.Ordinal);
+            Assert.Contains("<source srcset=\"https://example.com/media/storm-wide.webp 1x, https://example.com/media/storm-wide@2x.webp 2x\" media=\"(min-width: 960px)\" type=\"image/webp\" sizes=\"100vw\" />", html, StringComparison.Ordinal);
+            Assert.Contains("<source srcset=\"https://example.com/media/storm-mobile.webp 1x, https://example.com/media/storm-mobile@2x.webp 2x\" media=\"(max-width: 959px)\" type=\"image/webp\" sizes=\"100vw\" />", html, StringComparison.Ordinal);
+            Assert.Contains("<img src=\"https://example.com/media/storm-fallback.jpg\" alt=\"Flooded street at dawn\" title=\"Open full photo\" width=\"1280\" height=\"720\"", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Image_Block_Renders_Picture_Sources_With_Width_Descriptors_And_Query_Strings() {
+            var image = new ImageBlock("https://example.com/media/storm-wide.webp?fit=cover&crop=10,20,300,400", "Flooded street at dawn", "Open full photo", 1280, 720) {
+                PictureFallbackPath = "https://example.com/media/storm-fallback.jpg?download=1"
+            };
+            image.PictureSources.Add(new ImagePictureSource(
+                "https://example.com/media/storm-wide.webp?fit=cover&crop=10,20,300,400",
+                "(min-width: 960px)",
+                "image/webp",
+                "(min-width: 960px) 90vw, 100vw",
+                "https://example.com/media/storm-wide.webp?fit=cover&crop=10,20,300,400 640w, https://example.com/media/storm-wide.webp?fit=cover&crop=20,40,600,800 1280w"));
+            image.PictureSources.Add(new ImagePictureSource(
+                "https://example.com/media/storm-mobile.webp?fit=cover&crop=5,10,200,250",
+                "(max-width: 959px)",
+                "image/webp",
+                "100vw",
+                "https://example.com/media/storm-mobile.webp?fit=cover&crop=5,10,200,250 320w, https://example.com/media/storm-mobile.webp?fit=cover&crop=10,20,400,500 640w"));
+
+            string html = MarkdownDoc.Create().Add(image).ToHtmlFragment();
+            Assert.Contains("<source srcset=\"https://example.com/media/storm-wide.webp?fit=cover&amp;crop=10,20,300,400 640w, https://example.com/media/storm-wide.webp?fit=cover&amp;crop=20,40,600,800 1280w\" media=\"(min-width: 960px)\" type=\"image/webp\" sizes=\"(min-width: 960px) 90vw, 100vw\" />", html, StringComparison.Ordinal);
+            Assert.Contains("<source srcset=\"https://example.com/media/storm-mobile.webp?fit=cover&amp;crop=5,10,200,250 320w, https://example.com/media/storm-mobile.webp?fit=cover&amp;crop=10,20,400,500 640w\" media=\"(max-width: 959px)\" type=\"image/webp\" sizes=\"100vw\" />", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("%20", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void HtmlOptions_CodeBlockHtmlRenderer_Applies_Inside_Nested_List_Items() {
             var markdown = """
 - item
