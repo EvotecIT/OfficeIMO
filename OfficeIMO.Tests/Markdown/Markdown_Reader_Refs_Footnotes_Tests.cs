@@ -70,6 +70,21 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Supported_Html_Wrappers_Keep_Decoded_Tag_Text_Literal() {
+            const string md = "Value <u>&lt;u&gt;x&lt;/u&gt;</u>";
+
+            var doc = MarkdownReader.Parse(md);
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+            var wrapper = Assert.IsType<HtmlTagSequenceInline>(Assert.Single(paragraph.Inlines.Nodes, node => node is HtmlTagSequenceInline));
+            var text = Assert.IsType<TextRun>(Assert.Single(wrapper.Inlines.Nodes));
+
+            Assert.Equal("<u>x</u>", text.Text);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("Value <u>&lt;u&gt;x&lt;/u&gt;</u>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Footnote_RenderMarkdown_Indents_NonParagraph_First_Block_On_Next_Line() {
             var footnote = new FootnoteDefinitionBlock(
                 "1",

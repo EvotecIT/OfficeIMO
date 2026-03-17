@@ -1217,8 +1217,9 @@ public static partial class MarkdownReader {
             if (StartsWithExactHtmlTag(text, scan, tagName, opening: false)) {
                 depth--;
                 if (depth == 0) {
-                    string inner = System.Net.WebUtility.HtmlDecode(text.Substring(start + openLength, scan - (start + openLength)));
+                    string inner = text.Substring(start + openLength, scan - (start + openLength));
                     inlines = ParseInlinesInternal(inner, options, state, allowLinks, allowImages);
+                    DecodeHtmlEntitiesInTextRuns(inlines);
                     consumed = (scan - start) + tagName.Length + 3;
                     return true;
                 }
@@ -1237,6 +1238,50 @@ public static partial class MarkdownReader {
         }
 
         return false;
+    }
+
+    private static bool DecodeHtmlEntitiesInTextRuns(InlineSequence sequence) {
+        if (sequence == null || sequence.Nodes.Count == 0) {
+            return false;
+        }
+
+        var rewritten = new List<IMarkdownInline>(sequence.Nodes.Count);
+        bool changed = false;
+
+        for (int i = 0; i < sequence.Nodes.Count; i++) {
+            var node = sequence.Nodes[i];
+            if (node == null) {
+                continue;
+            }
+
+            rewritten.Add(DecodeHtmlEntitiesInInlineNode(node, ref changed));
+        }
+
+        if (changed) {
+            sequence.ReplaceItems(rewritten);
+        }
+
+        return changed;
+    }
+
+    private static IMarkdownInline DecodeHtmlEntitiesInInlineNode(IMarkdownInline node, ref bool changed) {
+        if (node is TextRun text) {
+            string decoded = System.Net.WebUtility.HtmlDecode(text.Text);
+            if (!string.Equals(decoded, text.Text, StringComparison.Ordinal)) {
+                changed = true;
+                return new TextRun(decoded);
+            }
+
+            return text;
+        }
+
+        if (node is IInlineContainerMarkdownInline container && container.NestedInlines != null) {
+            if (DecodeHtmlEntitiesInTextRuns(container.NestedInlines)) {
+                changed = true;
+            }
+        }
+
+        return node;
     }
 
     private static bool StartsWithExactHtmlTag(string text, int start, string tagName, bool opening) {
