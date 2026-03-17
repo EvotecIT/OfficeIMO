@@ -909,7 +909,8 @@ public sealed class ReaderDocumentReaderTests {
             var result = DocumentReader.ReadPathDocumentsDetailed(
                 path,
                 options: new ReaderOptions {
-                    MaxInputBytes = 8
+                    MaxInputBytes = 8,
+                    ComputeHashes = true
                 },
                 includeDocumentChunks: true);
 
@@ -925,6 +926,7 @@ public sealed class ReaderDocumentReaderTests {
             var document = result.Documents[0];
             Assert.False(document.Parsed);
             Assert.Empty(document.Chunks);
+            Assert.Null(document.SourceHash);
             Assert.True((document.Warnings?.Any(w => w.Contains("MaxInputBytes", StringComparison.OrdinalIgnoreCase)) ?? false));
             Assert.True((result.Warnings?.Any(w => w.Contains("MaxInputBytes", StringComparison.OrdinalIgnoreCase)) ?? false));
         } finally {

@@ -839,18 +839,16 @@ public static class DocumentReader {
             throw new ArgumentOutOfRangeException(nameof(maxReturnedChunks), "Chunk cap must be non-negative.");
         }
 
-        List<ReaderSourceDocument> documents;
+        IEnumerable<ReaderSourceDocument> documents;
         if (Directory.Exists(path)) {
-            documents = ReadFolderDocuments(path, folderOptions, options, onProgress, cancellationToken).ToList();
+            documents = ReadFolderDocuments(path, folderOptions, options, onProgress, cancellationToken);
         } else if (File.Exists(path)) {
-            documents = new List<ReaderSourceDocument>(1) {
-                ReadSingleDocument(path, options, cancellationToken)
-            };
+            documents = new[] { ReadSingleDocument(path, options, cancellationToken) };
         } else {
             throw new FileNotFoundException($"Path '{path}' doesn't exist.", path);
         }
 
-        var files = new List<string>(documents.Count);
+        var files = new List<string>();
         var warnings = new List<string>();
         var remainingChunkBudget = includeDocumentChunks
             ? maxReturnedChunks ?? int.MaxValue
@@ -858,14 +856,26 @@ public static class DocumentReader {
         var truncated = false;
         var returnedChunkCount = 0;
         var returnedTokenEstimate = 0;
-        var shaped = new List<ReaderSourceDocument>(documents.Count);
+        var filesScanned = 0;
+        var filesParsed = 0;
+        var filesSkipped = 0;
+        long bytesRead = 0;
+        var chunksProduced = 0;
+        var shaped = new List<ReaderSourceDocument>();
 
-        for (var i = 0; i < documents.Count; i++) {
+        foreach (var source in documents) {
             cancellationToken.ThrowIfCancellationRequested();
-            var source = documents[i];
+            filesScanned++;
             if (!string.IsNullOrWhiteSpace(source.Path)) {
                 files.Add(source.Path);
             }
+            if (source.Parsed) {
+                filesParsed++;
+                bytesRead += source.SourceLengthBytes ?? 0;
+            } else {
+                filesSkipped++;
+            }
+            chunksProduced += source.ChunksProduced;
 
             var shapedSource = ShapeSourceDocument(
                 source,
@@ -887,11 +897,11 @@ public static class DocumentReader {
         return new ReaderPathDocumentResult {
             Files = files.ToArray(),
             Documents = shaped.ToArray(),
-            FilesScanned = documents.Count,
-            FilesParsed = documents.Count(static d => d.Parsed),
-            FilesSkipped = documents.Count(static d => !d.Parsed),
-            BytesRead = documents.Where(static d => d.Parsed).Sum(static d => d.SourceLengthBytes ?? 0),
-            ChunksProduced = documents.Sum(static d => d.ChunksProduced),
+            FilesScanned = filesScanned,
+            FilesParsed = filesParsed,
+            FilesSkipped = filesSkipped,
+            BytesRead = bytesRead,
+            ChunksProduced = chunksProduced,
             ChunksReturned = returnedChunkCount,
             TokenEstimateReturned = returnedTokenEstimate,
             Truncated = truncated,
@@ -1726,12 +1736,15 @@ public static class DocumentReader {
         ReaderOptions? options,
         CancellationToken cancellationToken) {
         var opt = NormalizeOptions(options);
-        var source = BuildSourceInfoFromPath(path, opt.ComputeHashes);
+        var source = BuildSourceInfoFromPath(path, computeHash: false);
 
         List<ReaderChunk>? chunks = null;
         string? warning = null;
         try {
             EnforceFileSize(path, opt.MaxInputBytes);
+            if (opt.ComputeHashes) {
+                source.SourceHash = TryComputeFileSha256(path);
+            }
             chunks = ReadPathCore(path, opt, source, cancellationToken).ToList();
         } catch (OperationCanceledException) {
             throw;
