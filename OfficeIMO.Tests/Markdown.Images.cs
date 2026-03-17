@@ -32,11 +32,17 @@ namespace OfficeIMO.Tests {
                         break;
                     }
 
-                    context.Response.ContentType = "image/png";
-                    context.Response.ContentLength64 = bytes.Length;
-                    context.Response.OutputStream.Write(bytes, 0, bytes.Length);
-                    context.Response.OutputStream.Flush();
-                    context.Response.Close();
+                    try {
+                        context.Response.ContentType = "image/png";
+                        context.Response.ContentLength64 = bytes.Length;
+                        context.Response.OutputStream.Write(bytes, 0, bytes.Length);
+                        context.Response.OutputStream.Flush();
+                        context.Response.Close();
+                    } catch (HttpListenerException) {
+                        break;
+                    } catch (ObjectDisposedException) {
+                        break;
+                    }
                 }
             });
 
