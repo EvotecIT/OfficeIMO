@@ -24,26 +24,26 @@
           item[0]: task=no content="sub-numbered"
   item[1]: task=no content="Item two"
 12: Heading(level=2, text="Deliberate invalid JSON test")
-13: SemanticFencedBlock
+13: Semantic(kind=chart, language=ix-chart, text="{\n  "type": "bar",\n  "data": {\n    "labels": ["A","B"],\n    "datasets": [\n   ...")
 14: Heading(level=2, text="Mermaid edge-case diagram")
-15: SemanticFencedBlock
+15: Semantic(kind=mermaid, language=mermaid, text="flowchart LR\n    A[Markdown Input] --> B{Parser OK?}\n    B -- Yes --> C[Rende...")
 16: Heading(level=2, text="User (20:36: 21)")
 17: Paragraph("show me proper visual tests")
 18: Heading(level=2, text="Assistant (20:36: 24)")
 19: Paragraph("<!-- ix: model: gpt-5.3-codex -->")
 20: Heading(level=2, text="Risk distribution")
-21: SemanticFencedBlock
+21: Semantic(kind=chart, language=ix-chart, text="{\n  "type": "bar",\n  "data": {\n    "labels": ["Identity", "Endpoints", "AD", ...")
 22: Heading(level=2, text="Security trend")
-23: SemanticFencedBlock
+23: Semantic(kind=chart, language=ix-chart, text="{\n  "type": "line",\n  "data": {\n    "labels": ["D-29","D-26","D-23","D-20","D...")
 24: Heading(level=2, text="Control coverage")
-25: SemanticFencedBlock
+25: Semantic(kind=chart, language=ix-chart, text="{\n  "type": "doughnut",\n  "data": {\n    "labels": ["Compliant", "Partial", "N...")
 26: Heading(level=2, text="Heat-style matrix proxy")
-27: SemanticFencedBlock
+27: Semantic(kind=chart, language=ix-chart, text="{\n  "type": "bar",\n  "data": {\n    "labels": ["Mon","Tue","Wed","Thu","Fri","...")
 28: Heading(level=2, text="User (20:37: 47)")
 29: Paragraph("you sure this is the chartjs that we support?")
 30: Heading(level=2, text="Assistant (20:37: 49)")
 31: Paragraph("<!-- ix: model: gpt-5.3-codex -->")
-32: SemanticFencedBlock
+32: Semantic(kind=mermaid, language=mermaid, text="flowchart LR\n    A[Paste ix-chart block] --> B{Renders chart?}\n    B -- No --...")
 
 [roundtrip.markdown]
 ## User \(20:29: 02\)

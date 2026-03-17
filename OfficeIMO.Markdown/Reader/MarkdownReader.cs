@@ -18,7 +18,7 @@ public static partial class MarkdownReader {
     public static MarkdownDoc Parse(string markdown, MarkdownReaderOptions? options = null) {
         options ??= new MarkdownReaderOptions();
         var state = new MarkdownReaderState();
-        return ParseInternal(markdown, options, state, allowFrontMatter: true);
+        return ParseInternal(markdown, options, state, allowFrontMatter: true, out _);
     }
 
     /// <summary>
@@ -28,8 +28,28 @@ public static partial class MarkdownReader {
         options ??= new MarkdownReaderOptions();
         var state = new MarkdownReaderState();
         var syntaxNodes = new List<MarkdownSyntaxNode>();
-        var document = ParseInternal(markdown, options, state, allowFrontMatter: true, syntaxNodes, lineOffset: 0);
-        return new MarkdownParseResult(document, BuildDocumentSyntaxTree(syntaxNodes));
+        var document = ParseInternal(markdown, options, state, allowFrontMatter: true, out var syntaxTree, syntaxNodes, lineOffset: 0);
+        return new MarkdownParseResult(document, syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes));
+    }
+
+    /// <summary>
+    /// Parses Markdown text into the object model, original syntax tree, and document-transform diagnostics.
+    /// </summary>
+    public static MarkdownParseResult ParseWithSyntaxTreeAndDiagnostics(string markdown, MarkdownReaderOptions? options = null) {
+        options ??= new MarkdownReaderOptions();
+        var state = new MarkdownReaderState();
+        var syntaxNodes = new List<MarkdownSyntaxNode>();
+        var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
+        var document = ParseInternal(
+            markdown,
+            options,
+            state,
+            allowFrontMatter: true,
+            out var syntaxTree,
+            syntaxNodes,
+            lineOffset: 0,
+            transformDiagnostics: diagnostics);
+        return new MarkdownParseResult(document, syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes), diagnostics);
     }
 
     /// <summary>Parses a Markdown file path into a <see cref="MarkdownDoc"/>.</summary>
@@ -48,8 +68,17 @@ public static partial class MarkdownReader {
         return blocks;
     }
 
-    private static MarkdownDoc ParseInternal(string markdown, MarkdownReaderOptions options, MarkdownReaderState state, bool allowFrontMatter, List<MarkdownSyntaxNode>? syntaxNodes = null, int lineOffset = 0) {
+    private static MarkdownDoc ParseInternal(
+        string markdown,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state,
+        bool allowFrontMatter,
+        out MarkdownSyntaxNode? syntaxTree,
+        List<MarkdownSyntaxNode>? syntaxNodes = null,
+        int lineOffset = 0,
+        ICollection<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null) {
         var doc = MarkdownDoc.Create();
+        syntaxTree = syntaxNodes != null ? BuildDocumentSyntaxTree(syntaxNodes) : null;
         if (string.IsNullOrEmpty(markdown)) return doc;
         int previousLineOffset = state.SourceLineOffset;
         state.SourceLineOffset = lineOffset;
@@ -120,7 +149,8 @@ public static partial class MarkdownReader {
                 if (!matched) i++; // defensive: avoid infinite loop
             }
 
-            return ApplyDocumentTransforms(doc, options);
+            syntaxTree = syntaxNodes != null ? BuildDocumentSyntaxTree(syntaxNodes) : null;
+            return ApplyDocumentTransforms(doc, options, transformDiagnostics, syntaxTree);
         } finally {
             state.SourceLineOffset = previousLineOffset;
         }
@@ -476,12 +506,16 @@ public static partial class MarkdownReader {
         }
     }
 
-    private static MarkdownDoc ApplyDocumentTransforms(MarkdownDoc document, MarkdownReaderOptions options) {
+    private static MarkdownDoc ApplyDocumentTransforms(
+        MarkdownDoc document,
+        MarkdownReaderOptions options,
+        ICollection<MarkdownDocumentTransformDiagnostic>? diagnostics = null,
+        MarkdownSyntaxNode? syntaxTree = null) {
         var transforms = BuildEffectiveDocumentTransforms(options);
         return MarkdownDocumentTransformPipeline.Apply(
             document,
             transforms,
-            new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.MarkdownReader, options));
+            new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.MarkdownReader, options, sourceOptions: null, diagnostics, syntaxTree));
     }
 
     private static IReadOnlyList<IMarkdownDocumentTransform> BuildEffectiveDocumentTransforms(MarkdownReaderOptions options) {
@@ -621,7 +655,7 @@ public static partial class MarkdownReader {
         var nestedOptions = CloneOptionsWithoutFrontMatter(options);
         var nestedState = CloneState(state);
         var syntaxChildren = new List<MarkdownSyntaxNode>();
-        var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, syntaxChildren, lineOffset: lineOffset);
+        var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, syntaxChildren, lineOffset: lineOffset);
         return (nestedDoc.Blocks, syntaxChildren);
     }
 }

@@ -25,6 +25,79 @@ second
     }
 
     [Fact]
+    public void MarkdownDocumentTransformPipeline_Collects_Diagnostics() {
+        var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
+        var document = MarkdownDoc.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Text("Base")));
+        var transforms = new IMarkdownDocumentTransform[] {
+            new AppendParagraphTransform("first"),
+            new AppendParagraphTransform("second")
+        };
+
+        var transformed = MarkdownDocumentTransformPipeline.Apply(
+            document,
+            transforms,
+            new MarkdownDocumentTransformContext(
+                MarkdownDocumentTransformSource.MarkdownReader,
+                MarkdownReaderOptions.CreateOfficeIMOProfile(),
+                sourceOptions: null,
+                diagnostics));
+
+        Assert.Equal(2, diagnostics.Count);
+        Assert.All(diagnostics, diagnostic => Assert.Equal(MarkdownDocumentTransformSource.MarkdownReader, diagnostic.Source));
+        Assert.Contains(nameof(AppendParagraphTransform), diagnostics[0].TransformName, StringComparison.Ordinal);
+        Assert.Equal(1, diagnostics[0].BlockCountBefore);
+        Assert.Equal(2, diagnostics[0].BlockCountAfter);
+        Assert.False(diagnostics[0].ReplacedDocument);
+        Assert.Equal(1, diagnostics[0].ChangedBlockStartBefore);
+        Assert.Equal(0, diagnostics[0].ChangedBlockCountBefore);
+        Assert.Equal(1, diagnostics[0].ChangedBlockStartAfter);
+        Assert.Equal(1, diagnostics[0].ChangedBlockCountAfter);
+        Assert.Null(diagnostics[0].AffectedSourceSpan);
+        Assert.Equal(3, transformed.Blocks.Count);
+    }
+
+    [Fact]
+    public void MarkdownDocumentTransformPipeline_Collects_AffectedSourceSpan_When_SyntaxTree_Is_Available() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        var parseResult = MarkdownReader.ParseWithSyntaxTree("previous shutdown was unexpected### Reason", options);
+        var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
+        var transforms = new IMarkdownDocumentTransform[] {
+            new MarkdownCompactHeadingBoundaryTransform()
+        };
+
+        var transformed = MarkdownDocumentTransformPipeline.Apply(
+            parseResult.Document,
+            transforms,
+            new MarkdownDocumentTransformContext(
+                MarkdownDocumentTransformSource.MarkdownReader,
+                options,
+                sourceOptions: null,
+                diagnostics,
+                parseResult.SyntaxTree));
+
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.Equal(0, diagnostic.ChangedBlockStartBefore);
+        Assert.Equal(1, diagnostic.ChangedBlockCountBefore);
+        Assert.Equal(0, diagnostic.ChangedBlockStartAfter);
+        Assert.Equal(2, diagnostic.ChangedBlockCountAfter);
+        Assert.Equal(new MarkdownSourceSpan(1, 1), diagnostic.AffectedSourceSpan);
+        Assert.Equal(2, transformed.Blocks.Count);
+    }
+
+    [Fact]
+    public void MarkdownReader_ParseWithSyntaxTreeAndDiagnostics_Collects_TransformDiagnostics_InOneCall() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
+
+        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("previous shutdown was unexpected### Reason", options);
+
+        Assert.Equal(2, result.Document.Blocks.Count);
+        Assert.Single(result.TransformDiagnostics);
+        Assert.Equal(new MarkdownSourceSpan(1, 1), result.TransformDiagnostics[0].AffectedSourceSpan);
+    }
+
+    [Fact]
     public void MarkdownJsonVisualCodeBlockTransform_Upgrades_LegacyJsonCodeBlock_To_SemanticBlock() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(

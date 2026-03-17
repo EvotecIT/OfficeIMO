@@ -13,6 +13,7 @@ public sealed class MarkdownRendererFeaturePack {
     private readonly IReadOnlyList<MarkdownRendererPlugin> _plugins;
     private readonly IReadOnlyList<IMarkdownDocumentTransform> _readerDocumentTransforms;
     private readonly IReadOnlyList<IMarkdownDocumentTransform> _htmlDocumentTransforms;
+    private readonly IReadOnlyList<IMarkdownDocumentTransform> _rendererDocumentTransforms;
     private readonly IReadOnlyList<HtmlElementBlockConverter> _htmlElementBlockConverters;
     private readonly IReadOnlyList<HtmlInlineElementConverter> _htmlInlineElementConverters;
     private readonly IReadOnlyList<MarkdownVisualElementRoundTripHint> _visualElementRoundTripHints;
@@ -37,6 +38,7 @@ public sealed class MarkdownRendererFeaturePack {
         _plugins = Array.Empty<MarkdownRendererPlugin>();
         _readerDocumentTransforms = Array.Empty<IMarkdownDocumentTransform>();
         _htmlDocumentTransforms = Array.Empty<IMarkdownDocumentTransform>();
+        _rendererDocumentTransforms = Array.Empty<IMarkdownDocumentTransform>();
         _htmlElementBlockConverters = Array.Empty<HtmlElementBlockConverter>();
         _htmlInlineElementConverters = Array.Empty<HtmlInlineElementConverter>();
         _visualElementRoundTripHints = Array.Empty<MarkdownVisualElementRoundTripHint>();
@@ -69,6 +71,7 @@ public sealed class MarkdownRendererFeaturePack {
         var normalizedPlugins = new List<MarkdownRendererPlugin>();
         var readerDocumentTransforms = new List<IMarkdownDocumentTransform>();
         var htmlDocumentTransforms = new List<IMarkdownDocumentTransform>();
+        var rendererDocumentTransforms = new List<IMarkdownDocumentTransform>();
         var htmlElementBlockConverters = new List<HtmlElementBlockConverter>();
         var htmlInlineElementConverters = new List<HtmlInlineElementConverter>();
         var roundTripHints = new List<MarkdownVisualElementRoundTripHint>();
@@ -122,6 +125,25 @@ public sealed class MarkdownRendererFeaturePack {
 
                     if (!transformExists) {
                         htmlDocumentTransforms.Add(transform);
+                    }
+                }
+
+                for (int i = 0; i < plugin.RendererDocumentTransforms.Count; i++) {
+                    var transform = plugin.RendererDocumentTransforms[i];
+                    if (transform == null) {
+                        continue;
+                    }
+
+                    bool transformExists = false;
+                    for (int j = 0; j < rendererDocumentTransforms.Count; j++) {
+                        if (ReferenceEquals(rendererDocumentTransforms[j], transform)) {
+                            transformExists = true;
+                            break;
+                        }
+                    }
+
+                    if (!transformExists) {
+                        rendererDocumentTransforms.Add(transform);
                     }
                 }
 
@@ -187,6 +209,7 @@ public sealed class MarkdownRendererFeaturePack {
         _plugins = normalizedPlugins.AsReadOnly();
         _readerDocumentTransforms = readerDocumentTransforms.AsReadOnly();
         _htmlDocumentTransforms = htmlDocumentTransforms.AsReadOnly();
+        _rendererDocumentTransforms = rendererDocumentTransforms.AsReadOnly();
         _htmlElementBlockConverters = htmlElementBlockConverters.AsReadOnly();
         _htmlInlineElementConverters = htmlInlineElementConverters.AsReadOnly();
         _visualElementRoundTripHints = roundTripHints.AsReadOnly();
@@ -220,6 +243,11 @@ public sealed class MarkdownRendererFeaturePack {
     /// HTML-to-markdown document transforms contributed by the composed plugins in this feature pack.
     /// </summary>
     public IReadOnlyList<IMarkdownDocumentTransform> HtmlDocumentTransforms => _htmlDocumentTransforms;
+
+    /// <summary>
+    /// Renderer-side document transforms contributed by the composed plugins in this feature pack.
+    /// </summary>
+    public IReadOnlyList<IMarkdownDocumentTransform> RendererDocumentTransforms => _rendererDocumentTransforms;
 
     /// <summary>
     /// HTML-to-markdown custom element block converters contributed by the composed plugins in this feature pack.

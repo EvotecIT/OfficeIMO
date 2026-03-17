@@ -36,6 +36,25 @@ Paragraph text
     }
 
     [Fact]
+    public void ParseWithSyntaxTreeAndDiagnostics_Returns_FinalDocument_OriginalSyntaxTree_And_TransformDiagnostics() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
+        const string markdown = "previous shutdown was unexpected### Reason";
+
+        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+
+        Assert.Equal(2, result.Document.Blocks.Count);
+        Assert.Single(result.SyntaxTree.Children);
+        var diagnostic = Assert.Single(result.TransformDiagnostics);
+        Assert.Contains(nameof(MarkdownCompactHeadingBoundaryTransform), diagnostic.TransformName, StringComparison.Ordinal);
+        Assert.Equal(0, diagnostic.ChangedBlockStartBefore);
+        Assert.Equal(1, diagnostic.ChangedBlockCountBefore);
+        Assert.Equal(0, diagnostic.ChangedBlockStartAfter);
+        Assert.Equal(2, diagnostic.ChangedBlockCountAfter);
+        Assert.Equal(new MarkdownSourceSpan(1, 1), diagnostic.AffectedSourceSpan);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Heading_Structure() {
         var markdown = """
 Heading Title

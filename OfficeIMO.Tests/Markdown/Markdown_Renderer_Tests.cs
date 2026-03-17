@@ -585,6 +585,7 @@ public class Markdown_Renderer_Tests {
             NormalizeTightColonSpacing = true
         });
         var transform = new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.GenericSemanticFence);
+        var rendererTransform = new RendererAppendParagraphTransform("renderer tail");
         var elementConverter = new HtmlElementBlockConverter(
             "vendor.custom-html",
             "Vendor custom HTML",
@@ -603,6 +604,7 @@ public class Markdown_Renderer_Tests {
             },
             readerDocumentTransforms: new[] { readerTransform },
             htmlDocumentTransforms: new[] { transform },
+            rendererDocumentTransforms: new[] { rendererTransform },
             htmlElementBlockConverters: new[] { elementConverter },
             htmlInlineElementConverters: new[] { inlineConverter },
             visualElementRoundTripHints: new[] { hint });
@@ -615,6 +617,8 @@ public class Markdown_Renderer_Tests {
         Assert.Same(readerTransform, plugin.ReaderDocumentTransforms[0]);
         Assert.Single(plugin.HtmlDocumentTransforms);
         Assert.Same(transform, plugin.HtmlDocumentTransforms[0]);
+        Assert.Single(plugin.RendererDocumentTransforms);
+        Assert.Same(rendererTransform, plugin.RendererDocumentTransforms[0]);
         Assert.Single(plugin.HtmlElementBlockConverters);
         Assert.Same(elementConverter, plugin.HtmlElementBlockConverters[0]);
         Assert.Single(plugin.HtmlInlineElementConverters);
@@ -625,6 +629,8 @@ public class Markdown_Renderer_Tests {
         Assert.Same(readerTransform, featurePack.ReaderDocumentTransforms[0]);
         Assert.Single(featurePack.HtmlDocumentTransforms);
         Assert.Same(transform, featurePack.HtmlDocumentTransforms[0]);
+        Assert.Single(featurePack.RendererDocumentTransforms);
+        Assert.Same(rendererTransform, featurePack.RendererDocumentTransforms[0]);
         Assert.Single(featurePack.HtmlElementBlockConverters);
         Assert.Same(elementConverter, featurePack.HtmlElementBlockConverters[0]);
         Assert.Single(featurePack.HtmlInlineElementConverters);
@@ -666,6 +672,7 @@ public class Markdown_Renderer_Tests {
         Assert.Same(SampleMarkdownRenderer.StatusBadgeReaderDocumentTransform, SampleMarkdownRenderer.StatusPanelFeaturePack.ReaderDocumentTransforms[0]);
         Assert.Single(SampleMarkdownRenderer.StatusPanelFeaturePack.HtmlDocumentTransforms);
         Assert.Same(SampleMarkdownRenderer.StatusPanelHtmlDocumentTransform, SampleMarkdownRenderer.StatusPanelFeaturePack.HtmlDocumentTransforms[0]);
+        Assert.Empty(SampleMarkdownRenderer.StatusPanelFeaturePack.RendererDocumentTransforms);
         Assert.Single(SampleMarkdownRenderer.StatusPanelFeaturePack.HtmlElementBlockConverters);
         Assert.Same(SampleMarkdownRenderer.StatusPanelVendorHtmlConverter, SampleMarkdownRenderer.StatusPanelFeaturePack.HtmlElementBlockConverters[0]);
         Assert.Single(SampleMarkdownRenderer.StatusPanelFeaturePack.HtmlInlineElementConverters);
@@ -1143,6 +1150,184 @@ x^2 + 1
     }
 
     [Fact]
+    public void MarkdownRenderer_Can_Apply_Ast_Document_Transforms_Before_Html_Rendering() {
+        var opts = new MarkdownRendererOptions();
+        opts.DocumentTransforms.Add(new RendererAppendParagraphTransform("tail"));
+
+        var htmlOut = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("hello", opts);
+
+        Assert.Contains("<p>hello</p>", htmlOut, StringComparison.Ordinal);
+        Assert.Contains("<p>tail</p>", htmlOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_ParseDocument_Returns_Renderer_Transformed_Ast() {
+        var opts = new MarkdownRendererOptions();
+        opts.DocumentTransforms.Add(new RendererAppendParagraphTransform("tail"));
+
+        var document = MarkdownRenderer.MarkdownRenderer.ParseDocument("hello", opts);
+
+        Assert.Equal(2, document.Blocks.Count);
+        Assert.Equal("hello", Assert.IsType<ParagraphBlock>(document.Blocks[0]).Inlines.RenderMarkdown());
+        Assert.Equal("tail", Assert.IsType<ParagraphBlock>(document.Blocks[1]).Inlines.RenderMarkdown());
+    }
+
+    [Fact]
+    public void MarkdownRenderer_ParseDocument_Can_Report_Transform_Diagnostics() {
+        var opts = new MarkdownRendererOptions();
+        opts.DocumentTransforms.Add(new RendererAppendParagraphTransform("tail"));
+        var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
+
+        var document = MarkdownRenderer.MarkdownRenderer.ParseDocument("hello", opts, diagnostics);
+
+        Assert.Equal(2, document.Blocks.Count);
+        var diagnostic = Assert.Single(diagnostics, diagnostic =>
+            diagnostic.Source == MarkdownDocumentTransformSource.MarkdownRenderer
+            && diagnostic.TransformName.Contains(nameof(RendererAppendParagraphTransform), StringComparison.Ordinal));
+        Assert.Equal(1, diagnostic.BlockCountBefore);
+        Assert.Equal(2, diagnostic.BlockCountAfter);
+        Assert.False(diagnostic.ReplacedDocument);
+        Assert.Equal(1, diagnostic.ChangedBlockStartBefore);
+        Assert.Equal(0, diagnostic.ChangedBlockCountBefore);
+        Assert.Equal(1, diagnostic.ChangedBlockStartAfter);
+        Assert.Equal(1, diagnostic.ChangedBlockCountAfter);
+        Assert.Null(diagnostic.AffectedSourceSpan);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_ParseDocument_Can_Report_PreProcessor_And_Transform_Diagnostics() {
+        var opts = new MarkdownRendererOptions {
+            NormalizeCompactFenceBodyBoundaries = true
+        };
+        opts.DocumentTransforms.Add(new RendererAppendParagraphTransform("tail"));
+        opts.MarkdownPreProcessors.Add((markdown, _) =>
+            markdown.Replace("```mermaid\nflowchart LR", "```mermaid\ngraph TD"));
+        var transformDiagnostics = new List<MarkdownDocumentTransformDiagnostic>();
+        var preProcessorDiagnostics = new List<MarkdownRendererPreProcessorDiagnostic>();
+
+        var document = MarkdownRenderer.MarkdownRenderer.ParseDocument(
+            "```mermaidflowchart LR A-->B\n```",
+            opts,
+            transformDiagnostics,
+            preProcessorDiagnostics);
+
+        Assert.Equal(2, document.Blocks.Count);
+        Assert.Equal(2, preProcessorDiagnostics.Count);
+        Assert.Equal(MarkdownRendererPreProcessorStage.InputNormalization, preProcessorDiagnostics[0].Stage);
+        Assert.Equal(MarkdownRendererPreProcessorStage.CustomPreProcessor, preProcessorDiagnostics[1].Stage);
+        var diagnostic = Assert.Single(transformDiagnostics, diagnostic =>
+            diagnostic.Source == MarkdownDocumentTransformSource.MarkdownRenderer
+            && diagnostic.TransformName.Contains(nameof(RendererAppendParagraphTransform), StringComparison.Ordinal));
+        Assert.Null(diagnostic.AffectedSourceSpan);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_ParseDocumentResult_Returns_SyntaxTree_And_Both_Diagnostic_Streams() {
+        var opts = new MarkdownRendererOptions {
+            NormalizeCompactFenceBodyBoundaries = true
+        };
+        opts.DocumentTransforms.Add(new RendererAppendParagraphTransform("tail"));
+        opts.MarkdownPreProcessors.Add((markdown, _) =>
+            markdown.Replace("```mermaid\nflowchart LR", "```mermaid\ngraph TD"));
+
+        var result = MarkdownRenderer.MarkdownRenderer.ParseDocumentResult("```mermaidflowchart LR A-->B\n```", opts);
+
+        Assert.Equal(2, result.Document.Blocks.Count);
+        Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(2, result.PreProcessorDiagnostics.Count);
+        Assert.Equal("```mermaid\ngraph TD A-->B\n```", result.PreprocessedMarkdown);
+        Assert.Single(result.TransformDiagnostics, diagnostic =>
+            diagnostic.Source == MarkdownDocumentTransformSource.MarkdownRenderer
+            && diagnostic.TransformName.Contains(nameof(RendererAppendParagraphTransform), StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void MarkdownRenderer_ParseDocumentResult_Includes_Reader_And_Renderer_Transform_Diagnostics() {
+        var opts = new MarkdownRendererOptions();
+        opts.ReaderOptions.DocumentTransforms.Add(new ReaderAppendParagraphTransform("reader tail"));
+        opts.DocumentTransforms.Add(new RendererAppendParagraphTransform("renderer tail"));
+
+        var result = MarkdownRenderer.MarkdownRenderer.ParseDocumentResult("hello", opts);
+
+        Assert.Equal(3, result.Document.Blocks.Count);
+        Assert.True(result.TransformDiagnostics.Count >= 3);
+        var readerDiagnostic = Assert.Single(result.TransformDiagnostics, diagnostic =>
+            diagnostic.Source == MarkdownDocumentTransformSource.MarkdownReader
+            && diagnostic.TransformName.Contains(nameof(ReaderAppendParagraphTransform), StringComparison.Ordinal));
+        var rendererDiagnostic = Assert.Single(result.TransformDiagnostics, diagnostic =>
+            diagnostic.Source == MarkdownDocumentTransformSource.MarkdownRenderer
+            && diagnostic.TransformName.Contains(nameof(RendererAppendParagraphTransform), StringComparison.Ordinal));
+        Assert.Null(readerDiagnostic.AffectedSourceSpan);
+        Assert.Null(rendererDiagnostic.AffectedSourceSpan);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_ParseDocumentResult_Preserves_SourceSpans_For_RendererDiagnostics_After_ReaderBlockInsertions() {
+        var opts = new MarkdownRendererOptions();
+        opts.ReaderOptions.DocumentTransforms.Add(new ReaderAppendParagraphTransform("reader tail"));
+        opts.DocumentTransforms.Add(new RendererRewriteFirstParagraphTransform("hello renderer"));
+
+        var result = MarkdownRenderer.MarkdownRenderer.ParseDocumentResult("hello", opts);
+
+        Assert.Equal(2, result.Document.Blocks.Count);
+        var rendererDiagnostic = Assert.Single(result.TransformDiagnostics, diagnostic =>
+            diagnostic.Source == MarkdownDocumentTransformSource.MarkdownRenderer
+            && diagnostic.TransformName.Contains(nameof(RendererRewriteFirstParagraphTransform), StringComparison.Ordinal));
+        Assert.Equal(new MarkdownSourceSpan(1, 1), rendererDiagnostic.AffectedSourceSpan);
+    }
+
+    [Fact]
+    public void MarkdownRendererPlugin_Can_Carry_Renderer_Document_Transforms_Idempotently() {
+        var rendererTransform = new RendererAppendParagraphTransform("plugin tail");
+        var plugin = new MarkdownRendererPlugin(
+            "Vendor Renderer Visuals",
+            new Func<MarkdownFencedCodeBlockRenderer>[] {
+                () => new MarkdownFencedCodeBlockRenderer(
+                    "Vendor chart",
+                    new[] { "vendor-chart" },
+                    (_, _) => "<div class=\"vendor-chart\"></div>")
+            },
+            rendererDocumentTransforms: new[] { rendererTransform });
+
+        var options = new MarkdownRendererOptions();
+        options.ApplyPlugin(plugin);
+        options.ApplyPlugin(plugin);
+
+        Assert.Same(rendererTransform, Assert.Single(options.DocumentTransforms, transform => ReferenceEquals(transform, rendererTransform)));
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("hello", options);
+        Assert.Contains("<p>plugin tail</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRendererFeaturePack_Composes_Renderer_Document_Transforms_From_Plugins() {
+        var rendererTransform = new RendererAppendParagraphTransform("feature tail");
+        var plugin = new MarkdownRendererPlugin(
+            "Vendor Renderer Visuals",
+            new Func<MarkdownFencedCodeBlockRenderer>[] {
+                () => new MarkdownFencedCodeBlockRenderer(
+                    "Vendor chart",
+                    new[] { "vendor-chart" },
+                    (_, _) => "<div class=\"vendor-chart\"></div>")
+            },
+            rendererDocumentTransforms: new[] { rendererTransform });
+        var featurePack = new MarkdownRendererFeaturePack(
+            "vendor.renderer-pack",
+            "Vendor Renderer Pack",
+            new[] { plugin });
+
+        var options = new MarkdownRendererOptions();
+        options.ApplyFeaturePack(featurePack);
+        options.ApplyFeaturePack(featurePack);
+
+        Assert.Same(rendererTransform, Assert.Single(featurePack.RendererDocumentTransforms, transform => ReferenceEquals(transform, rendererTransform)));
+        Assert.Same(rendererTransform, Assert.Single(options.DocumentTransforms, transform => ReferenceEquals(transform, rendererTransform)));
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("hello", options);
+        Assert.Contains("<p>feature tail</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Normalizes_SoftWrapped_Strong_When_Enabled() {
         var opts = new MarkdownRendererOptions {
             NormalizeSoftWrappedStrongSpans = true
@@ -1399,6 +1584,41 @@ x^2 + 1
         var processed = MarkdownRendererPreProcessorPipeline.Apply("hello {{name}}", opts);
 
         Assert.Equal("hello OfficeIMO", processed);
+    }
+
+    [Fact]
+    public void MarkdownRendererPreProcessorPipeline_Mirrors_Renderer_PreParse_Normalization_Order() {
+        var opts = new MarkdownRendererOptions {
+            NormalizeCompactFenceBodyBoundaries = true
+        };
+        opts.MarkdownPreProcessors.Add((markdown, _) =>
+            markdown.Replace("```mermaid\nflowchart LR", "```mermaid\ngraph TD"));
+
+        var processed = MarkdownRendererPreProcessorPipeline.Apply("```mermaidflowchart LR A-->B\n```", opts);
+
+        Assert.Contains("```mermaid\ngraph TD A-->B", processed, StringComparison.Ordinal);
+        Assert.DoesNotContain("```mermaidflowchart LR", processed, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRendererPreProcessorPipeline_Can_Report_Diagnostics() {
+        var opts = new MarkdownRendererOptions {
+            NormalizeEscapedNewlines = true,
+            NormalizeCompactFenceBodyBoundaries = true
+        };
+        opts.MarkdownPreProcessors.Add((markdown, _) => markdown.Replace("graph TD", "flowchart LR"));
+        var diagnostics = new List<MarkdownRendererPreProcessorDiagnostic>();
+
+        var processed = MarkdownRendererPreProcessorPipeline.Apply(
+            "```mermaidgraph TD A-->B\\n```",
+            opts,
+            diagnostics);
+
+        Assert.Equal("```mermaid\nflowchart LR A-->B\n```", processed);
+        Assert.Equal(3, diagnostics.Count);
+        Assert.Equal(MarkdownRendererPreProcessorStage.EscapedNewlineNormalization, diagnostics[0].Stage);
+        Assert.Equal(MarkdownRendererPreProcessorStage.InputNormalization, diagnostics[1].Stage);
+        Assert.Equal(MarkdownRendererPreProcessorStage.CustomPreProcessor, diagnostics[2].Stage);
     }
 
     [Fact]
@@ -1667,6 +1887,43 @@ Lead[^1]
         var encoded = html.Substring(start, end - start);
         var bytes = Convert.FromBase64String(System.Net.WebUtility.HtmlDecode(encoded));
         return Encoding.UTF8.GetString(bytes).TrimEnd('\r', '\n');
+    }
+
+    private sealed class RendererAppendParagraphTransform(string text) : IMarkdownDocumentTransform {
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+            Assert.Equal(MarkdownDocumentTransformSource.MarkdownRenderer, context.Source);
+            Assert.NotNull(context.ReaderOptions);
+            Assert.IsType<MarkdownRendererOptions>(context.SourceOptions);
+
+            document.Add(new ParagraphBlock(new InlineSequence().Text(text)));
+            return document;
+        }
+    }
+
+    private sealed class ReaderAppendParagraphTransform(string text) : IMarkdownDocumentTransform {
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+            Assert.Equal(MarkdownDocumentTransformSource.MarkdownReader, context.Source);
+            Assert.NotNull(context.ReaderOptions);
+
+            document.Add(new ParagraphBlock(new InlineSequence().Text(text)));
+            return document;
+        }
+    }
+
+    private sealed class RendererRewriteFirstParagraphTransform(string text) : IMarkdownDocumentTransform {
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+            Assert.Equal(MarkdownDocumentTransformSource.MarkdownRenderer, context.Source);
+            Assert.NotNull(context.ReaderOptions);
+            Assert.IsType<MarkdownRendererOptions>(context.SourceOptions);
+
+            var rewritten = MarkdownDoc.Create();
+            rewritten.Add(new ParagraphBlock(new InlineSequence().Text(text)));
+            for (var i = 1; i < document.Blocks.Count; i++) {
+                rewritten.Add(document.Blocks[i]);
+            }
+
+            return rewritten;
+        }
     }
 
 }

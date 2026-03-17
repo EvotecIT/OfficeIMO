@@ -299,6 +299,23 @@ var preview = MarkdownStreamingPreviewNormalizer.NormalizeIntelligenceXTranscrip
 
 Use `NormalizeIntelligenceXTranscript(...)` when a host needs conservative cleanup for in-progress IX transcript output. This path keeps partial markdown reshaping minimal, but escalates known signal-flow and malformed-strong artifacts through the explicit `IntelligenceXTranscript` input-normalization contract.
 
+### Parse with syntax tree and transform diagnostics
+
+```csharp
+var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
+
+var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(
+    "previous shutdown was unexpected### Reason",
+    options);
+
+var document = result.Document;
+var syntaxTree = result.SyntaxTree;
+var diagnostics = result.TransformDiagnostics;
+```
+
+Use `ParseWithSyntaxTreeAndDiagnostics(...)` when a host wants the final transformed AST, the original pre-transform syntax tree, and document-transform diagnostics from one reader call.
+
 ### Explicit transcript preparation for export and DOCX hosts
 
 ```csharp

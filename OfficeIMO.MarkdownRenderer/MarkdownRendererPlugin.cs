@@ -12,6 +12,7 @@ public sealed class MarkdownRendererPlugin {
     private readonly IReadOnlyList<MarkdownFenceOptionSchema> _fenceOptionSchemas;
     private readonly IReadOnlyList<IMarkdownDocumentTransform> _readerDocumentTransforms;
     private readonly IReadOnlyList<IMarkdownDocumentTransform> _htmlDocumentTransforms;
+    private readonly IReadOnlyList<IMarkdownDocumentTransform> _rendererDocumentTransforms;
     private readonly IReadOnlyList<HtmlElementBlockConverter> _htmlElementBlockConverters;
     private readonly IReadOnlyList<HtmlInlineElementConverter> _htmlInlineElementConverters;
     private readonly IReadOnlyList<MarkdownVisualElementRoundTripHint> _visualElementRoundTripHints;
@@ -30,6 +31,7 @@ public sealed class MarkdownRendererPlugin {
         IEnumerable<HtmlElementBlockConverter>? htmlElementBlockConverters = null,
         IEnumerable<HtmlInlineElementConverter>? htmlInlineElementConverters = null,
         IEnumerable<MarkdownVisualElementRoundTripHint>? visualElementRoundTripHints = null,
+        IEnumerable<IMarkdownDocumentTransform>? rendererDocumentTransforms = null,
         Action<MarkdownRendererOptions>? apply = null,
         Action<MarkdownReaderOptions>? applyReader = null) {
         if (string.IsNullOrWhiteSpace(name)) {
@@ -60,6 +62,7 @@ public sealed class MarkdownRendererPlugin {
         _fenceOptionSchemas = NormalizeSchemas(fenceOptionSchemas);
         _readerDocumentTransforms = NormalizeDocumentTransforms(readerDocumentTransforms);
         _htmlDocumentTransforms = NormalizeHtmlDocumentTransforms(htmlDocumentTransforms);
+        _rendererDocumentTransforms = NormalizeRendererDocumentTransforms(rendererDocumentTransforms);
         _htmlElementBlockConverters = NormalizeHtmlElementBlockConverters(htmlElementBlockConverters);
         _htmlInlineElementConverters = NormalizeHtmlInlineElementConverters(htmlInlineElementConverters);
         _visualElementRoundTripHints = NormalizeRoundTripHints(visualElementRoundTripHints);
@@ -79,6 +82,7 @@ public sealed class MarkdownRendererPlugin {
         IEnumerable<HtmlElementBlockConverter>? htmlElementBlockConverters = null,
         IEnumerable<HtmlInlineElementConverter>? htmlInlineElementConverters = null,
         IEnumerable<MarkdownVisualElementRoundTripHint>? visualElementRoundTripHints = null,
+        IEnumerable<IMarkdownDocumentTransform>? rendererDocumentTransforms = null,
         Action<MarkdownRendererOptions>? apply = null,
         Action<MarkdownReaderOptions>? applyReader = null) {
         if (string.IsNullOrWhiteSpace(name)) {
@@ -112,6 +116,7 @@ public sealed class MarkdownRendererPlugin {
         var schemas = new List<MarkdownFenceOptionSchema>();
         var readerDocumentTransformsList = new List<IMarkdownDocumentTransform>();
         var htmlDocumentTransformsList = new List<IMarkdownDocumentTransform>();
+        var rendererDocumentTransformsList = new List<IMarkdownDocumentTransform>();
         var htmlElementBlockConvertersList = new List<HtmlElementBlockConverter>();
         var htmlInlineElementConvertersList = new List<HtmlInlineElementConverter>();
         var roundTripHints = new List<MarkdownVisualElementRoundTripHint>();
@@ -122,6 +127,7 @@ public sealed class MarkdownRendererPlugin {
             AddSchemas(schemas, plugin._fenceOptionSchemas);
             AddDocumentTransforms(readerDocumentTransformsList, plugin._readerDocumentTransforms);
             AddHtmlDocumentTransforms(htmlDocumentTransformsList, plugin._htmlDocumentTransforms);
+            AddRendererDocumentTransforms(rendererDocumentTransformsList, plugin._rendererDocumentTransforms);
             AddHtmlElementBlockConverters(htmlElementBlockConvertersList, plugin._htmlElementBlockConverters);
             AddHtmlInlineElementConverters(htmlInlineElementConvertersList, plugin._htmlInlineElementConverters);
             AddRoundTripHints(roundTripHints, plugin._visualElementRoundTripHints);
@@ -132,6 +138,7 @@ public sealed class MarkdownRendererPlugin {
         AddSchemas(schemas, NormalizeSchemas(fenceOptionSchemas));
         AddDocumentTransforms(readerDocumentTransformsList, NormalizeDocumentTransforms(readerDocumentTransforms));
         AddHtmlDocumentTransforms(htmlDocumentTransformsList, NormalizeHtmlDocumentTransforms(htmlDocumentTransforms));
+        AddRendererDocumentTransforms(rendererDocumentTransformsList, NormalizeRendererDocumentTransforms(rendererDocumentTransforms));
         AddHtmlElementBlockConverters(htmlElementBlockConvertersList, NormalizeHtmlElementBlockConverters(htmlElementBlockConverters));
         AddHtmlInlineElementConverters(htmlInlineElementConvertersList, NormalizeHtmlInlineElementConverters(htmlInlineElementConverters));
         AddRoundTripHints(roundTripHints, NormalizeRoundTripHints(visualElementRoundTripHints));
@@ -146,6 +153,7 @@ public sealed class MarkdownRendererPlugin {
         _fenceOptionSchemas = schemas.AsReadOnly();
         _readerDocumentTransforms = readerDocumentTransformsList.AsReadOnly();
         _htmlDocumentTransforms = htmlDocumentTransformsList.AsReadOnly();
+        _rendererDocumentTransforms = rendererDocumentTransformsList.AsReadOnly();
         _htmlElementBlockConverters = htmlElementBlockConvertersList.AsReadOnly();
         _htmlInlineElementConverters = htmlInlineElementConvertersList.AsReadOnly();
         _visualElementRoundTripHints = roundTripHints.AsReadOnly();
@@ -209,6 +217,13 @@ public sealed class MarkdownRendererPlugin {
     public IReadOnlyList<IMarkdownDocumentTransform> HtmlDocumentTransforms => _htmlDocumentTransforms;
 
     /// <summary>
+    /// Renderer-side document transforms contributed by this plugin.
+    /// Hosts can register these on <see cref="MarkdownRendererOptions.DocumentTransforms"/>
+    /// when they want renderer-time AST rewrites aligned with the plugin contract.
+    /// </summary>
+    public IReadOnlyList<IMarkdownDocumentTransform> RendererDocumentTransforms => _rendererDocumentTransforms;
+
+    /// <summary>
     /// HTML-to-markdown custom element block converters contributed by this plugin.
     /// Hosts can register these on <c>HtmlToMarkdownOptions.ElementBlockConverters</c>
     /// when they want HTML element decoding aligned with the plugin contract.
@@ -243,6 +258,13 @@ public sealed class MarkdownRendererPlugin {
 
         for (int i = 0; i < _fenceOptionSchemas.Count; i++) {
             options.ApplyFenceOptionSchema(_fenceOptionSchemas[i]);
+        }
+
+        for (int i = 0; i < _rendererDocumentTransforms.Count; i++) {
+            var transform = _rendererDocumentTransforms[i];
+            if (transform != null && !options.DocumentTransforms.Contains(transform)) {
+                options.DocumentTransforms.Add(transform);
+            }
         }
 
         options.ReaderOptions.ApplyPlugin(this);
@@ -362,6 +384,12 @@ public sealed class MarkdownRendererPlugin {
         return normalized.AsReadOnly();
     }
 
+    private static IReadOnlyList<IMarkdownDocumentTransform> NormalizeRendererDocumentTransforms(IEnumerable<IMarkdownDocumentTransform>? transforms) {
+        var normalized = new List<IMarkdownDocumentTransform>();
+        AddRendererDocumentTransforms(normalized, transforms);
+        return normalized.AsReadOnly();
+    }
+
     private static IReadOnlyList<HtmlElementBlockConverter> NormalizeHtmlElementBlockConverters(IEnumerable<HtmlElementBlockConverter>? converters) {
         var normalized = new List<HtmlElementBlockConverter>();
         AddHtmlElementBlockConverters(normalized, converters);
@@ -453,6 +481,30 @@ public sealed class MarkdownRendererPlugin {
     }
 
     private static void AddHtmlDocumentTransforms(ICollection<IMarkdownDocumentTransform> target, IEnumerable<IMarkdownDocumentTransform>? transforms) {
+        if (transforms == null) {
+            return;
+        }
+
+        foreach (var transform in transforms) {
+            if (transform == null) {
+                continue;
+            }
+
+            bool exists = false;
+            foreach (var existing in target) {
+                if (ReferenceEquals(existing, transform)) {
+                    exists = true;
+                    break;
+                }
+            }
+
+            if (!exists) {
+                target.Add(transform);
+            }
+        }
+    }
+
+    private static void AddRendererDocumentTransforms(ICollection<IMarkdownDocumentTransform> target, IEnumerable<IMarkdownDocumentTransform>? transforms) {
         if (transforms == null) {
             return;
         }

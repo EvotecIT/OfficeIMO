@@ -1,0 +1,15 @@
+[renderer-source-aware.preprocessed]
+previous shutdown was unexpected### Reason
+
+[renderer-source-aware.preprocessors]
+(none)
+
+[renderer-source-aware.transforms]
+MarkdownReader MarkdownRegisteredFencedBlockTransform before=1 after=1 changed-before=1+0 changed-after=1+0 span=- replaced=false
+MarkdownReader MarkdownCompactHeadingBoundaryTransform before=1 after=2 changed-before=0+1 changed-after=0+2 span=L1 replaced=false
+MarkdownRenderer Markdown_Golden_Fixture_Tests+GoldenRendererAppendParagraphTransform before=2 after=3 changed-before=2+0 changed-after=2+1 span=- replaced=false
+
+[renderer-source-aware.ast]
+0: Paragraph("previous shutdown was unexpected")
+1: Heading(level=3, text="Reason")
+2: Paragraph("renderer tail")
