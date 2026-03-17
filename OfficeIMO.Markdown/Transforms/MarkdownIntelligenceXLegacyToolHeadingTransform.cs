@@ -176,7 +176,7 @@ public sealed class MarkdownIntelligenceXLegacyToolHeadingTransform : IMarkdownD
         }
 
         if (LegacyToolHeadingLeadRegex.IsMatch(paragraphMarkdown)) {
-            blocks = new IMarkdownBlock[] { followingHeading };
+            blocks = BuildPromotedBlocks(followingHeading, trailingBlocks, skipFirstPromotedBlock: false);
             consumedFollowingHeading = true;
             return true;
         }
@@ -187,7 +187,10 @@ public sealed class MarkdownIntelligenceXLegacyToolHeadingTransform : IMarkdownD
         }
 
         var combinedLevel = Math.Min(6, splitMatch.Groups["fragment"].Value.Length + followingHeading.Level);
-        blocks = new IMarkdownBlock[] { new HeadingBlock(combinedLevel, followingHeading.Inlines) };
+        blocks = BuildPromotedBlocks(
+            new HeadingBlock(combinedLevel, followingHeading.Inlines),
+            trailingBlocks,
+            skipFirstPromotedBlock: false);
         consumedFollowingHeading = true;
         return true;
     }

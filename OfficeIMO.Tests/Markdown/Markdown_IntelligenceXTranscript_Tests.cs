@@ -695,6 +695,33 @@ Recent evidence:
         }
 
         [Fact]
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscriptMinimal_PreservesLegacyToolHeadingChildBlocks_WhenUsingFollowingHeadingFallback() {
+            var markdown = """
+Recent evidence:
+- ad_environment_discover:
+
+  Body stays with the promoted heading.
+
+### Active Directory: Environment Discovery
+""";
+
+            var document = OfficeIMO.MarkdownRenderer.MarkdownRenderer.ParseDocument(
+                markdown,
+                MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal());
+
+            Assert.Collection(
+                document.Blocks,
+                block => Assert.Equal("Recent evidence:", ((IMarkdownBlock)Assert.IsType<ParagraphBlock>(block)).RenderMarkdown()),
+                block => {
+                    var heading = Assert.IsType<HeadingBlock>(block);
+                    Assert.Equal("Active Directory: Environment Discovery", heading.Text);
+                },
+                block => Assert.Equal(
+                    "Body stays with the promoted heading.",
+                    ((IMarkdownBlock)Assert.IsType<ParagraphBlock>(block)).RenderMarkdown()));
+        }
+
+        [Fact]
         public void MarkdownRendererPresets_CreateIntelligenceXTranscriptMinimal_RepairsHostLabelBulletsAndBrokenResultLeadIns() {
             var markdown = """
 -AD1

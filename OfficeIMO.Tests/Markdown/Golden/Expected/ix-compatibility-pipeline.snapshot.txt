@@ -9,7 +9,7 @@ Recent evidence:
 ## Active Directory: Environment Discovery
 
 [legacy-tool-heading.preprocessors]
-InputNormalization changed=true before=184 after=183
+InputNormalization changed=true before=177 after=176
 
 [legacy-tool-heading.transforms]
 MarkdownReader MarkdownRegisteredFencedBlockTransform before=6 after=6 changed-before=6+0 changed-after=6+0 span=- replaced=false

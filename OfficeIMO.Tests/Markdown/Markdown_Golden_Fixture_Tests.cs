@@ -589,6 +589,12 @@ public sealed class Markdown_Golden_Fixture_Tests {
             .Trim();
     }
 
+    private static string NormalizeFixtureText(string value) {
+        return (value ?? string.Empty)
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n');
+    }
+
     private static string EscapeSingleLine(string? value) {
         if (string.IsNullOrEmpty(value)) {
             return string.Empty;
@@ -628,7 +634,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
     }
 
     private static string LoadCompatibilityFixture(string name) {
-        return File.ReadAllText(Path.Combine(GetTestsProjectRoot(), "Markdown", "Fixtures", "Compatibility", name));
+        return NormalizeFixtureText(File.ReadAllText(Path.Combine(GetTestsProjectRoot(), "Markdown", "Fixtures", "Compatibility", name)));
     }
 
     private static string GetExpectedPath(string name) {
