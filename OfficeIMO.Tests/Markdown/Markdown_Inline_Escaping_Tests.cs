@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
-        public void TextRun_EncodesLiteralAngleBrackets() {
-            var run = new TextRun("<u>demo</u>");
+        public void DecodedHtmlEntityTextRun_EncodesLiteralAngleBrackets() {
+            IRenderableMarkdownInline run = new DecodedHtmlEntityTextRun("<u>demo</u>");
 
             var markdown = run.RenderMarkdown();
 

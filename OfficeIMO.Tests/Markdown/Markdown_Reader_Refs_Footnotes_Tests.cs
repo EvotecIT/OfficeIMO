@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var doc = MarkdownReader.Parse(md);
             var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
             var wrapper = Assert.IsType<HtmlTagSequenceInline>(Assert.Single(paragraph.Inlines.Nodes, node => node is HtmlTagSequenceInline));
-            var text = Assert.IsType<TextRun>(Assert.Single(wrapper.Inlines.Nodes));
+            var text = Assert.IsType<DecodedHtmlEntityTextRun>(Assert.Single(wrapper.Inlines.Nodes));
 
             Assert.Equal("&", text.Text);
 
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var doc = MarkdownReader.Parse(md);
             var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
             var wrapper = Assert.IsType<HtmlTagSequenceInline>(Assert.Single(paragraph.Inlines.Nodes, node => node is HtmlTagSequenceInline));
-            var text = Assert.IsType<TextRun>(Assert.Single(wrapper.Inlines.Nodes));
+            var text = Assert.IsType<DecodedHtmlEntityTextRun>(Assert.Single(wrapper.Inlines.Nodes));
 
             Assert.Equal("<u>x</u>", text.Text);
 

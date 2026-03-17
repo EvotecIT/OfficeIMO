@@ -1269,7 +1269,7 @@ public static partial class MarkdownReader {
             string decoded = System.Net.WebUtility.HtmlDecode(text.Text);
             if (!string.Equals(decoded, text.Text, StringComparison.Ordinal)) {
                 changed = true;
-                return new TextRun(decoded);
+                return new DecodedHtmlEntityTextRun(decoded);
             }
 
             return text;
