@@ -16,6 +16,7 @@ internal static class MarkdownEscaper {
     private static readonly char[] UrlReserved = ['\\', '(', ')', '[', ']', '|'];
 
     internal static string EscapeText(string? text) => Escape(text, GeneralReserved);
+    internal static string EscapeLiteralText(string? text) => EncodeLiteralMarkdownText(text);
     internal static string EscapeEmphasis(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeHighlightText(string? text) => Escape(text, HighlightReserved);
     internal static string EscapeLinkText(string? text) => Escape(text, GeneralReserved);
@@ -65,5 +66,42 @@ internal static class MarkdownEscaper {
             }
         }
         return sb?.ToString() ?? text;
+    }
+
+    private static string EncodeLiteralMarkdownText(string? text) {
+        string value = text ?? string.Empty;
+        if (value.Length == 0) {
+            return string.Empty;
+        }
+
+        StringBuilder? sb = null;
+        for (int i = 0; i < value.Length; i++) {
+            string? replacement = value[i] switch {
+                '\\' => "&#92;",
+                '[' => "&#91;",
+                ']' => "&#93;",
+                '(' => "&#40;",
+                ')' => "&#41;",
+                '|' => "&#124;",
+                '*' => "&#42;",
+                '_' => "&#95;",
+                '`' => "&#96;",
+                '~' => "&#126;",
+                '=' => "&#61;",
+                '<' => "&lt;",
+                '>' => "&gt;",
+                _ => null
+            };
+
+            if (replacement == null) {
+                sb?.Append(value[i]);
+                continue;
+            }
+
+            sb ??= new StringBuilder(value.Length + 16).Append(value, 0, i);
+            sb.Append(replacement);
+        }
+
+        return sb?.ToString() ?? value;
     }
 }

@@ -54,6 +54,76 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Supported_Html_Wrappers_Decode_Entities_Before_Parsing_Inlines() {
+            const string md = "Value <u>&amp;</u>";
+
+            var doc = MarkdownReader.Parse(md);
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+            var wrapper = Assert.IsType<HtmlTagSequenceInline>(Assert.Single(paragraph.Inlines.Nodes, node => node is HtmlTagSequenceInline));
+            var text = Assert.IsType<DecodedHtmlEntityTextRun>(Assert.Single(wrapper.Inlines.Nodes));
+
+            Assert.Equal("&", text.Text);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("Value <u>&amp;</u>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("&amp;amp;", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Supported_Html_Wrappers_Keep_Decoded_Tag_Text_Literal() {
+            const string md = "Value <u>&lt;u&gt;x&lt;/u&gt;</u>";
+
+            var doc = MarkdownReader.Parse(md);
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+            var wrapper = Assert.IsType<HtmlTagSequenceInline>(Assert.Single(paragraph.Inlines.Nodes, node => node is HtmlTagSequenceInline));
+            var text = Assert.IsType<DecodedHtmlEntityTextRun>(Assert.Single(wrapper.Inlines.Nodes));
+
+            Assert.Equal("<u>x</u>", text.Text);
+
+            var markdown = doc.ToMarkdown();
+            Assert.Contains("Value <u>&lt;u&gt;x&lt;/u&gt;</u>", markdown, StringComparison.Ordinal);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("Value <u>&lt;u&gt;x&lt;/u&gt;</u>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Supported_Html_Wrappers_Keep_Decoded_Markdown_Delimiters_Literal() {
+            const string md = "Value <u>&#96;code&#96; &#126;&#126;strike&#126;&#126; &#61;&#61;mark&#61;&#61;</u>";
+
+            var doc = MarkdownReader.Parse(md);
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+            var wrapper = Assert.IsType<HtmlTagSequenceInline>(Assert.Single(paragraph.Inlines.Nodes, node => node is HtmlTagSequenceInline));
+            var text = Assert.IsType<DecodedHtmlEntityTextRun>(Assert.Single(wrapper.Inlines.Nodes));
+
+            Assert.Equal("`code` ~~strike~~ ==mark==", text.Text);
+
+            var markdown = doc.ToMarkdown();
+            Assert.Contains("Value <u>&#96;code&#96; &#126;&#126;strike&#126;&#126; &#61;&#61;mark&#61;&#61;</u>", markdown, StringComparison.Ordinal);
+
+            var reparsed = MarkdownReader.Parse(markdown);
+            var html = reparsed.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("Value <u>`code` ~~strike~~ ==mark==</u>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("<code>code</code>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("<del>strike</del>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("<mark>mark</mark>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Footnote_RenderMarkdown_Indents_NonParagraph_First_Block_On_Next_Line() {
+            var footnote = new FootnoteDefinitionBlock(
+                "1",
+                "```csharp\nConsole.WriteLine(1);\n```",
+                new IMarkdownBlock[] { new CodeBlock("csharp", "Console.WriteLine(1);") },
+                syntaxChildren: null);
+
+            string markdown = ((IMarkdownBlock)footnote).RenderMarkdown();
+
+            Assert.StartsWith("[^1]:\n  ```csharp", markdown, StringComparison.Ordinal);
+            Assert.Contains("\n  Console.WriteLine(1);\n", markdown, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Reference_Link_Title_On_Next_Line_Is_Resolved() {
             var md = string.Join("\n", new[] {
                 "See [Docs][docs].",
