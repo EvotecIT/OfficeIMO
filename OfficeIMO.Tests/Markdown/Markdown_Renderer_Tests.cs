@@ -1262,6 +1262,21 @@ x^2 + 1
     }
 
     [Fact]
+    public void MarkdownRenderer_ParseDocumentResult_Preserves_SourceSpans_For_RendererDiagnostics_After_ReaderBlockInsertions() {
+        var opts = new MarkdownRendererOptions();
+        opts.ReaderOptions.DocumentTransforms.Add(new ReaderAppendParagraphTransform("reader tail"));
+        opts.DocumentTransforms.Add(new RendererRewriteFirstParagraphTransform("hello renderer"));
+
+        var result = MarkdownRenderer.MarkdownRenderer.ParseDocumentResult("hello", opts);
+
+        Assert.Equal(2, result.Document.Blocks.Count);
+        var rendererDiagnostic = Assert.Single(result.TransformDiagnostics, diagnostic =>
+            diagnostic.Source == MarkdownDocumentTransformSource.MarkdownRenderer
+            && diagnostic.TransformName.Contains(nameof(RendererRewriteFirstParagraphTransform), StringComparison.Ordinal));
+        Assert.Equal(new MarkdownSourceSpan(1, 1), rendererDiagnostic.AffectedSourceSpan);
+    }
+
+    [Fact]
     public void MarkdownRendererPlugin_Can_Carry_Renderer_Document_Transforms_Idempotently() {
         var rendererTransform = new RendererAppendParagraphTransform("plugin tail");
         var plugin = new MarkdownRendererPlugin(
@@ -1892,6 +1907,22 @@ Lead[^1]
 
             document.Add(new ParagraphBlock(new InlineSequence().Text(text)));
             return document;
+        }
+    }
+
+    private sealed class RendererRewriteFirstParagraphTransform(string text) : IMarkdownDocumentTransform {
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+            Assert.Equal(MarkdownDocumentTransformSource.MarkdownRenderer, context.Source);
+            Assert.NotNull(context.ReaderOptions);
+            Assert.IsType<MarkdownRendererOptions>(context.SourceOptions);
+
+            var rewritten = MarkdownDoc.Create();
+            rewritten.Add(new ParagraphBlock(new InlineSequence().Text(text)));
+            for (var i = 1; i < document.Blocks.Count; i++) {
+                rewritten.Add(document.Blocks[i]);
+            }
+
+            return rewritten;
         }
     }
 

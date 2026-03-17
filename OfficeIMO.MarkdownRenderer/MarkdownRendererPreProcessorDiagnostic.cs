@@ -7,27 +7,27 @@ public sealed class MarkdownRendererPreProcessorDiagnostic {
     /// <summary>
     /// Pre-parse stage that produced this diagnostic.
     /// </summary>
-    public MarkdownRendererPreProcessorStage Stage { get; init; }
+    public MarkdownRendererPreProcessorStage Stage { get; set; }
 
     /// <summary>
     /// Processor name for custom pre-processors.
     /// </summary>
-    public string ProcessorName { get; init; } = string.Empty;
+    public string ProcessorName { get; set; } = string.Empty;
 
     /// <summary>
     /// Input length before the stage ran.
     /// </summary>
-    public int LengthBefore { get; init; }
+    public int LengthBefore { get; set; }
 
     /// <summary>
     /// Input length after the stage ran.
     /// </summary>
-    public int LengthAfter { get; init; }
+    public int LengthAfter { get; set; }
 
     /// <summary>
     /// Whether the stage changed the markdown text.
     /// </summary>
-    public bool Changed { get; init; }
+    public bool Changed { get; set; }
 }
 
 /// <summary>

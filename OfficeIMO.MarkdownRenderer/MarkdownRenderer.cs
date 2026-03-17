@@ -229,9 +229,10 @@ public static class MarkdownRenderer {
     }
 
     private static IReadOnlyList<MarkdownSourceSpan?> BuildTopLevelBlockSourceSpans(MarkdownParseResult parseResult) {
-        var spans = new List<MarkdownSourceSpan?>(parseResult.Document.Blocks.Count);
         var children = parseResult.SyntaxTree.Children;
-        if (children.Count == parseResult.Document.Blocks.Count) {
+        var spans = new List<MarkdownSourceSpan?>(children.Count > 0 ? children.Count : parseResult.Document.Blocks.Count);
+
+        if (children.Count > 0) {
             for (var i = 0; i < children.Count; i++) {
                 spans.Add(children[i].SourceSpan);
             }
@@ -244,6 +245,14 @@ public static class MarkdownRenderer {
         for (var i = 0; i < parseResult.TransformDiagnostics.Count; i++) {
             var diagnostic = parseResult.TransformDiagnostics[i];
             spans = UpdateTopLevelBlockSourceSpans(spans, diagnostic);
+        }
+
+        while (spans.Count < parseResult.Document.Blocks.Count) {
+            spans.Add(null);
+        }
+
+        if (spans.Count > parseResult.Document.Blocks.Count) {
+            spans.RemoveRange(parseResult.Document.Blocks.Count, spans.Count - parseResult.Document.Blocks.Count);
         }
 
         return spans;

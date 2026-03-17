@@ -7,50 +7,50 @@ public sealed class MarkdownDocumentTransformDiagnostic {
     /// <summary>
     /// Known source stage that invoked the transform pipeline.
     /// </summary>
-    public MarkdownDocumentTransformSource Source { get; init; }
+    public MarkdownDocumentTransformSource Source { get; set; }
 
     /// <summary>
     /// Transform type name.
     /// </summary>
-    public string TransformName { get; init; } = string.Empty;
+    public string TransformName { get; set; } = string.Empty;
 
     /// <summary>
     /// Number of top-level blocks before the transform ran.
     /// </summary>
-    public int BlockCountBefore { get; init; }
+    public int BlockCountBefore { get; set; }
 
     /// <summary>
     /// Number of top-level blocks after the transform ran.
     /// </summary>
-    public int BlockCountAfter { get; init; }
+    public int BlockCountAfter { get; set; }
 
     /// <summary>
     /// Whether the transform returned a different document instance.
     /// </summary>
-    public bool ReplacedDocument { get; init; }
+    public bool ReplacedDocument { get; set; }
 
     /// <summary>
     /// First top-level block index affected before the transform ran.
     /// </summary>
-    public int ChangedBlockStartBefore { get; init; }
+    public int ChangedBlockStartBefore { get; set; }
 
     /// <summary>
     /// Number of contiguous top-level blocks affected before the transform ran.
     /// </summary>
-    public int ChangedBlockCountBefore { get; init; }
+    public int ChangedBlockCountBefore { get; set; }
 
     /// <summary>
     /// First top-level block index affected after the transform ran.
     /// </summary>
-    public int ChangedBlockStartAfter { get; init; }
+    public int ChangedBlockStartAfter { get; set; }
 
     /// <summary>
     /// Number of contiguous top-level blocks affected after the transform ran.
     /// </summary>
-    public int ChangedBlockCountAfter { get; init; }
+    public int ChangedBlockCountAfter { get; set; }
 
     /// <summary>
     /// Aggregate source span of the affected input blocks when original syntax spans are available.
     /// </summary>
-    public MarkdownSourceSpan? AffectedSourceSpan { get; init; }
+    public MarkdownSourceSpan? AffectedSourceSpan { get; set; }
 }
