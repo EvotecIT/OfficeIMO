@@ -171,6 +171,7 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Reader.Xml", "OfficeIMO.Reader.Xml\OfficeIMO.Reader.Xml.csproj", "{DAAF4EE3-4254-40CA-A7B2-A0CFD692025A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Markdown.Html", "OfficeIMO.Markdown.Html\OfficeIMO.Markdown.Html.csproj", "{BC27F819-092E-4BCE-8699-A41A6F9929C4}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Markdown.Benchmarks", "OfficeIMO.Markdown.Benchmarks\OfficeIMO.Markdown.Benchmarks.csproj", "{9EEFC83D-8CBF-461A-95A8-5DD685310D0C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.GoogleWorkspace", "OfficeIMO.GoogleWorkspace\OfficeIMO.GoogleWorkspace.csproj", "{60B57235-CFAC-4433-BB96-7ED3A5D4BF52}"
@@ -178,6 +179,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Word.GoogleDocs", "OfficeIMO.Word.GoogleDocs\OfficeIMO.Word.GoogleDocs.csproj", "{C7DC20FB-C242-4022-8FE2-BD12EF68BF98}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Excel.GoogleSheets", "OfficeIMO.Excel.GoogleSheets\OfficeIMO.Excel.GoogleSheets.csproj", "{B1C761E7-5B30-4E65-895C-26068E946FE6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.MarkdownRenderer.IntelligenceX", "OfficeIMO.MarkdownRenderer.IntelligenceX\OfficeIMO.MarkdownRenderer.IntelligenceX.csproj", "{CCE71C11-F5C8-4A57-B02A-A962837A0E5E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.MarkdownRenderer.SamplePlugin", "OfficeIMO.MarkdownRenderer.SamplePlugin\OfficeIMO.MarkdownRenderer.SamplePlugin.csproj", "{02DAED87-8196-4493-B2A6-265C52FED7F7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -549,6 +554,30 @@ Global
 		{B1C761E7-5B30-4E65-895C-26068E946FE6}.Release|x64.Build.0 = Release|Any CPU
 		{B1C761E7-5B30-4E65-895C-26068E946FE6}.Release|x86.ActiveCfg = Release|Any CPU
 		{B1C761E7-5B30-4E65-895C-26068E946FE6}.Release|x86.Build.0 = Release|Any CPU
+		{CCE71C11-F5C8-4A57-B02A-A962837A0E5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CCE71C11-F5C8-4A57-B02A-A962837A0E5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CCE71C11-F5C8-4A57-B02A-A962837A0E5E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CCE71C11-F5C8-4A57-B02A-A962837A0E5E}.Debug|x64.Build.0 = Debug|Any CPU
+		{CCE71C11-F5C8-4A57-B02A-A962837A0E5E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CCE71C11-F5C8-4A57-B02A-A962837A0E5E}.Debug|x86.Build.0 = Debug|Any CPU
+		{CCE71C11-F5C8-4A57-B02A-A962837A0E5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CCE71C11-F5C8-4A57-B02A-A962837A0E5E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CCE71C11-F5C8-4A57-B02A-A962837A0E5E}.Release|x64.ActiveCfg = Release|Any CPU
+		{CCE71C11-F5C8-4A57-B02A-A962837A0E5E}.Release|x64.Build.0 = Release|Any CPU
+		{CCE71C11-F5C8-4A57-B02A-A962837A0E5E}.Release|x86.ActiveCfg = Release|Any CPU
+		{CCE71C11-F5C8-4A57-B02A-A962837A0E5E}.Release|x86.Build.0 = Release|Any CPU
+		{02DAED87-8196-4493-B2A6-265C52FED7F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02DAED87-8196-4493-B2A6-265C52FED7F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02DAED87-8196-4493-B2A6-265C52FED7F7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{02DAED87-8196-4493-B2A6-265C52FED7F7}.Debug|x64.Build.0 = Debug|Any CPU
+		{02DAED87-8196-4493-B2A6-265C52FED7F7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{02DAED87-8196-4493-B2A6-265C52FED7F7}.Debug|x86.Build.0 = Debug|Any CPU
+		{02DAED87-8196-4493-B2A6-265C52FED7F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02DAED87-8196-4493-B2A6-265C52FED7F7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{02DAED87-8196-4493-B2A6-265C52FED7F7}.Release|x64.ActiveCfg = Release|Any CPU
+		{02DAED87-8196-4493-B2A6-265C52FED7F7}.Release|x64.Build.0 = Release|Any CPU
+		{02DAED87-8196-4493-B2A6-265C52FED7F7}.Release|x86.ActiveCfg = Release|Any CPU
+		{02DAED87-8196-4493-B2A6-265C52FED7F7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

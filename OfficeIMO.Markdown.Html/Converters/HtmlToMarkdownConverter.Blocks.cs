@@ -91,7 +91,7 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static IEnumerable<IMarkdownBlock> ConvertElementToBlocks(IElement element, ConversionContext context) {
-        if (TryConvertVisualContractElement(element, out var visualBlock)) {
+        if (TryConvertVisualContractElement(element, context, out var visualBlock)) {
             return new IMarkdownBlock[] { visualBlock };
         }
 
@@ -101,6 +101,10 @@ public sealed partial class HtmlToMarkdownConverter {
 
         if (TryConvertMathElement(element, out var mathBlock)) {
             return new IMarkdownBlock[] { mathBlock };
+        }
+
+        if (TryConvertConfiguredElementConverters(element, context, out var customBlocks)) {
+            return customBlocks;
         }
 
         string tag = element.TagName;
@@ -173,9 +177,38 @@ public sealed partial class HtmlToMarkdownConverter {
         }
     }
 
-    private static bool TryConvertVisualContractElement(IElement element, out SemanticFencedBlock visualBlock) {
+    private static bool TryConvertConfiguredElementConverters(IElement element, ConversionContext context, out IReadOnlyList<IMarkdownBlock> blocks) {
+        blocks = Array.Empty<IMarkdownBlock>();
+        if (element == null || context == null || context.Options.ElementBlockConverters.Count == 0) {
+            return false;
+        }
+
+        var conversionContext = new HtmlElementBlockConversionContext(
+            element,
+            context.Options,
+            nodes => ConvertNodesToBlocks(nodes, context),
+            nodes => NormalizeInlineSequenceForBlock(ConvertInlineNodesToInlineSequence(nodes, context)),
+            NormalizeBlockText);
+
+        for (int i = 0; i < context.Options.ElementBlockConverters.Count; i++) {
+            var converter = context.Options.ElementBlockConverters[i];
+            if (converter == null) {
+                continue;
+            }
+
+            var converted = converter.TryConvert(conversionContext);
+            if (converted != null) {
+                blocks = converted;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryConvertVisualContractElement(IElement element, ConversionContext context, out SemanticFencedBlock visualBlock) {
         visualBlock = null!;
-        if (element == null) {
+        if (element == null || context == null) {
             return false;
         }
 
@@ -193,8 +226,56 @@ public sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        visualBlock = new SemanticFencedBlock(visualElement.VisualKind, visualElement.FenceLanguage, payload);
+        var roundTripContext = new MarkdownVisualElementRoundTripContext(
+            element.TagName,
+            visualElement,
+            payload,
+            TryReadVisualContractCaption(element));
+
+        for (int i = 0; i < context.Options.VisualElementRoundTripHints.Count; i++) {
+            var hint = context.Options.VisualElementRoundTripHints[i];
+            if (hint == null) {
+                continue;
+            }
+
+            var hintedBlock = hint.TryCreateBlock(roundTripContext);
+            if (hintedBlock != null) {
+                visualBlock = hintedBlock;
+                return true;
+            }
+        }
+
+        visualBlock = roundTripContext.CreateBlock();
         return true;
+    }
+
+    private static string? TryReadVisualContractCaption(IElement element) {
+        if (element == null) {
+            return null;
+        }
+
+        if (!element.TagName.Equals("FIGURE", StringComparison.OrdinalIgnoreCase)) {
+            return null;
+        }
+
+        foreach (var child in element.Children) {
+            if (!child.TagName.Equals("FIGCAPTION", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            var caption = NormalizeBlockText(child.TextContent);
+            return caption.Length == 0 ? null : caption;
+        }
+
+        return null;
+    }
+
+    private static string BuildFenceInfoString(MarkdownVisualElement visualElement) {
+        if (visualElement == null || string.IsNullOrWhiteSpace(visualElement.FenceLanguage)) {
+            return string.Empty;
+        }
+
+        return MarkdownVisualElementRoundTripContext.BuildFenceInfoString(visualElement);
     }
 
     private static bool TryConvertMermaidElement(IElement element, out SemanticFencedBlock mermaidBlock) {

@@ -6,7 +6,7 @@ namespace OfficeIMO.MarkdownRenderer;
 
 internal static class MarkdownRendererBuiltInFencedCodeBlocks {
     public static void RegisterDefaults(MarkdownRendererOptions options) {
-        RegisterGenericDefaults(options);
+        MarkdownRendererPlugins.GenericVisuals.Apply(options);
     }
 
     public static void RegisterGenericDefaults(MarkdownRendererOptions options) {
@@ -14,9 +14,7 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
             throw new ArgumentNullException(nameof(options));
         }
 
-        options.FencedCodeBlockRenderers.Add(CreateChartRenderer());
-        options.FencedCodeBlockRenderers.Add(CreateNetworkRenderer());
-        options.FencedCodeBlockRenderers.Add(CreateGenericDataViewRenderer());
+        MarkdownRendererPlugins.GenericVisuals.Apply(options);
     }
 
     public static void RegisterIntelligenceXDefaults(MarkdownRendererOptions options) {
@@ -24,12 +22,10 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
             throw new ArgumentNullException(nameof(options));
         }
 
-        options.FencedCodeBlockRenderers.Add(CreateIxChartRenderer());
-        options.FencedCodeBlockRenderers.Add(CreateIxNetworkRenderer());
-        options.FencedCodeBlockRenderers.Add(CreateDataViewRenderer());
+        MarkdownRendererPlugins.IntelligenceXVisuals.Apply(options);
     }
 
-    private static MarkdownFencedCodeBlockRenderer CreateChartRenderer() {
+    internal static MarkdownFencedCodeBlockRenderer CreateChartRenderer() {
         return CreateChartRenderer("Built-in Chart.js", new[] { "chart" });
     }
 
@@ -42,13 +38,13 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
             displayName,
             languages,
             (match, options) => options.Chart?.Enabled == true
-                ? BuildNativeVisualHtml("canvas", "omd-chart", MarkdownSemanticKinds.Chart, match.Language, "data-chart-hash", "data-chart-config-b64", match.RawContent)
+                ? BuildNativeVisualHtml("canvas", "omd-chart", MarkdownSemanticKinds.Chart, match.Language, match.FenceInfo, "data-chart-hash", "data-chart-config-b64", match.RawContent)
                 : null) {
             SemanticKind = MarkdownSemanticKinds.Chart
         };
     }
 
-    private static MarkdownFencedCodeBlockRenderer CreateNetworkRenderer() {
+    internal static MarkdownFencedCodeBlockRenderer CreateNetworkRenderer() {
         return CreateNetworkRenderer("Built-in vis-network", new[] { "network", "visnetwork" });
     }
 
@@ -61,7 +57,7 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
             displayName,
             languages,
             (match, options) => options.Network?.Enabled == true
-                ? BuildNativeVisualHtml("div", "omd-network", MarkdownSemanticKinds.Network, match.Language, "data-network-hash", "data-network-config-b64", match.RawContent)
+                ? BuildNativeVisualHtml("div", "omd-network", MarkdownSemanticKinds.Network, match.Language, match.FenceInfo, "data-network-hash", "data-network-config-b64", match.RawContent)
                 : null) {
             SemanticKind = MarkdownSemanticKinds.Network,
             BuildShellHeadHtml = BuildNetworkShellHeadHtml,
@@ -70,11 +66,11 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
         };
     }
 
-    private static MarkdownFencedCodeBlockRenderer CreateGenericDataViewRenderer() {
+    internal static MarkdownFencedCodeBlockRenderer CreateGenericDataViewRenderer() {
         return new MarkdownFencedCodeBlockRenderer(
             "Built-in dataview",
             new[] { "dataview" },
-            (match, _) => TryBuildDataViewHtml(match.RawContent, match.Language, emitLegacyIxAttributes: false)) {
+            (match, _) => TryBuildDataViewHtml(match.RawContent, match.Language, match.FenceInfo, emitLegacyIxAttributes: false)) {
             SemanticKind = MarkdownSemanticKinds.DataView
         };
     }
@@ -83,12 +79,12 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
         return new MarkdownFencedCodeBlockRenderer(
             "Built-in IX dataview",
             new[] { "ix-dataview" },
-            (match, _) => TryBuildDataViewHtml(match.RawContent, match.Language, emitLegacyIxAttributes: true)) {
+            (match, _) => TryBuildDataViewHtml(match.RawContent, match.Language, match.FenceInfo, emitLegacyIxAttributes: true)) {
             SemanticKind = MarkdownSemanticKinds.DataView
         };
     }
 
-    private static string BuildNativeVisualHtml(string elementName, string cssClass, string visualKind, string language, string hashAttribute, string configAttribute, string rawContent) {
+    private static string BuildNativeVisualHtml(string elementName, string cssClass, string visualKind, string language, MarkdownCodeFenceInfo? fenceInfo, string hashAttribute, string configAttribute, string rawContent) {
         var payload = MarkdownVisualContract.CreatePayload(rawContent);
         return MarkdownVisualContract.BuildElementHtml(
             elementName,
@@ -96,11 +92,13 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
             visualKind,
             language,
             payload,
+            fenceInfo,
+            new KeyValuePair<string, string?>(MarkdownVisualElementContract.AttributeVisualTitle, fenceInfo?.Title),
             new KeyValuePair<string, string?>(hashAttribute, payload.Hash),
             new KeyValuePair<string, string?>(configAttribute, payload.Base64));
     }
 
-    private static string? TryBuildDataViewHtml(string? rawContent, string language, bool emitLegacyIxAttributes) {
+    private static string? TryBuildDataViewHtml(string? rawContent, string language, MarkdownCodeFenceInfo? fenceInfo, bool emitLegacyIxAttributes) {
         if (string.IsNullOrWhiteSpace(rawContent)) {
             return null;
         }
@@ -119,11 +117,14 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
             }
 
             var title = TryReadJsonString(root, "title", "caption", "name");
+            if (string.IsNullOrWhiteSpace(title)) {
+                title = fenceInfo?.Title;
+            }
             var summary = TryReadJsonString(root, "summary", "description");
             var kind = TryReadJsonString(root, "kind", "schema", "viewKind");
             var callId = TryReadJsonString(root, "call_id", "callId", "requestId");
 
-            return BuildDataViewHtml(columns, rows, title, summary, kind, callId, payload, language, emitLegacyIxAttributes);
+            return BuildDataViewHtml(columns, rows, title, summary, kind, callId, payload, language, fenceInfo, emitLegacyIxAttributes);
         } catch (JsonException) {
             return null;
         }
@@ -138,11 +139,17 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
         string? callId,
         MarkdownVisualPayload payload,
         string language,
+        MarkdownCodeFenceInfo? fenceInfo,
         bool emitLegacyIxAttributes) {
         var sb = new StringBuilder();
         var bodyRowCount = rows.Count;
-        sb.Append("<div class=\"omd-visual omd-dataview\"")
+        sb.Append("<div class=\"")
+          .Append(System.Net.WebUtility.HtmlEncode(ComposeCssClass("omd-visual omd-dataview", fenceInfo)))
+          .Append('"')
           ;
+        if (!string.IsNullOrWhiteSpace(fenceInfo?.ElementId)) {
+            MarkdownVisualContract.AppendAttribute(sb, "id", fenceInfo!.ElementId);
+        }
         MarkdownVisualContract.AppendCommonAttributes(sb, MarkdownSemanticKinds.DataView, language, payload);
         MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-column-count", columns.Count);
         MarkdownVisualContract.AppendAttribute(sb, "data-omd-dataview-row-count", bodyRowCount);
@@ -216,6 +223,38 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
 
         sb.Append("</table></div>");
         return sb.ToString();
+    }
+
+    private static string ComposeCssClass(string baseCssClass, MarkdownCodeFenceInfo? fenceInfo) {
+        if (fenceInfo == null || fenceInfo.Classes.Count == 0) {
+            return baseCssClass;
+        }
+
+        var classes = new List<string>();
+        foreach (var candidate in (baseCssClass ?? string.Empty).Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
+            AddCssClass(classes, candidate);
+        }
+
+        for (int i = 0; i < fenceInfo.Classes.Count; i++) {
+            AddCssClass(classes, fenceInfo.Classes[i]);
+        }
+
+        return string.Join(" ", classes);
+    }
+
+    private static void AddCssClass(ICollection<string> classes, string? candidate) {
+        if (string.IsNullOrWhiteSpace(candidate)) {
+            return;
+        }
+
+        var normalized = candidate!.Trim();
+        foreach (var existing in classes) {
+            if (string.Equals(existing, normalized, StringComparison.OrdinalIgnoreCase)) {
+                return;
+            }
+        }
+
+        classes.Add(normalized);
     }
 
     private static bool TryParseDataViewRows(JsonElement root, out IReadOnlyList<string> columns, out IReadOnlyList<IReadOnlyList<string>> rows) {

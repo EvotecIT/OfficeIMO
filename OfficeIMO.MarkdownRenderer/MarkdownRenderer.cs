@@ -136,7 +136,7 @@ public static class MarkdownRenderer {
         }
 
         if (replacement == null && options.Chart?.Enabled == true && string.Equals(block.Language, "chart", StringComparison.OrdinalIgnoreCase)) {
-            replacement = BuildChartCodeBlockHtml(block.Content);
+            replacement = BuildChartCodeBlockHtml(block.Content, block.FenceInfo);
         }
 
         if (replacement == null
@@ -174,7 +174,7 @@ public static class MarkdownRenderer {
             return replacement + BuildCodeBlockCaptionHtml(block.Caption);
         }
 
-        var codeBlock = new CodeBlock(block.Language, block.Content) {
+        var codeBlock = new CodeBlock(block.InfoString, block.Content) {
             Caption = block.Caption
         };
         return TryRenderCodeBlockOverride(codeBlock, options);
@@ -189,7 +189,7 @@ public static class MarkdownRenderer {
         var exactLanguageMatch = TryRenderMatchingFencedCodeBlockRenderer(
             renderers,
             renderer => RendererHandlesLanguage(renderer, block.Language),
-            CreateCodeBlockMatch(block.Language, block.Content),
+            CreateCodeBlockMatch(block.InfoString, block.Content),
             options);
         if (exactLanguageMatch != null) {
             return exactLanguageMatch;
@@ -198,7 +198,7 @@ public static class MarkdownRenderer {
         return TryRenderMatchingFencedCodeBlockRenderer(
             renderers,
             renderer => RendererHandlesSemanticKind(renderer, block.SemanticKind),
-            CreateCodeBlockMatch(block.Language, block.Content),
+            CreateCodeBlockMatch(block.InfoString, block.Content),
             options);
     }
 
@@ -262,14 +262,15 @@ public static class MarkdownRenderer {
     }
 
     private static MarkdownFencedCodeBlockMatch CreateCodeBlockMatch(CodeBlock block) {
-        return CreateCodeBlockMatch(block.Language, block.Content);
+        return CreateCodeBlockMatch(block.InfoString, block.Content);
     }
 
-    private static MarkdownFencedCodeBlockMatch CreateCodeBlockMatch(string language, string rawContent) {
+    private static MarkdownFencedCodeBlockMatch CreateCodeBlockMatch(string infoString, string rawContent) {
         rawContent ??= string.Empty;
+        var fenceInfo = MarkdownCodeFenceInfo.Parse(infoString);
         var encodedContent = BuildHtmlEncodedCodeBlockContent(rawContent);
-        var originalHtml = BuildDefaultCodeBlockPreHtml(language, rawContent);
-        return new MarkdownFencedCodeBlockMatch(language, encodedContent, rawContent, originalHtml);
+        var originalHtml = BuildDefaultCodeBlockPreHtml(fenceInfo.Language, rawContent);
+        return new MarkdownFencedCodeBlockMatch(fenceInfo.InfoString, encodedContent, rawContent, originalHtml);
     }
 
     private static string BuildHtmlEncodedCodeBlockContent(string rawContent) {
@@ -306,7 +307,7 @@ public static class MarkdownRenderer {
         return $"<pre class=\"mermaid\"{hashAttr}>{encodedContent}</pre>";
     }
 
-    private static string BuildChartCodeBlockHtml(string rawJson) {
+    private static string BuildChartCodeBlockHtml(string rawJson, MarkdownCodeFenceInfo? fenceInfo) {
         var payload = MarkdownVisualContract.CreatePayload(rawJson);
         return MarkdownVisualContract.BuildElementHtml(
             "canvas",
@@ -314,6 +315,8 @@ public static class MarkdownRenderer {
             MarkdownSemanticKinds.Chart,
             MarkdownSemanticKinds.Chart,
             payload,
+            fenceInfo,
+            new KeyValuePair<string, string?>(MarkdownVisualElementContract.AttributeVisualTitle, fenceInfo?.Title),
             new KeyValuePair<string, string?>("data-chart-hash", payload.Hash),
             new KeyValuePair<string, string?>("data-chart-config-b64", payload.Base64));
     }
@@ -511,7 +514,7 @@ public static class MarkdownRenderer {
         target.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
             name,
             languages,
-            context => new SemanticFencedBlock(semanticKind, context.Language, context.Content, context.Caption)));
+            context => new SemanticFencedBlock(semanticKind, context.InfoString, context.Content, context.Caption)));
     }
 
     private static MarkdownInputNormalizationOptions? CreatePreParseNormalizationOptions(MarkdownInputNormalizationOptions source) {

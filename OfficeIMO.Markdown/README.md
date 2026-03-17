@@ -140,7 +140,7 @@ var options = new MarkdownReaderOptions();
 options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
     "Vendor charts",
     new[] { "vendor-chart" },
-    context => new SemanticFencedBlock(MarkdownSemanticKinds.Chart, context.Language, context.Content, context.Caption)));
+    context => new SemanticFencedBlock(MarkdownSemanticKinds.Chart, context.InfoString, context.Content, context.Caption)));
 
 var parsed = MarkdownReader.Parse("""
 ```vendor-chart
@@ -150,6 +150,8 @@ var parsed = MarkdownReader.Parse("""
 ```
 
 Use semantic fenced blocks when a fenced language represents a host contract or visual/document semantic rather than ordinary code.
+`context.Language` exposes the primary language token, while `context.InfoString` and `context.FenceInfo` preserve the full fence metadata for hosts that need attributes such as `title="..."`, boolean flags, or brace-style metadata like `{#summary .wide}`.
+`context.FenceInfo` also exposes typed helpers such as `TryGetBooleanAttribute(...)`, `TryGetInt32Attribute(...)`, and alias-aware `GetAttribute(...)` so downstream plugins can consume fence metadata through the AST model instead of reparsing raw strings.
 
 ### Post-parse document transforms
 
@@ -162,6 +164,7 @@ var parsed = MarkdownReader.Parse(markdown, options);
 ```
 
 Use `DocumentTransforms` for AST-level cleanup that should happen after markdown is parseable but before writing, HTML rendering, or downstream export. Keep text repair in `InputNormalization` for genuinely pre-parse fixes only.
+When a host also references `OfficeIMO.MarkdownRenderer`, plugin and feature-pack reader contracts can be applied directly here with `readerOptions.ApplyPlugin(...)` or `readerOptions.ApplyFeaturePack(...)`, so source parsing, renderer behavior, and HTML round-trip rules stay aligned.
 
 ```csharp
 var htmlOptions = HtmlToMarkdownOptions.CreatePortableProfile();

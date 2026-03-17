@@ -49,10 +49,13 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool IsCodeFenceOpen(string line, out string language, out char fenceChar, out int fenceLength) {
-        language = string.Empty; fenceChar = '\0'; fenceLength = 0;
+    private static bool IsCodeFenceOpen(string line, out string infoString, out char fenceChar, out int fenceLength) {
+        infoString = string.Empty; fenceChar = '\0'; fenceLength = 0;
         if (line is null) return false;
-        line = line.Trim();
+        int indent = CountLeadingIndentColumns(line);
+        if (indent > 3) return false;
+
+        line = indent > 0 ? StripLeadingIndentColumns(line, indent) : line;
         if (line.Length < 3) return false;
         char ch = line[0];
         if (ch != '`' && ch != '~') return false;
@@ -61,14 +64,20 @@ public static partial class MarkdownReader {
         while (run < line.Length && line[run] == ch) run++;
         if (run < 3) return false;
 
+        var parsedInfoString = line.Length > run ? line.Substring(run) : string.Empty;
+        if (ch == '`' && parsedInfoString.IndexOf('`') >= 0) return false;
+
         fenceChar = ch;
         fenceLength = run;
-        language = line.Length > run ? line.Substring(run).Trim() : string.Empty;
+        infoString = parsedInfoString.Trim();
         return true;
     }
     private static bool IsCodeFenceClose(string line, char fenceChar, int fenceLength) {
         if (line is null) return false;
-        var trimmed = line.Trim();
+        int indent = CountLeadingIndentColumns(line);
+        if (indent > 3) return false;
+
+        var trimmed = (indent > 0 ? StripLeadingIndentColumns(line, indent) : line).Trim();
         if (trimmed.Length < Math.Max(3, fenceLength)) return false;
         // CommonMark allows closing fence length >= opening fence length. We accept that.
         for (int i = 0; i < trimmed.Length; i++) {
@@ -77,20 +86,20 @@ public static partial class MarkdownReader {
         return trimmed.Length >= Math.Max(3, fenceLength);
     }
 
-    private static IMarkdownBlock CreateParsedFencedBlock(string language, string content, bool isFenced, string? caption, MarkdownReaderOptions options) {
-        var extendedBlock = TryCreateExtendedFencedBlock(options?.FencedBlockExtensions, language, content, isFenced, caption);
+    private static IMarkdownBlock CreateParsedFencedBlock(string infoString, string content, bool isFenced, string? caption, MarkdownReaderOptions options) {
+        var extendedBlock = TryCreateExtendedFencedBlock(options?.FencedBlockExtensions, infoString, content, isFenced, caption);
         if (extendedBlock != null) {
             return extendedBlock;
         }
 
-        return new CodeBlock(language, content, isFenced) {
+        return new CodeBlock(infoString, content, isFenced) {
             Caption = caption
         };
     }
 
     internal static IMarkdownBlock? TryCreateExtendedFencedBlock(
         IReadOnlyList<MarkdownFencedBlockExtension>? extensions,
-        string language,
+        string infoString,
         string content,
         bool isFenced,
         string? caption) {
@@ -98,10 +107,10 @@ public static partial class MarkdownReader {
             return null;
         }
 
-        var context = new MarkdownFencedBlockFactoryContext(language, content, isFenced, caption);
+        var context = new MarkdownFencedBlockFactoryContext(infoString, content, isFenced, caption);
         for (int i = extensions.Count - 1; i >= 0; i--) {
             var extension = extensions[i];
-            if (extension == null || !FencedBlockExtensionHandlesLanguage(extension, language)) {
+            if (extension == null || !FencedBlockExtensionHandlesLanguage(extension, context.Language)) {
                 continue;
             }
 

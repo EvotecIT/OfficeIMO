@@ -51,7 +51,7 @@ public sealed class MarkdownRegisteredFencedBlockTransform : IMarkdownDocumentTr
 
         return MarkdownReader.TryCreateExtendedFencedBlock(
                    _extensions,
-                   codeBlock.Language,
+                   codeBlock.InfoString,
                    codeBlock.Content,
                    codeBlock.IsFenced,
                    codeBlock.Caption)

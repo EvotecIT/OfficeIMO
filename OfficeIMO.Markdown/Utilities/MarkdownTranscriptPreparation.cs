@@ -19,23 +19,18 @@ using System;
 /// </example>
 public static class MarkdownTranscriptPreparation {
     /// <summary>
-    /// Creates reader options for the explicit IX transcript ingestion contract.
+    /// Applies the explicit IX transcript reader contract to an existing reader configuration in place.
+    /// This preserves the caller's security/profile toggles while layering in transcript normalization
+    /// and optional AST transforms.
     /// </summary>
-    /// <param name="readerProfile">Reader profile to compose on top of.</param>
-    /// <param name="preservesGroupedDefinitionLikeParagraphs">
-    /// Whether grouped simple <c>Label: value</c> lines should remain parsed as definition lists.
-    /// When <c>false</c>, a document transform expands simple grouped entries back into paragraphs.
-    /// </param>
-    /// <param name="visualFenceLanguageMode">
-    /// Optional legacy JSON visual-fence upgrade mode to compose into the transcript reader contract.
-    /// When supplied, plain JSON code blocks can be upgraded into semantic visual fenced blocks during document transforms.
-    /// </param>
-    /// <returns>Configured reader options for transcript parsing.</returns>
-    public static MarkdownReaderOptions CreateIntelligenceXTranscriptReaderOptions(
-        MarkdownReaderOptions.MarkdownDialectProfile readerProfile = MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO,
+    public static void ApplyIntelligenceXTranscriptReaderContract(
+        MarkdownReaderOptions options,
         bool preservesGroupedDefinitionLikeParagraphs = true,
         MarkdownVisualFenceLanguageMode? visualFenceLanguageMode = null) {
-        var options = MarkdownReaderOptions.CreateProfile(readerProfile);
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
         options.InputNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscript();
         options.PreferNarrativeSingleLineDefinitions = true;
 
@@ -67,7 +62,30 @@ public static class MarkdownTranscriptPreparation {
                 options.DocumentTransforms.Add(new MarkdownJsonVisualCodeBlockTransform(visualFenceLanguageMode.Value));
             }
         }
+    }
 
+    /// <summary>
+    /// Creates reader options for the explicit IX transcript ingestion contract.
+    /// </summary>
+    /// <param name="readerProfile">Reader profile to compose on top of.</param>
+    /// <param name="preservesGroupedDefinitionLikeParagraphs">
+    /// Whether grouped simple <c>Label: value</c> lines should remain parsed as definition lists.
+    /// When <c>false</c>, a document transform expands simple grouped entries back into paragraphs.
+    /// </param>
+    /// <param name="visualFenceLanguageMode">
+    /// Optional legacy JSON visual-fence upgrade mode to compose into the transcript reader contract.
+    /// When supplied, plain JSON code blocks can be upgraded into semantic visual fenced blocks during document transforms.
+    /// </param>
+    /// <returns>Configured reader options for transcript parsing.</returns>
+    public static MarkdownReaderOptions CreateIntelligenceXTranscriptReaderOptions(
+        MarkdownReaderOptions.MarkdownDialectProfile readerProfile = MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO,
+        bool preservesGroupedDefinitionLikeParagraphs = true,
+        MarkdownVisualFenceLanguageMode? visualFenceLanguageMode = null) {
+        var options = MarkdownReaderOptions.CreateProfile(readerProfile);
+        ApplyIntelligenceXTranscriptReaderContract(
+            options,
+            preservesGroupedDefinitionLikeParagraphs,
+            visualFenceLanguageMode);
         return options;
     }
 

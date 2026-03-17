@@ -3,7 +3,7 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Markdown.Html;
 
 public sealed partial class HtmlToMarkdownConverter {
-    private static InlineSequence ConvertInlineNodesToInlineSequence(IEnumerable<INode> nodes, ConversionContext? context) {
+    internal static InlineSequence ConvertInlineNodesToInlineSequence(IEnumerable<INode> nodes, ConversionContext? context) {
         var sequence = new InlineSequence { AutoSpacing = false };
         var materializedNodes = nodes as IList<INode> ?? nodes.ToList();
         for (int i = 0; i < materializedNodes.Count; i++) {
@@ -39,6 +39,10 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static void AppendInlineElement(InlineSequence sequence, IElement element, ConversionContext? context) {
+        if (TryConvertConfiguredInlineElementConverters(sequence, element, context)) {
+            return;
+        }
+
         string tag = element.TagName;
         switch (tag) {
             case "BR":
@@ -108,6 +112,36 @@ public sealed partial class HtmlToMarkdownConverter {
                 }
                 return;
         }
+    }
+
+    private static bool TryConvertConfiguredInlineElementConverters(InlineSequence sequence, IElement element, ConversionContext? context) {
+        if (sequence == null || element == null || context?.Options?.InlineElementConverters == null || context.Options.InlineElementConverters.Count == 0) {
+            return false;
+        }
+
+        var conversionContext = new HtmlInlineElementConversionContext(element, context.Options, context);
+        for (int i = 0; i < context.Options.InlineElementConverters.Count; i++) {
+            var converter = context.Options.InlineElementConverters[i];
+            if (converter == null) {
+                continue;
+            }
+
+            var converted = converter.Convert(conversionContext);
+            if (converted == null) {
+                continue;
+            }
+
+            for (int j = 0; j < converted.Count; j++) {
+                var inline = converted[j];
+                if (inline != null) {
+                    sequence.AddRaw(inline);
+                }
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     private static string ConvertInlineNodeToMarkdown(INode node, ConversionContext? context) {
@@ -310,7 +344,7 @@ public sealed partial class HtmlToMarkdownConverter {
         sequence.Text(normalized);
     }
 
-    private static string CollapseHtmlInlineWhitespace(string text) {
+    internal static string CollapseHtmlInlineWhitespace(string text) {
         if (string.IsNullOrEmpty(text)) {
             return string.Empty;
         }

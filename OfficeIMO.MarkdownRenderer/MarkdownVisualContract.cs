@@ -48,6 +48,28 @@ public static class MarkdownVisualContract {
         string language,
         MarkdownVisualPayload payload,
         params KeyValuePair<string, string?>[] extraAttributes) {
+        return BuildElementHtml(
+            elementName,
+            cssClass,
+            visualKind,
+            language,
+            payload,
+            fenceInfo: null,
+            extraAttributes);
+    }
+
+    /// <summary>
+    /// Builds a visual host element with the shared <c>data-omd-*</c> metadata contract
+    /// and optional structured fence metadata such as <c>#id</c> and <c>.class</c>.
+    /// </summary>
+    public static string BuildElementHtml(
+        string elementName,
+        string cssClass,
+        string visualKind,
+        string language,
+        MarkdownVisualPayload payload,
+        MarkdownCodeFenceInfo? fenceInfo,
+        params KeyValuePair<string, string?>[] extraAttributes) {
         if (string.IsNullOrWhiteSpace(elementName)) {
             throw new ArgumentException("Element name is required.", nameof(elementName));
         }
@@ -65,9 +87,13 @@ public static class MarkdownVisualContract {
         sb.Append('<')
           .Append(elementName)
           .Append(" class=\"")
-          .Append(HtmlEncode(cssClass))
+          .Append(HtmlEncode(ComposeCssClass(cssClass, fenceInfo)))
           .Append('"');
+        AppendFenceAttributes(sb, fenceInfo);
         AppendCommonAttributes(sb, visualKind, language, payload);
+        if (!string.IsNullOrWhiteSpace(fenceInfo?.Title) && !ContainsAttribute(extraAttributes, MarkdownVisualElementContract.AttributeVisualTitle)) {
+            AppendAttribute(sb, MarkdownVisualElementContract.AttributeVisualTitle, fenceInfo!.Title);
+        }
         AppendAttributes(sb, extraAttributes);
         sb.Append("></")
           .Append(elementName)
@@ -156,6 +182,80 @@ public static class MarkdownVisualContract {
             var attribute = attributes[i];
             AppendAttribute(sb, attribute.Key, attribute.Value);
         }
+    }
+
+    /// <summary>
+    /// Appends shared fence metadata attributes such as the original normalized tail, element id,
+    /// and classes to a visual host element builder.
+    /// </summary>
+    public static void AppendFenceAttributes(StringBuilder sb, MarkdownCodeFenceInfo? fenceInfo, bool includeHtmlId = true) {
+        if (sb == null || fenceInfo == null) {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(fenceInfo.AdditionalInfo)) {
+            AppendAttribute(sb, MarkdownVisualElementContract.AttributeFenceInfo, fenceInfo.AdditionalInfo);
+        }
+
+        if (!string.IsNullOrWhiteSpace(fenceInfo.ElementId)) {
+            if (includeHtmlId) {
+                AppendAttribute(sb, "id", fenceInfo.ElementId);
+            }
+            AppendAttribute(sb, MarkdownVisualElementContract.AttributeFenceId, fenceInfo.ElementId);
+        }
+
+        if (fenceInfo.Classes.Count > 0) {
+            AppendAttribute(sb, MarkdownVisualElementContract.AttributeFenceClasses, string.Join(" ", fenceInfo.Classes));
+        }
+    }
+
+    /// <summary>
+    /// Merges shared visual-host CSS classes with any fence-provided classes while keeping case-insensitive uniqueness.
+    /// </summary>
+    public static string ComposeCssClass(string cssClass, MarkdownCodeFenceInfo? fenceInfo) {
+        if (fenceInfo == null || fenceInfo.Classes.Count == 0) {
+            return cssClass;
+        }
+
+        var classes = new List<string>();
+        foreach (var candidate in (cssClass ?? string.Empty).Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
+            AddCssClass(classes, candidate);
+        }
+
+        for (int i = 0; i < fenceInfo.Classes.Count; i++) {
+            AddCssClass(classes, fenceInfo.Classes[i]);
+        }
+
+        return string.Join(" ", classes);
+    }
+
+    private static void AddCssClass(ICollection<string> classes, string? candidate) {
+        if (string.IsNullOrWhiteSpace(candidate)) {
+            return;
+        }
+
+        var normalized = candidate!.Trim();
+        foreach (var existing in classes) {
+            if (string.Equals(existing, normalized, StringComparison.OrdinalIgnoreCase)) {
+                return;
+            }
+        }
+
+        classes.Add(normalized);
+    }
+
+    private static bool ContainsAttribute(KeyValuePair<string, string?>[]? attributes, string name) {
+        if (attributes == null || attributes.Length == 0 || string.IsNullOrWhiteSpace(name)) {
+            return false;
+        }
+
+        for (int i = 0; i < attributes.Length; i++) {
+            if (string.Equals(attributes[i].Key, name, StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static string HtmlEncode(string value) {

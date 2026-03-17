@@ -597,6 +597,23 @@ Console.WriteLine("hi");
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Preserves_Raw_Fence_InfoString_Literal() {
+        var markdown = """
+```json title="chart"
+{"value":1}
+```
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var code = Assert.Single(result.SyntaxTree.Children);
+        var info = code.Children[0];
+
+        Assert.Equal(MarkdownSyntaxKind.CodeFenceInfo, info.Kind);
+        Assert.Equal("json title=\"chart\"", info.Literal);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Indented_Code_Block_Structure() {
         var markdown = """
     line 1

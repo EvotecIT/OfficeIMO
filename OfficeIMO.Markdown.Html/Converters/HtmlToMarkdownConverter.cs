@@ -8,7 +8,7 @@ namespace OfficeIMO.Markdown.Html;
 /// Converts HTML fragments or documents into OfficeIMO.Markdown documents.
 /// </summary>
 public sealed partial class HtmlToMarkdownConverter {
-    private sealed class ConversionContext {
+    internal sealed class ConversionContext {
         public ConversionContext(HtmlToMarkdownOptions options) {
             Options = options ?? throw new ArgumentNullException(nameof(options));
         }

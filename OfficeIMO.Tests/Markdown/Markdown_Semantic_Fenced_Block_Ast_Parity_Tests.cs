@@ -26,6 +26,40 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
     }
 
     [Fact]
+    public void Semantic_Fenced_Block_Ast_Parity_Holds_For_Rendered_Chart_Block_With_Fence_Metadata() {
+        const string payload = "{\r\n  \"type\": \"bar\",\r\n  \"data\": { \"labels\": [\"A\"], \"datasets\": [{ \"label\": \"Count\", \"data\": [1] }] }\r\n}";
+        string markdown = "```ix-chart #quarterly-summary .wide title=\"Quarterly Overview\" pinned\n" + payload.Replace("\r\n", "\n") + "\n```";
+        string html = MarkdownVisualContract.BuildElementHtml(
+            "canvas",
+            "omd-visual omd-chart",
+            MarkdownSemanticKinds.Chart,
+            "ix-chart",
+            MarkdownVisualContract.CreatePayload(payload),
+            MarkdownCodeFenceInfo.Parse("ix-chart #quarterly-summary .wide title=\"Quarterly Overview\" pinned"));
+
+        AssertSemanticBlockParity(
+            MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart)),
+            html.LoadFromHtml());
+    }
+
+    [Fact]
+    public void Semantic_Fenced_Block_Ast_Parity_Holds_For_Rendered_Chart_Block_With_Opaque_Fence_Metadata_Tail() {
+        const string payload = "{\r\n  \"type\": \"bar\",\r\n  \"data\": { \"labels\": [\"A\"], \"datasets\": [{ \"label\": \"Count\", \"data\": [1] }] }\r\n}";
+        string markdown = "```ix-chart {#quarterly-summary .wide title=\"Quarterly Overview\"\n" + payload.Replace("\r\n", "\n") + "\n```";
+        string html = MarkdownVisualContract.BuildElementHtml(
+            "canvas",
+            "omd-visual omd-chart",
+            MarkdownSemanticKinds.Chart,
+            "ix-chart",
+            MarkdownVisualContract.CreatePayload(payload),
+            MarkdownCodeFenceInfo.Parse("ix-chart {#quarterly-summary .wide title=\"Quarterly Overview\""));
+
+        AssertSemanticBlockParity(
+            MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart)),
+            html.LoadFromHtml());
+    }
+
+    [Fact]
     public void Semantic_Fenced_Block_Ast_Parity_Holds_For_Rendered_Mermaid_Block() {
         const string payload = "flowchart LR\r\nA-->B\r\nB-->C";
         string markdown = "```mermaid\n" + payload.Replace("\r\n", "\n") + "\n```";
@@ -339,6 +373,7 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
 
         Assert.Equal(markdownBlock.SemanticKind, htmlBlock.SemanticKind);
         Assert.Equal(markdownBlock.Language, htmlBlock.Language);
+        Assert.Equal(markdownBlock.InfoString, htmlBlock.InfoString);
         Assert.Equal(markdownBlock.Content, htmlBlock.Content);
         Assert.Equal(markdownBlock.Caption, htmlBlock.Caption);
     }
@@ -431,7 +466,7 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
         options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
             "Semantic AST",
             new[] { language },
-            context => new SemanticFencedBlock(semanticKind, context.Language, context.Content, context.Caption)));
+            context => new SemanticFencedBlock(semanticKind, context.InfoString, context.Content, context.Caption)));
         return options;
     }
 }

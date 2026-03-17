@@ -61,6 +61,39 @@ public sealed class MarkdownTranscriptPreparationTests {
     }
 
     [Fact]
+    public void ApplyIntelligenceXTranscriptReaderContract_Upgrades_Existing_ReaderOptions_InPlace() {
+        var options = new MarkdownReaderOptions {
+            HtmlBlocks = false,
+            InlineHtml = true,
+            DisallowFileUrls = true,
+            AllowDataUrls = false,
+            AllowProtocolRelativeUrls = false,
+            RestrictUrlSchemes = true,
+            AllowedUrlSchemes = new[] { "http", "https", "mailto" }
+        };
+
+        MarkdownTranscriptPreparation.ApplyIntelligenceXTranscriptReaderContract(
+            options,
+            preservesGroupedDefinitionLikeParagraphs: false,
+            visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
+
+        var expectedNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscript();
+        Assert.NotNull(options.InputNormalization);
+        AssertInputNormalizationMatches(expectedNormalization, options.InputNormalization!);
+        Assert.True(options.PreferNarrativeSingleLineDefinitions);
+        Assert.False(options.HtmlBlocks);
+        Assert.True(options.InlineHtml);
+        Assert.True(options.DisallowFileUrls);
+        Assert.False(options.AllowDataUrls);
+        Assert.False(options.AllowProtocolRelativeUrls);
+        Assert.True(options.RestrictUrlSchemes);
+        Assert.Contains(options.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
+        Assert.Contains(options.DocumentTransforms, transform =>
+            transform is MarkdownJsonVisualCodeBlockTransform visual
+            && visual.LanguageMode == MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
+    }
+
+    [Fact]
     public void PrepareIntelligenceXTranscriptForExport_CollapsesDuplicateBlankLines() {
         const string markdown = """
             # Transcript

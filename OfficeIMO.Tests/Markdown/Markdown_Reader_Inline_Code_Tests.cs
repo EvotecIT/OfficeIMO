@@ -18,5 +18,15 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var html = doc.ToHtml();
             Assert.Contains("a ` b", html);
         }
+
+        [Fact]
+        public void Unmatched_MultiBacktick_Run_Remains_Literal() {
+            var md = "``` c`sharp";
+            var doc = MarkdownReader.Parse(md);
+            var html = doc.ToHtml();
+
+            Assert.Contains("``` c`sharp", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("<code>c</code>", html, StringComparison.Ordinal);
+        }
     }
 }
