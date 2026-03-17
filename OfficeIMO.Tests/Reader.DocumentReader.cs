@@ -860,4 +860,198 @@ public sealed class ReaderDocumentReaderTests {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
     }
+
+    [Fact]
+    public void DocumentReader_ReadPathDocumentsDetailed_CanReadSingleFile() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+
+        try {
+            File.WriteAllText(path, "# Title\n\nBody");
+
+            var result = DocumentReader.ReadPathDocumentsDetailed(
+                path,
+                options: new ReaderOptions {
+                    ComputeHashes = true
+                },
+                includeDocumentChunks: true,
+                maxReturnedChunks: 10);
+
+            Assert.NotNull(result);
+            Assert.False(result.Truncated);
+            Assert.Single(result.Files);
+            Assert.Single(result.Documents);
+            Assert.Equal(1, result.FilesScanned);
+            Assert.Equal(1, result.FilesParsed);
+            Assert.Equal(0, result.FilesSkipped);
+            Assert.True(result.ChunksProduced >= 1);
+            Assert.True(result.ChunksReturned >= 1);
+            Assert.True(result.TokenEstimateReturned > 0);
+
+            var document = result.Documents[0];
+            Assert.True(document.Parsed);
+            Assert.Equal(path, document.Path, ignoreCase: true);
+            Assert.False(string.IsNullOrWhiteSpace(document.SourceId));
+            Assert.False(string.IsNullOrWhiteSpace(document.SourceHash));
+            Assert.NotEmpty(document.Chunks);
+            Assert.All(document.Chunks, chunk => Assert.Equal(document.SourceHash, chunk.SourceHash));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadPathDocumentsDetailed_SkipsOversizedSingleFileInsteadOfThrowing() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+
+        try {
+            File.WriteAllText(path, "# Title\n\nBody");
+
+            var result = DocumentReader.ReadPathDocumentsDetailed(
+                path,
+                options: new ReaderOptions {
+                    MaxInputBytes = 8,
+                    ComputeHashes = true
+                },
+                includeDocumentChunks: true);
+
+            Assert.NotNull(result);
+            Assert.Single(result.Files);
+            Assert.Single(result.Documents);
+            Assert.Equal(1, result.FilesScanned);
+            Assert.Equal(0, result.FilesParsed);
+            Assert.Equal(1, result.FilesSkipped);
+            Assert.Equal(0, result.ChunksProduced);
+            Assert.Equal(0, result.ChunksReturned);
+
+            var document = result.Documents[0];
+            Assert.False(document.Parsed);
+            Assert.Empty(document.Chunks);
+            Assert.Null(document.SourceHash);
+            Assert.True((document.Warnings?.Any(w => w.Contains("MaxInputBytes", StringComparison.OrdinalIgnoreCase)) ?? false));
+            Assert.True((result.Warnings?.Any(w => w.Contains("MaxInputBytes", StringComparison.OrdinalIgnoreCase)) ?? false));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadPathDocumentsDetailed_RespectsReturnedChunkBudgetAcrossFolder() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+
+        try {
+            File.WriteAllText(Path.Combine(folder, "a.md"), "# A\n\nalpha");
+            File.WriteAllText(Path.Combine(folder, "b.md"), "# B\n\nbeta");
+
+            var result = DocumentReader.ReadPathDocumentsDetailed(
+                folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true
+                },
+                options: new ReaderOptions {
+                    ComputeHashes = true
+                },
+                includeDocumentChunks: true,
+                maxReturnedChunks: 1);
+
+            Assert.NotNull(result);
+            Assert.True(result.Truncated);
+            Assert.Equal(2, result.FilesScanned);
+            Assert.Equal(2, result.FilesParsed);
+            Assert.Equal(0, result.FilesSkipped);
+            Assert.Equal(2, result.Documents.Count);
+            Assert.True(result.ChunksProduced >= 2);
+            Assert.Equal(1, result.ChunksReturned);
+            Assert.True(result.TokenEstimateReturned > 0);
+            Assert.Contains(result.Warnings ?? Array.Empty<string>(), w => w.Contains("MaxReturnedChunks", StringComparison.OrdinalIgnoreCase));
+
+            Assert.Single(result.Documents[0].Chunks);
+            Assert.Empty(result.Documents[1].Chunks);
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadPathDocumentsDetailed_ReadsSingleFileAndRespectsReturnedChunkBudget() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            File.WriteAllText(path, "# Top" + Environment.NewLine + Environment.NewLine + "Paragraph 1." + Environment.NewLine + Environment.NewLine + "## Child" + Environment.NewLine + Environment.NewLine + "Paragraph 2.");
+
+            var result = DocumentReader.ReadPathDocumentsDetailed(
+                path: path,
+                options: new ReaderOptions {
+                    ComputeHashes = true
+                },
+                includeDocumentChunks: true,
+                maxReturnedChunks: 1);
+
+            Assert.Single(result.Files);
+            Assert.Single(result.Documents);
+            Assert.Equal(1, result.FilesScanned);
+            Assert.Equal(1, result.FilesParsed);
+            Assert.Equal(0, result.FilesSkipped);
+            Assert.True(result.ChunksProduced >= 2);
+            Assert.Equal(1, result.ChunksReturned);
+            Assert.True(result.TokenEstimateReturned > 0);
+            Assert.True(result.Truncated);
+
+            var document = result.Documents[0];
+            Assert.True(document.Parsed);
+            Assert.True(document.ChunksProduced >= 2);
+            Assert.Single(document.Chunks);
+            Assert.False(string.IsNullOrWhiteSpace(document.SourceId));
+            Assert.False(string.IsNullOrWhiteSpace(document.SourceHash));
+            Assert.Contains(result.Warnings ?? Array.Empty<string>(), w => w.Contains("MaxReturnedChunks", StringComparison.OrdinalIgnoreCase));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadPathDocumentsDetailed_CanReturnDocumentSummariesWithoutChunkPayloads() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+
+        var goodMarkdown = Path.Combine(folder, "good.md");
+        var badDocx = Path.Combine(folder, "broken.docx");
+
+        try {
+            File.WriteAllText(goodMarkdown, "# Good" + Environment.NewLine + Environment.NewLine + "Body");
+            File.WriteAllText(badDocx, "not-a-zip-package");
+
+            var result = DocumentReader.ReadPathDocumentsDetailed(
+                path: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true
+                },
+                options: new ReaderOptions {
+                    ComputeHashes = true
+                },
+                includeDocumentChunks: false);
+
+            Assert.True(result.FilesScanned >= 2);
+            Assert.True(result.FilesParsed >= 1);
+            Assert.True(result.FilesSkipped >= 1);
+            Assert.Equal(0, result.ChunksReturned);
+            Assert.False(result.Truncated);
+            Assert.NotEmpty(result.Files);
+            Assert.NotEmpty(result.Documents);
+
+            var good = result.Documents.FirstOrDefault(d => string.Equals(d.Path, goodMarkdown, StringComparison.OrdinalIgnoreCase));
+            Assert.NotNull(good);
+            Assert.True(good!.Parsed);
+            Assert.True(good.ChunksProduced > 0);
+            Assert.Empty(good.Chunks);
+
+            var bad = result.Documents.FirstOrDefault(d => string.Equals(d.Path, badDocx, StringComparison.OrdinalIgnoreCase));
+            Assert.NotNull(bad);
+            Assert.False(bad!.Parsed);
+            Assert.True((bad.Warnings?.Count ?? 0) > 0);
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
 }
