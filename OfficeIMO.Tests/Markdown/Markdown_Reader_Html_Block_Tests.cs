@@ -124,14 +124,14 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
-        public void Type6_Block_Ends_When_Stack_Unwinds() {
+        public void Type6_Block_Continues_Until_Blank_Line_After_Closing_Tag() {
             string md = "<div>\n<section>\n<p>Value</p>\n</section>\n</div>\nParagraph";
 
             var doc = MarkdownReader.Parse(md);
 
             var html = Assert.IsType<HtmlRawBlock>(doc.Blocks[0]);
-            Assert.Equal("<div>\n<section>\n<p>Value</p>\n</section>\n</div>", html.Html);
-            Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
+            Assert.Equal("<div>\n<section>\n<p>Value</p>\n</section>\n</div>\nParagraph", html.Html);
+            Assert.Single(doc.Blocks);
         }
 
         [Fact]
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
-        public void Type6_Details_Block_Allows_Blank_Line_Before_Closing_Tag() {
+        public void Type6_Details_Block_With_No_Blank_Line_After_Close_Remains_Structured() {
             string md = "<details>\n<summary>One</summary>\n\n<section>\n<p>Inner</p>\n</section>\n\n</details>\nParagraph";
 
             var doc = MarkdownReader.Parse(md);
@@ -202,7 +202,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
-        public void Type6_Details_Block_Allows_SelfClosing_Child_Elements() {
+        public void Type6_Details_Block_With_No_Blank_Line_After_Close_And_SelfClosing_Child_Remains_Structured() {
             string md = "<details>\n<summary>Summary</summary>\n<component />\n\n<div>Body</div>\n</details>\nParagraph";
 
             var doc = MarkdownReader.Parse(md);
@@ -236,7 +236,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             return normalized.TrimEnd('\n');
         }
         [Fact]
-        public void Type6_Details_Block_Closes_With_Unmatched_Inner_Tags() {
+        public void Type6_Details_Block_With_No_Blank_Line_After_Close_And_Unmatched_Inner_Tags_Remains_Structured() {
             string md = "<details>\n<div>\n<p>Loose</p>\n</details>\nParagraph";
 
             var doc = MarkdownReader.Parse(md);

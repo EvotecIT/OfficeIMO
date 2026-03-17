@@ -1,0 +1,18 @@
+[renderer-combined.preprocessed]
+```mermaid
+graph TD A-->B
+```
+
+[renderer-combined.preprocessors]
+InputNormalization changed=true before=32 after=33
+CustomPreProcessor changed=true before=33 after=29 processor=<MarkdownGolden_RendererCombinedPipeline>b__16_0
+
+[renderer-combined.transforms]
+MarkdownReader MarkdownRegisteredFencedBlockTransform before=1 after=1 changed-before=1+0 changed-after=1+0 span=- replaced=false
+MarkdownReader Markdown_Golden_Fixture_Tests+GoldenReaderAppendParagraphTransform before=1 after=2 changed-before=1+0 changed-after=1+1 span=- replaced=false
+MarkdownRenderer Markdown_Golden_Fixture_Tests+GoldenRendererAppendParagraphTransform before=2 after=3 changed-before=2+0 changed-after=2+1 span=- replaced=false
+
+[renderer-combined.ast]
+0: Semantic(kind=mermaid, language=mermaid, text="graph TD A-->B")
+1: Paragraph("reader tail")
+2: Paragraph("renderer tail")

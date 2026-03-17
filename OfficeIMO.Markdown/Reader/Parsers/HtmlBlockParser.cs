@@ -98,7 +98,13 @@ public static partial class MarkdownReader {
                 j++;
 
                 if (completed) break;
-                if (blockState.TracksStack && stackDepth <= 0 && blockState.Kind is HtmlBlockKind.Type6 or HtmlBlockKind.Type7) break;
+                if (blockState.TracksStack
+                    && stackDepth <= 0
+                    && blockState.Kind is HtmlBlockKind.Type6 or HtmlBlockKind.Type7
+                    && string.Equals(blockState.PrimaryTagName, "details", StringComparison.OrdinalIgnoreCase)) {
+                    break;
+                }
+
                 if (blockState.EndsOnBlankLine && j < lines.Length && string.IsNullOrWhiteSpace(lines[j])) {
                     if (!blockState.TracksStack) {
                         break;
@@ -137,6 +143,10 @@ public static partial class MarkdownReader {
 
             int closeIdx = htmlContent.LastIndexOf("</details>", StringComparison.OrdinalIgnoreCase);
             if (closeIdx < 0 || closeIdx <= tagEnd) return false;
+            int trailingStart = closeIdx + "</details>".Length;
+            if (trailingStart < htmlContent.Length && !string.IsNullOrWhiteSpace(htmlContent.Substring(trailingStart))) {
+                return false;
+            }
 
             string inner = htmlContent.Substring(tagEnd + 1, closeIdx - tagEnd - 1);
 

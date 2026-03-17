@@ -7,16 +7,16 @@
 2: Heading(level=2, text="Assistant (20:36: 24)")
 3: Paragraph("<!-- ix: model: gpt-5.3-codex --> Love it - let's do **proper visual tests** with realistic data + clear color behavior.  \nI'll give you 4 chart types so you can validate palette, legends, stacking, and trend readability.")
 4: Heading(level=2, text="1) Risk distribution (stacked bar, severity colors)")
-5: SemanticFencedBlock
+5: Semantic(kind=chart, language=ix-chart, text="{\n  "type": "bar",\n  "data": {\n    "labels": ["Identity", "Endpoints", "AD", ...")
 6: HorizontalRuleBlock
 7: Heading(level=2, text="2) 30-day security trend (line chart, multi-series)")
-8: SemanticFencedBlock
+8: Semantic(kind=chart, language=ix-chart, text="{\n  "type": "line",\n  "data": {\n    "labels": ["D-29","D-26","D-23","D-20","D...")
 9: HorizontalRuleBlock
 10: Heading(level=2, text="3) Control coverage (doughnut with rose accent)")
-11: SemanticFencedBlock
+11: Semantic(kind=chart, language=ix-chart, text="{\n  "type": "doughnut",\n  "data": {\n    "labels": ["Compliant", "Partial", "N...")
 12: HorizontalRuleBlock
 13: Heading(level=2, text="4) Heat-style matrix proxy (grouped bar for intensity)")
-14: SemanticFencedBlock
+14: Semantic(kind=chart, language=ix-chart, text="{\n  "type": "bar",\n  "data": {\n    "labels": ["Mon","Tue","Wed","Thu","Fri","...")
 15: HorizontalRuleBlock
 16: Heading(level=2, text="User (20:37: 47)")
 17: Paragraph("you sure this is the chartjs thatwe support?")
@@ -37,7 +37,7 @@
   item[0]: task=no content="Validate **strict JSON** only \(no trailing commas, no comments\)."
   item[1]: task=no content="Keep color tokens deterministic \(your green/amber/red/rose palette\) to detect style fallback."
   item[2]: task=no content="Re-run the same block after any markdown parser upgrade; diff screenshots for silent rendering drift."
-25: SemanticFencedBlock
+25: Semantic(kind=mermaid, language=mermaid, text="flowchart LR\n    A[Paste ix-chart block] --> B{Renders chart?}\n    B -- No --...")
 
 [roundtrip.markdown]
 ## User \(20:36: 21\)

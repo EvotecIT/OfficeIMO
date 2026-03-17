@@ -1,0 +1,74 @@
+[legacy-tool-heading.preprocessed]
+[Cached evidence fallback]
+
+Recent evidence:
+- eventlog_top_events: #
+## Top 30 recent events (preview)
+
+### ad_environment_discover
+## Active Directory: Environment Discovery
+
+[legacy-tool-heading.preprocessors]
+InputNormalization changed=true before=184 after=183
+
+[legacy-tool-heading.transforms]
+MarkdownReader MarkdownRegisteredFencedBlockTransform before=6 after=6 changed-before=6+0 changed-after=6+0 span=- replaced=false
+MarkdownReader MarkdownSimpleDefinitionListParagraphTransform before=6 after=6 changed-before=6+0 changed-after=6+0 span=- replaced=false
+MarkdownReader MarkdownJsonVisualCodeBlockTransform before=6 after=6 changed-before=6+0 changed-after=6+0 span=- replaced=false
+MarkdownReader MarkdownIntelligenceXCachedToolEvidenceMarkerTransform before=6 after=6 changed-before=6+0 changed-after=6+0 span=- replaced=false
+MarkdownReader MarkdownIntelligenceXLegacyToolHeadingTransform before=6 after=4 changed-before=2+3 changed-after=2+1 span=L4-L7 replaced=false
+
+[legacy-tool-heading.ast]
+0: Paragraph("\[Cached evidence fallback\]")
+1: Paragraph("Recent evidence:")
+2: Heading(level=3, text="Top 30 recent events (preview)")
+3: Heading(level=2, text="Active Directory: Environment Discovery")
+
+[cached-evidence-visuals.preprocessed]
+ix:cached-tool-evidence:v1
+
+Chart preview:
+
+```json
+{
+  "type": "bar",
+  "data": {
+    "labels": [ "A" ],
+    "datasets": [
+      { "label": "Count", "data": [ 1 ] }
+    ]
+  }
+}
+```
+
+Dataview preview:
+
+```json
+{
+  "title": "Replication Summary",
+  "summary": "Latest replication posture",
+  "kind": "ix_tool_dataview_v1",
+  "call_id": "call_123",
+  "rows": [
+    [ "Server", "Fails" ],
+    [ "AD0", "0" ],
+    [ "AD1", "1" ]
+  ]
+}
+```
+
+[cached-evidence-visuals.preprocessors]
+(none)
+
+[cached-evidence-visuals.transforms]
+MarkdownReader MarkdownRegisteredFencedBlockTransform before=5 after=5 changed-before=5+0 changed-after=5+0 span=- replaced=false
+MarkdownReader MarkdownSimpleDefinitionListParagraphTransform before=5 after=5 changed-before=5+0 changed-after=5+0 span=- replaced=false
+MarkdownReader MarkdownJsonVisualCodeBlockTransform before=5 after=5 changed-before=2+3 changed-after=2+3 span=L5-L31 replaced=false
+MarkdownReader MarkdownIntelligenceXCachedToolEvidenceMarkerTransform before=5 after=4 changed-before=0+1 changed-after=0+0 span=L1 replaced=false
+MarkdownReader MarkdownIntelligenceXLegacyToolHeadingTransform before=4 after=4 changed-before=4+0 changed-after=4+0 span=- replaced=false
+
+[cached-evidence-visuals.ast]
+0: Paragraph("Chart preview:")
+1: Semantic(kind=chart, language=ix-chart, text="{\n  "type": "bar",\n  "data": {\n    "labels": [ "A" ],\n    "datasets": [\n     ...")
+2: Paragraph("Dataview preview:")
+3: Semantic(kind=dataview, language=ix-dataview, text="{\n  "title": "Replication Summary",\n  "summary": "Latest replication posture"...")

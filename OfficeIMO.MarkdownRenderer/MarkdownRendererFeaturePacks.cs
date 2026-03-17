@@ -8,7 +8,7 @@ namespace OfficeIMO.MarkdownRenderer;
 public static class MarkdownRendererFeaturePacks {
     /// <summary>
     /// IntelligenceX transcript compatibility contract composed from IX visual aliases and
-    /// legacy transcript migration preprocessors.
+    /// legacy transcript migration helpers.
     /// </summary>
     public static MarkdownRendererFeaturePack IntelligenceXTranscriptCompatibility { get; } = new MarkdownRendererFeaturePack(
         "officeimo.intelligencex.transcript-compatibility",

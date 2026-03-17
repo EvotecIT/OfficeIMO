@@ -536,11 +536,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, opts.FencedCodeBlockRenderers.Count(renderer => renderer.Languages.Contains("ix-chart", StringComparer.OrdinalIgnoreCase)));
             Assert.Equal(1, opts.FencedCodeBlockRenderers.Count(renderer => renderer.Languages.Contains("ix-network", StringComparer.OrdinalIgnoreCase)));
             Assert.Equal(1, opts.FencedCodeBlockRenderers.Count(renderer => renderer.Languages.Contains("ix-dataview", StringComparer.OrdinalIgnoreCase)));
-            Assert.Equal(2, opts.MarkdownPreProcessors.Count);
+            Assert.Empty(opts.MarkdownPreProcessors);
             Assert.Equal(1, opts.ReaderOptions.DocumentTransforms.Count(transform => transform is MarkdownSimpleDefinitionListParagraphTransform));
             Assert.Equal(1, opts.ReaderOptions.DocumentTransforms.Count(transform =>
                 transform is MarkdownJsonVisualCodeBlockTransform visual
                 && visual.LanguageMode == MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
+            Assert.Equal(1, opts.ReaderOptions.DocumentTransforms.Count(transform => transform is MarkdownIntelligenceXCachedToolEvidenceMarkerTransform));
+            Assert.Equal(1, opts.ReaderOptions.DocumentTransforms.Count(transform => transform is MarkdownIntelligenceXLegacyToolHeadingTransform));
         }
 
         [Fact]
@@ -602,14 +604,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void MarkdownRendererIntelligenceXLegacyMigration_AddsLegacyHeadingCleanupPreProcessor_OnlyOnce() {
+        public void MarkdownRendererIntelligenceXLegacyMigration_AddsLegacyHeadingCleanup_Contracts_OnlyOnce() {
             var opts = MarkdownRendererPresets.CreateStrict();
 
             MarkdownRendererIntelligenceXLegacyMigration.Apply(opts);
-            int once = opts.MarkdownPreProcessors.Count;
+            int preProcessorCount = opts.MarkdownPreProcessors.Count;
+            int transformCount = opts.ReaderOptions.DocumentTransforms.Count(transform => transform is MarkdownIntelligenceXLegacyToolHeadingTransform);
             MarkdownRendererIntelligenceXLegacyMigration.Apply(opts);
 
-            Assert.Equal(once, opts.MarkdownPreProcessors.Count);
+            Assert.Equal(preProcessorCount, opts.MarkdownPreProcessors.Count);
+            Assert.Equal(transformCount, opts.ReaderOptions.DocumentTransforms.Count(transform => transform is MarkdownIntelligenceXLegacyToolHeadingTransform));
         }
 
         [Fact]
@@ -632,6 +636,62 @@ Recent evidence:
             Assert.DoesNotContain("eventlog_top_events:", chat, StringComparison.Ordinal);
             Assert.DoesNotContain("ad_environment_discover", chat, StringComparison.Ordinal);
             Assert.Contains("Active Directory: Environment Discovery", chat, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscriptMinimal_PromotesLegacyToolHeadingArtifacts_InFinalAst() {
+            var markdown = """
+Recent evidence:
+- eventlog_top_events: ### Top 30 recent events (preview)
+
+#### ad_environment_discover
+### Active Directory: Environment Discovery
+""";
+
+            var document = OfficeIMO.MarkdownRenderer.MarkdownRenderer.ParseDocument(
+                markdown,
+                MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal());
+
+            Assert.Collection(
+                document.Blocks,
+                block => Assert.Equal("Recent evidence:", ((IMarkdownBlock)Assert.IsType<ParagraphBlock>(block)).RenderMarkdown()),
+                block => {
+                    var heading = Assert.IsType<HeadingBlock>(block);
+                    Assert.Equal("Top 30 recent events (preview)", heading.Text);
+                },
+                block => {
+                    var heading = Assert.IsType<HeadingBlock>(block);
+                    Assert.Equal("Active Directory: Environment Discovery", heading.Text);
+                });
+        }
+
+        [Fact]
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscriptMinimal_PreservesLegacyToolHeadingMarkdown_UntilAstTransforms() {
+            var markdown = """
+Recent evidence:
+- eventlog_top_events: ### Top 30 recent events (preview)
+
+#### ad_environment_discover
+### Active Directory: Environment Discovery
+""";
+
+            var result = OfficeIMO.MarkdownRenderer.MarkdownRenderer.ParseDocumentResult(
+                markdown,
+                MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal());
+
+            Assert.Contains("eventlog_top_events:", result.PreprocessedMarkdown, StringComparison.Ordinal);
+            Assert.Contains("Top 30 recent events (preview)", result.PreprocessedMarkdown, StringComparison.Ordinal);
+            Assert.Contains("ad_environment_discover", result.PreprocessedMarkdown, StringComparison.Ordinal);
+            Assert.DoesNotContain(result.Document.Blocks, block =>
+                block is UnorderedListBlock unordered
+                && unordered.Items.Any(item => item.ParagraphBlocks.Any(paragraph =>
+                    ((IMarkdownBlock)paragraph).RenderMarkdown().Contains("eventlog_top_events", StringComparison.Ordinal))));
+            Assert.DoesNotContain(result.Document.Blocks, block =>
+                block is HeadingBlock heading
+                && string.Equals(heading.Text, "ad_environment_discover", StringComparison.Ordinal));
+            Assert.Contains(result.TransformDiagnostics, diagnostic =>
+                diagnostic.Source == MarkdownDocumentTransformSource.MarkdownReader
+                && diagnostic.TransformName.Contains(nameof(MarkdownIntelligenceXLegacyToolHeadingTransform), StringComparison.Ordinal));
         }
 
         [Fact]
@@ -711,6 +771,41 @@ Indented fallback:
             Assert.DoesNotContain("cached-tool-evidence", chat, StringComparison.Ordinal);
             Assert.Contains("data-omd-fence-language=\"ix-network\"", chat, StringComparison.Ordinal);
             Assert.Equal(2, CountOccurrences(chat, "data-omd-fence-language=\"ix-network\""));
+        }
+
+        [Fact]
+        public void MarkdownRendererPresets_CreateIntelligenceXTranscript_RemovesCachedEvidenceMarker_InAst_Not_Preprocessing() {
+            var markdown = """
+ix:cached-tool-evidence:v1
+
+```json
+{
+  "type": "bar",
+  "data": {
+    "labels": [ "A" ],
+    "datasets": [
+      { "label": "Count", "data": [ 1 ] }
+    ]
+  }
+}
+```
+""";
+
+            var result = OfficeIMO.MarkdownRenderer.MarkdownRenderer.ParseDocumentResult(
+                markdown,
+                MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal());
+
+            Assert.Contains("ix:cached-tool-evidence:v1", result.PreprocessedMarkdown, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(result.Document.Blocks, block =>
+                block is ParagraphBlock paragraph
+                && ((IMarkdownBlock)paragraph).RenderMarkdown().Contains("cached-tool-evidence", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(result.Document.Blocks, block =>
+                block is SemanticFencedBlock semantic
+                && semantic.Language == "ix-chart"
+                && semantic.SemanticKind == MarkdownSemanticKinds.Chart);
+            Assert.Contains(result.TransformDiagnostics, diagnostic =>
+                diagnostic.Source == MarkdownDocumentTransformSource.MarkdownReader
+                && diagnostic.TransformName.Contains(nameof(MarkdownIntelligenceXCachedToolEvidenceMarkerTransform), StringComparison.Ordinal));
         }
 
         [Fact]

@@ -41,6 +41,8 @@ var bodyHtml = MarkdownRenderer.RenderBodyHtml("""
 
 This is rendered through OfficeIMO.MarkdownRenderer.
 """, options);
+var document = MarkdownRenderer.ParseDocument("# Hello", options);
+var result = MarkdownRenderer.ParseDocumentResult("# Hello", options);
 ```
 
 ## Common Tasks by Example
@@ -103,10 +105,35 @@ Use `CreateTranscriptDesktopShell(...)` when the host wants the IntelligenceX de
 ```csharp
 var options = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
 var normalized = MarkdownRendererPreProcessorPipeline.Apply(markdownText, options);
+var diagnostics = new List<MarkdownRendererPreProcessorDiagnostic>();
+var normalizedWithDiagnostics = MarkdownRendererPreProcessorPipeline.Apply(markdownText, options, diagnostics);
 ```
 
 Use `MarkdownRendererPreProcessorPipeline.Apply(...)` when a host wants the explicit renderer-owned transcript preprocessor chain without rendering HTML yet. This keeps transcript preprocessor behavior sourced from OfficeIMO rather than re-iterated in app code.
 That pipeline is intentionally limited to pre-parse normalization and legacy migration glue. Recoverable structure upgrades should happen later through the shared OfficeIMO AST/document-transform pipeline.
+In the IntelligenceX compatibility path, the remaining recoverable cleanup now runs later as document transforms: cached-evidence marker removal, legacy JSON visual upgrades, and parseable legacy tool-slug headings. The preprocessor pipeline is no longer carrying the old legacy heading repair step.
+Pass a diagnostics collection when the host wants to see whether escaped-newline normalization, shared input normalization, or custom pre-processors changed the input before parsing.
+
+### Applying AST transforms before HTML rendering
+
+```csharp
+var options = MarkdownRendererPresets.CreateStrict();
+options.DocumentTransforms.Add(new PromoteSummaryTailTransform());
+
+var result = MarkdownRenderer.ParseDocumentResult(markdownText, options);
+var document = result.Document;
+var preprocessedMarkdown = result.PreprocessedMarkdown;
+var syntaxTree = result.SyntaxTree;
+var diagnostics = result.TransformDiagnostics;
+var preProcessorDiagnostics = result.PreProcessorDiagnostics;
+var bodyHtml = MarkdownRenderer.RenderBodyHtml(markdownText, options);
+```
+
+Use `options.DocumentTransforms` when the renderer host wants to rewrite the parsed `MarkdownDoc` before HTML generation.
+Prefer this for structural/content fixes that should operate on the AST.
+Reserve `MarkdownPreProcessors` for true pre-parse text repair and `HtmlPostProcessors` for the small set of changes that genuinely must happen on the emitted HTML string.
+Use `MarkdownRenderer.ParseDocument(...)` when the host wants the final renderer-owned AST without emitting HTML yet.
+Use `MarkdownRenderer.ParseDocumentResult(...)` when the host wants the final AST, the exact preprocessed markdown text that was parsed, the original syntax tree, and both pre-parse and transform diagnostics in one typed result.
 
 ### Strict vs portable presets
 
@@ -181,7 +208,7 @@ var options = MarkdownRendererPresets.CreateStrict();
 IntelligenceXMarkdownRenderer.ApplyTranscriptContract(options);
 ```
 
-Use this when the host wants IX visual aliases, IX fence-option schema support, and the IX transcript reader/AST contract, but does not want the legacy transcript cleanup preprocessors from the broader compatibility pack.
+Use this when the host wants IX visual aliases, IX fence-option schema support, and the IX transcript reader/AST contract, but does not want the broader compatibility-pack cleanup layer.
 
 ### Generic-first opt-in composition
 
@@ -207,7 +234,7 @@ options.ApplyFeaturePack(IntelligenceXMarkdownRenderer.TranscriptCompatibilityPa
 
 Use this when a host wants a reusable compatibility bundle without hard-coding a sequence of IX-specific calls.
 This is the intended pattern for future first-party or third-party host packages that build on top of the generic renderer.
-If the host only needs renderer aliases plus reader/AST transcript behavior, prefer a plugin-level contract such as `IntelligenceXMarkdownRenderer.TranscriptPlugin`; use feature packs when you also need host-level compatibility glue such as legacy preprocessors or broader shell defaults.
+If the host only needs renderer aliases plus reader/AST transcript behavior, prefer a plugin-level contract such as `IntelligenceXMarkdownRenderer.TranscriptPlugin`; use feature packs when you also need host-level compatibility glue or broader shell defaults.
 
 ### Fence metadata in custom renderers
 
@@ -243,6 +270,7 @@ Use `TryGetFenceOptionSchema(...)` / `TryParseFenceOptions(...)` when a plugin w
 Plugins can now carry these schemas directly, and feature packs apply plugin-contributed schemas automatically alongside renderer registrations and plugin-owned reader/AST configuration.
 Plugins can also carry their own idempotent reader/AST configuration directly, which lets first-party packages expose a reusable parser contract without forcing every host to depend on a higher-level feature pack.
 That reader-side contract is available directly on `MarkdownReaderOptions` too: call `readerOptions.ApplyPlugin(plugin)` or `readerOptions.ApplyFeaturePack(pack)` when a host wants plugin-owned source parsing/document transforms without going through renderer presets.
+Renderer plugins can now also carry renderer-stage AST transforms through `RendererDocumentTransforms`, which flow into `MarkdownRendererOptions.DocumentTransforms` when the plugin or composed feature pack is applied.
 Plugins and feature packs also expose HTML-ingestion contracts for `OfficeIMO.Markdown.Html`: custom HTML element block converters, custom inline element converters, post-conversion `DocumentTransforms`, and `VisualElementRoundTripHints`. When the host also references `OfficeIMO.Markdown.Html`, apply them with `htmlOptions.ApplyPlugin(plugin)` or `htmlOptions.ApplyFeaturePack(pack)` instead of copying converters, transforms, or hints manually.
 
 ### Offline assets

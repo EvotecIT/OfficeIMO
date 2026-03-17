@@ -120,6 +120,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "inline-link-empty-angle-destination", "[x](<>)" };
         yield return new object[] { "inline-link-empty-angle-destination-with-title", "[x](<> \"title\")" };
         yield return new object[] { "inline-image-empty-angle-destination", "Look ![x](<>) now" };
+        yield return new object[] { "html-block-type6-continues-until-blank-line", "<div>\ninner\n</div>\nParagraph" };
+        yield return new object[] { "html-block-type7-continues-until-blank-line", "<widget-box>\ninner\n</widget-box>\nParagraph" };
         yield return new object[] { "inline-link-invalid-title-tail", "[x](https://example.com \"title\" extra)" };
         yield return new object[] { "inline-link-title-with-escaped-quote", "[x](https://example.com \"a \\\"quote\\\" title\")" };
         yield return new object[] { "reference-link-empty-angle-destination", "[x][r]\n\n[r]: <>" };

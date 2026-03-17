@@ -31,6 +31,7 @@ options.ApplyFeaturePack(IntelligenceXMarkdownRenderer.TranscriptCompatibilityPa
 ```
 
 Use the transcript compatibility pack when you want to stay generic-first but still layer in the IntelligenceX visual aliases, transcript reader/AST contract, and legacy transcript cleanup behavior as one reusable host-level contract.
+That compatibility layer now runs its remaining recoverable cleanup through the shared document-transform pipeline: cached-evidence marker removal, legacy JSON visual upgrades, and parseable legacy tool-heading artifacts.
 
 ## Transcript Plugin
 

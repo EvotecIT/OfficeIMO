@@ -300,6 +300,15 @@ public sealed class MarkdownRendererOptions {
     /// </summary>
     public List<MarkdownTextPreProcessor> MarkdownPreProcessors { get; } = new List<MarkdownTextPreProcessor>();
 
+    /// <summary>
+    /// Optional AST-level document transforms applied by <see cref="MarkdownRenderer.RenderBodyHtml"/> after parsing
+    /// and before HTML generation.
+    /// Prefer these for structural/content rewrites that should operate on <see cref="MarkdownDoc"/> instead of
+    /// raw markdown text or rendered HTML strings.
+    /// Default: none.
+    /// </summary>
+    public List<IMarkdownDocumentTransform> DocumentTransforms { get; } = new List<IMarkdownDocumentTransform>();
+
     /// <summary>Mermaid support options.</summary>
     public MermaidOptions Mermaid { get; } = new MermaidOptions();
 
@@ -499,6 +508,7 @@ public sealed class MarkdownRendererOptions {
     /// <summary>
     /// Optional post-processors applied to the HTML fragment produced by <see cref="MarkdownRenderer.RenderBodyHtml"/>.
     /// These run after built-in conversions (Mermaid/Chart/Math) and after BaseHref injection.
+    /// Prefer <see cref="DocumentTransforms"/> when the change can be expressed against the AST before HTML is emitted.
     /// Default: none.
     /// </summary>
     public List<MarkdownHtmlPostProcessor> HtmlPostProcessors { get; } = new List<MarkdownHtmlPostProcessor>();

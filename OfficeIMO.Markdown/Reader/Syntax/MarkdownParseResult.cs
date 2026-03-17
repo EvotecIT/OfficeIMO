@@ -8,10 +8,16 @@ public sealed class MarkdownParseResult {
     public MarkdownDoc Document { get; }
     /// <summary>The root syntax node for the parsed markdown.</summary>
     public MarkdownSyntaxNode SyntaxTree { get; }
+    /// <summary>Optional document-transform diagnostics captured during parsing.</summary>
+    public IReadOnlyList<MarkdownDocumentTransformDiagnostic> TransformDiagnostics { get; }
 
-    internal MarkdownParseResult(MarkdownDoc document, MarkdownSyntaxNode syntaxTree) {
+    internal MarkdownParseResult(
+        MarkdownDoc document,
+        MarkdownSyntaxNode syntaxTree,
+        IReadOnlyList<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null) {
         Document = document;
         SyntaxTree = syntaxTree;
+        TransformDiagnostics = transformDiagnostics ?? Array.Empty<MarkdownDocumentTransformDiagnostic>();
     }
 
     /// <summary>Finds the deepest syntax node whose source span contains the given 1-based line number.</summary>
