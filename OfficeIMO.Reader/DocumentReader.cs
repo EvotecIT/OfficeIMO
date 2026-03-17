@@ -473,7 +473,16 @@ public static class DocumentReader {
         var opt = NormalizeOptions(options);
         EnforceFileSize(path, opt.MaxInputBytes);
         var source = BuildSourceInfoFromPath(path, opt.ComputeHashes);
+        foreach (var chunk in ReadPathCore(path, opt, source, cancellationToken)) {
+            yield return chunk;
+        }
+    }
 
+    private static IEnumerable<ReaderChunk> ReadPathCore(
+        string path,
+        ReaderOptions opt,
+        SourceInfo source,
+        CancellationToken cancellationToken) {
         IEnumerable<ReaderChunk> raw;
         if (TryResolveCustomHandlerByPath(path, out var customPathHandler) && customPathHandler.ReadPath != null) {
             raw = customPathHandler.ReadPath(path, opt, cancellationToken);
@@ -1717,12 +1726,13 @@ public static class DocumentReader {
         ReaderOptions? options,
         CancellationToken cancellationToken) {
         var opt = NormalizeOptions(options);
+        EnforceFileSize(path, opt.MaxInputBytes);
         var source = BuildSourceInfoFromPath(path, opt.ComputeHashes);
 
         List<ReaderChunk>? chunks = null;
         string? warning = null;
         try {
-            chunks = Read(path, opt, cancellationToken).ToList();
+            chunks = ReadPathCore(path, opt, source, cancellationToken).ToList();
         } catch (OperationCanceledException) {
             throw;
         } catch (NotSupportedException ex) {

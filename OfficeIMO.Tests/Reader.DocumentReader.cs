@@ -893,6 +893,7 @@ public sealed class ReaderDocumentReaderTests {
             Assert.False(string.IsNullOrWhiteSpace(document.SourceId));
             Assert.False(string.IsNullOrWhiteSpace(document.SourceHash));
             Assert.NotEmpty(document.Chunks);
+            Assert.All(document.Chunks, chunk => Assert.Equal(document.SourceHash, chunk.SourceHash));
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
