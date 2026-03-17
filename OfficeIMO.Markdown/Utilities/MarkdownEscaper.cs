@@ -16,6 +16,7 @@ internal static class MarkdownEscaper {
     private static readonly char[] UrlReserved = ['\\', '(', ')', '[', ']', '|'];
 
     internal static string EscapeText(string? text) => Escape(text, GeneralReserved);
+    internal static string EscapeLiteralText(string? text) => EncodeAngleBrackets(Escape(text, GeneralReserved));
     internal static string EscapeEmphasis(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeHighlightText(string? text) => Escape(text, HighlightReserved);
     internal static string EscapeLinkText(string? text) => Escape(text, GeneralReserved);
@@ -64,6 +65,31 @@ internal static class MarkdownEscaper {
                 sb?.Append(c);
             }
         }
+        return sb?.ToString() ?? text;
+    }
+
+    private static string EncodeAngleBrackets(string text) {
+        if (string.IsNullOrEmpty(text)) {
+            return string.Empty;
+        }
+
+        StringBuilder? sb = null;
+        for (int i = 0; i < text.Length; i++) {
+            string? replacement = text[i] switch {
+                '<' => "&lt;",
+                '>' => "&gt;",
+                _ => null
+            };
+
+            if (replacement == null) {
+                sb?.Append(text[i]);
+                continue;
+            }
+
+            sb ??= new StringBuilder(text.Length + 8).Append(text, 0, i);
+            sb.Append(replacement);
+        }
+
         return sb?.ToString() ?? text;
     }
 }

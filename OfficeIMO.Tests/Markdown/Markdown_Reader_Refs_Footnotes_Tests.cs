@@ -80,6 +80,9 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
             Assert.Equal("<u>x</u>", text.Text);
 
+            var markdown = doc.ToMarkdown();
+            Assert.Contains("Value <u>&lt;u&gt;x&lt;/u&gt;</u>", markdown, StringComparison.Ordinal);
+
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
             Assert.Contains("Value <u>&lt;u&gt;x&lt;/u&gt;</u>", html, StringComparison.Ordinal);
         }

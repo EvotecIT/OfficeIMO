@@ -13,6 +13,15 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void TextRun_EncodesLiteralAngleBrackets() {
+            var run = new TextRun("<u>demo</u>");
+
+            var markdown = run.RenderMarkdown();
+
+            Assert.Equal("&lt;u&gt;demo&lt;/u&gt;", markdown);
+        }
+
+        [Fact]
         public void LinkAndImageInline_EscapeTextAndUrls() {
             var link = new LinkInline("[text]", "path(1)|two\\end", "see [ref] | note");
             var image = new ImageInline("alt[text]", "image(path)|pipe\\end", "badge [info] | note");
