@@ -33,6 +33,8 @@ Each package is shipped independently under the MIT license unless noted otherwi
 - [OfficeIMO.Markdown](OfficeIMO.Markdown/README.md)
 - [OfficeIMO.Markdown.Html](OfficeIMO.Markdown.Html/README.md)
 - [OfficeIMO.MarkdownRenderer](OfficeIMO.MarkdownRenderer/README.md)
+- [OfficeIMO.MarkdownRenderer.IntelligenceX](OfficeIMO.MarkdownRenderer.IntelligenceX/README.md)
+- [OfficeIMO.MarkdownRenderer.SamplePlugin](OfficeIMO.MarkdownRenderer.SamplePlugin/README.md)
 - Converters
   - `OfficeIMO.Markdown.Html`
   - `OfficeIMO.Word.Html`
@@ -58,6 +60,8 @@ Each package is shipped independently under the MIT license unless noted otherwi
 - `OfficeIMO.Markdown`: markdown builder, typed reader/AST, HTML renderer, front matter, TOC, callouts, and query helpers
 - `OfficeIMO.Markdown.Html`: HTML-to-Markdown AST bridge targeting the OfficeIMO.Markdown document model
 - `OfficeIMO.MarkdownRenderer`: WebView/browser-friendly rendering shell and incremental update helpers
+- `OfficeIMO.MarkdownRenderer.IntelligenceX`: first-party IntelligenceX plugin pack layered on top of the generic renderer
+- `OfficeIMO.MarkdownRenderer.SamplePlugin`: sample third-party-style plugin pack showing shared visual host rendering plus HTML round-trip hints
 - `OfficeIMO.Markdown.Benchmarks`: representative parse/render benchmark harness
 
 ### Other packages
@@ -122,12 +126,19 @@ flowchart TB
 ```mermaid
 flowchart TB
   Md["OfficeIMO.Markdown"]
+  MdHtml["OfficeIMO.Markdown.Html"]
   MdRenderer["OfficeIMO.MarkdownRenderer"]
+  MdRendererIx["OfficeIMO.MarkdownRenderer.IntelligenceX"]
+  MdRendererSample["OfficeIMO.MarkdownRenderer.SamplePlugin"]
   MdBench["OfficeIMO.Markdown.Benchmarks"]
   WordMd["OfficeIMO.Word.Markdown"]
   Json["System.Text.Json"]
 
+  MdHtml --> Md
   MdRenderer --> Md
+  MdRenderer --> MdHtml
+  MdRendererIx --> MdRenderer
+  MdRendererSample --> MdRenderer
   MdRenderer --> Json
   MdBench --> Md
   WordMd --> Md
@@ -177,6 +188,7 @@ flowchart TD
 - Word to PDF: add `OfficeIMO.Word` + `OfficeIMO.Word.Pdf`
 - Building or parsing Markdown directly: add `OfficeIMO.Markdown`
 - Hosting Markdown in WebView2 or a browser shell: add `OfficeIMO.MarkdownRenderer`
+- Hosting IntelligenceX transcript/chat surfaces on top of the generic renderer: add `OfficeIMO.MarkdownRenderer.IntelligenceX`
 - Benchmarking markdown parse/render behavior before release: use `OfficeIMO.Markdown.Benchmarks`
 - Excel read/write and reporting: add `OfficeIMO.Excel`
 - CSV schemas and typed CSV workflows: add `OfficeIMO.CSV`

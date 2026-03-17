@@ -24,6 +24,18 @@ public static class MarkdownVisualElementContract {
     /// <summary>Attribute name storing the source fence language.</summary>
     public const string AttributeFenceLanguage = "data-omd-fence-language";
 
+    /// <summary>Optional attribute name storing the original normalized fence metadata tail.</summary>
+    public const string AttributeFenceInfo = "data-omd-fence-info";
+
+    /// <summary>Optional attribute name storing the original fence element id.</summary>
+    public const string AttributeFenceId = "data-omd-fence-id";
+
+    /// <summary>Optional attribute name storing the original fence CSS classes.</summary>
+    public const string AttributeFenceClasses = "data-omd-fence-classes";
+
+    /// <summary>Optional attribute name storing a human-friendly visual title.</summary>
+    public const string AttributeVisualTitle = "data-omd-visual-title";
+
     /// <summary>Attribute name storing the visual payload hash.</summary>
     public const string AttributeVisualHash = "data-omd-visual-hash";
 
@@ -140,6 +152,43 @@ public sealed class MarkdownVisualElement {
 
     /// <summary>Original source fence language.</summary>
     public string FenceLanguage { get; }
+
+    /// <summary>Original normalized fence metadata tail after the primary language token.</summary>
+    public string? FenceAdditionalInfo => TryGetAttribute(MarkdownVisualElementContract.AttributeFenceInfo, out var value) ? value : null;
+
+    /// <summary>Original source fence element id when the fence metadata provided one.</summary>
+    public string? FenceElementId => TryGetAttribute(MarkdownVisualElementContract.AttributeFenceId, out var value) ? value : null;
+
+    /// <summary>Original source fence CSS classes when the fence metadata provided them.</summary>
+    public IReadOnlyList<string> FenceClasses {
+        get {
+            if (!TryGetAttribute(MarkdownVisualElementContract.AttributeFenceClasses, out var value) || string.IsNullOrWhiteSpace(value)) {
+                return Array.Empty<string>();
+            }
+
+            var classes = new List<string>();
+            foreach (var className in value.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
+                bool exists = false;
+                for (int i = 0; i < classes.Count; i++) {
+                    if (string.Equals(classes[i], className, StringComparison.OrdinalIgnoreCase)) {
+                        exists = true;
+                        break;
+                    }
+                }
+
+                if (exists) {
+                    continue;
+                }
+
+                classes.Add(className);
+            }
+
+            return classes;
+        }
+    }
+
+    /// <summary>Optional human-friendly visual title when the source fence metadata provides one.</summary>
+    public string? VisualTitle => TryGetAttribute(MarkdownVisualElementContract.AttributeVisualTitle, out var value) ? value : null;
 
     /// <summary>Stable payload hash.</summary>
     public string VisualHash { get; }

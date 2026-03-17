@@ -236,8 +236,7 @@ public static class MarkdownRendererPresets {
         ApplyIntelligenceXTranscriptNormalizationDefaults(options);
         ApplyIntelligenceXTranscriptReaderContract(options, readerProfile);
         ApplyChatPresentation(options, enableCopyButtons: true);
-        MarkdownRendererIntelligenceXAdapter.Apply(options);
-        MarkdownRendererIntelligenceXLegacyMigration.Apply(options);
+        options.ApplyFeaturePack(MarkdownRendererFeaturePacks.IntelligenceXTranscriptCompatibility);
         return options;
     }
 
@@ -264,8 +263,7 @@ public static class MarkdownRendererPresets {
         ApplyIntelligenceXTranscriptNormalizationDefaults(options);
         ApplyIntelligenceXTranscriptReaderContract(options, readerProfile);
         ApplyChatPresentation(options, enableCopyButtons: false);
-        MarkdownRendererIntelligenceXAdapter.Apply(options);
-        MarkdownRendererIntelligenceXLegacyMigration.Apply(options);
+        options.ApplyFeaturePack(MarkdownRendererFeaturePacks.IntelligenceXTranscriptCompatibility);
         return options;
     }
 
@@ -314,8 +312,7 @@ public static class MarkdownRendererPresets {
         options.ReaderOptions.HtmlBlocks = true;
         options.ReaderOptions.InlineHtml = true;
         ApplyChatPresentation(options, enableCopyButtons: true);
-        MarkdownRendererIntelligenceXAdapter.Apply(options);
-        MarkdownRendererIntelligenceXLegacyMigration.Apply(options);
+        options.ApplyFeaturePack(MarkdownRendererFeaturePacks.IntelligenceXTranscriptCompatibility);
         return options;
     }
 }

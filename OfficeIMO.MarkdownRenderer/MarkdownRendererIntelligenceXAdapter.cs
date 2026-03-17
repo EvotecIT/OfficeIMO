@@ -7,6 +7,11 @@ namespace OfficeIMO.MarkdownRenderer;
 /// </summary>
 public static class MarkdownRendererIntelligenceXAdapter {
     /// <summary>
+    /// First-class IntelligenceX visual plugin layered on top of the generic OfficeIMO markdown renderer surface.
+    /// </summary>
+    public static MarkdownRendererPlugin Plugin => MarkdownRendererPlugins.IntelligenceXVisuals;
+
+    /// <summary>
     /// Registers the IntelligenceX alias fences (<c>ix-chart</c>, <c>ix-network</c>, <c>ix-dataview</c>)
     /// if they are not already present.
     /// </summary>
@@ -15,9 +20,7 @@ public static class MarkdownRendererIntelligenceXAdapter {
             throw new ArgumentNullException(nameof(options));
         }
 
-        AddIfMissing(options, "ix-chart", MarkdownRendererBuiltInFencedCodeBlocks.CreateIxChartRenderer);
-        AddIfMissing(options, "ix-network", MarkdownRendererBuiltInFencedCodeBlocks.CreateIxNetworkRenderer);
-        AddIfMissing(options, "ix-dataview", MarkdownRendererBuiltInFencedCodeBlocks.CreateDataViewRenderer);
+        options.ApplyPlugin(Plugin);
     }
 
     /// <summary>
@@ -28,36 +31,6 @@ public static class MarkdownRendererIntelligenceXAdapter {
             throw new ArgumentNullException(nameof(options));
         }
 
-        return HasLanguage(options, "ix-chart")
-            || HasLanguage(options, "ix-network")
-            || HasLanguage(options, "ix-dataview");
-    }
-
-    private static void AddIfMissing(
-        MarkdownRendererOptions options,
-        string language,
-        Func<MarkdownFencedCodeBlockRenderer> factory) {
-        if (!HasLanguage(options, language)) {
-            options.FencedCodeBlockRenderers.Add(factory());
-        }
-    }
-
-    private static bool HasLanguage(MarkdownRendererOptions options, string language) {
-        var renderers = options.FencedCodeBlockRenderers;
-        for (int i = 0; i < renderers.Count; i++) {
-            var renderer = renderers[i];
-            if (renderer == null) {
-                continue;
-            }
-
-            var languages = renderer.Languages;
-            for (int j = 0; j < languages.Count; j++) {
-                if (string.Equals(languages[j], language, StringComparison.OrdinalIgnoreCase)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return options.HasPlugin(Plugin);
     }
 }

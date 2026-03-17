@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>WebView-friendly Markdown rendering helpers (shell + incremental updates) built on OfficeIMO.Markdown.</Description>
-    <AssemblyName>OfficeIMO.MarkdownRenderer</AssemblyName>
-    <AssemblyTitle>OfficeIMO.MarkdownRenderer</AssemblyTitle>
-    <VersionPrefix>0.2.2</VersionPrefix>
+    <Description>Sample third-party-style plugin pack for OfficeIMO.MarkdownRenderer showing shared visual host rendering plus HTML round-trip hints.</Description>
+    <AssemblyName>OfficeIMO.MarkdownRenderer.SamplePlugin</AssemblyName>
+    <AssemblyTitle>OfficeIMO.MarkdownRenderer.SamplePlugin</AssemblyTitle>
+    <VersionPrefix>0.1.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
       $(TargetFrameworks);net472
@@ -12,14 +12,13 @@
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.MarkdownRenderer</PackageId>
-    <PackageTags>markdown;html;webview2;renderer;chat</PackageTags>
+    <PackageId>OfficeIMO.MarkdownRenderer.SamplePlugin</PackageId>
+    <PackageTags>markdown;renderer;plugin;sample;html</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>0.2.0: introduces generic-first preset composition, AST-based semantic fenced-block rendering, IntelligenceX alias adapters, shared visual metadata contracts, and broader dataview payload support for host integrations.</PackageReleaseNotes>
     <DebugType>portable</DebugType>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <IsPublishable>True</IsPublishable>
@@ -29,7 +28,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OfficeIMO.Markdown\OfficeIMO.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.MarkdownRenderer\OfficeIMO.MarkdownRenderer.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown.Html\OfficeIMO.Markdown.Html.csproj" />
   </ItemGroup>
 
@@ -49,7 +48,6 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <!-- Required for HttpClient usage in offline asset bundling helpers -->
     <Reference Include="System.Net.Http" />
   </ItemGroup>
 

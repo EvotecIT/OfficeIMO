@@ -1,7 +1,10 @@
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using OfficeIMO.Markdown;
+using OfficeIMO.Markdown.Html;
 using OfficeIMO.MarkdownRenderer;
+using OfficeIMO.MarkdownRenderer.SamplePlugin;
 using Xunit;
 
 namespace OfficeIMO.Tests.MarkdownSuite;
@@ -162,6 +165,58 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_Chart_Emits_Shared_Visual_Title_From_Fence_Metadata() {
+        var configJson = "{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}";
+        var md = $"""
+```chart title="Quarterly Overview"
+{configJson}
+```
+""";
+        var opts = new MarkdownRendererOptions();
+        opts.Chart.Enabled = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+
+        Assert.Contains("data-omd-fence-language=\"chart\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-title=\"Quarterly Overview\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Chart_Honors_Brace_Style_Fence_Id_And_Classes() {
+        var configJson = "{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}";
+        var md = "```chart {#quarterly-overview .wide .accent title=\"Quarterly Overview\" pinned}\n"
+            + configJson
+            + "\n```";
+        var opts = new MarkdownRendererOptions();
+        opts.Chart.Enabled = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+
+        Assert.Contains("data-omd-fence-info=\"{#quarterly-overview .wide .accent title=&quot;Quarterly Overview&quot; pinned}\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"quarterly-overview\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"omd-visual omd-chart wide accent\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-title=\"Quarterly Overview\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Chart_Does_Not_Partially_Apply_Malformed_Brace_Metadata() {
+        var configJson = "{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}";
+        var md = "```chart {#quarterly-overview .wide title=\"Quarterly Overview\"\n"
+            + configJson
+            + "\n```";
+        var opts = new MarkdownRendererOptions();
+        opts.Chart.Enabled = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+
+        Assert.Contains("data-omd-fence-info=\"{#quarterly-overview .wide title=&quot;Quarterly Overview&quot;\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"quarterly-overview\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("class=\"omd-visual omd-chart wide", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-omd-visual-title=\"Quarterly Overview\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"omd-visual omd-chart\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_ChatPreset_Converts_IxChart_Code_Fences_Inside_List_Items_When_Enabled() {
         var configJson = "{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}";
         var md = $"""
@@ -308,6 +363,39 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_Network_Emits_Shared_Visual_Title_From_Fence_Metadata() {
+        var md = """
+```network title="Relationship Map"
+{"nodes":[{"id":"A","label":"User"},{"id":"B","label":"Group"}],"edges":[{"from":"A","to":"B","label":"memberOf"}]}
+```
+""";
+        var opts = new MarkdownRendererOptions();
+        opts.Network.Enabled = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+
+        Assert.Contains("data-omd-fence-language=\"network\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-title=\"Relationship Map\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Network_Honors_Brace_Style_Fence_Id_And_Classes() {
+        var md = """
+```network {#relationship-map .wide .interactive title="Relationship Map"}
+{"nodes":[{"id":"A","label":"User"},{"id":"B","label":"Group"}],"edges":[{"from":"A","to":"B","label":"memberOf"}]}
+```
+""";
+        var opts = new MarkdownRendererOptions();
+        opts.Network.Enabled = true;
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+
+        Assert.Contains("id=\"relationship-map\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"omd-visual omd-network wide interactive\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-title=\"Relationship Map\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Chart_Fallback_Uses_Shared_Native_Visual_Metadata() {
         var configJson = "{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}";
         var opts = new MarkdownRendererOptions();
@@ -345,6 +433,26 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void MarkdownVisualContract_Can_Apply_Fence_Metadata_To_Host_Elements() {
+        var raw = "{\"type\":\"bar\"}";
+        var payload = MarkdownVisualContract.CreatePayload(raw);
+        var fenceInfo = MarkdownCodeFenceInfo.Parse("vendor-chart {#sales-summary .wide .accent title=\"Quarterly Overview\" pinned}");
+        var html = MarkdownVisualContract.BuildElementHtml(
+            "div",
+            "omd-visual omd-custom",
+            "custom-chart",
+            "vendor-chart",
+            payload,
+            fenceInfo,
+            new KeyValuePair<string, string?>("data-custom-hash", payload.Hash));
+
+        Assert.Contains("data-omd-fence-info=\"{#sales-summary .wide .accent title=&quot;Quarterly Overview&quot; pinned}\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"sales-summary\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"omd-visual omd-custom wide accent\"", html, StringComparison.Ordinal);
+        Assert.Contains($"data-custom-hash=\"{payload.Hash}\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownVisualContract_Uses_Stable_Hash_For_Equivalent_Json_Payloads() {
         var minified = "{\"type\":\"bar\",\"data\":{\"labels\":[\"A\"],\"datasets\":[{\"label\":\"Count\",\"data\":[1]}]}}";
         var formatted = """
@@ -367,6 +475,279 @@ public class Markdown_Renderer_Tests {
 
         Assert.Equal(minifiedPayload.Hash, formattedPayload.Hash);
         Assert.NotEqual(minifiedPayload.Base64, formattedPayload.Base64);
+    }
+
+    [Fact]
+    public void MarkdownRendererOptions_Can_Register_And_Parse_Fence_Option_Schemas() {
+        var schema = new MarkdownFenceOptionSchema(
+            "vendor.visual-options",
+            "Vendor Visual Options",
+            new[] { "vendor-chart" },
+            new[] {
+                MarkdownFenceOptionDefinition.Boolean("pinned"),
+                MarkdownFenceOptionDefinition.Int32(
+                    "maxItems",
+                    aliases: new[] { "limit" },
+                    validator: rawValue => int.TryParse(rawValue, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsed)
+                        && parsed > 0
+                        ? null
+                        : "Expected a positive integer value."),
+                MarkdownFenceOptionDefinition.String("theme")
+            });
+
+        var options = new MarkdownRendererOptions();
+        options.ApplyFenceOptionSchema(schema);
+
+        Assert.True(options.HasFenceOptionSchema(schema));
+        Assert.True(options.TryGetFenceOptionSchema("vendor-chart", out var resolvedSchema));
+        Assert.Equal(schema.Id, resolvedSchema.Id);
+
+        var fenceInfo = MarkdownCodeFenceInfo.Parse("vendor-chart title=\"Quarterly Revenue\" pinned limit=12 theme=\"sunset\" custom=true");
+        Assert.True(options.TryParseFenceOptions("vendor-chart", fenceInfo, out var parsed));
+        Assert.True(parsed.IsValid);
+        Assert.True(parsed.TryGetBoolean("pinned", out var pinned));
+        Assert.True(pinned);
+        Assert.True(parsed.TryGetInt32("maxItems", out var maxItems));
+        Assert.Equal(12, maxItems);
+        Assert.True(parsed.TryGetString("theme", out var theme));
+        Assert.Equal("sunset", theme);
+        Assert.Contains("custom", parsed.UnknownOptions);
+        Assert.DoesNotContain("title", parsed.UnknownOptions);
+    }
+
+    [Fact]
+    public void MarkdownRendererPlugin_Can_Carry_Fence_Option_Schemas() {
+        var schema = new MarkdownFenceOptionSchema(
+            "vendor.visual-options",
+            "Vendor Visual Options",
+            new[] { "vendor-chart" },
+            new[] {
+                MarkdownFenceOptionDefinition.Boolean("pinned"),
+                MarkdownFenceOptionDefinition.Int32("maxItems", aliases: new[] { "limit" })
+            });
+
+        var plugin = new MarkdownRendererPlugin(
+            "Vendor Visuals",
+            new Func<MarkdownFencedCodeBlockRenderer>[] {
+                () => new MarkdownFencedCodeBlockRenderer(
+                    "Vendor chart",
+                    new[] { "vendor-chart" },
+                    (_, _) => "<div class=\"vendor-chart\"></div>")
+            },
+            new[] { schema });
+
+        var options = new MarkdownRendererOptions();
+        options.ApplyPlugin(plugin);
+
+        Assert.True(options.HasPlugin(plugin));
+        Assert.True(options.HasFenceOptionSchema(schema));
+        Assert.True(options.TryParseFenceOptions("vendor-chart", MarkdownCodeFenceInfo.Parse("vendor-chart pinned limit=5"), out var parsed));
+        Assert.True(parsed.TryGetBoolean("pinned", out var pinned));
+        Assert.True(pinned);
+        Assert.True(parsed.TryGetInt32("maxItems", out var maxItems));
+        Assert.Equal(5, maxItems);
+    }
+
+    [Fact]
+    public void MarkdownRendererPlugin_Can_Carry_Reader_Configuration_And_Remain_Idempotent() {
+        var plugin = new MarkdownRendererPlugin(
+            "Vendor Transcript Visuals",
+            new Func<MarkdownFencedCodeBlockRenderer>[] {
+                () => new MarkdownFencedCodeBlockRenderer(
+                    "Vendor chart",
+                    new[] { "vendor-chart" },
+                    (_, _) => "<div class=\"vendor-chart\"></div>")
+            },
+            apply: options => {
+                options.ReaderOptions.PreferNarrativeSingleLineDefinitions = true;
+                if (!options.ReaderOptions.DocumentTransforms.Any(transform => transform is MarkdownSimpleDefinitionListParagraphTransform)) {
+                    options.ReaderOptions.DocumentTransforms.Add(new MarkdownSimpleDefinitionListParagraphTransform());
+                }
+            });
+
+        var options = new MarkdownRendererOptions();
+        options.ApplyPlugin(plugin);
+        options.ApplyPlugin(plugin);
+
+        Assert.True(options.HasPlugin(plugin));
+        Assert.True(options.ReaderOptions.PreferNarrativeSingleLineDefinitions);
+        Assert.Equal(1, options.FencedCodeBlockRenderers.Count(renderer => renderer.Languages.Contains("vendor-chart", StringComparer.OrdinalIgnoreCase)));
+        Assert.Equal(1, options.ReaderOptions.DocumentTransforms.Count(transform => transform is MarkdownSimpleDefinitionListParagraphTransform));
+    }
+
+    [Fact]
+    public void MarkdownRendererPlugin_And_FeaturePack_Can_Carry_Visual_RoundTrip_Hints() {
+        var hint = new MarkdownVisualElementRoundTripHint(
+            "vendor.caption",
+            "Vendor caption",
+            context => context.CreateBlock(caption: "Caption"));
+        var readerTransform = new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeTightColonSpacing = true
+        });
+        var transform = new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.GenericSemanticFence);
+        var elementConverter = new HtmlElementBlockConverter(
+            "vendor.custom-html",
+            "Vendor custom HTML",
+            _ => Array.Empty<IMarkdownBlock>());
+        var inlineConverter = new HtmlInlineElementConverter(
+            "vendor.inline-html",
+            "Vendor inline HTML",
+            _ => Array.Empty<IMarkdownInline>());
+        var plugin = new MarkdownRendererPlugin(
+            "Vendor Visuals",
+            new Func<MarkdownFencedCodeBlockRenderer>[] {
+                () => new MarkdownFencedCodeBlockRenderer(
+                    "Vendor chart",
+                    new[] { "vendor-chart" },
+                    (_, _) => "<div class=\"vendor-chart\"></div>")
+            },
+            readerDocumentTransforms: new[] { readerTransform },
+            htmlDocumentTransforms: new[] { transform },
+            htmlElementBlockConverters: new[] { elementConverter },
+            htmlInlineElementConverters: new[] { inlineConverter },
+            visualElementRoundTripHints: new[] { hint });
+        var featurePack = new MarkdownRendererFeaturePack(
+            "vendor.visual-pack",
+            "Vendor Visual Pack",
+            new[] { plugin });
+
+        Assert.Single(plugin.ReaderDocumentTransforms);
+        Assert.Same(readerTransform, plugin.ReaderDocumentTransforms[0]);
+        Assert.Single(plugin.HtmlDocumentTransforms);
+        Assert.Same(transform, plugin.HtmlDocumentTransforms[0]);
+        Assert.Single(plugin.HtmlElementBlockConverters);
+        Assert.Same(elementConverter, plugin.HtmlElementBlockConverters[0]);
+        Assert.Single(plugin.HtmlInlineElementConverters);
+        Assert.Same(inlineConverter, plugin.HtmlInlineElementConverters[0]);
+        Assert.Single(plugin.VisualElementRoundTripHints);
+        Assert.Equal("vendor.caption", plugin.VisualElementRoundTripHints[0].Id);
+        Assert.Single(featurePack.ReaderDocumentTransforms);
+        Assert.Same(readerTransform, featurePack.ReaderDocumentTransforms[0]);
+        Assert.Single(featurePack.HtmlDocumentTransforms);
+        Assert.Same(transform, featurePack.HtmlDocumentTransforms[0]);
+        Assert.Single(featurePack.HtmlElementBlockConverters);
+        Assert.Same(elementConverter, featurePack.HtmlElementBlockConverters[0]);
+        Assert.Single(featurePack.HtmlInlineElementConverters);
+        Assert.Same(inlineConverter, featurePack.HtmlInlineElementConverters[0]);
+        Assert.Single(featurePack.VisualElementRoundTripHints);
+        Assert.Equal("vendor.caption", featurePack.VisualElementRoundTripHints[0].Id);
+    }
+
+    [Fact]
+    public void SampleMarkdownRenderer_StatusPanelPlugin_Can_Render_Shared_Visual_Host_Html() {
+        const string raw = """
+{"title":"Operations Overview","summary":"All checks passing","status":"healthy","caption":"Panel caption"}
+""";
+        var options = MarkdownRendererPresets.CreateStrictMinimal();
+
+        SampleMarkdownRenderer.ApplyStatusPanels(options);
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("```status-panel\n" + raw + "\n```", options);
+
+        Assert.True(SampleMarkdownRenderer.HasStatusPanels(options));
+        Assert.Single(SampleMarkdownRenderer.StatusPanelPlugin.VisualElementRoundTripHints);
+        Assert.Contains("class=\"omd-visual omd-status-panel\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-visual-kind=\"status-panel\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-sample-panel-caption=\"Panel caption\"", html, StringComparison.Ordinal);
+        Assert.Contains("Operations Overview", html, StringComparison.Ordinal);
+        Assert.Contains("All checks passing", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SampleMarkdownRenderer_StatusPanelFeaturePack_Carries_Renderer_And_RoundTrip_Contracts() {
+        var options = MarkdownRendererPresets.CreateStrictMinimal();
+
+        options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
+        options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
+
+        Assert.True(SampleMarkdownRenderer.HasStatusPanelFeaturePack(options));
+        Assert.True(options.HasPlugin(SampleMarkdownRenderer.StatusPanelPlugin));
+        Assert.Single(SampleMarkdownRenderer.StatusPanelFeaturePack.Plugins);
+        Assert.Single(SampleMarkdownRenderer.StatusPanelFeaturePack.ReaderDocumentTransforms);
+        Assert.Same(SampleMarkdownRenderer.StatusBadgeReaderDocumentTransform, SampleMarkdownRenderer.StatusPanelFeaturePack.ReaderDocumentTransforms[0]);
+        Assert.Single(SampleMarkdownRenderer.StatusPanelFeaturePack.HtmlDocumentTransforms);
+        Assert.Same(SampleMarkdownRenderer.StatusPanelHtmlDocumentTransform, SampleMarkdownRenderer.StatusPanelFeaturePack.HtmlDocumentTransforms[0]);
+        Assert.Single(SampleMarkdownRenderer.StatusPanelFeaturePack.HtmlElementBlockConverters);
+        Assert.Same(SampleMarkdownRenderer.StatusPanelVendorHtmlConverter, SampleMarkdownRenderer.StatusPanelFeaturePack.HtmlElementBlockConverters[0]);
+        Assert.Single(SampleMarkdownRenderer.StatusPanelFeaturePack.HtmlInlineElementConverters);
+        Assert.Same(SampleMarkdownRenderer.StatusBadgeInlineConverter, SampleMarkdownRenderer.StatusPanelFeaturePack.HtmlInlineElementConverters[0]);
+        Assert.Single(SampleMarkdownRenderer.StatusPanelFeaturePack.VisualElementRoundTripHints);
+        Assert.Contains(options.ReaderOptions.DocumentTransforms, transform => ReferenceEquals(transform, SampleMarkdownRenderer.StatusBadgeReaderDocumentTransform));
+    }
+
+    [Fact]
+    public void MarkdownReaderOptions_Can_Apply_Renderer_Plugin_Reader_Contract_Idempotently() {
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+
+        options.ApplyPlugin(SampleMarkdownRenderer.StatusPanelPlugin);
+        options.ApplyPlugin(SampleMarkdownRenderer.StatusPanelPlugin);
+
+        Assert.True(options.HasPlugin(SampleMarkdownRenderer.StatusPanelPlugin));
+        Assert.Same(
+            SampleMarkdownRenderer.StatusBadgeReaderDocumentTransform,
+            Assert.Single(options.DocumentTransforms, transform => ReferenceEquals(transform, SampleMarkdownRenderer.StatusBadgeReaderDocumentTransform)));
+    }
+
+    [Fact]
+    public void MarkdownReaderOptions_Can_Apply_Renderer_FeaturePack_Reader_Contract_Idempotently() {
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+
+        options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
+        options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
+
+        Assert.True(options.HasFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack));
+        Assert.True(options.HasPlugin(SampleMarkdownRenderer.StatusPanelPlugin));
+        Assert.Same(
+            SampleMarkdownRenderer.StatusBadgeReaderDocumentTransform,
+            Assert.Single(options.DocumentTransforms, transform => ReferenceEquals(transform, SampleMarkdownRenderer.StatusBadgeReaderDocumentTransform)));
+    }
+
+    [Fact]
+    public void SampleMarkdownRenderer_StatusBadgeReaderTransform_Upgrades_Source_Tokens_To_Typed_Inline_Ast() {
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
+
+        MarkdownDoc document = MarkdownReader.Parse("System {{status:Healthy}} now", options);
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        var highlight = Assert.IsType<HighlightInline>(Assert.Single(paragraph.Inlines.Nodes.OfType<HighlightInline>()));
+        Assert.Equal("Healthy", highlight.Text);
+        Assert.Equal("System ==Healthy== now", document.ToMarkdown().Trim());
+    }
+
+    [Fact]
+    public void MarkdownRendererFeaturePack_Can_Compose_Plugins_With_Fence_Option_Schemas() {
+        var schema = new MarkdownFenceOptionSchema(
+            "vendor.visual-options",
+            "Vendor Visual Options",
+            new[] { "vendor-chart" },
+            new[] {
+                MarkdownFenceOptionDefinition.Boolean("pinned")
+            });
+
+        var plugin = new MarkdownRendererPlugin(
+            "Vendor Visuals",
+            new Func<MarkdownFencedCodeBlockRenderer>[] {
+                () => new MarkdownFencedCodeBlockRenderer(
+                    "Vendor chart",
+                    new[] { "vendor-chart" },
+                    (_, _) => "<div class=\"vendor-chart\"></div>")
+            },
+            new[] { schema });
+
+        var featurePack = new MarkdownRendererFeaturePack(
+            "vendor.visual-pack",
+            "Vendor Visual Pack",
+            new[] { plugin });
+
+        var options = new MarkdownRendererOptions();
+        options.ApplyFeaturePack(featurePack);
+
+        Assert.True(options.HasFeaturePack(featurePack));
+        Assert.True(options.HasPlugin(plugin));
+        Assert.True(options.HasFenceOptionSchema(schema));
+        Assert.True(options.TryParseFenceOptions("vendor-chart", MarkdownCodeFenceInfo.Parse("vendor-chart pinned"), out var parsed));
+        Assert.True(parsed.TryGetBoolean("pinned", out var pinned));
+        Assert.True(pinned);
     }
 
     [Fact]
@@ -413,6 +794,54 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_Custom_Renderers_Can_Read_Parsed_Fence_Metadata() {
+        var md = """
+```ix-note title="Release Note" pinned maxItems=3
+hello
+```
+""";
+        var opts = new MarkdownRendererOptions();
+        opts.FencedCodeBlockRenderers.Add(new MarkdownFencedCodeBlockRenderer(
+            "IX note metadata",
+            new[] { "ix-note" },
+            (match, _) => {
+                var isPinned = match.FenceInfo.TryGetBooleanAttribute("pinned", out var pinned) && pinned;
+                var maxItems = match.FenceInfo.TryGetInt32Attribute("maxItems", out var parsedMaxItems)
+                    ? parsedMaxItems.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    : string.Empty;
+                return $"<aside class=\"ix-note\" data-lang=\"{System.Net.WebUtility.HtmlEncode(match.Language)}\" data-title=\"{System.Net.WebUtility.HtmlEncode(match.FenceInfo.Title)}\" data-pinned=\"{System.Net.WebUtility.HtmlEncode(isPinned.ToString().ToLowerInvariant())}\" data-max-items=\"{System.Net.WebUtility.HtmlEncode(maxItems)}\">{System.Net.WebUtility.HtmlEncode(match.RawContent)}</aside>";
+            }));
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+
+        Assert.Contains("class=\"ix-note\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-lang=\"ix-note\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-title=\"Release Note\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-pinned=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-max-items=\"3\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Custom_Renderers_Can_Read_Brace_Style_Fence_Metadata() {
+        var md = """
+```ix-note {#release-note .callout .pinned title="Release Note"}
+hello
+```
+""";
+        var opts = new MarkdownRendererOptions();
+        opts.FencedCodeBlockRenderers.Add(new MarkdownFencedCodeBlockRenderer(
+            "IX note metadata classes",
+            new[] { "ix-note" },
+            (match, _) => $"<aside class=\"ix-note\" data-id=\"{System.Net.WebUtility.HtmlEncode(match.FenceInfo.ElementId)}\" data-classes=\"{System.Net.WebUtility.HtmlEncode(string.Join(" ", match.FenceInfo.Classes))}\" data-title=\"{System.Net.WebUtility.HtmlEncode(match.FenceInfo.Title)}\">{System.Net.WebUtility.HtmlEncode(match.RawContent)}</aside>"));
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, opts);
+
+        Assert.Contains("data-id=\"release-note\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-classes=\"callout pinned\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-title=\"Release Note\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Converts_Generic_Dataview_Fences_To_Static_Table_Html() {
         var raw = "{\"title\":\"Replication Summary\",\"summary\":\"Latest replication posture\",\"kind\":\"generic_dataview_v1\",\"call_id\":\"call_123\",\"rows\":[[\"Server\",\"Fails\"],[\"AD0\",\"0\"],[\"AD1\",\"1\"]]}";
         var md = """
@@ -440,6 +869,35 @@ public class Markdown_Renderer_Tests {
         Assert.DoesNotContain("data-ix-title=", html, StringComparison.Ordinal);
         Assert.Contains("<caption>Replication Summary</caption>", html, StringComparison.Ordinal);
         Assert.Contains("<p class=\"omd-dataview-summary\">Latest replication posture</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Dataview_Falls_Back_To_Fence_Title_Metadata_When_Json_Title_Is_Missing() {
+        var md = """
+```dataview title="Fallback Caption"
+{"rows":[["Server","Fails"],["AD0","0"],["AD1","1"]]}
+```
+""";
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, MarkdownRendererPresets.CreateStrictMinimal());
+
+        Assert.Contains("data-omd-dataview-title=\"Fallback Caption\"", html, StringComparison.Ordinal);
+        Assert.Contains("<caption>Fallback Caption</caption>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Dataview_Honors_Brace_Style_Fence_Id_And_Classes() {
+        var md = """
+```dataview {#replication-summary .wide .compact title="Replication Summary"}
+{"rows":[["Server","Fails"],["AD0","0"],["AD1","1"]]}
+```
+""";
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(md, MarkdownRendererPresets.CreateStrictMinimal());
+
+        Assert.Contains("id=\"replication-summary\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"omd-visual omd-dataview wide compact\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-omd-dataview-title=\"Replication Summary\"", html, StringComparison.Ordinal);
     }
 
     [Fact]

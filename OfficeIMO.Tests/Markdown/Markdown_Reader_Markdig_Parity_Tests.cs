@@ -144,6 +144,11 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "reference-link-definition-tab-indent-invalid", "[x][r]\n\n\t[r]: https://example.com" };
         yield return new object[] { "unordered-list-tab-continuation", "- first line\n\tsecond line\n- next" };
         yield return new object[] { "ordered-list-tab-continuation", "1. first line\n\tsecond line\n2. next" };
+        yield return new object[] { "fenced-code-open-indent-four-is-indented-code", "    ```csharp\n    var x = 1;\n    ```" };
+        yield return new object[] { "fenced-code-close-indent-four-does-not-close", "```csharp\nvar x = 1;\n    ```\nafter" };
+        yield return new object[] { "backtick-fence-info-string-cannot-contain-backtick", "``` c`sharp\nbody\n```" };
+        yield return new object[] { "fenced-code-brace-metadata-keeps-primary-language-html", "```chart {#summary .wide title=\"Quarterly Revenue\"}\nbody\n```" };
+        yield return new object[] { "fenced-code-malformed-brace-metadata-keeps-primary-language-html", "```chart {#summary .wide title=\"Quarterly Revenue\"\nbody\n```" };
         yield return new object[] { "blockquote-lazy-after-unordered-list-item", "> - item\ncontinuation" };
         yield return new object[] { "blockquote-lazy-after-ordered-list-item", "> 1. item\ncontinuation" };
         yield return new object[] { "blockquote-explicit-after-ordered-list-item", "> 1. item\n>   continuation" };

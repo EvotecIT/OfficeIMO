@@ -1,6 +1,7 @@
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.MarkdownRenderer;
+using OfficeIMO.MarkdownRenderer.SamplePlugin;
 using Xunit;
 using MarkdownRendererShell = OfficeIMO.MarkdownRenderer.MarkdownRenderer;
 using System.IO;
@@ -187,6 +188,113 @@ public sealed class MarkdownHtmlToMarkdownTests {
 
         Assert.Single(options.MarkdownWriteOptions.BlockRenderExtensions);
         Assert.Equal(2, clone.MarkdownWriteOptions.BlockRenderExtensions.Count);
+    }
+
+    [Fact]
+    public void HtmlToMarkdownOptions_Clone_CopiesVisualElementRoundTripHints() {
+        var options = new HtmlToMarkdownOptions();
+        options.DocumentTransforms.Add(SampleMarkdownRenderer.StatusPanelHtmlDocumentTransform);
+        options.ElementBlockConverters.Add(SampleMarkdownRenderer.StatusPanelVendorHtmlConverter);
+        options.InlineElementConverters.Add(SampleMarkdownRenderer.StatusBadgeInlineConverter);
+        options.VisualElementRoundTripHints.Add(new MarkdownVisualElementRoundTripHint(
+            "vendor.caption",
+            "Vendor caption",
+            context => context.CreateBlock(caption: "Caption")));
+        options.TryMarkPluginApplied("vendor.visuals");
+        options.TryMarkFeaturePackApplied("vendor.visual-pack");
+
+        var clone = options.Clone();
+
+        Assert.Single(options.DocumentTransforms);
+        Assert.Single(clone.DocumentTransforms);
+        Assert.Same(options.DocumentTransforms[0], clone.DocumentTransforms[0]);
+        Assert.Single(options.ElementBlockConverters);
+        Assert.Single(clone.ElementBlockConverters);
+        Assert.Same(options.ElementBlockConverters[0], clone.ElementBlockConverters[0]);
+        Assert.Single(options.InlineElementConverters);
+        Assert.Single(clone.InlineElementConverters);
+        Assert.Same(options.InlineElementConverters[0], clone.InlineElementConverters[0]);
+        Assert.Single(options.VisualElementRoundTripHints);
+        Assert.Single(clone.VisualElementRoundTripHints);
+        Assert.Same(options.VisualElementRoundTripHints[0], clone.VisualElementRoundTripHints[0]);
+        Assert.True(clone.HasPluginId("vendor.visuals"));
+        Assert.True(clone.HasFeaturePackId("vendor.visual-pack"));
+
+        clone.DocumentTransforms.Add(new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.GenericSemanticFence));
+        clone.ElementBlockConverters.Add(new HtmlElementBlockConverter(
+            "vendor.secondary-html",
+            "Vendor secondary HTML",
+            _ => Array.Empty<IMarkdownBlock>()));
+        clone.InlineElementConverters.Add(new HtmlInlineElementConverter(
+            "vendor.secondary-inline",
+            "Vendor secondary inline HTML",
+            _ => Array.Empty<IMarkdownInline>()));
+        clone.VisualElementRoundTripHints.Add(new MarkdownVisualElementRoundTripHint(
+            "vendor.secondary-caption",
+            "Vendor caption 2",
+            context => context.CreateBlock(caption: "Caption 2")));
+
+        Assert.Single(options.DocumentTransforms);
+        Assert.Equal(2, clone.DocumentTransforms.Count);
+        Assert.Single(options.ElementBlockConverters);
+        Assert.Equal(2, clone.ElementBlockConverters.Count);
+        Assert.Single(options.InlineElementConverters);
+        Assert.Equal(2, clone.InlineElementConverters.Count);
+        Assert.Single(options.VisualElementRoundTripHints);
+        Assert.Equal(2, clone.VisualElementRoundTripHints.Count);
+    }
+
+    [Fact]
+    public void HtmlToMarkdownOptions_Can_Apply_Renderer_Plugin_RoundTrip_Hints_Idempotently() {
+        var options = new HtmlToMarkdownOptions();
+
+        options.ApplyPlugin(SampleMarkdownRenderer.StatusPanelPlugin);
+        options.ApplyPlugin(SampleMarkdownRenderer.StatusPanelPlugin);
+
+        Assert.True(options.HasPlugin(SampleMarkdownRenderer.StatusPanelPlugin));
+        Assert.Single(options.DocumentTransforms);
+        Assert.Same(SampleMarkdownRenderer.StatusPanelHtmlDocumentTransform, options.DocumentTransforms[0]);
+        Assert.Single(options.ElementBlockConverters);
+        Assert.Same(SampleMarkdownRenderer.StatusPanelVendorHtmlConverter, options.ElementBlockConverters[0]);
+        Assert.Single(options.InlineElementConverters);
+        Assert.Same(SampleMarkdownRenderer.StatusBadgeInlineConverter, options.InlineElementConverters[0]);
+        Assert.Single(options.VisualElementRoundTripHints);
+        Assert.Equal("sample.status-panel-caption", options.VisualElementRoundTripHints[0].Id);
+    }
+
+    [Fact]
+    public void HtmlToMarkdownOptions_Can_Apply_Renderer_FeaturePack_RoundTrip_Hints_Idempotently() {
+        var options = new HtmlToMarkdownOptions();
+
+        options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
+        options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
+
+        Assert.True(options.HasFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack));
+        Assert.True(options.HasPlugin(SampleMarkdownRenderer.StatusPanelPlugin));
+        Assert.Single(options.DocumentTransforms);
+        Assert.Same(SampleMarkdownRenderer.StatusPanelHtmlDocumentTransform, options.DocumentTransforms[0]);
+        Assert.Single(options.ElementBlockConverters);
+        Assert.Same(SampleMarkdownRenderer.StatusPanelVendorHtmlConverter, options.ElementBlockConverters[0]);
+        Assert.Single(options.InlineElementConverters);
+        Assert.Same(SampleMarkdownRenderer.StatusBadgeInlineConverter, options.InlineElementConverters[0]);
+        Assert.Single(options.VisualElementRoundTripHints);
+        Assert.Equal("sample.status-panel-caption", options.VisualElementRoundTripHints[0].Id);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_Applies_Sample_StatusBadge_Inline_Converter_To_Vendor_Html() {
+        const string html = "<p>Server <span class=\"sample-status-badge\">Healthy</span> now</p>";
+        var options = new HtmlToMarkdownOptions();
+        options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
+
+        MarkdownDoc document = html.LoadFromHtml(options);
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        var highlight = Assert.IsType<HighlightSequenceInline>(Assert.Single(paragraph.Inlines.Nodes.OfType<HighlightSequenceInline>()));
+        Assert.Equal("Healthy", highlight.Inlines.RenderMarkdown());
+        Assert.Equal(
+            NormalizeMarkdown("Server ==Healthy== now"),
+            NormalizeMarkdown(document.ToMarkdown()));
     }
 
     [Fact]
@@ -552,6 +660,190 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_ConvertsSharedVisualHostIntoSemanticFencedBlock_With_Fence_Metadata() {
+        var payload = MarkdownVisualContract.CreatePayload("{\"type\":\"bar\"}");
+        var fenceInfo = MarkdownCodeFenceInfo.Parse("vendor-chart #quarterly-summary .wide .accent title=\"Quarterly Overview\" pinned");
+        string html = MarkdownVisualContract.BuildElementHtml(
+            "div",
+            "omd-visual omd-custom",
+            MarkdownSemanticKinds.Chart,
+            "vendor-chart",
+            payload,
+            fenceInfo);
+
+        MarkdownDoc document = html.LoadFromHtml();
+
+        var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
+        Assert.Equal(MarkdownSemanticKinds.Chart, block.SemanticKind);
+        Assert.Equal("vendor-chart", block.Language);
+        Assert.Equal("vendor-chart #quarterly-summary .wide .accent title=\"Quarterly Overview\" pinned", block.InfoString);
+        Assert.Equal("quarterly-summary", block.FenceInfo.ElementId);
+        Assert.Equal(new[] { "wide", "accent" }, block.FenceInfo.Classes);
+        Assert.Equal("Quarterly Overview", block.FenceInfo.Title);
+        Assert.Equal("true", block.FenceInfo.Attributes["pinned"]);
+        Assert.Equal("{\"type\":\"bar\"}", block.Content);
+        Assert.Equal(
+            NormalizeMarkdown("```vendor-chart #quarterly-summary .wide .accent title=\"Quarterly Overview\" pinned\n{\"type\":\"bar\"}\n```"),
+            NormalizeMarkdown(document.ToMarkdown()));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_Preserves_Figure_Caption_On_Shared_Visual_Hosts() {
+        var payload = MarkdownVisualContract.CreatePayload("{\"type\":\"bar\"}");
+        var host = MarkdownVisualContract.BuildElementHtml(
+            "figure",
+            "omd-visual omd-custom",
+            MarkdownSemanticKinds.Chart,
+            "vendor-chart",
+            payload);
+        string html = host.Replace("</figure>", "<figcaption>Quarterly Overview</figcaption></figure>");
+
+        MarkdownDoc document = html.LoadFromHtml();
+
+        var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
+        Assert.Equal(MarkdownSemanticKinds.Chart, block.SemanticKind);
+        Assert.Equal("vendor-chart", block.Language);
+        Assert.Equal("Quarterly Overview", block.Caption);
+        Assert.Equal(
+            NormalizeMarkdown("```vendor-chart\n{\"type\":\"bar\"}\n```\n_Quarterly Overview_"),
+            NormalizeMarkdown(document.ToMarkdown()));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_Can_Use_Plugin_Provided_Visual_RoundTrip_Hints() {
+        var plugin = new MarkdownRendererPlugin(
+            "Vendor Visuals",
+            new Func<MarkdownFencedCodeBlockRenderer>[] {
+                () => new MarkdownFencedCodeBlockRenderer(
+                    "Vendor chart",
+                    new[] { "vendor-chart" },
+                    (_, _) => "<div class=\"vendor-chart\"></div>")
+            },
+            visualElementRoundTripHints: new[] {
+                new MarkdownVisualElementRoundTripHint(
+                    "vendor.caption",
+                    "Vendor caption",
+                    context => context.VisualElement.TryGetAttribute("data-vendor-caption", out var caption)
+                        && !string.IsNullOrWhiteSpace(caption)
+                        ? context.CreateBlock(caption: caption)
+                        : null)
+            });
+        var options = new HtmlToMarkdownOptions();
+        options.ApplyPlugin(plugin);
+        var payload = MarkdownVisualContract.CreatePayload("{\"type\":\"bar\"}");
+        string html = MarkdownVisualContract.BuildElementHtml(
+            "div",
+            "omd-visual omd-custom",
+            MarkdownSemanticKinds.Chart,
+            "vendor-chart",
+            payload,
+            new KeyValuePair<string, string?>("data-vendor-caption", "Quarterly Overview"));
+
+        MarkdownDoc document = html.LoadFromHtml(options);
+
+        var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("Quarterly Overview", block.Caption);
+        Assert.Equal("{\"type\":\"bar\"}", block.Content);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_RoundTrips_Sample_StatusPanel_Package_EndToEnd() {
+        const string raw = """
+{"title":"Operations Overview","summary":"All checks passing","status":"healthy","caption":"Panel caption"}
+""";
+        var renderOptions = MarkdownRendererPresets.CreateStrictMinimal();
+        renderOptions.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
+        var htmlToMarkdownOptions = new HtmlToMarkdownOptions();
+        htmlToMarkdownOptions.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
+
+        string html = MarkdownRendererShell.RenderBodyHtml("```status-panel\n" + raw + "\n```", renderOptions);
+        MarkdownDoc document = html.LoadFromHtml(htmlToMarkdownOptions);
+
+        var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("status-panel", block.SemanticKind);
+        Assert.Equal("status-panel", block.Language);
+        Assert.Equal("status-panel title=\"Operations Overview\"", block.InfoString);
+        Assert.Equal("Panel caption", block.Caption);
+        Assert.Equal(raw, block.Content);
+        Assert.Equal(
+            NormalizeMarkdown("```status-panel title=\"Operations Overview\"\n" + raw + "\n```\n_Panel caption_"),
+            NormalizeMarkdown(document.ToMarkdown()));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_Applies_Sample_StatusPanel_Document_Transform_To_Standard_Code_Html() {
+        const string html = """
+<pre><code class="language-status-panel">{"title":"Operations Overview","summary":"All checks passing"}</code></pre>
+""";
+        var options = new HtmlToMarkdownOptions();
+        options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
+
+        MarkdownDoc document = html.LoadFromHtml(options);
+
+        var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("status-panel", block.SemanticKind);
+        Assert.Equal("status-panel", block.Language);
+        Assert.Equal("{\"title\":\"Operations Overview\",\"summary\":\"All checks passing\"}", block.Content);
+        Assert.Equal(
+            NormalizeMarkdown("```status-panel\n{\"title\":\"Operations Overview\",\"summary\":\"All checks passing\"}\n```"),
+            NormalizeMarkdown(document.ToMarkdown()));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_Applies_Sample_StatusPanel_ElementBlock_Converter_To_Vendor_Html() {
+        const string payload = "{\"title\":\"Operations Overview\",\"summary\":\"All checks passing\",\"status\":\"healthy\"}";
+        string html = """
+<section class="sample-status-panel" data-sample-status-panel-json="{&quot;title&quot;:&quot;Operations Overview&quot;,&quot;summary&quot;:&quot;All checks passing&quot;,&quot;status&quot;:&quot;healthy&quot;}">
+  <header>Operations Overview</header>
+  <div class="sample-status-panel-body">
+    <p>All checks passing</p>
+  </div>
+  <footer>Panel caption</footer>
+</section>
+""";
+        var options = new HtmlToMarkdownOptions();
+        options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
+
+        MarkdownDoc document = html.LoadFromHtml(options);
+
+        var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("status-panel", block.SemanticKind);
+        Assert.Equal("status-panel", block.Language);
+        Assert.Equal("status-panel title=\"Operations Overview\"", block.InfoString);
+        Assert.Equal(payload, block.Content);
+        Assert.Equal("Panel caption", block.Caption);
+        Assert.Equal(
+            NormalizeMarkdown("```status-panel title=\"Operations Overview\"\n" + payload + "\n```\n_Panel caption_"),
+            NormalizeMarkdown(document.ToMarkdown()));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_Preserves_Opaque_Fence_Metadata_Tail_From_Shared_Visual_Host() {
+        var payload = MarkdownVisualContract.CreatePayload("{\"type\":\"bar\"}");
+        var fenceInfo = MarkdownCodeFenceInfo.Parse("vendor-chart {#quarterly-summary .wide title=\"Quarterly Overview\"");
+        string html = MarkdownVisualContract.BuildElementHtml(
+            "div",
+            "omd-visual omd-custom",
+            MarkdownSemanticKinds.Chart,
+            "vendor-chart",
+            payload,
+            fenceInfo);
+
+        MarkdownDoc document = html.LoadFromHtml();
+
+        var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
+        Assert.Equal(MarkdownSemanticKinds.Chart, block.SemanticKind);
+        Assert.Equal("vendor-chart", block.Language);
+        Assert.Equal("vendor-chart {#quarterly-summary .wide title=\"Quarterly Overview\"", block.InfoString);
+        Assert.Null(block.FenceInfo.ElementId);
+        Assert.Empty(block.FenceInfo.Classes);
+        Assert.Equal("{\"type\":\"bar\"}", block.Content);
+        Assert.Equal(
+            NormalizeMarkdown("```vendor-chart {#quarterly-summary .wide title=\"Quarterly Overview\"\n{\"type\":\"bar\"}\n```"),
+            NormalizeMarkdown(document.ToMarkdown()));
+    }
+
+    [Fact]
     public void HtmlToMarkdown_RoundTrips_RenderedIxDataviewHtml_BackToSemanticFence() {
         const string raw = """
 {"title":"Replication Summary","summary":"Latest replication posture","kind":"ix_tool_dataview_v1","call_id":"call_123","headers":["Domain","Status"],"items":[{"Domain":"ad.evotec.xyz","Status":"Healthy"}]}
@@ -589,6 +881,31 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Equal(raw, block.Content);
         Assert.Equal(
             NormalizeMarkdown("```ix-network\n" + raw + "\n```"),
+            NormalizeMarkdown(document.ToMarkdown()));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_RoundTrips_RenderedIxNetworkHtml_BackToSemanticFence_With_Fence_Metadata() {
+        const string raw = """
+{"nodes":[{"id":"A","label":"User"},{"id":"B","label":"Group"}],"edges":[{"from":"A","to":"B","label":"memberOf"}]}
+""";
+        var options = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
+        options.Network.Enabled = true;
+        string html = MarkdownRendererShell.RenderBodyHtml("```ix-network #relationship-map .wide title=\"Relationship Map\" pinned\n" + raw + "\n```", options);
+
+        MarkdownDoc document = html.LoadFromHtml();
+
+        var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
+        Assert.Equal(MarkdownSemanticKinds.Network, block.SemanticKind);
+        Assert.Equal("ix-network", block.Language);
+        Assert.Equal("ix-network #relationship-map .wide title=\"Relationship Map\" pinned", block.InfoString);
+        Assert.Equal("relationship-map", block.FenceInfo.ElementId);
+        Assert.Equal(new[] { "wide" }, block.FenceInfo.Classes);
+        Assert.Equal("Relationship Map", block.FenceInfo.Title);
+        Assert.Equal("true", block.FenceInfo.Attributes["pinned"]);
+        Assert.Equal(raw, block.Content);
+        Assert.Equal(
+            NormalizeMarkdown("```ix-network #relationship-map .wide title=\"Relationship Map\" pinned\n" + raw + "\n```"),
             NormalizeMarkdown(document.ToMarkdown()));
     }
 

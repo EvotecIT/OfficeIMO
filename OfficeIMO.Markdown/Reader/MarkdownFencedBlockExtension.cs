@@ -5,14 +5,22 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class MarkdownFencedBlockFactoryContext {
     internal MarkdownFencedBlockFactoryContext(string language, string content, bool isFenced, string? caption) {
-        Language = language ?? string.Empty;
+        FenceInfo = MarkdownCodeFenceInfo.Parse(language);
+        InfoString = FenceInfo.InfoString;
+        Language = FenceInfo.Language;
         Content = content ?? string.Empty;
         IsFenced = isFenced;
         Caption = caption;
     }
 
-    /// <summary>Fence language / info string that opened the block.</summary>
+    /// <summary>Parsed primary fence language token that opened the block.</summary>
     public string Language { get; }
+
+    /// <summary>Full raw fence info string that opened the block.</summary>
+    public string InfoString { get; }
+
+    /// <summary>Structured fenced-code info metadata.</summary>
+    public MarkdownCodeFenceInfo FenceInfo { get; }
 
     /// <summary>Raw fenced block payload.</summary>
     public string Content { get; }

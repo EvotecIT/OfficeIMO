@@ -88,10 +88,24 @@ public static partial class MarkdownReader {
             if (text[pos] == '`') {
                 // Support multi-backtick code spans: count fence length and find a matching run
                 int fenceLen = 0; int k = pos; while (k < text.Length && text[k] == '`') { fenceLen++; k++; }
-                int j = k; int run = 0; int matchStart = -1;
+                int j = k; int matchStart = -1;
                 while (j < text.Length) {
-                    if (text[j] == '`') { run++; if (run == fenceLen) { matchStart = j - fenceLen + 1; break; } j++; continue; }
-                    run = 0; j++;
+                    if (text[j] != '`') {
+                        j++;
+                        continue;
+                    }
+
+                    int candidateStart = j;
+                    int candidateLen = 0;
+                    while (j < text.Length && text[j] == '`') {
+                        candidateLen++;
+                        j++;
+                    }
+
+                    if (candidateLen == fenceLen) {
+                        matchStart = candidateStart;
+                        break;
+                    }
                 }
                 if (matchStart >= 0) {
                     int contentStart = pos + fenceLen;
@@ -101,6 +115,12 @@ public static partial class MarkdownReader {
                     inner = NormalizeCodeSpanContent(inner);
                     Current().Code(inner);
                     pos = matchStart + fenceLen; continue;
+                }
+
+                if (fenceLen > 1) {
+                    Current().Text(new string('`', fenceLen));
+                    pos += fenceLen;
+                    continue;
                 }
             }
 

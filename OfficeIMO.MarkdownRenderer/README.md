@@ -8,7 +8,7 @@ OfficeIMO.MarkdownRenderer is a host-oriented companion package for `OfficeIMO.M
 - Targets: netstandard2.0, net472, net8.0, net10.0
 - License: MIT
 - NuGet: `OfficeIMO.MarkdownRenderer`
-- Dependencies: `OfficeIMO.Markdown`, `System.Text.Json`
+- Dependencies: `OfficeIMO.Markdown`, `OfficeIMO.Markdown.Html`, `System.Text.Json`
 
 ### AOT / Trimming Notes
 
@@ -20,6 +20,12 @@ OfficeIMO.MarkdownRenderer is a host-oriented companion package for `OfficeIMO.M
 
 ```powershell
 dotnet add package OfficeIMO.MarkdownRenderer
+```
+
+For IntelligenceX-first hosts, add the first-party plugin pack as well:
+
+```powershell
+dotnet add package OfficeIMO.MarkdownRenderer.IntelligenceX
 ```
 
 ## Hello, Renderer
@@ -73,19 +79,24 @@ webView.CoreWebView2.PostWebMessageAsString(bubbleHtml);
 ### Explicit IntelligenceX transcript contract
 
 ```csharp
-var options = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
+using OfficeIMO.MarkdownRenderer.IntelligenceX;
+
+var options = IntelligenceXMarkdownRenderer.CreateTranscriptMinimal();
 ```
 
-Use this as the preferred path for IX-style transcript rendering. The OfficeIMO renderer surface now exposes only the explicit `IntelligenceXTranscript*` preset family for IX transcript behavior.
-Internally, those presets are thin compositions over generic reader defaults, AST/document transforms, and IX-only legacy migration helpers.
+Use this as the preferred path for IX-style transcript rendering from a dedicated first-party package boundary.
+`OfficeIMO.MarkdownRenderer` stays generic-first, while `OfficeIMO.MarkdownRenderer.IntelligenceX` exposes the IX-oriented entrypoints and keeps building on the same shared AST/document-transform contract underneath.
+The core `MarkdownRendererPresets.CreateIntelligenceXTranscript*` APIs still exist and remain the underlying implementation for compatibility.
 
 ### IX desktop shell renderer contract
 
 ```csharp
-var options = MarkdownRendererPresets.CreateIntelligenceXTranscriptDesktopShell();
+using OfficeIMO.MarkdownRenderer.IntelligenceX;
+
+var options = IntelligenceXMarkdownRenderer.CreateTranscriptDesktopShell();
 ```
 
-Use `CreateIntelligenceXTranscriptDesktopShell(...)` when the host wants the IntelligenceX desktop chat surface: minimal transcript shell defaults plus Mermaid, chart, and network visuals enabled.
+Use `CreateTranscriptDesktopShell(...)` when the host wants the IntelligenceX desktop chat surface: minimal transcript shell defaults plus Mermaid, chart, and network visuals enabled.
 
 ### Applying transcript pre-processors without rendering
 
@@ -156,20 +167,83 @@ Treat the portable preset family as the generic parity boundary. Any intentional
 
 ```csharp
 var options = MarkdownRendererPresets.CreateStrict();
-MarkdownRendererIntelligenceXAdapter.Apply(options);
+IntelligenceXMarkdownRenderer.ApplyVisuals(options);
 ```
 
-Use this when you want the generic strict/relaxed presets but still need the IntelligenceX alias fence contract.
+Use this when you want the generic strict/relaxed presets but still need the IntelligenceX alias fence contract without taking the full transcript preset.
+
+### Transcript contract as a plugin
+
+```csharp
+using OfficeIMO.MarkdownRenderer.IntelligenceX;
+
+var options = MarkdownRendererPresets.CreateStrict();
+IntelligenceXMarkdownRenderer.ApplyTranscriptContract(options);
+```
+
+Use this when the host wants IX visual aliases, IX fence-option schema support, and the IX transcript reader/AST contract, but does not want the legacy transcript cleanup preprocessors from the broader compatibility pack.
 
 ### Generic-first opt-in composition
 
 ```csharp
 var options = MarkdownRendererPresets.CreateStrictPortable();
-MarkdownRendererIntelligenceXAdapter.Apply(options);
+IntelligenceXMarkdownRenderer.ApplyVisuals(options);
 MarkdownRendererPresets.ApplyChatPresentation(options, enableCopyButtons: true);
 ```
 
 Use this pattern when the host needs a generic-first baseline plus only a small slice of IX behavior. If the host actually wants the full IX transcript contract, prefer `CreateIntelligenceXTranscript(...)` or `CreateIntelligenceXTranscriptMinimal(...)`.
+
+### Host-level feature packs
+
+`MarkdownRendererPlugin` remains the low-level fenced-block renderer contract.
+For broader host behavior, `MarkdownRendererFeaturePack` now groups plugins, plugin-carried fence option schemas, reader/AST configuration, preprocessors, postprocessors, and renderer defaults into one idempotent unit.
+
+```csharp
+using OfficeIMO.MarkdownRenderer.IntelligenceX;
+
+var options = MarkdownRendererPresets.CreateStrict();
+options.ApplyFeaturePack(IntelligenceXMarkdownRenderer.TranscriptCompatibilityPack);
+```
+
+Use this when a host wants a reusable compatibility bundle without hard-coding a sequence of IX-specific calls.
+This is the intended pattern for future first-party or third-party host packages that build on top of the generic renderer.
+If the host only needs renderer aliases plus reader/AST transcript behavior, prefer a plugin-level contract such as `IntelligenceXMarkdownRenderer.TranscriptPlugin`; use feature packs when you also need host-level compatibility glue such as legacy preprocessors or broader shell defaults.
+
+### Fence metadata in custom renderers
+
+`MarkdownFencedCodeBlockMatch` now exposes both the primary language token and parsed fence metadata:
+
+```csharp
+var options = new MarkdownRendererOptions();
+options.FencedCodeBlockRenderers.Add(new MarkdownFencedCodeBlockRenderer(
+    "Notes",
+    new[] { "ix-note" },
+    (match, _) => $"<aside data-title=\"{System.Net.WebUtility.HtmlEncode(match.FenceInfo.Title)}\">{System.Net.WebUtility.HtmlEncode(match.RawContent)}</aside>"));
+```
+
+Use `match.Language` for renderer dispatch semantics and `match.InfoString` / `match.FenceInfo` when the host wants structured fence attributes such as `title="..."` or boolean flags.
+`match.FenceInfo` also carries brace-style metadata such as `{#release-note .wide}` through `ElementId` and `Classes`, so plugins can style or anchor visual/document contracts without reparsing the raw info string.
+For typed host metadata, `match.FenceInfo` exposes helpers such as `TryGetBooleanAttribute(...)`, `TryGetInt32Attribute(...)`, and alias-aware `GetAttribute(...)`.
+
+`MarkdownRendererOptions` also supports fence option schemas for host/plugin contracts:
+
+```csharp
+var options = new MarkdownRendererOptions();
+options.ApplyFenceOptionSchema(new MarkdownFenceOptionSchema(
+    "vendor.visual-options",
+    "Vendor Visual Options",
+    new[] { "vendor-chart" },
+    new[] {
+        MarkdownFenceOptionDefinition.Boolean("pinned"),
+        MarkdownFenceOptionDefinition.Int32("maxItems", aliases: new[] { "limit" })
+    }));
+```
+
+Use `TryGetFenceOptionSchema(...)` / `TryParseFenceOptions(...)` when a plugin wants declared option aliases and validation rules instead of ad hoc string parsing.
+Plugins can now carry these schemas directly, and feature packs apply plugin-contributed schemas automatically alongside renderer registrations and plugin-owned reader/AST configuration.
+Plugins can also carry their own idempotent reader/AST configuration directly, which lets first-party packages expose a reusable parser contract without forcing every host to depend on a higher-level feature pack.
+That reader-side contract is available directly on `MarkdownReaderOptions` too: call `readerOptions.ApplyPlugin(plugin)` or `readerOptions.ApplyFeaturePack(pack)` when a host wants plugin-owned source parsing/document transforms without going through renderer presets.
+Plugins and feature packs also expose HTML-ingestion contracts for `OfficeIMO.Markdown.Html`: custom HTML element block converters, custom inline element converters, post-conversion `DocumentTransforms`, and `VisualElementRoundTripHints`. When the host also references `OfficeIMO.Markdown.Html`, apply them with `htmlOptions.ApplyPlugin(plugin)` or `htmlOptions.ApplyFeaturePack(pack)` instead of copying converters, transforms, or hints manually.
 
 ### Offline assets
 
@@ -232,6 +306,10 @@ Built-in visual renderers emit shared `data-omd-*` attributes:
 
 - `data-omd-visual-kind`
 - `data-omd-fence-language`
+- `data-omd-fence-info` when the source fence carried normalized metadata after the language token
+- `data-omd-fence-id` when the source fence provided `#id`
+- `data-omd-fence-classes` when the source fence provided extra `.class` metadata
+- `data-omd-visual-title` when fence metadata provides a title
 - `data-omd-visual-hash`
 - `data-omd-visual-contract`
 - `data-omd-config-format`
@@ -240,8 +318,9 @@ Built-in visual renderers emit shared `data-omd-*` attributes:
 
 That keeps host integrations stable even when new visual types are added later.
 Chart, network, and dataview built-ins now all flow through the same shared metadata builder, so future visual types can reuse the same contract instead of hand-assembling attributes per renderer.
+When the source fence includes brace-style metadata such as `{#chart-summary .wide .compact}` or plugin-defined flags such as `pinned`, the built-in visual hosts also carry the normalized tail through explicit `data-omd-fence-*` attributes so HTML-to-markdown recovery can rebuild the original semantic fence metadata without guessing from host styling.
 
-You can also emit the same metadata contract directly from host code through `MarkdownVisualContract.CreatePayload(...)` and `MarkdownVisualContract.BuildElementHtml(...)` when you need custom visual blocks outside the built-in renderer list.
+You can also emit the same metadata contract directly from host code through `MarkdownVisualContract.CreatePayload(...)` and `MarkdownVisualContract.BuildElementHtml(...)` when you need custom visual blocks outside the built-in renderer list. Pass a parsed `MarkdownCodeFenceInfo` when you want the helper to honor source fence `#id` / `.class` metadata too.
 
 ## Security Defaults
 

@@ -6,11 +6,15 @@ namespace OfficeIMO.MarkdownRenderer;
 /// Options controlling how Markdown is parsed and rendered to HTML for a WebView/browser host.
 /// </summary>
 public sealed class MarkdownRendererOptions {
+    private readonly List<string> _appliedPluginIds = new List<string>();
+    private readonly List<string> _appliedFeaturePackIds = new List<string>();
+    private readonly List<MarkdownFenceOptionSchema> _fenceOptionSchemas = new List<MarkdownFenceOptionSchema>();
+
     /// <summary>
     /// Creates a new renderer options instance and seeds generic built-in fenced block renderers.
     /// </summary>
     public MarkdownRendererOptions() {
-        MarkdownRendererBuiltInFencedCodeBlocks.RegisterGenericDefaults(this);
+        ApplyPlugin(MarkdownRendererPlugins.GenericVisuals);
     }
 
     /// <summary>
@@ -317,6 +321,180 @@ public sealed class MarkdownRendererOptions {
     /// The default collection is seeded with built-in Chart.js / vis-network renderers, and later additions win when aliases overlap.
     /// </summary>
     public List<MarkdownFencedCodeBlockRenderer> FencedCodeBlockRenderers { get; } = new List<MarkdownFencedCodeBlockRenderer>();
+
+    /// <summary>
+    /// Stable ids of host-level feature packs already applied to this renderer configuration.
+    /// </summary>
+    public IReadOnlyList<string> AppliedFeaturePackIds => _appliedFeaturePackIds;
+
+    /// <summary>
+    /// Registered fence option schemas available to renderer plugins and host integrations.
+    /// </summary>
+    public IReadOnlyList<MarkdownFenceOptionSchema> FenceOptionSchemas => _fenceOptionSchemas;
+
+    /// <summary>
+    /// Applies a fenced-block renderer plugin without duplicating existing language registrations.
+    /// </summary>
+    public void ApplyPlugin(MarkdownRendererPlugin plugin) {
+        if (plugin == null) {
+            throw new ArgumentNullException(nameof(plugin));
+        }
+
+        plugin.Apply(this);
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> when the supplied plugin has already registered any of its languages.
+    /// </summary>
+    public bool HasPlugin(MarkdownRendererPlugin plugin) {
+        if (plugin == null) {
+            throw new ArgumentNullException(nameof(plugin));
+        }
+
+        return plugin.IsApplied(this);
+    }
+
+    /// <summary>
+    /// Applies a host-level feature pack once.
+    /// </summary>
+    public void ApplyFeaturePack(MarkdownRendererFeaturePack featurePack) {
+        if (featurePack == null) {
+            throw new ArgumentNullException(nameof(featurePack));
+        }
+
+        featurePack.Apply(this);
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> when the supplied host-level feature pack has already been applied.
+    /// </summary>
+    public bool HasFeaturePack(MarkdownRendererFeaturePack featurePack) {
+        if (featurePack == null) {
+            throw new ArgumentNullException(nameof(featurePack));
+        }
+
+        return featurePack.IsApplied(this);
+    }
+
+    /// <summary>
+    /// Registers a fence option schema once.
+    /// </summary>
+    public void ApplyFenceOptionSchema(MarkdownFenceOptionSchema schema) {
+        if (schema == null) {
+            throw new ArgumentNullException(nameof(schema));
+        }
+
+        if (HasFenceOptionSchema(schema)) {
+            return;
+        }
+
+        _fenceOptionSchemas.Add(schema);
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> when the supplied fence option schema is already registered.
+    /// </summary>
+    public bool HasFenceOptionSchema(MarkdownFenceOptionSchema schema) {
+        if (schema == null) {
+            throw new ArgumentNullException(nameof(schema));
+        }
+
+        for (int i = 0; i < _fenceOptionSchemas.Count; i++) {
+            if (string.Equals(_fenceOptionSchemas[i].Id, schema.Id, StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Attempts to resolve the most recently-registered fence option schema for the supplied language.
+    /// </summary>
+    public bool TryGetFenceOptionSchema(string language, out MarkdownFenceOptionSchema schema) {
+        if (!string.IsNullOrWhiteSpace(language)) {
+            for (int i = _fenceOptionSchemas.Count - 1; i >= 0; i--) {
+                if (_fenceOptionSchemas[i].HandlesLanguage(language)) {
+                    schema = _fenceOptionSchemas[i];
+                    return true;
+                }
+            }
+        }
+
+        schema = null!;
+        return false;
+    }
+
+    /// <summary>
+    /// Attempts to parse fence metadata using the most recently-registered schema for the supplied language.
+    /// </summary>
+    public bool TryParseFenceOptions(string language, MarkdownCodeFenceInfo? fenceInfo, out MarkdownFenceOptionSet optionSet) {
+        if (TryGetFenceOptionSchema(language, out var schema)) {
+            optionSet = schema.Parse(fenceInfo);
+            return true;
+        }
+
+        optionSet = null!;
+        return false;
+    }
+
+    internal bool TryMarkFeaturePackApplied(string featurePackId) {
+        if (string.IsNullOrWhiteSpace(featurePackId)) {
+            return false;
+        }
+
+        for (int i = 0; i < _appliedFeaturePackIds.Count; i++) {
+            if (string.Equals(_appliedFeaturePackIds[i], featurePackId, StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+        }
+
+        _appliedFeaturePackIds.Add(featurePackId);
+        return true;
+    }
+
+    internal bool TryMarkPluginApplied(string pluginId) {
+        if (string.IsNullOrWhiteSpace(pluginId)) {
+            return false;
+        }
+
+        for (int i = 0; i < _appliedPluginIds.Count; i++) {
+            if (string.Equals(_appliedPluginIds[i], pluginId, StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+        }
+
+        _appliedPluginIds.Add(pluginId);
+        return true;
+    }
+
+    internal bool HasFeaturePackId(string featurePackId) {
+        if (string.IsNullOrWhiteSpace(featurePackId)) {
+            return false;
+        }
+
+        for (int i = 0; i < _appliedFeaturePackIds.Count; i++) {
+            if (string.Equals(_appliedFeaturePackIds[i], featurePackId, StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    internal bool HasPluginId(string pluginId) {
+        if (string.IsNullOrWhiteSpace(pluginId)) {
+            return false;
+        }
+
+        for (int i = 0; i < _appliedPluginIds.Count; i++) {
+            if (string.Equals(_appliedPluginIds[i], pluginId, StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// Optional post-processors applied to the HTML fragment produced by <see cref="MarkdownRenderer.RenderBodyHtml"/>.

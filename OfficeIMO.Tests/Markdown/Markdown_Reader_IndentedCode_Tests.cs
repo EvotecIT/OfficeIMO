@@ -41,6 +41,38 @@ Paragraph
             Assert.Contains("<pre><code>line1", html, StringComparison.Ordinal);
             Assert.Contains("line2", html, StringComparison.Ordinal);
         }
+
+        [Fact]
+        public void FourSpaceIndented_Fence_Is_Not_Parsed_As_Fenced_Code_Block() {
+            string md = """
+    ```csharp
+    var x = 1;
+    ```
+""";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var block = Assert.IsType<CodeBlock>(Assert.Single(doc.Blocks));
+            Assert.False(block.IsFenced);
+            Assert.Equal("```csharp\nvar x = 1;\n```", block.Content.Replace("\r\n", "\n"));
+        }
+
+        [Fact]
+        public void Closing_Fence_Indented_By_Four_Spaces_Does_Not_Close_Fenced_Block() {
+            string md = """
+```csharp
+var x = 1;
+    ```
+after
+""";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var block = Assert.IsType<CodeBlock>(Assert.Single(doc.Blocks));
+            Assert.True(block.IsFenced);
+            Assert.Equal("csharp", block.Language);
+            Assert.Equal("var x = 1;\n    ```\nafter", block.Content.Replace("\r\n", "\n"));
+        }
     }
 }
 

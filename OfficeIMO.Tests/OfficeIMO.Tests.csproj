@@ -33,6 +33,8 @@
         <ProjectReference Include="..\\OfficeIMO.Markdown\\OfficeIMO.Markdown.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Markdown.Html\\OfficeIMO.Markdown.Html.csproj" />
         <ProjectReference Include="..\\OfficeIMO.MarkdownRenderer\\OfficeIMO.MarkdownRenderer.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.MarkdownRenderer.IntelligenceX\\OfficeIMO.MarkdownRenderer.IntelligenceX.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.MarkdownRenderer.SamplePlugin\\OfficeIMO.MarkdownRenderer.SamplePlugin.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel\\OfficeIMO.Excel.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel.GoogleSheets\\OfficeIMO.Excel.GoogleSheets.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word.GoogleDocs\\OfficeIMO.Word.GoogleDocs.csproj" />

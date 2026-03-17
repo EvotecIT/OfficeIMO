@@ -4,6 +4,9 @@ namespace OfficeIMO.Markdown.Html;
 /// Options controlling HTML to Markdown conversion.
 /// </summary>
 public sealed class HtmlToMarkdownOptions {
+    private readonly HashSet<string> _appliedPluginIds = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _appliedFeaturePackIds = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Creates the default OfficeIMO-flavored conversion profile.</summary>
     public static HtmlToMarkdownOptions CreateOfficeIMOProfile() => new HtmlToMarkdownOptions();
 
@@ -66,6 +69,90 @@ public sealed class HtmlToMarkdownOptions {
     public List<IMarkdownDocumentTransform> DocumentTransforms { get; } = new();
 
     /// <summary>
+    /// Optional ordered custom HTML element block converters used before the base converter falls
+    /// back to generic block handling.
+    /// </summary>
+    public List<HtmlElementBlockConverter> ElementBlockConverters { get; } = new();
+
+    /// <summary>
+    /// Optional ordered custom HTML inline element converters used before the base converter falls
+    /// back to generic inline handling.
+    /// </summary>
+    public List<HtmlInlineElementConverter> InlineElementConverters { get; } = new();
+
+    /// <summary>
+    /// Optional ordered visual-host round-trip hints used when shared <c>data-omd-*</c> elements
+    /// should recover richer semantic fenced blocks than the default visual-contract mapping.
+    /// </summary>
+    public List<MarkdownVisualElementRoundTripHint> VisualElementRoundTripHints { get; } = new();
+
+    /// <summary>
+    /// Marks a renderer plugin's HTML-ingestion contract as applied to these options.
+    /// </summary>
+    public bool TryMarkPluginApplied(string pluginId) {
+        if (string.IsNullOrWhiteSpace(pluginId)) {
+            throw new ArgumentException("Plugin id is required.", nameof(pluginId));
+        }
+
+        return _appliedPluginIds.Add(pluginId.Trim());
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> when the supplied renderer plugin id has already been
+    /// applied as an HTML-ingestion contract to these options.
+    /// </summary>
+    public bool HasPluginId(string pluginId) {
+        if (string.IsNullOrWhiteSpace(pluginId)) {
+            throw new ArgumentException("Plugin id is required.", nameof(pluginId));
+        }
+
+        return _appliedPluginIds.Contains(pluginId.Trim());
+    }
+
+    /// <summary>
+    /// Marks a renderer feature pack's HTML-ingestion contract as applied to these options.
+    /// </summary>
+    public bool TryMarkFeaturePackApplied(string featurePackId) {
+        if (string.IsNullOrWhiteSpace(featurePackId)) {
+            throw new ArgumentException("Feature pack id is required.", nameof(featurePackId));
+        }
+
+        return _appliedFeaturePackIds.Add(featurePackId.Trim());
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> when the supplied renderer feature-pack id has already been
+    /// applied as an HTML-ingestion contract to these options.
+    /// </summary>
+    public bool HasFeaturePackId(string featurePackId) {
+        if (string.IsNullOrWhiteSpace(featurePackId)) {
+            throw new ArgumentException("Feature pack id is required.", nameof(featurePackId));
+        }
+
+        return _appliedFeaturePackIds.Contains(featurePackId.Trim());
+    }
+
+    /// <summary>
+    /// Compatibility wrapper for older visual round-trip tracking.
+    /// </summary>
+    public bool TryMarkVisualRoundTripPluginApplied(string pluginId) => TryMarkPluginApplied(pluginId);
+
+    /// <summary>
+    /// Compatibility wrapper for older visual round-trip tracking.
+    /// </summary>
+    public bool HasVisualRoundTripPluginId(string pluginId) => HasPluginId(pluginId);
+
+    /// <summary>
+    /// Compatibility wrapper for older visual round-trip tracking.
+    /// </summary>
+    public bool TryMarkVisualRoundTripFeaturePackApplied(string featurePackId) => TryMarkFeaturePackApplied(featurePackId);
+
+    /// <summary>
+    /// Compatibility wrapper for older visual round-trip tracking.
+    /// </summary>
+    public bool HasVisualRoundTripFeaturePackId(string featurePackId) => HasFeaturePackId(featurePackId);
+
+    /// <summary>
     /// Creates a copy of the current options instance so callers can reuse option templates safely.
     /// </summary>
     /// <returns>A new <see cref="HtmlToMarkdownOptions"/> with the same option values.</returns>
@@ -85,6 +172,35 @@ public sealed class HtmlToMarkdownOptions {
             if (transform != null) {
                 clone.DocumentTransforms.Add(transform);
             }
+        }
+
+        for (var i = 0; i < ElementBlockConverters.Count; i++) {
+            var converter = ElementBlockConverters[i];
+            if (converter != null) {
+                clone.ElementBlockConverters.Add(converter);
+            }
+        }
+
+        for (var i = 0; i < InlineElementConverters.Count; i++) {
+            var converter = InlineElementConverters[i];
+            if (converter != null) {
+                clone.InlineElementConverters.Add(converter);
+            }
+        }
+
+        for (var i = 0; i < VisualElementRoundTripHints.Count; i++) {
+            var hint = VisualElementRoundTripHints[i];
+            if (hint != null) {
+                clone.VisualElementRoundTripHints.Add(hint);
+            }
+        }
+
+        foreach (var pluginId in _appliedPluginIds) {
+            clone._appliedPluginIds.Add(pluginId);
+        }
+
+        foreach (var featurePackId in _appliedFeaturePackIds) {
+            clone._appliedFeaturePackIds.Add(featurePackId);
         }
 
         return clone;
