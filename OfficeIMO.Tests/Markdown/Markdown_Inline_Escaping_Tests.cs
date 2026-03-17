@@ -22,6 +22,15 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void DecodedHtmlEntityTextRun_EscapesLiteralMarkdownDelimiters() {
+            IRenderableMarkdownInline run = new DecodedHtmlEntityTextRun("`code` ~~strike~~ ==mark==");
+
+            var markdown = run.RenderMarkdown();
+
+            Assert.Equal("&#96;code&#96; &#126;&#126;strike&#126;&#126; &#61;&#61;mark&#61;&#61;", markdown);
+        }
+
+        [Fact]
         public void LinkAndImageInline_EscapeTextAndUrls() {
             var link = new LinkInline("[text]", "path(1)|two\\end", "see [ref] | note");
             var image = new ImageInline("alt[text]", "image(path)|pipe\\end", "badge [info] | note");

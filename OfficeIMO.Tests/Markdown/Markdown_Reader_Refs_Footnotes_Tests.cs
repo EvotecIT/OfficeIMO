@@ -88,6 +88,28 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Supported_Html_Wrappers_Keep_Decoded_Markdown_Delimiters_Literal() {
+            const string md = "Value <u>&#96;code&#96; &#126;&#126;strike&#126;&#126; &#61;&#61;mark&#61;&#61;</u>";
+
+            var doc = MarkdownReader.Parse(md);
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+            var wrapper = Assert.IsType<HtmlTagSequenceInline>(Assert.Single(paragraph.Inlines.Nodes, node => node is HtmlTagSequenceInline));
+            var text = Assert.IsType<DecodedHtmlEntityTextRun>(Assert.Single(wrapper.Inlines.Nodes));
+
+            Assert.Equal("`code` ~~strike~~ ==mark==", text.Text);
+
+            var markdown = doc.ToMarkdown();
+            Assert.Contains("Value <u>&#96;code&#96; &#126;&#126;strike&#126;&#126; &#61;&#61;mark&#61;&#61;</u>", markdown, StringComparison.Ordinal);
+
+            var reparsed = MarkdownReader.Parse(markdown);
+            var html = reparsed.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.Contains("Value <u>`code` ~~strike~~ ==mark==</u>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("<code>code</code>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("<del>strike</del>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("<mark>mark</mark>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Footnote_RenderMarkdown_Indents_NonParagraph_First_Block_On_Next_Line() {
             var footnote = new FootnoteDefinitionBlock(
                 "1",
