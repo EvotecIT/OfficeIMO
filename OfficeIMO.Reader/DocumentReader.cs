@@ -1726,12 +1726,12 @@ public static class DocumentReader {
         ReaderOptions? options,
         CancellationToken cancellationToken) {
         var opt = NormalizeOptions(options);
-        EnforceFileSize(path, opt.MaxInputBytes);
         var source = BuildSourceInfoFromPath(path, opt.ComputeHashes);
 
         List<ReaderChunk>? chunks = null;
         string? warning = null;
         try {
+            EnforceFileSize(path, opt.MaxInputBytes);
             chunks = ReadPathCore(path, opt, source, cancellationToken).ToList();
         } catch (OperationCanceledException) {
             throw;
