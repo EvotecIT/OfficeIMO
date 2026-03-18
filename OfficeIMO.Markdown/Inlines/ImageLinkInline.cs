@@ -20,6 +20,10 @@ public sealed class ImageLinkInline : IMarkdownInline, IRenderableMarkdownInline
         Alt = alt ?? string.Empty; ImageUrl = imageUrl ?? string.Empty; LinkUrl = linkUrl ?? string.Empty; Title = title; LinkTitle = linkTitle;
     }
     internal string RenderMarkdown() {
+        if ((MarkdownRenderContext.Options?.ImageRenderingMode ?? MarkdownImageRenderingMode.RichMarkdown) == MarkdownImageRenderingMode.Html) {
+            return RenderHtml();
+        }
+
         var title = MarkdownEscaper.FormatOptionalTitle(Title);
         var linkTitle = MarkdownEscaper.FormatOptionalTitle(LinkTitle);
         return $"[![{MarkdownEscaper.EscapeImageAlt(Alt)}]({MarkdownEscaper.EscapeImageSrc(ImageUrl)}{title})]({MarkdownEscaper.EscapeLinkUrl(LinkUrl)}{linkTitle})";

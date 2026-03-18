@@ -69,6 +69,10 @@ public sealed partial class HtmlToMarkdownConverter {
             return true;
         }
 
+        if (CanConvertAnchorToLinkedImageBlock(element, context)) {
+            return true;
+        }
+
         if (HasDirectBlockChildren(element, context)) {
             return true;
         }
@@ -78,6 +82,16 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         return false;
+    }
+
+    private static bool CanConvertAnchorToLinkedImageBlock(IElement element, ConversionContext context) {
+        if (element == null
+            || context == null
+            || !element.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        return TryCreateLinkedImageBlockFromAnchor(element, context, out _);
     }
 
     private static bool HasDirectBlockChildren(IElement element, ConversionContext context) {
@@ -136,6 +150,21 @@ public sealed partial class HtmlToMarkdownConverter {
                 return ConvertPictureElement(element, context);
             case "FIGURE":
                 return ConvertFigureElement(element, context);
+            case "A":
+                if (TryCreateLinkedImageBlockFromAnchor(element, context, out var linkedImage)) {
+                    return new IMarkdownBlock[] { linkedImage };
+                }
+
+                if (context.Options.PreserveUnsupportedBlocks) {
+                    return new IMarkdownBlock[] { new HtmlRawBlock(element.OuterHtml) };
+                }
+
+                var anchorInline = NormalizeInlineSequenceForBlock(ConvertInlineNodesToInlineSequence(element.ChildNodes, context));
+                if (!HasVisibleInlineContent(anchorInline)) {
+                    return Array.Empty<IMarkdownBlock>();
+                }
+
+                return new IMarkdownBlock[] { new ParagraphBlock(anchorInline) };
             case "DETAILS":
                 return new IMarkdownBlock[] { ConvertDetailsElement(element, context) };
             case "DL":
@@ -337,12 +366,61 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static IEnumerable<IMarkdownBlock> ConvertParagraphElement(IElement element, ConversionContext context) {
+        if (TryConvertParagraphAsStandaloneMediaBlock(element, context, out var mediaBlocks)) {
+            return mediaBlocks;
+        }
+
         var inlineSequence = NormalizeInlineSequenceForBlock(ConvertInlineNodesToInlineSequence(element.ChildNodes, context));
         if (!HasVisibleInlineContent(inlineSequence)) {
             return Array.Empty<IMarkdownBlock>();
         }
 
         return new IMarkdownBlock[] { new ParagraphBlock(inlineSequence) };
+    }
+
+    private static bool TryConvertParagraphAsStandaloneMediaBlock(IElement element, ConversionContext context, out IReadOnlyList<IMarkdownBlock> blocks) {
+        blocks = Array.Empty<IMarkdownBlock>();
+        if (element == null || context == null) {
+            return false;
+        }
+
+        IElement? onlyElement = null;
+        foreach (var childNode in element.ChildNodes) {
+            switch (childNode) {
+                case IComment:
+                    continue;
+                case IText textNode when string.IsNullOrWhiteSpace(textNode.Data):
+                    continue;
+                case IElement childElement:
+                    if (onlyElement != null) {
+                        return false;
+                    }
+
+                    onlyElement = childElement;
+                    break;
+                default:
+                    return false;
+            }
+        }
+
+        if (onlyElement == null) {
+            return false;
+        }
+
+        bool isStandaloneMedia = onlyElement.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
+                                 || onlyElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)
+                                 || CanConvertAnchorToLinkedImageBlock(onlyElement, context);
+        if (!isStandaloneMedia) {
+            return false;
+        }
+
+        var converted = ConvertElementToBlocks(onlyElement, context).ToArray();
+        if (converted.Length == 0) {
+            return false;
+        }
+
+        blocks = converted;
+        return true;
     }
 
     private static HeadingBlock ConvertHeadingElement(IElement element, int level, ConversionContext context) {
@@ -440,8 +518,7 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         string kind = "info";
-        for (int i = 0; i < element.ClassList.Length; i++) {
-            string token = element.ClassList[i];
+        foreach (string token in element.ClassList) {
             if (string.IsNullOrWhiteSpace(token) || token.Equals("callout", StringComparison.OrdinalIgnoreCase)) {
                 continue;
             }

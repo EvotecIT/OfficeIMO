@@ -92,14 +92,145 @@ public sealed partial class HtmlToMarkdownConverter {
 
     private static bool ShouldIgnoreElement(IElement element, ConversionContext context) {
         if (!context.Options.RemoveScriptsAndStyles) {
-            return false;
+            return ShouldSuppressListingCardMetadataElement(element, context);
         }
 
         string name = element.TagName;
         return name.Equals("SCRIPT", StringComparison.OrdinalIgnoreCase)
                || name.Equals("STYLE", StringComparison.OrdinalIgnoreCase)
                || name.Equals("NOSCRIPT", StringComparison.OrdinalIgnoreCase)
-               || name.Equals("TEMPLATE", StringComparison.OrdinalIgnoreCase);
+               || name.Equals("TEMPLATE", StringComparison.OrdinalIgnoreCase)
+               || ShouldSuppressListingCardMetadataElement(element, context);
+    }
+
+    private static bool ShouldSuppressListingCardMetadataElement(IElement element, ConversionContext context) {
+        if (element == null
+            || context?.Options == null
+            || context.Options.ListingCardMetadataMode != HtmlListingCardMetadataMode.SuppressInRepeatedCards) {
+            return false;
+        }
+
+        return LooksLikeListingCardMetadataElement(element)
+               && TryFindRepeatedListingCardRoot(element, out _);
+    }
+
+    private static bool LooksLikeListingCardMetadataElement(IElement element) {
+        if (element == null) {
+            return false;
+        }
+
+        string signalText = string.Join(" ",
+            element.TagName,
+            element.Id ?? string.Empty,
+            element.ClassName ?? string.Empty,
+            element.GetAttribute("role") ?? string.Empty,
+            element.GetAttribute("data-testid") ?? string.Empty,
+            element.GetAttribute("itemprop") ?? string.Empty).ToLowerInvariant();
+
+        if (signalText.Contains("post-date", StringComparison.Ordinal)
+            || signalText.Contains("post-time", StringComparison.Ordinal)
+            || signalText.Contains("entry-meta", StringComparison.Ordinal)
+            || signalText.Contains("post-meta", StringComparison.Ordinal)
+            || signalText.Contains("meta-author", StringComparison.Ordinal)
+            || signalText.Contains("post-author", StringComparison.Ordinal)
+            || signalText.Contains("post-meta-author", StringComparison.Ordinal)
+            || signalText.Contains("post-meta-categories", StringComparison.Ordinal)
+            || signalText.Contains("post-categories", StringComparison.Ordinal)
+            || signalText.Contains("post-read-more", StringComparison.Ordinal)
+            || signalText.Contains("read-more", StringComparison.Ordinal)
+            || signalText.Contains("more-link", StringComparison.Ordinal)
+            || signalText.Contains("post-links", StringComparison.Ordinal)
+            || signalText.Contains("post-misc", StringComparison.Ordinal)
+            || signalText.Contains("comment-link", StringComparison.Ordinal)
+            || signalText.Contains("post-comments", StringComparison.Ordinal)) {
+            return true;
+        }
+
+        if (element.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)) {
+            string inlineText = NormalizeBlockText(element.TextContent);
+            if (inlineText.Equals("Read More", StringComparison.OrdinalIgnoreCase)
+                || inlineText.Equals("Continue Reading", StringComparison.OrdinalIgnoreCase)
+                || inlineText.Equals("Continue reading", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryFindRepeatedListingCardRoot(IElement element, out IElement? cardRoot) {
+        cardRoot = null;
+        for (IElement? current = element.ParentElement; current != null; current = current.ParentElement) {
+            if (!LooksLikeListingCardRoot(current)) {
+                continue;
+            }
+
+            if (HasRepeatedListingCardSiblings(current)) {
+                cardRoot = current;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool LooksLikeListingCardRoot(IElement element) {
+        if (element == null) {
+            return false;
+        }
+
+        string tag = element.TagName;
+        if (!tag.Equals("ARTICLE", StringComparison.OrdinalIgnoreCase)
+            && !tag.Equals("DIV", StringComparison.OrdinalIgnoreCase)
+            && !tag.Equals("SECTION", StringComparison.OrdinalIgnoreCase)
+            && !tag.Equals("LI", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        bool hasTitleLink = element.QuerySelector("h1 a[href], h2 a[href], h3 a[href], h4 a[href], .entry-title a[href], .post-title a[href], a[rel='bookmark']") != null;
+        bool hasMediaOrSummary = element.QuerySelector("img, picture, .summary, .excerpt, p") != null;
+        if (!hasTitleLink || !hasMediaOrSummary) {
+            return false;
+        }
+
+        if (tag.Equals("ARTICLE", StringComparison.OrdinalIgnoreCase)) {
+            return true;
+        }
+
+        string signalText = string.Join(" ",
+            element.Id ?? string.Empty,
+            element.ClassName ?? string.Empty).ToLowerInvariant();
+
+        return signalText.Contains("post", StringComparison.Ordinal)
+               || signalText.Contains("entry", StringComparison.Ordinal)
+               || signalText.Contains("card", StringComparison.Ordinal)
+               || signalText.Contains("teaser", StringComparison.Ordinal)
+               || signalText.Contains("listing", StringComparison.Ordinal)
+               || signalText.Contains("timeline", StringComparison.Ordinal)
+               || signalText.Contains("blog", StringComparison.Ordinal)
+               || signalText.Contains("feed", StringComparison.Ordinal)
+               || signalText.Contains("item", StringComparison.Ordinal);
+    }
+
+    private static bool HasRepeatedListingCardSiblings(IElement candidate) {
+        IElement? parent = candidate.ParentElement;
+        if (parent == null) {
+            return false;
+        }
+
+        int siblingCardCount = 0;
+        foreach (IElement sibling in parent.Children) {
+            if (!LooksLikeListingCardRoot(sibling)) {
+                continue;
+            }
+
+            siblingCardCount++;
+            if (siblingCardCount >= 2) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static string ResolveUrl(string? rawUrl, ConversionContext context) {

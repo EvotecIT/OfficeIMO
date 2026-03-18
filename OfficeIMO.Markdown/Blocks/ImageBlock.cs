@@ -49,6 +49,11 @@ public sealed class ImageBlock : IMarkdownBlock, ICaptionable, ISyntaxMarkdownBl
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() {
+        var imageRenderingMode = MarkdownRenderContext.Options?.ImageRenderingMode ?? MarkdownImageRenderingMode.RichMarkdown;
+        if (imageRenderingMode == MarkdownImageRenderingMode.Html) {
+            return ((IMarkdownBlock)this).RenderHtml();
+        }
+
         string alt = MarkdownEscaper.EscapeImageAlt(Alt ?? string.Empty);
         string title = MarkdownEscaper.FormatOptionalTitle(Title);
         System.Text.StringBuilder sb = new System.Text.StringBuilder();
@@ -58,7 +63,7 @@ public sealed class ImageBlock : IMarkdownBlock, ICaptionable, ISyntaxMarkdownBl
         } else {
             sb.Append(imageMarkdown);
         }
-        if (Width != null || Height != null) {
+        if (imageRenderingMode == MarkdownImageRenderingMode.RichMarkdown && (Width != null || Height != null)) {
             var w = Width != null ? $"width={Width.Value}" : string.Empty;
             var h = Height != null ? $"height={Height.Value}" : string.Empty;
             var sep = (w != string.Empty && h != string.Empty) ? " " : string.Empty;

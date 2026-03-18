@@ -479,6 +479,7 @@ public class MarkdownDoc {
         options ??= MarkdownWriteOptions.CreateOfficeIMOProfile();
         // Build a transient block list where TOC placeholders are realized
         var (blocks, _) = GetBlocksAndHeadingSlugs();
+        using var _ctx = MarkdownRenderContext.Push(options);
         StringBuilder sb = new StringBuilder();
         if (_frontMatter != null) {
             sb.AppendLine(_frontMatter.RenderFrontMatter());

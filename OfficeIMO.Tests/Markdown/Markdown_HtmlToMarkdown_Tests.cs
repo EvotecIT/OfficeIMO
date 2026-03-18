@@ -859,6 +859,156 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_Converts_LinkWrapped_Lazy_Image_Paragraph_To_LinkedImageBlock() {
+        string html = """
+<p><a href="https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd.png"><img class="aligncenter size-full wp-image-4510 ewww_webp_lazy_load" src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20440%20482'%3E%3C/svg%3E" alt="GPO Registry Add" width="440" height="482" data-lazy-srcset="https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd.png 440w, https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd-274x300.png 274w" data-lazy-sizes="(max-width: 440px) 100vw, 440px" data-lazy-src="https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd.png" /><noscript><img class="aligncenter size-full wp-image-4510" src="https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd.png" alt="GPO Registry Add" width="440" height="482" srcset="https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd.png 440w, https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd-274x300.png 274w" sizes="(max-width: 440px) 100vw, 440px" /></noscript></a></p>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd.png", image.Path);
+        Assert.Equal("GPO Registry Add", image.Alt);
+        Assert.Equal(440d, image.Width);
+        Assert.Equal(482d, image.Height);
+        Assert.Equal("https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd.png", image.LinkUrl);
+
+        string markdown = document.ToMarkdown();
+        Assert.Contains("[![GPO Registry Add](https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd.png)](https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd.png){width=440 height=482}", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("data:image/svg+xml", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("<noscript>", markdown, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_Converts_DivWrapped_Lazy_Linked_Image_To_ImageBlock_Instead_Of_RawHtml() {
+        string html = """
+<div class="post-img"><a href="https://example.com/automating-network-diagnostics-with-globalping-powershell-module/" class="default"><img width="256" height="256" src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20256%20256'%3E%3C/svg%3E" class="img-responsive wp-post-image" alt="Automating Network Diagnostics with Globalping PowerShell Module" data-lazy-srcset="https://example.com/wp-content/uploads/2025/06/Automating-Network-Diagnostics-with-Globalping-PowerShell-Module-thegem-post-thumb-small.jpg 1x, https://example.com/wp-content/uploads/2025/06/Automating-Network-Diagnostics-with-Globalping-PowerShell-Module-thegem-post-thumb-large.jpg 2x" data-lazy-sizes="100vw" data-lazy-src="https://example.com/wp-content/uploads/2025/06/Automating-Network-Diagnostics-with-Globalping-PowerShell-Module-thegem-post-thumb-large.jpg" /><noscript><img width="256" height="256" src="https://example.com/wp-content/uploads/2025/06/Automating-Network-Diagnostics-with-Globalping-PowerShell-Module-thegem-post-thumb-large.jpg" class="img-responsive wp-post-image" alt="Automating Network Diagnostics with Globalping PowerShell Module" srcset="https://example.com/wp-content/uploads/2025/06/Automating-Network-Diagnostics-with-Globalping-PowerShell-Module-thegem-post-thumb-small.jpg 1x, https://example.com/wp-content/uploads/2025/06/Automating-Network-Diagnostics-with-Globalping-PowerShell-Module-thegem-post-thumb-large.jpg 2x" sizes="100vw" /></noscript></a></div>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("https://example.com/wp-content/uploads/2025/06/Automating-Network-Diagnostics-with-Globalping-PowerShell-Module-thegem-post-thumb-large.jpg", image.Path);
+        Assert.Equal("Automating Network Diagnostics with Globalping PowerShell Module", image.Alt);
+        Assert.Equal(256d, image.Width);
+        Assert.Equal(256d, image.Height);
+        Assert.Equal("https://example.com/automating-network-diagnostics-with-globalping-powershell-module/", image.LinkUrl);
+
+        string markdown = document.ToMarkdown();
+        Assert.Contains("Automating Network Diagnostics with Globalping PowerShell Module", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("<a href=", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<noscript>", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("data:image/svg+xml", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_DoesNotInvent_RawUrl_For_Empty_Overlay_Anchor() {
+        string html = """
+<div class="related-element">
+  <a href="https://example.com/exchange-2013-integration-with-sharepoint-doesnt-work/" aria-label="Exchange 2013 integration with SharePoint doesn’t work"><span class="gem-dummy"></span></a>
+  <div class="related-element-info clearfix">
+    <div class="related-element-info-conteiner">
+      <a href="https://example.com/exchange-2013-integration-with-sharepoint-doesnt-work/">Exchange 2013 integration with SharePoint doesn’t work</a>
+      <div class="related-element-info-excerpt">
+        <p>The steps to integrate new Microsoft Exchange 2013 with SharePoint 2013 are fairly simple.</p>
+      </div>
+    </div>
+    <div class="post-meta date-color">
+      <div class="entry-meta clearfix">
+        <div class="post-meta-right">
+          <span class="comments-link"><a href="https://example.com/exchange-2013-integration-with-sharepoint-doesnt-work/#respond">0</a></span>
+        </div>
+        <div class="post-meta-left">
+          <span class="post-meta-date gem-post-date gem-date-color small-body">14 Jun 2015</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        string markdown = document.ToMarkdown();
+
+        Assert.DoesNotContain("[https://example.com/exchange-2013-integration-with-sharepoint-doesnt-work/]", markdown, StringComparison.Ordinal);
+        Assert.Contains("[Exchange 2013 integration with SharePoint doesn’t work](https://example.com/exchange-2013-integration-with-sharepoint-doesnt-work/)", markdown, StringComparison.Ordinal);
+        Assert.Contains("The steps to integrate new Microsoft Exchange 2013 with SharePoint 2013 are fairly simple.", markdown, StringComparison.Ordinal);
+        Assert.Contains("[0](https://example.com/exchange-2013-integration-with-sharepoint-doesnt-work/#respond)", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_Preserves_Repeated_Listing_Card_Metadata_By_Default() {
+        string html = """
+<main>
+  <div class="blog-feed">
+    <article class="post-card">
+      <div class="post-date">15 June</div>
+      <div class="post-time">21:52</div>
+      <div class="entry-meta"><span class="post-meta-author">By Przemyslaw Klys</span></div>
+      <div class="post-title"><h3><a href="https://example.com/post-one" rel="bookmark">15 Jun: First post</a></h3></div>
+      <div class="summary"><p>First summary.</p></div>
+      <div class="post-read-more"><a href="https://example.com/post-one">Read More</a></div>
+    </article>
+    <article class="post-card">
+      <div class="post-date">14 June</div>
+      <div class="post-time">19:20</div>
+      <div class="entry-meta"><span class="post-meta-author">By Another Author</span></div>
+      <div class="post-title"><h3><a href="https://example.com/post-two" rel="bookmark">14 Jun: Second post</a></h3></div>
+      <div class="summary"><p>Second summary.</p></div>
+      <div class="post-read-more"><a href="https://example.com/post-two">Read More</a></div>
+    </article>
+  </div>
+</main>
+""";
+
+        string markdown = html.ToMarkdown();
+
+        Assert.Contains("15 June", markdown, StringComparison.Ordinal);
+        Assert.Contains("21:52", markdown, StringComparison.Ordinal);
+        Assert.Contains("By Przemyslaw Klys", markdown, StringComparison.Ordinal);
+        Assert.Contains("[Read More](https://example.com/post-one)", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_CanSuppress_Repeated_Listing_Card_Metadata() {
+        string html = """
+<main>
+  <div class="blog-feed">
+    <article class="post-card">
+      <div class="post-date">15 June</div>
+      <div class="post-time">21:52</div>
+      <div class="entry-meta"><span class="post-meta-author">By Przemyslaw Klys</span></div>
+      <div class="post-title"><h3><a href="https://example.com/post-one" rel="bookmark">15 Jun: First post</a></h3></div>
+      <div class="summary"><p>First summary.</p></div>
+      <div class="post-read-more"><a href="https://example.com/post-one">Read More</a></div>
+    </article>
+    <article class="post-card">
+      <div class="post-date">14 June</div>
+      <div class="post-time">19:20</div>
+      <div class="entry-meta"><span class="post-meta-author">By Another Author</span></div>
+      <div class="post-title"><h3><a href="https://example.com/post-two" rel="bookmark">14 Jun: Second post</a></h3></div>
+      <div class="summary"><p>Second summary.</p></div>
+      <div class="post-read-more"><a href="https://example.com/post-two">Read More</a></div>
+    </article>
+  </div>
+</main>
+""";
+
+        string markdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+            ListingCardMetadataMode = HtmlListingCardMetadataMode.SuppressInRepeatedCards
+        });
+
+        Assert.DoesNotContain("15 June", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("21:52", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("By Przemyslaw Klys", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("[Read More](https://example.com/post-one)", markdown, StringComparison.Ordinal);
+        Assert.Contains("[15 Jun: First post](https://example.com/post-one)", markdown, StringComparison.Ordinal);
+        Assert.Contains("First summary.", markdown, StringComparison.Ordinal);
+        Assert.Contains("[14 Jun: Second post](https://example.com/post-two)", markdown, StringComparison.Ordinal);
+        Assert.Contains("Second summary.", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_PreservesMixedListItemBlockOrder() {
         string html = "<ul><li><p>Alpha</p><blockquote><p>Quoted</p></blockquote><p>Omega</p></li></ul>";
 
