@@ -75,4 +75,36 @@ Lead[^1]
         Assert.DoesNotContain("class=\"footnotes\"", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("<ol>", html, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void Portable_Write_Profile_Omits_OfficeImo_Image_Size_Suffixes() {
+        var doc = MarkdownDoc.Create()
+            .Add(new ImageBlock("https://example.com/logo.png", "Logo", "Example", width: 256, height: 128));
+
+        var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreatePortableProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.Equal("![Logo](https://example.com/logo.png \"Example\")", markdown);
+        Assert.DoesNotContain("{width=", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Html_Image_Profile_Renders_Linked_Image_Blocks_As_Raw_Html() {
+        var doc = MarkdownDoc.Create()
+            .Add(new ImageBlock(
+                "https://example.com/logo.png",
+                "Logo",
+                "Example",
+                width: 256,
+                height: 128,
+                linkUrl: "https://example.com/docs",
+                linkTitle: "Documentation",
+                linkTarget: "_blank"));
+
+        var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateHtmlImageProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.Contains("<a href=\"https://example.com/docs\"", markdown, StringComparison.Ordinal);
+        Assert.Contains("<img src=\"https://example.com/logo.png\" alt=\"Logo\" title=\"Example\" width=\"256\" height=\"128\"", markdown, StringComparison.Ordinal);
+        Assert.Contains("target=\"_blank\"", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("{width=", markdown, StringComparison.Ordinal);
+    }
 }

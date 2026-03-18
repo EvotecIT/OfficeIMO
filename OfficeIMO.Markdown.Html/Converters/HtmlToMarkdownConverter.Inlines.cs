@@ -241,7 +241,7 @@ public sealed partial class HtmlToMarkdownConverter {
             : ResolveUrl(element.GetAttribute("href"), context);
         string label = ConvertInlineNodesToMarkdown(element.ChildNodes, context).Trim();
         if (label.Length == 0) {
-            label = EscapeInlineText(href);
+            return string.Empty;
         }
         if (href.Length == 0) {
             return label;
@@ -259,8 +259,8 @@ public sealed partial class HtmlToMarkdownConverter {
             ? element.GetAttribute("href") ?? string.Empty
             : ResolveUrl(element.GetAttribute("href"), context);
         var label = ConvertInlineNodesToInlineSequence(element.ChildNodes, context);
-        if (label.Nodes.Count == 0 && href.Length > 0) {
-            label.Text(href);
+        if (label.Nodes.Count == 0) {
+            return;
         }
 
         if (href.Length == 0) {

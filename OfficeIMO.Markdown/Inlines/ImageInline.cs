@@ -13,6 +13,10 @@ public sealed class ImageInline : IMarkdownInline, IRenderableMarkdownInline, IP
     /// <summary>Creates a new inline image.</summary>
     public ImageInline(string alt, string src, string? title = null) { Alt = alt; Src = src; Title = title; }
     internal string RenderMarkdown() {
+        if ((MarkdownRenderContext.Options?.ImageRenderingMode ?? MarkdownImageRenderingMode.RichMarkdown) == MarkdownImageRenderingMode.Html) {
+            return RenderHtml();
+        }
+
         var title = MarkdownEscaper.FormatOptionalTitle(Title);
         return $"![{MarkdownEscaper.EscapeImageAlt(Alt)}]({MarkdownEscaper.EscapeImageSrc(Src)}{title})";
     }

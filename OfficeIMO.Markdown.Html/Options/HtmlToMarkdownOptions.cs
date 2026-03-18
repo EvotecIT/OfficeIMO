@@ -43,6 +43,11 @@ public sealed class HtmlToMarkdownOptions {
     public bool PreserveUnsupportedInlineHtml { get; set; } = true;
 
     /// <summary>
+    /// Controls whether low-value metadata inside repeated listing cards should be preserved or suppressed.
+    /// </summary>
+    public HtmlListingCardMetadataMode ListingCardMetadataMode { get; set; } = HtmlListingCardMetadataMode.Preserve;
+
+    /// <summary>
     /// Optional markdown writer options used when the converter serializes the intermediate
     /// <see cref="MarkdownDoc"/> back to markdown text.
     /// </summary>
@@ -163,6 +168,7 @@ public sealed class HtmlToMarkdownOptions {
             RemoveScriptsAndStyles = RemoveScriptsAndStyles,
             PreserveUnsupportedBlocks = PreserveUnsupportedBlocks,
             PreserveUnsupportedInlineHtml = PreserveUnsupportedInlineHtml,
+            ListingCardMetadataMode = ListingCardMetadataMode,
             MarkdownWriteOptions = MarkdownWriteOptions?.Clone(),
             MaxInputCharacters = MaxInputCharacters
         };
