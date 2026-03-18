@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
 using OfficeIMO.Markdown;
 
@@ -46,6 +47,7 @@ public sealed partial class HtmlToMarkdownConverter {
 
         var parser = new HtmlParser();
         var document = parser.ParseDocument(html);
+        effectiveOptions.BaseUri = ResolveEffectiveBaseUri(document, effectiveOptions.BaseUri);
         var context = new ConversionContext(effectiveOptions);
 
         INode root = effectiveOptions.UseBodyContentsOnly && document.Body != null
@@ -61,6 +63,31 @@ public sealed partial class HtmlToMarkdownConverter {
             markdown,
             effectiveOptions.DocumentTransforms,
             new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.HtmlToMarkdown, effectiveOptions));
+    }
+
+    private static Uri? ResolveEffectiveBaseUri(IHtmlDocument document, Uri? fallbackBaseUri) {
+        if (document == null) {
+            return fallbackBaseUri;
+        }
+
+        var baseElement = document.QuerySelector("base[href]");
+        string? rawBaseHref = baseElement?.GetAttribute("href");
+        if (rawBaseHref == null) {
+            return fallbackBaseUri;
+        }
+
+        string baseHref = rawBaseHref.Trim();
+        if (baseHref.Length == 0) {
+            return fallbackBaseUri;
+        }
+
+        if (fallbackBaseUri != null && Uri.TryCreate(fallbackBaseUri, baseHref, out var resolvedFromFallback)) {
+            return resolvedFromFallback;
+        }
+
+        return Uri.TryCreate(baseHref, UriKind.Absolute, out var absoluteBaseUri)
+            ? absoluteBaseUri
+            : fallbackBaseUri;
     }
 
     private static bool ShouldIgnoreElement(IElement element, ConversionContext context) {

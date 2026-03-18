@@ -1,0 +1,63 @@
+[linked.ast]
+0: Heading(level=1, text="Storm Update")
+1: Paragraph("Read the [briefing](https://example.com/news/2026/briefing.html) before crews enter the river district.")
+2: ImageBlock
+3: Paragraph("Photo credit: City Desk")
+4: Paragraph("Inspect the [flood map](https://example.com/news/maps/flood-zones.html) for the latest street closures.")
+
+[linked.markdown]
+# Storm Update
+
+Read the [briefing](https://example.com/news/2026/briefing.html) before crews enter the river district.
+
+[![Flooded street at dawn](https://example.com/news/2026/media/storm-center.webp "Open full photo")](https://example.com/news/2026/gallery/storm-center "Open photo"){width=1280 height=720}
+_Residents navigate floodwater after the overnight storm._
+
+Photo credit: City Desk
+
+Inspect the [flood map](https://example.com/news/maps/flood-zones.html) for the latest street closures.
+
+[linked.html]
+<h1 id="storm-update">Storm Update</h1><p>Read the <a href="https://example.com/news/2026/briefing.html">briefing</a> before crews enter the river district.</p><a href="https://example.com/news/2026/gallery/storm-center" title="Open photo" target="_blank" rel="nofollow sponsored noopener noreferrer"><picture><source srcset="https://example.com/news/2026/media/storm-center.webp 1x, https://example.com/news/2026/media/storm-center@2x.webp 2x" type="image/webp" /><img src="https://example.com/news/2026/media/storm-center.jpg" alt="Flooded street at dawn" title="Open full photo" width="1280" height="720" /></picture></a><div class="caption">Residents navigate floodwater after the overnight storm.</div><p>Photo credit: City Desk</p><p>Inspect the <a href="https://example.com/news/maps/flood-zones.html">flood map</a> for the latest street closures.</p>
+
+[noscript.ast]
+0: Heading(level=1, text="Storm Update")
+1: ImageBlock
+2: Paragraph("Photo credit: City Desk")
+
+[noscript.markdown]
+# Storm Update
+
+[![Flooded street at dawn](https://example.com/news/2026/media/storm-center.webp "Open full photo")](https://example.com/news/2026/gallery/storm-center "Open photo"){width=1280 height=720}
+_Residents navigate floodwater after the overnight storm._
+
+Photo credit: City Desk
+
+[noscript.html]
+<h1 id="storm-update">Storm Update</h1><a href="https://example.com/news/2026/gallery/storm-center" title="Open photo" target="_blank" rel="nofollow sponsored noopener noreferrer"><picture><source srcset="https://example.com/news/2026/media/storm-center.webp 1x, https://example.com/news/2026/media/storm-center@2x.webp 2x" type="image/webp" /><img src="https://example.com/news/2026/media/storm-center.jpg" alt="Flooded street at dawn" title="Open full photo" width="1280" height="720" /></picture></a><div class="caption">Residents navigate floodwater after the overnight storm.</div><p>Photo credit: City Desk</p>
+
+[art-direction.ast]
+0: Heading(level=1, text="Storm Update")
+1: ImageBlock
+
+[art-direction.markdown]
+# Storm Update
+
+![Flooded street at dawn](https://example.com/news/2026/media/storm-wide.webp "Open full photo"){width=1280 height=720}
+_Residents navigate floodwater after the overnight storm._
+
+[art-direction.html]
+<h1 id="storm-update">Storm Update</h1><picture><source srcset="https://example.com/news/2026/media/storm-wide.webp 1x, https://example.com/news/2026/media/storm-wide@2x.webp 2x" media="(min-width: 960px)" type="image/webp" sizes="100vw" /><source srcset="https://example.com/news/2026/media/storm-mobile.webp 1x, https://example.com/news/2026/media/storm-mobile@2x.webp 2x" media="(max-width: 959px)" type="image/webp" sizes="100vw" /><img src="https://example.com/news/2026/media/storm-fallback.jpg" alt="Flooded street at dawn" title="Open full photo" width="1280" height="720" /></picture><div class="caption">Residents navigate floodwater after the overnight storm.</div>
+
+[width-descriptor.ast]
+0: Heading(level=1, text="Storm Update")
+1: ImageBlock
+
+[width-descriptor.markdown]
+# Storm Update
+
+![Flooded street at dawn](https://example.com/news/2026/media/storm-wide.webp?fit=cover&crop=10,20,300,400 "Open full photo"){width=1280 height=720}
+_Residents navigate floodwater after the overnight storm._
+
+[width-descriptor.html]
+<h1 id="storm-update">Storm Update</h1><picture><source srcset="https://example.com/news/2026/media/storm-wide.webp?fit=cover&amp;crop=10,20,300,400 640w, https://example.com/news/2026/media/storm-wide.webp?fit=cover&amp;crop=20,40,600,800 1280w" media="(min-width: 960px)" type="image/webp" sizes="(min-width: 960px) 90vw, 100vw" /><source srcset="https://example.com/news/2026/media/storm-mobile.webp?fit=cover&amp;crop=5,10,200,250 320w, https://example.com/news/2026/media/storm-mobile.webp?fit=cover&amp;crop=10,20,400,500 640w" media="(max-width: 959px)" type="image/webp" sizes="100vw" /><img src="https://example.com/news/2026/media/storm-fallback.jpg?download=1" alt="Flooded street at dawn" title="Open full photo" width="1280" height="720" /></picture><div class="caption">Residents navigate floodwater after the overnight storm.</div>

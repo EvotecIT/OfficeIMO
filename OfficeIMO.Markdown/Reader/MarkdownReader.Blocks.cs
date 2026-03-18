@@ -159,7 +159,7 @@ public static partial class MarkdownReader {
         sizeSpec = null;
         if (string.IsNullOrEmpty(line)) return false;
         var t = line.Trim();
-        if (!t.StartsWith("![")) return false;
+        if (!t.StartsWith("![", StringComparison.Ordinal)) return false;
         int altEnd = FindMatchingBracket(t, 1);
         if (altEnd < 2) return false;
         if (altEnd + 1 >= t.Length || t[altEnd + 1] != '(') return false;
@@ -195,6 +195,36 @@ public static partial class MarkdownReader {
                 }
             }
         }
+        return true;
+    }
+
+    private static bool TryParseLinkedImageBlock(string line, out ImageBlock image, out string? sizeSpec) {
+        image = null!;
+        sizeSpec = null;
+        if (string.IsNullOrEmpty(line)) {
+            return false;
+        }
+
+        var t = line.Trim();
+        if (!TryParseImageLink(t, 0, out int consumed, out var alt, out var src, out var title, out var href, out var hrefTitle) || consumed <= 0) {
+            return false;
+        }
+
+        image = new ImageBlock(src, alt, title) {
+            LinkUrl = href,
+            LinkTitle = hrefTitle
+        };
+
+        if (consumed < t.Length) {
+            var rest = t.Substring(consumed).Trim();
+            if (rest.StartsWith("{", StringComparison.Ordinal)) {
+                int close = rest.IndexOf('}');
+                if (close > 0) {
+                    sizeSpec = rest.Substring(1, close - 1).Trim();
+                }
+            }
+        }
+
         return true;
     }
 

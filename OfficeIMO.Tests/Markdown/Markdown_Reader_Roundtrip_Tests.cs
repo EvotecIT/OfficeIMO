@@ -44,6 +44,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Equal("Logo", img.Alt);
             Assert.Equal("Example", img.Title);
             Assert.Equal("Our logo", img.Caption);
+            Assert.Null(img.LinkUrl);
 
             // Validate table header/alignments
             var table = parsed.Blocks.OfType<TableBlock>().FirstOrDefault();
@@ -55,6 +56,24 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var ul = parsed.Blocks.OfType<UnorderedListBlock>().FirstOrDefault();
             Assert.NotNull(ul);
             Assert.True(ul!.Items.Count >= 3);
+        }
+
+        [Fact]
+        public void Reader_Roundtrips_Linked_Image_Block() {
+            var md = MarkdownDoc.Create()
+                .Add(new ImageBlock("https://example.com/logo.png", "Logo", "Example", linkUrl: "https://example.com/docs", linkTitle: "Documentation"))
+                .Caption("Our linked logo");
+
+            var text = md.ToMarkdown();
+            var parsed = MarkdownReader.Parse(text);
+
+            var img = Assert.IsType<ImageBlock>(Assert.Single(parsed.Blocks));
+            Assert.Equal("https://example.com/logo.png", img.Path);
+            Assert.Equal("Logo", img.Alt);
+            Assert.Equal("Example", img.Title);
+            Assert.Equal("https://example.com/docs", img.LinkUrl);
+            Assert.Equal("Documentation", img.LinkTitle);
+            Assert.Equal("Our linked logo", img.Caption);
         }
 
         [Fact]

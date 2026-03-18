@@ -104,6 +104,69 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_UsesDocumentBaseHrefToResolveRelativeLinks() {
+        const string html = """
+<html>
+  <head><base href="https://cdn.example.com/docs/" /></head>
+  <body><p><a href="guide/start">Docs</a></p></body>
+</html>
+""";
+
+        string markdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/app/")
+        });
+
+        Assert.Contains("[Docs](https://cdn.example.com/docs/guide/start)", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_UsesRelativeDocumentBaseHrefAgainstProvidedPageUri() {
+        const string html = """
+<html>
+  <head><base href="/assets/" /></head>
+  <body><figure><img src="images/demo.png" alt="Demo" /></figure></body>
+</html>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/docs/start/page.html")
+        });
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://example.com/assets/images/demo.png", image.Path);
+        Assert.Equal("Demo", image.Alt);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesInlineLinkHtmlMetadataInTypedAst() {
+        const string html = """
+<p><a href="/docs/hero" title="Hero docs" target="_blank" rel="nofollow sponsored">Read more</a></p>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/")
+        });
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        var link = Assert.IsType<LinkInline>(Assert.Single(paragraph.Inlines.Nodes));
+        Assert.Equal("Read more", link.Text);
+        Assert.Equal("https://example.com/docs/hero", link.Url);
+        Assert.Equal("Hero docs", link.Title);
+        Assert.Equal("_blank", link.LinkTarget);
+        Assert.Equal("nofollow sponsored", link.LinkRel);
+
+        string markdown = document.ToMarkdown();
+        Assert.Contains("[Read more](https://example.com/docs/hero \"Hero docs\")", markdown, StringComparison.Ordinal);
+
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("<a href=\"https://example.com/docs/hero\" title=\"Hero docs\" target=\"_blank\" rel=\"", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("nofollow", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("sponsored", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("noopener", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("noreferrer", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_PreservesUnsupportedBlocks_WhenRequested() {
         string html = "<custom-widget data-name=\"demo\">Hello</custom-widget>";
 
@@ -402,6 +465,171 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_PreservesSupplementalFigureBlocksAroundDirectImage() {
+        const string html = """
+<figure>
+  <p>Lead-in</p>
+  <img src="/img/demo.png" alt="Demo" />
+  <figcaption>Caption</figcaption>
+  <blockquote><p>Quoted note</p></blockquote>
+</figure>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/")
+        });
+
+        Assert.Collection(document.Blocks,
+            block => Assert.Equal("Lead-in", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+            block => {
+                var image = Assert.IsType<ImageBlock>(block);
+                Assert.Equal("https://example.com/img/demo.png", image.Path);
+                Assert.Equal("Demo", image.Alt);
+                Assert.Equal("Caption", image.Caption);
+            },
+            block => Assert.IsType<QuoteBlock>(block));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesSupplementalFigureBlocksAroundDirectPicture() {
+        const string html = """
+<figure>
+  <picture>
+    <source srcset="/img/hero.webp 1x, /img/hero@2x.webp 2x" />
+    <img alt="Hero" />
+  </picture>
+  <figcaption>Hero image</figcaption>
+  <p>Photo credit: Team</p>
+</figure>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/")
+        });
+
+        Assert.Collection(document.Blocks,
+            block => {
+                var image = Assert.IsType<ImageBlock>(block);
+                Assert.Equal("https://example.com/img/hero.webp", image.Path);
+                Assert.Equal("Hero", image.Alt);
+                Assert.Equal("Hero image", image.Caption);
+            },
+            block => Assert.Equal("Photo credit: Team", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
+
+        string markdown = document.ToMarkdown();
+        Assert.Contains("_Hero image_", markdown, StringComparison.Ordinal);
+        Assert.Contains("Photo credit: Team", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesLinkedFigureMediaAsTypedImageBlock() {
+        const string html = """
+<figure>
+  <a href="/docs/hero" title="Hero page" target="_blank" rel="nofollow sponsored">
+    <img src="/img/hero.png" alt="Hero" title="View hero" />
+  </a>
+  <figcaption>Hero image</figcaption>
+</figure>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/")
+        });
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://example.com/img/hero.png", image.Path);
+        Assert.Equal("Hero", image.Alt);
+        Assert.Equal("View hero", image.Title);
+        Assert.Equal("https://example.com/docs/hero", image.LinkUrl);
+        Assert.Equal("Hero page", image.LinkTitle);
+        Assert.Equal("_blank", image.LinkTarget);
+        Assert.Equal("nofollow sponsored", image.LinkRel);
+        Assert.Equal("Hero image", image.Caption);
+
+        string markdown = document.ToMarkdown();
+        Assert.Contains("[![Hero](https://example.com/img/hero.png \"View hero\")](https://example.com/docs/hero \"Hero page\")", markdown, StringComparison.Ordinal);
+
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("<a href=\"https://example.com/docs/hero\" title=\"Hero page\" target=\"_blank\" rel=\"", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("nofollow", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("sponsored", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("noopener", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("noreferrer", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesWrappedLinkedPictureFigureMediaAndSupplementalBlocks() {
+        const string html = """
+<figure>
+  <div class="figure-media">
+    <a href="/docs/hero">
+      <picture>
+        <source srcset="/img/hero.webp 1x, /img/hero@2x.webp 2x" />
+        <img alt="Hero" />
+      </picture>
+    </a>
+  </div>
+  <figcaption>Hero image</figcaption>
+  <p>Photo credit: Team</p>
+</figure>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/")
+        });
+
+        Assert.Collection(document.Blocks,
+            block => {
+                var image = Assert.IsType<ImageBlock>(block);
+                Assert.Equal("https://example.com/img/hero.webp", image.Path);
+                Assert.Equal("Hero", image.Alt);
+                Assert.Equal("https://example.com/docs/hero", image.LinkUrl);
+                Assert.Equal("Hero image", image.Caption);
+            },
+            block => Assert.Equal("Photo credit: Team", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
+
+        string markdown = document.ToMarkdown();
+        Assert.Contains("[![Hero](https://example.com/img/hero.webp)](https://example.com/docs/hero)", markdown, StringComparison.Ordinal);
+        Assert.Contains("_Hero image_", markdown, StringComparison.Ordinal);
+        Assert.Contains("Photo credit: Team", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesAnchorWrappedImageFigureMediaAndSupplementalBlocks() {
+        const string html = """
+<figure>
+  <a href="/docs/hero">
+    <span class="media-frame">
+      <img src="/img/hero.png" alt="Hero" title="View hero" />
+    </span>
+  </a>
+  <figcaption>Hero image</figcaption>
+  <p>Photo credit: Team</p>
+</figure>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/")
+        });
+
+        Assert.Collection(document.Blocks,
+            block => {
+                var image = Assert.IsType<ImageBlock>(block);
+                Assert.Equal("https://example.com/img/hero.png", image.Path);
+                Assert.Equal("Hero", image.Alt);
+                Assert.Equal("View hero", image.Title);
+                Assert.Equal("https://example.com/docs/hero", image.LinkUrl);
+                Assert.Equal("Hero image", image.Caption);
+            },
+            block => Assert.Equal("Photo credit: Team", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
+
+        string markdown = document.ToMarkdown();
+        Assert.Contains("[![Hero](https://example.com/img/hero.png \"View hero\")](https://example.com/docs/hero)", markdown, StringComparison.Ordinal);
+        Assert.Contains("_Hero image_", markdown, StringComparison.Ordinal);
+        Assert.Contains("Photo credit: Team", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_PreservesParagraphBreaksInsideTableCells() {
         string html = "<table><tr><th>Section</th><th>Notes</th></tr><tr><td>Alpha</td><td><p>First</p><p>Second</p></td></tr></table>";
 
@@ -419,6 +647,119 @@ public sealed class MarkdownHtmlToMarkdownTests {
 
         string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         Assert.Contains("<td><p>First</p><p>Second</p></td>", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesNestedTablesInsideOwningCellAst() {
+        const string html = """
+<table>
+  <tr><th>Outer</th></tr>
+  <tr>
+    <td>
+      <table>
+        <tr><th>Inner</th></tr>
+        <tr><td>Cell</td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(new[] { "Outer" }, table.Headers);
+        Assert.Single(table.Rows);
+        Assert.Single(table.RowCells);
+        Assert.Single(table.RowCells[0]);
+
+        var nestedTable = Assert.IsType<TableBlock>(Assert.Single(table.RowCells[0][0].Blocks));
+        Assert.Equal(new[] { "Inner" }, nestedTable.Headers);
+        Assert.Single(nestedTable.Rows);
+        Assert.Equal("Cell", nestedTable.Rows[0][0]);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_ReadsTableAlignmentFromInlineStyle() {
+        const string html = """
+<table>
+  <tr>
+    <th style="text-align: center;">Name</th>
+    <th style="text-align:right">Count</th>
+  </tr>
+  <tr>
+    <td>Alpha</td>
+    <td>42</td>
+  </tr>
+</table>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(new[] { ColumnAlignment.Center, ColumnAlignment.Right }, table.Alignments);
+
+        string markdown = document.ToMarkdown();
+        Assert.Contains("| :---: | ---: |", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_RecoversLazyLoadedImageSourcesAndStyleDimensions() {
+        const string html = "<figure><img data-src=\"/img/demo.png\" alt=\"Demo\" style=\"width: 640px; height: 480px;\" /></figure>";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/")
+        });
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://example.com/img/demo.png", image.Path);
+        Assert.Equal("Demo", image.Alt);
+        Assert.Equal(640d, image.Width);
+        Assert.Equal(480d, image.Height);
+
+        string markdown = document.ToMarkdown();
+        Assert.Contains("width=640", markdown, StringComparison.Ordinal);
+        Assert.Contains("height=480", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_ConvertsPictureElementUsingSourceSetFallback() {
+        const string html = """
+<picture>
+  <source srcset="/img/hero.webp 1x, /img/hero@2x.webp 2x" type="image/webp" />
+  <img alt="Hero" />
+</picture>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/")
+        });
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://example.com/img/hero.webp", image.Path);
+        Assert.Equal("Hero", image.Alt);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_CapturesFigurePictureCaptionAndLazySource() {
+        const string html = """
+<figure>
+  <picture>
+    <source data-srcset="/img/diagram.png 1x, /img/diagram@2x.png 2x" />
+    <img alt="Diagram" />
+  </picture>
+  <figcaption>Architecture overview</figcaption>
+</figure>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/")
+        });
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://example.com/img/diagram.png", image.Path);
+        Assert.Equal("Diagram", image.Alt);
+        Assert.Equal("Architecture overview", image.Caption);
     }
 
     [Fact]
@@ -1140,8 +1481,300 @@ x^2 + 1
         Assert.Contains("Feature | Test block | Expected result | If it fails, likely cause", roundTripped, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void HtmlToMarkdown_LoadsPublisherFixtureWithResolvedLinkedResponsiveFigure() {
+        string html = LoadHtmlFixture("publisher-linked-picture-article.html");
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/world/live/storm-update.html")
+        });
+
+        Assert.Collection(document.Blocks,
+            block => Assert.Equal("Storm Update", Assert.IsType<HeadingBlock>(block).Text),
+            block => {
+                string markdown = Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown();
+                Assert.Contains("[briefing](https://example.com/news/2026/briefing.html)", markdown, StringComparison.Ordinal);
+            },
+            block => {
+                var image = Assert.IsType<ImageBlock>(block);
+                Assert.Equal("https://example.com/news/2026/media/storm-center.webp", image.Path);
+                Assert.Equal("Flooded street at dawn", image.Alt);
+                Assert.Equal("Open full photo", image.Title);
+                Assert.Equal(1280d, image.Width);
+                Assert.Equal(720d, image.Height);
+                Assert.Equal("https://example.com/news/2026/gallery/storm-center", image.LinkUrl);
+                Assert.Equal("Open photo", image.LinkTitle);
+                Assert.Equal("_blank", image.LinkTarget);
+                Assert.Equal("nofollow sponsored", image.LinkRel);
+                Assert.Equal("Residents navigate floodwater after the overnight storm.", image.Caption);
+            },
+            block => Assert.Equal("Photo credit: City Desk", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+            block => {
+                string markdown = Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown();
+                Assert.Contains("[flood map](https://example.com/news/maps/flood-zones.html)", markdown, StringComparison.Ordinal);
+            });
+
+        string renderedMarkdown = document.ToMarkdown();
+        Assert.Contains("[![Flooded street at dawn](https://example.com/news/2026/media/storm-center.webp \"Open full photo\")](https://example.com/news/2026/gallery/storm-center \"Open photo\")", renderedMarkdown, StringComparison.Ordinal);
+        Assert.Contains("_Residents navigate floodwater after the overnight storm._", renderedMarkdown, StringComparison.Ordinal);
+        Assert.Contains("Photo credit: City Desk", renderedMarkdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_LoadsPublisherFixtureWithResolvedLinkedResponsiveFigure_EmitsStableMarkdownSnapshot() {
+        string html = LoadHtmlFixture("publisher-linked-picture-article.html");
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/world/live/storm-update.html")
+        });
+
+        const string expected = """
+# Storm Update
+
+Read the [briefing](https://example.com/news/2026/briefing.html) before crews enter the river district.
+
+[![Flooded street at dawn](https://example.com/news/2026/media/storm-center.webp "Open full photo")](https://example.com/news/2026/gallery/storm-center "Open photo"){width=1280 height=720}
+_Residents navigate floodwater after the overnight storm._
+
+Photo credit: City Desk
+
+Inspect the [flood map](https://example.com/news/maps/flood-zones.html) for the latest street closures.
+""";
+
+        Assert.Equal(NormalizeMarkdown(expected), NormalizeMarkdown(document.ToMarkdown()));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_LoadsPublisherFixtureWithNoscriptResponsiveFallback() {
+        string html = LoadHtmlFixture("publisher-noscript-linked-picture-article.html");
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/world/live/storm-update.html")
+        });
+
+        Assert.Collection(document.Blocks,
+            block => Assert.Equal("Storm Update", Assert.IsType<HeadingBlock>(block).Text),
+            block => {
+                var image = Assert.IsType<ImageBlock>(block);
+                Assert.Equal("https://example.com/news/2026/media/storm-center.webp", image.Path);
+                Assert.Equal("Flooded street at dawn", image.Alt);
+                Assert.Equal("Open full photo", image.Title);
+                Assert.Equal(1280d, image.Width);
+                Assert.Equal(720d, image.Height);
+                Assert.Equal("https://example.com/news/2026/gallery/storm-center", image.LinkUrl);
+                Assert.Equal("Open photo", image.LinkTitle);
+                Assert.Equal("_blank", image.LinkTarget);
+                Assert.Equal("nofollow sponsored", image.LinkRel);
+                Assert.Equal("Residents navigate floodwater after the overnight storm.", image.Caption);
+            },
+            block => Assert.Equal("Photo credit: City Desk", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
+
+        string renderedMarkdown = document.ToMarkdown();
+        Assert.DoesNotContain("data:image/gif", renderedMarkdown, StringComparison.Ordinal);
+        Assert.Contains("storm-center.webp", renderedMarkdown, StringComparison.Ordinal);
+        Assert.Contains("_Residents navigate floodwater after the overnight storm._", renderedMarkdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_LoadsPublisherFixtureWithNoscriptResponsiveFallback_EmitsStableMarkdownSnapshot() {
+        string html = LoadHtmlFixture("publisher-noscript-linked-picture-article.html");
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/world/live/storm-update.html")
+        });
+
+        const string expected = """
+# Storm Update
+
+[![Flooded street at dawn](https://example.com/news/2026/media/storm-center.webp "Open full photo")](https://example.com/news/2026/gallery/storm-center "Open photo"){width=1280 height=720}
+_Residents navigate floodwater after the overnight storm._
+
+Photo credit: City Desk
+""";
+
+        Assert.Equal(NormalizeMarkdown(expected), NormalizeMarkdown(document.ToMarkdown()));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_LoadsPublisherFixtureWithArtDirectedPictureSources() {
+        string html = LoadHtmlFixture("publisher-art-direction-picture-article.html");
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/world/live/storm-update.html")
+        });
+
+        Assert.Collection(document.Blocks,
+            block => Assert.Equal("Storm Update", Assert.IsType<HeadingBlock>(block).Text),
+            block => {
+                var image = Assert.IsType<ImageBlock>(block);
+                Assert.Equal("https://example.com/news/2026/media/storm-wide.webp", image.Path);
+                Assert.Equal("https://example.com/news/2026/media/storm-fallback.jpg", image.PictureFallbackPath);
+                Assert.Equal("Flooded street at dawn", image.Alt);
+                Assert.Equal("Open full photo", image.Title);
+                Assert.Equal(1280d, image.Width);
+                Assert.Equal(720d, image.Height);
+                Assert.Equal("Residents navigate floodwater after the overnight storm.", image.Caption);
+                Assert.Collection(image.PictureSources,
+                    source => {
+                        Assert.Equal("https://example.com/news/2026/media/storm-wide.webp", source.Path);
+                        Assert.Equal("https://example.com/news/2026/media/storm-wide.webp 1x, https://example.com/news/2026/media/storm-wide@2x.webp 2x", source.SrcSet);
+                        Assert.Equal("(min-width: 960px)", source.Media);
+                        Assert.Equal("image/webp", source.Type);
+                        Assert.Equal("100vw", source.Sizes);
+                    },
+                    source => {
+                        Assert.Equal("https://example.com/news/2026/media/storm-mobile.webp", source.Path);
+                        Assert.Equal("https://example.com/news/2026/media/storm-mobile.webp 1x, https://example.com/news/2026/media/storm-mobile@2x.webp 2x", source.SrcSet);
+                        Assert.Equal("(max-width: 959px)", source.Media);
+                        Assert.Equal("image/webp", source.Type);
+                        Assert.Equal("100vw", source.Sizes);
+                    });
+            });
+
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("<picture>", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("<source srcset=\"https://example.com/news/2026/media/storm-wide.webp 1x, https://example.com/news/2026/media/storm-wide@2x.webp 2x\" media=\"(min-width: 960px)\" type=\"image/webp\" sizes=\"100vw\" />", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("<source srcset=\"https://example.com/news/2026/media/storm-mobile.webp 1x, https://example.com/news/2026/media/storm-mobile@2x.webp 2x\" media=\"(max-width: 959px)\" type=\"image/webp\" sizes=\"100vw\" />", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("<img src=\"https://example.com/news/2026/media/storm-fallback.jpg\" alt=\"Flooded street at dawn\" title=\"Open full photo\" width=\"1280\" height=\"720\"", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_LoadsPublisherFixtureWithArtDirectedPictureSources_EmitsStableMarkdownSnapshot() {
+        string html = LoadHtmlFixture("publisher-art-direction-picture-article.html");
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/world/live/storm-update.html")
+        });
+
+        const string expected = """
+# Storm Update
+
+![Flooded street at dawn](https://example.com/news/2026/media/storm-wide.webp "Open full photo"){width=1280 height=720}
+_Residents navigate floodwater after the overnight storm._
+""";
+
+        Assert.Equal(NormalizeMarkdown(expected), NormalizeMarkdown(document.ToMarkdown()));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_LoadsPublisherFixtureWithCdnLazyPictureSources() {
+        string html = LoadHtmlFixture("publisher-cdn-lazy-picture-article.html");
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/world/live/storm-update.html")
+        });
+
+        Assert.Collection(document.Blocks,
+            block => Assert.Equal("Storm Update", Assert.IsType<HeadingBlock>(block).Text),
+            block => {
+                var image = Assert.IsType<ImageBlock>(block);
+                Assert.Equal("https://cdn.example.net/images/storm-wide.avif", image.Path);
+                Assert.Equal("https://example.com/news/2026/media/storm-fallback.jpg", image.PictureFallbackPath);
+                Assert.Equal("Flooded street at dawn", image.Alt);
+                Assert.Equal("Open full photo", image.Title);
+                Assert.Equal(1280d, image.Width);
+                Assert.Equal(720d, image.Height);
+                Assert.Equal("Residents navigate floodwater after the overnight storm.", image.Caption);
+                Assert.Collection(image.PictureSources,
+                    source => {
+                        Assert.Equal("https://cdn.example.net/images/storm-wide.avif", source.Path);
+                        Assert.Equal("https://cdn.example.net/images/storm-wide.avif 1x, https://cdn.example.net/images/storm-wide@2x.avif 2x", source.SrcSet);
+                        Assert.Equal("(min-width: 960px)", source.Media);
+                        Assert.Equal("image/avif", source.Type);
+                        Assert.Equal("100vw", source.Sizes);
+                    },
+                    source => {
+                        Assert.Equal("https://example.com/news/2026/media/storm-mobile.webp", source.Path);
+                        Assert.Equal("https://example.com/news/2026/media/storm-mobile.webp 1x, https://example.com/news/2026/media/storm-mobile@2x.webp 2x", source.SrcSet);
+                        Assert.Equal("(max-width: 959px)", source.Media);
+                        Assert.Equal("image/webp", source.Type);
+                        Assert.Equal("100vw", source.Sizes);
+                    });
+            });
+
+        string renderedMarkdown = document.ToMarkdown();
+        Assert.DoesNotContain("data:image/gif", renderedMarkdown, StringComparison.Ordinal);
+        Assert.Contains("https://cdn.example.net/images/storm-wide.avif", renderedMarkdown, StringComparison.Ordinal);
+
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("<source srcset=\"https://cdn.example.net/images/storm-wide.avif 1x, https://cdn.example.net/images/storm-wide@2x.avif 2x\" media=\"(min-width: 960px)\" type=\"image/avif\" sizes=\"100vw\" />", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("<source srcset=\"https://example.com/news/2026/media/storm-mobile.webp 1x, https://example.com/news/2026/media/storm-mobile@2x.webp 2x\" media=\"(max-width: 959px)\" type=\"image/webp\" sizes=\"100vw\" />", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("<img src=\"https://example.com/news/2026/media/storm-fallback.jpg\" alt=\"Flooded street at dawn\" title=\"Open full photo\" width=\"1280\" height=\"720\"", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_LoadsPublisherFixtureWithWidthDescriptorPictureSources() {
+        string html = LoadHtmlFixture("publisher-width-descriptor-picture-article.html");
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/world/live/storm-update.html")
+        });
+
+        Assert.Collection(document.Blocks,
+            block => Assert.Equal("Storm Update", Assert.IsType<HeadingBlock>(block).Text),
+            block => {
+                var image = Assert.IsType<ImageBlock>(block);
+                Assert.Equal("https://example.com/news/2026/media/storm-wide.webp?fit=cover&crop=10,20,300,400", image.Path);
+                Assert.Equal("https://example.com/news/2026/media/storm-fallback.jpg?download=1", image.PictureFallbackPath);
+                Assert.Equal("Flooded street at dawn", image.Alt);
+                Assert.Equal("Open full photo", image.Title);
+                Assert.Equal(1280d, image.Width);
+                Assert.Equal(720d, image.Height);
+                Assert.Equal("Residents navigate floodwater after the overnight storm.", image.Caption);
+                Assert.Collection(image.PictureSources,
+                    source => {
+                        Assert.Equal("https://example.com/news/2026/media/storm-wide.webp?fit=cover&crop=10,20,300,400", source.Path);
+                        Assert.Equal("https://example.com/news/2026/media/storm-wide.webp?fit=cover&crop=10,20,300,400 640w, https://example.com/news/2026/media/storm-wide.webp?fit=cover&crop=20,40,600,800 1280w", source.SrcSet);
+                        Assert.Equal("(min-width: 960px)", source.Media);
+                        Assert.Equal("image/webp", source.Type);
+                        Assert.Equal("(min-width: 960px) 90vw, 100vw", source.Sizes);
+                    },
+                    source => {
+                        Assert.Equal("https://example.com/news/2026/media/storm-mobile.webp?fit=cover&crop=5,10,200,250", source.Path);
+                        Assert.Equal("https://example.com/news/2026/media/storm-mobile.webp?fit=cover&crop=5,10,200,250 320w, https://example.com/news/2026/media/storm-mobile.webp?fit=cover&crop=10,20,400,500 640w", source.SrcSet);
+                        Assert.Equal("(max-width: 959px)", source.Media);
+                        Assert.Equal("image/webp", source.Type);
+                        Assert.Equal("100vw", source.Sizes);
+                    });
+            });
+
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("<source srcset=\"https://example.com/news/2026/media/storm-wide.webp?fit=cover&amp;crop=10,20,300,400 640w, https://example.com/news/2026/media/storm-wide.webp?fit=cover&amp;crop=20,40,600,800 1280w\" media=\"(min-width: 960px)\" type=\"image/webp\" sizes=\"(min-width: 960px) 90vw, 100vw\" />", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("<source srcset=\"https://example.com/news/2026/media/storm-mobile.webp?fit=cover&amp;crop=5,10,200,250 320w, https://example.com/news/2026/media/storm-mobile.webp?fit=cover&amp;crop=10,20,400,500 640w\" media=\"(max-width: 959px)\" type=\"image/webp\" sizes=\"100vw\" />", renderedHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("%20", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_LoadsPublisherFixtureWithWidthDescriptorPictureSources_EmitsStableMarkdownSnapshot() {
+        string html = LoadHtmlFixture("publisher-width-descriptor-picture-article.html");
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/world/live/storm-update.html")
+        });
+
+        const string expected = """
+# Storm Update
+
+![Flooded street at dawn](https://example.com/news/2026/media/storm-wide.webp?fit=cover&crop=10,20,300,400 "Open full photo"){width=1280 height=720}
+_Residents navigate floodwater after the overnight storm._
+""";
+
+        Assert.Equal(NormalizeMarkdown(expected), NormalizeMarkdown(document.ToMarkdown()));
+    }
+
     private static string NormalizeMarkdown(string markdown) {
         return markdown.Replace("\r\n", "\n").TrimEnd('\n');
+    }
+
+    private static string LoadHtmlFixture(string name) {
+        string path = Path.Combine(
+            AppContext.BaseDirectory,
+            "..", "..", "..",
+            "Markdown",
+            "Fixtures",
+            name);
+
+        return File.ReadAllText(path);
     }
 
     private static string LoadCompatibilityFixture(string name) {

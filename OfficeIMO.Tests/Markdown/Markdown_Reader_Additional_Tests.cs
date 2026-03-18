@@ -156,6 +156,21 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Parses_Linked_Image_With_Caption_As_ImageBlock() {
+            var doc = MarkdownReader.Parse("""
+[![alt](https://example.com/a.png)](https://example.com/docs "Documentation")
+_Caption_
+""");
+
+            var image = Assert.IsType<ImageBlock>(doc.Blocks[0]);
+            Assert.Equal("alt", image.Alt);
+            Assert.Equal("https://example.com/a.png", image.Path);
+            Assert.Equal("https://example.com/docs", image.LinkUrl);
+            Assert.Equal("Documentation", image.LinkTitle);
+            Assert.Equal("Caption", image.Caption);
+        }
+
+        [Fact]
         public void Parses_Inline_Image_With_Angle_Destination_Containing_Spaces() {
             var html = MarkdownReader.Parse("Look ![alt](<https://example.com/a (b).png>) now").ToHtmlFragment();
 
