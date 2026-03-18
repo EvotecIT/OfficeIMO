@@ -13,6 +13,9 @@ public sealed class Markdown_Golden_Fixture_Tests {
     private static readonly Regex MermaidHashAttributeRegex = new(
         "\\sdata-mermaid-hash=\"[^\"]*\"",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex CompilerGeneratedLambdaRegex = new(
+        ">b__\\d+_(\\d+)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     [Fact]
     public void MarkdownGolden_ProfileBoundary() {
@@ -660,7 +663,9 @@ public sealed class Markdown_Golden_Fixture_Tests {
     }
 
     private static string NormalizeText(string value) {
-        return MermaidHashAttributeRegex.Replace(value, " data-mermaid-hash=\"{normalized}\"")
+        return CompilerGeneratedLambdaRegex.Replace(
+                MermaidHashAttributeRegex.Replace(value, " data-mermaid-hash=\"{normalized}\""),
+                ">b__{normalized}_$1")
             .Replace("\r\n", "\n")
             .Replace('\r', '\n')
             .Trim();
