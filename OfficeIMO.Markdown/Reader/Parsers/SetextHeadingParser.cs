@@ -25,10 +25,7 @@ public static partial class MarkdownReader {
             }
             if (t.Length < 3) return false;
             int level = ch == '=' ? 1 : 2;
-            var headingText = line.Trim();
-            var contentStart = line.IndexOf(headingText, StringComparison.Ordinal);
-            var sourceMap = BuildInlineSourceMapForSingleLine(headingText, state.SourceLineOffset + i + 1, contentStart + 1, state);
-            doc.Add(new HeadingBlock(level, ParseInlines(headingText, options, state, sourceMap)));
+            doc.Add(new HeadingBlock(level, ParseInlines(line.Trim(), options, state)));
             i += 2; // consume both lines
             return true;
         }

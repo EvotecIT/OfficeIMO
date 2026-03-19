@@ -37,11 +37,9 @@ internal static class MarkdownDocumentBlockRewriter {
         switch (current) {
             case QuoteBlock quote:
                 RewriteMutableBlockList(quote.Children, blockRewriter);
-                quote.ClearSyntaxCache();
                 break;
             case DetailsBlock details:
                 RewriteMutableBlockList(details.Children, blockRewriter);
-                details.ClearSyntaxCache();
                 break;
             case OrderedListBlock ordered:
                 RewriteListItems(ordered.Items, blockRewriter);
@@ -51,9 +49,6 @@ internal static class MarkdownDocumentBlockRewriter {
                 break;
             case DefinitionListBlock definitions:
                 RewriteDefinitionList(definitions, blockRewriter);
-                break;
-            case FootnoteDefinitionBlock footnote:
-                current = RewriteFootnote(footnote, blockRewriter);
                 break;
             case TableBlock table:
                 RewriteTable(table, blockRewriter);
@@ -95,19 +90,15 @@ internal static class MarkdownDocumentBlockRewriter {
     private static void RewriteDefinitionList(
         DefinitionListBlock block,
         Func<IMarkdownBlock, IMarkdownBlock> blockRewriter) {
-        var groups = block.Groups;
-        for (var groupIndex = 0; groupIndex < groups.Count; groupIndex++) {
-            var group = groups[groupIndex];
-            if (group == null) {
+        var entries = block.Entries;
+        for (var i = 0; i < entries.Count; i++) {
+            var entry = entries[i];
+            if (entry == null) {
                 continue;
             }
 
-            for (var definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
-                RewriteMutableBlockList(group.Definitions[definitionIndex].Blocks, blockRewriter);
-            }
+            RewriteMutableBlockList(entry.DefinitionBlocks, blockRewriter);
         }
-
-        block.ClearSyntaxCache();
     }
 
     private static void RewriteTable(
@@ -139,17 +130,6 @@ internal static class MarkdownDocumentBlockRewriter {
         }
     }
 
-    private static IMarkdownBlock RewriteFootnote(
-        FootnoteDefinitionBlock block,
-        Func<IMarkdownBlock, IMarkdownBlock> blockRewriter) {
-        if (block.Blocks.Count == 0) {
-            return block;
-        }
-
-        var rewrittenBlocks = RewriteBlocks(block.Blocks, blockRewriter);
-        return new FootnoteDefinitionBlock(block.Label, block.Text, rewrittenBlocks, syntaxChildren: null);
-    }
-
     private static IMarkdownBlock RewriteCallout(
         CalloutBlock block,
         Func<IMarkdownBlock, IMarkdownBlock> blockRewriter) {
@@ -158,6 +138,6 @@ internal static class MarkdownDocumentBlockRewriter {
         }
 
         var rewrittenChildren = RewriteBlocks(block.ChildBlocks, blockRewriter);
-        return new CalloutBlock(block.Kind, block.TitleInlines, rewrittenChildren, syntaxChildren: null);
+        return new CalloutBlock(block.Kind, block.TitleInlines, rewrittenChildren, block.SyntaxChildren);
     }
 }

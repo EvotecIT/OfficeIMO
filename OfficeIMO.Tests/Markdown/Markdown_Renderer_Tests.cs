@@ -1242,34 +1242,6 @@ x^2 + 1
     }
 
     [Fact]
-    public void MarkdownRenderer_ParseDocumentResult_Provides_Final_SyntaxTree_And_Lookup_Helpers() {
-        var opts = new MarkdownRendererOptions();
-        opts.DocumentTransforms.Add(new RendererRewriteFirstParagraphTransform("hello renderer"));
-
-        var result = MarkdownRenderer.MarkdownRenderer.ParseDocumentResult("hello", opts);
-
-        Assert.Single(result.SyntaxTree.Children);
-        Assert.Single(result.FinalSyntaxTree.Children);
-        Assert.Equal("hello", result.FindDeepestNodeAtLine(1)!.Literal);
-        Assert.Equal("hello renderer", result.FindDeepestFinalNodeAtLine(1)!.Literal);
-        Assert.Equal("hello", result.FindDeepestNodeContainingSpan(new MarkdownSourceSpan(1, 1))!.Literal);
-        Assert.Equal("hello renderer", result.FindDeepestFinalNodeContainingSpan(new MarkdownSourceSpan(1, 1))!.Literal);
-        Assert.Equal(new[] { MarkdownSyntaxKind.Document, MarkdownSyntaxKind.Paragraph }, result.FindFinalNodePathAtLine(1).Select(node => node.Kind).ToArray());
-        Assert.Equal("hello renderer", result.FindNearestFinalBlockOverlappingSpan(new MarkdownSourceSpan(1, 1))!.Literal);
-    }
-
-    [Fact]
-    public void MarkdownRenderer_ParseDocumentResult_Provides_Position_Based_Syntax_Lookups() {
-        var result = MarkdownRenderer.MarkdownRenderer.ParseDocumentResult("Use **bold** [docs](https://example.com) and `code`.", new MarkdownRendererOptions());
-
-        Assert.Equal(MarkdownSyntaxKind.InlineText, result.FindDeepestNodeAtPosition(1, 8)!.Kind);
-        Assert.Equal(MarkdownSyntaxKind.InlineLink, result.FindDeepestNodeAtPosition(1, 30)!.Kind);
-        Assert.Equal(MarkdownSyntaxKind.InlineCodeSpan, result.FindDeepestNodeAtPosition(1, 48)!.Kind);
-        Assert.Equal(new[] { MarkdownSyntaxKind.Document, MarkdownSyntaxKind.Paragraph, MarkdownSyntaxKind.InlineLink }, result.FindNodePathAtPosition(1, 30).Select(node => node.Kind).ToArray());
-        Assert.Equal(MarkdownSyntaxKind.Paragraph, result.FindNearestBlockAtPosition(1, 48)!.Kind);
-    }
-
-    [Fact]
     public void MarkdownRenderer_ParseDocumentResult_Includes_Reader_And_Renderer_Transform_Diagnostics() {
         var opts = new MarkdownRendererOptions();
         opts.ReaderOptions.DocumentTransforms.Add(new ReaderAppendParagraphTransform("reader tail"));
@@ -1302,41 +1274,6 @@ x^2 + 1
             diagnostic.Source == MarkdownDocumentTransformSource.MarkdownRenderer
             && diagnostic.TransformName.Contains(nameof(RendererRewriteFirstParagraphTransform), StringComparison.Ordinal));
         Assert.Equal(new MarkdownSourceSpan(1, 1), rendererDiagnostic.AffectedSourceSpan);
-    }
-
-    [Fact]
-    public void MarkdownRenderer_ParseDocumentResult_Preserves_SourceSpans_When_FrontMatter_Is_Present() {
-        var opts = new MarkdownRendererOptions();
-        opts.DocumentTransforms.Add(new RendererRewriteSecondParagraphTransform("second renderer"));
-
-        var result = MarkdownRenderer.MarkdownRenderer.ParseDocumentResult("""
----
-title: Sample
----
-
-first
-
-second
-""", opts);
-
-        var rendererDiagnostic = Assert.Single(result.TransformDiagnostics, diagnostic =>
-            diagnostic.Source == MarkdownDocumentTransformSource.MarkdownRenderer
-            && diagnostic.TransformName.Contains(nameof(RendererRewriteSecondParagraphTransform), StringComparison.Ordinal));
-        Assert.Equal(new MarkdownSourceSpan(7, 7), rendererDiagnostic.AffectedSourceSpan);
-    }
-
-    [Fact]
-    public void MarkdownRenderer_RenderBodyHtml_Does_Not_Mutate_Caller_HtmlOptions_BaseUri() {
-        var opts = new MarkdownRendererOptions {
-            BaseHref = "https://example.com/docs/"
-        };
-
-        Assert.Null(opts.HtmlOptions.BaseUri);
-
-        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("[x](page.html)", opts);
-
-        Assert.Contains("<base href=\"https://example.com/docs/\">", html);
-        Assert.Null(opts.HtmlOptions.BaseUri);
     }
 
     [Fact]
@@ -1983,29 +1920,6 @@ Lead[^1]
             rewritten.Add(new ParagraphBlock(new InlineSequence().Text(text)));
             for (var i = 1; i < document.Blocks.Count; i++) {
                 rewritten.Add(document.Blocks[i]);
-            }
-
-            return rewritten;
-        }
-    }
-
-    private sealed class RendererRewriteSecondParagraphTransform(string text) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
-            Assert.Equal(MarkdownDocumentTransformSource.MarkdownRenderer, context.Source);
-            Assert.NotNull(context.ReaderOptions);
-            Assert.IsType<MarkdownRendererOptions>(context.SourceOptions);
-
-            var rewritten = MarkdownDoc.Create();
-            if (document.DocumentHeader != null) {
-                rewritten.Add(document.DocumentHeader);
-            }
-
-            for (var i = 0; i < document.Blocks.Count; i++) {
-                if (i == 1) {
-                    rewritten.Add(new ParagraphBlock(new InlineSequence().Text(text)));
-                } else {
-                    rewritten.Add(document.Blocks[i]);
-                }
             }
 
             return rewritten;

@@ -4,13 +4,13 @@ namespace OfficeIMO.Markdown;
 /// Inline parsing helpers for <see cref="MarkdownReader"/>.
 /// </summary>
 public static partial class MarkdownReader {
-    private static InlineSequence ParseInlines(string text, MarkdownReaderOptions options, MarkdownReaderState? state = null, MarkdownInlineSourceMap? sourceMap = null) {
-        var sequence = ParseInlinesInternal(text, options, state, allowLinks: true, allowImages: true, sourceMap);
+    private static InlineSequence ParseInlines(string text, MarkdownReaderOptions options, MarkdownReaderState? state = null) {
+        var sequence = ParseInlinesInternal(text, options, state, allowLinks: true, allowImages: true);
         NormalizeInlineSequenceInPlace(sequence, options.InputNormalization);
         return sequence;
     }
 
-    private static InlineSequence ParseInlinesInternal(string text, MarkdownReaderOptions options, MarkdownReaderState? state, bool allowLinks, bool allowImages, MarkdownInlineSourceMap? sourceMap = null) {
+    private static InlineSequence ParseInlinesInternal(string text, MarkdownReaderOptions options, MarkdownReaderState? state, bool allowLinks, bool allowImages) {
         var root = new InlineSequence { AutoSpacing = false };
         if (string.IsNullOrEmpty(text)) return root;
 
@@ -18,33 +18,26 @@ public static partial class MarkdownReader {
         // "*a **b** c*" behaves intuitively. This is not a full spec implementation, but it's materially
         // more robust than naive IndexOf-based matching.
         var stack = new Stack<InlineFrame>();
-        stack.Push(new InlineFrame(FrameKind.Root, '\0', 0, root, -1));
+        stack.Push(new InlineFrame(FrameKind.Root, '\0', 0, root));
         InlineSequence Current() => stack.Peek().Seq;
-        MarkdownInlineSourceMap? SliceMap(int start, int length) => sourceMap?.Slice(start, length);
-        void AddRawNode(IMarkdownInline node, int start, int length) {
-            MarkdownInlineSourceSpans.Set(node, sourceMap?.GetSpan(start, length));
-            Current().AddRaw(node);
-        }
-        void AddTextNode(string literal, int start, int length) => AddRawNode(new TextRun(literal), start, length);
-        void AddHardBreakNode(int start, int length) => AddRawNode(new HardBreakInline(), start, length);
 
         int pos = 0;
         while (pos < text.Length) {
             // Hard break signal encoded by paragraph joiner as a bare '\n'
-            if (text[pos] == '\n') { AddHardBreakNode(pos, 1); pos++; continue; }
+            if (text[pos] == '\n') { Current().HardBreak(); pos++; continue; }
             // HTML-style line breaks in source (commonly used inside table cells): <br>, <br/>, <br />
             if (options.InlineHtml && text[pos] == '<') {
                 const string br = "<br>";
                 const string brSelf = "<br/>";
                 const string brSelfSpaced = "<br />";
                 if (text.Length - pos >= br.Length && string.Compare(text, pos, br, 0, br.Length, StringComparison.OrdinalIgnoreCase) == 0) {
-                    AddHardBreakNode(pos, br.Length); pos += br.Length; continue;
+                    Current().HardBreak(); pos += br.Length; continue;
                 }
                 if (text.Length - pos >= brSelf.Length && string.Compare(text, pos, brSelf, 0, brSelf.Length, StringComparison.OrdinalIgnoreCase) == 0) {
-                    AddHardBreakNode(pos, brSelf.Length); pos += brSelf.Length; continue;
+                    Current().HardBreak(); pos += brSelf.Length; continue;
                 }
                 if (text.Length - pos >= brSelfSpaced.Length && string.Compare(text, pos, brSelfSpaced, 0, brSelfSpaced.Length, StringComparison.OrdinalIgnoreCase) == 0) {
-                    AddHardBreakNode(pos, brSelfSpaced.Length); pos += brSelfSpaced.Length; continue;
+                    Current().HardBreak(); pos += brSelfSpaced.Length; continue;
                 }
             }
             // Backslash escape (CommonMark-ish): only escape punctuation we care about so that Windows paths like
@@ -53,12 +46,12 @@ public static partial class MarkdownReader {
                 if (pos + 1 < text.Length) {
                     char next = text[pos + 1];
                     if (IsBackslashEscapable(next)) {
-                        AddTextNode(next.ToString(), pos, 2);
+                        Current().Text(next.ToString());
                         pos += 2;
                         continue;
                     }
                 }
-                AddTextNode("\\", pos, 1);
+                Current().Text("\\");
                 pos++;
                 continue;
             }
@@ -67,11 +60,8 @@ public static partial class MarkdownReader {
             if (options.AutolinkUrls && StartsWithHttp(text, pos, out int urlEnd)) {
                 var url = text.Substring(pos, urlEnd - pos);
                 var resolved = ResolveUrl(url, options);
-                if (resolved is null) {
-                    AddTextNode(url, pos, urlEnd - pos);
-                } else {
-                    AddRawNode(new LinkInline(url, resolved!, null), pos, urlEnd - pos);
-                }
+                if (resolved is null) Current().Text(url);
+                else Current().Link(url, resolved!, null);
                 pos = urlEnd; continue;
             }
 
@@ -82,11 +72,8 @@ public static partial class MarkdownReader {
                 if (!scheme.EndsWith("://", StringComparison.Ordinal)) scheme = scheme.TrimEnd('/') + "://";
                 var href = scheme + label;
                 var resolved = ResolveUrl(href, options);
-                if (resolved is null) {
-                    AddTextNode(label, pos, wwwEnd - pos);
-                } else {
-                    AddRawNode(new LinkInline(label, resolved!, null), pos, wwwEnd - pos);
-                }
+                if (resolved is null) Current().Text(label);
+                else Current().Link(label, resolved!, null);
                 pos = wwwEnd; continue;
             }
 
@@ -94,11 +81,8 @@ public static partial class MarkdownReader {
             if (options.AutolinkEmails && TryConsumePlainEmail(text, pos, out int emailEnd, out string email)) {
                 var href = "mailto:" + email;
                 var resolved = ResolveUrl(href, options);
-                if (resolved is null) {
-                    AddTextNode(email, pos, emailEnd - pos);
-                } else {
-                    AddRawNode(new LinkInline(email, resolved!, null), pos, emailEnd - pos);
-                }
+                if (resolved is null) Current().Text(email);
+                else Current().Link(email, resolved!, null);
                 pos = emailEnd; continue;
             }
             if (text[pos] == '`') {
@@ -129,12 +113,12 @@ public static partial class MarkdownReader {
                     if (contentLen < 0) contentLen = 0;
                     var inner = text.Substring(contentStart, contentLen);
                     inner = NormalizeCodeSpanContent(inner);
-                    AddRawNode(new CodeSpanInline(inner), pos, matchStart + fenceLen - pos);
+                    Current().Code(inner);
                     pos = matchStart + fenceLen; continue;
                 }
 
                 if (fenceLen > 1) {
-                    AddTextNode(new string('`', fenceLen), pos, fenceLen);
+                    Current().Text(new string('`', fenceLen));
                     pos += fenceLen;
                     continue;
                 }
@@ -143,7 +127,7 @@ public static partial class MarkdownReader {
             // Footnote ref [^id] should be recognized before generic link parsing
             if (options.Footnotes && text[pos] == '[' && pos + 2 < text.Length && text[pos + 1] == '^') {
                 int rb = text.IndexOf(']', pos + 2);
-                if (rb > pos + 2) { var lab = text.Substring(pos + 2, rb - (pos + 2)); AddRawNode(new FootnoteRefInline(lab), pos, rb + 1 - pos); pos = rb + 1; continue; }
+                if (rb > pos + 2) { var lab = text.Substring(pos + 2, rb - (pos + 2)); Current().FootnoteRef(lab); pos = rb + 1; continue; }
             }
 
             if (TryParseImageLink(text, pos, out int consumed, out var alt2, out var img2, out var imgTitle2, out var href2, out var hrefTitle2)) {
@@ -152,9 +136,9 @@ public static partial class MarkdownReader {
                     var hrefResolved = ResolveUrl(href2, options);
                     if (imgResolved is null || hrefResolved is null) {
                         // Unsafe URLs: keep content as plain text instead of a clickable linked image.
-                        AddTextNode(string.IsNullOrEmpty(alt2) ? "image" : alt2, pos, consumed);
+                        Current().Text(string.IsNullOrEmpty(alt2) ? "image" : alt2);
                     } else {
-                        AddRawNode(new ImageLinkInline(alt2, imgResolved!, hrefResolved!, imgTitle2, hrefTitle2), pos, consumed);
+                        Current().ImageLink(alt2, imgResolved!, hrefResolved!, imgTitle2, hrefTitle2);
                     }
                     pos += consumed; continue;
                 }
@@ -168,13 +152,13 @@ public static partial class MarkdownReader {
                         if (state.LinkRefs.TryGetValue(key, out var defImg)) {
                             var resolved = ResolveUrl(defImg.Url, options);
                             if (resolved is null) {
-                                AddTextNode(string.IsNullOrEmpty(altRef) ? "image" : altRef, pos, consumedRefImg);
+                                Current().Text(string.IsNullOrEmpty(altRef) ? "image" : altRef);
                             } else {
-                                AddRawNode(new ImageInline(altRef, resolved!, defImg.Title), pos, consumedRefImg);
+                                Current().Image(altRef, resolved!, defImg.Title);
                             }
                         } else {
                             // Preserve literal syntax when the definition is missing.
-                            AddTextNode(text.Substring(pos, consumedRefImg), pos, consumedRefImg);
+                            Current().Text(text.Substring(pos, consumedRefImg));
                         }
                         pos += consumedRefImg; continue;
                     }
@@ -183,15 +167,15 @@ public static partial class MarkdownReader {
                     if (TryParseInlineImage(text, pos, out int consumedImg, out var altImg, out var srcImg, out var titleImg)) {
                         var srcResolved = ResolveUrl(srcImg, options);
                         if (srcResolved is null) {
-                            AddTextNode(string.IsNullOrEmpty(altImg) ? "image" : altImg, pos, consumedImg);
+                            Current().Text(string.IsNullOrEmpty(altImg) ? "image" : altImg);
                         } else {
-                            AddRawNode(new ImageInline(altImg, srcResolved!, titleImg), pos, consumedImg);
+                            Current().Image(altImg, srcResolved!, titleImg);
                         }
                         pos += consumedImg; continue;
                     }
 
                     if (TryConsumeLiteralInlineImage(text, pos, out int literalImageLength)) {
-                        AddTextNode(text.Substring(pos, literalImageLength), pos, literalImageLength);
+                        Current().Text(text.Substring(pos, literalImageLength));
                         pos += literalImageLength; continue;
                     }
                 }
@@ -201,9 +185,9 @@ public static partial class MarkdownReader {
             if (text[pos] == '<' && TryParseAngleAutolink(text, pos, out int consumedAngle, out var labelAngle, out var hrefAngle)) {
                 var resolved = ResolveUrl(hrefAngle, options);
                 if (resolved is null) {
-                    AddTextNode(text.Substring(pos, consumedAngle), pos, consumedAngle);
+                    Current().Text(text.Substring(pos, consumedAngle));
                 } else {
-                    AddRawNode(new LinkInline(labelAngle, resolved!, null), pos, consumedAngle);
+                    Current().Link(labelAngle, resolved!, null);
                 }
                 pos += consumedAngle;
                 continue;
@@ -212,69 +196,69 @@ public static partial class MarkdownReader {
                 if (allowLinks) {
                     if (state != null && TryParseCollapsedRef(text, pos, out int consumedC, out var lbl2)) {
                         var key = NormalizeReferenceLabel(lbl2);
-                        var labelSeq = ParseInlinesInternal(lbl2, options, state, allowLinks: false, allowImages: false, SliceMap(pos + 1, lbl2.Length));
+                        var labelSeq = ParseInlinesInternal(lbl2, options, state, allowLinks: false, allowImages: false);
                         if (state.LinkRefs.TryGetValue(key, out var def2)) {
                             var resolved = ResolveUrl(def2.Url, options);
                             if (resolved is null) {
                                 foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
                             } else {
-                                AddRawNode(new LinkInline(labelSeq, resolved!, def2.Title), pos, consumedC);
+                                Current().AddRaw(new LinkInline(labelSeq, resolved!, def2.Title));
                             }
                         } else {
-                            AddTextNode(text.Substring(pos, consumedC), pos, consumedC);
+                            Current().Text(text.Substring(pos, consumedC));
                         }
                         pos += consumedC; continue;
                     }
                     if (state != null && TryParseRefLink(text, pos, out int consumedR, out var lbl, out var refLabel)) {
                         var key = NormalizeReferenceLabel(refLabel);
-                        var labelSeq = ParseInlinesInternal(lbl, options, state, allowLinks: false, allowImages: false, SliceMap(pos + 1, lbl.Length));
+                        var labelSeq = ParseInlinesInternal(lbl, options, state, allowLinks: false, allowImages: false);
                         if (state.LinkRefs.TryGetValue(key, out var def)) {
                             var resolved = ResolveUrl(def.Url, options);
                             if (resolved is null) {
                                 foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
                             } else {
-                                AddRawNode(new LinkInline(labelSeq, resolved!, def.Title), pos, consumedR);
+                                Current().AddRaw(new LinkInline(labelSeq, resolved!, def.Title));
                             }
                         } else {
-                            AddTextNode(text.Substring(pos, consumedR), pos, consumedR);
+                            Current().Text(text.Substring(pos, consumedR));
                         }
                         pos += consumedR; continue;
                     }
                     if (state != null && TryParseShortcutRef(text, pos, out int consumedS, out var lbl3)) {
                         var key = NormalizeReferenceLabel(lbl3);
-                        var labelSeq = ParseInlinesInternal(lbl3, options, state, allowLinks: false, allowImages: false, SliceMap(pos + 1, lbl3.Length));
+                        var labelSeq = ParseInlinesInternal(lbl3, options, state, allowLinks: false, allowImages: false);
                         if (state.LinkRefs.TryGetValue(key, out var def3)) {
                             var resolved = ResolveUrl(def3.Url, options);
                             if (resolved is null) {
                                 foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
                             } else {
-                                AddRawNode(new LinkInline(labelSeq, resolved!, def3.Title), pos, consumedS);
+                                Current().AddRaw(new LinkInline(labelSeq, resolved!, def3.Title));
                             }
                         } else {
-                            AddTextNode(text.Substring(pos, consumedS), pos, consumedS);
+                            Current().Text(text.Substring(pos, consumedS));
                         }
                         pos += consumedS; continue;
                     }
                     if (TryParseLink(text, pos, out int consumed2, out var label2, out var href3, out var title2)) {
-                        var labelSeq = ParseInlinesInternal(label2, options, state, allowLinks: false, allowImages: false, SliceMap(pos + 1, label2.Length));
+                        var labelSeq = ParseInlinesInternal(label2, options, state, allowLinks: false, allowImages: false);
 
                         // Allow empty href: commonly used as placeholder or to be filled by the host.
                         if (string.IsNullOrWhiteSpace(href3)) {
-                            AddRawNode(new LinkInline(labelSeq, string.Empty, title2), pos, consumed2);
+                            Current().AddRaw(new LinkInline(labelSeq, string.Empty, title2));
                         } else {
                             var hrefResolved = ResolveUrl(href3, options);
                             if (hrefResolved is null) {
                                 // Unsafe URLs: keep the label as plain inline content instead of producing an <a href="...">.
                                 foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
                             } else {
-                                AddRawNode(new LinkInline(labelSeq, hrefResolved!, title2), pos, consumed2);
+                                Current().AddRaw(new LinkInline(labelSeq, hrefResolved!, title2));
                             }
                         }
                         pos += consumed2; continue;
                     }
 
                     if (TryConsumeLiteralInlineLink(text, pos, out int literalLinkLength)) {
-                        AddTextNode(text.Substring(pos, literalLinkLength), pos, literalLinkLength);
+                        Current().Text(text.Substring(pos, literalLinkLength));
                         pos += literalLinkLength; continue;
                     }
                 }
@@ -289,20 +273,20 @@ public static partial class MarkdownReader {
                 bool splitDoubleRunIntoDualItalic = ShouldSplitDoubleRunIntoDualItalic(text, pos, marker, runLen, stack);
 
                 if (ShouldTreatDelimiterRunAsLiteral(text, pos, marker, runLen, stack, splitDoubleRunIntoDualItalic, out int literalRunLength)) {
-                    AddTextNode(new string(marker, literalRunLength), pos, literalRunLength);
+                    Current().Text(new string(marker, literalRunLength));
                     pos += literalRunLength;
                     continue;
                 }
 
                 if (ShouldTreatSingleMarkerAsLiteralInsideBold(text, pos, marker, runLen, stack)) {
-                    AddTextNode(marker.ToString(), pos, 1);
+                    Current().Text(marker.ToString());
                     pos++;
                     continue;
                 }
 
                 // Only "~~" and "==" open/close paired formatting.
                 if ((marker == '~' || marker == '=') && runLen < 2) {
-                    AddTextNode(marker.ToString(), pos, 1);
+                    Current().Text(marker.ToString());
                     pos++;
                     continue;
                 }
@@ -310,7 +294,7 @@ public static partial class MarkdownReader {
                 GetDelimiterFlags(text, pos, marker, runLen, out bool canOpen, out bool canClose);
 
                 if (ShouldTreatMixedSingleMarkerAsLiteral(text, pos, marker, runLen, canOpen, canClose, stack)) {
-                    AddTextNode(marker.ToString(), pos, 1);
+                    Current().Text(marker.ToString());
                     pos++;
                     continue;
                 }
@@ -341,29 +325,29 @@ public static partial class MarkdownReader {
 
                 if (canOpen) {
                     if (splitDoubleRunIntoDualItalic) {
-                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }, pos));
-                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }, pos + 1));
+                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }));
+                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }));
                         remaining -= 2;
                     }
                     else if (preferInnerBold) {
-                        stack.Push(new InlineFrame(FrameKind.Bold, marker, 2, new InlineSequence { AutoSpacing = false }, pos));
+                        stack.Push(new InlineFrame(FrameKind.Bold, marker, 2, new InlineSequence { AutoSpacing = false }));
                         remaining -= 2;
                     }
 
                     if (splitDoubleUnderscoreOpener) {
-                        AddTextNode("_", pos, 1);
-                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }, pos + 1));
+                        Current().Text("_");
+                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }));
                         remaining -= 2;
                     }
                     else if (literalPrefixForOddCloser > 0) {
-                        AddTextNode(new string(marker, literalPrefixForOddCloser), pos, literalPrefixForOddCloser);
+                        Current().Text(new string(marker, literalPrefixForOddCloser));
                         remaining -= literalPrefixForOddCloser;
                     }
 
                     while (remaining > 0) {
                         if (marker == '~') {
                             if (remaining >= 2) {
-                                stack.Push(new InlineFrame(FrameKind.Strike, marker, 2, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));
+                                stack.Push(new InlineFrame(FrameKind.Strike, marker, 2, new InlineSequence { AutoSpacing = false }));
                                 remaining -= 2;
                                 continue;
                             }
@@ -372,7 +356,7 @@ public static partial class MarkdownReader {
 
                         if (marker == '=') {
                             if (remaining >= 2) {
-                                stack.Push(new InlineFrame(FrameKind.Highlight, marker, 2, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));
+                                stack.Push(new InlineFrame(FrameKind.Highlight, marker, 2, new InlineSequence { AutoSpacing = false }));
                                 remaining -= 2;
                                 continue;
                             }
@@ -380,18 +364,18 @@ public static partial class MarkdownReader {
                         }
 
                         if (remaining >= 2) {
-                            stack.Push(new InlineFrame(FrameKind.Bold, marker, 2, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));
+                            stack.Push(new InlineFrame(FrameKind.Bold, marker, 2, new InlineSequence { AutoSpacing = false }));
                             remaining -= 2;
                             continue;
                         }
 
-                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));
+                        stack.Push(new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }));
                         remaining -= 1;
                     }
                 }
 
                 if (remaining > 0) {
-                    AddTextNode(new string(marker, remaining), pos + (runLen - remaining), remaining);
+                    Current().Text(new string(marker, remaining));
                 }
 
                 pos += runLen;
@@ -400,7 +384,7 @@ public static partial class MarkdownReader {
 
             if (options.InlineHtml && text[pos] == '<') {
                 if (TryParseSupportedInlineHtmlTag(text, pos, options, state, allowLinks, allowImages, out int consumedHtmlTag, out var htmlNode)) {
-                    AddRawNode(htmlNode, pos, consumedHtmlTag);
+                    Current().AddRaw(htmlNode);
                     pos += consumedHtmlTag;
                     continue;
                 }
@@ -409,7 +393,7 @@ public static partial class MarkdownReader {
             // Footnote ref [^id]
             if (options.Footnotes && text[pos] == '[' && pos + 2 < text.Length && text[pos + 1] == '^') {
                 int rb = text.IndexOf(']', pos + 2);
-                if (rb > pos + 2) { var lab = text.Substring(pos + 2, rb - (pos + 2)); AddRawNode(new FootnoteRefInline(lab), pos, rb + 1 - pos); pos = rb + 1; continue; }
+                if (rb > pos + 2) { var lab = text.Substring(pos + 2, rb - (pos + 2)); Current().FootnoteRef(lab); pos = rb + 1; continue; }
             }
 
             int start = pos; pos++;
@@ -423,16 +407,14 @@ public static partial class MarkdownReader {
                 if (options.AutolinkEmails && IsEmailStartChar(text[pos]) && TryConsumePlainEmail(text, pos, out _, out _)) break;
                 pos++;
             }
-            AddTextNode(text.Substring(start, pos - start), start, pos - start);
+            Current().Text(text.Substring(start, pos - start));
         }
 
         // Unwind any unclosed emphasis frames: treat their markers as literal text.
         while (stack.Count > 1) {
             var f = stack.Pop();
             var parent = stack.Peek().Seq;
-            var markerNode = new TextRun(new string(f.Marker, f.OpenLen));
-            MarkdownInlineSourceSpans.Set(markerNode, sourceMap?.GetSpan(f.OpenIndex, f.OpenLen));
-            parent.AddRaw(markerNode);
+            parent.Text(new string(f.Marker, f.OpenLen));
             foreach (var node in f.Seq.Nodes) parent.AddRaw(node);
         }
 
@@ -448,19 +430,17 @@ public static partial class MarkdownReader {
     }
 
     private sealed class InlineFrame {
-        public InlineFrame(FrameKind kind, char marker, int openLen, InlineSequence seq, int openIndex) {
+        public InlineFrame(FrameKind kind, char marker, int openLen, InlineSequence seq) {
             Kind = kind;
             Marker = marker;
             OpenLen = openLen;
             Seq = seq;
-            OpenIndex = openIndex;
         }
 
         public FrameKind Kind { get; }
         public char Marker { get; }
         public int OpenLen { get; }
         public InlineSequence Seq { get; }
-        public int OpenIndex { get; }
     }
 
     private static bool TryCloseFrame(Stack<InlineFrame> stack, char marker, int remaining, out int consumed) {
@@ -579,7 +559,7 @@ public static partial class MarkdownReader {
         stack.Pop();
         stack.Pop();
 
-        var italic = new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }, parent.OpenIndex);
+        var italic = new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false });
         italic.Seq.AddRaw(new BoldSequenceInline(top.Seq));
         stack.Push(italic);
         consumed = 2;
@@ -613,7 +593,7 @@ public static partial class MarkdownReader {
 
         middle.AddRaw(new ItalicSequenceInline(top.Seq));
 
-        var outer = new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false }, parent.OpenIndex);
+        var outer = new InlineFrame(FrameKind.Italic, marker, 1, new InlineSequence { AutoSpacing = false });
         outer.Seq.AddRaw(new ItalicSequenceInline(middle));
         stack.Push(outer);
         consumed = 2;
