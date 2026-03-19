@@ -41,6 +41,27 @@ Paragraph text
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Handles_Mixed_Line_Endings_Without_Trailing_Newline() {
+        const string markdown = "# Title\r\n\r\nParagraph one\r\rSecond para";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        Assert.Equal(3, result.SyntaxTree.Children.Count);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 5, 11), result.SyntaxTree.SourceSpan);
+
+        var heading = result.SyntaxTree.Children[0];
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 7), heading.SourceSpan);
+
+        var firstParagraph = result.SyntaxTree.Children[1];
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 13), firstParagraph.SourceSpan);
+
+        var secondParagraph = result.SyntaxTree.Children[2];
+        Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 11), secondParagraph.SourceSpan);
+        Assert.Equal("Second para", secondParagraph.Literal);
+        Assert.Equal(MarkdownSyntaxKind.InlineText, result.FindDeepestNodeAtPosition(5, 7)!.Kind);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Returns_FinalDocument_OriginalSyntaxTree_And_TransformDiagnostics() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());

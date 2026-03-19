@@ -1,6 +1,8 @@
 namespace OfficeIMO.Markdown;
 
 public static partial class MarkdownReader {
+    private const int DefinitionContinuationIndentOffset = 2;
+
     internal sealed class DefinitionListParser : IMarkdownBlockParser {
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
             if (!options.DefinitionLists) return false;
@@ -60,7 +62,12 @@ public static partial class MarkdownReader {
                     new MarkdownSourceLineSlice(def, lineNumber, definitionStartIndex + 1)
                 };
                 int next = j + 1;
-                ConsumeDefinitionContinuationLines(lines, ref next, CountLeadingIndentColumns(line) + 2, state.SourceLineOffset, definitionSourceLines);
+                ConsumeDefinitionContinuationLines(
+                    lines,
+                    ref next,
+                    CountLeadingIndentColumns(line) + DefinitionContinuationIndentOffset,
+                    state.SourceLineOffset,
+                    definitionSourceLines);
                 var (definitionBlocks, definitionSyntaxChildren) = ParseDefinitionBody(definitionSourceLines, options, state);
                 if (definitionSyntaxChildren.Count > 0) {
                     definitionSpan = MarkdownBlockSyntaxBuilder.GetAggregateSpan(definitionSyntaxChildren) ?? definitionSpan;

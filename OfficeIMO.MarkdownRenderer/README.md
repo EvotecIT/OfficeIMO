@@ -69,6 +69,8 @@ var bodyHtml = MarkdownRenderer.RenderBodyHtml(markdownText, options);
 webView.CoreWebView2.PostWebMessageAsString(bodyHtml);
 ```
 
+`RenderBodyHtml(...)` now treats `BaseHref` as render-local state. If the host reuses one `MarkdownRendererOptions` instance across multiple renders, the renderer restores the caller's original `HtmlOptions.BaseUri` after each call instead of leaking a previous render's base/origin policy into the next one.
+
 ### Optional chat bubble wrappers
 
 ```csharp
