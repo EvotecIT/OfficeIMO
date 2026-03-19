@@ -28,6 +28,12 @@ public class MarkdownParseBenchmarks {
     public MarkdownDoc OfficeIMO_Parse_Portable() => MarkdownReader.Parse(_markdown, _portableOptions);
 
     [Benchmark]
+    public MarkdownParseResult OfficeIMO_Parse_WithSyntaxTree_Default() => MarkdownReader.ParseWithSyntaxTree(_markdown);
+
+    [Benchmark]
+    public MarkdownParseResult OfficeIMO_Parse_WithSyntaxTree_Portable() => MarkdownReader.ParseWithSyntaxTree(_markdown, _portableOptions);
+
+    [Benchmark]
     public Markdig.Syntax.MarkdownDocument Markdig_Parse() => Markdig.Markdown.Parse(_markdown);
 }
 

@@ -38,17 +38,32 @@ public sealed class DefinitionListBlock : IMarkdownBlock, ISyntaxMarkdownBlock, 
     }
 
     internal void AddParsedEntry(DefinitionListEntry entry, MarkdownSyntaxNode syntaxItem) {
-        var safeEntry = entry ?? new DefinitionListEntry();
+        if (entry == null) {
+            throw new ArgumentNullException(nameof(entry));
+        }
+
+        if (syntaxItem == null) {
+            throw new ArgumentNullException(nameof(syntaxItem));
+        }
+
         AddParsedGroup(
             new DefinitionListGroup(
-                new[] { safeEntry.Term },
-                new[] { safeEntry.Definition }),
+                new[] { entry.Term },
+                new[] { entry.Definition }),
             syntaxItem);
     }
 
     internal void AddParsedGroup(DefinitionListGroup group, MarkdownSyntaxNode syntaxItem) {
-        AddGroupCore(group ?? new DefinitionListGroup());
-        SyntaxItems.Add(syntaxItem ?? new MarkdownSyntaxNode(MarkdownSyntaxKind.DefinitionGroup));
+        if (group == null) {
+            throw new ArgumentNullException(nameof(group));
+        }
+
+        if (syntaxItem == null) {
+            throw new ArgumentNullException(nameof(syntaxItem));
+        }
+
+        AddGroupCore(group);
+        SyntaxItems.Add(syntaxItem);
     }
 
     /// <summary>Adds a typed definition list entry.</summary>

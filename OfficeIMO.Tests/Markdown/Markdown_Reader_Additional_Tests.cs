@@ -628,6 +628,30 @@ Other: Value
         }
 
         [Fact]
+        public void Definition_List_Can_Parse_Nested_Blockquote_And_List_In_Definition_Body() {
+            string md = """
+Term: Intro
+
+  > quoted line
+  >
+  > more quote
+
+  - first
+  - second
+""";
+
+            var doc = MarkdownReader.Parse(md);
+
+            var definitions = Assert.IsType<DefinitionListBlock>(Assert.Single(doc.Blocks));
+            var entry = Assert.Single(definitions.Entries);
+
+            Assert.Collection(entry.DefinitionBlocks,
+                block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => Assert.IsType<QuoteBlock>(block),
+                block => Assert.IsType<UnorderedListBlock>(block));
+        }
+
+        [Fact]
         public void Unordered_List_Item_With_Colon_Is_Not_Parsed_As_Definition_List() {
             string md = """
 - **AD1**: starkes Muster (`7034/7023`).
