@@ -5,7 +5,11 @@ namespace OfficeIMO.Markdown;
 /// a simple "Term: Definition" fallback; HTML uses &lt;dl&gt;.
 /// </summary>
 public sealed class DefinitionListBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMarkdownBlockContainer {
+    private readonly List<DefinitionListGroup> _groups = new List<DefinitionListGroup>();
     private readonly List<DefinitionListEntry> _entries = new List<DefinitionListEntry>();
+
+    /// <summary>Semantic definition-list groups with shared terms and definition bodies.</summary>
+    public IReadOnlyList<DefinitionListGroup> Groups => _groups;
 
     /// <summary>Typed definition list entries.</summary>
     public IReadOnlyList<DefinitionListEntry> Entries => _entries;
@@ -29,9 +33,51 @@ public sealed class DefinitionListBlock : IMarkdownBlock, ISyntaxMarkdownBlock, 
         ReaderState = state;
     }
 
+    internal void ClearSyntaxCache() {
+        SyntaxItems.Clear();
+    }
+
+    internal void AddParsedEntry(DefinitionListEntry entry, MarkdownSyntaxNode syntaxItem) {
+        if (entry == null) {
+            throw new ArgumentNullException(nameof(entry));
+        }
+
+        if (syntaxItem == null) {
+            throw new ArgumentNullException(nameof(syntaxItem));
+        }
+
+        AddParsedGroup(
+            new DefinitionListGroup(
+                new[] { entry.Term },
+                new[] { entry.Definition }),
+            syntaxItem);
+    }
+
+    internal void AddParsedGroup(DefinitionListGroup group, MarkdownSyntaxNode syntaxItem) {
+        if (group == null) {
+            throw new ArgumentNullException(nameof(group));
+        }
+
+        if (syntaxItem == null) {
+            throw new ArgumentNullException(nameof(syntaxItem));
+        }
+
+        AddGroupCore(group);
+        SyntaxItems.Add(syntaxItem);
+    }
+
     /// <summary>Adds a typed definition list entry.</summary>
     public void AddEntry(DefinitionListEntry entry) {
-        _entries.Add(entry ?? new DefinitionListEntry());
+        var safeEntry = entry ?? new DefinitionListEntry();
+        AddGroup(new DefinitionListGroup(
+            new[] { safeEntry.Term },
+            new[] { safeEntry.Definition }));
+    }
+
+    /// <summary>Adds a semantic definition-list group.</summary>
+    public void AddGroup(DefinitionListGroup group) {
+        SyntaxItems.Clear();
+        AddGroupCore(group ?? new DefinitionListGroup());
     }
 
     /// <inheritdoc />
@@ -39,7 +85,11 @@ public sealed class DefinitionListBlock : IMarkdownBlock, ISyntaxMarkdownBlock, 
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < _entries.Count; i++) {
             var entry = _entries[i];
-            sb.AppendLine(entry.TermMarkdown + ": " + entry.DefinitionMarkdown);
+            if (i > 0) {
+                sb.Append('\n');
+            }
+
+            AppendEntryMarkdown(sb, entry);
         }
         return sb.ToString().TrimEnd();
     }
@@ -48,14 +98,19 @@ public sealed class DefinitionListBlock : IMarkdownBlock, ISyntaxMarkdownBlock, 
     string IMarkdownBlock.RenderHtml() {
         StringBuilder sb = new StringBuilder();
         sb.Append("<dl>");
-        for (int index = 0; index < _entries.Count; index++) {
-            var entry = _entries[index];
-            sb.Append("<dt>");
-            sb.Append(entry.Term.RenderHtml());
-            sb.Append("</dt>");
-            sb.Append("<dd>");
-            sb.Append(entry.RenderDefinitionHtml());
-            sb.Append("</dd>");
+        for (int groupIndex = 0; groupIndex < _groups.Count; groupIndex++) {
+            var group = _groups[groupIndex];
+            for (int termIndex = 0; termIndex < group.Terms.Count; termIndex++) {
+                sb.Append("<dt>");
+                sb.Append(group.Terms[termIndex].RenderHtml());
+                sb.Append("</dt>");
+            }
+
+            for (int definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
+                sb.Append("<dd>");
+                sb.Append(group.Definitions[definitionIndex].RenderHtml());
+                sb.Append("</dd>");
+            }
         }
         sb.Append("</dl>");
         return sb.ToString();
@@ -101,14 +156,17 @@ public sealed class DefinitionListBlock : IMarkdownBlock, ISyntaxMarkdownBlock, 
     }
 
     private IReadOnlyList<IMarkdownBlock> BuildChildBlocks() {
-        if (_entries.Count == 0) {
+        if (_groups.Count == 0) {
             return Array.Empty<IMarkdownBlock>();
         }
 
         var blocks = new List<IMarkdownBlock>();
-        for (int i = 0; i < _entries.Count; i++) {
-            for (int j = 0; j < _entries[i].DefinitionBlocks.Count; j++) {
-                blocks.Add(_entries[i].DefinitionBlocks[j]);
+        for (int i = 0; i < _groups.Count; i++) {
+            var definitions = _groups[i].Definitions;
+            for (int j = 0; j < definitions.Count; j++) {
+                for (int k = 0; k < definitions[j].Blocks.Count; k++) {
+                    blocks.Add(definitions[j].Blocks[k]);
+                }
             }
         }
         return blocks;
@@ -131,39 +189,95 @@ public sealed class DefinitionListBlock : IMarkdownBlock, ISyntaxMarkdownBlock, 
         return (entry.TermMarkdown, entry.DefinitionMarkdown);
     }
 
+    private static void AppendEntryMarkdown(StringBuilder sb, DefinitionListEntry? entry) {
+        var safeEntry = entry ?? new DefinitionListEntry();
+        var blocks = safeEntry.DefinitionBlocks;
+        sb.Append(safeEntry.TermMarkdown).Append(':');
+        if (blocks.Count == 0) {
+            if (!string.IsNullOrEmpty(safeEntry.DefinitionMarkdown)) {
+                sb.Append(' ').Append(safeEntry.DefinitionMarkdown);
+            }
+            return;
+        }
+
+        if (blocks[0] is ParagraphBlock) {
+            sb.Append(' ');
+            AppendIndentedDefinitionBlockMarkdown(sb, blocks[0], firstBlock: true);
+        } else {
+            sb.Append('\n');
+            AppendIndentedDefinitionBlockMarkdown(sb, blocks[0], firstBlock: false);
+        }
+
+        for (int i = 1; i < blocks.Count; i++) {
+            sb.Append("\n\n");
+            AppendIndentedDefinitionBlockMarkdown(sb, blocks[i], firstBlock: false);
+        }
+    }
+
+    private static void AppendIndentedDefinitionBlockMarkdown(StringBuilder sb, IMarkdownBlock block, bool firstBlock) {
+        var rendered = (block?.RenderMarkdown() ?? string.Empty)
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n');
+        var lines = rendered.Split('\n');
+        for (int i = 0; i < lines.Length; i++) {
+            if (i > 0) {
+                sb.Append('\n');
+                sb.Append("  ");
+            } else if (!firstBlock) {
+                sb.Append("  ");
+            }
+
+            sb.Append(lines[i]);
+        }
+    }
+
     internal IReadOnlyList<MarkdownSyntaxNode> BuildSyntaxItems() {
-        if (SyntaxItems.Count == _entries.Count && SyntaxItems.Count > 0) {
+        if (SyntaxItems.Count == _groups.Count && SyntaxItems.Count > 0) {
             return SyntaxItems;
         }
 
         var nodes = new List<MarkdownSyntaxNode>();
-        foreach (var entry in _entries) {
-            var term = entry.TermMarkdown;
-            var definition = entry.DefinitionMarkdown;
-            var definitionChildren = new List<MarkdownSyntaxNode>();
-            for (int i = 0; i < entry.DefinitionBlocks.Count; i++) {
-                if (entry.DefinitionBlocks[i] is ISyntaxMarkdownBlock syntaxBlock) {
-                    definitionChildren.Add(syntaxBlock.BuildSyntaxNode(null));
-                } else {
-                    definitionChildren.Add(new MarkdownSyntaxNode(
-                        MarkdownSyntaxKind.Unknown,
-                        literal: entry.DefinitionBlocks[i].RenderMarkdown()));
-                }
+        foreach (var group in _groups) {
+            var groupChildren = new List<MarkdownSyntaxNode>();
+
+            for (int termIndex = 0; termIndex < group.Terms.Count; termIndex++) {
+                var term = group.Terms[termIndex] ?? new InlineSequence();
+                groupChildren.Add(MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
+                    MarkdownSyntaxKind.DefinitionTerm,
+                    term,
+                    literal: term.RenderMarkdown()));
             }
-            if (definitionChildren.Count == 0) {
-                definitionChildren.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: definition));
+
+            for (int definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
+                var definition = group.Definitions[definitionIndex] ?? new DefinitionListDefinition();
+                var definitionLiteral = definition.RenderMarkdown();
+                var definitionChildren = new List<MarkdownSyntaxNode>();
+                for (int blockIndex = 0; blockIndex < definition.Blocks.Count; blockIndex++) {
+                    if (definition.Blocks[blockIndex] != null) {
+                        definitionChildren.Add(MarkdownBlockSyntaxBuilder.BuildBlock(definition.Blocks[blockIndex]));
+                    }
+                }
+
+                if (definitionChildren.Count == 0 && !string.IsNullOrEmpty(definitionLiteral)) {
+                    var fallbackEntry = new DefinitionListEntry(new InlineSequence(), definition);
+                    var fallbackInlines = BuildDefinitionInline(fallbackEntry, ReaderOptions ?? new MarkdownReaderOptions(), ReaderState ?? new MarkdownReaderState());
+                    definitionChildren.Add(MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
+                        MarkdownSyntaxKind.Paragraph,
+                        fallbackInlines,
+                        literal: definitionLiteral));
+                }
+
+                groupChildren.Add(new MarkdownSyntaxNode(
+                    MarkdownSyntaxKind.DefinitionValue,
+                    MarkdownBlockSyntaxBuilder.GetAggregateSpan(definitionChildren),
+                    definitionLiteral,
+                    definitionChildren));
             }
 
             nodes.Add(new MarkdownSyntaxNode(
-                MarkdownSyntaxKind.DefinitionItem,
-                literal: term,
-                children: new[] {
-                    new MarkdownSyntaxNode(MarkdownSyntaxKind.DefinitionTerm, literal: term),
-                    new MarkdownSyntaxNode(
-                        MarkdownSyntaxKind.DefinitionValue,
-                        literal: definition,
-                        children: definitionChildren)
-                }));
+                MarkdownSyntaxKind.DefinitionGroup,
+                MarkdownBlockSyntaxBuilder.GetAggregateSpan(groupChildren),
+                children: groupChildren));
         }
 
         return nodes;
@@ -186,18 +300,18 @@ public sealed class DefinitionListBlock : IMarkdownBlock, ISyntaxMarkdownBlock, 
             get => _owner.GetLegacyItem(index);
             set {
                 _owner._entries[index] = _owner.CreateEntryFromLegacyItem(value.Term, value.Definition);
-                _owner.SyntaxItems.Clear();
+                _owner.RebuildGroupsFromEntries();
             }
         }
 
         public void Add((string Term, string Definition) item) {
             _owner._entries.Add(_owner.CreateEntryFromLegacyItem(item.Term, item.Definition));
-            _owner.SyntaxItems.Clear();
+            _owner.RebuildGroupsFromEntries();
         }
 
         public void Clear() {
             _owner._entries.Clear();
-            _owner.SyntaxItems.Clear();
+            _owner.RebuildGroupsFromEntries();
         }
 
         public bool Contains((string Term, string Definition) item) => IndexOf(item) >= 0;
@@ -225,7 +339,7 @@ public sealed class DefinitionListBlock : IMarkdownBlock, ISyntaxMarkdownBlock, 
 
         public void Insert(int index, (string Term, string Definition) item) {
             _owner._entries.Insert(index, _owner.CreateEntryFromLegacyItem(item.Term, item.Definition));
-            _owner.SyntaxItems.Clear();
+            _owner.RebuildGroupsFromEntries();
         }
 
         public bool Remove((string Term, string Definition) item) {
@@ -240,9 +354,32 @@ public sealed class DefinitionListBlock : IMarkdownBlock, ISyntaxMarkdownBlock, 
 
         public void RemoveAt(int index) {
             _owner._entries.RemoveAt(index);
-            _owner.SyntaxItems.Clear();
+            _owner.RebuildGroupsFromEntries();
         }
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
+    private void AddGroupCore(DefinitionListGroup group) {
+        _groups.Add(group);
+
+        for (int definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
+            for (int termIndex = 0; termIndex < group.Terms.Count; termIndex++) {
+                var term = group.Terms[termIndex];
+                _entries.Add(new DefinitionListEntry(term, group.Definitions[definitionIndex]));
+            }
+        }
+    }
+
+    private void RebuildGroupsFromEntries() {
+        _groups.Clear();
+        for (int i = 0; i < _entries.Count; i++) {
+            var entry = _entries[i] ?? new DefinitionListEntry();
+            _groups.Add(new DefinitionListGroup(
+                new[] { entry.Term },
+                new[] { entry.Definition }));
+        }
+
+        SyntaxItems.Clear();
     }
 }

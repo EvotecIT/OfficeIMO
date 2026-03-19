@@ -15,8 +15,18 @@ public static partial class MarkdownReader {
             if (rb + 1 >= t.Length || t[rb + 1] != ':') return false;
             string label = t.Substring(2, rb - 2);
 
-            // Collect content lines; allow blank lines inside the footnote only when followed by indented continuation.
-            var contentLines = new List<string> { t.Substring(rb + 2).TrimStart() };
+            int firstContentIndex = rb + 2;
+            while (firstContentIndex < t.Length && char.IsWhiteSpace(t[firstContentIndex])) {
+                firstContentIndex++;
+            }
+
+            int absoluteLine = state.SourceLineOffset + i + 1;
+            var contentSourceLines = new List<MarkdownSourceLineSlice> {
+                new MarkdownSourceLineSlice(
+                    firstContentIndex < t.Length ? t.Substring(firstContentIndex) : string.Empty,
+                    absoluteLine,
+                    leading0 + firstContentIndex + 1)
+            };
 
             int j = i + 1;
             while (j < lines.Length) {
@@ -26,18 +36,19 @@ public static partial class MarkdownReader {
                     int peek = j + 1;
                     if (peek >= lines.Length) break;
                     var next = lines[peek] ?? string.Empty;
-                    int leadingNext = 0; while (leadingNext < next.Length && next[leadingNext] == ' ') leadingNext++;
-                    bool indentedNext = leadingNext >= 2 || (leadingNext < next.Length && next[leadingNext] == '\t');
+                    bool indentedNext = CountLeadingIndentColumns(next) >= 2;
                     if (!indentedNext) break;
 
-                    contentLines.Add(string.Empty); // paragraph separator
+                    contentSourceLines.Add(new MarkdownSourceLineSlice(string.Empty, state.SourceLineOffset + j + 1, 1));
                     j++;
                     continue;
                 }
 
-                int leading = 0; while (leading < ln.Length && ln[leading] == ' ') leading++;
-                if (leading >= 2 || (leading < ln.Length && ln[leading] == '\t')) {
-                    contentLines.Add(ln.TrimStart());
+                if (CountLeadingIndentColumns(ln) >= 2) {
+                    contentSourceLines.Add(new MarkdownSourceLineSlice(
+                        StripLeadingIndentColumns(ln, 2),
+                        state.SourceLineOffset + j + 1,
+                        GetStartColumnAfterStrippingIndent(ln, 2)));
                     j++;
                     continue;
                 }
@@ -45,14 +56,31 @@ public static partial class MarkdownReader {
                 break;
             }
 
-            string content = string.Join("\n", contentLines);
-            var paragraphBlocks = ParseParagraphBlocksFromLines(contentLines, options, state);
-            var syntaxChildren = new List<MarkdownSyntaxNode>();
-            AddParagraphSyntaxNodes(syntaxChildren, contentLines, i, options, state);
+            string content = string.Join("\n", contentSourceLines.Select(slice => slice.Text ?? string.Empty));
+            var (blocks, syntaxChildren) = ParseFootnoteBody(contentSourceLines, options, state);
 
-            doc.Add(new FootnoteDefinitionBlock(label, content, paragraphBlocks, syntaxChildren));
+            doc.Add(new FootnoteDefinitionBlock(label, content, blocks, syntaxChildren));
             i = j; return true;
         }
+    }
+
+    private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren) ParseFootnoteBody(
+        List<MarkdownSourceLineSlice> contentSourceLines,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state) {
+        if (contentSourceLines == null || contentSourceLines.Count == 0) {
+            return (Array.Empty<IMarkdownBlock>(), Array.Empty<MarkdownSyntaxNode>());
+        }
+
+        var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(contentSourceLines, options, state);
+        if (blocks.Count > 0) {
+            return (blocks, syntaxChildren);
+        }
+
+        var paragraphs = ParseParagraphBlocksFromSourceLines(contentSourceLines, options, state);
+        var paragraphSyntax = new List<MarkdownSyntaxNode>();
+        AddParagraphSyntaxNodes(paragraphSyntax, contentSourceLines, options, state);
+        return (paragraphs, paragraphSyntax);
     }
 }
 

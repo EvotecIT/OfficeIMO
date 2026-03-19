@@ -4,7 +4,8 @@ internal static class MarkdownBenchmarkCorpus {
     private static readonly IReadOnlyDictionary<string, string> Corpora = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
         ["PortableReadme"] = BuildPortableReadme(),
         ["Transcript"] = BuildTranscript(),
-        ["TechnicalDoc"] = BuildTechnicalDoc()
+        ["TechnicalDoc"] = BuildTechnicalDoc(),
+        ["RichAst"] = BuildRichAst()
     };
 
     public static IEnumerable<string> Names => Corpora.Keys;
@@ -121,5 +122,35 @@ Trailing paragraph with **bold**, _emphasis_, `code`, and [a link](https://examp
 """;
 
         return string.Concat(Enumerable.Repeat(section + Environment.NewLine, 16));
+    }
+
+    private static string BuildRichAst() {
+        var section = """
+# Incident Summary
+
+> [!NOTE] Timeline
+> First signal detected in the edge logs.
+> Second signal came from the API health monitor.
+
+Term A: First paragraph
+  continued
+
+  Second paragraph
+
+Term B: Value
+
+| Area | Status | Notes |
+| --- | --- | --- |
+| Edge | Active | Uses [docs](https://example.com/docs) |
+| API | Pending | First line<br>Second line |
+
+Trailing paragraph with **bold**, _emphasis_, `code`, and ![image](https://example.com/a.png).
+
+[^ref]: Nested footnote body
+  - item one
+  - item two
+""";
+
+        return string.Concat(Enumerable.Repeat(section + Environment.NewLine, 18));
     }
 }

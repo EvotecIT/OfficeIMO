@@ -34,6 +34,10 @@ public sealed class DetailsBlock : IMarkdownBlock, IChildMarkdownBlockContainer,
         if (children != null) Children.AddRange(children);
     }
 
+    internal void ClearSyntaxCache() {
+        SyntaxChildren = null;
+    }
+
     string IMarkdownBlock.RenderMarkdown() => Render(renderHtmlChildren: false);
     string IMarkdownBlock.RenderHtml() => Render(renderHtmlChildren: true);
 

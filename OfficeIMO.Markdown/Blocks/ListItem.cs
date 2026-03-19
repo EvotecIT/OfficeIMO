@@ -182,5 +182,8 @@ public sealed class ListItem {
     }
 
     private static MarkdownSyntaxNode BuildParagraphSyntaxNode(InlineSequence paragraph) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, literal: paragraph.RenderMarkdown());
+        MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
+            MarkdownSyntaxKind.Paragraph,
+            paragraph,
+            literal: paragraph.RenderMarkdown());
 }

@@ -9,11 +9,27 @@ internal static class MarkdownBlockSyntaxBuilder {
         return new MarkdownSyntaxNode(MarkdownSyntaxKind.Unknown, span, block.RenderMarkdown());
     }
 
-    internal static MarkdownSyntaxNode BuildInlineBlock(IInlineSyntaxMarkdownBlock inlineBlock, MarkdownSourceSpan? span = null) =>
-        new MarkdownSyntaxNode(
+    internal static MarkdownSyntaxNode BuildInlineBlock(IInlineSyntaxMarkdownBlock inlineBlock, MarkdownSourceSpan? span = null) {
+        var children = MarkdownInlineSyntaxBuilder.BuildChildren(inlineBlock.SyntaxInlines);
+        return new MarkdownSyntaxNode(
             inlineBlock.SyntaxKind,
-            span ?? inlineBlock.ProvidedSyntaxSpan,
-            inlineBlock.SyntaxInlines.RenderMarkdown());
+            span ?? inlineBlock.ProvidedSyntaxSpan ?? GetAggregateSpan(children),
+            inlineBlock.SyntaxInlines.RenderMarkdown(),
+            children: children);
+    }
+
+    internal static MarkdownSyntaxNode BuildInlineContainerNode(
+        MarkdownSyntaxKind kind,
+        InlineSequence inlines,
+        MarkdownSourceSpan? span = null,
+        string? literal = null) {
+        var children = MarkdownInlineSyntaxBuilder.BuildChildren(inlines);
+        return new MarkdownSyntaxNode(
+            kind,
+            span ?? GetAggregateSpan(children),
+            literal ?? inlines?.RenderMarkdown(),
+            children: children);
+    }
 
     internal static IReadOnlyList<MarkdownSyntaxNode> BuildChildSyntaxNodes(IEnumerable<IMarkdownBlock> children) {
         var nodes = new List<MarkdownSyntaxNode>();
@@ -47,17 +63,42 @@ internal static class MarkdownBlockSyntaxBuilder {
     internal static MarkdownSourceSpan? GetAggregateSpan(IReadOnlyList<MarkdownSyntaxNode> nodes) {
         if (nodes == null || nodes.Count == 0) return null;
 
-        int? start = null;
-        int? end = null;
+        MarkdownSourceSpan? aggregate = null;
         for (int i = 0; i < nodes.Count; i++) {
             var span = nodes[i].SourceSpan;
             if (!span.HasValue) continue;
 
-            if (!start.HasValue || span.Value.StartLine < start.Value) start = span.Value.StartLine;
-            if (!end.HasValue || span.Value.EndLine > end.Value) end = span.Value.EndLine;
+            aggregate = !aggregate.HasValue
+                ? span
+                : MergeSpans(aggregate.Value, span.Value);
         }
 
-        if (!start.HasValue || !end.HasValue) return null;
-        return new MarkdownSourceSpan(start.Value, end.Value);
+        return aggregate;
+    }
+
+    private static MarkdownSourceSpan MergeSpans(MarkdownSourceSpan left, MarkdownSourceSpan right) {
+        var start = ComparePositions(left.StartLine, left.StartColumn, right.StartLine, right.StartColumn) <= 0 ? left : right;
+        var end = ComparePositions(left.EndLine, left.EndColumn, right.EndLine, right.EndColumn) >= 0 ? left : right;
+
+        if (start.StartColumn.HasValue && end.EndColumn.HasValue) {
+            return new MarkdownSourceSpan(
+                start.StartLine,
+                start.StartColumn.Value,
+                end.EndLine,
+                end.EndColumn.Value,
+                start.StartOffset,
+                end.EndOffset);
+        }
+
+        return new MarkdownSourceSpan(start.StartLine, end.EndLine);
+    }
+
+    private static int ComparePositions(int lineA, int? columnA, int lineB, int? columnB) {
+        var lineCompare = lineA.CompareTo(lineB);
+        if (lineCompare != 0) {
+            return lineCompare;
+        }
+
+        return (columnA ?? 1).CompareTo(columnB ?? 1);
     }
 }

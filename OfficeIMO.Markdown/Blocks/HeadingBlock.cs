@@ -70,8 +70,11 @@ public sealed class HeadingBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IContex
             new MarkdownSyntaxNode(MarkdownSyntaxKind.HeadingLevel, literal: Level.ToString(System.Globalization.CultureInfo.InvariantCulture))
         };
 
-        MarkdownSourceSpan? textSpan = span.HasValue ? new MarkdownSourceSpan(span.Value.StartLine, span.Value.StartLine) : null;
-        nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.HeadingText, textSpan, Inlines.RenderMarkdown()));
+        nodes.Add(MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
+            MarkdownSyntaxKind.HeadingText,
+            Inlines,
+            null,
+            Inlines.RenderMarkdown()));
 
         return new MarkdownSyntaxNode(MarkdownSyntaxKind.Heading, span, Inlines.RenderMarkdown(), nodes);
     }
