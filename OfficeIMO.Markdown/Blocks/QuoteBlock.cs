@@ -17,6 +17,10 @@ public sealed class QuoteBlock : IMarkdownBlock, IChildMarkdownBlockContainer, I
     /// <summary>Create a quote block with initial lines.</summary>
     public QuoteBlock(System.Collections.Generic.IEnumerable<string> lines) { Lines.AddRange(lines); }
 
+    internal void ClearSyntaxCache() {
+        SyntaxChildren = null;
+    }
+
     string IMarkdownBlock.RenderMarkdown() {
         if (Children.Count > 0) {
             var sb = new StringBuilder();

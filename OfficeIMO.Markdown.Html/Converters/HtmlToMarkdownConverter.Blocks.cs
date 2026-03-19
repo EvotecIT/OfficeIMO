@@ -1003,12 +1003,26 @@ public sealed partial class HtmlToMarkdownConverter {
         var list = new DefinitionListBlock();
         var pendingTerms = new List<InlineSequence>();
         bool hasDefinitionsForCurrentGroup = false;
+        List<DefinitionListDefinition>? pendingDefinitions = null;
+
+        void FlushPendingGroup() {
+            if (pendingTerms.Count == 0 || pendingDefinitions == null || pendingDefinitions.Count == 0) {
+                pendingTerms.Clear();
+                pendingDefinitions = null;
+                hasDefinitionsForCurrentGroup = false;
+                return;
+            }
+
+            list.AddGroup(new DefinitionListGroup(pendingTerms, pendingDefinitions));
+            pendingTerms.Clear();
+            pendingDefinitions = null;
+            hasDefinitionsForCurrentGroup = false;
+        }
 
         foreach (var child in element.Children) {
             if (child.TagName.Equals("DT", StringComparison.OrdinalIgnoreCase)) {
                 if (hasDefinitionsForCurrentGroup) {
-                    pendingTerms.Clear();
-                    hasDefinitionsForCurrentGroup = false;
+                    FlushPendingGroup();
                 }
 
                 var term = NormalizeInlineSequenceForBlock(ConvertInlineNodesToInlineSequence(child.ChildNodes, context));
@@ -1019,15 +1033,13 @@ public sealed partial class HtmlToMarkdownConverter {
             }
 
             if (child.TagName.Equals("DD", StringComparison.OrdinalIgnoreCase) && pendingTerms.Count > 0) {
-                foreach (var term in pendingTerms) {
-                    list.AddEntry(new DefinitionListEntry(
-                        term,
-                        ConvertDefinitionValueToBlocks(child, context)));
-                }
+                pendingDefinitions ??= new List<DefinitionListDefinition>();
+                pendingDefinitions.Add(new DefinitionListDefinition(ConvertDefinitionValueToBlocks(child, context)));
                 hasDefinitionsForCurrentGroup = true;
             }
         }
 
+        FlushPendingGroup();
         return list;
     }
 

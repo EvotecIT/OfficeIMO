@@ -17,6 +17,7 @@ public static partial class MarkdownReader {
 
             // Collect contiguous quote lines and un-prefix one ">" level
             var inner = new System.Collections.Generic.List<string>();
+            var innerSourceLines = new System.Collections.Generic.List<MarkdownSourceLineSlice>();
             int j = i;
             bool sawQuotedLine = false;
             while (j < lines.Length) {
@@ -41,6 +42,10 @@ public static partial class MarkdownReader {
                     }
 
                     inner.Add(stripped);
+                    innerSourceLines.Add(new MarkdownSourceLineSlice(
+                        stripped,
+                        state.SourceLineOffset + j + 1,
+                        GetQuoteContentStartColumn(ln)));
                     sawQuotedLine = true;
                     j++;
                     continue;
@@ -56,6 +61,7 @@ public static partial class MarkdownReader {
                         if (!nextTrim.StartsWith(">")) break;
                         if (options.Callouts && inner.Count > 0 && IsCalloutHeader(nextTrim, out _, out _)) break;
                         inner.Add(string.Empty);
+                        innerSourceLines.Add(new MarkdownSourceLineSlice(string.Empty, state.SourceLineOffset + j + 1, 1));
                         j++;
                         continue;
                     }
@@ -67,12 +73,20 @@ public static partial class MarkdownReader {
                             if (!TryNormalizeQuoteLazyContinuationLine(lines, j, options, out var normalizedLazyLine)) break;
 
                             inner.Add(normalizedLazyLine);
+                            innerSourceLines.Add(new MarkdownSourceLineSlice(
+                                normalizedLazyLine,
+                                state.SourceLineOffset + j + 1,
+                                CountLeadingIndentColumns(ln) + 1));
                             j++;
                             continue;
                         }
 
                         if (TryNormalizeQuoteLazyContinuationAfterListItem(inner[inner.Count - 1], lines, j, options, out var normalizedListLazyLine)) {
                             inner.Add(normalizedListLazyLine);
+                            innerSourceLines.Add(new MarkdownSourceLineSlice(
+                                normalizedListLazyLine,
+                                state.SourceLineOffset + j + 1,
+                                CountLeadingIndentColumns(ln) + 1));
                             j++;
                             continue;
                         }
@@ -84,7 +98,7 @@ public static partial class MarkdownReader {
                 break;
             }
             // Recursively parse inner content as a separate document
-            var (childBlocks, syntaxChildren) = ParseNestedMarkdownBlocks(string.Join("\n", inner), options, state, state.SourceLineOffset + i);
+            var (childBlocks, syntaxChildren) = ParseNestedMarkdownBlocks(innerSourceLines, options, state);
             var qb = new QuoteBlock();
             foreach (var b in childBlocks) qb.Children.Add(b);
             qb.SyntaxChildren = syntaxChildren;

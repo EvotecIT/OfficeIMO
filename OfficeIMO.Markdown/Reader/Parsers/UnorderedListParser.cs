@@ -14,10 +14,21 @@ public static partial class MarkdownReader {
             int firstContinuationIndent = GetListContinuationIndent(lines[i]);
 
             int j = i + 1;
-            var firstLines = ConsumeListContinuationLines(lines, ref j, firstContinuationIndent, firstContent, options, breakOnAnyOrderedListLine: false);
-            var first = CreateListItemFromLeadLines(firstLines, isTask, done, options, state);
+            var firstSourceLines = new List<MarkdownSourceLineSlice>();
+            var firstLines = ConsumeListContinuationLines(
+                lines,
+                ref j,
+                firstContinuationIndent,
+                firstContent,
+                options,
+                breakOnAnyOrderedListLine: false,
+                sourceLines: firstSourceLines,
+                absoluteLineOffset: state.SourceLineOffset,
+                initialLineIndex: i,
+                initialStartColumn: GetListLeadContentStartColumn(lines[i], isTask));
+            var first = CreateListItemFromLeadLines(firstLines, isTask, done, options, state, firstSourceLines);
             first.Level = 0;
-            AddListItemLeadSyntaxNodes(first, firstLines, i, options, state);
+            AddListItemLeadSyntaxNodes(first, firstLines, i, options, state, firstSourceLines);
             ul.Items.Add(first);
 
             // Allow both same-type and mixed nested lists under the current item.
@@ -31,10 +42,21 @@ public static partial class MarkdownReader {
                 }
                 int continuationIndent = GetListContinuationIndent(lines[j]);
                 int next = j + 1;
-                var itemLines = ConsumeListContinuationLines(lines, ref next, continuationIndent, content2, options, breakOnAnyOrderedListLine: false);
-                var li = CreateListItemFromLeadLines(itemLines, isTask2, done2, options, state);
+                var itemSourceLines = new List<MarkdownSourceLineSlice>();
+                var itemLines = ConsumeListContinuationLines(
+                    lines,
+                    ref next,
+                    continuationIndent,
+                    content2,
+                    options,
+                    breakOnAnyOrderedListLine: false,
+                    sourceLines: itemSourceLines,
+                    absoluteLineOffset: state.SourceLineOffset,
+                    initialLineIndex: j,
+                    initialStartColumn: GetListLeadContentStartColumn(lines[j], isTask2));
+                var li = CreateListItemFromLeadLines(itemLines, isTask2, done2, options, state, itemSourceLines);
                 li.Level = lvlAbs - level0Abs;
-                AddListItemLeadSyntaxNodes(li, itemLines, j, options, state);
+                AddListItemLeadSyntaxNodes(li, itemLines, j, options, state, itemSourceLines);
                 ul.Items.Add(li);
                 j = next;
 

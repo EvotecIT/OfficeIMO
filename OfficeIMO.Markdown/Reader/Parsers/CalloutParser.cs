@@ -8,19 +8,24 @@ public static partial class MarkdownReader {
 
             // Collect contiguous quote lines as callout body, stripping one leading ">" level.
             var inner = new System.Collections.Generic.List<string>();
+            var innerSourceLines = new System.Collections.Generic.List<MarkdownSourceLineSlice>();
             int j = i + 1;
             while (j < lines.Length) {
                 var ln = lines[j] ?? string.Empty;
                 var t = ln.TrimStart();
                 if (!t.StartsWith(">")) break;
 
-                if (t.Length >= 2 && t[1] == ' ') inner.Add(t.Substring(2));
-                else inner.Add(t.Substring(1));
+                var bodyLine = t.Length >= 2 && t[1] == ' ' ? t.Substring(2) : t.Substring(1);
+                inner.Add(bodyLine);
+                innerSourceLines.Add(new MarkdownSourceLineSlice(
+                    bodyLine,
+                    state.SourceLineOffset + j + 1,
+                    GetQuoteContentStartColumn(ln)));
                 j++;
             }
 
             // Parse callout body as Markdown so lists/code/etc work inside callouts.
-            var (childBlocks, syntaxChildren) = ParseNestedMarkdownBlocks(string.Join("\n", inner), options, state, state.SourceLineOffset + i + 1);
+            var (childBlocks, syntaxChildren) = ParseNestedMarkdownBlocks(innerSourceLines, options, state);
             doc.Add(new CalloutBlock(kind, ParseInlines(title, options, state), childBlocks, syntaxChildren));
 
             i = j;

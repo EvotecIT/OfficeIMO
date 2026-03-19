@@ -2,9 +2,11 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Office2010.PowerPoint;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -95,6 +97,41 @@ namespace OfficeIMO.Tests {
                 PowerPointSectionInfo[] sections = reopened.GetSections().ToArray();
                 Assert.Equal(new[] { "Results", "Intro" }, sections.Select(section => section.Name).ToArray());
                 Assert.Equal(new[] { 0 }, sections[0].SlideIndices.ToArray());
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Sections_SaveAsSchemaValidAndKeepPowerPointSectionIds() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("Intro");
+                    presentation.AddSlide().AddTextBox("Results");
+                    presentation.AddSection("Intro", startSlideIndex: 0);
+                    presentation.Save();
+
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using PresentationDocument document = PresentationDocument.Open(filePath, false);
+                OpenXmlValidator validator = new(FileFormatVersions.Microsoft365);
+                List<ValidationErrorInfo> errors = validator.Validate(document).ToList();
+                Assert.Empty(errors);
+
+                Section section = document.PresentationPart!.Presentation
+                    .GetFirstChild<PresentationExtensionList>()!
+                    .Elements<PresentationExtension>()
+                    .First(extension => extension.Uri?.Value == "{521415D9-36F7-43E2-AB2F-B90AF26B5E84}")
+                    .GetFirstChild<SectionList>()!
+                    .Elements<Section>()
+                    .Single();
+
+                Assert.Matches(@"^\{[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\}$",
+                    section.Id?.Value ?? string.Empty);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

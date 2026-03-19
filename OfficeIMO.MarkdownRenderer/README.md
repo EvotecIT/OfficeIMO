@@ -123,7 +123,8 @@ options.DocumentTransforms.Add(new PromoteSummaryTailTransform());
 var result = MarkdownRenderer.ParseDocumentResult(markdownText, options);
 var document = result.Document;
 var preprocessedMarkdown = result.PreprocessedMarkdown;
-var syntaxTree = result.SyntaxTree;
+var originalSyntaxTree = result.SyntaxTree;
+var finalSyntaxTree = result.FinalSyntaxTree;
 var diagnostics = result.TransformDiagnostics;
 var preProcessorDiagnostics = result.PreProcessorDiagnostics;
 var bodyHtml = MarkdownRenderer.RenderBodyHtml(markdownText, options);
@@ -133,7 +134,7 @@ Use `options.DocumentTransforms` when the renderer host wants to rewrite the par
 Prefer this for structural/content fixes that should operate on the AST.
 Reserve `MarkdownPreProcessors` for true pre-parse text repair and `HtmlPostProcessors` for the small set of changes that genuinely must happen on the emitted HTML string.
 Use `MarkdownRenderer.ParseDocument(...)` when the host wants the final renderer-owned AST without emitting HTML yet.
-Use `MarkdownRenderer.ParseDocumentResult(...)` when the host wants the final AST, the exact preprocessed markdown text that was parsed, the original syntax tree, and both pre-parse and transform diagnostics in one typed result.
+Use `MarkdownRenderer.ParseDocumentResult(...)` when the host wants the final AST, the exact preprocessed markdown text that was parsed, the original pre-transform syntax tree, the final post-transform syntax tree, and both pre-parse and transform diagnostics in one typed result.
 
 ### Strict vs portable presets
 
