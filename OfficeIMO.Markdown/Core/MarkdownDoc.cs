@@ -145,6 +145,24 @@ public class MarkdownDoc {
         }
     }
 
+    /// <summary>Enumerates all tables in document order, including nested tables.</summary>
+    public IEnumerable<TableBlock> DescendantTables() {
+        foreach (var block in DescendantsAndSelf()) {
+            if (block is TableBlock table) {
+                yield return table;
+            }
+        }
+    }
+
+    /// <summary>Enumerates all table cells in document order, including header cells and nested tables.</summary>
+    public IEnumerable<TableCell> DescendantTableCells() {
+        foreach (var table in DescendantTables()) {
+            foreach (var cell in table.EnumerateCells()) {
+                yield return cell;
+            }
+        }
+    }
+
     /// <summary>Gets the resolved anchor id for a heading within this document.</summary>
     public string GetHeadingAnchor(HeadingBlock heading) {
         if (heading == null) throw new ArgumentNullException(nameof(heading));

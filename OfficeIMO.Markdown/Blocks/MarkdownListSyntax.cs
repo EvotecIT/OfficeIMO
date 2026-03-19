@@ -1,12 +1,14 @@
 namespace OfficeIMO.Markdown;
 
 internal static class MarkdownListSyntax {
-    internal static MarkdownSyntaxNode BuildListBlockNode(IMarkdownListBlock listBlock, MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(
+    internal static MarkdownSyntaxNode BuildListBlockNode(IMarkdownListBlock listBlock, MarkdownSourceSpan? span) {
+        var children = BuildListItemSyntaxNodes(listBlock.ListItems, listBlock.ListSyntaxKind);
+        return new MarkdownSyntaxNode(
             listBlock.ListSyntaxKind,
-            span,
+            span ?? MarkdownBlockSyntaxBuilder.GetAggregateSpan(children),
             listBlock.ListLiteral,
-            BuildListItemSyntaxNodes(listBlock.ListItems, listBlock.ListSyntaxKind));
+            children);
+    }
 
     private static IReadOnlyList<MarkdownSyntaxNode> BuildListItemSyntaxNodes(IReadOnlyList<ListItem> items, MarkdownSyntaxKind listKind) {
         int index = 0;

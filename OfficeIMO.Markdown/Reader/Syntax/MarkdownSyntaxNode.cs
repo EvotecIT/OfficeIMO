@@ -44,10 +44,30 @@ public sealed class MarkdownSyntaxNode {
         return SourceSpan.HasValue ? this : null;
     }
 
+    /// <summary>Finds the deepest node whose source span contains the given 1-based line and column.</summary>
+    public MarkdownSyntaxNode? FindDeepestNodeAtPosition(int lineNumber, int columnNumber) {
+        if (!SourceSpan.HasValue && Children.Count == 0) return null;
+        if (SourceSpan.HasValue && !SourceSpan.Value.ContainsPosition(lineNumber, columnNumber)) return null;
+
+        for (int i = 0; i < Children.Count; i++) {
+            var match = Children[i].FindDeepestNodeAtPosition(lineNumber, columnNumber);
+            if (match != null) return match;
+        }
+
+        return SourceSpan.HasValue ? this : null;
+    }
+
     /// <summary>Finds the node path from this node to the deepest node whose source span contains the given 1-based line number.</summary>
     public IReadOnlyList<MarkdownSyntaxNode> FindNodePathAtLine(int lineNumber) {
         var path = new List<MarkdownSyntaxNode>();
         if (!TryBuildNodePathAtLine(lineNumber, path)) return Array.Empty<MarkdownSyntaxNode>();
+        return path;
+    }
+
+    /// <summary>Finds the node path from this node to the deepest node whose source span contains the given 1-based line and column.</summary>
+    public IReadOnlyList<MarkdownSyntaxNode> FindNodePathAtPosition(int lineNumber, int columnNumber) {
+        var path = new List<MarkdownSyntaxNode>();
+        if (!TryBuildNodePathAtPosition(lineNumber, columnNumber, path)) return Array.Empty<MarkdownSyntaxNode>();
         return path;
     }
 
@@ -94,6 +114,9 @@ public sealed class MarkdownSyntaxNode {
     /// <summary>Finds the nearest block-like syntax node whose source span contains the given 1-based line number.</summary>
     public MarkdownSyntaxNode? FindNearestBlockAtLine(int lineNumber) => FindNearestBlock(FindNodePathAtLine(lineNumber));
 
+    /// <summary>Finds the nearest block-like syntax node whose source span contains the given 1-based line and column.</summary>
+    public MarkdownSyntaxNode? FindNearestBlockAtPosition(int lineNumber, int columnNumber) => FindNearestBlock(FindNodePathAtPosition(lineNumber, columnNumber));
+
     /// <summary>Finds the nearest block-like syntax node whose source span fully contains the given span.</summary>
     public MarkdownSyntaxNode? FindNearestBlockContainingSpan(MarkdownSourceSpan span) => FindNearestBlock(FindNodePathContainingSpan(span));
 
@@ -107,6 +130,18 @@ public sealed class MarkdownSyntaxNode {
         path.Add(this);
         for (int i = 0; i < Children.Count; i++) {
             if (Children[i].TryBuildNodePathAtLine(lineNumber, path)) return true;
+        }
+
+        return SourceSpan.HasValue;
+    }
+
+    private bool TryBuildNodePathAtPosition(int lineNumber, int columnNumber, List<MarkdownSyntaxNode> path) {
+        if (!SourceSpan.HasValue && Children.Count == 0) return false;
+        if (SourceSpan.HasValue && !SourceSpan.Value.ContainsPosition(lineNumber, columnNumber)) return false;
+
+        path.Add(this);
+        for (int i = 0; i < Children.Count; i++) {
+            if (Children[i].TryBuildNodePathAtPosition(lineNumber, columnNumber, path)) return true;
         }
 
         return SourceSpan.HasValue;
@@ -162,6 +197,7 @@ public sealed class MarkdownSyntaxNode {
             case MarkdownSyntaxKind.Image:
             case MarkdownSyntaxKind.Callout:
             case MarkdownSyntaxKind.DefinitionList:
+            case MarkdownSyntaxKind.DefinitionGroup:
             case MarkdownSyntaxKind.DefinitionItem:
             case MarkdownSyntaxKind.FootnoteDefinition:
             case MarkdownSyntaxKind.Details:

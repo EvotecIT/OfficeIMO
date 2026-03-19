@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using System.Text;
 // Intentionally avoid heavy regex use; simple scanning is used for resilience and speed.
 
@@ -28,8 +29,11 @@ public static partial class MarkdownReader {
         options ??= new MarkdownReaderOptions();
         var state = new MarkdownReaderState();
         var syntaxNodes = new List<MarkdownSyntaxNode>();
-        var document = ParseInternal(markdown, options, state, allowFrontMatter: true, out var syntaxTree, syntaxNodes, lineOffset: 0);
-        return new MarkdownParseResult(document, syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes));
+        var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
+        var document = ParseInternal(markdown, options, state, allowFrontMatter: true, out var syntaxTree, syntaxNodes, lineOffset: 0, transformDiagnostics: diagnostics);
+        var originalSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes);
+        var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
+        return new MarkdownParseResult(document, originalSyntaxTree, finalSyntaxTree);
     }
 
     /// <summary>
@@ -49,7 +53,9 @@ public static partial class MarkdownReader {
             syntaxNodes,
             lineOffset: 0,
             transformDiagnostics: diagnostics);
-        return new MarkdownParseResult(document, syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes), diagnostics);
+        var originalSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes);
+        var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
+        return new MarkdownParseResult(document, originalSyntaxTree, finalSyntaxTree, diagnostics);
     }
 
     /// <summary>Parses a Markdown file path into a <see cref="MarkdownDoc"/>.</summary>
@@ -81,6 +87,7 @@ public static partial class MarkdownReader {
         syntaxTree = syntaxNodes != null ? BuildDocumentSyntaxTree(syntaxNodes) : null;
         if (string.IsNullOrEmpty(markdown)) return doc;
         int previousLineOffset = state.SourceLineOffset;
+        var previousSourceTextMap = state.SourceTextMap;
         state.SourceLineOffset = lineOffset;
 
         try {
@@ -104,6 +111,9 @@ public static partial class MarkdownReader {
 
             // Normalize line endings and split. Keep empty lines significant for block boundaries.
             var text = markdown.Replace("\r\n", "\n").Replace('\r', '\n');
+            if (lineOffset == 0 || state.SourceTextMap == null) {
+                state.SourceTextMap = new MarkdownSourceTextMap(text);
+            }
             var lines = text.Split('\n');
             int i = 0;
 
@@ -119,7 +129,7 @@ public static partial class MarkdownReader {
                         doc.Add(frontMatter);
                         if (syntaxNodes != null) {
                             syntaxNodes.Add(((ISyntaxMarkdownBlock)frontMatter).BuildSyntaxNode(
-                                new MarkdownSourceSpan(lineOffset + i + 1, lineOffset + end + 1)));
+                                CreateLineSpan(state, lineOffset + i + 1, lineOffset + end + 1)));
                         }
                     }
                     i = end + 1;
@@ -141,7 +151,7 @@ public static partial class MarkdownReader {
                     if (parsers[p].TryParse(lines, ref i, options, doc, state)) {
                         matched = true;
                         if (syntaxNodes != null && doc.Blocks.Count > previousBlockCount) {
-                            CaptureSyntaxNodes(doc, previousBlockCount, startLine, lineOffset + i, syntaxNodes);
+                            CaptureSyntaxNodes(doc, previousBlockCount, startLine, lineOffset + i, syntaxNodes, state);
                         }
                         break;
                     }
@@ -153,6 +163,7 @@ public static partial class MarkdownReader {
             return ApplyDocumentTransforms(doc, options, transformDiagnostics, syntaxTree);
         } finally {
             state.SourceLineOffset = previousLineOffset;
+            state.SourceTextMap = previousSourceTextMap;
         }
     }
 
@@ -448,6 +459,7 @@ public static partial class MarkdownReader {
         var clone = new MarkdownReaderState();
         foreach (var kvp in state.LinkRefs) clone.LinkRefs[kvp.Key] = kvp.Value;
         clone.SourceLineOffset = state.SourceLineOffset;
+        clone.SourceTextMap = state.SourceTextMap;
         return clone;
     }
 
@@ -657,5 +669,78 @@ public static partial class MarkdownReader {
         var syntaxChildren = new List<MarkdownSyntaxNode>();
         var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, syntaxChildren, lineOffset: lineOffset);
         return (nestedDoc.Blocks, syntaxChildren);
+    }
+
+    private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren) ParseNestedMarkdownBlocks(
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state) {
+        if (sourceLines == null || sourceLines.Count == 0) {
+            return (Array.Empty<IMarkdownBlock>(), Array.Empty<MarkdownSyntaxNode>());
+        }
+
+        var markdown = string.Join("\n", sourceLines.Select(line => line.Text ?? string.Empty));
+        var nestedOptions = CloneOptionsWithoutFrontMatter(options);
+        var nestedState = CloneState(state);
+        var syntaxChildren = new List<MarkdownSyntaxNode>();
+        var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, syntaxChildren, lineOffset: 0);
+        return (nestedDoc.Blocks, RemapNestedSyntaxNodes(sourceLines, syntaxChildren));
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode> RemapNestedSyntaxNodes(
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        IReadOnlyList<MarkdownSyntaxNode> syntaxChildren) {
+        if (sourceLines == null || sourceLines.Count == 0 || syntaxChildren == null || syntaxChildren.Count == 0) {
+            return syntaxChildren ?? Array.Empty<MarkdownSyntaxNode>();
+        }
+
+        var remapped = new List<MarkdownSyntaxNode>(syntaxChildren.Count);
+        for (int i = 0; i < syntaxChildren.Count; i++) {
+            remapped.Add(RemapNestedSyntaxNode(sourceLines, syntaxChildren[i]));
+        }
+
+        return remapped;
+    }
+
+    private static MarkdownSyntaxNode RemapNestedSyntaxNode(
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        MarkdownSyntaxNode node) {
+        var span = RemapNestedSourceSpan(sourceLines, node.SourceSpan);
+        IReadOnlyList<MarkdownSyntaxNode> children = node.Children;
+        if (node.Children.Count > 0) {
+            var remappedChildren = new List<MarkdownSyntaxNode>(node.Children.Count);
+            for (int i = 0; i < node.Children.Count; i++) {
+                remappedChildren.Add(RemapNestedSyntaxNode(sourceLines, node.Children[i]));
+            }
+
+            children = remappedChildren;
+        }
+
+        return new MarkdownSyntaxNode(node.Kind, span, node.Literal, children);
+    }
+
+    private static MarkdownSourceSpan? RemapNestedSourceSpan(
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        MarkdownSourceSpan? span) {
+        if (!span.HasValue) {
+            return null;
+        }
+
+        var value = span.Value;
+        int startIndex = value.StartLine - 1;
+        int endIndex = value.EndLine - 1;
+        if (startIndex < 0 || startIndex >= sourceLines.Count || endIndex < 0 || endIndex >= sourceLines.Count) {
+            return value;
+        }
+
+        int startLine = sourceLines[startIndex].AbsoluteLine;
+        int endLine = sourceLines[endIndex].AbsoluteLine;
+        if (!value.StartColumn.HasValue || !value.EndColumn.HasValue) {
+            return new MarkdownSourceSpan(startLine, endLine);
+        }
+
+        int startColumn = sourceLines[startIndex].StartColumn + value.StartColumn.Value - 1;
+        int endColumn = sourceLines[endIndex].StartColumn + value.EndColumn.Value - 1;
+        return new MarkdownSourceSpan(startLine, startColumn, endLine, endColumn);
     }
 }
