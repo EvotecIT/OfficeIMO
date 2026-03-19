@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -11,7 +10,7 @@ namespace OfficeIMO.MarkdownRenderer.Wpf;
 /// <summary>
 /// WPF/WebView2 markdown host control built on <see cref="OfficeIMO.MarkdownRenderer.MarkdownRenderer"/>.
 /// </summary>
-public partial class MarkdownView : UserControl {
+public partial class MarkdownView : UserControl, IDisposable {
     /// <summary>
     /// Dependency property backing <see cref="Markdown"/>.
     /// </summary>
@@ -86,8 +85,10 @@ public partial class MarkdownView : UserControl {
     private TaskCompletionSource<bool>? _navigationCompletionSource;
     private Action<OfficeIMO.MarkdownRenderer.MarkdownRendererOptions>? _configureRendererOptions;
     private bool _webViewReady;
+    private bool _browserEventsAttached;
     private bool _pendingShellReload = true;
     private bool _pendingBodyReload = true;
+    private bool _disposed;
 
     /// <summary>
     /// Creates a new markdown host control instance.
@@ -101,6 +102,11 @@ public partial class MarkdownView : UserControl {
     /// Raised when the embedded surface requests navigation away from the host page.
     /// </summary>
     public event EventHandler<MarkdownViewNavigationEventArgs>? NavigationRequested;
+
+    /// <summary>
+    /// Raised when an asynchronous render or shell operation fails.
+    /// </summary>
+    public event EventHandler<MarkdownViewErrorEventArgs>? ErrorOccurred;
 
     /// <summary>
     /// Markdown text rendered into the embedded WebView shell.
@@ -165,6 +171,7 @@ public partial class MarkdownView : UserControl {
     public Action<OfficeIMO.MarkdownRenderer.MarkdownRendererOptions>? ConfigureRendererOptions {
         get => _configureRendererOptions;
         set {
+            ThrowIfDisposed();
             _configureRendererOptions = value;
             QueueRender(rebuildShell: true);
         }
@@ -174,6 +181,7 @@ public partial class MarkdownView : UserControl {
     /// Refreshes the currently loaded markdown body inside the existing shell.
     /// </summary>
     public Task RefreshAsync() {
+        ThrowIfDisposed();
         _pendingBodyReload = true;
         return RenderPendingAsync();
     }
@@ -182,49 +190,87 @@ public partial class MarkdownView : UserControl {
     /// Rebuilds the HTML shell and then refreshes the rendered markdown body.
     /// </summary>
     public Task RebuildShellAsync() {
+        ThrowIfDisposed();
         _pendingShellReload = true;
         _pendingBodyReload = true;
         return RenderPendingAsync();
     }
 
-    private async void OnLoaded(object sender, RoutedEventArgs e) {
-        await RenderPendingAsync().ConfigureAwait(true);
+    /// <summary>
+    /// Releases unmanaged resources used by the embedded WebView host.
+    /// </summary>
+    public void Dispose() {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
-    private static async void OnMarkdownChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e) {
+    /// <summary>
+    /// Releases managed resources used by the embedded WebView host.
+    /// </summary>
+    protected virtual void Dispose(bool disposing) {
+        if (_disposed) {
+            return;
+        }
+
+        if (disposing) {
+            Loaded -= OnLoaded;
+            DetachBrowserEvents();
+            _navigationCompletionSource?.TrySetCanceled();
+            _navigationCompletionSource = null;
+            _renderGate.Dispose();
+            Browser.Dispose();
+        }
+
+        _disposed = true;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e) {
+        QueueRender(rebuildShell: true);
+    }
+
+    private static void OnMarkdownChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e) {
         if (dependencyObject is MarkdownView view) {
-            view._pendingBodyReload = true;
-            await view.RenderPendingAsync().ConfigureAwait(true);
+            view.QueueRender(rebuildShell: false);
         }
     }
 
-    private static async void OnBodyHtmlChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e) {
+    private static void OnBodyHtmlChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e) {
         if (dependencyObject is MarkdownView view) {
-            view._pendingBodyReload = true;
-            await view.RenderPendingAsync().ConfigureAwait(true);
+            view.QueueRender(rebuildShell: false);
         }
     }
 
-    private static async void OnShellPropertyChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e) {
+    private static void OnShellPropertyChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e) {
         if (dependencyObject is MarkdownView view) {
-            view._pendingShellReload = true;
-            view._pendingBodyReload = true;
-            await view.RenderPendingAsync().ConfigureAwait(true);
+            view.QueueRender(rebuildShell: true);
         }
     }
 
     private void QueueRender(bool rebuildShell) {
+        if (_disposed) {
+            return;
+        }
+
         if (rebuildShell) {
             _pendingShellReload = true;
         }
 
         _pendingBodyReload = true;
         if (IsLoaded) {
-            _ = RenderPendingAsync();
+            _ = RenderPendingSafeAsync();
+        }
+    }
+
+    private async Task RenderPendingSafeAsync() {
+        try {
+            await RenderPendingAsync().ConfigureAwait(true);
+        } catch (Exception exception) {
+            ReportError("render markdown preview", exception, showOverlay: true);
         }
     }
 
     private async Task RenderPendingAsync() {
+        ThrowIfDisposed();
         if (!IsLoaded) {
             return;
         }
@@ -232,6 +278,7 @@ public partial class MarkdownView : UserControl {
         await _renderGate.WaitAsync().ConfigureAwait(true);
         try {
             while (_pendingShellReload || _pendingBodyReload) {
+                ThrowIfDisposed();
                 var rebuildShell = _pendingShellReload || !_webViewReady;
                 _pendingShellReload = false;
                 _pendingBodyReload = false;
@@ -247,8 +294,6 @@ public partial class MarkdownView : UserControl {
                 await UpdateBodyAsync(options).ConfigureAwait(true);
                 ShowBrowser();
             }
-        } catch (Exception exception) {
-            ShowError(exception.Message);
         } finally {
             _renderGate.Release();
         }
@@ -266,9 +311,7 @@ public partial class MarkdownView : UserControl {
         settings.AreDefaultContextMenusEnabled = false;
         settings.AreDevToolsEnabled = false;
 
-        Browser.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
-        Browser.CoreWebView2.NavigationStarting += OnNavigationStarting;
-        Browser.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
+        AttachBrowserEvents();
         _webViewReady = true;
     }
 
@@ -295,34 +338,12 @@ public partial class MarkdownView : UserControl {
     }
 
     private OfficeIMO.MarkdownRenderer.MarkdownRendererOptions CreateEffectiveOptions() {
-        var options = Preset switch {
-            MarkdownViewPreset.Relaxed => OfficeIMO.MarkdownRenderer.MarkdownRendererPresets.CreateRelaxed(),
-            MarkdownViewPreset.StrictMinimal => OfficeIMO.MarkdownRenderer.MarkdownRendererPresets.CreateStrictMinimal(),
-            _ => OfficeIMO.MarkdownRenderer.MarkdownRendererPresets.CreateStrict()
-        };
-
-        if (!string.IsNullOrWhiteSpace(BaseHref)) {
-            options.BaseHref = BaseHref.Trim();
+        if (!string.IsNullOrWhiteSpace(BaseHref)
+            && !MarkdownViewSupport.TryNormalizeBaseHref(BaseHref, out _)) {
+            Trace.TraceWarning($"[OfficeIMO.MarkdownRenderer.Wpf] Ignoring invalid BaseHref '{BaseHref}'.");
         }
 
-        if (!string.IsNullOrWhiteSpace(ShellCss)) {
-            options.ShellCss = AppendCss(options.ShellCss, ShellCss);
-        }
-
-        _configureRendererOptions?.Invoke(options);
-        return options;
-    }
-
-    private static string AppendCss(string? existing, string? additional) {
-        if (string.IsNullOrWhiteSpace(existing)) {
-            return additional?.Trim() ?? string.Empty;
-        }
-
-        if (string.IsNullOrWhiteSpace(additional)) {
-            return existing!.Trim();
-        }
-
-        return existing!.TrimEnd() + Environment.NewLine + additional!.Trim();
+        return MarkdownViewSupport.CreateEffectiveOptions(Preset, BaseHref, ShellCss, _configureRendererOptions);
     }
 
     private void OnNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e) {
@@ -339,7 +360,7 @@ public partial class MarkdownView : UserControl {
     }
 
     private void OnNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e) {
-        if (!e.IsUserInitiated || !TryGetExternalNavigationUri(e.Uri, out var navigationUri)) {
+        if (!e.IsUserInitiated || !MarkdownViewSupport.TryGetExternalNavigationUri(e.Uri, out var navigationUri)) {
             return;
         }
 
@@ -353,52 +374,54 @@ public partial class MarkdownView : UserControl {
     }
 
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e) {
-        try {
-            using var document = JsonDocument.Parse(e.WebMessageAsJson);
-            if (document.RootElement.ValueKind != JsonValueKind.Object) {
-                return;
-            }
-
-            if (!document.RootElement.TryGetProperty("type", out var typeElement)
-                || !string.Equals(typeElement.GetString(), "omd.copy", StringComparison.Ordinal)) {
-                return;
-            }
-
-            if (document.RootElement.TryGetProperty("text", out var textElement)
-                && textElement.ValueKind == JsonValueKind.String) {
-                var text = textElement.GetString();
-                if (!string.IsNullOrEmpty(text)) {
-                    Clipboard.SetText(text);
-                }
-            }
-        } catch {
-            // Ignore malformed or unsupported shell messages.
+        if (MarkdownViewSupport.TryGetClipboardText(e.WebMessageAsJson, out var text)) {
+            Clipboard.SetText(text);
         }
     }
 
-    private static bool TryGetExternalNavigationUri(string? rawUri, out Uri navigationUri) {
-        navigationUri = null!;
-        if (string.IsNullOrWhiteSpace(rawUri) || !Uri.TryCreate(rawUri, UriKind.Absolute, out var parsed)) {
-            return false;
+    private void AttachBrowserEvents() {
+        if (_browserEventsAttached || Browser.CoreWebView2 is null) {
+            return;
         }
 
-        if (string.Equals(parsed.Scheme, "about", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(parsed.Scheme, "data", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(parsed.Scheme, "javascript", StringComparison.OrdinalIgnoreCase)) {
-            return false;
-        }
-
-        navigationUri = parsed;
-        return true;
+        Browser.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
+        Browser.CoreWebView2.NavigationStarting += OnNavigationStarting;
+        Browser.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
+        _browserEventsAttached = true;
     }
 
-    private static void TryOpenExternal(Uri navigationUri) {
+    private void DetachBrowserEvents() {
+        if (!_browserEventsAttached || Browser.CoreWebView2 is null) {
+            return;
+        }
+
+        Browser.CoreWebView2.WebMessageReceived -= OnWebMessageReceived;
+        Browser.CoreWebView2.NavigationStarting -= OnNavigationStarting;
+        Browser.CoreWebView2.NavigationCompleted -= OnNavigationCompleted;
+        _browserEventsAttached = false;
+    }
+
+    private void TryOpenExternal(Uri navigationUri) {
         try {
             Process.Start(new ProcessStartInfo(navigationUri.AbsoluteUri) {
                 UseShellExecute = true
             });
-        } catch {
-            // Ignore shell-launch failures. Hosts can handle NavigationRequested for custom behavior.
+        } catch (Exception exception) {
+            Trace.TraceWarning($"[OfficeIMO.MarkdownRenderer.Wpf] Failed to open external URI '{navigationUri}'. {exception}");
+        }
+    }
+
+    private void ReportError(string context, Exception exception, bool showOverlay) {
+        Trace.TraceError($"[OfficeIMO.MarkdownRenderer.Wpf] Failed to {context}. {exception}");
+        ErrorOccurred?.Invoke(this, new MarkdownViewErrorEventArgs(context, exception));
+        if (showOverlay) {
+            ShowError(exception.Message);
+        }
+    }
+
+    private void ThrowIfDisposed() {
+        if (_disposed) {
+            throw new ObjectDisposedException(nameof(MarkdownView));
         }
     }
 
