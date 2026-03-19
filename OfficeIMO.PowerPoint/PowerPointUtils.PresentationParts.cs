@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using Ap = DocumentFormat.OpenXml.ExtendedProperties;
@@ -127,6 +128,56 @@ namespace OfficeIMO.PowerPoint {
             if (packageProperties.Modified == null) {
                 packageProperties.Modified = timestamp;
             }
+        }
+
+        internal static void UpdateDocumentProperties(PresentationPart presentationPart) {
+            EnsureDocumentProperties(presentationPart);
+
+            if (presentationPart.OpenXmlPackage is not PresentationDocument presentationDocument) {
+                return;
+            }
+
+            Ap.Properties properties = presentationDocument.ExtendedFilePropertiesPart!.Properties!;
+            properties.Slides ??= new Ap.Slides();
+            properties.Notes ??= new Ap.Notes();
+            properties.HiddenSlides ??= new Ap.HiddenSlides();
+            properties.PresentationFormat ??= new Ap.PresentationFormat();
+
+            SlideId[] slideIds = presentationPart.Presentation?.SlideIdList?.Elements<SlideId>().ToArray() ?? Array.Empty<SlideId>();
+            properties.Slides.Text = slideIds.Length.ToString(CultureInfo.InvariantCulture);
+            properties.Notes.Text = presentationPart.SlideParts.Count(slidePart => slidePart.NotesSlidePart != null)
+                .ToString(CultureInfo.InvariantCulture);
+            properties.HiddenSlides.Text = slideIds.Count(IsHiddenSlide).ToString(CultureInfo.InvariantCulture);
+            properties.PresentationFormat.Text = GetPresentationFormat(presentationPart.Presentation?.SlideSize);
+
+            var packageProperties = presentationDocument.PackageProperties;
+            if (string.IsNullOrEmpty(packageProperties.LastModifiedBy)) {
+                packageProperties.LastModifiedBy = DefaultDocumentAuthor;
+            }
+
+            packageProperties.Modified = DateTime.UtcNow;
+        }
+
+        private static bool IsHiddenSlide(SlideId slideId) {
+            OpenXmlAttribute? showAttribute = slideId.GetAttributes()
+                .FirstOrDefault(attribute =>
+                    attribute.LocalName == "show" && string.IsNullOrEmpty(attribute.NamespaceUri));
+            if (showAttribute == null || string.IsNullOrEmpty(showAttribute.Value)) {
+                return false;
+            }
+
+            return string.Equals(showAttribute.Value, "0", StringComparison.Ordinal) ||
+                   string.Equals(showAttribute.Value, "false", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string GetPresentationFormat(SlideSize? slideSize) {
+            return slideSize?.Type?.Value switch {
+                SlideSizeValues.Screen4x3 => "Standard",
+                SlideSizeValues.Screen16x9 => "Widescreen",
+                SlideSizeValues.Screen16x10 => "Widescreen",
+                SlideSizeValues.Custom => "Custom",
+                _ => "Widescreen"
+            };
         }
 
         private static void EnsureThumbnail(PresentationDocument doc) {
