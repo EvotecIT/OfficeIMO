@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -987,21 +988,28 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
+            Exception? pendingException = null;
             try {
                 if (_document != null) {
                     if (_copyPackageToSourceOnDispose) {
-                        try {
-                            Save();
-                        } catch {
-                            // ignored
-                        }
+                        Save();
                     }
                     _document.Dispose();
                 }
+            } catch (Exception ex) {
+                pendingException = ex;
             } finally {
                 _document = null;
-                PersistPackageToSourceIfNeeded();
+                try {
+                    PersistPackageToSourceIfNeeded(persistChanges: pendingException == null);
+                } catch (Exception ex) when (pendingException == null) {
+                    pendingException = ex;
+                }
                 _disposed = true;
+            }
+
+            if (pendingException != null) {
+                ExceptionDispatchInfo.Capture(pendingException).Throw();
             }
         }
 
@@ -1507,17 +1515,15 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private void PersistPackageToSourceIfNeeded() {
+        private void PersistPackageToSourceIfNeeded(bool persistChanges) {
             if (_packageStream == null) {
                 return;
             }
 
             try {
-                if (_copyPackageToSourceOnDispose && _sourceStream != null) {
+                if (persistChanges && _copyPackageToSourceOnDispose && _sourceStream != null) {
                     PersistPackageToSource();
                 }
-            } catch {
-                // ignored
             } finally {
                 DisposeStream(_packageStream);
 
@@ -1921,7 +1927,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static P14.Section CreateSection(string name, IReadOnlyList<uint> slideIds) {
             P14.Section section = new() {
-                Id = Guid.NewGuid().ToString("D"),
+                Id = CreateSectionId(),
                 Name = name
             };
             P14.SectionSlideIdList list = new();
@@ -1930,6 +1936,10 @@ namespace OfficeIMO.PowerPoint {
             }
             section.Append(list);
             return section;
+        }
+
+        private static string CreateSectionId() {
+            return Guid.NewGuid().ToString("B").ToUpperInvariant();
         }
 
         private static P14.SectionSlideIdList EnsureSectionSlideIdList(P14.Section section) {

@@ -100,6 +100,18 @@ namespace OfficeIMO.Tests {
             Assert.Contains("support seeking", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
+        [Fact]
+        public void Create_ToStream_WithAutoSaveTrue_PropagatesCopyBackFailure() {
+            using var stream = new FailingCopyBackStream();
+
+            IOException exception = Assert.Throws<IOException>(() => {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: true);
+                presentation.AddSlide();
+            });
+
+            Assert.Contains("SetLength failed", exception.Message, StringComparison.Ordinal);
+        }
+
         private static void AssertValidPackage(MemoryStream stream, int expectedSlides) {
             Assert.True(stream.Length > 0);
             stream.Position = 0;
@@ -160,6 +172,12 @@ namespace OfficeIMO.Tests {
                 }
 
                 base.Dispose(disposing);
+            }
+        }
+
+        private sealed class FailingCopyBackStream : MemoryStream {
+            public override void SetLength(long value) {
+                throw new IOException("SetLength failed during copy-back.");
             }
         }
     }

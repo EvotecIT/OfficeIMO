@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -46,6 +47,41 @@ namespace OfficeIMO.Tests {
             }
 
             File.Delete(filePath);
+        }
+
+        [Fact]
+        public void MorphTransition_ValidatesAndRoundTrips() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    slide.Transition = SlideTransition.Morph;
+
+                    presentation.Save();
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointSlide slide = presentation.Slides.Single();
+                    Assert.Equal(SlideTransition.Morph, slide.Transition);
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    OpenXmlValidator validator = new(FileFormatVersions.Microsoft365);
+                    List<ValidationErrorInfo> errors = validator.Validate(document).ToList();
+
+                    Assert.Empty(errors);
+                    Assert.Contains("AlternateContent", slidePart.Slide.OuterXml, StringComparison.Ordinal);
+                    Assert.Contains("morph", slidePart.Slide.OuterXml, StringComparison.Ordinal);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
         }
 
         [Fact]

@@ -20,6 +20,7 @@ namespace OfficeIMO.PowerPoint {
         private uint _nextShapeId = 2;
         private const string P14Namespace = "http://schemas.microsoft.com/office/powerpoint/2010/main";
         private const string P159Namespace = "http://schemas.microsoft.com/office/powerpoint/2015/09/main";
+        private const string MarkupCompatibilityNamespace = "http://schemas.openxmlformats.org/markup-compatibility/2006";
 
         internal PowerPointSlide(SlidePart slidePart) {
             _slidePart = slidePart;
@@ -209,7 +210,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public SlideTransition Transition {
             get {
-                Transition? t = _slidePart.Slide.Transition;
+                Transition? t = GetTransitionElement();
                 if (t == null) {
                     return SlideTransition.None;
                 }
@@ -287,8 +288,13 @@ namespace OfficeIMO.PowerPoint {
                 return SlideTransition.None;
             }
             set {
+                RemoveTransitionMarkup();
                 if (value == SlideTransition.None) {
-                    _slidePart.Slide.Transition = null;
+                    return;
+                }
+
+                if (value == SlideTransition.Morph) {
+                    SetMorphTransition();
                     return;
                 }
 
@@ -351,10 +357,6 @@ namespace OfficeIMO.PowerPoint {
                         transition.AddNamespaceDeclaration("p14", P14Namespace);
                         transition.Append(new P14.FerrisTransition { Direction = P14.TransitionLeftRightDirectionTypeValues.Right });
                         break;
-                    case SlideTransition.Morph:
-                        transition.AddNamespaceDeclaration("p159", P159Namespace);
-                        transition.Append(CreateMorphTransition());
-                        break;
                 }
 
                 _slidePart.Slide.Transition = transition;
@@ -399,13 +401,111 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool HasMorphTransition(Transition transition) {
             return transition.ChildElements.Any(element =>
-                element.LocalName == "morph" && element.NamespaceUri == P159Namespace);
+                (element.LocalName == "morph" && element.NamespaceUri == P159Namespace) ||
+                (element.LocalName == "prstTrans" &&
+                 element.NamespaceUri == "http://schemas.microsoft.com/office/powerpoint/2012/main" &&
+                 string.Equals(element.GetAttribute("prst", string.Empty).Value, "morph", StringComparison.OrdinalIgnoreCase)));
         }
 
         private static OpenXmlUnknownElement CreateMorphTransition() {
             OpenXmlUnknownElement morph = new OpenXmlUnknownElement("p159", "morph", P159Namespace);
+            morph.AddNamespaceDeclaration("p159", P159Namespace);
             morph.SetAttribute(new OpenXmlAttribute("option", string.Empty, "byObject"));
             return morph;
+        }
+
+        private Transition? GetTransitionElement() {
+            Transition? transition = _slidePart.Slide.Transition;
+            if (transition != null) {
+                return transition;
+            }
+
+            AlternateContent? alternateContent = GetTransitionAlternateContent();
+            if (alternateContent == null) {
+                return null;
+            }
+
+            foreach (AlternateContentChoice choice in alternateContent.Elements<AlternateContentChoice>()) {
+                Transition? choiceTransition = choice.GetFirstChild<Transition>();
+                if (choiceTransition != null) {
+                    return choiceTransition;
+                }
+            }
+
+            return alternateContent.GetFirstChild<AlternateContentFallback>()?.GetFirstChild<Transition>();
+        }
+
+        private AlternateContent? GetTransitionAlternateContent() {
+            return _slidePart.Slide.Elements<AlternateContent>()
+                .FirstOrDefault(content =>
+                    content.Elements<AlternateContentChoice>().Any(choice => choice.GetFirstChild<Transition>() != null) ||
+                    content.GetFirstChild<AlternateContentFallback>()?.GetFirstChild<Transition>() != null);
+        }
+
+        private void RemoveTransitionMarkup() {
+            _slidePart.Slide.Transition = null;
+            GetTransitionAlternateContent()?.Remove();
+        }
+
+        private void SetMorphTransition() {
+            Slide slide = _slidePart.Slide;
+            slide.AddNamespaceDeclaration("mc", MarkupCompatibilityNamespace);
+            slide.AddNamespaceDeclaration("p159", P159Namespace);
+            slide.MCAttributes = MergeIgnorableNamespace(slide.MCAttributes, "p159");
+
+            Transition morphTransition = new();
+            morphTransition.AddNamespaceDeclaration("p159", P159Namespace);
+            morphTransition.Append(CreateMorphTransition());
+
+            AlternateContentChoice choice = new() { Requires = "p159" };
+            choice.Append(morphTransition);
+
+            AlternateContentFallback fallback = new();
+            fallback.Append(new Transition(new FadeTransition()));
+
+            AlternateContent alternateContent = new();
+            alternateContent.Append(choice);
+            alternateContent.Append(fallback);
+
+            InsertTransitionAlternateContent(alternateContent);
+        }
+
+        private void InsertTransitionAlternateContent(AlternateContent alternateContent) {
+            Slide slide = _slidePart.Slide;
+            OpenXmlElement? insertBefore = slide.GetFirstChild<Timing>();
+            insertBefore ??= slide.GetFirstChild<ExtensionListWithModification>();
+            if (insertBefore != null) {
+                slide.InsertBefore(alternateContent, insertBefore);
+                return;
+            }
+
+            if (slide.ColorMapOverride != null) {
+                slide.InsertAfter(alternateContent, slide.ColorMapOverride);
+                return;
+            }
+
+            if (slide.CommonSlideData != null) {
+                slide.InsertAfter(alternateContent, slide.CommonSlideData);
+                return;
+            }
+
+            slide.Append(alternateContent);
+        }
+
+        private static MarkupCompatibilityAttributes MergeIgnorableNamespace(
+            MarkupCompatibilityAttributes? existingAttributes,
+            string namespacePrefix) {
+            List<string> prefixes = (existingAttributes?.Ignorable?.Value ?? string.Empty)
+                .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                .ToList();
+
+            if (!prefixes.Contains(namespacePrefix, StringComparer.Ordinal)) {
+                prefixes.Add(namespacePrefix);
+            }
+
+            return new MarkupCompatibilityAttributes {
+                Ignorable = string.Join(" ", prefixes)
+            };
         }
 
         private static void RemoveBackgroundFillChildren(BackgroundProperties properties) {
