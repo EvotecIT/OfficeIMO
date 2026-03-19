@@ -20,10 +20,10 @@
 
 Term A: First paragraph
 
-Second paragraph
+  Second paragraph
 Term B: First paragraph
 
-Second paragraph
+  Second paragraph
 
 [portable.markdown]
 # HTML Corpus
@@ -34,10 +34,10 @@ Second paragraph
 
 Term A: First paragraph
 
-Second paragraph
+  Second paragraph
 Term B: First paragraph
 
-Second paragraph
+  Second paragraph
 
 [rendered.html]
-<h1 id="html-corpus">HTML Corpus</h1><table><thead><tr><th>Section</th><th>Notes</th></tr></thead><tbody><tr><td>Alpha</td><td><p>Intro</p><blockquote><p>Quoted</p></blockquote></td></tr></tbody></table><dl><dt>Term A</dt><dd><p>First paragraph</p><p>Second paragraph</p></dd><dt>Term B</dt><dd><p>First paragraph</p><p>Second paragraph</p></dd></dl>
+<h1 id="html-corpus">HTML Corpus</h1><table><thead><tr><th>Section</th><th>Notes</th></tr></thead><tbody><tr><td>Alpha</td><td><p>Intro</p><blockquote><p>Quoted</p></blockquote></td></tr></tbody></table><dl><dt>Term A</dt><dt>Term B</dt><dd><p>First paragraph</p><p>Second paragraph</p></dd></dl>
