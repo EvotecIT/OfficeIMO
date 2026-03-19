@@ -33,6 +33,7 @@ Each package is shipped independently under the MIT license unless noted otherwi
 - [OfficeIMO.Markdown](OfficeIMO.Markdown/README.md)
 - [OfficeIMO.Markdown.Html](OfficeIMO.Markdown.Html/README.md)
 - [OfficeIMO.MarkdownRenderer](OfficeIMO.MarkdownRenderer/README.md)
+- [OfficeIMO.MarkdownRenderer.Wpf](OfficeIMO.MarkdownRenderer.Wpf/README.md)
 - [OfficeIMO.MarkdownRenderer.IntelligenceX](OfficeIMO.MarkdownRenderer.IntelligenceX/README.md)
 - [OfficeIMO.MarkdownRenderer.SamplePlugin](OfficeIMO.MarkdownRenderer.SamplePlugin/README.md)
 - Converters
@@ -60,6 +61,7 @@ Each package is shipped independently under the MIT license unless noted otherwi
 - `OfficeIMO.Markdown`: markdown builder, typed reader/AST, HTML renderer, front matter, TOC, callouts, and query helpers
 - `OfficeIMO.Markdown.Html`: HTML-to-Markdown AST bridge targeting the OfficeIMO.Markdown document model
 - `OfficeIMO.MarkdownRenderer`: WebView/browser-friendly rendering shell and incremental update helpers
+- `OfficeIMO.MarkdownRenderer.Wpf`: reusable WPF/WebView2 `MarkdownView` host layered on top of the generic renderer
 - `OfficeIMO.MarkdownRenderer.IntelligenceX`: first-party IntelligenceX plugin pack layered on top of the generic renderer
 - `OfficeIMO.MarkdownRenderer.SamplePlugin`: sample third-party-style plugin pack showing shared visual host rendering plus HTML round-trip hints
 - `OfficeIMO.Markdown.Benchmarks`: representative parse/render benchmark harness
@@ -77,6 +79,7 @@ Each package is shipped independently under the MIT license unless noted otherwi
 - Word, PowerPoint, Visio: netstandard2.0, net472, net8.0, net10.0
 - Excel, CSV: netstandard2.0, net472, net8.0, net10.0
 - Markdown, MarkdownRenderer: netstandard2.0, net472, net8.0, net10.0
+- MarkdownRenderer.Wpf: net472, net8.0-windows, net10.0-windows for the WPF/WebView2 surface, plus shared helper code on net8.0 and net10.0 for cross-platform validation/tests
 
 ## AOT / Trimming
 
@@ -128,15 +131,19 @@ flowchart TB
   Md["OfficeIMO.Markdown"]
   MdHtml["OfficeIMO.Markdown.Html"]
   MdRenderer["OfficeIMO.MarkdownRenderer"]
+  MdRendererWpf["OfficeIMO.MarkdownRenderer.Wpf"]
   MdRendererIx["OfficeIMO.MarkdownRenderer.IntelligenceX"]
   MdRendererSample["OfficeIMO.MarkdownRenderer.SamplePlugin"]
   MdBench["OfficeIMO.Markdown.Benchmarks"]
   WordMd["OfficeIMO.Word.Markdown"]
   Json["System.Text.Json"]
+  WebView2["Microsoft.Web.WebView2"]
 
   MdHtml --> Md
   MdRenderer --> Md
   MdRenderer --> MdHtml
+  MdRendererWpf --> MdRenderer
+  MdRendererWpf --> WebView2
   MdRendererIx --> MdRenderer
   MdRendererSample --> MdRenderer
   MdRenderer --> Json
@@ -188,6 +195,7 @@ flowchart TD
 - Word to PDF: add `OfficeIMO.Word` + `OfficeIMO.Word.Pdf`
 - Building or parsing Markdown directly: add `OfficeIMO.Markdown`
 - Hosting Markdown in WebView2 or a browser shell: add `OfficeIMO.MarkdownRenderer`
+- Hosting Markdown in a WPF desktop app with WebView2: add `OfficeIMO.MarkdownRenderer.Wpf`
 - Hosting IntelligenceX transcript/chat surfaces on top of the generic renderer: add `OfficeIMO.MarkdownRenderer.IntelligenceX`
 - Benchmarking markdown parse/render behavior before release: use `OfficeIMO.Markdown.Benchmarks`
 - Excel read/write and reporting: add `OfficeIMO.Excel`
@@ -199,7 +207,7 @@ flowchart TD
 
 For the current markdown package line:
 
-- package docs live in [OfficeIMO.Markdown/README.md](OfficeIMO.Markdown/README.md) and [OfficeIMO.MarkdownRenderer/README.md](OfficeIMO.MarkdownRenderer/README.md)
+- package docs live in [OfficeIMO.Markdown/README.md](OfficeIMO.Markdown/README.md), [OfficeIMO.MarkdownRenderer/README.md](OfficeIMO.MarkdownRenderer/README.md), and [OfficeIMO.MarkdownRenderer.Wpf/README.md](OfficeIMO.MarkdownRenderer.Wpf/README.md)
 - benchmark harness lives in `OfficeIMO.Markdown.Benchmarks`
 - release steps live in [Docs/officeimo.markdown.release-checklist.md](Docs/officeimo.markdown.release-checklist.md)
 
@@ -215,7 +223,7 @@ See each project `.csproj` for exact package ranges.
 
 ## Licenses
 
-- `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.CSV`, `OfficeIMO.PowerPoint`, `OfficeIMO.Markdown`, `OfficeIMO.MarkdownRenderer`, `OfficeIMO.Markdown.Html`, `OfficeIMO.Word.Html`, `OfficeIMO.Word.Markdown`, `OfficeIMO.Word.Pdf`: MIT
+- `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.CSV`, `OfficeIMO.PowerPoint`, `OfficeIMO.Markdown`, `OfficeIMO.MarkdownRenderer`, `OfficeIMO.MarkdownRenderer.Wpf`, `OfficeIMO.Markdown.Html`, `OfficeIMO.Word.Html`, `OfficeIMO.Word.Markdown`, `OfficeIMO.Word.Pdf`: MIT
 - `OfficeIMO.Visio`: license still being finalized
 
 Third-party dependency licenses are governed by their upstream projects.
