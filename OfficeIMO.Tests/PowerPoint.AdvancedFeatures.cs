@@ -85,6 +85,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AllSupportedTransitions_ValidateAndRoundTrip() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            SlideTransition[] transitions = Enum.GetValues(typeof(SlideTransition)).Cast<SlideTransition>().ToArray();
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    foreach (SlideTransition transition in transitions) {
+                        PowerPointSlide slide = presentation.AddSlide();
+                        slide.AddTitle(transition.ToString());
+                        slide.Transition = transition;
+                    }
+
+                    presentation.Save();
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointSlide[] slides = presentation.Slides.ToArray();
+                    Assert.Equal(transitions.Length, slides.Length);
+
+                    for (int i = 0; i < transitions.Length; i++) {
+                        Assert.Equal(transitions[i], slides[i].Transition);
+                    }
+
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void CanAddMultipleChartsWithUniqueAxisIds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
