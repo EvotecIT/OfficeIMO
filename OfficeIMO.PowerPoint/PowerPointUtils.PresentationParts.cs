@@ -159,25 +159,33 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool IsHiddenSlide(SlideId slideId) {
-            OpenXmlAttribute? showAttribute = slideId.GetAttributes()
+            string? showValue = slideId.GetAttributes()
                 .FirstOrDefault(attribute =>
-                    attribute.LocalName == "show" && string.IsNullOrEmpty(attribute.NamespaceUri));
-            if (showAttribute == null || string.IsNullOrEmpty(showAttribute.Value)) {
+                    attribute.LocalName == "show" && string.IsNullOrEmpty(attribute.NamespaceUri))
+                .Value;
+            if (string.IsNullOrEmpty(showValue)) {
                 return false;
             }
 
-            return string.Equals(showAttribute.Value, "0", StringComparison.Ordinal) ||
-                   string.Equals(showAttribute.Value, "false", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(showValue, "0", StringComparison.Ordinal) ||
+                   string.Equals(showValue, "false", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string GetPresentationFormat(SlideSize? slideSize) {
-            return slideSize?.Type?.Value switch {
-                SlideSizeValues.Screen4x3 => "Standard",
-                SlideSizeValues.Screen16x9 => "Widescreen",
-                SlideSizeValues.Screen16x10 => "Widescreen",
-                SlideSizeValues.Custom => "Custom",
-                _ => "Widescreen"
-            };
+            SlideSizeValues? type = slideSize?.Type?.Value;
+            if (type == SlideSizeValues.Screen4x3) {
+                return "Standard";
+            }
+
+            if (type == SlideSizeValues.Custom) {
+                return "Custom";
+            }
+
+            if (type == SlideSizeValues.Screen16x9 || type == SlideSizeValues.Screen16x10) {
+                return "Widescreen";
+            }
+
+            return "Widescreen";
         }
 
         private static void EnsureThumbnail(PresentationDocument doc) {
